@@ -208,19 +208,29 @@ mod tests {
     }
 
     #[test]
-    fn candidate_sockets_cover_numbered_instances_and_sandboxes() {
-        let paths = candidate_sockets();
-        let names: Vec<String> = paths
-            .iter()
-            .filter_map(|p| p.file_name())
-            .map(|n| n.to_string_lossy().into_owned())
-            .collect();
-        assert!(names.contains(&"discord-ipc-0".to_string()));
+    fn candidate_sockets_cover_numbered_instances() {
+        // Matched against the whole string rather than `file_name()`, because a Windows pipe name
+        // is a device path and how `Path` splits one is not worth depending on here.
+        let paths: Vec<String> =
+            candidate_sockets().iter().map(|p| p.to_string_lossy().into_owned()).collect();
+        assert!(paths.iter().any(|p| p.ends_with("discord-ipc-0")));
         // A second instance takes the next slot, so stopping at zero would miss it.
-        assert!(names.contains(&"discord-ipc-1".to_string()));
+        assert!(paths.iter().any(|p| p.ends_with("discord-ipc-1")));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn candidate_sockets_cover_sandboxed_installs() {
+        // Flatpak and Snap each nest the socket further. Windows has a flat pipe namespace with
+        // no equivalent, which is why this is Unix-only rather than a cross-platform claim.
+        let paths = candidate_sockets();
         assert!(
             paths.iter().any(|p| p.to_string_lossy().contains("com.discordapp.Discord")),
             "a Flatpak install nests the socket"
+        );
+        assert!(
+            paths.iter().any(|p| p.to_string_lossy().contains("snap.discord")),
+            "a Snap install nests the socket"
         );
     }
 
