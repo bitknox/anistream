@@ -1,0 +1,131 @@
+---
+title: Installation
+description: Prebuilt binaries for macOS, Linux and Windows, or build from source.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Every release on the [releases page](https://github.com/bitknox/anistream/releases) ships two ways
+to install, and both give you the same build.
+
+**An installer** — `.pkg` on macOS, `setup.exe` on Windows, `.deb` on Debian and Ubuntu. Each one
+puts `anistream` on your `PATH` *and* adds a launcher, so you can type it or click it. The launcher
+opens your terminal, since that is where anistream lives.
+
+**An archive** — `.tar.gz` or `.zip` holding just the binary, for putting on `PATH` yourself.
+
+Everything ships with a `.sha256` worth checking first.
+
+:::caution[Not code-signed]
+macOS Gatekeeper refuses the `.pkg` on first open — right-click it and choose **Open**. Windows
+SmartScreen warns about the installer — choose **More info**, then **Run anyway**.
+:::
+
+**mpv and ffmpeg are not bundled.** anistream drives mpv for playback and shells out to ffmpeg when
+muxing subtitles into a completed download. The `.deb` declares both as dependencies; on macOS and
+Windows, install them yourself — see Prerequisites below.
+
+There is no Homebrew formula and no `cargo install` yet. To build from source instead, install the
+prerequisites and then build.
+
+## Prerequisites
+
+<Tabs syncKey="platform">
+<TabItem label="macOS">
+
+```sh
+brew install mpv ffmpeg cmake
+rustup toolchain install 1.97.1    # pinned by rust-toolchain.toml
+```
+
+</TabItem>
+<TabItem label="Linux">
+
+```sh
+# Debian / Ubuntu
+sudo apt install mpv ffmpeg cmake build-essential pkg-config
+
+# Fedora
+sudo dnf install mpv ffmpeg cmake gcc-c++
+
+# Arch
+sudo pacman -S mpv ffmpeg cmake base-devel
+```
+
+Install Rust from [rustup.rs](https://rustup.rs) if it is not already there. The toolchain version
+comes from `rust-toolchain.toml`.
+
+</TabItem>
+<TabItem label="Windows">
+
+```powershell
+winget install --id Rustlang.Rustup
+winget install --id Kitware.CMake
+winget install --id NASM.NASM
+winget install --id Gyan.FFmpeg
+winget install --id shinchiro.mpv
+winget install --id Microsoft.VisualStudio.2022.BuildTools
+```
+
+The Visual Studio installer needs the **Desktop development with C++** workload — the bare package
+does not include the C compiler on its own. NASM is there because the torrent stack's crypto
+assembles its own primitives on Windows.
+
+Open a new terminal afterwards so the `PATH` changes apply, and check that `mpv` and `ffmpeg`
+resolve. Some winget packages install the binary without adding it to `PATH`, and anistream looks
+for both there.
+
+</TabItem>
+</Tabs>
+
+## Build from source
+
+```sh
+git clone https://github.com/bitknox/anistream
+cd anistream
+cargo run --release
+```
+
+The first build is slow — BoringSSL, librqbit and a WASM runtime are in the tree — and incremental
+after that. The binary ends up at `target/release/anistream` if you want it on your `PATH`.
+
+## Where things live
+
+<Tabs syncKey="platform">
+<TabItem label="macOS">
+
+| | |
+|---|---|
+| Config | `~/Library/Application Support/anistream/config.toml` |
+| History database | `~/Library/Application Support/anistream/anistream.db` |
+| Plugins | `~/Library/Application Support/anistream/plugins/*.wasm` |
+
+</TabItem>
+<TabItem label="Linux">
+
+| | |
+|---|---|
+| Config | `~/.config/anistream/config.toml` |
+| History database | `~/.local/share/anistream/anistream.db` |
+| Plugins | `~/.config/anistream/plugins/*.wasm` |
+
+</TabItem>
+<TabItem label="Windows">
+
+| | |
+|---|---|
+| Config | `%APPDATA%\anistream\config.toml` |
+| History database | `%APPDATA%\anistream\data\anistream.db` |
+| Plugins | `%APPDATA%\anistream\plugins\*.wasm` |
+
+</TabItem>
+</Tabs>
+
+No config file is required — one is only written when you change something in the Settings screen,
+and those writes are format-preserving, so comments you add by hand survive.
+
+:::note
+Running from `cargo` rather than an installed binary has one consequence for tracker tokens: macOS
+keys keychain access on the binary, and every rebuild produces a new one. See
+[token storage](/docs/guides/trackers-sync/#token-storage).
+:::

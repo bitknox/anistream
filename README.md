@@ -28,11 +28,32 @@ what you are watching.
 Kitsu sync is the one tracker not built. Crunchyroll streams are DRM-protected, so mpv cannot play
 them and anistream will not work around that — episodes open in Crunchyroll instead.
 
+## Install
+
+Prebuilt binaries for macOS, Linux and Windows are on the
+[releases page](https://github.com/bitknox/anistream/releases). Unpack one and put `anistream` on
+your `PATH`. mpv and ffmpeg are not bundled — install those first.
+
+To build from source instead, start with the requirements below.
+
 ## Requirements
+
+macOS:
 
 ```sh
 brew install mpv ffmpeg cmake      # cmake is for wreq's BoringSSL
 rustup toolchain install 1.97.1    # pinned by rust-toolchain.toml
+```
+
+Windows:
+
+```powershell
+winget install --id Rustlang.Rustup
+winget install --id Kitware.CMake
+winget install --id NASM.NASM                              # aws-lc-sys assembles its own crypto
+winget install --id Gyan.FFmpeg
+winget install --id shinchiro.mpv
+winget install --id Microsoft.VisualStudio.2022.BuildTools # "Desktop development with C++"
 ```
 
 Add `rustup target add wasm32-wasip2` if you want to build plugins.

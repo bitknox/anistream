@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=anistream
+GenericName=Anime streaming client
+Comment=Browse, track and watch anime from the terminal
+# Terminal=true is the whole trick for a TUI: the launcher opens the user's terminal emulator
+# and runs anistream inside it, so the desktop entry and the PATH binary are the same program.
+Terminal=true
+Exec=anistream
+Icon=anistream
+Categories=AudioVideo;Video;Player;
+Keywords=anime;anilist;mpv;torrent;tui;
+StartupNotify=false

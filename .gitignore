@@ -9,6 +9,11 @@
 /mpv-shot*.jpg
 /mpv-shot*.png
 
+# Installer output. NSIS writes OutFile next to the .nsi, and the .icns is built from the
+# committed .iconset at package time — neither is source.
+/packaging/**/*-setup.exe
+/assets/icon/*.icns
+
 # Local runtime artefacts, should any land in-tree during development.
 /anistream.db*
 /.anistream/
