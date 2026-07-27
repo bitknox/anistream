@@ -14,11 +14,31 @@ use crate::{
     layout::{self, Frame},
     nav::{Focus, Overlay, Section, StageView},
     theme::{
-        Role,
+        Palette, Role,
         glyph::{self, OBI},
     },
     widgets::{Divider, Hairline, Header, ObiList, ObiRow, Rail, StatusLine, truncate, wrap},
 };
+
+/// Draw a progress meter with the empty track at hairline weight.
+///
+/// The track is never painted in the fill's role: an empty meter in fill colour reads as a
+/// solid bar, and a column of them (26 unwatched episodes) stacks into a slab. At `Rule`
+/// weight the track recedes the way every other structural element here does.
+fn set_meter(
+    buf: &mut Buffer,
+    x: u16,
+    y: u16,
+    palette: &Palette,
+    fraction: f64,
+    width: usize,
+    fill: Role,
+) {
+    let (filled, empty) = glyph::meter_parts(fraction, width);
+    let filled_width = filled.chars().count() as u16;
+    buf.set_string(x, y, &filled, palette.style(fill));
+    buf.set_string(x + filled_width, y, &empty, palette.style(Role::Rule));
+}
 
 /// Paint a whole frame.
 pub fn render(frame: &mut TFrame<'_>, app: &App) {
@@ -65,7 +85,10 @@ fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
     // than discovered when playback fails.
     let torrent_ready = app.config.providers.torrent.enabled;
     chips.push((
-        format!("{provider} {}", if torrent_ready { "●" } else { "▲" }),
+        format!(
+            "{provider} {}",
+            if torrent_ready { glyph::STATE_READY } else { glyph::STATE_DEGRADED }
+        ),
         if torrent_ready { Role::State } else { Role::Alert },
     ));
 
@@ -77,7 +100,12 @@ fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
     }
 
     // One chip per tracker, carrying the queue depth — the answer to "did my progress actually
-    // go anywhere?", which is the only sync question anyone asks.
+    // go anywhere?", which is the only sync question anyone asks. Trackers are a different kind
+    // of information from the source/VPN cluster before them, so the groups get a hairline
+    // interpunct between them rather than reading as one undifferentiated string.
+    if !chips.is_empty() && !app.sync.is_empty() {
+        chips.push(("·".into(), Role::Rule));
+    }
     for state in &app.sync {
         chips
             .push((state.badge(), if state.is_alerting() { Role::Alert } else { Role::State }));
@@ -129,7 +157,8 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
     let mut y = area.top();
 
     if section == Section::Search {
-        let cursor = if app.is_typing() { "▏" } else { "" };
+        let cursor =
+            if app.is_typing() { String::from(glyph::OBI_THIN) } else { String::new() };
         let prompt = format!("{} {}{cursor}", glyph::eyebrow("find"), app.search_query);
         buf.set_string(
             area.left(),
@@ -449,13 +478,26 @@ fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
                     storage,
                     area.right().saturating_sub(area.left() + COL_TOKEN + 1) as usize,
                 ),
-                app.palette.style(if state.storage_degraded {
-                    Role::Alert
-                } else {
-                    Role::TextDim
-                }),
+                app.palette.style(Role::TextDim),
             );
         }
+        y += 1;
+    }
+
+    // File-stored tokens are worth knowing about on a shared machine, but they are a working
+    // state, not an error — so the fact is stated once, quietly, rather than a salmon cell
+    // per row that reads as three failures.
+    if app.sync.iter().any(|s| s.storage_degraded) && y + 1 < area.bottom() {
+        y += 1;
+        buf.set_string(
+            area.left() + 2,
+            y,
+            truncate(
+                "tokens stored in 0600 files — OS keychain unavailable",
+                area.width.saturating_sub(4) as usize,
+            ),
+            app.palette.style(Role::TextDim),
+        );
         y += 1;
     }
 
@@ -567,12 +609,11 @@ fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
                 "  waiting for metadata".to_string()
             };
             let meter_width = room.saturating_sub(sizes.chars().count()).min(20);
-            let meter = glyph::meter(row.fraction, meter_width);
-            buf.set_string(meter_x, y, &meter, app.palette.style(Role::Obi));
+            set_meter(buf, meter_x, y, &app.palette, row.fraction, meter_width, Role::Obi);
             buf.set_string(
-                meter_x + meter.chars().count() as u16,
+                meter_x + meter_width as u16,
                 y,
-                truncate(&sizes, room.saturating_sub(meter.chars().count())),
+                truncate(&sizes, room.saturating_sub(meter_width)),
                 app.palette.style(Role::TextDim),
             );
         }
@@ -751,12 +792,7 @@ fn render_preview(buf: &mut Buffer, app: &App, area: Rect, entry: &Entry) {
             && y < area.bottom()
         {
             let meter_width = (width.saturating_sub(2)).min(24);
-            buf.set_string(
-                area.left(),
-                y,
-                glyph::meter(fraction, meter_width),
-                app.palette.style(Role::Obi),
-            );
+            set_meter(buf, area.left(), y, &app.palette, fraction, meter_width, Role::Obi);
             y += 1;
         }
         y += 1;
@@ -788,10 +824,17 @@ fn render_preview(buf: &mut Buffer, app: &App, area: Rect, entry: &Entry) {
         let total = entry.episodes.unwrap_or(0);
         let meter_y = area.bottom().saturating_sub(1);
         let meter_width = (area.width as usize).saturating_sub(14).min(20);
-        let meter = glyph::meter(entry.watched_fraction(), meter_width);
-        buf.set_string(area.left(), meter_y, &meter, app.palette.style(Role::Obi));
+        set_meter(
+            buf,
+            area.left(),
+            meter_y,
+            &app.palette,
+            entry.watched_fraction(),
+            meter_width,
+            Role::Obi,
+        );
         buf.set_string(
-            area.left() + meter.chars().count() as u16 + 2,
+            area.left() + meter_width as u16 + 2,
             meter_y,
             format!("{done} / {total}"),
             app.palette.style(Role::TextDim),
@@ -879,8 +922,15 @@ fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
     if y < area.bottom() {
         if let Some((done, next)) = entry.progress {
             let total = entry.episodes.unwrap_or(0);
-            let meter = glyph::meter(entry.watched_fraction(), 20);
-            buf.set_string(area.left(), y, &meter, app.palette.style(Role::Obi));
+            set_meter(
+                buf,
+                area.left(),
+                y,
+                &app.palette,
+                entry.watched_fraction(),
+                20,
+                Role::Obi,
+            );
             buf.set_string(
                 area.left() + 22,
                 y,
@@ -954,7 +1004,7 @@ fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
         draw_artwork(buf, app, url, panel);
     }
 
-    // Column headers, in tracked caps above a hairline.
+    // Column headers, in caps above a hairline.
     let cols = episode_columns(table.width);
     buf.set_string(
         table.left() + cols.number,
@@ -1020,17 +1070,28 @@ fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
             },
         );
 
+        // An unknown runtime drops to hairline weight: 26 rows of `--:--` at text weight
+        // form a column of dash noise that competes with the titles.
+        let runtime_role =
+            if episode.duration_secs.is_some() { Role::TextDim } else { Role::Rule };
         buf.set_string(
             table.left() + cols.runtime,
             y,
             episode.runtime(),
-            app.palette.style(Role::TextDim),
+            app.palette.style(runtime_role),
         );
 
         let meter_width = (table.width.saturating_sub(cols.state + 6)).min(10) as usize;
-        let meter = glyph::meter(episode.watched, meter_width);
         let meter_role = if episode.completed { Role::State } else { Role::Obi };
-        buf.set_string(table.left() + cols.state, y, &meter, app.palette.style(meter_role));
+        set_meter(
+            buf,
+            table.left() + cols.state,
+            y,
+            &app.palette,
+            episode.watched,
+            meter_width,
+            meter_role,
+        );
 
         // `done` and the filler mark share the column after the meter: an episode is rarely both
         // finished and worth flagging, and two columns for one word each would be noise.
@@ -1231,7 +1292,11 @@ fn render_now_playing(buf: &mut Buffer, app: &App, area: Rect) {
     );
     // Whether mpv is actually alive belongs here, not in the header: this is the screen you
     // are on when it matters.
-    let state = if playing.paused { "paused" } else { "mpv ●" };
+    let state = if playing.paused {
+        "paused".to_string()
+    } else {
+        format!("mpv {}", glyph::STATE_READY)
+    };
     let right = format!(
         "{state}  ·  {}",
         app.config.providers.order.first().map_or("—", String::as_str)
@@ -1286,12 +1351,15 @@ fn render_now_playing(buf: &mut Buffer, app: &App, area: Rect) {
     let clock = format!("{} / {}", playing.elapsed(), playing.total());
     let clock_width = clock.chars().count() as u16;
     let meter_width = body.width.saturating_sub(clock_width + 3);
-    buf.set_string(
+    // Dimmed while paused: a quiet, legible state change that needs no badge.
+    set_meter(
+        buf,
         body.left(),
         y,
-        glyph::meter(playing.fraction(), meter_width as usize),
-        // Dimmed while paused: a quiet, legible state change that needs no badge.
-        app.palette.style(if playing.paused { Role::TextDim } else { Role::Obi }),
+        &app.palette,
+        playing.fraction(),
+        meter_width as usize,
+        if playing.paused { Role::TextDim } else { Role::Obi },
     );
     buf.set_string(
         body.right().saturating_sub(clock_width),
@@ -1390,6 +1458,13 @@ fn episode_columns(width: u16) -> EpisodeColumns {
     EpisodeColumns { number: 2, title: 8, runtime, state }
 }
 
+// Column offsets for the Providers table, named so the header and the body cannot drift
+// apart — the same reason Accounts and Episodes have theirs.
+const COL_PROVIDER: u16 = 2;
+const COL_PROVIDER_KIND: u16 = 22;
+const COL_PROVIDER_STATE: u16 = 34;
+const COL_PROVIDER_LATENCY: u16 = 50;
+
 /// Provider health. This screen exists because sources die and the user has to be able to
 /// see *which* one and why, rather than facing an unexplained empty list.
 fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
@@ -1434,7 +1509,12 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
     }
 
     let head = area.top() + 2;
-    for (label, x) in [("provider", 2u16), ("kind", 22), ("state", 34), ("latency", 50)] {
+    for (label, x) in [
+        ("provider", COL_PROVIDER),
+        ("kind", COL_PROVIDER_KIND),
+        ("state", COL_PROVIDER_STATE),
+        ("latency", COL_PROVIDER_LATENCY),
+    ] {
         if x < area.width {
             buf.set_string(
                 area.left() + x,
@@ -1457,15 +1537,15 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
             buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
         }
         buf.set_string(
-            area.left() + 2,
+            area.left() + COL_PROVIDER,
             y,
-            truncate(&provider.id, 19),
+            truncate(&provider.id, (COL_PROVIDER_KIND - COL_PROVIDER - 1) as usize),
             app.palette.style(if provider.usable { Role::Text } else { Role::TextDim }),
         );
         buf.set_string(
-            area.left() + 22,
+            area.left() + COL_PROVIDER_KIND,
             y,
-            truncate(&provider.kind, 11),
+            truncate(&provider.kind, (COL_PROVIDER_STATE - COL_PROVIDER_KIND - 1) as usize),
             app.palette.style(Role::TextDim),
         );
 
@@ -1476,15 +1556,15 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
             (false, true) => Role::State,
         };
         buf.set_string(
-            area.left() + 34,
+            area.left() + COL_PROVIDER_STATE,
             y,
-            truncate(&provider.state, 15),
+            truncate(&provider.state, (COL_PROVIDER_LATENCY - COL_PROVIDER_STATE - 1) as usize),
             app.palette.style(state_role),
         );
 
         if let Some(ms) = provider.latency_ms {
             buf.set_string(
-                area.left() + 50,
+                area.left() + COL_PROVIDER_LATENCY,
                 y,
                 format!("{ms}ms"),
                 app.palette.style(Role::TextDim),
@@ -1945,7 +2025,7 @@ fn broadcast_line(entry: &Entry) -> String {
 
 /// One row of plate fill.
 fn plate_row(width: usize) -> String {
-    "░".repeat(width)
+    glyph::METER_EMPTY.to_string().repeat(width)
 }
 
 fn metadata_line(entry: &Entry) -> String {
@@ -3007,7 +3087,7 @@ mod tests {
         assert!(narrow.contains("Frieren"), "the list must survive");
 
         let wide = text_of(&render_to_buffer(&app, 120, 20));
-        // Metadata renders as tracked caps, so "2023" appears letterspaced.
+        // Metadata lives in the preview pane, so "2023" only survives at full width.
         assert!(wide.contains("2023"), "the wide layout shows preview metadata");
         assert!(!narrow.contains("2023"), "the narrow layout drops the preview");
     }

@@ -207,8 +207,10 @@ pub struct ThemeConfig {
     pub mode: ThemeMode,
     /// Set `false` to suppress the eyecatch wipe and all other motion.
     pub motion: bool,
-    /// Opt in to nerd-font glyphs. Off by default: requiring a patched font is both a
-    /// portability hazard and one of the clearest templated-TUI tells.
+    /// Reserved. Accepted so existing configs keep parsing (`deny_unknown_fields` would
+    /// otherwise reject them), but currently has no effect: every glyph in the UI is plain
+    /// Unicode, and requiring a patched font is both a portability hazard and one of the
+    /// clearest templated-TUI tells.
     pub nerd_font: bool,
 }
 

@@ -46,26 +46,38 @@ pub const BACK: char = '←';
 /// jumping a whole character at a time — the detail that separates a progress bar that
 /// feels alive from one that feels like a checkbox.
 pub fn meter(fraction: f64, width: usize) -> String {
+    let (filled, empty) = meter_parts(fraction, width);
+    filled + &empty
+}
+
+/// The two halves of a meter, so callers can style them separately: the filled portion
+/// (full cells plus the ramp cell) and the empty track.
+///
+/// The split exists because an empty track drawn in the fill's colour does not read as
+/// "empty" — a column of 0% meters stacks into a solid slab. Rendered at hairline weight
+/// the track recedes the way every other structural element here does.
+pub fn meter_parts(fraction: f64, width: usize) -> (String, String) {
     if width == 0 {
-        return String::new();
+        return (String::new(), String::new());
     }
     let fraction = fraction.clamp(0.0, 1.0);
     let total_eighths = (fraction * (width * 8) as f64).round() as usize;
     let full = total_eighths / 8;
     let remainder = total_eighths % 8;
 
-    let mut out = String::with_capacity(width * 3);
+    let mut filled = String::with_capacity(width * 3);
     for _ in 0..full.min(width) {
-        out.push(METER_FULL);
+        filled.push(METER_FULL);
     }
     if full < width && remainder > 0 {
-        out.push(RAMP[remainder - 1]);
+        filled.push(RAMP[remainder - 1]);
     }
     let rendered = full.min(width) + usize::from(full < width && remainder > 0);
+    let mut empty = String::with_capacity((width - rendered) * 3);
     for _ in rendered..width {
-        out.push(METER_EMPTY);
+        empty.push(METER_EMPTY);
     }
-    out
+    (filled, empty)
 }
 
 /// An eyebrow: a small label above or beside content, set in caps.
@@ -142,6 +154,27 @@ mod tests {
         // 1/8 of a 1-cell meter should show the narrowest ramp glyph, not an empty cell.
         assert_eq!(meter(0.125, 1), "▏");
         assert!(meter(0.5, 2).starts_with('█'));
+    }
+
+    #[test]
+    fn meter_parts_always_total_the_requested_width() {
+        for width in [1_usize, 3, 10, 20] {
+            for pct in [0.0, 0.01, 0.33, 0.5, 0.99, 1.0] {
+                let (filled, empty) = meter_parts(pct, width);
+                assert_eq!(
+                    filled.chars().count() + empty.chars().count(),
+                    width,
+                    "meter_parts({pct}, {width}) rendered {filled:?} + {empty:?}"
+                );
+            }
+        }
+        assert_eq!(meter_parts(0.5, 0), (String::new(), String::new()));
+    }
+
+    #[test]
+    fn meter_parts_endpoints_put_everything_in_one_half() {
+        assert_eq!(meter_parts(0.0, 4), (String::new(), "░░░░".into()));
+        assert_eq!(meter_parts(1.0, 4), ("████".into(), String::new()));
     }
 
     #[test]
