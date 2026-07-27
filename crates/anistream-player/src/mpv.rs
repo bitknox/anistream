@@ -446,11 +446,18 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn mpv_is_detected_when_present() {
-        // Installed for this project, so this should hold; if it ever fails the message is
-        // clearer than a spawn error later.
+    async fn a_detected_mpv_also_reports_its_version() {
+        // What is under test is the detection pair, not whether this machine has mpv — CI
+        // runners do not, and asserting otherwise makes the suite fail on the environment
+        // rather than on the code. The negative path is covered hermetically below.
         let mpv = Mpv::new(std::env::temp_dir());
-        assert!(mpv.is_available().await, "mpv should be on PATH");
+        if !mpv.is_available().await {
+            eprintln!("skipping: mpv is not on PATH");
+            return;
+        }
+        // `--doctor` reports both together, so a detected mpv that cannot say which build it is
+        // would leave the diagnostic half-blank.
+        assert!(mpv.version().await.is_some(), "a detected mpv should report a version");
     }
 
     #[tokio::test]
