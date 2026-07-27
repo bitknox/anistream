@@ -27,7 +27,9 @@ jobs:
             target: x86_64-unknown-linux-gnu
           - os: macos-latest
             target: aarch64-apple-darwin
-          - os: macos-13
+          # macos-13 was retired from the hosted runner pool; macos-15-intel is the
+          # label GitHub kept for Intel builds.
+          - os: macos-15-intel
             target: x86_64-apple-darwin
           - os: windows-latest
             target: x86_64-pc-windows-msvc
@@ -102,7 +104,9 @@ jobs:
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
           Copy-Item "target/${{ matrix.target }}/release/anistream.exe" $stage
           Copy-Item assets/icon/anistream.ico,LICENSE,README.md $stage
-          & "$env:ProgramFiles(x86)\NSIS\makensis.exe" `
+          # Braces are load-bearing: without them pwsh parses `$env:ProgramFiles` and
+          # appends `(x86)` as literal text, pointing at a directory that does not exist.
+          & "${env:ProgramFiles(x86)}\NSIS\makensis.exe" `
             "/DVERSION=$version" "/DSOURCE=$((Resolve-Path $stage).Path)" `
             packaging/windows/anistream.nsi
           Move-Item "anistream-$version-setup.exe" dist/
