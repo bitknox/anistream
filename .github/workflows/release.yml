@@ -47,6 +47,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
+          # Packaging steps have failed after successful builds; without this, each of
+          # those runs threw away a fully compiled dependency cache.
+          cache-on-failure: true
 
       # aws-lc-sys assembles its own crypto primitives and needs NASM on Windows.
       - name: Install NASM
@@ -109,7 +112,8 @@ jobs:
           & "${env:ProgramFiles(x86)}\NSIS\makensis.exe" `
             "/DVERSION=$version" "/DSOURCE=$((Resolve-Path $stage).Path)" `
             packaging/windows/anistream.nsi
-          Move-Item "anistream-$version-setup.exe" dist/
+          # makensis resolves a relative OutFile against the .nsi's directory, not the cwd.
+          Move-Item "packaging/windows/anistream-$version-setup.exe" dist/
           (Get-FileHash "dist/anistream-$version-setup.exe" -Algorithm SHA256).Hash.ToLower() +
             "  anistream-$version-setup.exe" |
             Out-File "dist/anistream-$version-setup.exe.sha256" -Encoding ascii
