@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleName</key>
+	<string>anistream</string>
+	<key>CFBundleDisplayName</key>
+	<string>anistream</string>
+	<key>CFBundleIdentifier</key>
+	<string>tv.anistream.anistream</string>
+	<!-- Replaced at package time with the release version. -->
+	<key>CFBundleShortVersionString</key>
+	<string>0.0.0</string>
+	<key>CFBundleVersion</key>
+	<string>0.0.0</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<!-- The launcher script, not the binary: a TUI needs a terminal, and Finder provides none. -->
+	<key>CFBundleExecutable</key>
+	<string>launcher</string>
+	<key>CFBundleIconFile</key>
+	<string>anistream</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>11.0</string>
+	<!-- No window of its own; everything happens in the terminal it opens. -->
+	<key>LSBackgroundOnly</key>
+	<false/>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string>MIT licensed. anistream hosts no content and ships no sources of its own.</string>
+</dict>
+</plist>

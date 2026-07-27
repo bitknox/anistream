@@ -86,12 +86,118 @@ jobs:
           (Get-FileHash "dist/$name.zip" -Algorithm SHA256).Hash.ToLower() +
             "  $name.zip" | Out-File "dist/$name.zip.sha256" -Encoding ascii
 
+      # ── Installers ──────────────────────────────────────────────────────────
+      # The archives above are for people who want the binary on PATH. These are for people who
+      # want something to install and launch. Both end up in the same release.
+
+      - name: Installer (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          choco install nsis --no-progress -y
+          $version = "${env:TAG}" -replace '^v',''
+          $stage = "installer-src"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/anistream.exe" $stage
+          Copy-Item assets/icon/anistream.ico,LICENSE,README.md $stage
+          & "$env:ProgramFiles(x86)\NSIS\makensis.exe" `
+            "/DVERSION=$version" "/DSOURCE=$((Resolve-Path $stage).Path)" `
+            packaging/windows/anistream.nsi
+          Move-Item "anistream-$version-setup.exe" dist/
+          (Get-FileHash "dist/anistream-$version-setup.exe" -Algorithm SHA256).Hash.ToLower() +
+            "  anistream-$version-setup.exe" |
+            Out-File "dist/anistream-$version-setup.exe.sha256" -Encoding ascii
+
+      - name: Installer (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        env:
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          arch="${{ matrix.target }}"
+          app="stage/root/Applications/anistream.app"
+          mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources" stage/scripts
+
+          sed "s|<string>0\.0\.0</string>|<string>${version}</string>|g" \
+            packaging/macos/Info.plist > "$app/Contents/Info.plist"
+          plutil -lint "$app/Contents/Info.plist"
+
+          install -m 755 packaging/macos/launcher.sh "$app/Contents/MacOS/launcher"
+          install -m 755 "target/${arch}/release/anistream" "$app/Contents/MacOS/anistream"
+          iconutil -c icns assets/icon/anistream.iconset \
+            -o "$app/Contents/Resources/anistream.icns"
+
+          # Installing the .app also puts the binary on PATH, so the two ways of running it stay
+          # the same build rather than drifting apart.
+          cat > stage/scripts/postinstall <<'EOF'
+          #!/bin/sh
+          mkdir -p /usr/local/bin
+          ln -sf /Applications/anistream.app/Contents/MacOS/anistream /usr/local/bin/anistream
+          exit 0
+          EOF
+          chmod +x stage/scripts/postinstall
+
+          pkg="dist/anistream-${version}-${arch}.pkg"
+          pkgbuild --root stage/root --scripts stage/scripts \
+            --identifier tv.anistream.anistream --version "${version}" \
+            --install-location / "${pkg}"
+          shasum -a 256 "${pkg}" > "${pkg}.sha256"
+
+      - name: Installer (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          root="stage/deb"
+          mkdir -p "$root/DEBIAN" "$root/usr/bin" \
+            "$root/usr/share/applications" "$root/usr/share/doc/anistream"
+
+          install -m 755 "target/${{ matrix.target }}/release/anistream" "$root/usr/bin/anistream"
+          install -m 644 packaging/linux/anistream.desktop \
+            "$root/usr/share/applications/anistream.desktop"
+          install -m 644 LICENSE "$root/usr/share/doc/anistream/copyright"
+          for size in 16 32 48 64 128 256 512; do
+            dir="$root/usr/share/icons/hicolor/${size}x${size}/apps"
+            mkdir -p "$dir"
+            install -m 644 "assets/icon/${size}x${size}.png" "$dir/anistream.png"
+          done
+
+          # mpv and ffmpeg are runtime dependencies anistream shells out to, so declare them
+          # rather than vendor them — bundling mpv would pull GPL obligations onto an MIT binary.
+          cat > "$root/DEBIAN/control" <<EOF
+          Package: anistream
+          Version: ${version}
+          Section: video
+          Priority: optional
+          Architecture: amd64
+          Depends: mpv, ffmpeg
+          Maintainer: anistream <noreply@anistream.tv>
+          Homepage: https://anistream.tv
+          Description: An anime streaming TUI
+           Browse, track and watch anime from the terminal. Real image rendering,
+           mpv for playback, pluggable sources.
+           .
+           anistream hosts no content and ships no sources of its own.
+          EOF
+
+          deb="dist/anistream-${version}-amd64.deb"
+          dpkg-deb --build --root-owner-group "$root" "$deb"
+          sha256sum "$deb" > "$deb.sha256"
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}
           path: |
             dist/*.tar.gz
             dist/*.zip
+            dist/*.pkg
+            dist/*.deb
+            dist/*setup.exe
             dist/*.sha256
 
   publish:
@@ -111,11 +217,23 @@ jobs:
           files: |
             dist/*.tar.gz
             dist/*.zip
+            dist/*.pkg
+            dist/*.deb
+            dist/*setup.exe
             dist/*.sha256
           body: |
             ## Install
 
-            Download the archive for your platform, unpack it, and put `anistream` on your `PATH`.
+            **Installers** — `.pkg` on macOS, `setup.exe` on Windows, `.deb` on Debian and Ubuntu.
+            Each one puts `anistream` on your `PATH` *and* adds a launcher, so you can type it or
+            click it. The launcher opens your terminal, because anistream lives in one.
+
+            **Archives** — the `.tar.gz` and `.zip` are just the binary, for putting on `PATH`
+            yourself.
+
+            These builds are **not code-signed**. macOS Gatekeeper will refuse the `.pkg` on first
+            open: right-click it and choose Open. Windows SmartScreen will warn about the
+            installer: choose More info, then Run anyway.
 
             **mpv and ffmpeg are not bundled** — anistream drives mpv for playback and shells out
             to ffmpeg when muxing subtitles into a completed download. Install both first; see
