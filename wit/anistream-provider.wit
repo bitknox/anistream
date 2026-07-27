@@ -1,0 +1,139 @@
+// The provider plugin ABI.
+//
+// The load-bearing decision here: **the sandbox has no sockets, and the host lends `fetch`.**
+//
+// That is not a limitation being worked around, it is the point. Provider CDNs are behind
+// Cloudflare, and passing its checks needs a browser-shaped TLS/HTTP2 fingerprint — a hard problem
+// that anistream solves once, in `anistream-net`. If guests opened their own connections they
+// would each have to solve it again, badly, and every plugin would need its own TLS stack. So
+// the guest becomes a pure parser: it says what to request, the host makes the request, the
+// guest reads the bytes.
+//
+// The consequences are all good ones. A plugin is a few hundred bytes of parsing logic rather
+// than a megabyte of networking. It cannot exfiltrate anything, because the host enforces
+// `allowed-hosts` on its own side. And a plugin authored in Go, TypeScript or Python inherits
+// the same fingerprint as the native providers.
+//
+// `aes-decrypt` and `regex-captures` exist for the same reason: a TinyGo or JS guest that had to
+// bundle a crypto and regex implementation would be enormous, and real-world sources genuinely need
+// both — AES for the obfuscated stream payloads several of them use, regex for extracting from
+// HTML that no parser should be asked to take seriously.
+
+package anistream:provider@0.1.0;
+
+interface host {
+    record http-request {
+        method: string,
+        url: string,
+        headers: list<tuple<string, string>>,
+        body: option<list<u8>>,
+    }
+
+    record http-response {
+        status: u16,
+        headers: list<tuple<string, string>>,
+        body: list<u8>,
+    }
+
+    variant host-error {
+        /// The URL's host is not in this plugin's `allowed-hosts`. Enforced host-side, so a
+        /// compromised guest cannot widen its own reach.
+        denied(string),
+        timeout,
+        transport(string),
+    }
+
+    /// Make an HTTP request through the host's client.
+    ///
+    /// The host owns the browser-emulated TLS/HTTP2 fingerprint, the rate limiting, the cookie
+    /// jar and the challenge solver. Guests get no sockets at all.
+    fetch: func(req: http-request) -> result<http-response, host-error>;
+
+    /// Write to the host's log. The only output channel a guest has.
+    log: func(level: string, msg: string);
+
+    /// AES-128-CBC decryption, as some sources use for their stream payloads.
+    aes-decrypt: func(key: list<u8>, iv: list<u8>, data: list<u8>) -> result<list<u8>, string>;
+
+    /// Capture groups for every match. Group 0 is the whole match, as usual.
+    ///
+    /// Returned as plain lists rather than a stream, because a guest that had to page through
+    /// results would need more host calls than the parsing is worth.
+    regex-captures: func(pattern: string, haystack: string) -> list<list<string>>;
+}
+
+interface provider {
+    record manifest {
+        id: string,
+        display-name: string,
+        version: string,
+        /// Hostnames this plugin may fetch. The host enforces it; declaring more than you need
+        /// is the plugin equivalent of asking for permissions you do not use.
+        allowed-hosts: list<string>,
+        translation-types: list<string>,
+    }
+
+    record search-hit {
+        id: string,
+        title: string,
+        episode-count: option<u32>,
+        year: option<u32>,
+    }
+
+    record episode {
+        number: string,
+        title: option<string>,
+        duration-secs: option<u32>,
+    }
+
+    record subtitle {
+        language: string,
+        url: string,
+        /// Burned into the video rather than a separate track.
+        hard: bool,
+    }
+
+    record media-stream {
+        url: string,
+        /// One of `hls`, `mp4`, `torrent-http`, `external-deeplink`.
+        ///
+        /// These are exactly `anistream_core::stream::StreamKind`, because that type decides
+        /// whether the player can render a stream or has to hand it off. Anything unrecognised is
+        /// treated as `mp4` — handed to the player to judge — rather than refused, so a plugin
+        /// that knows about a container this host does not still works.
+        kind: string,
+        quality: option<u32>,
+        /// Headers the player must send. Referer-locked CDNs turn a working stream into a 403
+        /// without these, so they are part of the result rather than an afterthought.
+        headers: list<tuple<string, string>>,
+        subtitles: list<subtitle>,
+    }
+
+    /// Mirrors `anistream_core::ProviderError` one-for-one, so a WASM plugin and a native
+    /// provider report failures in exactly the same vocabulary — and the registry's failover
+    /// rules apply identically to both.
+    variant provider-error {
+        /// Works, but has no such title or episode. **Not** a failover trigger.
+        not-found,
+        /// Bot protection, rate limiting, geo-blocking or a ban. The signature web-source failure.
+        blocked(string),
+        /// The response arrived but did not look like what we expected — the site changed.
+        parse(string),
+        other(string),
+    }
+
+    describe: func() -> manifest;
+
+    search: func(query: string, translation: string) -> result<list<search-hit>, provider-error>;
+
+    list-episodes: func(id: string, translation: string)
+        -> result<list<episode>, provider-error>;
+
+    resolve: func(id: string, episode: string, translation: string)
+        -> result<list<media-stream>, provider-error>;
+}
+
+world plugin {
+    import host;
+    export provider;
+}

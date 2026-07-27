@@ -1,0 +1,25 @@
+/target
+**/*.rs.bk
+*.pdb
+
+.DS_Store
+
+# mpv writes screenshots to the working directory. They are frames of whatever was playing,
+# so they must never be committed.
+/mpv-shot*.jpg
+/mpv-shot*.png
+
+# Local runtime artefacts, should any land in-tree during development.
+/anistream.db*
+/.anistream/
+
+# Plugins build out of tree and are their own workspaces, so their artefacts are not covered by
+# the root /target rule. The built .wasm is a release artefact, not source.
+/plugins/*/target
+/plugins/*/node_modules
+/plugins/*/*.wasm
+
+# The website (Astro + Starlight) manages its own dependencies and build output.
+/website/node_modules/
+/website/dist/
+/website/.astro/

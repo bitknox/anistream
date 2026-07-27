@@ -1,0 +1,14 @@
+{
+  "name": "anistream-example-plugin-ts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A reference provider plugin in JavaScript, proving the ABI is language-agnostic",
+  "scripts": {
+    "build": "jco componentize src/plugin.js --wit ../../wit/anistream-provider.wit --world-name plugin --out anistream-example-plugin-ts.wasm --disable all"
+  },
+  "devDependencies": {
+    "@bytecodealliance/jco": "^1.16.0",
+    "@bytecodealliance/componentize-js": "^0.19.0"
+  }
+}

@@ -1,0 +1,52 @@
+---
+title: Overview
+description: What anistream is, what is in the app today, and what is coming next.
+---
+
+anistream is an anime streaming TUI written in Rust. Real image rendering in the terminal,
+mpv for playback, pluggable everything.
+
+:::note[Sources are external]
+anistream hosts no content and ships no sources of its own — not even an index. The torrent
+side is a transport with nothing to search until you supply an endpoint; everything else is a
+provider API or plugin you configure. What you point any of it at is your own decision, at your
+own risk. Torrenting is **off by default** and unreachable
+without a [VPN guard](/docs/guides/torrents-vpn/) you explicitly enable. Licensed services are
+never scraped: Crunchyroll episodes resolve to a deep link that opens in Crunchyroll, because
+anistream will not circumvent DRM.
+:::
+
+## Today
+
+anistream is under active development. What is in the app now:
+
+- **Browsing, search, seasonal** — AniList, no account needed
+- **Continue watching** — a half-finished episode is on the home screen with its position, independent of the sync threshold
+- **Airing timeline** — the calendar spans a week back and a week forward, so what just came out is as visible as what is coming
+- **Torrent streaming** — playing while downloading, seekable, gated behind the VPN guard;
+  bring your own indexer
+- **Playback** — mpv over JSON IPC, resume, aniskip, auto-next, persisted speed
+- **Local history** — SQLite, the source of truth; works with no account at all
+- **Tracker sync** — AniList, MyAnimeList, Simkl and Trakt, with a durable outbox that survives being offline
+- **Filler/recap marking** — AnimeFillerList, for the long-runners where it matters
+- **Downloads** — a screen for what you have pulled down; completed files get subtitles muxed in
+- **Discord presence** — off by default, and it can show that something is playing without saying what
+- **WASM plugins** — provider plugins in Rust *or* JavaScript, sandboxed
+
+## In development
+
+- **Kitsu sync.** AniList, MyAnimeList, Simkl and Trakt are done; Kitsu is not.
+- **More sources, as plugins.** The [plugin system](/docs/plugins/authoring/) is the path for new
+  providers.
+- **Licensed-service integration stays deep-link only.** Crunchyroll streams are DRM-protected;
+  anistream will not circumvent DRM, so episodes resolve to a link that opens in Crunchyroll.
+
+## Where to go next
+
+- [Requirements](/docs/getting-started/requirements/) and
+  [installation](/docs/getting-started/installation/) — from source; there are no published
+  binaries yet.
+- [Quick start](/docs/getting-started/quick-start/) — browsing needs no account and no config.
+- [Configuration](/docs/guides/configuration/) — every section of `config.toml` is optional.
+- [Writing a provider plugin](/docs/plugins/authoring/) — WebAssembly components in Rust, Go,
+  JavaScript or Python.

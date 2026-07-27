@@ -1,0 +1,34 @@
+[package]
+name = "anistream-track"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Tracker sync: the Tracker trait, AniList implementation, OAuth and the outbox drain"
+
+[dependencies]
+anistream-core.workspace = true
+anistream-meta.workspace = true
+anistream-store.workspace = true
+async-trait.workspace = true
+# The OS credential store, with a 0600 file as the fallback. A token is a long-lived bearer
+# credential for someone's account, so plain text in the config is not acceptable.
+# Default `v1` feature set: macOS Keychain, Windows credential manager, and Secret Service
+# over zbus rather than the C library — so a Linux build needs no libdbus development package.
+# Machines with no D-Bus session fall through to the 0600 file.
+keyring = "4.1"
+rand = "0.10"
+# The plain client, for the token exchange. AniList has no bot protection, so fingerprint
+# emulation would only add handshake cost.
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

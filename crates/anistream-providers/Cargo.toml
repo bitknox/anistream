@@ -1,0 +1,28 @@
+[package]
+name = "anistream-providers"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Provider registry, health tracking and failover"
+
+[dependencies]
+anistream-core.workspace = true
+anistream-meta.workspace = true
+anistream-net.workspace = true
+anistream-store.workspace = true
+reqwest.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+librqbit = { version = "8.1.1", default-features = false, features = ["rust-tls"] }
+
+[dev-dependencies]
+futures.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "test-util"] }
+reqwest.workspace = true
+
+[lints]
+workspace = true

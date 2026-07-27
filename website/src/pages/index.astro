@@ -1,0 +1,276 @@
+---
+import '../styles/theme.css';
+import '../styles/landing.css';
+import TerminalDemo from '../components/TerminalDemo.astro';
+
+const headline = [['An', 'anime'], ['streaming', '「TUI」。']];
+const hlines = headline.map((line) =>
+	line.map((w) => [...w].map((c) => ({ c, obi: '「」。'.includes(c) })))
+);
+
+const features = [
+	{
+		eyebrow: '/ browse',
+		title: 'Browse without an account',
+		body: 'Search, seasonal charts and a week-spanning airing calendar from AniList’s public API. No login, no config — browsing is the default state of the app.',
+	},
+	{
+		eyebrow: '▶ playback',
+		title: 'mpv does the playing',
+		body: 'JSON IPC to real mpv: resume, auto-next, persisted speed, and aniskip opening-skip that announces itself on the OSD. A failed playback shows mpv’s own words. Licensed services open in their own apps, by deep link.',
+	},
+	{
+		eyebrow: '▥ local-first',
+		title: 'Local is the source of truth',
+		body: 'History is SQLite on your disk and works with no account at all. Sync is a projection of it — never the other way around.',
+	},
+	{
+		eyebrow: '⇅ sync',
+		title: 'Sync that survives being offline',
+		body: 'AniList, MyAnimeList, Simkl and Trakt through a durable outbox. Watch offline for a week; it pushes in order when you return. Real conflicts get a screen, not a silent overwrite.',
+	},
+	{
+		eyebrow: '▢ plugins',
+		title: 'Bring your own sources, as plugins',
+		body: 'Provider plugins are sandboxed WASM components in Rust, Go, JavaScript or Python — built for legitimate APIs, self-hosted services, and your own media. The sandbox has no sockets; the host lends fetch, so a plugin is kilobytes and cannot exfiltrate.',
+	},
+	{
+		eyebrow: '▚ graphics',
+		title: 'Real images, in the terminal',
+		body: 'Cover art renders as actual images over the Kitty, Sixel and iTerm2 protocols, decoded off the event loop so scrolling never stutters. Elsewhere it falls back to halfblocks, and says so.',
+	},
+	{
+		eyebrow: '● guarded',
+		title: 'If you torrent, it fails closed',
+		body: 'Torrent support exists, and it is never assumed: off by default, unreachable until a VPN mode is chosen and egress is verified through the proxy. DHT forced off, re-checked on an interval, every transfer paused the moment a check fails.',
+	},
+	{
+		eyebrow: '? keys',
+		title: 'Vim-first, fully rebindable',
+		body: 'hjkl everywhere, arrows always aliased, every key rebindable. The help overlay is generated from the resolved keymap, so it matches whatever you set.',
+	},
+];
+
+const bandItems = [
+	'browse · watch · track · sync · extend',
+	'real images in the terminal',
+	'local is the source of truth',
+	'plugins in rust · go · js · python',
+	'fail-closed vpn guard',
+	'hosts no content — every source is external',
+	'MIT, built from source',
+];
+const bandText = bandItems.map((t) => `▌ ${t}`).join('   ') + '   ';
+
+const installHtml = [
+	'<span class="c-a">$</span> brew install mpv ffmpeg cmake        <span class="c-d"># mpv plays; cmake builds BoringSSL</span>',
+	'<span class="c-a">$</span> git clone https://github.com/bitknox/anistream &amp;&amp; cd anistream',
+	'<span class="c-a">$</span> cargo run --release                  <span class="c-d"># rustup picks up the pinned 1.97.1</span>',
+].join('\n');
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>anistream — an anime streaming TUI</title>
+		<meta
+			name="description"
+			content="An anime streaming TUI in Rust — browse, watch, track, sync and extend in one client. Hosts no content; every source is external."
+		/>
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#161a2e" />
+		<meta name="theme-color" media="(prefers-color-scheme: light)" content="#f0ede4" />
+		<script is:inline>
+			document.documentElement.classList.add('js');
+			try {
+				var t = localStorage.getItem('starlight-theme');
+				var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+				document.documentElement.dataset.theme =
+					t === 'light' || t === 'dark' ? t : dark ? 'dark' : 'light';
+			} catch (e) {
+				document.documentElement.dataset.theme = 'dark';
+			}
+		</script>
+	</head>
+	<body class="landing">
+		<div class="eyecatch-page" aria-hidden="true"></div>
+		<div class="obi-progress" aria-hidden="true"><div class="obi-progress-thumb"></div></div>
+		<div class="ambient" aria-hidden="true"></div>
+
+		<div class="wrap">
+			<nav class="l-nav prefade" aria-label="Main">
+				<a class="l-brand" href="/"><span class="obi-glyph">▌</span>anistream</a>
+				<div class="l-nav-links">
+					<a href="/docs/">docs</a>
+					<a href="https://github.com/bitknox/anistream">github</a>
+				</div>
+			</nav>
+
+			<header class="hero">
+				<span class="hero-spine" aria-hidden="true">アニストリーム</span>
+				<div class="hero-grid">
+					<div class="hero-copy">
+						<p class="hero-eyebrow mono prefade">$ anistream</p>
+						<h1 class="hero-h1">
+							<span class="sr-only">An anime streaming TUI.</span>
+							<span aria-hidden="true"
+								>{hlines.map((line, li) => (
+									<>
+										{li > 0 && <br />}
+										{line.map((word, wi) => (
+											<>
+												{wi > 0 && ' '}
+												<span class="hword">
+													{word.map(({ c, obi }) => (
+														<span class={`hch${obi ? ' c-obi' : ''}`}>{c}</span>
+													))}
+												</span>
+											</>
+										))}
+									</>
+								))}</span
+							>
+						</h1>
+						<p class="hero-sub prefade">
+							The whole loop in one client — browse, watch, track, sync, extend. Written in Rust,
+							played by mpv, lives in your terminal.
+						</p>
+						<div class="hero-ctas prefade">
+							<a class="btn btn-solid" href="/docs/getting-started/installation/">get started</a>
+							<a class="btn" href="/docs/">read the docs</a>
+						</div>
+					</div>
+					<figure class="cover-plate prefade">
+						<div class="plate-frame">
+							<canvas id="cover-canvas" width="440" height="560" aria-label="Abstract dusk-sky cover art rendered as terminal halfblock cells"></canvas>
+						</div>
+						<figcaption class="mono">
+							<span class="c-obi">▌</span> cover — rendered as halfblocks · 屋上の夜
+						</figcaption>
+					</figure>
+				</div>
+				<div class="term-holder prefade">
+					<TerminalDemo />
+				</div>
+			</header>
+		</div>
+
+		<div class="obi-band" role="note" aria-label="browse, watch, track, sync, extend — real images in the terminal, local-first, plugins, fail-closed VPN guard. anistream hosts no content; every source is external. MIT, built from source.">
+			<div class="obi-track" aria-hidden="true">
+				<span>{bandText}</span><span>{bandText}</span>
+			</div>
+		</div>
+
+		<div class="wrap">
+			<main>
+				<section class="sect" aria-labelledby="features-h">
+					<div class="sect-head reveal">
+						<span class="eyebrow">── features</span>
+						<h2 id="features-h">The whole loop, one client</h2>
+						<p class="sect-lede">
+							Browse, watch, track, sync, extend — a complete platform, not a wrapper around one
+							website. Every volatile piece sits behind a trait, so the client outlives any single
+							source.
+						</p>
+					</div>
+					{
+						features.map((f) => (
+							<>
+								<div class="rule" />
+								<div class="feat reveal">
+									<span class="eyebrow">{f.eyebrow}</span>
+									<div>
+										<h3>{f.title}</h3>
+										<p>{f.body}</p>
+									</div>
+								</div>
+							</>
+						))
+					}
+				</section>
+
+				<section class="sect" aria-labelledby="sources-h">
+					<div class="rule"></div>
+					<div class="sect-head reveal">
+						<span class="eyebrow">◇ sources</span>
+						<h2 id="sources-h">Legal sources first. External, always.</h2>
+					</div>
+					<div class="plain-block reveal">
+						<p>
+							<strong>anistream hosts no content and ships no sources of its own.</strong>
+							The intended path is legitimate: AniList’s public API for browsing, deep links that
+							open licensed services in their own apps — never scraped, never DRM-circumvented —
+							and plugins for APIs you have the right to use, self-hosted servers, and your own
+							media. Torrent support exists too, off by default and unreachable without the VPN
+							guard; what you point any external source at is your decision, at your own risk,
+							under the laws that apply to you. Every source is a config edit away from being
+							removed.
+						</p>
+					</div>
+				</section>
+
+				<section class="sect" aria-labelledby="install-h">
+					<div class="rule"></div>
+					<div class="sect-head reveal">
+						<span class="eyebrow">↓ install</span>
+						<h2 id="install-h">Built from source</h2>
+					</div>
+					<div class="plain-block reveal">
+						<p>
+							There are no published binaries and no download. You read the code, then you run it.
+							Browsing works immediately, with no account and no config.
+						</p>
+						<pre class="code-block" tabindex="0" set:html={installHtml} />
+						<p class="tests-line">
+							best in a terminal with a graphics protocol · ghostty · kitty · iterm2 · wezterm
+						</p>
+					</div>
+				</section>
+
+				<section class="sect" aria-labelledby="next-h">
+					<div class="rule"></div>
+					<div class="sect-head reveal">
+						<span class="eyebrow">▸ next</span>
+						<h2 id="next-h">Building in the open</h2>
+					</div>
+					<div class="plain-block reveal">
+						<p>
+							anistream is under active development. Kitsu sync is still to come, and the plugin
+							system is the path for new sources. Follow along, open an issue, or write a provider
+							plugin: the architecture was built for other people’s ideas to plug into.
+						</p>
+						<div class="hero-ctas" style="margin-top: 1.8rem">
+							<a class="btn" href="https://github.com/bitknox/anistream">follow on github</a>
+							<a class="btn" href="/docs/plugins/authoring/">write a plugin</a>
+						</div>
+						<div class="mascot-row">
+							<canvas
+								class="mascot-bust"
+								width="170"
+								height="160"
+								aria-label="Nagare, anistream's original mascot, in pixel style"></canvas>
+							<p class="mascot-note mono">
+								流 <span class="c-obi">NAGARE</span> — anistream’s mascot.<br />an original
+								character; appears wherever anistream goes.
+							</p>
+						</div>
+					</div>
+				</section>
+			</main>
+
+			<footer class="l-footer">
+				<span><span class="obi-glyph" style="color: var(--ani-obi)">▌</span>anistream · MIT</span>
+				<nav aria-label="Footer">
+					<a href="/docs/">docs</a>
+					<a href="https://github.com/bitknox/anistream">github</a>
+				</nav>
+				<span>hosts no content — every source is external</span>
+			</footer>
+		</div>
+
+		<script>
+			import '../scripts/landing-motion.ts';
+		</script>
+	</body>
+</html>

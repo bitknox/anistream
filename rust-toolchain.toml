@@ -1,0 +1,10 @@
+# Pinned per-project so the workspace builds reproducibly without touching the
+# machine's default `stable`.
+#
+# 1.97.1 is the floor because libsqlite3-sys 0.38 (via rusqlite 0.40) uses `cfg_select!`,
+# stabilised after 1.91. Several other pinned dependencies — wreq, wasmtime, librqbit —
+# track recent toolchains too, so pinning one dependency backwards would only defer the
+# same problem.
+[toolchain]
+channel = "1.97.1"
+components = ["clippy", "rustfmt"]

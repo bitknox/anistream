@@ -1,0 +1,632 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   Landing page — Obi & Silk. Structure from hairlines and negative space;
+   amber is the only saturated colour in chrome. Saturated colour is allowed
+   in content — which is what the halfblock cover plate is.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body.landing {
+	background: var(--ani-ground);
+	color: var(--ani-text);
+	font-family: var(--ani-font-display);
+	font-weight: 400;
+	line-height: 1.7;
+	-webkit-font-smoothing: antialiased;
+	overflow-x: hidden;
+}
+
+.landing a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.wrap {
+	max-width: 1040px;
+	margin-inline: auto;
+	padding-inline: clamp(1.25rem, 4vw, 2.5rem);
+}
+
+.mono {
+	font-family: var(--ani-font-mono);
+}
+
+.c-obi {
+	color: var(--ani-obi);
+}
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+/* Pre-paint hidden state for the load sequence; JS reveals. No-JS stays visible. */
+html.js .prefade {
+	opacity: 0;
+}
+
+html.js .hero-h1 .hch {
+	opacity: 0;
+	transform: translateY(0.55em);
+}
+
+/* ── The page eyecatch: amber band wipe on load ─────────────────────────── */
+.eyecatch-page {
+	position: fixed;
+	inset: 0;
+	background: var(--ani-obi);
+	transform: scaleX(0);
+	transform-origin: left;
+	z-index: 100;
+	pointer-events: none;
+}
+
+/* ── Obi scroll marker: the app's focus bar, applied to the page ────────── */
+.obi-progress {
+	position: fixed;
+	inset-block: 0;
+	left: 0;
+	width: 4px;
+	z-index: 50;
+	pointer-events: none;
+}
+
+.obi-progress-thumb {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 4px;
+	height: 56px;
+	background: var(--ani-obi);
+}
+
+/* ── Nav ────────────────────────────────────────────────────────────────── */
+.l-nav {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	padding-block: 1.4rem;
+	border-bottom: 1px solid var(--ani-rule-faint);
+}
+
+.l-brand {
+	font-weight: 500;
+	letter-spacing: 0.02em;
+	font-size: 1.05rem;
+}
+
+.l-brand .obi-glyph {
+	color: var(--ani-obi);
+}
+
+.l-nav-links {
+	display: flex;
+	gap: 2rem;
+	font-family: var(--ani-font-mono);
+	font-size: 0.85rem;
+	color: var(--ani-dim);
+}
+
+.l-nav-links a:hover,
+.l-nav-links a:focus-visible {
+	color: var(--ani-obi);
+}
+
+/* ── Hero ───────────────────────────────────────────────────────────────── */
+.hero {
+	position: relative;
+	padding-block: clamp(3rem, 8vh, 5.5rem) clamp(3rem, 8vh, 5rem);
+}
+
+/* Vertical katakana spine — media-packaging spine text */
+.hero-spine {
+	position: absolute;
+	top: -4rem;
+	right: clamp(0rem, 1vw, 1.5rem);
+	writing-mode: vertical-rl;
+	font-weight: 700;
+	font-size: clamp(4rem, 11vw, 9rem);
+	line-height: 1;
+	letter-spacing: 0.06em;
+	color: var(--ani-text);
+	opacity: 0.055;
+	user-select: none;
+	pointer-events: none;
+	white-space: nowrap;
+	z-index: 0;
+}
+
+.hero-grid {
+	position: relative;
+	display: grid;
+	grid-template-columns: 1.15fr 0.85fr;
+	gap: clamp(2rem, 5vw, 4.5rem);
+	align-items: center;
+	z-index: 1;
+}
+
+.hero-eyebrow {
+	font-size: 0.85rem;
+	color: var(--ani-obi);
+	margin-bottom: 1.25rem;
+}
+
+.hero-h1 {
+	font-weight: 700;
+	font-size: clamp(2rem, 4.6vw, 3.1rem);
+	line-height: 1.18;
+	letter-spacing: 0.005em;
+	white-space: nowrap;
+}
+
+/* Full-width CJK brackets carry large side bearings — tuck them in */
+.hero-h1 .hch.c-obi {
+	margin-inline: -0.14em;
+}
+
+.hero-h1 .hword {
+	display: inline-block;
+	white-space: nowrap;
+}
+
+.hero-h1 .hch {
+	display: inline-block;
+}
+
+.hero-sub {
+	margin-top: 1.4rem;
+	font-size: clamp(1rem, 2vw, 1.15rem);
+	color: var(--ani-dim);
+	max-width: 42ch;
+}
+
+.hero-ctas {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	margin-top: 2.2rem;
+	font-family: var(--ani-font-mono);
+	font-size: 0.92rem;
+}
+
+.btn {
+	display: inline-block;
+	padding: 0.7rem 1.5rem;
+	border: 1px solid var(--ani-rule);
+	transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+}
+
+.btn:hover,
+.btn:focus-visible {
+	border-color: var(--ani-obi);
+	color: var(--ani-obi);
+}
+
+.btn-solid {
+	background: var(--ani-obi);
+	border-color: var(--ani-obi);
+	color: var(--ani-ground);
+	font-weight: 500;
+}
+
+.btn-solid:hover,
+.btn-solid:focus-visible {
+	background: transparent;
+	color: var(--ani-obi);
+}
+
+/* Ambient halfblock field behind the whole page — its own depth plane */
+body.landing {
+	position: relative;
+}
+
+.ambient {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 0;
+}
+
+.wrap,
+.obi-band {
+	position: relative;
+	z-index: 1;
+}
+
+.amb {
+	position: absolute;
+	font-family: var(--ani-font-mono);
+	color: var(--ani-text);
+	user-select: none;
+	will-change: transform;
+}
+
+/* ── Cover plate: halfblock-rendered “cover art” ────────────────────────── */
+.cover-plate {
+	justify-self: end;
+	width: min(100%, 340px);
+}
+
+.plate-frame {
+	position: relative;
+	border: 1px solid var(--ani-rule);
+	padding: 8px;
+	background: #10131f;
+}
+
+/* The plate carries the obi on its left edge, like the app's focused cover */
+.plate-frame::before {
+	content: '';
+	position: absolute;
+	left: -1px;
+	top: -1px;
+	bottom: -1px;
+	width: 4px;
+	background: var(--ani-obi);
+}
+
+.cover-plate canvas {
+	display: block;
+	width: 100%;
+	height: auto;
+	image-rendering: pixelated;
+}
+
+.cover-plate figcaption {
+	margin-top: 0.7rem;
+	font-size: 0.75rem;
+	color: var(--ani-dim);
+}
+
+/* ── Terminal demo ──────────────────────────────────────────────────────── */
+.term-holder {
+	margin-top: clamp(3rem, 7vh, 4.5rem);
+}
+
+.term {
+	/* A terminal is dark in any site theme */
+	--t-ground: #10131f;
+	--t-text: #e4e0d6;
+	--t-dim: #6a7090;
+	--t-amber: #f2a64b;
+	--t-water: #7fc7d9;
+	--t-red: #e06b54;
+	background: var(--t-ground);
+	border: 1px solid var(--ani-rule);
+}
+
+.term-chrome {
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+	padding: 0.6rem 0.9rem;
+	border-bottom: 1px solid color-mix(in srgb, #e4e0d6 10%, #10131f);
+}
+
+.term-dot {
+	width: 9px;
+	height: 9px;
+	border-radius: 50%;
+	background: color-mix(in srgb, #e4e0d6 18%, #10131f);
+}
+
+.term-title {
+	margin-left: 0.6rem;
+	font-family: var(--ani-font-mono);
+	font-size: 0.7rem;
+	color: var(--t-dim);
+}
+
+.term-body {
+	position: relative;
+	overflow: hidden;
+	/* The mono font must live here, not just on the <pre>: the cover
+	   canvas positions itself in ch units and must measure the same font. */
+	font-family: var(--ani-font-mono);
+	font-size: clamp(0.34rem, 1.12vw, 1rem);
+	line-height: 1.5;
+	height: calc(18 * 1.5em + 2.2rem);
+}
+
+.term-body .screen {
+	position: absolute;
+	inset: 1.1rem 1.2rem;
+	margin: 0;
+	font-family: var(--ani-font-mono);
+	font-size: inherit;
+	line-height: inherit;
+	color: var(--t-text);
+	visibility: hidden;
+	opacity: 0;
+}
+
+/* Token colours (terminal-local, theme-independent) */
+.term .c-a { color: var(--t-amber); }
+.term .c-d { color: var(--t-dim); }
+.term .c-w { color: var(--t-water); }
+.term .c-r { color: var(--t-red); }
+.term .c-k {
+	color: var(--t-dim);
+	animation: skel-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes skel-pulse {
+	0%, 100% { opacity: 0.35; }
+	50% { opacity: 0.75; }
+}
+
+.term .row {
+	display: block;
+}
+
+/* Obi cell: always occupies its column, lights up when focused */
+.term .oc {
+	color: transparent;
+}
+
+.term .row.on .oc {
+	color: var(--t-amber);
+}
+
+.term .cursor {
+	animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+	50% { opacity: 0; }
+}
+
+/* The cover image inside the home screen: a real image, halfblock-rendered */
+.term-cover {
+	position: absolute;
+	top: calc(1.1rem + 2.1 * 1.5em);
+	left: calc(1.2rem + 58ch);
+	width: 21ch;
+	height: calc(13.5 * 1.5em);
+	image-rendering: pixelated;
+	visibility: hidden;
+	opacity: 0;
+}
+
+/* Eyecatch inside the terminal — covers stream resolution, as in the app */
+.eyecatch-term {
+	position: absolute;
+	inset: 0;
+	background: var(--t-amber);
+	transform: scaleX(0);
+	transform-origin: left;
+	pointer-events: none;
+}
+
+/* Key badge: which key was just "pressed" */
+.demo-key {
+	position: absolute;
+	right: 1rem;
+	bottom: 0.9rem;
+	font-family: var(--ani-font-mono);
+	font-size: 1.05em;
+	padding: 0.28em 0.7em;
+	color: var(--t-amber);
+	border: 1px solid color-mix(in srgb, #f2a64b 45%, #10131f);
+	background: color-mix(in srgb, #f2a64b 10%, #10131f);
+	opacity: 0;
+}
+
+/* ── Obi band: the packaging strip, full bleed, marquee ─────────────────── */
+.obi-band {
+	margin-top: clamp(3.5rem, 8vh, 5.5rem);
+	background: var(--ani-obi);
+	color: var(--ani-ground);
+	overflow: hidden;
+	padding-block: 0.85rem;
+	font-family: var(--ani-font-mono);
+	font-weight: 500;
+	font-size: 0.9rem;
+}
+
+.obi-track {
+	display: flex;
+	width: max-content;
+	white-space: pre;
+	will-change: transform;
+}
+
+/* ── Sections ───────────────────────────────────────────────────────────── */
+.sect {
+	padding-block: clamp(3.5rem, 9vh, 6rem) 0;
+}
+
+.rule {
+	height: 1px;
+	background: var(--ani-rule);
+	transform-origin: left;
+}
+
+.sect-head {
+	padding-block: 2.2rem 0.5rem;
+}
+
+.eyebrow {
+	display: inline-block;
+	font-family: var(--ani-font-mono);
+	font-size: 0.82rem;
+	color: var(--ani-obi);
+	white-space: pre;
+	overflow: hidden;
+	vertical-align: bottom;
+}
+
+.sect h2 {
+	font-weight: 500;
+	font-size: clamp(1.5rem, 3.4vw, 2.1rem);
+	margin-top: 0.5rem;
+	letter-spacing: 0.005em;
+}
+
+.sect-lede {
+	color: var(--ani-dim);
+	max-width: 58ch;
+	margin-top: 0.8rem;
+}
+
+/* Feature rows: mono eyebrow column + copy */
+.feat {
+	display: grid;
+	grid-template-columns: 180px 1fr;
+	gap: 1rem 2.5rem;
+	padding-block: 2rem;
+}
+
+.feat h3 {
+	font-weight: 500;
+	font-size: 1.12rem;
+	letter-spacing: 0.005em;
+	margin-bottom: 0.45rem;
+}
+
+.feat > div:last-child > p:last-child {
+	color: var(--ani-dim);
+	font-size: 0.98rem;
+	max-width: 62ch;
+}
+
+/* Sources / install / next */
+.plain-block {
+	padding-block: 1.9rem;
+}
+
+.plain-block > p {
+	color: var(--ani-dim);
+	max-width: 68ch;
+}
+
+.plain-block p strong {
+	color: var(--ani-text);
+	font-weight: 500;
+}
+
+.code-block {
+	margin-top: 1.6rem;
+	padding: 1.3rem 1.5rem;
+	border: 1px solid var(--ani-rule-faint);
+	background: var(--ani-raised);
+	font-family: var(--ani-font-mono);
+	font-size: 0.86rem;
+	line-height: 1.9;
+	overflow-x: auto;
+	white-space: pre;
+}
+
+.code-block .c-d {
+	color: var(--ani-dim);
+}
+
+.code-block .c-a {
+	color: var(--ani-obi);
+}
+
+.tests-line {
+	margin-top: 2rem;
+	font-family: var(--ani-font-mono);
+	font-size: 0.82rem;
+	color: var(--ani-dim);
+}
+
+/* Kinu's recurring appearance */
+.mascot-row {
+	display: flex;
+	align-items: flex-end;
+	gap: 1.6rem;
+	margin-top: 2.6rem;
+}
+
+.mascot-bust {
+	width: 102px;
+	height: 96px;
+	image-rendering: pixelated;
+	flex-shrink: 0;
+}
+
+.mascot-note {
+	font-size: 0.78rem;
+	color: var(--ani-dim);
+	line-height: 1.9;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+.l-footer {
+	margin-top: clamp(4rem, 10vh, 7rem);
+	padding-block: 2.2rem 3rem;
+	border-top: 1px solid var(--ani-rule-faint);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem 2.5rem;
+	align-items: baseline;
+	justify-content: space-between;
+	font-family: var(--ani-font-mono);
+	font-size: 0.82rem;
+	color: var(--ani-dim);
+}
+
+.l-footer nav {
+	display: flex;
+	gap: 2rem;
+}
+
+.l-footer a:hover,
+.l-footer a:focus-visible {
+	color: var(--ani-obi);
+}
+
+/* ── Focus, reduced motion, responsive ──────────────────────────────────── */
+.landing :focus-visible {
+	outline: 2px solid var(--ani-obi);
+	outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.term .c-k,
+	.term .cursor {
+		animation: none;
+	}
+	html.js .prefade,
+	html.js .hero-h1 .hch {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@media (max-width: 900px) {
+	.hero-spine {
+		font-size: 5rem;
+		opacity: 0.04;
+	}
+	.hero-grid {
+		grid-template-columns: 1fr;
+	}
+	.cover-plate {
+		justify-self: start;
+		width: min(100%, 300px);
+	}
+	.feat {
+		grid-template-columns: 1fr;
+		gap: 0.9rem;
+	}
+	.plate {
+		width: 64px;
+		height: 64px;
+		font-size: 1.6rem;
+	}
+	.obi-progress {
+		display: none;
+	}
+}

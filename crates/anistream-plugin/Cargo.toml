@@ -1,0 +1,32 @@
+[package]
+name = "anistream-plugin"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "WebAssembly component host for provider plugins, with a capability sandbox"
+
+[dependencies]
+anistream-core.workspace = true
+anyhow.workspace = true
+anistream-net.workspace = true
+async-trait.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+# `cache` is what keeps plugin compilation off the critical path a second time: wasmtime manages
+# the on-disk artefact cache itself, so we get it without the `unsafe` that hand-rolling
+# `deserialize_file` would require in a crate whose entire job is running untrusted code.
+wasmtime = { version = "47.0", features = ["component-model", "async", "cranelift", "cache"] }
+wasmtime-wasi = "47.0"
+# Regex is lent to guests: a TinyGo or JS plugin bundling its own would be enormous.
+regex = "1"
+# AES-128-CBC, for the wrapped stream payloads some sources use.
+aes = "0.8"
+cbc = { version = "0.1", features = ["alloc"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true

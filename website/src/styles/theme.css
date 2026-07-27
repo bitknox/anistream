@@ -1,0 +1,149 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   Obi & Silk — anistream's design system, ported from
+   crates/anistream-ui/src/theme/palette.rs. Single source of truth for both
+   the landing page and the Starlight docs.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@import '@fontsource/zen-kaku-gothic-new/400.css';
+@import '@fontsource/zen-kaku-gothic-new/500.css';
+@import '@fontsource/zen-kaku-gothic-new/700.css';
+
+:root {
+	/* Brand tokens — dark (immersive dusk indigo, 藍) */
+	--ani-ground: #161a2e;
+	--ani-text: #e4e0d6; /* 絹 silk */
+	--ani-dim: #9298b5; /* 霞 haze */
+	--ani-obi: #f2a64b; /* 琥珀 amber — the one saturated accent */
+	--ani-state: #7fc7d9; /* 水 water */
+	--ani-alert: #e06b54; /* 朱 vermilion */
+	/* Hairlines are derived, never picked: 22% toward text from the ground */
+	--ani-rule: color-mix(in srgb, var(--ani-text) 22%, var(--ani-ground));
+	--ani-rule-faint: color-mix(in srgb, var(--ani-text) 12%, var(--ani-ground));
+	--ani-raised: color-mix(in srgb, var(--ani-text) 6%, var(--ani-ground));
+
+	--ani-font-display: 'Zen Kaku Gothic New', 'Hiragino Kaku Gothic ProN', sans-serif;
+	--ani-font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+
+[data-theme='light'] {
+	/* Brand tokens — light (silk paper ground) */
+	--ani-ground: #f0ede4;
+	--ani-text: #1e2033;
+	--ani-dim: #4f546e;
+	--ani-obi: #7a4309;
+	--ani-state: #1f5d6e;
+	--ani-alert: #94301f;
+}
+
+/* ── Starlight overrides ──────────────────────────────────────────────────
+   Dark mode: --sl-color-white is the text end, --sl-color-black the ground. */
+:root {
+	--sl-color-accent-low: color-mix(in srgb, #f2a64b 22%, #161a2e);
+	--sl-color-accent: #f2a64b;
+	--sl-color-accent-high: #f7c88f;
+	--sl-color-white: #e4e0d6;
+	--sl-color-gray-1: #ddd9ce;
+	--sl-color-gray-2: #b4b9ce;
+	--sl-color-gray-3: #9298b5;
+	--sl-color-gray-4: #6a7090;
+	--sl-color-gray-5: #343a57;
+	--sl-color-gray-6: #1f2440;
+	--sl-color-black: #161a2e;
+
+	--sl-color-bg-nav: var(--sl-color-black);
+	--sl-color-bg-sidebar: var(--sl-color-black);
+	--sl-color-text-accent: var(--ani-obi);
+	--sl-color-hairline: var(--ani-rule);
+	--sl-color-hairline-light: var(--ani-rule-faint);
+	--sl-color-hairline-shade: var(--ani-rule-faint);
+
+	/* Asides: water for notes, amber for caution, vermilion for danger */
+	--sl-color-blue: #7fc7d9;
+	--sl-color-blue-low: color-mix(in srgb, #7fc7d9 14%, var(--ani-ground));
+	--sl-color-blue-high: #a8dbe8;
+	--sl-color-orange: #f2a64b;
+	--sl-color-orange-low: color-mix(in srgb, #f2a64b 14%, var(--ani-ground));
+	--sl-color-orange-high: #f7c88f;
+	--sl-color-red: #e06b54;
+	--sl-color-red-low: color-mix(in srgb, #e06b54 14%, var(--ani-ground));
+	--sl-color-red-high: #eb9a8a;
+
+	--sl-font: var(--ani-font-display);
+	--sl-font-mono: var(--ani-font-mono);
+}
+
+/* Light mode: Starlight inverts the ramp — the full scale must be redefined
+   or light mode is unreadable. --sl-color-white is now the TEXT end. */
+:root[data-theme='light'] {
+	--sl-color-accent-low: #f0dfc4;
+	--sl-color-accent: #7a4309;
+	--sl-color-accent-high: #5e3407;
+	--sl-color-white: #1e2033;
+	--sl-color-gray-1: #2a2e45;
+	--sl-color-gray-2: #4f546e;
+	--sl-color-gray-3: #6e7288;
+	--sl-color-gray-4: #9c9fb0;
+	--sl-color-gray-5: #d9d5c9;
+	--sl-color-gray-6: #e8e4d9;
+	--sl-color-gray-7: #ece9df;
+	--sl-color-black: #f0ede4;
+
+	--sl-color-text-accent: var(--ani-obi);
+	--sl-color-blue: #1f5d6e;
+	--sl-color-blue-low: #dce8e4;
+	--sl-color-blue-high: #174754;
+	--sl-color-orange: #7a4309;
+	--sl-color-orange-low: #f0dfc4;
+	--sl-color-orange-high: #5e3407;
+	--sl-color-red: #94301f;
+	--sl-color-red-low: #f0ddd2;
+	--sl-color-red-high: #732517;
+}
+
+/* ── Obi & Silk refinements for the docs ────────────────────────────────── */
+
+/* Lowercase wordmark in the docs header, like the app's header widget */
+.site-title {
+	font-weight: 500;
+	letter-spacing: 0.02em;
+}
+
+/* The obi: current page in the sidebar gets the app's one-cell focus bar,
+   not a filled pill. */
+.sidebar-content a[aria-current='page'],
+.sidebar-content a[aria-current='page']:hover,
+.sidebar-content a[aria-current='page']:focus {
+	background: transparent;
+	color: var(--sl-color-text-accent);
+	border-inline-start: 3px solid var(--ani-obi);
+	border-radius: 0;
+	font-weight: 500;
+}
+
+/* Borderless: structure from hairlines, not boxes */
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3 {
+	font-weight: 500;
+	letter-spacing: 0.01em;
+}
+
+.sl-markdown-content code:not(pre code) {
+	border-radius: 0;
+	border: 1px solid var(--ani-rule-faint);
+	background: var(--ani-raised);
+}
+
+.sl-markdown-content pre {
+	border-radius: 0 !important;
+	border: 1px solid var(--ani-rule-faint) !important;
+}
+
+.sl-markdown-content .starlight-aside {
+	border-radius: 0;
+	border-inline-start-width: 3px;
+}
+
+.sl-markdown-content table code {
+	white-space: nowrap;
+}

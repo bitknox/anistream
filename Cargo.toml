@@ -1,0 +1,85 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+# Plugins are separate builds, not workspace members: they target `wasm32-wasip2` and must not
+# inherit the workspace's dependency versions or lints — a plugin is meant to be buildable by
+# someone who has only the WIT file.
+exclude = ["plugins/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.91"
+license = "MIT"
+repository = "https://github.com/bitknox/anistream"
+
+[workspace.dependencies]
+# --- internal ---
+anistream-core = { path = "crates/anistream-core" }
+anistream-net = { path = "crates/anistream-net" }
+anistream-meta = { path = "crates/anistream-meta" }
+anistream-player = { path = "crates/anistream-player" }
+anistream-plugin = { path = "crates/anistream-plugin" }
+anistream-providers = { path = "crates/anistream-providers" }
+anistream-store = { path = "crates/anistream-store" }
+anistream-track = { path = "crates/anistream-track" }
+anistream-ui = { path = "crates/anistream-ui" }
+
+# --- async ---
+tokio = { version = "1.53", features = ["rt-multi-thread", "macros", "sync", "time", "fs", "process", "net", "io-util", "signal"] }
+async-trait = "0.1"
+futures = "0.3"
+
+# --- errors / logging ---
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+
+# --- serde ---
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "1.1"
+# Format-preserving TOML, so writing one setting from the UI does not rewrite the user's whole
+# config file and discard their comments.
+toml_edit = "0.25"
+
+# --- http ---
+# wreq: browser TLS/JA3/JA4 + HTTP2 fingerprint emulation. Required for Cloudflare-fronted
+# providers; a correct browser header set alone returns 403.
+wreq = { version = "5.3", features = ["json", "gzip", "brotli", "deflate", "cookies", "socks"] }
+wreq-util = "2"
+# reqwest: plain client for hosts that need no emulation (AniList, its image CDN, GitHub raw).
+reqwest = { version = "0.13", default-features = false, features = ["json", "query", "form", "rustls", "webpki-roots", "http2", "gzip", "brotli", "stream", "socks"] }
+
+# --- storage ---
+rusqlite = { version = "0.40", features = ["bundled", "chrono", "serde_json"] }
+
+# --- tui ---
+ratatui = "0.30"
+# default-features off: the `chafa-dyn` default pulls in the chafa C library via
+# pkg-config, which every Kitty/Sixel/iTerm2 protocol works without. It only adds a
+# higher-quality symbol fallback, so it stays an opt-in feature rather than a build
+# requirement on every machine.
+ratatui-image = { version = "11.0", default-features = false, features = ["crossterm", "tokio"] }
+crossterm = { version = "0.29", features = ["event-stream"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+terminal-colorsaurus = "1.0"
+
+# --- matching / parsing ---
+nucleo = "0.5"
+
+# --- platform ---
+directories = "6"
+clap = { version = "4", features = ["derive", "env"] }
+jiff = { version = "0.2", features = ["serde"] }
+# Opens a URL in the system handler — the licensed-source handoff, since Crunchyroll's
+# Widevine streams cannot be decoded locally.
+open = "5"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }

@@ -1,0 +1,125 @@
+---
+/**
+ * The hero terminal: a simulated anistream session, sequenced by GSAP in
+ * landing-motion.ts. Screens are stacked <pre> frames; colour comes from
+ * token markup — {a|…} amber, {d|…} dim, {w|…} water, {r|…} vermilion.
+ */
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const mk = (src: string) =>
+	esc(src).replace(/\{(\w+)\|([^}]*)\}/g, (_m, c, t) => `<span class="c-${c}">${t}</span>`);
+
+const RULE = `{d|${'─'.repeat(82)}}`;
+const HEADER = `anistream                                              sources {a|●}  vpn {a|●}  anilist {w|⇅}`;
+
+const skel = [
+	HEADER,
+	RULE,
+	'{a|▌} ▸  CONTINUE     │',
+	'  ▤  CALENDAR     │  {k|░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░}',
+	'  ▦  SEASONAL     │  {k|░░░░░░░░░░░░░░░░░░░░░░░░░░░}',
+	'  /  SEARCH       │  {k|░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░}',
+	'  ▥  LIBRARY      │',
+	'  ↓  DOWNLOADS    │  {k|░░░░░░░░░░░░░░░░░░░░░}',
+	'  ◇  PROVIDERS    │  {k|░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░}',
+	'  ⚙  SETTINGS     │',
+	'                  │  {k|░░░░░░░░░░░░░}',
+	'                  │',
+	'                  │  {k|░░░░░░░░░░░░░░░░░░░░░░░░░}',
+	'                  │',
+	'                  │',
+	'                  │',
+	RULE,
+	'{d|loading…}',
+].map(mk).join('\n');
+
+const home = [
+	HEADER,
+	RULE,
+	'{a|▌} ▸  CONTINUE   {a|4} │  {a|▌} Frieren: Beyond Journey’s End',
+	'  ▤  CALENDAR     │    {d|Sousou no Frieren}',
+	'  ▦  SEASONAL     │',
+	'  /  SEARCH       │    {d|TV · 28 EP · 2023 · 91 · MADHOUSE}',
+	'  ▥  LIBRARY      │    {d|ADVENTURE · DRAMA · FANTASY}',
+	'  ↓  DOWNLOADS  {a|2} │',
+	'  ◇  PROVIDERS    │    {d|EP 12 out 2d ago · EP 13 in 4d 6h}',
+	'  ⚙  SETTINGS     │',
+	'                  │    {a|▌▌▌▌▌▌▌▏}{d|░░░░░░░░░}  12 / 28',
+	'                  │',
+	'                  │    {d|next up · EP 13 · airs in 4d 6h}',
+	'                  │',
+	'                  │',
+	'                  │',
+	RULE,
+	'{d|sub · 1080p}                                   {a|↵} play   {a|e} episodes   {a|?} keys',
+].map(mk).join('\n');
+
+// Search: the query is typed live into [data-type]; result rows fade in staggered.
+const searchTop = [HEADER, RULE].map(mk).join('\n');
+const searchRows = [
+	'{a|▌} Frieren: Beyond Journey’s End           {d|TV · 28 EP · 2023 · 91}',
+	'  Frieren: Beyond Journey’s End Mini      {d|ONA · 24 EP · 2023 · 74}',
+	'  Yuusha                                  {d|MUSIC · 1 EP · 2023 · 78}',
+].map(mk);
+const searchBottom = [RULE, '{a|↵} open   {a|e} episodes   {a|esc} back'].map(mk).join('\n');
+
+// Episodes: the obi cell (.oc) is always a ▌ glyph, transparent until .on.
+const epsRow = (ep: string, title: string, tail: string) =>
+	`<span class="row"><span class="oc">▌</span>${mk(`  EP ${ep}  ${title}${tail}`)}</span>`;
+const eps = [
+	mk('anistream                                          {d|Frieren: Beyond Journey’s End}'),
+	mk(RULE),
+	epsRow('10', 'The Mage Killer', '                        {d|24m}   {d|● watched}'),
+	epsRow('11', 'Winter in the Northern Lands', '           {d|24m}   {d|● watched}'),
+	epsRow('12', 'A Real Hero', '                            {d|24m}   {w|▲ 61%}'),
+	epsRow('13', 'Aversion to One’s Own Kind', '             {d|24m}'),
+	epsRow('14', 'Privilege of the Young', '                 {d|24m}'),
+	'',
+	mk(RULE),
+	mk('{d|sub · 1080p}                                    {a|↵} play   {a|s} sources   {a|f} filler'),
+].join('\n');
+
+const playTop = [
+	HEADER,
+	RULE,
+	'',
+	'    {a|▶}  Frieren: Beyond Journey’s End — EP 13',
+	'       {d|Aversion to One’s Own Kind}',
+	'',
+].map(mk).join('\n');
+const playBottom = [
+	'       {d|remote source · hls · sub · 1080p}',
+	'',
+	'       {d|resume saved · aniskip armed · auto-next on}',
+	RULE,
+	'{a|space} pause   {a|S} skip opening   {a|q} detach',
+].map(mk).join('\n');
+---
+
+<div class="term" role="img" aria-label="anistream running in a terminal: browsing, searching, and streaming an episode over a VPN-guarded torrent">
+	<div class="term-chrome" aria-hidden="true">
+		<span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span>
+		<span class="term-title">anistream — ghostty</span>
+	</div>
+	<div class="term-body" aria-hidden="true">
+		<pre class="screen" data-screen="skel" set:html={skel} />
+		<pre class="screen" data-screen="home" set:html={home} />
+		<pre class="screen" data-screen="search"><Fragment set:html={searchTop} />
+{'  '}/  <span data-type="frieren"></span><span class="cursor c-a">▊</span>
+<Fragment set:html={mk(RULE)} />
+<span class="row sr">{''}<Fragment set:html={searchRows[0]} /></span>
+<span class="row sr"><Fragment set:html={searchRows[1]} /></span>
+<span class="row sr"><Fragment set:html={searchRows[2]} /></span>
+<Fragment set:html={searchBottom} /></pre>
+		<pre class="screen" data-screen="eps" set:html={eps} />
+		<pre class="screen" data-screen="play"><Fragment set:html={playTop} />
+{'       '}<span data-meter>░░░░░░░░░░░░░░░░░░░░░░░░░░░░</span>  <span data-clock>00:00</span> {'/'} 23:40
+<Fragment set:html={playBottom} /></pre>
+		<canvas
+			class="term-cover"
+			width="200"
+			height="320"
+			aria-hidden="true"></canvas>
+		<div class="eyecatch-term" aria-hidden="true"></div>
+		<span class="demo-key" aria-hidden="true"></span>
+	</div>
+</div>

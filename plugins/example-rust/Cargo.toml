@@ -1,0 +1,26 @@
+# Its own workspace root. A plugin targets `wasm32-wasip2` and should be buildable by someone who
+# has only this directory and the WIT file — inheriting anistream's dependency versions or lints
+# would make it a worse example than it is a plugin.
+[workspace]
+
+[package]
+name = "anistream-example-plugin"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "A reference provider plugin, demonstrating the WIT ABI"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+wit-bindgen = "0.60"
+
+[profile.release]
+# A plugin is a parser, so size matters more than speed: it runs a handful of times per search
+# and gets shipped as a file someone downloads.
+opt-level = "s"
+lto = true
+strip = true
+panic = "abort"

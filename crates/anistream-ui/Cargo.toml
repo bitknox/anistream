@@ -1,0 +1,23 @@
+[package]
+name = "anistream-ui"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Terminal interface for anistream: theme, layout and views"
+
+[dependencies]
+anistream-core.workspace = true
+crossterm.workspace = true
+image.workspace = true
+ratatui-image.workspace = true
+ratatui.workspace = true
+terminal-colorsaurus.workspace = true
+tracing.workspace = true
+
+[features]
+# Opt in for a better no-graphics fallback. Requires chafa to be installed.
+chafa = ["ratatui-image/chafa-dyn"]
+
+[lints]
+workspace = true

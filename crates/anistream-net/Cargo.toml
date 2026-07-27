@@ -1,0 +1,24 @@
+[package]
+name = "anistream-net"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "HTTP layer: browser-fingerprint emulation, rate limiting and conditional fetches"
+
+[dependencies]
+anistream-core.workspace = true
+reqwest.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+wreq.workspace = true
+wreq-util.workspace = true
+
+[dev-dependencies]
+# test-util gives the paused clock, so the rate-limiter tests assert real waits
+# without actually sleeping.
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "test-util"] }
+
+[lints]
+workspace = true
