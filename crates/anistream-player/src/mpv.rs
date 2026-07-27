@@ -9,7 +9,7 @@
 //! the first failure as fatal would make playback flaky for no reason.
 
 use std::{
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::Stdio,
     sync::{
         Arc,
@@ -21,13 +21,13 @@ use std::{
 use anistream_core::{stream::Stream, traits::PlaybackRequest};
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
-    net::UnixStream,
     process::{Child, Command as ProcessCommand},
     sync::{Mutex, mpsc},
 };
 
-use crate::protocol::{
-    Command, EndReason, Event, base_args, observed, parse_line, stream_args,
+use crate::{
+    ipc::{self, IpcStream},
+    protocol::{Command, EndReason, Event, base_args, observed, parse_line, stream_args},
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -125,7 +125,7 @@ impl Diagnostics {
 /// A live mpv process.
 pub struct MpvSession {
     child: Child,
-    writer: Arc<Mutex<tokio::net::unix::OwnedWriteHalf>>,
+    writer: Arc<Mutex<ipc::WriteHalf>>,
     request_id: AtomicU64,
     socket_path: PathBuf,
     diagnostics: Diagnostics,
@@ -213,7 +213,7 @@ impl MpvSession {
                 let _ = self.child.kill().await;
             }
         }
-        let _ = tokio::fs::remove_file(&self.socket_path).await;
+        ipc::remove_endpoint(&self.socket_path).await;
     }
 }
 
@@ -277,17 +277,20 @@ impl Mpv {
         stream: &Stream,
         request: &PlaybackRequest,
     ) -> Result<(MpvSession, mpsc::UnboundedReceiver<PlaybackEvent>), PlayerError> {
-        tokio::fs::create_dir_all(&self.socket_dir)
-            .await
-            .map_err(|e| PlayerError::Spawn(e.to_string()))?;
+        // Only Unix puts the endpoint on disk; on Windows it lives in the flat pipe namespace and
+        // there is no directory to make.
+        if cfg!(unix) {
+            tokio::fs::create_dir_all(&self.socket_dir)
+                .await
+                .map_err(|e| PlayerError::Spawn(e.to_string()))?;
+        }
 
-        // A unique socket per session, so a lingering process from a previous run cannot be
+        // A unique endpoint per session, so a lingering process from a previous run cannot be
         // mistaken for this one.
-        let socket_path = self.socket_dir.join(format!(
-            "mpv-{}.sock",
-            std::process::id() as u64 ^ (request.start_at.unwrap_or_default() * 1000.0) as u64
-        ));
-        let _ = tokio::fs::remove_file(&socket_path).await;
+        let unique =
+            std::process::id() as u64 ^ (request.start_at.unwrap_or_default() * 1000.0) as u64;
+        let socket_path = ipc::mpv_endpoint(&self.socket_dir, unique);
+        ipc::remove_endpoint(&socket_path).await;
 
         let mut args = base_args(&socket_path.to_string_lossy(), &request.title);
         args.extend(stream_args(
@@ -328,7 +331,7 @@ impl Mpv {
         }
 
         let socket = connect_with_retry(&socket_path).await?;
-        let (read_half, write_half) = socket.into_split();
+        let (read_half, write_half) = ipc::split(socket);
         let writer = Arc::new(Mutex::new(write_half));
 
         let (tx, rx) = mpsc::unbounded_channel();
@@ -361,12 +364,12 @@ impl Mpv {
 ///
 /// The socket appears a moment after the process does. Treating the first failure as fatal
 /// would make playback flaky for no reason.
-async fn connect_with_retry(path: &PathBuf) -> Result<UnixStream, PlayerError> {
+async fn connect_with_retry(path: &Path) -> Result<IpcStream, PlayerError> {
     const ATTEMPTS: u32 = 50;
     let mut last = String::new();
 
     for _ in 0..ATTEMPTS {
-        match UnixStream::connect(path).await {
+        match ipc::connect(path).await {
             Ok(stream) => return Ok(stream),
             Err(e) => {
                 last = e.to_string();
@@ -379,7 +382,7 @@ async fn connect_with_retry(path: &PathBuf) -> Result<UnixStream, PlayerError> {
 
 /// Read events off the socket and forward the ones the UI cares about.
 fn spawn_reader(
-    read_half: tokio::net::unix::OwnedReadHalf,
+    read_half: ipc::ReadHalf,
     tx: mpsc::UnboundedSender<PlaybackEvent>,
 ) {
     tokio::spawn(async move {

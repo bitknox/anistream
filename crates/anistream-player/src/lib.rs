@@ -7,6 +7,7 @@
 //! honest answer is to hand off rather than pretend.
 
 pub mod external;
+pub mod ipc;
 pub mod mpv;
 pub mod presence;
 pub mod protocol;

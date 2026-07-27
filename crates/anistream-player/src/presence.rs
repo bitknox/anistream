@@ -25,10 +25,9 @@ use std::{
     sync::atomic::{AtomicU32, Ordering},
 };
 
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::UnixStream,
-};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+use crate::ipc::{self, IpcStream};
 
 /// Opcodes. Only these two are needed: a presence connection lives for exactly one episode, so
 /// there is nothing long-lived enough to want the keepalive ping.
@@ -59,7 +58,7 @@ pub struct Activity {
 
 /// A connection to the local Discord client.
 pub struct Presence {
-    stream: UnixStream,
+    stream: IpcStream,
     nonce: AtomicU32,
 }
 
@@ -70,7 +69,7 @@ impl Presence {
     /// and treating "Discord is closed" as a failure would be wrong about what happened.
     pub async fn connect(client_id: &str) -> Option<Self> {
         for path in candidate_sockets() {
-            let Ok(stream) = UnixStream::connect(&path).await else { continue };
+            let Ok(stream) = ipc::connect(&path).await else { continue };
             let mut presence = Self { stream, nonce: AtomicU32::new(1) };
             if presence.handshake(client_id).await.is_ok() {
                 tracing::debug!(socket = %path.display(), "discord presence connected");
@@ -184,38 +183,9 @@ fn truncate(text: &str) -> String {
     text.chars().take(LIMIT - 1).collect::<String>() + "…"
 }
 
-/// Where Discord's IPC socket might be.
-///
-/// Numbered `0`–`9` because a second Discord instance takes the next slot, and the directory varies
-/// by platform *and* by how Discord was installed — Flatpak and Snap each nest it further. Trying a
-/// short list is far more robust than getting one path right.
+/// Where Discord's IPC endpoint might be. See [`crate::ipc::discord_endpoints`].
 pub fn candidate_sockets() -> Vec<PathBuf> {
-    let mut bases: Vec<PathBuf> = Vec::new();
-    // macOS puts it in the per-user temporary directory; Linux in the runtime dir.
-    for key in ["XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP"] {
-        if let Ok(value) = std::env::var(key)
-            && !value.is_empty()
-        {
-            bases.push(PathBuf::from(value));
-        }
-    }
-    bases.push(PathBuf::from("/tmp"));
-
-    let mut paths = Vec::new();
-    for base in bases {
-        for nested in [
-            "",
-            "app/com.discordapp.Discord",
-            "snap.discord",
-            ".flatpak/dev.vencord.Vesktop/xdg-run",
-        ] {
-            let dir = if nested.is_empty() { base.clone() } else { base.join(nested) };
-            for index in 0..10 {
-                paths.push(dir.join(format!("discord-ipc-{index}")));
-            }
-        }
-    }
-    paths
+    ipc::discord_endpoints()
 }
 
 #[cfg(test)]
