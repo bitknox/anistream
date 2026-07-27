@@ -100,6 +100,23 @@ impl ImageEngine {
         }
     }
 
+    /// Halfblocks, without asking the terminal anything.
+    ///
+    /// [`Self::detect`] writes a query to stdout and waits for a reply on stdin. That is fine in
+    /// front of a real terminal and wrong everywhere else: under a test harness stdio is captured,
+    /// and on Windows the query opens the console handles directly and waits on a reply that never
+    /// arrives — the wait restarts whenever the parser reports itself busy, so it does not
+    /// reliably time out. Anything that wants the rendering pipeline rather than the detection
+    /// should start here.
+    pub fn halfblocks() -> Self {
+        Self {
+            picker: Some(Picker::halfblocks()),
+            graphics: Graphics::Halfblocks,
+            cache_dir: PathBuf::new(),
+            font_size: (8, 16),
+        }
+    }
+
     pub fn with_cache_dir(mut self, dir: impl Into<PathBuf>) -> Self {
         self.cache_dir = dir.into();
         self
@@ -384,9 +401,13 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(windows))]
     fn detection_degrades_to_halfblocks_rather_than_failing() {
         // Under `cargo test` stdout is not a terminal, which is the same situation as a
         // pipe or a CI runner. It must not be an error.
+        //
+        // Not run on Windows: there the query opens the console handles directly and blocks
+        // waiting for a reply that captured stdio will never send. See `ImageEngine::halfblocks`.
         let engine = ImageEngine::detect(true);
         assert!(engine.graphics() != Graphics::Disabled);
         assert!(engine.is_enabled());
@@ -515,8 +536,9 @@ mod store_tests {
     use super::*;
 
     fn store() -> ImageStore {
-        // Halfblocks works without a terminal, so the pipeline is testable in CI.
-        ImageStore::new(ImageEngine::detect(true))
+        // Constructed directly rather than detected: what is under test is the store, and
+        // probing the terminal from a test harness buys nothing and hangs on Windows.
+        ImageStore::new(ImageEngine::halfblocks())
     }
 
     fn sample(w: u32, h: u32) -> image::DynamicImage {
