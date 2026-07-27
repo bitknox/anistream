@@ -28,6 +28,14 @@ what you are watching.
 Kitsu sync is the one tracker not built. Crunchyroll streams are DRM-protected, so mpv cannot play
 them and anistream will not work around that — episodes open in Crunchyroll instead.
 
+## Install
+
+Prebuilt binaries for macOS, Linux and Windows are on the
+[releases page](https://github.com/bitknox/anistream/releases). Unpack one and put `anistream` on
+your `PATH`. mpv and ffmpeg are not bundled — install those first.
+
+To build from source instead, start with the requirements below.
+
 ## Requirements
 
 macOS:

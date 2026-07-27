@@ -1,12 +1,20 @@
 ---
 title: Installation
-description: Building anistream from source on macOS, Linux or Windows. There are no published binaries yet.
+description: Prebuilt binaries for macOS, Linux and Windows, or build from source.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-There are no published binaries, no Homebrew formula and no `cargo install` yet — anistream is
-installed from source. Install the prerequisites for your platform, then build.
+Prebuilt binaries for each release are on the
+[releases page](https://github.com/bitknox/anistream/releases). Download the archive for your
+platform, unpack it, and put `anistream` on your `PATH`. Each archive ships with a `.sha256` worth
+checking before you run anything.
+
+**mpv and ffmpeg are not bundled.** anistream drives mpv for playback and shells out to ffmpeg when
+muxing subtitles into a completed download, so install those first — see Prerequisites below.
+
+There is no Homebrew formula and no `cargo install` yet. To build from source instead, install the
+prerequisites and then build.
 
 ## Prerequisites
 
@@ -58,7 +66,7 @@ for both there.
 </TabItem>
 </Tabs>
 
-## Build
+## Build from source
 
 ```sh
 git clone https://github.com/bitknox/anistream
