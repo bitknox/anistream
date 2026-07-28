@@ -30,13 +30,35 @@ them and anistream will not work around that — episodes open in Crunchyroll in
 
 ## Install
 
-Prebuilt binaries for macOS, Linux and Windows are on the
-[releases page](https://github.com/bitknox/anistream/releases). Unpack one and put `anistream` on
-your `PATH`. mpv and ffmpeg are not bundled — install those first.
+Every [release](https://github.com/bitknox/anistream/releases) ships ready to run — no toolchain,
+no build step:
 
-To build from source instead, start with the requirements below.
+- **macOS** — `anistream.pkg`, or the `.tar.gz` archive for `PATH`-only installs
+- **Windows** — `anistream-<version>-setup.exe`, or the `.zip`
+- **Debian / Ubuntu** — `anistream-<version>-amd64.deb`, or the `.tar.gz`
 
-## Requirements
+The installers put `anistream` on your `PATH` and add a launcher; the archives hold just the
+binary. Every asset has a `.sha256` beside it. The builds are not code-signed yet: macOS wants a
+right-click → **Open** the first time, Windows SmartScreen wants **More info → Run anyway**.
+
+mpv and ffmpeg are not bundled — install those first (`brew install mpv ffmpeg`,
+`winget install shinchiro.mpv Gyan.FFmpeg`, or your distro's packages; the `.deb` pulls them in
+as dependencies).
+
+### Updating
+
+```sh
+anistream --update
+```
+
+Downloads the latest release for your platform, verifies its published SHA-256, and replaces the
+binary in place. The app also checks for new releases once a day (a single cached request to
+GitHub) and mentions one in a toast when it exists — set `check = false` under `[updates]` in
+`config.toml` to turn that off.
+
+## Build from source
+
+Prebuilt binaries make the rest of this section optional.
 
 macOS:
 
@@ -61,7 +83,8 @@ Add `rustup target add wasm32-wasip2` if you want to build plugins.
 ## Quick start
 
 ```sh
-cargo run --release
+anistream                  # from an installer or archive
+cargo run --release        # from a source checkout
 ```
 
 You get browsing straight away, with no account and no config. Everything below is optional.

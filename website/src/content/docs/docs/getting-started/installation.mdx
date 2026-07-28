@@ -28,6 +28,22 @@ Windows, install them yourself — see Prerequisites below.
 There is no Homebrew formula and no `cargo install` yet. To build from source instead, install the
 prerequisites and then build.
 
+## Updating
+
+```sh
+anistream --update
+```
+
+That downloads the latest release for your platform, verifies it against the published SHA-256,
+and replaces the binary in place — restart anistream to use it. The app also checks GitHub for a
+new release once a day (one cached HTTPS request, nothing downloaded) and mentions it in a toast.
+Turn the check off with:
+
+```toml
+[updates]
+check = false
+```
+
 ## Prerequisites
 
 <Tabs syncKey="platform">
