@@ -176,6 +176,14 @@ impl SettingId {
     }
 }
 
+/// The local calendar date an offset-from-now lands on. Shared with the renderer, so
+/// where the calendar *opens* and where it *rules* can never disagree.
+pub(crate) fn air_date(secs_from_now: i64) -> Option<chrono::NaiveDate> {
+    use chrono::TimeZone;
+    let epoch = chrono::Local::now().timestamp() + secs_from_now;
+    chrono::Local.timestamp_opt(epoch, 0).single().map(|t| t.date_naive())
+}
+
 fn upscaling_label(mode: anistream_core::config::Upscaling) -> &'static str {
     use anistream_core::config::Upscaling as U;
     match mode {
@@ -999,15 +1007,27 @@ impl App {
                     self.offset = 0;
                 }
                 // The calendar is a timeline running from a week ago to a week ahead, so landing
-                // on row nought would open it on the *oldest* episode in view. Now is the useful
-                // place to be: what just aired is right above, what is coming is right below.
+                // on row nought would open it on the *oldest* episode in view. Today is the
+                // useful place to be: the window opens at today's first entry — everything that
+                // already aired today in view above — with the selection on the next thing to
+                // happen. Capped so a very broadcast-heavy day cannot push the selection below
+                // a short terminal's fold.
                 if self.nav.section() == Section::Calendar
                     && let Content::Entries(entries) = &self.content
-                    && let Some(now) =
+                    && let Some(next) =
                         entries.iter().position(|e| e.airing_in.is_some_and(|secs| secs > 0))
                 {
-                    self.selected = now;
-                    self.offset = now.saturating_sub(2);
+                    let today = chrono::Local::now().date_naive();
+                    let start_of_today = entries
+                        .iter()
+                        .position(|e| {
+                            e.airing_in
+                                .is_some_and(|secs| air_date(secs).is_some_and(|d| d >= today))
+                        })
+                        .unwrap_or(next);
+                    self.selected = next;
+                    self.offset =
+                        next.saturating_sub((next - start_of_today.min(next)).min(12));
                 }
             }
             Update::Detail(entry) => self.detail = Some(*entry),
@@ -1572,6 +1592,21 @@ impl App {
             // list happens to be sitting on" — which is what it used to do, opening something
             // the user never selected.
             Action::Open if self.nav.focus() == Focus::Rail => self.nav.focus_stage(),
+            // On Continue, Enter does what the section is named for: a part-watched
+            // episode resumes immediately, no detail screen in between. The title's other
+            // views stay one key away — `e` episodes, `s` sources, `w` watch order — and
+            // rows with nothing to resume still open normally.
+            Action::Open
+                if matches!(self.nav.current(), StageView::Section(Section::Home))
+                    && self
+                        .selected_entry()
+                        .is_some_and(|e| e.resume.is_some() && e.progress.is_some()) =>
+            {
+                let entry = self.selected_entry().expect("checked");
+                let id = entry.id;
+                let next = entry.progress.expect("checked").1;
+                return Some(self.begin_playback(id, next.to_string()));
+            }
             Action::Open => return self.open_selected(),
             // Space skips the detail screen entirely: from a list, straight into the next
             // episode you have not watched.
@@ -1713,6 +1748,22 @@ impl App {
                 self.source_context = Some((id, episode.clone()));
                 self.status = format!("listing sources for ep {episode}…");
                 return Some(Task::LoadSources { id, episode });
+            }
+            Action::PlayParty => {
+                // The same episode Enter would play, but with the room. No Now Playing
+                // view: Syncplay owns the player, and a dead session screen would lie.
+                let (id, episode) = match self.nav.current() {
+                    StageView::Episodes(id) => {
+                        (*id, self.episodes.get(self.episode_selected)?.number.clone())
+                    }
+                    _ => {
+                        let entry = self.detail.as_ref().or(self.selected_entry())?;
+                        let episode = entry.progress.map_or(1, |(_, next)| next).to_string();
+                        (entry.id, episode)
+                    }
+                };
+                self.status = format!("resolving ep {episode} for the party…");
+                return Some(Task::PlayParty { id, episode });
             }
             Action::Download => {
                 // From the episode table it is the highlighted episode; from a title it is the next
@@ -2186,7 +2237,8 @@ impl App {
                     S::Syncplay => (
                         on_off(self.config.syncplay.enabled),
                         Some(("syncplay", "enabled")),
-                        Some("server and room live in config.toml — parties are not tracked"),
+                        // `y` is the ordinary way in; this toggle sends *every* play there.
+                        Some("y plays one episode in a party — on sends every play"),
                     ),
                     S::UpdateCheck => (
                         on_off(self.config.updates.check),
@@ -2704,6 +2756,11 @@ pub enum Task {
         id: AnilistId,
         episode: String,
     },
+    /// Resolve an episode and hand it to a Syncplay party instead of a private session.
+    PlayParty {
+        id: AnilistId,
+        episode: String,
+    },
     /// List the selectable releases for one episode, for the Sources overlay.
     LoadSources {
         id: AnilistId,
@@ -2961,6 +3018,24 @@ mod tests {
         }
         assert!(a.episodes[..4].iter().all(|r| r.completed));
         assert!(!a.episodes[4].completed, "the cursor row itself stays untouched");
+    }
+
+    #[test]
+    fn enter_on_a_resumable_continue_row_plays_immediately() {
+        let mut a = app();
+        let mut e = Entry::new(AnilistId::new(5), "Frieren");
+        e.progress = Some((7, 8));
+        e.resume = Some(ResumePoint { position: 600.0, fraction: Some(0.5) });
+        a.apply(Update::Content(Content::Entries(vec![e])));
+        a.nav.focus_stage();
+
+        let task = a.handle(Action::Open, 20).expect("enter must resume");
+        assert_eq!(
+            task,
+            Task::Play { id: AnilistId::new(5), episode: "8".into() },
+            "the section is named Continue; Enter continues"
+        );
+        assert!(a.playing.is_some());
     }
 
     #[test]

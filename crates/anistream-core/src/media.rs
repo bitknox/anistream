@@ -185,6 +185,11 @@ pub enum MediaFormat {
     Ova,
     Ona,
     Music,
+    /// Anything this enum does not model — including the manga, novel and one-shot
+    /// formats that ride along on relation edges. A related *source material* must not
+    /// make the whole title fail to parse, which is exactly what `unknown variant
+    /// MANGA` did the moment relations were requested.
+    #[serde(other)]
     Unknown,
 }
 

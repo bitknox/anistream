@@ -217,6 +217,7 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
             // countdown against the clock now; only a session left open across midnight
             // can mislabel a boundary, and the next reload corrects it.
             let mut current_day: Option<chrono::NaiveDate> = None;
+            let today = chrono::Local::now().date_naive();
             for (i, entry) in entries.iter().enumerate().skip(app.offset).take(visible) {
                 if section == Section::Calendar
                     && let Some(secs) = entry.airing_in
@@ -228,7 +229,10 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
                     if !rows.is_empty() {
                         rows.push(ObiRow::new(String::new()));
                     }
-                    rows.push(ObiRow::heading(day_label(day)).ruled());
+                    // Yesterday, today and tomorrow are where the calendar's answer
+                    // lives, so their rulings carry the state role.
+                    let near = (day - today).num_days().abs() <= 1;
+                    rows.push(ObiRow::heading(day_label(day)).ruled().fresh(near));
                     current_day = Some(day);
                 }
 
@@ -252,13 +256,16 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
                             true,
                         ))
                     }
-                    // Behind on a tracked show: the next episode you have not watched has
-                    // already aired. The single most useful fact a list row can carry.
+                    // Behind on a tracked show: episodes you have not watched have already
+                    // aired. Named by what is actually *out* — the same number the preview
+                    // states — never by where your history happens to stand, which read as
+                    // the app being wrong about the broadcast.
                     (Some((_, next)), s, _)
                         if s != Section::Calendar
                             && entry.last_aired.is_some_and(|(ep, _)| ep >= next) =>
                     {
-                        Some((format!("ep {next} out"), true))
+                        let (aired, _) = entry.last_aired.expect("checked");
+                        Some((format!("ep {aired} out"), true))
                     }
                     // The calendar's whole subject is *when*, so time wins over progress
                     // there — and it spans both directions, so a negative countdown is an
@@ -292,12 +299,7 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
     }
 }
 
-/// The local calendar date an offset-from-now lands on.
-fn air_date(secs_from_now: i64) -> Option<chrono::NaiveDate> {
-    use chrono::TimeZone;
-    let epoch = chrono::Local::now().timestamp() + secs_from_now;
-    chrono::Local.timestamp_opt(epoch, 0).single().map(|t| t.date_naive())
-}
+use crate::app::air_date;
 
 /// `today` / `yesterday` / `tomorrow`, then the weekday and date. Rendered as a caps
 /// heading, so lowercase here.
@@ -1677,10 +1679,8 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
 /// One visual line of the Settings screen: rows grouped under category headings.
 enum SettingsLine {
     Blank,
-    /// Category name, drawn as a caps eyebrow over a hairline — the same grammar as the
-    /// episode table's column headers.
+    /// Category name at text weight, ruled to the right edge — the calendar's grammar.
     Heading(&'static str),
-    Rule,
     Row(usize),
 }
 
@@ -1704,7 +1704,6 @@ fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
                 lines.push(SettingsLine::Blank);
             }
             lines.push(SettingsLine::Heading(row.category));
-            lines.push(SettingsLine::Rule);
             category = row.category;
         }
         lines.push(SettingsLine::Row(i));
@@ -1724,15 +1723,17 @@ fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
         match line {
             SettingsLine::Blank => {}
             SettingsLine::Heading(name) => {
-                buf.set_string(
-                    area.left(),
-                    y,
-                    truncate(&glyph::eyebrow(name), area.width as usize),
-                    app.palette.style(Role::TextDim),
-                );
-            }
-            SettingsLine::Rule => {
-                Hairline::new(&app.palette).render(Rect { y, height: 1, ..area }, buf);
+                // Label at full text weight with the hairline running to the edge — the
+                // dim caps of the first cut sat at the same weight as a read-only value
+                // and disappeared.
+                let label = truncate(&glyph::eyebrow(name), area.width as usize);
+                buf.set_string(area.left(), y, &label, app.palette.style(Role::Text));
+                let from = area.left() + label.chars().count() as u16 + 2;
+                for x in from..area.right().saturating_sub(1) {
+                    buf[(x, y)]
+                        .set_char(glyph::RULE_H)
+                        .set_style(app.palette.style(Role::Rule));
+                }
             }
             SettingsLine::Row(i) => {
                 let row = &rows[*i];
@@ -2079,12 +2080,19 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         if is_selected {
             buf[(band.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
         }
+        // Help's scope headings are the rows with no key and no indent; at dim weight
+        // they sat flush among the bindings and vanished. Full text weight sets the
+        // group apart without spending bold, which stays reserved for the selection.
+        let is_scope_heading =
+            matches!(overlay, Overlay::Help) && key.is_empty() && !label.starts_with(' ');
         buf.set_string(
             x,
             y,
             truncate(label, label_room),
             if is_selected {
                 app.palette.style(Role::Text).add_modifier(Modifier::BOLD)
+            } else if is_scope_heading {
+                app.palette.style(Role::Text)
             } else {
                 app.palette.style(Role::TextDim)
             },
@@ -3344,6 +3352,19 @@ mod tests {
         let app = app_with(Content::Entries(vec![e]));
         let text = text_of(&render_to_buffer(&app, 120, 30));
         assert!(text.contains("ep 8 out"), "being behind is the fact worth stating:\n{text}");
+    }
+
+    #[test]
+    fn the_out_marker_names_the_aired_episode_not_the_watch_position() {
+        // Four episodes out, none watched: the row must say what the broadcast did,
+        // not where the viewer's history stands — "ep 1 out" under an "EP 4 out"
+        // preview read as the app contradicting itself.
+        let mut e = entry(1, "Chainsmoker Cat");
+        e.progress = Some((0, 1));
+        e.last_aired = Some((4, 3600));
+        let app = app_with(Content::Entries(vec![e]));
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("ep 4 out"), "got:\n{text}");
     }
 
     #[test]

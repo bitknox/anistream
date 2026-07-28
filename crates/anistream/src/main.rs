@@ -1540,6 +1540,7 @@ fn spawn(
             // Handled in `dispatch`, which owns the live player's control channel and the
             // tracker set. Reaching here would mean a routing mistake, so it says so.
             Task::Play { .. }
+            | Task::PlayParty { .. }
             | Task::LoadSources { .. }
             | Task::PlaySource { .. }
             | Task::ManualSearch { .. }
@@ -1680,6 +1681,7 @@ fn dispatch(
                 id,
                 episode,
                 None,
+                config.syncplay.enabled,
                 prx,
                 config,
                 anilist,
@@ -1701,6 +1703,28 @@ fn dispatch(
                 id,
                 episode,
                 Some((provider_id, source_id)),
+                config.syncplay.enabled,
+                prx,
+                config,
+                anilist,
+                store,
+                registry,
+                http,
+                mpv,
+                tracker_ids,
+                tx,
+            );
+        }
+        Task::PlayParty { id, episode } => {
+            // Same resolution as Play; the handoff at the end is the only difference.
+            let (ptx, prx) = mpsc::unbounded_channel();
+            *player_tx = Some(ptx);
+            let tracker_ids = sync.trackers.iter().map(|t| t.id().to_owned()).collect();
+            spawn_playback(
+                id,
+                episode,
+                None,
+                true,
                 prx,
                 config,
                 anilist,
@@ -1969,6 +1993,7 @@ fn dispatch(
                     tracker_ids,
                     config.presence.clone(),
                     config.syncplay.clone(),
+                    config.syncplay.enabled,
                     tx,
                     prx,
                 )
@@ -2007,6 +2032,8 @@ fn spawn_playback(
     // `(provider_id, source_id)` when the user picked an exact release in the Sources
     // overlay; `None` lets the resolution ladder choose.
     pick: Option<(String, String)>,
+    // Hand the resolved stream to a Syncplay party instead of a private session.
+    party: bool,
     commands: mpsc::UnboundedReceiver<anistream_ui::PlayerCommand>,
     config: &Config,
     anilist: &AniList,
@@ -2064,6 +2091,7 @@ fn spawn_playback(
             tracker_ids,
             config.presence.clone(),
             config.syncplay.clone(),
+            party,
             tx,
             commands,
         )

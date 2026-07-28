@@ -351,8 +351,11 @@ impl Media {
     /// a moving window and whose length AniList leaves unknown — matches none of that, so its
     /// already-correct numbers are left alone.
     fn listing_offset(&self) -> u32 {
-        let mut numbers: Vec<u32> =
-            self.streaming_episodes.iter().filter_map(StreamingEpisode::episode_number).collect();
+        let mut numbers: Vec<u32> = self
+            .streaming_episodes
+            .iter()
+            .filter_map(StreamingEpisode::episode_number)
+            .collect();
         numbers.sort_unstable();
         numbers.dedup();
 
@@ -365,7 +368,8 @@ impl Media {
         let Some(count) = self.episodes else {
             return 0;
         };
-        let contiguous = numbers.len() as u32 == count && last.saturating_sub(first) + 1 == count;
+        let contiguous =
+            numbers.len() as u32 == count && last.saturating_sub(first) + 1 == count;
         if contiguous { first - 1 } else { 0 }
     }
 
@@ -562,6 +566,27 @@ mod tests {
         assert_eq!(m.episodes, Some(28));
         assert_eq!(m.format, Some(MediaFormat::Tv));
         assert_eq!(m.status, Some(MediaStatus::Finished));
+    }
+
+    #[test]
+    fn a_manga_relation_does_not_break_the_title() {
+        // Relations ride the detail query, and source material is routinely MANGA or
+        // NOVEL — formats the anime enum does not model. One related manga must never
+        // fail the whole title. Regression: `unknown variant MANGA` on every detail open.
+        let m: Media = serde_json::from_value(serde_json::json!({
+            "id": 1,
+            "title": {"romaji": "X"},
+            "relations": {"edges": [
+                {"relationType": "ADAPTATION",
+                 "node": {"id": 2, "title": {"romaji": "The Manga"}, "format": "MANGA"}},
+                {"relationType": "SEQUEL",
+                 "node": {"id": 3, "title": {"romaji": "Season 2"}, "format": "TV"}},
+            ]}
+        }))
+        .unwrap();
+        let order = m.watch_order();
+        assert_eq!(order.len(), 1, "adaptations are not watch order");
+        assert_eq!(order[0].id, AnilistId::new(3));
     }
 
     #[test]

@@ -142,6 +142,10 @@ pub struct DownloadsConfig {
     /// Off by default, and that is a privacy choice rather than a bandwidth one: seeding advertises
     /// you as a source for as long as it runs, and doing that unattended is not something to opt
     /// somebody into silently.
+    ///
+    /// Streaming is different, deliberately: while an episode plays (and for as long as the
+    /// app stays open), its torrent uploads to peers over the guarded connection — watching
+    /// already gives back. This key only decides whether a *finished download* keeps doing so.
     pub keep_seeding: bool,
 }
 

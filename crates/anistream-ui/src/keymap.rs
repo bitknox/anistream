@@ -71,6 +71,8 @@ pub enum Action {
     // Episodes
     /// Queue a typed range of episodes for download: `4`, `1-12`, `7-`.
     DownloadRange,
+    /// Play an episode in a Syncplay watch party instead of a private session.
+    PlayParty,
     ToggleWatched,
     MarkAllPrevious,
     Filter,
@@ -134,6 +136,7 @@ impl Action {
         Self::ClearCompleted,
         Self::DeleteDownload,
         Self::DownloadRange,
+        Self::PlayParty,
         Self::ToggleWatched,
         Self::MarkAllPrevious,
         Self::Filter,
@@ -191,6 +194,7 @@ impl Action {
             Self::ClearCompleted => "Clear finished downloads",
             Self::DeleteDownload => "Delete download and its file",
             Self::DownloadRange => "Download a range of episodes",
+            Self::PlayParty => "Play in a Syncplay party",
             Self::ToggleWatched => "Toggle watched",
             Self::MarkAllPrevious => "Mark all previous watched",
             Self::Filter => "Filter",
@@ -268,7 +272,8 @@ impl Action {
             | Self::FixMapping
             | Self::Download
             | Self::WatchOrder
-            | Self::OpenInBrowser => Scope::Title,
+            | Self::OpenInBrowser
+            | Self::PlayParty => Scope::Title,
 
             Self::ToggleWatched
             | Self::MarkAllPrevious
@@ -601,6 +606,8 @@ impl Keymap {
             bind(Binding::plain(Char('d')), A::Download);
             bind(Binding::plain(Char('w')), A::WatchOrder);
             bind(Binding::plain(Char('o')), A::OpenInBrowser);
+            // `y` — you, plural: the same episode Enter would play, but with the room.
+            bind(Binding::plain(Char('y')), A::PlayParty);
 
             // Episodes. `u` reads as "(un)watched" — Space belongs to the playback table
             // and `m` to fixing the match.

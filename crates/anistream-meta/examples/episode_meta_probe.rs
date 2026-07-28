@@ -6,10 +6,13 @@ use anistream_meta::anilist::AniList;
 
 #[tokio::main]
 async fn main() {
-    let http = anistream_net::HttpClient::new(&anistream_core::config::NetworkConfig::default())
-        .expect("http client");
+    let http =
+        anistream_net::HttpClient::new(&anistream_core::config::NetworkConfig::default())
+            .expect("http client");
     let anilist = AniList::new(http, 60);
-    for (id, name) in [(154_587u32, "Frieren"), (21u32, "One Piece"), (176_301u32, "Dandadan S2")] {
+    for (id, name) in
+        [(154_587u32, "Frieren"), (21u32, "One Piece"), (176_301u32, "Dandadan S2")]
+    {
         let id = anistream_core::ids::AnilistId::new(id);
         match anilist.media(id).await {
             Ok(media) => {

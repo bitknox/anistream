@@ -194,6 +194,10 @@ impl Widget for ObiList<'_> {
                     row.label.to_uppercase(),
                     if row.selected {
                         self.palette.style(Role::Text).add_modifier(Modifier::BOLD)
+                    } else if row.fresh {
+                        // The rulings nearest to now — today and its neighbours — carry
+                        // the state role: they are where the calendar's answer lives.
+                        self.palette.style(Role::State)
                     } else {
                         self.palette.style(Role::TextDim)
                     },

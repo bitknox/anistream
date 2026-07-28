@@ -170,6 +170,7 @@ async fn main() {
             Default::default(),
             // Syncplay off, same reasoning.
             Default::default(),
+            false,
             tx,
             command_rx,
         )

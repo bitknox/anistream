@@ -90,6 +90,9 @@ pub async fn play(
     tracker_ids: Vec<String>,
     presence: anistream_core::config::PresenceConfig,
     syncplay: anistream_core::config::SyncplayConfig,
+    // Whether this play joins the party — from the `y` key, or `[syncplay] enabled`
+    // sending every play there.
+    party: bool,
     tx: mpsc::UnboundedSender<Update>,
     mut commands: mpsc::UnboundedReceiver<PlayerCommand>,
 ) {
@@ -110,7 +113,7 @@ pub async fn play(
     // A watch party is a shared session: Syncplay owns the player and the pacing, so no
     // private history is recorded — the room pausing must not read as you abandoning the
     // episode. The torrent session stays alive underneath, serving the loopback URL.
-    if syncplay.enabled {
+    if party {
         let mut command = std::process::Command::new(&syncplay.binary);
         command.arg("--no-gui");
         command.args(["--host", &syncplay.server]);
