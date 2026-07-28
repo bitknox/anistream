@@ -42,3 +42,13 @@ jobs:
 
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      # Advisory policy lives in .cargo/audit.toml, where each ignore carries its
+      # justification — a silent pass would defeat the point of running this.
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install cargo-audit --locked
+      - run: cargo audit

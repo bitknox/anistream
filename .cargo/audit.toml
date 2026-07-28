@@ -1,0 +1,9 @@
+# cargo-audit policy.
+#
+# The two quick-xml advisories (memory-exhaustion and quadratic parsing, both DoS-class)
+# arrive via librqbit-upnp. anistream disables UPnP outright — see `TorrentSession::start`:
+# `enable_upnp_port_forwarding: false` and no inbound listener — so the vulnerable XML
+# parser has no input path in this binary. librqbit 8.x pins quick-xml ^0.37; drop these
+# ignores the moment a stable librqbit release moves past it (9.0 is at rc as of Jul 2026).
+[advisories]
+ignore = ["RUSTSEC-2026-0194", "RUSTSEC-2026-0195"]
