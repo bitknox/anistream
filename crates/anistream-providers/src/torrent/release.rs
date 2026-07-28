@@ -413,7 +413,8 @@ mod tests {
     fn a_batch_is_never_mistaken_for_episode_one() {
         // The failure this prevents: grabbing a whole-series torrent and playing the wrong
         // file because "01-24" was read as episode 1.
-        let r = parse("[BatchGroup] Sousou no Frieren (01-28) (BD 1080p x265 10bit) [Dual-Audio]");
+        let r =
+            parse("[BatchGroup] Sousou no Frieren (01-28) (BD 1080p x265 10bit) [Dual-Audio]");
         assert_eq!(r.batch, Some((1, 28)));
         assert!(r.is_batch());
         assert_eq!(r.episode, None, "a batch has no single episode");

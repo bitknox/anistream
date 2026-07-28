@@ -146,6 +146,12 @@ struct Cli {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // macOS hands every process 256 file descriptors — less than one healthy torrent
+    // swarm, and the first casualty was mpv failing to *spawn* mid-binge. Ask for a
+    // real allowance up front; the OS hard limit still has the final word.
+    #[cfg(unix)]
+    let _ = rlimit::increase_nofile_limit(8192);
+
     let cli = Cli::parse();
     let paths = Paths::resolve().context("resolving config paths")?;
     init_logging(&paths);

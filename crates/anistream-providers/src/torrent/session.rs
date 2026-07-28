@@ -136,7 +136,19 @@ pub struct TorrentSession {
     /// Where librqbit writes. Kept so a finished download can be found on disk — the session knows
     /// the file's *name*, and only this makes that into a path.
     output_dir: std::path::PathBuf,
+    /// Stream-originated torrent ids, oldest first. Streamed torrents used to stay in
+    /// the session for the whole run — each live swarm holds dozens of peer sockets, and
+    /// macOS starts every process with 256 file descriptors, so a short binge exhausted
+    /// them and the *player* was what failed to spawn. The newest two stay: the episode
+    /// playing and the one before it, still seeding while watched.
+    stream_history: Mutex<std::collections::VecDeque<usize>>,
+    /// Torrent ids owned by the download queue. librqbit dedups by infohash, so a stream
+    /// and a download of the same episode share an id — eviction must never touch these.
+    download_ids: Mutex<std::collections::HashSet<usize>>,
 }
+
+/// Streamed swarms kept live: the current episode and the previous one.
+const KEPT_STREAMS: usize = 2;
 
 /// A torrent being fetched to completion.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -198,7 +210,15 @@ impl TorrentSession {
             .await
             .map_err(|e| ProviderError::Other(format!("starting torrent session: {e}")))?;
 
-        Ok(Self { session, guard, active: Mutex::new(None), token, output_dir: download_dir })
+        Ok(Self {
+            session,
+            guard,
+            active: Mutex::new(None),
+            token,
+            output_dir: download_dir,
+            stream_history: Mutex::new(std::collections::VecDeque::new()),
+            download_ids: Mutex::new(std::collections::HashSet::new()),
+        })
     }
 
     /// List the files in a torrent without downloading it.
@@ -301,6 +321,31 @@ impl TorrentSession {
         if let Ok(mut slot) = self.active.lock() {
             *slot = Some(Arc::clone(&active));
         }
+
+        // Retire streams beyond the kept window, oldest first. Files stay on disk — a
+        // rewatch re-adds instantly — and torrents the download queue owns are never
+        // touched, id collisions included (librqbit dedups by infohash).
+        let evict: Vec<usize> = {
+            let owned_by_downloads =
+                self.download_ids.lock().map(|ids| ids.contains(&handle.id())).unwrap_or(false);
+            match self.stream_history.lock() {
+                Ok(mut history) => {
+                    history.retain(|id| *id != handle.id());
+                    if !owned_by_downloads {
+                        history.push_back(handle.id());
+                    }
+                    let extra = history.len().saturating_sub(KEPT_STREAMS);
+                    history.drain(..extra).collect()
+                }
+                Err(_) => Vec::new(),
+            }
+        };
+        for id in evict {
+            if let Err(e) = self.forget(id, false).await {
+                tracing::warn!(id, error = %e, "could not retire a finished stream");
+            }
+        }
+
         Ok(active)
     }
 
@@ -343,6 +388,16 @@ impl TorrentSession {
         let files = files_of(&handle);
         let file = choose_file(&files, episode).ok_or(ProviderError::NotFound)?.clone();
         tracing::info!(file = %file.name, size = file.length, "downloading torrent file");
+
+        // The queue owns this torrent now. Off the stream ledger — the same infohash may
+        // already be there from a watch — and onto the download roster, so stream
+        // retirement can never reach it.
+        if let Ok(mut ids) = self.download_ids.lock() {
+            ids.insert(handle.id());
+        }
+        if let Ok(mut history) = self.stream_history.lock() {
+            history.retain(|id| *id != handle.id());
+        }
 
         Ok(DownloadHandle { id: handle.id(), name: file.name.clone(), total: file.length })
     }
@@ -404,6 +459,14 @@ impl TorrentSession {
 
     /// Forget a torrent entirely, optionally deleting what it has fetched.
     pub async fn forget(&self, id: usize, delete_files: bool) -> Result<(), ProviderError> {
+        // Off both ledgers first — a forgotten id must not shield a future torrent that
+        // happens to be assigned the same number.
+        if let Ok(mut ids) = self.download_ids.lock() {
+            ids.remove(&id);
+        }
+        if let Ok(mut history) = self.stream_history.lock() {
+            history.retain(|h| *h != id);
+        }
         self.session
             .delete(TorrentIdOrHash::Id(id), delete_files)
             .await

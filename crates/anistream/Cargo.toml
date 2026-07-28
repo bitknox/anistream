@@ -28,6 +28,9 @@ open.workspace = true
 anyhow.workspace = true
 # Verifies release archives against their published SHA-256 before `--update` installs.
 sha2 = "0.10"
+# Raises the open-file allowance at startup — macOS's default 256 is less than one
+# healthy torrent swarm.
+rlimit = "0.10"
 thiserror.workspace = true
 clap.workspace = true
 crossterm.workspace = true

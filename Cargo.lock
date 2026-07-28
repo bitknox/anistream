@@ -93,6 +93,7 @@ dependencies = [
  "image",
  "open",
  "ratatui",
+ "rlimit",
  "serde_json",
  "sha2",
  "tempfile",
