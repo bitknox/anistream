@@ -64,6 +64,33 @@ pub struct ProviderManifest {
     pub translations: Vec<Translation>,
 }
 
+/// One selectable release a provider can offer for an episode.
+///
+/// Deliberately descriptive rather than playable: listing must be cheap — no torrent
+/// session, no stream negotiation — so a candidate carries an opaque `id` the same
+/// provider can turn into streams later via [`Provider::resolve_source`].
+#[derive(Debug, Clone, PartialEq)]
+pub struct SourceCandidate {
+    /// Opaque identifier, meaningful only to the provider that produced it.
+    pub id: String,
+    /// The provider that produced this candidate, so a pick can be routed straight
+    /// back to it rather than re-entering failover.
+    pub provider_id: String,
+    /// The release title as listed at the source.
+    pub title: String,
+    /// Vertical resolution, when the listing states one.
+    pub quality: Option<u32>,
+    /// Seeders, for swarm-backed sources. `None` where the concept does not apply.
+    pub seeders: Option<u32>,
+    /// Payload size as listed at the source, already human-readable (`"1.4 GiB"`).
+    pub size: Option<String>,
+    pub dual_audio: bool,
+    pub dubbed: bool,
+    /// Whether automatic resolution would pick this one, so the list can say which
+    /// release the user is currently getting.
+    pub auto_pick: bool,
+}
+
 /// A source of episodes and streams.
 #[async_trait]
 pub trait Provider: Send + Sync {
@@ -91,6 +118,35 @@ pub trait Provider: Send + Sync {
         episode: &str,
         translation: Translation,
     ) -> Result<Vec<Stream>, ProviderError>;
+
+    /// The selectable releases for an episode, best-first, without starting any of them.
+    ///
+    /// Optional, and not part of the WIT plugin interface: an empty list means "nothing
+    /// to choose between here", which is the honest answer for sources that resolve to
+    /// exactly one stream anyway.
+    async fn sources(
+        &self,
+        _key: &ProviderKey,
+        _episode: &str,
+        _translation: Translation,
+    ) -> Result<Vec<SourceCandidate>, ProviderError> {
+        Ok(Vec::new())
+    }
+
+    /// Resolve one specific candidate from [`Self::sources`] by its id.
+    ///
+    /// The default refuses rather than falling back to [`Self::resolve`]: silently
+    /// substituting the automatic pick for the one the user chose would be worse than
+    /// failing.
+    async fn resolve_source(
+        &self,
+        _key: &ProviderKey,
+        _episode: &str,
+        _translation: Translation,
+        _source_id: &str,
+    ) -> Result<Vec<Stream>, ProviderError> {
+        Err(ProviderError::NotFound)
+    }
 
     /// Cheap liveness probe for the Providers screen. Default implementation runs a
     /// throwaway search, which is a fair proxy for "is this source answering".
@@ -137,6 +193,8 @@ pub struct PlaybackRequest {
     pub subtitle_language: Option<String>,
     /// Carried across episodes within a series so a chosen speed sticks.
     pub speed: Option<f64>,
+    /// Carried across sessions so a chosen volume sticks, in mpv's 0–100 scale.
+    pub volume: Option<f64>,
 }
 
 /// An external service that holds watch progress.

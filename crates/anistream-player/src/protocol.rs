@@ -19,6 +19,7 @@ pub mod observed {
     pub const PAUSE: u64 = 3;
     pub const SPEED: u64 = 4;
     pub const EOF_REACHED: u64 = 5;
+    pub const VOLUME: u64 = 6;
 }
 
 /// A command to send to mpv.
@@ -133,6 +134,7 @@ pub enum Event {
     Duration(f64),
     Paused(bool),
     Speed(f64),
+    Volume(f64),
     FileLoaded,
     EndFile(EndReason),
     Seek,
@@ -191,6 +193,7 @@ pub fn parse_line(line: &str) -> Option<Event> {
                 Some("duration") => value.and_then(|v| v.as_f64()).map(Event::Duration),
                 Some("pause") => value.and_then(|v| v.as_bool()).map(Event::Paused),
                 Some("speed") => value.and_then(|v| v.as_f64()).map(Event::Speed),
+                Some("volume") => value.and_then(|v| v.as_f64()).map(Event::Volume),
                 Some("eof-reached") => value.and_then(|v| v.as_bool()).map(|reached| {
                     if reached { Event::EndFile(EndReason::Eof) } else { Event::Ignored }
                 }),
@@ -228,6 +231,7 @@ pub fn stream_args(
     headers: &[(String, String)],
     start_at: Option<f64>,
     speed: Option<f64>,
+    volume: Option<f64>,
     subtitle_language: Option<&str>,
 ) -> Vec<String> {
     let mut args = Vec::new();
@@ -243,6 +247,11 @@ pub fn stream_args(
     }
     if let Some(speed) = speed.filter(|s| (*s - 1.0).abs() > f64::EPSILON) {
         args.push(format!("--speed={speed}"));
+    }
+    // Clamped to mpv's own 0..=100 baseline range; a remembered value beyond it would be
+    // a corrupt config more often than an intent.
+    if let Some(volume) = volume.filter(|v| (0.0..=100.0).contains(v)) {
+        args.push(format!("--volume={volume}"));
     }
     if let Some(language) = subtitle_language {
         args.push(format!("--alang={language}"));
@@ -420,7 +429,7 @@ mod tests {
             ("Referer".to_string(), "https://example.test/".to_string()),
             ("Origin".to_string(), "https://example.test".to_string()),
         ];
-        let args = stream_args(&headers, None, None, None);
+        let args = stream_args(&headers, None, None, None, None);
         let joined = args.join(" ");
         assert!(joined.contains("--http-header-fields="));
         assert!(joined.contains("Referer: https://example.test/"));
@@ -429,12 +438,12 @@ mod tests {
 
     #[test]
     fn no_headers_means_no_header_argument() {
-        assert!(stream_args(&[], None, None, None).is_empty());
+        assert!(stream_args(&[], None, None, None, None).is_empty());
     }
 
     #[test]
     fn a_resume_point_becomes_a_start_argument() {
-        let args = stream_args(&[], Some(612.5), None, None);
+        let args = stream_args(&[], Some(612.5), None, None, None);
         assert!(args.iter().any(|a| a == "--start=612.5"));
     }
 
@@ -442,20 +451,20 @@ mod tests {
     fn a_trivial_resume_point_is_not_passed() {
         // Resuming at half a second is indistinguishable from starting, and passing it
         // makes mpv seek for no reason.
-        assert!(stream_args(&[], Some(0.4), None, None).is_empty());
-        assert!(stream_args(&[], Some(0.0), None, None).is_empty());
+        assert!(stream_args(&[], Some(0.4), None, None, None).is_empty());
+        assert!(stream_args(&[], Some(0.0), None, None, None).is_empty());
     }
 
     #[test]
     fn normal_speed_is_not_passed_but_a_carried_speed_is() {
-        assert!(stream_args(&[], None, Some(1.0), None).is_empty());
-        assert!(stream_args(&[], None, Some(1.5), None).iter().any(|a| a == "--speed=1.5"));
+        assert!(stream_args(&[], None, Some(1.0), None, None).is_empty());
+        assert!(stream_args(&[], None, Some(1.5), None, None).iter().any(|a| a == "--speed=1.5"));
     }
 
     #[test]
     fn a_subtitle_language_sets_both_track_preferences() {
         // Audio and subtitle preference are separate properties in mpv.
-        let args = stream_args(&[], None, None, Some("eng"));
+        let args = stream_args(&[], None, None, None, Some("eng"));
         assert!(args.iter().any(|a| a == "--slang=eng"));
         assert!(args.iter().any(|a| a == "--alang=eng"));
     }

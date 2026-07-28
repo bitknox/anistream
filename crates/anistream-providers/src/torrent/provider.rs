@@ -22,7 +22,7 @@ use anistream_core::{
     ids::ProviderKey,
     media::{Episode, SearchHit, Translation},
     stream::{Stream, StreamKind},
-    traits::{Provider, ProviderKind, ProviderManifest},
+    traits::{Provider, ProviderKind, ProviderManifest, SourceCandidate},
 };
 use anistream_net::HttpClient;
 use async_trait::async_trait;
@@ -164,6 +164,58 @@ impl TorrentProvider {
         tracing::info!(group = %pick.group, url = %pick.url, "using curated release");
         pick.view_id().map(str::to_owned)
     }
+
+    /// The item automatic resolution would choose: the curated pick when it is present
+    /// in the feed and covers the episode, otherwise the top-ranked release.
+    async fn auto_choice<'a>(
+        &self,
+        items: &'a [IndexerItem],
+        anilist_id: Option<u32>,
+        wanted: u32,
+        prefer_dual: bool,
+    ) -> Option<&'a IndexerItem> {
+        let curated_id = match anilist_id {
+            Some(id) => self.curated(id, prefer_dual).await,
+            None => None,
+        };
+        match &curated_id {
+            Some(id) => items
+                .iter()
+                .find(|item| {
+                    item.guid.contains(id.as_str()) && item.release.covers(wanted, None)
+                })
+                .or_else(|| indexer::best(items, wanted, None, self.quality, prefer_dual)),
+            None => indexer::best(items, wanted, None, self.quality, prefer_dual),
+        }
+    }
+
+    /// Start a torrent session for a chosen item and wrap it as a playable stream.
+    async fn stream_from(
+        &self,
+        chosen: &IndexerItem,
+        wanted: u32,
+    ) -> Result<Vec<Stream>, ProviderError> {
+        let magnet = chosen
+            .magnet(&self.settings.trackers)
+            .ok_or_else(|| ProviderError::Parse("release has no info hash".into()))?;
+
+        tracing::info!(
+            title = %chosen.title,
+            seeders = chosen.seeders,
+            "starting torrent stream"
+        );
+
+        let active = self.session.stream(&magnet, Some(wanted)).await?;
+
+        Ok(vec![Stream {
+            quality: chosen.release.quality,
+            provider_id: self.manifest.id.clone(),
+            // The magnet, not the loopback URL: the download queue persists this and resumes from
+            // it, and the loopback address stops existing the moment the session does.
+            download_source: Some(magnet.clone()),
+            ..Stream::new(active.url(), StreamKind::TorrentHttp)
+        }])
+    }
 }
 
 /// Split a provider key into its title and optional AniList id.
@@ -285,46 +337,71 @@ impl Provider for TorrentProvider {
         })?;
         let prefer_dual = translation == Translation::Dub;
 
-        // Curated first, when the curation source covers this title.
-        let curated_id = match anilist_id {
-            Some(id) => self.curated(id, prefer_dual).await,
-            None => None,
-        };
+        let items = self.feed(&title).await?;
+        let chosen = self
+            .auto_choice(&items, anilist_id, wanted, prefer_dual)
+            .await
+            .ok_or(ProviderError::NotFound)?;
+
+        self.stream_from(chosen, wanted).await
+    }
+
+    /// The ranked slate for an episode, with the automatic pick marked.
+    async fn sources(
+        &self,
+        key: &ProviderKey,
+        episode: &str,
+        translation: Translation,
+    ) -> Result<Vec<SourceCandidate>, ProviderError> {
+        self.is_available()?;
+        let (title, anilist_id) = decode_key(key);
+        let wanted: u32 = episode.trim().parse().map_err(|_| {
+            ProviderError::Parse(format!("episode {episode:?} is not a number"))
+        })?;
+        let prefer_dual = translation == Translation::Dub;
 
         let items = self.feed(&title).await?;
-        let chosen = match &curated_id {
-            // Narrow to the curated torrent when it is in the feed and can supply the
-            // episode; otherwise fall through to ranking.
-            Some(id) => items
-                .iter()
-                .find(|item| {
-                    item.guid.contains(id.as_str()) && item.release.covers(wanted, None)
-                })
-                .or_else(|| indexer::best(&items, wanted, None, self.quality, prefer_dual)),
-            None => indexer::best(&items, wanted, None, self.quality, prefer_dual),
-        }
-        .ok_or(ProviderError::NotFound)?;
+        let auto = self
+            .auto_choice(&items, anilist_id, wanted, prefer_dual)
+            .await
+            .map(|item| item.guid.clone());
 
-        let magnet = chosen
-            .magnet(&self.settings.trackers)
-            .ok_or_else(|| ProviderError::Parse("release has no info hash".into()))?;
+        Ok(indexer::ranked(&items, wanted, None, self.quality, prefer_dual)
+            .into_iter()
+            .map(|item| SourceCandidate {
+                id: item.guid.clone(),
+                provider_id: self.manifest.id.clone(),
+                title: item.title.clone(),
+                quality: item.release.quality,
+                seeders: Some(item.seeders),
+                size: item.size.clone(),
+                dual_audio: item.release.dual_audio,
+                dubbed: item.release.dubbed,
+                auto_pick: auto.as_deref() == Some(item.guid.as_str()),
+            })
+            .collect())
+    }
 
-        tracing::info!(
-            title = %chosen.title,
-            seeders = chosen.seeders,
-            "starting torrent stream"
-        );
+    /// Resolve the exact release the user picked, by feed guid. No ranking, no curation
+    /// — the pick *is* the decision.
+    async fn resolve_source(
+        &self,
+        key: &ProviderKey,
+        episode: &str,
+        _translation: Translation,
+        source_id: &str,
+    ) -> Result<Vec<Stream>, ProviderError> {
+        self.is_available()?;
+        let (title, _) = decode_key(key);
+        let wanted: u32 = episode.trim().parse().map_err(|_| {
+            ProviderError::Parse(format!("episode {episode:?} is not a number"))
+        })?;
 
-        let active = self.session.stream(&magnet, Some(wanted)).await?;
+        let items = self.feed(&title).await?;
+        let chosen =
+            items.iter().find(|item| item.guid == source_id).ok_or(ProviderError::NotFound)?;
 
-        Ok(vec![Stream {
-            quality: chosen.release.quality,
-            provider_id: self.manifest.id.clone(),
-            // The magnet, not the loopback URL: the download queue persists this and resumes from
-            // it, and the loopback address stops existing the moment the session does.
-            download_source: Some(magnet.clone()),
-            ..Stream::new(active.url(), StreamKind::TorrentHttp)
-        }])
+        self.stream_from(chosen, wanted).await
     }
 
     /// Cheap liveness probe that does not start a torrent.

@@ -190,8 +190,13 @@ pub fn score(
     if item.release.bluray {
         score += 80;
     }
-    if prefer_dual && item.release.dual_audio {
+    // Dual audio serves a dub preference outright; a dub-only release does too, but may
+    // carry no subtitles, so it is also the one thing worth steering a sub watcher around.
+    if prefer_dual && (item.release.dual_audio || item.release.dubbed) {
         score += 60;
+    }
+    if !prefer_dual && item.release.dubbed && !item.release.dual_audio {
+        score -= 40;
     }
     // A single episode beats a batch when only one is wanted — far less to download
     // before playback can start.
@@ -202,6 +207,26 @@ pub fn score(
     score += i64::from(item.release.version.unwrap_or(1).min(5)) * 10;
 
     score
+}
+
+/// Every release that covers the episode, best-first.
+///
+/// The same scoring as [`best`], kept as a list so the user can overrule it: automatic
+/// resolution wants one answer, the Sources overlay wants the whole slate.
+pub fn ranked(
+    items: &[IndexerItem],
+    episode: u32,
+    season: Option<u32>,
+    quality: u32,
+    prefer_dual: bool,
+) -> Vec<&IndexerItem> {
+    let mut scored: Vec<(i64, &IndexerItem)> = items
+        .iter()
+        .map(|item| (score(item, episode, season, quality, prefer_dual), item))
+        .filter(|(s, _)| *s > i64::MIN)
+        .collect();
+    scored.sort_by_key(|(s, _)| std::cmp::Reverse(*s));
+    scored.into_iter().map(|(_, item)| item).collect()
 }
 
 /// Best release for an episode, or `None` if nothing covers it.
@@ -436,6 +461,21 @@ mod tests {
             "[B] Show - 12 (1080p) [Dual Audio]"
         );
         assert!(best(&items, 12, None, 1080, false).is_some());
+    }
+
+    #[test]
+    fn a_dub_only_release_satisfies_a_dub_preference() {
+        let items = [
+            item("[A] Show - 12 (1080p)", 100),
+            item("[B] Show - 12 (1080p) [English Dub]", 100),
+        ];
+        assert_eq!(
+            best(&items, 12, None, 1080, true).unwrap().title,
+            "[B] Show - 12 (1080p) [English Dub]"
+        );
+        // And the reverse: a sub watcher is steered away from it, since a dub-only
+        // release may carry no subtitles at all.
+        assert_eq!(best(&items, 12, None, 1080, false).unwrap().title, "[A] Show - 12 (1080p)");
     }
 
     #[test]

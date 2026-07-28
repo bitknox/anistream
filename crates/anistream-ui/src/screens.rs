@@ -686,6 +686,15 @@ fn render_empty(
     y: u16,
     (message, hint): (&str, Option<&str>),
 ) {
+    // The pixel mark, above the message — a printer's mark on the blank page. Only when
+    // it genuinely fits with room to spare; on a cramped terminal the words win.
+    let mut y = y;
+    let (mark_width, mark_height) = crate::logo::size();
+    if area.width >= mark_width && area.bottom().saturating_sub(y) >= mark_height + 4 {
+        crate::logo::render(buf, area, area.left(), y);
+        y += mark_height + 1;
+    }
+
     buf.set_string(area.left(), y, glyph::eyebrow(message), app.palette.style(Role::TextDim));
     if let Some(hint) = hint
         && y + 2 < area.bottom()
@@ -1594,6 +1603,16 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
 /// It listed values and did nothing, which made it a status page under a settings page's name.
 /// Every row that can be cycled here is; the rest say why not, rather than looking identical to
 /// the editable ones and quietly ignoring the key.
+/// One visual line of the Settings screen: rows grouped under category headings.
+enum SettingsLine {
+    Blank,
+    /// Category name, drawn as a caps eyebrow over a hairline — the same grammar as the
+    /// episode table's column headers.
+    Heading(&'static str),
+    Rule,
+    Row(usize),
+}
+
 fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
     if area.height == 0 || area.width < 24 {
         return;
@@ -1603,44 +1622,88 @@ fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
     // The value column, with room for the label to its left.
     let value_x = area.left() + (area.width / 2).clamp(14, 30);
 
+    // Lay the list out as lines first: a heading every time the category changes. This is
+    // a visual split, not tabs — Up/Down walk straight through every group, and Left/Right
+    // keep cycling the selected value.
+    let mut lines = Vec::with_capacity(rows.len() + 12);
+    let mut category = "";
     for (i, row) in rows.iter().enumerate() {
-        let y = area.top() + i as u16;
-        if y >= area.bottom() {
-            break;
+        if row.category != category {
+            if !lines.is_empty() {
+                lines.push(SettingsLine::Blank);
+            }
+            lines.push(SettingsLine::Heading(row.category));
+            lines.push(SettingsLine::Rule);
+            category = row.category;
         }
-        let selected = i == app.selected;
-        if selected && focused {
-            buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
+        lines.push(SettingsLine::Row(i));
+    }
+
+    // Scroll so the selected row stays visible at any height — the grouped list is taller
+    // than the old flat one, and clipping the tail would hide whole categories.
+    let selected_line = lines
+        .iter()
+        .position(|l| matches!(l, SettingsLine::Row(i) if *i == app.selected))
+        .unwrap_or(0);
+    let visible = area.height as usize;
+    let offset = selected_line.saturating_sub(visible.saturating_sub(1));
+
+    for (slot, line) in lines.iter().skip(offset).take(visible).enumerate() {
+        let y = area.top() + slot as u16;
+        match line {
+            SettingsLine::Blank => {}
+            SettingsLine::Heading(name) => {
+                buf.set_string(
+                    area.left(),
+                    y,
+                    truncate(&glyph::eyebrow(name), area.width as usize),
+                    app.palette.style(Role::TextDim),
+                );
+            }
+            SettingsLine::Rule => {
+                Hairline::new(&app.palette).render(Rect { y, height: 1, ..area }, buf);
+            }
+            SettingsLine::Row(i) => {
+                let row = &rows[*i];
+                let selected = *i == app.selected;
+                if selected && focused {
+                    buf[(area.left(), y)]
+                        .set_char(OBI)
+                        .set_style(app.palette.style(Role::Obi));
+                }
+
+                let label_room = value_x.saturating_sub(area.left() + 3) as usize;
+                buf.set_string(
+                    area.left() + 2,
+                    y,
+                    truncate(&glyph::eyebrow(row.label), label_room),
+                    if selected {
+                        app.palette.style(Role::Text)
+                    } else {
+                        app.palette.style(Role::TextDim)
+                    },
+                );
+
+                // A read-only row is dimmed to the hairline weight rather than shown in the
+                // text role: the value is still legible, but it no longer looks like
+                // something an arrow will change.
+                let value_style = match (row.editable.is_some(), selected) {
+                    (false, _) => app.palette.style(Role::Rule),
+                    (true, true) => app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
+                    (true, false) => app.palette.style(Role::Text),
+                };
+                let value_room = area.right().saturating_sub(value_x) as usize;
+                buf.set_string(value_x, y, truncate(&row.value, value_room), value_style);
+            }
         }
-
-        let label_room = value_x.saturating_sub(area.left() + 3) as usize;
-        buf.set_string(
-            area.left() + 2,
-            y,
-            truncate(&glyph::eyebrow(row.label), label_room),
-            if selected {
-                app.palette.style(Role::Text)
-            } else {
-                app.palette.style(Role::TextDim)
-            },
-        );
-
-        // A read-only row is dimmed to the hairline weight rather than shown in the text role:
-        // the value is still legible, but it no longer looks like something an arrow will change.
-        let value_style = match (row.editable.is_some(), selected) {
-            (false, _) => app.palette.style(Role::Rule),
-            (true, true) => app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
-            (true, false) => app.palette.style(Role::Text),
-        };
-        let value_room = area.right().saturating_sub(value_x) as usize;
-        buf.set_string(value_x, y, truncate(&row.value, value_room), value_style);
     }
 
     // One note at a time, for the selected row only. Printing every caveat beside every row
     // would turn a twelve-line screen into a wall and bury the values it exists to show.
     if let Some(note) = rows.get(app.selected).and_then(|r| r.note) {
         let note_y = area.bottom().saturating_sub(2);
-        if note_y > area.top() + rows.len() as u16 {
+        let drawn = lines.len().saturating_sub(offset).min(visible);
+        if note_y > area.top() + drawn as u16 {
             Hairline::new(&app.palette)
                 .render(Rect { y: note_y.saturating_sub(1), height: 1, ..area }, buf);
             buf.set_string(
@@ -1743,6 +1806,33 @@ fn candidate_rows(app: &App) -> Vec<(String, String)> {
         .collect()
 }
 
+/// The selectable releases for an episode: seeders in the key column — the number that
+/// decides whether a torrent will actually stream — with size and audio flags on the row.
+fn source_rows(app: &App) -> Vec<(String, String)> {
+    app.sources
+        .iter()
+        .map(|source| {
+            let seeders = match source.seeders {
+                Some(n) => format!("{n:>4}"),
+                None => String::new(),
+            };
+            let mut label = source.title.clone();
+            if let Some(size) = &source.size {
+                label.push_str(&format!("  ·  {size}"));
+            }
+            if source.dual_audio {
+                label.push_str("  ·  dual");
+            } else if source.dubbed {
+                label.push_str("  ·  dub");
+            }
+            if source.auto_pick {
+                label.push_str("  ·  current pick");
+            }
+            (seeders, label)
+        })
+        .collect()
+}
+
 fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
     let Some(overlay) = app.nav.overlay() else {
         return;
@@ -1766,7 +1856,11 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         Overlay::ListStatus => status_rows(app),
         Overlay::Logs => log_rows(app),
         Overlay::Disambiguate => candidate_rows(app),
-        other => vec![(String::new(), other.title().to_string())],
+        Overlay::Sources => source_rows(app),
+        Overlay::ManualQuery => vec![(
+            String::new(),
+            "type what to search for — results replace the automatic match".into(),
+        )],
     };
 
     // Overlays that are a list of things you pick from need a focus marker. The palette was
@@ -1780,6 +1874,7 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
             | Overlay::CommandPalette
             | Overlay::Logs
             | Overlay::Disambiguate
+            | Overlay::Sources
     )
     .then_some(app.overlay_selected);
 
@@ -1826,6 +1921,9 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         Overlay::CommandPalette => {
             format!("{}   {}▏", glyph::eyebrow(overlay.title()), app.palette_query)
         }
+        Overlay::ManualQuery => {
+            format!("{}   {}▏", glyph::eyebrow(overlay.title()), app.manual_query)
+        }
         // Say what is being asked and why, or a bare "WHICH ONE" over a list of near-identical
         // release names is a riddle rather than a question.
         Overlay::Disambiguate => format!(
@@ -1834,6 +1932,15 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
             match app.detail.as_ref() {
                 Some(detail) => format!("no confident match for {}", detail.title),
                 None => "no confident match".into(),
+            }
+        ),
+        // Name the episode the slate is for, or a wall of release names has no anchor.
+        Overlay::Sources => format!(
+            "{}   {}",
+            glyph::eyebrow(overlay.title()),
+            match app.source_context.as_ref() {
+                Some((_, episode)) => format!("ep {episode} — enter plays your pick"),
+                None => "enter plays your pick".into(),
             }
         ),
         other => glyph::eyebrow(other.title()),
@@ -3020,6 +3127,7 @@ mod tests {
         app.go_to_section(Section::Downloads);
         app.apply(crate::app::Update::Downloads(vec![crate::app::DownloadRow {
             id: 1,
+            anilist_id: AnilistId::new(1),
             title: "Frieren".into(),
             episode: "5".into(),
             state: "downloading",
@@ -3043,6 +3151,7 @@ mod tests {
         app.go_to_section(Section::Downloads);
         app.apply(crate::app::Update::Downloads(vec![crate::app::DownloadRow {
             id: 1,
+            anilist_id: AnilistId::new(1),
             title: "Frieren".into(),
             episode: "5".into(),
             state: "failed",
@@ -3077,6 +3186,21 @@ mod tests {
         assert!(text.contains("1080p"));
         assert!(text.contains("85%"), "commit threshold");
         assert!(text.contains("off"), "torrenting is off by default");
+        // The list is grouped under category headings, not one undifferentiated run.
+        for heading in ["APPEARANCE", "PLAYBACK", "SOURCES", "INTEGRATIONS"] {
+            assert!(text.contains(heading), "missing the {heading} heading:\n{text}");
+        }
+    }
+
+    #[test]
+    fn a_short_terminal_scrolls_the_selected_setting_into_view() {
+        // The grouped list is taller than the screen at modest heights; the selection must
+        // scroll into view rather than living below the fold.
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Settings);
+        app.selected = crate::app::SettingId::ALL.len() - 1;
+        let text = text_of(&render_to_buffer(&app, 120, 12));
+        assert!(text.contains("TOKEN STORAGE"), "the last row must be visible:\n{text}");
     }
 
     #[test]

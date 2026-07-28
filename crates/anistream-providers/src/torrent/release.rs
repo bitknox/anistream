@@ -30,6 +30,11 @@ pub struct Release {
     /// Revision suffix: `v2`, `v3`.
     pub version: Option<u32>,
     pub dual_audio: bool,
+    /// A dub track advertised without a dual-audio claim: `Dub`, `Dubbed`, `English Dub`.
+    ///
+    /// Kept separate from `dual_audio` because the two say different things about subs: a
+    /// dual release serves everyone, a dub-only release may carry no subtitles at all.
+    pub dubbed: bool,
     /// Blu-ray source rather than a broadcast capture.
     pub bluray: bool,
     /// A whole-season pack with no stated episode range.
@@ -219,6 +224,9 @@ pub fn parse(raw: &str) -> Release {
         if lowered.contains("dual") || lowered.contains("dual-audio") {
             release.dual_audio = true;
         }
+        if lowered.contains("dub") {
+            release.dubbed = true;
+        }
         if lowered.contains("bd") || lowered.contains("blu-ray") || lowered.contains("bluray") {
             release.bluray = true;
         }
@@ -280,6 +288,11 @@ pub fn parse(raw: &str) -> Release {
         {
             release.dual_audio = true;
             index += 2;
+            continue;
+        }
+        if lowered == "dub" || lowered == "dubbed" {
+            release.dubbed = true;
+            index += 1;
             continue;
         }
         if lowered == "bd" || lowered == "bluray" || lowered == "blu-ray" {
@@ -457,6 +470,22 @@ mod tests {
         let web = parse("[SubGroup] Frieren - 12 (1080p)");
         assert!(!web.dual_audio);
         assert!(!web.bluray);
+    }
+
+    #[test]
+    fn dub_markers_are_detected_without_a_dual_audio_claim() {
+        for raw in [
+            "[G] Show - 12 (1080p) [English Dub]",
+            "[G] Show - 12 (1080p) (Dubbed)",
+            "[G] Show - 12 English Dub 1080p",
+        ] {
+            let r = parse(raw);
+            assert!(r.dubbed, "no dub flag found in {raw:?}");
+            assert!(!r.dual_audio, "{raw:?} claims a dub, not dual audio");
+        }
+        assert!(!parse("[SubGroup] Show - 12 (1080p)").dubbed);
+        // A dual release is dual, not dub-only — the flags answer different questions.
+        assert!(!parse("[PMR] Frieren (BD 1080p) [Dual Audio]").dubbed);
     }
 
     #[test]

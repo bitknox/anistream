@@ -40,6 +40,8 @@ pub struct PlaybackContext {
     pub resume_at: Option<f64>,
     /// Speed carried over from the previous episode.
     pub speed: Option<f64>,
+    /// Volume carried over from the previous session.
+    pub volume: Option<f64>,
 }
 
 /// Fetch skip intervals for an episode.
@@ -111,6 +113,7 @@ pub async fn play(
         start_at: context.resume_at,
         subtitle_language,
         speed: context.speed,
+        volume: context.volume,
     };
 
     let (session, mut events) = match mpv.play(&stream, &request).await {
@@ -276,6 +279,10 @@ pub async fn play(
                     let _ = tx.send(Update::PlaybackSpeed(speed));
                 }
 
+                Action::RememberVolume(volume) => {
+                    let _ = tx.send(Update::PlaybackVolume(volume));
+                }
+
                 Action::Finished { watched } => {
                     let _ = tx.send(Update::PlaybackEnded { watched });
                     if watched {
@@ -408,6 +415,9 @@ async fn apply_command(session: &MpvSession, command: PlayerCommand) {
         PlayerCommand::Volume(delta) => {
             let _ = session.nudge_volume(delta).await;
         }
+        PlayerCommand::Fullscreen => {
+            let _ = session.fullscreen_toggle().await;
+        }
         // Detaching is purely a UI move — mpv is untouched, which is the whole point.
         PlayerCommand::Detach => {}
         PlayerCommand::Stop => {
@@ -446,6 +456,7 @@ mod tests {
             translation: Translation::Sub,
             resume_at: Some(600.0),
             speed: Some(1.25),
+            volume: Some(80.0),
         };
         assert_eq!(context.mal_id, Some(52_991));
         assert_eq!(context.resume_at, Some(600.0));

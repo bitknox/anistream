@@ -161,7 +161,7 @@ async fn main() -> Result<()> {
     let store = Store::open(paths.database()).context("opening the local database")?;
 
     if cli.doctor {
-        return doctor(&config, &store).await;
+        return doctor(&config, &store, !cli.no_images).await;
     }
     if cli.refresh_data {
         return refresh_data(&store, &http).await;
@@ -203,10 +203,10 @@ async fn main() -> Result<()> {
         return random_cli(&store, cli.json);
     }
     if let Some(size) = &cli.preview {
-        return preview(config, http, store, &paths, size, &cli.screen).await;
+        return preview(config, http, store, &paths, size, &cli.screen, !cli.no_images).await;
     }
 
-    run(config, paths, http, store).await
+    run(config, paths, http, store, !cli.no_images).await
 }
 
 /// Render one frame with live data and print it as text.
@@ -217,6 +217,7 @@ async fn preview(
     paths: &Paths,
     size: &str,
     screen: &str,
+    images: bool,
 ) -> Result<()> {
     use anistream_ui::nav::{Overlay, Section};
     use ratatui::{Terminal, backend::TestBackend};
@@ -228,7 +229,7 @@ async fn preview(
 
     let palette = theme::resolve_with(config.theme.mode, None);
     let anilist = AniList::new(http.clone(), config.network.anilist_rate_limit);
-    let engine = anistream_ui::image::ImageEngine::detect(true);
+    let engine = anistream_ui::image::ImageEngine::detect(images);
     let graphics = engine.graphics();
     let mut app = App::with_images(config, palette, Keymap::new(), engine);
 
@@ -366,8 +367,8 @@ async fn preview(
 }
 
 /// Report the environment, without starting the UI.
-async fn doctor(config: &Config, store: &Store) -> Result<()> {
-    let engine = anistream_ui::image::ImageEngine::detect(true);
+async fn doctor(config: &Config, store: &Store, images: bool) -> Result<()> {
+    let engine = anistream_ui::image::ImageEngine::detect(images);
     let background = theme::detect::detect_background();
     let palette = theme::resolve_with(config.theme.mode, background);
 
@@ -1162,7 +1163,13 @@ async fn refresh_data(store: &Store, http: &HttpClient) -> Result<()> {
     Ok(())
 }
 
-async fn run(config: Config, paths: Paths, http: HttpClient, store: Store) -> Result<()> {
+async fn run(
+    config: Config,
+    paths: Paths,
+    http: HttpClient,
+    store: Store,
+    images: bool,
+) -> Result<()> {
     let palette = theme::resolve(config.theme.mode);
     let anilist = AniList::new(http.clone(), config.network.anilist_rate_limit);
 
@@ -1172,7 +1179,7 @@ async fn run(config: Config, paths: Paths, http: HttpClient, store: Store) -> Re
     }
 
     let engine =
-        anistream_ui::image::ImageEngine::detect(true).with_cache_dir(paths.image_cache());
+        anistream_ui::image::ImageEngine::detect(images).with_cache_dir(paths.image_cache());
     tracing::info!(graphics = ?engine.graphics(), "image engine ready");
     let (registry, vpn_guard, provider_note) =
         sources::build_registry(&config, &http, &paths).await;
@@ -1515,6 +1522,11 @@ fn spawn(
             // Handled in `dispatch`, which owns the live player's control channel and the
             // tracker set. Reaching here would mean a routing mistake, so it says so.
             Task::Play { .. }
+            | Task::LoadSources { .. }
+            | Task::PlaySource { .. }
+            | Task::ManualSearch { .. }
+            | Task::SetWatched { .. }
+            | Task::OpenExternal { .. }
             | Task::Player(_)
             | Task::SyncNow
             | Task::Connect { .. }
@@ -1525,6 +1537,7 @@ fn spawn(
             | Task::DownloadEpisode { .. }
             | Task::DownloadPause { .. }
             | Task::DownloadCancel { .. }
+            | Task::DownloadDelete { .. }
             | Task::DownloadClearCompleted
             | Task::LoadDownloads
             | Task::PlayLocal { .. }
@@ -1631,6 +1644,7 @@ fn dispatch(
             spawn_playback(
                 id,
                 episode,
+                None,
                 prx,
                 config,
                 anilist,
@@ -1641,6 +1655,106 @@ fn dispatch(
                 tracker_ids,
                 tx,
             );
+        }
+        Task::PlaySource { id, episode, provider_id, source_id } => {
+            // Identical to Play except the stream comes from the exact release the user
+            // picked — same fresh channel, same session-replacement semantics.
+            let (ptx, prx) = mpsc::unbounded_channel();
+            *player_tx = Some(ptx);
+            let tracker_ids = sync.trackers.iter().map(|t| t.id().to_owned()).collect();
+            spawn_playback(
+                id,
+                episode,
+                Some((provider_id, source_id)),
+                prx,
+                config,
+                anilist,
+                store,
+                registry,
+                http,
+                mpv,
+                tracker_ids,
+                tx,
+            );
+        }
+        Task::LoadSources { id, episode } => {
+            let (store, registry, anilist, tx) =
+                (store.clone(), registry.clone(), anilist.clone(), tx.clone());
+            let translation = config.playback.translation;
+            tokio::spawn(async move {
+                let update =
+                    match source_slate(&anilist, &store, &registry, id, &episode, translation)
+                        .await
+                    {
+                        Ok(sources) => Update::Sources(sources),
+                        Err(reason) => Update::Toast(Toast::alert(reason)),
+                    };
+                let _ = tx.send(update);
+            });
+        }
+        Task::SetWatched { id, episodes, watched } => {
+            let now = anistream_store::now();
+            for episode in &episodes {
+                if watched {
+                    let mut event = anistream_store::WatchEvent::new(id, episode.clone(), 0.0);
+                    event.completed = true;
+                    let _ = store.record_event(&event);
+                } else {
+                    let _ = store.forget_episode(id, episode);
+                }
+            }
+            // Project to trackers only when marking: progress there is monotonic, so an
+            // unmark keeps the remote high-water mark and only local history forgets.
+            if watched {
+                let count = store.completed_episode_count(id).unwrap_or(0);
+                if count > 0 {
+                    let op = anistream_core::traits::TrackOp::SetProgress {
+                        anilist_id: id,
+                        episode: count,
+                    };
+                    for tracker in &sync.trackers {
+                        let _ = store.enqueue(tracker.id(), &op, now);
+                    }
+                }
+            }
+        }
+
+        Task::OpenExternal { url } => {
+            if let Err(e) = open::that_detached(&url) {
+                let _ = tx.send(Update::Toast(Toast::alert(format!("could not open: {e}"))));
+            }
+        }
+
+        Task::ManualSearch { id, query } => {
+            let (registry, anilist, tx) = (registry.clone(), anilist.clone(), tx.clone());
+            let translation = config.playback.translation;
+            tokio::spawn(async move {
+                let now = now_epoch();
+                let attempt = registry.search(&query, translation, now).await;
+                let provider_id = attempt.provider.clone().unwrap_or_default();
+                let update = match attempt.value {
+                    Some(hits) if !hits.is_empty() => match anilist.media(id).await {
+                        // Ranked against the real title so the percentages mean the same
+                        // thing they mean when the ladder asks on its own.
+                        Ok(media) => {
+                            let target = media.match_target();
+                            let candidates = anistream_meta::title::rank(&target, &hits)
+                                .into_iter()
+                                .map(|scored| anistream_ui::MatchCandidate {
+                                    title: scored.hit.title.clone(),
+                                    key: scored.hit.key.clone(),
+                                    similarity: scored.score,
+                                    rejected: scored.rejected,
+                                })
+                                .collect();
+                            Update::MatchChoices { id, provider_id, candidates }
+                        }
+                        Err(e) => Update::Toast(Toast::alert(e.to_string())),
+                    },
+                    _ => Update::Toast(Toast::alert(format!("nothing found for {query:?}"))),
+                };
+                let _ = tx.send(update);
+            });
         }
         Task::Player(command) => {
             if let Some(sender) = player_tx.as_ref() {
@@ -1705,37 +1819,89 @@ fn dispatch(
             let _ = tx.send(Update::Toast(Toast::info("download cancelled")));
         }
 
+        Task::DownloadDelete { id } => {
+            // Path first, row second: once the row is gone nothing else knows where the
+            // file was. A running download's partial file is cleaned up by the manager's
+            // own poll, and deleting here as well is a harmless no-op race.
+            let path = store
+                .downloads()
+                .ok()
+                .and_then(|all| all.into_iter().find(|d| d.id == id))
+                .and_then(|d| d.path);
+            let _ = store.remove_download(id);
+            let note = match path {
+                Some(path) => match std::fs::remove_file(&path) {
+                    Ok(()) => Toast::info("download and file deleted"),
+                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                        Toast::info("download removed — file was already gone")
+                    }
+                    Err(e) => Toast::alert(format!("removed the entry, not the file: {e}")),
+                },
+                None => Toast::info("download removed"),
+            };
+            downloads::publish_now(store, tx);
+            let _ = tx.send(Update::Toast(note));
+        }
+
         Task::DownloadClearCompleted => {
             let cleared = store.clear_completed_downloads().unwrap_or(0);
             downloads::publish_now(store, tx);
             let _ = tx.send(Update::Toast(Toast::info(format!("cleared {cleared} finished"))));
         }
 
-        Task::PlayLocal { path } => {
-            // Straight to mpv with no provider walk and no torrent session: the file is on disk,
-            // and routing a local file through the resolve ladder would be theatre.
-            let (mpv, tx) = (mpv.clone(), tx.clone());
-            let title = std::path::Path::new(&path)
-                .file_stem()
-                .map(|s| s.to_string_lossy().into_owned())
-                .unwrap_or_else(|| path.clone());
+        Task::PlayLocal { id, episode, title, path } => {
+            // No provider walk and no torrent session — the file is on disk — but the full
+            // playback session all the same: a downloaded episode records history, resumes,
+            // and syncs exactly like a streamed one. It used to go straight to mpv with no
+            // context, which made downloads second-class in every way that matters.
+            let (ptx, prx) = mpsc::unbounded_channel();
+            *player_tx = Some(ptx);
+            let tracker_ids: Vec<String> =
+                sync.trackers.iter().map(|t| t.id().to_owned()).collect();
+            let (config, store, http, mpv, tx) =
+                (config.clone(), store.clone(), http.clone(), mpv.clone(), tx.clone());
             tokio::spawn(async move {
+                let playback = config.playback.clone();
                 let stream = anistream_core::stream::Stream::new(
                     path,
                     anistream_core::stream::StreamKind::Mp4,
                 );
-                let request = anistream_core::traits::PlaybackRequest {
-                    title: title.clone(),
-                    ..Default::default()
+                // Best-effort, exactly as the streaming path treats them.
+                let resume_at = store
+                    .resume_position(id, &episode)
+                    .inspect_err(
+                        |e| tracing::warn!(error = %e, "could not read resume position"),
+                    )
+                    .unwrap_or(None);
+                let mal_id = store.mapping_for(id).ok().flatten().and_then(|m| m.mal_id);
+                let context = playback::PlaybackContext {
+                    anilist_id: id,
+                    mal_id,
+                    episode,
+                    title,
+                    translation: playback.translation,
+                    resume_at,
+                    speed: playback.persist_speed.then_some(playback.persisted_speed).flatten(),
+                    volume: playback
+                        .persist_volume
+                        .then_some(playback.persisted_volume)
+                        .flatten(),
                 };
-                match mpv.play(&stream, &request).await {
-                    Ok(_) => {
-                        let _ = tx.send(Update::Toast(Toast::info(format!("playing {title}"))));
-                    }
-                    Err(e) => {
-                        let _ = tx.send(Update::Toast(Toast::alert(format!("mpv: {e}"))));
-                    }
-                }
+                playback::play(
+                    stream,
+                    context,
+                    store,
+                    http,
+                    mpv,
+                    playback.commit_threshold,
+                    playback.skip_opening,
+                    Some(playback.subtitle_language.clone()),
+                    tracker_ids,
+                    config.presence.clone(),
+                    tx,
+                    prx,
+                )
+                .await;
             });
         }
 
@@ -1767,6 +1933,9 @@ fn dispatch(
 fn spawn_playback(
     id: anistream_core::ids::AnilistId,
     episode: String,
+    // `(provider_id, source_id)` when the user picked an exact release in the Sources
+    // overlay; `None` lets the resolution ladder choose.
+    pick: Option<(String, String)>,
     commands: mpsc::UnboundedReceiver<anistream_ui::PlayerCommand>,
     config: &Config,
     anilist: &AniList,
@@ -1790,8 +1959,10 @@ fn spawn_playback(
     tokio::spawn(async move {
         let playback = config.playback.clone();
         let context =
-            match resolve_for_playback(&anilist, &store, &registry, id, &episode, &playback)
-                .await
+            match resolve_for_playback(
+                &anilist, &store, &registry, id, &episode, pick, &playback,
+            )
+            .await
             {
                 Ok(pair) => pair,
                 Err(reason) => {
@@ -1829,6 +2000,7 @@ async fn resolve_for_playback(
     registry: &ProviderRegistry,
     id: anistream_core::ids::AnilistId,
     episode: &str,
+    pick: Option<(String, String)>,
     playback: &anistream_core::config::PlaybackConfig,
 ) -> std::result::Result<(anistream_core::stream::Stream, playback::PlaybackContext), String> {
     if registry.is_empty() {
@@ -1851,9 +2023,19 @@ async fn resolve_for_playback(
         .cloned()
         .ok_or_else(|| format!("could not match this title: {}", resolution.explain()))?;
 
-    let attempt = registry.resolve(&key, episode, playback.translation, now).await;
-    let summary = attempt.summary();
-    let mut streams = attempt.value.ok_or(summary)?;
+    let mut streams = match &pick {
+        // A picked release goes straight to its provider, no failover: substituting a
+        // different stream for the one the user chose would silently undo the choice.
+        Some((provider_id, source_id)) => registry
+            .resolve_source(provider_id, &key, episode, playback.translation, source_id, now)
+            .await
+            .map_err(|e| format!("could not start that release: {e}"))?,
+        None => {
+            let attempt = registry.resolve(&key, episode, playback.translation, now).await;
+            let summary = attempt.summary();
+            attempt.value.ok_or(summary)?
+        }
+    };
 
     // Toward the configured quality, preferring a step down over upscaling.
     streams.sort_by_key(|s| s.quality_rank(playback.quality));
@@ -1880,8 +2062,42 @@ async fn resolve_for_playback(
         translation: playback.translation,
         resume_at,
         speed: playback.persist_speed.then_some(playback.persisted_speed).flatten(),
+        volume: playback.persist_volume.then_some(playback.persisted_volume).flatten(),
     };
     Ok((stream, context))
+}
+
+/// The selectable releases for one episode, across every usable provider.
+///
+/// Shares the title-matching rung with playback: the slate is only meaningful for the
+/// provider key the ladder would actually use.
+async fn source_slate(
+    anilist: &AniList,
+    store: &Store,
+    registry: &ProviderRegistry,
+    id: anistream_core::ids::AnilistId,
+    episode: &str,
+    translation: anistream_core::media::Translation,
+) -> std::result::Result<Vec<anistream_core::traits::SourceCandidate>, String> {
+    if registry.is_empty() {
+        return Err("no sources configured — see the Providers screen".into());
+    }
+    let media = anilist.media(id).await.map_err(|e| e.to_string())?;
+    let now = now_epoch();
+    let resolution = anistream_providers::resolve(
+        store,
+        registry,
+        id,
+        &media.match_target(),
+        translation,
+        now,
+    )
+    .await;
+    let key = resolution
+        .key()
+        .cloned()
+        .ok_or_else(|| format!("could not match this title: {}", resolution.explain()))?;
+    Ok(registry.sources(&key, episode, translation, now).await)
 }
 
 /// What loading a title's episodes produced.

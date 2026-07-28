@@ -10,6 +10,7 @@ pub mod eyecatch;
 pub mod image;
 pub mod keymap;
 pub mod layout;
+pub mod logo;
 pub mod nav;
 pub mod screens;
 pub mod theme;

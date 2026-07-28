@@ -59,6 +59,7 @@ pub enum PlaybackEvent {
     },
     Paused(bool),
     Speed(f64),
+    Volume(f64),
     /// Playback ended. `complete` is true only when mpv reached the end of the file.
     Ended {
         complete: bool,
@@ -166,6 +167,12 @@ impl MpvSession {
 
     pub async fn seek(&self, seconds: f64) -> Result<(), PlayerError> {
         self.send(Command::Seek { seconds, absolute: false }).await
+    }
+
+    /// Toggle fullscreen. `cycle` for the same reason pause does: mpv's own `f` binding
+    /// can change it behind our back, and cycling can never act on a stale read.
+    pub async fn fullscreen_toggle(&self) -> Result<(), PlayerError> {
+        self.send(Command::Cycle("fullscreen")).await
     }
 
     pub async fn seek_to(&self, seconds: f64) -> Result<(), PlayerError> {
@@ -297,6 +304,7 @@ impl Mpv {
             &stream.headers,
             request.start_at,
             request.speed,
+            request.volume,
             request.subtitle_language.as_deref(),
         ));
         // After ours, before the URL: mpv takes the last value for a repeated flag, so these
@@ -352,6 +360,7 @@ impl Mpv {
             (observed::DURATION, "duration"),
             (observed::PAUSE, "pause"),
             (observed::SPEED, "speed"),
+            (observed::VOLUME, "volume"),
         ] {
             session.send(Command::ObserveProperty(id, name)).await?;
         }
@@ -415,6 +424,7 @@ fn spawn_reader(
                 }
                 Event::Paused(paused) => Some(PlaybackEvent::Paused(paused)),
                 Event::Speed(speed) => Some(PlaybackEvent::Speed(speed)),
+                Event::Volume(volume) => Some(PlaybackEvent::Volume(volume)),
                 Event::EndFile(reason) => {
                     let complete = reason.is_complete();
                     let _ = tx.send(PlaybackEvent::Ended { complete });

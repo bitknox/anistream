@@ -114,6 +114,7 @@ async fn main() {
         translation: Translation::Sub,
         resume_at: None,
         speed: None,
+        volume: None,
     };
 
     let (tx, mut rx) = mpsc::unbounded_channel::<Update>();

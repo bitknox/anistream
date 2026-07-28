@@ -64,6 +64,9 @@ pub enum Action {
 
     // Downloads
     ClearCompleted,
+    /// Remove the selected download *and* its file on disk. Distinct from cancel (`x`),
+    /// which for a finished download keeps the file and would otherwise orphan it.
+    DeleteDownload,
 
     // Episodes
     ToggleWatched,
@@ -127,6 +130,7 @@ impl Action {
         Self::WatchOrder,
         Self::OpenInBrowser,
         Self::ClearCompleted,
+        Self::DeleteDownload,
         Self::ToggleWatched,
         Self::MarkAllPrevious,
         Self::Filter,
@@ -182,6 +186,7 @@ impl Action {
             Self::WatchOrder => "Watch order",
             Self::OpenInBrowser => "Open on AniList",
             Self::ClearCompleted => "Clear finished downloads",
+            Self::DeleteDownload => "Delete download and its file",
             Self::ToggleWatched => "Toggle watched",
             Self::MarkAllPrevious => "Mark all previous watched",
             Self::Filter => "Filter",
@@ -263,7 +268,7 @@ impl Action {
 
             Self::ToggleWatched | Self::MarkAllPrevious | Self::Filter => Scope::Episodes,
 
-            Self::ClearCompleted => Scope::Downloads,
+            Self::ClearCompleted | Self::DeleteDownload => Scope::Downloads,
 
             _ => Scope::Playback,
         }
@@ -552,7 +557,9 @@ impl Keymap {
             bind(Binding::plain(Char('L')), A::ShowLogs);
             // Downloads. `d` queues (Title/Episodes), `c` clears finished, and the rest reuse the
             // playback keys the screen already reads naturally: Space pauses, `x` cancels.
+            // `X` deletes the file too — the destructive twin earns the shifted key.
             bind(Binding::plain(Char('c')), A::ClearCompleted);
+            bind(Binding::plain(Char('X')), A::DeleteDownload);
             for n in 1..=9u8 {
                 bind(
                     Binding::plain(Char(char::from_digit(u32::from(n), 10).unwrap_or('1'))),
@@ -588,7 +595,9 @@ impl Keymap {
             bind(Binding::plain(Char('w')), A::WatchOrder);
             bind(Binding::plain(Char('o')), A::OpenInBrowser);
 
-            // Episodes
+            // Episodes. `u` reads as "(un)watched" — Space belongs to the playback table
+            // and `m` to fixing the match.
+            bind(Binding::plain(Char('u')), A::ToggleWatched);
             bind(Binding::plain(Char('M')), A::MarkAllPrevious);
             bind(Binding::plain(Char('f')), A::Filter);
         }
@@ -612,6 +621,7 @@ impl Keymap {
             bind(Binding::plain(Char(']')), A::SpeedUp);
             bind(Binding::plain(Char('9')), A::VolumeDown);
             bind(Binding::plain(Char('0')), A::VolumeUp);
+            bind(Binding::plain(Char('F')), A::Fullscreen);
             // `q` leaves mpv running; `x` ends it. Two different intentions, so two keys — and
             // conflating them is how you lose your place in an episode.
             bind(Binding::plain(Char('q')), A::Detach);

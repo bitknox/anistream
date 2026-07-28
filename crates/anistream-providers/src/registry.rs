@@ -17,7 +17,7 @@ use anistream_core::{
     ids::ProviderKey,
     media::{Episode, SearchHit, Translation},
     stream::Stream,
-    traits::Provider,
+    traits::{Provider, SourceCandidate},
 };
 
 use crate::health::HealthTracker;
@@ -207,6 +207,73 @@ impl ProviderRegistry {
             async move { p.episodes(&key, translation).await }
         })
         .await
+    }
+
+    /// Every selectable release across usable providers, in provider order.
+    ///
+    /// An aggregation rather than a walk: choosing a release is the user's veto over
+    /// ranking, so hiding what later providers offer because an earlier one answered
+    /// would defeat the point. Failing providers are skipped — a partial slate is
+    /// still a slate.
+    pub async fn sources(
+        &self,
+        key: &ProviderKey,
+        episode: &str,
+        translation: Translation,
+        now: i64,
+    ) -> Vec<SourceCandidate> {
+        let mut out = Vec::new();
+        for provider in self.candidates() {
+            let id = provider.manifest().id.clone();
+            if provider.is_available().is_err() {
+                continue;
+            }
+            let started = Instant::now();
+            match provider.sources(key, episode, translation).await {
+                Ok(mut candidates) => {
+                    self.health.record_success(&id, started.elapsed(), now);
+                    out.append(&mut candidates);
+                }
+                Err(error) => {
+                    self.health.record_failure(&id, &error, now);
+                    tracing::debug!(provider = %id, %error, "sources listing failed");
+                }
+            }
+        }
+        out
+    }
+
+    /// Resolve a specific pick from [`Self::sources`] on the provider that offered it.
+    ///
+    /// Deliberately no failover: substituting another provider's stream for the exact
+    /// release the user chose would silently undo the choice.
+    pub async fn resolve_source(
+        &self,
+        provider_id: &str,
+        key: &ProviderKey,
+        episode: &str,
+        translation: Translation,
+        source_id: &str,
+        now: i64,
+    ) -> Result<Vec<Stream>, ProviderError> {
+        let provider = self
+            .snapshot()
+            .into_iter()
+            .find(|p| p.manifest().id == provider_id)
+            .ok_or(ProviderError::NotFound)?;
+        provider.is_available()?;
+        let started = Instant::now();
+        match provider.resolve_source(key, episode, translation, source_id).await {
+            Ok(streams) if streams.is_empty() => Err(ProviderError::NotFound),
+            Ok(streams) => {
+                self.health.record_success(provider_id, started.elapsed(), now);
+                Ok(streams)
+            }
+            Err(error) => {
+                self.health.record_failure(provider_id, &error, now);
+                Err(error)
+            }
+        }
     }
 
     pub async fn resolve(

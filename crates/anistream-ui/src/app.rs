@@ -4,7 +4,7 @@
 //! split is what keeps the event loop honest — the UI thread only ever applies already-
 //! computed [`Update`]s, so a slow provider or a large image decode cannot stall a frame.
 
-use anistream_core::{config::Config, ids::AnilistId};
+use anistream_core::{config::Config, ids::AnilistId, traits::SourceCandidate};
 
 use crate::{
     eyecatch::Eyecatch,
@@ -47,6 +47,8 @@ impl Toast {
 #[derive(Debug, Clone, PartialEq)]
 pub struct SettingRow {
     pub label: &'static str,
+    /// The heading this row sits under on screen.
+    pub category: &'static str,
     /// Rendered value.
     pub value: String,
     /// `None` for rows that are shown but not editable here.
@@ -86,6 +88,8 @@ pub enum SettingId {
 }
 
 impl SettingId {
+    /// Display order. Grouped by [`Self::category`] — the renderer draws a heading each
+    /// time the category changes, so rows of one category must be contiguous here.
     pub const ALL: [Self; 14] = [
         Self::Theme,
         Self::Motion,
@@ -96,12 +100,29 @@ impl SettingId {
         Self::AutoNext,
         Self::SkipOpening,
         Self::SkipFiller,
-        Self::Presence,
-        Self::PresenceTitle,
         Self::Torrents,
         Self::VpnMode,
+        Self::Presence,
+        Self::PresenceTitle,
         Self::TokenStorage,
     ];
+
+    /// Which heading a row sits under. Purely visual grouping — navigation walks the
+    /// whole list, so nothing is ever hidden behind a tab.
+    pub const fn category(self) -> &'static str {
+        match self {
+            Self::Theme | Self::Motion => "appearance",
+            Self::Translation
+            | Self::Quality
+            | Self::Subtitles
+            | Self::CommitThreshold
+            | Self::AutoNext
+            | Self::SkipOpening
+            | Self::SkipFiller => "playback",
+            Self::Torrents | Self::VpnMode => "sources",
+            Self::Presence | Self::PresenceTitle | Self::TokenStorage => "integrations",
+        }
+    }
 
     pub const fn label(self) -> &'static str {
         match self {
@@ -289,6 +310,9 @@ pub struct DeviceCodePrompt {
 #[derive(Debug, Clone, PartialEq)]
 pub struct DownloadRow {
     pub id: i64,
+    /// The series this file belongs to — what lets a downloaded episode carry the same
+    /// history, resume and sync a streamed one does.
+    pub anilist_id: AnilistId,
     pub title: String,
     pub episode: String,
     pub state: &'static str,
@@ -594,6 +618,10 @@ pub enum Update {
         provider_id: String,
         candidates: Vec<MatchCandidate>,
     },
+    /// The selectable releases for the episode the user asked about.
+    Sources(Vec<SourceCandidate>),
+    /// The user changed the player volume.
+    PlaybackVolume(f64),
     /// Playhead moved.
     Playback {
         position: f64,
@@ -737,6 +765,14 @@ pub struct App {
     pub match_candidates: Vec<MatchCandidate>,
     /// Which title and provider the pending candidates are for.
     pub match_context: Option<(AnilistId, String)>,
+    /// Selectable releases for the Sources overlay.
+    pub sources: Vec<SourceCandidate>,
+    /// Which title and episode the pending source list is for.
+    pub source_context: Option<(AnilistId, String)>,
+    /// What is being typed into the manual-match overlay.
+    pub manual_query: String,
+    /// Which title a manual search would re-match.
+    pub manual_target: Option<AnilistId>,
     /// Selection within the episode table, tracked separately from list selection so
     /// stepping back out of Episodes does not disturb where you were in the list.
     pub episode_selected: usize,
@@ -797,6 +833,10 @@ impl App {
             episode_selected: 0,
             match_candidates: Vec::new(),
             match_context: None,
+            sources: Vec::new(),
+            source_context: None,
+            manual_query: String::new(),
+            manual_target: None,
         }
     }
 
@@ -874,6 +914,21 @@ impl App {
             Update::Image { url, image } => self.images.insert(&url, *image),
             Update::Providers(rows) => self.providers = rows,
             Update::ProviderNote(note) => self.provider_note = Some(note),
+            Update::Sources(candidates) => {
+                // A stale answer — the user has navigated away since asking — is not a
+                // question worth interrupting them with.
+                if self.source_context.is_none() {
+                    return;
+                }
+                if candidates.is_empty() {
+                    self.source_context = None;
+                    self.push_toast(Toast::info("no selectable sources for this episode"));
+                    return;
+                }
+                self.sources = candidates;
+                self.overlay_selected = 0;
+                self.nav.open_overlay(Overlay::Sources);
+            }
             Update::MatchChoices { id, provider_id, candidates } => {
                 // An empty set is not a question worth asking; the caller reports it as a
                 // plain failure instead.
@@ -919,6 +974,28 @@ impl App {
                 if let Some(playing) = &mut self.playing {
                     playing.speed = speed;
                 }
+                // And written to disk, or "survives a restart" would be a lie the doc
+                // comment tells. Auto-next owns `pending` for a frame at episode end;
+                // losing one save then is fine — the next speed step saves again.
+                if self.config.playback.persist_speed && self.pending.is_none() {
+                    self.pending = Some(Task::SaveSetting {
+                        table: &["playback"],
+                        key: "persisted_speed",
+                        value: anistream_core::settings::SettingValue::Float(speed),
+                    });
+                }
+            }
+            Update::PlaybackVolume(volume) => {
+                // Same contract as speed: remembered in config, written to disk, and never
+                // allowed to fight auto-next for the pending slot.
+                self.config.playback.persisted_volume = Some(volume);
+                if self.config.playback.persist_volume && self.pending.is_none() {
+                    self.pending = Some(Task::SaveSetting {
+                        table: &["playback"],
+                        key: "persisted_volume",
+                        value: anistream_core::settings::SettingValue::Float(volume),
+                    });
+                }
             }
             Update::PlaybackEnded { watched } => {
                 let finished = self.playing.take();
@@ -943,7 +1020,13 @@ impl App {
                     && let Some(next) = finished.next_episode()
                     && let Some(id) = self.detail.as_ref().map(|e| e.id)
                 {
-                    self.pending = Some(self.begin_playback(id, next));
+                    let after_filler = self.next_after_filler(next.clone());
+                    if after_filler != next {
+                        self.push_toast(Toast::info(format!(
+                            "skipped filler — ep {after_filler} next"
+                        )));
+                    }
+                    self.pending = Some(self.begin_playback(id, after_filler));
                 } else if watched {
                     self.push_toast(Toast::info("episode finished"));
                 }
@@ -1260,10 +1343,17 @@ impl App {
             Action::Open if self.in_accounts_stage() => return self.toggle_account(),
             // Enter plays a finished download from disk. Nothing else on this screen is an "open".
             Action::Open if self.in_downloads_stage() => {
-                let row = self.downloads.get(self.selected)?;
+                let row = self.downloads.get(self.selected)?.clone();
                 match (&row.path, row.state) {
                     (Some(path), "complete") => {
-                        return Some(Task::PlayLocal { path: path.clone() });
+                        // First-class playback: same staging, history and sync as a stream.
+                        self.raise_now_playing_titled(row.title.clone(), &row.episode);
+                        return Some(Task::PlayLocal {
+                            id: row.anilist_id,
+                            episode: row.episode,
+                            title: row.title,
+                            path: path.clone(),
+                        });
                     }
                     (_, "failed") => {
                         // The reason is on the row; surfacing it is more use than a dead keypress.
@@ -1281,6 +1371,10 @@ impl App {
             Action::StopPlayback if self.in_downloads_stage() => {
                 let id = self.downloads.get(self.selected)?.id;
                 return Some(Task::DownloadCancel { id });
+            }
+            Action::DeleteDownload if self.in_downloads_stage() => {
+                let row = self.downloads.get(self.selected)?;
+                return Some(Task::DownloadDelete { id: row.id });
             }
             Action::ClearCompleted if self.in_downloads_stage() => {
                 return Some(Task::DownloadClearCompleted);
@@ -1308,6 +1402,92 @@ impl App {
                     self.nav.push(StageView::Episodes(id));
                     return Some(Task::LoadEpisodes(id));
                 }
+            }
+            Action::ToggleWatched if self.in_episodes() => {
+                let id = match self.nav.current() {
+                    StageView::Episodes(id) => *id,
+                    _ => return None,
+                };
+                let row = self.episodes.get_mut(self.episode_selected)?;
+                let watched = !row.completed;
+                row.completed = watched;
+                row.watched = if watched { 1.0 } else { 0.0 };
+                return Some(Task::SetWatched {
+                    id,
+                    episodes: vec![row.number.clone()],
+                    watched,
+                });
+            }
+            Action::MarkAllPrevious if self.in_episodes() => {
+                let id = match self.nav.current() {
+                    StageView::Episodes(id) => *id,
+                    _ => return None,
+                };
+                // Everything strictly before the selected row that is not already done —
+                // the "I'm caught up to here" gesture.
+                let mut marked = Vec::new();
+                for row in self.episodes.iter_mut().take(self.episode_selected) {
+                    if !row.completed {
+                        row.completed = true;
+                        row.watched = 1.0;
+                        marked.push(row.number.clone());
+                    }
+                }
+                if marked.is_empty() {
+                    self.push_toast(Toast::info("nothing before this episode to mark"));
+                    return None;
+                }
+                self.push_toast(Toast::info(format!("marked {} watched", marked.len())));
+                return Some(Task::SetWatched { id, episodes: marked, watched: true });
+            }
+            Action::ToggleWatched | Action::MarkAllPrevious => {
+                self.push_toast(Toast::info("watched marks live in the episode table"));
+            }
+            Action::OpenInBrowser => {
+                let id = match self.nav.current() {
+                    StageView::Episodes(id) | StageView::Title(id) => Some(*id),
+                    _ => self.detail.as_ref().or(self.selected_entry()).map(|e| e.id),
+                };
+                let Some(id) = id else {
+                    self.push_toast(Toast::info("nothing selected"));
+                    return None;
+                };
+                return Some(Task::OpenExternal {
+                    url: format!("https://anilist.co/anime/{}", id.get()),
+                });
+            }
+            Action::FixMapping => {
+                // "This matched the wrong thing" — ask the user what to search for, then
+                // re-enter the ordinary disambiguation flow with their words.
+                let id = match self.nav.current() {
+                    StageView::Episodes(id) | StageView::Title(id) => Some(*id),
+                    _ => self.detail.as_ref().or(self.selected_entry()).map(|e| e.id),
+                };
+                let Some(id) = id else {
+                    self.push_toast(Toast::info("nothing selected to re-match"));
+                    return None;
+                };
+                self.manual_target = Some(id);
+                self.manual_query.clear();
+                self.overlay_selected = 0;
+                self.nav.open_overlay(Overlay::ManualQuery);
+            }
+            Action::ShowSources => {
+                // Same shape as Download: the highlighted episode from the table, the next
+                // unwatched one from a title.
+                let (id, episode) = match self.nav.current() {
+                    StageView::Episodes(id) => {
+                        (*id, self.episodes.get(self.episode_selected)?.number.clone())
+                    }
+                    _ => {
+                        let entry = self.detail.as_ref().or(self.selected_entry())?;
+                        let episode = entry.progress.map_or(1, |(_, next)| next).to_string();
+                        (entry.id, episode)
+                    }
+                };
+                self.source_context = Some((id, episode.clone()));
+                self.status = format!("listing sources for ep {episode}…");
+                return Some(Task::LoadSources { id, episode });
             }
             Action::Download => {
                 // From the episode table it is the highlighted episode; from a title it is the next
@@ -1381,6 +1561,7 @@ impl App {
             Action::SpeedUp => P::Speed(0.25),
             Action::VolumeDown => P::Volume(-5.0),
             Action::VolumeUp => P::Volume(5.0),
+            Action::Fullscreen => P::Fullscreen,
             Action::Detach => {
                 // mpv keeps playing; we just stop looking at it. Progress recording continues,
                 // because the session outlives the screen.
@@ -1443,21 +1624,58 @@ impl App {
         Some(self.begin_playback(id, next.to_string()))
     }
 
+    /// Where auto-next actually lands, honouring `playback.skip_filler`.
+    ///
+    /// Steps over episodes marked pure filler (`mixed` is never skipped — it carries
+    /// story). Only rows present in the loaded episode table can be judged; an unknown
+    /// episode is played rather than guessed about.
+    fn next_after_filler(&self, mut next: String) -> String {
+        if !self.config.playback.skip_filler {
+            return next;
+        }
+        let mut steps = 0;
+        while let Some(row) = self.episodes.iter().find(|r| r.number == next) {
+            if !row.skippable {
+                break;
+            }
+            let Ok(n) = next.trim().parse::<i64>() else { break };
+            next = (n + 1).to_string();
+            // An all-filler tail must still terminate.
+            steps += 1;
+            if steps > 100 {
+                break;
+            }
+        }
+        next
+    }
+
     /// Push Now Playing, raise the eyecatch, and ask for the stream.
     ///
     /// The order matters: the wipe goes up *before* resolution starts, so the user never sees
     /// a frozen episode table while a provider is being tried.
     fn begin_playback(&mut self, id: AnilistId, episode: String) -> Task {
+        self.raise_now_playing(&episode);
+        Task::Play { id, episode }
+    }
+
+    /// The visual half of starting playback, shared with the Sources pick: eyecatch up,
+    /// Now Playing staged, view pushed.
+    fn raise_now_playing(&mut self, episode: &str) {
         let title = self
             .detail
             .as_ref()
             .or(self.selected_entry())
             .map_or_else(|| "playing".to_string(), |e| e.title.clone());
+        self.raise_now_playing_titled(title, episode);
+    }
 
+    /// The same staging with the title stated by the caller — the Downloads screen knows
+    /// what its rows are called without any list selection being involved.
+    fn raise_now_playing_titled(&mut self, title: String, episode: &str) {
         self.eyecatch = Some(Eyecatch::new(format!("{title}  ·  ep {episode}")));
         self.playing = Some(NowPlaying {
             title,
-            episode: episode.clone(),
+            episode: episode.to_owned(),
             episode_title: self
                 .episodes
                 .iter()
@@ -1467,7 +1685,6 @@ impl App {
             ..NowPlaying::default()
         });
         self.nav.push(StageView::NowPlaying);
-        Task::Play { id, episode }
     }
 
     /// Advance the eyecatch one frame, dropping it when the wipe finishes.
@@ -1587,6 +1804,21 @@ impl App {
                 }
                 Some(Task::ResolveConflict { id: row.anilist_id, keep_local: true })
             }
+            Some(Overlay::Sources) => {
+                let candidate = self.sources.get(self.overlay_selected)?.clone();
+                let (id, episode) = self.source_context.clone()?;
+                self.nav.close_overlay();
+                self.overlay_selected = 0;
+                self.sources.clear();
+                self.source_context = None;
+                self.raise_now_playing(&episode);
+                Some(Task::PlaySource {
+                    id,
+                    episode,
+                    provider_id: candidate.provider_id,
+                    source_id: candidate.id,
+                })
+            }
             Some(Overlay::Disambiguate) => {
                 let candidate = self.match_candidates.get(self.overlay_selected)?.clone();
                 let (id, provider_id) = self.match_context.clone()?;
@@ -1624,6 +1856,7 @@ impl App {
             Some(Overlay::CommandPalette) => self.palette_matches().len(),
             Some(Overlay::Logs) => self.logs.len(),
             Some(Overlay::Disambiguate) => self.match_candidates.len(),
+            Some(Overlay::Sources) => self.sources.len(),
             _ => 0,
         }
     }
@@ -1720,6 +1953,7 @@ impl App {
                 };
                 SettingRow {
                     label: id.label(),
+                    category: id.category(),
                     value,
                     editable: editable
                         .map(|(table, key)| SettingEdit { table: table_path(table), key }),
@@ -1860,6 +2094,18 @@ impl App {
             Action::Open if self.nav.overlay() == Some(&Overlay::CommandPalette) => {
                 return self.confirm_overlay(visible_rows);
             }
+            // Enter runs the manual search; the results come back as ordinary match
+            // choices, so the whole Disambiguate tail is reused unchanged.
+            Action::Open if self.nav.overlay() == Some(&Overlay::ManualQuery) => {
+                let query = self.manual_query.trim().to_owned();
+                if query.is_empty() {
+                    return None;
+                }
+                let id = self.manual_target?;
+                self.nav.close_overlay();
+                self.status = format!("searching sources for {query:?}…");
+                return Some(Task::ManualSearch { id, query });
+            }
             Action::Down if self.nav.overlay() == Some(&Overlay::CommandPalette) => {
                 let last = self.palette_matches().len().saturating_sub(1);
                 self.overlay_selected = (self.overlay_selected + 1).min(last);
@@ -1915,6 +2161,8 @@ impl App {
             // Filtering reorders the matches, so the old index would point at an unrelated
             // action — and the top hit is what a fuzzy filter is for.
             self.overlay_selected = 0;
+        } else if self.nav.overlay() == Some(&Overlay::ManualQuery) {
+            self.manual_query.push(ch);
         } else if self.nav.section() == Section::Search {
             self.search_query.push(ch);
         }
@@ -1924,6 +2172,8 @@ impl App {
         if self.nav.overlay() == Some(&Overlay::CommandPalette) {
             self.palette_query.pop();
             self.overlay_selected = 0;
+        } else if self.nav.overlay() == Some(&Overlay::ManualQuery) {
+            self.manual_query.pop();
         } else if self.nav.section() == Section::Search {
             self.search_query.pop();
         }
@@ -2093,6 +2343,36 @@ pub enum Task {
         id: AnilistId,
         episode: String,
     },
+    /// List the selectable releases for one episode, for the Sources overlay.
+    LoadSources {
+        id: AnilistId,
+        episode: String,
+    },
+    /// Search providers with the user's own words when the automatic match is wrong.
+    /// Results come back as [`Update::MatchChoices`], reusing the Disambiguate flow.
+    ManualSearch {
+        id: AnilistId,
+        query: String,
+    },
+    /// Persist a manual watched/unwatched change. The reducer flips the rows first, so
+    /// the table answers immediately; this writes history and queues the tracker push.
+    SetWatched {
+        id: AnilistId,
+        episodes: Vec<String>,
+        watched: bool,
+    },
+    /// Open a URL in the system browser.
+    OpenExternal {
+        url: String,
+    },
+    /// Play the exact release the user picked from the Sources overlay. The eyecatch
+    /// covers this the same way it covers [`Task::Play`].
+    PlaySource {
+        id: AnilistId,
+        episode: String,
+        provider_id: String,
+        source_id: String,
+    },
     /// Something for the live mpv session.
     Player(PlayerCommand),
     /// Queue an episode for offline download.
@@ -2114,11 +2394,20 @@ pub enum Task {
     DownloadCancel {
         id: i64,
     },
+    /// Remove a download *and* delete its file from disk. Cancel keeps a finished file;
+    /// this is the explicit way to not keep it.
+    DownloadDelete {
+        id: i64,
+    },
     DownloadClearCompleted,
     /// Read the queue and publish it — for opening the screen.
     LoadDownloads,
-    /// Play a file already on disk.
+    /// Play a file already on disk — with the identity that lets it record history,
+    /// resume, and sync exactly as a streamed episode would.
     PlayLocal {
+        id: AnilistId,
+        episode: String,
+        title: String,
         path: String,
     },
     /// Persist one changed setting to `config.toml`.
@@ -2151,6 +2440,8 @@ pub enum PlayerCommand {
     /// Leave mpv running and return to browsing.
     Detach,
     Stop,
+    /// Toggle the player's fullscreen state.
+    Fullscreen,
 }
 
 #[cfg(test)]
@@ -2215,6 +2506,115 @@ mod tests {
             similarity,
             rejected: None,
         }
+    }
+
+    fn source(title: &str, auto: bool) -> SourceCandidate {
+        SourceCandidate {
+            id: format!("https://indexer.example/view/{title}"),
+            provider_id: "torrent".into(),
+            title: title.into(),
+            quality: Some(1080),
+            seeders: Some(120),
+            size: Some("1.4 GiB".into()),
+            dual_audio: false,
+            dubbed: false,
+            auto_pick: auto,
+        }
+    }
+
+    #[test]
+    fn asking_for_sources_opens_the_slate_and_a_pick_plays_it() {
+        let mut a = app_at_episodes();
+        let task = a.handle(Action::ShowSources, 20).expect("asking must produce a task");
+        assert!(matches!(task, Task::LoadSources { .. }), "got {task:?}");
+
+        a.apply(Update::Sources(vec![
+            source("[A] Show - 1 (1080p)", true),
+            source("[B] Show - 1 (1080p)", false),
+        ]));
+        assert_eq!(a.nav.overlay(), Some(&Overlay::Sources));
+
+        // Move to the second release and take it.
+        a.handle(Action::Down, 20);
+        let task = a.handle(Action::Open, 20).expect("picking must play");
+        match task {
+            Task::PlaySource { provider_id, source_id, .. } => {
+                assert_eq!(provider_id, "torrent");
+                assert!(source_id.contains("[B]"), "the pick must be the selected row");
+            }
+            other => panic!("expected PlaySource, got {other:?}"),
+        }
+        // The question is put away and playback staging is up, exactly as Enter on an
+        // episode row would have it.
+        assert_eq!(a.nav.overlay(), None);
+        assert!(a.playing.is_some(), "a pick must stage Now Playing");
+        assert!(a.sources.is_empty());
+    }
+
+    #[test]
+    fn an_empty_slate_answers_with_a_toast_rather_than_an_empty_overlay() {
+        let mut a = app_at_episodes();
+        a.handle(Action::ShowSources, 20);
+        a.apply(Update::Sources(Vec::new()));
+        assert_ne!(a.nav.overlay(), Some(&Overlay::Sources));
+        assert!(a.source_context.is_none(), "an answered question is not left pending");
+    }
+
+    #[test]
+    fn toggling_watched_flips_the_row_and_persists() {
+        let mut a = app_at_episodes();
+        let task = a.handle(Action::ToggleWatched, 20).expect("toggling must persist");
+        assert!(a.episodes[0].completed, "the table answers immediately");
+        assert!(matches!(task, Task::SetWatched { watched: true, .. }), "got {task:?}");
+
+        let task = a.handle(Action::ToggleWatched, 20).expect("toggling back must too");
+        assert!(!a.episodes[0].completed);
+        assert!(matches!(task, Task::SetWatched { watched: false, .. }), "got {task:?}");
+    }
+
+    #[test]
+    fn marking_previous_marks_only_the_unwatched_before_the_cursor() {
+        let mut a = app_at_episodes();
+        a.episode_selected = 4;
+        a.episodes[1].completed = true; // already done — must not be re-marked
+
+        let task = a.handle(Action::MarkAllPrevious, 20).expect("marking must persist");
+        match task {
+            Task::SetWatched { episodes, watched: true, .. } => {
+                assert_eq!(episodes, vec!["1".to_string(), "3".into(), "4".into()]);
+            }
+            other => panic!("expected SetWatched, got {other:?}"),
+        }
+        assert!(a.episodes[..4].iter().all(|r| r.completed));
+        assert!(!a.episodes[4].completed, "the cursor row itself stays untouched");
+    }
+
+    #[test]
+    fn a_wrong_match_can_be_re_searched_by_hand() {
+        let mut a = app_at_episodes();
+        a.handle(Action::FixMapping, 20);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::ManualQuery));
+        assert!(a.is_typing(), "the overlay must take text");
+
+        for c in "frieren".chars() {
+            a.type_char(c);
+        }
+        let task = a.handle(Action::Open, 20).expect("enter must search");
+        match task {
+            Task::ManualSearch { query, .. } => assert_eq!(query, "frieren"),
+            other => panic!("expected ManualSearch, got {other:?}"),
+        }
+        // The overlay closes; the results return through MatchChoices and reuse the
+        // Disambiguate flow, which has its own tests.
+        assert_eq!(a.nav.overlay(), None);
+    }
+
+    #[test]
+    fn a_source_slate_nobody_asked_for_stays_quiet() {
+        // A stale answer arriving after the user navigated away must not interrupt.
+        let mut a = app_at_episodes();
+        a.apply(Update::Sources(vec![source("[A] Show - 1 (1080p)", true)]));
+        assert_ne!(a.nav.overlay(), Some(&Overlay::Sources));
     }
 
     #[test]
@@ -2406,6 +2806,24 @@ mod tests {
         a.apply(Update::Content(entries(3)));
         assert_eq!(a.handle(Action::NextEpisode, 20), None);
         assert!(a.playing.is_none());
+    }
+
+    #[test]
+    fn auto_next_steps_over_filler_when_asked() {
+        let mut a = app_at_episodes();
+        a.config.playback.skip_filler = true;
+        for i in [1, 2] {
+            a.episodes[i].skippable = true;
+            a.episodes[i].kind = Some("filler");
+        }
+        a.handle(Action::Open, 20); // plays ep 1
+
+        a.apply(Update::PlaybackEnded { watched: true });
+        let task = a.take_pending().expect("auto-next must fire");
+        match task {
+            Task::Play { episode, .. } => assert_eq!(episode, "4", "eps 2-3 are pure filler"),
+            other => panic!("expected Play, got {other:?}"),
+        }
     }
 
     #[test]

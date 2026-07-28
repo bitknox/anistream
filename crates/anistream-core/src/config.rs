@@ -116,7 +116,9 @@ impl Config {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct DownloadsConfig {
-    /// Where finished files go. `None` uses the cache directory's `downloads` folder.
+    /// Where finished files go. `None` leaves them where the torrent session wrote them,
+    /// in the cache directory. Ignored while `keep_seeding` is on — a seeding torrent
+    /// needs its file where the session put it.
     ///
     /// Worth being explicit about: unlike everything else anistream writes, these are files the
     /// user will want to find, so a cache directory is a poor default and a configurable one is the
@@ -253,6 +255,10 @@ pub struct PlaybackConfig {
     /// Stored rather than derived so it survives a restart — the small detail that makes a
     /// client feel finished rather than merely functional.
     pub persisted_speed: Option<f64>,
+    /// Carry the player volume across sessions.
+    pub persist_volume: bool,
+    /// The volume last chosen in the player, in mpv's 0–100 scale.
+    pub persisted_volume: Option<f64>,
     pub skip_opening: bool,
     pub skip_filler: bool,
     /// Player ids in preference order.
@@ -277,6 +283,8 @@ impl Default for PlaybackConfig {
             auto_next: true,
             persist_speed: true,
             persisted_speed: None,
+            persist_volume: true,
+            persisted_volume: None,
             skip_opening: true,
             skip_filler: false,
             players: vec!["mpv".into(), "external".into()],

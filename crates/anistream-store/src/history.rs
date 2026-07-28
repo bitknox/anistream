@@ -166,6 +166,30 @@ impl Store {
         })
     }
 
+    /// Erase one episode's events and refresh the projection — the unmark half of a
+    /// manual toggle. Local history is the source of truth, so forgetting is allowed;
+    /// trackers are monotonic and simply keep their high-water mark.
+    pub fn forget_episode(&self, anilist_id: AnilistId, episode: &str) -> Result<()> {
+        self.with_tx(|tx| {
+            tx.execute(
+                "DELETE FROM watch_event WHERE anilist_id = ?1 AND episode = ?2",
+                rusqlite::params![anilist_id.get(), episode],
+            )?;
+            let episodes_done: u32 = tx.query_row(
+                "SELECT COUNT(DISTINCT episode) FROM watch_event
+                  WHERE anilist_id = ?1 AND completed = 1",
+                [anilist_id.get()],
+                |r| r.get(0),
+            )?;
+            tx.execute(
+                "UPDATE watch_progress SET episodes_done = ?2, updated_at = ?3
+                  WHERE anilist_id = ?1",
+                rusqlite::params![anilist_id.get(), episodes_done, now()],
+            )?;
+            Ok(())
+        })
+    }
+
     /// Current progress for one title.
     pub fn progress(&self, anilist_id: AnilistId) -> Result<Option<Progress>> {
         self.with_conn(|c| {

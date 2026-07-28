@@ -154,7 +154,21 @@ async fn poll_running(
         // Complete when every byte has arrived *and* the total is known. Without the second half, a
         // poll before metadata reports 0 of 0 and would look finished.
         if progress.total > 0 && progress.downloaded >= progress.total {
-            let merged = finish(store, config, &row, entry.path.clone()).await;
+            let mut final_path = entry.path.clone();
+            // Seeding stops here unless asked for. Leaving the torrent in the session
+            // advertised the user as a source indefinitely — exactly what the config's
+            // privacy default promises not to do silently.
+            if !config.downloads.keep_seeding {
+                let _ = session.forget(entry.torrent_id, false).await;
+                // Only a forgotten file can be relocated — while seeding, the torrent
+                // needs it exactly where the session put it.
+                if let (Some(path), Some(dir)) =
+                    (entry.path.clone(), config.downloads.directory.as_ref())
+                {
+                    final_path = Some(move_into(path, PathBuf::from(dir)));
+                }
+            }
+            let merged = finish(store, config, &row, final_path).await;
             let _ = tx.send(Update::Toast(Toast::info(match merged {
                 Some(note) => format!("downloaded {} ep {} — {note}", row.title, row.episode),
                 None => format!("downloaded {} ep {}", row.title, row.episode),
@@ -224,6 +238,35 @@ async fn start_queued(
     }
 }
 
+/// Move a finished download into the configured directory, falling back to copy+delete
+/// across filesystems. On any failure the file stays where it was — a download in the
+/// wrong folder beats one lost in transit. Rename is instant on the same filesystem,
+/// which is the overwhelmingly common case; the copy fallback is rare enough to wear.
+fn move_into(path: PathBuf, dir: PathBuf) -> PathBuf {
+    let Some(name) = path.file_name() else { return path };
+    if let Err(e) = std::fs::create_dir_all(&dir) {
+        tracing::warn!(error = %e, dir = %dir.display(), "could not create downloads dir");
+        return path;
+    }
+    let dest = dir.join(name);
+    if dest == path {
+        return path;
+    }
+    match std::fs::rename(&path, &dest) {
+        Ok(()) => dest,
+        Err(_) => match std::fs::copy(&path, &dest) {
+            Ok(_) => {
+                let _ = std::fs::remove_file(&path);
+                dest
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "could not move download into downloads dir");
+                path
+            }
+        },
+    }
+}
+
 /// Mark a download finished, merging subtitles in if there are any to merge.
 async fn finish(
     store: &Store,
@@ -262,6 +305,7 @@ fn publish(store: &Store, tx: &mpsc::UnboundedSender<Update>) {
 pub fn to_row(download: &Download) -> anistream_ui::app::DownloadRow {
     anistream_ui::app::DownloadRow {
         id: download.id,
+        anilist_id: download.anilist_id,
         title: download.title.clone(),
         episode: download.episode.clone(),
         state: download.state.label(),

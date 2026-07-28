@@ -33,6 +33,8 @@ pub enum Action {
     Finished { watched: bool },
     /// Remember the chosen speed for the next episode.
     RememberSpeed(f64),
+    /// Remember the chosen volume for the next session.
+    RememberVolume(f64),
 }
 
 /// Tracks one episode's playback.
@@ -54,6 +56,7 @@ pub struct PlaybackTracker {
     watched_secs: f64,
     paused: bool,
     speed: f64,
+    volume: Option<f64>,
     committed: bool,
     offering: Option<SkipKind>,
     ended: bool,
@@ -72,6 +75,7 @@ impl PlaybackTracker {
             watched_secs: 0.0,
             paused: false,
             speed: 1.0,
+            volume: None,
             committed: false,
             offering: None,
             ended: false,
@@ -178,6 +182,17 @@ impl PlaybackTracker {
                     self.speed = *speed;
                     actions.push(Action::RememberSpeed(*speed));
                 }
+            }
+
+            PlaybackEvent::Volume(volume) => {
+                // The first report is mpv telling us the volume we started it at, not a
+                // choice — remembering it would just re-save the config's own value.
+                let changed =
+                    self.volume.is_some_and(|v| (v - *volume).abs() > f64::EPSILON);
+                if changed {
+                    actions.push(Action::RememberVolume(*volume));
+                }
+                self.volume = Some(*volume);
             }
 
             PlaybackEvent::Ended { complete } => {
