@@ -91,13 +91,15 @@ pub enum SettingId {
     VpnMode,
     TokenStorage,
     Syncplay,
+    SyncplayServer,
+    SyncplayRoom,
     UpdateCheck,
 }
 
 impl SettingId {
     /// Display order. Grouped by [`Self::category`] — the renderer draws a heading each
     /// time the category changes, so rows of one category must be contiguous here.
-    pub const ALL: [Self; 21] = [
+    pub const ALL: [Self; 23] = [
         Self::Theme,
         Self::Motion,
         Self::Translation,
@@ -118,6 +120,8 @@ impl SettingId {
         Self::PresenceTitle,
         Self::TokenStorage,
         Self::Syncplay,
+        Self::SyncplayServer,
+        Self::SyncplayRoom,
         Self::UpdateCheck,
     ];
 
@@ -128,6 +132,8 @@ impl SettingId {
             Self::Subtitles => Some((&["playback"], "subtitle_language")),
             Self::DownloadDir => Some((&["downloads"], "directory")),
             Self::DownloadHook => Some((&["downloads"], "on_complete")),
+            Self::SyncplayServer => Some((&["syncplay"], "server")),
+            Self::SyncplayRoom => Some((&["syncplay"], "room")),
             _ => None,
         }
     }
@@ -154,6 +160,8 @@ impl SettingId {
             | Self::PresenceTitle
             | Self::TokenStorage
             | Self::Syncplay
+            | Self::SyncplayServer
+            | Self::SyncplayRoom
             | Self::UpdateCheck => "integrations",
         }
     }
@@ -177,6 +185,8 @@ impl SettingId {
             Self::KeepSeeding => "keep seeding",
             Self::DownloadHook => "after each download",
             Self::Syncplay => "syncplay parties",
+            Self::SyncplayServer => "syncplay server",
+            Self::SyncplayRoom => "syncplay room",
             Self::UpdateCheck => "check for updates",
             Self::Presence => "discord presence",
             Self::PresenceTitle => "presence shows the title",
@@ -1320,6 +1330,8 @@ impl App {
             SettingId::DownloadHook => {
                 self.config.downloads.on_complete.clone().unwrap_or_default()
             }
+            SettingId::SyncplayServer => self.config.syncplay.server.clone(),
+            SettingId::SyncplayRoom => self.config.syncplay.room.clone().unwrap_or_default(),
             _ => String::new(),
         }
     }
@@ -2288,7 +2300,23 @@ impl App {
                         on_off(self.config.syncplay.enabled),
                         Some(("syncplay", "enabled")),
                         // `y` is the ordinary way in; this toggle sends *every* play there.
-                        Some("y plays one episode in a party — on sends every play"),
+                        Some(
+                            "y plays one episode with the room set below — on sends every play",
+                        ),
+                    ),
+                    S::SyncplayServer => (
+                        self.config.syncplay.server.clone(),
+                        Some(("syncplay", "server")),
+                        Some("enter types host:port"),
+                    ),
+                    S::SyncplayRoom => (
+                        self.config
+                            .syncplay
+                            .room
+                            .clone()
+                            .unwrap_or_else(|| "unset — needed for parties".into()),
+                        Some(("syncplay", "room")),
+                        Some("enter types the room everyone joins"),
                     ),
                     S::UpdateCheck => (
                         on_off(self.config.updates.check),
@@ -2467,7 +2495,11 @@ impl App {
             }
             SettingId::VpnMode | SettingId::TokenStorage => return None,
             // Text values are typed, not cycled — arrows have nothing to step through.
-            SettingId::Subtitles | SettingId::DownloadDir | SettingId::DownloadHook => {
+            SettingId::Subtitles
+            | SettingId::DownloadDir
+            | SettingId::DownloadHook
+            | SettingId::SyncplayServer
+            | SettingId::SyncplayRoom => {
                 self.push_toast(Toast::info("enter types a value here"));
                 return None;
             }
@@ -2538,6 +2570,12 @@ impl App {
                     }
                     SettingId::DownloadHook => {
                         self.config.downloads.on_complete = Some(value.clone());
+                    }
+                    SettingId::SyncplayServer => {
+                        self.config.syncplay.server = value.clone();
+                    }
+                    SettingId::SyncplayRoom => {
+                        self.config.syncplay.room = Some(value.clone());
                     }
                     _ => return None,
                 }
