@@ -17,7 +17,12 @@ const features = [
 	{
 		eyebrow: '▶ playback',
 		title: 'mpv does the playing',
-		body: 'JSON IPC to real mpv: resume to the second, auto-next, persisted speed and volume, and Shift+N/P step episodes from inside the player itself. Opening-skip prefers the file’s own chapter markers and falls back to aniskip. Licensed services open in their own apps, by deep link.',
+		body: 'JSON IPC to real mpv: resume to the second, auto-next, persisted speed and volume, and Shift+N/P step episodes from inside the player itself. Opening-skip prefers the file’s own chapter markers and falls back to aniskip. Anime4K upscaling ships inside the binary — a config toggle, not a shader hunt. Licensed services open in their own apps, by deep link.',
+	},
+	{
+		eyebrow: '▞ together',
+		title: 'Watch parties, one key deep',
+		body: 'Press y and the episode you were about to play opens in a Syncplay room instead — same resolution, shared pacing, everyone’s player in step. A party is a handoff, deliberately: the room’s pauses are not your watch history.',
 	},
 	{
 		eyebrow: '⌕ chosen',
@@ -57,7 +62,7 @@ const features = [
 	{
 		eyebrow: '? keys',
 		title: 'Vim-first, fully rebindable',
-		body: 'hjkl everywhere, arrows always aliased, every key rebindable. The help overlay is generated from the resolved keymap, so it matches whatever you set. Filler filters, watched marks, and Anime4K upscaling are each one key or one config line away.',
+		body: 'hjkl everywhere, arrows always aliased, every key rebindable. The help overlay is generated from the resolved keymap, so it matches whatever you set. Filler filters, watched marks and range downloads are each a single key away.',
 	},
 ];
 
@@ -67,15 +72,19 @@ const bandItems = [
 	'local is the source of truth',
 	'plugins in rust · go · js · python',
 	'fail-closed vpn guard',
+	'syncplay watch parties',
+	'anime4k upscaling built in',
+	'verified self-update',
 	'hosts no content — every source is external',
 	'MIT, built from source',
 ];
 const bandText = bandItems.map((t) => `▌ ${t}`).join('   ') + '   ';
 
 const installHtml = [
-	'<span class="c-a">$</span> brew install mpv ffmpeg cmake        <span class="c-d"># mpv plays; cmake builds BoringSSL</span>',
-	'<span class="c-a">$</span> git clone https://github.com/bitknox/anistream &amp;&amp; cd anistream',
-	'<span class="c-a">$</span> cargo run --release                  <span class="c-d"># rustup picks up the pinned 1.97.1</span>',
+	'<span class="c-a">$</span> brew install mpv ffmpeg               <span class="c-d"># mpv plays, ffmpeg muxes subtitles</span>',
+	'<span class="c-d"># grab the installer or archive for your platform from the releases page,</span>',
+	'<span class="c-d"># then staying current is one command:</span>',
+	'<span class="c-a">$</span> anistream --update                    <span class="c-d"># verified against the published sha256</span>',
 ].join('\n');
 ---
 
