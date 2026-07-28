@@ -267,6 +267,18 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
                         let (aired, _) = entry.last_aired.expect("checked");
                         Some((format!("ep {aired} out"), true))
                     }
+                    // Caught up on an airing show: "out" would be old news, so the row
+                    // carries the wait instead — which episode, and how long. Dim, not
+                    // state: a countdown is a fact to glance at, not a thing to act on.
+                    (Some(_), s, Some(secs)) if s != Section::Calendar && secs > 0 => {
+                        let label = match entry.next_episode {
+                            Some(ep) => {
+                                format!("ep {ep} in {}", crate::widgets::countdown(secs))
+                            }
+                            None => format!("in {}", crate::widgets::countdown(secs)),
+                        };
+                        Some((label, false))
+                    }
                     // The calendar's whole subject is *when*, so time wins over progress
                     // there — and it spans both directions, so a negative countdown is an
                     // episode that has already aired rather than a bug. Aired episodes of
@@ -3352,6 +3364,21 @@ mod tests {
         let app = app_with(Content::Entries(vec![e]));
         let text = text_of(&render_to_buffer(&app, 120, 30));
         assert!(text.contains("ep 8 out"), "being behind is the fact worth stating:\n{text}");
+    }
+
+    #[test]
+    fn a_caught_up_show_counts_down_instead_of_crying_out() {
+        // Watched everything that aired: "ep 8 out" would be old news. The row waits
+        // with you instead.
+        let mut e = entry(1, "Frieren");
+        e.progress = Some((8, 9));
+        e.last_aired = Some((8, 3600));
+        e.airing_in = Some(2 * 24 * 3600 + 3600);
+        e.next_episode = Some(9);
+        let app = app_with(Content::Entries(vec![e]));
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(!text.contains("ep 8 out"), "already watched — not news:\n{text}");
+        assert!(text.contains("ep 9 in 2d 1h"), "the wait is the fact:\n{text}");
     }
 
     #[test]
