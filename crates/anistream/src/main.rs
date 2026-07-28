@@ -2057,7 +2057,7 @@ fn spawn_playback(
     tokio::spawn(async move {
         let playback = config.playback.clone();
         let context = match resolve_for_playback(
-            &anilist, &store, &registry, id, &episode, pick, &playback,
+            &anilist, &store, &registry, id, &episode, pick, &playback, &tx,
         )
         .await
         {
@@ -2100,6 +2100,7 @@ fn spawn_playback(
 }
 
 /// Everything needed before mpv can be spawned: a stream, and the context history needs.
+#[allow(clippy::too_many_arguments)]
 async fn resolve_for_playback(
     anilist: &AniList,
     store: &Store,
@@ -2108,10 +2109,15 @@ async fn resolve_for_playback(
     episode: &str,
     pick: Option<(String, String)>,
     playback: &anistream_core::config::PlaybackConfig,
+    tx: &mpsc::UnboundedSender<Update>,
 ) -> std::result::Result<(anistream_core::stream::Stream, playback::PlaybackContext), String> {
     if registry.is_empty() {
         return Err("no sources configured — see the Providers screen".into());
     }
+    // Phase-labelled, because the wait between Enter and mpv is where every tool in
+    // this category earns its "is it frozen?" issues. The status line names the rung
+    // being climbed; the eyecatch's own timer says how long it has taken.
+    let _ = tx.send(Update::Status("looking up the title…".into()));
     let media = anilist.media(id).await.map_err(|e| e.to_string())?;
     let now = now_epoch();
 
@@ -2129,6 +2135,7 @@ async fn resolve_for_playback(
         .cloned()
         .ok_or_else(|| format!("could not match this title: {}", resolution.explain()))?;
 
+    let _ = tx.send(Update::Status(format!("searching sources for ep {episode}…")));
     let mut streams = match &pick {
         // A picked release goes straight to its provider, no failover: substituting a
         // different stream for the one the user chose would silently undo the choice.

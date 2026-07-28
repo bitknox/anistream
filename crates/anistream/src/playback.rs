@@ -147,6 +147,7 @@ pub async fn play(
         dub: context.translation == Translation::Dub,
     };
 
+    let _ = tx.send(Update::Status("starting mpv…".into()));
     let (session, mut events) = match mpv.play(&stream, &request).await {
         Ok(pair) => pair,
         Err(e) => {
@@ -162,6 +163,10 @@ pub async fn play(
     if let Some(position) = context.resume_at {
         let _ = tx.send(Update::Resumed { position });
     }
+
+    // Say the in-player keys exist, once, on mpv's own OSD — bindings nobody announces
+    // are bindings nobody finds. One line at session start, then out of the way.
+    let _ = session.notify("N next · P previous · S skip").await;
 
     let mut tracker = PlaybackTracker::new(threshold, skips, auto_skip);
 

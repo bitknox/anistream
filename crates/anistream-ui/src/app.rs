@@ -121,6 +121,17 @@ impl SettingId {
         Self::UpdateCheck,
     ];
 
+    /// The settings whose values are typed rather than cycled, with where they write.
+    /// Everything else either has a closed set of values or is read-only on purpose.
+    pub const fn text_edit(self) -> Option<(&'static [&'static str], &'static str)> {
+        match self {
+            Self::Subtitles => Some((&["playback"], "subtitle_language")),
+            Self::DownloadDir => Some((&["downloads"], "directory")),
+            Self::DownloadHook => Some((&["downloads"], "on_complete")),
+            _ => None,
+        }
+    }
+
     /// Which heading a row sits under. Purely visual grouping — navigation walks the
     /// whole list, so nothing is ever hidden behind a tab.
     pub const fn category(self) -> &'static str {
@@ -907,6 +918,10 @@ pub struct App {
     pub manual_target: Option<AnilistId>,
     /// What is being typed into the download-range overlay: `4`, `1-12`, `7-`.
     pub range_query: String,
+    /// What is being typed into the setting editor.
+    pub edit_value: String,
+    /// Which text-valued setting the editor is writing.
+    pub edit_target: Option<SettingId>,
     /// Selection within the episode table, tracked separately from list selection so
     /// stepping back out of Episodes does not disturb where you were in the list.
     pub episode_selected: usize,
@@ -975,6 +990,8 @@ impl App {
             manual_query: String::new(),
             manual_target: None,
             range_query: String::new(),
+            edit_value: String::new(),
+            edit_target: None,
         }
     }
 
@@ -1248,6 +1265,14 @@ impl App {
                 self.episodes_all = rows;
                 self.apply_episode_filter();
                 self.episodes_loading = false;
+                // The amber bar lands where the viewer is going: the first unwatched
+                // row. Row nought means "just opened" — a cursor already mid-list is a
+                // position the user chose, and a reload must not move it.
+                if self.episode_selected == 0
+                    && let Some(first) = self.episodes.iter().position(|r| !r.completed)
+                {
+                    self.episode_selected = first;
+                }
             }
         }
     }
@@ -1285,6 +1310,20 @@ impl App {
     /// provider chain over the network to re-learn something we already know: the episode, the
     /// position and whether it finished all came from this process. A network round trip to display
     /// local state would also be slower than the eye.
+    /// The live value a text setting starts editing from.
+    fn current_text_value(&self, id: SettingId) -> String {
+        match id {
+            SettingId::Subtitles => self.config.playback.subtitle_language.clone(),
+            SettingId::DownloadDir => {
+                self.config.downloads.directory.clone().unwrap_or_default()
+            }
+            SettingId::DownloadHook => {
+                self.config.downloads.on_complete.clone().unwrap_or_default()
+            }
+            _ => String::new(),
+        }
+    }
+
     /// Re-derive the visible episode list from the full one, keeping the cursor in range.
     fn apply_episode_filter(&mut self) {
         let filter = self.episode_filter;
@@ -1545,8 +1584,19 @@ impl App {
             Action::Left => self.nav.focus_rail(),
             // In the episode table Enter plays; everywhere else it opens the title.
             Action::Open if self.in_episodes() => return self.play_selected_episode(),
-            // On Settings there is nothing to open, so Enter and Space do the obvious thing.
+            // On Settings, Enter and Space do the obvious thing: cycle a closed set, or
+            // open a small typed editor for the values that are text — a screen that
+            // points at config.toml for a language code has given up two keys early.
             Action::Open | Action::PlayNext if self.in_settings_stage() => {
+                let id = SettingId::ALL.get(self.selected).copied();
+                if let Some(id) = id
+                    && id.text_edit().is_some()
+                {
+                    self.edit_target = Some(id);
+                    self.edit_value = self.current_text_value(id);
+                    self.nav.open_overlay(Overlay::EditSetting);
+                    return None;
+                }
                 return self.cycle_setting(1);
             }
             Action::Open if self.in_accounts_stage() => return self.toggle_account(),
@@ -2180,8 +2230,8 @@ impl App {
                     // ISO 639 code, which is a config-file job rather than a screen job.
                     S::Subtitles => (
                         playback.subtitle_language.clone(),
-                        None,
-                        Some("edit config.toml — too many values to cycle"),
+                        Some(("playback", "subtitle_language")),
+                        Some("enter types a language code — too many values to cycle"),
                     ),
                     S::CommitThreshold => (
                         format!("{}%", (playback.commit_threshold * 100.0).round()),
@@ -2211,8 +2261,8 @@ impl App {
                             .directory
                             .clone()
                             .unwrap_or_else(|| "kept with the torrent cache".into()),
-                        None,
-                        Some("set downloads.directory in config.toml — a path is a text job"),
+                        Some(("downloads", "directory")),
+                        Some("enter types a path — applies to downloads after a restart"),
                     ),
                     S::MergeSubtitles => (
                         on_off(self.config.downloads.merge_subtitles),
@@ -2231,8 +2281,8 @@ impl App {
                         } else {
                             "none".into()
                         },
-                        None,
-                        Some("set downloads.on_complete in config.toml — a command is a text job"),
+                        Some(("downloads", "on_complete")),
+                        Some("enter types a command — run after each finished download"),
                     ),
                     S::Syncplay => (
                         on_off(self.config.syncplay.enabled),
@@ -2415,11 +2465,12 @@ impl App {
                 self.config.providers.torrent.enabled = !self.config.providers.torrent.enabled;
                 V::Bool(self.config.providers.torrent.enabled)
             }
-            SettingId::Subtitles
-            | SettingId::VpnMode
-            | SettingId::TokenStorage
-            | SettingId::DownloadDir
-            | SettingId::DownloadHook => return None,
+            SettingId::VpnMode | SettingId::TokenStorage => return None,
+            // Text values are typed, not cycled — arrows have nothing to step through.
+            SettingId::Subtitles | SettingId::DownloadDir | SettingId::DownloadHook => {
+                self.push_toast(Toast::info("enter types a value here"));
+                return None;
+            }
         };
 
         Some(Task::SaveSetting { table: edit.table, key: edit.key, value })
@@ -2464,6 +2515,38 @@ impl App {
             // discoverable could show you an action and then refuse to perform it.
             Action::Open if self.nav.overlay() == Some(&Overlay::CommandPalette) => {
                 return self.confirm_overlay(visible_rows);
+            }
+            Action::Open if self.nav.overlay() == Some(&Overlay::EditSetting) => {
+                let id = self.edit_target.take()?;
+                let (table, key) = id.text_edit()?;
+                let value = self.edit_value.trim().to_owned();
+                self.nav.close_overlay();
+                if value.is_empty() {
+                    // The writer sets keys; it does not delete them. Refusing beats
+                    // writing an empty string that half the readers treat as a path.
+                    self.push_toast(Toast::info(
+                        "left unchanged — delete the line in config.toml to unset",
+                    ));
+                    return None;
+                }
+                match id {
+                    SettingId::Subtitles => {
+                        self.config.playback.subtitle_language = value.clone();
+                    }
+                    SettingId::DownloadDir => {
+                        self.config.downloads.directory = Some(value.clone());
+                    }
+                    SettingId::DownloadHook => {
+                        self.config.downloads.on_complete = Some(value.clone());
+                    }
+                    _ => return None,
+                }
+                self.push_toast(Toast::info(format!("saved {}", id.label())));
+                return Some(Task::SaveSetting {
+                    table,
+                    key,
+                    value: anistream_core::settings::SettingValue::Str(value),
+                });
             }
             Action::Open if self.nav.overlay() == Some(&Overlay::DownloadRange) => {
                 let id = match self.nav.current() {
@@ -2574,6 +2657,8 @@ impl App {
             if ch.is_ascii_digit() || ch == '-' {
                 self.range_query.push(ch);
             }
+        } else if self.nav.overlay() == Some(&Overlay::EditSetting) {
+            self.edit_value.push(ch);
         } else if self.nav.section() == Section::Search {
             self.search_query.push(ch);
         }
@@ -2587,6 +2672,8 @@ impl App {
             self.manual_query.pop();
         } else if self.nav.overlay() == Some(&Overlay::DownloadRange) {
             self.range_query.pop();
+        } else if self.nav.overlay() == Some(&Overlay::EditSetting) {
+            self.edit_value.pop();
         } else if self.nav.section() == Section::Search {
             self.search_query.pop();
         }
@@ -3018,6 +3105,33 @@ mod tests {
         }
         assert!(a.episodes[..4].iter().all(|r| r.completed));
         assert!(!a.episodes[4].completed, "the cursor row itself stays untouched");
+    }
+
+    #[test]
+    fn a_text_setting_is_typed_not_pointed_at_config_toml() {
+        let mut a = app();
+        a.go_to_section(Section::Settings);
+        a.nav.focus_stage();
+        a.selected =
+            SettingId::ALL.iter().position(|s| *s == SettingId::Subtitles).expect("row");
+
+        a.handle(Action::Open, 20);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::EditSetting));
+        assert_eq!(a.edit_value, "eng", "prefilled with the live value");
+
+        for _ in 0..3 {
+            a.backspace();
+        }
+        for c in "spa".chars() {
+            a.type_char(c);
+        }
+        let task = a.handle(Action::Open, 20).expect("enter must save");
+        assert!(
+            matches!(task, Task::SaveSetting { key: "subtitle_language", .. }),
+            "got {task:?}"
+        );
+        assert_eq!(a.config.playback.subtitle_language, "spa");
+        assert_eq!(a.nav.overlay(), None);
     }
 
     #[test]

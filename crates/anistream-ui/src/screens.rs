@@ -1971,6 +1971,13 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
             String::new(),
             "4 for one episode, 1-12 for a run, 7- for everything from there".into(),
         )],
+        Overlay::EditSetting => vec![(
+            String::new(),
+            match app.edit_target {
+                Some(id) => format!("{} — enter saves, esc leaves it be", id.label()),
+                None => "enter saves, esc leaves it be".into(),
+            },
+        )],
     };
 
     // Overlays that are a list of things you pick from need a focus marker. The palette was
@@ -2037,6 +2044,9 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         }
         Overlay::DownloadRange => {
             format!("{}   {}▏", glyph::eyebrow(overlay.title()), app.range_query)
+        }
+        Overlay::EditSetting => {
+            format!("{}   {}▏", glyph::eyebrow(overlay.title()), app.edit_value)
         }
         // Say what is being asked and why, or a bare "WHICH ONE" over a list of near-identical
         // release names is a riddle rather than a question.
