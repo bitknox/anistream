@@ -256,6 +256,10 @@ fn run_completion_hook(config: &Config, row: &Download, path: Option<&std::path:
             .env("ANISTREAM_PATH", &path)
             .env("ANISTREAM_TITLE", &title)
             .env("ANISTREAM_EPISODE", &episode)
+            // The TUI owns the terminal; a chatty hook must not paint over it.
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
             .status();
         match outcome {
             Ok(status) if status.success() => {}

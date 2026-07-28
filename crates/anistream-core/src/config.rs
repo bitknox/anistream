@@ -237,7 +237,9 @@ pub struct SyncplayConfig {
     pub enabled: bool,
     /// `host:port` of the Syncplay server everyone in the room uses.
     pub server: String,
-    /// The room to join. Unset joins Syncplay's default for your name.
+    /// The room to join. Required before a party can start — Syncplay's no-gui mode
+    /// refuses an empty room, so anistream asks for this up front rather than spawning
+    /// a process that immediately dies.
     pub room: Option<String>,
     /// The name shown to the room.
     pub name: String,

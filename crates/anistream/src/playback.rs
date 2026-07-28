@@ -114,24 +114,55 @@ pub async fn play(
     // private history is recorded — the room pausing must not read as you abandoning the
     // episode. The torrent session stays alive underneath, serving the loopback URL.
     if party {
+        // Syncplay's no-gui mode refuses to start without a room, so asking first beats
+        // spawning a process whose refusal we would have to fish out of its stderr.
+        let Some(room) = syncplay.room.clone().filter(|r| !r.trim().is_empty()) else {
+            let _ = tx.send(Update::Toast(Toast::alert(
+                "syncplay needs a room — set syncplay.room in config.toml",
+            )));
+            let _ = tx.send(Update::PlaybackEnded { watched: false });
+            return;
+        };
+
         let mut command = std::process::Command::new(&syncplay.binary);
         command.arg("--no-gui");
         command.args(["--host", &syncplay.server]);
         command.args(["--name", &syncplay.name]);
-        if let Some(room) = &syncplay.room {
-            command.args(["--room", room]);
-        }
+        command.args(["--room", &room]);
         command.arg(&stream.url);
-        let update = match command.spawn() {
-            Ok(_) => Update::Toast(Toast::info(format!(
-                "handed to syncplay — watching with {}",
-                syncplay.room.as_deref().unwrap_or(&syncplay.server)
-            ))),
-            Err(e) => Update::Toast(Toast::alert(format!(
-                "syncplay would not start: {e} — is it installed?"
-            ))),
-        };
-        let _ = tx.send(update);
+        // The TUI owns the terminal. One line of child stderr — Syncplay greets with a
+        // Python deprecation warning — scribbles straight over the alternate screen, so
+        // the party speaks through toasts and nothing else.
+        command.stdin(std::process::Stdio::null());
+        command.stdout(std::process::Stdio::null());
+        command.stderr(std::process::Stdio::null());
+
+        match command.spawn() {
+            Ok(mut child) => {
+                let _ = tx.send(Update::Toast(Toast::info(format!(
+                    "handed to syncplay — room {room}"
+                ))));
+                // With stdio silenced, a failed start would otherwise be a party that
+                // just never happens. Watch the exit instead: quiet on success, a toast
+                // naming the failure whenever it dies unhappy.
+                let tx = tx.clone();
+                tokio::task::spawn_blocking(move || {
+                    if let Ok(status) = child.wait()
+                        && !status.success()
+                    {
+                        let _ = tx.send(Update::Toast(Toast::alert(format!(
+                            "syncplay exited with {status} — check server and room in \
+                             config.toml"
+                        ))));
+                    }
+                });
+            }
+            Err(e) => {
+                let _ = tx.send(Update::Toast(Toast::alert(format!(
+                    "syncplay would not start: {e} — is it installed?"
+                ))));
+            }
+        }
         let _ = tx.send(Update::PlaybackEnded { watched: false });
         return;
     }
