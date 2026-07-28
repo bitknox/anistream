@@ -74,7 +74,7 @@ impl Section {
     pub const fn glyph(self) -> char {
         match self {
             Self::Home => '▸',     // resume — a playhead
-            Self::Calendar => '▤', // ruled rows, one per day
+            Self::Calendar => '▤', // ruled rows — the airing timeline
             Self::Seasonal => '▦', // the cover grid
             Self::Search => '/',   // the key that opens it, and idiomatic everywhere
             Self::Library => '▥',  // spines on a shelf
@@ -143,6 +143,7 @@ pub enum Overlay {
     Sources,
     Disambiguate,
     ManualQuery,
+    WatchOrder,
     ListStatus,
     Accounts,
     Conflicts,
@@ -157,6 +158,7 @@ impl Overlay {
             Self::Sources => "SOURCES",
             Self::Disambiguate => "WHICH ONE",
             Self::ManualQuery => "FIND MANUALLY",
+            Self::WatchOrder => "WATCH ORDER",
             Self::ListStatus => "LIST STATUS",
             Self::Accounts => "ACCOUNTS",
             Self::Conflicts => "CONFLICTS",

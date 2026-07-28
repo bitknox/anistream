@@ -86,6 +86,23 @@ impl Store {
         })
     }
 
+    /// Drop every pinned match *and* cached resolution for one title — the "reset to
+    /// automatic" gesture. Both must go: an override removed with the cached resolution
+    /// left behind would keep answering with the same wrong key.
+    pub fn clear_title_match(&self, anilist_id: AnilistId) -> Result<()> {
+        self.with_conn(|c| {
+            c.execute(
+                "DELETE FROM mapping_override WHERE anilist_id = ?1",
+                [anilist_id.get()],
+            )?;
+            c.execute(
+                "DELETE FROM mapping_resolution WHERE anilist_id = ?1",
+                [anilist_id.get()],
+            )?;
+            Ok(())
+        })
+    }
+
     pub fn clear_override(&self, anilist_id: AnilistId, provider_id: &str) -> Result<()> {
         self.with_conn(|c| {
             c.execute(

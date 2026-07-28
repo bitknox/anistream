@@ -60,7 +60,9 @@ pub fn render(frame: &mut TFrame<'_>, app: &App) {
     Hairline::new(&app.palette).render(geometry.header_rule, buf);
 
     if geometry.has_rail() {
+        let counts = app.rail_counts();
         Rail::new(&app.palette, app.nav.rail_width(), app.nav.section(), app.nav.focus())
+            .counts(&counts)
             .render(geometry.rail, buf);
         Divider::new(&app.palette).render(geometry.divider, buf);
     }
@@ -79,8 +81,7 @@ pub fn render(frame: &mut TFrame<'_>, app: &App) {
 fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
     let mut chips: Vec<(String, Role)> = Vec::new();
 
-    let provider =
-        app.config.providers.order.first().cloned().unwrap_or_else(|| "no source".into());
+    let provider = app.source_label();
     // Torrenting is off until a VPN mode is chosen, and that has to be visible rather
     // than discovered when playback fails.
     let torrent_ready = app.config.providers.torrent.enabled;
@@ -118,7 +119,7 @@ fn render_status(buf: &mut Buffer, app: &App, geometry: &Frame) {
     let state = if app.status.is_empty() {
         format!(
             "{} · {} · {}p",
-            app.config.providers.order.first().map_or("no source", String::as_str),
+            app.source_label(),
             app.config.playback.translation,
             app.config.playback.quality
         )
@@ -993,18 +994,20 @@ fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
     }
 
     if app.episodes.is_empty() {
+        // Two different empties: the filter hiding everything is not a missing source,
+        // and telling someone to check Providers over their own filter would be cruel.
+        let (headline, hint) = if app.episodes_all_filtered_out() {
+            ("nothing matches the filter", "f cycles it — currently showing none")
+        } else {
+            ("no episodes yet", "no source is configured — see the Providers screen")
+        };
         buf.set_string(
             table.left(),
             table.top(),
-            glyph::eyebrow("no episodes yet"),
+            glyph::eyebrow(headline),
             app.palette.style(Role::TextDim),
         );
-        buf.set_string(
-            table.left(),
-            table.top() + 2,
-            "no source is configured — see the Providers screen",
-            app.palette.style(Role::TextDim),
-        );
+        buf.set_string(table.left(), table.top() + 2, hint, app.palette.style(Role::TextDim));
         return;
     }
 
@@ -1039,6 +1042,20 @@ fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
         glyph::eyebrow("watched"),
         app.palette.style(Role::TextDim),
     );
+    // The active filter sits at the right edge of the header row — always visible while
+    // it is narrowing the table, invisible when it is not.
+    if app.episode_filter != crate::app::EpisodeFilter::All {
+        let marker = glyph::eyebrow(app.episode_filter.label());
+        let width = marker.chars().count() as u16;
+        if table.left() + cols.state + 10 + width < table.right() {
+            buf.set_string(
+                table.right().saturating_sub(width),
+                table.top(),
+                marker,
+                app.palette.style(Role::State),
+            );
+        }
+    }
     Hairline::new(&app.palette).render(Rect { y: table.top() + 1, height: 1, ..table }, buf);
 
     let body_top = table.top() + 2;
@@ -1306,10 +1323,8 @@ fn render_now_playing(buf: &mut Buffer, app: &App, area: Rect) {
     } else {
         format!("mpv {}", glyph::STATE_READY)
     };
-    let right = format!(
-        "{state}  ·  {}",
-        app.config.providers.order.first().map_or("—", String::as_str)
-    );
+    // The provider that is actually serving this stream, not the configured first choice.
+    let right = format!("{state}  ·  {}", app.source_label());
     let right_x = column.right().saturating_sub(right.chars().count() as u16);
     if right_x > column.left() + 14 {
         buf.set_string(right_x, column.top(), &right, app.palette.style(Role::TextDim));
@@ -1667,9 +1682,7 @@ fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
                 let row = &rows[*i];
                 let selected = *i == app.selected;
                 if selected && focused {
-                    buf[(area.left(), y)]
-                        .set_char(OBI)
-                        .set_style(app.palette.style(Role::Obi));
+                    buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
                 }
 
                 let label_room = value_x.saturating_sub(area.left() + 3) as usize;
@@ -1833,6 +1846,25 @@ fn source_rows(app: &App) -> Vec<(String, String)> {
         .collect()
 }
 
+/// The watch order: prequels, parent story, sequels — the relation in the key column,
+/// so the list reads as a path through the franchise rather than a bare list of names.
+fn watch_order_rows(app: &App) -> Vec<(String, String)> {
+    let Some(detail) = app.detail.as_ref() else {
+        return Vec::new();
+    };
+    detail
+        .related
+        .iter()
+        .map(|related| {
+            let mut label = related.title.clone();
+            if let Some(format) = &related.format {
+                label.push_str(&format!("  ·  {format}"));
+            }
+            (related.relation.clone(), label)
+        })
+        .collect()
+}
+
 fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
     let Some(overlay) = app.nav.overlay() else {
         return;
@@ -1857,9 +1889,10 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         Overlay::Logs => log_rows(app),
         Overlay::Disambiguate => candidate_rows(app),
         Overlay::Sources => source_rows(app),
+        Overlay::WatchOrder => watch_order_rows(app),
         Overlay::ManualQuery => vec![(
             String::new(),
-            "type what to search for — results replace the automatic match".into(),
+            "type what to search for — an empty enter resets to the automatic match".into(),
         )],
     };
 
@@ -1875,6 +1908,7 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
             | Overlay::Logs
             | Overlay::Disambiguate
             | Overlay::Sources
+            | Overlay::WatchOrder
     )
     .then_some(app.overlay_selected);
 
@@ -1932,6 +1966,15 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
             match app.detail.as_ref() {
                 Some(detail) => format!("no confident match for {}", detail.title),
                 None => "no confident match".into(),
+            }
+        ),
+        // Name the title the order is anchored on — a list of sequels floats without it.
+        Overlay::WatchOrder => format!(
+            "{}   {}",
+            glyph::eyebrow(overlay.title()),
+            match app.detail.as_ref() {
+                Some(detail) => format!("around {} — enter opens", detail.title),
+                None => "enter opens".into(),
             }
         ),
         // Name the episode the slate is for, or a wall of release names has no anchor.

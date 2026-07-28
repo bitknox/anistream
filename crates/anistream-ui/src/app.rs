@@ -237,6 +237,56 @@ pub struct Entry {
     /// quitting halfway through an episode you fully intend to finish should be the single most
     /// visible thing on the home screen, and under the old behaviour it was invisible.
     pub resume: Option<ResumePoint>,
+    /// Titles adjacent in the main watch order — prequels, the parent story, sequels.
+    /// Present on the detail fetch only; list fetches leave it empty.
+    pub related: Vec<RelatedTitle>,
+}
+
+/// What the episode table shows.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum EpisodeFilter {
+    #[default]
+    All,
+    /// Only episodes not yet completed.
+    Unwatched,
+    /// Everything except pure filler. `mixed` stays — it carries story.
+    NoFiller,
+}
+
+impl EpisodeFilter {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::All => "all episodes",
+            Self::Unwatched => "unwatched",
+            Self::NoFiller => "no filler",
+        }
+    }
+
+    const fn next(self) -> Self {
+        match self {
+            Self::All => Self::Unwatched,
+            Self::Unwatched => Self::NoFiller,
+            Self::NoFiller => Self::All,
+        }
+    }
+
+    fn keeps(self, row: &EpisodeRow) -> bool {
+        match self {
+            Self::All => true,
+            Self::Unwatched => !row.completed,
+            Self::NoFiller => !row.skippable,
+        }
+    }
+}
+
+/// One step of a title's watch order.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RelatedTitle {
+    pub id: AnilistId,
+    pub title: String,
+    /// `prequel`, `parent` or `sequel`, already lowercased for display.
+    pub relation: String,
+    pub format: Option<String>,
 }
 
 /// Where an unfinished episode was left.
@@ -282,6 +332,7 @@ impl Entry {
             next_episode: None,
             last_aired: None,
             resume: None,
+            related: Vec::new(),
         }
     }
 
@@ -622,6 +673,8 @@ pub enum Update {
     Sources(Vec<SourceCandidate>),
     /// The user changed the player volume.
     PlaybackVolume(f64),
+    /// Which provider the current stream actually came from.
+    ActiveProvider(String),
     /// Playhead moved.
     Playback {
         position: f64,
@@ -759,8 +812,18 @@ pub struct App {
     /// Auto-next is the only source: an episode ending has to be able to start the next one, and
     /// [`Self::apply`] has no return channel. The event loop drains this each iteration.
     pending: Option<Task>,
-    /// Rows for the Episodes screen.
+    /// Rows for the Episodes screen — the ones the current filter admits. Everything that
+    /// reads or navigates episodes works on this list, which is what keeps the filter from
+    /// needing index remapping at every call site.
     pub episodes: Vec<EpisodeRow>,
+    /// Every row, unfiltered — the source [`Self::episodes`] is re-derived from.
+    episodes_all: Vec<EpisodeRow>,
+    /// The active episode filter, cycled with `f`.
+    pub episode_filter: EpisodeFilter,
+    /// The provider that actually resolved the most recent stream. The header prefers
+    /// this over the configured order: during failover the first configured source is
+    /// exactly the one that is *not* serving.
+    pub active_provider: Option<String>,
     /// Candidates awaiting a decision, with the provider and title they belong to.
     pub match_candidates: Vec<MatchCandidate>,
     /// Which title and provider the pending candidates are for.
@@ -830,6 +893,9 @@ impl App {
             providers: Vec::new(),
             provider_note: None,
             episodes: Vec::new(),
+            episodes_all: Vec::new(),
+            episode_filter: EpisodeFilter::default(),
+            active_provider: None,
             episode_selected: 0,
             match_candidates: Vec::new(),
             match_context: None,
@@ -985,6 +1051,7 @@ impl App {
                     });
                 }
             }
+            Update::ActiveProvider(provider) => self.active_provider = Some(provider),
             Update::PlaybackVolume(volume) => {
                 // Same contract as speed: remembered in config, written to disk, and never
                 // allowed to fight auto-next for the pending slot.
@@ -1087,10 +1154,9 @@ impl App {
                 self.vpn_leaking = leaking;
             }
             Update::Episodes(rows) => {
-                self.episodes = rows;
+                self.episodes_all = rows;
+                self.apply_episode_filter();
                 self.episodes_loading = false;
-                self.episode_selected =
-                    self.episode_selected.min(self.episodes.len().saturating_sub(1));
             }
         }
     }
@@ -1128,6 +1194,55 @@ impl App {
     /// provider chain over the network to re-learn something we already know: the episode, the
     /// position and whether it finished all came from this process. A network round trip to display
     /// local state would also be slower than the eye.
+    /// Re-derive the visible episode list from the full one, keeping the cursor in range.
+    fn apply_episode_filter(&mut self) {
+        let filter = self.episode_filter;
+        self.episodes = self.episodes_all.iter().filter(|r| filter.keeps(r)).cloned().collect();
+        self.episode_selected =
+            self.episode_selected.min(self.episodes.len().saturating_sub(1));
+    }
+
+    /// Whether the filter is hiding everything — distinct from a title with no episodes.
+    pub fn episodes_all_filtered_out(&self) -> bool {
+        self.episodes.is_empty() && !self.episodes_all.is_empty()
+    }
+
+    /// What the header should call the source: the provider that last actually served,
+    /// falling back to the configured first choice before anything has played.
+    pub fn source_label(&self) -> String {
+        self.active_provider
+            .clone()
+            .or_else(|| self.config.providers.order.first().cloned())
+            .unwrap_or_else(|| "no source".into())
+    }
+
+    /// Badge counts for the rail: work in flight, questions pending.
+    pub fn rail_counts(&self) -> Vec<(Section, u32)> {
+        let mut counts = Vec::new();
+        let active = self
+            .downloads
+            .iter()
+            .filter(|d| matches!(d.state, "downloading" | "queued"))
+            .count() as u32;
+        if active > 0 {
+            counts.push((Section::Downloads, active));
+        }
+        if !self.conflicts.is_empty() {
+            counts.push((Section::Accounts, self.conflicts.len() as u32));
+        }
+        counts
+    }
+
+    /// Flip one episode's watched state in both the visible and the full list.
+    fn set_episode_watched(&mut self, number: &str, watched: bool) {
+        for list in [&mut self.episodes, &mut self.episodes_all] {
+            if let Some(row) = list.iter_mut().find(|r| r.number == number) {
+                row.completed = watched;
+                row.watched = if watched { 1.0 } else { 0.0 };
+            }
+        }
+    }
+
     fn reflect_watch(
         &mut self,
         episode: &str,
@@ -1144,10 +1259,13 @@ impl App {
             duration.filter(|d| *d > 0.0).map(|d| (position / d).clamp(0.0, 1.0)).unwrap_or(0.0)
         };
 
-        if let Some(row) = self.episodes.iter_mut().find(|r| r.number == episode) {
-            // Monotonic: a re-watch that was quit early must not erase that it was once finished.
-            row.watched = row.watched.max(fraction);
-            row.completed = row.completed || completed;
+        for list in [&mut self.episodes, &mut self.episodes_all] {
+            if let Some(row) = list.iter_mut().find(|r| r.number == episode) {
+                // Monotonic: a re-watch that was quit early must not erase that it was once
+                // finished.
+                row.watched = row.watched.max(fraction);
+                row.completed = row.completed || completed;
+            }
         }
 
         if !completed {
@@ -1325,9 +1443,9 @@ impl App {
                 self.selected = self.content.len().saturating_sub(1);
                 self.offset = self.selected.saturating_sub(visible_rows.saturating_sub(1));
             }
-            // In Library the stage's horizontal axis is the status segment, matching Calendar
-            // where it steps the day. Rail focus still uses the same keys, so the meaning
-            // follows where you are.
+            // Screens with a horizontal axis claim Left/Right for it: Settings cycles the
+            // selected value, Library steps the status segment. Everywhere else the keys
+            // move focus between rail and stage.
             Action::Right if self.in_settings_stage() => return self.cycle_setting(1),
             Action::Left if self.in_settings_stage() => return self.cycle_setting(-1),
             Action::Right if self.in_library_stage() => return self.step_segment(1),
@@ -1408,15 +1526,15 @@ impl App {
                     StageView::Episodes(id) => *id,
                     _ => return None,
                 };
-                let row = self.episodes.get_mut(self.episode_selected)?;
-                let watched = !row.completed;
-                row.completed = watched;
-                row.watched = if watched { 1.0 } else { 0.0 };
-                return Some(Task::SetWatched {
-                    id,
-                    episodes: vec![row.number.clone()],
-                    watched,
-                });
+                let (number, watched) = {
+                    let row = self.episodes.get(self.episode_selected)?;
+                    (row.number.clone(), !row.completed)
+                };
+                self.set_episode_watched(&number, watched);
+                // Under the unwatched filter a marked row leaves the view at once —
+                // which is the binge-marking flow working, not a glitch.
+                self.apply_episode_filter();
+                return Some(Task::SetWatched { id, episodes: vec![number], watched });
             }
             Action::MarkAllPrevious if self.in_episodes() => {
                 let id = match self.nav.current() {
@@ -1425,20 +1543,34 @@ impl App {
                 };
                 // Everything strictly before the selected row that is not already done —
                 // the "I'm caught up to here" gesture.
-                let mut marked = Vec::new();
-                for row in self.episodes.iter_mut().take(self.episode_selected) {
-                    if !row.completed {
-                        row.completed = true;
-                        row.watched = 1.0;
-                        marked.push(row.number.clone());
-                    }
-                }
+                let marked: Vec<String> = self
+                    .episodes
+                    .iter()
+                    .take(self.episode_selected)
+                    .filter(|r| !r.completed)
+                    .map(|r| r.number.clone())
+                    .collect();
                 if marked.is_empty() {
                     self.push_toast(Toast::info("nothing before this episode to mark"));
                     return None;
                 }
+                for number in &marked {
+                    self.set_episode_watched(number, true);
+                }
+                self.apply_episode_filter();
                 self.push_toast(Toast::info(format!("marked {} watched", marked.len())));
                 return Some(Task::SetWatched { id, episodes: marked, watched: true });
+            }
+            Action::Filter if self.in_episodes() => {
+                self.episode_filter = self.episode_filter.next();
+                self.apply_episode_filter();
+                self.push_toast(Toast::info(format!(
+                    "showing {}",
+                    self.episode_filter.label()
+                )));
+            }
+            Action::Filter => {
+                self.push_toast(Toast::info("the filter lives in the episode table"));
             }
             Action::ToggleWatched | Action::MarkAllPrevious => {
                 self.push_toast(Toast::info("watched marks live in the episode table"));
@@ -1455,6 +1587,20 @@ impl App {
                 return Some(Task::OpenExternal {
                     url: format!("https://anilist.co/anime/{}", id.get()),
                 });
+            }
+            Action::WatchOrder => {
+                let Some(entry) = self.detail.as_ref().or(self.selected_entry()) else {
+                    self.push_toast(Toast::info("nothing selected"));
+                    return None;
+                };
+                if entry.related.is_empty() {
+                    // Empty on list rows too — the relations ride the detail fetch. From a
+                    // list this still answers after opening the title once.
+                    self.push_toast(Toast::info("no connected seasons known for this title"));
+                    return None;
+                }
+                self.overlay_selected = 0;
+                self.nav.open_overlay(Overlay::WatchOrder);
             }
             Action::FixMapping => {
                 // "This matched the wrong thing" — ask the user what to search for, then
@@ -1804,6 +1950,16 @@ impl App {
                 }
                 Some(Task::ResolveConflict { id: row.anilist_id, keep_local: true })
             }
+            Some(Overlay::WatchOrder) => {
+                let related = self.detail.as_ref()?.related.get(self.overlay_selected)?.clone();
+                self.nav.close_overlay();
+                self.overlay_selected = 0;
+                // A minimal entry stands in until the detail fetch answers — the same
+                // stale-data rule as episodes: never render one title's data under another.
+                self.detail = Some(Entry::new(related.id, related.title));
+                self.nav.push(StageView::Title(related.id));
+                Some(Task::LoadDetail(related.id))
+            }
             Some(Overlay::Sources) => {
                 let candidate = self.sources.get(self.overlay_selected)?.clone();
                 let (id, episode) = self.source_context.clone()?;
@@ -1857,6 +2013,7 @@ impl App {
             Some(Overlay::Logs) => self.logs.len(),
             Some(Overlay::Disambiguate) => self.match_candidates.len(),
             Some(Overlay::Sources) => self.sources.len(),
+            Some(Overlay::WatchOrder) => self.detail.as_ref().map_or(0, |e| e.related.len()),
             _ => 0,
         }
     }
@@ -2098,11 +2255,15 @@ impl App {
             // choices, so the whole Disambiguate tail is reused unchanged.
             Action::Open if self.nav.overlay() == Some(&Overlay::ManualQuery) => {
                 let query = self.manual_query.trim().to_owned();
-                if query.is_empty() {
-                    return None;
-                }
                 let id = self.manual_target?;
                 self.nav.close_overlay();
+                // Empty enter is the undo: forget the pin, let the ladder decide again.
+                if query.is_empty() {
+                    self.episodes.clear();
+                    self.episodes_loading = true;
+                    self.status = "reset to the automatic match…".into();
+                    return Some(Task::ClearMatch { id });
+                }
                 self.status = format!("searching sources for {query:?}…");
                 return Some(Task::ManualSearch { id, query });
             }
@@ -2354,6 +2515,11 @@ pub enum Task {
         id: AnilistId,
         query: String,
     },
+    /// Forget the pinned match and cached resolution for a title, then re-resolve
+    /// automatically — the undo for [`Task::FixMatch`].
+    ClearMatch {
+        id: AnilistId,
+    },
     /// Persist a manual watched/unwatched change. The reducer flips the rows first, so
     /// the table answers immediately; this writes history and queues the tracker push.
     SetWatched {
@@ -2576,7 +2742,10 @@ mod tests {
     fn marking_previous_marks_only_the_unwatched_before_the_cursor() {
         let mut a = app_at_episodes();
         a.episode_selected = 4;
-        a.episodes[1].completed = true; // already done — must not be re-marked
+        // Already done — must not be re-marked. Both lists, since the visible one is
+        // re-derived from the full one whenever marks change.
+        a.episodes[1].completed = true;
+        a.episodes_all[1].completed = true;
 
         let task = a.handle(Action::MarkAllPrevious, 20).expect("marking must persist");
         match task {
@@ -2587,6 +2756,27 @@ mod tests {
         }
         assert!(a.episodes[..4].iter().all(|r| r.completed));
         assert!(!a.episodes[4].completed, "the cursor row itself stays untouched");
+    }
+
+    #[test]
+    fn the_filter_narrows_the_table_and_cycles_back_to_all() {
+        let mut a = app_at_episodes();
+        for i in [0, 1, 2] {
+            a.episodes[i].completed = true;
+            a.episodes_all[i].completed = true;
+        }
+        a.handle(Action::Filter, 20);
+        assert_eq!(a.episode_filter, EpisodeFilter::Unwatched);
+        assert_eq!(a.episodes.len(), 9, "three watched episodes leave the view");
+
+        // Marking one under the unwatched filter removes it at once.
+        a.handle(Action::ToggleWatched, 20);
+        assert_eq!(a.episodes.len(), 8);
+
+        a.handle(Action::Filter, 20);
+        a.handle(Action::Filter, 20);
+        assert_eq!(a.episode_filter, EpisodeFilter::All);
+        assert_eq!(a.episodes.len(), 12, "cycling back restores every row");
     }
 
     #[test]
@@ -3692,12 +3882,35 @@ mod tests {
     }
 
     #[test]
-    fn unimplemented_actions_say_so_instead_of_doing_nothing() {
+    fn watch_order_says_so_when_there_is_nothing_to_show() {
         // Silence would read as the key being broken.
         let mut a = app();
         a.handle(Action::WatchOrder, 10);
         assert_eq!(a.toasts.len(), 1);
-        assert!(a.toasts[0].text.contains("not wired up"));
+        assert!(a.toasts[0].text.contains("nothing selected"));
+    }
+
+    #[test]
+    fn watch_order_lists_relations_and_a_pick_opens_the_title() {
+        let mut a = app_at_episodes();
+        if let Some(detail) = a.detail.as_mut() {
+            detail.related = vec![RelatedTitle {
+                id: AnilistId::new(9),
+                title: "Season 2".into(),
+                relation: "sequel".into(),
+                format: Some("TV".into()),
+            }];
+        }
+        a.handle(Action::WatchOrder, 10);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::WatchOrder));
+
+        let task = a.handle(Action::Open, 10).expect("a pick must open the title");
+        assert_eq!(task, Task::LoadDetail(AnilistId::new(9)));
+        assert_eq!(a.nav.overlay(), None);
+        assert!(
+            matches!(a.nav.current(), StageView::Title(id) if *id == AnilistId::new(9)),
+            "the picked title's view must be up"
+        );
     }
 
     #[test]

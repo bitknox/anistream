@@ -13,3 +13,4 @@ pub mod playback;
 pub mod remux;
 pub mod sources;
 pub mod tracking;
+pub mod updates;

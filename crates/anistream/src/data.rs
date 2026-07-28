@@ -56,6 +56,16 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
         // Filled in by a second, batched request — see `AniList::last_aired`. Absent here
         // rather than guessed, so the preview shows nothing instead of something wrong.
         last_aired: None,
+        related: media
+            .watch_order()
+            .into_iter()
+            .map(|r| anistream_ui::app::RelatedTitle {
+                id: r.id,
+                title: r.title.display().to_owned(),
+                relation: r.relation_type.map_or_else(String::new, |t| t.to_lowercase()),
+                format: r.format.map(|f| format!("{f:?}").to_uppercase()),
+            })
+            .collect(),
         ..Entry::new(media.id, media.title.display())
     }
 }

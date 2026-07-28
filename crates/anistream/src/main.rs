@@ -40,6 +40,10 @@ struct Cli {
     #[arg(long)]
     doctor: bool,
 
+    /// Download and install the latest release, then exit.
+    #[arg(long)]
+    update: bool,
+
     /// Refresh the mapping datasets and exit.
     #[arg(long)]
     refresh_data: bool,
@@ -160,6 +164,9 @@ async fn main() -> Result<()> {
     let http = HttpClient::new(&config.network).context("building http client")?;
     let store = Store::open(paths.database()).context("opening the local database")?;
 
+    if cli.update {
+        return anistream::updates::self_update(&http).await;
+    }
     if cli.doctor {
         return doctor(&config, &store, !cli.no_images).await;
     }
@@ -1201,6 +1208,9 @@ async fn run(
     // `App` directly, which is what keeps a slow request from stalling a frame.
     let (tx, mut rx) = mpsc::unbounded_channel::<Update>();
 
+    // The daily update check: one cached request, one quiet toast when a release exists.
+    anistream::updates::spawn_check(app.config.updates.check, &paths.cache_dir, &http, &tx);
+
     // Report whatever the background plugin load concluded, once. A plugin that failed to load
     // must not be silent — the Providers screen is where a missing source gets explained.
     {
@@ -1544,6 +1554,22 @@ fn spawn(
             | Task::SaveSetting { .. } => {
                 tracing::error!(?task, "task reached the generic spawner");
                 return;
+            }
+            Task::ClearMatch { id } => {
+                if let Err(e) = store.clear_title_match(id) {
+                    Update::Toast(Toast::alert(format!("could not reset the match: {e}")))
+                } else {
+                    match load_episodes(&anilist, &store, &registry, id).await {
+                        Ok(EpisodeLoad::Rows(rows)) => Update::Episodes(rows),
+                        Ok(EpisodeLoad::Choose { provider_id, candidates }) => {
+                            Update::MatchChoices { id, provider_id, candidates }
+                        }
+                        Err(reason) => {
+                            let _ = tx.send(Update::Episodes(Vec::new()));
+                            Update::Toast(Toast::alert(reason))
+                        }
+                    }
+                }
             }
             Task::FixMatch { id, provider_id, key } => {
                 // Remembered as an override, which the ladder consults before anything else —
@@ -1974,6 +2000,9 @@ fn spawn_playback(
                 }
             };
         let (stream, context) = context;
+        // Name the provider that actually answered — during failover the header would
+        // otherwise credit the configured first choice, which is the one that failed.
+        let _ = tx.send(Update::ActiveProvider(stream.provider_id.clone()));
 
         playback::play(
             stream,

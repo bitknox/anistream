@@ -65,6 +65,7 @@ pub struct Config {
     pub downloads: DownloadsConfig,
     pub presence: PresenceConfig,
     pub network: NetworkConfig,
+    pub updates: UpdatesConfig,
     /// Keybinding overrides, `action = "key"`. The help overlay is generated from the
     /// resolved map so it can never drift from what the keys actually do.
     pub keys: BTreeMap<String, String>,
@@ -202,6 +203,23 @@ impl Default for DownloadsConfig {
     }
 }
 
+/// The update check.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct UpdatesConfig {
+    /// Ask GitHub for the newest release once a day and say so when one exists.
+    ///
+    /// One HTTPS request to api.github.com, cached for 24 hours. Nothing is ever
+    /// downloaded without `anistream --update` being run explicitly.
+    pub check: bool,
+}
+
+impl Default for UpdatesConfig {
+    fn default() -> Self {
+        Self { check: true }
+    }
+}
+
 /// Visual configuration. See the "Obi & Silk" direction in the plan.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
@@ -261,7 +279,9 @@ pub struct PlaybackConfig {
     pub persisted_volume: Option<f64>,
     pub skip_opening: bool,
     pub skip_filler: bool,
-    /// Player ids in preference order.
+    /// Reserved. Accepted so existing configs keep parsing, but currently has no
+    /// effect: players are routed by what a stream needs (mpv for media, the handoff
+    /// player for external deep links), not by preference order.
     pub players: Vec<String>,
     /// The mpv executable. A path rather than a bare name works too, which matters on systems
     /// where mpv is not on the `PATH` the terminal inherited.
@@ -368,6 +388,8 @@ pub struct TorrentConfig {
     /// Optional curation endpoint, supplied by you: which release of a title is the good
     /// one. `{anilist_id}` is replaced with the AniList id. Unset means raw ranking decides.
     pub curation_url: Option<String>,
+    /// Reserved. Accepted so existing configs keep parsing; currently has no effect —
+    /// ranking always trusts the feed's live seeder counts.
     pub max_seeders_age_days: Option<u32>,
 }
 

@@ -26,6 +26,8 @@ anistream-track.workspace = true
 anistream-ui.workspace = true
 open.workspace = true
 anyhow.workspace = true
+# Verifies release archives against their published SHA-256 before `--update` installs.
+sha2 = "0.10"
 thiserror.workspace = true
 clap.workspace = true
 crossterm.workspace = true

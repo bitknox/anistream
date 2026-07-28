@@ -161,6 +161,32 @@ impl Relation {
     }
 }
 
+/// The wire shape of `relations { edges { relationType node { … } } }`.
+///
+/// Flattened into [`Relation`] by [`Media::watch_order`]; the edge/node split is
+/// AniList's, not ours.
+#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq)]
+pub struct RelationConnection {
+    #[serde(default)]
+    pub edges: Vec<RelationEdge>,
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+pub struct RelationEdge {
+    #[serde(rename = "relationType")]
+    pub relation_type: Option<String>,
+    pub node: RelationNode,
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+pub struct RelationNode {
+    pub id: AnilistId,
+    #[serde(default)]
+    pub title: Title,
+    #[serde(default)]
+    pub format: Option<MediaFormat>,
+}
+
 /// A title, as much of it as anistream renders.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -200,6 +226,10 @@ pub struct Media {
     pub streaming_episodes: Vec<StreamingEpisode>,
     #[serde(default)]
     pub studios: StudioConnection,
+    /// How this title connects to others. Requested by `by_id`, so present on the detail
+    /// fetch and empty on list fetches.
+    #[serde(default)]
+    pub relations: RelationConnection,
 }
 
 /// Studios credited on a title. Requested with `isMain: true`, so in practice this holds the
@@ -229,6 +259,32 @@ impl Media {
     /// The animation studio, when AniList credits one.
     pub fn main_studio(&self) -> Option<&str> {
         self.studios.nodes.first().map(|s| s.name.as_str())
+    }
+
+    /// The titles adjacent to this one in the main watch order: prequels first, then the
+    /// parent story, then sequels. Side stories, adaptations and cameos are filtered out
+    /// — the question this answers is "what do I watch before and after", not "what else
+    /// exists in this franchise".
+    pub fn watch_order(&self) -> Vec<Relation> {
+        let mut related: Vec<Relation> = self
+            .relations
+            .edges
+            .iter()
+            .map(|edge| Relation {
+                id: edge.node.id,
+                relation_type: edge.relation_type.clone(),
+                title: edge.node.title.clone(),
+                format: edge.node.format,
+            })
+            .filter(Relation::is_watch_order)
+            .collect();
+        let rank = |r: &Relation| match r.relation_type.as_deref() {
+            Some("PREQUEL") => 0,
+            Some("PARENT") => 1,
+            _ => 2,
+        };
+        related.sort_by_key(rank);
+        related
     }
 
     /// Strip AniList's HTML description down to plain text for the terminal.
