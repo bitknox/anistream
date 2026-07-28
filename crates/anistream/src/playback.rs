@@ -89,6 +89,7 @@ pub async fn play(
     // Tracker ids to queue progress against when the episode completes.
     tracker_ids: Vec<String>,
     presence: anistream_core::config::PresenceConfig,
+    syncplay: anistream_core::config::SyncplayConfig,
     tx: mpsc::UnboundedSender<Update>,
     mut commands: mpsc::UnboundedReceiver<PlayerCommand>,
 ) {
@@ -106,6 +107,32 @@ pub async fn play(
         return;
     }
 
+    // A watch party is a shared session: Syncplay owns the player and the pacing, so no
+    // private history is recorded — the room pausing must not read as you abandoning the
+    // episode. The torrent session stays alive underneath, serving the loopback URL.
+    if syncplay.enabled {
+        let mut command = std::process::Command::new(&syncplay.binary);
+        command.arg("--no-gui");
+        command.args(["--host", &syncplay.server]);
+        command.args(["--name", &syncplay.name]);
+        if let Some(room) = &syncplay.room {
+            command.args(["--room", room]);
+        }
+        command.arg(&stream.url);
+        let update = match command.spawn() {
+            Ok(_) => Update::Toast(Toast::info(format!(
+                "handed to syncplay — watching with {}",
+                syncplay.room.as_deref().unwrap_or(&syncplay.server)
+            ))),
+            Err(e) => Update::Toast(Toast::alert(format!(
+                "syncplay would not start: {e} — is it installed?"
+            ))),
+        };
+        let _ = tx.send(update);
+        let _ = tx.send(Update::PlaybackEnded { watched: false });
+        return;
+    }
+
     let skips = fetch_skips(&http, context.mal_id, &context.episode).await;
 
     let request = PlaybackRequest {
@@ -114,6 +141,7 @@ pub async fn play(
         subtitle_language,
         speed: context.speed,
         volume: context.volume,
+        dub: context.translation == Translation::Dub,
     };
 
     let (session, mut events) = match mpv.play(&stream, &request).await {
@@ -197,6 +225,16 @@ pub async fn play(
         // when the rendered value would actually change. mpv reports `time-pos` about thirty
         // times a second (measured), and every update redraws the terminal, so forwarding them
         // all would mean thirty full repaints per second to move a clock that ticks once.
+        // In-player keys arrive as events and go straight to the reducer — the session
+        // itself ends when the reducer starts the next episode's playback.
+        if let PlaybackEvent::Remote(command) = &event {
+            let delta = match command {
+                anistream_player::RemoteCommand::NextEpisode => 1,
+                anistream_player::RemoteCommand::PreviousEpisode => -1,
+            };
+            let _ = tx.send(Update::PlayerStepEpisode(delta));
+        }
+
         if let PlaybackEvent::Progress { position, duration } = &event {
             ever_played = true;
             let whole = position.floor();

@@ -182,6 +182,8 @@ impl Provider for WasmProvider {
                 // (a magnet, for the only downloadable source there is), and inventing an ABI field
                 // for it before a plugin can produce one would be guessing at its shape.
                 download_source: None,
+                // Same reasoning: a pick explanation is the torrent ranker's concept.
+                pick_note: None,
                 quality: stream.quality,
                 headers: stream.headers,
                 subtitles: stream

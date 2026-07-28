@@ -20,6 +20,7 @@ pub mod observed {
     pub const SPEED: u64 = 4;
     pub const EOF_REACHED: u64 = 5;
     pub const VOLUME: u64 = 6;
+    pub const CHAPTERS: u64 = 7;
 }
 
 /// A command to send to mpv.
@@ -135,9 +136,14 @@ pub enum Event {
     Paused(bool),
     Speed(f64),
     Volume(f64),
+    /// The file's chapter markers: `(title, start_seconds)`, in order.
+    Chapters(Vec<(String, f64)>),
     FileLoaded,
     EndFile(EndReason),
     Seek,
+    /// A `script-message` broadcast from inside mpv — our injected key bindings speak
+    /// through these.
+    ClientMessage(Vec<String>),
     /// A reply to one of our commands.
     Reply {
         request_id: u64,
@@ -156,6 +162,8 @@ struct RawLine {
     data: Option<serde_json::Value>,
     // end-file
     reason: Option<String>,
+    // client-message
+    args: Option<Vec<String>>,
     // command replies
     request_id: Option<u64>,
     error: Option<String>,
@@ -194,6 +202,21 @@ pub fn parse_line(line: &str) -> Option<Event> {
                 Some("pause") => value.and_then(|v| v.as_bool()).map(Event::Paused),
                 Some("speed") => value.and_then(|v| v.as_f64()).map(Event::Speed),
                 Some("volume") => value.and_then(|v| v.as_f64()).map(Event::Volume),
+                Some("chapter-list") => value.and_then(|v| v.as_array().cloned()).map(|list| {
+                    Event::Chapters(
+                        list.iter()
+                            .filter_map(|c| {
+                                let time = c.get("time")?.as_f64()?;
+                                let title = c
+                                    .get("title")
+                                    .and_then(|t| t.as_str())
+                                    .unwrap_or_default()
+                                    .to_owned();
+                                Some((title, time))
+                            })
+                            .collect(),
+                    )
+                }),
                 Some("eof-reached") => value.and_then(|v| v.as_bool()).map(|reached| {
                     if reached { Event::EndFile(EndReason::Eof) } else { Event::Ignored }
                 }),
@@ -202,6 +225,7 @@ pub fn parse_line(line: &str) -> Option<Event> {
             .or(Some(Event::Ignored))
         }
         Some("file-loaded") => Some(Event::FileLoaded),
+        Some("client-message") => Some(Event::ClientMessage(raw.args.unwrap_or_default())),
         Some("end-file") => Some(Event::EndFile(EndReason::parse(raw.reason.as_deref()))),
         Some("seek") | Some("playback-restart") => Some(Event::Seek),
         Some(_) => Some(Event::Ignored),
@@ -227,12 +251,22 @@ pub fn base_args(socket_path: &str, title: &str) -> Vec<String> {
 }
 
 /// Extra arguments for one stream.
+/// Widen a language code so mpv's track matching sees both ISO forms.
+fn language_variants(code: &str) -> String {
+    match code {
+        "eng" | "en" => "en,eng".into(),
+        "jpn" | "ja" | "jp" => "ja,jpn,jp".into(),
+        other => other.to_owned(),
+    }
+}
+
 pub fn stream_args(
     headers: &[(String, String)],
     start_at: Option<f64>,
     speed: Option<f64>,
     volume: Option<f64>,
     subtitle_language: Option<&str>,
+    dub: bool,
 ) -> Vec<String> {
     let mut args = Vec::new();
 
@@ -253,9 +287,21 @@ pub fn stream_args(
     if let Some(volume) = volume.filter(|v| (0.0..=100.0).contains(v)) {
         args.push(format!("--volume={volume}"));
     }
+    // Track selection follows the *watching* preference, not track order in the file —
+    // dual-audio releases routinely put the dub first, and mpv's default would hand a
+    // sub watcher the dub (and vice versa).
     if let Some(language) = subtitle_language {
-        args.push(format!("--alang={language}"));
-        args.push(format!("--slang={language}"));
+        let own = language_variants(language);
+        if dub {
+            args.push(format!("--alang={own}"));
+            args.push(format!("--slang={own}"));
+            // With matching audio, full subtitles are redundant; this keeps only the
+            // forced track — signs and songs — which is what a dub watcher wants.
+            args.push("--subs-with-matching-audio=no".into());
+        } else {
+            args.push("--alang=ja,jpn,jp".into());
+            args.push(format!("--slang={own}"));
+        }
     }
     args
 }
@@ -429,7 +475,7 @@ mod tests {
             ("Referer".to_string(), "https://example.test/".to_string()),
             ("Origin".to_string(), "https://example.test".to_string()),
         ];
-        let args = stream_args(&headers, None, None, None, None);
+        let args = stream_args(&headers, None, None, None, None, false);
         let joined = args.join(" ");
         assert!(joined.contains("--http-header-fields="));
         assert!(joined.contains("Referer: https://example.test/"));
@@ -438,12 +484,12 @@ mod tests {
 
     #[test]
     fn no_headers_means_no_header_argument() {
-        assert!(stream_args(&[], None, None, None, None).is_empty());
+        assert!(stream_args(&[], None, None, None, None, false).is_empty());
     }
 
     #[test]
     fn a_resume_point_becomes_a_start_argument() {
-        let args = stream_args(&[], Some(612.5), None, None, None);
+        let args = stream_args(&[], Some(612.5), None, None, None, false);
         assert!(args.iter().any(|a| a == "--start=612.5"));
     }
 
@@ -451,21 +497,37 @@ mod tests {
     fn a_trivial_resume_point_is_not_passed() {
         // Resuming at half a second is indistinguishable from starting, and passing it
         // makes mpv seek for no reason.
-        assert!(stream_args(&[], Some(0.4), None, None, None).is_empty());
-        assert!(stream_args(&[], Some(0.0), None, None, None).is_empty());
+        assert!(stream_args(&[], Some(0.4), None, None, None, false).is_empty());
+        assert!(stream_args(&[], Some(0.0), None, None, None, false).is_empty());
     }
 
     #[test]
     fn normal_speed_is_not_passed_but_a_carried_speed_is() {
-        assert!(stream_args(&[], None, Some(1.0), None, None).is_empty());
-        assert!(stream_args(&[], None, Some(1.5), None, None).iter().any(|a| a == "--speed=1.5"));
+        assert!(stream_args(&[], None, Some(1.0), None, None, false).is_empty());
+        assert!(
+            stream_args(&[], None, Some(1.5), None, None, false)
+                .iter()
+                .any(|a| a == "--speed=1.5")
+        );
     }
 
     #[test]
-    fn a_subtitle_language_sets_both_track_preferences() {
-        // Audio and subtitle preference are separate properties in mpv.
-        let args = stream_args(&[], None, None, None, Some("eng"));
-        assert!(args.iter().any(|a| a == "--slang=eng"));
-        assert!(args.iter().any(|a| a == "--alang=eng"));
+    fn a_sub_watcher_gets_original_audio_with_their_subtitles() {
+        // The old behaviour set `--alang` to the *subtitle* language, which on a
+        // dual-audio release handed a sub watcher the dub. Track order never decides.
+        let args = stream_args(&[], None, None, None, Some("eng"), false);
+        assert!(args.iter().any(|a| a == "--alang=ja,jpn,jp"), "got {args:?}");
+        assert!(args.iter().any(|a| a == "--slang=en,eng"), "got {args:?}");
+        assert!(!args.iter().any(|a| a.contains("subs-with-matching-audio")));
+    }
+
+    #[test]
+    fn a_dub_watcher_gets_their_audio_and_signs_only_subtitles() {
+        let args = stream_args(&[], None, None, None, Some("eng"), true);
+        assert!(args.iter().any(|a| a == "--alang=en,eng"), "got {args:?}");
+        assert!(
+            args.iter().any(|a| a == "--subs-with-matching-audio=no"),
+            "full subs over matching audio are redundant: {args:?}"
+        );
     }
 }

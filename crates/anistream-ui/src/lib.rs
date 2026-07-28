@@ -17,9 +17,8 @@ pub mod theme;
 pub mod widgets;
 
 pub use app::{
-    MatchCandidate,
-    App, ConflictRow, Content, Entry, LibrarySegment, NowPlaying, PlayerCommand, SyncState,
-    Task, Toast, Update,
+    App, ConflictRow, Content, Entry, LibrarySegment, MatchCandidate, NowPlaying,
+    PlayerCommand, SyncState, Task, Toast, Update,
 };
 pub use eyecatch::Eyecatch;
 pub use keymap::{Action, Binding, Keymap, Scope};

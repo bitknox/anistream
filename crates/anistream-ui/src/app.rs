@@ -146,6 +146,23 @@ impl SettingId {
     }
 }
 
+/// `"4"` → one episode, `"1-12"` → inclusive range, `"7-"` → everything from 7 on.
+fn parse_episode_range(input: &str) -> Option<(u32, Option<u32>)> {
+    let input = input.trim();
+    if let Some((from, to)) = input.split_once('-') {
+        let from: u32 = from.trim().parse().ok()?;
+        let to = to.trim();
+        let to: Option<u32> = if to.is_empty() { None } else { Some(to.parse().ok()?) };
+        if to.is_some_and(|t| t < from) {
+            return None;
+        }
+        Some((from, to))
+    } else {
+        let n: u32 = input.parse().ok()?;
+        Some((n, Some(n)))
+    }
+}
+
 fn on_off(yes: bool) -> String {
     if yes { "on".into() } else { "off".into() }
 }
@@ -675,6 +692,8 @@ pub enum Update {
     PlaybackVolume(f64),
     /// Which provider the current stream actually came from.
     ActiveProvider(String),
+    /// A key pressed inside the player window: step to an adjacent episode.
+    PlayerStepEpisode(i64),
     /// Playhead moved.
     Playback {
         position: f64,
@@ -836,6 +855,8 @@ pub struct App {
     pub manual_query: String,
     /// Which title a manual search would re-match.
     pub manual_target: Option<AnilistId>,
+    /// What is being typed into the download-range overlay: `4`, `1-12`, `7-`.
+    pub range_query: String,
     /// Selection within the episode table, tracked separately from list selection so
     /// stepping back out of Episodes does not disturb where you were in the list.
     pub episode_selected: usize,
@@ -903,6 +924,7 @@ impl App {
             source_context: None,
             manual_query: String::new(),
             manual_target: None,
+            range_query: String::new(),
         }
     }
 
@@ -1052,6 +1074,13 @@ impl App {
                 }
             }
             Update::ActiveProvider(provider) => self.active_provider = Some(provider),
+            Update::PlayerStepEpisode(delta) => {
+                // Same path the terminal's n/N keys take; `pending` because `apply` has
+                // no return channel, exactly like auto-next.
+                if let Some(task) = self.step_episode(delta) {
+                    self.pending = Some(task);
+                }
+            }
             Update::PlaybackVolume(volume) => {
                 // Same contract as speed: remembered in config, written to disk, and never
                 // allowed to fight auto-next for the pending slot.
@@ -1560,6 +1589,14 @@ impl App {
                 self.apply_episode_filter();
                 self.push_toast(Toast::info(format!("marked {} watched", marked.len())));
                 return Some(Task::SetWatched { id, episodes: marked, watched: true });
+            }
+            Action::DownloadRange if self.in_episodes() => {
+                self.range_query.clear();
+                self.overlay_selected = 0;
+                self.nav.open_overlay(Overlay::DownloadRange);
+            }
+            Action::DownloadRange => {
+                self.push_toast(Toast::info("ranges are queued from the episode table"));
             }
             Action::Filter if self.in_episodes() => {
                 self.episode_filter = self.episode_filter.next();
@@ -2251,6 +2288,36 @@ impl App {
             Action::Open if self.nav.overlay() == Some(&Overlay::CommandPalette) => {
                 return self.confirm_overlay(visible_rows);
             }
+            Action::Open if self.nav.overlay() == Some(&Overlay::DownloadRange) => {
+                let id = match self.nav.current() {
+                    StageView::Episodes(id) => *id,
+                    _ => return None,
+                };
+                // Resolved against episodes that actually exist, from the unfiltered
+                // list — a filter narrows the view, not what can be fetched.
+                let Some((from, to)) = parse_episode_range(&self.range_query) else {
+                    self.push_toast(Toast::info("ranges look like 4, 1-12 or 7-"));
+                    return None;
+                };
+                let episodes: Vec<String> = self
+                    .episodes_all
+                    .iter()
+                    .filter(|row| {
+                        row.number
+                            .trim()
+                            .parse::<u32>()
+                            .is_ok_and(|n| n >= from && to.is_none_or(|t| n <= t))
+                    })
+                    .map(|row| row.number.clone())
+                    .collect();
+                self.nav.close_overlay();
+                if episodes.is_empty() {
+                    self.push_toast(Toast::info("no episodes in that range"));
+                    return None;
+                }
+                self.push_toast(Toast::info(format!("queueing {} episodes…", episodes.len())));
+                return Some(Task::DownloadMany { id, episodes });
+            }
             // Enter runs the manual search; the results come back as ordinary match
             // choices, so the whole Disambiguate tail is reused unchanged.
             Action::Open if self.nav.overlay() == Some(&Overlay::ManualQuery) => {
@@ -2324,6 +2391,12 @@ impl App {
             self.overlay_selected = 0;
         } else if self.nav.overlay() == Some(&Overlay::ManualQuery) {
             self.manual_query.push(ch);
+        } else if self.nav.overlay() == Some(&Overlay::DownloadRange) {
+            // A range is digits and one dash; letting anything else in would make the
+            // parse failure the user's puzzle instead of the input's boundary.
+            if ch.is_ascii_digit() || ch == '-' {
+                self.range_query.push(ch);
+            }
         } else if self.nav.section() == Section::Search {
             self.search_query.push(ch);
         }
@@ -2335,6 +2408,8 @@ impl App {
             self.overlay_selected = 0;
         } else if self.nav.overlay() == Some(&Overlay::ManualQuery) {
             self.manual_query.pop();
+        } else if self.nav.overlay() == Some(&Overlay::DownloadRange) {
+            self.range_query.pop();
         } else if self.nav.section() == Section::Search {
             self.search_query.pop();
         }
@@ -2552,6 +2627,11 @@ pub enum Task {
         id: AnilistId,
         episode: String,
     },
+    /// Queue a whole range at once. The queue's own concurrency limit paces the fetches.
+    DownloadMany {
+        id: AnilistId,
+        episodes: Vec<String>,
+    },
     /// Pause or resume one download, whichever it is not.
     DownloadPause {
         id: i64,
@@ -2756,6 +2836,35 @@ mod tests {
         }
         assert!(a.episodes[..4].iter().all(|r| r.completed));
         assert!(!a.episodes[4].completed, "the cursor row itself stays untouched");
+    }
+
+    #[test]
+    fn a_typed_range_queues_the_episodes_that_exist() {
+        let mut a = app_at_episodes();
+        a.handle(Action::DownloadRange, 20);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::DownloadRange));
+        for c in "9-".chars() {
+            a.type_char(c);
+        }
+        let task = a.handle(Action::Open, 20).expect("a range must queue");
+        match task {
+            Task::DownloadMany { episodes, .. } => {
+                assert_eq!(episodes, vec!["9", "10", "11", "12"], "open-ended from 9");
+            }
+            other => panic!("expected DownloadMany, got {other:?}"),
+        }
+        assert_eq!(a.nav.overlay(), None);
+    }
+
+    #[test]
+    fn a_nonsense_range_is_refused_with_a_hint() {
+        let mut a = app_at_episodes();
+        a.handle(Action::DownloadRange, 20);
+        for c in "12-4".chars() {
+            a.type_char(c);
+        }
+        assert!(a.handle(Action::Open, 20).is_none(), "a backwards range queues nothing");
+        assert!(a.toasts.iter().any(|t| t.text.contains("1-12")), "the hint names the shape");
     }
 
     #[test]
@@ -3730,11 +3839,7 @@ mod tests {
         assert!(row.editable.is_some(), "it must still be toggleable");
         // A client id ships by default, so the row says when the change applies rather than what is
         // missing. A Discord id is public, so there is nothing to withhold.
-        assert!(
-            row.note.is_some_and(|n| n.contains("next episode")),
-            "got {:?}",
-            row.note
-        );
+        assert!(row.note.is_some_and(|n| n.contains("next episode")), "got {:?}", row.note);
 
         // Blanking the field must still resolve, via the shipped default — otherwise clearing it
         // instead of deleting the line would silently disable the feature.

@@ -45,6 +45,27 @@ pub enum PlayerError {
     ExitedEarly,
 }
 
+/// The lua shim mpv loads so Shift+N/P work inside the player. Regenerated at every
+/// launch into the runtime dir — disposable, never precious.
+const KEY_SCRIPT: &str = r#"-- anistream's in-player keys. Written at launch; safe to delete.
+local function tell(what, note)
+    mp.osd_message(note)
+    mp.commandv("script-message", "anistream", what)
+end
+mp.add_key_binding("N", "anistream-next", function() tell("next", "next episode…") end)
+mp.add_key_binding("P", "anistream-previous", function() tell("previous", "previous episode…") end)
+"#;
+
+/// A control pressed inside the player window rather than the terminal.
+///
+/// Mid-binge the viewer's hands are on mpv, not the TUI — these let the next episode
+/// start without ever changing focus.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RemoteCommand {
+    NextEpisode,
+    PreviousEpisode,
+}
+
 /// What the UI needs to know about playback.
 ///
 /// A narrowed projection of the protocol events: the raw stream carries a lot that only
@@ -60,6 +81,10 @@ pub enum PlaybackEvent {
     Paused(bool),
     Speed(f64),
     Volume(f64),
+    /// The file's chapter markers arrived: `(title, start_seconds)`.
+    Chapters(Vec<(String, f64)>),
+    /// The viewer pressed one of our keys inside mpv itself.
+    Remote(RemoteCommand),
     /// Playback ended. `complete` is true only when mpv reached the end of the file.
     Ended {
         complete: bool,
@@ -284,13 +309,11 @@ impl Mpv {
         stream: &Stream,
         request: &PlaybackRequest,
     ) -> Result<(MpvSession, mpsc::UnboundedReceiver<PlaybackEvent>), PlayerError> {
-        // Only Unix puts the endpoint on disk; on Windows it lives in the flat pipe namespace and
-        // there is no directory to make.
-        if cfg!(unix) {
-            tokio::fs::create_dir_all(&self.socket_dir)
-                .await
-                .map_err(|e| PlayerError::Spawn(e.to_string()))?;
-        }
+        // The endpoint only lives on disk on Unix (Windows uses the pipe namespace), but
+        // the in-player key script needs a real directory everywhere.
+        tokio::fs::create_dir_all(&self.socket_dir)
+            .await
+            .map_err(|e| PlayerError::Spawn(e.to_string()))?;
 
         // A unique endpoint per session, so a lingering process from a previous run cannot be
         // mistaken for this one.
@@ -306,7 +329,17 @@ impl Mpv {
             request.speed,
             request.volume,
             request.subtitle_language.as_deref(),
+            request.dub,
         ));
+        // The in-player keys: Shift+N/P step episodes from inside mpv, announced back to
+        // us as script-messages. A file rather than flags because key bindings are the one
+        // thing mpv only takes from a script or input.conf — and replacing the user's
+        // input.conf is not on the table.
+        let key_script = self.socket_dir.join("anistream-keys.lua");
+        if tokio::fs::write(&key_script, KEY_SCRIPT).await.is_ok() {
+            args.push(format!("--script={}", key_script.display()));
+        }
+
         // After ours, before the URL: mpv takes the last value for a repeated flag, so these
         // genuinely override.
         args.extend(self.extra_args.iter().cloned());
@@ -361,6 +394,7 @@ impl Mpv {
             (observed::PAUSE, "pause"),
             (observed::SPEED, "speed"),
             (observed::VOLUME, "volume"),
+            (observed::CHAPTERS, "chapter-list"),
         ] {
             session.send(Command::ObserveProperty(id, name)).await?;
         }
@@ -390,10 +424,7 @@ async fn connect_with_retry(path: &Path) -> Result<IpcStream, PlayerError> {
 }
 
 /// Read events off the socket and forward the ones the UI cares about.
-fn spawn_reader(
-    read_half: ipc::ReadHalf,
-    tx: mpsc::UnboundedSender<PlaybackEvent>,
-) {
+fn spawn_reader(read_half: ipc::ReadHalf, tx: mpsc::UnboundedSender<PlaybackEvent>) {
     tokio::spawn(async move {
         let mut lines = BufReader::new(read_half).lines();
         // Duration arrives separately from position, so it is remembered and attached.
@@ -425,6 +456,17 @@ fn spawn_reader(
                 Event::Paused(paused) => Some(PlaybackEvent::Paused(paused)),
                 Event::Speed(speed) => Some(PlaybackEvent::Speed(speed)),
                 Event::Volume(volume) => Some(PlaybackEvent::Volume(volume)),
+                Event::Chapters(chapters) => Some(PlaybackEvent::Chapters(chapters)),
+                Event::ClientMessage(args) => match args.as_slice() {
+                    [tag, cmd] if tag == "anistream" => match cmd.as_str() {
+                        "next" => Some(PlaybackEvent::Remote(RemoteCommand::NextEpisode)),
+                        "previous" => {
+                            Some(PlaybackEvent::Remote(RemoteCommand::PreviousEpisode))
+                        }
+                        _ => None,
+                    },
+                    _ => None,
+                },
                 Event::EndFile(reason) => {
                     let complete = reason.is_complete();
                     let _ = tx.send(PlaybackEvent::Ended { complete });

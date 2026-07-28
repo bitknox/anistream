@@ -1825,8 +1825,12 @@ fn source_rows(app: &App) -> Vec<(String, String)> {
     app.sources
         .iter()
         .map(|source| {
+            // A healthy swarm stays quiet — this design decorates problems, not health.
+            // Under ~20 seeders streaming gets chancy; under 5 it probably will not start.
             let seeders = match source.seeders {
-                Some(n) => format!("{n:>4}"),
+                Some(n) if n < 5 => format!("{} {n:>3}", glyph::STATE_DOWN),
+                Some(n) if n <= 20 => format!("{} {n:>3}", glyph::STATE_DEGRADED),
+                Some(n) => format!("{n:>5}"),
                 None => String::new(),
             };
             let mut label = source.title.clone();
@@ -1894,6 +1898,10 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
             String::new(),
             "type what to search for — an empty enter resets to the automatic match".into(),
         )],
+        Overlay::DownloadRange => vec![(
+            String::new(),
+            "4 for one episode, 1-12 for a run, 7- for everything from there".into(),
+        )],
     };
 
     // Overlays that are a list of things you pick from need a focus marker. The palette was
@@ -1957,6 +1965,9 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         }
         Overlay::ManualQuery => {
             format!("{}   {}▏", glyph::eyebrow(overlay.title()), app.manual_query)
+        }
+        Overlay::DownloadRange => {
+            format!("{}   {}▏", glyph::eyebrow(overlay.title()), app.range_query)
         }
         // Say what is being asked and why, or a bare "WHICH ONE" over a list of near-identical
         // release names is a riddle rather than a question.
@@ -2113,12 +2124,7 @@ fn still_panel(app: &App, table: Rect) -> Option<Rect> {
     if table.width < width + STILL_GAP + MIN_EPISODE_TABLE_WIDTH {
         return None;
     }
-    Some(Rect {
-        x: table.right() - width,
-        y: table.top() + 2,
-        width,
-        height,
-    })
+    Some(Rect { x: table.right() - width, y: table.top() + 2, width, height })
 }
 
 /// Columns the episode table needs before a still may take any width from it.

@@ -11,6 +11,7 @@ pub mod data;
 pub mod downloads;
 pub mod playback;
 pub mod remux;
+pub mod shaders;
 pub mod sources;
 pub mod tracking;
 pub mod updates;

@@ -326,7 +326,10 @@ async fn preview(
                     Ok(EpisodeLoad::Rows(rows)) => app.apply(Update::Episodes(rows)),
                     // A still frame cannot answer a question, so state it and carry on.
                     Ok(EpisodeLoad::Choose { candidates, .. }) => {
-                        eprintln!("[episodes: {} possible matches, none confident]", candidates.len());
+                        eprintln!(
+                            "[episodes: {} possible matches, none confident]",
+                            candidates.len()
+                        );
                     }
                     Err(reason) => {
                         eprintln!("[episodes: {reason}]");
@@ -1322,9 +1325,14 @@ async fn run(
     // The live player's control channel. Replaced on each new playback, so a stale sender from
     // a finished episode can never steer the current one.
     let mut player_tx: Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>> = None;
+    // Upscaling shaders first, the user's own flags after — mpv takes the last value
+    // for a repeated flag, so a hand-written --glsl-shaders always wins.
+    let mut mpv_args =
+        anistream::shaders::mpv_args(app.config.playback.upscaling, &paths.cache_dir);
+    mpv_args.extend(app.config.playback.mpv_args.clone());
     let mpv = anistream_player::Mpv::new(paths.runtime_dir())
         .with_binary(app.config.playback.mpv_binary.clone())
-        .with_extra_args(app.config.playback.mpv_args.clone());
+        .with_extra_args(mpv_args);
     if !mpv.is_available().await {
         // Said once at startup rather than at the moment you press Enter on an episode.
         app.apply(Update::Toast(Toast::alert(format!(
@@ -1545,6 +1553,7 @@ fn spawn(
             | Task::ResolveConflict { .. }
             | Task::LoadLibrary(_)
             | Task::DownloadEpisode { .. }
+            | Task::DownloadMany { .. }
             | Task::DownloadPause { .. }
             | Task::DownloadCancel { .. }
             | Task::DownloadDelete { .. }
@@ -1789,6 +1798,41 @@ fn dispatch(
         }
         Task::LoadDownloads => downloads::publish_now(store, tx),
 
+        Task::DownloadMany { id, episodes } => {
+            let (store, registry, anilist, tx) =
+                (store.clone(), registry.clone(), anilist.clone(), tx.clone());
+            let translation = config.playback.translation;
+            tokio::spawn(async move {
+                // Sequential enqueues, not parallel: each one is only a resolve + a queue
+                // row, and the download manager's own concurrency cap paces the fetches.
+                let mut queued = 0usize;
+                let mut failed: Option<String> = None;
+                for episode in &episodes {
+                    match downloads::enqueue(
+                        &store,
+                        &registry,
+                        &anilist,
+                        id,
+                        episode,
+                        translation,
+                    )
+                    .await
+                    {
+                        Ok(_) => queued += 1,
+                        Err(reason) => failed = Some(reason),
+                    }
+                }
+                let update = match (queued, failed) {
+                    (0, Some(reason)) => Update::Toast(Toast::alert(reason)),
+                    (n, Some(reason)) => {
+                        Update::Toast(Toast::alert(format!("queued {n}, then: {reason}")))
+                    }
+                    (n, None) => Update::Toast(Toast::info(format!("queued {n} episodes"))),
+                };
+                let _ = tx.send(update);
+            });
+        }
+
         Task::DownloadEpisode { id, episode } => {
             let (store, registry, anilist, tx) =
                 (store.clone(), registry.clone(), anilist.clone(), tx.clone());
@@ -1924,6 +1968,7 @@ fn dispatch(
                     Some(playback.subtitle_language.clone()),
                     tracker_ids,
                     config.presence.clone(),
+                    config.syncplay.clone(),
                     tx,
                     prx,
                 )
@@ -1984,25 +2029,28 @@ fn spawn_playback(
 
     tokio::spawn(async move {
         let playback = config.playback.clone();
-        let context =
-            match resolve_for_playback(
-                &anilist, &store, &registry, id, &episode, pick, &playback,
-            )
-            .await
-            {
-                Ok(pair) => pair,
-                Err(reason) => {
-                    // The failure ladder's first rung: name the failure rather than showing an
-                    // empty screen. Releasing the eyecatch is what the alert does for us.
-                    let _ = tx.send(Update::Toast(Toast::alert(reason)));
-                    let _ = tx.send(Update::PlaybackEnded { watched: false });
-                    return;
-                }
-            };
+        let context = match resolve_for_playback(
+            &anilist, &store, &registry, id, &episode, pick, &playback,
+        )
+        .await
+        {
+            Ok(pair) => pair,
+            Err(reason) => {
+                // The failure ladder's first rung: name the failure rather than showing an
+                // empty screen. Releasing the eyecatch is what the alert does for us.
+                let _ = tx.send(Update::Toast(Toast::alert(reason)));
+                let _ = tx.send(Update::PlaybackEnded { watched: false });
+                return;
+            }
+        };
         let (stream, context) = context;
         // Name the provider that actually answered — during failover the header would
         // otherwise credit the configured first choice, which is the one that failed.
         let _ = tx.send(Update::ActiveProvider(stream.provider_id.clone()));
+        // And say why this release, so an automatic pick is never a mystery.
+        if let Some(note) = &stream.pick_note {
+            let _ = tx.send(Update::Toast(Toast::info(note.clone())));
+        }
 
         playback::play(
             stream,
@@ -2015,6 +2063,7 @@ fn spawn_playback(
             Some(playback.subtitle_language.clone()),
             tracker_ids,
             config.presence.clone(),
+            config.syncplay.clone(),
             tx,
             commands,
         )
@@ -2133,7 +2182,10 @@ async fn source_slate(
 enum EpisodeLoad {
     Rows(Vec<EpisodeRow>),
     /// The ladder found candidates but could not choose. The user decides.
-    Choose { provider_id: String, candidates: Vec<anistream_ui::MatchCandidate> },
+    Choose {
+        provider_id: String,
+        candidates: Vec<anistream_ui::MatchCandidate>,
+    },
 }
 
 /// Resolve a title to a provider and list its episodes.

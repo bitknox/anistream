@@ -66,6 +66,7 @@ pub struct Config {
     pub presence: PresenceConfig,
     pub network: NetworkConfig,
     pub updates: UpdatesConfig,
+    pub syncplay: SyncplayConfig,
     /// Keybinding overrides, `action = "key"`. The help overlay is generated from the
     /// resolved map so it can never drift from what the keys actually do.
     pub keys: BTreeMap<String, String>,
@@ -131,6 +132,11 @@ pub struct DownloadsConfig {
     /// the folder structure is not preserved — copying the file to a phone, for instance. The remux
     /// is stream-copy only, so it costs seconds and re-encodes nothing.
     pub merge_subtitles: bool,
+    /// A command run after each download finishes — after any move and subtitle merge,
+    /// with `ANISTREAM_PATH`, `ANISTREAM_TITLE` and `ANISTREAM_EPISODE` in its
+    /// environment. Refreshing a Jellyfin library or renaming to a house scheme are the
+    /// intended uses; failures are logged, never fatal.
+    pub on_complete: Option<String>,
     /// Keep seeding after a download completes.
     ///
     /// Off by default, and that is a privacy choice rather than a bandwidth one: seeding advertises
@@ -199,7 +205,51 @@ impl Default for PresenceConfig {
 
 impl Default for DownloadsConfig {
     fn default() -> Self {
-        Self { directory: None, merge_subtitles: true, keep_seeding: false }
+        Self { directory: None, merge_subtitles: true, keep_seeding: false, on_complete: None }
+    }
+}
+
+/// Real-time upscaling modes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Upscaling {
+    #[default]
+    Off,
+    /// Anime4K mode A with the medium networks — fine on integrated graphics.
+    Anime4kFast,
+    /// Anime4K mode A with the large networks — wants a discrete GPU.
+    Anime4kQuality,
+}
+
+/// Watch parties via Syncplay.
+///
+/// A handoff, not a session: Syncplay owns the player it launches, so progress is not
+/// recorded while a party is on — a shared watch is not private history. Turn it on for
+/// the evening, off after. Syncplay's own config decides which player it drives.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct SyncplayConfig {
+    /// Hand playback to Syncplay instead of a private mpv session.
+    pub enabled: bool,
+    /// `host:port` of the Syncplay server everyone in the room uses.
+    pub server: String,
+    /// The room to join. Unset joins Syncplay's default for your name.
+    pub room: Option<String>,
+    /// The name shown to the room.
+    pub name: String,
+    /// The Syncplay executable, a path or a name on `PATH`.
+    pub binary: String,
+}
+
+impl Default for SyncplayConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            server: "syncplay.pl:8995".into(),
+            room: None,
+            name: "anistream".into(),
+            binary: "syncplay".into(),
+        }
     }
 }
 
@@ -279,6 +329,12 @@ pub struct PlaybackConfig {
     pub persisted_volume: Option<f64>,
     pub skip_opening: bool,
     pub skip_filler: bool,
+    /// Real-time upscaling via Anime4K, applied as mpv shader chains.
+    ///
+    /// The shaders ship inside the binary (MIT, vendored from bloc97/Anime4K), so this
+    /// is a toggle rather than a scavenger hunt. `fast` suits integrated graphics;
+    /// `quality` wants a discrete GPU. Worth turning on for 720p batch rips.
+    pub upscaling: Upscaling,
     /// Reserved. Accepted so existing configs keep parsing, but currently has no
     /// effect: players are routed by what a stream needs (mpv for media, the handoff
     /// player for external deep links), not by preference order.
@@ -305,6 +361,7 @@ impl Default for PlaybackConfig {
             persisted_speed: None,
             persist_volume: true,
             persisted_volume: None,
+            upscaling: Upscaling::Off,
             skip_opening: true,
             skip_filler: false,
             players: vec!["mpv".into(), "external".into()],

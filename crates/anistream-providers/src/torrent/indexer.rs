@@ -179,6 +179,13 @@ pub fn score(
     // than 20.
     let mut score = (f64::from(item.seeders.min(500)).sqrt() * 40.0) as i64;
 
+    // A hard tier, not a weight: below ~15 seeders a torrent may not stream at all, and
+    // no amount of quality bonus should promote a release that cannot arrive over one
+    // that can. It stays selectable — sometimes the swarm is all there is.
+    if item.seeders <= 15 {
+        score -= 2000;
+    }
+
     match item.release.quality {
         Some(q) if q == desired_quality => score += 300,
         // A step down is barely noticeable; upscaling wastes bandwidth for nothing.

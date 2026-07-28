@@ -65,9 +65,7 @@ pub fn render(buf: &mut Buffer, area: Rect, x: u16, y: u16) {
             let cell = &mut buf[(cx, cy)];
             match (top, bottom) {
                 (Some(top), Some(bottom)) => {
-                    cell.set_char('▀')
-                        .set_fg(top.to_ratatui())
-                        .set_bg(bottom.to_ratatui());
+                    cell.set_char('▀').set_fg(top.to_ratatui()).set_bg(bottom.to_ratatui());
                 }
                 (Some(top), None) => {
                     cell.set_char('▀').set_fg(top.to_ratatui());

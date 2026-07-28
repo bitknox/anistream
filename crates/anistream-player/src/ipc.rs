@@ -152,11 +152,11 @@ mod tests {
     #[cfg(windows)]
     #[test]
     fn windows_endpoints_live_in_the_pipe_namespace() {
-        assert!(mpv_endpoint(Path::new("ignored"), 7).to_string_lossy().starts_with(r"\\.\pipe\"));
         assert!(
-            discord_endpoints()
-                .iter()
-                .all(|p| p.to_string_lossy().starts_with(r"\\.\pipe\"))
+            mpv_endpoint(Path::new("ignored"), 7).to_string_lossy().starts_with(r"\\.\pipe\")
+        );
+        assert!(
+            discord_endpoints().iter().all(|p| p.to_string_lossy().starts_with(r"\\.\pipe\"))
         );
     }
 

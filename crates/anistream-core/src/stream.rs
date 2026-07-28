@@ -66,6 +66,11 @@ pub struct Stream {
     /// "this cannot be downloaded" rather than failing obscurely.
     #[serde(default)]
     pub download_source: Option<String>,
+    /// One line saying why automatic resolution chose this stream — `curated:` or
+    /// `top-ranked:` plus the release name. `None` when there was nothing to choose
+    /// between. Surfaced as a toast so the pick is never a mystery.
+    #[serde(default)]
+    pub pick_note: Option<String>,
 }
 
 impl Stream {
@@ -78,6 +83,7 @@ impl Stream {
             subtitles: Vec::new(),
             provider_id: String::new(),
             download_source: None,
+            pick_note: None,
         }
     }
 

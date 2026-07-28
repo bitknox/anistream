@@ -168,6 +168,8 @@ async fn main() {
             // Presence off: the probe measures the torrent-to-mpv-to-history path, and reaching
             // out to a Discord socket would add a variable that has nothing to do with it.
             Default::default(),
+            // Syncplay off, same reasoning.
+            Default::default(),
             tx,
             command_rx,
         )

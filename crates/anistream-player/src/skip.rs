@@ -32,6 +32,80 @@ impl SkipKind {
     }
 }
 
+/// Skip intervals from the file's own chapter markers.
+///
+/// Release groups routinely author `OP`/`ED`/`Intro`/`Outro` chapters into the mkv, and
+/// those were cut against *this exact encode* — where aniskip's community times were taken
+/// against whichever rip the submitter had. When a file declares chapters, they outrank
+/// the API. An interval needs a following chapter to bound it; an unbounded final chapter
+/// is left alone rather than guessed at.
+pub fn from_chapters(chapters: &[(String, f64)]) -> Vec<SkipInterval> {
+    let classify = |title: &str| -> Option<SkipKind> {
+        let t = title.trim().to_ascii_lowercase();
+        // Terse, conventional names only. "Part A", "Avant" and friends stay unclassified
+        // — mislabelling a cold open as an opening would auto-skip story.
+        if t == "op" || t == "opening" || t == "intro" || t.starts_with("ncop") {
+            Some(SkipKind::Opening)
+        } else if t == "ed" || t == "ending" || t == "outro" || t.starts_with("nced") {
+            Some(SkipKind::Ending)
+        } else {
+            None
+        }
+    };
+
+    chapters
+        .iter()
+        .enumerate()
+        .filter_map(|(i, (title, start))| {
+            let kind = classify(title)?;
+            let end = chapters.get(i + 1).map(|(_, t)| *t)?;
+            (end > *start).then_some(SkipInterval { kind, start: *start, end })
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod chapter_tests {
+    use super::*;
+
+    fn chapters(names: &[(&str, f64)]) -> Vec<(String, f64)> {
+        names.iter().map(|(n, t)| (n.to_string(), *t)).collect()
+    }
+
+    #[test]
+    fn conventional_chapter_names_become_skips() {
+        let skips = from_chapters(&chapters(&[
+            ("Intro", 0.0),
+            ("Part A", 90.0),
+            ("Part B", 700.0),
+            ("Outro", 1320.0),
+            ("Preview", 1410.0),
+        ]));
+        assert_eq!(
+            skips,
+            vec![
+                SkipInterval { kind: SkipKind::Opening, start: 0.0, end: 90.0 },
+                SkipInterval { kind: SkipKind::Ending, start: 1320.0, end: 1410.0 },
+            ]
+        );
+    }
+
+    #[test]
+    fn ambiguous_and_unbounded_chapters_are_left_alone() {
+        // "Avant" is a cold open — skipping it would skip story. And a final chapter has
+        // no bound, so it is not guessed at.
+        let skips =
+            from_chapters(&chapters(&[("Avant", 0.0), ("Part A", 60.0), ("ED", 1300.0)]));
+        assert!(skips.is_empty(), "got {skips:?}");
+    }
+
+    #[test]
+    fn ncop_variants_count_as_openings() {
+        let skips = from_chapters(&chapters(&[("NCOP1", 10.0), ("Part A", 100.0)]));
+        assert_eq!(skips[0].kind, SkipKind::Opening);
+    }
+}
+
 /// A skippable segment.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SkipInterval {

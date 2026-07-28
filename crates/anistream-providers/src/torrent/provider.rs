@@ -166,27 +166,27 @@ impl TorrentProvider {
     }
 
     /// The item automatic resolution would choose: the curated pick when it is present
-    /// in the feed and covers the episode, otherwise the top-ranked release.
+    /// in the feed and covers the episode, otherwise the top-ranked release. The flag
+    /// says which of the two it was, so the pick can be explained rather than asserted.
     async fn auto_choice<'a>(
         &self,
         items: &'a [IndexerItem],
         anilist_id: Option<u32>,
         wanted: u32,
         prefer_dual: bool,
-    ) -> Option<&'a IndexerItem> {
+    ) -> Option<(&'a IndexerItem, bool)> {
         let curated_id = match anilist_id {
             Some(id) => self.curated(id, prefer_dual).await,
             None => None,
         };
-        match &curated_id {
-            Some(id) => items
-                .iter()
-                .find(|item| {
-                    item.guid.contains(id.as_str()) && item.release.covers(wanted, None)
-                })
-                .or_else(|| indexer::best(items, wanted, None, self.quality, prefer_dual)),
-            None => indexer::best(items, wanted, None, self.quality, prefer_dual),
+        if let Some(id) = &curated_id
+            && let Some(item) = items.iter().find(|item| {
+                item.guid.contains(id.as_str()) && item.release.covers(wanted, None)
+            })
+        {
+            return Some((item, true));
         }
+        indexer::best(items, wanted, None, self.quality, prefer_dual).map(|item| (item, false))
     }
 
     /// Start a torrent session for a chosen item and wrap it as a playable stream.
@@ -338,12 +338,21 @@ impl Provider for TorrentProvider {
         let prefer_dual = translation == Translation::Dub;
 
         let items = self.feed(&title).await?;
-        let chosen = self
+        let (chosen, curated) = self
             .auto_choice(&items, anilist_id, wanted, prefer_dual)
             .await
             .ok_or(ProviderError::NotFound)?;
 
-        self.stream_from(chosen, wanted).await
+        let note = if curated {
+            format!("curated pick: {}", chosen.title)
+        } else {
+            format!("top-ranked: {}  ·  {} seeders", chosen.title, chosen.seeders)
+        };
+        let mut streams = self.stream_from(chosen, wanted).await?;
+        for stream in &mut streams {
+            stream.pick_note = Some(note.clone());
+        }
+        Ok(streams)
     }
 
     /// The ranked slate for an episode, with the automatic pick marked.
@@ -364,7 +373,7 @@ impl Provider for TorrentProvider {
         let auto = self
             .auto_choice(&items, anilist_id, wanted, prefer_dual)
             .await
-            .map(|item| item.guid.clone());
+            .map(|(item, _)| item.guid.clone());
 
         Ok(indexer::ranked(&items, wanted, None, self.quality, prefer_dual)
             .into_iter()

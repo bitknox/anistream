@@ -69,6 +69,8 @@ pub enum Action {
     DeleteDownload,
 
     // Episodes
+    /// Queue a typed range of episodes for download: `4`, `1-12`, `7-`.
+    DownloadRange,
     ToggleWatched,
     MarkAllPrevious,
     Filter,
@@ -131,6 +133,7 @@ impl Action {
         Self::OpenInBrowser,
         Self::ClearCompleted,
         Self::DeleteDownload,
+        Self::DownloadRange,
         Self::ToggleWatched,
         Self::MarkAllPrevious,
         Self::Filter,
@@ -187,6 +190,7 @@ impl Action {
             Self::OpenInBrowser => "Open on AniList",
             Self::ClearCompleted => "Clear finished downloads",
             Self::DeleteDownload => "Delete download and its file",
+            Self::DownloadRange => "Download a range of episodes",
             Self::ToggleWatched => "Toggle watched",
             Self::MarkAllPrevious => "Mark all previous watched",
             Self::Filter => "Filter",
@@ -266,7 +270,10 @@ impl Action {
             | Self::WatchOrder
             | Self::OpenInBrowser => Scope::Title,
 
-            Self::ToggleWatched | Self::MarkAllPrevious | Self::Filter => Scope::Episodes,
+            Self::ToggleWatched
+            | Self::MarkAllPrevious
+            | Self::Filter
+            | Self::DownloadRange => Scope::Episodes,
 
             Self::ClearCompleted | Self::DeleteDownload => Scope::Downloads,
 
@@ -600,6 +607,8 @@ impl Keymap {
             bind(Binding::plain(Char('u')), A::ToggleWatched);
             bind(Binding::plain(Char('M')), A::MarkAllPrevious);
             bind(Binding::plain(Char('f')), A::Filter);
+            // `d` queues one episode; its shifted twin queues a typed range.
+            bind(Binding::plain(Char('D')), A::DownloadRange);
         }
 
         // Playback, in its own table: these keys take priority while something is playing and

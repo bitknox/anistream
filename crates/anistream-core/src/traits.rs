@@ -195,6 +195,10 @@ pub struct PlaybackRequest {
     pub speed: Option<f64>,
     /// Carried across sessions so a chosen volume sticks, in mpv's 0–100 scale.
     pub volume: Option<f64>,
+    /// Whether the viewer wants dubbed audio. Drives track selection: audio in their
+    /// own language with signs-only subtitles, instead of original audio with full
+    /// subtitles. Track order in the file never decides.
+    pub dub: bool,
 }
 
 /// An external service that holds watch progress.

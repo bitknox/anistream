@@ -184,11 +184,22 @@ impl PlaybackTracker {
                 }
             }
 
+            // Remote controls are the session's business, not the tracker's.
+            PlaybackEvent::Remote(_) => {}
+
+            PlaybackEvent::Chapters(chapters) => {
+                // The file's own chapters outrank aniskip: they were authored against this
+                // exact encode, where community times were taken against someone else's.
+                let from_file = crate::skip::from_chapters(chapters);
+                if !from_file.is_empty() {
+                    self.skips = from_file;
+                }
+            }
+
             PlaybackEvent::Volume(volume) => {
                 // The first report is mpv telling us the volume we started it at, not a
                 // choice — remembering it would just re-save the config's own value.
-                let changed =
-                    self.volume.is_some_and(|v| (v - *volume).abs() > f64::EPSILON);
+                let changed = self.volume.is_some_and(|v| (v - *volume).abs() > f64::EPSILON);
                 if changed {
                     actions.push(Action::RememberVolume(*volume));
                 }

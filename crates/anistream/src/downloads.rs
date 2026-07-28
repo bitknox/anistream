@@ -168,11 +168,12 @@ async fn poll_running(
                     final_path = Some(move_into(path, PathBuf::from(dir)));
                 }
             }
-            let merged = finish(store, config, &row, final_path).await;
+            let merged = finish(store, config, &row, final_path.clone()).await;
             let _ = tx.send(Update::Toast(Toast::info(match merged {
                 Some(note) => format!("downloaded {} ep {} — {note}", row.title, row.episode),
                 None => format!("downloaded {} ep {}", row.title, row.episode),
             })));
+            run_completion_hook(config, &row, final_path.as_deref());
             finished.push(entry.row_id);
         }
     }
@@ -236,6 +237,32 @@ async fn start_queued(
         }
         publish(store, tx);
     }
+}
+
+/// Run the user's `downloads.on_complete` command, detached and best-effort.
+///
+/// Through the platform shell, so a config line can be a real pipeline. The hook gets
+/// the facts as environment variables rather than argv — no quoting rules to explain,
+/// no title with a quote in it breaking anything.
+fn run_completion_hook(config: &Config, row: &Download, path: Option<&std::path::Path>) {
+    let Some(hook) = config.downloads.on_complete.clone() else { return };
+    let (title, episode) = (row.title.clone(), row.episode.clone());
+    let path = path.map(|p| p.display().to_string()).unwrap_or_default();
+    tokio::task::spawn_blocking(move || {
+        let (shell, flag) = if cfg!(windows) { ("cmd", "/C") } else { ("sh", "-c") };
+        let outcome = std::process::Command::new(shell)
+            .arg(flag)
+            .arg(&hook)
+            .env("ANISTREAM_PATH", &path)
+            .env("ANISTREAM_TITLE", &title)
+            .env("ANISTREAM_EPISODE", &episode)
+            .status();
+        match outcome {
+            Ok(status) if status.success() => {}
+            Ok(status) => tracing::warn!(%status, "on_complete hook exited nonzero"),
+            Err(e) => tracing::warn!(error = %e, "on_complete hook failed to start"),
+        }
+    });
 }
 
 /// Move a finished download into the configured directory, falling back to copy+delete

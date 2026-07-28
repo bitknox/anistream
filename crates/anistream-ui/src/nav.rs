@@ -144,6 +144,7 @@ pub enum Overlay {
     Disambiguate,
     ManualQuery,
     WatchOrder,
+    DownloadRange,
     ListStatus,
     Accounts,
     Conflicts,
@@ -159,6 +160,7 @@ impl Overlay {
             Self::Disambiguate => "WHICH ONE",
             Self::ManualQuery => "FIND MANUALLY",
             Self::WatchOrder => "WATCH ORDER",
+            Self::DownloadRange => "DOWNLOAD EPISODES",
             Self::ListStatus => "LIST STATUS",
             Self::Accounts => "ACCOUNTS",
             Self::Conflicts => "CONFLICTS",
@@ -168,7 +170,7 @@ impl Overlay {
 
     /// Whether this overlay takes text input, which suppresses single-key bindings.
     pub const fn takes_text_input(&self) -> bool {
-        matches!(self, Self::CommandPalette | Self::ManualQuery)
+        matches!(self, Self::CommandPalette | Self::ManualQuery | Self::DownloadRange)
     }
 }
 
