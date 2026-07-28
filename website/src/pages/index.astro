@@ -12,12 +12,17 @@ const features = [
 	{
 		eyebrow: '/ browse',
 		title: 'Browse without an account',
-		body: 'Search, seasonal charts and a week-spanning airing calendar from AniList’s public API. No login, no config — browsing is the default state of the app.',
+		body: 'Search, seasonal charts and an airing calendar ruled by day — today, tomorrow, the week — from AniList’s public API. Watch order untangles prequels and sequels in place. No login, no config — browsing is the default state of the app.',
 	},
 	{
 		eyebrow: '▶ playback',
 		title: 'mpv does the playing',
-		body: 'JSON IPC to real mpv: resume, auto-next, persisted speed, and aniskip opening-skip that announces itself on the OSD. A failed playback shows mpv’s own words. Licensed services open in their own apps, by deep link.',
+		body: 'JSON IPC to real mpv: resume to the second, auto-next, persisted speed and volume, and Shift+N/P step episodes from inside the player itself. Opening-skip prefers the file’s own chapter markers and falls back to aniskip. Licensed services open in their own apps, by deep link.',
+	},
+	{
+		eyebrow: '⌕ chosen',
+		title: 'Every pick explains itself',
+		body: 'Automatic selection is ranked, curated against SeaDex where it has an opinion, and says why in one line. Disagree? One key lists the whole slate — seeders, size, audio — and your choice is exact, with no failover behind it. Sub or dub preference picks the audio and subtitle tracks too, never file order.',
 	},
 	{
 		eyebrow: '▥ local-first',
@@ -42,12 +47,17 @@ const features = [
 	{
 		eyebrow: '● guarded',
 		title: 'If you torrent, it fails closed',
-		body: 'Torrent support exists, and it is never assumed: off by default, unreachable until a VPN mode is chosen and egress is verified through the proxy. DHT forced off, re-checked on an interval, every transfer paused the moment a check fails.',
+		body: 'Torrent support exists, and it is never assumed: off by default, unreachable until a VPN mode is chosen and egress is verified through the proxy. DHT forced off, re-checked on an interval, every transfer paused the moment a check fails — and seeding stops when a download completes, unless you opt in.',
+	},
+	{
+		eyebrow: '↓ offline',
+		title: 'Downloads that behave like a library',
+		body: 'Queue one episode or a typed range, watch it with full history and resume like any stream, and let a post-download hook hand finished files to whatever comes next. Subtitles mux in, files land where you said, deletion is one explicit key.',
 	},
 	{
 		eyebrow: '? keys',
 		title: 'Vim-first, fully rebindable',
-		body: 'hjkl everywhere, arrows always aliased, every key rebindable. The help overlay is generated from the resolved keymap, so it matches whatever you set.',
+		body: 'hjkl everywhere, arrows always aliased, every key rebindable. The help overlay is generated from the resolved keymap, so it matches whatever you set. Filler filters, watched marks, and Anime4K upscaling are each one key or one config line away.',
 	},
 ];
 

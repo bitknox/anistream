@@ -58,6 +58,9 @@ rusqlite = { version = "0.40", features = ["bundled", "chrono", "serde_json"] }
 
 # --- tui ---
 ratatui = "0.30"
+# Local-timezone day boundaries for the calendar's rulings. Already in the tree via
+# rusqlite's feature, so this costs nothing new.
+chrono = "0.4"
 # default-features off: the `chafa-dyn` default pulls in the chafa C library via
 # pkg-config, which every Kitty/Sixel/iTerm2 protocol works without. It only adds a
 # higher-quality symbol fallback, so it stays an opt-in feature rather than a build

@@ -80,17 +80,24 @@ pub enum SettingId {
     AutoNext,
     SkipOpening,
     SkipFiller,
+    Upscaling,
+    DownloadDir,
+    MergeSubtitles,
+    KeepSeeding,
+    DownloadHook,
     Presence,
     PresenceTitle,
     Torrents,
     VpnMode,
     TokenStorage,
+    Syncplay,
+    UpdateCheck,
 }
 
 impl SettingId {
     /// Display order. Grouped by [`Self::category`] — the renderer draws a heading each
     /// time the category changes, so rows of one category must be contiguous here.
-    pub const ALL: [Self; 14] = [
+    pub const ALL: [Self; 21] = [
         Self::Theme,
         Self::Motion,
         Self::Translation,
@@ -100,11 +107,18 @@ impl SettingId {
         Self::AutoNext,
         Self::SkipOpening,
         Self::SkipFiller,
+        Self::Upscaling,
+        Self::DownloadDir,
+        Self::MergeSubtitles,
+        Self::KeepSeeding,
+        Self::DownloadHook,
         Self::Torrents,
         Self::VpnMode,
         Self::Presence,
         Self::PresenceTitle,
         Self::TokenStorage,
+        Self::Syncplay,
+        Self::UpdateCheck,
     ];
 
     /// Which heading a row sits under. Purely visual grouping — navigation walks the
@@ -118,9 +132,18 @@ impl SettingId {
             | Self::CommitThreshold
             | Self::AutoNext
             | Self::SkipOpening
-            | Self::SkipFiller => "playback",
+            | Self::SkipFiller
+            | Self::Upscaling => "playback",
+            Self::DownloadDir
+            | Self::MergeSubtitles
+            | Self::KeepSeeding
+            | Self::DownloadHook => "downloads",
             Self::Torrents | Self::VpnMode => "sources",
-            Self::Presence | Self::PresenceTitle | Self::TokenStorage => "integrations",
+            Self::Presence
+            | Self::PresenceTitle
+            | Self::TokenStorage
+            | Self::Syncplay
+            | Self::UpdateCheck => "integrations",
         }
     }
 
@@ -137,12 +160,28 @@ impl SettingId {
             // a note on its own OSD as it happens, which is a courtesy, not a prompt.
             Self::SkipOpening => "skip opening automatically",
             Self::SkipFiller => "skip filler automatically",
+            Self::Upscaling => "upscaling",
+            Self::DownloadDir => "download folder",
+            Self::MergeSubtitles => "merge subtitles in",
+            Self::KeepSeeding => "keep seeding",
+            Self::DownloadHook => "after each download",
+            Self::Syncplay => "syncplay parties",
+            Self::UpdateCheck => "check for updates",
             Self::Presence => "discord presence",
             Self::PresenceTitle => "presence shows the title",
             Self::Torrents => "torrent source",
             Self::VpnMode => "vpn mode",
             Self::TokenStorage => "token storage",
         }
+    }
+}
+
+fn upscaling_label(mode: anistream_core::config::Upscaling) -> &'static str {
+    use anistream_core::config::Upscaling as U;
+    match mode {
+        U::Off => "off",
+        U::Anime4kFast => "anime4k fast",
+        U::Anime4kQuality => "anime4k quality",
     }
 }
 
@@ -177,6 +216,9 @@ fn table_path(dotted: &'static str) -> &'static [&'static str] {
         "playback" => &["playback"],
         "presence" => &["presence"],
         "providers.torrent" => &["providers", "torrent"],
+        "downloads" => &["downloads"],
+        "syncplay" => &["syncplay"],
+        "updates" => &["updates"],
         other => unreachable!("no table path for {other}"),
     }
 }
@@ -2106,6 +2148,51 @@ impl App {
                     S::SkipFiller => {
                         (on_off(playback.skip_filler), Some(("playback", "skip_filler")), None)
                     }
+                    S::Upscaling => (
+                        upscaling_label(playback.upscaling).into(),
+                        Some(("playback", "upscaling")),
+                        // The shader arguments are assembled when mpv is set up at launch.
+                        Some("takes effect after a restart"),
+                    ),
+                    S::DownloadDir => (
+                        self.config
+                            .downloads
+                            .directory
+                            .clone()
+                            .unwrap_or_else(|| "kept with the torrent cache".into()),
+                        None,
+                        Some("set downloads.directory in config.toml — a path is a text job"),
+                    ),
+                    S::MergeSubtitles => (
+                        on_off(self.config.downloads.merge_subtitles),
+                        Some(("downloads", "merge_subtitles")),
+                        Some("applies to downloads finished after a restart"),
+                    ),
+                    S::KeepSeeding => (
+                        on_off(self.config.downloads.keep_seeding),
+                        Some(("downloads", "keep_seeding")),
+                        // The privacy dial; saying so is the point of the row.
+                        Some("on keeps advertising you as a source — applies after a restart"),
+                    ),
+                    S::DownloadHook => (
+                        if self.config.downloads.on_complete.is_some() {
+                            "configured".into()
+                        } else {
+                            "none".into()
+                        },
+                        None,
+                        Some("set downloads.on_complete in config.toml — a command is a text job"),
+                    ),
+                    S::Syncplay => (
+                        on_off(self.config.syncplay.enabled),
+                        Some(("syncplay", "enabled")),
+                        Some("server and room live in config.toml — parties are not tracked"),
+                    ),
+                    S::UpdateCheck => (
+                        on_off(self.config.updates.check),
+                        Some(("updates", "check")),
+                        Some("one cached request a day, checked at startup"),
+                    ),
                     S::Presence => (
                         on_off(self.config.presence.enabled),
                         Some(("presence", "enabled")),
@@ -2222,6 +2309,40 @@ impl App {
                 self.config.playback.auto_next = !self.config.playback.auto_next;
                 V::Bool(self.config.playback.auto_next)
             }
+            SettingId::Upscaling => {
+                use anistream_core::config::Upscaling as U;
+                const LADDER: [U; 3] = [U::Off, U::Anime4kFast, U::Anime4kQuality];
+                let at = LADDER
+                    .iter()
+                    .position(|u| *u == self.config.playback.upscaling)
+                    .unwrap_or(0) as isize;
+                let next = LADDER[(at + delta).clamp(0, 2) as usize];
+                self.config.playback.upscaling = next;
+                V::Str(
+                    match next {
+                        U::Off => "off",
+                        U::Anime4kFast => "anime4k-fast",
+                        U::Anime4kQuality => "anime4k-quality",
+                    }
+                    .into(),
+                )
+            }
+            SettingId::MergeSubtitles => {
+                self.config.downloads.merge_subtitles = !self.config.downloads.merge_subtitles;
+                V::Bool(self.config.downloads.merge_subtitles)
+            }
+            SettingId::KeepSeeding => {
+                self.config.downloads.keep_seeding = !self.config.downloads.keep_seeding;
+                V::Bool(self.config.downloads.keep_seeding)
+            }
+            SettingId::Syncplay => {
+                self.config.syncplay.enabled = !self.config.syncplay.enabled;
+                V::Bool(self.config.syncplay.enabled)
+            }
+            SettingId::UpdateCheck => {
+                self.config.updates.check = !self.config.updates.check;
+                V::Bool(self.config.updates.check)
+            }
             SettingId::SkipOpening => {
                 self.config.playback.skip_opening = !self.config.playback.skip_opening;
                 V::Bool(self.config.playback.skip_opening)
@@ -2242,7 +2363,11 @@ impl App {
                 self.config.providers.torrent.enabled = !self.config.providers.torrent.enabled;
                 V::Bool(self.config.providers.torrent.enabled)
             }
-            SettingId::Subtitles | SettingId::VpnMode | SettingId::TokenStorage => return None,
+            SettingId::Subtitles
+            | SettingId::VpnMode
+            | SettingId::TokenStorage
+            | SettingId::DownloadDir
+            | SettingId::DownloadHook => return None,
         };
 
         Some(Task::SaveSetting { table: edit.table, key: edit.key, value })

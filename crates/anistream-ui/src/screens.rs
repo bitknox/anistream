@@ -211,46 +211,75 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
             };
 
             let visible = list_col.height as usize;
-            let rows: Vec<ObiRow> = entries
-                .iter()
-                .enumerate()
-                .skip(app.offset)
-                .take(visible)
-                .map(|(i, entry)| {
-                    let mut row = ObiRow::new(entry.title.clone()).selected(i == app.selected);
-                    // Trailing text answers the question the *current screen* is about:
-                    // how far along you are, when it airs, or how good it is.
-                    let trailing = match (entry.progress, section, entry.airing_in) {
-                        // A part-watched episode is the most actionable thing a row can say, so it
-                        // outranks everything else. The percentage is what makes it obvious this is
-                        // something to *finish* rather than something to start.
-                        (Some((_, next)), Section::Home, _) if entry.resume.is_some() => {
-                            let resume = entry.resume.expect("checked");
-                            Some(match resume.fraction {
+            let mut rows: Vec<ObiRow> = Vec::with_capacity(visible + 4);
+            // The calendar earns its glyph — ruled rows, one heading per day — instead of
+            // one undifferentiated run of time. Dates come from each entry's stored
+            // countdown against the clock now; only a session left open across midnight
+            // can mislabel a boundary, and the next reload corrects it.
+            let mut current_day: Option<chrono::NaiveDate> = None;
+            for (i, entry) in entries.iter().enumerate().skip(app.offset).take(visible) {
+                if section == Section::Calendar
+                    && let Some(secs) = entry.airing_in
+                    && let Some(day) = air_date(secs)
+                    && current_day != Some(day)
+                {
+                    // A blank row before each ruling after the first — the separation is
+                    // half the point of having days at all.
+                    if !rows.is_empty() {
+                        rows.push(ObiRow::new(String::new()));
+                    }
+                    rows.push(ObiRow::heading(day_label(day)).ruled());
+                    current_day = Some(day);
+                }
+
+                let mut row = ObiRow::new(entry.title.clone()).selected(i == app.selected);
+                // Trailing text answers the question the *current screen* is about:
+                // how far along you are, when it airs, or how good it is. The bool says
+                // whether it is an actionable fact, which draws in the state role.
+                let trailing = match (entry.progress, section, entry.airing_in) {
+                    // A part-watched episode is the most actionable thing a row can say, so it
+                    // outranks everything else. The percentage is what makes it obvious this is
+                    // something to *finish* rather than something to start.
+                    (Some((_, next)), Section::Home, _) if entry.resume.is_some() => {
+                        let resume = entry.resume.expect("checked");
+                        Some((
+                            match resume.fraction {
                                 Some(f) => {
                                     format!("ep {next} · {}%", (f * 100.0).round() as u32)
                                 }
                                 None => format!("ep {next} · {}", resume.clock()),
-                            })
-                        }
-                        // The calendar's whole subject is *when*, so time wins over progress
-                        // there — and it now spans both directions, so a negative countdown is
-                        // an episode that has already aired rather than a bug.
-                        (_, Section::Calendar, Some(secs)) if secs <= 0 => {
-                            Some(crate::widgets::ago(-secs))
-                        }
-                        (_, Section::Calendar, Some(secs)) => {
-                            Some(format!("in {}", crate::widgets::countdown(secs)))
-                        }
-                        (Some((done, _)), _, _) => Some(format!("{}{done}", glyph::OBI_THIN)),
-                        _ => entry.score.map(|s| s.to_string()),
-                    };
-                    if let Some(text) = trailing {
-                        row = row.trailing(text);
+                            },
+                            true,
+                        ))
                     }
-                    row
-                })
-                .collect();
+                    // Behind on a tracked show: the next episode you have not watched has
+                    // already aired. The single most useful fact a list row can carry.
+                    (Some((_, next)), s, _)
+                        if s != Section::Calendar
+                            && entry.last_aired.is_some_and(|(ep, _)| ep >= next) =>
+                    {
+                        Some((format!("ep {next} out"), true))
+                    }
+                    // The calendar's whole subject is *when*, so time wins over progress
+                    // there — and it spans both directions, so a negative countdown is an
+                    // episode that has already aired rather than a bug. Aired episodes of
+                    // tracked shows are the actionable ones.
+                    (_, Section::Calendar, Some(secs)) if secs <= 0 => {
+                        Some((crate::widgets::ago(-secs), entry.progress.is_some()))
+                    }
+                    (_, Section::Calendar, Some(secs)) => {
+                        Some((format!("in {}", crate::widgets::countdown(secs)), false))
+                    }
+                    (Some((done, _)), _, _) => {
+                        Some((format!("{}{done}", glyph::OBI_THIN), false))
+                    }
+                    _ => entry.score.map(|s| (s.to_string(), false)),
+                };
+                if let Some((text, fresh)) = trailing {
+                    row = row.trailing(text).fresh(fresh);
+                }
+                rows.push(row);
+            }
 
             ObiList::new(&rows, &app.palette)
                 .focused(app.nav.focus() == Focus::Stage)
@@ -260,6 +289,25 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
                 render_preview(buf, app, layout::inset(preview, 2, 0), entry);
             }
         }
+    }
+}
+
+/// The local calendar date an offset-from-now lands on.
+fn air_date(secs_from_now: i64) -> Option<chrono::NaiveDate> {
+    use chrono::TimeZone;
+    let epoch = chrono::Local::now().timestamp() + secs_from_now;
+    chrono::Local.timestamp_opt(epoch, 0).single().map(|t| t.date_naive())
+}
+
+/// `today` / `yesterday` / `tomorrow`, then the weekday and date. Rendered as a caps
+/// heading, so lowercase here.
+fn day_label(day: chrono::NaiveDate) -> String {
+    let today = chrono::Local::now().date_naive();
+    match (day - today).num_days() {
+        0 => "today".into(),
+        -1 => "yesterday".into(),
+        1 => "tomorrow".into(),
+        _ => day.format("%A · %-d %b").to_string().to_lowercase(),
     }
 }
 
@@ -1337,6 +1385,14 @@ fn render_now_playing(buf: &mut Buffer, app: &App, area: Rect) {
     }
     let mut y = body.top() + (body.height - BLOCK) / 2;
 
+    // The pixel mark above the block, like a label on a record sleeve — only when the
+    // centred layout leaves it real room, so a short terminal never trades content for
+    // a signature.
+    let (mark_width, mark_height) = crate::logo::size();
+    if body.width >= mark_width && y >= body.top() + mark_height + 2 {
+        crate::logo::render(buf, body, body.left(), y - mark_height - 2);
+    }
+
     buf.set_string(
         body.left(),
         y,
@@ -2208,7 +2264,14 @@ fn metadata_line(entry: &Entry) -> String {
 /// Number of content rows the stage can show, for paging.
 pub fn visible_rows(area: Rect, section: Section) -> usize {
     let geometry = layout::compute(area, crate::nav::RailWidth::Expanded);
-    let offset = if section == Section::Search { 2 } else { 0 };
+    let offset = match section {
+        Section::Search => 2,
+        // Day rulings and their spacer rows share the window with the entries. Five is
+        // an estimate — a screenful rarely spans more than three days — and estimating
+        // low only scrolls the selection a couple of lines early, never hides it.
+        Section::Calendar => 5,
+        _ => 0,
+    };
     geometry.stage.height.saturating_sub(offset) as usize
 }
 
@@ -3230,13 +3293,14 @@ mod tests {
     fn settings_shows_the_live_configuration() {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Settings);
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        // Tall enough for every group — scrolling has its own test below.
+        let text = text_of(&render_to_buffer(&app, 120, 48));
         assert!(text.contains("adaptive"), "theme mode");
         assert!(text.contains("1080p"));
         assert!(text.contains("85%"), "commit threshold");
         assert!(text.contains("off"), "torrenting is off by default");
         // The list is grouped under category headings, not one undifferentiated run.
-        for heading in ["APPEARANCE", "PLAYBACK", "SOURCES", "INTEGRATIONS"] {
+        for heading in ["APPEARANCE", "PLAYBACK", "DOWNLOADS", "SOURCES", "INTEGRATIONS"] {
             assert!(text.contains(heading), "missing the {heading} heading:\n{text}");
         }
     }
@@ -3250,6 +3314,36 @@ mod tests {
         app.selected = crate::app::SettingId::ALL.len() - 1;
         let text = text_of(&render_to_buffer(&app, 120, 12));
         assert!(text.contains("TOKEN STORAGE"), "the last row must be visible:\n{text}");
+    }
+
+    #[test]
+    fn the_calendar_is_ruled_by_day() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Calendar);
+        let mut aired = entry(1, "Aired Recently");
+        aired.airing_in = Some(-1);
+        let mut upcoming = entry(2, "Airs Later");
+        upcoming.airing_in = Some(26 * 3600);
+        app.apply(crate::app::Update::Content(Content::Entries(vec![aired, upcoming])));
+
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        // Labels computed by the same helpers the renderer uses, so the assertion holds
+        // whatever the wall clock says. 26 hours apart is always two different days.
+        let first = super::day_label(super::air_date(-1).unwrap()).to_uppercase();
+        let second = super::day_label(super::air_date(26 * 3600).unwrap()).to_uppercase();
+        assert_ne!(first, second);
+        assert!(text.contains(&first), "missing the {first} ruling:\n{text}");
+        assert!(text.contains(&second), "missing the {second} ruling:\n{text}");
+    }
+
+    #[test]
+    fn a_tracked_show_with_an_aired_episode_says_so() {
+        let mut e = entry(1, "Frieren");
+        e.progress = Some((7, 8));
+        e.last_aired = Some((8, 3600));
+        let app = app_with(Content::Entries(vec![e]));
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("ep 8 out"), "being behind is the fact worth stating:\n{text}");
     }
 
     #[test]

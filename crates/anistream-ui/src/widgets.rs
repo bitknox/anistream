@@ -75,9 +75,16 @@ pub struct ObiRow {
     pub trailing: Option<String>,
     /// Rendered as a caps section heading rather than an item.
     pub is_heading: bool,
+    /// A heading that also rules: the hairline runs from the label to the right edge.
+    /// Opt-in — the rail's section labels are headings too, and ruling those would
+    /// draw eleven hairlines where the design wants none.
+    pub ruled: bool,
     pub selected: bool,
     /// Dim the row without unselecting it — used for unavailable providers.
     pub muted: bool,
+    /// The trailing text is an actionable fact — a new episode waiting, a broadcast just
+    /// landed — drawn in the state role instead of receding with the metadata.
+    pub fresh: bool,
     /// A single-cell mark before the label, giving the row a shape to scan for.
     pub mark: Option<char>,
 }
@@ -88,8 +95,10 @@ impl ObiRow {
             label: label.into(),
             trailing: None,
             is_heading: false,
+            ruled: false,
             selected: false,
             muted: false,
+            fresh: false,
             mark: None,
         }
     }
@@ -101,6 +110,16 @@ impl ObiRow {
 
     pub fn heading(label: impl Into<String>) -> Self {
         Self { is_heading: true, ..Self::new(label) }
+    }
+
+    pub fn fresh(mut self, yes: bool) -> Self {
+        self.fresh = yes;
+        self
+    }
+
+    pub fn ruled(mut self) -> Self {
+        self.ruled = true;
+        self
     }
 
     pub fn trailing(mut self, text: impl Into<String>) -> Self {
@@ -214,15 +233,26 @@ impl Widget for ObiList<'_> {
                 buf.set_string(label_x, y, &label, style);
             }
 
+            // A ruled heading: the hairline runs from the label to the right edge, the
+            // same stroke that separates every other section of the app. A caps word
+            // alone sits at the same weight as a dim row and vanishes into the column.
+            if row.is_heading && row.ruled {
+                let rule_from = label_x + label.chars().count() as u16 + 2;
+                for x in rule_from..area.right().saturating_sub(1) {
+                    buf[(x, y)].set_char(RULE_H).set_style(self.palette.style(Role::Rule));
+                }
+            }
+
             if let Some(trailing) = &row.trailing {
                 let tw = trailing.chars().count() as u16;
                 if area.right() > tw + 1 {
-                    buf.set_string(
-                        area.right() - tw - 1,
-                        y,
-                        trailing,
-                        self.palette.style(Role::TextDim),
-                    );
+                    // An actionable fact carries the state role; metadata recedes.
+                    let trailing_style = if row.fresh {
+                        self.palette.style(Role::State)
+                    } else {
+                        self.palette.style(Role::TextDim)
+                    };
+                    buf.set_string(area.right() - tw - 1, y, trailing, trailing_style);
                 }
             }
         }

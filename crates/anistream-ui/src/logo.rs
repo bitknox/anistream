@@ -25,7 +25,7 @@ fn grid() -> &'static Grid {
         // an empty state without a logo is not an error worth surfacing.
         let Ok(decoded) = image::load_from_memory(ICON) else { return Vec::new() };
         let rgba = decoded.to_rgba8();
-        (0..rgba.height())
+        let mut grid: Grid = (0..rgba.height())
             .map(|y| {
                 (0..rgba.width())
                     .map(|x| {
@@ -34,8 +34,56 @@ fn grid() -> &'static Grid {
                     })
                     .collect()
             })
-            .collect()
+            .collect();
+        strip_backdrop(&mut grid);
+        grid
     })
+}
+
+/// Key out the icon's own backdrop plate, so the mark sits on the terminal's ground
+/// rather than carrying a colored slab around.
+///
+/// App icons are exported on a filled square; on screen that square would fight the
+/// design's whole thesis. The backdrop is found the honest way: the color that dominates
+/// the opaque border pixels. No majority means no plate — nothing is stripped.
+fn strip_backdrop(grid: &mut Grid) {
+    let height = grid.len();
+    let Some(width) = grid.first().map(Vec::len) else { return };
+
+    let mut border: Vec<Rgb> = Vec::new();
+    for (y, row) in grid.iter().enumerate() {
+        for (x, pixel) in row.iter().enumerate() {
+            if (y == 0 || y == height - 1 || x == 0 || x == width - 1)
+                && let Some(color) = pixel
+            {
+                border.push(*color);
+            }
+        }
+    }
+    let mut dominant: Option<(Rgb, usize)> = None;
+    for color in &border {
+        let count = border.iter().filter(|c| close(**c, *color)).count();
+        if count > dominant.map_or(0, |(_, n)| n) {
+            dominant = Some((*color, count));
+        }
+    }
+    let Some((backdrop, count)) = dominant else { return };
+    if count * 2 <= border.len() {
+        return;
+    }
+
+    for row in grid.iter_mut() {
+        for pixel in row.iter_mut() {
+            if pixel.is_some_and(|c| close(c, backdrop)) {
+                *pixel = None;
+            }
+        }
+    }
+}
+
+/// Near-equality with room for export dithering at the plate's edges.
+fn close(a: Rgb, b: Rgb) -> bool {
+    a.r.abs_diff(b.r) <= 12 && a.g.abs_diff(b.g) <= 12 && a.b.abs_diff(b.b) <= 12
 }
 
 /// Character-cell footprint of the mark: `(width, height)`.

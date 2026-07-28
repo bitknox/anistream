@@ -236,6 +236,7 @@ name = "anistream-ui"
 version = "0.1.0"
 dependencies = [
  "anistream-core",
+ "chrono",
  "crossterm",
  "image",
  "ratatui",

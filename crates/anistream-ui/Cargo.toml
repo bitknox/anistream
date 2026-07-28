@@ -12,6 +12,7 @@ crossterm.workspace = true
 image.workspace = true
 ratatui-image.workspace = true
 ratatui.workspace = true
+chrono.workspace = true
 terminal-colorsaurus.workspace = true
 tracing.workspace = true
 
