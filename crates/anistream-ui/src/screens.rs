@@ -1921,6 +1921,20 @@ fn source_rows(app: &App) -> Vec<(String, String)> {
 
 /// The watch order: prequels, parent story, sequels — the relation in the key column,
 /// so the list reads as a path through the franchise rather than a bare list of names.
+/// The source picker's rows: what each choice is, and which one is in force.
+fn source_provider_rows(app: &App) -> Vec<(String, String)> {
+    app.provider_choices()
+        .into_iter()
+        .map(|(id, label)| {
+            // The marker is the whole point of the list — without it the overlay says what the
+            // options are but not which one this title is already on.
+            let marker =
+                if id.as_deref() == app.provider_preference.as_deref() { "in use" } else { "" };
+            (marker.to_string(), label)
+        })
+        .collect()
+}
+
 fn watch_order_rows(app: &App) -> Vec<(String, String)> {
     let Some(detail) = app.detail.as_ref() else {
         return Vec::new();
@@ -1962,6 +1976,7 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         Overlay::Logs => log_rows(app),
         Overlay::Disambiguate => candidate_rows(app),
         Overlay::Sources => source_rows(app),
+        Overlay::SourceProvider => source_provider_rows(app),
         Overlay::WatchOrder => watch_order_rows(app),
         Overlay::ManualQuery => vec![(
             String::new(),
@@ -1992,6 +2007,7 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
             | Overlay::Logs
             | Overlay::Disambiguate
             | Overlay::Sources
+            | Overlay::SourceProvider
             | Overlay::WatchOrder
     )
     .then_some(app.overlay_selected);
@@ -2065,6 +2081,15 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
             match app.detail.as_ref() {
                 Some(detail) => format!("around {} — enter opens", detail.title),
                 None => "enter opens".into(),
+            }
+        ),
+        // Name the title, since the choice is remembered against it rather than globally.
+        Overlay::SourceProvider => format!(
+            "{}   {}",
+            glyph::eyebrow(overlay.title()),
+            match app.detail.as_ref() {
+                Some(detail) => format!("{} — enter pins it", detail.title),
+                None => "enter pins it".into(),
             }
         ),
         // Name the episode the slate is for, or a wall of release names has no anchor.

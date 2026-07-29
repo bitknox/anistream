@@ -204,6 +204,28 @@ const MIGRATIONS: &[(&str, &str)] = &[
     CREATE INDEX idx_download_state ON download(state, created_at);
     "#,
     ),
+    (
+        "0002_provider_preference",
+        r#"
+    -- "Use this source for this series." Distinct from `mapping_override`, which answers
+    -- *which title* a provider means; this answers *which provider* to ask at all.
+    --
+    -- Per title rather than global because the right answer genuinely varies per series: a
+    -- web source may carry a show the indexer has no seeded release for, and a torrent may be
+    -- the only thing carrying an older season. `providers.order` picks a default; this
+    -- overrides it for one title.
+    --
+    -- The provider is stored by id, and a stored id that no longer exists — a plugin the user
+    -- removed — is treated as "no preference" at read time rather than being cleaned up here.
+    -- Deleting the row would silently discard the choice on a launch where a plugin merely
+    -- failed to compile.
+    CREATE TABLE provider_preference (
+        anilist_id  INTEGER PRIMARY KEY,
+        provider_id TEXT    NOT NULL,
+        created_at  INTEGER NOT NULL
+    );
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.
@@ -269,6 +291,7 @@ mod tests {
             "watch_progress",
             "sync_outbox",
             "episode_meta",
+            "provider_preference",
         ] {
             let found: bool = conn
                 .query_row(

@@ -134,6 +134,25 @@ impl ProviderRegistry {
         self.snapshot().into_iter().find(|p| p.manifest().id == id)
     }
 
+    /// The same registry narrowed to one provider, for a title the user has pinned.
+    ///
+    /// A view rather than a new registry: the [`HealthTracker`] is shared, so a failure while
+    /// pinned still counts against that provider everywhere else, and the Providers screen keeps
+    /// telling the truth. Building a fresh registry would give the pinned title its own private
+    /// health record and quietly re-try a source the rest of the app had already given up on.
+    ///
+    /// `None` when the id names nothing — a plugin that was removed, or one that has not finished
+    /// compiling yet. Callers are expected to read that as "fall back to the normal chain" rather
+    /// than as an error: refusing to play because a remembered preference is momentarily
+    /// unresolvable would be a worse answer than playing from the default source.
+    pub fn pinned(&self, provider_id: &str) -> Option<Self> {
+        let provider = self.get(provider_id)?;
+        Some(Self {
+            providers: Arc::new(std::sync::RwLock::new(vec![provider])),
+            health: self.health.clone(),
+        })
+    }
+
     /// Providers that are worth trying right now, in preference order.
     fn candidates(&self) -> Vec<Arc<dyn Provider>> {
         let usable = self.health.usable(&self.ids());
@@ -339,6 +358,58 @@ mod tests {
         assert_eq!(attempt.provider.as_deref(), Some("a"));
         assert_eq!(attempt.value.unwrap()[0].url, "from-a");
         assert!(attempt.failures.is_empty());
+    }
+
+    #[tokio::test]
+    async fn pinning_uses_the_named_provider_rather_than_the_first() {
+        let r = registry(vec![
+            MockProvider::new("a").with_streams(vec![stream("from-a")]).arc(),
+            MockProvider::new("b").with_streams(vec![stream("from-b")]).arc(),
+        ]);
+        let pinned = r.pinned("b").expect("b is registered");
+        let attempt = pinned.resolve(&ProviderKey::new("k"), "1", Translation::Sub, 0).await;
+        assert_eq!(attempt.provider.as_deref(), Some("b"));
+        assert_eq!(attempt.value.unwrap()[0].url, "from-b");
+    }
+
+    #[tokio::test]
+    async fn a_pinned_provider_does_not_fail_over_to_the_others() {
+        // The point of pinning: substituting another source for the one the user chose would
+        // silently undo the choice, exactly as it would for a picked release.
+        let r = registry(vec![
+            MockProvider::new("a").with_streams(vec![stream("from-a")]).arc(),
+            MockProvider::new("b").failing(ProviderError::Blocked("down".into())).arc(),
+        ]);
+        let pinned = r.pinned("b").expect("b is registered");
+        let attempt = pinned.resolve(&ProviderKey::new("k"), "1", Translation::Sub, 0).await;
+        assert!(attempt.value.is_none(), "must not quietly serve a's stream instead");
+        assert_eq!(attempt.failures.len(), 1);
+    }
+
+    #[test]
+    fn pinning_an_unknown_provider_is_none_rather_than_an_empty_registry() {
+        // An empty registry would resolve to "no providers configured", which reads as a
+        // misconfiguration. `None` lets the caller fall back to the normal chain instead.
+        let r = registry(vec![MockProvider::new("a").arc()]);
+        assert!(r.pinned("a").is_some());
+        assert!(r.pinned("removed-plugin").is_none());
+    }
+
+    #[tokio::test]
+    async fn a_pinned_view_shares_health_with_the_registry_it_came_from() {
+        // Shared rather than copied, so a failure while pinned is still visible on the
+        // Providers screen and to every other title.
+        let r = registry(vec![
+            MockProvider::new("a").arc(),
+            MockProvider::new("b").failing(ProviderError::Blocked("down".into())).arc(),
+        ]);
+        let pinned = r.pinned("b").expect("b is registered");
+        let _ = pinned.resolve(&ProviderKey::new("k"), "1", Translation::Sub, 0).await;
+        let recorded = r.health().get("b").expect("b is tracked");
+        assert!(
+            recorded.consecutive_failures > 0,
+            "the failure should be recorded on the shared tracker"
+        );
     }
 
     #[tokio::test]
