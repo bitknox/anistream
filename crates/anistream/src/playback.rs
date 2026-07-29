@@ -44,6 +44,106 @@ pub struct PlaybackContext {
     pub volume: Option<f64>,
 }
 
+/// Download a stream's external subtitles and point it at the local copies.
+///
+/// **A stream's headers are its subtitles' headers.** A provider returns whatever a track needs
+/// alongside the stream it belongs to, and getting that right is the provider's job, not this
+/// one's. So nothing is guessed here: each track is requested with exactly what the stream
+/// declared, through the emulated client, so a subtitle behind the same protection as its video
+/// is fetched the same way the video would be.
+///
+/// **What this buys over handing the URL to mpv** is that a track which cannot actually be
+/// retrieved is never offered. A provider may list a track that its chosen stream's headers do
+/// not open — listings are often scoped to the episode rather than to the individual stream — and
+/// mpv would accept that URL, fail quietly, and leave an empty track for the user to cycle onto.
+/// Fetching first turns that into a track that is simply absent.
+///
+/// Files land beside the IPC socket, in a directory the player already owns.
+async fn localise_subtitles(http: &HttpClient, mpv: &Mpv, stream: &mut Stream) {
+    let soft = stream.subtitles.iter().filter(|s| !s.hard).count();
+    if soft == 0 {
+        return;
+    }
+
+    let dir = mpv.scratch_dir().join("subs");
+    if tokio::fs::create_dir_all(&dir).await.is_err() {
+        return;
+    }
+
+    // Exactly what the stream declared, because that is what the subtitle host wants too.
+    let headers = stream.headers.clone();
+    let mut kept = Vec::with_capacity(stream.subtitles.len());
+
+    for (index, mut subtitle) in std::mem::take(&mut stream.subtitles).into_iter().enumerate() {
+        // Already burned in, or already a local path — nothing to fetch either way.
+        if subtitle.hard || !subtitle.url.starts_with("http") {
+            kept.push(subtitle);
+            continue;
+        }
+
+        let mut request = http.emulated().get(&subtitle.url);
+        for (name, value) in &headers {
+            request = request.header(name.as_str(), value.as_str());
+        }
+
+        let fetched = match request.send().await {
+            Ok(response) if response.status().is_success() => response.bytes().await.ok(),
+            Ok(response) => {
+                tracing::debug!(url = %subtitle.url, status = %response.status(), "subtitle refused");
+                None
+            }
+            Err(error) => {
+                tracing::debug!(url = %subtitle.url, %error, "subtitle fetch failed");
+                None
+            }
+        };
+
+        // Dropped rather than passed along. mpv would request it with the same headers and get
+        // the same refusal, so keeping it only buys the user an empty track to cycle onto.
+        let Some(body) = fetched.filter(|b| !b.is_empty()) else {
+            tracing::debug!(language = %subtitle.language, "subtitle dropped: could not be fetched");
+            continue;
+        };
+
+        // The extension is what tells mpv which parser to use, so it is taken from the URL
+        // rather than assumed — `.vtt` and `.ass` are both common and are not interchangeable.
+        let extension = subtitle
+            .url
+            .rsplit('/')
+            .next()
+            .and_then(|name| name.rsplit_once('.'))
+            .map(|(_, ext)| ext)
+            .filter(|ext| ext.len() <= 5 && ext.chars().all(|c| c.is_ascii_alphanumeric()))
+            .unwrap_or("vtt");
+        // Indexed rather than hashed: two tracks in the same language would otherwise collide
+        // and the second would silently replace the first.
+        let path = dir.join(format!("{index}-{}.{extension}", sanitise(&subtitle.language)));
+
+        match tokio::fs::write(&path, &body).await {
+            Ok(()) => {
+                tracing::debug!(language = %subtitle.language, path = %path.display(), "subtitle cached");
+                subtitle.url = path.to_string_lossy().into_owned();
+            }
+            // The fetch worked and only the write failed, so the remote URL is still good.
+            Err(error) => tracing::debug!(%error, "could not cache subtitle; using its url"),
+        }
+        kept.push(subtitle);
+    }
+
+    stream.subtitles = kept;
+}
+
+/// Reduce a language label to something safe to put in a filename.
+fn sanitise(language: &str) -> String {
+    let cleaned: String = language
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .take(16)
+        .collect::<String>()
+        .to_ascii_lowercase();
+    if cleaned.is_empty() { "sub".into() } else { cleaned }
+}
+
 /// Fetch skip intervals for an episode.
 ///
 /// Keyed on MAL id, so a title the mapping layer could not resolve simply has no skip data —
@@ -168,6 +268,10 @@ pub async fn play(
     }
 
     let skips = fetch_skips(&http, context.mal_id, &context.episode).await;
+
+    // Before mpv starts, so the tracks are on disk by the time it reads its arguments.
+    let mut stream = stream;
+    localise_subtitles(&http, &mpv, &mut stream).await;
 
     let request = PlaybackRequest {
         title: context.title.clone(),

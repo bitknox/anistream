@@ -9,6 +9,7 @@
 //! `end-file` reason is the difference between "you finished the episode" and "you abandoned
 //! it", and that decision gets pushed to a tracker.
 
+use anistream_core::stream::Subtitle;
 use serde::Deserialize;
 
 /// Property observation ids. Fixed rather than allocated, so a reply can be attributed
@@ -267,6 +268,7 @@ pub fn stream_args(
     volume: Option<f64>,
     subtitle_language: Option<&str>,
     dub: bool,
+    subtitles: &[Subtitle],
 ) -> Vec<String> {
     let mut args = Vec::new();
 
@@ -303,6 +305,37 @@ pub fn stream_args(
             args.push(format!("--slang={own}"));
         }
     }
+
+    // Subtitles a source hands over as separate files.
+    //
+    // Without this they are simply lost, and silently: a source that ships its subtitles beside
+    // the video rather than muxed into the container plays with no subtitles at all, while the
+    // video itself is perfectly fine. Sources that mux need nothing here, which is why the
+    // omission stayed invisible for as long as it did.
+    //
+    // `hard` tracks are skipped: they are already burned into the video, so adding them would be
+    // an empty second track the user can cycle onto.
+    //
+    // Order is load-bearing. mpv numbers external files in the order they are given and, with
+    // nothing better to go on, selects the first — so the preferred language goes first rather
+    // than whichever the source happened to list first.
+    let mut soft: Vec<&Subtitle> = subtitles.iter().filter(|s| !s.hard).collect();
+    if let Some(language) = subtitle_language {
+        let wanted = language_variants(language);
+        // Matched by prefix in both directions, because sources label the same track `en`,
+        // `eng` and `english` interchangeably and an exact comparison would miss two of the
+        // three. Stable, so tracks that tie keep the order the source listed them in.
+        soft.sort_by_key(|s| {
+            let have = s.language.to_ascii_lowercase();
+            !wanted.split(',').any(|code| {
+                !have.is_empty() && (have.starts_with(code) || code.starts_with(&have))
+            })
+        });
+    }
+    for subtitle in soft {
+        args.push(format!("--sub-file={}", subtitle.url));
+    }
+
     args
 }
 
@@ -475,7 +508,7 @@ mod tests {
             ("Referer".to_string(), "https://example.test/".to_string()),
             ("Origin".to_string(), "https://example.test".to_string()),
         ];
-        let args = stream_args(&headers, None, None, None, None, false);
+        let args = stream_args(&headers, None, None, None, None, false, &[]);
         let joined = args.join(" ");
         assert!(joined.contains("--http-header-fields="));
         assert!(joined.contains("Referer: https://example.test/"));
@@ -484,12 +517,12 @@ mod tests {
 
     #[test]
     fn no_headers_means_no_header_argument() {
-        assert!(stream_args(&[], None, None, None, None, false).is_empty());
+        assert!(stream_args(&[], None, None, None, None, false, &[]).is_empty());
     }
 
     #[test]
     fn a_resume_point_becomes_a_start_argument() {
-        let args = stream_args(&[], Some(612.5), None, None, None, false);
+        let args = stream_args(&[], Some(612.5), None, None, None, false, &[]);
         assert!(args.iter().any(|a| a == "--start=612.5"));
     }
 
@@ -497,15 +530,15 @@ mod tests {
     fn a_trivial_resume_point_is_not_passed() {
         // Resuming at half a second is indistinguishable from starting, and passing it
         // makes mpv seek for no reason.
-        assert!(stream_args(&[], Some(0.4), None, None, None, false).is_empty());
-        assert!(stream_args(&[], Some(0.0), None, None, None, false).is_empty());
+        assert!(stream_args(&[], Some(0.4), None, None, None, false, &[]).is_empty());
+        assert!(stream_args(&[], Some(0.0), None, None, None, false, &[]).is_empty());
     }
 
     #[test]
     fn normal_speed_is_not_passed_but_a_carried_speed_is() {
-        assert!(stream_args(&[], None, Some(1.0), None, None, false).is_empty());
+        assert!(stream_args(&[], None, Some(1.0), None, None, false, &[]).is_empty());
         assert!(
-            stream_args(&[], None, Some(1.5), None, None, false)
+            stream_args(&[], None, Some(1.5), None, None, false, &[])
                 .iter()
                 .any(|a| a == "--speed=1.5")
         );
@@ -515,7 +548,7 @@ mod tests {
     fn a_sub_watcher_gets_original_audio_with_their_subtitles() {
         // The old behaviour set `--alang` to the *subtitle* language, which on a
         // dual-audio release handed a sub watcher the dub. Track order never decides.
-        let args = stream_args(&[], None, None, None, Some("eng"), false);
+        let args = stream_args(&[], None, None, None, Some("eng"), false, &[]);
         assert!(args.iter().any(|a| a == "--alang=ja,jpn,jp"), "got {args:?}");
         assert!(args.iter().any(|a| a == "--slang=en,eng"), "got {args:?}");
         assert!(!args.iter().any(|a| a.contains("subs-with-matching-audio")));
@@ -523,11 +556,75 @@ mod tests {
 
     #[test]
     fn a_dub_watcher_gets_their_audio_and_signs_only_subtitles() {
-        let args = stream_args(&[], None, None, None, Some("eng"), true);
+        let args = stream_args(&[], None, None, None, Some("eng"), true, &[]);
         assert!(args.iter().any(|a| a == "--alang=en,eng"), "got {args:?}");
         assert!(
             args.iter().any(|a| a == "--subs-with-matching-audio=no"),
             "full subs over matching audio are redundant: {args:?}"
         );
+    }
+
+    fn subtitle(language: &str, url: &str, hard: bool) -> Subtitle {
+        Subtitle { language: language.into(), url: url.into(), hard }
+    }
+
+    #[test]
+    fn external_subtitle_files_are_handed_to_the_player() {
+        // Without this a source that ships its subtitles as a separate `.vtt` plays with no
+        // subtitles at all, and silently — the video itself is fine.
+        let subs = [subtitle("english", "https://cdn.test/eng.vtt", false)];
+        let args = stream_args(&[], None, None, None, Some("eng"), false, &subs);
+        assert!(
+            args.iter().any(|a| a == "--sub-file=https://cdn.test/eng.vtt"),
+            "got {args:?}"
+        );
+    }
+
+    #[test]
+    fn the_preferred_language_is_offered_first() {
+        // mpv numbers external files in the order given and selects the first, so ordering
+        // here is what decides which track the user actually sees.
+        let subs = [
+            subtitle("spanish", "https://cdn.test/spa.vtt", false),
+            subtitle("english", "https://cdn.test/eng.vtt", false),
+        ];
+        let args = stream_args(&[], None, None, None, Some("eng"), false, &subs);
+        let files: Vec<&String> =
+            args.iter().filter(|a| a.starts_with("--sub-file=")).collect();
+        assert_eq!(files[0], "--sub-file=https://cdn.test/eng.vtt", "got {files:?}");
+        assert_eq!(files.len(), 2, "the others stay available to cycle onto");
+    }
+
+    #[test]
+    fn a_language_matches_across_its_spellings() {
+        // Sources label the same track `en`, `eng` and `english` interchangeably; an exact
+        // comparison would miss two of the three and mis-order the list.
+        for spelling in ["en", "eng", "english", "English"] {
+            let subs = [
+                subtitle("french", "https://cdn.test/fr.vtt", false),
+                subtitle(spelling, "https://cdn.test/en.vtt", false),
+            ];
+            let args = stream_args(&[], None, None, None, Some("eng"), false, &subs);
+            let first = args.iter().find(|a| a.starts_with("--sub-file=")).unwrap();
+            assert_eq!(
+                first, "--sub-file=https://cdn.test/en.vtt",
+                "{spelling} lost its match"
+            );
+        }
+    }
+
+    #[test]
+    fn burned_in_subtitles_are_not_offered_as_a_file() {
+        // A hard track is already in the video; adding it would be an empty second entry the
+        // user can cycle onto.
+        let subs = [subtitle("english", "https://cdn.test/burned", true)];
+        let args = stream_args(&[], None, None, None, Some("eng"), false, &subs);
+        assert!(!args.iter().any(|a| a.starts_with("--sub-file=")), "got {args:?}");
+    }
+
+    #[test]
+    fn no_subtitles_means_no_subtitle_arguments() {
+        let args = stream_args(&[], None, None, None, None, false, &[]);
+        assert!(!args.iter().any(|a| a.starts_with("--sub-file=")), "got {args:?}");
     }
 }

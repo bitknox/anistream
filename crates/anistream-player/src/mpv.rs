@@ -267,6 +267,15 @@ impl Mpv {
         self
     }
 
+    /// Where this player keeps its per-session scratch files.
+    ///
+    /// Exposed so a caller can put a file *next to* the IPC socket and the key script rather
+    /// than inventing its own temp directory — subtitles fetched ahead of playback are the
+    /// case that needs it.
+    pub fn scratch_dir(&self) -> &std::path::Path {
+        &self.socket_dir
+    }
+
     /// Flags appended after everything anistream sets.
     ///
     /// Last wins in mpv, so these can override our own choices — which is what makes it a
@@ -330,6 +339,7 @@ impl Mpv {
             request.volume,
             request.subtitle_language.as_deref(),
             request.dub,
+            &stream.subtitles,
         ));
         // The in-player keys: Shift+N/P step episodes from inside mpv, announced back to
         // us as script-messages. A file rather than flags because key bindings are the one
