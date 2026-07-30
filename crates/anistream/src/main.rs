@@ -2015,7 +2015,7 @@ fn dispatch(
                         .flatten(),
                 };
                 playback::play(
-                    stream,
+                    vec![stream],
                     context,
                     store,
                     http,
@@ -2103,17 +2103,16 @@ fn spawn_playback(
                 return;
             }
         };
-        let (stream, context) = context;
-        // Name the provider that actually answered — during failover the header would
-        // otherwise credit the configured first choice, which is the one that failed.
-        let _ = tx.send(Update::ActiveProvider(stream.provider_id.clone()));
-        // And say why this release, so an automatic pick is never a mystery.
-        if let Some(note) = &stream.pick_note {
-            let _ = tx.send(Update::Toast(Toast::info(note.clone())));
+        let (streams, context) = context;
+        // Say why this release, so an automatic pick is never a mystery. The active-provider
+        // header is sent from playback itself, per attempt, so failover never credits the
+        // stream that just failed.
+        if let Some(note) = streams.first().and_then(|s| s.pick_note.clone()) {
+            let _ = tx.send(Update::Toast(Toast::info(note)));
         }
 
         playback::play(
-            stream,
+            streams,
             context,
             store,
             http,
@@ -2143,7 +2142,8 @@ async fn resolve_for_playback(
     pick: Option<(String, String)>,
     playback: &anistream_core::config::PlaybackConfig,
     tx: &mpsc::UnboundedSender<Update>,
-) -> std::result::Result<(anistream_core::stream::Stream, playback::PlaybackContext), String> {
+) -> std::result::Result<(Vec<anistream_core::stream::Stream>, playback::PlaybackContext), String>
+{
     if registry.is_empty() {
         return Err("no sources configured — see the Providers screen".into());
     }
@@ -2206,9 +2206,13 @@ async fn resolve_for_playback(
         }
     };
 
-    // Toward the configured quality, preferring a step down over upscaling.
+    // Toward the configured quality, preferring a step down over upscaling. The whole list is
+    // returned rather than the winner: the sort is a preference, and playback falls over to
+    // the next entry when a stream turns out not to decode.
     streams.sort_by_key(|s| s.quality_rank(playback.quality));
-    let stream = streams.into_iter().next().ok_or("no playable stream")?;
+    if streams.is_empty() {
+        return Err("no playable stream".into());
+    }
 
     // Resume and skip data are both best-effort: a database hiccup or a missing MAL id must
     // not stop an episode from playing.
@@ -2233,7 +2237,7 @@ async fn resolve_for_playback(
         speed: playback.persist_speed.then_some(playback.persisted_speed).flatten(),
         volume: playback.persist_volume.then_some(playback.persisted_volume).flatten(),
     };
-    Ok((stream, context))
+    Ok((streams, context))
 }
 
 /// The selectable releases for one episode, across every usable provider.
