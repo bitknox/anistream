@@ -145,6 +145,21 @@ async fn localise_subtitles(http: &HttpClient, mpv: &Mpv, stream: &mut Stream) {
     stream.subtitles = kept;
 }
 
+/// An unguessable-enough path token for one playback attempt's mender.
+///
+/// Not a security boundary — binding to loopback is — but it keeps an unrelated local process
+/// from stumbling onto the proxy, and differs per attempt so a stale connection from a failed
+/// stream cannot address the next one's.
+fn mender_token(context: &PlaybackContext, attempt: usize) -> String {
+    format!(
+        "{}-{}-{}-{}",
+        context.anilist_id.get(),
+        sanitise(&context.episode),
+        attempt,
+        anistream_store::now()
+    )
+}
+
 /// Reduce a language label to something safe to put in a filename.
 fn sanitise(language: &str) -> String {
     let cleaned: String = language
@@ -306,6 +321,17 @@ pub async fn play(
         // Before mpv starts, so the tracks are on disk by the time it reads its arguments.
         let mut stream = stream;
         localise_subtitles(&http, &mpv, &mut stream).await;
+
+        // HLS goes through the mender: segments arrive dressed as other things often enough
+        // that checking is worth a loopback hop, and a healthy stream passes through
+        // byte-for-byte. Held for the whole attempt — dropping it would kill the proxy mid
+        // playback — and replaced on the next, so a stream that failed leaves nothing behind.
+        let mut menders = crate::mend::Menders::default();
+        if stream.kind == StreamKind::Hls {
+            stream.url = menders
+                .route(&http, &stream.url, &stream.headers, &mender_token(&context, attempt))
+                .await;
+        }
 
         let request = PlaybackRequest {
             title: context.title.clone(),

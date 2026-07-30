@@ -309,6 +309,7 @@ cargo run -p anistream-providers --example stream_probe    # torrent path throug
 cargo run -p anistream --example playback_probe            # torrent → mpv → history
 cargo run -p anistream --example sync_probe -- --write     # AniList push, then undo
 cargo run -p anistream --example mal_probe -- --write      # MAL push, then undo
+cargo run -p anistream --example mend_probe -- <url>       # disguised HLS → mpv
 cargo run -p anistream-meta --example filler_probe         # filler parsing
 cargo run -p anistream-meta --example episode_meta_probe   # episode titles, stills, numbering
 cargo run -p anistream --example episodes_probe            # every stage from title to stream
