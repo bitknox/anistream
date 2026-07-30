@@ -50,6 +50,18 @@ content and none of the entries are on until you configure them:
 Drop `"plugins"` from the order if you are not using them; the JavaScript reference plugin costs
 ~874 ms to compile at startup.
 
+The order is a default, not a rule: `P` on a title pins one source for that title, and `s` on an
+episode picks an exact release. Pinned sources do not fail over.
+
+A plugin that needs an API key or similar reads it from its own settings table:
+
+```toml
+[providers.plugins.settings.my-source]
+api-key = "…"
+```
+
+All keys are optional and defined by the plugin; anistream passes them through unread.
+
 ## Downloads
 
 ```toml

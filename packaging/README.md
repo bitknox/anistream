@@ -18,6 +18,9 @@ macOS is the awkward one. Finder launches a bundle with no controlling terminal,
 list of terminals — `$ANISTREAM_TERMINAL` first, then Ghostty, kitty, WezTerm, iTerm and finally
 Terminal.app, which every Mac has.
 
+The Linux AppImage embeds the same `.desktop` entry and icon, and is assembled inline in the
+release workflow like the `.deb`.
+
 ## Files
 
 - `linux/anistream.desktop` — desktop entry, installed to `/usr/share/applications`
