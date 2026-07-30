@@ -45,7 +45,8 @@ content and none of the entries are on until you configure them:
 - `"torrent"` — the BitTorrent transport, pointed at an indexer you configure and gated
   behind the [VPN guard](/docs/guides/torrents-vpn/)
 - `"plugins"` — any [provider plugins](/docs/plugins/authoring/) you have installed
-- `"remote"` — a Consumet-shaped API you host yourself
+- `"remote"` — a Consumet-shaped API you host yourself, which does nothing until
+  `providers.remote_url` names it
 
 Drop `"plugins"` from the order if you are not using them; the JavaScript reference plugin costs
 ~874 ms to compile at startup.
@@ -66,11 +67,18 @@ All keys are optional and defined by the plugin; anistream passes them through u
 
 ```toml
 [downloads]
-dir = "~/Downloads/anistream"
+directory = "~/Downloads/anistream"
 ```
 
 Completed downloads get subtitles muxed into the file, as a stream copy with no re-encode. Seeding
 is off by default, which is a privacy choice.
+
+:::caution
+Every section is validated with unknown keys rejected, and a config that fails to parse falls back
+to the defaults **wholesale** — losing your VPN mode, indexer and tracker credentials for that run.
+A misspelled key is not ignored, so the warning on stderr is worth reading before the TUI paints
+over it.
+:::
 
 ## Everything else
 

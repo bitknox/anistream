@@ -26,8 +26,8 @@ Tracker sync covers AniList, MyAnimeList, Simkl and Trakt through an outbox that
 offline. Filler and recap episodes are marked from AnimeFillerList. Discord rich presence reports
 what you are watching.
 
-Kitsu sync is the one tracker not built. Crunchyroll streams are DRM-protected, so mpv cannot play
-them and anistream will not work around that — episodes open in Crunchyroll instead.
+Kitsu sync is the one tracker not built. anistream will not work around DRM: where a licensed
+catalogue is integrated at all, it will be as a link that opens in that service.
 
 ## Install
 
@@ -328,6 +328,6 @@ The metadata, mapping, player, tracker and plugin layers use documented public A
 hosts no content and ships no catalogue of its own. The torrent source is a transport; what you
 point any source at is your configuration, and the responsibility that comes with it is yours.
 Torrenting is off by default and gated behind the VPN guard, and every source is a config edit away
-from being removed. anistream will not circumvent DRM — Crunchyroll episodes open in Crunchyroll.
+from being removed. anistream will not circumvent DRM.
 
 MIT.

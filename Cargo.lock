@@ -173,6 +173,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "cbc",
+ "futures",
  "regex",
  "tempfile",
  "thiserror 2.0.19",

@@ -716,10 +716,28 @@ impl Keymap {
     ///
     /// Generated from the live table — this *is* the documentation, so it cannot drift.
     pub fn help(&self) -> Vec<(Scope, Vec<(String, &'static str)>)> {
+        // The jump keys are one concept, collapsed to a range rather than listed individually —
+        // and the range is read off the live table rather than written down, because a hardcoded
+        // one silently went stale when a ninth section was added.
+        let jump_range = {
+            let mut numbers: Vec<u8> = self
+                .bindings
+                .values()
+                .filter_map(|action| match action {
+                    Action::JumpSection(n) => Some(*n),
+                    _ => None,
+                })
+                .collect();
+            numbers.sort_unstable();
+            match (numbers.first(), numbers.last()) {
+                (Some(first), Some(last)) if first != last => format!("{first}–{last}"),
+                (Some(only), _) => only.to_string(),
+                _ => String::new(),
+            }
+        };
+
         let mut grouped: BTreeMap<Scope, BTreeMap<Action, Vec<Binding>>> = BTreeMap::new();
         for (binding, action) in self.bindings.iter().chain(self.playback.iter()) {
-            // The eight jump keys are one concept; listing them individually would bury
-            // everything else.
             if matches!(action, Action::JumpSection(n) if *n != 1) {
                 continue;
             }
@@ -740,7 +758,7 @@ impl Keymap {
                     .map(|(action, mut keys)| {
                         keys.sort();
                         let rendered = if matches!(action, Action::JumpSection(_)) {
-                            "1–8".to_string()
+                            jump_range.clone()
                         } else {
                             keys.iter().map(Binding::render).collect::<Vec<_>>().join(" / ")
                         };
@@ -1035,7 +1053,10 @@ mod tests {
         let jump_rows: Vec<_> =
             global.iter().filter(|(_, label)| *label == "Go to section").collect();
         assert_eq!(jump_rows.len(), 1);
-        assert_eq!(jump_rows[0].0, "1–8");
+        // Read off the live table, so adding a section cannot leave the overlay claiming a
+        // range that stops short of it.
+        let sections = crate::nav::Section::ALL.len();
+        assert_eq!(jump_rows[0].0, format!("1–{sections}"));
     }
 
     #[test]

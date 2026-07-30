@@ -34,6 +34,7 @@ curation_url = "https://your-curation.example/api/records?filter=(alID={anilist_
 
 [providers.torrent.vpn]
 mode = "socks5"                            # "socks5" | "external" | "none"
+                                           # "none" also needs i_understand_my_ip_is_exposed = true
 socks_url = "socks5://10.64.0.1:1080"      # Mullvad's in-tunnel endpoint
 mullvad_exit = true                        # or require_asn_org = ["31173"]
 verify_interval_secs = 60

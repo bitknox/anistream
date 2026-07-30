@@ -6,8 +6,8 @@ like a native source — same ranking, health tracking and failover. Any WASI 0.
 reference implementations in Rust and JavaScript live in `plugins/`.
 
 **The sandbox has no sockets — the host lends `fetch`.** The host owns the browser-shaped TLS
-fingerprint, rate limiter and cookie jar; your plugin is a parser. It cannot reach anything
-outside its declared `allowed-hosts`, enforced host-side.
+fingerprint; your plugin is a parser. It cannot reach anything outside its declared
+`allowed-hosts`, enforced host-side.
 
 ## The interface
 
@@ -94,15 +94,16 @@ Measured with `cargo run -p anistream-plugin --example plugin_bench --release`:
 |            | size    | compile (once) | per call |
 | ---------- | ------- | -------------- | -------- |
 | Rust       | 0.1 MB  | 19 ms          | 38 µs    |
-| JavaScript | 12.0 MB | 1.06 s         | 923 µs   |
+| JavaScript | 12.2 MB | 1.06 s         | 923 µs   |
 
 Both run under the same default limits; both are negligible beside one HTTP request. Every call
 gets a fresh store, so no state survives between calls.
 
 ## The sandbox
 
-All limits are enforced host-side. Ceilings are configurable under `[providers.plugins]`; raising
-one cannot grant a new capability.
+All limits are enforced host-side. `memory_mb` and `deadline_secs` are configurable under
+`[providers.plugins]`; the fetch budget and body ceiling are fixed. Raising a ceiling cannot
+grant a new capability.
 
 | Limit           | Default                   |
 | --------------- | ------------------------- |
@@ -117,8 +118,12 @@ The allowlist: http/https only; exact host or subdomain; no credentials in the U
 private addresses even if declared; redirects are not followed — the next hop is allowlisted
 again. Reserved headers (`host`, `content-length`, `connection`, `transfer-encoding`,
 `accept-encoding`) are refused; `referer`, `cookie` and `user-agent` are yours. `config-get` sees
-only your own settings table, and `describe` runs with none. WASI is linked but grants nothing: no
-filesystem, sockets, random or wall clock.
+only your own settings table, and the `describe` that reads your manifest at load time runs with
+no capabilities at all — no settings, no allowlist, no client.
+
+WASI is linked, and the context is what withholds: no preopened directories, so nothing on disk is
+openable; every socket address is refused; no environment, no stdio. A guest can read the clock and
+take random bytes, and that is the whole extent of it.
 
 ## Testing and publishing
 

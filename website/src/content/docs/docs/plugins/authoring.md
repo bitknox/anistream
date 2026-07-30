@@ -100,7 +100,7 @@ Measured with `cargo run -p anistream-plugin --example plugin_bench --release`:
 | | size | compile (once) | per call |
 |---|---|---|---|
 | Rust | 0.1 MB | 19 ms | 38 µs |
-| JavaScript | 12.0 MB | 1.06 s | 923 µs |
+| JavaScript | 12.2 MB | 1.06 s | 923 µs |
 
 Both run under the same default limits; both are negligible beside one HTTP request. Every call
 gets a fresh store, so no state survives between calls.
