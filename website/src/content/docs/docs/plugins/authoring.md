@@ -72,8 +72,7 @@ Do not flatten `not-found` into `other` — that makes every missing episode wal
 ```sh
 cargo build --release --target wasm32-wasip2 \
   --manifest-path plugins/example-rust/Cargo.toml
-cp plugins/example-rust/target/wasm32-wasip2/release/anistream_example_plugin.wasm \
-  ~/.config/anistream/plugins/
+# then copy the .wasm into the plugin directory — `anistream --plugins` prints it
 ```
 
 Start from `plugins/example-rust/src/lib.rs` — it exercises the whole ABI against a stable
@@ -83,12 +82,12 @@ endpoint.
 
 ```sh
 cd plugins/example-ts && npm install && npm run build
-cp anistream-example-plugin-ts.wasm ~/.config/anistream/plugins/
+# then copy anistream-example-plugin-ts.wasm into the plugin directory
 ```
 
 Five differences from Rust:
 
-- Imports carry the package version: `anistream:provider/host@1.0.0`.
+- Imports carry the package version: `anistream:provider/host@1.1.0`.
 - Names are lowerCamelCase: `list-episodes` → `listEpisodes`.
 - Errors are thrown, not returned: `throw { tag: 'not-found' }`. `fetch` needs `try`/`catch`.
 - Exports run without a receiver — `this.resolve(…)` traps; share a plain function.

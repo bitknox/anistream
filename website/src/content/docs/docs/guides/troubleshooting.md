@@ -13,7 +13,10 @@ anistream --stream-url 154587 --episode 1 # resolve one episode, print the URL, 
 `--stream-url` separates the two failure modes. If `mpv --no-config <that url>` plays, the problem
 is in anistream. If it does not, it is the player or the source, and mpv says which.
 
-anistream captures mpv's stderr and shows the relevant line. `L` opens the in-app logs.
+anistream captures mpv's stderr and shows the relevant line. `L` opens the in-app logs; the files
+roll daily under the cache directory (see
+[where things live](/docs/getting-started/installation/#where-things-live)) at `info`, and
+`ANISTREAM_LOG=debug` turns up the detail.
 
 ## Slow starts
 
