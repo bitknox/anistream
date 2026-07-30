@@ -13,7 +13,10 @@ anistream --stream-url 154587 --episode 1 # resolve one episode, print the URL, 
 `--stream-url` separates the two failure modes. If `mpv --no-config <that url>` plays, the problem
 is in anistream. If it does not, it is the player or the source, and mpv says which.
 
-anistream captures mpv's stderr and shows the relevant line. `L` opens the in-app logs.
+anistream captures mpv's stderr and shows the relevant line. `L` opens the in-app logs; the files
+roll daily under the cache directory (see
+[where things live](/docs/getting-started/installation/#where-things-live)) at `info`, and
+`ANISTREAM_LOG=debug` turns up the detail.
 
 ## Slow starts
 
@@ -30,9 +33,9 @@ forces halfblocks if a terminal advertises a protocol it does not deliver.
 ## "Which one?" when opening episodes
 
 A torrent source has no catalogue, so titles are matched by name and two releases can score within
-a point of each other. Rather than fail, the episodes screen lists the candidates best-first with
-the score each got, and `↵` picks one. Your choice is stored as an override, so you are asked once
-per title.
+a point of each other. Rather than fail, an overlay lists the candidates best-first with the
+similarity each scored, and `↵` picks one. Your choice is stored as an override, so you are asked
+once per title per source.
 
 ## Nothing plays at all
 

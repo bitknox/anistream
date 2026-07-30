@@ -12,26 +12,26 @@
 //! limiter is consulted for every growth of every memory and table, which is what actually bounds
 //! a guest's footprint.
 //!
-//! **WASI is linked, but it grants nothing.** This was going to say "no WASI at all", which would
-//! have been a nicer claim and a false one. A `wasm32-wasip2` component built in *any* language
-//! imports a WASI floor for its standard library — measured on the reference plugin with
-//! `wasm-tools component wit`:
+//! **WASI is linked, and the context is what withholds.** A `wasm32-wasip2` component built in
+//! *any* language imports a WASI floor for its standard library, so refusing to link it would
+//! mean every plugin author compiling to `wasm32-unknown-unknown` and running
+//! `wasm-tools component new` by hand. [`wasmtime_wasi::p2::add_to_linker_async`] therefore adds
+//! the whole p2 surface — filesystem, sockets, random, clocks, cli — and containment comes from
+//! [`empty_wasi`] rather than from an absent import.
 //!
-//! ```text
-//! wasi:io/poll, wasi:io/streams, wasi:io/error
-//! wasi:clocks/monotonic-clock
-//! wasi:cli/std{in,out,err}, wasi:cli/terminal-*, wasi:cli/environment, wasi:cli/exit
-//! ```
+//! What that context permits, precisely, because a vaguer claim here would be a false one:
 //!
-//! What matters is what is *absent*: no `wasi:filesystem`, no `wasi:sockets`, no `wasi:random`,
-//! no wall clock. Those are not merely unlinked — a component that imported them would fail to
-//! instantiate, because they are not in the linker. So the context handed over is empty: no
-//! preopened directories, no environment variables, no inherited stdio, no network. A guest can
-//! measure elapsed time and write to a discarded stdout; that is the whole extent of it.
+//! - **Filesystem: nothing.** No preopens, so a guest holds no directory handle to open from.
+//! - **Sockets: nothing.** `SocketAddrCheck` defaults to refusing every address, so a connect
+//!   fails no matter what the guest asks for.
+//! - **Environment and stdio: nothing.** No variables, no inherited descriptors.
+//! - **Clocks and random: yes.** A guest can read the wall clock and take random bytes. Neither
+//!   reaches anything outside the sandbox, and denying them would break standard libraries that
+//!   seed a hash map at startup.
 //!
-//! Refusing to link WASI at all would mean plugin authors compiling to
-//! `wasm32-unknown-unknown` and running `wasm-tools component new` by hand — friction paid by
-//! every plugin in every language, to remove capabilities that grant nothing.
+//! So a component importing `wasi:sockets` instantiates happily and then cannot connect —
+//! failing at the capability rather than at the link is what makes the guarantee hold for
+//! languages whose runtime imports more than it uses.
 
 use std::{path::Path, sync::Arc, time::Duration};
 
@@ -131,11 +131,12 @@ impl wasmtime_wasi::WasiView for PluginState {
     }
 }
 
-/// A context with every capability withheld.
+/// A context with every reachable capability withheld.
 ///
 /// `WasiCtxBuilder` defaults to granting nothing, so this is deliberately *not* calling any of
 /// `inherit_stdio`, `inherit_env`, `preopened_dir` or `inherit_network`. Written out rather than
-/// left implicit, because the absence of those calls is the security property.
+/// left implicit, because the absence of those calls *is* the security property — the interfaces
+/// themselves are linked, as the module docs explain.
 fn empty_wasi() -> wasmtime_wasi::WasiCtx {
     wasmtime_wasi::WasiCtxBuilder::new().build()
 }
@@ -165,28 +166,49 @@ impl wasmtime::ResourceLimiter for Ceiling {
     }
 }
 
+/// One authorised fetch, in the guest's error vocabulary. Shared by `fetch` and `fetch-many`.
+async fn one_fetch(
+    capabilities: &Capabilities,
+    request: HttpRequest,
+) -> Result<HttpResponse, GuestHostError> {
+    let outbound = host::Request {
+        method: request.method,
+        url: request.url,
+        headers: request.headers,
+        body: request.body,
+    };
+    match capabilities.fetch(outbound).await {
+        Ok(response) => Ok(HttpResponse {
+            status: response.status,
+            headers: response.headers,
+            body: response.body,
+        }),
+        Err(host::HostError::Denied(m)) => Err(GuestHostError::Denied(m)),
+        Err(host::HostError::Timeout) => Err(GuestHostError::Timeout),
+        Err(host::HostError::Transport(m)) => Err(GuestHostError::Transport(m)),
+    }
+}
+
 // The host side of the WIT `host` interface. This is the entire surface a guest can reach.
 impl anistream::provider::host::Host for PluginState {
     async fn fetch(
         &mut self,
         request: HttpRequest,
     ) -> wasmtime::Result<Result<HttpResponse, GuestHostError>> {
-        let outbound = host::Request {
-            method: request.method,
-            url: request.url,
-            headers: request.headers,
-            body: request.body,
-        };
-        Ok(match self.capabilities.fetch(outbound).await {
-            Ok(response) => Ok(HttpResponse {
-                status: response.status,
-                headers: response.headers,
-                body: response.body,
-            }),
-            Err(host::HostError::Denied(m)) => Err(GuestHostError::Denied(m)),
-            Err(host::HostError::Timeout) => Err(GuestHostError::Timeout),
-            Err(host::HostError::Transport(m)) => Err(GuestHostError::Transport(m)),
-        })
+        Ok(one_fetch(&self.capabilities, request).await)
+    }
+
+    async fn fetch_many(
+        &mut self,
+        requests: Vec<HttpRequest>,
+    ) -> wasmtime::Result<Vec<Result<HttpResponse, GuestHostError>>> {
+        // Genuinely concurrent — this is the one thing a synchronous guest cannot do for
+        // itself. Authorisation and the fetch budget apply per request, exactly as if the
+        // guest had called `fetch` in a loop.
+        Ok(futures::future::join_all(
+            requests.into_iter().map(|request| one_fetch(&self.capabilities, request)),
+        )
+        .await)
     }
 
     async fn log(&mut self, level: String, msg: String) -> wasmtime::Result<()> {

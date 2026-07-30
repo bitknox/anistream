@@ -118,6 +118,7 @@ after that. The binary ends up at `target/release/anistream` if you want it on y
 | Config | `~/Library/Application Support/anistream/config.toml` |
 | History database | `~/Library/Application Support/anistream/anistream.db` |
 | Plugins | `~/Library/Application Support/anistream/plugins/*.wasm` |
+| Logs | `~/Library/Caches/anistream/logs/` |
 
 </TabItem>
 <TabItem label="Linux">
@@ -127,18 +128,23 @@ after that. The binary ends up at `target/release/anistream` if you want it on y
 | Config | `~/.config/anistream/config.toml` |
 | History database | `~/.local/share/anistream/anistream.db` |
 | Plugins | `~/.config/anistream/plugins/*.wasm` |
+| Logs | `~/.cache/anistream/logs/` |
 
 </TabItem>
 <TabItem label="Windows">
 
 | | |
 |---|---|
-| Config | `%APPDATA%\anistream\config.toml` |
+| Config | `%APPDATA%\anistream\config\config.toml` |
 | History database | `%APPDATA%\anistream\data\anistream.db` |
-| Plugins | `%APPDATA%\anistream\plugins\*.wasm` |
+| Plugins | `%APPDATA%\anistream\config\plugins\*.wasm` |
+| Logs | `%LOCALAPPDATA%\anistream\cache\logs\` |
 
 </TabItem>
 </Tabs>
+
+Plugins always sit beside `config.toml`, whatever that path is — `anistream --plugins` prints the
+directory it is actually reading. Logs roll daily, at `info` unless `ANISTREAM_LOG` says otherwise.
 
 No config file is required — one is only written when you change something in the Settings screen,
 and those writes are format-preserving, so comments you add by hand survive.

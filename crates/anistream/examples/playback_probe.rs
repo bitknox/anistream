@@ -154,7 +154,7 @@ async fn main() {
     let store_for_play = store.clone();
     let playing = tokio::spawn(async move {
         anistream::playback::play(
-            stream,
+            vec![stream],
             context,
             store_for_play,
             http,

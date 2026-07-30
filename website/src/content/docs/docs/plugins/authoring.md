@@ -17,7 +17,7 @@ The sandbox has no sockets — the host lends you `fetch`. Your plugin is a pars
 
 ## The interface
 
-`wit/anistream-provider.wit` is the contract — package `anistream:provider@1.0.0`:
+`wit/anistream-provider.wit` is the contract — package `anistream:provider@1.1.0`:
 
 ```wit
 interface host {                          // what you may call
@@ -25,6 +25,7 @@ interface host {                          // what you may call
     log:            func(level: string, msg: string);
     aes-decrypt:    func(key: list<u8>, iv: list<u8>, data: list<u8>) -> result<list<u8>, string>;
     regex-captures: func(pattern: string, haystack: string) -> list<list<string>>;
+    fetch-many:     func(reqs: list<http-request>) -> list<result<http-response, host-error>>;
     config-get:     func(key: string) -> option<string>;
 }
 
@@ -41,6 +42,9 @@ interface provider {                      // what you must export
 }
 ```
 
+- `fetch-many` — several requests concurrently, results in request order. Same allowlist and
+  fetch budget, per request. Return *all* your streams from `resolve`: playback falls over to
+  the next stream when one produces no frames, so ordering is a hint, not a verdict.
 - `sources` — the selectable releases for the Sources overlay, best-first. An empty list means
   "nothing to choose between": an answer, not a failure.
 - `resolve-source` — one candidate's id back into streams. Never fall back to the automatic pick.
@@ -68,8 +72,7 @@ Do not flatten `not-found` into `other` — that makes every missing episode wal
 ```sh
 cargo build --release --target wasm32-wasip2 \
   --manifest-path plugins/example-rust/Cargo.toml
-cp plugins/example-rust/target/wasm32-wasip2/release/anistream_example_plugin.wasm \
-  ~/.config/anistream/plugins/
+# then copy the .wasm into the plugin directory — `anistream --plugins` prints it
 ```
 
 Start from `plugins/example-rust/src/lib.rs` — it exercises the whole ABI against a stable
@@ -79,12 +82,12 @@ endpoint.
 
 ```sh
 cd plugins/example-ts && npm install && npm run build
-cp anistream-example-plugin-ts.wasm ~/.config/anistream/plugins/
+# then copy anistream-example-plugin-ts.wasm into the plugin directory
 ```
 
 Five differences from Rust:
 
-- Imports carry the package version: `anistream:provider/host@1.0.0`.
+- Imports carry the package version: `anistream:provider/host@1.1.0`.
 - Names are lowerCamelCase: `list-episodes` → `listEpisodes`.
 - Errors are thrown, not returned: `throw { tag: 'not-found' }`. `fetch` needs `try`/`catch`.
 - Exports run without a receiver — `this.resolve(…)` traps; share a plain function.
@@ -97,7 +100,7 @@ Measured with `cargo run -p anistream-plugin --example plugin_bench --release`:
 | | size | compile (once) | per call |
 |---|---|---|---|
 | Rust | 0.1 MB | 19 ms | 38 µs |
-| JavaScript | 12.0 MB | 1.06 s | 923 µs |
+| JavaScript | 12.2 MB | 1.06 s | 923 µs |
 
 Both run under the same default limits; both are negligible beside one HTTP request. Every call
 gets a fresh store, so no state survives between calls.

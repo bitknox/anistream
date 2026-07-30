@@ -145,6 +145,21 @@ async fn localise_subtitles(http: &HttpClient, mpv: &Mpv, stream: &mut Stream) {
     stream.subtitles = kept;
 }
 
+/// An unguessable-enough path token for one playback attempt's mender.
+///
+/// Not a security boundary — binding to loopback is — but it keeps an unrelated local process
+/// from stumbling onto the proxy, and differs per attempt so a stale connection from a failed
+/// stream cannot address the next one's.
+fn mender_token(context: &PlaybackContext, attempt: usize) -> String {
+    format!(
+        "{}-{}-{}-{}",
+        context.anilist_id.get(),
+        sanitise(&context.episode),
+        attempt,
+        anistream_store::now()
+    )
+}
+
 /// Reduce a language label to something safe to put in a filename.
 fn sanitise(language: &str) -> String {
     let cleaned: String = language
@@ -185,12 +200,17 @@ pub async fn fetch_skips(
     }
 }
 
-/// Play a stream and record what happens.
+/// Play the best stream of a resolved list and record what happens.
+///
+/// `streams` is ordered best-first. A stream that dies without ever producing a frame is not
+/// the end: the next one is tried, because a provider can only rank what it cannot verify —
+/// whether segments actually decode is knowable only here, in front of a player. A stream that
+/// *played* and then ended never falls over to another, which would replay what was watched.
 ///
 /// Returns once playback has ended. Runs as its own task so the UI keeps rendering.
 #[allow(clippy::too_many_arguments)]
 pub async fn play(
-    stream: Stream,
+    streams: Vec<Stream>,
     context: PlaybackContext,
     store: Store,
     http: HttpClient,
@@ -208,13 +228,18 @@ pub async fn play(
     tx: mpsc::UnboundedSender<Update>,
     mut commands: mpsc::UnboundedReceiver<PlayerCommand>,
 ) {
+    let Some(first) = streams.first() else {
+        let _ = tx.send(Update::PlaybackEnded { watched: false });
+        return;
+    };
+
     // A licensed stream cannot be decoded locally, so it is handed to whatever is licensed to
     // play it. No progress is tracked, because we never see any.
-    if stream.kind == StreamKind::ExternalDeepLink {
+    if first.kind == StreamKind::ExternalDeepLink {
         use anistream_core::traits::Player;
         let player = ExternalPlayer::new();
         let request = PlaybackRequest { title: context.title.clone(), ..Default::default() };
-        let update = match player.play(&stream, request).await {
+        let update = match player.play(first, request).await {
             Ok(()) => Update::Toast(Toast::info("opened in your browser")),
             Err(e) => Update::Toast(Toast::alert(format!("could not open: {e}"))),
         };
@@ -241,7 +266,7 @@ pub async fn play(
         command.args(["--host", &syncplay.server]);
         command.args(["--name", &syncplay.name]);
         command.args(["--room", &room]);
-        command.arg(&stream.url);
+        command.arg(&first.url);
         // The TUI owns the terminal. One line of child stderr — Syncplay greets with a
         // Python deprecation warning — scribbles straight over the alternate screen, so
         // the party speaks through toasts and nothing else.
@@ -281,239 +306,289 @@ pub async fn play(
 
     let skips = fetch_skips(&http, context.mal_id, &context.episode).await;
 
-    // Before mpv starts, so the tracks are on disk by the time it reads its arguments.
-    let mut stream = stream;
-    localise_subtitles(&http, &mpv, &mut stream).await;
-
-    let request = PlaybackRequest {
-        title: context.title.clone(),
-        start_at: context.resume_at,
-        subtitle_language,
-        speed: context.speed,
-        volume: context.volume,
-        dub: context.translation == Translation::Dub,
-    };
-
-    let _ = tx.send(Update::Status("starting mpv…".into()));
-    let (session, mut events) = match mpv.play(&stream, &request).await {
-        Ok(pair) => pair,
-        Err(e) => {
-            let _ = tx.send(Update::Toast(Toast::alert(format!("mpv: {e}"))));
-            return;
-        }
-    };
-    let session = Arc::new(session);
-    let _ =
-        tx.send(Update::Status(format!("playing {} ep {}", context.title, context.episode)));
-    // mpv is already at the resume point by now — `--start` handled it. Saying so is what keeps
-    // it from looking like the episode began in the wrong place.
-    if let Some(position) = context.resume_at {
-        let _ = tx.send(Update::Resumed { position });
-    }
-
-    // Say the in-player keys exist, once, on mpv's own OSD — bindings nobody announces
-    // are bindings nobody finds. One line at session start, then out of the way.
-    let _ = session.notify("N next · P previous · S skip").await;
-
-    let mut tracker = PlaybackTracker::new(threshold, skips, auto_skip);
-
-    // Presence is connected here rather than at startup: it should exist for exactly as long as
-    // something is playing, and holding a socket open while idle would claim a session that is not
-    // happening. `None` covers both "turned off" and "Discord is not running", which need no
-    // distinction — see the module docs on why neither is an error.
-    let mut presence = Rpc::start(&presence, &context).await;
-
     // Cleared when the UI drops its sender, which disables that select branch — otherwise a
-    // closed channel returns `None` instantly and spins the loop.
+    // closed channel returns `None` instantly and spins the loop. Outside the attempt loop,
+    // because a channel that closed during one stream is just as closed for the next.
     let mut controls_open = true;
-    // What the UI is currently showing, so a repaint is only asked for when it would differ.
-    let mut shown_second = f64::NAN;
-    let mut shown_duration = false;
-    // Progress is queued once per episode. The tracker emits several completed rows — crossing
-    // the threshold, then pausing, then ending — and the outbox would coalesce duplicates
-    // anyway, but queueing once keeps the badge honest.
-    let mut committed = false;
 
-    // Whether mpv has ever reported a position. A successful spawn is not playback: mpv can
-    // connect its IPC socket, accept the URL and then sit there forever with no data — which is
-    // exactly what a stalled torrent or a broken local mpv looks like, and it produced no error
-    // of any kind because nothing was watching for the *absence* of events.
-    let mut ever_played = false;
+    let total = streams.len();
+    // Named in the log so "did fallback have anything to work with" is answerable after the
+    // fact — a pool of one behaves exactly like the old single-stream path.
+    tracing::info!(streams = total, "starting playback");
+    for (attempt, stream) in streams.into_iter().enumerate() {
+        let last = attempt + 1 == total;
 
-    loop {
-        // Controls and events are interleaved rather than polled in turn: a keystroke must not
-        // wait on the next position tick, and a position tick must not wait on a keystroke.
-        let event = tokio::select! {
-            event = events.recv() => match event {
-                Some(event) => event,
-                // The channel closing means mpv exited.
-                None => break,
-            },
-            // Only armed until the first frame arrives, so this cannot fire mid-episode during a
-            // legitimate pause — mpv keeps reporting `time-pos` while paused.
-            _ = tokio::time::sleep(FIRST_FRAME_TIMEOUT), if !ever_played => {
-                let _ = tx.send(Update::Toast(Toast::alert(format!(
-                    "mpv has not started playing after {}s — the source may have no data, or check `mpv` plays a file on its own",
-                    FIRST_FRAME_TIMEOUT.as_secs()
-                ))));
-                // Deliberately not a stop. mpv may still be buffering a slow torrent, and killing
-                // it would turn a wait into a failure; the user now knows and can press `x`.
-                ever_played = true;
+        // Before mpv starts, so the tracks are on disk by the time it reads its arguments.
+        let mut stream = stream;
+        localise_subtitles(&http, &mpv, &mut stream).await;
+
+        // HLS goes through the mender: segments arrive dressed as other things often enough
+        // that checking is worth a loopback hop, and a healthy stream passes through
+        // byte-for-byte. Held for the whole attempt — dropping it would kill the proxy mid
+        // playback — and replaced on the next, so a stream that failed leaves nothing behind.
+        let mut menders = crate::mend::Menders::default();
+        if stream.kind == StreamKind::Hls {
+            stream.url = menders
+                .route(&http, &stream.url, &stream.headers, &mender_token(&context, attempt))
+                .await;
+        }
+
+        let request = PlaybackRequest {
+            title: context.title.clone(),
+            start_at: context.resume_at,
+            subtitle_language: subtitle_language.clone(),
+            speed: context.speed,
+            volume: context.volume,
+            dub: context.translation == Translation::Dub,
+        };
+
+        // Named per attempt — during failover the header would otherwise credit the stream
+        // that just failed.
+        let _ = tx.send(Update::ActiveProvider(stream.provider_id.clone()));
+        let _ = tx.send(Update::Status("starting mpv…".into()));
+        let (session, mut events) = match mpv.play(&stream, &request).await {
+            Ok(pair) => pair,
+            Err(e) if last => {
+                let _ = tx.send(Update::Toast(Toast::alert(format!("mpv: {e}"))));
+                return;
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "mpv would not start; trying the next stream");
                 continue;
             }
-            command = commands.recv(), if controls_open => {
-                match command {
-                    Some(command) => {
-                        apply_command(&session, command).await;
-                        continue;
-                    }
-                    // The UI is going away. mpv keeps playing until it ends on its own.
-                    None => {
-                        controls_open = false;
-                        continue;
+        };
+        let session = Arc::new(session);
+        let _ = tx
+            .send(Update::Status(format!("playing {} ep {}", context.title, context.episode)));
+        // mpv is already at the resume point by now — `--start` handled it. Saying so is what
+        // keeps it from looking like the episode began in the wrong place.
+        if let Some(position) = context.resume_at {
+            let _ = tx.send(Update::Resumed { position });
+        }
+
+        // Say the in-player keys exist, once, on mpv's own OSD — bindings nobody announces
+        // are bindings nobody finds. One line at session start, then out of the way.
+        let _ = session.notify("N next · P previous · S skip").await;
+
+        let mut tracker = PlaybackTracker::new(threshold, skips.clone(), auto_skip);
+
+        // Presence is connected here rather than at startup: it should exist for exactly as
+        // long as something is playing, and holding a socket open while idle would claim a
+        // session that is not happening. `None` covers both "turned off" and "Discord is not
+        // running", which need no distinction — see the module docs on why neither is an error.
+        let mut rpc = Rpc::start(&presence, &context).await;
+
+        // What the UI is currently showing, so a repaint is only asked for when it would differ.
+        let mut shown_second = f64::NAN;
+        let mut shown_duration = false;
+        // Progress is queued once per episode. The tracker emits several completed rows — crossing
+        // the threshold, then pausing, then ending — and the outbox would coalesce duplicates
+        // anyway, but queueing once keeps the badge honest.
+        let mut committed = false;
+
+        // Whether mpv has ever reported a position. A successful spawn is not playback: mpv can
+        // connect its IPC socket, accept the URL and then sit there forever with no data —
+        // which is exactly what a stalled torrent or a broken local mpv looks like, and it
+        // produced no error of any kind because nothing was watching for the *absence* of
+        // events.
+        let mut ever_played = false;
+        // An exit the viewer asked for must never fall over to another stream: pressing `x`
+        // on a stream that had not started yet means "stop", not "try the next one".
+        let mut stopped = false;
+
+        loop {
+            // Controls and events are interleaved rather than polled in turn: a keystroke must not
+            // wait on the next position tick, and a position tick must not wait on a keystroke.
+            let event = tokio::select! {
+                event = events.recv() => match event {
+                    Some(event) => event,
+                    // The channel closing means mpv exited.
+                    None => break,
+                },
+                // Only armed until the first frame arrives, so this cannot fire mid-episode during a
+                // legitimate pause — mpv keeps reporting `time-pos` while paused.
+                _ = tokio::time::sleep(FIRST_FRAME_TIMEOUT), if !ever_played => {
+                    let _ = tx.send(Update::Toast(Toast::alert(format!(
+                        "mpv has not started playing after {}s — the source may have no data, or check `mpv` plays a file on its own",
+                        FIRST_FRAME_TIMEOUT.as_secs()
+                    ))));
+                    // Deliberately not a stop. mpv may still be buffering a slow torrent, and killing
+                    // it would turn a wait into a failure; the user now knows and can press `x`.
+                    ever_played = true;
+                    continue;
+                }
+                command = commands.recv(), if controls_open => {
+                    match command {
+                        Some(command) => {
+                            stopped |= matches!(command, PlayerCommand::Stop);
+                            apply_command(&session, command).await;
+                            continue;
+                        }
+                        // The UI is going away. mpv keeps playing until it ends on its own.
+                        None => {
+                            controls_open = false;
+                            continue;
+                        }
                     }
                 }
-            }
-        };
-
-        // Mirror position to the UI so Now Playing can render without querying mpv — but only
-        // when the rendered value would actually change. mpv reports `time-pos` about thirty
-        // times a second (measured), and every update redraws the terminal, so forwarding them
-        // all would mean thirty full repaints per second to move a clock that ticks once.
-        // In-player keys arrive as events and go straight to the reducer — the session
-        // itself ends when the reducer starts the next episode's playback.
-        if let PlaybackEvent::Remote(command) = &event {
-            let delta = match command {
-                anistream_player::RemoteCommand::NextEpisode => 1,
-                anistream_player::RemoteCommand::PreviousEpisode => -1,
             };
-            let _ = tx.send(Update::PlayerStepEpisode(delta));
-        }
 
-        if let PlaybackEvent::Progress { position, duration } = &event {
-            ever_played = true;
-            let whole = position.floor();
-            if whole != shown_second || duration.is_some() != shown_duration {
-                shown_second = whole;
-                shown_duration = duration.is_some();
-                let _ = tx.send(Update::Playback {
-                    position: *position,
-                    duration: *duration,
-                    paused: tracker.is_paused(),
-                });
-                // Rides the same whole-second throttle. Discord rate-limits presence updates, and
-                // mpv reports position about thirty times a second — sending each one would be
-                // throttled away by Discord anyway, and one update a second is more than a presence
-                // line needs.
-                presence.update(tracker.is_paused()).await;
+            // Mirror position to the UI so Now Playing can render without querying mpv — but only
+            // when the rendered value would actually change. mpv reports `time-pos` about thirty
+            // times a second (measured), and every update redraws the terminal, so forwarding them
+            // all would mean thirty full repaints per second to move a clock that ticks once.
+            // In-player keys arrive as events and go straight to the reducer — the session
+            // itself ends when the reducer starts the next episode's playback.
+            if let PlaybackEvent::Remote(command) = &event {
+                let delta = match command {
+                    anistream_player::RemoteCommand::NextEpisode => 1,
+                    anistream_player::RemoteCommand::PreviousEpisode => -1,
+                };
+                let _ = tx.send(Update::PlayerStepEpisode(delta));
             }
-        }
 
-        for action in tracker.observe(&event) {
-            match action {
-                Action::Record { position, duration, completed } => {
-                    let watch = WatchEvent {
-                        duration_secs: duration,
-                        watched_secs: tracker.watched_secs(),
-                        provider_id: Some(stream.provider_id.clone()),
-                        translation: Some(context.translation),
-                        completed,
-                        ..WatchEvent::new(context.anilist_id, &context.episode, position)
-                    };
-                    // Local first, always. The history row is written before anything is queued
-                    // for a tracker, so a failed push can never cost you the watch.
-                    //
-                    // Blocking sqlite calls: off the async worker so a slow disk cannot stall
-                    // the event stream.
-                    let queue_now = completed && !committed;
-                    if queue_now {
-                        committed = true;
-                    }
-                    let store_handle = store.clone();
-                    let trackers = tracker_ids.clone();
-                    let id = context.anilist_id;
-                    let _ = tokio::task::spawn_blocking(move || {
-                        store_handle.record_event(&watch)?;
+            if let PlaybackEvent::Progress { position, duration } = &event {
+                ever_played = true;
+                let whole = position.floor();
+                if whole != shown_second || duration.is_some() != shown_duration {
+                    shown_second = whole;
+                    shown_duration = duration.is_some();
+                    let _ = tx.send(Update::Playback {
+                        position: *position,
+                        duration: *duration,
+                        paused: tracker.is_paused(),
+                    });
+                    // Rides the same whole-second throttle. Discord rate-limits presence updates, and
+                    // mpv reports position about thirty times a second — sending each one would be
+                    // throttled away by Discord anyway, and one update a second is more than a presence
+                    // line needs.
+                    rpc.update(tracker.is_paused()).await;
+                }
+            }
+
+            for action in tracker.observe(&event) {
+                match action {
+                    Action::Record { position, duration, completed } => {
+                        let watch = WatchEvent {
+                            duration_secs: duration,
+                            watched_secs: tracker.watched_secs(),
+                            provider_id: Some(stream.provider_id.clone()),
+                            translation: Some(context.translation),
+                            completed,
+                            ..WatchEvent::new(context.anilist_id, &context.episode, position)
+                        };
+                        // Local first, always. The history row is written before anything is queued
+                        // for a tracker, so a failed push can never cost you the watch.
+                        //
+                        // Blocking sqlite calls: off the async worker so a slow disk cannot stall
+                        // the event stream.
+                        let queue_now = completed && !committed;
                         if queue_now {
-                            anistream_track::sync::queue_progress_for(
-                                &store_handle,
-                                &trackers,
-                                id,
-                                anistream_store::now(),
+                            committed = true;
+                        }
+                        let store_handle = store.clone();
+                        let trackers = tracker_ids.clone();
+                        let id = context.anilist_id;
+                        let _ = tokio::task::spawn_blocking(move || {
+                            store_handle.record_event(&watch)?;
+                            if queue_now {
+                                anistream_track::sync::queue_progress_for(
+                                    &store_handle,
+                                    &trackers,
+                                    id,
+                                    anistream_store::now(),
+                                );
+                            }
+                            Ok::<_, anistream_store::StoreError>(())
+                        })
+                        .await;
+
+                        if queue_now {
+                            let _ = tx.send(Update::ProgressQueued);
+                        }
+                    }
+
+                    Action::OfferSkip { kind, to } => {
+                        if tracker.auto_skips() {
+                            let _ = session.seek_to(to).await;
+                            let _ = session.notify(format!("skipped {}", kind.label())).await;
+                        } else {
+                            // On mpv's OSD, not the terminal: the viewer is looking at the video.
+                            let _ = session
+                                .notify(format!("press S to skip the {}", kind.label()))
+                                .await;
+                        }
+                        let _ = tx.send(Update::SkipAvailable { label: kind.label(), to });
+                    }
+
+                    Action::ClearSkip => {
+                        let _ = tx.send(Update::SkipCleared);
+                    }
+
+                    Action::RememberSpeed(speed) => {
+                        let _ = tx.send(Update::PlaybackSpeed(speed));
+                    }
+
+                    Action::RememberVolume(volume) => {
+                        let _ = tx.send(Update::PlaybackVolume(volume));
+                    }
+
+                    Action::Finished { watched } => {
+                        let _ = tx.send(Update::PlaybackEnded { watched });
+                        if watched {
+                            tracing::info!(
+                                episode = %context.episode,
+                                "episode finished and recorded as watched"
                             );
                         }
-                        Ok::<_, anistream_store::StoreError>(())
-                    })
-                    .await;
-
-                    if queue_now {
-                        let _ = tx.send(Update::ProgressQueued);
-                    }
-                }
-
-                Action::OfferSkip { kind, to } => {
-                    if tracker.auto_skips() {
-                        let _ = session.seek_to(to).await;
-                        let _ = session.notify(format!("skipped {}", kind.label())).await;
-                    } else {
-                        // On mpv's OSD, not the terminal: the viewer is looking at the video.
-                        let _ = session
-                            .notify(format!("press S to skip the {}", kind.label()))
-                            .await;
-                    }
-                    let _ = tx.send(Update::SkipAvailable { label: kind.label(), to });
-                }
-
-                Action::ClearSkip => {
-                    let _ = tx.send(Update::SkipCleared);
-                }
-
-                Action::RememberSpeed(speed) => {
-                    let _ = tx.send(Update::PlaybackSpeed(speed));
-                }
-
-                Action::RememberVolume(volume) => {
-                    let _ = tx.send(Update::PlaybackVolume(volume));
-                }
-
-                Action::Finished { watched } => {
-                    let _ = tx.send(Update::PlaybackEnded { watched });
-                    if watched {
-                        tracing::info!(
-                            episode = %context.episode,
-                            "episode finished and recorded as watched"
-                        );
                     }
                 }
             }
         }
-    }
 
-    // mpv exited without ever reporting a position. This was the silent failure: the loop simply
-    // broke, `Finished` was never emitted because the tracker had seen nothing to finish, and the
-    // eyecatch wiped back to the episode table with no message — indistinguishable from a
-    // successful playback that ended instantly. mpv almost always explains itself on stderr, so
-    // say what it said rather than inventing a guess.
-    // Cleared before anything else, so quitting never leaves a stale "watching" up.
-    presence.finish().await;
+        // Cleared before anything else, so quitting never leaves a stale "watching" up.
+        rpc.finish().await;
 
-    if !ever_played {
-        let reported = session.diagnostics().most_relevant().await;
-        let message = match reported {
-            Some(line) => format!("mpv could not play this: {line}"),
-            None => "mpv exited without playing anything, and said nothing about why".into(),
-        };
-        tracing::warn!(%message, url = %stream.url, "playback produced no frames");
-        let _ = tx.send(Update::Toast(Toast::alert(message)));
-        // Leaves Now Playing rather than stranding the user on a control surface for a session
-        // that no longer exists.
-        let _ = tx.send(Update::PlaybackEnded { watched: false });
-    }
+        // mpv exited without ever reporting a position. This was the silent failure: the loop
+        // simply broke, `Finished` was never emitted because the tracker had seen nothing to
+        // finish, and the eyecatch wiped back to the episode table with no message. mpv almost
+        // always explains itself on stderr, so its words are kept before the session goes.
+        let no_frames = !ever_played;
+        let reported =
+            if no_frames { session.diagnostics().most_relevant().await } else { None };
+        if let Ok(session) = Arc::try_unwrap(session) {
+            session.shutdown().await;
+        }
 
-    if let Ok(session) = Arc::try_unwrap(session) {
-        session.shutdown().await;
+        if no_frames && !stopped && !last {
+            // The point of carrying alternates: whether segments actually decode is knowable
+            // only in front of a player, so a stream that never showed a frame fails over —
+            // unless the viewer stopped it themselves, which is an instruction, not a failure.
+            tracing::warn!(url = %stream.url, ?reported, "no frames; trying the next stream");
+            let _ = tx.send(Update::Toast(Toast::info(format!(
+                "no video from that stream — trying {} of {total}",
+                attempt + 2
+            ))));
+            continue;
+        }
+
+        if no_frames {
+            let message = match reported {
+                Some(line) => format!("mpv could not play this: {line}"),
+                None => {
+                    "mpv exited without playing anything, and said nothing about why".into()
+                }
+            };
+            tracing::warn!(%message, url = %stream.url, "playback produced no frames");
+            let _ = tx.send(Update::Toast(Toast::alert(message)));
+            // Leaves Now Playing rather than stranding the user on a control surface for a
+            // session that no longer exists.
+            let _ = tx.send(Update::PlaybackEnded { watched: false });
+        }
+
+        let _ = tx.send(Update::Status(String::new()));
+        return;
     }
-    let _ = tx.send(Update::Status(String::new()));
 }
 
 /// The Discord presence for one playback, if there is one.

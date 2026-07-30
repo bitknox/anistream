@@ -10,10 +10,7 @@ mpv for playback, pluggable everything.
 anistream hosts no content and ships no sources of its own — not even an index. The torrent
 side is a transport with nothing to search until you supply an endpoint; everything else is a
 provider API or plugin you configure. What you point any of it at is your own decision, at your
-own risk. Torrenting is **off by default** and unreachable
-without a [VPN guard](/docs/guides/torrents-vpn/) you explicitly enable. Licensed services are
-never scraped: Crunchyroll episodes resolve to a deep link that opens in Crunchyroll, because
-anistream will not circumvent DRM.
+own risk.
 :::
 
 ## Today
@@ -25,12 +22,16 @@ anistream is under active development. What is in the app now:
 - **Airing timeline** — the calendar spans a week back and a week forward, so what just came out is as visible as what is coming
 - **Torrent streaming** — playing while downloading, seekable, gated behind the VPN guard;
   bring your own indexer
-- **Playback** — mpv over JSON IPC, resume, aniskip, auto-next, persisted speed
+- **Playback** — mpv over JSON IPC, resume, aniskip, auto-next, persisted speed, and sidecar
+  subtitle tracks fetched with the stream's own headers
+- **Command line** — `--stats`, `--search`, `--export`/`--import`, `--stream-url`, `--doctor` and
+  friends, most with `--json`; `--update` replaces the binary in place
 - **Local history** — SQLite, the source of truth; works with no account at all
 - **Tracker sync** — AniList, MyAnimeList, Simkl and Trakt, with a durable outbox that survives being offline
 - **Filler/recap marking** — AnimeFillerList, for the long-runners where it matters
 - **Downloads** — a screen for what you have pulled down; completed files get subtitles muxed in
-- **Source control** — `P` pins a source per title, the Sources overlay picks exact releases
+- **Source control** — `P` pins a source per title, the Sources overlay picks exact releases, and
+  playback falls over to another stream when one produces no video
 - **Discord presence** — off by default, and it can show that something is playing without saying what
 - **WASM plugins** — provider plugins in any WASI 0.2 language, sandboxed
 

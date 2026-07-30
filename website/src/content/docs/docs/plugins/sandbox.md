@@ -5,16 +5,16 @@ description: No sockets, host-lent fetch, and limits a compromised guest cannot 
 
 **The sandbox has no sockets. The host lends you `fetch`.**
 
-The host owns the browser-shaped TLS/HTTP2 handshake, the rate limiter and the cookie jar, so a
-plugin is a parser: it says what to request, the host makes the request. Plugins stay kilobytes,
-inherit the fingerprint, and cannot exfiltrate anything — the declared hosts are enforced
-host-side. Regex, AES-CBC (128/192/256 by key length) and per-plugin settings are lent for the
-same reason.
+The host owns the browser-shaped TLS/HTTP2 handshake, so a plugin is a parser: it says what to
+request, the host makes the request. Plugins stay kilobytes, inherit the fingerprint, and cannot
+exfiltrate anything — the declared hosts are enforced host-side. Regex, AES-CBC (128/192/256 by
+key length) and per-plugin settings are lent for the same reason.
 
 ## The limits
 
-All enforced host-side. Ceilings are configurable under `[providers.plugins]`; raising one cannot
-grant a new capability.
+All enforced host-side. `memory_mb` and `deadline_secs` are configurable under
+`[providers.plugins]`; the fetch budget and body ceiling are fixed. Raising a ceiling cannot grant
+a new capability.
 
 | Limit | Default |
 |---|---|
@@ -40,11 +40,15 @@ Reserved headers (`host`, `content-length`, `connection`, `transfer-encoding`, `
 are refused; `referer`, `cookie` and `user-agent` are yours to set.
 
 `config-get` is scoped the same way: a plugin sees only its own
-`[providers.plugins.settings.<id>]` table, one key at a time, and `describe` runs with no settings
-at all.
+`[providers.plugins.settings.<id>]` table, one key at a time, and the `describe` that reads a
+plugin's manifest at load time runs with no capabilities at all — no settings, no allowlist, no
+client.
 
-**WASI is linked, but grants nothing**: no `wasi:filesystem`, no `wasi:sockets`, no
-`wasi:random`, no wall clock — a component importing them fails to instantiate.
+**WASI is linked, and the context is what withholds.** A `wasm32-wasip2` component in any language
+imports a WASI floor for its standard library, so the whole p2 surface is linked and containment
+comes from an empty context instead: no preopened directories, so nothing on disk is openable;
+every socket address is refused; no environment, no stdio. A guest can read the wall clock and take
+random bytes — that is the extent of it, and neither reaches outside the sandbox.
 
 ## Testing yours
 

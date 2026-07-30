@@ -26,8 +26,8 @@ Tracker sync covers AniList, MyAnimeList, Simkl and Trakt through an outbox that
 offline. Filler and recap episodes are marked from AnimeFillerList. Discord rich presence reports
 what you are watching.
 
-Kitsu sync is the one tracker not built. Crunchyroll streams are DRM-protected, so mpv cannot play
-them and anistream will not work around that — episodes open in Crunchyroll instead.
+Kitsu sync is the one tracker not built. anistream will not work around DRM: where a licensed
+catalogue is integrated at all, it will be as a link that opens in that service.
 
 ## Install
 
@@ -191,7 +191,7 @@ client_secret = "…"           # Trakt wants one on the token exchange
 | Sign-in flow   | browser redirect                                    | browser redirect                                                          | device code                                       | device code                                     |
 | Redirect URL   | `http://127.0.0.1:45617/callback`                   | `http://127.0.0.1:45617/callback`                                         | none needed                                       | none needed                                     |
 | Needs a secret | yes                                                 | no                                                                        | no                                                | yes                                             |
-| Token life     | ~1 year                                             | 30 days, refreshed automatically                                          | long-lived                                        | refreshed automatically                         |
+| Token life     | ~1 year                                             | ~31 days, refreshed automatically                                          | long-lived                                        | ~3 months, then --login again                         |
 
 Then run `anistream --login`, or `anistream --login --tracker mal`. Simkl and Trakt use the OAuth
 device flow, so `--login --tracker simkl` prints a code and a URL to enter it at. Check any of them
@@ -213,7 +213,8 @@ cargo run -p anistream-providers --example torrent_probe -- \
 
 ## Command line
 
-These all exit without starting the interface, and the read-only ones take `--json`.
+These all exit without starting the interface. `--search`, `--stats` and `--random` also take
+`--json`.
 
 |                                                     |                                                                                                                            |
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -223,10 +224,14 @@ These all exit without starting the interface, and the read-only ones take `--js
 | `--export <path>` \| `--import <path>`              | History as JSON; `-` for stdio                                                                                             |
 | `--random`                                          | Pick something from your history                                                                                           |
 | `--login [--tracker mal]` \| `--logout` \| `--sync` | Tracker accounts                                                                                                           |
+| `--login-url --tracker anilist`                     | Print the authorize URL and exit, for signing in on another machine                                                        |
 | `--plugins`                                         | Installed plugins and what each may reach                                                                                  |
 | `--stream-url <id> [--episode N]`                   | Resolve one episode to a URL and hold it open, so `mpv` or `curl` can be pointed at it                                     |
-| `--preview 120x34 --screen home`                    | Render one screen as text: home, search, title, calendar, library, downloads, providers, accounts, settings, help, palette |
+| `--preview 120x34 --screen home`                    | Render one screen as text: home, search, title, episodes, calendar, library, downloads, providers, accounts, settings, help, palette |
 | `--refresh-data`                                    | Refresh the ID-mapping datasets                                                                                            |
+
+`--theme adaptive|immersive` and `--no-images` override presentation for one run without touching
+`config.toml`.
 
 ## Matching titles
 
@@ -258,7 +263,7 @@ anistream --stream-url 154587 --episode 1 # resolve one episode, print the URL, 
 is in anistream. If it does not, it is the player or the source, and mpv says which. anistream
 captures mpv's stderr and surfaces the relevant line.
 
-A slow start is usually plugin compilation — the JavaScript reference plugin takes about 874 ms.
+A slow start is usually plugin compilation — the JavaScript reference plugin takes about a second.
 `--plugins` lists what is installed; drop `"plugins"` from `providers.order` if you do not use them.
 
 ## Plugins
@@ -286,14 +291,14 @@ Ten crates, volatility increasing left to right:
 
 `anistream-core` (types and traits) · `-net` (HTTP, rate limiting) · `-meta` (AniList, ID mapping,
 filler) · `-store` (SQLite) · `-providers` (torrent transport, remote, mock) · `-player` (mpv IPC) ·
-`-track` (AniList, MAL, sync) · `-plugin` (WASM host) · `-ui` (ratatui) · `anistream` (wiring).
+`-track` (AniList, MAL, Simkl, Trakt, sync) · `-plugin` (WASM host) · `-ui` (ratatui) · `anistream` (wiring).
 
 Sources decay, so every volatile piece sits behind a trait and the core never depends on one.
 
 ## Development
 
 ```sh
-cargo test --workspace        # 901 tests, no network
+cargo test --workspace        # 972 tests, no network
 cargo clippy --workspace --all-targets
 cargo run -p anistream-ui --example screen_preview     # look at the layouts
 ```
@@ -309,6 +314,8 @@ cargo run -p anistream-providers --example stream_probe    # torrent path throug
 cargo run -p anistream --example playback_probe            # torrent → mpv → history
 cargo run -p anistream --example sync_probe -- --write     # AniList push, then undo
 cargo run -p anistream --example mal_probe -- --write      # MAL push, then undo
+cargo run -p anistream --example simkl_probe -- --write    # Simkl push, then undo
+cargo run -p anistream --example mend_probe -- <url>       # disguised HLS → mpv
 cargo run -p anistream-meta --example filler_probe         # filler parsing
 cargo run -p anistream-meta --example episode_meta_probe   # episode titles, stills, numbering
 cargo run -p anistream --example episodes_probe            # every stage from title to stream
@@ -321,6 +328,6 @@ The metadata, mapping, player, tracker and plugin layers use documented public A
 hosts no content and ships no catalogue of its own. The torrent source is a transport; what you
 point any source at is your configuration, and the responsibility that comes with it is yours.
 Torrenting is off by default and gated behind the VPN guard, and every source is a config edit away
-from being removed. anistream will not circumvent DRM — Crunchyroll episodes open in Crunchyroll.
+from being removed. anistream will not circumvent DRM.
 
 MIT.

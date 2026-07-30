@@ -11,7 +11,7 @@ it. Each platform has its own way of saying that:
 |---|---|---|
 | Linux | `.desktop` entry | `Terminal=true`, which the spec has for exactly this |
 | macOS | `.app` bundle | `launcher.sh` re-launches the binary via `open -a` |
-| Windows | Start Menu shortcut | targets `wt.exe` with the binary as its argument |
+| Windows | Start Menu shortcut | targets `wt.exe` with the binary as its argument, or the binary directly where Windows Terminal is absent |
 
 macOS is the awkward one. Finder launches a bundle with no controlling terminal, so
 `Contents/MacOS/launcher` is a shell script and the real binary sits beside it. The script walks a
