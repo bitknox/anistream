@@ -38,6 +38,7 @@ fn main() {
         kind: None,
         skippable: false,
         thumbnail: None,
+        description: None,
     }]));
 
     // Library, with a tracker connected and a queue waiting.

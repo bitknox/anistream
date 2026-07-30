@@ -492,6 +492,11 @@ pub struct EpisodeRow {
     /// Only ever drawn for the selected row: the table is dense, and one image that follows the
     /// cursor costs a single fetch per move rather than one per visible row.
     pub thumbnail: Option<String>,
+    /// One-paragraph synopsis, when the source has one.
+    ///
+    /// Shown for the selected row only, under its still, for the same reason the still is:
+    /// the table is a timing sheet, and a paragraph per row would drown it.
+    pub description: Option<String>,
     pub duration_secs: Option<u64>,
     /// How far through this episode the local history says we are.
     pub watched: f64,
@@ -3102,6 +3107,7 @@ mod tests {
                     kind: None,
                     skippable: false,
                     thumbnail: None,
+                    description: None,
                 })
                 .collect(),
         ));
@@ -3919,6 +3925,7 @@ mod tests {
                 kind: None,
                 skippable: false,
                 thumbnail: None,
+                description: None,
             },
             EpisodeRow {
                 number: "2".into(),
@@ -3929,6 +3936,7 @@ mod tests {
                 kind: None,
                 skippable: false,
                 thumbnail: None,
+                description: None,
             },
         ]));
 
@@ -3968,6 +3976,7 @@ mod tests {
             kind: None,
             skippable: false,
             thumbnail: None,
+            description: None,
         }]));
         assert_eq!(a.episodes.len(), 1);
         assert!(!a.episodes_loading);
@@ -4008,6 +4017,7 @@ mod tests {
             kind: None,
             skippable: false,
             thumbnail: None,
+            description: None,
         }]));
         let id = a.selected_entry().expect("an entry").id;
         a.detail = Some(a.selected_entry().expect("an entry").clone());

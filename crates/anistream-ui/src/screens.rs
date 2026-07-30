@@ -1074,8 +1074,27 @@ fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
     }
 
     if let Some(panel) = still {
-        let url = app.episodes.get(app.episode_selected).and_then(|e| e.thumbnail.as_deref());
-        draw_artwork(buf, app, url, panel);
+        // The panel is shared: the still on top, the episode's synopsis under it. When no
+        // episode in this list has a still at all, the plate would be an empty rectangle
+        // pretending to be an image — the words start at the top instead.
+        let selected = app.episodes.get(app.episode_selected);
+        let mut text_top = panel.y;
+        if app.episodes.iter().any(|row| row.thumbnail.is_some()) {
+            draw_artwork(buf, app, selected.and_then(|e| e.thumbnail.as_deref()), panel);
+            text_top = panel.bottom() + 1;
+        }
+        if let Some(description) = selected.and_then(|e| e.description.as_deref()) {
+            let room = table.bottom().saturating_sub(text_top) as usize;
+            let lines = wrap(description, panel.width as usize, room);
+            for (i, line) in lines.into_iter().enumerate() {
+                buf.set_string(
+                    panel.x,
+                    text_top + i as u16,
+                    line,
+                    app.palette.style(Role::TextDim),
+                );
+            }
+        }
     }
 
     // Column headers, in caps above a hairline.
@@ -2223,7 +2242,9 @@ const STILL_GAP: u16 = 2;
 /// still at all, the overlay is wide enough that the table does not get squeezed to fit it, and
 /// it is tall enough for the image to be an image rather than a stripe.
 fn still_panel(app: &App, table: Rect) -> Option<Rect> {
-    if !app.episodes.iter().any(|row| row.thumbnail.is_some()) {
+    // A synopsis earns the panel the same way a still does — either is a reason; a list
+    // with neither keeps the whole width for the table.
+    if !app.episodes.iter().any(|row| row.thumbnail.is_some() || row.description.is_some()) {
         return None;
     }
     let height = 7.min(table.height.saturating_sub(2));
@@ -2608,6 +2629,7 @@ mod tests {
             kind: None,
             skippable: false,
             thumbnail: None,
+            description: None,
         }
     }
 
