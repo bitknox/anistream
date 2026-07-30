@@ -57,6 +57,7 @@ pub enum Action {
     // Title
     ShowEpisodes,
     ShowSources,
+    PickProvider,
     FixMapping,
     Download,
     WatchOrder,
@@ -129,6 +130,7 @@ impl Action {
         Self::ToggleSynopsis,
         Self::ShowEpisodes,
         Self::ShowSources,
+        Self::PickProvider,
         Self::FixMapping,
         Self::Download,
         Self::WatchOrder,
@@ -187,6 +189,7 @@ impl Action {
             Self::ToggleSynopsis => "Expand synopsis",
             Self::ShowEpisodes => "Episodes",
             Self::ShowSources => "Sources",
+            Self::PickProvider => "Source for this title",
             Self::FixMapping => "Fix this match",
             Self::Download => "Download",
             Self::WatchOrder => "Watch order",
@@ -269,6 +272,7 @@ impl Action {
 
             Self::ShowEpisodes
             | Self::ShowSources
+            | Self::PickProvider
             | Self::FixMapping
             | Self::Download
             | Self::WatchOrder
@@ -602,6 +606,10 @@ impl Keymap {
             // Title
             bind(Binding::plain(Char('e')), A::ShowEpisodes);
             bind(Binding::plain(Char('s')), A::ShowSources);
+            // `P` for provider. Neither `S` nor lowercase `p` is available: `S` is *skip
+            // opening* while something is playing, and `p` is the canonical rebind target for
+            // *pause* — both tables keep a key meaning one thing, so neither is borrowed here.
+            bind(Binding::plain(Char('P')), A::PickProvider);
             bind(Binding::plain(Char('m')), A::FixMapping);
             bind(Binding::plain(Char('d')), A::Download);
             bind(Binding::plain(Char('w')), A::WatchOrder);

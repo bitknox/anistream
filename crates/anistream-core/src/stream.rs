@@ -39,6 +39,12 @@ pub struct Subtitle {
     /// can't be restyled, so it is worth preferring a soft track when both exist.
     #[serde(default)]
     pub hard: bool,
+    /// Track format when the URL does not end in a telling extension: `vtt`, `srt`, `ass`.
+    ///
+    /// The player picks its parser from the file extension, and an API-shaped URL carries
+    /// none — without this a track served from `/subtitles?id=…` is guessed at.
+    #[serde(default)]
+    pub format: Option<String>,
 }
 
 /// A resolved, playable (or hand-offable) stream.
@@ -169,9 +175,19 @@ mod tests {
     fn subtitle_selection_prefers_soft_track_in_requested_language() {
         let mut s = stream_at(Some(1080));
         s.subtitles = vec![
-            Subtitle { language: "eng".into(), url: "hard".into(), hard: true },
-            Subtitle { language: "spa".into(), url: "soft-es".into(), hard: false },
-            Subtitle { language: "eng".into(), url: "soft-en".into(), hard: false },
+            Subtitle { language: "eng".into(), url: "hard".into(), hard: true, format: None },
+            Subtitle {
+                language: "spa".into(),
+                url: "soft-es".into(),
+                hard: false,
+                format: None,
+            },
+            Subtitle {
+                language: "eng".into(),
+                url: "soft-en".into(),
+                hard: false,
+                format: None,
+            },
         ];
         assert_eq!(s.preferred_subtitle("eng").unwrap().url, "soft-en");
         // No soft Japanese track exists, so fall back to any soft track rather than

@@ -19,7 +19,8 @@ It sits behind a fail-closed VPN guard and is unreachable without one. There is 
 for what you have pulled down, and completed files get their subtitles muxed in.
 
 Sources are pluggable three ways: the torrent transport, a self-hosted Consumet-shaped API through
-the `remote` provider, and WASM plugins written in Rust or JavaScript that run sandboxed.
+the `remote` provider, and sandboxed WASM plugins in any WASI 0.2 language. `P` pins a source for
+one title, and the Sources overlay picks an exact release of an episode.
 
 Tracker sync covers AniList, MyAnimeList, Simkl and Trakt through an outbox that survives being
 offline. Filler and recap episodes are marked from AnimeFillerList. Discord rich presence reports
@@ -36,6 +37,7 @@ no build step:
 - **macOS** — `anistream.pkg`, or the `.tar.gz` archive for `PATH`-only installs
 - **Windows** — `anistream-<version>-setup.exe`, or the `.zip`
 - **Debian / Ubuntu** — `anistream-<version>-amd64.deb`, or the `.tar.gz`
+- **Other Linux** — the `.AppImage`: `chmod +x`, run it from a terminal
 
 The installers put `anistream` on your `PATH` and add a launcher; the archives hold just the
 binary. Every asset has a `.sha256` beside it. The builds are not code-signed yet: macOS wants a
@@ -51,10 +53,9 @@ as dependencies).
 anistream --update
 ```
 
-Downloads the latest release for your platform, verifies its published SHA-256, and replaces the
-binary in place. The app also checks for new releases once a day (a single cached request to
-GitHub) and mentions one in a toast when it exists — set `check = false` under `[updates]` in
-`config.toml` to turn that off.
+Downloads the latest release, verifies its published SHA-256, and replaces the binary in place.
+The app also checks for new releases once a day and mentions one in a toast; `check = false`
+under `[updates]` turns that off.
 
 ## Build from source
 
@@ -149,22 +150,14 @@ verify_interval_secs = 60
 on_leak = "pause"
 ```
 
-The guard routes the session through your VPN's SOCKS5 proxy and forces DHT off, since
-SOCKS5 UDP-associate is unreliable and librqbit does not document whether DHT is tunnelled. It
-verifies egress through the proxy before any session starts, re-checks on an interval, and pauses
-every torrent if a check fails.
+The guard routes the session through your VPN's SOCKS5 proxy and forces DHT off. It verifies
+egress through the proxy before any session starts, re-checks on an interval, and pauses every
+torrent if a check fails.
 
-This is application-level containment, not kernel-enforced: librqbit has no bind-to-interface
-option, so the guard stops anistream leaking and nothing else on your machine. Add your VPN's kill
-switch if you want a real guarantee:
-
-```sh
-mullvad lockdown-mode set on
-```
-
-`anistream --doctor` reports whether it is on. Mullvad's in-tunnel `10.64.0.1` is worth preferring
-for a second reason: it is only reachable through the tunnel, so a dropped tunnel makes the proxy
-unreachable instead of quietly leaking.
+This is application-level containment, not kernel-enforced. Add your VPN's kill switch for a real
+guarantee (`mullvad lockdown-mode set on`; `anistream --doctor` reports whether it is on). An
+in-tunnel proxy address like Mullvad's `10.64.0.1` is only reachable through the tunnel, so a
+dropped tunnel fails closed instead of leaking.
 
 ### Trackers
 
@@ -270,11 +263,10 @@ A slow start is usually plugin compilation — the JavaScript reference plugin t
 
 ## Plugins
 
-Provider plugins are WebAssembly components and can be written in any language targeting WASI 0.2.
-See **[docs/plugins.md](docs/plugins.md)**. The sandbox has no sockets and the host lends `fetch`,
-so a plugin is a parser rather than a networking stack.
-
-`anistream --plugins` shows what each installed plugin may contact. That list is enforced host-side.
+Provider plugins are WebAssembly components in any language targeting WASI 0.2 — see
+**[docs/plugins.md](docs/plugins.md)**. The sandbox has no sockets; the host lends `fetch`, so a
+plugin is a parser. `anistream --plugins` shows what each installed plugin may contact, and that
+list is enforced host-side. Per-plugin settings live under `[providers.plugins.settings.<id>]`.
 
 ## Architecture
 

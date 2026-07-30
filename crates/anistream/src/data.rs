@@ -193,15 +193,22 @@ pub fn episode_rows_with_filler(
 
             // Only numeric episodes can be classified: AnimeFillerList indexes by number, and an
             // "OVA" has none.
-            let classified = filler.zip(episode.number.as_number()).and_then(|(list, n)| {
-                let n = n as u32;
-                list.kind_of(n).map(|kind| (kind.label(), kind.is_skippable()))
-            });
+            let classified = filler
+                .zip(episode.number.as_number())
+                .and_then(|(list, n)| {
+                    let n = n as u32;
+                    list.kind_of(n).map(|kind| (kind.label(), kind.is_skippable()))
+                })
+                // The source's own claim, where the index has no answer. Only a positive claim
+                // counts: `Some(false)` is a catalogue asserting canon, which needs no column,
+                // and `None` is no claim at all.
+                .or_else(|| (episode.filler == Some(true)).then_some(("filler", true)));
 
             EpisodeRow {
                 number: episode.number.as_str().to_owned(),
                 title: episode.title.clone(),
                 thumbnail: episode.thumbnail.clone(),
+                description: episode.description.clone(),
                 duration_secs: duration,
                 watched: fraction,
                 completed: event.is_some_and(|e| e.completed),

@@ -124,6 +124,35 @@ async fn assert_reference_behaviour(plugin: &LoadedPlugin, expected_id: &str) {
     assert_eq!(streams[0].subtitles.len(), 1);
     assert_eq!(streams[0].subtitles[0].language, "eng");
     assert!(!streams[0].subtitles[0].hard);
+    assert_eq!(streams[0].subtitles[0].format.as_deref(), Some("vtt"));
+    assert_eq!(streams[0].download_source, None, "this source streams only");
+
+    // The 1.0.0 episode surface: a synopsis, an air date, and a positive canon claim all
+    // cross the ABI rather than being silently dropped.
+    assert!(
+        episodes[0].description.as_deref().unwrap_or_default().contains("echoed"),
+        "got {:?}",
+        episodes[0].description
+    );
+    assert_eq!(episodes[0].air_date.as_deref(), Some("2026-01-01"));
+    assert_eq!(episodes[0].filler, Some(false), "a claim of canon, not an absence of claim");
+
+    // The Sources overlay surface: a candidate slate, and a pick routed back by its own id —
+    // which must resolve to the *picked* quality, not the automatic one.
+    let candidates = plugin
+        .sources("example:frieren", "1", "sub")
+        .await
+        .expect("no trap")
+        .expect("candidates");
+    assert_eq!(candidates.len(), 2);
+    assert_eq!(candidates[0].quality, Some(1080));
+    assert!(candidates[1].size.is_some());
+    let picked = plugin
+        .resolve_source("example:frieren", "1", "sub", &candidates[1].id)
+        .await
+        .expect("no trap")
+        .expect("streams");
+    assert_eq!(picked[0].quality, Some(720), "the pick undone would be a silent substitution");
 }
 
 #[tokio::test]
@@ -347,6 +376,29 @@ async fn the_javascript_component_needs_no_wasi_at_all() {
     assert!(default_host().load(&path).await.is_ok(), "a WASI-free component must load");
 }
 
+#[tokio::test]
+async fn granted_settings_reach_the_guest_and_only_the_guest_they_name() {
+    // The whole `config-get` contract in one test: a granted key arrives, and the reference
+    // plugin's documented fallback covers everything else — the host never invents a value.
+    let Some(path) = component() else { return };
+    let host = PluginHost::new(Limits::default(), None).unwrap().with_plugin_settings(
+        [(
+            "example-rust".to_string(),
+            [("cdn".to_string(), "mirror.example.net".to_string())].into_iter().collect(),
+        )]
+        .into_iter()
+        .collect(),
+    );
+    let plugin = host.load(&path).await.expect("load");
+
+    let streams =
+        plugin.resolve("example:frieren", "1", "sub").await.expect("no trap").expect("streams");
+    assert_eq!(
+        streams[0].url, "https://mirror.example.net/master.m3u8",
+        "the configured mirror should replace the baked-in default"
+    );
+}
+
 // ── the adversary ────────────────────────────────────────────────────────────────────────────
 //
 // `plugins/test-hostile` exists to attack the host. A sandbox with no adversary in its test suite
@@ -367,6 +419,18 @@ fn hostile() -> Option<PathBuf> {
         );
         None
     }
+}
+
+#[tokio::test]
+async fn a_setting_never_granted_is_none_rather_than_a_leak() {
+    // `config-get` on a host with no settings attached. The hostile plugin reports any value
+    // it receives as an `ESCAPED` error; a clean empty list is the host answering `none`.
+    let Some(path) = hostile() else { return };
+    let host = PluginHost::new(Limits::default(), None).unwrap();
+    let plugin = host.load(&path).await.expect("load");
+
+    let result = plugin.sources("x", "1", "sub").await.expect("no trap").expect("no leak");
+    assert!(result.is_empty());
 }
 
 #[tokio::test]

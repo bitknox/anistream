@@ -18,8 +18,16 @@
 // bundle a crypto and regex implementation would be enormous, and real-world sources genuinely need
 // both — AES for the obfuscated stream payloads several of them use, regex for extracting from
 // HTML that no parser should be asked to take seriously.
+//
+// **Versioning.** `1.0.0`, deliberately, because the component model's semver rules treat every
+// `0.x` minor as a different world — at major ≥ 1 the host can grow the `host` interface without
+// stranding components built against an older minor. What can never grow is the *export* set: a
+// new required export breaks every shipped plugin at instantiation. So the exports below are the
+// frozen surface, records prefer `option<>` fields over new shapes, open sets (stream `kind`,
+// `translation`, `capabilities`) are strings rather than enums, and anything a future host wants
+// to switch on is a declared capability rather than a new function.
 
-package anistream:provider@0.1.0;
+package anistream:provider@1.0.0;
 
 interface host {
     record http-request {
@@ -52,7 +60,10 @@ interface host {
     /// Write to the host's log. The only output channel a guest has.
     log: func(level: string, msg: string);
 
-    /// AES-128-CBC decryption, as some sources use for their stream payloads.
+    /// AES-CBC decryption, as some sources use for their stream payloads.
+    ///
+    /// The key length selects the variant: 16, 24 or 32 bytes for AES-128, AES-192 or AES-256.
+    /// The IV is always 16 bytes, and padding is PKCS#7.
     aes-decrypt: func(key: list<u8>, iv: list<u8>, data: list<u8>) -> result<list<u8>, string>;
 
     /// Capture groups for every match. Group 0 is the whole match, as usual.
@@ -60,6 +71,14 @@ interface host {
     /// Returned as plain lists rather than a stream, because a guest that had to page through
     /// results would need more host calls than the parsing is worth.
     regex-captures: func(pattern: string, haystack: string) -> list<list<string>>;
+
+    /// A value from this plugin's own section of the user's configuration —
+    /// `[providers.plugins.settings.<plugin-id>]` in config.toml.
+    ///
+    /// How a source that needs an account, an API key or a mirror choice receives it. `none`
+    /// for anything unset, which is the answer a plugin must be able to work without: settings
+    /// tune a source, they are not permitted to be the only way it functions.
+    config-get: func(key: string) -> option<string>;
 }
 
 interface provider {
@@ -71,19 +90,48 @@ interface provider {
         /// is the plugin equivalent of asking for permissions you do not use.
         allowed-hosts: list<string>,
         translation-types: list<string>,
+        /// Optional behaviours this plugin opts into, as open strings.
+        ///
+        /// The escape hatch that keeps this contract stable: a future host gates new treatment
+        /// on a declared capability instead of a new record shape or a new export. Unknown
+        /// values are ignored, so declaring one never breaks on an older host. An empty list
+        /// is the normal case.
+        capabilities: list<string>,
     }
 
     record search-hit {
         id: string,
         title: string,
+        /// Alternate titles for the same entry. Widens the match surface: the title matcher
+        /// scores against every name it is given, and sources romanise inconsistently enough
+        /// that the primary title alone misses real matches.
+        synonyms: list<string>,
         episode-count: option<u32>,
         year: option<u32>,
+        /// Broad shape when the catalogue states one: `tv`, `tv-short`, `movie`, `special`,
+        /// `ova`, `ona`, `music`.
+        ///
+        /// Used as a match gate — it is what stops a series search landing on its recap movie.
+        /// Absent or unrecognised claims nothing, which can only widen matching, never break it.
+        format: option<string>,
     }
 
     record episode {
         number: string,
         title: option<string>,
         duration-secs: option<u32>,
+        /// One-paragraph synopsis, when the source has one. Plain text — terminals have no
+        /// use for markup, and the host strips none.
+        description: option<string>,
+        /// Still-frame URL, when the source publishes one. The metadata layer fills gaps from
+        /// its own catalogue, so absence costs nothing.
+        thumbnail: option<string>,
+        /// First-air date as `YYYY-MM-DD`, when known.
+        air-date: option<string>,
+        /// Whether the source marks this episode as filler. `none` means "no claim" — which is
+        /// different from `some(false)`, a positive claim of canon. Used as a fallback where
+        /// the host's own filler index does not cover the show.
+        filler: option<bool>,
     }
 
     record subtitle {
@@ -91,6 +139,11 @@ interface provider {
         url: string,
         /// Burned into the video rather than a separate track.
         hard: bool,
+        /// Track format when the URL does not end in a telling extension: `vtt`, `srt`, `ass`.
+        ///
+        /// The player picks its parser from the file extension, and an API-shaped URL carries
+        /// none — without this a track served from `/subtitles?id=…` is guessed at.
+        format: option<string>,
     }
 
     record media-stream {
@@ -107,6 +160,33 @@ interface provider {
         /// without these, so they are part of the result rather than an afterthought.
         headers: list<tuple<string, string>>,
         subtitles: list<subtitle>,
+        /// A durable reference a download queue can persist and resume from — a direct file
+        /// URL, where one exists at all.
+        ///
+        /// Distinct from `url`, which is what a player consumes *now* and may be short-lived.
+        /// Absent means "this source streams only", which is how the queue knows to say so
+        /// rather than failing obscurely.
+        download-source: option<string>,
+        /// One line saying why this stream over the others, surfaced as a toast when automatic
+        /// resolution picks it. Absent when there was nothing to choose between.
+        pick-note: option<string>,
+    }
+
+    /// One selectable release for an episode, for the Sources overlay.
+    ///
+    /// Deliberately descriptive rather than playable, so listing stays cheap. The `id` is
+    /// opaque to the host and only ever handed back to `resolve-source` on the same plugin.
+    record source-candidate {
+        id: string,
+        /// The release title as listed at the source.
+        title: string,
+        quality: option<u32>,
+        /// Seeders, for swarm-backed sources. Absent where the concept does not apply.
+        seeders: option<u32>,
+        /// Payload size as listed at the source, already human-readable (`"1.4 GiB"`).
+        size: option<string>,
+        dual-audio: bool,
+        dubbed: bool,
     }
 
     /// Mirrors `anistream_core::ProviderError` one-for-one, so a WASM plugin and a native
@@ -130,6 +210,21 @@ interface provider {
         -> result<list<episode>, provider-error>;
 
     resolve: func(id: string, episode: string, translation: string)
+        -> result<list<media-stream>, provider-error>;
+
+    /// The selectable releases for an episode, best-first, without starting any of them.
+    ///
+    /// An empty list means "nothing to choose between here" — the honest answer for a source
+    /// that resolves to exactly one stream, and what the Sources overlay expects from one.
+    sources: func(id: string, episode: string, translation: string)
+        -> result<list<source-candidate>, provider-error>;
+
+    /// Resolve one candidate from `sources` by its id.
+    ///
+    /// Must not fall back to the automatic pick: silently substituting another stream for the
+    /// one the user chose would undo the choice. `not-found` is the right answer for an id
+    /// this plugin does not recognise.
+    resolve-source: func(id: string, episode: string, translation: string, source-id: string)
         -> result<list<media-stream>, provider-error>;
 }
 

@@ -1535,10 +1535,19 @@ fn spawn(
                 }
                 Err(e) => Update::Content(Content::Failed(e.to_string())),
             },
-            Task::LoadDetail(id) => match anilist.media(id).await {
-                Ok(media) => Update::Detail(Box::new(data::entry_from(&media, Some(&store)))),
-                Err(e) => Update::Toast(Toast::alert(format!("could not load title: {e}"))),
-            },
+            Task::LoadDetail(id) => {
+                // Sent before the detail itself, so the picker knows the current choice the
+                // moment the title is on screen rather than only after it is opened once.
+                let _ = tx.send(Update::ProviderPreference(
+                    store.provider_preference(id).ok().flatten(),
+                ));
+                match anilist.media(id).await {
+                    Ok(media) => {
+                        Update::Detail(Box::new(data::entry_from(&media, Some(&store))))
+                    }
+                    Err(e) => Update::Toast(Toast::alert(format!("could not load title: {e}"))),
+                }
+            }
             Task::CheckProviders => {
                 registry.check_all(now_epoch()).await;
                 Update::Providers(data::provider_rows(&registry))
@@ -1558,6 +1567,7 @@ fn spawn(
             | Task::Disconnect { .. }
             | Task::SetStatus { .. }
             | Task::ResolveConflict { .. }
+            | Task::SetProviderPreference { .. }
             | Task::LoadLibrary(_)
             | Task::DownloadEpisode { .. }
             | Task::DownloadMany { .. }
@@ -1667,6 +1677,23 @@ fn dispatch(
         }
         Task::ResolveConflict { id, keep_local } => {
             tracking::resolve_conflict(sync, id, keep_local);
+        }
+        Task::SetProviderPreference { id, provider } => {
+            let now = now_epoch();
+            let written = match &provider {
+                Some(provider) => store.set_provider_preference(id, provider, now),
+                None => store.clear_provider_preference(id),
+            };
+            let toast = match (written, &provider) {
+                (Ok(()), Some(provider)) => {
+                    Toast::info(format!("{provider} will be used for this title"))
+                }
+                (Ok(()), None) => Toast::info("back to automatic source selection"),
+                // The overlay has already moved its marker, so a failed write has to be said
+                // out loud or the UI would be showing a choice that was never saved.
+                (Err(e), _) => Toast::alert(format!("could not save that choice: {e}")),
+            };
+            let _ = tx.send(Update::Toast(toast));
         }
         Task::LoadLibrary(segment) => {
             let (sync, tx, store) = (sync.clone(), tx.clone(), store.clone());
@@ -2126,6 +2153,29 @@ async fn resolve_for_playback(
     let _ = tx.send(Update::Status("looking up the title…".into()));
     let media = anilist.media(id).await.map_err(|e| e.to_string())?;
     let now = now_epoch();
+
+    // "Use this source for this series", applied *before* the title is matched.
+    //
+    // The order matters: a `ProviderKey` is only meaningful to the provider that issued it, so
+    // matching against the whole chain and then resolving against a pinned source would hand one
+    // provider's key to another and look like a missing episode.
+    //
+    // Skipped when the user picked an exact release from the Sources overlay. That pick is the
+    // more immediate instruction of the two, it already names its own provider, and honouring the
+    // remembered preference instead would refuse a release the user is looking straight at.
+    //
+    // A preference naming a provider that is not registered — a plugin removed, or one still
+    // compiling in the background — falls back to the normal chain. Refusing to play because a
+    // remembered choice is momentarily unresolvable would be a worse answer than playing.
+    let preference =
+        pick.is_none().then(|| store.provider_preference(id).ok().flatten()).flatten();
+    let pinned = preference.as_deref().and_then(|id| registry.pinned(id));
+    if let Some(name) = &preference
+        && pinned.is_none()
+    {
+        tracing::debug!(provider = %name, "pinned source is not registered, using the chain");
+    }
+    let registry = pinned.as_ref().unwrap_or(registry);
 
     let resolution = anistream_providers::resolve(
         store,

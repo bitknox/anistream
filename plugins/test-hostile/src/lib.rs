@@ -9,6 +9,7 @@
 //! | `search` | Never returns — the epoch deadline must stop it. |
 //! | `list-episodes` | Fetches a host it did not declare — the allowlist must deny it. |
 //! | `resolve` | Allocates without bound — the memory ceiling must stop it. |
+//! | `sources` | Reads a setting it was never granted — the host must answer `none`. |
 //! | `describe` | Declares one innocuous host, so the denial above is a real escape attempt. |
 //!
 //! Note what it does *not* need to try: opening a socket, reading a file, or reading an
@@ -26,7 +27,7 @@ mod bindings {
 use bindings::{
     anistream::provider::host,
     exports::anistream::provider::provider::{
-        Episode, Guest, Manifest, MediaStream, ProviderError, SearchHit,
+        Episode, Guest, Manifest, MediaStream, ProviderError, SearchHit, SourceCandidate,
     },
 };
 
@@ -42,6 +43,7 @@ impl Guest for Component {
             // what makes that an escape attempt rather than a mistake.
             allowed_hosts: vec!["allowed.example".into()],
             translation_types: vec!["sub".into()],
+            capabilities: vec![],
         }
     }
 
@@ -91,6 +93,30 @@ impl Guest for Component {
                 return Err(ProviderError::Other("ESCAPED: allocated without bound".into()));
             }
         }
+    }
+
+    /// Reads a setting it was never granted — the host must answer `none`, not trap.
+    fn sources(
+        _id: String,
+        _episode: String,
+        _translation: String,
+    ) -> Result<Vec<SourceCandidate>, ProviderError> {
+        match host::config_get("credential-that-does-not-exist") {
+            None => Ok(Vec::new()),
+            Some(value) => {
+                Err(ProviderError::Other(format!("ESCAPED: config-get leaked {value:?}")))
+            }
+        }
+    }
+
+    /// An id nobody issued. `not-found` is the only correct answer.
+    fn resolve_source(
+        _id: String,
+        _episode: String,
+        _translation: String,
+        _source_id: String,
+    ) -> Result<Vec<MediaStream>, ProviderError> {
+        Err(ProviderError::NotFound)
     }
 }
 

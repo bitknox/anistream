@@ -16,6 +16,7 @@ pub mod download;
 pub mod history;
 pub mod mapping;
 pub mod outbox;
+pub mod preference;
 pub mod schema;
 pub mod state;
 pub mod stats;

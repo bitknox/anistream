@@ -27,6 +27,7 @@ what it shows is what is actually bound, overrides included.
 | `Enter` | Open · play |
 | `Space` | Play next unwatched |
 | `e` / `s` | Episodes · sources |
+| `P` | Pin a source for this title |
 | `d` | Download |
 | `t` | Sub / dub |
 | `f` | Filter |

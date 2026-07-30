@@ -18,6 +18,17 @@
 /anistream.db*
 /.anistream/
 
+# This repository does not carry plugins. The three below are the exceptions and are not
+# plugins in the shipping sense: two are reference implementations that exist to be read, and
+# one is a fixture the sandbox tests run against. Everything else under /plugins is somebody's
+# local build, and a source parser tracking a site that changes weekly does not belong in the
+# history of the host that loads it. If plugins are ever distributed it will be through a
+# separate registry, not this tree.
+/plugins/*
+!/plugins/example-rust/
+!/plugins/example-ts/
+!/plugins/test-hostile/
+
 # Plugins build out of tree and are their own workspaces, so their artefacts are not covered by
 # the root /target rule. The built .wasm is a release artefact, not source.
 /plugins/*/target

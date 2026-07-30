@@ -197,6 +197,40 @@ jobs:
           dpkg-deb --build --root-owner-group "$root" "$deb"
           sha256sum "$deb" > "$deb.sha256"
 
+      # For everyone not on a Debian lineage: one self-contained file, no package manager
+      # involved. mpv and ffmpeg stay host-installed for the same licensing reason as the .deb.
+      - name: AppImage (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          appdir="stage/AppDir"
+          mkdir -p "$appdir/usr/bin" "$appdir/usr/share/applications" \
+            "$appdir/usr/share/icons/hicolor/256x256/apps"
+
+          install -m 755 "target/${{ matrix.target }}/release/anistream" "$appdir/usr/bin/anistream"
+          # appimagetool insists on the desktop file and icon at the AppDir root; the copies
+          # under usr/share are what menu integration reads if the user installs it.
+          install -m 644 packaging/linux/anistream.desktop "$appdir/anistream.desktop"
+          install -m 644 packaging/linux/anistream.desktop \
+            "$appdir/usr/share/applications/anistream.desktop"
+          install -m 644 assets/icon/256x256.png "$appdir/anistream.png"
+          install -m 644 assets/icon/256x256.png \
+            "$appdir/usr/share/icons/hicolor/256x256/apps/anistream.png"
+          cp "$appdir/anistream.png" "$appdir/.DirIcon"
+          ln -s usr/bin/anistream "$appdir/AppRun"
+
+          curl -fsSL -o appimagetool \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+          appimage="dist/anistream-${version}-x86_64.AppImage"
+          # --appimage-extract-and-run: hosted runners have no FUSE, and the tool is itself
+          # an AppImage; extracting first is how it runs at all here.
+          ARCH=x86_64 ./appimagetool --appimage-extract-and-run "$appdir" "$appimage"
+          sha256sum "$appimage" > "$appimage.sha256"
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.target }}
@@ -205,6 +239,7 @@ jobs:
             dist/*.zip
             dist/*.pkg
             dist/*.deb
+            dist/*.AppImage
             dist/*setup.exe
             dist/*.sha256
 
@@ -227,6 +262,7 @@ jobs:
             dist/*.zip
             dist/*.pkg
             dist/*.deb
+            dist/*.AppImage
             dist/*setup.exe
             dist/*.sha256
           body: |
@@ -235,6 +271,9 @@ jobs:
             **Installers** — `.pkg` on macOS, `setup.exe` on Windows, `.deb` on Debian and Ubuntu.
             Each one puts `anistream` on your `PATH` *and* adds a launcher, so you can type it or
             click it. The launcher opens your terminal, because anistream lives in one.
+
+            **AppImage** — for every other Linux distro: `chmod +x` it and run it from a
+            terminal. Nothing is installed.
 
             **Archives** — the `.tar.gz` and `.zip` are just the binary, for putting on `PATH`
             yourself.

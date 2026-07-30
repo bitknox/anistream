@@ -23,7 +23,8 @@ mod bindings {
 use bindings::{
     anistream::provider::host,
     exports::anistream::provider::provider::{
-        Episode, Guest, Manifest, MediaStream, ProviderError, SearchHit, Subtitle,
+        Episode, Guest, Manifest, MediaStream, ProviderError, SearchHit, SourceCandidate,
+        Subtitle,
     },
 };
 
@@ -41,6 +42,9 @@ impl Guest for Component {
             version: env!("CARGO_PKG_VERSION").into(),
             allowed_hosts: vec![ALLOWED_HOST.into()],
             translation_types: vec!["sub".into(), "dub".into()],
+            // Open strings a future host can gate optional treatment on. Nothing to declare —
+            // which is the normal case, and what keeps declaring one meaningful.
+            capabilities: vec![],
         }
     }
 
@@ -63,8 +67,13 @@ impl Guest for Component {
         Ok(vec![SearchHit {
             id: format!("example:{echoed}"),
             title: format!("Echo of {echoed}"),
+            // Alternate spellings widen the match surface; sources romanise inconsistently
+            // enough that the primary title alone misses real matches.
+            synonyms: vec![format!("{echoed} (echo)")],
             episode_count: Some(3),
             year: Some(2026),
+            // A match gate, not a label: `tv` here stops a series search landing on a movie.
+            format: Some("tv".into()),
         }])
     }
 
@@ -79,6 +88,13 @@ impl Guest for Component {
                 number: n.to_string(),
                 title: Some(format!("{slug} — part {n}")),
                 duration_secs: Some(1_440),
+                description: Some(format!(
+                    "In which {slug} is echoed for the {n}th time, and nothing else happens."
+                )),
+                thumbnail: None,
+                air_date: Some(format!("2026-01-{n:02}")),
+                // `None` would mean "no claim"; this catalogue positively claims canon.
+                filler: Some(false),
             })
             .collect())
     }
@@ -101,10 +117,15 @@ impl Guest for Component {
         let url = String::from_utf8(decrypted)
             .map_err(|_| ProviderError::Parse("decrypted payload was not utf-8".into()))?;
 
-        host::log("info", &format!("resolved {slug} ep {episode} ({translation})"));
+        // The lent settings: an optional mirror override from
+        // `[providers.plugins.settings.example-rust]`. The pattern to copy is the fallback —
+        // a plugin must work with every setting unset, because most users never write any.
+        let cdn = host::config_get("cdn").unwrap_or_else(|| "cdn.example.test".into());
+
+        host::log("info", &format!("resolved {slug} ep {episode} ({translation}) via {cdn}"));
 
         Ok(vec![MediaStream {
-            url,
+            url: url.replace("cdn.example.test", &cdn),
             kind: "hls".into(),
             quality: Some(1080),
             // Referer-locked CDNs return 403 without this, which is why headers travel with the
@@ -114,8 +135,69 @@ impl Guest for Component {
                 language: "eng".into(),
                 url: format!("https://{ALLOWED_HOST}/anything/{slug}.vtt"),
                 hard: false,
+                // The URL above happens to end in `.vtt`; stating it anyway shows the field a
+                // source with API-shaped subtitle URLs must set, or the player has to guess.
+                format: Some("vtt".into()),
             }],
+            // This source streams only. Absent is how the download queue knows to say so.
+            download_source: None,
+            pick_note: None,
         }])
+    }
+
+    /// The selectable releases for an episode, for the Sources overlay.
+    ///
+    /// Two candidates so the overlay has an actual choice to show. A source that resolves to
+    /// exactly one stream should return an empty list instead — that is the honest answer,
+    /// not an error.
+    fn sources(
+        id: String,
+        episode: String,
+        _translation: String,
+    ) -> Result<Vec<SourceCandidate>, ProviderError> {
+        let slug = id.strip_prefix("example:").ok_or(ProviderError::NotFound)?;
+        Ok(vec![
+            SourceCandidate {
+                id: format!("{slug}:{episode}:1080"),
+                title: format!("[Echo] {slug} - {episode} (1080p)"),
+                quality: Some(1080),
+                seeders: None,
+                size: Some("1.4 GiB".into()),
+                dual_audio: false,
+                dubbed: false,
+            },
+            SourceCandidate {
+                id: format!("{slug}:{episode}:720"),
+                title: format!("[Echo] {slug} - {episode} (720p)"),
+                quality: Some(720),
+                seeders: None,
+                size: Some("700 MiB".into()),
+                dual_audio: false,
+                dubbed: false,
+            },
+        ])
+    }
+
+    /// Resolve one candidate from `sources` by its id.
+    ///
+    /// Never falls back to the automatic pick — substituting another stream for the one the
+    /// user chose would silently undo the choice, so an unrecognised id is `not-found`.
+    fn resolve_source(
+        id: String,
+        episode: String,
+        translation: String,
+        source_id: String,
+    ) -> Result<Vec<MediaStream>, ProviderError> {
+        let quality: u32 = source_id
+            .rsplit(':')
+            .next()
+            .and_then(|q| q.parse().ok())
+            .ok_or(ProviderError::NotFound)?;
+        let mut streams = Self::resolve(id, episode, translation)?;
+        for stream in &mut streams {
+            stream.quality = Some(quality);
+        }
+        Ok(streams)
     }
 }
 

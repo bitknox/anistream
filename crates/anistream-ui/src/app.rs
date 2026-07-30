@@ -492,6 +492,11 @@ pub struct EpisodeRow {
     /// Only ever drawn for the selected row: the table is dense, and one image that follows the
     /// cursor costs a single fetch per move rather than one per visible row.
     pub thumbnail: Option<String>,
+    /// One-paragraph synopsis, when the source has one.
+    ///
+    /// Shown for the selected row only, under its still, for the same reason the still is:
+    /// the table is a timing sheet, and a paragraph per row would drown it.
+    pub description: Option<String>,
     pub duration_secs: Option<u64>,
     /// How far through this episode the local history says we are.
     pub watched: f64,
@@ -751,6 +756,8 @@ pub enum Update {
     Providers(Vec<ProviderRow>),
     /// Why no sources are available, when none are.
     ProviderNote(String),
+    /// The source pinned for the title on screen, or `None` for automatic.
+    ProviderPreference(Option<String>),
     /// The ladder found candidates but could not choose between them.
     MatchChoices {
         id: AnilistId,
@@ -858,6 +865,8 @@ pub struct App {
     pub device_code: Option<DeviceCodePrompt>,
     /// Snapshot for the Providers screen.
     pub providers: Vec<ProviderRow>,
+    /// The source pinned for the title on screen. `None` means automatic.
+    pub provider_preference: Option<String>,
     /// Why there are no sources, when there are none.
     ///
     /// "You have not configured anything" and "your VPN guard failed" need different
@@ -987,6 +996,7 @@ impl App {
             vpn_badge: None,
             vpn_leaking: false,
             providers: Vec::new(),
+            provider_preference: None,
             provider_note: None,
             episodes: Vec::new(),
             episodes_all: Vec::new(),
@@ -1091,6 +1101,7 @@ impl App {
             Update::Image { url, image } => self.images.insert(&url, *image),
             Update::Providers(rows) => self.providers = rows,
             Update::ProviderNote(note) => self.provider_note = Some(note),
+            Update::ProviderPreference(choice) => self.provider_preference = choice,
             Update::Sources(candidates) => {
                 // A stale answer — the user has navigated away since asking — is not a
                 // question worth interrupting them with.
@@ -1764,6 +1775,29 @@ impl App {
                     url: format!("https://anilist.co/anime/{}", id.get()),
                 });
             }
+            Action::PickProvider => {
+                let id = match self.nav.current() {
+                    StageView::Episodes(id) | StageView::Title(id) => Some(*id),
+                    _ => self.detail.as_ref().or(self.selected_entry()).map(|e| e.id),
+                };
+                if id.is_none() {
+                    self.push_toast(Toast::info("nothing selected"));
+                    return None;
+                }
+                if self.providers.is_empty() {
+                    // Plugins register a moment after launch, so "none yet" is a real state
+                    // rather than a misconfiguration.
+                    self.push_toast(Toast::info("no sources registered yet"));
+                    return None;
+                }
+                // Start on the current choice, so the overlay opens showing where you are.
+                self.overlay_selected = self
+                    .provider_choices()
+                    .iter()
+                    .position(|(id, _)| id.as_deref() == self.provider_preference.as_deref())
+                    .unwrap_or(0);
+                self.nav.open_overlay(Overlay::SourceProvider);
+            }
             Action::WatchOrder => {
                 let Some(entry) = self.detail.as_ref().or(self.selected_entry()) else {
                     self.push_toast(Toast::info("nothing selected"));
@@ -2142,6 +2176,20 @@ impl App {
                 }
                 Some(Task::ResolveConflict { id: row.anilist_id, keep_local: true })
             }
+            Some(Overlay::SourceProvider) => {
+                let (provider, _) = self.provider_choices().get(self.overlay_selected)?.clone();
+                let id = match self.nav.current() {
+                    StageView::Episodes(id) | StageView::Title(id) => Some(*id),
+                    _ => self.detail.as_ref().or(self.selected_entry()).map(|e| e.id),
+                }?;
+                self.nav.close_overlay();
+                self.overlay_selected = 0;
+                // Reflected immediately rather than waiting for the write to come back: the
+                // overlay has closed, and a row that still showed the old choice would read
+                // as the keystroke having missed.
+                self.provider_preference = provider.clone();
+                Some(Task::SetProviderPreference { id, provider })
+            }
             Some(Overlay::WatchOrder) => {
                 let related = self.detail.as_ref()?.related.get(self.overlay_selected)?.clone();
                 self.nav.close_overlay();
@@ -2205,9 +2253,35 @@ impl App {
             Some(Overlay::Logs) => self.logs.len(),
             Some(Overlay::Disambiguate) => self.match_candidates.len(),
             Some(Overlay::Sources) => self.sources.len(),
+            Some(Overlay::SourceProvider) => self.provider_choices().len(),
             Some(Overlay::WatchOrder) => self.detail.as_ref().map_or(0, |e| e.related.len()),
             _ => 0,
         }
+    }
+
+    /// What the source picker offers: automatic first, then every registered source.
+    ///
+    /// `None` is automatic — the ordinary `providers.order` chain with its failover. It leads
+    /// because it is the right answer for almost every title, and pinning is the exception.
+    ///
+    /// Sources that are registered but currently unusable are still listed. Health is a moment's
+    /// state, and hiding a source that is briefly failing would make the choice look impossible
+    /// rather than temporarily unavailable — the row says so instead.
+    pub fn provider_choices(&self) -> Vec<(Option<String>, String)> {
+        let mut choices = vec![(None, "Automatic — best available source".to_string())];
+        choices.extend(self.providers.iter().map(|row| {
+            let mut label = row.id.clone();
+            if !row.kind.is_empty() {
+                label.push_str(&format!("  ·  {}", row.kind));
+            }
+            if row.held_back {
+                label.push_str("  ·  held back");
+            } else if !row.usable {
+                label.push_str("  ·  failing");
+            }
+            (Some(row.id.clone()), label)
+        }));
+        choices
     }
 
     /// The Settings screen's rows, built fresh from the live config.
@@ -2863,6 +2937,11 @@ pub enum Task {
         id: AnilistId,
         status: LibrarySegment,
     },
+    /// Pin a source for one title, or return it to automatic with `None`.
+    SetProviderPreference {
+        id: AnilistId,
+        provider: Option<String>,
+    },
     /// Settle a divergence by keeping one side.
     ResolveConflict {
         id: AnilistId,
@@ -3028,6 +3107,7 @@ mod tests {
                     kind: None,
                     skippable: false,
                     thumbnail: None,
+                    description: None,
                 })
                 .collect(),
         ));
@@ -3845,6 +3925,7 @@ mod tests {
                 kind: None,
                 skippable: false,
                 thumbnail: None,
+                description: None,
             },
             EpisodeRow {
                 number: "2".into(),
@@ -3855,6 +3936,7 @@ mod tests {
                 kind: None,
                 skippable: false,
                 thumbnail: None,
+                description: None,
             },
         ]));
 
@@ -3894,6 +3976,7 @@ mod tests {
             kind: None,
             skippable: false,
             thumbnail: None,
+            description: None,
         }]));
         assert_eq!(a.episodes.len(), 1);
         assert!(!a.episodes_loading);
@@ -3934,6 +4017,7 @@ mod tests {
             kind: None,
             skippable: false,
             thumbnail: None,
+            description: None,
         }]));
         let id = a.selected_entry().expect("an entry").id;
         a.detail = Some(a.selected_entry().expect("an entry").clone());

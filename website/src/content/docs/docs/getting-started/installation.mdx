@@ -5,12 +5,15 @@ description: Prebuilt binaries for macOS, Linux and Windows, or build from sourc
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Every release on the [releases page](https://github.com/bitknox/anistream/releases) ships two ways
-to install, and both give you the same build.
+Every release on the [releases page](https://github.com/bitknox/anistream/releases) ships the same
+build several ways:
 
 **An installer** — `.pkg` on macOS, `setup.exe` on Windows, `.deb` on Debian and Ubuntu. Each one
 puts `anistream` on your `PATH` *and* adds a launcher, so you can type it or click it. The launcher
 opens your terminal, since that is where anistream lives.
+
+**An AppImage** — for every other Linux distro: `chmod +x` it and run it from a terminal. Nothing
+is installed.
 
 **An archive** — `.tar.gz` or `.zip` holding just the binary, for putting on `PATH` yourself.
 

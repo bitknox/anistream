@@ -1074,8 +1074,27 @@ fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
     }
 
     if let Some(panel) = still {
-        let url = app.episodes.get(app.episode_selected).and_then(|e| e.thumbnail.as_deref());
-        draw_artwork(buf, app, url, panel);
+        // The panel is shared: the still on top, the episode's synopsis under it. When no
+        // episode in this list has a still at all, the plate would be an empty rectangle
+        // pretending to be an image — the words start at the top instead.
+        let selected = app.episodes.get(app.episode_selected);
+        let mut text_top = panel.y;
+        if app.episodes.iter().any(|row| row.thumbnail.is_some()) {
+            draw_artwork(buf, app, selected.and_then(|e| e.thumbnail.as_deref()), panel);
+            text_top = panel.bottom() + 1;
+        }
+        if let Some(description) = selected.and_then(|e| e.description.as_deref()) {
+            let room = table.bottom().saturating_sub(text_top) as usize;
+            let lines = wrap(description, panel.width as usize, room);
+            for (i, line) in lines.into_iter().enumerate() {
+                buf.set_string(
+                    panel.x,
+                    text_top + i as u16,
+                    line,
+                    app.palette.style(Role::TextDim),
+                );
+            }
+        }
     }
 
     // Column headers, in caps above a hairline.
@@ -1921,6 +1940,20 @@ fn source_rows(app: &App) -> Vec<(String, String)> {
 
 /// The watch order: prequels, parent story, sequels — the relation in the key column,
 /// so the list reads as a path through the franchise rather than a bare list of names.
+/// The source picker's rows: what each choice is, and which one is in force.
+fn source_provider_rows(app: &App) -> Vec<(String, String)> {
+    app.provider_choices()
+        .into_iter()
+        .map(|(id, label)| {
+            // The marker is the whole point of the list — without it the overlay says what the
+            // options are but not which one this title is already on.
+            let marker =
+                if id.as_deref() == app.provider_preference.as_deref() { "in use" } else { "" };
+            (marker.to_string(), label)
+        })
+        .collect()
+}
+
 fn watch_order_rows(app: &App) -> Vec<(String, String)> {
     let Some(detail) = app.detail.as_ref() else {
         return Vec::new();
@@ -1962,6 +1995,7 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         Overlay::Logs => log_rows(app),
         Overlay::Disambiguate => candidate_rows(app),
         Overlay::Sources => source_rows(app),
+        Overlay::SourceProvider => source_provider_rows(app),
         Overlay::WatchOrder => watch_order_rows(app),
         Overlay::ManualQuery => vec![(
             String::new(),
@@ -1992,6 +2026,7 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
             | Overlay::Logs
             | Overlay::Disambiguate
             | Overlay::Sources
+            | Overlay::SourceProvider
             | Overlay::WatchOrder
     )
     .then_some(app.overlay_selected);
@@ -2065,6 +2100,15 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
             match app.detail.as_ref() {
                 Some(detail) => format!("around {} — enter opens", detail.title),
                 None => "enter opens".into(),
+            }
+        ),
+        // Name the title, since the choice is remembered against it rather than globally.
+        Overlay::SourceProvider => format!(
+            "{}   {}",
+            glyph::eyebrow(overlay.title()),
+            match app.detail.as_ref() {
+                Some(detail) => format!("{} — enter pins it", detail.title),
+                None => "enter pins it".into(),
             }
         ),
         // Name the episode the slate is for, or a wall of release names has no anchor.
@@ -2198,7 +2242,9 @@ const STILL_GAP: u16 = 2;
 /// still at all, the overlay is wide enough that the table does not get squeezed to fit it, and
 /// it is tall enough for the image to be an image rather than a stripe.
 fn still_panel(app: &App, table: Rect) -> Option<Rect> {
-    if !app.episodes.iter().any(|row| row.thumbnail.is_some()) {
+    // A synopsis earns the panel the same way a still does — either is a reason; a list
+    // with neither keeps the whole width for the table.
+    if !app.episodes.iter().any(|row| row.thumbnail.is_some() || row.description.is_some()) {
         return None;
     }
     let height = 7.min(table.height.saturating_sub(2));
@@ -2583,6 +2629,7 @@ mod tests {
             kind: None,
             skippable: false,
             thumbnail: None,
+            description: None,
         }
     }
 
