@@ -105,16 +105,28 @@ async fn localise_subtitles(http: &HttpClient, mpv: &Mpv, stream: &mut Stream) {
             continue;
         };
 
-        // The extension is what tells mpv which parser to use, so it is taken from the URL
-        // rather than assumed — `.vtt` and `.ass` are both common and are not interchangeable.
+        // The extension is what tells mpv which parser to use — `.vtt` and `.ass` are both
+        // common and are not interchangeable. The source's own claim wins, because an
+        // API-shaped URL (`/subtitles?id=…`) carries no extension to read; the URL is the
+        // fallback, and `vtt` the guess of last resort.
+        let plausible = |ext: &String| {
+            !ext.is_empty() && ext.len() <= 5 && ext.chars().all(|c| c.is_ascii_alphanumeric())
+        };
         let extension = subtitle
-            .url
-            .rsplit('/')
-            .next()
-            .and_then(|name| name.rsplit_once('.'))
-            .map(|(_, ext)| ext)
-            .filter(|ext| ext.len() <= 5 && ext.chars().all(|c| c.is_ascii_alphanumeric()))
-            .unwrap_or("vtt");
+            .format
+            .as_deref()
+            .map(|format| format.trim_start_matches('.').to_ascii_lowercase())
+            .filter(plausible)
+            .or_else(|| {
+                subtitle
+                    .url
+                    .rsplit('/')
+                    .next()
+                    .and_then(|name| name.rsplit_once('.'))
+                    .map(|(_, ext)| ext.to_ascii_lowercase())
+                    .filter(plausible)
+            })
+            .unwrap_or_else(|| "vtt".into());
         // Indexed rather than hashed: two tracks in the same language would otherwise collide
         // and the second would silently replace the first.
         let path = dir.join(format!("{index}-{}.{extension}", sanitise(&subtitle.language)));

@@ -150,11 +150,29 @@ pub struct Episode {
     /// a remote provider can publish one, and so can the metadata layer for a source that has
     /// no catalogue of its own.
     pub thumbnail: Option<String>,
+    /// One-paragraph synopsis, when the source has one. Plain text.
+    #[serde(default)]
+    pub description: Option<String>,
+    /// First-air date as `YYYY-MM-DD`, when known.
+    #[serde(default)]
+    pub air_date: Option<String>,
+    /// The source's own filler claim. `None` is "no claim", distinct from `Some(false)` —
+    /// a positive claim of canon. A fallback where the filler index does not cover the show.
+    #[serde(default)]
+    pub filler: Option<bool>,
 }
 
 impl Episode {
     pub fn new(number: impl Into<EpisodeNumber>) -> Self {
-        Self { number: number.into(), title: None, duration: None, thumbnail: None }
+        Self {
+            number: number.into(),
+            title: None,
+            duration: None,
+            thumbnail: None,
+            description: None,
+            air_date: None,
+            filler: None,
+        }
     }
 
     pub fn with_title(mut self, title: impl Into<String>) -> Self {

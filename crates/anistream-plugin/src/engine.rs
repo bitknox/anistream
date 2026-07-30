@@ -59,7 +59,8 @@ wasmtime::component::bindgen!({
 // interface's types do not. Re-exported so callers need not know the generated shape.
 use self::anistream::provider::host::{HostError as GuestHostError, HttpRequest, HttpResponse};
 pub use self::exports::anistream::provider::provider::{
-    Episode, Manifest, MediaStream, ProviderError as GuestError, SearchHit, Subtitle,
+    Episode, Manifest, MediaStream, ProviderError as GuestError, SearchHit, SourceCandidate,
+    Subtitle,
 };
 
 /// How often the epoch advances.
@@ -217,6 +218,12 @@ impl anistream::provider::host::Host for PluginState {
     ) -> wasmtime::Result<Vec<Vec<String>>> {
         Ok(host::regex_captures(&pattern, &haystack))
     }
+
+    async fn config_get(&mut self, key: String) -> wasmtime::Result<Option<String>> {
+        // Served from the capabilities rather than read from disk: what a guest may see was
+        // decided when the call was set up, and `describe` deliberately gets none at all.
+        Ok(self.capabilities.setting(&key))
+    }
 }
 
 /// Loads plugins and owns the shared engine.
@@ -225,6 +232,10 @@ pub struct PluginHost {
     engine: wasmtime::Engine,
     limits: Limits,
     http: Option<anistream_net::HttpClient>,
+    /// Per-plugin settings from `[providers.plugins.settings.<id>]`, keyed by plugin id.
+    /// Served to a guest one key at a time through the lent `config-get`.
+    settings:
+        Arc<std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>>,
     /// Keeps the epoch ticker alive for as long as any plugin might run.
     _ticker: Arc<TickerGuard>,
 }
@@ -326,8 +337,24 @@ impl PluginHost {
             engine,
             limits,
             http,
+            settings: Arc::new(Default::default()),
             _ticker: Arc::new(TickerGuard { stop, handle: Some(handle) }),
         })
+    }
+
+    /// Attach the user's per-plugin settings, keyed by plugin id.
+    ///
+    /// A builder rather than a constructor argument because most hosts — `plugin inspect`, the
+    /// whole conformance suite — correctly have none.
+    pub fn with_plugin_settings(
+        mut self,
+        settings: std::collections::BTreeMap<
+            String,
+            std::collections::BTreeMap<String, String>,
+        >,
+    ) -> Self {
+        self.settings = Arc::new(settings);
+        self
     }
 
     /// Compile a `.wasm` component and read its manifest.
@@ -370,9 +397,11 @@ impl PluginHost {
                 version: String::new(),
                 allowed_hosts: Vec::new(),
                 translation_types: Vec::new(),
+                capabilities: Vec::new(),
             },
             limits: self.limits,
             http: self.http.clone(),
+            settings: Default::default(),
         };
 
         // Describing itself is the one call made with *no* capabilities: a manifest must not be
@@ -392,7 +421,10 @@ impl PluginHost {
             hosts = ?manifest.allowed_hosts,
             "plugin loaded"
         );
-        Ok(LoadedPlugin { manifest, ..plugin })
+        // Settings are looked up by the id the manifest just declared — they could not be
+        // attached earlier, and `describe` above deliberately ran without them.
+        let settings = self.settings.get(&manifest.id).cloned().unwrap_or_default();
+        Ok(LoadedPlugin { manifest, settings, ..plugin })
     }
 
     /// Every `*.wasm` in a directory, in a stable order.
@@ -437,6 +469,8 @@ pub struct LoadedPlugin {
     manifest: Manifest,
     limits: Limits,
     http: Option<anistream_net::HttpClient>,
+    /// This plugin's own settings, served through `config-get` on every call but `describe`.
+    settings: std::collections::BTreeMap<String, String>,
 }
 
 /// Identity and limits only.
@@ -485,7 +519,7 @@ impl LoadedPlugin {
         store
     }
 
-    /// Capabilities for a real call: the declared hosts, and the shared client.
+    /// Capabilities for a real call: the declared hosts, the shared client, the settings.
     fn capabilities(&self) -> Capabilities {
         Capabilities::new(
             self.manifest.id.clone(),
@@ -493,6 +527,7 @@ impl LoadedPlugin {
             self.limits,
             self.http.clone(),
         )
+        .with_settings(self.settings.clone())
     }
 
     async fn instantiate(
@@ -558,6 +593,37 @@ impl LoadedPlugin {
         instance
             .anistream_provider_provider()
             .call_resolve(&mut store, id, episode, translation)
+            .await
+            .map_err(|e| PluginError::from_call(&self.manifest.id, self.limits.deadline, &e))
+    }
+
+    pub async fn sources(
+        &self,
+        id: &str,
+        episode: &str,
+        translation: &str,
+    ) -> Result<Result<Vec<SourceCandidate>, GuestError>, PluginError> {
+        let mut store = self.store(self.capabilities());
+        let instance = self.instantiate(&mut store).await?;
+        instance
+            .anistream_provider_provider()
+            .call_sources(&mut store, id, episode, translation)
+            .await
+            .map_err(|e| PluginError::from_call(&self.manifest.id, self.limits.deadline, &e))
+    }
+
+    pub async fn resolve_source(
+        &self,
+        id: &str,
+        episode: &str,
+        translation: &str,
+        source_id: &str,
+    ) -> Result<Result<Vec<MediaStream>, GuestError>, PluginError> {
+        let mut store = self.store(self.capabilities());
+        let instance = self.instantiate(&mut store).await?;
+        instance
+            .anistream_provider_provider()
+            .call_resolve_source(&mut store, id, episode, translation, source_id)
             .await
             .map_err(|e| PluginError::from_call(&self.manifest.id, self.limits.deadline, &e))
     }

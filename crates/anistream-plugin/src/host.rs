@@ -68,6 +68,10 @@ pub struct Capabilities {
     fetches: Arc<AtomicU32>,
     /// `None` in tests that exercise policy without a network.
     http: Option<anistream_net::HttpClient>,
+    /// This plugin's section of the user's configuration, served one key at a time through
+    /// `config-get`. Read-only pairs the host does not interpret — how a login-gated source
+    /// receives an API key without the guest gaining any filesystem access.
+    settings: std::collections::BTreeMap<String, String>,
 }
 
 impl Capabilities {
@@ -83,7 +87,23 @@ impl Capabilities {
             limits,
             fetches: Arc::new(AtomicU32::new(0)),
             http,
+            settings: Default::default(),
         }
+    }
+
+    /// Attach the user's settings for this plugin. Absent by default, because most calls —
+    /// and every `describe` — must work without any.
+    pub fn with_settings(
+        mut self,
+        settings: std::collections::BTreeMap<String, String>,
+    ) -> Self {
+        self.settings = settings;
+        self
+    }
+
+    /// One value from this plugin's settings, for the lent `config-get`.
+    pub fn setting(&self, key: &str) -> Option<String> {
+        self.settings.get(key).cloned()
     }
 
     pub fn plugin_id(&self) -> &str {
@@ -192,8 +212,13 @@ impl Capabilities {
 pub fn aes_decrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<Vec<u8>, String> {
     use aes::cipher::{BlockDecryptMut, KeyIvInit, block_padding::Pkcs7};
 
-    if key.len() != 16 {
-        return Err(format!("key must be 16 bytes for AES-128, got {}", key.len()));
+    // The key length selects the variant, exactly as the WIT documents: real sources use
+    // AES-256 about as often as AES-128, and a guest cannot pad its own key into working.
+    if !matches!(key.len(), 16 | 24 | 32) {
+        return Err(format!(
+            "key must be 16, 24 or 32 bytes for AES-128/192/256, got {}",
+            key.len()
+        ));
     }
     if iv.len() != 16 {
         return Err(format!("iv must be 16 bytes, got {}", iv.len()));
@@ -205,10 +230,17 @@ pub fn aes_decrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<Vec<u8>, String
         ));
     }
 
-    type Decryptor = cbc::Decryptor<aes::Aes128>;
-    Decryptor::new(key.into(), iv.into())
-        .decrypt_padded_vec_mut::<Pkcs7>(data)
-        .map_err(|e| e.to_string())
+    match key.len() {
+        16 => cbc::Decryptor::<aes::Aes128>::new(key.into(), iv.into())
+            .decrypt_padded_vec_mut::<Pkcs7>(data)
+            .map_err(|e| e.to_string()),
+        24 => cbc::Decryptor::<aes::Aes192>::new(key.into(), iv.into())
+            .decrypt_padded_vec_mut::<Pkcs7>(data)
+            .map_err(|e| e.to_string()),
+        _ => cbc::Decryptor::<aes::Aes256>::new(key.into(), iv.into())
+            .decrypt_padded_vec_mut::<Pkcs7>(data)
+            .map_err(|e| e.to_string()),
+    }
 }
 
 /// Capture groups for every match of `pattern` in `haystack`.
@@ -349,6 +381,39 @@ mod tests {
             Encryptor::new(&key.into(), &iv.into()).encrypt_padded_vec_mut::<Pkcs7>(plaintext);
 
         assert_eq!(aes_decrypt(&key, &iv, &ciphertext).unwrap(), plaintext);
+    }
+
+    #[test]
+    fn aes_picks_the_variant_from_the_key_length() {
+        // Real sources use AES-256 about as often as AES-128, and the WIT promises the key
+        // length selects the variant — so both wide keys must round-trip, not just 128.
+        use aes::cipher::{BlockEncryptMut, KeyIvInit, block_padding::Pkcs7};
+        let iv = [0x24; 16];
+        let plaintext = b"the same url, behind a wider key";
+
+        let key = [0x42; 32];
+        let sealed = cbc::Encryptor::<aes::Aes256>::new(&key.into(), &iv.into())
+            .encrypt_padded_vec_mut::<Pkcs7>(plaintext);
+        assert_eq!(aes_decrypt(&key, &iv, &sealed).unwrap(), plaintext);
+
+        let key = [0x42; 24];
+        let sealed = cbc::Encryptor::<aes::Aes192>::new(&key.into(), &iv.into())
+            .encrypt_padded_vec_mut::<Pkcs7>(plaintext);
+        assert_eq!(aes_decrypt(&key, &iv, &sealed).unwrap(), plaintext);
+    }
+
+    #[test]
+    fn settings_are_absent_unless_attached() {
+        // `describe` runs on capabilities with no settings, and that absence is deliberate:
+        // a manifest must not depend on configuration it is about to be granted.
+        let bare = caps();
+        assert_eq!(bare.setting("api-key"), None);
+
+        let configured = caps().with_settings(
+            [("api-key".to_string(), "s3cret".to_string())].into_iter().collect(),
+        );
+        assert_eq!(configured.setting("api-key").as_deref(), Some("s3cret"));
+        assert_eq!(configured.setting("unset"), None);
     }
 
     #[test]

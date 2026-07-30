@@ -565,7 +565,7 @@ mod tests {
     }
 
     fn subtitle(language: &str, url: &str, hard: bool) -> Subtitle {
-        Subtitle { language: language.into(), url: url.into(), hard }
+        Subtitle { language: language.into(), url: url.into(), hard, format: None }
     }
 
     #[test]

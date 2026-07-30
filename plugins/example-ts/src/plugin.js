@@ -18,9 +18,15 @@
 //      of `provider-error` becomes a thrown variant object, and the host receives it as the same
 //      typed error a Rust plugin would return.
 
-// The version is part of the specifier: the WIT package is `anistream:provider@0.1.0`, and jco
+// The version is part of the specifier: the WIT package is `anistream:provider@1.0.0`, and jco
 // resolves imports against the fully-qualified interface name.
-import { fetch, log, aesDecrypt, regexCaptures } from 'anistream:provider/host@0.1.0';
+import {
+  fetch,
+  log,
+  aesDecrypt,
+  regexCaptures,
+  configGet,
+} from 'anistream:provider/host@1.0.0';
 
 // The one host this plugin may reach. Declared here, enforced by the host — visible in
 // `anistream --plugins` without reading this file.
@@ -98,6 +104,9 @@ export const provider = {
       version: '0.1.0',
       allowedHosts: [ALLOWED_HOST],
       translationTypes: ['sub', 'dub'],
+      // Open strings a future host can gate optional treatment on. Nothing to declare — the
+      // normal case, and what keeps declaring one meaningful.
+      capabilities: [],
     };
   },
 
@@ -118,8 +127,12 @@ export const provider = {
       {
         id: `example:${echoed}`,
         title: `Echo of ${echoed}`,
+        // Alternate spellings widen the match surface; sources romanise inconsistently.
+        synonyms: [`${echoed} (echo)`],
         episodeCount: 3,
         year: 2026,
+        // A match gate, not a label: `tv` stops a series search landing on a movie.
+        format: 'tv',
       },
     ];
   },
@@ -137,41 +150,92 @@ export const provider = {
       number: String(n),
       title: `${slug} — part ${n}`,
       durationSecs: 1440,
+      description: `In which ${slug} is echoed for the ${n}th time, and nothing else happens.`,
+      thumbnail: undefined,
+      airDate: `2026-01-${String(n).padStart(2, '0')}`,
+      // `undefined` would mean "no claim"; this catalogue positively claims canon.
+      filler: false,
     }));
   },
 
   resolve(id, episode, translation) {
+    return resolveStreams(id, episode, translation);
+  },
+
+  // The selectable releases for an episode, for the Sources overlay. Two candidates so the
+  // overlay has an actual choice; a source that resolves to exactly one stream should return
+  // an empty list instead — that is the honest answer, not an error.
+  sources(id, episode, _translation) {
     if (!id.startsWith('example:')) {
       throw { tag: 'not-found' };
     }
     const slug = id.slice('example:'.length);
+    return [1080, 720].map((quality) => ({
+      id: `${slug}:${episode}:${quality}`,
+      title: `[Echo] ${slug} - ${episode} (${quality}p)`,
+      quality,
+      seeders: undefined,
+      size: quality === 1080 ? '1.4 GiB' : '700 MiB',
+      dualAudio: false,
+      dubbed: false,
+    }));
+  },
 
-    // The lent AES: this component carries no crypto at all, yet decrypts a real payload.
-    let url;
-    try {
-      url = new TextDecoder().decode(new Uint8Array(aesDecrypt(AES_KEY, AES_IV, SEALED_URL)));
-    } catch (error) {
-      throw { tag: 'parse', val: `aes: ${error?.payload ?? error}` };
+  // Resolve one candidate from `sources` by its id. Never falls back to the automatic pick —
+  // substituting another stream for the one the user chose would silently undo the choice.
+  resolveSource(id, episode, translation, sourceId) {
+    const quality = Number(sourceId.split(':').pop());
+    if (!Number.isFinite(quality)) {
+      throw { tag: 'not-found' };
     }
-
-    log('info', `resolved ${slug} ep ${episode} (${translation})`);
-
-    return [
-      {
-        url,
-        kind: 'hls',
-        quality: 1080,
-        // Referer-locked CDNs 403 without this, which is why headers travel with the stream
-        // rather than being the player's guess.
-        headers: [['referer', `https://${ALLOWED_HOST}/`]],
-        subtitles: [
-          {
-            language: 'eng',
-            url: `https://${ALLOWED_HOST}/anything/${slug}.vtt`,
-            hard: false,
-          },
-        ],
-      },
-    ];
+    return resolveStreams(id, episode, translation).map((stream) => ({ ...stream, quality }));
   },
 };
+
+// Shared by `resolve` and `resolveSource` as a plain function: jco invokes exports without a
+// receiver, so `this.resolve(…)` inside the export object traps at runtime.
+function resolveStreams(id, episode, translation) {
+  if (!id.startsWith('example:')) {
+    throw { tag: 'not-found' };
+  }
+  const slug = id.slice('example:'.length);
+
+  // The lent AES: this component carries no crypto at all, yet decrypts a real payload.
+  let url;
+  try {
+    url = new TextDecoder().decode(new Uint8Array(aesDecrypt(AES_KEY, AES_IV, SEALED_URL)));
+  } catch (error) {
+    throw { tag: 'parse', val: `aes: ${error?.payload ?? error}` };
+  }
+
+  // The lent settings: an optional mirror override from
+  // `[providers.plugins.settings.example-ts]`. The fallback is the pattern to copy — a
+  // plugin must work with every setting unset, because most users never write any.
+  const cdn = configGet('cdn') ?? 'cdn.example.test';
+
+  log('info', `resolved ${slug} ep ${episode} (${translation}) via ${cdn}`);
+
+  return [
+    {
+      url: url.replace('cdn.example.test', cdn),
+      kind: 'hls',
+      quality: 1080,
+      // Referer-locked CDNs 403 without this, which is why headers travel with the stream
+      // rather than being the player's guess.
+      headers: [['referer', `https://${ALLOWED_HOST}/`]],
+      subtitles: [
+        {
+          language: 'eng',
+          url: `https://${ALLOWED_HOST}/anything/${slug}.vtt`,
+          hard: false,
+          // The URL happens to end in `.vtt`; stating it anyway shows the field a source
+          // with API-shaped subtitle URLs must set, or the player has to guess.
+          format: 'vtt',
+        },
+      ],
+      // This source streams only. Absent is how the download queue knows to say so.
+      downloadSource: undefined,
+      pickNote: undefined,
+    },
+  ];
+}

@@ -124,7 +124,8 @@ async fn load_plugins(
     let cache = paths.cache_dir.join("wasm");
     let host =
         anistream_plugin::PluginHost::with_cache(limits, Some(http.clone()), Some(&cache))
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| e.to_string())?
+            .with_plugin_settings(config.providers.plugins.settings.clone());
 
     let dir = paths.plugin_dir();
     let providers = anistream_plugin::load_providers(&host, &dir).await;

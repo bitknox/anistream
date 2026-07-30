@@ -16,9 +16,9 @@
 use anistream_core::{
     error::ProviderError,
     ids::ProviderKey,
-    media::{Episode, SearchHit, Translation},
+    media::{Episode, MediaFormat, SearchHit, Translation},
     stream::{Stream, StreamKind, Subtitle},
-    traits::{Provider, ProviderKind, ProviderManifest},
+    traits::{Provider, ProviderKind, ProviderManifest, SourceCandidate},
 };
 
 use crate::engine::{self, GuestError, LoadedPlugin, PluginError};
@@ -50,6 +50,32 @@ impl WasmProvider {
     pub fn plugin(&self) -> &LoadedPlugin {
         &self.plugin
     }
+
+    /// Guest stream → core stream, shared by `resolve` and `resolve_source`.
+    fn stream_from(&self, stream: crate::engine::MediaStream) -> Stream {
+        Stream {
+            url: stream.url,
+            kind: stream_kind_from(&stream.kind),
+            download_source: stream.download_source,
+            pick_note: stream.pick_note,
+            quality: stream.quality,
+            headers: stream.headers,
+            subtitles: stream
+                .subtitles
+                .into_iter()
+                .map(|sub| Subtitle {
+                    language: sub.language,
+                    url: sub.url,
+                    hard: sub.hard,
+                    format: sub.format,
+                })
+                .collect(),
+            // Stamped by the host, not the guest: attribution has to be trustworthy for the
+            // Providers screen and for health accounting, so a plugin cannot claim to be
+            // another source.
+            provider_id: self.manifest.id.clone(),
+        }
+    }
 }
 
 /// Parse a translation tag from a manifest.
@@ -69,6 +95,23 @@ const fn translation_tag(translation: Translation) -> &'static str {
     match translation {
         Translation::Sub => "sub",
         Translation::Dub => "dub",
+    }
+}
+
+/// Parse a format tag from a search hit.
+///
+/// Unknown values become `None` — no claim — rather than `Unknown`: the format is a match
+/// *gate*, and a tag we cannot name must not gate anything.
+fn format_from(tag: &str) -> Option<MediaFormat> {
+    match tag.trim().to_ascii_lowercase().as_str() {
+        "tv" => Some(MediaFormat::Tv),
+        "tv-short" | "tv_short" => Some(MediaFormat::TvShort),
+        "movie" => Some(MediaFormat::Movie),
+        "special" => Some(MediaFormat::Special),
+        "ova" => Some(MediaFormat::Ova),
+        "ona" => Some(MediaFormat::Ona),
+        "music" => Some(MediaFormat::Music),
+        _ => None,
     }
 }
 
@@ -128,12 +171,10 @@ impl Provider for WasmProvider {
             .map(|hit| SearchHit {
                 key: ProviderKey::new(hit.id),
                 title: hit.title,
-                // The WIT record has no synonyms field: a plugin that wanted to widen the match
-                // surface would return several hits, which the scorer already handles.
-                synonyms: Vec::new(),
+                synonyms: hit.synonyms,
                 episode_count: hit.episode_count,
                 year: hit.year.map(|y| y as u16),
-                format: None,
+                format: hit.format.as_deref().and_then(format_from),
             })
             .collect())
     }
@@ -156,9 +197,10 @@ impl Provider for WasmProvider {
                 duration: episode
                     .duration_secs
                     .map(|secs| std::time::Duration::from_secs(u64::from(secs))),
-                // The ABI has no still-frame field, so a plugin cannot supply one. The
-                // metadata layer fills it in later where it can.
-                thumbnail: None,
+                thumbnail: episode.thumbnail,
+                description: episode.description,
+                air_date: episode.air_date,
+                filler: episode.filler,
             })
             .collect())
     }
@@ -173,34 +215,51 @@ impl Provider for WasmProvider {
             self.plugin.resolve(key.as_str(), episode, translation_tag(translation)).await,
         )?;
 
-        Ok(streams
+        Ok(streams.into_iter().map(|stream| self.stream_from(stream)).collect())
+    }
+
+    async fn sources(
+        &self,
+        key: &ProviderKey,
+        episode: &str,
+        translation: Translation,
+    ) -> Result<Vec<SourceCandidate>, ProviderError> {
+        let candidates = flatten(
+            self.plugin.sources(key.as_str(), episode, translation_tag(translation)).await,
+        )?;
+        Ok(candidates
             .into_iter()
-            .map(|stream| Stream {
-                url: stream.url,
-                kind: stream_kind_from(&stream.kind),
-                // Plugins do not offer one. A durable download reference is a per-source concept
-                // (a magnet, for the only downloadable source there is), and inventing an ABI field
-                // for it before a plugin can produce one would be guessing at its shape.
-                download_source: None,
-                // Same reasoning: a pick explanation is the torrent ranker's concept.
-                pick_note: None,
-                quality: stream.quality,
-                headers: stream.headers,
-                subtitles: stream
-                    .subtitles
-                    .into_iter()
-                    .map(|sub| Subtitle {
-                        language: sub.language,
-                        url: sub.url,
-                        hard: sub.hard,
-                    })
-                    .collect(),
-                // Stamped by the host, not the guest: attribution has to be trustworthy for the
-                // Providers screen and for health accounting, so a plugin cannot claim to be
-                // another source.
+            .map(|candidate| SourceCandidate {
+                id: candidate.id,
+                // Stamped by the host for the same reason as on streams: a pick is routed back
+                // by this id, and a guest must not be able to route it to another provider.
                 provider_id: self.manifest.id.clone(),
+                title: candidate.title,
+                quality: candidate.quality,
+                seeders: candidate.seeders,
+                size: candidate.size,
+                dual_audio: candidate.dual_audio,
+                dubbed: candidate.dubbed,
+                // Never claimed: which candidate automatic resolution would take is decided by
+                // `resolve`, and marking one here without asking would be a guess shown as fact.
+                auto_pick: false,
             })
             .collect())
+    }
+
+    async fn resolve_source(
+        &self,
+        key: &ProviderKey,
+        episode: &str,
+        translation: Translation,
+        source_id: &str,
+    ) -> Result<Vec<Stream>, ProviderError> {
+        let streams = flatten(
+            self.plugin
+                .resolve_source(key.as_str(), episode, translation_tag(translation), source_id)
+                .await,
+        )?;
+        Ok(streams.into_iter().map(|stream| self.stream_from(stream)).collect())
     }
 
     async fn health_check(&self) -> Result<(), ProviderError> {
@@ -318,6 +377,18 @@ mod tests {
         }
         assert_eq!(translation_from("SUBBED"), Some(Translation::Sub));
         assert_eq!(translation_from("dubbed"), Some(Translation::Dub));
+    }
+
+    #[test]
+    fn format_tags_gate_only_what_they_can_name() {
+        assert_eq!(format_from("tv"), Some(MediaFormat::Tv));
+        assert_eq!(format_from("TV-Short"), Some(MediaFormat::TvShort));
+        assert_eq!(format_from("movie"), Some(MediaFormat::Movie));
+        assert_eq!(format_from("ova"), Some(MediaFormat::Ova));
+        // The format is a match *gate*: a tag we cannot name must claim nothing, or it
+        // would wrongly exclude matches instead of merely failing to narrow them.
+        assert_eq!(format_from("recap"), None);
+        assert_eq!(format_from(""), None);
     }
 
     #[test]

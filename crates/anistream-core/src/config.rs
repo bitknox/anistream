@@ -422,11 +422,19 @@ pub struct PluginsConfig {
     /// Enforced by epoch interruption, which can stop a guest mid-loop — so this is a real bound
     /// rather than a hope that the plugin checks a flag.
     pub deadline_secs: u64,
+    /// Per-plugin settings, keyed by plugin id: `[providers.plugins.settings.<id>]`.
+    ///
+    /// Free-form string pairs the host never interprets; a plugin reads them one key at a time
+    /// through the lent `config-get`. This is how a source that needs an account or an API key
+    /// receives it without the plugin gaining any filesystem access — and a plugin must work
+    /// with all of them unset, because most users will never write this table.
+    pub settings:
+        std::collections::BTreeMap<String, std::collections::BTreeMap<String, String>>,
 }
 
 impl Default for PluginsConfig {
     fn default() -> Self {
-        Self { memory_mb: 64, deadline_secs: 20 }
+        Self { memory_mb: 64, deadline_secs: 20, settings: Default::default() }
     }
 }
 
