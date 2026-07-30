@@ -297,6 +297,9 @@ pub async fn play(
     let mut controls_open = true;
 
     let total = streams.len();
+    // Named in the log so "did fallback have anything to work with" is answerable after the
+    // fact — a pool of one behaves exactly like the old single-stream path.
+    tracing::info!(streams = total, "starting playback");
     for (attempt, stream) in streams.into_iter().enumerate() {
         let last = attempt + 1 == total;
 
@@ -536,8 +539,10 @@ pub async fn play(
             // only in front of a player, so a stream that never showed a frame fails over —
             // unless the viewer stopped it themselves, which is an instruction, not a failure.
             tracing::warn!(url = %stream.url, ?reported, "no frames; trying the next stream");
-            let _ = tx
-                .send(Update::Toast(Toast::info("no video from that stream — trying another")));
+            let _ = tx.send(Update::Toast(Toast::info(format!(
+                "no video from that stream — trying {} of {total}",
+                attempt + 2
+            ))));
             continue;
         }
 
