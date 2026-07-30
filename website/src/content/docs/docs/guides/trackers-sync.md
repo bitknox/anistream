@@ -34,7 +34,7 @@ client_secret = "…"           # Trakt wants one on the token exchange
 | Sign-in flow | browser redirect | browser redirect | device code | device code |
 | Redirect URL | `http://127.0.0.1:45617/callback` | `http://127.0.0.1:45617/callback` | none needed | none needed |
 | Needs a secret | **yes** | no | no | **yes** |
-| Token life | ~1 year | 30 days, refreshed automatically | long-lived | refreshed automatically |
+| Token life | ~1 year | ~31 days, refreshed automatically | long-lived | ~3 months, then --login again |
 
 Then `anistream --login`, or `anistream --login --tracker mal`. Simkl and Trakt use the OAuth
 device flow, so `--login --tracker simkl` prints a code and a URL to enter it at. Check any of them

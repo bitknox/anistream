@@ -55,8 +55,8 @@ struct Cli {
     #[arg(long, value_name = "WIDTHxHEIGHT")]
     preview: Option<String>,
 
-    /// Which screen to preview: home, search, title, calendar, library, downloads, providers,
-    /// accounts, settings, help, palette.
+    /// Which screen to preview: home, search, title, episodes, calendar, library, downloads,
+    /// providers, accounts, settings, help, palette.
     #[arg(long, default_value = "home")]
     screen: String,
 
@@ -303,6 +303,17 @@ async fn preview(
                 app.apply(Update::ProviderNote(note));
             }
             app.apply(Update::Providers(data::provider_rows(&registry)));
+        }
+        "library" => {
+            // Rendered from the local rows rather than a tracker fetch: a preview must not
+            // depend on being signed in, and the screen is the same either way.
+            app.go_to_section(Section::Library);
+        }
+        "downloads" => {
+            app.go_to_section(Section::Downloads);
+            if let Ok(rows) = store.downloads() {
+                app.apply(Update::Downloads(rows.iter().map(downloads::to_row).collect()));
+            }
         }
         _ => {}
     }
