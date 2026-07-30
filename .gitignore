@@ -39,3 +39,7 @@
 /website/node_modules/
 /website/dist/
 /website/.astro/
+
+# The JS reference plugin is built with npm per docs/plugins.md; a bun lockfile beside
+# package-lock.json would be a second source of truth for the same dependencies.
+plugins/example-ts/bun.lock
