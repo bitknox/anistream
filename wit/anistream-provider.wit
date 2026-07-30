@@ -19,15 +19,16 @@
 // both — AES for the obfuscated stream payloads several of them use, regex for extracting from
 // HTML that no parser should be asked to take seriously.
 //
-// **Versioning.** `1.0.0`, deliberately, because the component model's semver rules treat every
+// **Versioning.** Major 1, deliberately, because the component model's semver rules treat every
 // `0.x` minor as a different world — at major ≥ 1 the host can grow the `host` interface without
-// stranding components built against an older minor. What can never grow is the *export* set: a
+// stranding components built against an older minor (`fetch-many`, added in 1.1.0, is the first
+// use of that). What can never grow is the *export* set: a
 // new required export breaks every shipped plugin at instantiation. So the exports below are the
 // frozen surface, records prefer `option<>` fields over new shapes, open sets (stream `kind`,
 // `translation`, `capabilities`) are strings rather than enums, and anything a future host wants
 // to switch on is a declared capability rather than a new function.
 
-package anistream:provider@1.0.0;
+package anistream:provider@1.1.0;
 
 interface host {
     record http-request {
@@ -56,6 +57,14 @@ interface host {
     /// The host owns the browser-emulated TLS/HTTP2 fingerprint, the rate limiting, the cookie
     /// jar and the challenge solver. Guests get no sockets at all.
     fetch: func(req: http-request) -> result<http-response, host-error>;
+
+    /// Several requests, concurrently. Results return in request order.
+    ///
+    /// The concurrency a synchronous guest cannot express itself: a provider that must ask
+    /// several mirrors for the same episode pays one round trip instead of one per mirror.
+    /// Each request is authorised independently and counts against the same per-call fetch
+    /// budget as `fetch`.
+    fetch-many: func(reqs: list<http-request>) -> list<result<http-response, host-error>>;
 
     /// Write to the host's log. The only output channel a guest has.
     log: func(level: string, msg: string);

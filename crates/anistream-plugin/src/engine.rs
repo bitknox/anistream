@@ -165,28 +165,49 @@ impl wasmtime::ResourceLimiter for Ceiling {
     }
 }
 
+/// One authorised fetch, in the guest's error vocabulary. Shared by `fetch` and `fetch-many`.
+async fn one_fetch(
+    capabilities: &Capabilities,
+    request: HttpRequest,
+) -> Result<HttpResponse, GuestHostError> {
+    let outbound = host::Request {
+        method: request.method,
+        url: request.url,
+        headers: request.headers,
+        body: request.body,
+    };
+    match capabilities.fetch(outbound).await {
+        Ok(response) => Ok(HttpResponse {
+            status: response.status,
+            headers: response.headers,
+            body: response.body,
+        }),
+        Err(host::HostError::Denied(m)) => Err(GuestHostError::Denied(m)),
+        Err(host::HostError::Timeout) => Err(GuestHostError::Timeout),
+        Err(host::HostError::Transport(m)) => Err(GuestHostError::Transport(m)),
+    }
+}
+
 // The host side of the WIT `host` interface. This is the entire surface a guest can reach.
 impl anistream::provider::host::Host for PluginState {
     async fn fetch(
         &mut self,
         request: HttpRequest,
     ) -> wasmtime::Result<Result<HttpResponse, GuestHostError>> {
-        let outbound = host::Request {
-            method: request.method,
-            url: request.url,
-            headers: request.headers,
-            body: request.body,
-        };
-        Ok(match self.capabilities.fetch(outbound).await {
-            Ok(response) => Ok(HttpResponse {
-                status: response.status,
-                headers: response.headers,
-                body: response.body,
-            }),
-            Err(host::HostError::Denied(m)) => Err(GuestHostError::Denied(m)),
-            Err(host::HostError::Timeout) => Err(GuestHostError::Timeout),
-            Err(host::HostError::Transport(m)) => Err(GuestHostError::Transport(m)),
-        })
+        Ok(one_fetch(&self.capabilities, request).await)
+    }
+
+    async fn fetch_many(
+        &mut self,
+        requests: Vec<HttpRequest>,
+    ) -> wasmtime::Result<Vec<Result<HttpResponse, GuestHostError>>> {
+        // Genuinely concurrent — this is the one thing a synchronous guest cannot do for
+        // itself. Authorisation and the fetch budget apply per request, exactly as if the
+        // guest had called `fetch` in a loop.
+        Ok(futures::future::join_all(
+            requests.into_iter().map(|request| one_fetch(&self.capabilities, request)),
+        )
+        .await)
     }
 
     async fn log(&mut self, level: String, msg: String) -> wasmtime::Result<()> {

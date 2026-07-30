@@ -11,7 +11,7 @@ outside its declared `allowed-hosts`, enforced host-side.
 
 ## The interface
 
-`wit/anistream-provider.wit` is the contract — package `anistream:provider@1.0.0`:
+`wit/anistream-provider.wit` is the contract — package `anistream:provider@1.1.0`:
 
 ```wit
 interface host {                          // what you may call
@@ -19,6 +19,7 @@ interface host {                          // what you may call
     log:            func(level: string, msg: string);
     aes-decrypt:    func(key: list<u8>, iv: list<u8>, data: list<u8>) -> result<list<u8>, string>;
     regex-captures: func(pattern: string, haystack: string) -> list<list<string>>;
+    fetch-many:     func(reqs: list<http-request>) -> list<result<http-response, host-error>>;
     config-get:     func(key: string) -> option<string>;
 }
 
@@ -35,6 +36,9 @@ interface provider {                      // what you must export
 }
 ```
 
+- `fetch-many` — several requests concurrently, results in request order. Same allowlist and
+  fetch budget, per request. Return *all* your streams from `resolve`: playback falls over to
+  the next stream when one produces no frames, so ordering is a hint, not a verdict.
 - `sources` — the selectable releases for the Sources overlay, best-first. An empty list means
   "nothing to choose between": an answer, not a failure.
 - `resolve-source` — one candidate's id back into streams. Never fall back to the automatic pick.

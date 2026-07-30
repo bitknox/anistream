@@ -18,7 +18,7 @@
 //      of `provider-error` becomes a thrown variant object, and the host receives it as the same
 //      typed error a Rust plugin would return.
 
-// The version is part of the specifier: the WIT package is `anistream:provider@1.0.0`, and jco
+// The version is part of the specifier: the WIT package is `anistream:provider@1.1.0`, and jco
 // resolves imports against the fully-qualified interface name.
 import {
   fetch,
@@ -26,7 +26,7 @@ import {
   aesDecrypt,
   regexCaptures,
   configGet,
-} from 'anistream:provider/host@1.0.0';
+} from 'anistream:provider/host@1.1.0';
 
 // The one host this plugin may reach. Declared here, enforced by the host — visible in
 // `anistream --plugins` without reading this file.

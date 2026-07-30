@@ -13,6 +13,7 @@ anistream-net.workspace = true
 async-trait.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+futures.workspace = true
 tracing.workspace = true
 # `cache` is what keeps plugin compilation off the critical path a second time: wasmtime manages
 # the on-disk artefact cache itself, so we get it without the `unsafe` that hand-rolling
