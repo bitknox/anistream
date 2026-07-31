@@ -72,8 +72,17 @@ pub fn payload_start(data: &[u8]) -> usize {
     }
 
     let limit = data.len().min(SNIFF_LIMIT);
+    // Two passes, earliest match within each. The first insists a transport stream open the way
+    // a segment does, which is what stops a stray sync byte inside the wrapper from claiming an
+    // offset 188 bytes early. The second accepts any structurally valid packet, so a source that
+    // starts mid-stream is still mended rather than refused.
     for offset in 0..limit {
-        if is_transport_stream(data, offset) || is_iso_bmff(data, offset) {
+        if is_iso_bmff(data, offset) || is_transport_stream(data, offset, true) {
+            return offset;
+        }
+    }
+    for offset in 0..limit {
+        if is_transport_stream(data, offset, false) {
             return offset;
         }
     }
@@ -81,18 +90,48 @@ pub fn payload_start(data: &[u8]) -> usize {
 }
 
 /// Whether a transport stream starts at `offset`: `0x47` every 188 bytes, several times over.
-fn is_transport_stream(data: &[u8], offset: usize) -> bool {
+fn is_transport_stream(data: &[u8], offset: usize, strict: bool) -> bool {
     if data.get(offset) != Some(&0x47) {
         return false;
     }
     // The tail of a segment is not a place to start looking: a lone `0x47` near the end could
     // not be confirmed, and confirming is the whole point.
-    (1..=TS_CONFIRMATIONS).all(|packet| {
+    let cadence = (1..=TS_CONFIRMATIONS).all(|packet| {
         let at = offset + packet * TS_PACKET;
         // Missing bytes count as confirmation only when the data genuinely ended, so a short
         // final segment still validates.
         at >= data.len() || data.get(at) == Some(&0x47)
-    }) && offset + TS_PACKET < data.len()
+    }) && offset + TS_PACKET < data.len();
+    cadence && is_packet_header(data, offset, strict)
+}
+
+/// Whether the four bytes at `offset` are a plausible TS packet header.
+///
+/// **The cadence alone cannot be trusted, and the arithmetic says why.** A wrapper of length `w`
+/// puts the real payload at `w`; a stray `0x47` at `w - 188` then has *genuine* packet
+/// boundaries at every position the cadence check probes, so it passes on the strength of the
+/// real stream that follows it. One byte in 256 — a coin flip across a full episode — and the
+/// result is a segment served with 188 bytes of wrapper still attached, which a decoder
+/// recovers from by dropping whatever it cannot parse. That is a cut and a slip in sync, not a
+/// clean failure, so it has to be excluded structurally rather than noticed.
+///
+/// `strict` additionally demands the packet look like the *first* of a segment: HLS transport
+/// streams open on a PAT (PID 0) or the SDT beside it, with the payload-unit-start flag set.
+/// Wrapper bytes clear all four tests about once in 65,000 rather than once in 256.
+fn is_packet_header(data: &[u8], offset: usize, strict: bool) -> bool {
+    let Some(header) = data.get(offset..offset + 4) else {
+        return false;
+    };
+    // A set transport-error bit means the sender itself marked the packet corrupt, and an
+    // adaptation-field control of zero is reserved — neither belongs at a payload's start.
+    if header[1] & 0x80 != 0 || (header[3] >> 4) & 0b11 == 0 {
+        return false;
+    }
+    if !strict {
+        return true;
+    }
+    let pid = (u16::from(header[1] & 0x1F) << 8) | u16::from(header[2]);
+    header[1] & 0x40 != 0 && pid <= 0x1F
 }
 
 /// Whether an ISO base media file box starts at `offset`.
@@ -492,12 +531,14 @@ impl Menders {
 mod tests {
     use super::*;
 
-    /// Four TS packets, the shape a real segment has.
+    /// Several TS packets, the shape a real segment has: a PAT first, payload-unit-start set.
     fn transport_stream() -> Vec<u8> {
         let mut data = Vec::new();
-        for _ in 0..6 {
-            data.push(0x47);
-            data.extend(std::iter::repeat_n(0xAB, TS_PACKET - 1));
+        for packet in 0..6 {
+            // First packet opens the segment (PUSI, PID 0); the rest carry an ordinary PID.
+            let (flags, pid_low) = if packet == 0 { (0x40, 0x00) } else { (0x00, 0x64) };
+            data.extend([0x47, flags, pid_low, 0x10]);
+            data.extend(std::iter::repeat_n(0xAB, TS_PACKET - 4));
         }
         data
     }
@@ -539,6 +580,45 @@ mod tests {
 
         let wrapped = png_wrapped(&fmp4);
         assert_eq!(&wrapped[payload_start(&wrapped)..], &fmp4[..]);
+    }
+
+    #[test]
+    fn a_sync_byte_one_packet_before_the_payload_does_not_steal_the_offset() {
+        // The failure this exists for, and it is not hypothetical: a wrapper of length `w` puts
+        // a stray `0x47` at `w - 188` exactly 188 bytes from the real start, so every boundary
+        // the cadence check probes is a *genuine* packet. One byte in 256 — near certain across
+        // an episode's worth of segments — and the reward for believing it is 188 bytes of
+        // wrapper left on the front: a cut and a slip in sync rather than an honest failure.
+        // 252 bytes is the wrapper length observed in the wild, and the reason the decoy lands
+        // at 64: 252 - 188. The decoy is deliberately a *plausible* packet header — error bit
+        // clear, adaptation field valid — so only "does this open a segment" separates it from
+        // the real thing.
+        const WRAPPER: usize = 252;
+        let payload = transport_stream();
+        let mut wrapped = vec![0u8; WRAPPER];
+        wrapped[..8].copy_from_slice(&[0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A]);
+        wrapped[WRAPPER - TS_PACKET..][..4].copy_from_slice(&[0x47, 0x01, 0x64, 0x10]);
+        wrapped.extend_from_slice(&payload);
+
+        assert_eq!(
+            payload_start(&wrapped),
+            WRAPPER,
+            "a decoy sync byte took the offset one packet early"
+        );
+        assert_eq!(&wrapped[payload_start(&wrapped)..], &payload[..]);
+    }
+
+    #[test]
+    fn a_stream_that_starts_mid_flow_is_still_mended() {
+        // The strict pass wants a segment opening — PAT, payload-unit-start. A source whose
+        // segments begin mid-stream has neither, and must still be served rather than refused.
+        let mut payload = Vec::new();
+        for _ in 0..6 {
+            payload.extend([0x47, 0x01, 0x64, 0x10]);
+            payload.extend(std::iter::repeat_n(0xCD, TS_PACKET - 4));
+        }
+        let wrapped = png_wrapped(&payload);
+        assert_eq!(&wrapped[payload_start(&wrapped)..], &payload[..]);
     }
 
     #[test]
