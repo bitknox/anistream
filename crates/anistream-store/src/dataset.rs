@@ -106,19 +106,40 @@ impl Store {
         self.with_tx(|tx| {
             let mut written = 0usize;
             {
+                // `priority` decides the direction of each field, which it did not before:
+                // every column was `COALESCE(incoming, stored)`, so whichever dataset was
+                // refreshed *last* won — and the weekly corpus overwriting the daily one is
+                // how aniskip and MAL end up describing a different show.
+                //
+                // At least as good a claim as the row holds: the incoming value wins where it
+                // has one. Weaker: it may only fill a gap. The row remembers the best claim
+                // ever written to it, so a later pass by the weaker source cannot undo this.
                 let mut upsert = tx.prepare(
                     "INSERT INTO mapping
                         (anilist_id, mal_id, kitsu_id, anidb_id, tvdb_id, tmdb_id,
-                         episode_offset, source)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+                         episode_offset, source, priority)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
                      ON CONFLICT(anilist_id) DO UPDATE SET
-                        mal_id   = COALESCE(?2, mapping.mal_id),
-                        kitsu_id = COALESCE(?3, mapping.kitsu_id),
-                        anidb_id = COALESCE(?4, mapping.anidb_id),
-                        tvdb_id  = COALESCE(?5, mapping.tvdb_id),
-                        tmdb_id  = COALESCE(?6, mapping.tmdb_id),
-                        episode_offset = COALESCE(?7, mapping.episode_offset),
-                        source = CASE WHEN ?9 = 0 THEN ?8 ELSE mapping.source END",
+                        mal_id   = CASE WHEN ?9 <= mapping.priority
+                                        THEN COALESCE(?2, mapping.mal_id)
+                                        ELSE COALESCE(mapping.mal_id, ?2) END,
+                        kitsu_id = CASE WHEN ?9 <= mapping.priority
+                                        THEN COALESCE(?3, mapping.kitsu_id)
+                                        ELSE COALESCE(mapping.kitsu_id, ?3) END,
+                        anidb_id = CASE WHEN ?9 <= mapping.priority
+                                        THEN COALESCE(?4, mapping.anidb_id)
+                                        ELSE COALESCE(mapping.anidb_id, ?4) END,
+                        tvdb_id  = CASE WHEN ?9 <= mapping.priority
+                                        THEN COALESCE(?5, mapping.tvdb_id)
+                                        ELSE COALESCE(mapping.tvdb_id, ?5) END,
+                        tmdb_id  = CASE WHEN ?9 <= mapping.priority
+                                        THEN COALESCE(?6, mapping.tmdb_id)
+                                        ELSE COALESCE(mapping.tmdb_id, ?6) END,
+                        episode_offset = CASE WHEN ?9 <= mapping.priority
+                                        THEN COALESCE(?7, mapping.episode_offset)
+                                        ELSE COALESCE(mapping.episode_offset, ?7) END,
+                        source   = CASE WHEN ?9 <= mapping.priority THEN ?8 ELSE mapping.source END,
+                        priority = MIN(?9, mapping.priority)",
                 )?;
 
                 for e in entries {
@@ -308,6 +329,53 @@ mod tests {
         assert_eq!(m.tvdb_id, Some(424_536), "secondary filled a gap");
         assert_eq!(m.episode_offset, Some(2), "only Fribb has this");
         assert_eq!(store.mapping_count().unwrap(), 1, "merged, not duplicated");
+    }
+
+    #[test]
+    fn a_weaker_source_cannot_overrule_a_stronger_one() {
+        // The case the other merge tests never reached, because they only ever disagreed by
+        // one source being silent. Every column used to be `COALESCE(incoming, stored)`, so
+        // the dataset refreshed *last* won outright — and the two corpora refresh on
+        // different cadences, so which one that is varies by the day. When they disagree
+        // about `mal_id`, the loser's id is what aniskip and MAL are then told about.
+        let store = Store::open_in_memory().unwrap();
+
+        store
+            .materialise_mapping(
+                "thaunknown",
+                0,
+                &[MappingInput { mal_id: Some(52_991), ..entry(FRIEREN) }],
+                None,
+                1_000,
+            )
+            .unwrap();
+        store
+            .materialise_mapping(
+                "fribb",
+                1,
+                &[MappingInput { mal_id: Some(999_999), ..entry(FRIEREN) }],
+                None,
+                2_000,
+            )
+            .unwrap();
+
+        let m = store.mapping_for(AnilistId::new(FRIEREN)).unwrap().unwrap();
+        assert_eq!(m.mal_id, Some(52_991), "the stronger claim was overwritten");
+
+        // The stronger source may still change its own mind on a later refresh.
+        store
+            .materialise_mapping(
+                "thaunknown",
+                0,
+                &[MappingInput { mal_id: Some(12_345), ..entry(FRIEREN) }],
+                None,
+                3_000,
+            )
+            .unwrap();
+        assert_eq!(
+            store.mapping_for(AnilistId::new(FRIEREN)).unwrap().unwrap().mal_id,
+            Some(12_345)
+        );
     }
 
     #[test]

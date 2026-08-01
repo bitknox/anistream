@@ -236,6 +236,24 @@ const MIGRATIONS: &[(&str, &str)] = &[
     ALTER TABLE watch_progress ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0;
     "#,
     ),
+    (
+        "0004_mapping_priority",
+        r#"
+    -- Which dataset's claim a mapping row currently holds, so a later refresh can tell
+    -- "fill this gap" from "overrule this". Without it the merge was last-writer-wins and
+    -- the weekly corpus overwrote the daily one whenever it happened to land second — after
+    -- which aniskip, MAL and Trakt were talking about a different show.
+    --
+    -- Defaults to the lowest-priority value so rows written before this migration are
+    -- treated as the weakest claim: any dataset may correct them, which is the safe way to
+    -- inherit history we cannot attribute.
+    ALTER TABLE mapping ADD COLUMN priority INTEGER NOT NULL DEFAULT 255;
+
+    -- Trakt resolves shows by TVDB id, twice per synced item, and both queries scanned the
+    -- whole materialised table — tens of thousands of rows.
+    CREATE INDEX IF NOT EXISTS idx_mapping_tvdb ON mapping(tvdb_id);
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.
