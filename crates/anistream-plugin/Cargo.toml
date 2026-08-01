@@ -21,6 +21,9 @@ tracing.workspace = true
 wasmtime = { version = "47.0", features = ["component-model", "async", "cranelift", "cache"] }
 wasmtime-wasi = "47.0"
 # Regex is lent to guests: a TinyGo or JS plugin bundling its own would be enormous.
+# The same URL parser the HTTP client uses. The allowlist has to read a URL exactly the way
+# the request will, or it is checking a different host than the one contacted.
+url = "2"
 regex = "1"
 # AES-128-CBC, for the wrapped stream payloads some sources use.
 aes = "0.8"

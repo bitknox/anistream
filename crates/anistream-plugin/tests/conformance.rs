@@ -380,22 +380,46 @@ async fn the_javascript_component_needs_no_wasi_at_all() {
 async fn granted_settings_reach_the_guest_and_only_the_guest_they_name() {
     // The whole `config-get` contract in one test: a granted key arrives, and the reference
     // plugin's documented fallback covers everything else — the host never invents a value.
-    let Some(path) = component() else { return };
-    let host = PluginHost::new(Limits::default(), None).unwrap().with_plugin_settings(
-        [(
-            "example-rust".to_string(),
-            [("cdn".to_string(), "mirror.example.net".to_string())].into_iter().collect(),
-        )]
-        .into_iter()
-        .collect(),
-    );
-    let plugin = host.load(&path).await.expect("load");
+    let Some(built) = component() else { return };
+    let dir = tempfile::tempdir().unwrap();
 
-    let streams =
-        plugin.resolve("example:frieren", "1", "sub").await.expect("no trap").expect("streams");
+    let host = || {
+        PluginHost::new(Limits::default(), None).unwrap().with_plugin_settings(
+            [(
+                "example-rust".to_string(),
+                [("cdn".to_string(), "mirror.example.net".to_string())].into_iter().collect(),
+            )]
+            .into_iter()
+            .collect(),
+        )
+    };
+    let resolved_cdn = |plugin: LoadedPlugin| async move {
+        let streams = plugin
+            .resolve("example:frieren", "1", "sub")
+            .await
+            .expect("no trap")
+            .expect("streams");
+        streams[0].url.clone()
+    };
+
+    // Named after the id it declares: the settings are its own, and it gets them.
+    let named = dir.path().join("example-rust.wasm");
+    std::fs::copy(&built, &named).unwrap();
     assert_eq!(
-        streams[0].url, "https://mirror.example.net/master.m3u8",
-        "the configured mirror should replace the baked-in default"
+        resolved_cdn(host().load(&named).await.expect("load")).await,
+        "https://mirror.example.net/master.m3u8",
+        "a plugin named after its id should receive its settings"
+    );
+
+    // The same component under another name is, as far as the host can tell, a different
+    // plugin claiming this one's id — which is all an impersonator would have to do to be
+    // handed someone else's API key. It falls back to its baked-in default instead.
+    let impostor = dir.path().join("weather.wasm");
+    std::fs::copy(&built, &impostor).unwrap();
+    assert_eq!(
+        resolved_cdn(host().load(&impostor).await.expect("load")).await,
+        "https://cdn.example.test/master.m3u8",
+        "settings must not follow an id a file merely claims"
     );
 }
 

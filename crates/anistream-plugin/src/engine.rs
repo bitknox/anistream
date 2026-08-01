@@ -443,9 +443,34 @@ impl PluginHost {
             hosts = ?manifest.allowed_hosts,
             "plugin loaded"
         );
-        // Settings are looked up by the id the manifest just declared — they could not be
-        // attached earlier, and `describe` above deliberately ran without them.
-        let settings = self.settings.get(&manifest.id).cloned().unwrap_or_default();
+        // Settings are granted only when the manifest's id matches the file's own name.
+        //
+        // The id is asserted by the guest, and settings are where a user's API keys live — so
+        // handing a bucket over on the strength of that assertion alone means any `.wasm`
+        // dropped in the directory can name itself after a plugin the user trusts and be given
+        // its credentials. The filename is the one part of a plugin's identity the *user*
+        // controls, so agreement between the two is what unlocks the bucket. A mismatch is said
+        // out loud rather than silently ignored: a renamed file losing its settings would
+        // otherwise look like the plugin breaking for no reason.
+        let stem = path
+            .file_stem()
+            .map(|s| s.to_string_lossy().to_ascii_lowercase())
+            .unwrap_or_default();
+        let claimed = manifest.id.trim().to_ascii_lowercase();
+        let settings = match self.settings.get(&manifest.id) {
+            Some(_) if stem != claimed => {
+                tracing::warn!(
+                    id = %manifest.id,
+                    file = %path.display(),
+                    "settings for this id exist but the file is not named after it; \
+                     withholding them — rename the file to {}.wasm to grant them",
+                    claimed
+                );
+                Default::default()
+            }
+            Some(settings) => settings.clone(),
+            None => Default::default(),
+        };
         Ok(LoadedPlugin { manifest, settings, ..plugin })
     }
 

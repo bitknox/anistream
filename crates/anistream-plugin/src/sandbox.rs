@@ -67,52 +67,55 @@ impl Default for Limits {
 ///   user-visible, but a plugin should not be able to reach a service on the user's own machine
 ///   even if they approved a hostname that happens to resolve there.
 pub fn is_allowed(url: &str, allowed: &[String]) -> bool {
-    let Some(host) = host_of(url) else { return false };
-    if is_local(&host) {
+    let Some(parsed) = parse(url) else { return false };
+    if is_local(&parsed) {
         return false;
     }
+    let Some(host) = hostname(&parsed) else { return false };
     allowed.iter().any(|pattern| host_matches(&host, pattern))
+}
+
+/// Parse a URL **with the parser the request itself will use**.
+///
+/// This is the whole boundary. An allowlist that reads a URL its own way is not a check on where
+/// the request goes, it is a check on a second opinion about the string — and the two disagree in
+/// ways that are not obvious: WHATWG ends the authority at a backslash as well as a slash, so
+/// `https://evil.test\.example.com/` is host `evil.test` with a path, while a hand-rolled split
+/// sees a subdomain of `example.com`. It also normalises `2130706433`, `0x7f.0.0.1` and `127.1`
+/// to `127.0.0.1`, which a strict dotted-quad reader does not recognise as an address at all.
+/// Both readings pointed somewhere the plugin never declared.
+///
+/// Credentials are refused rather than parsed: the only reason to write `user@host` here is to
+/// make the host look like something else.
+fn parse(url: &str) -> Option<url::Url> {
+    let parsed = url::Url::parse(url).ok()?;
+    if !matches!(parsed.scheme(), "http" | "https") {
+        return None;
+    }
+    if !parsed.username().is_empty() || parsed.password().is_some() {
+        return None;
+    }
+    parsed.host()?;
+    Some(parsed)
+}
+
+/// The hostname to match against the allowlist: lowercase, unbracketed, trailing dot removed.
+///
+/// The parser renders an IPv6 host in its URL form, `[::1]`, but a manifest declares an address
+/// the way a person writes one, so the brackets come off before matching.
+fn hostname(parsed: &url::Url) -> Option<String> {
+    let host = parsed.host_str()?;
+    let host = host.strip_prefix('[').and_then(|h| h.strip_suffix(']')).unwrap_or(host);
+    // A trailing dot is a legal FQDN form that would defeat an exact comparison.
+    let host = host.trim_end_matches('.').to_ascii_lowercase();
+    (!host.is_empty()).then_some(host)
 }
 
 /// Extract a lowercase hostname from an absolute http(s) URL.
 ///
-/// Returns `None` for anything that is not plainly one, including URLs carrying credentials —
-/// rejecting is the right answer for input we do not fully understand.
+/// Returns `None` for anything that is not plainly one, including URLs carrying credentials.
 pub fn host_of(url: &str) -> Option<String> {
-    let rest = url
-        .strip_prefix("https://")
-        .or_else(|| url.strip_prefix("http://"))
-        .or_else(|| url.strip_prefix("HTTPS://"))
-        .or_else(|| url.strip_prefix("HTTP://"))?;
-
-    // Authority ends at the first `/`, `?` or `#`.
-    let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
-    if authority.is_empty() {
-        return None;
-    }
-    // `user:pass@host` — refused rather than parsed, because the only reason to write one here is
-    // to make the host look like something else.
-    if authority.contains('@') {
-        return None;
-    }
-
-    // Strip the port. An IPv6 literal is bracketed, so the last colon outside brackets is the
-    // port separator.
-    let host = match authority.strip_prefix('[') {
-        Some(v6) => v6.split(']').next().unwrap_or(""),
-        None => authority.split(':').next().unwrap_or(""),
-    };
-    if host.is_empty() {
-        return None;
-    }
-
-    // A trailing dot is a legal FQDN form that would defeat an exact comparison.
-    let host = host.trim_end_matches('.').to_ascii_lowercase();
-    // Anything with a path separator or whitespace left in it is not a hostname.
-    if host.is_empty() || host.contains(|c: char| c.is_whitespace()) {
-        return None;
-    }
-    Some(host)
+    parse(url).as_ref().and_then(hostname)
 }
 
 /// Whether `host` is the declared `pattern` or a subdomain of it.
@@ -128,32 +131,102 @@ fn host_matches(host: &str, pattern: &str) -> bool {
     host.strip_suffix(&pattern).is_some_and(|prefix| prefix.ends_with('.'))
 }
 
-/// Whether a hostname literal points at this machine or a private network.
+/// Whether a URL points at this machine or a private network.
 ///
-/// Only catches literals, not names that resolve there — resolving would mean a DNS lookup
-/// before the allowlist check, and the allowlist is meant to be cheap and total. This is the
-/// second layer, not the only one.
-fn is_local(host: &str) -> bool {
-    if host == "localhost" || host.ends_with(".localhost") {
-        return true;
+/// Takes the *parsed* host, so every spelling of an address has already been normalised to the
+/// one the socket will use — `2130706433` and `0x7f.0.0.1` arrive here as `127.0.0.1`. Reading
+/// the literal out of the string instead let all of those through, and a plugin declares its own
+/// allowlist, so reaching loopback was one manifest line away.
+///
+/// Names that merely *resolve* to a local address are still not caught: that would mean a DNS
+/// lookup before the check, and the allowlist is meant to be cheap and total. This is one layer.
+fn is_local(parsed: &url::Url) -> bool {
+    match parsed.host() {
+        Some(url::Host::Domain(name)) => {
+            let name = name.trim_end_matches('.').to_ascii_lowercase();
+            name == "localhost" || name.ends_with(".localhost")
+        }
+        Some(url::Host::Ipv4(v4)) => {
+            v4.is_loopback()
+                || v4.is_private()
+                || v4.is_link_local()
+                || v4.is_unspecified()
+                || v4.is_broadcast()
+        }
+        Some(url::Host::Ipv6(v6)) => {
+            // `is_unique_local` and `is_unicast_link_local` are still unstable, so the prefixes
+            // are checked directly: fc00::/7 and fe80::/10. An IPv4-mapped address is the same
+            // machine wearing a different hat, so it is unwrapped rather than trusted.
+            let segments = v6.segments();
+            v6.is_loopback()
+                || v6.is_unspecified()
+                || (segments[0] & 0xfe00) == 0xfc00
+                || (segments[0] & 0xffc0) == 0xfe80
+                || v6.to_ipv4_mapped().is_some_and(|v4| {
+                    v4.is_loopback()
+                        || v4.is_private()
+                        || v4.is_link_local()
+                        || v4.is_unspecified()
+                        || v4.is_broadcast()
+                })
+        }
+        None => false,
     }
-    if let Ok(v4) = host.parse::<std::net::Ipv4Addr>() {
-        return v4.is_loopback()
-            || v4.is_private()
-            || v4.is_link_local()
-            || v4.is_unspecified()
-            || v4.is_broadcast();
+}
+
+#[cfg(test)]
+mod escape_tests {
+    use super::*;
+
+    /// What the HTTP client will actually connect to, as opposed to what the allowlist read.
+    ///
+    /// The allowlist is only a boundary if those two agree, so the check is written against the
+    /// same parser the request goes through rather than against our own reading of the string.
+    fn real_host(url: &str) -> Option<String> {
+        url::Url::parse(url).ok().and_then(|u| u.host_str().map(str::to_ascii_lowercase))
     }
-    if let Ok(v6) = host.parse::<std::net::Ipv6Addr>() {
-        // `is_unique_local` and `is_unicast_link_local` are still unstable, so the prefixes are
-        // checked directly: fc00::/7 and fe80::/10.
-        let segments = v6.segments();
-        return v6.is_loopback()
-            || v6.is_unspecified()
-            || (segments[0] & 0xfe00) == 0xfc00
-            || (segments[0] & 0xffc0) == 0xfe80;
+
+    #[test]
+    fn the_host_checked_is_the_host_contacted() {
+        // A URL the allowlist and the client read differently is an escape by construction. The
+        // backslash is the one that matters: WHATWG treats it as an authority terminator for
+        // special schemes, so `evil.test\.example.com` is `evil.test` with a path — while a
+        // split on `/?#` alone sees a subdomain of `example.com` and waves it through.
+        for url in [
+            "https://evil.test\\.example.com/",
+            "https://evil.test\\x.example.com/",
+            "https://a\\.example.com:8080/x",
+            "https://example.com/",
+            "https://cdn.example.com/a?b#c",
+        ] {
+            let (Some(checked), Some(contacted)) = (host_of(url), real_host(url)) else {
+                continue;
+            };
+            assert_eq!(
+                checked, contacted,
+                "{url}: allowlist inspected {checked:?} but the request goes to {contacted:?}"
+            );
+        }
     }
-    false
+
+    #[test]
+    fn every_spelling_of_a_local_address_is_refused() {
+        // `is_local` parses with Rust's strict dotted-quad reader; the client parses with the
+        // WHATWG one, which also accepts decimal, octal, hex and short forms. Each of these is
+        // 127.0.0.1 to the socket, so each must be refused however it is written — a plugin
+        // declares its own allowlist, so reaching loopback is one manifest line away otherwise.
+        let declared =
+            ["2130706433".to_string(), "0x7f.0.0.1".to_string(), "127.1".to_string()];
+        for url in [
+            "http://2130706433/s/probe",
+            "http://0x7f.0.0.1/s/probe",
+            "http://127.1/s/probe",
+            "http://017700000001/s/probe",
+            "http://[::ffff:127.0.0.1]/s/probe",
+        ] {
+            assert!(!is_allowed(url, &declared), "{url} reaches this machine and was allowed");
+        }
+    }
 }
 
 #[cfg(test)]
