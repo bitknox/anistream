@@ -158,12 +158,19 @@ impl HealthTracker {
     }
 
     /// Providers worth attempting, in the order given.
+    ///
+    /// **Health only — a hold is deliberately not consulted here.** A hold says local policy is
+    /// withholding a provider *right now*, and the only thing that can lift it is asking the
+    /// provider again. Filtering it out of the chain meant it was never asked, so the hold
+    /// outlived its reason: one failed VPN check took torrenting out until the process
+    /// restarted, however healthy the tunnel became afterwards. The live check lives in
+    /// [`crate::registry::ProviderRegistry`]'s walk, which lifts the hold when it passes.
     pub fn usable(&self, order: &[String]) -> Vec<String> {
         self.with(|list| {
             order
                 .iter()
                 .filter(|id| {
-                    list.iter().find(|h| &&h.id == id).is_none_or(ProviderHealth::is_usable)
+                    list.iter().find(|h| &&h.id == id).is_none_or(|h| h.health != Health::Down)
                 })
                 .cloned()
                 .collect()
@@ -270,13 +277,33 @@ mod tests {
     }
 
     #[test]
-    fn usable_preserves_configured_order_and_drops_the_unusable() {
+    fn usable_preserves_configured_order_and_drops_what_is_down() {
         let t = tracker();
         let order = vec!["torrent".to_string(), "remote".to_string()];
         assert_eq!(t.usable(&order), order, "order is the user's preference");
 
+        for _ in 0..DOWN_AFTER {
+            t.record_failure("torrent", &ProviderError::Blocked("nope".into()), 0);
+        }
+        assert_eq!(t.usable(&order), vec!["remote".to_string()], "a down provider is skipped");
+    }
+
+    #[test]
+    fn a_hold_does_not_remove_a_provider_from_the_chain() {
+        // Deliberately: a hold is local policy about *now*, and only asking the provider again
+        // can lift it. Dropping it from the chain here meant it was never asked, so one failed
+        // VPN check withheld torrenting until the process restarted. The registry's walk makes
+        // the live check and skips it there — see its own tests for both halves.
+        let t = tracker();
+        let order = vec!["torrent".to_string(), "remote".to_string()];
         t.hold_back("torrent", "vpn down");
-        assert_eq!(t.usable(&order), vec!["remote".to_string()]);
+
+        assert_eq!(t.usable(&order), order);
+        assert_eq!(
+            t.get("torrent").and_then(|h| h.held_back),
+            Some("vpn down".to_string()),
+            "the reason is still reported to the Providers screen"
+        );
     }
 
     #[test]

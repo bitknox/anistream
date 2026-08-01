@@ -172,10 +172,17 @@ impl ProviderRegistry {
 
             // Local policy first: a provider held back by the VPN guard must not be
             // contacted at all, and that is not a health event.
-            if let Err(reason) = provider.is_available() {
-                self.health.record_failure(&id, &reason, now);
-                failures.push((id, reason));
-                continue;
+            //
+            // Asked every time rather than remembered, because a hold is a statement about the
+            // present. Recording it and then skipping the provider forever meant a tunnel that
+            // recovered never got to say so.
+            match provider.is_available() {
+                Err(reason) => {
+                    self.health.record_failure(&id, &reason, now);
+                    failures.push((id, reason));
+                    continue;
+                }
+                Ok(()) => self.health.release(&id),
             }
 
             let started = Instant::now();
@@ -393,6 +400,46 @@ mod tests {
         let r = registry(vec![MockProvider::new("a").arc()]);
         assert!(r.pinned("a").is_some());
         assert!(r.pinned("removed-plugin").is_none());
+    }
+
+    #[tokio::test]
+    async fn a_hold_is_lifted_once_the_provider_is_available_again() {
+        // A hold is a statement about the present, so it has to be re-examined. Filtering held
+        // providers out of the chain meant the question was never asked again: one failed VPN
+        // check took torrenting out until the process restarted, however healthy the tunnel
+        // became afterwards.
+        let r =
+            registry(vec![MockProvider::new("a").with_streams(vec![stream("from-a")]).arc()]);
+        r.health().hold_back("a", "vpn guard failing");
+
+        let attempt = r.resolve(&ProviderKey::new("k"), "1", Translation::Sub, 0).await;
+
+        assert_eq!(
+            attempt.provider.as_deref(),
+            Some("a"),
+            "a held provider must still be asked whether it is available"
+        );
+        assert!(
+            r.health().get("a").is_none_or(|h| h.held_back.is_none()),
+            "the hold outlived the reason for it"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_provider_that_is_still_withheld_is_not_contacted() {
+        // The other half: lifting a stale hold must not weaken a live one.
+        let provider = MockProvider::new("a").unavailable("vpn guard failing");
+        let calls = provider.call_count();
+        let r = registry(vec![provider.arc()]);
+
+        let attempt = r.resolve(&ProviderKey::new("k"), "1", Translation::Sub, 0).await;
+
+        assert!(attempt.value.is_none(), "a withheld provider must not serve");
+        assert_eq!(calls.load(std::sync::atomic::Ordering::Relaxed), 0, "it was contacted");
+        assert_eq!(
+            r.health().get("a").and_then(|h| h.held_back),
+            Some("vpn guard failing".to_string())
+        );
     }
 
     #[tokio::test]
