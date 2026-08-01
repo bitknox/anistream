@@ -353,14 +353,23 @@ async fn handle_connection(socket: TcpStream, upstream: Arc<Upstream>) -> std::i
     let mut request_line = String::new();
     read_line(&mut reader, &mut request_line).await?;
 
-    // Drain the rest of the request. Nothing in it is honoured: a mended body has different
-    // offsets from the upstream one, so a range would name bytes that no longer mean the same
-    // thing, and every HLS segment is fetched whole anyway.
+    // The `Range` header is the one thing carried through. A mended body has different offsets
+    // from the upstream one, so a range cannot be answered *and* mended — but ignoring it and
+    // replying `200` with the whole resource is worse than either: a playlist using
+    // `#EXT-X-BYTERANGE` addresses many segments into one large file, so every segment request
+    // returned the entire file, blew the body ceiling, and killed a stream that plays fine
+    // without the proxy in the way. Such a resource is passed through untouched instead.
+    let mut range: Option<String> = None;
     loop {
         let mut line = String::new();
         let n = read_line(&mut reader, &mut line).await?;
         if n == 0 || line.trim().is_empty() {
             break;
+        }
+        if let Some((name, value)) = line.split_once(':')
+            && name.trim().eq_ignore_ascii_case("range")
+        {
+            range = Some(value.trim().to_owned());
         }
     }
 
@@ -377,6 +386,17 @@ async fn handle_connection(socket: TcpStream, upstream: Arc<Upstream>) -> std::i
         return Ok(());
     };
     let url = decode_path(encoded);
+
+    // A ranged request asks for a slice of a resource, which is never the start of a segment,
+    // so there is nothing to mend and the upstream's own answer is the right one to relay.
+    //
+    // Except the one mpv opens every resource with. `bytes=0-` asks for the whole thing and is
+    // sent on the very first request, playlists included — relaying that meant the master
+    // playlist came back verbatim, its segment URIs never rewritten, and mpv resolved them
+    // against the proxy's own address and got nothing. An open range from zero is not a slice.
+    if let Some(range) = range.filter(|r| !is_whole_resource(r)) {
+        return relay_range(&upstream, &url, &range, &mut write_half).await;
+    }
 
     match fetch(&upstream, &url).await {
         Ok((content_type, body)) => {
@@ -415,6 +435,72 @@ async fn handle_connection(socket: TcpStream, upstream: Arc<Upstream>) -> std::i
     }
 }
 
+/// Whether a `Range` header asks for the entire resource.
+///
+/// `bytes=0-` is what a player sends to open a file it intends to read through, so it carries no
+/// intent to slice and must not turn off mending.
+fn is_whole_resource(range: &str) -> bool {
+    range
+        .trim()
+        .strip_prefix("bytes=")
+        .map(str::trim)
+        .is_some_and(|spec| spec == "0-" || spec.is_empty())
+}
+
+/// Relay a byte range from upstream, unmended.
+///
+/// Mending is a whole-resource operation — it decides where a payload *starts* — so a request
+/// for bytes 800..1599 of a file has nothing to mend and must not be answered with the file.
+/// The upstream's status, content range and body are passed through as they came.
+async fn relay_range(
+    upstream: &Upstream,
+    url: &str,
+    range: &str,
+    write_half: &mut tokio::net::tcp::OwnedWriteHalf,
+) -> std::io::Result<()> {
+    let mut request = upstream.http.emulated().get(url).header("range", range);
+    for (name, value) in &upstream.headers {
+        request = request.header(name.as_str(), value.as_str());
+    }
+
+    let relayed = async {
+        let response = request.send().await.map_err(|e| e.to_string())?;
+        let status = response.status().as_u16();
+        let content_range = response
+            .headers()
+            .get("content-range")
+            .and_then(|v| v.to_str().ok())
+            .map(str::to_owned);
+        let body = response.bytes().await.map_err(|e| e.to_string())?;
+        if body.len() > MAX_BODY {
+            return Err(format!("a ranged body of {} bytes is too large", body.len()));
+        }
+        Ok::<_, String>((status, content_range, body))
+    }
+    .await;
+
+    match relayed {
+        Ok((status, content_range, body)) => {
+            let reason = if status == 206 { "Partial Content" } else { "OK" };
+            let mut head = format!(
+                "HTTP/1.1 {status} {reason}\r\nContent-Length: {}\r\nAccept-Ranges: bytes\r\n",
+                body.len()
+            );
+            if let Some(content_range) = content_range {
+                head.push_str(&format!("Content-Range: {content_range}\r\n"));
+            }
+            head.push_str("Connection: close\r\n\r\n");
+            write_half.write_all(head.as_bytes()).await?;
+            write_half.write_all(&body).await?;
+            write_half.flush().await
+        }
+        Err(e) => {
+            tracing::debug!(url = %url, error = %e, "mender range relay failed");
+            write_half.write_all(b"HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\n\r\n").await
+        }
+    }
+}
+
 /// Fetch one upstream URL with the stream's headers.
 async fn fetch(upstream: &Upstream, url: &str) -> Result<(String, Vec<u8>), String> {
     let mut request = upstream.http.emulated().get(url);
@@ -434,11 +520,27 @@ async fn fetch(upstream: &Upstream, url: &str) -> Result<(String, Vec<u8>), Stri
         .unwrap_or("application/octet-stream")
         .to_owned();
 
-    let body = response.bytes().await.map_err(|e| e.to_string())?;
-    if body.len() > MAX_BODY {
-        return Err(format!("body of {} bytes is beyond what this proxies", body.len()));
+    // Refused on the declared length before anything is read, then enforced again while
+    // reading, because a length is a claim rather than a fact. Checking only the finished
+    // body — as this did — meant the ceiling rejected the response *after* the host had
+    // already allocated it, so a segment advertised at four gigabytes cost four gigabytes to
+    // decline. `fetch-many` makes that concurrent.
+    if response.content_length().is_some_and(|len| len > MAX_BODY as u64) {
+        return Err(format!(
+            "a body of {} bytes is beyond what this proxies",
+            response.content_length().unwrap_or_default()
+        ));
     }
-    Ok((content_type, body.to_vec()))
+
+    let mut response = response;
+    let mut body: Vec<u8> = Vec::new();
+    while let Some(chunk) = response.chunk().await.map_err(|e| e.to_string())? {
+        if body.len() + chunk.len() > MAX_BODY {
+            return Err(format!("a body beyond {MAX_BODY} bytes is more than this proxies"));
+        }
+        body.extend_from_slice(&chunk);
+    }
+    Ok((content_type, body))
 }
 
 /// Whether a response is an HLS playlist rather than media.
@@ -690,6 +792,21 @@ mod tests {
         assert_eq!(resolve_url(base, "seg.ts"), "https://cdn.test/a/b/seg.ts");
         assert_eq!(resolve_url(base, "/root/seg.ts"), "https://cdn.test/root/seg.ts");
         assert_eq!(resolve_url(base, "https://x.test/s.ts"), "https://x.test/s.ts");
+    }
+
+    #[test]
+    fn the_range_a_player_opens_with_does_not_turn_mending_off() {
+        // mpv sends `Range: bytes=0-` on its first request for every resource, playlists
+        // included. Treating that as a slice relayed the master playlist verbatim, so its
+        // segment URIs were never rewritten and mpv resolved them against the proxy's own
+        // address — the stream died on a change meant to fix a different one.
+        assert!(is_whole_resource("bytes=0-"));
+        assert!(is_whole_resource(" bytes=0- "));
+
+        // A genuine slice, which has nothing to mend and must be relayed.
+        assert!(!is_whole_resource("bytes=800-1599"));
+        assert!(!is_whole_resource("bytes=-500"));
+        assert!(!is_whole_resource("bytes=1000-"));
     }
 
     #[test]
