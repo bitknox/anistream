@@ -225,9 +225,31 @@ pub async fn serve<S: StreamSource>(source: S, token: &str) -> std::io::Result<S
     let expected_path = path.clone();
 
     let handle = tokio::spawn(async move {
+        // Accept errors are not all fatal. `EMFILE` in particular is transient and is exactly
+        // what a long binge produces — and breaking here retired the listener for good, so the
+        // URL kept resolving to a port that refused every connection, with mpv failing on its
+        // next range request and nothing logged.
+        let mut consecutive_errors = 0_u32;
         loop {
-            let Ok((socket, _)) = listener.accept().await else {
-                break;
+            let socket = match listener.accept().await {
+                Ok((socket, _)) => {
+                    consecutive_errors = 0;
+                    socket
+                }
+                Err(e) => {
+                    consecutive_errors += 1;
+                    tracing::warn!(error = %e, consecutive_errors, "stream server accept failed");
+                    // A listener that cannot accept anything is broken rather than busy; give
+                    // up rather than spin a core on it.
+                    if consecutive_errors >= 16 {
+                        tracing::error!(
+                            "stream server giving up after repeated accept failures"
+                        );
+                        break;
+                    }
+                    tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+                    continue;
+                }
             };
             let source = Arc::clone(&source);
             let expected = expected_path.clone();

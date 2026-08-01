@@ -152,7 +152,12 @@ pub fn parse_feed(xml: &str) -> Vec<IndexerItem> {
             seeders: tag_text(body, "seeders").and_then(|s| s.parse().ok()).unwrap_or(0),
             leechers: tag_text(body, "leechers").and_then(|s| s.parse().ok()).unwrap_or(0),
             size: tag_text(body, "size"),
-            info_hash: tag_text(body, "infoHash").filter(|h| h.len() == 40),
+            // Hex as well as length: the value is spliced straight into a magnet URI, so a
+            // forty-character string carrying `&tr=` would be adding query parameters to it —
+            // announcing the swarm to a tracker the user never configured, from a feed that
+            // may well have arrived over plain http.
+            info_hash: tag_text(body, "infoHash")
+                .filter(|h| h.len() == 40 && h.chars().all(|c| c.is_ascii_hexdigit())),
             title,
             link,
         });
@@ -255,6 +260,26 @@ pub fn best(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_info_hash_that_is_not_hex_is_refused() {
+        // The value goes straight into a magnet URI, so a forty-character string that is not a
+        // hash is a way to append magnet parameters — a tracker the user never configured,
+        // announced to from a feed that may have arrived over plain http.
+        let hostile = FEED.replace(
+            "0123456789abcdef0123456789abcdef01234567",
+            "abc123&tr=udp://attacker.test:80/x&x=aaaa",
+        );
+        let items = parse_feed(&hostile);
+        assert_eq!(items[0].info_hash, None, "a non-hex info hash must not reach a magnet");
+
+        // The genuine article still parses, in either case.
+        let upper = FEED.replace(
+            "0123456789abcdef0123456789abcdef01234567",
+            "0123456789ABCDEF0123456789abcdef01234567",
+        );
+        assert!(parse_feed(&upper)[0].info_hash.is_some());
+    }
 
     /// A representative indexer feed.
     const FEED: &str = r#"<?xml version="1.0" encoding="utf-8"?>

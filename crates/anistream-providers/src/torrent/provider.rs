@@ -179,9 +179,13 @@ impl TorrentProvider {
             Some(id) => self.curated(id, prefer_dual).await,
             None => None,
         };
+        // Matched on the guid's last path segment rather than anywhere in the string: a bare
+        // view id like `196` is a substring of `1961373`, so `contains` would hand back a
+        // different group's release and label it the curator's pick.
         if let Some(id) = &curated_id
             && let Some(item) = items.iter().find(|item| {
-                item.guid.contains(id.as_str()) && item.release.covers(wanted, None)
+                let segment = item.guid.rsplit(['/', '=']).next().unwrap_or(&item.guid);
+                segment == id.as_str() && item.release.covers(wanted, None)
             })
         {
             return Some((item, true));
