@@ -408,7 +408,18 @@ impl Tracker for MalTracker {
             if fields.is_empty() {
                 continue;
             }
-            let mal_id = self.mal_id(anilist_id)?;
+            // A title the mapping datasets do not carry a MAL id for cannot be pushed, ever —
+            // and failing the call for it failed the *batch*, so one such title took the other
+            // twenty-four ops down with it on every retry, forever, since nothing discards an
+            // op that can never succeed. Skipped and said out loud instead, which is what
+            // Trakt already does with a show it cannot map.
+            let Some(mal_id) = self.mapping.mal_id(anilist_id) else {
+                tracing::warn!(
+                    anilist_id = anilist_id.get(),
+                    "no mal id mapped for this title; skipping it rather than stalling the queue"
+                );
+                continue;
+            };
             let response = self
                 .http
                 .patch(format!("{API}/anime/{mal_id}/my_list_status"))
@@ -546,18 +557,25 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn an_unmapped_title_is_reported_rather_than_skipped() {
-        // The first tracker that needs the mapping layer. A title with no `mal_id` cannot be
-        // synced, and silently dropping it is the failure the mapping layer exists to prevent.
+    async fn an_unmapped_title_does_not_stall_the_queue_behind_it() {
+        // A title the datasets carry no `mal_id` for can never be pushed. Reporting that as an
+        // error failed the whole claimed batch, and since nothing discards an op that cannot
+        // succeed, the same twenty-five ops retried forever — one obscure title holding up
+        // every other title's progress, re-sending the already-applied ones hourly.
+        //
+        // It is logged rather than returned, which is the shape Trakt already uses for a show
+        // it cannot map. Visibility comes from the log line, not from stopping the queue.
         let tracker =
             tracker(Some(TokenPair { access: "tok".into(), refresh: None, expires_at: None }));
         let unmapped = AnilistId::new(999_999);
-        let err = tracker
-            .push(&[TrackOp::SetProgress { anilist_id: unmapped, episode: 3 }])
-            .await
-            .unwrap_err();
-        assert!(err.to_string().contains("no mal id"), "{err}");
-        assert!(err.to_string().contains("999999"), "the message must name the title: {err}");
+
+        let result =
+            tracker.push(&[TrackOp::SetProgress { anilist_id: unmapped, episode: 3 }]).await;
+
+        assert!(
+            result.is_ok(),
+            "an unmappable title must not fail the batch it happens to share: {result:?}"
+        );
     }
 
     #[tokio::test]
