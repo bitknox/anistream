@@ -77,6 +77,13 @@ pub struct Export {
 /// The current export format.
 pub const EXPORT_VERSION: u32 = 1;
 
+/// The most episodes one title may claim in an import.
+///
+/// `episodes_completed` is a `u32` read from a file the user was handed, and every episode
+/// costs a row and a recount. The longest running series ever made is comfortably inside this,
+/// so a figure past it is a typo or a hostile file rather than a watch history.
+const MAX_IMPORTED_EPISODES: u32 = 10_000;
+
 impl Store {
     /// Aggregate statistics over the whole log.
     pub fn stats(&self) -> Result<Stats> {
@@ -192,18 +199,41 @@ impl Store {
                 continue;
             }
 
-            // Written as a synthetic completed event per newly-known episode, so the log stays the
-            // source of truth and the projection is derived as usual rather than patched.
-            for episode in (local_done + 1)..=title.episodes_completed {
+            // `episodes_completed` is a *count*, and this used to walk it as though it were a
+            // range starting after the local count — inventing episodes nobody watched when
+            // local history had gaps (5, 6, 7 plus a file claiming 10 wrote 4 through 10),
+            // landing on a total that matched neither figure, and flattening the projection
+            // to the last synthetic episode at position zero, which cost the real resume
+            // point. Adoption is the operation this always wanted.
+            let upto = title.episodes_completed.min(MAX_IMPORTED_EPISODES);
+            if upto < title.episodes_completed {
+                tracing::warn!(
+                    anilist_id = title.anilist_id,
+                    claimed = title.episodes_completed,
+                    "import claims more episodes than any series has; capping"
+                );
+            }
+            self.adopt_progress(id, upto, now)?;
+
+            // The export carries where the viewer actually was, and import ignored it
+            // entirely — so a restored backup knew what had been finished but not what was
+            // half-watched. Recorded as a real observation, which the projection then picks
+            // up in the ordinary way.
+            if title.last_position_secs > 0.0 && !title.last_episode.trim().is_empty() {
                 self.record_event(&crate::WatchEvent {
-                    completed: true,
+                    completed: false,
                     duration_secs: None,
-                    watched_secs: 0.0,
+                    watched_secs: title.watched_secs,
                     provider_id: Some("import".into()),
-                    at: now,
-                    ..crate::WatchEvent::new(id, episode.to_string(), 0.0)
+                    at: title.updated_at.min(now),
+                    ..crate::WatchEvent::new(
+                        id,
+                        title.last_episode.clone(),
+                        title.last_position_secs,
+                    )
                 })?;
             }
+
             if let Some(name) = &title.title {
                 let _ = self.remember_title(id, name);
             }
@@ -332,6 +362,106 @@ mod tests {
         assert_eq!(target.import(&export, 6_000).unwrap(), 1);
         assert_eq!(target.completed_episode_count(FRIEREN).unwrap(), 2);
         assert_eq!(target.cached_title(FRIEREN).unwrap().as_deref(), Some("Sousou no Frieren"));
+    }
+
+    #[test]
+    fn importing_over_history_with_gaps_neither_invents_nor_loses() {
+        // `episodes_completed` is a count, and import used to walk it as a range starting
+        // after the local count. Local history of 5, 6, 7 plus a file claiming 10 wrote
+        // synthetic episodes 4 through 10 — inventing episode 4, landing on a total of 7
+        // that matched neither figure, and flattening the projection to episode 10 at
+        // position zero, which cost the resume point of episode 9.
+        let store = Store::open_in_memory().unwrap();
+        for ep in ["5", "6", "7"] {
+            store
+                .record_event(&crate::WatchEvent {
+                    completed: true,
+                    duration_secs: Some(1440.0),
+                    at: 1_000,
+                    ..crate::WatchEvent::new(FRIEREN, ep, 1440.0)
+                })
+                .unwrap();
+        }
+        store
+            .record_event(&crate::WatchEvent {
+                duration_secs: Some(1440.0),
+                at: 2_000,
+                ..crate::WatchEvent::new(FRIEREN, "9", 720.0)
+            })
+            .unwrap();
+
+        let export = Export {
+            version: EXPORT_VERSION,
+            exported_at: 0,
+            titles: vec![ExportedTitle {
+                anilist_id: FRIEREN.get(),
+                title: None,
+                episodes_completed: 10,
+                last_episode: "9".into(),
+                last_position_secs: 720.0,
+                watched_secs: 720.0,
+                updated_at: 2_000,
+            }],
+        };
+        assert_eq!(store.import(&export, 3_000).unwrap(), 1);
+
+        assert_eq!(
+            store.completed_episode_count(FRIEREN).unwrap(),
+            10,
+            "the file said ten episodes are watched, so ten are"
+        );
+        let progress = store.progress(FRIEREN).unwrap().expect("a row");
+        assert_eq!(progress.episodes_done, 10);
+    }
+
+    #[test]
+    fn importing_restores_where_the_viewer_was() {
+        // The export has carried `last_episode`/`last_position_secs` since it was written and
+        // import ignored both, so a restored backup knew what had been finished and nothing
+        // about what was half-watched.
+        let store = Store::open_in_memory().unwrap();
+        let export = Export {
+            version: EXPORT_VERSION,
+            exported_at: 0,
+            titles: vec![ExportedTitle {
+                anilist_id: FRIEREN.get(),
+                title: None,
+                episodes_completed: 8,
+                last_episode: "9".into(),
+                last_position_secs: 615.0,
+                watched_secs: 615.0,
+                updated_at: 2_000,
+            }],
+        };
+        store.import(&export, 3_000).unwrap();
+
+        assert_eq!(
+            store.resume_position(FRIEREN, "9").unwrap(),
+            Some(615.0),
+            "the ten-minute mark of episode 9 came back with the backup"
+        );
+    }
+
+    #[test]
+    fn an_absurd_episode_count_is_capped_rather_than_written() {
+        // A `u32` straight from a file someone was handed. Writing it out would be hours of
+        // work and millions of rows.
+        let store = Store::open_in_memory().unwrap();
+        let export = Export {
+            version: EXPORT_VERSION,
+            exported_at: 0,
+            titles: vec![ExportedTitle {
+                anilist_id: FRIEREN.get(),
+                title: None,
+                episodes_completed: u32::MAX,
+                last_episode: String::new(),
+                last_position_secs: 0.0,
+                watched_secs: 0.0,
+                updated_at: 0,
+            }],
+        };
+        store.import(&export, 100).unwrap();
+        assert_eq!(store.completed_episode_count(FRIEREN).unwrap(), MAX_IMPORTED_EPISODES);
     }
 
     #[test]

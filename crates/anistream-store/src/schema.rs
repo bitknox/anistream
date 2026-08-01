@@ -226,6 +226,16 @@ const MIGRATIONS: &[(&str, &str)] = &[
     );
     "#,
     ),
+    (
+        "0003_continue_hidden",
+        r#"
+    -- "Stop showing this on CONTINUE." A flag rather than deleting history: the watch log
+    -- is the source of truth and must survive a tidy-up of the rail. Any new watch event
+    -- clears it, so a dismissed title earns its way back by being watched, never by
+    -- lingering.
+    ALTER TABLE watch_progress ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0;
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.

@@ -193,27 +193,24 @@ impl Store {
     /// inflate the count. Returns how many episodes were newly marked.
     pub fn adopt_progress(&self, anilist_id: AnilistId, upto: u32, at: i64) -> Result<u32> {
         self.with_tx(|tx| {
-            let mut adopted = 0_u32;
-            for episode in 1..=upto {
-                let label = episode.to_string();
-                let already: bool = tx.query_row(
-                    "SELECT EXISTS(SELECT 1 FROM watch_event
-                       WHERE anilist_id = ?1 AND episode = ?2 AND completed = 1)",
-                    rusqlite::params![anilist_id.get(), &label],
-                    |r| r.get(0),
-                )?;
-                if already {
-                    continue;
-                }
-                tx.execute(
-                    "INSERT INTO watch_event
-                       (anilist_id, episode, position_secs, duration_secs, watched_secs,
-                        provider_id, translation, completed, at)
-                     VALUES (?1, ?2, 0.0, NULL, 0.0, 'tracker', NULL, 1, ?3)",
-                    rusqlite::params![anilist_id.get(), &label, at],
-                )?;
-                adopted += 1;
-            }
+            // One statement over a generated series rather than a query per episode: a
+            // catch-up can be hundreds of episodes, and the per-episode form spent a
+            // round trip on each one.
+            let adopted = tx.execute(
+                "INSERT INTO watch_event
+                   (anilist_id, episode, position_secs, duration_secs, watched_secs,
+                    provider_id, translation, completed, at)
+                 WITH RECURSIVE series(n) AS (
+                     SELECT 1 UNION ALL SELECT n + 1 FROM series WHERE n < ?2
+                 )
+                 SELECT ?1, CAST(n AS TEXT), 0.0, NULL, 0.0, 'tracker', NULL, 1, ?3
+                   FROM series
+                  WHERE NOT EXISTS (
+                     SELECT 1 FROM watch_event
+                      WHERE anilist_id = ?1 AND episode = CAST(n AS TEXT) AND completed = 1
+                  )",
+                rusqlite::params![anilist_id.get(), upto, at],
+            )? as u32;
 
             let episodes_done: u32 = tx.query_row(
                 "SELECT COUNT(DISTINCT episode) FROM watch_event
