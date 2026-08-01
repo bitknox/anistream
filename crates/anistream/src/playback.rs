@@ -350,6 +350,10 @@ pub async fn play(
             Ok(pair) => pair,
             Err(e) if last => {
                 let _ = tx.send(Update::Toast(Toast::alert(format!("mpv: {e}"))));
+                // The player never existed, but the UI has Now Playing up and a control
+                // surface pointed at it. Saying so is what takes them down.
+                let _ = tx.send(Update::PlaybackEnded { watched: false });
+                let _ = tx.send(Update::Status(String::new()));
                 return;
             }
             Err(e) => {
@@ -392,9 +396,17 @@ pub async fn play(
         // produced no error of any kind because nothing was watching for the *absence* of
         // events.
         let mut ever_played = false;
+        // Whether the "still nothing after 20s" warning has been said, kept apart from
+        // `ever_played` so the warning cannot be mistaken for playback.
+        let mut warned = false;
         // An exit the viewer asked for must never fall over to another stream: pressing `x`
         // on a stream that had not started yet means "stop", not "try the next one".
         let mut stopped = false;
+        // What the tracker concluded, held back until it is known whether this attempt is the
+        // one the viewer keeps. Announcing an ending and *then* failing over tears Now Playing
+        // down before the replacement starts: the next stream plays with no player surface,
+        // and the episode's real ending finds nothing to finish, so auto-next never fires.
+        let mut ending: Option<bool> = None;
 
         loop {
             // Controls and events are interleaved rather than polled in turn: a keystroke must not
@@ -407,14 +419,20 @@ pub async fn play(
                 },
                 // Only armed until the first frame arrives, so this cannot fire mid-episode during a
                 // legitimate pause — mpv keeps reporting `time-pos` while paused.
-                _ = tokio::time::sleep(FIRST_FRAME_TIMEOUT), if !ever_played => {
+                _ = tokio::time::sleep(FIRST_FRAME_TIMEOUT), if !ever_played && !warned => {
                     let _ = tx.send(Update::Toast(Toast::alert(format!(
                         "mpv has not started playing after {}s — the source may have no data, or check `mpv` plays a file on its own",
                         FIRST_FRAME_TIMEOUT.as_secs()
                     ))));
                     // Deliberately not a stop. mpv may still be buffering a slow torrent, and killing
                     // it would turn a wait into a failure; the user now knows and can press `x`.
-                    ever_played = true;
+                    //
+                    // A flag of its own, because saying "this is taking a while" is not the same
+                    // claim as "a frame arrived". Reusing `ever_played` to disarm the timer also
+                    // told the failover below that the stream had played, so the one case it
+                    // exists for — a source that connects and then serves nothing — was the one
+                    // case it never covered.
+                    warned = true;
                     continue;
                 }
                 command = commands.recv(), if controls_open => {
@@ -534,7 +552,9 @@ pub async fn play(
                     }
 
                     Action::Finished { watched } => {
-                        let _ = tx.send(Update::PlaybackEnded { watched });
+                        // Recorded, not announced — see `ending`. mpv reports an ending on the
+                        // way out whether it played or not, so this fires for a dead stream too.
+                        ending = Some(watched);
                         if watched {
                             tracing::info!(
                                 episode = %context.episode,
@@ -581,11 +601,13 @@ pub async fn play(
             };
             tracing::warn!(%message, url = %stream.url, "playback produced no frames");
             let _ = tx.send(Update::Toast(Toast::alert(message)));
-            // Leaves Now Playing rather than stranding the user on a control surface for a
-            // session that no longer exists.
-            let _ = tx.send(Update::PlaybackEnded { watched: false });
         }
 
+        // Exactly one ending per playback, sent only now that this attempt is known to be the
+        // last: the tracker's verdict when it reached one, and otherwise the honest `false` for
+        // a session that never played. Leaving it unsent would strand the user on a control
+        // surface for a session that no longer exists.
+        let _ = tx.send(Update::PlaybackEnded { watched: ending.unwrap_or(false) });
         let _ = tx.send(Update::Status(String::new()));
         return;
     }
