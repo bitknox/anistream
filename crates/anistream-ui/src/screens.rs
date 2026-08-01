@@ -20,6 +20,24 @@ use crate::{
     widgets::{Divider, Hairline, Header, ObiList, ObiRow, Rail, StatusLine, truncate, wrap},
 };
 
+/// Write a line, or nothing at all if it would land outside the buffer.
+///
+/// Every screen here is laid out by adding row offsets to a top, and a terminal can always be
+/// shorter than the layout wants — a tmux split, a drag of the window edge, a 24×6 pane someone
+/// keeps in a corner. `Buffer::set_string` panics on a position outside the buffer, so a screen
+/// that forgets one bounds check takes the whole app down at a size nobody tested.
+///
+/// Guarding here rather than at each call site is deliberate: the checks were already present in
+/// about half the places that needed them, and the half that were missing is not a list anyone
+/// can keep correct by hand.
+fn line(buf: &mut Buffer, x: u16, y: u16, text: impl AsRef<str>, style: ratatui::style::Style) {
+    let bounds = buf.area();
+    if y >= bounds.bottom() || x >= bounds.right() {
+        return;
+    }
+    buf.set_string(x, y, text, style);
+}
+
 /// Draw a progress meter with the empty track at hairline weight.
 ///
 /// The track is never painted in the fill's role: an empty meter in fill colour reads as a
@@ -178,18 +196,21 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
     match &app.content {
         Content::Loading => render_loading(buf, app, list_area),
         Content::Failed(reason) => {
-            // Never an empty list with no explanation.
-            buf.set_string(
+            // Never an empty list with no explanation — and never a panic on the way to
+            // saying so, which would replace the explanation with a crash.
+            line(
+                buf,
                 area.left(),
                 y,
                 glyph::eyebrow("could not load"),
                 app.palette.style(Role::Alert).add_modifier(Modifier::BOLD),
             );
-            for (i, line) in wrap(reason, area.width as usize, 3).into_iter().enumerate() {
-                buf.set_string(
+            for (i, text) in wrap(reason, area.width as usize, 3).into_iter().enumerate() {
+                line(
+                    buf,
                     area.left(),
                     y + 2 + i as u16,
-                    line,
+                    text,
                     app.palette.style(Role::TextDim),
                 );
             }
@@ -262,9 +283,9 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
                     // the app being wrong about the broadcast.
                     (Some((_, next)), s, _)
                         if s != Section::Calendar
-                            && entry.last_aired.is_some_and(|(ep, _)| ep >= next) =>
+                            && entry.latest_aired().is_some_and(|(ep, _)| ep >= next) =>
                     {
-                        let (aired, _) = entry.last_aired.expect("checked");
+                        let (aired, _) = entry.latest_aired().expect("checked");
                         Some((format!("ep {aired} out"), true))
                     }
                     // Caught up on an airing show: "out" would be old news, so the row
@@ -925,7 +946,9 @@ fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
 
     // Full-bleed banner: the most characteristic artefact of the subject, given the most
     // space. Unlike the cover plate this genuinely is wide, so it keeps the full width.
-    let banner_height = (area.height / 4).clamp(3, 8);
+    // The lower clamp asks for three rows even when the stage has one, so it is capped by what
+    // actually exists — a minimum is a preference, not a promise the terminal has to keep.
+    let banner_height = (area.height / 4).clamp(3, 8).min(area.height);
     let banner_area = Rect { height: banner_height, y, ..area };
     // Banner first, cover as the fallback: not every title has a banner, and an empty hero
     // is worse than a portrait one.
@@ -935,7 +958,8 @@ fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
 
     // Bold, not tracked. Letterspacing is for eyebrows and metadata; applied to a real
     // title it doubles the width and truncates the one thing the screen exists to show.
-    buf.set_string(
+    line(
+        buf,
         area.left(),
         y,
         truncate(&entry.title, area.width as usize),
@@ -943,7 +967,8 @@ fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
     );
     y += 1;
     if let Some(secondary) = &entry.secondary {
-        buf.set_string(
+        line(
+            buf,
             area.left(),
             y,
             truncate(secondary, area.width as usize),
@@ -953,7 +978,8 @@ fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
     y += 2;
 
     let meta = metadata_line(entry);
-    buf.set_string(
+    line(
+        buf,
         area.left(),
         y,
         truncate(&meta, area.width as usize),
@@ -1408,9 +1434,13 @@ fn render_now_playing(buf: &mut Buffer, app: &App, area: Rect) {
     let right = format!("{state}  ·  {}", app.source_label());
     let right_x = column.right().saturating_sub(right.chars().count() as u16);
     if right_x > column.left() + 14 {
-        buf.set_string(right_x, column.top(), &right, app.palette.style(Role::TextDim));
+        line(buf, right_x, column.top(), &right, app.palette.style(Role::TextDim));
     }
-    Hairline::new(&app.palette).render(Rect { y: column.top() + 1, height: 1, ..column }, buf);
+    // A one-row column has no second row to rule off.
+    if column.top() + 1 < column.bottom() {
+        Hairline::new(&app.palette)
+            .render(Rect { y: column.top() + 1, height: 1, ..column }, buf);
+    }
 
     let body = Rect { y: column.top() + 2, height: column.height.saturating_sub(2), ..column };
     if body.height < BLOCK {
@@ -2068,7 +2098,14 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
     }
 
     Hairline::new(&app.palette).render(Rect { height: 1, ..band }, buf);
+    // The band is clamped to the stage, which on a very short terminal is one or two rows —
+    // so the title row and the rule under it can both fall outside the buffer. An overlay is
+    // the one thing reachable from every screen, `?` included, so an unguarded write here
+    // crashed the app at any height a pane can be dragged to.
     let title_y = band.top() + 1;
+    if title_y >= band.bottom() {
+        return;
+    }
     buf[(band.left(), title_y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
     let heading = match overlay {
         Overlay::CommandPalette => {
@@ -2122,13 +2159,16 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         ),
         other => glyph::eyebrow(other.title()),
     };
-    buf.set_string(
+    line(
+        buf,
         band.left() + 2,
         title_y,
         truncate(&heading, band.width.saturating_sub(3) as usize),
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
-    Hairline::new(&app.palette).render(Rect { y: title_y + 1, height: 1, ..band }, buf);
+    if title_y + 1 < band.bottom() {
+        Hairline::new(&app.palette).render(Rect { y: title_y + 1, height: 1, ..band }, buf);
+    }
 
     let column_width = band.width.saturating_sub(4) / columns.max(1) as u16;
     for (i, (key, label)) in rows.iter().enumerate() {
@@ -2229,7 +2269,7 @@ fn draw_artwork(buf: &mut Buffer, app: &App, url: Option<&str>, area: Rect) {
     }
     let row = plate_row(area.width as usize);
     for offset in 0..area.height {
-        buf.set_string(area.left(), area.top() + offset, &row, app.palette.style(Role::Rule));
+        line(buf, area.left(), area.top() + offset, &row, app.palette.style(Role::Rule));
     }
 }
 
@@ -2299,8 +2339,13 @@ const PREVIEW_TEXT_ROWS: u16 = 17;
 /// correct — the line disappears instead of saying something vacuous.
 fn broadcast_line(entry: &Entry) -> String {
     let mut parts: Vec<String> = Vec::new();
-    if let Some((episode, ago)) = entry.last_aired {
-        parts.push(format!("EP {episode} out {}", crate::widgets::ago(ago)));
+    if let Some((episode, ago)) = entry.latest_aired() {
+        parts.push(match ago {
+            Some(ago) => format!("EP {episode} out {}", crate::widgets::ago(ago)),
+            // Known to be out only by inference from the next episode's number, so there
+            // is no broadcast time to date it with — absent beats guessed.
+            None => format!("EP {episode} out"),
+        });
     }
     if let Some(seconds) = entry.airing_in {
         parts.push(match entry.next_episode {
@@ -2798,6 +2843,7 @@ mod tests {
         app.detail = app.content.entries().first().cloned();
         app.nav.push(crate::nav::StageView::NowPlaying);
         app.playing = Some(crate::app::NowPlaying {
+            id: app.detail.as_ref().map(|e| e.id),
             title: "Sousou no Frieren".into(),
             episode: "11".into(),
             episode_title: Some("Frieren the Slayer".into()),
@@ -3154,6 +3200,51 @@ mod tests {
     }
 
     #[test]
+    fn every_screen_survives_every_size_a_pane_can_be_dragged_to() {
+        // The previous size sweep only drove the Home list, so four screens went unrendered at
+        // small heights and each panicked: the title screen at nine rows or fewer, any overlay
+        // at four, a load failure at four, Now Playing at three. All the same shape — a row
+        // offset added to a top, written without asking whether that row exists.
+        let entry_with_meta = entry(1, "葬送のフリーレン");
+        for height in 1..=12u16 {
+            for width in [1, 8, 20, 40, 80] {
+                // Title.
+                let mut app = app_with(Content::Entries(vec![entry_with_meta.clone()]));
+                app.detail = Some(entry_with_meta.clone());
+                app.nav.push(StageView::Title(AnilistId::new(1)));
+                render_to_buffer(&app, width, height);
+
+                // Now Playing.
+                let mut app = app_with(Content::Entries(vec![entry_with_meta.clone()]));
+                app.detail = Some(entry_with_meta.clone());
+                app.nav.push(crate::nav::StageView::NowPlaying);
+                render_to_buffer(&app, width, height);
+
+                // A load failure, which is the screen that matters most when it appears.
+                let app = app_with(Content::Failed("all providers unreachable".into()));
+                render_to_buffer(&app, width, height);
+
+                // Every overlay, since `?` is reachable from anywhere.
+                for overlay in [
+                    Overlay::Help,
+                    Overlay::CommandPalette,
+                    Overlay::Sources,
+                    Overlay::SourceProvider,
+                    Overlay::Disambiguate,
+                    Overlay::WatchOrder,
+                    Overlay::Logs,
+                    Overlay::ManualQuery,
+                ] {
+                    let mut app = app_with(Content::Entries(vec![entry_with_meta.clone()]));
+                    app.detail = Some(entry_with_meta.clone());
+                    app.nav.open_overlay(overlay);
+                    render_to_buffer(&app, width, height);
+                }
+            }
+        }
+    }
+
+    #[test]
     fn an_overlay_dims_the_content_behind_it() {
         // Without a scrim a full-width band cuts through the rail and reads as a
         // rendering fault. Dimming makes it read as a layer on top.
@@ -3436,6 +3527,22 @@ mod tests {
         let text = text_of(&render_to_buffer(&app, 120, 30));
         assert!(!text.contains("ep 8 out"), "already watched — not news:\n{text}");
         assert!(text.contains("ep 9 in 2d 1h"), "the wait is the fact:\n{text}");
+    }
+
+    #[test]
+    fn a_just_launched_episode_is_named_while_the_schedule_row_lags() {
+        // The window right after a broadcast: nextAiringEpisode already says 9, the
+        // last-aired row still says 7. The fact worth stating is that 8 is out — the row
+        // used to count down to 9 instead, naming the fresh episode only by its successor.
+        let mut e = entry(1, "Frieren");
+        e.progress = Some((7, 8));
+        e.last_aired = Some((7, 7 * 24 * 3600));
+        e.next_episode = Some(9);
+        e.airing_in = Some(7 * 24 * 3600);
+        let app = app_with(Content::Entries(vec![e]));
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("ep 8 out"), "the launch went unannounced:\n{text}");
+        assert!(!text.contains("ep 9 in"), "counting down is old news beside a launch");
     }
 
     #[test]
