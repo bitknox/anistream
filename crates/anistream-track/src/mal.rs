@@ -19,8 +19,9 @@
 //! - **Refresh is not optional.** A month-long token means a client that only stored the access
 //!   token would silently stop syncing every 31 days and look like it had forgotten the account.
 //! - **This is the first tracker that needs the ID mapping.** AniList needed none, being the
-//!   primary key. MAL keys on `mal_id`, so a title with no mapping entry cannot be synced — and
-//!   that is reported rather than silently skipped.
+//!   primary key. MAL keys on `mal_id`, so a title with no mapping entry cannot be synced. It is
+//!   logged and skipped rather than raised: the push is a batch, and failing it for one
+//!   unmappable title held every other title's progress behind it indefinitely.
 
 use anistream_core::{
     ids::AnilistId,
@@ -273,16 +274,6 @@ impl MalTracker {
         *self.pending_save.write().await = Some(renewed.clone());
         *held = Some(renewed);
         Ok(access)
-    }
-
-    /// Resolve an AniList id to the MAL id the API needs.
-    fn mal_id(&self, anilist_id: AnilistId) -> Result<u32, anistream_core::Error> {
-        self.mapping.mal_id(anilist_id).ok_or_else(|| anistream_core::Error::Tracker {
-            tracker: "mal".into(),
-            // Named rather than skipped: an unmapped title silently not syncing is exactly the
-            // failure the mapping layer exists to make visible.
-            message: format!("no mal id mapped for anilist {}", anilist_id.get()),
-        })
     }
 }
 

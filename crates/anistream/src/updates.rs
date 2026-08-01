@@ -175,9 +175,19 @@ pub async fn self_update(http: &HttpClient) -> Result<()> {
 
     // Native tar everywhere: GNU tar for .tar.gz on Linux, bsdtar for both formats on
     // macOS and Windows (shipped since Windows 10).
-    let staging = std::env::temp_dir().join(format!("anistream-update-{version}"));
-    let _ = std::fs::remove_dir_all(&staging);
-    std::fs::create_dir_all(&staging).context("creating a staging directory")?;
+    //
+    // **A private directory, not a predictable one.** The checksum above proves the *download*,
+    // but what gets installed is read back from disk after `tar` has run — so a staging path
+    // anyone could predict (`/tmp/anistream-update-0.5.0`, on a machine with other users) left
+    // a window between extraction and install in which the verified binary could be swapped for
+    // another, or the directory pre-planted as a symlink pointing somewhere else entirely.
+    // `TempDir` creates a fresh randomly-named directory owned by this user, and removes it on
+    // drop, including on the error paths that used to leak the staging tree.
+    let staging_dir = tempfile::Builder::new()
+        .prefix(&format!("anistream-update-{version}-"))
+        .tempdir()
+        .context("creating a staging directory")?;
+    let staging = staging_dir.path();
     let archive_path = staging.join(format!("{name}.{ext}"));
     std::fs::write(&archive_path, &archive).context("writing the archive")?;
 
@@ -194,12 +204,16 @@ pub async fn self_update(http: &HttpClient) -> Result<()> {
 
     let binary_name = if cfg!(windows) { "anistream.exe" } else { "anistream" };
     let new_binary = staging.join(&name).join(binary_name);
-    if !new_binary.exists() {
-        bail!("the archive did not contain {}", new_binary.display());
+    // A symlink here would install whatever it points at while the checksum spoke only for the
+    // archive, so the extracted path has to be an ordinary file — `exists()` follows links and
+    // would have said yes.
+    let extracted = std::fs::symlink_metadata(&new_binary)
+        .with_context(|| format!("the archive did not contain {}", new_binary.display()))?;
+    if !extracted.is_file() {
+        bail!("{} is not a regular file", new_binary.display());
     }
 
     let installed = install(&new_binary)?;
-    let _ = std::fs::remove_dir_all(&staging);
     println!("installed        {tag} → {}", installed.display());
     println!("restart anistream to use it");
     Ok(())
