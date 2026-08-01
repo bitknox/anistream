@@ -294,6 +294,12 @@ impl Nav {
     /// Also clears any manual rail override: the user asked for a different place, so the
     /// automatic width for that place is the right starting point.
     pub fn go_to(&mut self, section: Section) {
+        // Overlays go with the stage they were opened over. An overlay asks a question about
+        // one title — "which release?", "what status?" — and the answer is applied to whatever
+        // is selected when Enter arrives. Left open across a jump, it kept its heading and its
+        // rows while the list underneath became a different section, so answering it wrote to a
+        // title the user never opened it for.
+        self.overlays.clear();
         self.section = section;
         self.stage = vec![StageView::Section(section)];
         self.rail_override = None;
@@ -406,6 +412,24 @@ mod tests {
         assert_eq!(nav.focus(), Focus::Rail);
         assert_eq!(nav.rail_width(), RailWidth::Expanded);
         assert_eq!(nav.depth(), 1);
+    }
+
+    #[test]
+    fn a_section_jump_takes_its_overlays_with_it() {
+        // An overlay asks a question about the title underneath it, and the answer lands on
+        // whatever is selected when Enter arrives. Surviving a jump, it kept its own heading
+        // and rows while the list beneath became another section — so confirming the list
+        // status picked for one show wrote it to whichever title happened to be row 0 of the
+        // calendar. A silent wrong write to the user's tracker.
+        let mut nav = Nav::new();
+        nav.push(StageView::Title(FRIEREN));
+        nav.open_overlay(Overlay::ListStatus);
+        nav.open_overlay(Overlay::Sources);
+
+        nav.go_to(Section::Calendar);
+
+        assert_eq!(nav.overlay(), None, "an overlay outlived the screen it was asked about");
+        assert_eq!(nav.current(), &StageView::Section(Section::Calendar));
     }
 
     #[test]
