@@ -251,12 +251,19 @@ pub fn migrate(conn: &Connection) -> rusqlite::Result<u32> {
         if already {
             continue;
         }
-        // Each migration is one transaction: a partial schema is worse than none.
-        conn.execute_batch(&format!("BEGIN;\n{sql}\nCOMMIT;"))?;
-        conn.execute(
-            "INSERT INTO schema_migration (name, applied_at) VALUES (?1, unixepoch())",
-            [name],
-        )?;
+        // Each migration is one transaction, **and the record of it is inside that
+        // transaction**. Committing the schema change and then recording it separately leaves a
+        // window in which the DDL is durable and the bookkeeping is not: lose power there and
+        // the next launch re-runs a migration that has already been applied, fails on
+        // `table … already exists`, and `Store::open` returns an error every time from then on.
+        // There is no repair path for that short of deleting the database, so the two facts
+        // have to become durable together.
+        conn.execute_batch(&format!(
+            "BEGIN;\n\
+             {sql}\n\
+             INSERT INTO schema_migration (name, applied_at) VALUES ('{name}', unixepoch());\n\
+             COMMIT;"
+        ))?;
         tracing::info!(migration = name, "applied migration");
         applied += 1;
     }
@@ -266,6 +273,45 @@ pub fn migrate(conn: &Connection) -> rusqlite::Result<u32> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_migration_and_the_record_of_it_commit_together() {
+        // Every migration name is a bare identifier, which is what makes interpolating it into
+        // the batch safe. Asserted rather than assumed, because the day one arrives with an
+        // apostrophe in it is the day the batch stops parsing — or worse, stops meaning what it
+        // says.
+        for (name, _) in MIGRATIONS {
+            assert!(
+                name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_'),
+                "{name} is not a bare identifier"
+            );
+        }
+
+        // The bookkeeping row must be visible to the same transaction the DDL ran in, so a
+        // crash between the two cannot leave a schema that claims never to have been migrated.
+        let conn = Connection::open_in_memory().unwrap();
+        migrate(&conn).unwrap();
+        let recorded: i64 =
+            conn.query_row("SELECT COUNT(*) FROM schema_migration", [], |r| r.get(0)).unwrap();
+        assert_eq!(recorded as usize, MIGRATIONS.len(), "every migration recorded itself");
+    }
+
+    #[test]
+    fn a_lost_bookkeeping_row_would_brick_the_database() {
+        // The failure the transaction prevents, demonstrated: with the record missing, the
+        // migration re-runs and fails on a table that already exists. This is what a power cut
+        // between the two statements used to produce — permanently, on every launch.
+        let conn = Connection::open_in_memory().unwrap();
+        migrate(&conn).unwrap();
+        let (first, _) = MIGRATIONS[0];
+        conn.execute("DELETE FROM schema_migration WHERE name = ?1", [first]).unwrap();
+
+        assert!(
+            migrate(&conn).is_err(),
+            "re-running an applied migration should fail — which is why the record must be \
+             durable with it, not after it"
+        );
+    }
 
     #[test]
     fn migrations_apply_once_and_are_idempotent() {
