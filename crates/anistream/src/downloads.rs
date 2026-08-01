@@ -82,6 +82,13 @@ async fn poll_running(
     running: &mut Vec<Running>,
 ) {
     let mut finished = Vec::new();
+    // How many queued rows each torrent backs, counted before the walk so a cancellation can
+    // tell "this torrent is mine alone" from "another episode is still fetching from it".
+    let mut rows_per_torrent: std::collections::HashMap<usize, usize> =
+        std::collections::HashMap::new();
+    for entry in running.iter() {
+        *rows_per_torrent.entry(entry.torrent_id).or_default() += 1;
+    }
 
     for entry in running.iter_mut() {
         // The row is re-read rather than cached: the user can pause or cancel from the screen, and
@@ -95,8 +102,22 @@ async fn poll_running(
             // Cancelled out from under us: drop the torrent *and* the partial file. Only running
             // downloads are tracked here, so this can never reach a finished one — cancelling
             // something half-fetched should not leave gigabytes behind that nothing knows about.
+            //
+            // Unless another row is still using it. librqbit dedups by infohash, so two
+            // episodes queued from one season pack share a torrent id, and deleting its files
+            // for the cancelled episode took the other one's data with it — while that other
+            // row still read as active. The torrent is only forgotten once nothing else wants
+            // it; until then the row simply stops being tracked.
             None => {
-                let _ = session.forget(entry.torrent_id, true).await;
+                let shared = rows_per_torrent.get(&entry.torrent_id).copied().unwrap_or(0) > 1;
+                if shared {
+                    tracing::info!(
+                        torrent_id = entry.torrent_id,
+                        "cancelled, but another queued episode shares this torrent; keeping it"
+                    );
+                } else {
+                    let _ = session.forget(entry.torrent_id, true).await;
+                }
                 finished.push(entry.row_id);
                 continue;
             }
@@ -269,6 +290,31 @@ fn run_completion_hook(config: &Config, row: &Download, path: Option<&std::path:
     });
 }
 
+/// A path in `dir` for `name` that does not already exist.
+///
+/// `rename` and `copy` both destroy whatever is at the destination, and release names collide
+/// readily: the same episode from two groups, or a re-queue of something already fetched. The
+/// downloads directory holds files the user chose to keep, so a completed download must never
+/// be the reason one disappears. A suffix is added instead, the way a browser does it.
+fn unique_destination(dir: &std::path::Path, name: &std::ffi::OsStr) -> PathBuf {
+    let candidate = dir.join(name);
+    if !candidate.exists() {
+        return candidate;
+    }
+    let name = std::path::Path::new(name);
+    let stem = name.file_stem().unwrap_or(name.as_os_str()).to_string_lossy().into_owned();
+    let extension = name.extension().map(|e| format!(".{}", e.to_string_lossy()));
+    // Bounded: past a few hundred the directory is telling us something other than "try again".
+    for n in 2..1000 {
+        let attempt =
+            dir.join(format!("{stem} ({n}){}", extension.as_deref().unwrap_or_default()));
+        if !attempt.exists() {
+            return attempt;
+        }
+    }
+    candidate
+}
+
 /// Move a finished download into the configured directory, falling back to copy+delete
 /// across filesystems. On any failure the file stays where it was — a download in the
 /// wrong folder beats one lost in transit. Rename is instant on the same filesystem,
@@ -279,7 +325,7 @@ fn move_into(path: PathBuf, dir: PathBuf) -> PathBuf {
         tracing::warn!(error = %e, dir = %dir.display(), "could not create downloads dir");
         return path;
     }
-    let dest = dir.join(name);
+    let dest = unique_destination(&dir, name);
     if dest == path {
         return path;
     }

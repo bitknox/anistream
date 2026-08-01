@@ -195,7 +195,7 @@ pub async fn self_update(http: &HttpClient) -> Result<()> {
         .arg("-xf")
         .arg(&archive_path)
         .arg("-C")
-        .arg(&staging)
+        .arg(staging)
         .status()
         .context("running tar — is it on PATH?")?;
     if !status.success() {
