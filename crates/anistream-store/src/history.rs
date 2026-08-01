@@ -142,17 +142,33 @@ impl Store {
                 |r| r.get(0),
             )?;
 
+            // The resume columns move only for an event at least as new as the one they
+            // already describe. They used to move for *any* event, so a write carrying an
+            // older `at` — an out-of-order arrival, a backwards clock step, a synthetic
+            // event stamped in the past — dragged the projection back to a position the log
+            // had already superseded, and reordered the CONTINUE rail with it.
+            //
+            // `episodes_done` is unconditional on purpose: it is recounted from the log
+            // above rather than taken from the event, so it is already correct whatever
+            // order events arrive in.
             tx.execute(
                 "INSERT INTO watch_progress
                    (anilist_id, last_episode, last_position, last_duration,
                     episodes_done, updated_at)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6)
                  ON CONFLICT(anilist_id) DO UPDATE SET
-                    last_episode  = excluded.last_episode,
-                    last_position = excluded.last_position,
-                    last_duration = excluded.last_duration,
+                    last_episode  = CASE WHEN excluded.updated_at >= watch_progress.updated_at
+                                         THEN excluded.last_episode
+                                         ELSE watch_progress.last_episode END,
+                    last_position = CASE WHEN excluded.updated_at >= watch_progress.updated_at
+                                         THEN excluded.last_position
+                                         ELSE watch_progress.last_position END,
+                    last_duration = CASE WHEN excluded.updated_at >= watch_progress.updated_at
+                                         THEN excluded.last_duration
+                                         ELSE watch_progress.last_duration END,
+                    updated_at    = MAX(excluded.updated_at, watch_progress.updated_at),
                     episodes_done = excluded.episodes_done,
-                    updated_at    = excluded.updated_at",
+                    hidden        = 0",
                 rusqlite::params![
                     event.anilist_id.get(),
                     &event.episode,
@@ -163,6 +179,67 @@ impl Store {
                 ],
             )?;
             Ok(())
+        })
+    }
+
+    /// Adopt a remote progress figure: episodes `1..=upto` count as watched.
+    ///
+    /// **The resume point is left alone.** A tracker reports a count, not a position, so
+    /// adopting one says nothing about where the viewer stopped — and writing ordinary events
+    /// to record it would drag `last_episode`/`last_position` onto a synthetic episode at 0.0
+    /// and lose the real one. Only the count moves.
+    ///
+    /// Episodes already recorded as completed are skipped, so this is idempotent and cannot
+    /// inflate the count. Returns how many episodes were newly marked.
+    pub fn adopt_progress(&self, anilist_id: AnilistId, upto: u32, at: i64) -> Result<u32> {
+        self.with_tx(|tx| {
+            let mut adopted = 0_u32;
+            for episode in 1..=upto {
+                let label = episode.to_string();
+                let already: bool = tx.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM watch_event
+                       WHERE anilist_id = ?1 AND episode = ?2 AND completed = 1)",
+                    rusqlite::params![anilist_id.get(), &label],
+                    |r| r.get(0),
+                )?;
+                if already {
+                    continue;
+                }
+                tx.execute(
+                    "INSERT INTO watch_event
+                       (anilist_id, episode, position_secs, duration_secs, watched_secs,
+                        provider_id, translation, completed, at)
+                     VALUES (?1, ?2, 0.0, NULL, 0.0, 'tracker', NULL, 1, ?3)",
+                    rusqlite::params![anilist_id.get(), &label, at],
+                )?;
+                adopted += 1;
+            }
+
+            let episodes_done: u32 = tx.query_row(
+                "SELECT COUNT(DISTINCT episode) FROM watch_event
+                  WHERE anilist_id = ?1 AND completed = 1",
+                [anilist_id.get()],
+                |r| r.get(0),
+            )?;
+
+            // Update in place where a row exists — that row's resume columns are the thing
+            // being protected. Where none does, there is no resume point to keep, so the
+            // required NOT NULL columns are filled from what was adopted.
+            let updated = tx.execute(
+                "UPDATE watch_progress SET episodes_done = ?2, updated_at = MAX(updated_at, ?3)
+                  WHERE anilist_id = ?1",
+                rusqlite::params![anilist_id.get(), episodes_done, at],
+            )?;
+            if updated == 0 && episodes_done > 0 {
+                tx.execute(
+                    "INSERT INTO watch_progress
+                       (anilist_id, last_episode, last_position, last_duration,
+                        episodes_done, updated_at)
+                     VALUES (?1, ?2, 0.0, NULL, ?3, ?4)",
+                    rusqlite::params![anilist_id.get(), upto.to_string(), episodes_done, at],
+                )?;
+            }
+            Ok(adopted)
         })
     }
 
@@ -181,11 +258,44 @@ impl Store {
                 [anilist_id.get()],
                 |r| r.get(0),
             )?;
-            tx.execute(
-                "UPDATE watch_progress SET episodes_done = ?2, updated_at = ?3
-                  WHERE anilist_id = ?1",
-                rusqlite::params![anilist_id.get(), episodes_done, now()],
-            )?;
+            // The projection has to stop describing history that no longer exists. It named
+            // the erased episode and its position, so the CONTINUE rail went on offering
+            // "episode 6, 42%" for a title with nothing behind it and no resume point to
+            // return to. Rebuilt from the newest surviving event, or dropped when the last
+            // one is gone.
+            let newest: Option<(String, f64, Option<f64>, i64)> = tx
+                .query_row(
+                    "SELECT episode, position_secs, duration_secs, at FROM watch_event
+                      WHERE anilist_id = ?1 ORDER BY at DESC, id DESC LIMIT 1",
+                    [anilist_id.get()],
+                    |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+                )
+                .optional()?;
+
+            match newest {
+                Some((last_episode, last_position, last_duration, at)) => {
+                    tx.execute(
+                        "UPDATE watch_progress
+                            SET last_episode = ?2, last_position = ?3, last_duration = ?4,
+                                episodes_done = ?5, updated_at = ?6
+                          WHERE anilist_id = ?1",
+                        rusqlite::params![
+                            anilist_id.get(),
+                            last_episode,
+                            last_position,
+                            last_duration,
+                            episodes_done,
+                            at,
+                        ],
+                    )?;
+                }
+                None => {
+                    tx.execute(
+                        "DELETE FROM watch_progress WHERE anilist_id = ?1",
+                        [anilist_id.get()],
+                    )?;
+                }
+            }
             Ok(())
         })
     }
@@ -247,13 +357,28 @@ impl Store {
                 "SELECT anilist_id, last_episode, last_position, last_duration,
                         episodes_done, updated_at
                    FROM watch_progress
-                  WHERE episodes_done > 0 OR last_position >= ?2
+                  WHERE hidden = 0 AND (episodes_done > 0 OR last_position >= ?2)
                   ORDER BY updated_at DESC
                   LIMIT ?1",
             )?;
             let rows =
                 stmt.query_map(rusqlite::params![limit, MIN_RESUME_SECS], row_to_progress)?;
             Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+        })
+    }
+
+    /// Take a title off the CONTINUE rail without touching its history.
+    ///
+    /// A dismissal, not a deletion: every watch event and the progress projection survive,
+    /// so the meter and resume point are intact wherever else they show. The next recorded
+    /// watch clears the flag — a dismissed title earns its way back by being watched.
+    pub fn hide_from_continue(&self, anilist_id: AnilistId) -> Result<()> {
+        self.with_conn(|c| {
+            c.execute(
+                "UPDATE watch_progress SET hidden = 1 WHERE anilist_id = ?1",
+                [anilist_id.get()],
+            )?;
+            Ok(())
         })
     }
 
@@ -323,6 +448,93 @@ mod tests {
             at,
             ..WatchEvent::new(FRIEREN, ep, position)
         }
+    }
+
+    #[test]
+    fn adopting_remote_progress_leaves_the_resume_point_alone() {
+        // A tracker reports a count, not a position — so adopting one must not touch where
+        // the viewer stopped. Recording it as ordinary events would drag the projection onto
+        // a synthetic episode at 0.0 and lose the real one, which is why this has a method of
+        // its own rather than a loop over `record_event`.
+        //
+        // Episode 13 is mid-watch and beyond what the remote claims, so nothing about it
+        // should move.
+        let store = Store::open_in_memory().unwrap();
+        store.record_event(&event("13", 720.0, 1440.0, 5_000)).unwrap();
+
+        let adopted = store.adopt_progress(FRIEREN, 12, 6_000).unwrap();
+
+        assert_eq!(adopted, 12, "every episode up to the remote's figure");
+        assert_eq!(store.completed_episode_count(FRIEREN).unwrap(), 12);
+        assert_eq!(
+            store.resume_position(FRIEREN, "13").unwrap(),
+            Some(720.0),
+            "the twelve-minute mark of episode 13 survived the adoption"
+        );
+        let progress = store.progress(FRIEREN).unwrap().expect("a row");
+        assert_eq!(progress.last_episode, "13", "the rail still points where the viewer is");
+        assert_eq!(progress.last_position, 720.0);
+    }
+
+    #[test]
+    fn adopting_covers_an_episode_that_was_only_part_watched() {
+        // The other direction, and it is deliberate: the remote says twelve episodes are
+        // watched, so episode 9 is watched — a half-finished local view of it is superseded
+        // rather than preserved, and it stops being offered for resume.
+        let store = Store::open_in_memory().unwrap();
+        store.record_event(&event("9", 720.0, 1440.0, 5_000)).unwrap();
+
+        store.adopt_progress(FRIEREN, 12, 6_000).unwrap();
+
+        assert_eq!(store.completed_episode_count(FRIEREN).unwrap(), 12);
+        assert_eq!(
+            store.resume_position(FRIEREN, "9").unwrap(),
+            None,
+            "an episode the remote counts as watched is not half-watched any more"
+        );
+    }
+
+    #[test]
+    fn adopting_the_same_progress_twice_changes_nothing() {
+        let store = Store::open_in_memory().unwrap();
+        assert_eq!(store.adopt_progress(FRIEREN, 5, 1_000).unwrap(), 5);
+        assert_eq!(store.adopt_progress(FRIEREN, 5, 2_000).unwrap(), 0, "already adopted");
+        assert_eq!(store.completed_episode_count(FRIEREN).unwrap(), 5);
+    }
+
+    #[test]
+    fn an_older_event_does_not_drag_the_projection_backwards() {
+        // Events do not always arrive in order — an out-of-order write, or a clock that
+        // stepped back — and the projection used to take whichever landed last. That moved
+        // the CONTINUE rail to a position the log had already superseded.
+        let store = Store::open_in_memory().unwrap();
+        store.record_event(&event("3", 900.0, 1440.0, 5_000)).unwrap();
+        store.record_event(&event("3", 10.0, 1440.0, 1_000)).unwrap();
+
+        let progress = store.progress(FRIEREN).unwrap().expect("a row");
+        assert_eq!(progress.last_position, 900.0, "the newer observation still stands");
+        assert_eq!(progress.updated_at, 5_000);
+    }
+
+    #[test]
+    fn forgetting_an_episode_stops_the_rail_describing_it() {
+        // The projection named the erased episode and its position, so CONTINUE went on
+        // offering a title at "episode 6, 42%" with no history behind it and nothing to
+        // resume — the row outlived the only events that justified it.
+        let store = Store::open_in_memory().unwrap();
+        store.record_event(&event("5", 300.0, 1440.0, 1_000)).unwrap();
+        store.record_event(&event("6", 600.0, 1440.0, 2_000)).unwrap();
+
+        store.forget_episode(FRIEREN, "6").unwrap();
+
+        let progress = store.progress(FRIEREN).unwrap().expect("episode 5 is still watched");
+        assert_eq!(progress.last_episode, "5", "the rail describes surviving history");
+        assert_eq!(progress.last_position, 300.0);
+
+        // And with the last event gone, the row goes too rather than lingering empty.
+        store.forget_episode(FRIEREN, "5").unwrap();
+        assert!(store.progress(FRIEREN).unwrap().is_none());
+        assert!(store.continue_list(10).unwrap().is_empty());
     }
 
     #[test]
@@ -474,6 +686,33 @@ mod tests {
         assert_eq!(list.len(), 2);
         assert_eq!(list[0].anilist_id, dandadan, "most recent first");
         assert_eq!(list[1].anilist_id, FRIEREN);
+    }
+
+    #[test]
+    fn a_hidden_title_leaves_the_continue_list_but_keeps_its_history() {
+        // Dismissal, not deletion: the rail row goes, the watch log and resume point stay.
+        let store = Store::open_in_memory().unwrap();
+        store.record_event(&event("011", 600.0, 1440.0, 1_000)).unwrap();
+        assert_eq!(store.continue_list(10).unwrap().len(), 1);
+
+        store.hide_from_continue(FRIEREN).unwrap();
+        assert!(store.continue_list(10).unwrap().is_empty());
+        assert_eq!(store.resume_position(FRIEREN, "011").unwrap(), Some(600.0));
+        assert!(store.progress(FRIEREN).unwrap().is_some(), "the projection survives");
+    }
+
+    #[test]
+    fn watching_a_hidden_title_brings_it_back() {
+        // The undo is the watch itself: there is no key to unhide, so a new event has to
+        // clear the flag or a dismissed show could never return to the rail.
+        let store = Store::open_in_memory().unwrap();
+        store.record_event(&event("011", 600.0, 1440.0, 1_000)).unwrap();
+        store.hide_from_continue(FRIEREN).unwrap();
+        assert!(store.continue_list(10).unwrap().is_empty());
+
+        store.record_event(&event("012", 90.0, 1440.0, 2_000)).unwrap();
+        let list = store.continue_list(10).unwrap();
+        assert_eq!(list.len(), 1, "a new watch must resurface the title");
     }
 
     #[test]

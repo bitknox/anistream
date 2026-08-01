@@ -138,7 +138,7 @@ pub async fn pull(
             .map_err(|e| anistream_core::Error::Store(e.to_string()))?;
 
         let merged = merge::reconcile_at(&local, entry, pending, last_pull_at);
-        apply(store, id, now, &merged, &mut report)
+        apply(store, id, entry.anilist_id, now, &merged, &mut report)
             .map_err(|e| anistream_core::Error::Store(e.to_string()))?;
     }
 
@@ -157,6 +157,7 @@ pub async fn pull(
 fn apply(
     store: &Store,
     tracker_id: &str,
+    anilist_id: anistream_core::ids::AnilistId,
     now: i64,
     merged: &Merged,
     report: &mut PullReport,
@@ -166,7 +167,11 @@ fn apply(
             report.queued += 1;
         }
     }
-    if merged.adopt_progress.is_some() {
+    // Written, not just counted. This reported "adopted 1" and did nothing for as long as it
+    // existed, so a title watched on the tracker's own website stayed unwatched here and the
+    // app went on offering an episode already seen.
+    if let Some(upto) = merged.adopt_progress {
+        store.adopt_progress(anilist_id, upto, now)?;
         report.adopted += 1;
     }
     report.conflicts.extend(merged.conflicts.iter().cloned());
