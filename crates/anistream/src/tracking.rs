@@ -687,6 +687,10 @@ async fn activate(
             .accept_credentials(&pair.access, pair.refresh.as_deref(), pair.expires_at)
             .await;
     }
+    // The queue is held while a credential is known to be dead, and this is the moment it
+    // stops being dead — without this the user signs in and then waits out a hold they have
+    // already resolved.
+    let _ = anistream_track::sync::clear_reauth_hold(&sync.store, tracker_id);
     for state in sync.initial_states() {
         let _ = tx.send(Update::Sync(Box::new(state)));
     }

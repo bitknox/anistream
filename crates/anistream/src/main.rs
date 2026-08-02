@@ -271,7 +271,10 @@ async fn preview(
         && let Ok(rows) = anilist.last_aired(&airing).await
     {
         let now = now_epoch();
-        for row in rows {
+        // Aired rows only: AniList has answered this query with a schedule row whose air
+        // time is still ahead, and "EP 13 out just now" for next week's episode is exactly
+        // the lie the broadcast line exists not to tell.
+        for row in rows.into_iter().filter(|r| r.airing_at <= now) {
             if let Some(entry) = entries.iter_mut().find(|e| e.id == row.media_id) {
                 entry.last_aired = Some((row.episode, now.saturating_sub(row.airing_at)));
             }
@@ -595,6 +598,19 @@ fn auth_flow(auth: &anistream_core::config::AniListAuthConfig) -> anistream_trac
 ///
 /// The code is exchanged for a token here rather than stored as-is — an authorization code is
 /// single-use and short-lived, so keeping one would be storing something already spent.
+/// Lift a tracker's drain hold after a command-line sign-in.
+///
+/// A rejected credential holds that tracker's queue so a dead token is not re-presented every
+/// minute for months. Signing in is what ends that, and the CLI flows never reach the in-app
+/// `activate` that already does it — so without this, `--login` leaves the queue waiting out
+/// an hour it no longer owes. Best-effort: a hold that outlives its reason costs a delay, and
+/// failing a successful sign-in over it would be worse.
+fn lift_reauth_hold(tracker: &str) {
+    let Ok(paths) = Paths::resolve() else { return };
+    let Ok(store) = Store::open(paths.database()) else { return };
+    let _ = anistream_track::sync::clear_reauth_hold(&store, tracker);
+}
+
 async fn login(config: &Config, tracker: &str, given: &str, http: &HttpClient) -> Result<()> {
     if tracker == "mal" {
         return login_mal(config, http).await;
@@ -679,6 +695,7 @@ async fn login(config: &Config, tracker: &str, given: &str, http: &HttpClient) -
     .await?;
 
     let store = tracking::token_store(config);
+    lift_reauth_hold(tracker);
     let storage = store.set(tracker, &token)?;
     println!("● signed in — token stored in the {}", storage.describe());
     if let Some(exp) = anistream_track::auth::token_expiry(&token) {
@@ -767,6 +784,7 @@ async fn login_device(
     .with_context(|| format!("{tracker} sign-in"))?;
 
     let tokens = tracking::token_store(config);
+    lift_reauth_hold(tracker);
     let storage = tokens
         .set_pair(tracker, &pair.access, pair.refresh.as_deref(), pair.expires_at)
         .with_context(|| format!("storing the {tracker} token"))?;
@@ -834,6 +852,7 @@ async fn login_mal(config: &Config, http: &HttpClient) -> Result<()> {
     .await?;
 
     let store = tracking::token_store(config);
+    lift_reauth_hold("mal");
     let storage =
         store.set_pair("mal", &pair.access, pair.refresh.as_deref(), pair.expires_at)?;
     println!("● signed in to MyAnimeList — token stored in the {}", storage.describe());
@@ -1391,7 +1410,23 @@ async fn run(
         }
 
         tokio::select! {
-            Some(update) = rx.recv() => app.apply(update),
+            Some(update) = rx.recv() => {
+                // A finished episode should reach the tracker now, not at the next drain
+                // tick — up to a minute later, the pushed progress looked simply absent.
+                if matches!(update, Update::ProgressQueued) {
+                    let (sync, tx) = (sync.clone(), tx.clone());
+                    tokio::spawn(async move { tracking::drain_once(&sync, &tx).await });
+                }
+                let ended = matches!(update, Update::PlaybackEnded { .. });
+                app.apply(update);
+                // mpv's window is gone; unless the reducer queued the next episode — in
+                // which case another window is about to open — the viewer's next keypress
+                // belongs to the terminal, so ask for focus back rather than leaving it
+                // wherever the window manager dropped it.
+                if ended && !app.will_play_next() && app.playing.is_none() {
+                    anistream::focus::refocus_terminal();
+                }
+            }
             _ = ticker.tick() => app.tick_toasts(),
             // The eyecatch is the only thing in this app that animates, so the fast tick only
             // exists while one is running rather than burning a frame budget all the time.
@@ -1472,6 +1507,10 @@ async fn publish_list(
         Ok(rows) => {
             let _ = tx.send(Update::LastAired(
                 rows.into_iter()
+                    // Aired rows only. AniList has answered this query with rows whose air
+                    // time is still ahead, and naming next week's episode as "out just now"
+                    // is exactly the lie the broadcast line exists not to tell.
+                    .filter(|r| r.airing_at <= now)
                     .map(|r| (r.media_id, r.episode, now.saturating_sub(r.airing_at)))
                     .collect(),
             ));
@@ -1571,6 +1610,7 @@ fn spawn(
             | Task::PlaySource { .. }
             | Task::ManualSearch { .. }
             | Task::SetWatched { .. }
+            | Task::HideFromContinue { .. }
             | Task::OpenExternal { .. }
             | Task::Player(_)
             | Task::SyncNow
@@ -1822,6 +1862,16 @@ fn dispatch(
             }
         }
 
+        Task::HideFromContinue { id } => {
+            // The reducer has already dropped the row from the screen; failing to persist
+            // that would resurrect it on the next reload, so the failure is named.
+            if let Err(e) = store.hide_from_continue(id) {
+                let _ = tx.send(Update::Toast(Toast::alert(format!(
+                    "could not remove from continue: {e}"
+                ))));
+            }
+        }
+
         Task::OpenExternal { url } => {
             if let Err(e) = open::that_detached(&url) {
                 let _ = tx.send(Update::Toast(Toast::alert(format!("could not open: {e}"))));
@@ -2033,6 +2083,7 @@ fn dispatch(
                     mpv,
                     playback.commit_threshold,
                     playback.skip_opening,
+                    playback.fullscreen,
                     Some(playback.subtitle_language.clone()),
                     tracker_ids,
                     config.presence.clone(),
@@ -2130,6 +2181,7 @@ fn spawn_playback(
             mpv,
             playback.commit_threshold,
             playback.skip_opening,
+            playback.fullscreen,
             Some(playback.subtitle_language.clone()),
             tracker_ids,
             config.presence.clone(),

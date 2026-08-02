@@ -41,6 +41,29 @@ impl DrainReport {
     }
 }
 
+/// How long a rejected credential silences a tracker's queue.
+///
+/// Long enough that a dead token costs one request an hour rather than one a minute, short
+/// enough that a tracker which rejected us for its own reasons — a deploy, a brief outage
+/// dressed up as a 401 — recovers without the user doing anything.
+const REAUTH_HOLD_SECS: i64 = 3_600;
+
+/// Where a tracker's re-auth hold is remembered.
+///
+/// In `app_state` rather than on the rows: the queue is fine, the credential is not, and the
+/// hold has to survive a restart or the loop simply resumes.
+pub fn reauth_hold_key(tracker_id: &str) -> String {
+    format!("reauth_hold:{tracker_id}")
+}
+
+/// Lift the hold after a successful sign-in, so the queue drains at once.
+pub fn clear_reauth_hold(
+    store: &Store,
+    tracker_id: &str,
+) -> Result<(), anistream_store::StoreError> {
+    store.set_meta_i64(&reauth_hold_key(tracker_id), 0)
+}
+
 /// Send what the outbox holds for one tracker.
 ///
 /// Ops are sent as a batch, and the batch's fate is applied to every op in it. That is safe
@@ -57,6 +80,19 @@ pub async fn drain(
     if !tracker.is_authenticated() {
         // Not an error. Watching with no account is a supported way to use this, so the queue
         // simply waits — and keeps waiting across restarts, because it is a table.
+        report.remaining = store.outbox_depth(Some(id))?;
+        return Ok(report);
+    }
+
+    // A token the tracker has already rejected is still a token, and every
+    // `is_authenticated()` in this crate only asks whether one is present — so nothing here
+    // could tell "signed in" from "signed in with a credential that stopped working". The
+    // rejection below records a hold, and until it lapses the queue waits rather than
+    // re-presenting the same dead credential every minute for months.
+    if let Some(until) = store.get_meta_i64(&reauth_hold_key(id))?
+        && now < until
+    {
+        report.needs_reauth = true;
         report.remaining = store.outbox_depth(Some(id))?;
         return Ok(report);
     }
@@ -79,8 +115,20 @@ pub async fn drain(
             // Deliberately *not* counted as a failure: incrementing attempts would push the
             // backoff toward an hour for something no amount of waiting fixes, and the queue
             // has to still be intact when the user re-authorises.
+            //
+            // But it cannot be retried freely either. Nothing marked the rows, and
+            // `claim_ready` takes no lease, so the same batch was re-sent on every tick — an
+            // uncapped request loop against a rate-limited third party with a credential
+            // already known to be dead, for as long as the app ran. The hold is a statement
+            // about the credential rather than about the queue, which is why it is not the
+            // retry counter; signing in again lifts it.
             report.needs_reauth = true;
-            tracing::warn!(tracker = id, %message, "tracker rejected our credentials");
+            store.set_meta_i64(&reauth_hold_key(id), now + REAUTH_HOLD_SECS)?;
+            tracing::warn!(
+                tracker = id,
+                %message,
+                "tracker rejected our credentials; holding the queue until sign-in"
+            );
         }
         Err(error) => {
             let message = error.to_string();
@@ -397,6 +445,35 @@ mod tests {
             1,
             "the op must be ready to send the moment the user re-authorises"
         );
+    }
+
+    #[tokio::test]
+    async fn a_rejected_credential_is_not_presented_again_every_minute() {
+        // The queue survives the rejection — that is the test above — but nothing stopped it
+        // being re-sent. `claim_ready` takes no lease and every `is_authenticated()` only asks
+        // whether a token is *present*, so an expired one kept the drain loop pushing the same
+        // batch at a rate-limited third party every tick, for as long as the app ran.
+        let store = Store::open_in_memory().unwrap();
+        store
+            .enqueue("mock", &TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 }, 0)
+            .unwrap();
+        let tracker = MockTracker::failing(anistream_core::Error::Auth("bad token".into()));
+
+        let first = drain(&store, &tracker, 100).await.unwrap();
+        assert!(first.needs_reauth);
+        assert_eq!(tracker.batches().len(), 1);
+
+        // A minute later, and an hour later: still held, still reported to the UI.
+        let again = drain(&store, &tracker, 160).await.unwrap();
+        assert!(again.needs_reauth, "the user still needs to sign in");
+        assert_eq!(tracker.batches().len(), 1, "a dead credential was presented again");
+        assert_eq!(again.remaining, 1, "and the queue is intact");
+
+        // Signing in lifts the hold, and the queue goes at once rather than waiting it out.
+        clear_reauth_hold(&store, "mock").unwrap();
+        let working = MockTracker::new();
+        let after = drain(&store, &working, 200).await.unwrap();
+        assert_eq!(after.sent, 1);
     }
 
     #[tokio::test]
