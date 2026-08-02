@@ -337,6 +337,9 @@ pub struct PlaybackConfig {
     pub persisted_volume: Option<f64>,
     pub skip_opening: bool,
     pub skip_filler: bool,
+    /// Start mpv fullscreen. The viewer can still leave it with mpv's own `f` key;
+    /// this only chooses how the window opens.
+    pub fullscreen: bool,
     /// Real-time upscaling via Anime4K, applied as mpv shader chains.
     ///
     /// The shaders ship inside the binary (MIT, vendored from bloc97/Anime4K), so this
@@ -372,6 +375,7 @@ impl Default for PlaybackConfig {
             upscaling: Upscaling::Off,
             skip_opening: true,
             skip_filler: false,
+            fullscreen: false,
             players: vec!["mpv".into(), "external".into()],
             mpv_binary: "mpv".into(),
             mpv_args: Vec::new(),

@@ -199,6 +199,8 @@ pub struct PlaybackRequest {
     /// own language with signs-only subtitles, instead of original audio with full
     /// subtitles. Track order in the file never decides.
     pub dub: bool,
+    /// Open the player fullscreen rather than windowed.
+    pub fullscreen: bool,
 }
 
 /// An external service that holds watch progress.

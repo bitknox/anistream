@@ -114,11 +114,17 @@ impl Stream {
     /// Prefers an exact match, then the closest lower quality, and only then a higher
     /// one — upscaling wastes bandwidth for no visible gain, while going one step down
     /// is usually imperceptible. Unknown quality sorts last.
+    /// Saturating throughout: `quality` comes from a WASM plugin's return value or a remote
+    /// API's JSON, neither of which is validated, so `u32::MAX` is reachable. The addition
+    /// used to overflow — a panic in a debug build, and in release a wrap that ranked the
+    /// nonsense value *ahead* of a genuine 2160p stream and played it.
     pub fn quality_rank(&self, desired: u32) -> u32 {
         match self.quality {
             Some(q) if q == desired => 0,
             Some(q) if q < desired => desired - q,
-            Some(q) => (q - desired) + 10_000,
+            // One below the "unknown" sentinel at most, so a real stream always outranks a
+            // stream whose quality nobody stated.
+            Some(q) => (q - desired).saturating_add(10_000).min(u32::MAX - 1),
             None => u32::MAX,
         }
     }
@@ -168,6 +174,24 @@ mod tests {
             order,
             [Some(1080), Some(720), Some(480), Some(2160), None],
             "exact match first, then step down, and only then upscale"
+        );
+    }
+
+    #[test]
+    fn an_absurd_quality_ranks_last_rather_than_overflowing() {
+        // `quality` is whatever a WASM plugin returned or a remote API's JSON said, neither
+        // of which is validated. The upscale arithmetic overflowed on it — a panic in debug,
+        // and in release a wrap that ranked the nonsense value ahead of a real 2160p stream
+        // and played it.
+        let mut streams =
+            [stream_at(Some(u32::MAX)), stream_at(Some(2160)), stream_at(Some(1080))];
+        streams.sort_by_key(|s| s.quality_rank(1080));
+
+        let order: Vec<Option<u32>> = streams.iter().map(|s| s.quality).collect();
+        assert_eq!(order, [Some(1080), Some(2160), Some(u32::MAX)]);
+        assert!(
+            stream_at(Some(u32::MAX)).quality_rank(1080) < u32::MAX,
+            "a stated quality, however silly, still beats one nobody stated"
         );
     }
 

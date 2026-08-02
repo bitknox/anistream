@@ -128,9 +128,19 @@ impl PartialOrd for EpisodeNumber {
 impl Ord for EpisodeNumber {
     /// Numeric episodes sort numerically and before non-numeric ones; specials and OVAs
     /// sort lexically at the end. A naive string sort would put episode 10 before 9.
+    ///
+    /// **Equal ordering means equal value.** `Eq` is derived on the label, so answering
+    /// `Equal` for `"7"` and `"07"` — which numeric comparison alone does — broke the
+    /// contract every ordered collection relies on: `sort` then `dedup` kept both,
+    /// `binary_search` reported finding one when it had found the other, and a `BTreeMap`
+    /// could end up holding one insertion's key beside another's value. Catalogues do pad
+    /// inconsistently, so this is reachable rather than theoretical. The label breaks the
+    /// tie, which keeps numeric ordering and makes the two agree.
     fn cmp(&self, other: &Self) -> Ordering {
         match (self.as_number(), other.as_number()) {
-            (Some(a), Some(b)) => a.partial_cmp(&b).unwrap_or(Ordering::Equal),
+            (Some(a), Some(b)) => {
+                a.partial_cmp(&b).unwrap_or(Ordering::Equal).then_with(|| self.0.cmp(&other.0))
+            }
             (Some(_), None) => Ordering::Less,
             (None, Some(_)) => Ordering::Greater,
             (None, None) => self.0.cmp(&other.0),
@@ -289,6 +299,28 @@ mod tests {
         let got: Vec<&str> = eps.iter().map(EpisodeNumber::as_str).collect();
         // A plain string sort would yield 1, 10, 12.5, 2, 9, OVA.
         assert_eq!(got, ["1", "2", "9", "10", "12.5", "OVA"]);
+    }
+
+    #[test]
+    fn ordering_agrees_with_equality() {
+        // The contract every ordered collection assumes. Comparing numerically alone called
+        // "07" and "7" equal while `Eq` called them different, so `sort` + `dedup` kept both
+        // and `binary_search` would report finding one having found the other. Catalogues pad
+        // inconsistently, so a list can genuinely hold both spellings.
+        let padded = EpisodeNumber::from("07");
+        let bare = EpisodeNumber::from("7");
+        assert_ne!(padded, bare, "different labels");
+        assert_ne!(padded.cmp(&bare), Ordering::Equal, "so they must not compare equal");
+
+        // Numeric ordering still decides everything else.
+        assert_eq!(EpisodeNumber::from("9").cmp(&EpisodeNumber::from("10")), Ordering::Less);
+        assert_eq!(EpisodeNumber::from("7").cmp(&EpisodeNumber::from("7")), Ordering::Equal);
+
+        let mut eps: Vec<EpisodeNumber> =
+            ["07", "7", "8"].into_iter().map(EpisodeNumber::from).collect();
+        eps.sort();
+        eps.dedup();
+        assert_eq!(eps.len(), 3, "dedup must not collapse labels that are not equal");
     }
 
     #[test]
