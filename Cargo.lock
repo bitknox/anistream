@@ -92,6 +92,7 @@ dependencies = [
  "futures",
  "image",
  "open",
+ "rand 0.10.2",
  "ratatui",
  "rlimit",
  "serde_json",

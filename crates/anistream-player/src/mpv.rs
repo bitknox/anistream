@@ -166,6 +166,36 @@ impl std::fmt::Debug for MpvSession {
     }
 }
 
+/// An endpoint id no other session in this process, or any other, will produce.
+///
+/// The resume point used to supply the entropy, which meant there was none: it is `None` for
+/// every unwatched episode, so playing one and then another derived the same path — and
+/// starting the second unlinked the first's socket while it was still being used to control a
+/// running mpv. A counter is the thing that is genuinely unique per session; the pid keeps it
+/// distinct from another anistream sharing the directory.
+fn next_endpoint_id() -> u64 {
+    static SESSION: AtomicU64 = AtomicU64::new(0);
+    (u64::from(std::process::id()) << 32)
+        | (SESSION.fetch_add(1, Ordering::Relaxed) & 0xFFFF_FFFF)
+}
+
+/// Last resort: kill mpv and take its socket with it.
+///
+/// [`MpvSession::shutdown`] is the orderly path and asks mpv to quit first, but it is `async`
+/// and only reached when playback ends the way it is supposed to. Every other way out — a
+/// failure between spawning and connecting, an error partway through setting up property
+/// observation, a task dropped mid-play — used to leave mpv running with nothing able to
+/// address it and its socket file behind. `remove_endpoint_blocking` has existed since the
+/// beginning with a doc comment naming the `Drop` this is, and no caller.
+impl Drop for MpvSession {
+    fn drop(&mut self) {
+        // `start_kill` rather than `kill`: this is not an async context, and a signal that has
+        // been delivered is enough — the process is reaped by the runtime.
+        let _ = self.child.start_kill();
+        ipc::remove_endpoint_blocking(&self.socket_path);
+    }
+}
+
 impl MpvSession {
     /// What mpv reported on stderr.
     pub fn diagnostics(&self) -> &Diagnostics {
@@ -325,13 +355,17 @@ impl Mpv {
             .map_err(|e| PlayerError::Spawn(e.to_string()))?;
 
         // A unique endpoint per session, so a lingering process from a previous run cannot be
-        // mistaken for this one.
-        let unique =
-            std::process::id() as u64 ^ (request.start_at.unwrap_or_default() * 1000.0) as u64;
-        let socket_path = ipc::mpv_endpoint(&self.socket_dir, unique);
+        // mistaken for this one — and so two sessions in *this* run cannot be mistaken for
+        // each other.
+        //
+        let socket_path = ipc::mpv_endpoint(&self.socket_dir, next_endpoint_id());
         ipc::remove_endpoint(&socket_path).await;
 
         let mut args = base_args(&socket_path.to_string_lossy(), &request.title);
+        // Before the user's extra args, so `--no-fullscreen` there still wins.
+        if request.fullscreen {
+            args.push("--fullscreen".to_string());
+        }
         args.extend(stream_args(
             &stream.headers,
             request.start_at,
@@ -505,6 +539,20 @@ mod tests {
 
     fn stream() -> Stream {
         Stream::new("http://127.0.0.1:1/s/x", StreamKind::TorrentHttp)
+    }
+
+    #[test]
+    fn two_sessions_never_share_an_endpoint() {
+        // The id used to be derived from the resume point, which is `None` for every unwatched
+        // episode — so watching one and then the next produced the same socket path, and
+        // starting the second unlinked the first's while it was still controlling a running
+        // mpv. The old test only checked that two *different* numbers gave different paths,
+        // which never touched the part that was wrong.
+        let ids: Vec<u64> = (0..64).map(|_| next_endpoint_id()).collect();
+        let mut unique = ids.clone();
+        unique.sort_unstable();
+        unique.dedup();
+        assert_eq!(unique.len(), ids.len(), "two sessions derived the same endpoint");
     }
 
     #[tokio::test]

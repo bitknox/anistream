@@ -151,13 +151,19 @@ async fn localise_subtitles(http: &HttpClient, mpv: &Mpv, stream: &mut Stream) {
 /// from stumbling onto the proxy, and differs per attempt so a stale connection from a failed
 /// stream cannot address the next one's.
 fn mender_token(context: &PlaybackContext, attempt: usize) -> String {
-    format!(
-        "{}-{}-{}-{}",
-        context.anilist_id.get(),
-        sanitise(&context.episode),
-        attempt,
-        anistream_store::now()
-    )
+    // Random, because the parts identifying the playback were all guessable: the AniList id is
+    // the show on screen, the episode a small integer, the attempt almost always zero, and the
+    // timestamp a few seconds wide. That is a few thousand candidates against a scannable
+    // ephemeral port, and the proxy will fetch any URL named in the path — so a guessable
+    // token made it a fetch primitive for anything else running on the machine.
+    use rand::Rng;
+    let mut bytes = [0_u8; 16];
+    rand::rng().fill_bytes(&mut bytes);
+    let random: String = bytes.iter().map(|b| format!("{b:02x}")).collect();
+
+    // The identifying part is kept in front of it: a token in a log line should say which
+    // playback it belonged to, and it costs nothing next to 128 bits.
+    format!("{}-{}-{attempt}-{random}", context.anilist_id.get(), sanitise(&context.episode))
 }
 
 /// Reduce a language label to something safe to put in a filename.
@@ -217,6 +223,8 @@ pub async fn play(
     mpv: Mpv,
     threshold: f64,
     auto_skip: bool,
+    // Open mpv fullscreen, from `playback.fullscreen`.
+    fullscreen: bool,
     subtitle_language: Option<String>,
     // Tracker ids to queue progress against when the episode completes.
     tracker_ids: Vec<String>,
@@ -340,6 +348,7 @@ pub async fn play(
             speed: context.speed,
             volume: context.volume,
             dub: context.translation == Translation::Dub,
+            fullscreen,
         };
 
         // Named per attempt — during failover the header would otherwise credit the stream

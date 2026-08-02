@@ -189,6 +189,9 @@ pub trait StreamSource: Send + Sync + 'static {
 pub struct StreamServer {
     url: String,
     handle: tokio::task::JoinHandle<()>,
+    /// Held, never sent on. Every connection task waits for this to close, so dropping the
+    /// server *is* the cancellation — there is no signal to remember to send.
+    cancel: tokio::sync::watch::Sender<()>,
 }
 
 impl StreamServer {
@@ -199,12 +202,27 @@ impl StreamServer {
 
     /// Stop serving. Playback in progress will end.
     pub fn shutdown(self) {
+        self.stop();
+    }
+
+    /// Close the listener *and* every connection it spawned.
+    ///
+    /// Aborting the accept loop alone left the handed-off tasks running, so a server dropped
+    /// because the VPN guard started leaking went on feeding an already-connected player from
+    /// the torrent — the teardown half of `halt()` did not, in fact, tear anything down. Worse
+    /// once the torrent was paused underneath them: the read stalls, no write is attempted, so
+    /// a client that has gone away is never noticed and the task, its socket and its torrent
+    /// stream stay for the life of the process.
+    fn stop(&self) {
         self.handle.abort();
+        self.cancel.send_replace(());
     }
 }
 
 impl Drop for StreamServer {
     fn drop(&mut self) {
+        // The accept loop stops here; the connections stop because `cancel` is dropped with
+        // the struct a moment later, which closes the channel they are waiting on.
         self.handle.abort();
     }
 }
@@ -223,6 +241,7 @@ pub async fn serve<S: StreamSource>(source: S, token: &str) -> std::io::Result<S
 
     let source = Arc::new(source);
     let expected_path = path.clone();
+    let (cancel, cancel_rx) = tokio::sync::watch::channel(());
 
     let handle = tokio::spawn(async move {
         // Accept errors are not all fatal. `EMFILE` in particular is transient and is exactly
@@ -253,18 +272,31 @@ pub async fn serve<S: StreamSource>(source: S, token: &str) -> std::io::Result<S
             };
             let source = Arc::clone(&source);
             let expected = expected_path.clone();
+            let mut cancelled = cancel_rx.clone();
             // One task per connection: mpv opens several, and a stalled read on one must
             // not block the others.
+            //
+            // Raced against the server going away, because these tasks are detached: aborting
+            // the accept loop left them serving the torrent to an already-connected player,
+            // which is why dropping the server did not stop the stream it was serving.
             tokio::spawn(async move {
-                if let Err(e) = handle_connection(socket, source, &expected).await {
-                    tracing::debug!(error = %e, "stream connection ended");
+                tokio::select! {
+                    result = handle_connection(socket, source, &expected) => {
+                        if let Err(e) = result {
+                            tracing::debug!(error = %e, "stream connection ended");
+                        }
+                    }
+                    // Resolves when the server is dropped, closing the channel.
+                    _ = cancelled.changed() => {
+                        tracing::debug!("stream server went away; dropping the connection");
+                    }
                 }
             });
         }
     });
 
     tracing::info!(%url, "torrent stream server listening on loopback");
-    Ok(StreamServer { url, handle })
+    Ok(StreamServer { url, handle, cancel })
 }
 
 async fn handle_connection<S: StreamSource>(
@@ -604,6 +636,45 @@ mod tests {
         // Never expose a torrent stream on a routable interface.
         let server = serve(MemorySource(vec![0; 10]), "tok").await.unwrap();
         assert!(server.url().starts_with("http://127.0.0.1:"), "got {}", server.url());
+    }
+
+    #[tokio::test]
+    async fn dropping_the_server_stops_a_connection_already_serving() {
+        // Dropping it aborted the accept loop and nothing else, so a player already connected
+        // kept being fed from the torrent — the teardown half of the VPN guard's `halt()` did
+        // not tear anything down. Worse once the torrent was paused underneath: the read
+        // stalls, nothing is ever written, and the dead connection is never noticed.
+        let server = serve(MemorySource(vec![7; 8 * 1024 * 1024]), "tok").await.unwrap();
+        let url = server.url().to_owned();
+        let authority = url.trim_start_matches("http://").split('/').next().unwrap().to_owned();
+        let path = url[url.find("/s/").unwrap()..].to_owned();
+
+        let mut socket = TcpStream::connect(&authority).await.unwrap();
+        socket
+            .write_all(format!("GET {path} HTTP/1.1\r\nHost: {authority}\r\n\r\n").as_bytes())
+            .await
+            .unwrap();
+        // Wait until it is genuinely mid-response before pulling the server away.
+        let mut head = [0u8; 16];
+        socket.read_exact(&mut head).await.unwrap();
+
+        drop(server);
+
+        let mut rest = Vec::new();
+        let finished = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            socket.read_to_end(&mut rest),
+        )
+        .await;
+        assert!(finished.is_ok(), "the connection outlived the server that spawned it");
+        // Truncation is the point, not merely termination: without the cancellation the task
+        // carries on and delivers the whole eight megabytes, and a client that keeps reading —
+        // as this one does — would never notice the server was supposed to be gone.
+        assert!(
+            rest.len() < 8 * 1024 * 1024,
+            "the whole body arrived after the server was dropped ({} bytes)",
+            rest.len()
+        );
     }
 
     #[tokio::test]

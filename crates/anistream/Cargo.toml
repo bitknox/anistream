@@ -45,6 +45,8 @@ tracing-subscriber.workspace = true
 # The updater stages a download in a private directory rather than a predictable one in
 # the shared temp dir: what it installs is read back from disk after `tar` runs.
 tempfile = "3"
+# Random tokens for the mending proxy's loopback path.
+rand = "0.10"
 
 [dev-dependencies]
 serde_json.workspace = true
