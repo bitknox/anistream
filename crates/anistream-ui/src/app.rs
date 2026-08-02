@@ -1788,7 +1788,20 @@ impl App {
             // episode you have not watched.
             Action::PlayNext => return self.play_next_unwatched(),
             Action::ShowEpisodes => {
-                if let Some(entry) = self.detail.as_ref().or(self.selected_entry()).cloned() {
+                // Which title this is about depends on where it is pressed. On a title screen
+                // it is that title — the list underneath may be sitting on something else
+                // entirely, as it is after stepping through related titles. On a list it is the
+                // row under the cursor.
+                //
+                // The order matters now that `detail` outlives the screen that set it: reading
+                // it first pinned the episode list to the first show opened, and every show
+                // tried afterwards showed that one's episodes until the section was left and
+                // re-entered, which is what clears it.
+                let entry = match self.nav.current() {
+                    StageView::Title(_) => self.detail.as_ref().or(self.selected_entry()),
+                    _ => self.selected_entry().or(self.detail.as_ref()),
+                };
+                if let Some(entry) = entry.cloned() {
                     let id = entry.id;
                     // The episode table is a view *of a title*, and `detail` is how the rest of
                     // the app asks which title that is. Reached by `e` from a list it was left
@@ -4235,6 +4248,40 @@ mod tests {
             a.pending,
             Some(Task::Play { id, episode: "2".into() }),
             "auto-next follows the episode that just played"
+        );
+    }
+
+    /// Reported from real use: after viewing one show's episodes, every other show opened on
+    /// that first one's list. `detail` outlives the screen that sets it, so reading it ahead of
+    /// the cursor pinned the table to whatever was seen first — until the section was left and
+    /// re-entered, which is the one thing that clears it.
+    #[test]
+    fn each_show_in_a_list_opens_its_own_episodes() {
+        let mut a = app();
+        a.apply(Update::Content(entries(3)));
+        a.nav.focus_stage();
+
+        assert_eq!(
+            a.handle(Action::ShowEpisodes, 10),
+            Some(Task::LoadEpisodes(AnilistId::new(1))),
+            "the selected row"
+        );
+        a.handle(Action::Back, 10);
+        a.handle(Action::Down, 10);
+        assert_eq!(
+            a.handle(Action::ShowEpisodes, 10),
+            Some(Task::LoadEpisodes(AnilistId::new(2))),
+            "the next row, not the one already seen"
+        );
+
+        // From a title screen the subject is that title, whatever the list beneath is on.
+        a.handle(Action::Back, 10);
+        a.detail = Some(Entry::new(AnilistId::new(99), "a related title"));
+        a.nav.push(StageView::Title(AnilistId::new(99)));
+        assert_eq!(
+            a.handle(Action::ShowEpisodes, 10),
+            Some(Task::LoadEpisodes(AnilistId::new(99))),
+            "a title screen speaks for itself"
         );
     }
 
