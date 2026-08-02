@@ -40,6 +40,12 @@ const API: &str = "https://api.myanimelist.net/v2";
 /// sends whoever reads the log looking in the wrong place.
 const REFRESH_MARGIN_SECS: i64 = 24 * 3_600;
 
+/// How many pages of a library to follow before deciding the server is not counting down.
+///
+/// A thousand entries a page, so this is a library nobody has — and the alternative to a
+/// bound is trusting a remote to end a loop that allocates on every turn.
+const MAX_LIBRARY_PAGES: u32 = 100;
+
 /// A PKCE verifier and the challenge derived from it.
 ///
 /// MAL supports only `code_challenge_method=plain`, which means the challenge *is* the verifier.
@@ -318,7 +324,24 @@ impl Tracker for MalTracker {
         let mut next =
             Some(format!("{API}/users/@me/animelist?fields=list_status&limit=1000&nsfw=true"));
 
+        let mut pages = 0_u32;
         while let Some(url) = next.take() {
+            // The loop follows a URL the *server* chose, with the user's bearer token attached.
+            // Two things follow from that and neither was checked: a `next` pointing at another
+            // host would hand that host the token, and one pointing at itself is a loop that
+            // grows `entries` until the process dies. A page is only followed if it is on the
+            // API we started from, and only so many times — a thousand entries a page, so this
+            // is a library nobody has.
+            pages += 1;
+            if pages > MAX_LIBRARY_PAGES {
+                tracing::warn!(pages, "myanimelist pagination did not terminate; stopping");
+                break;
+            }
+            if !url.starts_with(API) {
+                tracing::warn!(url = %url, "myanimelist paged us off its own api; stopping");
+                break;
+            }
+
             let response = self
                 .http
                 .get(&url)
