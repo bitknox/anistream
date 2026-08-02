@@ -53,6 +53,7 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
         progress,
         airing_in: media.next_airing_episode.map(|n| n.time_until_airing),
         next_episode: media.next_airing_episode.map(|n| n.episode),
+        next_airing_in: media.next_airing_episode.map(|n| n.time_until_airing),
         // Filled in by a second, batched request — see `AniList::last_aired`. Absent here
         // rather than guessed, so the preview shows nothing instead of something wrong.
         last_aired: None,
@@ -73,12 +74,11 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
 /// Convert a calendar row, folding the countdown into the entry.
 pub fn entry_from_airing(airing: &AiringEntry, now: i64, store: Option<&Store>) -> Entry {
     Entry {
+        // *This row's* slot, which runs negative once the episode has aired. `next_episode` and
+        // `next_airing_in` are left alone: they are the title's own schedule, and keeping them
+        // whole is what lets a row about an episode that just aired still say when the one after
+        // it is due.
         airing_in: Some(airing.airing_at.saturating_sub(now)),
-        // The countdown above is *this row's* episode, so the number beside it has to be too.
-        // Inherited from the media it would be whatever airs next overall, which pairs one
-        // episode's number with another's countdown — a row about episode 5 that has just aired
-        // reading "EP 6 in now".
-        next_episode: Some(airing.episode),
         // The calendar is about *this* episode, so the title carries its number.
         title: format!("{}  ep {}", airing.media.title.display(), airing.episode),
         ..entry_from(&airing.media, store)
@@ -404,11 +404,12 @@ mod tests {
         assert_eq!(e.airing_in, Some(600));
     }
 
-    /// Reported as "EP 5 out · EP 6 in now": the row's countdown was paired with the *media's*
-    /// next episode, so an episode that had just aired was announced under its successor's
-    /// number with no time left on the clock.
+    /// Reported as "EP 5 out · EP 6 in now": the row's slot was paired with the *media's* next
+    /// episode, so an episode that had just aired was announced under its successor's number
+    /// with no time left on the clock. The two are kept apart rather than one dropped — the
+    /// row's slot dates the row, and the schedule still knows when episode 6 is due.
     #[test]
-    fn a_calendar_entry_numbers_the_episode_its_countdown_belongs_to() {
+    fn a_calendar_entry_keeps_its_own_slot_and_the_titles_schedule_apart() {
         let mut media = media();
         media.next_airing_episode = Some(anistream_meta::anilist::model::NextAiring {
             episode: 6,
@@ -418,7 +419,8 @@ mod tests {
         // The row is about episode 5, which aired an hour ago.
         let airing = AiringEntry { episode: 5, airing_at: 996_400, media };
         let e = entry_from_airing(&airing, 1_000_000, None);
-        assert_eq!(e.next_episode, Some(5), "the number must match the countdown beside it");
-        assert_eq!(e.airing_in, Some(-3_600), "already aired, so the countdown runs negative");
+        assert_eq!(e.airing_in, Some(-3_600), "the row's own slot, already past");
+        assert_eq!(e.next_episode, Some(6), "the schedule survives the row");
+        assert_eq!(e.next_airing_in, Some(600_000), "so the next episode can still be dated");
     }
 }

@@ -312,10 +312,19 @@ pub struct Entry {
     pub available_on: Vec<String>,
     /// Local progress: episodes completed, and the next episode to watch.
     pub progress: Option<(u32, u32)>,
-    /// Seconds until the next broadcast.
+    /// Seconds until *this row's* broadcast — which for a calendar entry is the episode the row
+    /// is about, and runs negative once that episode has aired. Everywhere else it is the same
+    /// thing as [`Self::next_airing_in`].
     pub airing_in: Option<i64>,
-    /// The episode that next broadcast will be.
+    /// The episode the title broadcasts next, from its own schedule.
     pub next_episode: Option<u32>,
+    /// Seconds until [`Self::next_episode`] airs.
+    ///
+    /// Separate from [`Self::airing_in`] because a calendar row overwrites that with its own
+    /// slot, and the two then describe different episodes — which is how a row about an episode
+    /// that had just aired came to read "EP 6 in now". This one is the title's schedule and
+    /// nothing else's, so the pair is always about the same episode.
+    pub next_airing_in: Option<i64>,
     /// The most recent broadcast: episode number and how many seconds ago.
     ///
     /// Answers the question a list of airing shows is actually asked — *is there something new
@@ -422,6 +431,7 @@ impl Entry {
             progress: None,
             airing_in: None,
             next_episode: None,
+            next_airing_in: None,
             last_aired: None,
             resume: None,
             related: Vec::new(),

@@ -1035,7 +1035,7 @@ fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
                 format!("{done} / {total}   ep {next} next"),
                 app.palette.style(Role::TextDim),
             );
-        } else if let Some(secs) = entry.airing_in.filter(|s| *s > 0) {
+        } else if let Some(secs) = entry.next_airing_in.filter(|s| *s > 0) {
             buf.set_string(
                 area.left(),
                 y,
@@ -2347,10 +2347,11 @@ fn broadcast_line(entry: &Entry) -> String {
             None => format!("EP {episode} out"),
         });
     }
-    // Only a countdown that still has time left is a countdown. A calendar row spans both
-    // directions, so `airing_in` goes negative once that episode has aired — and "in now" for
-    // something already out is worse than saying nothing, since the half above already says it.
-    if let Some(seconds) = entry.airing_in.filter(|s| *s > 0) {
+    // The title's own schedule rather than the row's slot, so a calendar row about an episode
+    // that has just aired still reports when the next one is due instead of counting down to
+    // the one already out. Filtered to a countdown that has time left: AniList hands back a
+    // non-positive `timeUntilAiring` in the moments around a broadcast.
+    if let Some(seconds) = entry.next_airing_in.filter(|s| *s > 0) {
         parts.push(match entry.next_episode {
             Some(next) => format!("EP {next} in {}", crate::widgets::countdown(seconds)),
             None => format!("next in {}", crate::widgets::countdown(seconds)),
@@ -2440,16 +2441,22 @@ mod tests {
     /// arrived.
     #[test]
     fn the_broadcast_line_drops_a_countdown_that_has_run_out() {
+        // A calendar row about episode 5, which aired an hour ago. Episode 6 is a week out.
         let mut e = entry(1, "Frieren");
-        e.next_episode = Some(5);
         e.last_aired = Some((5, 3_600));
         e.airing_in = Some(-3_600);
+        e.next_episode = Some(6);
+        e.next_airing_in = Some(604_800);
+
         let line = broadcast_line(&e);
         assert!(line.contains("EP 5 out"), "what is out still gets said: {line}");
-        assert!(!line.contains("now"), "a spent countdown is not a countdown: {line}");
+        assert!(line.contains("EP 6 in 7d"), "and when the next one is due: {line}");
+        assert!(!line.contains("now"), "the spent slot is not a countdown: {line}");
 
-        e.airing_in = Some(600);
-        assert!(broadcast_line(&e).contains("EP 5 in 10m"), "a real wait still counts down");
+        // Nothing further scheduled — a finished show says only what is out.
+        e.next_episode = None;
+        e.next_airing_in = None;
+        assert_eq!(broadcast_line(&e), "EP 5 out 1h ago");
     }
 
     fn text_of(buf: &Buffer) -> String {
