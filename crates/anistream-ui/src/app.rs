@@ -1239,10 +1239,22 @@ impl App {
                 if watched
                     && self.config.playback.auto_next
                     && let Some(finished) = finished
+                    && let Some(id) = finished.id
                     && let Some(next) = finished.next_episode()
-                    && let Some(id) = self.detail.as_ref().map(|e| e.id)
                 {
-                    let after_filler = self.next_after_filler(next.clone());
+                    // Which show to continue is the one that just played, not whichever title
+                    // happens to be open. Read from `detail` it was silently nothing whenever
+                    // playback started from a list rather than a title screen.
+                    //
+                    // The filler walk is the one part that does need the open title: it reads
+                    // the episode table, and a table belonging to some other show would match a
+                    // row by bare number and skip against the wrong series.
+                    let rows_are_this_title = self.detail.as_ref().is_some_and(|e| e.id == id);
+                    let after_filler = if rows_are_this_title {
+                        self.next_after_filler(next.clone())
+                    } else {
+                        next.clone()
+                    };
                     if after_filler != next {
                         self.push_toast(Toast::info(format!(
                             "skipped filler — ep {after_filler} next"
@@ -1766,8 +1778,14 @@ impl App {
             // episode you have not watched.
             Action::PlayNext => return self.play_next_unwatched(),
             Action::ShowEpisodes => {
-                if let Some(entry) = self.detail.as_ref().or(self.selected_entry()) {
+                if let Some(entry) = self.detail.as_ref().or(self.selected_entry()).cloned() {
                     let id = entry.id;
+                    // The episode table is a view *of a title*, and `detail` is how the rest of
+                    // the app asks which title that is. Reached by `e` from a list it was left
+                    // unset, so everything downstream answered "none": a finished episode never
+                    // reached the table it was listed in, and auto-next declined to roll on.
+                    // Opening the title sets this; entering its episodes has to as well.
+                    self.detail = Some(entry);
                     self.episode_selected = 0;
                     // Discard the previous title's rows *before* the screen appears. They were
                     // being left in place until the new load answered, so opening episodes for one
@@ -3246,6 +3264,7 @@ mod tests {
         a
     }
 
+
     #[test]
     fn enter_in_the_episode_table_plays_rather_than_opening() {
         // Enter opens a title everywhere else, so this is the one place it has to mean
@@ -4166,6 +4185,47 @@ mod tests {
         assert!(a.episodes[0].completed, "a finished episode must show as finished");
         assert!((a.episodes[0].watched - 1.0).abs() < 1e-6);
         assert_eq!(a.episodes[1].watched, 0.0, "only the episode watched should change");
+    }
+
+    /// Reported from real use: an episode finished, the toast said so, and its row stayed empty
+    /// and unmarked until the show was left and re-entered. Reaching the table with `e` rather
+    /// than by opening the title left the app with no idea which title was on screen, so the
+    /// watch had nowhere to land — and auto-next, asking the same question, stayed put.
+    #[test]
+    fn reaching_episodes_by_key_still_lands_a_finished_watch_on_the_table() {
+        let mut a = app();
+        a.config.playback.auto_next = true;
+        a.apply(Update::Content(entries(3)));
+        a.nav.focus_stage();
+        let id = a.selected_entry().expect("an entry").id;
+        // Straight from the list — no detail screen in between, which is the whole point.
+        a.handle(Action::ShowEpisodes, 10);
+        a.apply(Update::Episodes(
+            (1..=3)
+                .map(|n| EpisodeRow {
+                    number: n.to_string(),
+                    title: None,
+                    duration_secs: Some(1440),
+                    watched: 0.0,
+                    completed: false,
+                    kind: None,
+                    skippable: false,
+                    thumbnail: None,
+                    description: None,
+                })
+                .collect(),
+        ));
+
+        a.begin_playback(id, "1".into());
+        a.apply(Update::PlaybackEnded { watched: true });
+
+        assert!(a.episodes[0].completed, "the finished episode must be marked in the table");
+        assert!((a.episodes[0].watched - 1.0).abs() < 1e-6, "and its meter filled");
+        assert_eq!(
+            a.pending,
+            Some(Task::Play { id, episode: "2".into() }),
+            "auto-next follows the episode that just played"
+        );
     }
 
     #[test]
