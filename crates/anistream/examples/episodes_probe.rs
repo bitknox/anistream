@@ -36,7 +36,22 @@ async fn main() {
     println!("── registry ───────────────────────────────────────────");
     let (registry, guard, note) =
         anistream::sources::build_registry(&config, &http, &paths).await;
+    // The app loads plugins off the critical path, so `build_registry` returns without them.
+    // A probe that skipped this step would print an empty registry — the loudest failure it
+    // knows how to report — for anyone whose only source is a plugin.
+    let plugin_note = anistream::sources::spawn_plugin_load(
+        registry.clone(),
+        config.clone(),
+        http.clone(),
+        paths.clone(),
+    )
+    .await
+    .ok()
+    .flatten();
     println!("  providers    {:?}", registry.ids());
+    if let Some(reason) = &plugin_note {
+        println!("  plugins      ✕ {reason}");
+    }
     println!("  vpn guard    {}", if guard.is_some() { "running" } else { "not running" });
     if let Some(note) = &note {
         println!("  note         {note}");
@@ -93,7 +108,12 @@ async fn main() {
         return;
     }
     for episode in episodes.iter().take(5) {
-        println!("    ep {:>4}  {:?}", episode.number.as_str(), episode.title);
+        println!(
+            "    ep {:>4}  filler={:?}  {:?}",
+            episode.number.as_str(),
+            episode.filler,
+            episode.title
+        );
     }
 
     println!();

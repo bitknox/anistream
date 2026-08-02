@@ -207,7 +207,17 @@ pub fn episode_rows_with_filler(
                 // The source's own claim, where the index has no answer. Only a positive claim
                 // counts: `Some(false)` is a catalogue asserting canon, which needs no column,
                 // and `None` is no claim at all.
-                .or_else(|| (episode.filler == Some(true)).then_some(("filler", true)));
+                //
+                // Never for the opening episode. Filler is anime-original padding written to let
+                // the source material get ahead, so a series cannot begin with it — a catalogue
+                // that says otherwise is reporting its own data error. Observed in the wild, and
+                // it is not merely cosmetic: `skip_filler` would act on it and open the show at
+                // episode 2. A numberless episode (an OVA) keeps the claim, since the reasoning
+                // is about position in a run and it has none.
+                .or_else(|| {
+                    let opener = episode.number.as_number().is_some_and(|n| n <= 1.0);
+                    (!opener && episode.filler == Some(true)).then_some(("filler", true))
+                });
 
             EpisodeRow {
                 number: episode.number.as_str().to_owned(),
@@ -241,6 +251,26 @@ mod naming_tests {
 
     fn none() -> std::collections::BTreeMap<u32, String> {
         std::collections::BTreeMap::new()
+    }
+
+    /// Reported as "episode 1 is always being marked as filler". The catalogue in use claims it
+    /// for the opening episode of some shows, which cannot be true of a first episode.
+    #[test]
+    fn a_catalogue_cannot_call_the_opening_episode_filler() {
+        let store = anistream_store::Store::open_in_memory().unwrap();
+        let id = anistream_core::ids::AnilistId::new(1);
+        let claim = |number: &str| {
+            let mut e = Episode::new(EpisodeNumber::new(number));
+            e.filler = Some(true);
+            e
+        };
+        let rows = episode_rows(&[claim("1"), claim("2"), claim("OVA")], &store, id);
+
+        assert_eq!(rows[0].kind, None, "a series cannot open with filler");
+        assert!(!rows[0].skippable, "and must never be skipped past");
+        assert_eq!(rows[1].kind, Some("filler"), "a later claim is still honoured");
+        assert!(rows[1].skippable);
+        assert_eq!(rows[2].kind, Some("filler"), "an unnumbered episode has no opening to be");
     }
 
     #[test]
