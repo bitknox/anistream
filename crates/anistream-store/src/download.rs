@@ -115,7 +115,13 @@ impl Store {
                     -- that is running or finished is left exactly as it is.
                     state = CASE WHEN download.state = 'failed' THEN 'queued' ELSE download.state END,
                     error = CASE WHEN download.state = 'failed' THEN NULL ELSE download.error END,
-                    magnet = excluded.magnet,
+                    -- The magnet belongs to the same guard. It was outside it, so re-requesting
+                    -- an episode repointed a *running* torrent at different content: the state
+                    -- and the bytes already on disk stayed, and after a restart the queue
+                    -- resumed a different release against that partial file. A retry of a
+                    -- failed row is the one case where taking the new magnet is the point.
+                    magnet = CASE WHEN download.state = 'failed' THEN excluded.magnet
+                                  ELSE download.magnet END,
                     updated_at = ?5",
                 rusqlite::params![anilist_id.get(), episode, title, magnet, at],
             )?;
@@ -214,8 +220,16 @@ impl Store {
     pub fn finish_download(&self, id: i64, path: Option<&str>) -> Result<()> {
         self.with_conn(|c| {
             c.execute(
+                // `downloaded = total` reads as "it is all here", and is right whenever the
+                // total was learned. It was unconditional, so a download that finished before
+                // metadata arrived set both to zero and then rendered as 0% — finished, and
+                // reported as not started. Falling back to what was actually fetched keeps the
+                // meter honest in that case.
                 "UPDATE download
-                    SET state = 'done', downloaded = total, path = COALESCE(?2, path),
+                    SET state = 'done',
+                        downloaded = CASE WHEN total > 0 THEN total ELSE downloaded END,
+                        total = CASE WHEN total > 0 THEN total ELSE downloaded END,
+                        path = COALESCE(?2, path),
                         error = NULL, updated_at = ?3
                   WHERE id = ?1",
                 rusqlite::params![id, path, now()],
@@ -373,6 +387,58 @@ mod tests {
             store.pending_downloads().unwrap().into_iter().map(|d| d.episode).collect();
         assert_eq!(displayed, vec!["3", "2", "1"], "newest request at the top");
         assert_eq!(draining, vec!["1", "2", "3"], "but the queue is first-in-first-out");
+    }
+
+    #[test]
+    fn re_requesting_a_running_download_does_not_repoint_it() {
+        // The magnet sat outside the guard that protects `state` and `error`, so asking for
+        // an episode already running swapped what the torrent points at while leaving the
+        // state and the bytes already on disk — and after a restart the queue resumed a
+        // different release against that partial file.
+        let store = store();
+        let row = store.enqueue_download(ID, "1", "Frieren", "magnet:?xt=OLD").unwrap();
+        store.set_download_state(row.id, DownloadState::Active).unwrap();
+
+        store.enqueue_download(ID, "1", "Frieren", "magnet:?xt=NEW").unwrap();
+
+        let after = store.download_for(ID, "1").unwrap().expect("the row");
+        assert_eq!(after.magnet, "magnet:?xt=OLD", "a running torrent was repointed");
+        assert_eq!(after.state, DownloadState::Active);
+    }
+
+    #[test]
+    fn retrying_a_failed_download_takes_the_new_magnet() {
+        // The other half: a retry is exactly when a fresh magnet is the point, because the
+        // old one is what failed.
+        let store = store();
+        let row = store.enqueue_download(ID, "1", "Frieren", "magnet:?xt=OLD").unwrap();
+        store.fail_download(row.id, "no peers").unwrap();
+
+        store.enqueue_download(ID, "1", "Frieren", "magnet:?xt=NEW").unwrap();
+
+        let after = store.download_for(ID, "1").unwrap().expect("the row");
+        assert_eq!(after.magnet, "magnet:?xt=NEW");
+        assert_eq!(after.state, DownloadState::Queued);
+    }
+
+    #[test]
+    fn a_download_that_finished_before_metadata_does_not_read_as_zero_percent() {
+        // `downloaded = total` is right whenever the total was learned, and was applied even
+        // when it was not — so a finished download reported 0 of 0 bytes and rendered as
+        // never started.
+        let store = store();
+        let row = store.enqueue_download(ID, "1", "Frieren", "m").unwrap();
+        store.update_download_progress(row.id, 1_400, 0, None).unwrap();
+
+        store.finish_download(row.id, None).unwrap();
+
+        let after = store.download_for(ID, "1").unwrap().expect("the row");
+        assert_eq!(after.state, DownloadState::Done);
+        assert!(
+            after.fraction() > 0.99,
+            "a finished download rendered at {}",
+            after.fraction()
+        );
     }
 
     #[test]
