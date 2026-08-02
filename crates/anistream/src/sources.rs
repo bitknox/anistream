@@ -117,7 +117,7 @@ async fn load_plugins(
     paths: &Paths,
 ) -> std::result::Result<Vec<Arc<dyn anistream_core::traits::Provider>>, String> {
     let limits = anistream_plugin::Limits {
-        memory_bytes: config.providers.plugins.memory_mb.saturating_mul(1024 * 1024),
+        memory_bytes: config.providers.plugins.memory_mb.max(1).saturating_mul(1024 * 1024),
         deadline: Duration::from_secs(config.providers.plugins.deadline_secs.max(1)),
         ..Default::default()
     };

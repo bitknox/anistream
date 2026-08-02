@@ -100,14 +100,15 @@ impl PluginError {
 
     /// Whether this looks like the deadline firing rather than a genuine fault.
     fn from_call(plugin: &str, limit: Duration, error: &wasmtime::Error) -> Self {
-        let message = format!("{error:?}");
-        // Attributed deliberately: reporting a deadline as "unreachable" would send whoever reads
-        // it into the parser instead of the loop.
-        if message.contains("epoch deadline") || message.contains("interrupt") {
-            Self::Deadline { plugin: plugin.to_owned(), limit }
-        } else {
-            Self::Trap { plugin: plugin.to_owned(), message: error.to_string() }
+        // Asked of the trap itself rather than of its rendered text. The `Debug` form includes
+        // the wasm backtrace, and the symbols in it come from the guest's own name section —
+        // so a plugin with a function called `interrupt_handler` could have a genuine fault
+        // reported as a deadline, sending whoever read it looking for a loop that is not
+        // there. Attribution is the whole reason this function exists.
+        if error.downcast_ref::<wasmtime::Trap>() == Some(&wasmtime::Trap::Interrupt) {
+            return Self::Deadline { plugin: plugin.to_owned(), limit };
         }
+        Self::Trap { plugin: plugin.to_owned(), message: error.to_string() }
     }
 }
 
@@ -596,9 +597,21 @@ impl LoadedPlugin {
             .map_err(|e| PluginError::from_call("plugin", self.limits.deadline, &e))
     }
 
-    /// Re-read the manifest, for `plugin inspect`.
+    /// Re-read the manifest, for `plugin inspect` and the periodic health check.
+    ///
+    /// With no capabilities, exactly as at load time. It used to be handed the full set — the
+    /// HTTP client and the settings map included — which quietly made the one call documented
+    /// as capability-free into the opposite: health checks run on a schedule and are not
+    /// user-initiated, so a plugin could read its settings and reach its declared host from
+    /// them, unattended, forever. Describing yourself needs nothing.
     pub async fn describe(&self) -> Result<Manifest, PluginError> {
-        self.describe_with(self.capabilities()).await
+        self.describe_with(Capabilities::new(
+            self.manifest.id.clone(),
+            Vec::new(),
+            self.limits,
+            None,
+        ))
+        .await
     }
 
     pub async fn search(

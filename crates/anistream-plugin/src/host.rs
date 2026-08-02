@@ -250,19 +250,41 @@ pub fn aes_decrypt(key: &[u8], iv: &[u8], data: &[u8]) -> Result<Vec<u8>, String
 ///
 /// An invalid pattern returns no matches rather than an error: a guest cannot do anything useful
 /// with a regex-compilation failure, and the WIT signature keeps it simple.
+/// Matches one `regex-captures` call may return.
+///
+/// A parser pulling stream URLs out of a page wants tens. Anything past this is a guest using
+/// the host's allocator rather than parsing, and the answer is no longer useful either way.
+const MAX_REGEX_MATCHES: usize = 10_000;
+
 pub fn regex_captures(pattern: &str, haystack: &str) -> Vec<Vec<String>> {
     // Bounded so a pathological pattern cannot spend the plugin's whole deadline compiling.
     let Ok(re) = regex::RegexBuilder::new(pattern).size_limit(1 << 20).build() else {
         tracing::debug!(pattern, "plugin supplied an invalid or oversized regex");
         return Vec::new();
     };
-    re.captures_iter(haystack)
-        .map(|caps| {
+    // Bounded output as well as bounded compilation. The pattern, the haystack and therefore
+    // the number of matches are all the guest's to choose, and every match allocates on the
+    // *host* side — where neither containment mechanism reaches. The memory limiter governs
+    // guest linear memory, not this; and epoch interruption cannot fire while the guest is not
+    // executing, which it is not for the duration of a host call. `a?` over a full 64 MiB of
+    // guest memory matched at every byte and cost gigabytes of host heap.
+    let mut out = Vec::new();
+    for caps in re.captures_iter(haystack) {
+        if out.len() >= MAX_REGEX_MATCHES {
+            tracing::warn!(
+                pattern,
+                limit = MAX_REGEX_MATCHES,
+                "truncating a plugin's regex results"
+            );
+            break;
+        }
+        out.push(
             caps.iter()
                 .map(|group| group.map(|m| m.as_str().to_owned()).unwrap_or_default())
-                .collect()
-        })
-        .collect()
+                .collect(),
+        );
+    }
+    out
 }
 
 #[cfg(test)]
@@ -440,6 +462,18 @@ mod tests {
         assert_eq!(found[0][1], "https://cdn.example.com/1080.m3u8");
         assert_eq!(found[0][2], "1080");
         assert_eq!(found[1][2], "720");
+    }
+
+    #[test]
+    fn a_pattern_that_matches_everywhere_does_not_allocate_without_bound() {
+        // The pattern and the haystack are both the guest's, and every match allocates on the
+        // *host* side — where neither containment mechanism reaches. The memory limiter
+        // governs guest linear memory, and epoch interruption cannot fire while the guest is
+        // not executing, which it is not for the whole of a host call. `a?` over a guest's
+        // full 64 MiB matched at every byte and cost gigabytes of host heap.
+        let haystack = "a".repeat(MAX_REGEX_MATCHES * 2);
+        let found = regex_captures("a?", &haystack);
+        assert_eq!(found.len(), MAX_REGEX_MATCHES, "output must be bounded");
     }
 
     #[test]

@@ -988,7 +988,7 @@ async fn list_plugins(config: &Config, paths: &Paths) -> Result<()> {
     println!("plugin directory  {}", dir.display());
 
     let limits = anistream_plugin::Limits {
-        memory_bytes: config.providers.plugins.memory_mb.saturating_mul(1024 * 1024),
+        memory_bytes: config.providers.plugins.memory_mb.max(1).saturating_mul(1024 * 1024),
         deadline: Duration::from_secs(config.providers.plugins.deadline_secs.max(1)),
         ..Default::default()
     };
