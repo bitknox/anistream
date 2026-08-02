@@ -83,6 +83,8 @@ pub enum PlaybackEvent {
     Volume(f64),
     /// The file's chapter markers arrived: `(title, start_seconds)`.
     Chapters(Vec<(String, f64)>),
+    /// The file finished loading. Until this, property reports describe no file at all.
+    Loaded,
     /// The viewer pressed one of our keys inside mpv itself.
     Remote(RemoteCommand),
     /// Playback ended. `complete` is true only when mpv reached the end of the file.
@@ -261,6 +263,16 @@ impl MpvSession {
     /// on the seek bar and under chapter navigation without an external file to write and clean
     /// up. Markers past the runtime are dropped by mpv rather than rejected, so an ending whose
     /// trailing boundary runs off the end of a slightly short encode still lands.
+    /// Ask mpv to restate the chapter list as it stands right now.
+    ///
+    /// Registering one more observer is the mechanism: mpv greets every new observer
+    /// with the current value, so the answer arrives as a normal chapters event. Asked
+    /// after the file loads, because that is the moment the property stops describing
+    /// nothing — the load-time value is what decides whether markers get written.
+    pub async fn restate_chapters(&self) -> Result<(), PlayerError> {
+        self.send(Command::ObserveProperty(observed::CHAPTERS_SETTLED, "chapter-list")).await
+    }
+
     pub async fn set_chapters(&self, chapters: &[(String, f64)]) -> Result<(), PlayerError> {
         let list: Vec<serde_json::Value> = chapters
             .iter()
@@ -533,7 +545,8 @@ fn spawn_reader(read_half: ipc::ReadHalf, tx: mpsc::UnboundedSender<PlaybackEven
                     }
                     None
                 }
-                Event::FileLoaded | Event::Seek | Event::Reply { .. } | Event::Ignored => None,
+                Event::FileLoaded => Some(PlaybackEvent::Loaded),
+                Event::Seek | Event::Reply { .. } | Event::Ignored => None,
             };
 
             if let Some(event) = forwarded

@@ -22,6 +22,12 @@ pub mod observed {
     pub const EOF_REACHED: u64 = 5;
     pub const VOLUME: u64 = 6;
     pub const CHAPTERS: u64 = 7;
+    /// A second chapter-list observer, registered after the file loads.
+    ///
+    /// mpv answers every new observer immediately with the current value — which turns
+    /// "what did the file actually bring?" into an ordinary chapters event, the only
+    /// question fire-and-forget IPC can ask without reply plumbing.
+    pub const CHAPTERS_SETTLED: u64 = 8;
 }
 
 /// A command to send to mpv.

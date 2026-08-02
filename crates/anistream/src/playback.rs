@@ -575,6 +575,12 @@ pub async fn play(
                         let _ = tx.send(Update::SkipCleared);
                     }
 
+                    Action::ProbeChapters => {
+                        if let Err(e) = session.restate_chapters().await {
+                            tracing::debug!(error = %e, "could not ask for the chapter list");
+                        }
+                    }
+
                     Action::MarkChapters(marks) => {
                         // Best effort by design: a player that will not take them plays the
                         // episode exactly as it did before, and the skip prompt still works.

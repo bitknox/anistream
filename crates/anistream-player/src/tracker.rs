@@ -38,6 +38,13 @@ pub enum Action {
     /// Write chapter markers into the player, so a stream that carries none still shows the
     /// viewer where the opening and ending are. `(title, start_seconds)`.
     MarkChapters(Vec<(String, f64)>),
+    /// Ask the player to restate its chapter list, now that a file is loaded to describe.
+    ///
+    /// Measured against mpv: a chapterless file never announces its emptiness — the only
+    /// chapters event fires at observe time, before any file exists, and `[] → []` at load
+    /// is no change at all. Acting on that early event wrote markers into a player with no
+    /// file, which the load then wiped. So the settled answer has to be asked for.
+    ProbeChapters,
 }
 
 /// Tracks one episode's playback.
@@ -54,6 +61,9 @@ pub struct PlaybackTracker {
     /// circular — worse, an ending marker past the runtime is dropped by mpv, so the round
     /// trip could come back *missing* the ending we started from.
     marked: bool,
+    /// Set by the player's file-loaded event. Chapter reports before it describe no file —
+    /// mpv greets a new observer with the current value even when nothing is playing.
+    loaded: bool,
 
     position: f64,
     duration: Option<f64>,
@@ -73,6 +83,17 @@ pub struct PlaybackTracker {
 }
 
 impl PlaybackTracker {
+    /// The first evidence that a real file is loaded, whichever arrives first: the
+    /// explicit loaded event when the reader attached in time to catch it, or the first
+    /// position report when it did not. Returns the chapter probe exactly once.
+    fn file_became_real(&mut self) -> Option<Action> {
+        if self.loaded {
+            return None;
+        }
+        self.loaded = true;
+        (self.mark_chapters && !self.marked).then_some(Action::ProbeChapters)
+    }
+
     pub fn new(threshold: f64, skips: Vec<SkipInterval>, auto_skip: bool) -> Self {
         Self {
             threshold: threshold.clamp(0.05, 1.0),
@@ -80,6 +101,7 @@ impl PlaybackTracker {
             auto_skip,
             mark_chapters: false,
             marked: false,
+            loaded: false,
             position: 0.0,
             duration: None,
             last_recorded: 0.0,
@@ -147,6 +169,14 @@ impl PlaybackTracker {
 
         match event {
             PlaybackEvent::Progress { position, duration } => {
+                // A position implies a file: time-pos is an observed property that only
+                // exists once one is loaded, so its greeting cannot arrive early. This is
+                // the load signal we cannot miss — the explicit event fires the instant
+                // the file loads, which for a local file is before the IPC reader has
+                // even attached.
+                if let Some(action) = self.file_became_real() {
+                    actions.push(action);
+                }
                 if let Some(d) = duration {
                     self.duration = Some(*d);
                 }
@@ -208,9 +238,22 @@ impl PlaybackTracker {
             // Remote controls are the session's business, not the tracker's.
             PlaybackEvent::Remote(_) => {}
 
+            PlaybackEvent::Loaded => {
+                if let Some(action) = self.file_became_real() {
+                    actions.push(action);
+                }
+            }
+
             PlaybackEvent::Chapters(chapters) => {
                 // Anything arriving after we have written our own is an echo of that write.
                 if self.marked {
+                    return actions;
+                }
+                // Before the file is loaded, this is an observer greeting, not a statement
+                // about the stream. Trusting it wrote markers into a player with no file,
+                // the load wiped them, and — since `[]` to `[]` is no change — mpv never
+                // spoke of chapters again. Skips worked; the bar stayed blank.
+                if !self.loaded {
                     return actions;
                 }
                 // The file's own chapters outrank aniskip: they were authored against this
@@ -314,11 +357,33 @@ mod tests {
     #[test]
     fn a_stream_with_no_chapters_of_its_own_gets_ours() {
         let mut t = tracker().marking_chapters(true);
+        // Loading is what makes the question askable, so loading asks it.
+        let actions = t.observe(&PlaybackEvent::Loaded);
+        assert!(
+            actions.iter().any(|a| matches!(a, Action::ProbeChapters)),
+            "the load must ask for the settled chapter list"
+        );
+        // The settled answer: nothing authored into the stream.
         let actions = t.observe(&PlaybackEvent::Chapters(Vec::new()));
         let marks = marks(&actions).expect("markers for a bare stream");
         assert_eq!(marks.first(), Some(&("Episode".to_string(), 0.0)));
         assert!(marks.iter().any(|(title, _)| title == "Opening"));
         assert!(marks.iter().any(|(title, _)| title == "Ending"));
+    }
+
+    #[test]
+    fn chapters_reported_before_the_load_are_a_greeting_not_an_answer() {
+        // The regression this ordering exists to prevent: mpv greets a new observer with
+        // the current chapter list — empty, file or no file — and trusting it wrote the
+        // markers into a player with no file. The load wiped them, `[]` to `[]` fired no
+        // further event, and the bar stayed blank while the skip prompt worked.
+        let mut t = tracker().marking_chapters(true);
+        let actions = t.observe(&PlaybackEvent::Chapters(Vec::new()));
+        assert!(marks(&actions).is_none(), "wrote markers before any file existed");
+
+        t.observe(&PlaybackEvent::Loaded);
+        let actions = t.observe(&PlaybackEvent::Chapters(Vec::new()));
+        assert!(marks(&actions).is_some(), "the settled answer still gets markers");
     }
 
     /// Writing the list makes mpv report it straight back. Reading that as the release group's
@@ -327,6 +392,7 @@ mod tests {
     #[test]
     fn the_markers_we_wrote_are_not_read_back_as_the_streams_own() {
         let mut t = tracker().marking_chapters(true);
+        t.observe(&PlaybackEvent::Loaded);
         let written = marks(&t.observe(&PlaybackEvent::Chapters(Vec::new()))).cloned().unwrap();
 
         // mpv echoes the write, minus the ending's trailing boundary — past the runtime.
@@ -339,6 +405,7 @@ mod tests {
     #[test]
     fn a_stream_that_brought_chapters_keeps_them() {
         let mut t = tracker().marking_chapters(true);
+        t.observe(&PlaybackEvent::Loaded);
         let authored =
             vec![("Intro".to_string(), 0.0), ("Part A".to_string(), 89.0)];
         let actions = t.observe(&PlaybackEvent::Chapters(authored));
@@ -353,9 +420,11 @@ mod tests {
     #[test]
     fn nothing_is_written_when_the_marking_is_off_or_there_is_nothing_to_mark() {
         let mut off = tracker();
+        off.observe(&PlaybackEvent::Loaded);
         assert!(marks(&off.observe(&PlaybackEvent::Chapters(Vec::new()))).is_none());
 
         let mut blank = PlaybackTracker::new(0.85, Vec::new(), false).marking_chapters(true);
+        blank.observe(&PlaybackEvent::Loaded);
         assert!(marks(&blank.observe(&PlaybackEvent::Chapters(Vec::new()))).is_none());
     }
 
