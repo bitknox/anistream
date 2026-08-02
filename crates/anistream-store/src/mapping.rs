@@ -90,12 +90,15 @@ impl Store {
     /// automatic" gesture. Both must go: an override removed with the cached resolution
     /// left behind would keep answering with the same wrong key.
     pub fn clear_title_match(&self, anilist_id: AnilistId) -> Result<()> {
-        self.with_conn(|c| {
-            c.execute(
+        // One transaction, because the doc above describes exactly what two autocommitted
+        // statements produce when the second fails: the override gone and the cached
+        // resolution left behind, still answering with the key the user just asked to forget.
+        self.with_tx(|tx| {
+            tx.execute(
                 "DELETE FROM mapping_override WHERE anilist_id = ?1",
                 [anilist_id.get()],
             )?;
-            c.execute(
+            tx.execute(
                 "DELETE FROM mapping_resolution WHERE anilist_id = ?1",
                 [anilist_id.get()],
             )?;

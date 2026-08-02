@@ -161,6 +161,8 @@ async fn main() {
             mpv,
             config.playback.commit_threshold,
             config.playback.skip_opening,
+            // Windowless run — fullscreen would be meaningless with `--vo=null`.
+            false,
             Some(config.playback.subtitle_language.clone()),
             // No trackers: this probe checks the local path, and queueing against a real
             // account from a test run would be wrong.

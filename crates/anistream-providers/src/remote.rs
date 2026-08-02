@@ -109,7 +109,12 @@ pub fn parse_hits(payload: &Value) -> Vec<SearchHit> {
             Some(SearchHit {
                 episode_count: number(item, &["totalEpisodes", "episodes", "episodeCount"])
                     .map(|n| n as u32),
-                year: number(item, &["releaseDate", "year", "seasonYear"]).map(|n| n as u16),
+                // `releaseDate` is sometimes a full `20230401`, which truncated silently to a
+                // meaningless `u16`. A four-digit year is the only reading worth keeping.
+                year: number(item, &["releaseDate", "year", "seasonYear"])
+                    .map(|n| if n > 9_999 { n / 10_000 } else { n })
+                    .filter(|n| (1900..=2100).contains(n))
+                    .map(|n| n as u16),
                 format: field(item, &["type", "format", "subOrDub"]).and_then(parse_format),
                 ..SearchHit::new(ProviderKey::new(id), title)
             })
@@ -178,7 +183,16 @@ pub fn parse_streams(payload: &Value, provider_id: &str) -> Vec<Stream> {
                 .and_then(|q| q.trim_end_matches(['p', 'P']).parse().ok())
                 .or_else(|| number(item, &["quality", "height"]).map(|n| n as u32));
 
-            let kind = if url.contains(".m3u8") || field(item, &["isM3U8"]).is_some() {
+            // `isM3U8` is a *boolean* in the shape this provider follows, and `field` only
+            // reads strings — so the standard spelling never matched and an HLS stream whose
+            // URL lacked `.m3u8` (a signed or API-shaped one) was handed to the player as an
+            // MP4. Both forms are accepted, and a `false` is honoured rather than merely
+            // present.
+            let flagged = item
+                .get("isM3U8")
+                .and_then(|v| v.as_bool().or_else(|| v.as_str().map(|s| s == "true")))
+                .unwrap_or(false);
+            let kind = if url.contains(".m3u8") || flagged {
                 StreamKind::Hls
             } else {
                 StreamKind::Mp4

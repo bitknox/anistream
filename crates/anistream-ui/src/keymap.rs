@@ -53,6 +53,9 @@ pub enum Action {
     PlayNext,
     SetListStatus,
     ToggleSynopsis,
+    /// Take the selected title off the CONTINUE rail. A dismissal, not a deletion — the
+    /// watch history survives, and watching the title again brings it back.
+    HideFromContinue,
 
     // Title
     ShowEpisodes,
@@ -128,6 +131,7 @@ impl Action {
         Self::PlayNext,
         Self::SetListStatus,
         Self::ToggleSynopsis,
+        Self::HideFromContinue,
         Self::ShowEpisodes,
         Self::ShowSources,
         Self::PickProvider,
@@ -187,6 +191,7 @@ impl Action {
             Self::PlayNext => "Play next unwatched",
             Self::SetListStatus => "Set list status",
             Self::ToggleSynopsis => "Expand synopsis",
+            Self::HideFromContinue => "Remove from continue watching",
             Self::ShowEpisodes => "Episodes",
             Self::ShowSources => "Sources",
             Self::PickProvider => "Source for this title",
@@ -266,9 +271,11 @@ impl Action {
             | Self::PageUp
             | Self::PageDown => Scope::Movement,
 
-            Self::Open | Self::PlayNext | Self::SetListStatus | Self::ToggleSynopsis => {
-                Scope::Lists
-            }
+            Self::Open
+            | Self::PlayNext
+            | Self::SetListStatus
+            | Self::ToggleSynopsis
+            | Self::HideFromContinue => Scope::Lists,
 
             Self::ShowEpisodes
             | Self::ShowSources
@@ -602,6 +609,9 @@ impl Keymap {
             bind(Binding::plain(Char(' ')), A::PlayNext);
             bind(Binding::plain(Char('a')), A::SetListStatus);
             bind(Binding::plain(Char('i')), A::ToggleSynopsis);
+            // `x` removes, matching what it means for downloads and playback. Browsing
+            // only — while something plays, the playback table's `x` (stop) wins.
+            bind(Binding::plain(Char('x')), A::HideFromContinue);
 
             // Title
             bind(Binding::plain(Char('e')), A::ShowEpisodes);

@@ -93,6 +93,7 @@ fn main() {
 
     app.nav.push(StageView::NowPlaying);
     app.playing = Some(NowPlaying {
+        id: None,
         title: "Sousou no Frieren".into(),
         episode: "11".into(),
         episode_title: Some("Frieren the Slayer".into()),

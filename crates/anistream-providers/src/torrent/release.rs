@@ -205,7 +205,13 @@ fn parse_range(token: &str) -> Option<(u32, u32)> {
     let to: u32 = right.split_whitespace().next()?.parse().ok()?;
     // A "range" that runs backwards, or spans an implausible number of episodes, is
     // almost certainly a resolution or a date rather than an episode range.
-    (to > from && to - from < 2000).then_some((from, to))
+    //
+    // A pair of four-digit years is the case the span check misses, because `2023-2024` is a
+    // perfectly plausible-looking span of one. It read as a batch covering episodes 2023 to
+    // 2024 — which cost the release the single-episode bonus in ranking, and put two episodes
+    // nobody has into the episode list.
+    let looks_like_years = (1900..=2100).contains(&from) && (1900..=2100).contains(&to);
+    (to > from && to - from < 2000 && !looks_like_years).then_some((from, to))
 }
 
 /// Parse a release title.
@@ -421,6 +427,17 @@ mod tests {
         assert!(r.dual_audio);
         assert!(r.bluray);
         assert!(r.covers(1, None) && r.covers(28, None) && !r.covers(29, None));
+    }
+
+    #[test]
+    fn a_span_of_years_is_not_a_span_of_episodes() {
+        // `2023-2024` is a plausible-looking range of one, so the span check let it through
+        // and the release read as a batch covering episodes 2023 to 2024. That cost it the
+        // single-episode bonus in ranking, and put two episodes nobody has into the list.
+        let r = parse("[Group] Sousou no Frieren - 05 (2023-2024) [1080p]");
+        assert_eq!(r.batch, None, "a pair of years is not a batch");
+        assert_eq!(r.episode, Some(5));
+        assert!(r.covers(5, None) && !r.covers(2023, None));
     }
 
     #[test]

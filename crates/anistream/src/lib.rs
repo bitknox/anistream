@@ -9,6 +9,7 @@
 pub mod artwork;
 pub mod data;
 pub mod downloads;
+pub mod focus;
 pub mod mend;
 pub mod playback;
 pub mod remux;

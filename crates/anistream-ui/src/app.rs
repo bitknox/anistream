@@ -80,6 +80,7 @@ pub enum SettingId {
     AutoNext,
     SkipOpening,
     SkipFiller,
+    Fullscreen,
     Upscaling,
     DownloadDir,
     MergeSubtitles,
@@ -99,7 +100,7 @@ pub enum SettingId {
 impl SettingId {
     /// Display order. Grouped by [`Self::category`] — the renderer draws a heading each
     /// time the category changes, so rows of one category must be contiguous here.
-    pub const ALL: [Self; 23] = [
+    pub const ALL: [Self; 24] = [
         Self::Theme,
         Self::Motion,
         Self::Translation,
@@ -109,6 +110,7 @@ impl SettingId {
         Self::AutoNext,
         Self::SkipOpening,
         Self::SkipFiller,
+        Self::Fullscreen,
         Self::Upscaling,
         Self::DownloadDir,
         Self::MergeSubtitles,
@@ -150,6 +152,7 @@ impl SettingId {
             | Self::AutoNext
             | Self::SkipOpening
             | Self::SkipFiller
+            | Self::Fullscreen
             | Self::Upscaling => "playback",
             Self::DownloadDir
             | Self::MergeSubtitles
@@ -179,6 +182,7 @@ impl SettingId {
             // a note on its own OSD as it happens, which is a courtesy, not a prompt.
             Self::SkipOpening => "skip opening automatically",
             Self::SkipFiller => "skip filler automatically",
+            Self::Fullscreen => "start fullscreen",
             Self::Upscaling => "upscaling",
             Self::DownloadDir => "download folder",
             Self::MergeSubtitles => "merge subtitles in",
@@ -433,6 +437,23 @@ impl Entry {
             _ => 0.0,
         }
     }
+
+    /// The newest episode known to be out, with how long ago when that is known too.
+    ///
+    /// Reconciles two sources that disagree for a stretch right after a broadcast: the
+    /// last-aired schedule row lags AniList's own `nextAiringEpisode`, which can already
+    /// hold episode N+1 while the schedule query still answers N-1. Holding N+1 as *next*
+    /// proves N is out, so the larger claim wins — this is what stops a freshly-launched
+    /// episode from being named only by its successor. The "ago" is carried only when it
+    /// belongs to the episode being named, absent rather than guessed otherwise.
+    pub fn latest_aired(&self) -> Option<(u32, Option<i64>)> {
+        let derived = self.next_episode.and_then(|n| n.checked_sub(1)).filter(|n| *n >= 1);
+        match (self.last_aired, derived) {
+            (Some((episode, _)), Some(proven)) if proven > episode => Some((proven, None)),
+            (Some((episode, ago)), _) => Some((episode, Some(ago))),
+            (None, proven) => proven.map(|episode| (episode, None)),
+        }
+    }
 }
 
 /// A device code the user must enter elsewhere to finish signing in.
@@ -546,6 +567,9 @@ pub struct MatchCandidate {
 /// Live playback state for the Now Playing surface.
 #[derive(Debug, Clone, Default, PartialEq)]
 pub struct NowPlaying {
+    /// Which title is playing, so a watch is reflected onto that entry and no other —
+    /// the Home list can hold several shows whose next episode shares a number.
+    pub id: Option<AnilistId>,
     pub title: String,
     pub episode: String,
     pub episode_title: Option<String>,
@@ -1139,11 +1163,12 @@ impl App {
                     if duration.is_some() {
                         playing.duration = duration;
                     }
-                    let (episode, duration) = (playing.episode.clone(), playing.duration);
+                    let (id, episode, duration) =
+                        (playing.id, playing.episode.clone(), playing.duration);
                     // Keeps the table honest while detached: `q` leaves mpv running and drops you
                     // back on the episode list, which would otherwise sit frozen at the position
                     // you started from.
-                    self.reflect_watch(&episode, position, duration, false);
+                    self.reflect_watch(id, &episode, position, duration, false);
                 }
             }
             Update::SkipAvailable { label, to } => {
@@ -1197,6 +1222,7 @@ impl App {
                 let finished = self.playing.take();
                 if let Some(playing) = &finished {
                     self.reflect_watch(
+                        playing.id,
                         &playing.episode,
                         playing.position,
                         playing.duration,
@@ -1398,6 +1424,7 @@ impl App {
 
     fn reflect_watch(
         &mut self,
+        id: Option<AnilistId>,
         episode: &str,
         position: f64,
         duration: Option<f64>,
@@ -1412,33 +1439,83 @@ impl App {
             duration.filter(|d| *d > 0.0).map(|d| (position / d).clamp(0.0, 1.0)).unwrap_or(0.0)
         };
 
-        for list in [&mut self.episodes, &mut self.episodes_all] {
-            if let Some(row) = list.iter_mut().find(|r| r.number == episode) {
-                // Monotonic: a re-watch that was quit early must not erase that it was once
-                // finished.
-                row.watched = row.watched.max(fraction);
-                row.completed = row.completed || completed;
+        // The episode table belongs to the loaded detail; while detached the viewer can be
+        // looking at another show entirely, whose rows must neither take this watch nor
+        // speak for it.
+        let rows_apply = match (id, self.detail.as_ref()) {
+            (Some(id), Some(detail)) => detail.id == id,
+            (Some(_), None) => false,
+            (None, _) => true,
+        };
+        // Whether this finish is a *new* distinct episode, read before the rows are updated.
+        // The store counts distinct completed episodes, so a rewatch must not move the count.
+        let first_completion = completed
+            && rows_apply
+            && !self.episodes.iter().any(|r| r.number == episode && r.completed);
+
+        if rows_apply {
+            for list in [&mut self.episodes, &mut self.episodes_all] {
+                if let Some(row) = list.iter_mut().find(|r| r.number == episode) {
+                    // Monotonic: a re-watch that was quit early must not erase that it was once
+                    // finished.
+                    row.watched = row.watched.max(fraction);
+                    row.completed = row.completed || completed;
+                }
             }
         }
 
-        if !completed {
-            return;
-        }
-        // Progress is the count of *completed* episodes, so only a finish moves it — and only when
-        // this episode is the one it was waiting on, or watching an old episode out of order would
-        // inflate the count.
         for entry in self.detail.iter_mut().chain(match &mut self.content {
             Content::Entries(entries) => entries.iter_mut(),
             _ => [].iter_mut(),
         }) {
-            if let Some((done, next)) = entry.progress
-                && episode == next.to_string()
-            {
-                entry.progress = Some((done + 1, next + 1));
-                // The episode just finished is no longer something to resume.
+            // Only the entry being played: several shows on Home can share a next-episode
+            // number, and a watch reflected onto all of them corrupts every other count.
+            if id.is_some_and(|id| entry.id != id) {
+                continue;
+            }
+
+            let next_up = entry.progress.map_or(1, |(_, next)| next).to_string();
+            if !completed {
+                // A part-watched episode moves the resume point, so the Continue rail is
+                // current the moment mpv exits rather than at the next reload from the store.
+                if episode == next_up && position > 0.0 {
+                    entry.resume = Some(ResumePoint {
+                        position,
+                        fraction: duration
+                            .filter(|d| *d > 0.0)
+                            .map(|d| (position / d).clamp(0.0, 1.0)),
+                    });
+                }
+                continue;
+            }
+
+            // Progress counts *completed* episodes, mirroring the store's distinct count: a
+            // first watch moves it — including the very first episode of a show with no
+            // history, and an out-of-order catch-up — where a rewatch leaves it alone.
+            match entry.progress {
+                Some((done, next)) if episode == next.to_string() => {
+                    entry.progress = Some((done + 1, next + 1));
+                }
+                Some((done, _)) if first_completion => {
+                    entry.progress = Some((done + 1, done + 2));
+                }
+                None => {
+                    entry.progress = Some((1, 2));
+                }
+                _ => {}
+            }
+            // The episode just finished is no longer something to resume.
+            if episode == next_up {
                 entry.resume = None;
             }
         }
+    }
+
+    /// Whether the reducer has just queued another playback — auto-next or an in-player
+    /// episode step about to fire. The event loop uses this to know an ended session is a
+    /// handoff rather than a return to the terminal.
+    pub fn will_play_next(&self) -> bool {
+        matches!(self.pending, Some(Task::Play { .. } | Task::PlaySource { .. }))
     }
 
     /// Age toasts by one frame.
@@ -1629,7 +1706,11 @@ impl App {
                 match (&row.path, row.state) {
                     (Some(path), "complete") => {
                         // First-class playback: same staging, history and sync as a stream.
-                        self.raise_now_playing_titled(row.title.clone(), &row.episode);
+                        self.raise_now_playing_titled(
+                            row.anilist_id,
+                            row.title.clone(),
+                            &row.episode,
+                        );
                         return Some(Task::PlayLocal {
                             id: row.anilist_id,
                             episode: row.episode,
@@ -1891,6 +1972,39 @@ impl App {
                     self.push_toast(Toast::info("nothing selected"));
                 }
             }
+            Action::HideFromContinue => {
+                // The Home list only: the CONTINUE rail is the one list built from your
+                // history, so it is the one list a title can be dismissed from. The view
+                // check matters as much as the section — a pushed detail or episode table
+                // keeps the Home entries as `content`, and removing the show you are
+                // *looking into* because a list you cannot see holds it would be absurd.
+                // Elsewhere the key says so rather than doing nothing, which would read
+                // as broken.
+                let at_home_list = self.nav.section() == Section::Home
+                    && matches!(self.nav.current(), StageView::Section(Section::Home));
+                if !at_home_list {
+                    self.push_toast(Toast::info("removing works on the Home list"));
+                    return None;
+                }
+                let Content::Entries(entries) = &mut self.content else {
+                    return None;
+                };
+                if entries.is_empty() {
+                    return None;
+                }
+                // Dropped from the screen before the write, same contract as SetWatched:
+                // the list answers immediately, the store catches up.
+                let entry = entries.remove(self.selected.min(entries.len() - 1));
+                self.selected = self.selected.min(self.content.len().saturating_sub(1));
+                self.offset = self.offset.min(self.selected);
+                // Say how to undo, because there is no key for it — the way back is the
+                // same thing that put it here.
+                self.push_toast(Toast::info(format!(
+                    "{} removed — watching it again brings it back",
+                    entry.title
+                )));
+                return Some(Task::HideFromContinue { id: entry.id });
+            }
             Action::ForceResync => {
                 if self.sync.is_empty() {
                     self.push_toast(Toast::info("no tracker connected — :accounts"));
@@ -2026,26 +2140,27 @@ impl App {
     /// The order matters: the wipe goes up *before* resolution starts, so the user never sees
     /// a frozen episode table while a provider is being tried.
     fn begin_playback(&mut self, id: AnilistId, episode: String) -> Task {
-        self.raise_now_playing(&episode);
+        self.raise_now_playing(id, &episode);
         Task::Play { id, episode }
     }
 
     /// The visual half of starting playback, shared with the Sources pick: eyecatch up,
     /// Now Playing staged, view pushed.
-    fn raise_now_playing(&mut self, episode: &str) {
+    fn raise_now_playing(&mut self, id: AnilistId, episode: &str) {
         let title = self
             .detail
             .as_ref()
             .or(self.selected_entry())
             .map_or_else(|| "playing".to_string(), |e| e.title.clone());
-        self.raise_now_playing_titled(title, episode);
+        self.raise_now_playing_titled(id, title, episode);
     }
 
     /// The same staging with the title stated by the caller — the Downloads screen knows
     /// what its rows are called without any list selection being involved.
-    fn raise_now_playing_titled(&mut self, title: String, episode: &str) {
+    fn raise_now_playing_titled(&mut self, id: AnilistId, title: String, episode: &str) {
         self.eyecatch = Some(Eyecatch::new(format!("{title}  ·  ep {episode}")));
         self.playing = Some(NowPlaying {
+            id: Some(id),
             title,
             episode: episode.to_owned(),
             episode_title: self
@@ -2207,7 +2322,7 @@ impl App {
                 self.overlay_selected = 0;
                 self.sources.clear();
                 self.source_context = None;
-                self.raise_now_playing(&episode);
+                self.raise_now_playing(id, &episode);
                 Some(Task::PlaySource {
                     id,
                     episode,
@@ -2335,6 +2450,11 @@ impl App {
                     S::SkipFiller => {
                         (on_off(playback.skip_filler), Some(("playback", "skip_filler")), None)
                     }
+                    S::Fullscreen => (
+                        on_off(playback.fullscreen),
+                        Some(("playback", "fullscreen")),
+                        Some("mpv opens fullscreen; its own f key still leaves it"),
+                    ),
                     S::Upscaling => (
                         upscaling_label(playback.upscaling).into(),
                         Some(("playback", "upscaling")),
@@ -2554,6 +2674,10 @@ impl App {
             SettingId::SkipFiller => {
                 self.config.playback.skip_filler = !self.config.playback.skip_filler;
                 V::Bool(self.config.playback.skip_filler)
+            }
+            SettingId::Fullscreen => {
+                self.config.playback.fullscreen = !self.config.playback.fullscreen;
+                V::Bool(self.config.playback.fullscreen)
             }
             SettingId::Presence => {
                 self.config.presence.enabled = !self.config.presence.enabled;
@@ -2987,6 +3111,12 @@ pub enum Task {
         id: AnilistId,
         episodes: Vec<String>,
         watched: bool,
+    },
+    /// Take a title off the CONTINUE rail. The reducer drops the row first, so the list
+    /// answers immediately; this persists the dismissal. History is untouched, and the
+    /// next recorded watch brings the title back.
+    HideFromContinue {
+        id: AnilistId,
     },
     /// Open a URL in the system browser.
     OpenExternal {
@@ -3459,6 +3589,87 @@ mod tests {
         a.handle(Action::Open, 20);
         a.apply(Update::PlaybackEnded { watched: false });
         assert_eq!(a.take_pending(), None);
+    }
+
+    #[test]
+    fn x_on_home_dismisses_the_selected_title_from_continue() {
+        let mut a = app();
+        a.apply(Update::Content(entries(3)));
+        a.selected = 1;
+        let task = a.handle(Action::HideFromContinue, 20);
+        assert_eq!(task, Some(Task::HideFromContinue { id: AnilistId::new(2) }));
+        // Gone from the screen before the store is even asked — same contract as
+        // marking watched.
+        assert_eq!(a.content.len(), 2);
+        assert!(a.content.entries().iter().all(|e| e.id != AnilistId::new(2)));
+    }
+
+    #[test]
+    fn dismissing_from_continue_only_works_on_the_home_list() {
+        // A pushed episode table keeps the Home entries as `content`; the key must not
+        // remove a show the viewer cannot see, least of all the one they are looking into.
+        let mut a = app_at_episodes();
+        assert_eq!(a.handle(Action::HideFromContinue, 20), None);
+        assert_eq!(a.content.len(), 3, "a row vanished from a list not on screen");
+    }
+
+    #[test]
+    fn a_first_watch_moves_progress_without_waiting_for_a_reload() {
+        // A show with no history has no (done, next) pair to advance, and the old rule —
+        // only advance the episode progress was waiting on — silently skipped it, so the
+        // detail meter sat empty until the next load from the store.
+        let mut a = app_at_episodes();
+        assert_eq!(a.detail.as_ref().unwrap().progress, None);
+        a.handle(Action::Open, 20);
+        a.apply(Update::PlaybackEnded { watched: true });
+        assert_eq!(a.detail.as_ref().unwrap().progress, Some((1, 2)));
+    }
+
+    #[test]
+    fn a_watch_lands_only_on_the_entry_being_played() {
+        // Several shows on Home can share a next-episode number; a finished episode used
+        // to advance every one of them.
+        let mut a = app_at_episodes();
+        if let Content::Entries(entries) = &mut a.content {
+            for e in entries.iter_mut() {
+                e.progress = Some((0, 1));
+            }
+        }
+        a.detail.as_mut().unwrap().progress = Some((0, 1));
+        a.handle(Action::Open, 20);
+        a.apply(Update::PlaybackEnded { watched: true });
+
+        let entries = a.content.entries();
+        assert_eq!(entries[0].progress, Some((1, 2)));
+        assert_eq!(entries[1].progress, Some((0, 1)), "another show took the watch");
+    }
+
+    #[test]
+    fn a_rewatch_does_not_inflate_the_progress_count() {
+        // The store counts *distinct* completed episodes; the in-memory mirror has to
+        // hold the same line or the meter jumps on every revisit.
+        let mut a = app_at_episodes();
+        a.episodes[2].completed = true;
+        a.detail.as_mut().unwrap().progress = Some((3, 4));
+        a.episode_selected = 2;
+        a.handle(Action::Open, 20);
+        a.apply(Update::PlaybackEnded { watched: true });
+        assert_eq!(a.detail.as_ref().unwrap().progress, Some((3, 4)));
+    }
+
+    #[test]
+    fn quitting_partway_moves_the_resume_point_at_once() {
+        // The Continue rail reads `entry.resume`; leaving it where the *previous* session
+        // stopped made a fresh quit look unrecorded until the next load from the store.
+        let mut a = app_at_episodes();
+        a.detail.as_mut().unwrap().progress = Some((0, 1));
+        a.handle(Action::Open, 20);
+        a.apply(Update::Playback { position: 600.0, duration: Some(1200.0), paused: false });
+        a.apply(Update::PlaybackEnded { watched: false });
+
+        let resume = a.detail.as_ref().unwrap().resume.expect("no resume point");
+        assert_eq!(resume.position, 600.0);
+        assert_eq!(resume.fraction, Some(0.5));
     }
 
     #[test]
@@ -4495,5 +4706,25 @@ mod tests {
 
         e.episodes = Some(0);
         assert_eq!(e.watched_fraction(), 0.0, "must not divide by zero");
+    }
+
+    #[test]
+    fn the_next_episode_number_proves_its_predecessor_aired() {
+        // Right after a broadcast AniList's `nextAiringEpisode` can already say 9 while
+        // the last-aired schedule row still answers 7 — during that window the app named
+        // the fresh episode only by its successor. Episode 8 is out, provably.
+        let mut e = Entry::new(AnilistId::new(1), "Frieren");
+        e.last_aired = Some((7, 7 * 24 * 3600));
+        e.next_episode = Some(9);
+        assert_eq!(e.latest_aired(), Some((8, None)), "the stale schedule row won");
+
+        // When the sources agree, the schedule row's own timestamp is kept.
+        e.last_aired = Some((8, 3600));
+        assert_eq!(e.latest_aired(), Some((8, Some(3600))));
+
+        // A premiere still ahead proves nothing aired.
+        let mut fresh = Entry::new(AnilistId::new(2), "Not Yet Out");
+        fresh.next_episode = Some(1);
+        assert_eq!(fresh.latest_aired(), None);
     }
 }

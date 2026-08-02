@@ -417,12 +417,19 @@ impl AniList {
             .execute(query::LAST_AIRED, serde_json::json!({ "ids": raw, "perPage": per_page }))
             .await?;
 
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_secs() as i64);
         let mut out: Vec<LastAired> = data["Page"]["airingSchedules"]
             .as_array()
             .map(|arr| {
                 arr.iter().filter_map(|r| serde_json::from_value(r.clone()).ok()).collect()
             })
             .unwrap_or_default();
+        // The `notYetAired` filter is AniList's own bookkeeping and it lags around a
+        // broadcast; a row whose air time is still ahead is not an answer to "what last
+        // aired", and dropped *before* the dedup so it cannot shadow the row that is.
+        out.retain(|r| r.airing_at <= now);
         // Keep the newest row per title and drop the rest.
         out.sort_by(|a, b| {
             a.media_id.get().cmp(&b.media_id.get()).then(b.airing_at.cmp(&a.airing_at))

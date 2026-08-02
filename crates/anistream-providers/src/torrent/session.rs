@@ -318,7 +318,14 @@ impl TorrentSession {
 
         // Replacing the previous stream drops its server, freeing the port and stopping
         // work on an episode nobody is watching.
-        if let Ok(mut slot) = self.active.lock() {
+        //
+        // `into_inner` on poisoning rather than skipping the write, which is what `if let Ok`
+        // did here and at every other lock in this file. A panic elsewhere would have turned
+        // these into silent no-ops — and on `active` that means `stop()` stops nothing, so the
+        // VPN guard's teardown becomes a no-op exactly when it is most needed. The rest of the
+        // workspace already recovers rather than skips.
+        {
+            let mut slot = self.active.lock().unwrap_or_else(|e| e.into_inner());
             *slot = Some(Arc::clone(&active));
         }
 
@@ -392,10 +399,12 @@ impl TorrentSession {
         // The queue owns this torrent now. Off the stream ledger — the same infohash may
         // already be there from a watch — and onto the download roster, so stream
         // retirement can never reach it.
-        if let Ok(mut ids) = self.download_ids.lock() {
+        {
+            let mut ids = self.download_ids.lock().unwrap_or_else(|e| e.into_inner());
             ids.insert(handle.id());
         }
-        if let Ok(mut history) = self.stream_history.lock() {
+        {
+            let mut history = self.stream_history.lock().unwrap_or_else(|e| e.into_inner());
             history.retain(|id| *id != handle.id());
         }
 
@@ -461,10 +470,12 @@ impl TorrentSession {
     pub async fn forget(&self, id: usize, delete_files: bool) -> Result<(), ProviderError> {
         // Off both ledgers first — a forgotten id must not shield a future torrent that
         // happens to be assigned the same number.
-        if let Ok(mut ids) = self.download_ids.lock() {
+        {
+            let mut ids = self.download_ids.lock().unwrap_or_else(|e| e.into_inner());
             ids.remove(&id);
         }
-        if let Ok(mut history) = self.stream_history.lock() {
+        {
+            let mut history = self.stream_history.lock().unwrap_or_else(|e| e.into_inner());
             history.retain(|h| *h != id);
         }
         self.session
@@ -480,7 +491,8 @@ impl TorrentSession {
 
     /// Drop the loopback stream server, without touching the torrent.
     pub fn stop(&self) {
-        if let Ok(mut slot) = self.active.lock() {
+        {
+            let mut slot = self.active.lock().unwrap_or_else(|e| e.into_inner());
             *slot = None;
         }
     }
