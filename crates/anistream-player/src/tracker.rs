@@ -35,6 +35,9 @@ pub enum Action {
     RememberSpeed(f64),
     /// Remember the chosen volume for the next session.
     RememberVolume(f64),
+    /// Write chapter markers into the player, so a stream that carries none still shows the
+    /// viewer where the opening and ending are. `(title, start_seconds)`.
+    MarkChapters(Vec<(String, f64)>),
 }
 
 /// Tracks one episode's playback.
@@ -44,6 +47,13 @@ pub struct PlaybackTracker {
     threshold: f64,
     skips: Vec<SkipInterval>,
     auto_skip: bool,
+    /// Whether to hand the player chapter markers when the stream brings none of its own.
+    mark_chapters: bool,
+    /// Set once markers have been written. mpv reports the change back as a chapters event,
+    /// and reading our own markers as though the release group had authored them would be
+    /// circular — worse, an ending marker past the runtime is dropped by mpv, so the round
+    /// trip could come back *missing* the ending we started from.
+    marked: bool,
 
     position: f64,
     duration: Option<f64>,
@@ -68,6 +78,8 @@ impl PlaybackTracker {
             threshold: threshold.clamp(0.05, 1.0),
             skips,
             auto_skip,
+            mark_chapters: false,
+            marked: false,
             position: 0.0,
             duration: None,
             last_recorded: 0.0,
@@ -80,6 +92,15 @@ impl PlaybackTracker {
             offering: None,
             ended: false,
         }
+    }
+
+    /// Hand the player chapter markers for the skips we know about, where the stream has none
+    /// of its own. Off unless asked for: writing to the player is a visible change, and a
+    /// stream that already has chapters must keep them.
+    #[must_use]
+    pub const fn marking_chapters(mut self, on: bool) -> Self {
+        self.mark_chapters = on;
+        self
     }
 
     pub fn position(&self) -> f64 {
@@ -188,11 +209,26 @@ impl PlaybackTracker {
             PlaybackEvent::Remote(_) => {}
 
             PlaybackEvent::Chapters(chapters) => {
+                // Anything arriving after we have written our own is an echo of that write.
+                if self.marked {
+                    return actions;
+                }
                 // The file's own chapters outrank aniskip: they were authored against this
                 // exact encode, where community times were taken against someone else's.
                 let from_file = crate::skip::from_chapters(chapters);
                 if !from_file.is_empty() {
                     self.skips = from_file;
+                    return actions;
+                }
+                // Nothing authored into the stream — HLS cannot carry chapters at all — so the
+                // seek bar is blank in exactly the case where we do know where the opening and
+                // ending sit. Say so, rather than keeping it to the skip prompt.
+                if self.mark_chapters && chapters.is_empty() {
+                    let marks = crate::skip::to_chapters(&self.skips);
+                    if !marks.is_empty() {
+                        self.marked = true;
+                        actions.push(Action::MarkChapters(marks));
+                    }
                 }
             }
 
@@ -266,6 +302,61 @@ mod tests {
 
     fn tracker() -> PlaybackTracker {
         PlaybackTracker::new(0.85, skips(), false)
+    }
+
+    fn marks(actions: &[Action]) -> Option<&Vec<(String, f64)>> {
+        actions.iter().find_map(|a| match a {
+            Action::MarkChapters(marks) => Some(marks),
+            _ => None,
+        })
+    }
+
+    #[test]
+    fn a_stream_with_no_chapters_of_its_own_gets_ours() {
+        let mut t = tracker().marking_chapters(true);
+        let actions = t.observe(&PlaybackEvent::Chapters(Vec::new()));
+        let marks = marks(&actions).expect("markers for a bare stream");
+        assert_eq!(marks.first(), Some(&("Episode".to_string(), 0.0)));
+        assert!(marks.iter().any(|(title, _)| title == "Opening"));
+        assert!(marks.iter().any(|(title, _)| title == "Ending"));
+    }
+
+    /// Writing the list makes mpv report it straight back. Reading that as the release group's
+    /// own work would be circular — and mpv drops a marker past the runtime, so the round trip
+    /// can return *fewer* segments than it was given.
+    #[test]
+    fn the_markers_we_wrote_are_not_read_back_as_the_streams_own() {
+        let mut t = tracker().marking_chapters(true);
+        let written = marks(&t.observe(&PlaybackEvent::Chapters(Vec::new()))).cloned().unwrap();
+
+        // mpv echoes the write, minus the ending's trailing boundary — past the runtime.
+        let echo: Vec<_> = written.into_iter().filter(|(t, _)| t != "Preview").collect();
+        let actions = t.observe(&PlaybackEvent::Chapters(echo));
+        assert!(marks(&actions).is_none(), "wrote a second time");
+        assert_eq!(t.skips, skips(), "the ending survived its own round trip");
+    }
+
+    #[test]
+    fn a_stream_that_brought_chapters_keeps_them() {
+        let mut t = tracker().marking_chapters(true);
+        let authored =
+            vec![("Intro".to_string(), 0.0), ("Part A".to_string(), 89.0)];
+        let actions = t.observe(&PlaybackEvent::Chapters(authored));
+        assert!(marks(&actions).is_none(), "overwrote the file's own chapters");
+        assert_eq!(
+            t.skips,
+            vec![SkipInterval { kind: SkipKind::Opening, start: 0.0, end: 89.0 }],
+            "and took its times, which were cut against this encode"
+        );
+    }
+
+    #[test]
+    fn nothing_is_written_when_the_marking_is_off_or_there_is_nothing_to_mark() {
+        let mut off = tracker();
+        assert!(marks(&off.observe(&PlaybackEvent::Chapters(Vec::new()))).is_none());
+
+        let mut blank = PlaybackTracker::new(0.85, Vec::new(), false).marking_chapters(true);
+        assert!(marks(&blank.observe(&PlaybackEvent::Chapters(Vec::new()))).is_none());
     }
 
     fn progress(position: f64) -> PlaybackEvent {

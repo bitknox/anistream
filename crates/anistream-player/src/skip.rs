@@ -64,6 +64,40 @@ pub fn from_chapters(chapters: &[(String, f64)]) -> Vec<SkipInterval> {
         .collect()
 }
 
+/// Chapter markers describing a set of skip intervals — the inverse of [`from_chapters`].
+///
+/// A stream that carries no chapters of its own gives the viewer a featureless seek bar, even
+/// when we know exactly where the opening and ending sit. These markers put that knowledge on
+/// the bar: where the opening begins and ends, and where the ending does.
+///
+/// Chapters are boundaries rather than spans, so each interval contributes two — its start,
+/// named for the segment, and its end, named for whatever the segment gives way to. A run that
+/// does not begin on a marker gets one at zero, so the first segment is named rather than
+/// nameless.
+pub fn to_chapters(skips: &[SkipInterval]) -> Vec<(String, f64)> {
+    let mut marks: Vec<(String, f64)> = Vec::new();
+    for skip in skips.iter().filter(|s| s.duration() > 0.0) {
+        let (opens, closes) = match skip.kind {
+            // What follows an opening is the episode; what follows an ending is the next
+            // episode's preview, which is the one thing that reliably sits there.
+            SkipKind::Opening => ("Opening", "Episode"),
+            SkipKind::Ending => ("Ending", "Preview"),
+        };
+        marks.push((opens.to_owned(), skip.start));
+        marks.push((closes.to_owned(), skip.end));
+    }
+
+    marks.sort_by(|a, b| a.1.total_cmp(&b.1));
+    // Two markers a fraction apart are one boundary as far as a seek bar is concerned, and mpv
+    // would render them on top of each other.
+    marks.dedup_by(|b, a| (b.1 - a.1).abs() < 1.0);
+
+    if marks.first().is_some_and(|(_, at)| *at > 1.0) {
+        marks.insert(0, ("Episode".to_owned(), 0.0));
+    }
+    marks
+}
+
 #[cfg(test)]
 mod chapter_tests {
     use super::*;
@@ -103,6 +137,54 @@ mod chapter_tests {
     fn ncop_variants_count_as_openings() {
         let skips = from_chapters(&chapters(&[("NCOP1", 10.0), ("Part A", 100.0)]));
         assert_eq!(skips[0].kind, SkipKind::Opening);
+    }
+
+    #[test]
+    fn skips_become_markers_a_seek_bar_can_show() {
+        let marks = to_chapters(&[
+            SkipInterval { kind: SkipKind::Opening, start: 3.2, end: 93.2 },
+            SkipInterval { kind: SkipKind::Ending, start: 1417.0, end: 1507.0 },
+        ]);
+        assert_eq!(
+            marks,
+            chapters(&[
+                // A cold open runs before the opening, so it is named rather than left blank.
+                ("Episode", 0.0),
+                ("Opening", 3.2),
+                ("Episode", 93.2),
+                ("Ending", 1417.0),
+                ("Preview", 1507.0),
+            ])
+        );
+    }
+
+    /// The names are the ones [`from_chapters`] reads, so what we write is what we would have
+    /// understood had the release group written it.
+    #[test]
+    fn the_markers_round_trip_back_to_the_same_skips() {
+        let skips = vec![
+            SkipInterval { kind: SkipKind::Opening, start: 0.0, end: 90.0 },
+            SkipInterval { kind: SkipKind::Ending, start: 1320.0, end: 1410.0 },
+        ];
+        assert_eq!(from_chapters(&to_chapters(&skips)), skips);
+    }
+
+    #[test]
+    fn an_opening_at_the_very_start_gets_no_marker_before_it() {
+        let marks = to_chapters(&[SkipInterval {
+            kind: SkipKind::Opening,
+            start: 0.0,
+            end: 90.0,
+        }]);
+        assert_eq!(marks, chapters(&[("Opening", 0.0), ("Episode", 90.0)]));
+    }
+
+    #[test]
+    fn a_segment_with_no_length_is_not_a_boundary() {
+        assert!(
+            to_chapters(&[SkipInterval { kind: SkipKind::Opening, start: 90.0, end: 90.0 }])
+                .is_empty()
+        );
     }
 }
 

@@ -357,6 +357,24 @@ mod tests {
         assert_eq!(value["request_id"], 7);
     }
 
+    /// Pinned against a live mpv 0.41: this exact shape is what `set_property chapter-list`
+    /// accepts and reads back. The keys are mpv's, not ours, so a rename here is a silent
+    /// no-op in the player rather than an error anyone would see.
+    #[test]
+    fn chapter_markers_serialise_to_the_shape_mpv_accepts() {
+        let marks = vec![
+            serde_json::json!({ "title": "Opening", "time": 3.2 }),
+            serde_json::json!({ "title": "Episode", "time": 93.2 }),
+        ];
+        let value =
+            parsed_command(&Command::SetProperty("chapter-list", marks.into()), 3);
+        assert_eq!(value["command"][0], "set_property");
+        assert_eq!(value["command"][1], "chapter-list");
+        assert_eq!(value["command"][2][0]["title"], "Opening");
+        assert_eq!(value["command"][2][0]["time"], 3.2);
+        assert_eq!(value["command"][2][1]["title"], "Episode");
+    }
+
     #[test]
     fn a_relative_seek_is_distinguished_from_an_absolute_one() {
         // Confusing the two turns "back 30 seconds" into "jump to 0:30".

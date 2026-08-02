@@ -255,6 +255,20 @@ impl MpvSession {
         self.send(Command::ShowText { text: text.into(), duration_ms: 3000 }).await
     }
 
+    /// Replace the player's chapter list.
+    ///
+    /// mpv accepts a write to `chapter-list` on a loaded file, which is what puts the markers
+    /// on the seek bar and under chapter navigation without an external file to write and clean
+    /// up. Markers past the runtime are dropped by mpv rather than rejected, so an ending whose
+    /// trailing boundary runs off the end of a slightly short encode still lands.
+    pub async fn set_chapters(&self, chapters: &[(String, f64)]) -> Result<(), PlayerError> {
+        let list: Vec<serde_json::Value> = chapters
+            .iter()
+            .map(|(title, time)| serde_json::json!({ "title": title, "time": time }))
+            .collect();
+        self.send(Command::SetProperty("chapter-list", list.into())).await
+    }
+
     /// Ask mpv to exit.
     pub async fn quit(&self) -> Result<(), PlayerError> {
         self.send(Command::Quit).await

@@ -17,6 +17,7 @@ quality = 1080
 commit_threshold = 0.85    # fraction of runtime that counts as *watched* and gets synced
 auto_next = true
 skip_opening = true        # skips it, and says so on mpv's OSD
+mark_chapters = true       # puts the opening and ending on the seek bar
 
 [providers]
 order = ["torrent", "plugins"]    # tried in order; failover walks the list

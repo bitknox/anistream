@@ -223,6 +223,9 @@ pub async fn play(
     mpv: Mpv,
     threshold: f64,
     auto_skip: bool,
+    // Put the opening and ending on the seek bar where the stream has no chapters of its own,
+    // from `playback.mark_chapters`.
+    mark_chapters: bool,
     // Open mpv fullscreen, from `playback.fullscreen`.
     fullscreen: bool,
     subtitle_language: Option<String>,
@@ -383,7 +386,8 @@ pub async fn play(
         // are bindings nobody finds. One line at session start, then out of the way.
         let _ = session.notify("N next · P previous · S skip").await;
 
-        let mut tracker = PlaybackTracker::new(threshold, skips.clone(), auto_skip);
+        let mut tracker = PlaybackTracker::new(threshold, skips.clone(), auto_skip)
+            .marking_chapters(mark_chapters);
 
         // Presence is connected here rather than at startup: it should exist for exactly as
         // long as something is playing, and holding a socket open while idle would claim a
@@ -550,6 +554,14 @@ pub async fn play(
 
                     Action::ClearSkip => {
                         let _ = tx.send(Update::SkipCleared);
+                    }
+
+                    Action::MarkChapters(marks) => {
+                        // Best effort by design: a player that will not take them plays the
+                        // episode exactly as it did before, and the skip prompt still works.
+                        if let Err(e) = session.set_chapters(&marks).await {
+                            tracing::debug!(error = %e, "player would not take chapter markers");
+                        }
                     }
 
                     Action::RememberSpeed(speed) => {

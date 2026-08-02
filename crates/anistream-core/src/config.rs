@@ -337,6 +337,13 @@ pub struct PlaybackConfig {
     pub persisted_volume: Option<f64>,
     pub skip_opening: bool,
     pub skip_filler: bool,
+    /// Put the opening and ending on the seek bar as chapter markers, where the stream carries
+    /// no chapters of its own.
+    ///
+    /// A stream a provider hands over is almost always HLS, which cannot carry chapters at all,
+    /// so the bar is blank in exactly the case where the skip times are known. A file that does
+    /// declare chapters keeps them untouched.
+    pub mark_chapters: bool,
     /// Start mpv fullscreen. The viewer can still leave it with mpv's own `f` key;
     /// this only chooses how the window opens.
     pub fullscreen: bool,
@@ -374,6 +381,7 @@ impl Default for PlaybackConfig {
             persisted_volume: None,
             upscaling: Upscaling::Off,
             skip_opening: true,
+            mark_chapters: true,
             skip_filler: false,
             fullscreen: false,
             players: vec!["mpv".into(), "external".into()],

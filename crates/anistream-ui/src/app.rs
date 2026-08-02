@@ -80,6 +80,7 @@ pub enum SettingId {
     AutoNext,
     SkipOpening,
     SkipFiller,
+    MarkChapters,
     Fullscreen,
     Upscaling,
     DownloadDir,
@@ -100,7 +101,7 @@ pub enum SettingId {
 impl SettingId {
     /// Display order. Grouped by [`Self::category`] — the renderer draws a heading each
     /// time the category changes, so rows of one category must be contiguous here.
-    pub const ALL: [Self; 24] = [
+    pub const ALL: [Self; 25] = [
         Self::Theme,
         Self::Motion,
         Self::Translation,
@@ -110,6 +111,7 @@ impl SettingId {
         Self::AutoNext,
         Self::SkipOpening,
         Self::SkipFiller,
+        Self::MarkChapters,
         Self::Fullscreen,
         Self::Upscaling,
         Self::DownloadDir,
@@ -152,6 +154,7 @@ impl SettingId {
             | Self::AutoNext
             | Self::SkipOpening
             | Self::SkipFiller
+            | Self::MarkChapters
             | Self::Fullscreen
             | Self::Upscaling => "playback",
             Self::DownloadDir
@@ -182,6 +185,7 @@ impl SettingId {
             // a note on its own OSD as it happens, which is a courtesy, not a prompt.
             Self::SkipOpening => "skip opening automatically",
             Self::SkipFiller => "skip filler automatically",
+            Self::MarkChapters => "mark opening and ending",
             Self::Fullscreen => "start fullscreen",
             Self::Upscaling => "upscaling",
             Self::DownloadDir => "download folder",
@@ -2491,6 +2495,11 @@ impl App {
                     S::SkipFiller => {
                         (on_off(playback.skip_filler), Some(("playback", "skip_filler")), None)
                     }
+                    S::MarkChapters => (
+                        on_off(playback.mark_chapters),
+                        Some(("playback", "mark_chapters")),
+                        Some("chapter marks on the seek bar, where the stream has none"),
+                    ),
                     S::Fullscreen => (
                         on_off(playback.fullscreen),
                         Some(("playback", "fullscreen")),
@@ -2715,6 +2724,10 @@ impl App {
             SettingId::SkipFiller => {
                 self.config.playback.skip_filler = !self.config.playback.skip_filler;
                 V::Bool(self.config.playback.skip_filler)
+            }
+            SettingId::MarkChapters => {
+                self.config.playback.mark_chapters = !self.config.playback.mark_chapters;
+                V::Bool(self.config.playback.mark_chapters)
             }
             SettingId::Fullscreen => {
                 self.config.playback.fullscreen = !self.config.playback.fullscreen;
