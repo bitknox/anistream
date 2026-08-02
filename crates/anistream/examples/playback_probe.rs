@@ -113,6 +113,7 @@ async fn main() {
         title: "Big Buck Bunny".into(),
         translation: Translation::Sub,
         resume_at: None,
+        runtime_secs: None,
         speed: None,
         volume: None,
     };

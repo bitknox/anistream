@@ -211,10 +211,17 @@ impl SkipInterval {
 }
 
 /// Query URL for one episode's skip times.
-pub fn query_url(mal_id: u32, episode: u32) -> String {
+///
+/// `episode_length` is required by the API and behaves like a filter: a real length
+/// returns only submissions within a tight tolerance of it, while `0` disables the
+/// filter and returns everything — which is why `0` is the right first ask. It has one
+/// failure mode, measured against the live service: an interval that runs to the exact
+/// end of the episode makes the server answer 500 under `episodeLength=0`, so callers
+/// need a real length to fall back to.
+pub fn query_url(mal_id: u32, episode: u32, episode_length: u32) -> String {
     format!(
         "https://api.aniskip.com/v2/skip-times/{mal_id}/{episode}\
-         ?types={}&types={}&episodeLength=0",
+         ?types={}&types={}&episodeLength={episode_length}",
         SkipKind::Opening.api_type(),
         SkipKind::Ending.api_type()
     )
@@ -299,10 +306,13 @@ mod tests {
     #[test]
     fn the_query_is_keyed_on_mal_id_not_anilist() {
         // Getting this wrong returns skip times for an unrelated show.
-        let url = query_url(52_991, 1);
+        let url = query_url(52_991, 1, 0);
         assert!(url.contains("/skip-times/52991/1"));
         assert!(url.contains("types=op"));
         assert!(url.contains("types=ed"));
+        assert!(url.contains("episodeLength=0"));
+        // The fallback ask carries the real runtime, verbatim.
+        assert!(query_url(52_991, 1, 1440).contains("episodeLength=1440"));
     }
 
     #[test]

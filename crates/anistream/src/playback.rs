@@ -38,6 +38,11 @@ pub struct PlaybackContext {
     pub translation: Translation,
     /// Where to resume from, if the local history says so.
     pub resume_at: Option<f64>,
+    /// The episode's advertised runtime in seconds, from AniList's per-episode minutes.
+    ///
+    /// A hint, not a truth: it exists for the aniskip fallback, which needs a plausible
+    /// length when the length-agnostic query hits that API's end-of-episode 500.
+    pub runtime_secs: Option<u32>,
     /// Speed carried over from the previous episode.
     pub speed: Option<f64>,
     /// Volume carried over from the previous session.
@@ -185,6 +190,7 @@ pub async fn fetch_skips(
     http: &HttpClient,
     mal_id: Option<u32>,
     episode: &str,
+    runtime_secs: Option<u32>,
 ) -> Vec<SkipInterval> {
     let Some(mal_id) = mal_id else {
         tracing::debug!("no mal id; skip data unavailable for this title");
@@ -194,16 +200,28 @@ pub async fn fetch_skips(
         return Vec::new();
     };
 
-    match http.plain().get(skip::query_url(mal_id, number)).send().await {
-        Ok(response) if response.status().is_success() => {
-            let body = response.text().await.unwrap_or_default();
-            let intervals = skip::parse(&body);
-            tracing::info!(count = intervals.len(), "skip intervals loaded");
-            intervals
+    // Length 0 first, because it returns every submission regardless of which encode it
+    // was timed against. It has one measured failure: aniskip answers 500 when a stored
+    // interval runs to the exact end of the episode — an ending that fades on the last
+    // frame, common for currently-airing shows. The retry asks again with the advertised
+    // runtime, which that server handles; its tight length-tolerance is the price, and it
+    // costs nothing here since the alternative was no data at all.
+    let attempts = [Some(0), runtime_secs];
+    for length in attempts.into_iter().flatten() {
+        match http.plain().get(skip::query_url(mal_id, number, length)).send().await {
+            Ok(response) if response.status().is_success() => {
+                let body = response.text().await.unwrap_or_default();
+                let intervals = skip::parse(&body);
+                tracing::info!(count = intervals.len(), length, "skip intervals loaded");
+                return intervals;
+            }
+            // aniskip returns 404 for titles nobody has submitted times for, which is
+            // the norm — only a server error is worth the second ask.
+            Ok(response) if !response.status().is_server_error() => return Vec::new(),
+            _ => {}
         }
-        // aniskip returns 404 for titles nobody has submitted times for, which is the norm.
-        _ => Vec::new(),
     }
+    Vec::new()
 }
 
 /// Play the best stream of a resolved list and record what happens.
@@ -315,7 +333,8 @@ pub async fn play(
         return;
     }
 
-    let skips = fetch_skips(&http, context.mal_id, &context.episode).await;
+    let skips =
+        fetch_skips(&http, context.mal_id, &context.episode, context.runtime_secs).await;
 
     // Cleared when the UI drops its sender, which disables that select branch — otherwise a
     // closed channel returns `None` instantly and spins the loop. Outside the attempt loop,
@@ -745,14 +764,14 @@ mod tests {
     async fn a_title_without_a_mal_id_simply_has_no_skip_data() {
         // The mapping layer cannot resolve every title, and skip data is decoration.
         let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
-        assert!(fetch_skips(&http, None, "1").await.is_empty());
+        assert!(fetch_skips(&http, None, "1", None).await.is_empty());
     }
 
     #[tokio::test]
     async fn a_non_numeric_episode_is_not_looked_up() {
         // "OVA" and "S1" are real episode labels; asking aniskip about them is meaningless.
         let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
-        assert!(fetch_skips(&http, Some(52_991), "OVA").await.is_empty());
+        assert!(fetch_skips(&http, Some(52_991), "OVA", None).await.is_empty());
     }
 
     #[test]
@@ -766,10 +785,12 @@ mod tests {
             title: "Frieren".into(),
             translation: Translation::Sub,
             resume_at: Some(600.0),
+            runtime_secs: Some(1_440),
             speed: Some(1.25),
             volume: Some(80.0),
         };
         assert_eq!(context.mal_id, Some(52_991));
         assert_eq!(context.resume_at, Some(600.0));
+        assert_eq!(context.runtime_secs, Some(1_440));
     }
 }

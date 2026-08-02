@@ -2249,6 +2249,9 @@ fn dispatch(
                     title,
                     translation: playback.translation,
                     resume_at,
+                    // A local file's real length is knowable, but the hint only serves
+                    // the aniskip fallback and a lie would filter its answers.
+                    runtime_secs: None,
                     speed: playback.persist_speed.then_some(playback.persisted_speed).flatten(),
                     volume: playback
                         .persist_volume
@@ -2479,6 +2482,7 @@ async fn resolve_for_playback(
             .unwrap_or_else(|| format!("anilist {}", id.get())),
         translation: playback.translation,
         resume_at,
+        runtime_secs: media.duration.map(|minutes| minutes * 60),
         speed: playback.persist_speed.then_some(playback.persisted_speed).flatten(),
         volume: playback.persist_volume.then_some(playback.persisted_volume).flatten(),
     };
