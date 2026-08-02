@@ -1035,7 +1035,7 @@ fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
                 format!("{done} / {total}   ep {next} next"),
                 app.palette.style(Role::TextDim),
             );
-        } else if let Some(secs) = entry.airing_in {
+        } else if let Some(secs) = entry.airing_in.filter(|s| *s > 0) {
             buf.set_string(
                 area.left(),
                 y,
@@ -2347,7 +2347,10 @@ fn broadcast_line(entry: &Entry) -> String {
             None => format!("EP {episode} out"),
         });
     }
-    if let Some(seconds) = entry.airing_in {
+    // Only a countdown that still has time left is a countdown. A calendar row spans both
+    // directions, so `airing_in` goes negative once that episode has aired — and "in now" for
+    // something already out is worse than saying nothing, since the half above already says it.
+    if let Some(seconds) = entry.airing_in.filter(|s| *s > 0) {
         parts.push(match entry.next_episode {
             Some(next) => format!("EP {next} in {}", crate::widgets::countdown(seconds)),
             None => format!("next in {}", crate::widgets::countdown(seconds)),
@@ -2430,6 +2433,23 @@ mod tests {
                 .into(),
             ..Entry::new(AnilistId::new(id), title)
         }
+    }
+
+    /// An episode that has already aired has no time left to count down to, and the "out" half
+    /// of the line already reports it. Saying "in now" alongside read as a release that never
+    /// arrived.
+    #[test]
+    fn the_broadcast_line_drops_a_countdown_that_has_run_out() {
+        let mut e = entry(1, "Frieren");
+        e.next_episode = Some(5);
+        e.last_aired = Some((5, 3_600));
+        e.airing_in = Some(-3_600);
+        let line = broadcast_line(&e);
+        assert!(line.contains("EP 5 out"), "what is out still gets said: {line}");
+        assert!(!line.contains("now"), "a spent countdown is not a countdown: {line}");
+
+        e.airing_in = Some(600);
+        assert!(broadcast_line(&e).contains("EP 5 in 10m"), "a real wait still counts down");
     }
 
     fn text_of(buf: &Buffer) -> String {

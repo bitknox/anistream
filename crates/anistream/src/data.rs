@@ -74,6 +74,11 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
 pub fn entry_from_airing(airing: &AiringEntry, now: i64, store: Option<&Store>) -> Entry {
     Entry {
         airing_in: Some(airing.airing_at.saturating_sub(now)),
+        // The countdown above is *this row's* episode, so the number beside it has to be too.
+        // Inherited from the media it would be whatever airs next overall, which pairs one
+        // episode's number with another's countdown — a row about episode 5 that has just aired
+        // reading "EP 6 in now".
+        next_episode: Some(airing.episode),
         // The calendar is about *this* episode, so the title carries its number.
         title: format!("{}  ep {}", airing.media.title.display(), airing.episode),
         ..entry_from(&airing.media, store)
@@ -367,5 +372,23 @@ mod tests {
         let e = entry_from_airing(&airing, 1_000_000, None);
         assert!(e.title.contains("ep 12"));
         assert_eq!(e.airing_in, Some(600));
+    }
+
+    /// Reported as "EP 5 out · EP 6 in now": the row's countdown was paired with the *media's*
+    /// next episode, so an episode that had just aired was announced under its successor's
+    /// number with no time left on the clock.
+    #[test]
+    fn a_calendar_entry_numbers_the_episode_its_countdown_belongs_to() {
+        let mut media = media();
+        media.next_airing_episode = Some(anistream_meta::anilist::model::NextAiring {
+            episode: 6,
+            airing_at: 1_600_000,
+            time_until_airing: 600_000,
+        });
+        // The row is about episode 5, which aired an hour ago.
+        let airing = AiringEntry { episode: 5, airing_at: 996_400, media };
+        let e = entry_from_airing(&airing, 1_000_000, None);
+        assert_eq!(e.next_episode, Some(5), "the number must match the countdown beside it");
+        assert_eq!(e.airing_in, Some(-3_600), "already aired, so the countdown runs negative");
     }
 }
