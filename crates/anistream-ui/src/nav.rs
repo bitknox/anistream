@@ -145,9 +145,17 @@ pub enum Overlay {
     Disambiguate,
     ManualQuery,
     WatchOrder,
+    Recommendations,
     DownloadRange,
     EditSetting,
     ListStatus,
+    Rate,
+    SearchFilters,
+    /// Kitsu sign-in, step one: who.
+    KitsuUsername,
+    /// Kitsu sign-in, step two: the password, rendered masked and kept only long
+    /// enough to exchange for a token.
+    KitsuPassword,
     Accounts,
     Conflicts,
     Logs,
@@ -163,9 +171,14 @@ impl Overlay {
             Self::Disambiguate => "WHICH ONE",
             Self::ManualQuery => "FIND MANUALLY",
             Self::WatchOrder => "WATCH ORDER",
+            Self::Recommendations => "RECOMMENDED",
             Self::DownloadRange => "DOWNLOAD EPISODES",
             Self::EditSetting => "EDIT",
             Self::ListStatus => "LIST STATUS",
+            Self::Rate => "RATE",
+            Self::SearchFilters => "FILTERS",
+            Self::KitsuUsername => "SIGN IN TO KITSU",
+            Self::KitsuPassword => "KITSU PASSWORD",
             Self::Accounts => "ACCOUNTS",
             Self::Conflicts => "CONFLICTS",
             Self::Logs => "LOGS",
@@ -176,7 +189,12 @@ impl Overlay {
     pub const fn takes_text_input(&self) -> bool {
         matches!(
             self,
-            Self::CommandPalette | Self::ManualQuery | Self::DownloadRange | Self::EditSetting
+            Self::CommandPalette
+                | Self::ManualQuery
+                | Self::DownloadRange
+                | Self::EditSetting
+                | Self::KitsuUsername
+                | Self::KitsuPassword
         )
     }
 }

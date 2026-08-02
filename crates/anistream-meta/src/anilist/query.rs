@@ -31,6 +31,7 @@ pub const MEDIA_FIELDS: &str = r"
 pub const MEDIA_DETAIL_FIELDS: &str = r"
     externalLinks { site url type language }
     streamingEpisodes { title url site thumbnail }
+    trailer { id site }
 ";
 
 pub fn search() -> String {
@@ -39,6 +40,24 @@ pub fn search() -> String {
             Page(page: $page, perPage: $perPage) {{
                 pageInfo {{ hasNextPage }}
                 media(search: $search, type: ANIME, sort: SEARCH_MATCH) {{ {MEDIA_FIELDS} }}
+            }}
+        }}"
+    )
+}
+
+/// Search with the filter surface: the same server-side arguments as the seasonal
+/// browse, every one optional, so one document serves "frieren", "mecha from 2006"
+/// and "best of fall" alike.
+pub fn search_filtered() -> String {
+    format!(
+        r"query ($search: String, $page: Int, $perPage: Int, $genres: [String],
+                 $format: MediaFormat, $status: MediaStatus, $season: MediaSeason,
+                 $seasonYear: Int, $sort: [MediaSort]) {{
+            Page(page: $page, perPage: $perPage) {{
+                pageInfo {{ hasNextPage }}
+                media(search: $search, type: ANIME, genre_in: $genres, format: $format,
+                      status: $status, season: $season, seasonYear: $seasonYear,
+                      sort: $sort) {{ {MEDIA_FIELDS} }}
             }}
         }}"
     )
@@ -65,7 +84,7 @@ pub fn by_id() -> String {
             Media(id: $id, type: ANIME) {{ {MEDIA_FIELDS} {MEDIA_DETAIL_FIELDS}
                 relations {{ edges {{ relationType node {{ id title {{ romaji english native }} format }} }} }}
                 recommendations(perPage: 8, sort: RATING_DESC) {{
-                    nodes {{ mediaRecommendation {{ {MEDIA_FIELDS} }} }}
+                    nodes {{ mediaRecommendation {{ id title {{ romaji english native }} format }} }}
                 }}
             }}
         }}"
@@ -173,8 +192,8 @@ pub const DELETE_ENTRY: &str = r"
 
 /// Push progress for one title.
 pub const SAVE_PROGRESS: &str = r"
-    mutation ($mediaId: Int, $progress: Int, $status: MediaListStatus, $score: Float) {
-        SaveMediaListEntry(mediaId: $mediaId, progress: $progress, status: $status, score: $score) {
+    mutation ($mediaId: Int, $progress: Int, $status: MediaListStatus, $scoreRaw: Int) {
+        SaveMediaListEntry(mediaId: $mediaId, progress: $progress, status: $status, scoreRaw: $scoreRaw) {
             id
             progress
             status
@@ -209,6 +228,7 @@ mod tests {
         // fails at runtime, against a rate-limited API.
         for (name, doc) in [
             ("search", search()),
+            ("search_filtered", search_filtered()),
             ("by_id", by_id()),
             ("seasonal", seasonal()),
             ("airing_schedule", airing_schedule()),
@@ -224,7 +244,7 @@ mod tests {
     #[test]
     fn interpolation_produced_no_stray_escapes() {
         // `{{` in a format string should have collapsed to `{`.
-        for doc in [search(), by_id(), seasonal(), airing_schedule()] {
+        for doc in [search(), search_filtered(), by_id(), seasonal(), airing_schedule()] {
             assert!(!doc.contains("{{"), "unexpanded brace escape in:\n{doc}");
             assert!(!doc.contains("}}"), "unexpanded brace escape in:\n{doc}");
         }
@@ -232,7 +252,7 @@ mod tests {
 
     #[test]
     fn the_shared_fragment_reaches_every_media_query() {
-        for doc in [search(), by_id(), seasonal(), airing_schedule(), user_library()] {
+        for doc in [search(), search_filtered(), by_id(), seasonal(), airing_schedule(), user_library()] {
             assert!(doc.contains("coverImage"), "missing shared fields:\n{doc}");
             assert!(doc.contains("idMal"), "mal id is needed for aniskip");
         }
@@ -243,7 +263,7 @@ mod tests {
         // streamingEpisodes can be hundreds of entries; pulling it in a list query would
         // make browse responses enormous for no benefit.
         assert!(by_id().contains("streamingEpisodes"));
-        for doc in [search(), seasonal(), airing_schedule()] {
+        for doc in [search(), search_filtered(), seasonal(), airing_schedule()] {
             assert!(
                 !doc.contains("streamingEpisodes"),
                 "detail field leaked into a list query"
@@ -253,7 +273,7 @@ mod tests {
 
     #[test]
     fn paged_queries_expose_whether_more_pages_exist() {
-        for doc in [search(), seasonal(), airing_schedule()] {
+        for doc in [search(), search_filtered(), seasonal(), airing_schedule()] {
             assert!(doc.contains("hasNextPage"), "cannot paginate without it");
         }
     }

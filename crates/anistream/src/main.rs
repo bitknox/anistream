@@ -132,9 +132,23 @@ struct Cli {
     #[arg(long, value_name = "ANILIST_ID")]
     stream_url: Option<u32>,
 
-    /// Which episode `--stream-url` should resolve. Accepts non-numeric ids like `OVA`.
-    #[arg(long, default_value = "1")]
-    episode: String,
+    /// Which episode `--stream-url` and `--play` act on. Accepts non-numeric ids like `OVA`.
+    ///
+    /// Left unset, `--stream-url` takes episode 1 and `--play` takes the next unwatched.
+    #[arg(long)]
+    episode: Option<String>,
+
+    /// Play one title without the TUI: resolve, hand to mpv, record history, exit.
+    ///
+    /// The same session the app runs — resume, skips, chapters, tracker queueing — narrated
+    /// to stdout instead of drawn. Composable: `anistream --search x --json | jq` finds the
+    /// id, this plays it.
+    #[arg(long, value_name = "ANILIST_ID")]
+    play: Option<u32>,
+
+    /// Pick up where you left off: resume the most recent episode, or start the next one.
+    #[arg(long = "continue")]
+    continue_watching: bool,
 
     /// List installed plugins with what each one is permitted to reach, then exit.
     ///
@@ -198,7 +212,32 @@ async fn main() -> Result<()> {
         return list_plugins(&config, &paths).await;
     }
     if let Some(id) = cli.stream_url {
-        return stream_url(&config, &http, &store, &paths, id, &cli.episode).await;
+        let episode = cli.episode.as_deref().unwrap_or("1");
+        return stream_url(&config, &http, &store, &paths, id, episode).await;
+    }
+    if let Some(id) = cli.play {
+        let id = anistream_core::ids::AnilistId::new(id);
+        // No `--episode` means the next unwatched, which is almost always the ask.
+        let episode = match &cli.episode {
+            Some(episode) => episode.clone(),
+            None => (store.completed_episode_count(id).unwrap_or(0) + 1).to_string(),
+        };
+        return play_cli(&config, &http, &store, &paths, id, episode).await;
+    }
+    if cli.continue_watching {
+        let Some(top) = store.continue_list(1).unwrap_or_default().into_iter().next() else {
+            anyhow::bail!("nothing in your history yet — watch something first");
+        };
+        // Half-finished resumes; anything else moves on to the episode after the last one
+        // that counted. The same reading of history the home screen's CONTINUE rail uses.
+        let episode = if top.is_resumable(anistream_store::RESUME_CEILING) {
+            top.last_episode.clone()
+        } else if top.episodes_done > 0 {
+            (top.episodes_done + 1).to_string()
+        } else {
+            top.last_episode.clone()
+        };
+        return play_cli(&config, &http, &store, &paths, top.anilist_id, episode).await;
     }
     if let Some(query) = &cli.search {
         return search_cli(&config, &http, &store, query, cli.json).await;
@@ -531,6 +570,12 @@ async fn doctor(config: &Config, store: &Store, images: bool) -> Result<()> {
 
 /// Print the URL to open in a browser to authorise a tracker.
 fn print_login_url(config: &Config, tracker: &str) -> Result<()> {
+    if tracker == "kitsu" {
+        anyhow::bail!(
+            "kitsu has no authorize URL — it signs in with your account credentials: \
+             anistream --login --tracker kitsu"
+        );
+    }
     if tracker != "anilist" {
         anyhow::bail!("no sign-in flow for {tracker:?} yet");
     }
@@ -614,6 +659,9 @@ fn lift_reauth_hold(tracker: &str) {
 async fn login(config: &Config, tracker: &str, given: &str, http: &HttpClient) -> Result<()> {
     if tracker == "mal" {
         return login_mal(config, http).await;
+    }
+    if tracker == "kitsu" {
+        return login_kitsu(config, http).await;
     }
     // Simkl and Trakt sign in with a device code, which is a *better* fit for a CLI than the
     // loopback flow: nothing to register, and it works over SSH where opening a browser on the
@@ -869,6 +917,75 @@ async fn login_mal(config: &Config, http: &HttpClient) -> Result<()> {
     println!();
     println!("Check it with: anistream --sync");
     Ok(())
+}
+
+/// Sign in to Kitsu with a username and password.
+///
+/// The one tracker with no app to register: Kitsu's token endpoint accepts the password
+/// grant bare. The password's only journey is stdin → the token exchange — it is never
+/// written anywhere, and what lands in the keychain is the usual access/refresh pair.
+async fn login_kitsu(config: &Config, http: &HttpClient) -> Result<()> {
+    println!("Kitsu signs in with your account credentials — no app registration exists.");
+    println!("The password is exchanged for a token and dropped; only the token is stored.");
+    println!();
+    let username = read_line("email or username: ")?;
+    let username = username.trim();
+    if username.is_empty() {
+        anyhow::bail!("nothing entered");
+    }
+    let password = read_secret("password: ")?;
+    if password.is_empty() {
+        anyhow::bail!("nothing entered");
+    }
+
+    println!("Exchanging the credentials for a token…");
+    let pair =
+        anistream_track::kitsu::login(http.plain(), username, &password, anistream_store::now())
+            .await?;
+
+    let store = tracking::token_store(config);
+    lift_reauth_hold("kitsu");
+    let storage =
+        store.set_pair("kitsu", &pair.access, pair.refresh.as_deref(), pair.expires_at)?;
+    println!("● signed in to Kitsu — token stored in the {}", storage.describe());
+    if let Some(expires_at) = pair.expires_at {
+        let days = (expires_at - anistream_store::now()) / 86_400;
+        println!("  valid for about {days} days, and renewed automatically before it lapses");
+    }
+    println!();
+    println!("Check it with: anistream --sync");
+    Ok(())
+}
+
+/// Read one line from stdin without echoing it, where the platform allows.
+///
+/// Unix gets `stty -echo` around the read; elsewhere the input echoes, and saying so
+/// beats pretending. A password should never appear on screen silently.
+fn read_secret(prompt: &str) -> Result<String> {
+    #[cfg(unix)]
+    let echo_off = std::process::Command::new("stty")
+        .arg("-echo")
+        .stdin(std::process::Stdio::inherit())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false);
+    #[cfg(not(unix))]
+    let echo_off = false;
+
+    if !echo_off {
+        eprintln!("(the terminal could not hide input, so it will echo)");
+    }
+    let line = read_line(prompt);
+    #[cfg(unix)]
+    if echo_off {
+        let _ = std::process::Command::new("stty")
+            .arg("echo")
+            .stdin(std::process::Stdio::inherit())
+            .status();
+        // The Enter that ended the hidden line never echoed either.
+        eprintln!();
+    }
+    Ok(line?.trim().to_owned())
 }
 
 /// Prompt on stderr and read one line from stdin.
@@ -1250,6 +1367,16 @@ async fn run(
     // The daily update check: one cached request, one quiet toast when a release exists.
     anistream::updates::spawn_check(app.config.updates.check, &paths.cache_dir, &http, &tx);
 
+    // The airing digest: what aired for shows you watch since the last launch. Same
+    // philosophy as the update check — one line, only when there is something to say.
+    anistream::digest::spawn(
+        app.config.notifications.airing_digest,
+        app.config.notifications.desktop,
+        store.clone(),
+        anilist.clone(),
+        tx.clone(),
+    );
+
     // Report whatever the background plugin load concluded, once. A plugin that failed to load
     // must not be silent — the Providers screen is where a missing source gets explained.
     {
@@ -1576,15 +1703,29 @@ fn spawn(
                     Err(e) => Update::Content(Content::Failed(e)),
                 }
             }
-            Task::Search(query) => match anilist.search(&query, 1, 30).await {
-                Ok(page) => {
-                    let entries =
-                        page.items.iter().map(|m| data::entry_from(m, Some(&store))).collect();
-                    publish_list(&anilist, &tx, entries, now_epoch()).await;
-                    return;
+            Task::Search { query, filter } => {
+                let browse = anistream_meta::anilist::BrowseFilter {
+                    genres: filter.genre.iter().cloned().collect(),
+                    format: filter.format.clone(),
+                    status: filter.status.clone(),
+                    min_score: None,
+                    sort: filter.sort.clone(),
+                    season: filter.season.clone(),
+                    year: filter.year,
+                };
+                match anilist.search_filtered(&query, &browse, 1, 30).await {
+                    Ok(page) => {
+                        let entries = page
+                            .items
+                            .iter()
+                            .map(|m| data::entry_from(m, Some(&store)))
+                            .collect();
+                        publish_list(&anilist, &tx, entries, now_epoch()).await;
+                        return;
+                    }
+                    Err(e) => Update::Content(Content::Failed(e.to_string())),
                 }
-                Err(e) => Update::Content(Content::Failed(e.to_string())),
-            },
+            }
             Task::LoadDetail(id) => {
                 // Sent before the detail itself, so the picker knows the current choice the
                 // moment the title is on screen rather than only after it is opened once.
@@ -1612,11 +1753,14 @@ fn spawn(
             | Task::SetWatched { .. }
             | Task::HideFromContinue { .. }
             | Task::OpenExternal { .. }
+            | Task::PlayTrailer { .. }
             | Task::Player(_)
             | Task::SyncNow
             | Task::Connect { .. }
+            | Task::ConnectKitsu { .. }
             | Task::Disconnect { .. }
             | Task::SetStatus { .. }
+            | Task::SetScore { .. }
             | Task::ResolveConflict { .. }
             | Task::SetProviderPreference { .. }
             | Task::LoadLibrary(_)
@@ -1719,11 +1863,19 @@ fn dispatch(
             let (sync, tx) = (sync.clone(), tx.clone());
             tokio::spawn(tracking::connect(sync, tracker, tx));
         }
+        Task::ConnectKitsu { username, password } => {
+            let (sync, tx) = (sync.clone(), tx.clone());
+            tokio::spawn(tracking::connect_kitsu(sync, username, password.0, tx));
+        }
         Task::Disconnect { tracker } => tracking::disconnect(sync, &tracker, tx),
         Task::SetStatus { id, status } => {
             tracking::set_status(sync, id, status);
             // Queued, not sent — the drain owns the network. Reporting the new depth is what
             // makes the badge move immediately.
+            let _ = tx.send(Update::Sync(Box::new(sync.state_after_enqueue())));
+        }
+        Task::SetScore { id, score } => {
+            tracking::set_score(sync, id, score);
             let _ = tx.send(Update::Sync(Box::new(sync.state_after_enqueue())));
         }
         Task::ResolveConflict { id, keep_local } => {
@@ -1760,7 +1912,7 @@ fn dispatch(
             *player_tx = Some(ptx);
             // Tracker ids rather than trackers: playback only needs to know which queues to
             // append to, and passing the set would couple the player to the sync layer.
-            let tracker_ids = sync.trackers.iter().map(|t| t.id().to_owned()).collect();
+            let tracker_ids = signed_in_tracker_ids(sync);
             spawn_playback(
                 id,
                 episode,
@@ -1782,7 +1934,7 @@ fn dispatch(
             // picked — same fresh channel, same session-replacement semantics.
             let (ptx, prx) = mpsc::unbounded_channel();
             *player_tx = Some(ptx);
-            let tracker_ids = sync.trackers.iter().map(|t| t.id().to_owned()).collect();
+            let tracker_ids = signed_in_tracker_ids(sync);
             spawn_playback(
                 id,
                 episode,
@@ -1803,7 +1955,7 @@ fn dispatch(
             // Same resolution as Play; the handoff at the end is the only difference.
             let (ptx, prx) = mpsc::unbounded_channel();
             *player_tx = Some(ptx);
-            let tracker_ids = sync.trackers.iter().map(|t| t.id().to_owned()).collect();
+            let tracker_ids = signed_in_tracker_ids(sync);
             spawn_playback(
                 id,
                 episode,
@@ -1872,6 +2024,35 @@ fn dispatch(
             }
         }
 
+        Task::PlayTrailer { url, title } => {
+            let mpv_binary = config.playback.mpv_binary.clone();
+            let tx = tx.clone();
+            tokio::spawn(async move {
+                // mpv streams YouTube through yt-dlp, and without it the window opens and
+                // dies with nothing to say. Checked up front so the failure mode is a
+                // browser tab rather than a mystery.
+                if in_path(&["yt-dlp", "youtube-dl"])
+                    && let Ok(mut child) = tokio::process::Command::new(&mpv_binary)
+                        .arg(format!("--force-media-title={title} — trailer"))
+                        .arg(&url)
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .spawn()
+                {
+                    let _ = tx.send(Update::Toast(Toast::info("trailer playing in mpv")));
+                    // Reaped so a closed trailer never lingers as a zombie.
+                    let _ = child.wait().await;
+                    return;
+                }
+                let update = match open::that_detached(&url) {
+                    Ok(()) => Update::Toast(Toast::info("trailer opened in your browser")),
+                    Err(e) => {
+                        Update::Toast(Toast::alert(format!("could not open the trailer: {e}")))
+                    }
+                };
+                let _ = tx.send(update);
+            });
+        }
         Task::OpenExternal { url } => {
             if let Err(e) = open::that_detached(&url) {
                 let _ = tx.send(Update::Toast(Toast::alert(format!("could not open: {e}"))));
@@ -2044,8 +2225,7 @@ fn dispatch(
             // context, which made downloads second-class in every way that matters.
             let (ptx, prx) = mpsc::unbounded_channel();
             *player_tx = Some(ptx);
-            let tracker_ids: Vec<String> =
-                sync.trackers.iter().map(|t| t.id().to_owned()).collect();
+            let tracker_ids = signed_in_tracker_ids(sync);
             let (config, store, http, mpv, tx) =
                 (config.clone(), store.clone(), http.clone(), mpv.clone(), tx.clone());
             tokio::spawn(async move {
@@ -2518,6 +2698,145 @@ async fn stream_url(
         tokio::signal::ctrl_c().await.ok();
     }
     Ok(())
+}
+
+/// Play one episode with no TUI around it.
+///
+/// The full playback session — resume, aniskip, chapters, history, tracker queueing —
+/// through the same `playback::play` the app calls, with its updates narrated to stdout.
+/// What ends it is mpv exiting, exactly like closing the player ends a TUI session.
+async fn play_cli(
+    config: &Config,
+    http: &HttpClient,
+    store: &Store,
+    paths: &Paths,
+    id: anistream_core::ids::AnilistId,
+    episode: String,
+) -> Result<()> {
+    let anilist = AniList::new(http.clone(), config.network.anilist_rate_limit);
+
+    let (registry, guard, note) = sources::build_registry(config, http, paths).await;
+    if let Some(note) = &note {
+        println!("note        {note}");
+    }
+    if registry.is_empty() {
+        anyhow::bail!("no sources registered — see --doctor");
+    }
+    // Kept alive for the whole session: dropping the VPN guard would drop its checks.
+    let _guard = guard;
+
+    let mpv = anistream_player::Mpv::new(paths.runtime_dir())
+        .with_binary(config.playback.mpv_binary.clone())
+        .with_extra_args({
+            let mut args =
+                anistream::shaders::mpv_args(config.playback.upscaling, &paths.cache_dir);
+            args.extend(config.playback.mpv_args.clone());
+            args
+        });
+    if !mpv.is_available().await {
+        anyhow::bail!("{} not found — install mpv to play anything", config.playback.mpv_binary);
+    }
+
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let (streams, context) = resolve_for_playback(
+        &anilist,
+        store,
+        &registry,
+        id,
+        &episode,
+        None,
+        &config.playback,
+        &tx,
+    )
+    .await
+    .map_err(|reason| anyhow::anyhow!(reason))?;
+
+    println!("playing     {} ep {}", context.title, context.episode);
+    if let Some(at) = context.resume_at {
+        println!("resuming    {}m{:02}s in", (at / 60.0) as u32, (at % 60.0) as u32);
+    }
+
+    // The updates the TUI would draw, printed instead. Drained concurrently so a full
+    // channel can never stall the player.
+    let printer = tokio::spawn(async move {
+        let mut watched = false;
+        while let Some(update) = rx.recv().await {
+            match update {
+                Update::Status(s) if !s.trim().is_empty() => println!("{s}"),
+                Update::Toast(t) => println!("{}", t.text),
+                Update::PlaybackEnded { watched: w } => watched = w,
+                _ => {}
+            }
+        }
+        watched
+    });
+
+    // The command channel stays open but silent — headless has no keys to forward. The
+    // sender must outlive the session: a closed channel reads as controls torn down.
+    let (_ptx, prx) = mpsc::unbounded_channel();
+    // The same queue set the TUI uses: signed-in trackers, not merely enabled ones.
+    let sync = tracking::Sync::build(config, store, http);
+    let tracker_ids = signed_in_tracker_ids(&sync);
+    let playback = config.playback.clone();
+    playback::play(
+        streams,
+        context,
+        store.clone(),
+        http.clone(),
+        mpv,
+        playback.commit_threshold,
+        playback.skip_opening,
+        playback.mark_chapters,
+        playback.fullscreen,
+        Some(playback.subtitle_language.clone()),
+        tracker_ids.clone(),
+        config.presence.clone(),
+        config.syncplay.clone(),
+        config.syncplay.enabled,
+        tx,
+        prx,
+    )
+    .await;
+
+    let watched = printer.await.unwrap_or(false);
+    if watched && tracker_ids.is_empty() {
+        println!("counted as watched");
+    } else if watched {
+        println!("counted as watched — queued for {}", tracker_ids.join(", "));
+    } else {
+        println!("stopped early — the position is saved, --continue picks it back up");
+    }
+    Ok(())
+}
+
+/// The queues a finished episode should be appended to: signed-in trackers only.
+///
+/// Signed-in rather than enabled, because Kitsu is enabled out of the box — queueing for
+/// an account that may never exist would grow a badge nobody can act on. A signed-in
+/// tracker that is merely offline still queues, which is the case the outbox exists for;
+/// and a tracker signed into *later* catches up anyway, since the first pull reconciles
+/// progress out of the watch log.
+fn signed_in_tracker_ids(sync: &tracking::Sync) -> Vec<String> {
+    sync.trackers
+        .iter()
+        .filter(|t| t.is_authenticated())
+        .map(|t| t.id().to_owned())
+        .collect()
+}
+
+/// Whether any of these executables is reachable on `PATH`.
+///
+/// Checked by looking rather than by running: the question is "will mpv find yt-dlp",
+/// and mpv looks, it does not run `--version` first.
+fn in_path(names: &[&str]) -> bool {
+    let Some(path) = std::env::var_os("PATH") else {
+        return false;
+    };
+    std::env::split_paths(&path).any(|dir| {
+        names.iter().any(|name| {
+            dir.join(name).is_file() || dir.join(format!("{name}.exe")).is_file()
+        })
+    })
 }
 
 /// Where mpv keeps its own configuration, if it is in the usual place.

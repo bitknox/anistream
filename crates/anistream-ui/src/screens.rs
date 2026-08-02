@@ -185,6 +185,20 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
             truncate(&prompt, area.width as usize),
             app.palette.style(Role::Text),
         );
+        // Active filters are shown where they act, or a filtered search would read as
+        // AniList having quietly lost titles the user knows exist.
+        let summary = app.search_filter.summary();
+        if !summary.is_empty() {
+            let used = prompt.chars().count() as u16 + 3;
+            if used < area.width {
+                buf.set_string(
+                    area.left() + used,
+                    y,
+                    truncate(&summary, (area.width - used) as usize),
+                    app.palette.style(Role::TextDim),
+                );
+            }
+        }
         y += 2;
     }
 
@@ -1398,6 +1412,36 @@ fn status_rows(app: &App) -> Vec<(String, String)> {
         .collect()
 }
 
+fn search_filter_rows(app: &App) -> Vec<(String, String)> {
+    use crate::app::SearchFilters;
+    SearchFilters::ROWS
+        .iter()
+        .enumerate()
+        .map(|(row, name)| (app.search_filter.row_value(row), glyph::eyebrow(name)))
+        .collect()
+}
+
+fn rate_rows() -> Vec<(String, String)> {
+    // Ten down to one, the way a rating reads. The words carry the judgement so the
+    // numbers do not have to be remembered as a scale.
+    [
+        "masterpiece",
+        "great",
+        "very good",
+        "good",
+        "fine",
+        "average",
+        "poor",
+        "bad",
+        "awful",
+        "appalling",
+    ]
+    .iter()
+    .enumerate()
+    .map(|(i, word)| ((*word).to_string(), glyph::eyebrow(&format!("{}", 10 - i))))
+    .collect()
+}
+
 /// The mpv control surface.
 ///
 /// The sparsest screen in the app, and deliberately so — you are looking at the video, not at
@@ -2001,6 +2045,23 @@ fn watch_order_rows(app: &App) -> Vec<(String, String)> {
         .collect()
 }
 
+fn recommendation_rows(app: &App) -> Vec<(String, String)> {
+    let Some(detail) = app.detail.as_ref() else {
+        return Vec::new();
+    };
+    detail
+        .recommended
+        .iter()
+        .map(|rec| {
+            let mut label = rec.title.clone();
+            if let Some(format) = &rec.format {
+                label.push_str(&format!("  ·  {format}"));
+            }
+            (String::new(), label)
+        })
+        .collect()
+}
+
 fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
     let Some(overlay) = app.nav.overlay() else {
         return;
@@ -2022,14 +2083,25 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         Overlay::Accounts => accounts_rows(app),
         Overlay::Conflicts => conflict_rows(app),
         Overlay::ListStatus => status_rows(app),
+        Overlay::Rate => rate_rows(),
+        Overlay::SearchFilters => search_filter_rows(app),
         Overlay::Logs => log_rows(app),
         Overlay::Disambiguate => candidate_rows(app),
         Overlay::Sources => source_rows(app),
         Overlay::SourceProvider => source_provider_rows(app),
         Overlay::WatchOrder => watch_order_rows(app),
+        Overlay::Recommendations => recommendation_rows(app),
         Overlay::ManualQuery => vec![(
             String::new(),
             "type what to search for — an empty enter resets to the automatic match".into(),
+        )],
+        Overlay::KitsuUsername => vec![(
+            String::new(),
+            "email or username — enter continues, esc cancels".into(),
+        )],
+        Overlay::KitsuPassword => vec![(
+            String::new(),
+            "exchanged for a token once and never stored — enter signs in".into(),
         )],
         Overlay::DownloadRange => vec![(
             String::new(),
@@ -2052,12 +2124,15 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         Overlay::Accounts
             | Overlay::Conflicts
             | Overlay::ListStatus
+            | Overlay::Rate
+            | Overlay::SearchFilters
             | Overlay::CommandPalette
             | Overlay::Logs
             | Overlay::Disambiguate
             | Overlay::Sources
             | Overlay::SourceProvider
             | Overlay::WatchOrder
+            | Overlay::Recommendations
     )
     .then_some(app.overlay_selected);
 
@@ -2120,6 +2195,16 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         Overlay::EditSetting => {
             format!("{}   {}▏", glyph::eyebrow(overlay.title()), app.edit_value)
         }
+        Overlay::KitsuUsername => {
+            format!("{}   {}▏", glyph::eyebrow(overlay.title()), app.kitsu_user)
+        }
+        // Masked, one dot per character: length feedback without the letters. This screen
+        // can be shared, streamed, or screenshotted — a password never renders in it.
+        Overlay::KitsuPassword => format!(
+            "{}   {}▏",
+            glyph::eyebrow(overlay.title()),
+            "•".repeat(app.kitsu_pass.chars().count())
+        ),
         // Say what is being asked and why, or a bare "WHICH ONE" over a list of near-identical
         // release names is a riddle rather than a question.
         Overlay::Disambiguate => format!(
@@ -2139,6 +2224,15 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
                 None => "enter opens".into(),
             }
         ),
+        // Anchor on the title the recommendations came from.
+        Overlay::Recommendations => format!(
+            "{}   {}",
+            glyph::eyebrow(overlay.title()),
+            match app.detail.as_ref() {
+                Some(detail) => format!("if you liked {} — enter opens", detail.title),
+                None => "enter opens".into(),
+            }
+        ),
         // Name the title, since the choice is remembered against it rather than globally.
         Overlay::SourceProvider => format!(
             "{}   {}",
@@ -2147,6 +2241,11 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
                 Some(detail) => format!("{} — enter pins it", detail.title),
                 None => "enter pins it".into(),
             }
+        ),
+        // The grammar is not self-evident for a value editor, so the heading states it.
+        Overlay::SearchFilters => format!(
+            "{}   ←/→ pick · enter searches · esc keeps them",
+            glyph::eyebrow(overlay.title())
         ),
         // Name the episode the slate is for, or a wall of release names has no anchor.
         Overlay::Sources => format!(

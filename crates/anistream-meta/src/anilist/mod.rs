@@ -102,6 +102,23 @@ pub struct BrowseFilter {
     pub status: Option<String>,
     pub min_score: Option<u32>,
     pub sort: Option<String>,
+    /// Wire form (`WINTER`…). Only read by [`AniList::search_filtered`] — the seasonal
+    /// browse takes its season as a required argument instead.
+    pub season: Option<String>,
+    /// Same: the filtered search's optional year, not the seasonal browse's required one.
+    pub year: Option<u32>,
+}
+
+impl BrowseFilter {
+    pub fn is_empty(&self) -> bool {
+        self.genres.is_empty()
+            && self.format.is_none()
+            && self.status.is_none()
+            && self.min_score.is_none()
+            && self.sort.is_none()
+            && self.season.is_none()
+            && self.year.is_none()
+    }
 }
 
 /// One upcoming broadcast, for the Calendar screen.
@@ -274,6 +291,50 @@ impl AniList {
                 serde_json::json!({ "search": term, "page": page.max(1), "perPage": per_page }),
             )
             .await?;
+        decode_media_page(&data["Page"])
+    }
+
+    /// Full-text search with the same server-side filter surface as the seasonal browse.
+    ///
+    /// With no term this is a browse, and the sort falls back to popularity — AniList's
+    /// `SEARCH_MATCH` order means nothing without a search string to match.
+    pub async fn search_filtered(
+        &self,
+        term: &str,
+        filter: &BrowseFilter,
+        page: u32,
+        per_page: u32,
+    ) -> Result<Page<Media>> {
+        let term = term.trim();
+        let default_sort = if term.is_empty() { "POPULARITY_DESC" } else { "SEARCH_MATCH" };
+        let mut variables = serde_json::json!({
+            "page": page.max(1),
+            "perPage": per_page,
+            "sort": [filter.sort.clone().unwrap_or_else(|| default_sort.into())],
+        });
+        // Omit absent arguments entirely, as the seasonal browse does: AniList treats an
+        // explicit null differently from a missing argument for some fields.
+        if !term.is_empty() {
+            variables["search"] = serde_json::json!(term);
+        }
+        if !filter.genres.is_empty() {
+            variables["genres"] = serde_json::json!(filter.genres);
+        }
+        if let Some(f) = &filter.format {
+            variables["format"] = serde_json::json!(f);
+        }
+        if let Some(s) = &filter.status {
+            variables["status"] = serde_json::json!(s);
+        }
+        if let Some(s) = &filter.season {
+            variables["season"] = serde_json::json!(s);
+        }
+        if let Some(y) = filter.year {
+            variables["seasonYear"] = serde_json::json!(y);
+        }
+
+        let data: serde_json::Value =
+            self.execute(&query::search_filtered(), variables).await?;
         decode_media_page(&data["Page"])
     }
 
@@ -510,7 +571,10 @@ impl AniList {
             variables.insert("status".into(), status.into());
         }
         if let Some(score) = score {
-            variables.insert("score".into(), score.into());
+            // `scoreRaw` is always out of 100, whatever scale the user's profile displays.
+            // The plain `score` argument is read in that profile scale, so sending our
+            // 10-point value through it would write 8/100 for a 100-point user.
+            variables.insert("scoreRaw".into(), ((score * 10.0).round() as u32).into());
         }
 
         let data: serde_json::Value =

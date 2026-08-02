@@ -24,6 +24,7 @@
 pub mod anilist;
 pub mod auth;
 pub mod device;
+pub mod kitsu;
 pub mod mal;
 pub mod merge;
 pub mod secret;
@@ -34,6 +35,7 @@ pub mod trakt;
 pub use anilist::AniListTracker;
 pub use auth::{AuthError, Flow};
 pub use device::{DeviceCode, DeviceEndpoints, DeviceError};
+pub use kitsu::KitsuTracker;
 pub use mal::MalTracker;
 pub use merge::{Conflict, Field, LocalState, Merged};
 pub use secret::{Storage, TokenPair, TokenStore};

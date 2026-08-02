@@ -52,6 +52,9 @@ pub enum Action {
     Open,
     PlayNext,
     SetListStatus,
+    /// Give the selected title a score. Deliberate and user-initiated only — finishing a
+    /// show never asks for one, because a prompt would turn rating into a chore.
+    RateTitle,
     ToggleSynopsis,
     /// Take the selected title off the CONTINUE rail. A dismissal, not a deletion — the
     /// watch history survives, and watching the title again brings it back.
@@ -64,6 +67,10 @@ pub enum Action {
     FixMapping,
     Download,
     WatchOrder,
+    /// Titles rated highest by people who liked this one.
+    Recommendations,
+    /// The promotional video, in mpv when it can stream the host and the browser otherwise.
+    PlayTrailer,
     OpenInBrowser,
 
     // Downloads
@@ -80,6 +87,9 @@ pub enum Action {
     ToggleWatched,
     MarkAllPrevious,
     Filter,
+    /// Open the search filter overlay, from anywhere. A modified key on purpose: the
+    /// search box eats plain letters, and filters are wanted mid-query.
+    FilterSearch,
 
     // Playback
     PlayPause,
@@ -130,6 +140,7 @@ impl Action {
         Self::Open,
         Self::PlayNext,
         Self::SetListStatus,
+        Self::RateTitle,
         Self::ToggleSynopsis,
         Self::HideFromContinue,
         Self::ShowEpisodes,
@@ -138,6 +149,8 @@ impl Action {
         Self::FixMapping,
         Self::Download,
         Self::WatchOrder,
+        Self::Recommendations,
+        Self::PlayTrailer,
         Self::OpenInBrowser,
         Self::ClearCompleted,
         Self::DeleteDownload,
@@ -146,6 +159,7 @@ impl Action {
         Self::ToggleWatched,
         Self::MarkAllPrevious,
         Self::Filter,
+        Self::FilterSearch,
         Self::PlayPause,
         Self::SeekBack,
         Self::SeekForward,
@@ -190,6 +204,7 @@ impl Action {
             Self::Open => "Open",
             Self::PlayNext => "Play next unwatched",
             Self::SetListStatus => "Set list status",
+            Self::RateTitle => "Rate this title",
             Self::ToggleSynopsis => "Expand synopsis",
             Self::HideFromContinue => "Remove from continue watching",
             Self::ShowEpisodes => "Episodes",
@@ -198,6 +213,8 @@ impl Action {
             Self::FixMapping => "Fix this match",
             Self::Download => "Download",
             Self::WatchOrder => "Watch order",
+            Self::Recommendations => "Recommendations",
+            Self::PlayTrailer => "Play the trailer",
             Self::OpenInBrowser => "Open on AniList",
             Self::ClearCompleted => "Clear finished downloads",
             Self::DeleteDownload => "Delete download and its file",
@@ -206,6 +223,7 @@ impl Action {
             Self::ToggleWatched => "Toggle watched",
             Self::MarkAllPrevious => "Mark all previous watched",
             Self::Filter => "Filter",
+            Self::FilterSearch => "Search filters",
             Self::PlayPause => "Play / pause",
             Self::SeekBack => "Back 5s",
             Self::SeekForward => "Forward 5s",
@@ -239,6 +257,7 @@ impl Action {
             Self::ShowEpisodes => "episodes",
             Self::OpenInBrowser => "on AniList",
             Self::MarkAllPrevious => "mark previous",
+            Self::FilterSearch => "filters",
             Self::ForceResync => "resync",
             Self::Help => "keys",
             other => other.label(),
@@ -274,7 +293,9 @@ impl Action {
             Self::Open
             | Self::PlayNext
             | Self::SetListStatus
+            | Self::RateTitle
             | Self::ToggleSynopsis
+            | Self::FilterSearch
             | Self::HideFromContinue => Scope::Lists,
 
             Self::ShowEpisodes
@@ -283,6 +304,8 @@ impl Action {
             | Self::FixMapping
             | Self::Download
             | Self::WatchOrder
+            | Self::Recommendations
+            | Self::PlayTrailer
             | Self::OpenInBrowser
             | Self::PlayParty => Scope::Title,
 
@@ -315,6 +338,7 @@ impl Action {
                 | Self::PageUp
                 | Self::PageDown
                 | Self::Help
+                | Self::FilterSearch
         )
     }
 
@@ -574,6 +598,7 @@ impl Keymap {
             bind(Binding::plain(Char('R')), A::ForceResync);
             bind(Binding::plain(Char('t')), A::ToggleTranslation);
             bind(Binding::plain(Char('/')), A::FocusSearch);
+            bind(Binding::ctrl(Char('f')), A::FilterSearch);
             // Logs get a real key rather than palette-only reachability. They are wanted at
             // exactly the moment something has broken, which is the worst moment to make someone
             // remember an indirection.
@@ -608,6 +633,8 @@ impl Keymap {
             bind(Binding::plain(Enter), A::Open);
             bind(Binding::plain(Char(' ')), A::PlayNext);
             bind(Binding::plain(Char('a')), A::SetListStatus);
+            // `*` — a star, for the star you are giving it.
+            bind(Binding::plain(Char('*')), A::RateTitle);
             bind(Binding::plain(Char('i')), A::ToggleSynopsis);
             // `x` removes, matching what it means for downloads and playback. Browsing
             // only — while something plays, the playback table's `x` (stop) wins.
@@ -623,6 +650,10 @@ impl Keymap {
             bind(Binding::plain(Char('m')), A::FixMapping);
             bind(Binding::plain(Char('d')), A::Download);
             bind(Binding::plain(Char('w')), A::WatchOrder);
+            // `b` — because you liked this.
+            bind(Binding::plain(Char('b')), A::Recommendations);
+            // `v` — video, the one thing about a title that is not text.
+            bind(Binding::plain(Char('v')), A::PlayTrailer);
             bind(Binding::plain(Char('o')), A::OpenInBrowser);
             // `y` — you, plural: the same episode Enter would play, but with the room.
             bind(Binding::plain(Char('y')), A::PlayParty);
@@ -817,7 +848,7 @@ pub fn status_hints(
         // hints would be actively wrong.
         (V::NowPlaying, _) => &[Action::PlayPause, Action::SkipOpening, Action::Detach],
         (V::Episodes(_), _) => &[Action::Open, Action::Back],
-        (V::Section(Section::Search), _) => &[Action::Open, Action::Back],
+        (V::Section(Section::Search), _) => &[Action::Open, Action::FilterSearch, Action::Back],
         (V::Section(Section::Providers), _) => &[Action::Refresh, Action::Open],
         // Settings has nothing to open and no episodes, so offering those keys would be a lie.
         // Left and Right are what actually do something here.

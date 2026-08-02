@@ -67,6 +67,18 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
                 format: r.format.map(|f| format!("{f:?}").to_uppercase()),
             })
             .collect(),
+        trailer_url: media.trailer_url(),
+        recommended: media
+            .recommended()
+            .into_iter()
+            .map(|node| anistream_ui::app::RelatedTitle {
+                id: node.id,
+                title: node.title.display().to_owned(),
+                // Not a relation — the empty string is what RECOMMENDED rows show there.
+                relation: String::new(),
+                format: node.format.map(|f| format!("{f:?}").to_uppercase()),
+            })
+            .collect(),
         ..Entry::new(media.id, media.title.display())
     }
 }

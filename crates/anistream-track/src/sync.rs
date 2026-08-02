@@ -236,9 +236,10 @@ pub fn local_state(
 ) -> Result<LocalState, anistream_store::StoreError> {
     Ok(LocalState {
         progress: store.completed_episode_count(anilist_id)?,
-        // Status and score are not yet set anywhere but the list-status overlay, which writes
-        // them straight to the outbox. Until that state is persisted locally, the merge sees
-        // "local has no opinion" — which is correct, and means the remote is left alone.
+        // Status and score are not yet set anywhere but the list-status and rate overlays,
+        // which write them straight to the outbox. Until that state is persisted locally, the
+        // merge sees "local has no opinion" — which is correct, and means the remote is left
+        // alone.
         ..LocalState::default()
     })
 }

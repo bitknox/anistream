@@ -40,6 +40,9 @@ pub struct Sync {
     /// the `Tracker` trait — AniList has no such concept, and putting it there would make every
     /// implementation carry it.
     pub mal: Option<Arc<anistream_track::MalTracker>>,
+    /// The Kitsu tracker as its concrete type, for the same reason as `mal`: its token
+    /// refreshes silently mid-call and the renewed pair has to be written back.
+    pub kitsu: Option<Arc<anistream_track::KitsuTracker>>,
     pub tokens: TokenStore,
     pub store: Store,
     pub config: Config,
@@ -52,8 +55,10 @@ impl Sync {
     /// Build trackers from config.
     ///
     /// A tracker with no stored token is still constructed. That is deliberate: it makes the
-    /// Accounts overlay able to offer a sign-in, and the outbox accumulates against its id in
-    /// the meantime, so watching now and signing in later still syncs.
+    /// Accounts screen able to offer a sign-in. Nothing is queued or pulled for it until it
+    /// is signed in — Kitsu is enabled by default, so "enabled" no longer implies intent —
+    /// and watching now and signing in later still syncs, because the first pull derives
+    /// progress from the watch log and reconciles it outward.
     pub fn build(config: &Config, store: &Store, http: &anistream_net::HttpClient) -> Self {
         Self::with_tokens(config, store, http, token_store(config))
     }
@@ -72,6 +77,7 @@ impl Sync {
         let mut trackers: Vec<Arc<dyn Tracker>> = Vec::new();
         let mut anilist = None;
         let mut mal = None;
+        let mut kitsu = None;
 
         if config.trackers.is_enabled("anilist") {
             let token = tokens.get("anilist").ok();
@@ -105,6 +111,22 @@ impl Sync {
             mal = Some(tracker);
         }
 
+        // Kitsu needs no client registration at all — its token endpoint takes the password
+        // grant bare — so unlike every other tracker there is no config to check first.
+        if config.trackers.is_enabled("kitsu") {
+            let tokens_for_kitsu = tokens.get_pair("kitsu").ok();
+            if tokens_for_kitsu.is_none() {
+                tracing::info!("kitsu enabled but not signed in; queueing locally");
+            }
+            let tracker = Arc::new(anistream_track::KitsuTracker::new(
+                http.plain().clone(),
+                Arc::new(StoreMapping { store: store.clone() }),
+                tokens_for_kitsu,
+            ));
+            trackers.push(tracker.clone());
+            kitsu = Some(tracker);
+        }
+
         // Simkl bridges through `mal_id`, which the mapping table already holds for MAL's sake —
         // so the third tracker cost an auth flow and a push call, exactly as the plan predicted a
         // second identity system would not be needed.
@@ -135,6 +157,7 @@ impl Sync {
             trackers,
             anilist,
             mal,
+            kitsu,
             tokens,
             store: store.clone(),
             config: config.clone(),
@@ -277,6 +300,16 @@ impl anistream_track::mal::IdMapping for StoreMapping {
     }
 }
 
+impl anistream_track::kitsu::IdMapping for StoreMapping {
+    fn kitsu_id(&self, anilist_id: AnilistId) -> Option<u32> {
+        self.store.mapping_for(anilist_id).ok().flatten().and_then(|m| m.kitsu_id)
+    }
+
+    fn anilist_id(&self, kitsu_id: u32) -> Option<AnilistId> {
+        self.store.anilist_id_for_kitsu(kitsu_id).ok().flatten()
+    }
+}
+
 /// Fetch one segment of the tracker's list for the Library screen.
 ///
 /// Titles are remembered as they pass through, which is what later lets a sync conflict name the
@@ -366,11 +399,11 @@ pub fn spawn_loops(sync: Sync, tx: mpsc::UnboundedSender<Update>) {
 /// would live only in memory, and the next process would present the expired one — refreshing on
 /// every single run until the *refresh* token itself expired.
 async fn persist_renewed_tokens(sync: &Sync) {
-    let Some(mal) = sync.mal.as_ref() else { return };
-
     // Taken rather than peeked, so a write failure does not silently discard it: the tracker keeps
     // the in-memory copy and offers it again on the next pass.
-    if let Some(pair) = mal.take_renewed().await {
+    if let Some(mal) = sync.mal.as_ref()
+        && let Some(pair) = mal.take_renewed().await
+    {
         match sync.tokens.set_pair(
             "mal",
             &pair.access,
@@ -379,6 +412,19 @@ async fn persist_renewed_tokens(sync: &Sync) {
         ) {
             Ok(_) => tracing::info!("stored the renewed myanimelist token"),
             Err(e) => tracing::warn!(error = %e, "could not store the renewed token"),
+        }
+    }
+    if let Some(kitsu) = sync.kitsu.as_ref()
+        && let Some(pair) = kitsu.take_renewed().await
+    {
+        match sync.tokens.set_pair(
+            "kitsu",
+            &pair.access,
+            pair.refresh.as_deref(),
+            pair.expires_at,
+        ) {
+            Ok(_) => tracing::info!("stored the renewed kitsu token"),
+            Err(e) => tracing::warn!(error = %e, "could not store the renewed kitsu token"),
         }
     }
 }
@@ -479,6 +525,15 @@ pub async fn connect(sync: Sync, tracker_id: String, tx: mpsc::UnboundedSender<U
     }
     if tracker_id == "mal" {
         connect_mal(sync, tx).await;
+        return;
+    }
+    // Kitsu never reaches here: the Accounts screen opens its credential prompt directly
+    // and dispatches `ConnectKitsu`. This is the fallback for any other path that still
+    // says `Connect { "kitsu" }`, and it points at the screen that does it right.
+    if tracker_id == "kitsu" {
+        let _ = tx.send(Update::Toast(Toast::info(
+            "kitsu signs in from the Accounts screen — enter on its row asks for credentials",
+        )));
         return;
     }
     if tracker_id != "anilist" {
@@ -582,6 +637,52 @@ pub async fn connect(sync: Sync, tracker_id: String, tx: mpsc::UnboundedSender<U
                 tx.send(Update::Toast(Toast::alert(format!("could not store the token: {e}"))));
         }
     }
+}
+
+/// Sign in to Kitsu from inside the app.
+///
+/// The password arrives from the prompt, goes to Kitsu's token endpoint, and is dropped
+/// when this function returns — the same one-way journey `--login` gives it. Success
+/// hands the pair to the live tracker through the same [`activate`] every flow uses.
+pub async fn connect_kitsu(
+    sync: Sync,
+    username: String,
+    password: String,
+    tx: mpsc::UnboundedSender<Update>,
+) {
+    let pair = match anistream_track::kitsu::login(
+        sync.http.plain(),
+        &username,
+        &password,
+        anistream_store::now(),
+    )
+    .await
+    {
+        Ok(pair) => pair,
+        Err(e) => {
+            let _ = tx.send(Update::Toast(Toast::alert(format!("kitsu sign-in failed: {e}"))));
+            let _ = tx.send(Update::Status(String::new()));
+            return;
+        }
+    };
+
+    match sync.tokens.set_pair("kitsu", &pair.access, pair.refresh.as_deref(), pair.expires_at)
+    {
+        Ok(storage) => {
+            let mut message = "signed in to kitsu".to_owned();
+            if storage.is_degraded() {
+                // Not hidden: someone on a shared machine should know.
+                message.push_str(" — token stored in a 0600 file, no keychain available");
+            }
+            let _ = tx.send(Update::Toast(Toast::info(message)));
+            activate(&sync, "kitsu", &pair, &tx).await;
+        }
+        Err(e) => {
+            let _ =
+                tx.send(Update::Toast(Toast::alert(format!("could not store the token: {e}"))));
+        }
+    }
+    let _ = tx.send(Update::Status(String::new()));
 }
 
 /// Sign in to MyAnimeList from inside the app.
@@ -825,13 +926,33 @@ pub fn disconnect(sync: &Sync, tracker_id: &str, tx: &mpsc::UnboundedSender<Upda
     });
 }
 
-/// Queue a status change for every tracker.
+/// Queue a status change for every signed-in tracker.
+///
+/// Signed-in, not merely enabled: Kitsu is enabled out of the box, and queueing for an
+/// account that may never exist would grow a badge nobody can act on. A tracker signed
+/// in but offline still queues — its credentials are present — which is the case the
+/// outbox exists for.
 pub fn set_status(sync: &Sync, id: AnilistId, status: LibrarySegment) {
     let now = anistream_store::now();
     let op = TrackOp::SetStatus { anilist_id: id, status: segment_to_status(status), at: now };
-    for tracker in &sync.trackers {
+    for tracker in sync.trackers.iter().filter(|t| t.is_authenticated()) {
         if let Err(e) = sync.store.enqueue(tracker.id(), &op, now) {
             tracing::warn!(error = %e, "could not queue a status change");
+        }
+    }
+}
+
+/// Queue a score for every tracker.
+///
+/// Out of ten, because it is the one scale every connected service understands; each
+/// tracker converts on push if it stores something else.
+pub fn set_score(sync: &Sync, id: AnilistId, score: f32) {
+    let now = anistream_store::now();
+    let op = TrackOp::SetScore { anilist_id: id, score, at: now };
+    // Signed-in only, for the same reason as `set_status`.
+    for tracker in sync.trackers.iter().filter(|t| t.is_authenticated()) {
+        if let Err(e) = sync.store.enqueue(tracker.id(), &op, now) {
+            tracing::warn!(error = %e, "could not queue a score");
         }
     }
 }
@@ -850,7 +971,7 @@ pub fn resolve_conflict(sync: &Sync, id: AnilistId, keep_local: bool) {
         return;
     }
     let op = TrackOp::SetProgress { anilist_id: id, episode: episodes };
-    for tracker in &sync.trackers {
+    for tracker in sync.trackers.iter().filter(|t| t.is_authenticated()) {
         let _ = sync.store.enqueue(tracker.id(), &op, now);
     }
 }
@@ -919,11 +1040,47 @@ mod tests {
     }
 
     #[test]
-    fn no_trackers_are_built_when_none_are_enabled() {
+    fn the_default_config_builds_kitsu_and_nothing_else() {
+        // Kitsu needs no registration, so it is enabled out of the box — constructed
+        // unauthenticated, which is what puts it on the Accounts screen. Everything
+        // else stays opt-in. Built against an empty token store on purpose: reading the
+        // developer's real one made this test flip the day someone actually signed in.
         let config = Config::default();
         let store = Store::open_in_memory().unwrap();
         let http = anistream_net::HttpClient::new(&config.network).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let tokens = TokenStore::new(dir.path()).file_only();
+        let sync = Sync::with_tokens(&config, &store, &http, tokens);
+        assert_eq!(sync.trackers.len(), 1);
+        assert_eq!(sync.trackers[0].id(), "kitsu");
+        assert!(!sync.trackers[0].is_authenticated());
+    }
+
+    #[test]
+    fn an_emptied_enabled_list_builds_no_trackers() {
+        // The default is a default, not a mandate: clearing `enabled` clears the screen.
+        let mut config = Config::default();
+        config.trackers.enabled.clear();
+        let store = Store::open_in_memory().unwrap();
+        let http = anistream_net::HttpClient::new(&config.network).unwrap();
         assert!(Sync::build(&config, &store, &http).trackers.is_empty());
+    }
+
+    #[test]
+    fn a_signed_out_tracker_gets_nothing_queued() {
+        // Enabled no longer implies intent, so status and score changes queue only for
+        // trackers with credentials. Without this, the default Kitsu entry would grow
+        // a queue badge for an account that may never exist.
+        let config = Config::default();
+        let store = Store::open_in_memory().unwrap();
+        let http = anistream_net::HttpClient::new(&config.network).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let tokens = TokenStore::new(dir.path()).file_only();
+        let sync = Sync::with_tokens(&config, &store, &http, tokens);
+
+        set_status(&sync, AnilistId::new(1), LibrarySegment::Completed);
+        set_score(&sync, AnilistId::new(1), 8.0);
+        assert_eq!(store.outbox_depth(Some("kitsu")).unwrap(), 0);
     }
 
     #[test]

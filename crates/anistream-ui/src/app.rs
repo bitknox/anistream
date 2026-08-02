@@ -345,6 +345,10 @@ pub struct Entry {
     /// Titles adjacent in the main watch order — prequels, the parent story, sequels.
     /// Present on the detail fetch only; list fetches leave it empty.
     pub related: Vec<RelatedTitle>,
+    /// What people who liked this rated highest. Rides the detail fetch, like `related`.
+    pub recommended: Vec<RelatedTitle>,
+    /// A watchable trailer URL, when AniList has one. Rides the detail fetch.
+    pub trailer_url: Option<String>,
 }
 
 /// What the episode table shows.
@@ -439,6 +443,8 @@ impl Entry {
             last_aired: None,
             resume: None,
             related: Vec::new(),
+            recommended: Vec::new(),
+            trailer_url: None,
         }
     }
 
@@ -881,7 +887,14 @@ pub struct App {
     /// Lets Enter mean "run this" while the query is new and "open this" once it is not, which is
     /// the difference between a search box you can act on and one that only ever re-submits.
     pub searched_query: String,
+    /// Server-side filters the next search will carry. Sticky across queries on purpose:
+    /// narrowing to a genre and then trying three titles should not mean setting it thrice.
+    pub search_filter: SearchFilters,
     pub palette_query: String,
+    /// The Kitsu sign-in prompts' buffers. The password is taken, not copied, when the
+    /// exchange is dispatched, and both are cleared on every open and dismiss.
+    pub kitsu_user: String,
+    pub kitsu_pass: String,
     pub detail: Option<Entry>,
     pub status: String,
     pub toasts: Vec<Toast>,
@@ -1006,7 +1019,10 @@ impl App {
             offset: 0,
             search_query: String::new(),
             searched_query: String::new(),
+            search_filter: SearchFilters::default(),
             palette_query: String::new(),
+            kitsu_user: String::new(),
+            kitsu_pass: String::new(),
             detail: None,
             status: String::new(),
             toasts: Vec::new(),
@@ -1610,6 +1626,16 @@ impl App {
                     return None;
                 }
                 Action::Open => return self.confirm_overlay(visible_rows),
+                // The filters overlay edits in place: the vertical axis picks a row and the
+                // horizontal one walks its values, the same grammar as the Settings screen.
+                Action::Left if self.nav.overlay() == Some(&Overlay::SearchFilters) => {
+                    self.search_filter.cycle(self.overlay_selected, false);
+                    return None;
+                }
+                Action::Right if self.nav.overlay() == Some(&Overlay::SearchFilters) => {
+                    self.search_filter.cycle(self.overlay_selected, true);
+                    return None;
+                }
                 _ => {}
             }
         }
@@ -1882,8 +1908,23 @@ impl App {
                     self.episode_filter.label()
                 )));
             }
+            Action::Filter if self.nav.section() == Section::Search => {
+                self.overlay_selected = 0;
+                self.nav.open_overlay(Overlay::SearchFilters);
+            }
+            Action::FilterSearch => {
+                // From anywhere: land on Search first, because the overlay's Enter runs a
+                // search and the results have to have somewhere to go. The jump closes any
+                // overlays, so this one is opened after.
+                let task = (self.nav.section() != Section::Search)
+                    .then(|| self.go_to_section(Section::Search))
+                    .flatten();
+                self.overlay_selected = 0;
+                self.nav.open_overlay(Overlay::SearchFilters);
+                return task;
+            }
             Action::Filter => {
-                self.push_toast(Toast::info("the filter lives in the episode table"));
+                self.push_toast(Toast::info("filters live in search and the episode table"));
             }
             Action::ToggleWatched | Action::MarkAllPrevious => {
                 self.push_toast(Toast::info("watched marks live in the episode table"));
@@ -1923,6 +1964,33 @@ impl App {
                     .position(|(id, _)| id.as_deref() == self.provider_preference.as_deref())
                     .unwrap_or(0);
                 self.nav.open_overlay(Overlay::SourceProvider);
+            }
+            Action::PlayTrailer => {
+                let Some(entry) = self.detail.as_ref().or(self.selected_entry()) else {
+                    self.push_toast(Toast::info("nothing selected"));
+                    return None;
+                };
+                let Some(url) = entry.trailer_url.clone() else {
+                    // Rides the detail fetch, so a list row answers after the title has
+                    // been opened once — and some titles genuinely have no trailer.
+                    self.push_toast(Toast::info("no trailer on record for this title"));
+                    return None;
+                };
+                return Some(Task::PlayTrailer { url, title: entry.title.clone() });
+            }
+            Action::Recommendations => {
+                let Some(entry) = self.detail.as_ref().or(self.selected_entry()) else {
+                    self.push_toast(Toast::info("nothing selected"));
+                    return None;
+                };
+                if entry.recommended.is_empty() {
+                    // Like relations, recommendations ride the detail fetch — and some
+                    // titles genuinely have none.
+                    self.push_toast(Toast::info("no recommendations known for this title"));
+                    return None;
+                }
+                self.overlay_selected = 0;
+                self.nav.open_overlay(Overlay::Recommendations);
             }
             Action::WatchOrder => {
                 let Some(entry) = self.detail.as_ref().or(self.selected_entry()) else {
@@ -2013,6 +2081,16 @@ impl App {
                         .position(|s| *s == self.library_segment)
                         .unwrap_or(0);
                     self.nav.open_overlay(Overlay::ListStatus);
+                } else {
+                    self.push_toast(Toast::info("nothing selected"));
+                }
+            }
+            Action::RateTitle => {
+                if self.detail.as_ref().or(self.selected_entry()).is_some() {
+                    // No local record of an existing score to preselect, so the cursor
+                    // starts at the top and every row is one or two keystrokes away.
+                    self.overlay_selected = 0;
+                    self.nav.open_overlay(Overlay::Rate);
                 } else {
                     self.push_toast(Toast::info("nothing selected"));
                 }
@@ -2273,12 +2351,25 @@ impl App {
     /// cannot disagree about what Enter does.
     fn toggle_account(&mut self) -> Option<Task> {
         let tracker = self.sync.get(self.selected)?.clone();
+        self.account_action(tracker)
+    }
+
+    /// What Enter means for one tracker row: out if in, in if out — and for Kitsu, "in"
+    /// is a prompt right here rather than a browser or a trip to the command line.
+    fn account_action(&mut self, tracker: SyncState) -> Option<Task> {
         if tracker.connected && !tracker.needs_reauth {
-            Some(Task::Disconnect { tracker: tracker.tracker })
-        } else {
-            self.status = "opening your browser to sign in…".into();
-            Some(Task::Connect { tracker: tracker.tracker })
+            return Some(Task::Disconnect { tracker: tracker.tracker });
         }
+        if tracker.tracker == "kitsu" {
+            // Cleared on open, not just on submit, so a dismissed attempt never leaves
+            // half a password waiting in the next prompt.
+            self.kitsu_user.clear();
+            self.kitsu_pass.clear();
+            self.nav.open_overlay(Overlay::KitsuUsername);
+            return None;
+        }
+        self.status = "opening your browser to sign in…".into();
+        Some(Task::Connect { tracker: tracker.tracker })
     }
 
     fn in_settings_stage(&self) -> bool {
@@ -2324,6 +2415,27 @@ impl App {
                 self.push_toast(Toast::info(format!("marked {}", status.label())));
                 Some(Task::SetStatus { id, status })
             }
+            Some(Overlay::SearchFilters) => {
+                self.nav.close_overlay();
+                let query = self.search_query.trim().to_owned();
+                // A filter with no query is a browse, which is a legitimate search. Both
+                // empty means there is nothing to ask yet, and that is not an error.
+                if query.is_empty() && self.search_filter.is_empty() {
+                    return None;
+                }
+                self.searched_query = query.clone();
+                self.content = Content::Loading;
+                Some(Task::Search { query, filter: self.search_filter.clone() })
+            }
+            Some(Overlay::Rate) => {
+                let entry = self.detail.as_ref().or(self.selected_entry())?;
+                let id = entry.id;
+                // Rows run 10 down to 1, so the row index is the distance from 10.
+                let score = (10 - self.overlay_selected.min(9)) as f32;
+                self.nav.close_overlay();
+                self.push_toast(Toast::info(format!("rated {score}/10")));
+                Some(Task::SetScore { id, score })
+            }
             Some(Overlay::Conflicts) => {
                 // Enter takes the local value; the remote one is already what the tracker has,
                 // so "keep remote" is just dismissing the row.
@@ -2360,6 +2472,17 @@ impl App {
                 self.nav.push(StageView::Title(related.id));
                 Some(Task::LoadDetail(related.id))
             }
+            Some(Overlay::Recommendations) => {
+                let pick =
+                    self.detail.as_ref()?.recommended.get(self.overlay_selected)?.clone();
+                self.nav.close_overlay();
+                self.overlay_selected = 0;
+                // Same stand-in rule as the watch order: never render one title's data
+                // under another while the fetch is in flight.
+                self.detail = Some(Entry::new(pick.id, pick.title));
+                self.nav.push(StageView::Title(pick.id));
+                Some(Task::LoadDetail(pick.id))
+            }
             Some(Overlay::Sources) => {
                 let candidate = self.sources.get(self.overlay_selected)?.clone();
                 let (id, episode) = self.source_context.clone()?;
@@ -2389,12 +2512,7 @@ impl App {
             Some(Overlay::Accounts) => {
                 let tracker = self.sync.get(self.overlay_selected)?.clone();
                 self.nav.close_overlay();
-                if tracker.connected && !tracker.needs_reauth {
-                    Some(Task::Disconnect { tracker: tracker.tracker })
-                } else {
-                    self.status = "opening your browser to sign in…".into();
-                    Some(Task::Connect { tracker: tracker.tracker })
-                }
+                self.account_action(tracker)
             }
             _ => None,
         }
@@ -2404,6 +2522,8 @@ impl App {
     fn overlay_len(&self) -> usize {
         match self.nav.overlay() {
             Some(Overlay::ListStatus) => LibrarySegment::ALL.len(),
+            Some(Overlay::Rate) => 10,
+            Some(Overlay::SearchFilters) => SearchFilters::ROWS.len(),
             Some(Overlay::Conflicts) => self.conflicts.len(),
             Some(Overlay::Accounts) => self.sync.len(),
             // The palette was missing from this list, which meant the arrows scrolled the list
@@ -2415,6 +2535,9 @@ impl App {
             Some(Overlay::Sources) => self.sources.len(),
             Some(Overlay::SourceProvider) => self.provider_choices().len(),
             Some(Overlay::WatchOrder) => self.detail.as_ref().map_or(0, |e| e.related.len()),
+            Some(Overlay::Recommendations) => {
+                self.detail.as_ref().map_or(0, |e| e.recommended.len())
+            }
             _ => 0,
         }
     }
@@ -2781,10 +2904,19 @@ impl App {
         }
         match action {
             Action::Back => {
+                let credentials_open = matches!(
+                    self.nav.overlay(),
+                    Some(Overlay::KitsuUsername | Overlay::KitsuPassword)
+                );
                 if !self.nav.close_overlay() {
                     // Nothing to dismiss — leave the field rather than trapping the user
                     // in it.
                     self.nav.focus_rail();
+                }
+                if credentials_open {
+                    // A dismissed sign-in leaves nothing behind to resurface later.
+                    self.kitsu_user.clear();
+                    self.kitsu_pass.clear();
                 }
             }
             Action::CommandPalette => {
@@ -2793,6 +2925,34 @@ impl App {
             }
             Action::Help => self.nav.open_overlay(Overlay::Help),
             Action::Quit => self.should_quit = true,
+            // The two sign-in steps. Enter with nothing typed stays put — an empty
+            // submit is a slip of the finger, not an answer.
+            Action::Open if self.nav.overlay() == Some(&Overlay::KitsuUsername) => {
+                if self.kitsu_user.trim().is_empty() {
+                    return None;
+                }
+                self.nav.close_overlay();
+                self.nav.open_overlay(Overlay::KitsuPassword);
+            }
+            Action::Open if self.nav.overlay() == Some(&Overlay::KitsuPassword) => {
+                if self.kitsu_pass.is_empty() {
+                    return None;
+                }
+                // Taken, not cloned: the buffer must not hold a live password after the
+                // exchange is dispatched.
+                let username = self.kitsu_user.trim().to_owned();
+                let password = Secret(std::mem::take(&mut self.kitsu_pass));
+                self.kitsu_user.clear();
+                self.nav.close_overlay();
+                self.status = "signing in to kitsu…".into();
+                return Some(Task::ConnectKitsu { username, password });
+            }
+            // Mid-query is exactly when filters are wanted, so ctrl+f cannot wait for the
+            // box to lose focus.
+            Action::FilterSearch => {
+                self.overlay_selected = 0;
+                self.nav.open_overlay(Overlay::SearchFilters);
+            }
             // The palette takes text, so it reaches this path rather than the overlay block in
             // `handle`. It used to close on Enter without running anything, and move the list
             // *behind* it on the arrows — so the one mechanism meant to make every action
@@ -2905,7 +3065,7 @@ impl App {
                 }
                 self.searched_query = query.clone();
                 self.content = Content::Loading;
-                return Some(Task::Search(query));
+                return Some(Task::Search { query, filter: self.search_filter.clone() });
             }
             Action::Down => self.selected = self.selected.saturating_add(1),
             Action::Up => self.selected = self.selected.saturating_sub(1),
@@ -2949,6 +3109,10 @@ impl App {
             }
         } else if self.nav.overlay() == Some(&Overlay::EditSetting) {
             self.edit_value.push(ch);
+        } else if self.nav.overlay() == Some(&Overlay::KitsuUsername) {
+            self.kitsu_user.push(ch);
+        } else if self.nav.overlay() == Some(&Overlay::KitsuPassword) {
+            self.kitsu_pass.push(ch);
         } else if self.nav.section() == Section::Search {
             self.search_query.push(ch);
         }
@@ -2964,6 +3128,10 @@ impl App {
             self.range_query.pop();
         } else if self.nav.overlay() == Some(&Overlay::EditSetting) {
             self.edit_value.pop();
+        } else if self.nav.overlay() == Some(&Overlay::KitsuUsername) {
+            self.kitsu_user.pop();
+        } else if self.nav.overlay() == Some(&Overlay::KitsuPassword) {
+            self.kitsu_pass.pop();
         } else if self.nav.section() == Section::Search {
             self.search_query.pop();
         }
@@ -3031,8 +3199,13 @@ impl App {
             Section::Home => Task::LoadContinue,
             Section::Seasonal => Task::LoadSeasonal,
             Section::Calendar => Task::LoadCalendar,
-            Section::Search if !self.search_query.trim().is_empty() => {
-                Task::Search(self.search_query.clone())
+            Section::Search
+                if !self.search_query.trim().is_empty() || !self.search_filter.is_empty() =>
+            {
+                Task::Search {
+                    query: self.search_query.clone(),
+                    filter: self.search_filter.clone(),
+                }
             }
             Section::Providers => Task::CheckProviders,
             Section::Downloads => Task::LoadDownloads,
@@ -3089,6 +3262,175 @@ impl App {
     }
 }
 
+/// Server-side search filters, set from the FILTERS overlay on the Search screen.
+///
+/// Wire values rather than display values — what AniList's enums expect, lowercased only
+/// when a row is drawn. `None` reads as "any" and is omitted from the query entirely,
+/// because AniList treats an explicit null differently from a missing argument.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct SearchFilters {
+    pub genre: Option<String>,
+    pub year: Option<u32>,
+    pub season: Option<String>,
+    pub format: Option<String>,
+    pub status: Option<String>,
+    /// `None` is relevance — AniList's `SEARCH_MATCH` — which is only meaningful with a
+    /// search term, so the executor substitutes popularity for a filter-only browse.
+    pub sort: Option<String>,
+}
+
+impl SearchFilters {
+    /// Row labels, in overlay order. The cycling and display functions index against this.
+    pub const ROWS: [&'static str; 6] = ["genre", "year", "season", "format", "status", "sort"];
+
+    /// AniList's fixed genre set. Genres are strings on the wire, but the set is closed —
+    /// typing one would invite misses on casing that a cycle cannot produce.
+    const GENRES: [&'static str; 18] = [
+        "Action",
+        "Adventure",
+        "Comedy",
+        "Drama",
+        "Ecchi",
+        "Fantasy",
+        "Horror",
+        "Mahou Shoujo",
+        "Mecha",
+        "Music",
+        "Mystery",
+        "Psychological",
+        "Romance",
+        "Sci-Fi",
+        "Slice of Life",
+        "Sports",
+        "Supernatural",
+        "Thriller",
+    ];
+    const SEASONS: [(&'static str, &'static str); 4] = [
+        ("WINTER", "winter"),
+        ("SPRING", "spring"),
+        ("SUMMER", "summer"),
+        ("FALL", "fall"),
+    ];
+    const FORMATS: [(&'static str, &'static str); 6] = [
+        ("TV", "tv"),
+        ("MOVIE", "movie"),
+        ("OVA", "ova"),
+        ("ONA", "ona"),
+        ("SPECIAL", "special"),
+        ("MUSIC", "music"),
+    ];
+    const STATUSES: [(&'static str, &'static str); 3] = [
+        ("RELEASING", "airing"),
+        ("FINISHED", "finished"),
+        ("NOT_YET_RELEASED", "upcoming"),
+    ];
+    const SORTS: [(&'static str, &'static str); 4] = [
+        ("POPULARITY_DESC", "popularity"),
+        ("SCORE_DESC", "score"),
+        ("TRENDING_DESC", "trending"),
+        ("START_DATE_DESC", "newest"),
+    ];
+    /// Older than any TV anime that streams anywhere; the year cycle stops here.
+    const OLDEST_YEAR: u32 = 1970;
+
+    pub fn is_empty(&self) -> bool {
+        self.genre.is_none()
+            && self.year.is_none()
+            && self.season.is_none()
+            && self.format.is_none()
+            && self.status.is_none()
+            && self.sort.is_none()
+    }
+
+    /// What a row currently shows: the display form, or "any" when unset.
+    pub fn row_value(&self, row: usize) -> String {
+        let shown = |set: &[(&str, &str)], value: &Option<String>| {
+            value.as_deref().and_then(|v| {
+                set.iter().find(|(wire, _)| *wire == v).map(|(_, word)| (*word).to_string())
+            })
+        };
+        match row {
+            0 => self.genre.clone().map(|g| g.to_lowercase()),
+            1 => self.year.map(|y| y.to_string()),
+            2 => shown(&Self::SEASONS, &self.season),
+            3 => shown(&Self::FORMATS, &self.format),
+            4 => shown(&Self::STATUSES, &self.status),
+            5 => return shown(&Self::SORTS, &self.sort).unwrap_or_else(|| "relevance".into()),
+            _ => None,
+        }
+        .unwrap_or_else(|| "any".into())
+    }
+
+    /// The set values joined for the search prompt line, empty when nothing is.
+    pub fn summary(&self) -> String {
+        (0..Self::ROWS.len())
+            .filter(|row| {
+                // "relevance" is the resting state of sort, not a choice worth announcing.
+                match row {
+                    0 => self.genre.is_some(),
+                    1 => self.year.is_some(),
+                    2 => self.season.is_some(),
+                    3 => self.format.is_some(),
+                    4 => self.status.is_some(),
+                    _ => self.sort.is_some(),
+                }
+            })
+            .map(|row| self.row_value(row))
+            .collect::<Vec<_>>()
+            .join(" · ")
+    }
+
+    /// Step a row's value. Forward walks the options and comes back around to "any",
+    /// so both directions reach everything and nothing is a dead end.
+    pub fn cycle(&mut self, row: usize, forward: bool) {
+        fn step(current: &mut Option<String>, wires: &[&str], forward: bool) {
+            let at = current.as_deref().and_then(|c| wires.iter().position(|w| *w == c));
+            let next = match (at, forward) {
+                (None, true) => Some(0),
+                (None, false) => Some(wires.len() - 1),
+                (Some(i), true) => (i + 1 < wires.len()).then_some(i + 1),
+                (Some(0), false) => None,
+                (Some(i), false) => Some(i - 1),
+            };
+            *current = next.map(|i| wires[i].to_owned());
+        }
+        match row {
+            0 => step(&mut self.genre, &Self::GENRES, forward),
+            1 => {
+                let latest = chrono::Datelike::year(&chrono::Local::now()).max(0) as u32 + 1;
+                self.year = match (self.year, forward) {
+                    (None, true) => Some(latest),
+                    (None, false) => Some(Self::OLDEST_YEAR),
+                    (Some(y), true) => (y > Self::OLDEST_YEAR).then(|| y - 1),
+                    (Some(y), false) => (y < latest).then(|| y + 1),
+                };
+            }
+            2 => step(
+                &mut self.season,
+                &Self::SEASONS.map(|(wire, _)| wire),
+                forward,
+            ),
+            3 => step(&mut self.format, &Self::FORMATS.map(|(wire, _)| wire), forward),
+            4 => step(&mut self.status, &Self::STATUSES.map(|(wire, _)| wire), forward),
+            _ => step(&mut self.sort, &Self::SORTS.map(|(wire, _)| wire), forward),
+        }
+    }
+}
+
+/// A credential in transit.
+///
+/// Exists for exactly one reason: `Task` derives `Debug` and the task router logs a task
+/// when routing goes wrong. A plain `String` there would put a password in the log file;
+/// this prints a placeholder instead, everywhere, unconditionally.
+#[derive(Clone, PartialEq)]
+pub struct Secret(pub String);
+
+impl std::fmt::Debug for Secret {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Secret(«redacted»)")
+    }
+}
+
 /// Asynchronous work requested by the reducer.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Task {
@@ -3102,7 +3444,10 @@ pub enum Task {
     LoadContinue,
     LoadSeasonal,
     LoadCalendar,
-    Search(String),
+    Search {
+        query: String,
+        filter: SearchFilters,
+    },
     LoadDetail(AnilistId),
     LoadEpisodes(AnilistId),
     CheckProviders,
@@ -3114,6 +3459,16 @@ pub enum Task {
     SetStatus {
         id: AnilistId,
         status: LibrarySegment,
+    },
+    /// Score a title out of ten.
+    SetScore {
+        id: AnilistId,
+        score: f32,
+    },
+    /// Play a title's trailer: mpv when it can stream the host, the browser otherwise.
+    PlayTrailer {
+        url: String,
+        title: String,
     },
     /// Pin a source for one title, or return it to automatic with `None`.
     SetProviderPreference {
@@ -3128,6 +3483,11 @@ pub enum Task {
     /// Run a tracker's sign-in flow.
     Connect {
         tracker: String,
+    },
+    /// Exchange Kitsu credentials for a token, from the in-app prompt.
+    ConnectKitsu {
+        username: String,
+        password: Secret,
     },
     /// Forget a tracker's token.
     Disconnect {
@@ -4092,6 +4452,151 @@ mod tests {
     }
 
     #[test]
+    fn rating_a_title_queues_a_score_out_of_ten() {
+        let mut a = app();
+        a.apply(Update::Content(entries(3)));
+        a.handle(Action::RateTitle, 20);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::Rate));
+
+        // Rows run 10 down to 1, so two steps down from the top is an 8.
+        a.handle(Action::Down, 20);
+        a.handle(Action::Down, 20);
+        let task = a.handle(Action::Open, 20);
+        assert_eq!(task, Some(Task::SetScore { id: AnilistId::new(1), score: 8.0 }));
+        assert!(!a.nav.has_overlay());
+    }
+
+    #[test]
+    fn recommendations_open_a_list_and_enter_walks_into_the_pick() {
+        let mut a = app();
+        a.apply(Update::Content(entries(1)));
+        let mut detail = Entry::new(AnilistId::new(1), "Frieren");
+        detail.recommended = vec![RelatedTitle {
+            id: AnilistId::new(99),
+            title: "Mushishi".into(),
+            relation: String::new(),
+            format: Some("TV".into()),
+        }];
+        a.detail = Some(detail);
+
+        a.handle(Action::Recommendations, 20);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::Recommendations));
+        let task = a.handle(Action::Open, 20);
+        assert_eq!(task, Some(Task::LoadDetail(AnilistId::new(99))));
+        assert!(matches!(a.nav.current(), StageView::Title(id) if id.get() == 99));
+    }
+
+    #[test]
+    fn the_trailer_key_plays_when_known_and_says_so_when_not() {
+        let mut a = app();
+        a.apply(Update::Content(entries(1)));
+
+        a.handle(Action::PlayTrailer, 20);
+        assert!(a.toasts.iter().any(|t| t.text.contains("no trailer")));
+
+        let mut detail = Entry::new(AnilistId::new(1), "Frieren");
+        detail.trailer_url = Some("https://www.youtube.com/watch?v=x".into());
+        a.detail = Some(detail);
+        let task = a.handle(Action::PlayTrailer, 20);
+        assert_eq!(
+            task,
+            Some(Task::PlayTrailer {
+                url: "https://www.youtube.com/watch?v=x".into(),
+                title: "Frieren".into(),
+            })
+        );
+    }
+
+    #[test]
+    fn recommendations_with_none_known_say_so_rather_than_opening_nothing() {
+        let mut a = app();
+        a.apply(Update::Content(entries(1)));
+        a.handle(Action::Recommendations, 20);
+        assert!(!a.nav.has_overlay());
+        assert!(a.toasts.iter().any(|t| t.text.contains("no recommendations")));
+    }
+
+    #[test]
+    fn enter_on_the_kitsu_row_asks_for_credentials_in_place() {
+        // No browser to open and no command line to visit: the prompt is the flow.
+        let mut a = app();
+        a.apply(Update::Sync(Box::new(SyncState::new("kitsu"))));
+        a.handle(Action::ShowAccounts, 10);
+        a.nav.focus_stage();
+
+        assert_eq!(a.handle(Action::Open, 10), None);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::KitsuUsername));
+
+        for ch in "nagare".chars() {
+            a.type_char(ch);
+        }
+        assert_eq!(a.handle(Action::Open, 10), None);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::KitsuPassword));
+
+        for ch in "hunter2".chars() {
+            a.type_char(ch);
+        }
+        let task = a.handle(Action::Open, 10);
+        assert_eq!(
+            task,
+            Some(Task::ConnectKitsu {
+                username: "nagare".into(),
+                password: Secret("hunter2".into()),
+            })
+        );
+        assert!(!a.nav.has_overlay());
+        // Dispatched means gone: neither half of the credential stays in the app state.
+        assert!(a.kitsu_user.is_empty());
+        assert!(a.kitsu_pass.is_empty());
+    }
+
+    #[test]
+    fn an_empty_submit_stays_in_the_prompt_and_esc_wipes_it() {
+        let mut a = app();
+        a.apply(Update::Sync(Box::new(SyncState::new("kitsu"))));
+        a.handle(Action::ShowAccounts, 10);
+        a.nav.focus_stage();
+        a.handle(Action::Open, 10);
+
+        // Enter on an empty field is a slip, not an answer.
+        assert_eq!(a.handle(Action::Open, 10), None);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::KitsuUsername));
+
+        for ch in "nagare".chars() {
+            a.type_char(ch);
+        }
+        a.handle(Action::Open, 10);
+        for ch in "half".chars() {
+            a.type_char(ch);
+        }
+        a.handle(Action::Back, 10);
+        assert!(!a.nav.has_overlay());
+        assert!(a.kitsu_pass.is_empty(), "a dismissed sign-in must leave nothing behind");
+        assert!(a.kitsu_user.is_empty());
+    }
+
+    #[test]
+    fn a_password_never_renders_through_debug() {
+        // The task router logs tasks on a routing mistake; this is what keeps that log
+        // safe to read.
+        let task = Task::ConnectKitsu {
+            username: "nagare".into(),
+            password: Secret("hunter2".into()),
+        };
+        let printed = format!("{task:?}");
+        assert!(!printed.contains("hunter2"), "leaked: {printed}");
+        assert!(printed.contains("redacted"));
+    }
+
+    #[test]
+    fn rating_with_nothing_selected_says_so() {
+        let mut a = app();
+        assert_eq!(a.handle(Action::RateTitle, 20), None);
+        assert!(!a.nav.has_overlay());
+        assert!(a.toasts.iter().any(|t| t.text.contains("nothing selected")));
+    }
+
+    #[test]
     fn a_resync_with_no_tracker_says_so_rather_than_doing_nothing() {
         let mut a = app();
         assert_eq!(a.handle(Action::ForceResync, 20), None);
@@ -4380,7 +4885,10 @@ mod tests {
         }
 
         // First Enter runs it.
-        assert_eq!(a.handle(Action::Open, 10), Some(Task::Search("frieren".into())));
+        assert_eq!(
+            a.handle(Action::Open, 10),
+            Some(Task::Search { query: "frieren".into(), filter: SearchFilters::default() })
+        );
         a.apply(Update::Content(entries(3)));
 
         // Second Enter opens the highlighted result rather than asking again.
@@ -4391,7 +4899,68 @@ mod tests {
         // Editing the query makes it submittable again.
         a.handle(Action::Back, 10);
         a.type_char('x');
-        assert_eq!(a.handle(Action::Open, 10), Some(Task::Search("frierenx".into())));
+        assert_eq!(
+            a.handle(Action::Open, 10),
+            Some(Task::Search { query: "frierenx".into(), filter: SearchFilters::default() })
+        );
+    }
+
+    #[test]
+    fn search_filters_cycle_and_apply_without_a_query() {
+        let mut a = app();
+        a.handle(Action::FilterSearch, 10);
+        assert_eq!(a.nav.section(), Section::Search, "filters land on the search screen");
+        assert_eq!(a.nav.overlay(), Some(&Overlay::SearchFilters));
+
+        // Right on the genre row picks the first genre; a filter alone is a browse.
+        a.handle(Action::Right, 10);
+        assert_eq!(a.search_filter.genre.as_deref(), Some("Action"));
+        let task = a.handle(Action::Open, 10);
+        match task {
+            Some(Task::Search { query, filter }) => {
+                assert_eq!(query, "");
+                assert_eq!(filter.genre.as_deref(), Some("Action"));
+            }
+            other => panic!("expected a search, got {other:?}"),
+        }
+        assert!(!a.nav.has_overlay());
+    }
+
+    #[test]
+    fn search_filters_step_back_to_any_rather_than_sticking() {
+        let mut a = app();
+        a.handle(Action::FilterSearch, 10);
+
+        a.handle(Action::Right, 10);
+        a.handle(Action::Left, 10);
+        assert_eq!(a.search_filter.genre, None, "left from the first option is back to any");
+
+        // Both empty: Enter closes the overlay and asks nothing.
+        assert_eq!(a.handle(Action::Open, 10), None);
+        assert!(!a.nav.has_overlay());
+    }
+
+    #[test]
+    fn search_filters_open_mid_query_without_stealing_the_letters() {
+        // ctrl+f is the whole reason FilterSearch is its own action: `f` belongs to the
+        // query text while the search box has focus.
+        let mut a = app();
+        a.handle(Action::FocusSearch, 10);
+        for ch in "mecha".chars() {
+            a.type_char(ch);
+        }
+        assert!(a.is_typing());
+        a.handle(Action::FilterSearch, 10);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::SearchFilters));
+        assert_eq!(a.search_query, "mecha", "the query survives opening the overlay");
+    }
+
+    #[test]
+    fn the_filter_key_outside_search_and_episodes_says_where_filters_live() {
+        let mut a = app();
+        a.handle(Action::Filter, 10);
+        assert!(!a.nav.has_overlay());
+        assert!(a.toasts.iter().any(|t| t.text.contains("filters live")));
     }
 
     #[test]

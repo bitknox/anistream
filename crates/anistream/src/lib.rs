@@ -8,6 +8,7 @@
 
 pub mod artwork;
 pub mod data;
+pub mod digest;
 pub mod downloads;
 pub mod focus;
 pub mod mend;

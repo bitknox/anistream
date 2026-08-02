@@ -8,9 +8,16 @@ An anime streaming TUI. Real image rendering, mpv for playback, pluggable everyt
 
 Browsing, search and seasonal lists run off AniList and need no account. Watch history is local
 SQLite. Playback is mpv driven over JSON IPC, with resume, aniskip, auto-next and remembered speed.
+Search filters server-side — genre, year, season, format, status, sort — from one overlay on
+`ctrl+f`, and a title screen offers its watch order, its recommendations and its trailer.
 
 The home screen keeps a half-finished episode with its position, and the calendar spans a week
-either side of today so what just aired is as visible as what is coming.
+either side of today so what just aired is as visible as what is coming. On launch, one quiet
+toast says what aired for shows you watch since you were last here — a digest, never a ping, and
+`[notifications] desktop = true` copies it to the desktop for launch-and-switch-away sessions.
+
+`anistream --continue` resumes the most recent episode with no TUI at all, and
+`anistream --play <id>` plays a title's next unwatched episode straight from the shell.
 
 ![The library screen, with the watching tab and cover art](assets/library.png)
 
@@ -22,12 +29,14 @@ Sources are pluggable three ways: the torrent transport, a self-hosted Consumet-
 the `remote` provider, and sandboxed WASM plugins in any WASI 0.2 language. `P` pins a source for
 one title, and the Sources overlay picks an exact release of an episode.
 
-Tracker sync covers AniList, MyAnimeList, Simkl and Trakt through an outbox that survives being
-offline. Filler and recap episodes are marked from AnimeFillerList. Discord rich presence reports
-what you are watching.
+Tracker sync covers AniList, MyAnimeList, Kitsu, Simkl and Trakt through an outbox that survives
+being offline. `a` sets a title's list status and `*` rates it out of ten; both queue like
+progress does, so rating is always yours to reach for and never a prompt in your way. Filler and
+recap episodes are marked from AnimeFillerList. Discord rich presence reports what you are
+watching.
 
-Kitsu sync is the one tracker not built. anistream will not work around DRM: where a licensed
-catalogue is integrated at all, it will be as a link that opens in that service.
+anistream will not work around DRM: where a licensed catalogue is integrated at all, it will be
+as a link that opens in that service.
 
 ## Install
 
@@ -110,6 +119,10 @@ auto_next = true
 skip_opening = true        # skips it, and says so on mpv's OSD
 mark_chapters = true       # puts the opening and ending on the seek bar
 
+[notifications]
+airing_digest = true       # one toast on launch: what aired for shows you watch
+desktop = false            # copy that toast to the desktop too
+
 [providers]
 order = ["torrent", "plugins"]    # tried in order; failover walks the list
 ```
@@ -162,13 +175,16 @@ dropped tunnel fails closed instead of leaking.
 
 ### Trackers
 
-Local history needs no account. Sync is opt-in, and each service needs an app you register
-yourself. There is no public client to borrow, and credentials shipped in an open-source binary
-would not stay secret.
+Local history needs no account. Sync is opt-in, and each service except Kitsu needs an app you
+register yourself. There is no public client to borrow, and credentials shipped in an open-source
+binary would not stay secret. Kitsu is the exception because its token endpoint takes your
+account credentials directly — nothing to register, nothing to ship — so it is enabled by
+default and sits on the Accounts screen one sign-in away. Enabled is visibility, not activity:
+nothing is queued and nothing is pulled for any tracker until it has credentials.
 
 ```toml
 [trackers]
-enabled = ["anilist", "mal", "simkl", "trakt"]
+enabled = ["anilist", "mal", "kitsu", "simkl", "trakt"]   # default: ["kitsu"]
 token_storage = "keychain"    # or "file" — see below
 
 [trackers.anilist]
@@ -178,6 +194,8 @@ client_secret = "…"           # required: AniList has no PKCE and no public cl
 [trackers.mal]
 client_id = "…"               # that is all: MAL is a public client, PKCE covers it
 
+# kitsu needs no section at all
+
 [trackers.simkl]
 client_id = "…"
 
@@ -186,17 +204,20 @@ client_id = "…"
 client_secret = "…"           # Trakt wants one on the token exchange
 ```
 
-|                | AniList                                             | MyAnimeList                                                               | Simkl                                             | Trakt                                           |
-| -------------- | --------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------- | ----------------------------------------------- |
-| Register at    | [anilist.co](https://anilist.co/settings/developer) | [myanimelist.net](https://myanimelist.net/apiconfig) — App Type **other** | [simkl.com](https://simkl.com/settings/developer) | [trakt.tv](https://trakt.tv/oauth/applications) |
-| Sign-in flow   | browser redirect                                    | browser redirect                                                          | device code                                       | device code                                     |
-| Redirect URL   | `http://127.0.0.1:45617/callback`                   | `http://127.0.0.1:45617/callback`                                         | none needed                                       | none needed                                     |
-| Needs a secret | yes                                                 | no                                                                        | no                                                | yes                                             |
-| Token life     | ~1 year                                             | ~31 days, refreshed automatically                                          | long-lived                                        | ~3 months, then --login again                         |
+|                | AniList                                             | MyAnimeList                                                               | Kitsu                              | Simkl                                             | Trakt                                           |
+| -------------- | --------------------------------------------------- | ------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------------------- | ----------------------------------------------- |
+| Register at    | [anilist.co](https://anilist.co/settings/developer) | [myanimelist.net](https://myanimelist.net/apiconfig) — App Type **other** | nowhere — no app exists            | [simkl.com](https://simkl.com/settings/developer) | [trakt.tv](https://trakt.tv/oauth/applications) |
+| Sign-in flow   | browser redirect                                    | browser redirect                                                          | username + password, once          | device code                                       | device code                                     |
+| Redirect URL   | `http://127.0.0.1:45617/callback`                   | `http://127.0.0.1:45617/callback`                                         | none needed                        | none needed                                       | none needed                                     |
+| Needs a secret | yes                                                 | no                                                                        | no                                 | no                                                | yes                                             |
+| Token life     | ~1 year                                             | ~31 days, refreshed automatically                                          | ~30 days, refreshed automatically  | long-lived                                        | ~3 months, then --login again                         |
 
 Then run `anistream --login`, or `anistream --login --tracker mal`. Simkl and Trakt use the OAuth
-device flow, so `--login --tracker simkl` prints a code and a URL to enter it at. Check any of them
-with `anistream --sync`.
+device flow, so `--login --tracker simkl` prints a code and a URL to enter it at. Kitsu signs in
+right on the Accounts screen — Enter on its row asks for your username and a masked password,
+exchanges them for a token and drops them; `--login --tracker kitsu` does the same from a shell
+for headless machines. The password is never stored and never rendered. Check any of them with
+`anistream --sync`.
 
 ![The accounts screen, listing each tracker's connection state, queued items and token storage](assets/account.png)
 
@@ -221,6 +242,8 @@ These all exit without starting the interface. `--search`, `--stats` and `--rand
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `--doctor`                                          | Terminal support, mpv and its config, datasets, configured indexer, VPN guard, kill-switch state                           |
 | `--search <query>`                                  | Search AniList                                                                                                             |
+| `--continue`                                        | Resume the most recent episode, or start the next one — the full session, no TUI                                          |
+| `--play <id> [--episode N]`                         | Play one title headlessly; without `--episode` it takes the next unwatched                                                 |
 | `--stats`                                           | Watch statistics                                                                                                           |
 | `--export <path>` \| `--import <path>`              | History as JSON; `-` for stdio                                                                                             |
 | `--random`                                          | Pick something from your history                                                                                           |
@@ -292,14 +315,14 @@ Ten crates, volatility increasing left to right:
 
 `anistream-core` (types and traits) · `-net` (HTTP, rate limiting) · `-meta` (AniList, ID mapping,
 filler) · `-store` (SQLite) · `-providers` (torrent transport, remote, mock) · `-player` (mpv IPC) ·
-`-track` (AniList, MAL, Simkl, Trakt, sync) · `-plugin` (WASM host) · `-ui` (ratatui) · `anistream` (wiring).
+`-track` (AniList, MAL, Kitsu, Simkl, Trakt, sync) · `-plugin` (WASM host) · `-ui` (ratatui) · `anistream` (wiring).
 
 Sources decay, so every volatile piece sits behind a trait and the core never depends on one.
 
 ## Development
 
 ```sh
-cargo test --workspace        # 972 tests, no network
+cargo test --workspace        # 1047 tests, no network
 cargo clippy --workspace --all-targets
 cargo run -p anistream-ui --example screen_preview     # look at the layouts
 ```
@@ -315,6 +338,7 @@ cargo run -p anistream-providers --example stream_probe    # torrent path throug
 cargo run -p anistream --example playback_probe            # torrent → mpv → history
 cargo run -p anistream --example sync_probe -- --write     # AniList push, then undo
 cargo run -p anistream --example mal_probe -- --write      # MAL push, then undo
+cargo run -p anistream --example kitsu_probe -- --write    # Kitsu push, then undo; no args = public wire check
 cargo run -p anistream --example simkl_probe -- --write    # Simkl push, then undo
 cargo run -p anistream --example mend_probe -- <url>       # disguised HLS → mpv
 cargo run -p anistream-meta --example filler_probe         # filler parsing

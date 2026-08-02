@@ -67,6 +67,7 @@ pub struct Config {
     pub network: NetworkConfig,
     pub updates: UpdatesConfig,
     pub syncplay: SyncplayConfig,
+    pub notifications: NotificationsConfig,
     /// Keybinding overrides, `action = "key"`. The help overlay is generated from the
     /// resolved map so it can never drift from what the keys actually do.
     pub keys: BTreeMap<String, String>,
@@ -258,6 +259,26 @@ impl Default for SyncplayConfig {
             name: "anistream".into(),
             binary: "syncplay".into(),
         }
+    }
+}
+
+/// The airing digest: what aired for shows in your history while the app was closed.
+///
+/// A digest, never a stream of pings — one line on launch, and only when there is
+/// something to say. The tool must not get in the way of the person using it.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct NotificationsConfig {
+    /// Say on launch how many new episodes aired for shows you watch.
+    pub airing_digest: bool,
+    /// Send the same line to the desktop as well. Off by default — the toast already
+    /// says it, and a notification about the app you just opened is noise.
+    pub desktop: bool,
+}
+
+impl Default for NotificationsConfig {
+    fn default() -> Self {
+        Self { airing_digest: true, desktop: false }
     }
 }
 
@@ -642,8 +663,12 @@ pub struct TrackersConfig {
 impl Default for TrackersConfig {
     fn default() -> Self {
         Self {
-            // Off until the user connects an account. Local history stands alone.
-            enabled: Vec::new(),
+            // Kitsu is on out of the box because it is the one tracker with nothing to
+            // register and nothing to configure — being enabled only makes it *visible*
+            // on the Accounts screen, one sign-in away. Nothing is queued and nothing is
+            // pulled until credentials exist, so local history still stands alone. Every
+            // other tracker needs config anyway, and enabling rides along with that.
+            enabled: vec!["kitsu".into()],
             anilist: AniListAuthConfig::default(),
             mal: MalAuthConfig::default(),
             simkl: DeviceAuthConfig::default(),
@@ -831,12 +856,17 @@ mod tests {
     }
 
     #[test]
-    fn no_tracker_is_enabled_by_default() {
-        // History has to stand alone: the app is fully usable with no account, so sync is
-        // something you opt into rather than something you turn off.
+    fn only_the_zero_config_tracker_is_enabled_by_default() {
+        // History has to stand alone: the app is fully usable with no account. Kitsu is
+        // the exception in *visibility* only — it needs no registration, so it appears on
+        // the Accounts screen out of the box — while sync stays inert until a sign-in,
+        // which the enqueue and pull gates on `is_authenticated` guarantee.
         let cfg = Config::default();
-        assert!(cfg.trackers.enabled.is_empty());
+        assert_eq!(cfg.trackers.enabled, vec!["kitsu".to_string()]);
         assert!(!cfg.trackers.is_enabled("anilist"));
+        assert!(cfg.trackers.is_enabled("kitsu"));
+        // And it must validate without any [trackers.kitsu] section existing.
+        assert!(cfg.validate().is_ok());
     }
 
     #[test]

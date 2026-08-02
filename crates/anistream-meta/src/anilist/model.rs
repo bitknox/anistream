@@ -230,6 +230,40 @@ pub struct Media {
     /// fetch and empty on list fetches.
     #[serde(default)]
     pub relations: RelationConnection,
+    /// What people who liked this rated highest. Same availability as `relations`.
+    #[serde(default)]
+    pub recommendations: RecommendationConnection,
+    /// The promotional video, when AniList has one. Rides the detail fetch.
+    #[serde(default)]
+    pub trailer: Option<Trailer>,
+}
+
+/// A trailer reference: a video id on a host, not a playable URL.
+#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq)]
+pub struct Trailer {
+    #[serde(default)]
+    pub id: Option<String>,
+    /// `youtube` or `dailymotion`, per AniList's docs.
+    #[serde(default)]
+    pub site: Option<String>,
+}
+
+/// The wire shape of `recommendations { nodes { mediaRecommendation { … } } }`.
+///
+/// The node reuses [`RelationNode`]: a recommendation row needs exactly what a relation
+/// row needs — id, title, format — and a second identical struct would only drift.
+#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq)]
+pub struct RecommendationConnection {
+    #[serde(default)]
+    pub nodes: Vec<RecommendationNode>,
+}
+
+#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RecommendationNode {
+    /// Null when the recommended title was deleted; skipped rather than surfaced.
+    #[serde(default)]
+    pub media_recommendation: Option<RelationNode>,
 }
 
 /// Studios credited on a title. Requested with `isMain: true`, so in practice this holds the
@@ -285,6 +319,34 @@ impl Media {
         };
         related.sort_by_key(rank);
         related
+    }
+
+    /// Titles recommended off this one, best-rated first — AniList's order, kept.
+    ///
+    /// Distinct from [`Self::watch_order`]: that answers "what comes before and after",
+    /// this answers "what else is like it". A deleted recommendation arrives as a null
+    /// node and is skipped, and so is anything that is not an anime format — opening a
+    /// recommended manga would dead-end, since every detail fetch asks for `type: ANIME`.
+    pub fn recommended(&self) -> Vec<&RelationNode> {
+        self.recommendations
+            .nodes
+            .iter()
+            .filter_map(|n| n.media_recommendation.as_ref())
+            .filter(|node| !matches!(node.format, Some(MediaFormat::Unknown)))
+            .collect()
+    }
+
+    /// The trailer as a watchable URL, when the id and a known host are both present.
+    ///
+    /// An unknown host returns `None` rather than a guessed URL that opens a 404.
+    pub fn trailer_url(&self) -> Option<String> {
+        let trailer = self.trailer.as_ref()?;
+        let id = trailer.id.as_deref().filter(|id| !id.is_empty())?;
+        match trailer.site.as_deref() {
+            Some("youtube") => Some(format!("https://www.youtube.com/watch?v={id}")),
+            Some("dailymotion") => Some(format!("https://www.dailymotion.com/video/{id}")),
+            _ => None,
+        }
     }
 
     /// Strip AniList's HTML description down to plain text for the terminal.
@@ -587,6 +649,48 @@ mod tests {
         let order = m.watch_order();
         assert_eq!(order.len(), 1, "adaptations are not watch order");
         assert_eq!(order[0].id, AnilistId::new(3));
+    }
+
+    #[test]
+    fn recommendations_deserialise_and_skip_what_cannot_be_watched() {
+        // A deleted recommendation arrives as a null node and must not fail the fetch.
+        // A MANGA one parses — `#[serde(other)]` — but opening it would dead-end on
+        // `type: ANIME`, so it is dropped rather than offered.
+        let m: Media = serde_json::from_value(serde_json::json!({
+            "id": 1,
+            "title": {"romaji": "X"},
+            "recommendations": {"nodes": [
+                {"mediaRecommendation": {"id": 7, "title": {"romaji": "Like It"}, "format": "TV"}},
+                {"mediaRecommendation": null},
+                {"mediaRecommendation": {"id": 9, "title": {"romaji": "Read It"}, "format": "MANGA"}},
+            ]}
+        }))
+        .unwrap();
+        let recs = m.recommended();
+        assert_eq!(recs.len(), 1);
+        assert_eq!(recs[0].id, AnilistId::new(7));
+    }
+
+    #[test]
+    fn a_trailer_becomes_a_url_only_on_a_known_host() {
+        let with = |site: serde_json::Value| -> Media {
+            serde_json::from_value(serde_json::json!({
+                "id": 1,
+                "trailer": {"id": "abc123", "site": site}
+            }))
+            .unwrap()
+        };
+        assert_eq!(
+            with("youtube".into()).trailer_url().as_deref(),
+            Some("https://www.youtube.com/watch?v=abc123")
+        );
+        assert_eq!(
+            with("dailymotion".into()).trailer_url().as_deref(),
+            Some("https://www.dailymotion.com/video/abc123")
+        );
+        // An unknown host must not become a guessed URL that opens a 404.
+        assert_eq!(with("bilibili".into()).trailer_url(), None);
+        assert_eq!(with(serde_json::Value::Null).trailer_url(), None);
     }
 
     #[test]

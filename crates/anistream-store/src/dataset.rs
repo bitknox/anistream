@@ -209,6 +209,20 @@ impl Store {
         })
     }
 
+    /// Reverse lookup, for services that speak Kitsu ids.
+    pub fn anilist_id_for_kitsu(&self, kitsu_id: u32) -> Result<Option<AnilistId>> {
+        self.with_conn(|c| {
+            let found: Option<u32> = c
+                .query_row(
+                    "SELECT anilist_id FROM mapping WHERE kitsu_id = ?1 LIMIT 1",
+                    [kitsu_id],
+                    |r| r.get(0),
+                )
+                .ok();
+            Ok(found.map(AnilistId::new))
+        })
+    }
+
     /// Reverse lookup by TVDB id, for Trakt.
     ///
     /// `ORDER BY anilist_id` rather than a bare `LIMIT 1`, because a TVDB series maps to *several*
