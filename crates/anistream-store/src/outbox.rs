@@ -23,6 +23,15 @@ const BACKOFF_BASE_SECS: i64 = 30;
 /// a recovered tracker waiting for days.
 const BACKOFF_MAX_SECS: i64 = 3_600;
 
+/// Failures after which an operation is abandoned.
+///
+/// Far away on purpose. Every discard loses a progress push the user earned by watching
+/// something, so this must mean "no amount of waiting will fix it" rather than "the network
+/// was down for a while" — at the capped hourly backoff, roughly two days of continuous
+/// failure. A laptop closed for a week never reaches it, because the clock that matters is
+/// attempts, not time.
+const MAX_ATTEMPTS: u32 = 50;
+
 /// A queued operation.
 #[derive(Debug, Clone, PartialEq)]
 pub struct OutboxEntry {
@@ -77,12 +86,18 @@ impl Store {
                         // Already covered by a queued op at or beyond this episode.
                         return Ok(None);
                     }
+                    // Only the payload changes. Resetting `attempts` and `next_retry` here
+                    // meant a binge against a failing tracker re-armed an immediate retry
+                    // after every episode, so the backoff this queue is built around never
+                    // applied to the case it exists for; and moving `created_at` forward sent
+                    // the row to the back of an oldest-first queue, so an actively-watched
+                    // title could be starved behind titles nobody had touched in weeks.
+                    //
+                    // The row is still the same obligation — "tell the tracker where this
+                    // title is" — and its history of failing to discharge it is worth keeping.
                     tx.execute(
-                        "UPDATE sync_outbox
-                            SET op = ?1, created_at = ?2, attempts = 0, next_retry = 0,
-                                last_error = NULL
-                          WHERE id = ?3",
-                        rusqlite::params![&payload, at, existing_id],
+                        "UPDATE sync_outbox SET op = ?1 WHERE id = ?2",
+                        rusqlite::params![&payload, existing_id],
                     )?;
                     return Ok(Some(existing_id));
                 }
@@ -124,6 +139,7 @@ impl Store {
             })?;
 
             let mut out = Vec::new();
+            let mut undecodable: Vec<i64> = Vec::new();
             for row in rows {
                 let (id, tracker, json, attempts, created_at) = row?;
                 match serde_json::from_str(&json) {
@@ -134,12 +150,18 @@ impl Store {
                         attempts,
                         created_at,
                     }),
-                    // A row we can no longer decode would block the queue head forever.
-                    // Log and skip rather than wedge every later op behind it.
+                    // A row we can no longer decode can never be sent — skipping it left it
+                    // in the table forever, re-read on every claim and counted in the badge
+                    // the user is waiting to see reach zero. Dropped instead, loudly.
                     Err(e) => {
-                        tracing::error!(id, error = %e, "undecodable outbox row, skipping");
+                        tracing::error!(id, error = %e, "discarding an undecodable outbox row");
+                        undecodable.push(id);
                     }
                 }
+            }
+            drop(stmt);
+            for id in undecodable {
+                c.execute("DELETE FROM sync_outbox WHERE id = ?1", [id])?;
             }
             Ok(out)
         })
@@ -153,28 +175,41 @@ impl Store {
         })
     }
 
-    /// Record a failure and schedule a retry.
+    /// Record a failure and schedule a retry, or give up on an operation that never will.
     pub fn fail(&self, id: i64, error: &str, now: i64) -> Result<()> {
         self.with_conn(|c| {
+            let attempts = c
+                .query_row("SELECT attempts + 1 FROM sync_outbox WHERE id = ?1", [id], |r| {
+                    r.get::<_, u32>(0)
+                })
+                .unwrap_or(1);
+
+            // Nothing used to read `attempts` except the backoff, so an operation that could
+            // never succeed — a title the tracker has deleted, say — retried hourly for the
+            // life of the installation and held the `⇅` badge above zero for good.
+            //
+            // The ceiling is deliberately far away. Discarding this row loses a progress push
+            // the user earned by watching something, which is worse than a stuck badge, so it
+            // has to be unambiguous that no amount of waiting will help: at the capped hourly
+            // backoff this is roughly two days of continuous failure.
+            if attempts >= MAX_ATTEMPTS {
+                tracing::error!(
+                    id,
+                    attempts,
+                    %error,
+                    "giving up on an outbox operation after repeated failures"
+                );
+                c.execute("DELETE FROM sync_outbox WHERE id = ?1", [id])?;
+                return Ok(());
+            }
+
             c.execute(
                 "UPDATE sync_outbox
-                    SET attempts = attempts + 1,
-                        last_error = ?1,
-                        next_retry = ?2 + ?3
-                  WHERE id = ?4",
-                rusqlite::params![
-                    error,
-                    now,
-                    // Backoff for the attempt count *after* this failure.
-                    c.query_row(
-                        "SELECT attempts + 1 FROM sync_outbox WHERE id = ?1",
-                        [id],
-                        |r| r.get::<_, u32>(0)
-                    )
-                    .map(backoff_secs)
-                    .unwrap_or(BACKOFF_BASE_SECS),
-                    id
-                ],
+                    SET attempts = ?1,
+                        last_error = ?2,
+                        next_retry = ?3 + ?4
+                  WHERE id = ?5",
+                rusqlite::params![attempts, error, now, backoff_secs(attempts), id],
             )?;
             Ok(())
         })
@@ -259,6 +294,49 @@ mod tests {
         let dropped = store.enqueue("anilist", &progress(7), 1_100).unwrap();
         assert_eq!(dropped, None, "lower episode should be discarded");
         assert_eq!(store.claim_ready("anilist", 2_000, 10).unwrap()[0].op, progress(12));
+    }
+
+    #[test]
+    fn coalescing_keeps_the_backoff_the_row_has_earned() {
+        // A binge against a failing tracker enqueues a progress op per episode, and each one
+        // used to reset `attempts` and `next_retry` — so the backoff never applied to the
+        // case it exists for, and the app hammered a tracker that was already refusing.
+        let store = Store::open_in_memory().unwrap();
+        store.enqueue("anilist", &progress(7), 1_000).unwrap();
+        let id = store.claim_ready("anilist", 1_000, 10).unwrap()[0].id;
+        store.fail(id, "503", 1_000).unwrap();
+        assert!(store.claim_ready("anilist", 1_001, 10).unwrap().is_empty(), "backing off");
+
+        // The next episode finishes a minute later and folds into the same row, while the
+        // backoff from the failure still has time to run.
+        store.enqueue("anilist", &progress(8), 1_010).unwrap();
+
+        assert!(
+            store.claim_ready("anilist", 1_010, 10).unwrap().is_empty(),
+            "coalescing re-armed an immediate retry"
+        );
+        let entry = &store.claim_ready("anilist", 9_999, 10).unwrap()[0];
+        assert_eq!(entry.op, progress(8), "and it still carries the newest episode");
+        assert_eq!(entry.attempts, 1, "the row's history of failing survived");
+    }
+
+    #[test]
+    fn an_operation_that_never_succeeds_is_eventually_abandoned() {
+        // Nothing read `attempts` except the backoff, so an op that could never be delivered
+        // retried hourly for the life of the installation and held the badge above zero.
+        let store = Store::open_in_memory().unwrap();
+        store.enqueue("anilist", &progress(7), 0).unwrap();
+        let id = store.claim_ready("anilist", 0, 10).unwrap()[0].id;
+
+        for attempt in 0..MAX_ATTEMPTS {
+            store.fail(id, "gone", i64::from(attempt) * 10_000).unwrap();
+        }
+
+        assert_eq!(
+            store.outbox_depth(Some("anilist")).unwrap(),
+            0,
+            "the queue should not carry an operation forever"
+        );
     }
 
     #[test]
