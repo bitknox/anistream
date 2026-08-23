@@ -17,7 +17,7 @@ use anistream_core::{
     ids::ProviderKey,
     media::{Episode, SearchHit, Translation},
     stream::Stream,
-    traits::{Provider, SourceCandidate},
+    traits::{Provider, ProviderKind, SourceCandidate},
 };
 
 use crate::health::HealthTracker;
@@ -106,6 +106,30 @@ impl ProviderRegistry {
         self.health.register(more.iter().map(|p| p.manifest().id.clone()));
         let mut providers = self.providers.write().unwrap_or_else(|e| e.into_inner());
         providers.extend(more);
+    }
+
+    /// Swap the whole chain, for a configuration change that redefines what sources exist.
+    ///
+    /// In place rather than by handing out a new registry: every caller holds a clone, and
+    /// a new object would leave all of them talking to the old chain — which for the torrent
+    /// source means a session the user has just switched off carrying on regardless.
+    pub fn replace(&self, providers: Vec<Arc<dyn Provider>>) {
+        self.health.register(providers.iter().map(|p| p.manifest().id.clone()));
+        let mut held = self.providers.write().unwrap_or_else(|e| e.into_inner());
+        *held = providers;
+    }
+
+    /// The whole chain, for a caller assembling a replacement for it.
+    pub fn all(&self) -> Vec<Arc<dyn Provider>> {
+        self.snapshot()
+    }
+
+    /// The providers of one kind, so a rebuild can keep what it did not rebuild.
+    ///
+    /// Plugins are the case this exists for: they compile in the background and join the
+    /// chain late, so a reload that only knows about configured sources would drop them.
+    pub fn of_kind(&self, kind: ProviderKind) -> Vec<Arc<dyn Provider>> {
+        self.snapshot().into_iter().filter(|p| p.manifest().kind == kind).collect()
     }
 
     /// A snapshot of the chain.

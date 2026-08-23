@@ -523,6 +523,17 @@ pub struct ProviderRow {
     pub held_back: bool,
 }
 
+/// One rung of the metadata ladder, as the Providers screen shows it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MetaSourceRow {
+    pub source: String,
+    pub state: String,
+    pub healthy: bool,
+    /// The rung that answered the most recent request.
+    pub active: bool,
+    pub detail: Option<String>,
+}
+
 /// One row of the timing-sheet episode table.
 #[derive(Debug, Clone, PartialEq)]
 pub struct EpisodeRow {
@@ -798,6 +809,14 @@ pub enum Update {
     Status(String),
     Toast(Toast),
     Providers(Vec<ProviderRow>),
+    /// The metadata ladder's condition: which rung is serving, and why.
+    MetaStatus(Vec<MetaSourceRow>),
+    /// A setting reached disk. The run loop republishes the configuration its background
+    /// tasks read, so saved and in-effect are the same moment.
+    SettingsSaved,
+    /// A setting changed what sources should exist. Acted on by the run loop, which owns
+    /// the torrent session and the VPN guard; the reducer only needs to not choke on it.
+    SourcesChanged,
     /// Why no sources are available, when none are.
     ProviderNote(String),
     /// The source pinned for the title on screen, or `None` for automatic.
@@ -916,6 +935,8 @@ pub struct App {
     pub device_code: Option<DeviceCodePrompt>,
     /// Snapshot for the Providers screen.
     pub providers: Vec<ProviderRow>,
+    /// The metadata ladder's rungs, for the Providers screen and the header chip.
+    pub meta_status: Vec<MetaSourceRow>,
     /// The source pinned for the title on screen. `None` means automatic.
     pub provider_preference: Option<String>,
     /// Why there are no sources, when there are none.
@@ -1050,6 +1071,7 @@ impl App {
             vpn_badge: None,
             vpn_leaking: false,
             providers: Vec::new(),
+            meta_status: Vec::new(),
             provider_preference: None,
             provider_note: None,
             episodes: Vec::new(),
@@ -1154,6 +1176,11 @@ impl App {
             Update::Toast(toast) => self.push_toast(toast),
             Update::Image { url, image } => self.images.insert(&url, *image),
             Update::Providers(rows) => self.providers = rows,
+            Update::MetaStatus(rows) => self.meta_status = rows,
+            // Both are handled outside the reducer, by the loop that owns the background
+            // tasks and the session.
+            Update::SettingsSaved => {}
+            Update::SourcesChanged => self.status = "reloading sources…".into(),
             Update::ProviderNote(note) => self.provider_note = Some(note),
             Update::ProviderPreference(choice) => self.provider_preference = choice,
             Update::Sources(candidates) => {
@@ -2631,8 +2658,8 @@ impl App {
                     S::Upscaling => (
                         upscaling_label(playback.upscaling).into(),
                         Some(("playback", "upscaling")),
-                        // The shader arguments are assembled when mpv is set up at launch.
-                        Some("takes effect after a restart"),
+                        // Assembled per playback, so the next episode uses this.
+                        Some("applies to the next episode you start"),
                     ),
                     S::DownloadDir => (
                         self.config
@@ -2641,18 +2668,18 @@ impl App {
                             .clone()
                             .unwrap_or_else(|| "kept with the torrent cache".into()),
                         Some(("downloads", "directory")),
-                        Some("enter types a path — applies to downloads after a restart"),
+                        Some("enter types a path — applies to the next download"),
                     ),
                     S::MergeSubtitles => (
                         on_off(self.config.downloads.merge_subtitles),
                         Some(("downloads", "merge_subtitles")),
-                        Some("applies to downloads finished after a restart"),
+                        Some("applies to the next download that finishes"),
                     ),
                     S::KeepSeeding => (
                         on_off(self.config.downloads.keep_seeding),
                         Some(("downloads", "keep_seeding")),
                         // The privacy dial; saying so is the point of the row.
-                        Some("on keeps advertising you as a source — applies after a restart"),
+                        Some("on keeps advertising you as a source — applies immediately"),
                     ),
                     S::DownloadHook => (
                         if self.config.downloads.on_complete.is_some() {
@@ -2713,7 +2740,7 @@ impl App {
                     S::Torrents => (
                         on_off(torrent.enabled),
                         Some(("providers.torrent", "enabled")),
-                        Some("needs a VPN configured, and a restart to take effect"),
+                        Some("needs a VPN configured; takes effect immediately"),
                     ),
                     // Deliberately not editable. `mode = "none"` requires an explicit
                     // acknowledgement key in the file, and a screen that let you cycle past it
@@ -3072,6 +3099,14 @@ impl App {
             _ => {}
         }
         None
+    }
+
+    /// Whether metadata is currently served by anything other than AniList.
+    ///
+    /// The header chip's question. Answered from the last status report, so it holds
+    /// between Providers-screen visits.
+    pub fn meta_degraded(&self) -> bool {
+        self.meta_status.iter().any(|row| row.active && row.source != "anilist")
     }
 
     /// Whether the episode table currently has focus.
@@ -4586,6 +4621,25 @@ mod tests {
         let printed = format!("{task:?}");
         assert!(!printed.contains("hunter2"), "leaked: {printed}");
         assert!(printed.contains("redacted"));
+    }
+
+    #[test]
+    fn the_meta_chip_appears_only_while_a_fallback_is_serving() {
+        let mut a = app();
+        assert!(!a.meta_degraded(), "no status yet is not degraded");
+
+        let row = |source: &str, active: bool| MetaSourceRow {
+            source: source.into(),
+            state: String::new(),
+            healthy: true,
+            active,
+            detail: None,
+        };
+        a.apply(Update::MetaStatus(vec![row("anilist", true), row("tenrai", false)]));
+        assert!(!a.meta_degraded(), "anilist serving is the resting state");
+
+        a.apply(Update::MetaStatus(vec![row("anilist", false), row("tenrai", true)]));
+        assert!(a.meta_degraded());
     }
 
     #[test]

@@ -9,14 +9,14 @@ use anistream_core::{
     ids::AnilistId,
     media::{MediaFormat, MediaStatus},
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// A title in the three forms AniList publishes.
 ///
 /// All three matter: `romaji` is what torrent release groups use, `english` is what people
 /// type, and `native` occasionally matches nothing else. The resolution ladder feeds all of
 /// them to a provider search, which is why none is discarded.
-#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct Title {
     pub romaji: Option<String>,
@@ -57,7 +57,7 @@ impl Title {
     }
 }
 
-#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct CoverImage {
     pub extra_large: Option<String>,
@@ -72,7 +72,7 @@ impl CoverImage {
 }
 
 /// When the next episode airs.
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct NextAiring {
     pub episode: u32,
@@ -87,7 +87,7 @@ pub struct NextAiring {
 /// and per-series links for Netflix, Hulu and others, with no authentication at all. That
 /// is how anistream can offer a legitimate route to a title before reaching for anything
 /// else.
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ExternalLink {
     pub site: String,
@@ -104,7 +104,7 @@ impl ExternalLink {
 }
 
 /// A single episode's deep link on a streaming service.
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct StreamingEpisode {
     pub title: Option<String>,
@@ -144,7 +144,7 @@ impl StreamingEpisode {
 }
 
 /// How one title relates to another.
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Relation {
     pub id: AnilistId,
     #[serde(rename = "relationType")]
@@ -165,20 +165,20 @@ impl Relation {
 ///
 /// Flattened into [`Relation`] by [`Media::watch_order`]; the edge/node split is
 /// AniList's, not ours.
-#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub struct RelationConnection {
     #[serde(default)]
     pub edges: Vec<RelationEdge>,
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct RelationEdge {
     #[serde(rename = "relationType")]
     pub relation_type: Option<String>,
     pub node: RelationNode,
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct RelationNode {
     pub id: AnilistId,
     #[serde(default)]
@@ -188,7 +188,7 @@ pub struct RelationNode {
 }
 
 /// A title, as much of it as anistream renders.
-#[derive(Debug, Clone, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Media {
     pub id: AnilistId,
@@ -239,7 +239,7 @@ pub struct Media {
 }
 
 /// A trailer reference: a video id on a host, not a playable URL.
-#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Trailer {
     #[serde(default)]
     pub id: Option<String>,
@@ -252,13 +252,13 @@ pub struct Trailer {
 ///
 /// The node reuses [`RelationNode`]: a recommendation row needs exactly what a relation
 /// row needs — id, title, format — and a second identical struct would only drift.
-#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub struct RecommendationConnection {
     #[serde(default)]
     pub nodes: Vec<RecommendationNode>,
 }
 
-#[derive(Debug, Clone, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct RecommendationNode {
     /// Null when the recommended title was deleted; skipped rather than surfaced.
@@ -268,19 +268,19 @@ pub struct RecommendationNode {
 
 /// Studios credited on a title. Requested with `isMain: true`, so in practice this holds the
 /// animation studio rather than the production committee.
-#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub struct StudioConnection {
     #[serde(default)]
     pub nodes: Vec<Studio>,
 }
 
-#[derive(Debug, Clone, Default, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Studio {
     pub name: String,
 }
 
 /// The most recent broadcast of one title.
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct LastAired {
     pub media_id: AnilistId,
@@ -691,6 +691,16 @@ mod tests {
         // An unknown host must not become a guessed URL that opens a 404.
         assert_eq!(with("bilibili".into()).trailer_url(), None);
         assert_eq!(with(serde_json::Value::Null).trailer_url(), None);
+    }
+
+    #[test]
+    fn a_media_survives_the_cache_round_trip() {
+        // The media cache stores serialized Media; a lossy round trip would mean the
+        // fallback path silently shows different data than the fresh one did.
+        let m = frieren();
+        let json = serde_json::to_string(&m).expect("serialize");
+        let back: Media = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(back, m);
     }
 
     #[test]

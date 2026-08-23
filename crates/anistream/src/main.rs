@@ -5,7 +5,7 @@ use anistream::{artwork, data, downloads, playback, sources, tracking};
 use std::{io, sync::Arc, time::Duration};
 
 use anistream_core::config::{Config, Paths, ThemeMode};
-use anistream_meta::{anilist::AniList, dataset};
+use anistream_meta::{Tenrai, Meta, anilist::AniList, dataset};
 use anistream_net::HttpClient;
 use anistream_providers::{ProviderRegistry, vpn::VpnGuard};
 use anistream_store::Store;
@@ -280,7 +280,7 @@ async fn preview(
         .unwrap_or((120u16, 34u16));
 
     let palette = theme::resolve_with(config.theme.mode, None);
-    let anilist = AniList::new(http.clone(), config.network.anilist_rate_limit);
+    let meta = build_meta(&config, &http, &store);
     let engine = anistream_ui::image::ImageEngine::detect(images);
     let graphics = engine.graphics();
     let mut app = App::with_images(config, palette, Keymap::new(), engine);
@@ -288,16 +288,16 @@ async fn preview(
     let entries = match screen {
         "calendar" => {
             let now = now_epoch();
-            calendar_timeline(&anilist, &store, now).await.unwrap_or_default()
+            calendar_timeline(&meta, &store, now).await.unwrap_or_default()
         }
-        "search" => anilist
-            .search("frieren", 1, 20)
+        "search" => meta
+            .search("frieren", &Default::default(), 1, 20)
             .await
             .map(|p| p.items.iter().map(|m| data::entry_from(m, Some(&store))).collect())
             .unwrap_or_default(),
         // Through the same function the running app uses, or `--preview` would render a screen
         // that does not exist — which defeats the point of having it.
-        _ => continue_entries(&anilist, &store).await.unwrap_or_default(),
+        _ => continue_entries(&meta, &store).await.unwrap_or_default(),
     };
 
     // The broadcast line needs its own request, so the preview has to make it too — otherwise
@@ -307,7 +307,7 @@ async fn preview(
     let airing: Vec<anistream_core::ids::AnilistId> =
         entries.iter().filter(|e| e.airing_in.is_some()).map(|e| e.id).collect();
     if !airing.is_empty()
-        && let Ok(rows) = anilist.last_aired(&airing).await
+        && let Ok(rows) = meta.last_aired(&airing).await
     {
         let now = now_epoch();
         // Aired rows only: AniList has answered this query with a schedule row whose air
@@ -345,6 +345,7 @@ async fn preview(
                 app.apply(Update::ProviderNote(note));
             }
             app.apply(Update::Providers(data::provider_rows(&registry)));
+            app.apply(Update::MetaStatus(data::meta_rows(&meta)));
         }
         "library" => {
             // Rendered from the local rows rather than a tracker fetch: a preview must not
@@ -366,7 +367,7 @@ async fn preview(
         "title" => {
             // Fetch the full record so availability badges and the synopsis are real.
             if let Some(first) = app.selected_entry().map(|e| e.id)
-                && let Ok(media) = anilist.media(first).await
+                && let Ok(media) = meta.media(first).await
             {
                 app.apply(Update::Detail(Box::new(data::entry_from(&media, Some(&store)))));
             }
@@ -375,13 +376,13 @@ async fn preview(
         "episodes" => {
             if let Some(id) = app.selected_entry().map(|e| e.id) {
                 app.handle(anistream_ui::keymap::Action::Open, 20);
-                if let Ok(media) = anilist.media(id).await {
+                if let Ok(media) = meta.media(id).await {
                     app.apply(Update::Detail(Box::new(data::entry_from(&media, Some(&store)))));
                 }
                 app.handle(anistream_ui::keymap::Action::ShowEpisodes, 20);
                 let (registry, _, note) =
                     sources::build_registry(&app.config, &http, paths).await;
-                match load_episodes(&anilist, &store, &registry, id).await {
+                match load_episodes(&meta, &store, &registry, id).await {
                     Ok(EpisodeLoad::Rows(rows)) => app.apply(Update::Episodes(rows)),
                     // A still frame cannot answer a question, so state it and carry on.
                     Ok(EpisodeLoad::Choose { candidates, .. }) => {
@@ -1168,8 +1169,8 @@ async fn search_cli(
     query: &str,
     json: bool,
 ) -> Result<()> {
-    let anilist = AniList::new(http.clone(), config.network.anilist_rate_limit);
-    let page = anilist.search(query, 1, 20).await?;
+    let meta = build_meta(config, http, store);
+    let page = meta.search(query, &Default::default(), 1, 20).await?;
 
     for media in &page.items {
         let _ = store.remember_title(media.id, media.title.display());
@@ -1334,7 +1335,7 @@ async fn run(
     images: bool,
 ) -> Result<()> {
     let palette = theme::resolve(config.theme.mode);
-    let anilist = AniList::new(http.clone(), config.network.anilist_rate_limit);
+    let meta = build_meta(&config, &http, &store);
 
     let mut keymap = Keymap::new();
     for problem in keymap.apply_overrides(&config.keys) {
@@ -1344,7 +1345,9 @@ async fn run(
     let engine =
         anistream_ui::image::ImageEngine::detect(images).with_cache_dir(paths.image_cache());
     tracing::info!(graphics = ?engine.graphics(), "image engine ready");
-    let (registry, vpn_guard, provider_note) =
+    // Mutable: a settings change can stand the torrent stack down and back up, which
+    // replaces the guard along with the session it protects.
+    let (registry, mut vpn_guard, provider_note) =
         sources::build_registry(&config, &http, &paths).await;
     tracing::info!(providers = ?registry.ids(), "provider registry ready");
     // Plugins join the chain when they have finished compiling. Nothing waits on this: the first
@@ -1373,7 +1376,7 @@ async fn run(
         app.config.notifications.airing_digest,
         app.config.notifications.desktop,
         store.clone(),
-        anilist.clone(),
+        meta.clone(),
         tx.clone(),
     );
 
@@ -1422,64 +1425,20 @@ async fn run(
         });
     }
 
-    // The download manager, when there is a torrent session to run it on. No session means no
-    // downloads — which is correct rather than a limitation: every downloadable source here is a
-    // torrent, and the session only exists when the VPN guard is satisfied.
-    let torrent_session = vpn_guard.as_ref().map(|(_, session)| Arc::clone(session));
-    if let Some(session) = torrent_session.clone() {
-        downloads::spawn(store.clone(), session, app.config.clone(), tx.clone());
-        downloads::publish_now(&store, &tx);
-    }
-
-    // Periodic re-verification: the kill-switch half of the guard. A tunnel that drops
-    // mid-episode has to stop torrenting, not merely be noticed at the next launch.
-    if let Some((guard, session)) = vpn_guard.clone() {
-        let tx = tx.clone();
-        let _ = tx.send(Update::Vpn {
-            badge: guard.state().badge(),
-            leaking: !guard.state().is_protected(),
-        });
-
-        tokio::spawn(async move {
-            let mut ticker = tokio::time::interval(guard.verify_interval());
-            // The first tick fires immediately; the guard was already verified at startup.
-            ticker.tick().await;
-            let mut was_leaking = false;
-
-            loop {
-                ticker.tick().await;
-                let state = guard.verify().await;
-                let leaking = !state.is_protected();
-
-                if leaking && !was_leaking {
-                    tracing::warn!(
-                        reason = state.reason().unwrap_or("unknown"),
-                        action = ?guard.on_leak(),
-                        "vpn guard failing — halting torrent traffic"
-                    );
-                    // Marking the provider unavailable only stops *new* requests. Without
-                    // this, librqbit would carry on downloading and seeding the current
-                    // episode over an unprotected connection.
-                    session.halt().await;
-                } else if !leaking
-                    && was_leaking
-                    && let Err(e) = session.resume().await
-                {
-                    tracing::warn!(error = %e, "could not resume after recovery");
-                }
-                was_leaking = leaking;
-
-                if tx.send(Update::Vpn { badge: state.badge(), leaking }).is_err() {
-                    break;
-                }
-            }
-        });
-    }
+    // The torrent stack's live parts, held so a settings change can tear them down and
+    // stand them back up without a restart. Both are replaced together: the download
+    // manager and the guard's watcher are the two things holding a session alive, and
+    // leaving either behind would mean traffic outliving the source it belongs to.
+    // The copy the background tasks read. Kept in step with the app's own copy whenever a
+    // setting is written, so "saved" and "in effect" are the same moment.
+    let shared_config: anistream::SharedConfig =
+        Arc::new(std::sync::RwLock::new(app.config.clone()));
+    let mut torrent_tasks = TorrentTasks::start(&vpn_guard, &store, &shared_config, &tx);
 
     let mut terminal = setup_terminal().context("preparing the terminal")?;
 
     if let Some(task) = app.reload() {
-        spawn(task, &anilist, &store, &registry, &tx);
+        spawn(task, &meta, &store, &registry, &tx);
     }
 
     let mut events = EventStream::new();
@@ -1488,14 +1447,7 @@ async fn run(
     // The live player's control channel. Replaced on each new playback, so a stale sender from
     // a finished episode can never steer the current one.
     let mut player_tx: Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>> = None;
-    // Upscaling shaders first, the user's own flags after — mpv takes the last value
-    // for a repeated flag, so a hand-written --glsl-shaders always wins.
-    let mut mpv_args =
-        anistream::shaders::mpv_args(app.config.playback.upscaling, &paths.cache_dir);
-    mpv_args.extend(app.config.playback.mpv_args.clone());
-    let mpv = anistream_player::Mpv::new(paths.runtime_dir())
-        .with_binary(app.config.playback.mpv_binary.clone())
-        .with_extra_args(mpv_args);
+    let mpv = player(&app.config, &paths);
     if !mpv.is_available().await {
         // Said once at startup rather than at the moment you press Enter on an episode.
         app.apply(Update::Toast(Toast::alert(format!(
@@ -1526,11 +1478,10 @@ async fn run(
                 &mut player_tx,
                 &paths,
                 &app.config,
-                &anilist,
+                &meta,
                 &store,
                 &registry,
                 &http,
-                &mpv,
                 &sync,
                 &tx,
             );
@@ -1543,6 +1494,42 @@ async fn run(
                 if matches!(update, Update::ProgressQueued) {
                     let (sync, tx) = (sync.clone(), tx.clone());
                     tokio::spawn(async move { tracking::drain_once(&sync, &tx).await });
+                }
+                // Say when the metadata ladder moved, once per transition, in both
+                // directions — silently recovering would leave the last thing said untrue.
+                // The status rows ride along so the header chip and the Providers screen
+                // agree with the toast without waiting for a refresh.
+                if let Some(notice) = meta.take_notice() {
+                    app.apply(Update::MetaStatus(anistream::data::meta_rows(&meta)));
+                    app.apply(Update::Toast(Toast::info(notice)));
+                }
+                // A source setting changed. Awaited here rather than spawned: this owns the
+                // session and the guard, and two rebuilds racing would leave one of their
+                // sessions running with nothing holding it.
+                if matches!(update, Update::SettingsSaved | Update::SourcesChanged)
+                    && let Ok(mut shared) = shared_config.write()
+                {
+                    *shared = app.config.clone();
+                }
+                if matches!(update, Update::SourcesChanged) {
+                    // Painted before the work, not after: standing a torrent session up
+                    // includes verifying the VPN, which takes seconds, and this loop is
+                    // the one that draws. Without a frame here the app would simply stop
+                    // responding with nothing on screen to say why.
+                    app.apply(Update::Status("reloading sources…".into()));
+                    terminal.draw(|frame| screens::render(frame, &app))?;
+                    reload_sources(
+                        &registry,
+                        &mut torrent_tasks,
+                        &mut vpn_guard,
+                        &shared_config,
+                        &http,
+                        &paths,
+                        &store,
+                        &tx,
+                    )
+                    .await;
+                    app.apply(Update::Status(String::new()));
                 }
                 let ended = matches!(update, Update::PlaybackEnded { .. });
                 app.apply(update);
@@ -1593,8 +1580,8 @@ async fn run(
                             && let Some(task) = app.handle(action, rows)
                         {
                             dispatch(
-                                task, &mut player_tx, &paths, &app.config, &anilist, &store,
-                                &registry, &http, &mpv, &sync, &tx,
+                                task, &mut player_tx, &paths, &app.config, &meta, &store,
+                                &registry, &http, &sync, &tx,
                             );
                         }
                     }
@@ -1617,7 +1604,7 @@ async fn run(
 /// cannot be folded into the list query. The list renders as soon as it arrives and gains the
 /// broadcast line a moment later, rather than the whole screen waiting on an annotation.
 async fn publish_list(
-    anilist: &AniList,
+    meta: &Meta,
     tx: &mpsc::UnboundedSender<Update>,
     entries: Vec<anistream_ui::app::Entry>,
     now: i64,
@@ -1630,7 +1617,7 @@ async fn publish_list(
     if ids.is_empty() {
         return;
     }
-    match anilist.last_aired(&ids).await {
+    match meta.last_aired(&ids).await {
         Ok(rows) => {
             let _ = tx.send(Update::LastAired(
                 rows.into_iter()
@@ -1651,12 +1638,12 @@ async fn publish_list(
 /// Run a task off the UI thread and report the result back through the channel.
 fn spawn(
     task: Task,
-    anilist: &AniList,
+    meta: &Meta,
     store: &Store,
     registry: &ProviderRegistry,
     tx: &mpsc::UnboundedSender<Update>,
 ) {
-    let anilist = anilist.clone();
+    let meta = meta.clone();
     let store = store.clone();
     let registry = registry.clone();
     let tx = tx.clone();
@@ -1665,7 +1652,7 @@ fn spawn(
         // Say so before waiting, not after. At thirty requests a minute a burst of navigation can
         // drain the budget, and the token bucket then delays every request — which presented as an
         // indefinite loading indicator and looked exactly like a hang.
-        if let Some(wait) = anilist.rate_limit_wait().await
+        if let Some(wait) = meta.rate_limit_wait().await
             && wait.as_millis() > 400
         {
             let _ = tx.send(Update::Status(format!(
@@ -1674,23 +1661,23 @@ fn spawn(
             )));
         }
         let update = match task {
-            Task::LoadContinue => match continue_entries(&anilist, &store).await {
+            Task::LoadContinue => match continue_entries(&meta, &store).await {
                 Ok(entries) => {
-                    publish_list(&anilist, &tx, entries, now_epoch()).await;
+                    publish_list(&meta, &tx, entries, now_epoch()).await;
                     return;
                 }
                 Err(e) => Update::Content(Content::Failed(e)),
             },
             Task::LoadSeasonal => {
                 let (season, year) = current_season();
-                match anilist.seasonal(season, year, &Default::default(), 1, 40).await {
+                match meta.seasonal(season, year, &Default::default(), 1, 40).await {
                     Ok(page) => {
                         let entries = page
                             .items
                             .iter()
                             .map(|m| data::entry_from(m, Some(&store)))
                             .collect();
-                        publish_list(&anilist, &tx, entries, now_epoch()).await;
+                        publish_list(&meta, &tx, entries, now_epoch()).await;
                         return;
                     }
                     Err(e) => Update::Content(Content::Failed(e.to_string())),
@@ -1698,7 +1685,7 @@ fn spawn(
             }
             Task::LoadCalendar => {
                 let now = now_epoch();
-                match calendar_timeline(&anilist, &store, now).await {
+                match calendar_timeline(&meta, &store, now).await {
                     Ok(entries) => Update::Content(Content::Entries(entries)),
                     Err(e) => Update::Content(Content::Failed(e)),
                 }
@@ -1713,14 +1700,14 @@ fn spawn(
                     season: filter.season.clone(),
                     year: filter.year,
                 };
-                match anilist.search_filtered(&query, &browse, 1, 30).await {
+                match meta.search(&query, &browse, 1, 30).await {
                     Ok(page) => {
                         let entries = page
                             .items
                             .iter()
                             .map(|m| data::entry_from(m, Some(&store)))
                             .collect();
-                        publish_list(&anilist, &tx, entries, now_epoch()).await;
+                        publish_list(&meta, &tx, entries, now_epoch()).await;
                         return;
                     }
                     Err(e) => Update::Content(Content::Failed(e.to_string())),
@@ -1732,7 +1719,7 @@ fn spawn(
                 let _ = tx.send(Update::ProviderPreference(
                     store.provider_preference(id).ok().flatten(),
                 ));
-                match anilist.media(id).await {
+                match meta.media(id).await {
                     Ok(media) => {
                         Update::Detail(Box::new(data::entry_from(&media, Some(&store))))
                     }
@@ -1741,6 +1728,9 @@ fn spawn(
             }
             Task::CheckProviders => {
                 registry.check_all(now_epoch()).await;
+                // The metadata ladder rides the same refresh: one screen, one key,
+                // every source's condition.
+                let _ = tx.send(Update::MetaStatus(data::meta_rows(&meta)));
                 Update::Providers(data::provider_rows(&registry))
             }
             // Handled in `dispatch`, which owns the live player's control channel and the
@@ -1780,7 +1770,7 @@ fn spawn(
                 if let Err(e) = store.clear_title_match(id) {
                     Update::Toast(Toast::alert(format!("could not reset the match: {e}")))
                 } else {
-                    match load_episodes(&anilist, &store, &registry, id).await {
+                    match load_episodes(&meta, &store, &registry, id).await {
                         Ok(EpisodeLoad::Rows(rows)) => Update::Episodes(rows),
                         Ok(EpisodeLoad::Choose { provider_id, candidates }) => {
                             Update::MatchChoices { id, provider_id, candidates }
@@ -1798,7 +1788,7 @@ fn spawn(
                 if let Err(e) = store.set_override(id, &provider_id, &key, now_epoch()) {
                     Update::Toast(Toast::alert(format!("could not save that match: {e}")))
                 } else {
-                    match load_episodes(&anilist, &store, &registry, id).await {
+                    match load_episodes(&meta, &store, &registry, id).await {
                         Ok(EpisodeLoad::Rows(rows)) => Update::Episodes(rows),
                         // The override *is* the answer, so the ladder cannot come back
                         // undecided; if it somehow does, say so rather than looping.
@@ -1813,7 +1803,7 @@ fn spawn(
                 }
             }
             Task::LoadEpisodes(id) => {
-                match load_episodes(&anilist, &store, &registry, id).await {
+                match load_episodes(&meta, &store, &registry, id).await {
                     Ok(EpisodeLoad::Rows(rows)) => Update::Episodes(rows),
                     Ok(EpisodeLoad::Choose { provider_id, candidates }) => {
                         Update::MatchChoices { id, provider_id, candidates }
@@ -1841,14 +1831,16 @@ fn dispatch(
     player_tx: &mut Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
     paths: &Paths,
     config: &Config,
-    anilist: &AniList,
+    meta: &Meta,
     store: &Store,
     registry: &ProviderRegistry,
     http: &HttpClient,
-    mpv: &anistream_player::Mpv,
     sync: &tracking::Sync,
     tx: &mpsc::UnboundedSender<Update>,
 ) {
+    // No player handle is passed in: every playback path builds its own from the config
+    // above, which is the live one the Settings screen edits. A handle held across the
+    // session is exactly how a turned-off upscaler kept running.
     match task {
         // Sync work needs the tracker set, which `spawn` deliberately does not carry.
         Task::SyncNow => {
@@ -1920,11 +1912,11 @@ fn dispatch(
                 config.syncplay.enabled,
                 prx,
                 config,
-                anilist,
+                meta,
                 store,
                 registry,
                 http,
-                mpv,
+                &player(config, paths),
                 tracker_ids,
                 tx,
             );
@@ -1942,11 +1934,11 @@ fn dispatch(
                 config.syncplay.enabled,
                 prx,
                 config,
-                anilist,
+                meta,
                 store,
                 registry,
                 http,
-                mpv,
+                &player(config, paths),
                 tracker_ids,
                 tx,
             );
@@ -1963,22 +1955,22 @@ fn dispatch(
                 true,
                 prx,
                 config,
-                anilist,
+                meta,
                 store,
                 registry,
                 http,
-                mpv,
+                &player(config, paths),
                 tracker_ids,
                 tx,
             );
         }
         Task::LoadSources { id, episode } => {
-            let (store, registry, anilist, tx) =
-                (store.clone(), registry.clone(), anilist.clone(), tx.clone());
+            let (store, registry, meta, tx) =
+                (store.clone(), registry.clone(), meta.clone(), tx.clone());
             let translation = config.playback.translation;
             tokio::spawn(async move {
                 let update =
-                    match source_slate(&anilist, &store, &registry, id, &episode, translation)
+                    match source_slate(&meta, &store, &registry, id, &episode, translation)
                         .await
                     {
                         Ok(sources) => Update::Sources(sources),
@@ -2060,14 +2052,14 @@ fn dispatch(
         }
 
         Task::ManualSearch { id, query } => {
-            let (registry, anilist, tx) = (registry.clone(), anilist.clone(), tx.clone());
+            let (registry, meta, tx) = (registry.clone(), meta.clone(), tx.clone());
             let translation = config.playback.translation;
             tokio::spawn(async move {
                 let now = now_epoch();
                 let attempt = registry.search(&query, translation, now).await;
                 let provider_id = attempt.provider.clone().unwrap_or_default();
                 let update = match attempt.value {
-                    Some(hits) if !hits.is_empty() => match anilist.media(id).await {
+                    Some(hits) if !hits.is_empty() => match meta.media(id).await {
                         // Ranked against the real title so the percentages mean the same
                         // thing they mean when the ladder asks on its own.
                         Ok(media) => {
@@ -2098,8 +2090,8 @@ fn dispatch(
         Task::LoadDownloads => downloads::publish_now(store, tx),
 
         Task::DownloadMany { id, episodes } => {
-            let (store, registry, anilist, tx) =
-                (store.clone(), registry.clone(), anilist.clone(), tx.clone());
+            let (store, registry, meta, tx) =
+                (store.clone(), registry.clone(), meta.clone(), tx.clone());
             let translation = config.playback.translation;
             tokio::spawn(async move {
                 // Sequential enqueues, not parallel: each one is only a resolve + a queue
@@ -2110,7 +2102,7 @@ fn dispatch(
                     match downloads::enqueue(
                         &store,
                         &registry,
-                        &anilist,
+                        &meta,
                         id,
                         episode,
                         translation,
@@ -2133,8 +2125,8 @@ fn dispatch(
         }
 
         Task::DownloadEpisode { id, episode } => {
-            let (store, registry, anilist, tx) =
-                (store.clone(), registry.clone(), anilist.clone(), tx.clone());
+            let (store, registry, meta, tx) =
+                (store.clone(), registry.clone(), meta.clone(), tx.clone());
             let translation = config.playback.translation;
             tokio::spawn(async move {
                 // Resolving needs the provider chain, so this is a task rather than inline — the
@@ -2142,7 +2134,7 @@ fn dispatch(
                 let update = match downloads::enqueue(
                     &store,
                     &registry,
-                    &anilist,
+                    &meta,
                     id,
                     &episode,
                     translation,
@@ -2227,7 +2219,7 @@ fn dispatch(
             *player_tx = Some(ptx);
             let tracker_ids = signed_in_tracker_ids(sync);
             let (config, store, http, mpv, tx) =
-                (config.clone(), store.clone(), http.clone(), mpv.clone(), tx.clone());
+                (config.clone(), store.clone(), http.clone(), player(config, paths), tx.clone());
             tokio::spawn(async move {
                 let playback = config.playback.clone();
                 let stream = anistream_core::stream::Stream::new(
@@ -2288,6 +2280,15 @@ fn dispatch(
             match anistream_core::settings::write_key(paths, table, key, value) {
                 Ok(()) => {
                     let _ = tx.send(Update::Status(format!("saved {key}")));
+                    // Republish what the background tasks read, so the next download to
+                    // finish honours the value that was just written.
+                    let _ = tx.send(Update::SettingsSaved);
+                    // A setting that redefines what sources exist takes effect now rather
+                    // than at the next launch. The run loop owns the session and the guard,
+                    // so it does the work; this only says that it is needed.
+                    if redefines_sources(table, key) {
+                        let _ = tx.send(Update::SourcesChanged);
+                    }
                 }
                 // The guard reaching the UI: enabling torrents with no VPN configured fails
                 // validation here, so no arrow key can write a config that would leak.
@@ -2296,7 +2297,7 @@ fn dispatch(
                 }
             }
         }
-        other => spawn(other, anilist, store, registry, tx),
+        other => spawn(other, meta, store, registry, tx),
     }
 }
 
@@ -2315,7 +2316,7 @@ fn spawn_playback(
     party: bool,
     commands: mpsc::UnboundedReceiver<anistream_ui::PlayerCommand>,
     config: &Config,
-    anilist: &AniList,
+    meta: &Meta,
     store: &Store,
     registry: &ProviderRegistry,
     http: &HttpClient,
@@ -2323,9 +2324,9 @@ fn spawn_playback(
     tracker_ids: Vec<String>,
     tx: &mpsc::UnboundedSender<Update>,
 ) {
-    let (config, anilist, store, registry, http, mpv, tx) = (
+    let (config, meta, store, registry, http, mpv, tx) = (
         config.clone(),
-        anilist.clone(),
+        meta.clone(),
         store.clone(),
         registry.clone(),
         http.clone(),
@@ -2336,7 +2337,7 @@ fn spawn_playback(
     tokio::spawn(async move {
         let playback = config.playback.clone();
         let context = match resolve_for_playback(
-            &anilist, &store, &registry, id, &episode, pick, &playback, &tx,
+            &meta, &store, &registry, id, &episode, pick, &playback, &tx,
         )
         .await
         {
@@ -2382,7 +2383,7 @@ fn spawn_playback(
 /// Everything needed before mpv can be spawned: a stream, and the context history needs.
 #[allow(clippy::too_many_arguments)]
 async fn resolve_for_playback(
-    anilist: &AniList,
+    meta: &Meta,
     store: &Store,
     registry: &ProviderRegistry,
     id: anistream_core::ids::AnilistId,
@@ -2399,7 +2400,7 @@ async fn resolve_for_playback(
     // this category earns its "is it frozen?" issues. The status line names the rung
     // being climbed; the eyecatch's own timer says how long it has taken.
     let _ = tx.send(Update::Status("looking up the title…".into()));
-    let media = anilist.media(id).await.map_err(|e| e.to_string())?;
+    let media = meta.media(id).await.map_err(|e| e.to_string())?;
     let now = now_epoch();
 
     // "Use this source for this series", applied *before* the title is matched.
@@ -2494,7 +2495,7 @@ async fn resolve_for_playback(
 /// Shares the title-matching rung with playback: the slate is only meaningful for the
 /// provider key the ladder would actually use.
 async fn source_slate(
-    anilist: &AniList,
+    meta: &Meta,
     store: &Store,
     registry: &ProviderRegistry,
     id: anistream_core::ids::AnilistId,
@@ -2504,7 +2505,7 @@ async fn source_slate(
     if registry.is_empty() {
         return Err("no sources configured — see the Providers screen".into());
     }
-    let media = anilist.media(id).await.map_err(|e| e.to_string())?;
+    let media = meta.media(id).await.map_err(|e| e.to_string())?;
     let now = now_epoch();
     let resolution = anistream_providers::resolve(
         store,
@@ -2534,7 +2535,7 @@ enum EpisodeLoad {
 
 /// Resolve a title to a provider and list its episodes.
 async fn load_episodes(
-    anilist: &AniList,
+    meta: &Meta,
     store: &Store,
     registry: &ProviderRegistry,
     id: anistream_core::ids::AnilistId,
@@ -2542,7 +2543,7 @@ async fn load_episodes(
     if registry.is_empty() {
         return Err("no sources configured".into());
     }
-    let media = anilist.media(id).await.map_err(|e| e.to_string())?;
+    let media = meta.media(id).await.map_err(|e| e.to_string())?;
     let target = media.match_target();
     let now = now_epoch();
 
@@ -2643,7 +2644,7 @@ async fn stream_url(
     use anistream_core::ids::AnilistId;
 
     let id = AnilistId::new(id);
-    let anilist = AniList::new(http.clone(), config.network.anilist_rate_limit);
+    let meta = build_meta(config, http, store);
 
     let started = std::time::Instant::now();
     let (registry, guard, note) = sources::build_registry(config, http, paths).await;
@@ -2655,7 +2656,7 @@ async fn stream_url(
         anyhow::bail!("no sources registered — see --doctor");
     }
 
-    let media = anilist.media(id).await.context("looking up the title")?;
+    let media = meta.media(id).await.context("looking up the title")?;
     println!("title       {}", media.title.display());
 
     let now = now_epoch();
@@ -2717,7 +2718,7 @@ async fn play_cli(
     id: anistream_core::ids::AnilistId,
     episode: String,
 ) -> Result<()> {
-    let anilist = AniList::new(http.clone(), config.network.anilist_rate_limit);
+    let meta = build_meta(config, http, store);
 
     let (registry, guard, note) = sources::build_registry(config, http, paths).await;
     if let Some(note) = &note {
@@ -2729,21 +2730,14 @@ async fn play_cli(
     // Kept alive for the whole session: dropping the VPN guard would drop its checks.
     let _guard = guard;
 
-    let mpv = anistream_player::Mpv::new(paths.runtime_dir())
-        .with_binary(config.playback.mpv_binary.clone())
-        .with_extra_args({
-            let mut args =
-                anistream::shaders::mpv_args(config.playback.upscaling, &paths.cache_dir);
-            args.extend(config.playback.mpv_args.clone());
-            args
-        });
+    let mpv = player(config, paths);
     if !mpv.is_available().await {
         anyhow::bail!("{} not found — install mpv to play anything", config.playback.mpv_binary);
     }
 
     let (tx, mut rx) = mpsc::unbounded_channel();
     let (streams, context) = resolve_for_playback(
-        &anilist,
+        &meta,
         store,
         &registry,
         id,
@@ -2828,6 +2822,188 @@ fn signed_in_tracker_ids(sync: &tracking::Sync) -> Vec<String> {
         .collect()
 }
 
+/// Whether writing this key changes which sources exist, and so needs the chain rebuilt.
+///
+/// Listed rather than inferred: a rebuild tears down a live torrent session, which is far
+/// too blunt to trigger on a guess about a key name.
+fn redefines_sources(table: &[&str], key: &str) -> bool {
+    matches!(
+        (table, key),
+        (["providers", "torrent"], "enabled")
+            | (["providers", "torrent", "vpn"], "mode")
+            | (["providers"], "order" | "disabled" | "remote_url")
+    )
+}
+
+/// Everything the torrent source runs in the background: the download manager and the
+/// VPN guard's re-verification loop.
+///
+/// Grouped so they can be stopped and started as one. A source the user has just switched
+/// off must stop *seeding*, not merely stop being offered — and that means the tasks
+/// holding its session have to end with it.
+struct TorrentTasks {
+    downloads: Option<tokio::task::JoinHandle<()>>,
+    watcher: Option<tokio::task::JoinHandle<()>>,
+    session: Option<Arc<anistream_providers::torrent::TorrentSession>>,
+}
+
+impl TorrentTasks {
+    fn start(
+        guard: &Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
+        store: &Store,
+        config: &anistream::SharedConfig,
+        tx: &mpsc::UnboundedSender<Update>,
+    ) -> Self {
+        let Some((guard, session)) = guard.clone() else {
+            // No session means no downloads, which is correct rather than a limitation:
+            // every downloadable source here is a torrent.
+            return Self { downloads: None, watcher: None, session: None };
+        };
+
+        let downloads =
+            downloads::spawn(store.clone(), session.clone(), Arc::clone(config), tx.clone());
+        downloads::publish_now(store, tx);
+
+        let _ = tx.send(Update::Vpn {
+            badge: guard.state().badge(),
+            leaking: !guard.state().is_protected(),
+        });
+        let watcher = tokio::spawn(vpn_watch(guard, session.clone(), tx.clone()));
+        Self { downloads: Some(downloads), watcher: Some(watcher), session: Some(session) }
+    }
+
+    /// Stop everything and halt the session before letting go of it.
+    ///
+    /// Halting first is the whole point: dropping the handles would leave librqbit
+    /// seeding whatever it holds until the process exits, which for a source the user
+    /// just turned off is precisely the traffic they meant to stop.
+    async fn stop(&mut self) {
+        if let Some(session) = self.session.take() {
+            session.halt().await;
+        }
+        for task in [self.downloads.take(), self.watcher.take()].into_iter().flatten() {
+            task.abort();
+        }
+    }
+}
+
+/// The kill-switch half of the guard: a tunnel that drops mid-episode has to stop
+/// torrenting, not merely be noticed at the next launch.
+async fn vpn_watch(
+    guard: VpnGuard,
+    session: Arc<anistream_providers::torrent::TorrentSession>,
+    tx: mpsc::UnboundedSender<Update>,
+) {
+    let mut ticker = tokio::time::interval(guard.verify_interval());
+    // The first tick fires immediately; the guard was already verified at startup.
+    ticker.tick().await;
+    let mut was_leaking = false;
+
+    loop {
+        ticker.tick().await;
+        let state = guard.verify().await;
+        let leaking = !state.is_protected();
+
+        if leaking && !was_leaking {
+            tracing::warn!(
+                reason = state.reason().unwrap_or("unknown"),
+                action = ?guard.on_leak(),
+                "vpn guard failing — halting torrent traffic"
+            );
+            // Marking the provider unavailable only stops *new* requests. Without this,
+            // librqbit would carry on downloading and seeding the current episode over an
+            // unprotected connection.
+            session.halt().await;
+        } else if !leaking
+            && was_leaking
+            && let Err(e) = session.resume().await
+        {
+            tracing::warn!(error = %e, "could not resume after recovery");
+        }
+        was_leaking = leaking;
+
+        if tx.send(Update::Vpn { badge: state.badge(), leaking }).is_err() {
+            break;
+        }
+    }
+}
+
+/// Rebuild the source chain from the configuration as it now stands.
+///
+/// Called when a setting redefines what sources exist. The chain is swapped *in place*
+/// so every holder of a registry clone sees the change, and the plugins that compiled in
+/// the background are carried across — they are not described by config and a rebuild
+/// that forgot them would silently drop sources the user installed.
+#[allow(clippy::too_many_arguments)]
+async fn reload_sources(
+    registry: &ProviderRegistry,
+    torrent_tasks: &mut TorrentTasks,
+    vpn_guard: &mut Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
+    config: &anistream::SharedConfig,
+    http: &HttpClient,
+    paths: &Paths,
+    store: &Store,
+    tx: &mpsc::UnboundedSender<Update>,
+) {
+    // Old traffic stops before new traffic starts. The other order would leave two
+    // sessions briefly alive, and one of them is the one being switched off.
+    torrent_tasks.stop().await;
+    *vpn_guard = None;
+
+    let plugins = registry.of_kind(anistream_core::traits::ProviderKind::Plugin);
+    let snapshot = config.read().map(|c| c.clone()).unwrap_or_else(|e| e.into_inner().clone());
+    let (rebuilt, guard, note) = sources::build_registry(&snapshot, http, paths).await;
+    let mut providers = rebuilt.all();
+    providers.extend(plugins);
+    registry.replace(providers);
+
+    *vpn_guard = guard;
+    *torrent_tasks = TorrentTasks::start(vpn_guard, store, config, tx);
+
+    if vpn_guard.is_none() {
+        // No session: say so, and clear a badge that now describes nothing.
+        let _ = tx.send(Update::Vpn { badge: String::new(), leaking: false });
+    }
+    let _ = tx.send(Update::ProviderNote(note.unwrap_or_else(|| {
+        if snapshot.providers.torrent.enabled {
+            "sources reloaded".into()
+        } else {
+            "torrents are off — the session was stopped".into()
+        }
+    })));
+    let _ = tx.send(Update::Providers(data::provider_rows(registry)));
+    tracing::info!(providers = ?registry.ids(), "source chain reloaded");
+}
+
+/// The player, built from the configuration *as it stands now*.
+///
+/// Built per playback rather than held from launch, and that is the whole point.
+/// `upscaling`, `mpv_binary` and `mpv_args` are all editable on the Settings screen,
+/// so a handle made once at startup freezes whatever they were then — turning Anime4K
+/// off did nothing until the app was restarted, because `--glsl-shaders` stayed in the
+/// argument list every episode was spawned with. Shader files are written on demand and
+/// skipped when already current, so rebuilding costs a stat per shader.
+fn player(config: &Config, paths: &Paths) -> anistream_player::Mpv {
+    // Upscaling shaders first, the user's own flags after — mpv takes the last value
+    // for a repeated flag, so a hand-written --glsl-shaders always wins.
+    let mut args = anistream::shaders::mpv_args(config.playback.upscaling, &paths.cache_dir);
+    args.extend(config.playback.mpv_args.clone());
+    anistream_player::Mpv::new(paths.runtime_dir())
+        .with_binary(config.playback.mpv_binary.clone())
+        .with_extra_args(args)
+}
+
+/// The metadata source: AniList first, Tenrai when it fails, the cache when both do.
+///
+/// Built identically at every entry point — the TUI, `--search`, `--play`, previews —
+/// so "anistream said X" never depends on which door was used to ask.
+fn build_meta(config: &Config, http: &HttpClient, store: &Store) -> Meta {
+    let anilist = AniList::new(http.clone(), config.network.anilist_rate_limit);
+    let tenrai =
+        config.meta.fallback.then(|| Tenrai::new(http.clone(), store.clone()));
+    Meta::new(anilist, tenrai, store.clone())
+}
+
 /// Whether any of these executables is reachable on `PATH`.
 ///
 /// Checked by looking rather than by running: the question is "will mpv find yt-dlp",
@@ -2872,7 +3048,7 @@ fn dirs_config_mpv() -> Option<std::path::PathBuf> {
 /// An empty result is a real answer here, not a failure to paper over: the screen says so and
 /// points at where to find something, rather than silently showing a different kind of list.
 async fn continue_entries(
-    anilist: &AniList,
+    meta: &Meta,
     store: &Store,
 ) -> std::result::Result<Vec<anistream_ui::app::Entry>, String> {
     let continuing = store.continue_list(CONTINUE_ROWS).unwrap_or_default();
@@ -2881,8 +3057,7 @@ async fn continue_entries(
     if ids.is_empty() {
         return Ok(Vec::new());
     }
-    anilist
-        .media_many(&ids)
+    meta.media_many(&ids)
         .await
         .map(|media| media.iter().map(|m| data::entry_from(m, Some(store))).collect())
         .map_err(|e| e.to_string())
@@ -2898,13 +3073,13 @@ async fn continue_entries(
 /// that page is exhausted long before it reaches today. So the recent half is fetched newest-first
 /// and reversed. The cost is one extra request out of thirty a minute.
 async fn calendar_timeline(
-    anilist: &AniList,
+    meta: &Meta,
     store: &Store,
     now: i64,
 ) -> std::result::Result<Vec<anistream_ui::app::Entry>, String> {
     let (recent, upcoming) = tokio::join!(
-        anilist.airing_between_sorted(now - CALENDAR_PAST, now, 1, CALENDAR_RECENT_ROWS, true),
-        anilist.airing_between_sorted(
+        meta.airing_between_sorted(now - CALENDAR_PAST, now, 1, CALENDAR_RECENT_ROWS, true),
+        meta.airing_between_sorted(
             now,
             now + CALENDAR_FUTURE,
             1,
@@ -2980,6 +3155,49 @@ fn current_season() -> (anistream_meta::anilist::Season, u16) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_player_reflects_the_upscaler_as_it_stands_now() {
+        // The bug this encodes: the handle was built once at launch, so turning Anime4K
+        // off left `--glsl-shaders` in the arguments of every episode for the rest of the
+        // session — the GPU stayed pinned by a feature the settings screen said was off.
+        let paths = Paths {
+            cache_dir: std::env::temp_dir().join("anistream-player-config-test"),
+            ..Paths::resolve().expect("paths")
+        };
+        let mut config = Config::default();
+
+        config.playback.upscaling = anistream_core::config::Upscaling::Anime4kQuality;
+        let with_shaders = player(&config, &paths);
+        let on = with_shaders.args_for_test();
+        assert!(
+            on.iter().any(|a| a.starts_with("--glsl-shaders=")),
+            "upscaling on should chain shaders, got {on:?}"
+        );
+
+        config.playback.upscaling = anistream_core::config::Upscaling::Off;
+        let without = player(&config, &paths);
+        let off = without.args_for_test();
+        assert!(
+            !off.iter().any(|a| a.starts_with("--glsl-shaders=")),
+            "upscaling off must carry no shader chain, got {off:?}"
+        );
+        let _ = std::fs::remove_dir_all(&paths.cache_dir);
+    }
+
+    #[test]
+    fn only_source_defining_keys_force_a_rebuild() {
+        // A rebuild tears down a live torrent session, so it must not fire on a setting
+        // that has nothing to do with which sources exist.
+        assert!(redefines_sources(&["providers", "torrent"], "enabled"));
+        assert!(redefines_sources(&["providers", "torrent", "vpn"], "mode"));
+        assert!(redefines_sources(&["providers"], "order"));
+
+        assert!(!redefines_sources(&["playback"], "upscaling"));
+        assert!(!redefines_sources(&["playback"], "quality"));
+        assert!(!redefines_sources(&["downloads"], "directory"));
+        assert!(!redefines_sources(&["theme"], "mode"));
+    }
 
     #[test]
     fn the_current_season_is_plausible() {

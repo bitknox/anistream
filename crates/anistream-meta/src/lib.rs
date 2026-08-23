@@ -11,8 +11,12 @@
 pub mod anilist;
 pub mod dataset;
 pub mod filler;
+pub mod tenrai;
+pub mod source;
 pub mod title;
 
 pub use anilist::{AniList, AniListError, BrowseFilter, Media, Season};
+pub use tenrai::Tenrai;
+pub use source::Meta;
 pub use dataset::{MAPPING_DATASETS, RefreshOutcome, refresh_all};
 pub use title::{CONFIDENCE_FLOOR, MatchTarget, Scored, normalise, rank, similarity};

@@ -46,6 +46,27 @@ impl RateLimiter {
         }
     }
 
+    /// Build a limiter for `per_minute` requests that may never burst above `burst`.
+    ///
+    /// A plain [`Self::per_minute`] bucket is as deep as the whole minute's budget, so a
+    /// cold limiter will happily fire the entire allowance at once. That is fine against a
+    /// service which only counts per minute, and wrong against one that also caps requests
+    /// per *second* — the burst is spent in the first instant and every request after it is
+    /// refused. Capacity is the burst ceiling; the refill rate stays the sustained budget.
+    pub fn per_minute_burst(per_minute: u32, burst: u32) -> Self {
+        let refill_rate = f64::from(per_minute.max(1)) / 60.0;
+        let capacity = f64::from(burst.max(1));
+        Self {
+            state: Mutex::new(State {
+                tokens: capacity,
+                last_refill: Instant::now(),
+                hold_until: None,
+            }),
+            capacity,
+            refill_rate,
+        }
+    }
+
     /// Wait until a request may proceed.
     pub async fn acquire(&self) {
         loop {
@@ -186,6 +207,40 @@ mod tests {
             limiter.acquire().await;
         }
         assert_eq!(start.elapsed(), Duration::ZERO, "full bucket should be free");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_burst_ceiling_is_not_the_whole_minute() {
+        // 120/min with a ceiling of 4: the fifth request in one instant has to wait,
+        // where a plain per_minute(120) would have let 120 through.
+        let limiter = RateLimiter::per_minute_burst(120, 4);
+        for _ in 0..4 {
+            limiter.acquire().await;
+        }
+        let start = Instant::now();
+        limiter.acquire().await;
+        // 120/min refills two tokens a second, so the next one is half a second out.
+        assert!(
+            start.elapsed() >= Duration::from_millis(400),
+            "burst ceiling should pace the next request, waited {:?}",
+            start.elapsed()
+        );
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_burst_ceiling_still_sustains_the_full_rate() {
+        let limiter = RateLimiter::per_minute_burst(120, 4);
+        let start = Instant::now();
+        for _ in 0..120 {
+            limiter.acquire().await;
+        }
+        // A minute's worth of requests takes about a minute, not longer: the ceiling
+        // shapes the bursts, it does not cut the budget.
+        assert!(
+            start.elapsed() <= Duration::from_secs(60),
+            "sustained rate should still be 120/min, took {:?}",
+            start.elapsed()
+        );
     }
 
     #[tokio::test(start_paused = true)]

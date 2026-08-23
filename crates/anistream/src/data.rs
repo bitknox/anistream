@@ -97,6 +97,20 @@ pub fn entry_from_airing(airing: &AiringEntry, now: i64, store: Option<&Store>) 
     }
 }
 
+/// The metadata ladder's rungs, in the UI's terms.
+pub fn meta_rows(meta: &anistream_meta::Meta) -> Vec<anistream_ui::app::MetaSourceRow> {
+    meta.health()
+        .into_iter()
+        .map(|h| anistream_ui::app::MetaSourceRow {
+            source: h.source.to_owned(),
+            state: h.state.to_owned(),
+            healthy: h.healthy,
+            active: h.active,
+            detail: h.detail,
+        })
+        .collect()
+}
+
 /// Flatten provider health for the Providers screen.
 pub fn provider_rows(registry: &anistream_providers::ProviderRegistry) -> Vec<ProviderRow> {
     let health = registry.health();

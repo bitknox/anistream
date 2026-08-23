@@ -6,6 +6,15 @@
 //! [`playback`], where the thing being verified — a torrent stream reaching mpv and the
 //! resulting position landing in SQLite — cannot be covered by unit tests at all.
 
+/// Configuration shared with the long-running background tasks.
+///
+/// The Settings screen edits the app's own copy, and anything holding a snapshot from
+/// launch would keep acting on values the user has already changed — which is how a
+/// download folder, a seeding choice or an upscaler stayed put until a restart. Readers
+/// take a snapshot per unit of work rather than holding the guard: these are async tasks,
+/// and a `std` guard held across an `await` is how a future stops being `Send`.
+pub type SharedConfig = std::sync::Arc<std::sync::RwLock<anistream_core::config::Config>>;
+
 pub mod artwork;
 pub mod data;
 pub mod digest;

@@ -47,7 +47,7 @@ struct Running {
 pub fn spawn(
     store: Store,
     session: Arc<TorrentSession>,
-    config: Config,
+    config: crate::SharedConfig,
     tx: mpsc::UnboundedSender<Update>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
@@ -67,7 +67,11 @@ pub fn spawn(
 
         loop {
             tokio::time::sleep(POLL).await;
-            poll_running(&store, &session, &config, &tx, &mut running).await;
+            // Snapshotted per tick, so a folder or seeding change applies to the next
+            // download to finish rather than the next launch. Copied out rather than held:
+            // a `std` guard across an `await` would make this future non-`Send`.
+            let current = config.read().map(|c| c.clone()).unwrap_or_else(|e| e.into_inner().clone());
+            poll_running(&store, &session, &current, &tx, &mut running).await;
             start_queued(&store, &session, &tx, &mut running).await;
         }
     })
@@ -406,7 +410,7 @@ pub fn publish_now(store: &Store, tx: &mpsc::UnboundedSender<Update>) {
 pub async fn enqueue(
     store: &Store,
     registry: &ProviderRegistry,
-    anilist: &anistream_meta::anilist::AniList,
+    meta: &anistream_meta::Meta,
     anilist_id: AnilistId,
     episode: &str,
     translation: Translation,
@@ -418,7 +422,7 @@ pub async fn enqueue(
         return Ok(existing);
     }
 
-    let media = anilist.media(anilist_id).await.map_err(|e| e.to_string())?;
+    let media = meta.media(anilist_id).await.map_err(|e| e.to_string())?;
     let title = media.title.display();
     let now = anistream_store::now();
     let resolution = anistream_providers::resolve(

@@ -118,6 +118,12 @@ fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
         chips.push((badge.clone(), if app.vpn_leaking { Role::Alert } else { Role::State }));
     }
 
+    // Only while degraded, like the plugins chip: a healthy ladder is the resting state
+    // and saying so on every frame would be noise. The Providers screen has the detail.
+    if app.meta_degraded() {
+        chips.push((format!("meta {}", glyph::STATE_DEGRADED), Role::Alert));
+    }
+
     // One chip per tracker, carrying the queue depth — the answer to "did my progress actually
     // go anywhere?", which is the only sync question anyone asks. Trackers are a different kind
     // of information from the source/VPN cluster before them, so the groups get a hairline
@@ -1682,16 +1688,14 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
         let note = app.provider_note.as_deref().unwrap_or(
             "torrents are off until providers.torrent.enabled and a VPN mode are set",
         );
-        for (i, line) in
-            wrap(note, area.width.saturating_sub(2) as usize, 4).into_iter().enumerate()
-        {
-            buf.set_string(
-                area.left(),
-                area.top() + 4 + i as u16,
-                line,
-                app.palette.style(Role::TextDim),
-            );
+        let mut y = area.top() + 4;
+        for line in wrap(note, area.width.saturating_sub(2) as usize, 4) {
+            buf.set_string(area.left(), y, line, app.palette.style(Role::TextDim));
+            y += 1;
         }
+        // The metadata ladder is not a streaming source, but "is it dead?" is this
+        // screen's question — and it has an answer even with no sources configured.
+        render_meta_sources(buf, app, area, y + 1);
         return;
     }
 
@@ -1773,6 +1777,57 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
             truncate(&text, area.width.saturating_sub(4) as usize),
             app.palette.style(Role::Alert),
         );
+        y += 2;
+    }
+
+    render_meta_sources(buf, app, area, y + 2);
+}
+
+/// The metadata ladder's rungs: which one answered last, and what is wrong with the rest.
+///
+/// Lives on the Providers screen because "has AniList died?" is the same question as
+/// "has my source died?" — where the answer is, not what kind of thing failed.
+fn render_meta_sources(buf: &mut Buffer, app: &App, area: Rect, top: u16) {
+    if app.meta_status.is_empty() || top + 2 >= area.bottom() {
+        return;
+    }
+    buf.set_string(
+        area.left(),
+        top,
+        glyph::eyebrow("metadata"),
+        app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
+    );
+
+    for (y, row) in (top + 2..).zip(app.meta_status.iter()) {
+        if y >= area.bottom() {
+            break;
+        }
+        // The obi marks the rung that answered last — same grammar as the source table.
+        if row.active {
+            buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
+        }
+        buf.set_string(
+            area.left() + COL_PROVIDER,
+            y,
+            truncate(&row.source, (COL_PROVIDER_KIND - COL_PROVIDER - 1) as usize),
+            app.palette.style(if row.active { Role::Text } else { Role::TextDim }),
+        );
+        buf.set_string(
+            area.left() + COL_PROVIDER_KIND,
+            y,
+            truncate(&row.state, (COL_PROVIDER_STATE - COL_PROVIDER_KIND - 1) as usize),
+            app.palette.style(if row.healthy { Role::State } else { Role::Alert }),
+        );
+        if let Some(detail) = &row.detail
+            && COL_PROVIDER_STATE < area.width
+        {
+            buf.set_string(
+                area.left() + COL_PROVIDER_STATE,
+                y,
+                truncate(detail, area.width.saturating_sub(COL_PROVIDER_STATE + 2) as usize),
+                app.palette.style(Role::TextDim),
+            );
+        }
     }
 }
 

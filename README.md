@@ -6,7 +6,11 @@ An anime streaming TUI. Real image rendering, mpv for playback, pluggable everyt
 
 ## Features
 
-Browsing, search and seasonal lists run off AniList and need no account. Watch history is local
+Browsing, search and seasonal lists run off AniList and need no account. When AniList cannot
+answer, metadata falls back to Tenrai — MyAnimeList's mirror, translated home through the ID
+mapping — and only then to what was last cached, so an outage degrades browsing but can never
+stop an episode you have watched before from playing. Fresh first, always; one quiet toast says
+when the ladder moved and when it moved back. Watch history is local
 SQLite. Playback is mpv driven over JSON IPC, with resume, aniskip, auto-next and remembered speed.
 Search filters server-side — genre, year, season, format, status, sort — from one overlay on
 `ctrl+f`, and a title screen offers its watch order, its recommendations and its trailer.
@@ -122,6 +126,9 @@ mark_chapters = true       # puts the opening and ending on the seek bar
 [notifications]
 airing_digest = true       # one toast on launch: what aired for shows you watch
 desktop = false            # copy that toast to the desktop too
+
+[meta]
+fallback = true            # tenrai when anilist cannot answer, cache when neither can
 
 [providers]
 order = ["torrent", "plugins"]    # tried in order; failover walks the list
@@ -313,7 +320,7 @@ Ten crates, volatility increasing left to right:
                                             Trackers (pluggable)
 ```
 
-`anistream-core` (types and traits) · `-net` (HTTP, rate limiting) · `-meta` (AniList, ID mapping,
+`anistream-core` (types and traits) · `-net` (HTTP, rate limiting) · `-meta` (AniList, Tenrai failover, ID mapping,
 filler) · `-store` (SQLite) · `-providers` (torrent transport, remote, mock) · `-player` (mpv IPC) ·
 `-track` (AniList, MAL, Kitsu, Simkl, Trakt, sync) · `-plugin` (WASM host) · `-ui` (ratatui) · `anistream` (wiring).
 
@@ -339,6 +346,7 @@ cargo run -p anistream --example playback_probe            # torrent → mpv →
 cargo run -p anistream --example sync_probe -- --write     # AniList push, then undo
 cargo run -p anistream --example mal_probe -- --write      # MAL push, then undo
 cargo run -p anistream --example kitsu_probe -- --write    # Kitsu push, then undo; no args = public wire check
+cargo run -p anistream --example meta_probe                # Tenrai translation and the cache write-through
 cargo run -p anistream --example simkl_probe -- --write    # Simkl push, then undo
 cargo run -p anistream --example mend_probe -- <url>       # disguised HLS → mpv
 cargo run -p anistream-meta --example filler_probe         # filler parsing

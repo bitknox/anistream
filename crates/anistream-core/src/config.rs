@@ -68,6 +68,7 @@ pub struct Config {
     pub updates: UpdatesConfig,
     pub syncplay: SyncplayConfig,
     pub notifications: NotificationsConfig,
+    pub meta: MetaConfig,
     /// Keybinding overrides, `action = "key"`. The help overlay is generated from the
     /// resolved map so it can never drift from what the keys actually do.
     pub keys: BTreeMap<String, String>,
@@ -279,6 +280,21 @@ pub struct NotificationsConfig {
 impl Default for NotificationsConfig {
     fn default() -> Self {
         Self { airing_digest: true, desktop: false }
+    }
+}
+
+/// The metadata failover.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct MetaConfig {
+    /// Fall back to Tenrai — MyAnimeList's mirror — when AniList cannot answer, before
+    /// resorting to cached data. Fresh first, always; the ladder only descends on failure.
+    pub fallback: bool,
+}
+
+impl Default for MetaConfig {
+    fn default() -> Self {
+        Self { fallback: true }
     }
 }
 

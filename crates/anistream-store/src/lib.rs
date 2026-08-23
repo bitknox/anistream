@@ -11,6 +11,7 @@
 //! store is [`Clone`] and cheap to clone, so handing a copy to a blocking task is the
 //! intended pattern.
 
+pub mod cache;
 pub mod dataset;
 pub mod download;
 pub mod history;

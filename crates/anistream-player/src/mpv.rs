@@ -342,6 +342,14 @@ impl Mpv {
         self
     }
 
+    /// The extra arguments this handle will spawn mpv with.
+    ///
+    /// Exposed so a caller can prove what it assembled — a shader chain that should not
+    /// be there is otherwise only visible as a pinned GPU.
+    pub fn args_for_test(&self) -> &[String] {
+        &self.extra_args
+    }
+
     /// Whether mpv can be found.
     pub async fn is_available(&self) -> bool {
         ProcessCommand::new(&self.binary)

@@ -7,7 +7,7 @@
 
 use std::collections::HashSet;
 
-use anistream_meta::AniList;
+use anistream_meta::Meta;
 use anistream_store::Store;
 use anistream_ui::app::{Toast, Update};
 use tokio::sync::mpsc;
@@ -26,7 +26,7 @@ pub fn spawn(
     enabled: bool,
     desktop: bool,
     store: Store,
-    anilist: AniList,
+    meta: Meta,
     tx: mpsc::UnboundedSender<Update>,
 ) {
     if !enabled {
@@ -64,7 +64,7 @@ pub fn spawn(
         // The cap is a courtesy to the rate budget — four pages covers any real window.
         let mut hits: Vec<(String, u32)> = Vec::new();
         for page in 1..=4 {
-            let Ok(batch) = anilist.airing_between(from, now, page, 50).await else {
+            let Ok(batch) = meta.airing_between(from, now, page, 50).await else {
                 return;
             };
             hits.extend(
