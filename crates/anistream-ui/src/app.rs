@@ -274,6 +274,14 @@ fn step_through<T: Copy + PartialEq>(ladder: &[T], current: T, delta: isize) -> 
 /// long enough to coalesce a held arrow key, short enough not to feel like lag.
 const RELOAD_IDLE_TICKS: u8 = 3;
 
+/// How close to the top of the calendar the selection gets before more history is fetched.
+///
+/// A screenful, roughly. The fetch is one request against a 30-per-minute budget and takes a
+/// few hundred milliseconds, so it has to start while there are still rows left to scroll
+/// through — trigger it at row nought and the user reaches the end of the list before the
+/// answer arrives, which is the jump this design exists to avoid.
+const CALENDAR_BACKFILL_MARGIN: usize = 12;
+
 /// Palette rows shown at once. Also the number the arrows can reach, so the two cannot drift.
 pub const PALETTE_ROWS: usize = 12;
 
@@ -805,6 +813,22 @@ impl Content {
 #[derive(Debug)]
 pub enum Update {
     Content(Content),
+    /// How to continue the calendar that is arriving: the anchor its pages are numbered
+    /// against, how many are loaded, and whether AniList has more behind them.
+    CalendarWindow {
+        anchor: i64,
+        pages: u32,
+        more_past: bool,
+    },
+    /// Older broadcasts, to go above what is already on screen.
+    ///
+    /// `page` is `None` when the fetch failed — nothing to splice in, and the same page is
+    /// tried again on the next scroll.
+    CalendarBackfill {
+        page: Option<u32>,
+        entries: Vec<Entry>,
+        more_past: bool,
+    },
     Detail(Box<Entry>),
     Status(String),
     Toast(Toast),
@@ -978,10 +1002,22 @@ pub struct App {
     adaptive_variant: crate::theme::Variant,
     /// Recent errors and notices, for the Logs overlay.
     pub logs: Vec<LogRow>,
+    /// The instant the calendar on screen was fetched against, frozen so its page numbering
+    /// stays meaningful while older pages are pulled in. `None` until a calendar has loaded.
+    calendar_anchor: Option<i64>,
+    /// Pages of past the calendar holds. The backfill asks for the one after.
+    calendar_pages: u32,
+    /// Whether there are older broadcasts to fetch. False once AniList says the window is spent.
+    calendar_more_past: bool,
+    /// A backfill is in flight. Without this a fast scroll would ask for the same page on every
+    /// keystroke and empty the request budget answering one question.
+    calendar_loading_past: bool,
     /// Work the reducer produced while applying an update rather than handling a key.
     ///
-    /// Auto-next is the only source: an episode ending has to be able to start the next one, and
-    /// [`Self::apply`] has no return channel. The event loop drains this each iteration.
+    /// Auto-next is one source: an episode ending has to be able to start the next one, and
+    /// [`Self::apply`] has no return channel. The calendar's backfill is the other — it is
+    /// triggered by scrolling, which reports no task of its own. The event loop drains this
+    /// each iteration.
     pending: Option<Task>,
     /// Rows for the Episodes screen — the ones the current filter admits. Everything that
     /// reads or navigates episodes works on this list, which is what keeps the filter from
@@ -1067,6 +1103,10 @@ impl App {
                 detected => detected,
             },
             logs: Vec::new(),
+            calendar_anchor: None,
+            calendar_pages: 0,
+            calendar_more_past: false,
+            calendar_loading_past: false,
             pending: None,
             vpn_badge: None,
             vpn_leaking: false,
@@ -1111,6 +1151,37 @@ impl App {
         }
 
         match update {
+            Update::CalendarWindow { anchor, pages, more_past } => {
+                self.calendar_anchor = Some(anchor);
+                self.calendar_pages = pages;
+                self.calendar_more_past = more_past;
+                self.calendar_loading_past = false;
+            }
+            Update::CalendarBackfill { page, entries, more_past } => {
+                self.calendar_loading_past = false;
+                self.calendar_more_past = more_past;
+                if let Some(page) = page {
+                    self.calendar_pages = self.calendar_pages.max(page);
+                }
+                // Only the screen that asked can take them. A backfill landing after the user
+                // has moved on would otherwise splice a fortnight of broadcasts into whatever
+                // list is on screen now.
+                if !entries.is_empty()
+                    && self.nav.section() == Section::Calendar
+                    && let Content::Entries(existing) = &mut self.content
+                {
+                    let added = entries.len();
+                    let mut merged = entries;
+                    merged.append(existing);
+                    self.content = Content::Entries(merged);
+                    // The whole point of the exercise: the rows arrive *above* the viewport, so
+                    // both the selection and the scroll position shift by exactly what was
+                    // inserted and nothing moves under the user. Without this the screen would
+                    // lurch a page and a half every time history was extended.
+                    self.selected += added;
+                    self.offset += added;
+                }
+            }
             Update::Content(content) => {
                 self.content = content;
                 // Selection must stay in range or the next render would index past the end.
@@ -1621,6 +1692,31 @@ impl App {
             self.selected = self.selected.min(len - 1);
             self.offset = self.selected + 1 - visible_rows;
         }
+
+        self.backfill_calendar_if_near_top();
+    }
+
+    /// Fetch older broadcasts once the selection nears the top of the calendar.
+    ///
+    /// Deliberately silent, and deliberately early. The question being asked by scrolling up is
+    /// "what aired before this", and answering it with a spinner and a viewport that jumps would
+    /// be a worse answer than the truncated week this replaces. So the request goes out while
+    /// there is still a screenful above the selection left to scroll through, and the rows land
+    /// above the viewport without moving it — see [`Self::apply`].
+    fn backfill_calendar_if_near_top(&mut self) {
+        if self.nav.section() != Section::Calendar
+            || self.calendar_loading_past
+            || !self.calendar_more_past
+            || self.selected > CALENDAR_BACKFILL_MARGIN
+            // The slot holds one task and auto-next has the stronger claim on it. Losing a
+            // backfill costs nothing: the next scroll asks again.
+            || self.pending.is_some()
+        {
+            return;
+        }
+        let Some(anchor) = self.calendar_anchor else { return };
+        self.calendar_loading_past = true;
+        self.pending = Some(Task::LoadCalendarPast { anchor, page: self.calendar_pages + 1 });
     }
 
     /// Handle an action. Returns work for the caller to perform asynchronously.
@@ -3230,6 +3326,14 @@ impl App {
 
     /// Work needed to populate the current view.
     pub fn reload(&mut self) -> Option<Task> {
+        // Whatever is fetched next replaces the content, so the calendar's paging describes a
+        // list that is about to stop existing. Leaving it set would let a scroll on the new
+        // screen ask for page four of a timeline nobody is looking at any more.
+        self.calendar_anchor = None;
+        self.calendar_pages = 0;
+        self.calendar_more_past = false;
+        self.calendar_loading_past = false;
+
         let task = match self.nav.section() {
             Section::Home => Task::LoadContinue,
             Section::Seasonal => Task::LoadSeasonal,
@@ -3340,12 +3444,8 @@ impl SearchFilters {
         "Supernatural",
         "Thriller",
     ];
-    const SEASONS: [(&'static str, &'static str); 4] = [
-        ("WINTER", "winter"),
-        ("SPRING", "spring"),
-        ("SUMMER", "summer"),
-        ("FALL", "fall"),
-    ];
+    const SEASONS: [(&'static str, &'static str); 4] =
+        [("WINTER", "winter"), ("SPRING", "spring"), ("SUMMER", "summer"), ("FALL", "fall")];
     const FORMATS: [(&'static str, &'static str); 6] = [
         ("TV", "tv"),
         ("MOVIE", "movie"),
@@ -3354,11 +3454,8 @@ impl SearchFilters {
         ("SPECIAL", "special"),
         ("MUSIC", "music"),
     ];
-    const STATUSES: [(&'static str, &'static str); 3] = [
-        ("RELEASING", "airing"),
-        ("FINISHED", "finished"),
-        ("NOT_YET_RELEASED", "upcoming"),
-    ];
+    const STATUSES: [(&'static str, &'static str); 3] =
+        [("RELEASING", "airing"), ("FINISHED", "finished"), ("NOT_YET_RELEASED", "upcoming")];
     const SORTS: [(&'static str, &'static str); 4] = [
         ("POPULARITY_DESC", "popularity"),
         ("SCORE_DESC", "score"),
@@ -3440,11 +3537,7 @@ impl SearchFilters {
                     (Some(y), false) => (y < latest).then(|| y + 1),
                 };
             }
-            2 => step(
-                &mut self.season,
-                &Self::SEASONS.map(|(wire, _)| wire),
-                forward,
-            ),
+            2 => step(&mut self.season, &Self::SEASONS.map(|(wire, _)| wire), forward),
             3 => step(&mut self.format, &Self::FORMATS.map(|(wire, _)| wire), forward),
             4 => step(&mut self.status, &Self::STATUSES.map(|(wire, _)| wire), forward),
             _ => step(&mut self.sort, &Self::SORTS.map(|(wire, _)| wire), forward),
@@ -3479,6 +3572,15 @@ pub enum Task {
     LoadContinue,
     LoadSeasonal,
     LoadCalendar,
+    /// One page further back in the calendar, asked for because the user scrolled near the top.
+    ///
+    /// Carries the anchor the screen was loaded against rather than letting the fetch read the
+    /// clock again. Page numbers only mean anything relative to a fixed upper bound: re-reading
+    /// `now` between pages would shift every boundary and let a broadcast appear twice.
+    LoadCalendarPast {
+        anchor: i64,
+        page: u32,
+    },
     Search {
         query: String,
         filter: SearchFilters,
@@ -3671,6 +3773,152 @@ mod tests {
         )
     }
 
+    /// The anchor a test calendar is paged against. Any fixed instant will do — the point is
+    /// that it does not move between pages.
+    const CALENDAR_TEST_ANCHOR: i64 = 1_700_000_000;
+
+    /// A calendar on screen with three pages of history behind it and more to be had.
+    fn calendar_loaded() -> App {
+        let mut a = app();
+        let _ = a.go_to_section(Section::Calendar);
+        a.nav.focus_stage();
+        a.apply(Update::CalendarWindow {
+            anchor: CALENDAR_TEST_ANCHOR,
+            pages: 3,
+            more_past: true,
+        });
+        a.apply(Update::Content(entries(150)));
+        a
+    }
+
+    #[test]
+    fn scrolling_into_the_calendars_past_fetches_more_of_it() {
+        let mut a = calendar_loaded();
+
+        // Deep in the list there is nothing to do — every row above is already loaded.
+        a.selected = 80;
+        a.offset = 61;
+        a.handle(Action::Up, 20);
+        assert_eq!(
+            a.take_pending(),
+            None,
+            "a scroll through rows already loaded must not spend a request"
+        );
+
+        // Within a screenful of the top, the page behind is asked for — early enough that
+        // there are still rows left to scroll through while it arrives.
+        a.selected = CALENDAR_BACKFILL_MARGIN + 1;
+        a.handle(Action::Up, 20);
+        assert_eq!(
+            a.take_pending(),
+            Some(Task::LoadCalendarPast { anchor: CALENDAR_TEST_ANCHOR, page: 4 }),
+            "nearing the top should reach for the page behind the ones loaded"
+        );
+
+        // And exactly once. A held arrow key asking per keystroke would empty a
+        // 30-per-minute budget answering one question.
+        for _ in 0..5 {
+            a.handle(Action::Up, 20);
+            assert_eq!(a.take_pending(), None, "a held arrow must not re-request page four");
+        }
+    }
+
+    #[test]
+    fn backfilled_broadcasts_land_above_the_viewport_without_moving_it() {
+        let mut a = calendar_loaded();
+        a.selected = 8;
+        a.offset = 4;
+
+        let older: Vec<Entry> = (0..50)
+            .map(|i| Entry::new(AnilistId::new(900 + i), format!("Older {i}")))
+            .collect();
+        a.apply(Update::CalendarBackfill { page: Some(4), entries: older, more_past: true });
+
+        assert_eq!(a.content.len(), 200, "the older page should have extended the timeline");
+        assert_eq!(
+            a.content.entries()[0].title,
+            "Older 0",
+            "older broadcasts belong above — the list reads downward through time"
+        );
+        // The whole point. Rows arrived above the viewport, so the row under the cursor and
+        // its position on screen are both exactly where the user left them.
+        assert_eq!(a.selected, 58, "the selection must still be on the same broadcast");
+        assert_eq!(a.offset, 54, "and that broadcast must still be in the same place");
+        assert_eq!(a.content.entries()[a.selected].title, "Title 8");
+    }
+
+    #[test]
+    fn a_backfill_that_arrives_after_the_user_has_left_is_dropped() {
+        let mut a = calendar_loaded();
+        let _ = a.go_to_section(Section::Seasonal);
+        a.apply(Update::Content(entries(20)));
+
+        a.apply(Update::CalendarBackfill {
+            page: Some(4),
+            entries: vec![Entry::new(AnilistId::new(999), "Older")],
+            more_past: true,
+        });
+
+        assert_eq!(
+            a.content.len(),
+            20,
+            "a late backfill must not splice broadcasts into whatever screen is up now"
+        );
+    }
+
+    #[test]
+    fn a_failed_backfill_leaves_its_page_to_be_tried_again() {
+        let mut a = calendar_loaded();
+        a.selected = CALENDAR_BACKFILL_MARGIN + 1;
+        a.handle(Action::Up, 20);
+        assert!(a.take_pending().is_some(), "the scroll should have asked for page four");
+
+        a.apply(Update::CalendarBackfill { page: None, entries: Vec::new(), more_past: true });
+        assert_eq!(a.content.len(), 150, "a failed backfill must not disturb the list");
+
+        a.handle(Action::Up, 20);
+        assert_eq!(
+            a.take_pending(),
+            Some(Task::LoadCalendarPast { anchor: CALENDAR_TEST_ANCHOR, page: 4 }),
+            "the page that failed is the page still missing"
+        );
+    }
+
+    #[test]
+    fn the_calendar_stops_asking_once_its_history_runs_out() {
+        let mut a = calendar_loaded();
+        a.apply(Update::CalendarBackfill {
+            page: Some(4),
+            entries: Vec::new(),
+            more_past: false,
+        });
+
+        a.selected = 2;
+        a.handle(Action::Up, 20);
+        assert_eq!(
+            a.take_pending(),
+            None,
+            "AniList said there is nothing older; asking again is a wasted request"
+        );
+    }
+
+    #[test]
+    fn leaving_the_calendar_forgets_where_its_pages_were() {
+        let mut a = calendar_loaded();
+        let _ = a.go_to_section(Section::Seasonal);
+        let _ = a.go_to_section(Section::Calendar);
+        a.nav.focus_stage();
+        a.apply(Update::Content(entries(150)));
+
+        a.selected = 2;
+        a.handle(Action::Up, 20);
+        assert_eq!(
+            a.take_pending(),
+            None,
+            "page four of the previous timeline is not worth a request against the new one"
+        );
+    }
+
     /// An app with one title selected and its episode table loaded, ready to play.
     fn app_at_episodes() -> App {
         let mut a = app();
@@ -3694,7 +3942,6 @@ mod tests {
         a.nav.push(StageView::Episodes(AnilistId::new(1)));
         a
     }
-
 
     #[test]
     fn enter_in_the_episode_table_plays_rather_than_opening() {

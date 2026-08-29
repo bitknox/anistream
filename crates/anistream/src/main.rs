@@ -5,7 +5,7 @@ use anistream::{artwork, data, downloads, playback, sources, tracking};
 use std::{io, sync::Arc, time::Duration};
 
 use anistream_core::config::{Config, Paths, ThemeMode};
-use anistream_meta::{Tenrai, Meta, anilist::AniList, dataset};
+use anistream_meta::{Meta, Tenrai, anilist::AniList, dataset};
 use anistream_net::HttpClient;
 use anistream_providers::{ProviderRegistry, vpn::VpnGuard};
 use anistream_store::Store;
@@ -288,7 +288,7 @@ async fn preview(
     let entries = match screen {
         "calendar" => {
             let now = now_epoch();
-            calendar_timeline(&meta, &store, now).await.unwrap_or_default()
+            calendar_timeline(&meta, &store, now).await.map(|l| l.entries).unwrap_or_default()
         }
         "search" => meta
             .search("frieren", &Default::default(), 1, 20)
@@ -940,9 +940,13 @@ async fn login_kitsu(config: &Config, http: &HttpClient) -> Result<()> {
     }
 
     println!("Exchanging the credentials for a token…");
-    let pair =
-        anistream_track::kitsu::login(http.plain(), username, &password, anistream_store::now())
-            .await?;
+    let pair = anistream_track::kitsu::login(
+        http.plain(),
+        username,
+        &password,
+        anistream_store::now(),
+    )
+    .await?;
 
     let store = tracking::token_store(config);
     lift_reauth_hold("kitsu");
@@ -1684,10 +1688,38 @@ fn spawn(
                 }
             }
             Task::LoadCalendar => {
-                let now = now_epoch();
-                match calendar_timeline(&meta, &store, now).await {
-                    Ok(entries) => Update::Content(Content::Entries(entries)),
+                let anchor = now_epoch();
+                match calendar_timeline(&meta, &store, anchor).await {
+                    Ok(load) => {
+                        // Sent before the content, so the reducer knows how to continue the
+                        // list at the moment the list exists — a backfill triggered by the
+                        // very first keypress has everything it needs.
+                        let _ = tx.send(Update::CalendarWindow {
+                            anchor,
+                            pages: load.pages,
+                            more_past: load.more_past,
+                        });
+                        Update::Content(Content::Entries(load.entries))
+                    }
                     Err(e) => Update::Content(Content::Failed(e)),
+                }
+            }
+            Task::LoadCalendarPast { anchor, page } => {
+                match calendar_past_page(&meta, &store, anchor, page).await {
+                    Ok((entries, more_past)) => {
+                        Update::CalendarBackfill { page: Some(page), entries, more_past }
+                    }
+                    // Not a toast. The user never asked for this page by name — they scrolled —
+                    // and the calendar in front of them is unchanged and still correct. The
+                    // reducer clears its in-flight flag so the next scroll tries again.
+                    Err(e) => {
+                        tracing::warn!(%e, page, "calendar backfill failed");
+                        Update::CalendarBackfill {
+                            page: None,
+                            entries: Vec::new(),
+                            more_past: true,
+                        }
+                    }
                 }
             }
             Task::Search { query, filter } => {
@@ -2099,15 +2131,8 @@ fn dispatch(
                 let mut queued = 0usize;
                 let mut failed: Option<String> = None;
                 for episode in &episodes {
-                    match downloads::enqueue(
-                        &store,
-                        &registry,
-                        &meta,
-                        id,
-                        episode,
-                        translation,
-                    )
-                    .await
+                    match downloads::enqueue(&store, &registry, &meta, id, episode, translation)
+                        .await
                     {
                         Ok(_) => queued += 1,
                         Err(reason) => failed = Some(reason),
@@ -2218,8 +2243,13 @@ fn dispatch(
             let (ptx, prx) = mpsc::unbounded_channel();
             *player_tx = Some(ptx);
             let tracker_ids = signed_in_tracker_ids(sync);
-            let (config, store, http, mpv, tx) =
-                (config.clone(), store.clone(), http.clone(), player(config, paths), tx.clone());
+            let (config, store, http, mpv, tx) = (
+                config.clone(),
+                store.clone(),
+                http.clone(),
+                player(config, paths),
+                tx.clone(),
+            );
             tokio::spawn(async move {
                 let playback = config.playback.clone();
                 let stream = anistream_core::stream::Stream::new(
@@ -2732,7 +2762,10 @@ async fn play_cli(
 
     let mpv = player(config, paths);
     if !mpv.is_available().await {
-        anyhow::bail!("{} not found — install mpv to play anything", config.playback.mpv_binary);
+        anyhow::bail!(
+            "{} not found — install mpv to play anything",
+            config.playback.mpv_binary
+        );
     }
 
     let (tx, mut rx) = mpsc::unbounded_channel();
@@ -2815,11 +2848,7 @@ async fn play_cli(
 /// and a tracker signed into *later* catches up anyway, since the first pull reconciles
 /// progress out of the watch log.
 fn signed_in_tracker_ids(sync: &tracking::Sync) -> Vec<String> {
-    sync.trackers
-        .iter()
-        .filter(|t| t.is_authenticated())
-        .map(|t| t.id().to_owned())
-        .collect()
+    sync.trackers.iter().filter(|t| t.is_authenticated()).map(|t| t.id().to_owned()).collect()
 }
 
 /// Whether writing this key changes which sources exist, and so needs the chain rebuilt.
@@ -2999,8 +3028,7 @@ fn player(config: &Config, paths: &Paths) -> anistream_player::Mpv {
 /// so "anistream said X" never depends on which door was used to ask.
 fn build_meta(config: &Config, http: &HttpClient, store: &Store) -> Meta {
     let anilist = AniList::new(http.clone(), config.network.anilist_rate_limit);
-    let tenrai =
-        config.meta.fallback.then(|| Tenrai::new(http.clone(), store.clone()));
+    let tenrai = config.meta.fallback.then(|| Tenrai::new(http.clone(), store.clone()));
     Meta::new(anilist, tenrai, store.clone())
 }
 
@@ -3013,9 +3041,9 @@ fn in_path(names: &[&str]) -> bool {
         return false;
     };
     std::env::split_paths(&path).any(|dir| {
-        names.iter().any(|name| {
-            dir.join(name).is_file() || dir.join(format!("{name}.exe")).is_file()
-        })
+        names
+            .iter()
+            .any(|name| dir.join(name).is_file() || dir.join(format!("{name}.exe")).is_file())
     })
 }
 
@@ -3063,70 +3091,212 @@ async fn continue_entries(
         .map_err(|e| e.to_string())
 }
 
+/// The calendar's first load: the timeline, plus what the backfill needs to continue it.
+struct CalendarLoad {
+    entries: Vec<anistream_ui::app::Entry>,
+    /// Pages of past actually fetched, so the backfill knows which page is next.
+    pages: u32,
+    /// Whether AniList reported broadcasts older than the ones loaded.
+    more_past: bool,
+}
+
 /// The calendar as one timeline: what recently aired, then what is coming.
 ///
 /// "Is there a tab for latest releases?" was a fair question with no good answer — the calendar
 /// only looked forward, so the episodes you could actually watch right now appeared nowhere.
 ///
-/// Two requests rather than one, and not for want of trying: a single ascending query over the
-/// whole fortnight returns its page *oldest first*, and with several hundred broadcasts a week
-/// that page is exhausted long before it reaches today. So the recent half is fetched newest-first
-/// and reversed. The cost is one extra request out of thirty a minute.
+/// Two directions rather than one, and not for want of trying: a single ascending query over the
+/// whole fortnight returns its page *oldest first*, and the page is exhausted long before it
+/// reaches today. So the recent half is fetched newest-first and reversed.
+///
+/// **Both halves page.** The window was never the real limit — a single page is. Measured against
+/// live data there are around 127 broadcasts in a week, and AniList caps `perPage` at 50 whatever
+/// you ask for, so one page of past is a day and a half and one page of future is barely two days.
+/// A seven-day window served by one page each was a seven-day window in name only.
 async fn calendar_timeline(
     meta: &Meta,
     store: &Store,
-    now: i64,
-) -> std::result::Result<Vec<anistream_ui::app::Entry>, String> {
-    let (recent, upcoming) = tokio::join!(
-        meta.airing_between_sorted(now - CALENDAR_PAST, now, 1, CALENDAR_RECENT_ROWS, true),
-        meta.airing_between_sorted(
-            now,
-            now + CALENDAR_FUTURE,
-            1,
-            CALENDAR_UPCOMING_ROWS,
-            false
-        ),
+    anchor: i64,
+) -> std::result::Result<CalendarLoad, String> {
+    let (past, future) = tokio::join!(
+        calendar_past(meta, store, anchor, CALENDAR_INITIAL_PAST_PAGES),
+        calendar_future(meta, store, anchor),
     );
 
     // Either half failing alone is still a usable screen, so only report a failure when both
     // are empty — a calendar showing just the upcoming week beats an error page.
-    let mut entries: Vec<anistream_ui::app::Entry> = Vec::new();
-    if let Ok(page) = &recent {
-        // Reversed back into chronological order, so the list reads downward through time.
-        entries.extend(
-            page.items.iter().rev().map(|a| data::entry_from_airing(a, now, Some(store))),
-        );
-    }
+    let past_error = past.as_ref().err().cloned();
+    // A past half that failed outright still leaves `more_past` set: there is no evidence the
+    // history is empty, only that this attempt did not reach it, and the backfill should retry.
+    let (mut entries, pages, more_past) = past.unwrap_or((Vec::new(), 0, true));
     let boundary = entries.len();
-    if let Ok(page) = &upcoming {
-        entries.extend(page.items.iter().map(|a| data::entry_from_airing(a, now, Some(store))));
+
+    match future {
+        Ok(upcoming) => entries.extend(upcoming),
+        Err(e) => {
+            if entries.is_empty() {
+                return Err(past_error.unwrap_or(e));
+            }
+        }
+    }
+    if entries.is_empty() {
+        return Err(past_error.unwrap_or_else(|| "nothing airing in this window".into()));
     }
 
-    if entries.is_empty() {
-        let reason = recent
-            .err()
-            .or(upcoming.err())
-            .map(|e| e.to_string())
-            .unwrap_or_else(|| "nothing airing in this window".into());
-        return Err(reason);
+    tracing::info!(
+        recent = boundary,
+        upcoming = entries.len() - boundary,
+        pages,
+        more_past,
+        "calendar timeline"
+    );
+    Ok(CalendarLoad { entries, pages, more_past })
+}
+
+/// One page of past broadcasts, in chronological order.
+///
+/// The window's *upper* bound is the anchor and the sort is descending, so page numbering means
+/// something stable for as long as the anchor holds: page three is the same fifty broadcasts
+/// whether it is fetched with the first load or ten minutes later. That is what lets the backfill
+/// ask for "the next page" without re-fetching what is on screen, and without a broadcast slipping
+/// across a moving boundary and appearing twice. Re-reading the clock per page would break both.
+async fn calendar_past_page(
+    meta: &Meta,
+    store: &Store,
+    anchor: i64,
+    page: u32,
+) -> std::result::Result<(Vec<anistream_ui::app::Entry>, bool), String> {
+    let page = meta
+        .airing_between_sorted(
+            anchor - CALENDAR_MAX_PAST,
+            anchor,
+            page,
+            CALENDAR_PER_PAGE,
+            true,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let now = now_epoch();
+    // Reversed back into chronological order, so the list reads downward through time.
+    let entries =
+        page.items.iter().rev().map(|a| data::entry_from_airing(a, now, Some(store))).collect();
+    Ok((entries, page.has_next))
+}
+
+/// Walk back through pages of history until `pages` are spent or AniList runs out.
+///
+/// Returns the entries chronologically, how many pages were actually fetched, and whether there
+/// is more behind them. Pages are fetched newest-first and each is internally reversed, so the
+/// *blocks* have to be reversed too — page two sits above page one on a timeline reading down.
+async fn calendar_past(
+    meta: &Meta,
+    store: &Store,
+    anchor: i64,
+    pages: u32,
+) -> std::result::Result<(Vec<anistream_ui::app::Entry>, u32, bool), String> {
+    let mut blocks: Vec<Vec<anistream_ui::app::Entry>> = Vec::new();
+    let mut loaded = 0;
+    let mut more = false;
+    let mut failure = None;
+
+    for page in 1..=pages.max(1) {
+        match calendar_past_page(meta, store, anchor, page).await {
+            Ok((entries, has_next)) => {
+                loaded = page;
+                more = has_next;
+                blocks.push(entries);
+                if !has_next {
+                    break;
+                }
+            }
+            // A page failing part-way still leaves a usable calendar. Keep what arrived, leave
+            // `more` set so the backfill retries this page, and only surface the error if
+            // nothing came back at all.
+            Err(e) => {
+                more = loaded > 0;
+                failure = Some(e);
+                break;
+            }
+        }
     }
-    tracing::info!(recent = boundary, upcoming = entries.len() - boundary, "calendar timeline");
-    Ok(entries)
+
+    if blocks.is_empty() {
+        return Err(failure.unwrap_or_else(|| "nothing aired in this window".into()));
+    }
+    blocks.reverse();
+    Ok((blocks.concat(), loaded, more))
+}
+
+/// The upcoming half, walked the same way.
+///
+/// Ascending, so pages concatenate as they arrive with no reversing. There is no backfill for
+/// this direction: the far end of the window is a fixed week out rather than open-ended history,
+/// and these pages cover it.
+async fn calendar_future(
+    meta: &Meta,
+    store: &Store,
+    anchor: i64,
+) -> std::result::Result<Vec<anistream_ui::app::Entry>, String> {
+    let mut entries: Vec<anistream_ui::app::Entry> = Vec::new();
+    let mut failure = None;
+
+    for page in 1..=CALENDAR_FUTURE_PAGES {
+        match meta
+            .airing_between_sorted(
+                anchor,
+                anchor + CALENDAR_FUTURE,
+                page,
+                CALENDAR_PER_PAGE,
+                false,
+            )
+            .await
+        {
+            Ok(fetched) => {
+                let now = now_epoch();
+                entries.extend(
+                    fetched.items.iter().map(|a| data::entry_from_airing(a, now, Some(store))),
+                );
+                if !fetched.has_next {
+                    break;
+                }
+            }
+            Err(e) => {
+                failure = Some(e.to_string());
+                break;
+            }
+        }
+    }
+
+    match failure {
+        Some(e) if entries.is_empty() => Err(e),
+        _ => Ok(entries),
+    }
 }
 
 /// Titles kept in the CONTINUE rail. Long enough to cover what you are actually mid-way through,
 /// short enough that it stays a shortlist rather than a second library.
 const CONTINUE_ROWS: u32 = 15;
 
-/// How far back the calendar reaches. A week covers a full broadcast cycle, so every airing show
-/// you follow has exactly one recent episode in view.
-const CALENDAR_PAST: i64 = 7 * 86_400;
-/// And how far forward.
+/// The furthest back the calendar will ever reach, and so the floor of every past query.
+///
+/// It bounds the *backfill*, not the first load: because the sort is descending from the anchor,
+/// page one is the fifty most recent broadcasts whatever this is set to. All it decides is when
+/// scrolling up finally runs out. Three months is far enough back that reaching the end is a
+/// deliberate journey rather than an accident.
+const CALENDAR_MAX_PAST: i64 = 90 * 86_400;
+/// How far forward the calendar reaches. A week covers a full broadcast cycle, so every airing
+/// show you follow has exactly one upcoming episode in view.
 const CALENDAR_FUTURE: i64 = 7 * 86_400;
-/// Rows kept from each half. Enough that a week of a followed show is always in view, and few
-/// enough that the two halves together stay one scrollable list rather than a firehose.
-const CALENDAR_RECENT_ROWS: u32 = 30;
-const CALENDAR_UPCOMING_ROWS: u32 = 40;
+/// Rows per request. AniList's ceiling: ask for 75 or 100 and the response says `perPage: 50`
+/// and returns fifty. Depth is bought in pages, never here.
+const CALENDAR_PER_PAGE: u32 = 50;
+/// Pages of history fetched before the screen is first drawn. At roughly 127 broadcasts a week
+/// three pages covers a full week and change, which is what the seven-day window always claimed
+/// to offer. Scrolling past them backfills further without being asked.
+const CALENDAR_INITIAL_PAST_PAGES: u32 = 3;
+/// And forward, covering the week ahead by the same measure.
+const CALENDAR_FUTURE_PAGES: u32 = 3;
 
 fn now_epoch() -> i64 {
     std::time::SystemTime::now()
