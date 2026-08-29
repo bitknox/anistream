@@ -171,11 +171,8 @@ mod chapter_tests {
 
     #[test]
     fn an_opening_at_the_very_start_gets_no_marker_before_it() {
-        let marks = to_chapters(&[SkipInterval {
-            kind: SkipKind::Opening,
-            start: 0.0,
-            end: 90.0,
-        }]);
+        let marks =
+            to_chapters(&[SkipInterval { kind: SkipKind::Opening, start: 0.0, end: 90.0 }]);
         assert_eq!(marks, chapters(&[("Opening", 0.0), ("Episode", 90.0)]));
     }
 

@@ -372,8 +372,7 @@ mod tests {
             serde_json::json!({ "title": "Opening", "time": 3.2 }),
             serde_json::json!({ "title": "Episode", "time": 93.2 }),
         ];
-        let value =
-            parsed_command(&Command::SetProperty("chapter-list", marks.into()), 3);
+        let value = parsed_command(&Command::SetProperty("chapter-list", marks.into()), 3);
         assert_eq!(value["command"][0], "set_property");
         assert_eq!(value["command"][1], "chapter-list");
         assert_eq!(value["command"][2][0]["title"], "Opening");

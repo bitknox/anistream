@@ -29,8 +29,8 @@ use anistream_store::Store;
 use crate::anilist::{
     BrowseFilter, Media, Page, Season,
     model::{
-        CoverImage, RelationConnection, RelationEdge, RelationNode, Studio,
-        StudioConnection, Title, Trailer,
+        CoverImage, RelationConnection, RelationEdge, RelationNode, Studio, StudioConnection,
+        Title, Trailer,
     },
 };
 
@@ -90,11 +90,7 @@ pub struct Tenrai {
 
 impl Tenrai {
     pub fn new(http: HttpClient, store: Store) -> Self {
-        Self {
-            http,
-            limiter: RateLimiter::per_minute_burst(PER_MINUTE, PER_SECOND),
-            store,
-        }
+        Self { http, limiter: RateLimiter::per_minute_burst(PER_MINUTE, PER_SECOND), store }
     }
 
     async fn get(&self, path: &str) -> Result<serde_json::Value> {
@@ -105,9 +101,10 @@ impl Tenrai {
             // how long to wait; one more ask after that is the whole retry policy, because
             // a second refusal means the budget is genuinely gone and the rung below is a
             // better answer than a longer wait.
-            None => self.send(path).await?.ok_or_else(|| {
-                TenraiError::Api("rate limited twice over".into())
-            }),
+            None => self
+                .send(path)
+                .await?
+                .ok_or_else(|| TenraiError::Api("rate limited twice over".into())),
         }
     }
 
@@ -142,8 +139,7 @@ impl Tenrai {
 
     /// One title, with relations and the trailer — the detail-screen shape.
     pub async fn media(&self, id: AnilistId) -> Result<Media> {
-        let Some(mal_id) =
-            self.store.mapping_for(id).ok().flatten().and_then(|m| m.mal_id)
+        let Some(mal_id) = self.store.mapping_for(id).ok().flatten().and_then(|m| m.mal_id)
         else {
             return Err(TenraiError::Unmapped);
         };
@@ -305,10 +301,9 @@ impl Tenrai {
             },
             relations: self.relations_from(datum),
             recommendations: Default::default(),
-            trailer: datum["trailer"]["youtube_id"].as_str().map(|id| Trailer {
-                id: Some(id.to_owned()),
-                site: Some("youtube".into()),
-            }),
+            trailer: datum["trailer"]["youtube_id"]
+                .as_str()
+                .map(|id| Trailer { id: Some(id.to_owned()), site: Some("youtube".into()) }),
         })
     }
 
@@ -454,8 +449,14 @@ mod tests {
         assert_eq!(media.episodes, Some(28));
         assert_eq!(media.duration, Some(24), "parsed out of '24 min per ep'");
         assert_eq!(media.average_score, Some(93), "9.29/10 renders as 93/100");
-        assert_eq!(media.cover_image.best(), Some("https://cdn.myanimelist.net/images/anime/large.jpg"));
-        assert_eq!(media.trailer_url().as_deref(), Some("https://www.youtube.com/watch?v=ZEkwCGJ3o7M"));
+        assert_eq!(
+            media.cover_image.best(),
+            Some("https://cdn.myanimelist.net/images/anime/large.jpg")
+        );
+        assert_eq!(
+            media.trailer_url().as_deref(),
+            Some("https://www.youtube.com/watch?v=ZEkwCGJ3o7M")
+        );
         assert!(media.genres.contains(&"Fantasy".to_string()));
     }
 

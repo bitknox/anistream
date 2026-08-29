@@ -48,11 +48,8 @@ pub async fn login(
     password: &str,
     now: i64,
 ) -> Result<TokenPair, crate::auth::AuthError> {
-    let form = [
-        ("grant_type", "password"),
-        ("username", username.trim()),
-        ("password", password),
-    ];
+    let form =
+        [("grant_type", "password"), ("username", username.trim()), ("password", password)];
     post_token(http, &form, now).await
 }
 
@@ -231,7 +228,12 @@ impl KitsuTracker {
         Ok(id)
     }
 
-    fn request(&self, method: reqwest::Method, url: &str, token: &str) -> reqwest::RequestBuilder {
+    fn request(
+        &self,
+        method: reqwest::Method,
+        url: &str,
+        token: &str,
+    ) -> reqwest::RequestBuilder {
         self.http
             .request(method, url)
             .bearer_auth(token)

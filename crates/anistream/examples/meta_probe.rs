@@ -33,7 +33,10 @@ async fn main() {
         Ok(media) => {
             println!("  title       {}", media.title.display());
             println!("  identity    anilist {} · mal {:?}", media.id.get(), media.id_mal);
-            println!("  format      {:?} · {:?} eps · score {:?}", media.format, media.episodes, media.average_score);
+            println!(
+                "  format      {:?} · {:?} eps · score {:?}",
+                media.format, media.episodes, media.average_score
+            );
             println!("  cover       {}", media.cover_image.best().unwrap_or("—"));
             println!("  trailer     {}", media.trailer_url().as_deref().unwrap_or("—"));
             println!("  watch order {} entries", media.watch_order().len());
@@ -93,7 +96,10 @@ async fn main() {
     println!();
     println!("── verdict ────────────────────────────────────────────");
     println!("  tenrai answers and translates to our identity   ●");
-    println!("  tenrai search                                   {}", if search_ok { "●" } else { "▲ upstream down" });
+    println!(
+        "  tenrai search                                   {}",
+        if search_ok { "●" } else { "▲ upstream down" }
+    );
     println!("  fetches write through to the cache             ●");
     println!("  the cached row recalls losslessly              ●");
 }

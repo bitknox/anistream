@@ -70,7 +70,8 @@ pub fn spawn(
             // Snapshotted per tick, so a folder or seeding change applies to the next
             // download to finish rather than the next launch. Copied out rather than held:
             // a `std` guard across an `await` would make this future non-`Send`.
-            let current = config.read().map(|c| c.clone()).unwrap_or_else(|e| e.into_inner().clone());
+            let current =
+                config.read().map(|c| c.clone()).unwrap_or_else(|e| e.into_inner().clone());
             poll_running(&store, &session, &current, &tx, &mut running).await;
             start_queued(&store, &session, &tx, &mut running).await;
         }

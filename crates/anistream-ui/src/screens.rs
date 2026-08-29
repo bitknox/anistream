@@ -2150,10 +2150,9 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
             String::new(),
             "type what to search for — an empty enter resets to the automatic match".into(),
         )],
-        Overlay::KitsuUsername => vec![(
-            String::new(),
-            "email or username — enter continues, esc cancels".into(),
-        )],
+        Overlay::KitsuUsername => {
+            vec![(String::new(), "email or username — enter continues, esc cancels".into())]
+        }
         Overlay::KitsuPassword => vec![(
             String::new(),
             "exchanged for a token once and never stored — enter signs in".into(),

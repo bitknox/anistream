@@ -23,7 +23,9 @@ use anistream_core::ids::AnilistId;
 use anistream_store::Store;
 
 use crate::{
-    anilist::{AiringEntry, AniList, AniListError, BrowseFilter, LastAired, Media, Page, Season},
+    anilist::{
+        AiringEntry, AniList, AniListError, BrowseFilter, LastAired, Media, Page, Season,
+    },
     tenrai::Tenrai,
 };
 
@@ -474,16 +476,16 @@ mod tests {
             anistream_net::HttpClient::new(&anistream_core::config::NetworkConfig::default())
                 .unwrap();
         let anilist = AniList::new(http.clone(), 30);
-        let meta = Meta::new(
-            anilist,
-            Some(crate::tenrai::Tenrai::new(http, store.clone())),
-            store,
-        );
+        let meta =
+            Meta::new(anilist, Some(crate::tenrai::Tenrai::new(http, store.clone())), store);
 
         let rows = meta.health();
         assert_eq!(rows.len(), 3);
         assert_eq!((rows[0].source, rows[0].state, rows[0].active), ("anilist", "live", true));
-        assert_eq!((rows[1].source, rows[1].state, rows[1].active), ("tenrai", "standby", false));
+        assert_eq!(
+            (rows[1].source, rows[1].state, rows[1].active),
+            ("tenrai", "standby", false)
+        );
         assert_eq!((rows[2].source, rows[2].state, rows[2].active), ("cache", "ready", false));
         assert_eq!(rows[2].detail.as_deref(), Some("0 titles"));
         assert!(rows.iter().all(|r| r.healthy));

@@ -252,7 +252,14 @@ mod tests {
 
     #[test]
     fn the_shared_fragment_reaches_every_media_query() {
-        for doc in [search(), search_filtered(), by_id(), seasonal(), airing_schedule(), user_library()] {
+        for doc in [
+            search(),
+            search_filtered(),
+            by_id(),
+            seasonal(),
+            airing_schedule(),
+            user_library(),
+        ] {
             assert!(doc.contains("coverImage"), "missing shared fields:\n{doc}");
             assert!(doc.contains("idMal"), "mal id is needed for aniskip");
         }

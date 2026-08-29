@@ -406,8 +406,7 @@ mod tests {
     fn a_stream_that_brought_chapters_keeps_them() {
         let mut t = tracker().marking_chapters(true);
         t.observe(&PlaybackEvent::Loaded);
-        let authored =
-            vec![("Intro".to_string(), 0.0), ("Part A".to_string(), 89.0)];
+        let authored = vec![("Intro".to_string(), 0.0), ("Part A".to_string(), 89.0)];
         let actions = t.observe(&PlaybackEvent::Chapters(authored));
         assert!(marks(&actions).is_none(), "overwrote the file's own chapters");
         assert_eq!(
