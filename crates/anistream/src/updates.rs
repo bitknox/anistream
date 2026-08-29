@@ -115,15 +115,67 @@ async fn download(http: &HttpClient, url: &str) -> Result<Vec<u8>> {
     Ok(response.bytes().await.context("reading download")?.to_vec())
 }
 
+/// The binary an update has to overwrite, which is not always the one that was launched.
+///
+/// `current_exe` reports the path the process started from — whatever was typed or clicked. The
+/// macOS package makes that a symlink on purpose: `/usr/local/bin/anistream` points into
+/// `/Applications/anistream.app`, so typing the name and clicking the icon run *one* build
+/// rather than two that drift apart.
+///
+/// Renaming over the link replaces the link itself with a regular file. That severs it and
+/// strands the bundle on the old version: the terminal moves forward, the Dock icon stays
+/// behind, and nothing anywhere reports a problem. Following it first is what keeps the
+/// package's one-binary arrangement intact.
+fn resolve_target(invoked: &Path) -> PathBuf {
+    // A path that will not canonicalise — a dangling link, an unreadable parent — is still the
+    // best guess available. Refusing here would block an update that would otherwise work.
+    std::fs::canonicalize(invoked).unwrap_or_else(|_| invoked.to_owned())
+}
+
+/// Whether a path lies inside a macOS application bundle.
+fn in_app_bundle(path: &Path) -> bool {
+    path.components().any(|c| {
+        std::path::Path::new(c.as_os_str()).extension().is_some_and(|e| e == "app")
+    })
+}
+
+/// Turn a refusal to write into something the reader can act on.
+///
+/// Following the symlink is correct, and it has a consequence: the macOS package installs the
+/// bundle as `root:wheel`, so an unprivileged `--update` now fails where it used to "succeed" by
+/// quietly writing to the wrong place. A loud failure is the better of the two, but only if it
+/// says what to do next — `Permission denied` on its own does not.
+fn write_refused(error: std::io::Error, target: &Path) -> anyhow::Error {
+    if error.kind() != std::io::ErrorKind::PermissionDenied {
+        return anyhow::Error::new(error).context("staging the new binary");
+    }
+    if in_app_bundle(target) {
+        return anyhow::anyhow!(
+            "{} is owned by the macOS package installer, which runs as root.\n\
+             Either re-run as `sudo anistream --update`, or install the latest .pkg from\n\
+             https://github.com/{REPO}/releases/latest",
+            target.display()
+        );
+    }
+    anyhow::anyhow!(
+        "cannot write to {} — {error}.\n\
+         Re-run with sudo, or reinstall somewhere you own.",
+        target.display()
+    )
+}
+
 /// Replace the running binary with the freshly verified one.
 ///
 /// Unix renames over the running file, which is atomic on the same filesystem. Windows
 /// refuses to overwrite a running executable but happily lets it be *renamed*, so the
 /// old binary steps aside as `.old` first and is swept up on the next update.
 fn install(new_binary: &Path) -> Result<PathBuf> {
-    let current = std::env::current_exe().context("locating the running binary")?;
+    let invoked = std::env::current_exe().context("locating the running binary")?;
+    let current = resolve_target(&invoked);
     let staged = current.with_extension("new");
-    std::fs::copy(new_binary, &staged).context("staging the new binary")?;
+    // The staging file is a sibling of the target, so this is also the permission check for
+    // the rename below: if the directory will take a new file it will take the swap.
+    std::fs::copy(new_binary, &staged).map_err(|e| write_refused(e, &current))?;
 
     #[cfg(unix)]
     {
@@ -232,6 +284,80 @@ mod tests {
         // Garbage never counts as an upgrade — a mangled tag must not trigger a notice.
         assert!(!is_newer("nightly", "0.2.0"));
         assert!(!is_newer("", "0.2.0"));
+    }
+
+    /// The exact shape the macOS package installs, and the bug it used to cause.
+    #[test]
+    #[cfg(unix)]
+    fn an_update_follows_the_packages_symlink_to_the_real_binary() {
+        let tmp = tempfile::tempdir().unwrap();
+        let bundle = tmp.path().join("Applications/anistream.app/Contents/MacOS");
+        std::fs::create_dir_all(&bundle).unwrap();
+        let real = bundle.join("anistream");
+        std::fs::write(&real, b"the one true binary").unwrap();
+
+        let bin = tmp.path().join("usr/local/bin");
+        std::fs::create_dir_all(&bin).unwrap();
+        let link = bin.join("anistream");
+        std::os::unix::fs::symlink(&real, &link).unwrap();
+
+        // Launched as the link, an update must land on the bundle's binary. Writing to the
+        // link's own path is what replaced it with a regular file and left the .app behind.
+        assert_eq!(
+            resolve_target(&link),
+            std::fs::canonicalize(&real).unwrap(),
+            "an update through the symlink must reach the binary the .app actually runs"
+        );
+    }
+
+    #[test]
+    fn a_plain_binary_is_left_where_it_is() {
+        let tmp = tempfile::tempdir().unwrap();
+        let bin = tmp.path().join("anistream");
+        std::fs::write(&bin, b"binary").unwrap();
+        assert_eq!(resolve_target(&bin), std::fs::canonicalize(&bin).unwrap());
+
+        // Nothing there to follow: the path stands, so the caller fails on the write with a
+        // real error rather than here with a confusing one.
+        let missing = tmp.path().join("not-installed");
+        assert_eq!(resolve_target(&missing), missing);
+    }
+
+    #[test]
+    fn a_bundle_path_is_recognised_so_the_refusal_can_explain_itself() {
+        assert!(in_app_bundle(Path::new(
+            "/Applications/anistream.app/Contents/MacOS/anistream"
+        )));
+        assert!(!in_app_bundle(Path::new("/usr/local/bin/anistream")));
+        // `.app` has to be the extension of a component, not a substring of one.
+        assert!(!in_app_bundle(Path::new("/home/me/apps/anistream")));
+        assert!(!in_app_bundle(Path::new("/opt/myapp/anistream")));
+    }
+
+    #[test]
+    fn a_permission_refusal_names_the_package_and_a_way_out() {
+        let denied =
+            || std::io::Error::new(std::io::ErrorKind::PermissionDenied, "Permission denied");
+
+        let bundle = write_refused(
+            denied(),
+            Path::new("/Applications/anistream.app/Contents/MacOS/anistream"),
+        )
+        .to_string();
+        assert!(bundle.contains("sudo"), "must say how to proceed:\n{bundle}");
+        assert!(bundle.contains(".pkg"), "must offer the installer route:\n{bundle}");
+
+        let plain = write_refused(denied(), Path::new("/usr/local/bin/anistream")).to_string();
+        assert!(plain.contains("sudo"), "must still say how to proceed:\n{plain}");
+        assert!(!plain.contains(".pkg"), "no package involved here:\n{plain}");
+
+        // Anything that is not a permission problem keeps its original meaning.
+        let full = write_refused(
+            std::io::Error::new(std::io::ErrorKind::StorageFull, "No space left on device"),
+            Path::new("/usr/local/bin/anistream"),
+        )
+        .to_string();
+        assert!(full.contains("staging"), "unrelated errors keep their context:\n{full}");
     }
 
     #[test]
