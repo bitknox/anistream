@@ -18,7 +18,7 @@ tracing.workspace = true
 # `cache` is what keeps plugin compilation off the critical path a second time: wasmtime manages
 # the on-disk artefact cache itself, so we get it without the `unsafe` that hand-rolling
 # `deserialize_file` would require in a crate whose entire job is running untrusted code.
-wasmtime = { version = "47.0", features = ["component-model", "async", "cranelift", "cache"] }
+wasmtime = { version = "48.0", features = ["component-model", "async", "cranelift", "cache"] }
 wasmtime-wasi = "47.0"
 # Regex is lent to guests: a TinyGo or JS plugin bundling its own would be enormous.
 # The same URL parser the HTTP client uses. The allowlist has to read a URL exactly the way
