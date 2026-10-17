@@ -103,6 +103,7 @@ dependencies = [
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
+ "wreq",
 ]
 
 [[package]]

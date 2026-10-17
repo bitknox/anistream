@@ -47,6 +47,8 @@ tracing-subscriber.workspace = true
 tempfile = "3"
 # Random tokens for the mending proxy's loopback path.
 rand = "0.10"
+# Named by the mending proxy, whose upstream requests go through `HttpClient::emulated`.
+wreq.workspace = true
 
 [dev-dependencies]
 serde_json.workspace = true

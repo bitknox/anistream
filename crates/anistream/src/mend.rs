@@ -23,7 +23,8 @@
 use std::{
     collections::HashMap,
     net::{Ipv4Addr, SocketAddr},
-    sync::Arc,
+    sync::{Arc, Mutex},
+    time::{Duration, Instant},
 };
 
 use anistream_net::HttpClient;
@@ -53,6 +54,20 @@ const TS_CONFIRMATIONS: usize = 4;
 /// Segments are seconds of video; a playlist is text. Anything far past that is not something
 /// this proxy should be buffering, so it is refused rather than swallowing the process.
 const MAX_BODY: usize = 96 * 1024 * 1024;
+
+/// How long one request may be held while the upstream asks us to slow down.
+///
+/// mpv reads ahead as fast as the network allows, and a Cloudflare-fronted segment host was
+/// measured answering `429` with `retry-after: 10` after about a hundred segments. ffmpeg's HLS
+/// demuxer does not wait — it drops a failed segment and opens the next, which fails too — so
+/// relaying the refusal skipped every remaining segment in a few seconds, mpv's cache closed over
+/// the hole, and the playhead jumped to the end: the episode "finished" minutes in. Holding the
+/// request instead turns that into a slow segment. Kept well inside `--network-timeout=60`, so
+/// mpv is still waiting when the answer arrives.
+const RATE_LIMIT_BUDGET: Duration = Duration::from_secs(45);
+
+/// The wait when a `429` does not say how long, or says it in a form not worth parsing.
+const DEFAULT_RETRY_AFTER: Duration = Duration::from_secs(2);
 
 /// Where the real payload starts in `data`, if it does not start at the beginning.
 ///
@@ -262,6 +277,10 @@ struct Upstream {
     headers: Vec<(String, String)>,
     token: String,
     port: u16,
+    /// No upstream request before this instant. Shared, because a rate limit is per client
+    /// rather than per segment: one request learning to wait means every other one should too,
+    /// not discover it again by spending another request.
+    cooldown: Mutex<Option<Instant>>,
 }
 
 impl Upstream {
@@ -320,7 +339,13 @@ pub async fn serve(
     let listener = TcpListener::bind(SocketAddr::from((Ipv4Addr::LOCALHOST, 0))).await?;
     let port = listener.local_addr()?.port();
 
-    let upstream = Arc::new(Upstream { http, headers, token: token.to_owned(), port });
+    let upstream = Arc::new(Upstream {
+        http,
+        headers,
+        token: token.to_owned(),
+        port,
+        cooldown: Mutex::new(None),
+    });
     let entry = upstream.proxied(url);
 
     let handle = {
@@ -424,7 +449,7 @@ async fn handle_connection(socket: TcpStream, upstream: Arc<Upstream>) -> std::i
             write_half.flush().await
         }
         Err(e) => {
-            tracing::debug!(url = %url, error = %e, "mender upstream failed");
+            tracing::warn!(url = %url, error = %e, "mender upstream failed");
             // The upstream's failure, reported as one. mpv treats 502 as a dead segment and
             // says so, which is more honest than an empty 200.
             write_half
@@ -458,13 +483,8 @@ async fn relay_range(
     range: &str,
     write_half: &mut tokio::net::tcp::OwnedWriteHalf,
 ) -> std::io::Result<()> {
-    let mut request = upstream.http.emulated().get(url).header("range", range);
-    for (name, value) in &upstream.headers {
-        request = request.header(name.as_str(), value.as_str());
-    }
-
     let relayed = async {
-        let response = request.send().await.map_err(|e| e.to_string())?;
+        let response = send(upstream, url, Some(range)).await?;
         let status = response.status().as_u16();
         let content_range = response
             .headers()
@@ -495,20 +515,68 @@ async fn relay_range(
             write_half.flush().await
         }
         Err(e) => {
-            tracing::debug!(url = %url, error = %e, "mender range relay failed");
+            tracing::warn!(url = %url, error = %e, "mender range relay failed");
             write_half.write_all(b"HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\n\r\n").await
         }
     }
 }
 
+/// Send one upstream request with the stream's headers, waiting out a rate limit.
+///
+/// Only `429` is waited on: it is the one status that says "this will work if you ask again
+/// later". Once the budget is spent the refusal is returned for the caller to report.
+async fn send(
+    upstream: &Upstream,
+    url: &str,
+    range: Option<&str>,
+) -> Result<wreq::Response, String> {
+    let deadline = Instant::now() + RATE_LIMIT_BUDGET;
+    loop {
+        let not_before = *upstream.cooldown.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(at) = not_before {
+            tokio::time::sleep_until(at.into()).await;
+        }
+
+        let mut request = upstream.http.emulated().get(url);
+        if let Some(range) = range {
+            request = request.header("range", range);
+        }
+        for (name, value) in &upstream.headers {
+            request = request.header(name.as_str(), value.as_str());
+        }
+        let response = request.send().await.map_err(|e| e.to_string())?;
+        if response.status().as_u16() != 429 {
+            return Ok(response);
+        }
+
+        let wait = retry_after(&response).unwrap_or(DEFAULT_RETRY_AFTER);
+        let resume = Instant::now() + wait;
+        if resume > deadline {
+            return Ok(response);
+        }
+        tracing::info!(url = %url, wait_secs = wait.as_secs(), "upstream rate-limited; holding");
+        let mut cooldown = upstream.cooldown.lock().unwrap_or_else(|e| e.into_inner());
+        if cooldown.is_none_or(|at| at < resume) {
+            *cooldown = Some(resume);
+        }
+    }
+}
+
+/// A `Retry-After` given in seconds. The HTTP-date form is rare for rate limits and falls back
+/// to the default.
+fn retry_after(response: &wreq::Response) -> Option<Duration> {
+    let value = response.headers().get("retry-after")?.to_str().ok()?;
+    parse_retry_after(value)
+}
+
+fn parse_retry_after(value: &str) -> Option<Duration> {
+    // Capped: a host asking for minutes is not going to be waited out inside one request.
+    value.trim().parse::<u64>().ok().map(|secs| Duration::from_secs(secs.clamp(1, 30)))
+}
+
 /// Fetch one upstream URL with the stream's headers.
 async fn fetch(upstream: &Upstream, url: &str) -> Result<(String, Vec<u8>), String> {
-    let mut request = upstream.http.emulated().get(url);
-    for (name, value) in &upstream.headers {
-        request = request.header(name.as_str(), value.as_str());
-    }
-
-    let response = request.send().await.map_err(|e| e.to_string())?;
+    let response = send(upstream, url, None).await?;
     if !response.status().is_success() {
         return Err(format!("status {}", response.status()));
     }
@@ -840,6 +908,68 @@ mod tests {
         let mut raw = Vec::new();
         socket.read_to_end(&mut raw).await.unwrap();
         assert!(String::from_utf8_lossy(&raw).starts_with("HTTP/1.1 404"));
+    }
+
+    #[test]
+    fn a_retry_after_in_seconds_is_honoured_within_bounds() {
+        assert_eq!(parse_retry_after("10"), Some(Duration::from_secs(10)));
+        assert_eq!(parse_retry_after(" 0 "), Some(Duration::from_secs(1)));
+        assert_eq!(parse_retry_after("3600"), Some(Duration::from_secs(30)));
+        assert_eq!(parse_retry_after("Wed, 21 Oct 2015 07:28:00 GMT"), None);
+    }
+
+    #[tokio::test]
+    async fn a_rate_limited_segment_is_waited_for_rather_than_failed() {
+        // ffmpeg skips a segment it cannot open, and skipping every segment after a 429 is
+        // what ran episodes to their end minutes in. The proxy has to hold on and retry.
+        let upstream = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
+        let origin = format!("http://{}/seg.ts", upstream.local_addr().unwrap());
+        let payload = transport_stream();
+        let served = payload.clone();
+        tokio::spawn(async move {
+            for attempt in 0.. {
+                let Ok((mut socket, _)) = upstream.accept().await else { break };
+                let mut request = [0u8; 4096];
+                let _ = socket.read(&mut request).await;
+                let head = if attempt == 0 {
+                    "HTTP/1.1 429 Too Many Requests\r\nRetry-After: 1\r\nContent-Length: 0\r\n\
+                     Connection: close\r\n\r\n"
+                        .to_owned()
+                } else {
+                    format!(
+                        "HTTP/1.1 200 OK\r\nContent-Type: video/mp2t\r\nContent-Length: {}\r\n\
+                         Connection: close\r\n\r\n",
+                        served.len()
+                    )
+                };
+                let _ = socket.write_all(head.as_bytes()).await;
+                if attempt > 0 {
+                    let _ = socket.write_all(&served).await;
+                }
+            }
+        });
+
+        let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
+        let server = serve(http, &origin, Vec::new(), "tok").await.unwrap();
+        let authority =
+            server.url().trim_start_matches("http://").split('/').next().unwrap().to_owned();
+        let path = &server.url()[server.url().find("/m/").unwrap()..];
+
+        let started = Instant::now();
+        let mut socket = TcpStream::connect(&authority).await.unwrap();
+        socket
+            .write_all(format!("GET {path} HTTP/1.1\r\nHost: {authority}\r\n\r\n").as_bytes())
+            .await
+            .unwrap();
+        let mut raw = Vec::new();
+        socket.read_to_end(&mut raw).await.unwrap();
+
+        assert!(
+            String::from_utf8_lossy(&raw).starts_with("HTTP/1.1 200"),
+            "relayed the refusal"
+        );
+        assert!(raw.ends_with(&payload), "the retried body did not come through");
+        assert!(started.elapsed() >= Duration::from_secs(1), "did not wait for Retry-After");
     }
 
     #[tokio::test]
