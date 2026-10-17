@@ -75,7 +75,7 @@ dependencies = [
 
 [[package]]
 name = "anistream"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "anistream-core",
  "anistream-meta",
@@ -108,7 +108,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-core"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "async-trait",
  "directories",
@@ -123,7 +123,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-meta"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "anistream-core",
  "anistream-net",
@@ -139,7 +139,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-net"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "anistream-core",
  "reqwest 0.13.1",
@@ -152,7 +152,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-player"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "anistream-core",
  "anistream-net",
@@ -167,7 +167,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-plugin"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "aes",
  "anistream-core",
@@ -188,7 +188,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-providers"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "anistream-core",
  "anistream-meta",
@@ -206,7 +206,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-store"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "anistream-core",
  "rusqlite",
@@ -219,7 +219,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-track"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "anistream-core",
  "anistream-meta",
@@ -238,7 +238,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-ui"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "anistream-core",
  "chrono",
