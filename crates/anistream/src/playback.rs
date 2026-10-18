@@ -1307,6 +1307,16 @@ impl Run<'_> {
                 }
             }
 
+            // The file's own chapters arrive once it is playing, and outrank aniskip's times.
+            // Up Next and the look-ahead for the next episode both hang off where the ending
+            // starts, so they move with it.
+            if tracker.skips() != self.skips.as_slice() {
+                self.skips = tracker.skips().to_vec();
+                if let Some(next) = self.next_up() {
+                    let _ = session.send(companion::state("next", &next)).await;
+                }
+            }
+
             if let PlaybackEvent::Ended { complete } = event
                 && file_ended
             {
