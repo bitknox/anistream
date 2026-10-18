@@ -747,6 +747,37 @@ async fn controls_come_up_with_activity_and_leave_with_the_cursor() {
 }
 
 #[tokio::test]
+async fn the_volume_pill_does_not_flash_as_the_controls_leave() {
+    // The volume control is drawn in the row while the controls are up and as a floating pill
+    // after a change while they are down. The form used to be decided per frame, so the row's
+    // control was drawn as the pill for the length of its fade-out every time the controls hid.
+    require_mpv!();
+    let mut player = Player::start(
+        Some(&clip(30)),
+        &[
+            "--pause",
+            "--cursor-autohide=300",
+            "--audio-file=av://lavfi:sine=duration=30",
+            "--script-opts-append=anistream-uosc=yes",
+        ],
+    )
+    .await;
+    player.set("pause", json!(false)).await;
+    player.wait_ui("the bar", |ui| ui["timeline"] == true).await;
+    player.wait_ui("the bar to leave", |ui| ui["timeline"] == false).await;
+    // Past the fade, then any change republishes what the last frame drew.
+    tokio::time::sleep(Duration::from_millis(400)).await;
+    player.message("toast", json!({"text": "ping", "level": "info", "duration": 1})).await;
+    let ui = player.wait_ui("a republish", |ui| ui["toast"] == "ping").await;
+    assert_eq!(ui["volume"], "row", "the fade-out drew the pill: {ui}");
+
+    // A change while the controls are down is what the pill is for.
+    player.set("volume", json!(40)).await;
+    player.wait_ui("the pill", |ui| ui["volume"] == "pill").await;
+    player.finish().await;
+}
+
+#[tokio::test]
 async fn a_click_on_the_picture_pauses_and_a_double_click_leaves_it_alone() {
     require_mpv!();
     let mut player = Player::start(

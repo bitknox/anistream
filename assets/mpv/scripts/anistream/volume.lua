@@ -31,6 +31,13 @@ local flash_until = 0
 local flash_timer = nil
 local dragging = false
 local slider = nil -- the slider's span from the last frame, for turning x into a level
+-- Which form is on screen: the pill, or the control in the row. Decided while the element
+-- wants to be shown and kept through its fade-out, because the overlay keeps drawing a fading
+-- element: deciding per frame turned the row's control into the pill for the length of the
+-- fade every time the controls hid, which read as the pill flashing.
+local pill = false
+-- The form last drawn, published for tests: "row", "pill", or nil before the first frame.
+local drawn = nil
 
 local function enabled()
     return config.opts.uosc
@@ -40,14 +47,18 @@ local function flashing()
     return mp.get_time() < flash_until
 end
 
-function M.wants()
-    return enabled() and app.player.has_audio and not app.player.idle
-        and (timeline.awake() or dragging or flashing())
-end
-
 -- The inline control is part of the control row; the pill is for when the row is hidden.
 local function inline()
     return timeline.awake() or dragging
+end
+
+function M.wants()
+    local showing = enabled() and app.player.has_audio and not app.player.idle
+        and (inline() or flashing())
+    if showing then
+        pill = not inline()
+    end
+    return showing
 end
 
 local function flash()
@@ -149,7 +160,8 @@ function M.draw(ctx, _, _, w, h)
     value_font.color = muted and config.color.dim or config.color.text
     value_font.outline = math.max(1, s)
 
-    if inline() and g.volume then
+    if not pill and g.volume then
+        drawn = "row"
         local v = g.volume
         local cy = g.row_y
         -- Speaker: a button the size of uosc's, drawn like its icons.
@@ -165,6 +177,7 @@ function M.draw(ctx, _, _, w, h)
     end
 
     -- The pill: the same three parts on a panel, bottom left, level with the corner cards.
+    drawn = "pill"
     slider = nil
     local pad, icon = 12 * s, 22 * s
     local text_w = ctx:width("100", value_font)
@@ -180,6 +193,10 @@ function M.draw(ctx, _, _, w, h)
     track(ctx, tx0, tx0 + 88 * s, cy, false)
     value_font.outline = nil
     ctx:text(tx0 + 88 * s + 12 * s, cy, 4, value_text(), value_font)
+end
+
+function M.drawn()
+    return drawn
 end
 
 return M

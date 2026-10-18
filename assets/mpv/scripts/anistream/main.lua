@@ -111,6 +111,8 @@ local function publish()
         -- Also beyond the brief: our own menu and seek bar, in anistream mode.
         menu = menu_view.view(),
         timeline = overlay.visible(timeline),
+        -- Which form the volume control last drew, "row" or "pill": what a fade showed.
+        volume = volume.drawn(),
     }
     local json = util.format_json(ui)
     if json ~= last_ui then

@@ -23,6 +23,7 @@ pub mod focus;
 pub mod mend;
 pub mod picture;
 pub mod playback;
+pub mod player;
 pub mod power;
 pub mod remux;
 pub mod shaders;
