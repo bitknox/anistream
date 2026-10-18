@@ -10,42 +10,41 @@
 #
 # The package is not byte-for-byte reproducible across machines: cargo mixes the host's rustc
 # version line (its host triple) into every crate's identity, and wasm-bindgen's exported names
-# carry that. So a build records a fingerprint of everything it was built from in SOURCE, and
-# the check compares fingerprints rather than bytes.
+# carry that. So a build records everything it was built from in SOURCE, and the check compares
+# that rather than bytes.
 set -euo pipefail
+shopt -s inherit_errexit
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 out="$root/deploy/store-wasm"
 templates=(cloudflare vercel netlify)
 files=(store.js store_bg.wasm store.d.ts store_bg.wasm.d.ts)
 
-# Everything the package is built from, as one SHA-256: every dependency it resolves to, with its
-# features; the source of the workspace's own crates among them, admin page included; any release
-# profile; and the pinned toolchain. The rest of the lockfile and the workspace manifest are left
-# out, so a bump to a crate the store never compiles does not mark it stale. Content, not commits,
-# so an uncommitted change counts.
-fingerprint() (
+# Everything the package is built from, a line each: every dependency it resolves to, with its
+# features; the files of the workspace's own crates among them, admin page included, by their
+# git hashes; any release profile; and the pinned toolchain. The rest of the lockfile and the
+# workspace manifest are left out, so a bump to a crate the store never compiles does not mark it
+# stale. Content, not commits, so an uncommitted change counts.
+sources() (
   cd "$root"
   tree="$(cargo tree --quiet -p anistream-store-wasm --target wasm32-unknown-unknown \
     -e normal,build --prefix none --format '{p} {f}' |
     sed -e 's/ (\*)$//' -e "s|$root|.|" | LC_ALL=C sort -u)"
-  {
-    printf '%s\n' "$tree"
-    awk '/^\[/ { keep = /^\[profile\.release/ } keep' Cargo.toml
-    sed -n 's|.* (\./\([^)]*\)).*|\1|p' <<<"$tree" |
-      xargs git ls-files --cached --others --exclude-standard -- rust-toolchain.toml \
-        .cargo/config.toml .cargo/config |
-      LC_ALL=C sort |
-      while read -r file; do
-        [[ -f "$file" ]] && printf '%s %s\n' "$file" "$(git hash-object "$file")"
-      done
-  } | shasum -a 256 | cut -d' ' -f1
+  printf '%s\n' "$tree"
+  awk '/^\[/ { keep = /^\[profile\.release/ } keep' Cargo.toml
+  sed -n 's|.* (\./\([^)]*\)).*|\1|p' <<<"$tree" |
+    xargs git ls-files --cached --others --exclude-standard -- rust-toolchain.toml \
+      .cargo/config.toml .cargo/config |
+    LC_ALL=C sort |
+    while read -r file; do
+      if [[ -f "$file" ]]; then printf '%s %s\n' "$file" "$(git hash-object "$file")"; fi
+    done
 )
 
 if [[ "${1:-}" == "--check" ]]; then
   status=0
-  current="$(fingerprint)"
-  if [[ "$(cat "$out/SOURCE" 2>/dev/null)" != "$current" ]]; then
+  current="$(sources)"
+  if ! diff -u -L "built from" -L "sources now" "$out/SOURCE" - <<<"$current" >&2; then
     echo "deploy/store-wasm is stale: the store's sources changed since it was built." >&2
     status=1
   fi
@@ -75,7 +74,7 @@ if [[ "${1:-}" != "--copy" ]]; then
     --out-dir "$out" --out-name store --no-pack
   # wasm-pack writes these for a package of its own; this one is committed and copied.
   rm -f "$out/.gitignore" "$out/package.json" "$out/README.md"
-  fingerprint > "$out/SOURCE"
+  sources > "$out/SOURCE"
 fi
 
 for template in "${templates[@]}"; do

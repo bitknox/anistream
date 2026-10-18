@@ -100,9 +100,9 @@ jobs:
   # The serverless deploy templates carry the store as committed WebAssembly, so deploying one
   # from its button never needs Rust. The package cannot be compared byte for byte with a build
   # here: cargo mixes the host into every crate's identity, and wasm-bindgen's exported names
-  # carry it. So sync.sh records a fingerprint of the sources it built from, this fails when the
-  # sources have moved on or a template's copy differs, and the build below proves it still
-  # compiles. store-templates runs the committed copies through the whole store journey.
+  # carry it. So sync.sh records the sources it built from, this fails with a diff when they have
+  # moved on or a template's copy differs, and the build below proves it still compiles.
+  # store-templates runs the committed copies through the whole store journey.
   store-wasm:
     runs-on: ubuntu-latest
     steps:
