@@ -1360,17 +1360,23 @@ fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
     draw_artwork(buf, app, hero, banner_area);
     y += banner_height + 1;
 
+    // Every line below stops at the stage's own bottom, not the buffer's: on a short terminal
+    // the banner leaves only a few rows, and the metadata was drawn on into the status line.
+    let fits = |y: u16| y < area.bottom();
+
     // Bold, not tracked. Letterspacing is for eyebrows and metadata; applied to a real
     // title it doubles the width and truncates the one thing the screen exists to show.
-    line(
-        buf,
-        area.left(),
-        y,
-        truncate(&entry.title, area.width as usize),
-        app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
-    );
+    if fits(y) {
+        line(
+            buf,
+            area.left(),
+            y,
+            truncate(&entry.title, area.width as usize),
+            app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
+        );
+    }
     y += 1;
-    if let Some(secondary) = &entry.secondary {
+    if let Some(secondary) = entry.secondary.as_ref().filter(|_| fits(y)) {
         line(
             buf,
             area.left(),
@@ -1381,14 +1387,16 @@ fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
     }
     y += 2;
 
-    let meta = metadata_line(entry);
-    line(
-        buf,
-        area.left(),
-        y,
-        truncate(&meta, area.width as usize),
-        app.palette.style(Role::TextDim),
-    );
+    if fits(y) {
+        let meta = metadata_line(entry);
+        line(
+            buf,
+            area.left(),
+            y,
+            truncate(&meta, area.width as usize),
+            app.palette.style(Role::TextDim),
+        );
+    }
     y += 2;
 
     if !entry.available_on.is_empty() && y < area.bottom() {
@@ -4452,6 +4460,21 @@ mod tests {
         let plate_row = text.lines().position(|l| l.contains('░')).unwrap();
         let title_row = text.lines().position(|l| l.contains("Frieren")).unwrap();
         assert!(plate_row < title_row, "artwork must lead");
+    }
+
+    #[test]
+    fn a_short_terminal_keeps_the_title_page_inside_the_stage() {
+        // At ten rows the banner leaves the stage a few lines, and the metadata ran on into
+        // the status rule and line under it.
+        let mut app = app_with(Content::Entries(vec![entry(1, "Invented Show")]));
+        app.nav.focus_stage();
+        app.handle(crate::keymap::Action::Open, 20);
+        let buf = render_to_buffer(&app, 80, 10);
+        let stage = layout::compute(Rect::new(0, 0, 80, 10), app.nav.rail_width()).stage;
+        let below: Vec<String> =
+            text_of(&buf).lines().skip(stage.bottom() as usize).map(str::to_owned).collect();
+        // The status line overwrites the front of a stray line and leaves its tail, the year.
+        assert!(below.iter().all(|l| !l.contains("2023")), "{below:?}");
     }
 
     #[test]
