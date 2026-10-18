@@ -115,6 +115,7 @@ const LOG_DAYS: u64 = 14;
 /// its subtitles and Up Next still when it starts and mpv reads them within the episode, so a
 /// day is far past any live session's need, and a stale socket is a minute past its process.
 const SCRATCH_AGE: Duration = Duration::from_secs(24 * 3600);
+#[cfg(unix)]
 const SOCKET_AGE: Duration = Duration::from_secs(60);
 
 /// What a launch-time sweep removed.
