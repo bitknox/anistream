@@ -146,6 +146,14 @@ function M.visible(el)
     return el.fade.target == 1
 end
 
+-- Things that move with the overlay's fades without being drawn by it — the subtitles lifting
+-- with the seek bar — read the fade values here, on the same frames the overlay draws.
+local frame_listeners = {}
+
+function M.on_frame(fn)
+    frame_listeners[#frame_listeners + 1] = fn
+end
+
 ---------------------------------------------------------------------------------------------
 -- Pointer
 --
@@ -311,6 +319,10 @@ function M.render()
                 end
             end
         end
+    end
+
+    for _, fn in ipairs(frame_listeners) do
+        fn()
     end
 
     local data = table.concat(out, "\n")

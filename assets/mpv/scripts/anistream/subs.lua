@@ -1,8 +1,10 @@
 -- Lift the subtitles clear of the controls while the controls are up.
 --
 -- With the control row and the seek bar showing, the bar ran straight through the bottom
--- subtitle line. Like the streaming players, the subtitles now ease up by the height the
--- controls take and come back down when they leave.
+-- subtitle line. Like the streaming players, the subtitles now rise by the height the controls
+-- take and come back down when they leave, moving with the bar: the lift is the bar's own fade
+-- value applied to the full lift, read on the frames the overlay draws, so the two share one
+-- timing and one curve, reversals included.
 --
 -- `sub-pos` rather than `sub-margin-y`: most anime subtitles are ASS, which the margin does not
 -- move. `sub-pos` moves both kinds, and positioned signs keep their place either way. Only in
@@ -15,11 +17,11 @@
 -- little high for plain subtitles rather than leaving them under the bar.
 
 local config = require("config")
+local overlay = require("overlay")
 local screen = require("screen")
 
 local M = {}
 
-local EASE = 0.15 -- seconds
 local GAP = 6 -- px at scale 1, between the lifted subtitles and the seek band
 
 local dims = { w = 0, h = 0, mt = 0, mb = 0 }
@@ -35,8 +37,6 @@ local base = nil
 -- and kept.
 local applied = nil
 local lifted = 0 -- points of sub-pos currently taken off `base`
-local wanted = false
-local animation = nil
 
 mp.observe_property("sub-pos", "number", function(_, value)
     if not value or not applied then
@@ -48,12 +48,6 @@ mp.observe_property("sub-pos", "number", function(_, value)
         applied = value
     end
 end)
-
-local function write(points)
-    lifted = points
-    applied = base - points
-    mp.set_property_number("sub-pos", applied)
-end
 
 -- How many points of `sub-pos` clear the controls, for the screen as it is now.
 local function lift_points()
@@ -76,43 +70,28 @@ local function lift_points()
     return reach / video_h * 100
 end
 
-local function ease_to(target)
-    if animation then
-        animation:kill()
-        animation = nil
-    end
-    if base == nil then
-        base = mp.get_property_number("sub-pos", 100)
-    end
-    local from, start = lifted, mp.get_time()
-    if math.abs(target - from) < 0.01 then
-        return
-    end
-    animation = mp.add_periodic_timer(1 / 60, function()
-        local t = math.min(1, (mp.get_time() - start) / EASE)
-        -- Ease out: quick to clear the bar, gentle as it settles.
-        local k = 1 - (1 - t) ^ 3
-        write(from + (target - from) * k)
-        if t >= 1 then
-            animation:kill()
-            animation = nil
-            if target == 0 then
-                -- Back where the viewer left them; nothing of ours to remember.
-                mp.set_property_number("sub-pos", base)
-                applied, base = nil, nil
-            end
+-- Follow `bar`'s fade: the full lift while it is shown, none while hidden, and the same share of
+-- it at every frame between.
+function M.follow(bar)
+    overlay.on_frame(function()
+        local share = config.opts.uosc and bar.fade.value or 0
+        local points = share > 0 and lift_points() * share or 0
+        if math.abs(points - lifted) < 0.01 then
+            return
+        end
+        if base == nil then
+            base = mp.get_property_number("sub-pos", 100)
+        end
+        lifted = points
+        if points == 0 then
+            -- Back where the viewer left them; nothing of ours to remember.
+            mp.set_property_number("sub-pos", base)
+            applied, base = nil, nil
+        else
+            applied = base - points
+            mp.set_property_number("sub-pos", applied)
         end
     end)
-end
-
--- Called on every refresh with whether the controls are showing.
-function M.follow(showing)
-    showing = showing and config.opts.uosc
-    if showing == wanted then
-        return
-    end
-    wanted = showing
-    ease_to(showing and lift_points() or 0)
 end
 
 -- What tests read: points lifted right now.

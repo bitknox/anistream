@@ -173,8 +173,6 @@ local function refresh()
     local seekbar = timeline.wants() and not menu_view.is_open() and not loading.card_visible()
     overlay.show(timeline, seekbar)
     timeline.observe(seekbar)
-    -- Subtitles step out of the way of the bar while it is up.
-    subs.follow(seekbar)
     overlay.show(volume, volume.wants() and not menu_view.is_open() and not loading.card_visible())
     overlay.show(pause_flash, pause_flash.wants() and not menu_view.is_open()
         and not loading.card_visible())
@@ -490,6 +488,8 @@ mp.register_script_message("hello", ready)
 refresh()
 menus.sync_context_menu()
 host.start()
+-- Subtitles rise and settle with the seek bar's own fade.
+subs.follow(timeline)
 -- Every binding above is live before the host hears we are ready.
 keys.flush()
 ready()
