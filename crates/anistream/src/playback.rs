@@ -98,12 +98,11 @@ impl PlaybackContext {
         format!("{} · {}", self.title, self.episode_label())
     }
 
-    fn episode_info(&self) -> companion::EpisodeInfo {
+    fn episode_info(&self, episodes: &[EpisodeEntry]) -> companion::EpisodeInfo {
         companion::EpisodeInfo {
             number: self.episode.clone(),
             label: self.episode_label(),
-            title: self
-                .episodes
+            title: episodes
                 .iter()
                 .find(|e| e.number == self.episode)
                 .and_then(|e| e.title.clone()),
@@ -436,6 +435,10 @@ pub async fn play(
         look: settings.look,
         tone_mapping: settings.tone_mapping.clone(),
         hdr: None,
+        episodes: context.episodes.clone(),
+        next: context.next.clone(),
+        http: http.clone(),
+        scratch: mpv.scratch_dir().to_path_buf(),
         still: None,
         // Fetched alongside everything else rather than before it: the card is minutes away
         // and the episode should not wait on a picture.
@@ -614,9 +617,9 @@ pub async fn play(
                     && settings.auto_next
                     && !run.cancel_next
                     && !exited
-                    && context.next.is_some();
+                    && run.next.is_some();
                 if let Some(player) = player.take() {
-                    if rolls_on && let Some(next) = &context.next {
+                    if rolls_on && let Some(next) = &run.next {
                         let _ = player
                             .session
                             .send(companion::state(
@@ -741,6 +744,12 @@ struct Run<'a> {
     /// The next episode's still once written out, and the fetch while it is still under way.
     still: Option<companion::Still>,
     still_fetch: Option<tokio::task::JoinHandle<Option<companion::Still>>>,
+    /// The episode list and what follows, from the context or learned once playback started.
+    episodes: Vec<EpisodeEntry>,
+    next: Option<NextEpisode>,
+    /// For fetching a still learned late, and where to write it.
+    http: HttpClient,
+    scratch: std::path::PathBuf,
 }
 
 impl Run<'_> {
@@ -749,7 +758,7 @@ impl Run<'_> {
         let context = self.context;
         let next = self.next_up();
         let commands = [
-            companion::state("episode", &context.episode_info()),
+            companion::state("episode", &context.episode_info(&self.episodes)),
             match &next {
                 Some(next) => companion::state("next", next),
                 None => companion::clear("next"),
@@ -778,7 +787,7 @@ impl Run<'_> {
         if self.prefetch_sent || !self.settings.auto_next || self.cancel_next {
             return;
         }
-        let Some(next) = &self.context.next else { return };
+        let Some(next) = &self.next else { return };
         let ending = self.skips.iter().find(|s| s.kind == SkipKind::Ending).map(|s| s.start);
         let at = ending.or_else(|| {
             duration.filter(|d| *d > 2.0 * PREFETCH_LEAD).map(|d| d - PREFETCH_LEAD)
@@ -793,10 +802,44 @@ impl Run<'_> {
         }
     }
 
+    /// Take an episode list that arrived after playback started.
+    ///
+    /// Only fills what the context left empty: a next episode the episode table already named
+    /// is the one the viewer saw, and stays. Returns the next episode's still to fetch, if a
+    /// next episode was learned here and has one.
+    fn learn_episodes(
+        &mut self,
+        rows: Vec<anistream_ui::app::EpisodeRow>,
+        next: Option<String>,
+    ) -> Option<String> {
+        if self.episodes.is_empty() {
+            self.episodes = rows
+                .iter()
+                .map(|row| EpisodeEntry {
+                    number: row.number.clone(),
+                    title: row.title.clone(),
+                    watched: row.completed,
+                    filler: row.skippable,
+                })
+                .collect();
+        }
+        if self.next.is_some() {
+            return None;
+        }
+        let row = rows.into_iter().find(|row| next.as_deref() == Some(row.number.as_str()))?;
+        tracing::info!(episode = %row.number, "learned the next episode after starting");
+        self.next = Some(NextEpisode {
+            number: row.number,
+            title: row.title,
+            thumbnail: row.thumbnail.clone(),
+        });
+        row.thumbnail
+    }
+
     /// What the Up Next card shows, as it stands now.
     fn next_up(&self) -> Option<companion::NextUp> {
         let ending = self.skips.iter().find(|s| s.kind == SkipKind::Ending).map(|s| s.start);
-        self.context.next.as_ref().map(|next| companion::NextUp {
+        self.next.as_ref().map(|next| companion::NextUp {
             number: next.number.clone(),
             label: next.label(),
             title: next.title.clone(),
@@ -809,7 +852,7 @@ impl Run<'_> {
     fn menus(&self, streams: &[Stream], current: usize) -> companion::Menus {
         let context = self.context;
         companion::Menus {
-            episodes: context
+            episodes: self
                 .episodes
                 .iter()
                 .map(|e| companion::EpisodeItem {
@@ -1012,6 +1055,26 @@ impl Run<'_> {
                                 watched: ending.unwrap_or(false),
                             });
                             break FileOutcome::Handover;
+                        }
+                        Some(PlayerCommand::Episodes { rows, next }) => {
+                            if let Some(url) = self.learn_episodes(rows, next)
+                                && still_fetch.is_none()
+                                && self.still.is_none()
+                            {
+                                still_fetch = Some(tokio::spawn(fetch_still(
+                                    self.http.clone(),
+                                    url,
+                                    self.scratch.clone(),
+                                )));
+                            }
+                            let info = context.episode_info(&self.episodes);
+                            let _ = session.send(companion::state("episode", &info)).await;
+                            if let Some(next) = self.next_up() {
+                                let _ = session.send(companion::state("next", &next)).await;
+                            }
+                            let menus = self.menus(streams, index);
+                            let _ = session.send(companion::state("menus", &menus)).await;
+                            continue;
                         }
                         Some(command) => {
                             stopped |= matches!(command, PlayerCommand::Stop);
@@ -1289,7 +1352,7 @@ impl Run<'_> {
                 }
             }
             ScriptEvent::PlayNext => {
-                if let Some(next) = &context.next {
+                if let Some(next) = &self.next {
                     let _ = tx.send(Update::PlayerPlayEpisode(next.number.clone()));
                 }
             }
@@ -1725,8 +1788,8 @@ async fn apply_command(session: &MpvSession, command: PlayerCommand) {
         }
         // Detaching is purely a UI move — mpv is untouched, which is the whole point.
         PlayerCommand::Detach => {}
-        // Handled by the playback loop itself, which owns the window being handed on.
-        PlayerCommand::Handover => {}
+        // Handled by the playback loop itself, which owns the window and what it shows.
+        PlayerCommand::Handover | PlayerCommand::Episodes { .. } => {}
         PlayerCommand::Stop => {
             let _ = session.quit().await;
         }

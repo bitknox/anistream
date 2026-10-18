@@ -2078,6 +2078,9 @@ fn dispatch(
             // append to, and passing the set would couple the player to the sync layer.
             let tracker_ids = signed_in_tracker_ids(sync);
             let extras = episode_extras(app, id, &episode);
+            if extras.1.is_empty() {
+                fill_episodes(id, &episode, meta, store, registry, player_tx);
+            }
             spawn_playback(
                 id,
                 episode,
@@ -2107,6 +2110,9 @@ fn dispatch(
             let prefetched = None;
             let tracker_ids = signed_in_tracker_ids(sync);
             let extras = episode_extras(app, id, &episode);
+            if extras.1.is_empty() {
+                fill_episodes(id, &episode, meta, store, registry, player_tx);
+            }
             spawn_playback(
                 id,
                 episode,
@@ -2407,6 +2413,9 @@ fn dispatch(
             let prx = take_controls(player_tx);
             let tracker_ids = signed_in_tracker_ids(sync);
             let (next, episodes) = episode_extras(app, id, &episode);
+            if episodes.is_empty() {
+                fill_episodes(id, &episode, meta, store, registry, player_tx);
+            }
             let shaders = shader_dir(config, paths);
             let (config, store, http, mpv, tx, slot) = (
                 config.clone(),
@@ -3303,6 +3312,42 @@ impl Prefetch {
     }
 }
 
+/// Load a title's episode list for a playback the episode table on screen could not describe.
+///
+/// The table belongs to whichever title is open, so a playback started from Home or Continue
+/// had no episode list: the player's Episodes menu was empty and, with no next episode known,
+/// there was no Up Next card, no fetching ahead and no keeping the window for the binge.
+/// Loaded in the background after playback starts, never in front of it, and handed to the
+/// playback through its controls.
+fn fill_episodes(
+    id: anistream_core::ids::AnilistId,
+    episode: &str,
+    meta: &Meta,
+    store: &Store,
+    registry: &ProviderRegistry,
+    controls: &Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+) {
+    let Some(controls) = controls.clone() else { return };
+    let (meta, store, registry, episode) =
+        (meta.clone(), store.clone(), registry.clone(), episode.to_owned());
+    tokio::spawn(async move {
+        match load_episodes(&meta, &store, &registry, id).await {
+            Ok(EpisodeLoad::Rows(rows)) if !rows.is_empty() => {
+                let next = following(&rows, &episode);
+                let _ = controls.send(anistream_ui::PlayerCommand::Episodes { rows, next });
+            }
+            Ok(_) => {}
+            Err(reason) => tracing::debug!(%reason, "no episode list for the player"),
+        }
+    });
+}
+
+/// The episode after `episode` in a list, when the list has it.
+fn following(rows: &[EpisodeRow], episode: &str) -> Option<String> {
+    let next = episode.trim().parse::<u32>().ok()?.checked_add(1)?.to_string();
+    rows.iter().any(|row| row.number == next).then_some(next)
+}
+
 /// A fresh control channel for a new playback, handing the current player over to it.
 ///
 /// The old playback, if one is still running, parks its window rather than closing it, and the
@@ -3731,6 +3776,27 @@ mod tests {
             entry.found = std::time::Instant::now() - PREFETCH_FRESH - Duration::from_secs(1);
         }
         assert!(prefetch.take(AnilistId::new(7), "6", Translation::Sub).is_none());
+    }
+
+    #[test]
+    fn the_following_episode_is_only_offered_when_the_list_has_it() {
+        let rows: Vec<EpisodeRow> = ["1", "2", "3"]
+            .into_iter()
+            .map(|n| EpisodeRow {
+                number: n.into(),
+                title: None,
+                thumbnail: None,
+                description: None,
+                duration_secs: None,
+                watched: 0.0,
+                completed: false,
+                kind: None,
+                skippable: false,
+            })
+            .collect();
+        assert_eq!(following(&rows, "1").as_deref(), Some("2"));
+        assert_eq!(following(&rows, "3"), None, "a finale has no next");
+        assert_eq!(following(&rows, "OVA"), None);
     }
 
     #[test]
