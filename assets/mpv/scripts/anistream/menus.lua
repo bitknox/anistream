@@ -13,6 +13,7 @@
 
 local app = require("app")
 local config = require("config")
+local help = require("help")
 local menu_view = require("menu_view")
 local screen = require("screen")
 local util = require("util")
@@ -205,6 +206,8 @@ local function entries(style)
     end
     list[#list + 1] = { title = "Sync subtitles", action = "sub-sync" }
     list[#list + 1] = { title = "Mini player", hint = M.mini_on and M.mini_on() and "On" or nil, action = "mini" }
+    -- The hint is the key as bound right now, so a rebind shows here too.
+    list[#list + 1] = { title = "Keys", hint = help.key_for("keys"), action = "keys" }
     return list
 end
 

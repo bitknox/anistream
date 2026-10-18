@@ -84,8 +84,11 @@ function M.wants()
     return stall ~= nil
 end
 
+-- The keys the prompt takes while it is shown; the keys overlay lists them from here too.
+M.KEYS = { ENTER = switch, KP_ENTER = switch, ESC = wait }
+
 function M.keys()
-    return { ENTER = switch, KP_ENTER = switch, ESC = wait }
+    return M.KEYS
 end
 
 return M

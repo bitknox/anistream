@@ -80,9 +80,12 @@ function M.wants()
     return note ~= nil
 end
 
+-- The keys the note takes while it offers Undo; the keys overlay lists them from here too.
+M.KEYS = { u = undo }
+
 function M.keys()
     if note and note.from then
-        return { u = undo }
+        return M.KEYS
     end
     return {}
 end

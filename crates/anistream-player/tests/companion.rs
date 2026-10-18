@@ -819,7 +819,8 @@ async fn subtitles_lift_over_the_controls_and_settle_back_where_the_viewer_had_t
     player.set("sub-pos", json!(96)).await;
     player.set("pause", json!(false)).await;
     player.wait_ui("the bar", |ui| ui["timeline"] == true).await;
-    let lifted = player.wait_property("sub-pos", |v| v.as_f64().is_some_and(|p| p < 95.0)).await;
+    let lifted =
+        player.wait_property("sub-pos", |v| v.as_f64().is_some_and(|p| p < 95.0)).await;
     assert!(lifted.as_f64().unwrap() > 50.0, "lifted clear of the bar, not off the screen");
     player.wait_ui("the bar to leave", |ui| ui["timeline"] == false).await;
     player.wait_property("sub-pos", |v| v.as_f64() == Some(96.0)).await;
@@ -880,6 +881,81 @@ async fn missing_null_and_malformed_state_is_tolerated() {
     player.event("ready").await;
     let ui = player.ui().await;
     assert!(ui["skip"]["visible"].is_boolean(), "{ui}");
+    player.finish().await;
+}
+
+#[tokio::test]
+async fn the_keys_overlay_opens_on_question_mark_and_its_binding() {
+    require_mpv!();
+    // `mpv` mode: the overlay is there too, on mpv's own ? key.
+    let mut player = Player::start(None, &[]).await;
+    player.key("?").await;
+    let ui = player.wait_ui("the keys overlay", |ui| ui["keys"] == true).await;
+    assert_eq!(ui["keys_listed"]["Next episode"], "Shift+N", "{ui}");
+    assert_eq!(ui["keys_listed"]["These keys"], "?");
+    player.key("ESC").await;
+    player.wait_ui("it to close", |ui| ui["keys"] == false).await;
+
+    player.binding("keys").await;
+    player.wait_ui("it to open", |ui| ui["keys"] == true).await;
+    player.key("?").await;
+    player.wait_ui("? to close it", |ui| ui["keys"] == false).await;
+    player.finish().await;
+}
+
+#[tokio::test]
+async fn the_keys_overlay_lists_the_keys_as_bound_now() {
+    require_mpv!();
+    let mut player = Player::start(None, &[]).await;
+    // The viewer moves "next episode" to K and gives N to something else.
+    player.command(json!(["keybind", "K", "script-binding anistream/next"])).await;
+    player.command(json!(["keybind", "N", "ignore"])).await;
+    player.binding("keys").await;
+    let ui = player.wait_ui("the keys overlay", |ui| ui["keys"] == true).await;
+    assert_eq!(ui["keys_listed"]["Next episode"], "Shift+K", "{ui}");
+    // Keys that only exist while something is shown are listed from that element.
+    assert_eq!(ui["keys_listed"]["Skip the opening or ending"], "S  Enter", "{ui}");
+    assert_eq!(ui["keys_listed"]["Undo an automatic skip"], "U", "{ui}");
+    player.finish().await;
+}
+
+#[tokio::test]
+async fn while_open_the_keys_overlay_holds_only_its_close_key() {
+    require_mpv!();
+    let mut player = Player::start(Some(&clip(20)), &["--pause"]).await;
+    player.message("skip-offer", json!({"label": "opening", "to": 90.0})).await;
+    player.wait_ui("the skip button", |ui| ui["skip"]["visible"] == true).await;
+    player.binding("keys").await;
+    player.wait_ui("the keys overlay", |ui| ui["keys"] == true).await;
+    let held = player.held_keys().await;
+    assert!(held.iter().any(|k| k == "ESC"), "{held:?}");
+    assert!(!held.iter().any(|k| k == "S" || k == "ENTER"), "still held: {held:?}");
+    // S goes where it always goes, and no skip fires.
+    player.key("S").await;
+    assert!(!player.sent("skip").await, "S skipped under the keys overlay");
+
+    player.key("ESC").await;
+    player.wait_ui("it to close", |ui| ui["keys"] == false).await;
+    let held = player.held_keys().await;
+    assert!(
+        held.iter().any(|k| k == "S"),
+        "the skip button's keys did not come back: {held:?}"
+    );
+    player.finish().await;
+}
+
+#[tokio::test]
+async fn the_menu_has_a_keys_entry() {
+    require_mpv!();
+    let mut player = Player::start(None, &["--script-opts-append=anistream-uosc=yes"]).await;
+    player.state("menus", sample_menus()).await;
+    player.binding("menu").await;
+    player.wait_ui("the menu", |ui| ui["menu"] == "root").await;
+    // Keys is the last entry.
+    player.key("END").await;
+    player.key("ENTER").await;
+    let ui = player.wait_ui("the keys overlay", |ui| ui["keys"] == true).await;
+    assert!(ui["menu"].is_null(), "the menu stays open under it: {ui}");
     player.finish().await;
 }
 

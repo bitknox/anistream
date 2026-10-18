@@ -83,8 +83,12 @@ end
 -- the user bound themselves behaves like a remote's dedicated button.
 M.take = take
 
+-- The keys the button takes while it is shown; the keys overlay lists them from here too.
+-- s and S are both mpv's screenshot keys; while the button is up, either skips.
+M.KEYS = { s = take, S = take, ENTER = take }
+
 function M.keys()
-    return { S = take, ENTER = take }
+    return M.KEYS
 end
 
 function M.label()
