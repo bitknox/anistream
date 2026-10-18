@@ -2048,11 +2048,20 @@ fn describe_graphics(graphics: anistream_ui::image::Graphics) -> &'static str {
 
 /// A moment, as a local date and time and how long ago that was.
 fn describe_moment(epoch: i64) -> String {
-    let Ok(at) = jiff::Timestamp::from_second(epoch) else {
+    describe_moment_in(epoch, now_epoch(), &jiff::tz::TimeZone::system())
+}
+
+/// [`describe_moment`] against a given now and zone. Days are counted between calendar dates
+/// where the reader is: counting whole 86,400 s blocks called last night's refresh "today".
+fn describe_moment_in(epoch: i64, now: i64, zone: &jiff::tz::TimeZone) -> String {
+    let (Ok(at), Ok(now)) =
+        (jiff::Timestamp::from_second(epoch), jiff::Timestamp::from_second(now))
+    else {
         return "at an unreadable time".into();
     };
-    let local = at.to_zoned(jiff::tz::TimeZone::system());
-    let days = (now_epoch() - epoch).max(0) / 86_400;
+    let local = at.to_zoned(zone.clone());
+    let today = now.to_zoned(zone.clone()).date();
+    let days = local.date().until(today).map_or(0, |span| span.get_days()).max(0);
     let ago = match days {
         0 => "today".to_owned(),
         1 => "yesterday".to_owned(),
@@ -4959,6 +4968,29 @@ mod tests {
         let cli = parse(&["--preview", "80X24", "--screen", "episodes"]).unwrap();
         assert_eq!(cli.preview, Some((80, 24)));
         assert_eq!(cli.screen, Some(PreviewScreen::Episodes));
+    }
+
+    #[test]
+    fn a_moment_is_dated_by_the_calendar_where_the_reader_is() {
+        let zone = jiff::tz::TimeZone::fixed(jiff::tz::offset(2));
+        let at = |s: &str| {
+            s.parse::<jiff::civil::DateTime>().unwrap().to_zoned(zone.clone()).unwrap()
+        };
+        let epoch = |s: &str| at(s).timestamp().as_second();
+        let now = epoch("2026-10-18T09:00");
+        // Twelve hours ago, but before midnight.
+        assert_eq!(
+            describe_moment_in(epoch("2026-10-17T21:00"), now, &zone),
+            "2026-10-17 21:00 (yesterday)"
+        );
+        assert_eq!(
+            describe_moment_in(epoch("2026-10-18T00:30"), now, &zone),
+            "2026-10-18 00:30 (today)"
+        );
+        assert_eq!(
+            describe_moment_in(epoch("2026-10-15T23:59"), now, &zone),
+            "2026-10-15 23:59 (3 days ago)"
+        );
     }
 
     #[test]
