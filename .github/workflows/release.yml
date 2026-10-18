@@ -1,8 +1,21 @@
 name: Release
 
+# A tag's run can restore only caches saved on that tag or on main, so a cache saved by one
+# release is never seen by the next. Main therefore builds the same targets whenever what they
+# compile changes, and saves the cache a release restores, leaving a release only the workspace
+# to compile. Path filters apply only to the branch: a tag always builds.
 on:
   push:
     tags: ['v*']
+    branches: [main]
+    paths:
+      - Cargo.lock
+      - rust-toolchain.toml
+      - .github/workflows/release.yml
+  # GitHub drops a cache nobody has read for seven days, and releases are further apart than
+  # that, so a weekly build reads it and keeps it.
+  schedule:
+    - cron: '23 4 * * 1'
   workflow_dispatch:
     inputs:
       tag:
@@ -10,7 +23,7 @@ on:
         required: true
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
@@ -19,6 +32,10 @@ jobs:
   build:
     name: ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
+    env:
+      # Off on main and on the schedule, where the build is only for the cache: a package needs a
+      # tag to be named after, and dpkg refuses a version that does not start with a digit.
+      PACKAGE: ${{ github.ref_type == 'tag' || github.event_name == 'workflow_dispatch' }}
     strategy:
       fail-fast: false
       matrix:
@@ -47,8 +64,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
-          # Packaging steps have failed after successful builds; without this, each of
-          # those runs threw away a fully compiled dependency cache.
+          # Saved only where a later release can restore it (see `on`). A dispatched run starts
+          # from main too, so it saves.
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+          # A failed build still leaves its compiled dependencies worth keeping.
           cache-on-failure: true
 
       # aws-lc-sys assembles its own crypto primitives and needs NASM on Windows.
@@ -63,7 +82,7 @@ jobs:
       # On workflow_dispatch GITHUB_REF_NAME is the branch, not the tag, so take the input first
       # or the archives come out named after `main`.
       - name: Package (unix)
-        if: runner.os != 'Windows'
+        if: env.PACKAGE == 'true' && runner.os != 'Windows'
         shell: bash
         env:
           TAG: ${{ github.event.inputs.tag || github.ref_name }}
@@ -78,7 +97,7 @@ jobs:
           shasum -a 256 "dist/${name}.tar.gz" > "dist/${name}.tar.gz.sha256"
 
       - name: Package (windows)
-        if: runner.os == 'Windows'
+        if: env.PACKAGE == 'true' && runner.os == 'Windows'
         shell: pwsh
         env:
           TAG: ${{ github.event.inputs.tag || github.ref_name }}
@@ -102,7 +121,7 @@ jobs:
       # want something to install and launch. Both end up in the same release.
 
       - name: Installer (Windows)
-        if: runner.os == 'Windows'
+        if: env.PACKAGE == 'true' && runner.os == 'Windows'
         shell: pwsh
         env:
           TAG: ${{ github.event.inputs.tag || github.ref_name }}
@@ -126,7 +145,7 @@ jobs:
             Out-File "dist/anistream-$version-setup.exe.sha256" -Encoding ascii
 
       - name: Installer (macOS)
-        if: runner.os == 'macOS'
+        if: env.PACKAGE == 'true' && runner.os == 'macOS'
         shell: bash
         env:
           TAG: ${{ github.event.inputs.tag || github.ref_name }}
@@ -163,7 +182,7 @@ jobs:
           shasum -a 256 "${pkg}" > "${pkg}.sha256"
 
       - name: Installer (Linux)
-        if: runner.os == 'Linux'
+        if: env.PACKAGE == 'true' && runner.os == 'Linux'
         shell: bash
         env:
           TAG: ${{ github.event.inputs.tag || github.ref_name }}
@@ -209,7 +228,7 @@ jobs:
       # For everyone not on a Debian lineage: one self-contained file, no package manager
       # involved. mpv and ffmpeg stay host-installed for the same licensing reason as the .deb.
       - name: AppImage (Linux)
-        if: runner.os == 'Linux'
+        if: env.PACKAGE == 'true' && runner.os == 'Linux'
         shell: bash
         env:
           TAG: ${{ github.event.inputs.tag || github.ref_name }}
@@ -242,6 +261,7 @@ jobs:
           sha256sum "$appimage" > "$appimage.sha256"
 
       - uses: actions/upload-artifact@v4
+        if: env.PACKAGE == 'true'
         with:
           name: ${{ matrix.target }}
           path: |
@@ -255,7 +275,10 @@ jobs:
 
   publish:
     needs: build
+    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
