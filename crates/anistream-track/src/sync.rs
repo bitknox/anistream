@@ -168,17 +168,28 @@ pub async fn pull(
     now: i64,
     last_pull_at: i64,
 ) -> Result<PullReport, anistream_core::Error> {
-    let id = tracker.id();
-    let mut report = PullReport::default();
-
     if !tracker.is_authenticated() {
-        return Ok(report);
+        return Ok(PullReport::default());
     }
-
     let remote = tracker.pull_library().await?;
-    report.seen = remote.len() as u32;
+    reconcile(store, tracker.id(), &remote, now, last_pull_at)
+}
 
-    for entry in &remote {
+/// The merge half of [`pull`], for a library already fetched.
+///
+/// Separate so several trackers' libraries can be fetched at once while their merges still
+/// run one at a time, in a fixed order: each merge reads and writes the same local history, so
+/// letting two interleave would make which of them reports a conflict depend on network timing.
+pub fn reconcile(
+    store: &Store,
+    id: &str,
+    remote: &[anistream_core::traits::TrackedEntry],
+    now: i64,
+    last_pull_at: i64,
+) -> Result<PullReport, anistream_core::Error> {
+    let mut report = PullReport { seen: remote.len() as u32, ..PullReport::default() };
+
+    for entry in remote {
         let local = local_state(store, entry.anilist_id)
             .map_err(|e| anistream_core::Error::Store(e.to_string()))?;
         let pending = store

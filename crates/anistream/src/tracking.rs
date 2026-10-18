@@ -433,7 +433,10 @@ async fn persist_renewed_tokens(sync: &Sync) {
 pub async fn drain_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
     let now = anistream_store::now();
     persist_renewed_tokens(sync).await;
-    for tracker in &sync.trackers {
+    // Every tracker at once. Each drains only its own outbox rows to its own host, so nothing
+    // is shared between them, and a progress update reaches all of them in the time the
+    // slowest takes rather than the sum.
+    let drains = sync.trackers.iter().map(|tracker| async move {
         match sync::drain(&sync.store, tracker.as_ref(), now).await {
             Ok(report) => {
                 let last = if report.sent > 0 {
@@ -455,20 +458,28 @@ pub async fn drain_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
             }
             Err(e) => tracing::warn!(tracker = tracker.id(), error = %e, "drain failed"),
         }
-    }
+    });
+    futures::future::join_all(drains).await;
 }
 
 /// One library pull across every tracker.
 pub async fn pull_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
     let now = anistream_store::now();
-    for tracker in &sync.trackers {
-        if !tracker.is_authenticated() {
-            continue;
-        }
+    // The libraries are fetched at once — separate hosts, and a pull can be several pages —
+    // but merged one at a time in tracker order. Every merge reads and writes the same local
+    // history, so merging in arrival order would let network timing decide which tracker's
+    // disagreement is reported as the conflict.
+    let pulling: Vec<_> = sync.trackers.iter().filter(|t| t.is_authenticated()).collect();
+    let libraries = futures::future::join_all(pulling.iter().map(|t| t.pull_library())).await;
+
+    for (tracker, library) in pulling.into_iter().zip(libraries) {
         let last_pull =
             sync.store.get_meta_i64(&pull_key(tracker.id())).unwrap_or(None).unwrap_or(0);
+        let reconciled = library.and_then(|remote| {
+            sync::reconcile(&sync.store, tracker.id(), &remote, now, last_pull)
+        });
 
-        match sync::pull(&sync.store, tracker.as_ref(), now, last_pull).await {
+        match reconciled {
             Ok(report) => {
                 let _ = sync.store.set_meta_i64(&pull_key(tracker.id()), now);
                 let _ = tx.send(Update::Sync(Box::new(sync.state_for(

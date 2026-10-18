@@ -21,6 +21,7 @@ use anistream_player::{
 };
 use anistream_store::{Store, WatchEvent};
 use anistream_ui::app::{PlayerCommand, Toast, Update};
+use futures::StreamExt;
 use tokio::sync::mpsc;
 /// How long mpv may go without reporting a position before we say something.
 ///
@@ -77,17 +78,21 @@ async fn localise_subtitles(http: &HttpClient, mpv: &Mpv, stream: &mut Stream) {
 
     // Exactly what the stream declared, because that is what the subtitle host wants too.
     let headers = stream.headers.clone();
-    let mut kept = Vec::with_capacity(stream.subtitles.len());
+    let (headers, dir) = (&headers, &dir);
 
-    for (index, mut subtitle) in std::mem::take(&mut stream.subtitles).into_iter().enumerate() {
+    // Several tracks at once: playback waits on this, and a stream listing a dozen languages
+    // was a dozen round trips back to back before mpv could open. `buffered` keeps the tracks
+    // in their listed order, which is the order mpv offers them in, and the bound keeps a long
+    // list from opening a connection per language against the subtitle host.
+    let tracks = std::mem::take(&mut stream.subtitles).into_iter().enumerate();
+    let localised = futures::stream::iter(tracks).map(|(index, mut subtitle)| async move {
         // Already burned in, or already a local path — nothing to fetch either way.
         if subtitle.hard || !subtitle.url.starts_with("http") {
-            kept.push(subtitle);
-            continue;
+            return Some(subtitle);
         }
 
         let mut request = http.emulated().get(&subtitle.url);
-        for (name, value) in &headers {
+        for (name, value) in headers {
             request = request.header(name.as_str(), value.as_str());
         }
 
@@ -107,7 +112,7 @@ async fn localise_subtitles(http: &HttpClient, mpv: &Mpv, stream: &mut Stream) {
         // the same refusal, so keeping it only buys the user an empty track to cycle onto.
         let Some(body) = fetched.filter(|b| !b.is_empty()) else {
             tracing::debug!(language = %subtitle.language, "subtitle dropped: could not be fetched");
-            continue;
+            return None;
         };
 
         // The extension is what tells mpv which parser to use — `.vtt` and `.ass` are both
@@ -144,11 +149,14 @@ async fn localise_subtitles(http: &HttpClient, mpv: &Mpv, stream: &mut Stream) {
             // The fetch worked and only the write failed, so the remote URL is still good.
             Err(error) => tracing::debug!(%error, "could not cache subtitle; using its url"),
         }
-        kept.push(subtitle);
-    }
-
-    stream.subtitles = kept;
+        Some(subtitle)
+    });
+    stream.subtitles =
+        localised.buffered(SUBTITLE_FETCHES).filter_map(std::future::ready).collect().await;
 }
+
+/// Subtitle tracks fetched at once.
+const SUBTITLE_FETCHES: usize = 4;
 
 /// An unguessable-enough path token for one playback attempt's mender.
 ///
@@ -765,6 +773,85 @@ async fn apply_command(session: &MpvSession, command: PlayerCommand) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn subtitles_are_fetched_together_and_kept_in_their_listed_order() {
+        use anistream_core::stream::Subtitle;
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        // Every track takes 300 ms to answer, so three fetched in turn would take most of a
+        // second before mpv could open.
+        let host =
+            tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).await.unwrap();
+        let origin = format!("http://{}", host.local_addr().unwrap());
+        tokio::spawn(async move {
+            while let Ok((mut socket, _)) = host.accept().await {
+                tokio::spawn(async move {
+                    let mut request = [0u8; 2048];
+                    let n = socket.read(&mut request).await.unwrap_or(0);
+                    let head = String::from_utf8_lossy(&request[..n]).into_owned();
+                    let path = head.split_whitespace().nth(1).unwrap_or("/").to_owned();
+                    tokio::time::sleep(Duration::from_millis(300)).await;
+                    let response = if path.contains("missing") {
+                        "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                            .to_owned()
+                    } else {
+                        let body = format!("WEBVTT\n\nNOTE {path}\n");
+                        format!(
+                            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                            body.len()
+                        )
+                    };
+                    let _ = socket.write_all(response.as_bytes()).await;
+                });
+            }
+        });
+
+        let track = |language: &str, url: String, hard| Subtitle {
+            language: language.into(),
+            url,
+            hard,
+            format: None,
+        };
+        let mut stream = Stream {
+            url: "http://unused.invalid/master.m3u8".into(),
+            kind: StreamKind::Hls,
+            quality: None,
+            headers: Vec::new(),
+            subtitles: vec![
+                track("en", format!("{origin}/en.vtt"), false),
+                track("de", format!("{origin}/missing.vtt"), false),
+                track("fr", format!("{origin}/fr.vtt"), false),
+                track("ja", "burned-in".into(), true),
+            ],
+            provider_id: "test".into(),
+            download_source: None,
+            pick_note: None,
+        };
+        let scratch = tempfile::tempdir().unwrap();
+        let mpv = Mpv::new(scratch.path());
+        let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
+
+        let started = std::time::Instant::now();
+        localise_subtitles(&http, &mpv, &mut stream).await;
+        let took = started.elapsed();
+
+        let languages: Vec<_> = stream.subtitles.iter().map(|s| s.language.as_str()).collect();
+        assert_eq!(
+            languages,
+            ["en", "fr", "ja"],
+            "listed order, with the refused track dropped"
+        );
+        for fetched in &stream.subtitles[..2] {
+            assert!(
+                !fetched.url.starts_with("http"),
+                "{} must point at its local copy",
+                fetched.language
+            );
+            assert!(std::fs::read_to_string(&fetched.url).unwrap().starts_with("WEBVTT"));
+        }
+        assert!(took < Duration::from_millis(600), "tracks were fetched in turn: {took:?}");
+    }
 
     #[tokio::test]
     async fn a_title_without_a_mal_id_simply_has_no_skip_data() {
