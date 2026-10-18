@@ -1147,7 +1147,12 @@ fn empty_state(app: &App, section: Section, searched: bool) -> (&'static str, Op
             app.key_for(crate::keymap::Action::FocusSearch),
         )
     };
+    // A query typed and not yet run. "Type to search" over it told someone who had typed to
+    // start typing, and an earlier "no matches" answers a query no longer in the field.
+    let typed = app.search_query.trim();
+    let unsent = !typed.is_empty() && typed != app.searched_query;
     match section {
+        Section::Search if unsent => ("↵ to search", None),
         Section::Search if !searched => ("type to search", None),
         Section::Search => {
             ("no matches", Some("try a shorter query, or the romaji title".to_owned()))
@@ -4310,6 +4315,8 @@ mod tests {
         let mut app = app_with(Content::Entries(vec![]));
         app.go_to_section(Section::Search);
         app.search_query = "zzzz".into();
+        // Run, as Enter runs it: the answer is for the query in the field.
+        app.searched_query = "zzzz".into();
         app.apply(app.content_here(Content::Entries(vec![])));
         let text = text_of(&render_to_buffer(&app, 120, 30));
         assert!(text.contains("NO MATCHES"), "got {text:?}");
@@ -4338,6 +4345,18 @@ mod tests {
         searched.go_to_section(Section::Search);
         searched.apply(searched.content_here(Content::Entries(vec![])));
         assert!(text_of(&render_to_buffer(&searched, 120, 30)).contains("NO MATCHES"));
+    }
+
+    #[test]
+    fn a_typed_query_not_yet_run_says_enter_runs_it() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Search);
+        for ch in "invented".chars() {
+            app.type_char(ch);
+        }
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("↵ TO SEARCH"), "got {text:?}");
+        assert!(!text.contains("TYPE TO SEARCH"), "got {text:?}");
     }
 
     #[test]
