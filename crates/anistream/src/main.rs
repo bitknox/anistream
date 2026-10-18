@@ -23,9 +23,9 @@ use anistream_ui::{
 use anyhow::{Context, Result};
 use clap::Parser;
 use crossterm::{
-    event::{Event, EventStream, KeyCode, KeyEventKind},
+    event::{Event, EventStream, KeyEventKind},
     execute,
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+    terminal::{EnterAlternateScreen, enable_raw_mode},
 };
 use futures::StreamExt;
 use ratatui::{Terminal, backend::CrosstermBackend};
@@ -33,6 +33,27 @@ use tokio::sync::mpsc;
 
 #[derive(Parser, Debug)]
 #[command(name = "anistream", version, about = "An anime streaming TUI")]
+// Nothing here means anything to `store` or `plugin`, and `--stats plugin stamp …` ran the stamp
+// without a word about the flag it dropped.
+#[command(args_conflicts_with_subcommands = true)]
+// One command per run. Resolved silently by the order of the checks in `main`, `--stats
+// --random` printed the stats and dropped the rest without a word.
+#[command(group(
+    clap::ArgGroup::new("command").multiple(false).args([
+        "doctor", "update", "refresh_data", "preview", "login", "login_url", "logout", "sync",
+        "token_to_file", "search", "stats", "export", "import", "random", "stream_url", "play",
+        "continue_watching", "plugins",
+    ])
+))]
+// The options that only mean something to some commands. Alone, each used to start the
+// interface as if it had not been typed.
+#[command(group(clap::ArgGroup::new("json_command").multiple(true).args(["search", "stats", "random"])))]
+#[command(group(clap::ArgGroup::new("episode_command").multiple(true).args(["stream_url", "play"])))]
+#[command(group(
+    clap::ArgGroup::new("tracker_command")
+        .multiple(true)
+        .args(["login", "login_url", "logout", "token_to_file"])
+))]
 struct Cli {
     /// Force a theme mode, overriding config.
     #[arg(long, value_parser = ["adaptive", "immersive"])]
@@ -58,13 +79,12 @@ struct Cli {
     ///
     /// Lets the layout be inspected without an interactive terminal — useful for checking
     /// the design at a given size, and for seeing it at all over a non-tty connection.
-    #[arg(long, value_name = "WIDTHxHEIGHT")]
-    preview: Option<String>,
+    #[arg(long, value_name = "WIDTHxHEIGHT", value_parser = parse_size)]
+    preview: Option<(u16, u16)>,
 
-    /// Which screen to preview: home, search, title, episodes, calendar, library, downloads,
-    /// providers, accounts, settings, help, palette.
-    #[arg(long, default_value = "home")]
-    screen: String,
+    /// Which screen `--preview` renders. Home when left out.
+    #[arg(long, value_enum, requires = "preview")]
+    screen: Option<PreviewScreen>,
 
     /// Sign in to a tracker and exit.
     ///
@@ -75,9 +95,10 @@ struct Cli {
     #[arg(long, value_name = "TOKEN", num_args = 0..=1, default_missing_value = "")]
     login: Option<String>,
 
-    /// Which tracker `--login` is for.
-    #[arg(long, default_value = "anilist")]
-    tracker: String,
+    /// Which tracker `--login`, `--login-url`, `--logout` and `--token-to-file` are for.
+    /// AniList when left out.
+    #[arg(long, requires = "tracker_command")]
+    tracker: Option<String>,
 
     /// Print the authorize URL for `--tracker` and exit.
     #[arg(long)]
@@ -122,11 +143,16 @@ struct Cli {
     #[arg(long)]
     random: bool,
 
-    /// Emit JSON instead of text, for the commands that support it.
+    /// Emit JSON instead of text: for `--search`, `--stats` and `--random`.
     ///
     /// The point of the non-interactive commands: composable with `jq` and friends rather than a
     /// walled garden.
-    #[arg(long)]
+    // Refused by name beside the other commands: `--doctor --json` was told it lacked
+    // `--search`, `--stats` or `--random`, as though it had asked for one of them.
+    #[arg(long, requires = "json_command", conflicts_with_all = [
+        "doctor", "update", "refresh_data", "preview", "login", "login_url", "logout", "sync",
+        "token_to_file", "export", "import", "stream_url", "play", "continue_watching", "plugins",
+    ])]
     json: bool,
 
     /// Resolve one episode to a playable URL, print it, and hold it open.
@@ -141,7 +167,7 @@ struct Cli {
     /// Which episode `--stream-url` and `--play` act on. Accepts non-numeric ids like `OVA`.
     ///
     /// Left unset, `--stream-url` takes episode 1 and `--play` takes the next unwatched.
-    #[arg(long)]
+    #[arg(long, requires = "episode_command")]
     episode: Option<String>,
 
     /// Play one title without the TUI: resolve, hand to mpv, record history, exit.
@@ -165,6 +191,41 @@ struct Cli {
 
     #[command(subcommand)]
     command: Option<Command>,
+}
+
+/// The screens `--preview` can render.
+#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
+enum PreviewScreen {
+    Home,
+    Calendar,
+    Seasonal,
+    Search,
+    Library,
+    Downloads,
+    Providers,
+    Accounts,
+    Settings,
+    /// The first Continue title's page.
+    Title,
+    /// The first Continue title's episode table.
+    Episodes,
+    Help,
+    Palette,
+}
+
+/// `WIDTHxHEIGHT`, refused when it is not one, rather than quietly rendered at 120x34.
+fn parse_size(text: &str) -> std::result::Result<(u16, u16), String> {
+    let expected = || format!("expected WIDTHxHEIGHT, like 120x34, not {text:?}");
+    let (width, height) = text.split_once(['x', 'X']).ok_or_else(expected)?;
+    let (width, height): (u16, u16) = (
+        width.trim().parse().map_err(|_| expected())?,
+        height.trim().parse().map_err(|_| expected())?,
+    );
+    // Zero rows printed nothing at all; past a thousand a frame is a mistake, not a terminal.
+    if !(1..=1000).contains(&width) || !(1..=1000).contains(&height) {
+        return Err(format!("{width}x{height} cannot be drawn: each side must be 1 to 1000"));
+    }
+    Ok((width, height))
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -200,10 +261,15 @@ async fn main() -> Result<()> {
     }
     init_logging(&paths);
 
-    let mut config = Config::load(&paths).unwrap_or_else(|e| {
-        // A malformed config must not stop the app from starting, but it must be loud —
-        // silently ignoring it could mean silently ignoring a VPN setting.
-        eprintln!("warning: {e}\nfalling back to defaults");
+    // A malformed config must not stop the app from starting, but it must be loud — silently
+    // ignoring it could mean silently ignoring a VPN setting. Logged, printed for the commands
+    // that print, and kept for the interface, which says so for as long as it runs.
+    let mut config_problem = None;
+    let mut config = Config::read(&paths).unwrap_or_else(|problem| {
+        let file = paths.config_file.display();
+        tracing::error!(%file, %problem, "config not loaded; using the defaults");
+        eprintln!("warning: {file}, {problem}\nfalling back to defaults");
+        config_problem = Some(problem);
         Config::default()
     });
     if let Some(mode) = &cli.theme {
@@ -223,20 +289,21 @@ async fn main() -> Result<()> {
     if cli.refresh_data {
         return refresh_data(&store, &http).await;
     }
+    let tracker = cli.tracker.as_deref().unwrap_or("anilist");
     if cli.login_url {
-        return print_login_url(&config, &cli.tracker);
+        return print_login_url(&config, tracker);
     }
     if let Some(token) = &cli.login {
-        return login(&config, &cli.tracker, token, &http).await;
+        return login(&config, tracker, token, &http).await;
     }
     if cli.logout {
-        return forget_token(&config, &cli.tracker);
+        return forget_token(&config, tracker);
     }
     if cli.sync {
         return sync_once(&config, &store, &http).await;
     }
     if cli.token_to_file {
-        return migrate_token(&config, &cli.tracker);
+        return migrate_token(&config, tracker);
     }
     if cli.plugins {
         return list_plugins(&config, &paths).await;
@@ -284,11 +351,22 @@ async fn main() -> Result<()> {
     if cli.random {
         return random_cli(&store, cli.json);
     }
-    if let Some(size) = &cli.preview {
-        return preview(config, http, store, &paths, size, &cli.screen, !cli.no_images).await;
+    if let Some(size) = cli.preview {
+        let screen = cli.screen.unwrap_or(PreviewScreen::Home);
+        return preview(
+            config,
+            http,
+            store,
+            &paths,
+            size,
+            screen,
+            !cli.no_images,
+            config_problem,
+        )
+        .await;
     }
 
-    run(config, paths, http, store, !cli.no_images).await
+    run(config, paths, http, store, !cli.no_images, config_problem).await
 }
 
 /// `anistream store …` and `anistream plugin …`.
@@ -326,170 +404,147 @@ async fn store_command(command: Command, paths: &Paths) -> Result<()> {
 }
 
 /// Render one frame with live data and print it as text.
+///
+/// Reached the way a person reaches the screen in the running app: the same startup state —
+/// sources with plugins loaded, sync and store rows — then the same keys, whose tasks are
+/// dispatched exactly as the event loop dispatches them and whose updates are applied until
+/// nothing is outstanding. Assembling each screen by hand instead drifted from the live one:
+/// the title preview pressed Enter on a resumable row and rendered Now Playing, the episode
+/// table never left LOADING, and Library and Providers showed state the app never had.
+#[allow(clippy::too_many_arguments)]
 async fn preview(
     config: Config,
     http: HttpClient,
     store: Store,
     paths: &Paths,
-    size: &str,
-    screen: &str,
+    (width, height): (u16, u16),
+    screen: PreviewScreen,
     images: bool,
+    config_problem: Option<anistream_core::config::ConfigProblem>,
 ) -> Result<()> {
-    use anistream_ui::nav::{Overlay, Section};
+    use anistream_ui::keymap::Action;
     use ratatui::{Terminal, backend::TestBackend};
-
-    let (width, height) = size
-        .split_once(['x', 'X'])
-        .and_then(|(w, h)| Some((w.trim().parse().ok()?, h.trim().parse().ok()?)))
-        .unwrap_or((120u16, 34u16));
 
     let palette = theme::resolve_with(config.theme.mode, None);
     let meta = build_meta(&config, &http, &store);
-    let engine = anistream_ui::image::ImageEngine::detect(images);
+    let mut keymap = Keymap::new();
+    for problem in keymap.apply_overrides(&config.keys) {
+        eprintln!("[keybinding: {problem}]");
+    }
+    let engine =
+        anistream_ui::image::ImageEngine::detect(images).with_cache_dir(paths.image_cache());
     let graphics = engine.graphics();
-    let mut app = App::with_images(config, palette, Keymap::new(), engine);
 
-    let entries = match screen {
-        "calendar" => {
-            let now = now_epoch();
-            calendar_timeline(&meta, &store, now).await.map(|l| l.entries).unwrap_or_default()
-        }
-        "search" => meta
-            .search("frieren", &Default::default(), 1, 20)
-            .await
-            .map(|p| p.items.iter().map(|m| data::entry_from(m, Some(&store))).collect())
-            .unwrap_or_default(),
-        // Through the same function the running app uses, or `--preview` would render a screen
-        // that does not exist — which defeats the point of having it.
-        _ => continue_entries(&meta, &store).await.unwrap_or_default(),
+    // The sources a running app has a moment after launch: the torrent source once its guard
+    // has answered, and the plugins once compiled.
+    let (registry, guard, mut note, held) =
+        sources::build_registry(&config, &http, paths, &store).await;
+    let plugins = sources::spawn_plugin_load(
+        registry.clone(),
+        config.clone(),
+        http.clone(),
+        paths.clone(),
+    );
+    if let Ok(Some(reason)) = plugins.await {
+        note = Some(reason);
+    }
+    let stores = plugin_stores::Stores::new(&config, paths).map_err(|e| anyhow::anyhow!(e))?;
+    let mut app = App::with_images(config, palette, keymap, engine);
+    if let Some(note) = note {
+        app.apply(Update::ProviderNote(note));
+    }
+    // A failed guard included: the interface puts its verdict on the chip and toasts it, and
+    // a preview without it showed a machine whose torrents were fine.
+    if let Some(state) = guard.as_ref().map(|(guard, _)| guard.state()).or(held) {
+        app.apply(Update::Vpn { badge: state.badge(), leaking: !state.is_protected() });
+    }
+    if let Some(problem) = &config_problem {
+        show_config_problem(&mut app, paths, problem);
+    }
+    match stores.rows() {
+        Ok(rows) => app.apply(Update::Stores(rows)),
+        Err(e) => app.apply(Update::Toast(Toast::alert(e))),
+    }
+    app.apply(Update::Providers(data::provider_rows(&registry)));
+    let sync = tracking::Sync::build(&app.config, &store, &http);
+    for state in sync.initial_states() {
+        app.apply(Update::Sync(Box::new(state)));
+    }
+
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let mut run = PreviewRun {
+        tx,
+        rows: screens::visible_rows(
+            ratatui::layout::Rect::new(0, 0, width, height),
+            app.nav.section(),
+        ),
+        player_tx: None,
+        slot: PlayerSlot::default(),
+        prefetch: Prefetch::default(),
+        meta,
+        store,
+        registry,
+        http,
+        sync,
+        stores,
+        paths: paths.clone(),
     };
 
-    // The broadcast line needs its own request, so the preview has to make it too — otherwise
-    // `--preview` would render a frame that is subtly different from the running app, which
-    // defeats the point of having it.
-    let mut entries = entries;
-    let airing: Vec<anistream_core::ids::AnilistId> =
-        entries.iter().filter(|e| e.airing_in.is_some()).map(|e| e.id).collect();
-    if !airing.is_empty()
-        && let Ok(rows) = meta.last_aired(&airing).await
-    {
-        let now = now_epoch();
-        // Aired rows only: AniList has answered this query with a schedule row whose air
-        // time is still ahead, and "EP 13 out just now" for next week's episode is exactly
-        // the lie the broadcast line exists not to tell.
-        for row in rows.into_iter().filter(|r| r.airing_at <= now) {
-            if let Some(entry) = entries.iter_mut().find(|e| e.id == row.media_id) {
-                entry.last_aired = Some((row.episode, now.saturating_sub(row.airing_at)));
-            }
-        }
+    // Launch: Home loads.
+    if let Some(task) = app.reload() {
+        run.dispatch(&mut app, task);
+    }
+    run.settle(&mut app, &mut rx).await;
+
+    let section = |n: u8| Action::JumpSection(n);
+    let keys: Vec<Action> = match screen {
+        PreviewScreen::Home => Vec::new(),
+        PreviewScreen::Calendar => vec![section(2)],
+        PreviewScreen::Seasonal => vec![section(3)],
+        PreviewScreen::Search => vec![section(4), Action::Open],
+        PreviewScreen::Library => vec![section(5)],
+        PreviewScreen::Downloads => vec![section(6)],
+        PreviewScreen::Providers => vec![section(7)],
+        PreviewScreen::Accounts => vec![section(8)],
+        PreviewScreen::Settings => vec![section(9)],
+        // Into the list; the title is opened below, not with Enter, which plays a row with
+        // something to resume.
+        PreviewScreen::Title | PreviewScreen::Episodes => vec![Action::Open],
+        PreviewScreen::Help => vec![Action::Help],
+        PreviewScreen::Palette => vec![Action::CommandPalette],
+    };
+    for action in keys {
+        run.press(&mut app, action).await;
     }
 
     match screen {
-        "search" => {
-            app.go_to_section(Section::Search);
-            app.search_query = "frieren".into();
+        // A query typed and sent, as at the keyboard. A word rather than a title, so the
+        // preview shows what search looks like without depending on one show.
+        PreviewScreen::Search => {
+            "summer".chars().for_each(|c| app.type_char(c));
+            run.press(&mut app, Action::Open).await;
         }
-        "calendar" => {
-            app.go_to_section(Section::Calendar);
-        }
-        "settings" => {
-            app.go_to_section(Section::Settings);
-        }
-        "accounts" => {
-            app.go_to_section(Section::Accounts);
-            for state in tracking::Sync::build(&app.config, &store, &http).initial_states() {
-                app.apply(Update::Sync(Box::new(state)));
+        PreviewScreen::Title | PreviewScreen::Episodes => {
+            if let Some(task) = app.open_selected() {
+                run.dispatch(&mut app, task);
+                run.settle(&mut app, &mut rx).await;
+            } else {
+                eprintln!("[title: nothing on Home to open — watch something first]");
+            }
+            if screen == PreviewScreen::Episodes {
+                run.press(&mut app, Action::ShowEpisodes).await;
             }
         }
-        "providers" => {
-            let (registry, _, note) = sources::build_registry(&app.config, &http, paths).await;
-            registry.check_all(now_epoch()).await;
-            app.go_to_section(Section::Providers);
-            if let Some(note) = note {
-                app.apply(Update::ProviderNote(note));
-            }
-            app.apply(Update::Providers(data::provider_rows(&registry)));
-            app.apply(Update::MetaStatus(data::meta_rows(&meta)));
-        }
-        "library" => {
-            // Rendered from the local rows rather than a tracker fetch: a preview must not
-            // depend on being signed in, and the screen is the same either way.
-            app.go_to_section(Section::Library);
-        }
-        "downloads" => {
-            app.go_to_section(Section::Downloads);
-            if let Ok(rows) = store.downloads() {
-                app.apply(Update::Downloads(rows.iter().map(downloads::to_row).collect()));
-            }
-        }
+        PreviewScreen::Palette => "ep".chars().for_each(|c| app.type_char(c)),
         _ => {}
     }
-    app.apply(app.content_here(Content::Entries(entries)));
-    app.nav.focus_stage();
-
-    match screen {
-        "title" => {
-            // Fetch the full record so availability badges and the synopsis are real. Opened
-            // first: the record is only taken for the title on screen, and opening afterwards
-            // replaced it with the list's thinner entry anyway.
-            let first = app.selected_entry().map(|e| e.id);
-            app.handle(anistream_ui::keymap::Action::Open, 20);
-            if let Some(first) = first
-                && let Ok(media) = meta.media(first).await
-            {
-                app.apply(Update::Detail(Box::new(data::entry_from(&media, Some(&store)))));
-            }
-        }
-        "episodes" => {
-            if let Some(id) = app.selected_entry().map(|e| e.id) {
-                app.handle(anistream_ui::keymap::Action::Open, 20);
-                if let Ok(media) = meta.media(id).await {
-                    app.apply(Update::Detail(Box::new(data::entry_from(&media, Some(&store)))));
-                }
-                app.handle(anistream_ui::keymap::Action::ShowEpisodes, 20);
-                let (registry, _, note) =
-                    sources::build_registry(&app.config, &http, paths).await;
-                match load_episodes(&meta, &store, &registry, id).await {
-                    Ok(EpisodeLoad::Rows(rows)) => app.apply(app.episodes_here(rows)),
-                    // A still frame cannot answer a question, so state it and carry on.
-                    Ok(EpisodeLoad::Choose { candidates, .. }) => {
-                        eprintln!(
-                            "[episodes: {} possible matches, none confident]",
-                            candidates.len()
-                        );
-                    }
-                    Err(reason) => {
-                        eprintln!("[episodes: {reason}]");
-                        if let Some(note) = note {
-                            eprintln!("[sources: {note}]");
-                        }
-                    }
-                }
-            }
-        }
-        "help" => app.nav.open_overlay(Overlay::Help),
-        "palette" => {
-            app.nav.open_overlay(Overlay::CommandPalette);
-            app.palette_query = "ep".into();
-        }
-        _ => {}
-    }
-
-    // The event loop normally drives artwork; a one-shot render has to fetch inline so the
-    // preview shows what the real UI would.
-    for url in app.visible_artwork(height as usize) {
-        if let Ok(response) = http.plain().get(&url).send().await
-            && response.status().is_success()
-            && let Ok(bytes) = response.bytes().await
-            && let Ok(decoded) = image::load_from_memory(&bytes)
-        {
-            app.apply(Update::Image {
-                url,
-                image: Box::new(anistream_ui::image::downscale(decoded, 900)),
-            });
-        }
-    }
-    eprintln!("[graphics: {graphics:?}, {} image(s) loaded]", app.images.len());
+    // Whatever the last keys started.
+    run.settle(&mut app, &mut rx).await;
+    eprintln!(
+        "[graphics: {}, {} image(s) loaded]",
+        describe_graphics(graphics),
+        app.images.len()
+    );
 
     let mut terminal = Terminal::new(TestBackend::new(width, height))?;
     terminal.draw(|f| screens::render(f, &app))?;
@@ -503,15 +558,144 @@ async fn preview(
     Ok(())
 }
 
+/// What `--preview` drives the app with: the same handles the event loop holds.
+struct PreviewRun {
+    tx: mpsc::UnboundedSender<Update>,
+    rows: usize,
+    player_tx: Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+    slot: PlayerSlot,
+    prefetch: Prefetch,
+    meta: Meta,
+    store: Store,
+    registry: ProviderRegistry,
+    http: HttpClient,
+    sync: tracking::Sync,
+    stores: plugin_stores::Stores,
+    paths: Paths,
+}
+
+impl PreviewRun {
+    /// How long a preview waits for the screen's work before drawing whatever it has.
+    const PATIENCE: Duration = Duration::from_secs(30);
+
+    /// Press a key, as the event loop does.
+    async fn press(&mut self, app: &mut App, action: anistream_ui::keymap::Action) {
+        if let Some(task) = app.handle(action, self.rows) {
+            self.dispatch(app, task);
+        }
+    }
+
+    /// Hand a task to the same dispatcher the event loop uses — unless running it would do
+    /// something a still frame must not: play, download, sign in, change a setting or a store.
+    fn dispatch(&mut self, app: &mut App, task: Task) {
+        let loads = matches!(
+            task,
+            Task::LoadContinue
+                | Task::LoadSeasonal
+                | Task::LoadCalendar
+                | Task::LoadCalendarPast { .. }
+                | Task::Search { .. }
+                | Task::LoadDetail(_)
+                | Task::LoadEpisodes(_)
+                | Task::CheckProviders
+                | Task::LoadLibrary(_)
+                | Task::LoadDownloads
+                | Task::LoadStores
+        );
+        if !loads {
+            eprintln!("[preview: not run: {task:?}]");
+            return;
+        }
+        let job = JobGuard::start(app, &task, &self.tx);
+        dispatch(
+            task,
+            job,
+            &mut self.player_tx,
+            &self.paths,
+            app,
+            &self.slot,
+            &self.prefetch,
+            &self.meta,
+            &self.store,
+            &self.registry,
+            &self.http,
+            &self.sync,
+            &self.stores,
+            &self.tx,
+        );
+    }
+
+    /// Apply updates until the work is done and the screen's covers are in, as the event loop
+    /// would over the same moments.
+    async fn settle(&mut self, app: &mut App, rx: &mut mpsc::UnboundedReceiver<Update>) {
+        let deadline = tokio::time::Instant::now() + Self::PATIENCE;
+        loop {
+            if let Some(task) = app.take_pending() {
+                self.dispatch(app, task);
+            }
+            let mut fetching = false;
+            for url in app.visible_artwork(self.rows) {
+                artwork::spawn_fetch(
+                    url,
+                    self.paths.image_cache(),
+                    self.http.clone(),
+                    self.tx.clone(),
+                );
+                fetching = true;
+            }
+            // Quiet for this long with no work outstanding means done. Longer while covers are
+            // on their way, which report back without a job.
+            let quiet =
+                if fetching { Duration::from_secs(3) } else { Duration::from_millis(400) };
+            let wait = if app.jobs.is_empty() { quiet } else { Self::PATIENCE };
+            let wait =
+                wait.min(deadline.saturating_duration_since(tokio::time::Instant::now()));
+            match tokio::time::timeout(wait, rx.recv()).await {
+                Ok(Some(update)) => {
+                    app.apply(update);
+                    if let Some(notice) = self.meta.take_notice() {
+                        app.apply(Update::MetaStatus(data::meta_rows(&self.meta)));
+                        app.apply(Update::Toast(Toast::info(notice)));
+                    }
+                }
+                Ok(None) => return,
+                Err(_) if app.jobs.is_empty() => return,
+                Err(_) => {
+                    let waiting: Vec<&str> =
+                        app.jobs.iter().map(|j| j.label.as_str()).collect();
+                    eprintln!("[preview: drawn while still {}]", waiting.join(", "));
+                    return;
+                }
+            }
+        }
+    }
+}
+
 /// Report the environment, without starting the UI.
 async fn doctor(config: &Config, paths: &Paths, store: &Store, images: bool) -> Result<()> {
     let engine = anistream_ui::image::ImageEngine::detect(images);
     let background = theme::detect::detect_background();
     let palette = theme::resolve_with(config.theme.mode, background);
 
+    // First, since everything below it reads the configuration.
+    println!("config");
+    match Config::read(paths) {
+        Ok(_) if !paths.config_file.exists() => {
+            println!("  file        none yet — every setting at its default")
+        }
+        Ok(_) => println!("  file        {}", paths.config_file.display()),
+        Err(problem) => {
+            println!("  file        {}", paths.config_file.display());
+            println!("              ✕ {problem}");
+            println!("              not loaded: what follows is the defaults");
+        }
+    }
+    println!();
+
     println!("terminal");
-    println!("  graphics    {:?}", engine.graphics());
-    println!("  cell size   {:?}", engine.font_size());
+    println!("  graphics    {}", describe_graphics(engine.graphics()));
+    let (cell_width, cell_height) = engine.font_size();
+    println!("  cell size   {cell_width}×{cell_height} px");
     match background {
         Some(bg) => println!(
             "  background  #{:02X}{:02X}{:02X}  luminance {:.3}",
@@ -522,7 +706,14 @@ async fn doctor(config: &Config, paths: &Paths, store: &Store, images: bool) -> 
         ),
         None => println!("  background  not reported (OSC 11 unanswered)"),
     }
-    println!("  palette     {:?}", palette.variant);
+    println!(
+        "  palette     {}",
+        match palette.variant {
+            theme::Variant::Dark => "adaptive, on a dark background",
+            theme::Variant::Light => "adaptive, on a light background",
+            theme::Variant::Immersive => "immersive",
+        }
+    );
 
     println!();
     println!("data");
@@ -533,9 +724,11 @@ async fn doctor(config: &Config, paths: &Paths, store: &Store, images: bool) -> 
             Ok(Some(state)) => println!(
                 "  {:<11} fetched {} · {} entries{}",
                 spec.name,
-                state.fetched_at.map_or("never".into(), |t| format!("at {t}")),
+                state.fetched_at.map_or("never".into(), describe_moment),
                 state.item_count.unwrap_or(0),
-                state.last_error.map_or(String::new(), |e| format!(" · last error: {e}"))
+                state
+                    .last_error
+                    .map_or(String::new(), |e| format!(" · last error: {}", plain_failure(&e)))
             ),
             _ => println!("  {:<11} never fetched", spec.name),
         }
@@ -613,7 +806,14 @@ async fn doctor(config: &Config, paths: &Paths, store: &Store, images: bool) -> 
         return Ok(());
     }
 
-    println!("  torrent     enabled, vpn mode {:?}", config.providers.torrent.vpn.mode);
+    println!(
+        "  torrent     enabled, vpn mode {}",
+        match config.providers.torrent.vpn.mode {
+            anistream_core::config::VpnMode::Socks5 => "socks5",
+            anistream_core::config::VpnMode::External => "external",
+            anistream_core::config::VpnMode::None => "none",
+        }
+    );
 
     // Which indexer, if any. anistream ships none, so "enabled" on its own does not mean
     // the source has anything to search.
@@ -1166,10 +1366,14 @@ async fn sync_once(config: &Config, store: &Store, http: &HttpClient) -> Result<
         let now = anistream_store::now();
         match anistream_track::drain(store, tracker.as_ref(), now).await {
             Ok(report) => println!(
-                "  drain          sent {} · failed {} · remaining {}{}",
+                "  drain          sent {} · failed {} · remaining {}{}{}",
                 report.sent,
                 report.failed,
                 report.remaining,
+                match store.outbox_deferred(id).unwrap_or(0) {
+                    0 => String::new(),
+                    held => format!(" · {held} waiting for an id mapping"),
+                },
                 if report.needs_reauth { " · NEEDS RE-AUTH" } else { "" }
             ),
             Err(e) => println!("  ✕ drain: {e}"),
@@ -1219,8 +1423,11 @@ async fn list_plugins(config: &Config, paths: &Paths) -> Result<()> {
         ..Default::default()
     };
     println!(
-        "limits            {} MiB memory · {:?} per call",
-        config.providers.plugins.memory_mb, limits.deadline
+        // MiB, as the config documents it. The number is the file's own, so it keeps its unit:
+        // "64 MB" was a decimal name on what is 67 MB.
+        "limits            {} MiB memory · {} s per call",
+        config.providers.plugins.memory_mb,
+        limits.deadline.as_secs()
     );
     if !config.providers.order.iter().any(|p| p == "plugins") {
         println!(
@@ -1296,7 +1503,9 @@ async fn search_cli(
                     "title": m.title.display(),
                     "romaji": m.title.romaji,
                     "english": m.title.english,
-                    "format": m.format.map(|f| format!("{f:?}").to_uppercase()),
+                    // AniList's own names, `TV_SHORT` included: a stable machine value, apart
+                    // from however the interface labels it.
+                    "format": m.format.and_then(|f| serde_json::to_value(f).ok()),
                     "episodes": m.episodes,
                     "year": m.season_year,
                     "score": m.average_score,
@@ -1413,7 +1622,9 @@ fn random_cli(store: &Store, json: bool) -> Result<()> {
                 "anilist_id": id.get(),
                 "title": title,
                 "episodes_completed": progress.as_ref().map(|p| p.episodes_done),
-                "next_episode": progress.as_ref().map(|p| p.episodes_done + 1),
+                // A string, as every episode is in this output and the export: episodes are
+                // named, not counted — `OVA` and `12.5` are episodes too. Counts stay numbers.
+                "next_episode": progress.as_ref().map(|p| (p.episodes_done + 1).to_string()),
             }))?
         );
     } else {
@@ -1429,7 +1640,7 @@ fn random_cli(store: &Store, json: bool) -> Result<()> {
 async fn refresh_data(store: &Store, http: &HttpClient) -> Result<()> {
     let now = now_epoch();
     for (name, outcome) in dataset::refresh_all(store, http, now, true).await {
-        println!("{name:<12} {outcome:?}");
+        println!("{name:<12} {}", describe_refresh(&outcome));
     }
     println!("{} titles mapped", store.mapping_count().unwrap_or(0));
     Ok(())
@@ -1441,22 +1652,41 @@ async fn run(
     http: HttpClient,
     store: Store,
     images: bool,
+    config_problem: Option<anistream_core::config::ConfigProblem>,
 ) -> Result<()> {
     let palette = theme::resolve(config.theme.mode);
     let meta = build_meta(&config, &http, &store);
 
     let mut keymap = Keymap::new();
-    for problem in keymap.apply_overrides(&config.keys) {
+    let keybinding_problems = keymap.apply_overrides(&config.keys);
+    for problem in &keybinding_problems {
         eprintln!("warning: keybinding: {problem}");
+    }
+
+    // Old logs, stale covers and the player's leftovers, off the critical path.
+    {
+        let paths = paths.clone();
+        tokio::task::spawn_blocking(move || anistream::prune::sweep_at_launch(&paths));
+    }
+    // With torrents off nothing else would ever prune what an earlier run streamed. With them
+    // on, the session prunes on its way up, before it writes anything.
+    if !config.providers.torrent.enabled {
+        let (dir, limit) =
+            (paths.cache_dir.join("torrents"), config.providers.torrent.cache_limit_bytes());
+        let store = store.clone();
+        tokio::spawn(async move {
+            anistream::prune::sweep_torrent_cache(dir, limit, &store, Default::default()).await;
+        });
     }
 
     let engine =
         anistream_ui::image::ImageEngine::detect(images).with_cache_dir(paths.image_cache());
     tracing::info!(graphics = ?engine.graphics(), "image engine ready");
-    // Mutable: a settings change can stand the torrent stack down and back up, which
-    // replaces the guard along with the session it protects.
-    let (registry, mut vpn_guard, provider_note) =
-        sources::build_registry(&config, &http, &paths).await;
+    // Without the torrent source, which comes up behind the interface once the VPN guard
+    // passes: see `TorrentTasks::bring_up`. Mutable: a settings change can stand the torrent
+    // stack down and back up, which replaces the guard along with the session it protects.
+    let registry = sources::build_registry_deferred(&config, &http);
+    let mut vpn_guard = None;
     tracing::info!(providers = ?registry.ids(), "provider registry ready");
     // Plugins join the chain when they have finished compiling. Nothing waits on this: the first
     // frame is worth more than a source you have not asked for yet.
@@ -1468,8 +1698,18 @@ async fn run(
     );
     let stores = plugin_stores::Stores::new(&config, &paths).map_err(|e| anyhow::anyhow!(e))?;
     let mut app = App::with_images(config, palette, keymap, engine);
-    if let Some(note) = provider_note {
-        app.apply(Update::ProviderNote(note));
+    // Said inside the app too: the warning above scrolls away behind the alternate screen
+    // before anyone reads it, and a refused rebind otherwise looks like a key that does nothing.
+    for problem in keybinding_problems {
+        tracing::warn!(%problem, "keybinding not applied");
+        app.push_toast(Toast::alert(format!("keybinding not applied: {problem}")));
+    }
+
+    // What the file says, as distinct from what is in effect: `--theme` changes only this
+    // session, and the Settings screen has to be able to tell the two apart.
+    app.saved_config = Config::load(&paths).unwrap_or_default();
+    if let Some(problem) = &config_problem {
+        show_config_problem(&mut app, &paths, problem);
     }
     // Joined stores as they were left, so Providers can count them on the first frame.
     match stores.rows() {
@@ -1544,19 +1784,7 @@ async fn run(
     tracking::spawn_loops(sync.clone(), tx.clone());
 
     // Keep the mapping datasets current without ever blocking startup.
-    {
-        let store = store.clone();
-        let http = http.clone();
-        let tx = tx.clone();
-        tokio::spawn(async move {
-            let outcomes = dataset::refresh_all(&store, &http, now_epoch(), false).await;
-            if let Some((name, outcome)) = outcomes.iter().find(|(_, o)| o.is_failure()) {
-                let _ = tx.send(Update::Toast(Toast::alert(format!(
-                    "{name} mapping refresh failed: {outcome:?}"
-                ))));
-            }
-        });
-    }
+    tokio::spawn(keep_datasets_current(store.clone(), http.clone(), tx.clone()));
 
     // The torrent stack's live parts, held so a settings change can tear them down and
     // stand them back up without a restart. Both are replaced together: the download
@@ -1566,8 +1794,15 @@ async fn run(
     // setting is written, so "saved" and "in effect" are the same moment.
     let shared_config: anistream::SharedConfig =
         Arc::new(std::sync::RwLock::new(app.config.clone()));
-    let mut torrent_tasks = TorrentTasks::start(&vpn_guard, &store, &shared_config, &tx);
+    // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
+    let (arrivals_tx, mut arrivals) = mpsc::unbounded_channel();
+    let mut torrent_tasks = TorrentTasks::default();
+    torrent_tasks.bring_up(&app.config, &http, &paths, &store, &tx, &arrivals_tx);
 
+    // Both before the terminal changes state, so there is no moment in which a signal or a
+    // panic could leave it raw.
+    anistream::tty::install_panic_hook();
+    let mut signals = anistream::tty::Signals::new().context("listening for signals")?;
     let mut terminal = setup_terminal().context("preparing the terminal")?;
 
     if let Some(task) = app.reload() {
@@ -1596,13 +1831,32 @@ async fn run(
         app.apply(Update::Toast(Toast::info(note)));
     }
 
+    // Painting on change rather than on every tick: see `Repaint`. `idle_tick` is whether
+    // nothing but the ticker woke this pass, the one case that may skip it.
+    let mut repaint = anistream::tty::Repaint::default();
+    let mut idle_tick = false;
     let result = loop {
-        terminal.draw(|frame| screens::render(frame, &app))?;
+        let now = std::time::Instant::now();
+        // Work on screen keeps its clocks and its pulse moving, the eyecatch its wipe.
+        let live = !app.jobs.is_empty() || app.is_animating();
+        if !idle_tick || repaint.due(live, now) {
+            // Broken out of rather than returned from: a terminal that can no longer be drawn
+            // on still has to be given back, and the player closed.
+            if let Err(e) = terminal.draw(|frame| screens::render(frame, &app)) {
+                break Err(e.into());
+            }
+            repaint.painted(terminal.backend_mut().take_wrote(), now);
+        }
+        idle_tick = false;
         if app.should_quit {
             break Ok(());
         }
 
-        let rows = screens::visible_rows(terminal.size()?.into(), app.nav.section());
+        let size = match terminal.size() {
+            Ok(size) => size,
+            Err(e) => break Err(e.into()),
+        };
+        let rows = screens::visible_rows(size.into(), app.nav.section());
 
         // Prefetch only what is on screen plus a short lookahead. `visible_artwork` claims
         // each URL, so a re-render cannot re-request one already in flight.
@@ -1655,19 +1909,14 @@ async fn run(
                 }
                 // A source setting changed. Awaited here rather than spawned: this owns the
                 // session and the guard, and two rebuilds racing would leave one of their
-                // sessions running with nothing holding it.
+                // sessions running with nothing holding it. Quick: the new torrent source
+                // comes up behind the interface, as at launch.
                 if matches!(update, Update::SettingsSaved | Update::SourcesChanged)
                     && let Ok(mut shared) = shared_config.write()
                 {
                     *shared = app.config.clone();
                 }
                 if matches!(update, Update::SourcesChanged) {
-                    // Painted before the work, not after: standing a torrent session up
-                    // includes verifying the VPN, which takes seconds, and this loop is
-                    // the one that draws. Without a frame here the app would simply stop
-                    // responding with nothing on screen to say why.
-                    app.apply(Update::Status("reloading sources…".into()));
-                    terminal.draw(|frame| screens::render(frame, &app))?;
                     reload_sources(
                         &registry,
                         &mut torrent_tasks,
@@ -1677,9 +1926,9 @@ async fn run(
                         &paths,
                         &store,
                         &tx,
+                        &arrivals_tx,
                     )
                     .await;
-                    app.apply(Update::Status(String::new()));
                 }
                 let ended = matches!(update, Update::PlaybackEnded { .. });
                 app.apply(update);
@@ -1691,7 +1940,39 @@ async fn run(
                     anistream::focus::refocus_terminal();
                 }
             }
-            _ = ticker.tick() => app.tick_toasts(),
+            // The torrent source is up, or will not come up; only the latest bring-up counts.
+            Some((generation, outcome)) = arrivals.recv() => {
+                torrent_tasks.arrived(
+                    generation,
+                    outcome,
+                    &mut vpn_guard,
+                    &registry,
+                    &store,
+                    &shared_config,
+                    &tx,
+                );
+            }
+            // Asked to end from outside — a kill, the terminal closing — which leaves the way
+            // Q does, so the player is closed rather than orphaned and playing on.
+            signal = signals.recv() => {
+                tracing::info!(signal, "shutting down");
+                anistream::tty::exit_on_second_signal();
+                if let Some(task) = app.handle(anistream_ui::keymap::Action::Quit, rows) {
+                    let job = JobGuard::start(&mut app, &task, &tx);
+                    dispatch(
+                        task, job, &mut player_tx, &paths, &app, &slot, &prefetch, &meta, &store,
+                        &registry, &http, &sync, &stores, &tx,
+                    );
+                }
+                // Whatever an open overlay made of the key, a signal is not a request to close it.
+                app.should_quit = true;
+            }
+            _ = ticker.tick() => {
+                // A toast going is a change; one counting down is not.
+                let toasts = app.toasts.len();
+                app.tick_toasts();
+                idle_tick = app.toasts.len() == toasts;
+            }
             // The eyecatch is the only thing in this app that animates, so the fast tick only
             // exists while one is running rather than burning a frame budget all the time.
             _ = tokio::time::sleep(Duration::from_millis(anistream_ui::eyecatch::FRAME_MS)),
@@ -1702,33 +1983,7 @@ async fn run(
             maybe_event = events.next() => {
                 match maybe_event {
                     Some(Ok(Event::Key(key))) if key.kind == KeyEventKind::Press => {
-                        // Text first: while a field has focus, plain characters are input,
-                        // not bindings.
-                        let handled_as_text = app.is_typing()
-                            && match key.code {
-                                KeyCode::Char(c) if key.modifiers.is_empty()
-                                    || key.modifiers == crossterm::event::KeyModifiers::SHIFT =>
-                                {
-                                    app.type_char(c);
-                                    true
-                                }
-                                KeyCode::Backspace => {
-                                    app.backspace();
-                                    true
-                                }
-                                _ => false,
-                            };
-
-                        let context = if app.playing.is_some() {
-                            anistream_ui::keymap::Context::Playing
-                        } else {
-                            anistream_ui::keymap::Context::Browsing
-                        };
-
-                        if !handled_as_text
-                            && let Some(action) = app.keymap.action_for(key, context)
-                            && let Some(task) = app.handle(action, rows)
-                        {
+                        if let Some(task) = app.press(key, rows) {
                             let job = JobGuard::start(&mut app, &task, &tx);
                             dispatch(
                                 task, job, &mut player_tx, &paths, &app, &slot, &prefetch, &meta, &store,
@@ -1739,7 +1994,13 @@ async fn run(
                     // Arrives whole with bracketed paste on, so a pasted link cannot fire
                     // bindings on its way into a field.
                     Some(Ok(Event::Paste(text))) => app.paste(&text),
-                    Some(Ok(Event::Resize(_, _))) => {}
+                    // The next frame redraws at the new size on its own; the list's window does
+                    // not follow by itself, and a shorter terminal would otherwise leave the
+                    // highlighted row below the bottom edge.
+                    Some(Ok(Event::Resize(width, height))) => {
+                        let area = ratatui::layout::Rect::new(0, 0, width, height);
+                        app.fit_to(screens::visible_rows(area, app.nav.section()));
+                    }
                     Some(Err(e)) => break Err(anyhow::anyhow!(e)),
                     None => break Ok(()),
                     _ => {}
@@ -1748,8 +2009,172 @@ async fn run(
         }
     };
 
+    stop_for_exit(&app, &player_tx, &mut rx).await;
     restore_terminal(&mut terminal)?;
     result
+}
+
+/// Refresh the mapping datasets, and keep trying in the background until a refresh succeeds.
+///
+/// A launch without a network used to try once and give up for the session, leaving the
+/// trackers that key on MAL and Kitsu ids without the mappings they need until the next launch.
+/// A failure is said once, in words; the retries back off from five minutes to an hour; and
+/// the recovery is said too, so the last thing on screen stays true. A refresh only fetches what
+/// is due, so a retry asks again for exactly the datasets that failed.
+async fn keep_datasets_current(
+    store: Store,
+    http: HttpClient,
+    tx: mpsc::UnboundedSender<Update>,
+) {
+    let mut wait = Duration::from_secs(5 * 60);
+    let mut said = false;
+    loop {
+        let outcomes = dataset::refresh_all(&store, &http, now_epoch(), false).await;
+        let failed: Vec<&str> =
+            outcomes.iter().filter(|(_, o)| o.is_failure()).map(|(name, _)| *name).collect();
+        let Some(reason) = outcomes.iter().find_map(|(_, o)| match o {
+            dataset::RefreshOutcome::Failed { reason } => Some(reason.as_str()),
+            _ => None,
+        }) else {
+            if said {
+                tracing::info!("mapping datasets refreshed after failing");
+                let _ = tx.send(Update::Toast(Toast::info("mapping data refreshed")));
+            }
+            return;
+        };
+        tracing::warn!(datasets = ?failed, %reason, retry_secs = wait.as_secs(), "mapping refresh failed");
+        if !said {
+            said = true;
+            let _ = tx.send(Update::Toast(Toast::alert(format!(
+                "mapping data could not be refreshed ({}: {}) — trying again in {} min",
+                failed.join(", "),
+                plain_failure(reason),
+                wait.as_secs() / 60
+            ))));
+        }
+        tokio::time::sleep(wait).await;
+        wait = (wait * 2).min(Duration::from_secs(3600));
+    }
+}
+
+/// What the terminal's graphics support amounts to, in words.
+fn describe_graphics(graphics: anistream_ui::image::Graphics) -> &'static str {
+    match graphics {
+        anistream_ui::image::Graphics::Native => "a graphics protocol, so covers are pictures",
+        anistream_ui::image::Graphics::Halfblocks => {
+            "no graphics protocol, so covers are drawn in half blocks"
+        }
+        anistream_ui::image::Graphics::Disabled => "off (--no-images)",
+    }
+}
+
+/// A moment, as a local date and time and how long ago that was.
+fn describe_moment(epoch: i64) -> String {
+    describe_moment_in(epoch, now_epoch(), &jiff::tz::TimeZone::system())
+}
+
+/// [`describe_moment`] against a given now and zone. Days are counted between calendar dates
+/// where the reader is: counting whole 86,400 s blocks called last night's refresh "today".
+fn describe_moment_in(epoch: i64, now: i64, zone: &jiff::tz::TimeZone) -> String {
+    let (Ok(at), Ok(now)) =
+        (jiff::Timestamp::from_second(epoch), jiff::Timestamp::from_second(now))
+    else {
+        return "at an unreadable time".into();
+    };
+    let local = at.to_zoned(zone.clone());
+    let today = now.to_zoned(zone.clone()).date();
+    let days = local.date().until(today).map_or(0, |span| span.get_days()).max(0);
+    let ago = match days {
+        0 => "today".to_owned(),
+        1 => "yesterday".to_owned(),
+        n => format!("{n} days ago"),
+    };
+    format!("{} ({ago})", local.strftime("%Y-%m-%d %H:%M"))
+}
+
+/// One dataset refresh's outcome, as a person reads it.
+fn describe_refresh(outcome: &dataset::RefreshOutcome) -> String {
+    match outcome {
+        dataset::RefreshOutcome::NotDue => "current, not due for a check".into(),
+        dataset::RefreshOutcome::Unchanged => "unchanged since the last fetch".into(),
+        dataset::RefreshOutcome::Updated { entries } => format!("updated, {entries} entries"),
+        dataset::RefreshOutcome::Failed { reason } => {
+            format!("failed: {}", plain_failure(reason))
+        }
+    }
+}
+
+/// A request failure without the plumbing: "could not be reached" rather than the client's
+/// "error sending request for url (…)", which names the URL and not the problem.
+fn plain_failure(reason: &str) -> &str {
+    if reason.contains("error sending request") || reason.contains("timed out") {
+        "the server could not be reached"
+    } else {
+        reason
+    }
+}
+
+/// Say that the config did not load, on the status line for as long as the session runs and in
+/// the log. The interface and its previews both, so a preview shows the frame a person would see.
+fn show_config_problem(
+    app: &mut App,
+    paths: &Paths,
+    problem: &anistream_core::config::ConfigProblem,
+) {
+    app.notice = Some(config_notice(&paths.config_file, problem));
+    app.log(
+        anistream_ui::app::ToastKind::Alert,
+        format!("{}, {problem} — using the defaults", paths.config_file.display()),
+    );
+}
+
+/// The interface's standing notice for a config file that did not load: which file, which line,
+/// what is wrong there, and what that means for the session.
+///
+/// One line, so the parser's list of every key it would have accepted is left to the log.
+fn config_notice(
+    file: &std::path::Path,
+    problem: &anistream_core::config::ConfigProblem,
+) -> String {
+    let name = file
+        .file_name()
+        .map_or_else(|| file.display().to_string(), |n| n.to_string_lossy().into_owned());
+    let what = problem.message.split(", expected").next().unwrap_or(&problem.message);
+    let place = problem.line.map_or_else(String::new, |line| format!(" line {line}"));
+    format!("{name}{place}: {what} — using the defaults until it is fixed")
+}
+
+/// How long quitting waits for the playback to record where it was left.
+const EXIT_FLUSH: Duration = Duration::from_secs(2);
+
+/// Stop what is playing, and wait briefly for it to record where it ended.
+///
+/// The tracker writes a history row every ten seconds of playback, so quitting with an episode
+/// open lost up to that much of the resume point: the runtime took mpv down with it, and the
+/// position since the last row went too. Stopped the way `x` stops it, the playback writes its
+/// last row before it reports the ending, which is what this waits for. Only when a playback is
+/// under way: one still finding a source has nothing to save, and the wait would only delay
+/// the exit.
+async fn stop_for_exit(
+    app: &App,
+    player_tx: &Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+    rx: &mut mpsc::UnboundedReceiver<Update>,
+) {
+    let under_way = app.playing.as_ref().is_some_and(|playing| playing.duration.is_some());
+    let Some(controls) = player_tx.as_ref().filter(|_| under_way) else { return };
+    if controls.send(anistream_ui::PlayerCommand::Stop).is_err() {
+        return;
+    }
+    let ended = async {
+        while let Some(update) = rx.recv().await {
+            if matches!(update, Update::PlaybackEnded { .. }) {
+                break;
+            }
+        }
+    };
+    if tokio::time::timeout(EXIT_FLUSH, ended).await.is_err() {
+        tracing::warn!("the player did not stop in time; its last position may be lost");
+    }
 }
 
 /// Publish a list, then follow up with the broadcast dates it needs a second request for.
@@ -1843,16 +2268,26 @@ fn spawn(
             let until = std::time::Instant::now() + wait;
             match &job {
                 Some(job) => job.note("AniList limit", Some(until)),
+                // No job to note it on. A toast, which goes when it is done: as a status it
+                // stayed, still counting "12s", after the wait was over.
                 None => {
-                    let _ = tx.send(Update::Status(format!(
+                    let _ = tx.send(Update::Toast(Toast::info(format!(
                         "waiting {}s on the AniList rate limit",
                         wait.as_secs().max(1)
-                    )));
+                    ))));
                 }
             }
         }
         let update = match task {
             Task::LoadContinue => match continue_entries(&meta, &store).await {
+                // Nothing in the history at all is a different empty from a history with
+                // nothing left to continue — everything hidden with `x` — and only the first
+                // is "nothing watched yet". `Empty` says it is the first.
+                Ok(entries)
+                    if entries.is_empty() && store.stats().is_ok_and(|s| s.titles == 0) =>
+                {
+                    Update::Content { view: ContentFor::Continue, content: Content::Empty }
+                }
                 Ok(entries) => {
                     publish_list(&meta, &tx, ContentFor::Continue, entries, now_epoch()).await;
                     return;
@@ -1862,9 +2297,19 @@ fn spawn(
                 }
             },
             Task::LoadSeasonal => {
+                const PAGE: u32 = 40;
                 let (season, year) = current_season();
-                match meta.seasonal(season, year, &Default::default(), 1, 40).await {
+                match meta.seasonal(season, year, &Default::default(), 1, PAGE).await {
                     Ok(page) => {
+                        // Which season this is, which the screen never said, and that one
+                        // page is not all of it when it is not.
+                        let season = format!("{} {year}", season.as_str().to_lowercase());
+                        let text = if page.has_next {
+                            format!("{season} · the {PAGE} most popular")
+                        } else {
+                            season
+                        };
+                        let _ = tx.send(Update::Caption { view: ContentFor::Seasonal, text });
                         let entries = page
                             .items
                             .iter()
@@ -1932,8 +2377,17 @@ fn spawn(
                     season: filter.season.clone(),
                     year: filter.year,
                 };
-                match meta.search(&query, &browse, 1, 30).await {
+                const PAGE: u32 = 30;
+                match meta.search(&query, &browse, 1, PAGE).await {
                     Ok(page) => {
+                        // Sent every time, empty when the page held everything, so a caption
+                        // from an earlier run of the same search cannot outlive its answer.
+                        let text = if page.has_next {
+                            format!("showing the first {PAGE}")
+                        } else {
+                            String::new()
+                        };
+                        let _ = tx.send(Update::Caption { view: view.clone(), text });
                         let entries = page
                             .items
                             .iter()
@@ -2123,11 +2577,15 @@ fn dispatch(
             tracking::set_status(sync, id, status);
             // Queued, not sent — the drain owns the network. Reporting the new depth is what
             // makes the badge move immediately.
-            let _ = tx.send(Update::Sync(Box::new(sync.state_after_enqueue())));
+            for state in sync.state_after_enqueue() {
+                let _ = tx.send(Update::Sync(Box::new(state)));
+            }
         }
         Task::SetScore { id, score } => {
             tracking::set_score(sync, id, score);
-            let _ = tx.send(Update::Sync(Box::new(sync.state_after_enqueue())));
+            for state in sync.state_after_enqueue() {
+                let _ = tx.send(Update::Sync(Box::new(state)));
+            }
         }
         Task::ResolveConflict { id, keep_local } => {
             tracking::resolve_conflict(sync, id, keep_local);
@@ -2182,9 +2640,9 @@ fn dispatch(
             });
         }
         Task::Play { id, episode } => {
-            // A fresh channel per playback, and dropping the old sender is what tells a
-            // previous session its controls are gone.
-            let prx = take_controls(player_tx);
+            // A fresh channel per playback. The one playing gives up its window only once
+            // this one has something to play — see `Handoff`.
+            let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
             let prefetched = prefetch.take(id, &episode, config.playback.translation);
             // Tracker ids rather than trackers: playback only needs to know which queues to
             // append to, and passing the set would couple the player to the sync layer.
@@ -2199,6 +2657,7 @@ fn dispatch(
                 None,
                 config.syncplay.enabled,
                 prx,
+                handoff,
                 config,
                 meta,
                 store,
@@ -2218,7 +2677,7 @@ fn dispatch(
             // Identical to Play except the stream comes from the exact release the user
             // picked — same fresh channel, same session-replacement semantics. Never from the
             // streams found ahead: the pick names its own release.
-            let prx = take_controls(player_tx);
+            let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
             let prefetched = None;
             let tracker_ids = signed_in_tracker_ids(sync);
             let extras = episode_extras(app, id, &episode);
@@ -2231,6 +2690,7 @@ fn dispatch(
                 Some((provider_id, source_id)),
                 config.syncplay.enabled,
                 prx,
+                handoff,
                 config,
                 meta,
                 store,
@@ -2248,7 +2708,7 @@ fn dispatch(
         }
         Task::PlayParty { id, episode } => {
             // Same resolution as Play; the handoff at the end is the only difference.
-            let prx = take_controls(player_tx);
+            let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
             let prefetched = None;
             let tracker_ids = signed_in_tracker_ids(sync);
             let extras = episode_extras(app, id, &episode);
@@ -2258,6 +2718,7 @@ fn dispatch(
                 None,
                 true,
                 prx,
+                handoff,
                 config,
                 meta,
                 store,
@@ -2303,13 +2764,15 @@ fn dispatch(
             // Project to trackers only when marking: progress there is monotonic, so an
             // unmark keeps the remote high-water mark and only local history forgets.
             if watched {
-                let count = store.completed_episode_count(id).unwrap_or(0);
-                if count > 0 {
+                let reached = store.tracker_progress(id).unwrap_or(0);
+                if reached > 0 {
                     let op = anistream_core::traits::TrackOp::SetProgress {
                         anilist_id: id,
-                        episode: count,
+                        episode: reached,
                     };
-                    for tracker in &sync.trackers {
+                    // Signed-in trackers only, like a finished episode: the default Kitsu
+                    // entry has no account behind it until someone signs in.
+                    for tracker in sync.trackers.iter().filter(|t| t.is_authenticated()) {
                         let _ = store.enqueue(tracker.id(), &op, now);
                     }
                 }
@@ -2409,24 +2872,26 @@ fn dispatch(
                 let _job = job;
                 // Sequential enqueues, not parallel: each one is only a resolve + a queue
                 // row, and the download manager's own concurrency cap paces the fetches.
-                let mut queued = 0usize;
-                let mut failed: Option<String> = None;
-                for episode in &episodes {
-                    match downloads::enqueue(&store, &registry, &meta, id, episode, translation)
-                        .await
-                    {
-                        Ok(_) => queued += 1,
-                        Err(reason) => failed = Some(reason),
+                let outcome = downloads::enqueue_each(&episodes, |episode| {
+                    let (store, registry, meta, tx) = (&store, &registry, &meta, &tx);
+                    async move {
+                        let (_, queued) = downloads::enqueue(
+                            store,
+                            registry,
+                            meta,
+                            id,
+                            &episode,
+                            translation,
+                        )
+                        .await?;
+                        // Each row as it lands, so the Downloads screen fills while the rest
+                        // resolve rather than saying nothing is queued until the end.
+                        downloads::publish_now(store, tx);
+                        Ok(queued)
                     }
-                }
-                let update = match (queued, failed) {
-                    (0, Some(reason)) => Update::Toast(Toast::alert(reason)),
-                    (n, Some(reason)) => {
-                        Update::Toast(Toast::alert(format!("queued {n}, then: {reason}")))
-                    }
-                    (n, None) => Update::Toast(Toast::info(format!("queued {n} episodes"))),
-                };
-                let _ = tx.send(update);
+                })
+                .await;
+                let _ = tx.send(Update::Toast(outcome.toast()));
             });
         }
 
@@ -2448,11 +2913,14 @@ fn dispatch(
                 )
                 .await
                 {
-                    Ok(row) => Update::Toast(Toast::info(format!(
+                    Ok((row, downloads::Queued::New)) => Update::Toast(Toast::info(format!(
                         "queued {} ep {}",
                         row.title, row.episode
                     ))),
-                    Err(reason) => Update::Toast(Toast::alert(reason)),
+                    Ok((row, downloads::Queued::Existing)) => Update::Toast(Toast::info(
+                        format!("{} ep {} is already in downloads", row.title, row.episode),
+                    )),
+                    Err(refusal) => Update::Toast(Toast::alert(refusal.to_string())),
                 };
                 let _ = tx.send(update);
                 let _ = tx.send(Update::Status(String::new()));
@@ -2522,7 +2990,9 @@ fn dispatch(
             // playback session all the same: a downloaded episode records history, resumes,
             // and syncs exactly like a streamed one. It used to go straight to mpv with no
             // context, which made downloads second-class in every way that matters.
-            let prx = take_controls(player_tx);
+            // Nothing to look up, so nothing can fail before it plays.
+            let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
+            handoff.now();
             let tracker_ids = signed_in_tracker_ids(sync);
             let (next, episodes) = episode_extras(app, id, &episode);
             if episodes.is_empty() {
@@ -2594,9 +3064,23 @@ fn dispatch(
         // a pure function. Synchronous on purpose — one small file, and a settings change that
         // silently lost a race with the next one would be worse than a paused frame.
         Task::SaveSetting { table, key, value } => {
-            match anistream_core::settings::write_key(paths, table, key, value) {
+            let written = anistream_core::settings::write_key(paths, table, key, value);
+            // Read back whatever the write left, so the Settings screen shows the file rather
+            // than its own hopes — and can put a refused setting back. A file that does not
+            // load is treated the way startup treats it.
+            let _ = tx.send(Update::SettingWritten {
+                on_disk: Box::new(Config::load(paths).unwrap_or_default()),
+                failed: written.is_err().then_some((table, key)),
+            });
+            match written {
                 Ok(()) => {
-                    let _ = tx.send(Update::Status(format!("saved {key}")));
+                    // A toast, named as the Settings screen names it. As a status it stayed
+                    // in the status line for the rest of the session, over the state it shows,
+                    // and it said the file's key — "saved commit_threshold". What has no row
+                    // there, the remembered speed and volume, is saved without a word.
+                    if let Some(label) = app.setting_label(table, key) {
+                        let _ = tx.send(Update::Toast(Toast::info(format!("saved · {label}"))));
+                    }
                     // Republish what the background tasks read, so the next download to
                     // finish honours the value that was just written.
                     let _ = tx.send(Update::SettingsSaved);
@@ -2608,9 +3092,15 @@ fn dispatch(
                     }
                 }
                 // The guard reaching the UI: enabling torrents with no VPN configured fails
-                // validation here, so no arrow key can write a config that would leak.
+                // validation here, so no arrow key can write a config that would leak. And a
+                // file that did not load at launch is refused by name and line.
                 Err(e) => {
-                    let _ = tx.send(Update::Toast(Toast::alert(format!("not saved: {e}"))));
+                    let reason = match e {
+                        anistream_core::Error::Config(reason) => reason,
+                        other => other.to_string(),
+                    };
+                    let _ =
+                        tx.send(Update::Toast(Toast::alert(format!("not saved: {reason}"))));
                 }
             }
         }
@@ -2848,6 +3338,7 @@ fn spawn_playback(
     // Hand the resolved stream to a Syncplay party instead of a private session.
     party: bool,
     commands: mpsc::UnboundedReceiver<anistream_ui::PlayerCommand>,
+    handoff: Handoff,
     config: &Config,
     meta: &Meta,
     store: &Store,
@@ -2898,13 +3389,26 @@ fn spawn_playback(
         };
         let context = match resolved {
             Ok(pair) => pair,
+            // The episode being watched carries on, and the window with it: only the lookup
+            // failed, and closing what was playing over it would punish the viewer for asking.
+            Err(reason) if handoff.live() => {
+                let _ = tx.send(Update::Toast(Toast::alert(reason.clone())));
+                let _ = tx.send(Update::PlaybackKept);
+                handoff.keep(commands, reason).await;
+                return;
+            }
             Err(reason) => {
                 // The failure ladder's first rung: name the failure rather than showing an
                 // empty screen. Releasing the eyecatch is what the alert does for us.
                 let _ = tx.send(Update::Toast(Toast::alert(reason)));
                 // A window left open for this episode would wait for nothing.
                 slot.release();
-                let _ = tx.send(Update::PlaybackEnded { watched: false });
+                let _ = tx.send(Update::PlaybackEnded {
+                    watched: false,
+                    ending: anistream_ui::app::Ending::Failed,
+                });
+                // The playback this one took over left its "playing" line up for it to replace.
+                let _ = tx.send(Update::Status(String::new()));
                 return;
             }
         };
@@ -2922,6 +3426,7 @@ fn spawn_playback(
 
         let settings =
             playback::PlaySettings { shader_dir, ..play_settings(&config, tracker_ids, party) };
+        handoff.complete().await;
         playback::play(streams, context, store, http, mpv, settings, slot, tx, commands).await;
     });
 }
@@ -3030,12 +3535,10 @@ async fn resolve_for_playback(
         anilist_id: id,
         mal_id,
         episode: episode.to_owned(),
-        title: media
-            .match_target()
-            .titles
-            .first()
-            .cloned()
-            .unwrap_or_else(|| format!("anilist {}", id.get())),
+        // The name the terminal shows the title by, so the player's top bar, the window and
+        // the terminal agree. The match target's first title is whichever the matcher tries
+        // first, which is often the romaji one.
+        title: media.title.display().to_owned(),
         translation: playback.translation,
         resume_at,
         runtime_secs: media.duration.map(|minutes| minutes * 60),
@@ -3150,23 +3653,22 @@ async fn load_episodes(
     Ok(EpisodeLoad::Rows(data::episode_rows(&episodes, store, id)))
 }
 
-fn setup_terminal() -> Result<Terminal<CrosstermBackend<io::Stdout>>> {
+/// The terminal the interface draws on.
+type Tui = Terminal<anistream::tty::Quiet<CrosstermBackend<io::Stdout>>>;
+
+fn setup_terminal() -> Result<Tui> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
     // Best effort: the legacy Windows console has no bracketed paste and says so with an error,
     // and a paste arriving as keystrokes is a lesser thing than the app not starting.
     let _ = execute!(stdout, crossterm::event::EnableBracketedPaste);
-    let terminal = Terminal::new(CrosstermBackend::new(stdout))?;
+    let terminal = Terminal::new(anistream::tty::Quiet::new(CrosstermBackend::new(stdout)))?;
     Ok(terminal)
 }
 
-fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
-    disable_raw_mode()?;
-    let _ = execute!(terminal.backend_mut(), crossterm::event::DisableBracketedPaste);
-    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
-    terminal.show_cursor()?;
-    Ok(())
+fn restore_terminal(terminal: &mut Tui) -> Result<()> {
+    Ok(anistream::tty::restore(terminal.backend_mut())?)
 }
 
 /// Ask the terminal to put `text` on the clipboard (OSC 52). Returns whether the request was
@@ -3218,7 +3720,7 @@ async fn stream_url(
     let meta = build_meta(config, http, store);
 
     let started = std::time::Instant::now();
-    let (registry, guard, note) = sources::build_registry(config, http, paths).await;
+    let (registry, guard, note, _) = sources::build_registry(config, http, paths, store).await;
     println!("sources     {:?} in {:?}", registry.ids(), started.elapsed());
     if let Some(note) = &note {
         println!("note        {note}");
@@ -3291,7 +3793,7 @@ async fn play_cli(
 ) -> Result<()> {
     let meta = build_meta(config, http, store);
 
-    let (registry, guard, note) = sources::build_registry(config, http, paths).await;
+    let (registry, guard, note, _) = sources::build_registry(config, http, paths, store).await;
     if let Some(note) = &note {
         println!("note        {note}");
     }
@@ -3337,7 +3839,7 @@ async fn play_cli(
             match update {
                 Update::Status(s) if !s.trim().is_empty() => println!("{s}"),
                 Update::Toast(t) => println!("{}", t.text),
-                Update::PlaybackEnded { watched: w } => watched = w,
+                Update::PlaybackEnded { watched: w, .. } => watched = w,
                 _ => {}
             }
         }
@@ -3410,10 +3912,18 @@ fn redefines_sources(table: &[&str], key: &str) -> bool {
 /// Grouped so they can be stopped and started as one. A source the user has just switched
 /// off must stop *seeding*, not merely stop being offered — and that means the tasks
 /// holding its session have to end with it.
+#[derive(Default)]
 struct TorrentTasks {
+    /// Waiting for the VPN guard to pass, before there is a session.
+    bring_up: Option<tokio::task::JoinHandle<()>>,
+    /// Which bring-up the current one is. A result from an earlier one — the settings changed
+    /// while it waited — describes a source that has since been switched off or replaced.
+    generation: u64,
     downloads: Option<tokio::task::JoinHandle<()>>,
     watcher: Option<tokio::task::JoinHandle<()>>,
     seeding: Option<tokio::task::JoinHandle<()>>,
+    /// Keeps the stream cache within its limit while the session writes to it.
+    cache: Option<tokio::task::JoinHandle<()>>,
     session: Option<Arc<anistream_providers::torrent::TorrentSession>>,
 }
 
@@ -3427,7 +3937,7 @@ impl TorrentTasks {
         let Some((guard, session)) = guard.clone() else {
             // No session means no downloads, which is correct rather than a limitation:
             // every downloadable source here is a torrent.
-            return Self { downloads: None, watcher: None, seeding: None, session: None };
+            return Self::default();
         };
 
         let downloads =
@@ -3441,12 +3951,98 @@ impl TorrentTasks {
         let watcher = tokio::spawn(vpn_watch(guard, session.clone(), tx.clone()));
         let seeding =
             tokio::spawn(seeding_watch(session.clone(), Arc::clone(config), tx.clone()));
+        let cache = tokio::spawn(anistream::prune::torrent_cache_watch(
+            session.clone(),
+            store.clone(),
+            Arc::clone(config),
+        ));
         Self {
+            bring_up: None,
+            generation: 0,
             downloads: Some(downloads),
             watcher: Some(watcher),
             seeding: Some(seeding),
+            cache: Some(cache),
             session: Some(session),
         }
+    }
+
+    /// Start bringing the torrent source up, when the configuration asks for it.
+    ///
+    /// In the background: the guard's check is a network request through a tunnel that may
+    /// be down, and the first frame must not wait on it. The badge says what the guard found
+    /// meanwhile, and the source joins the chain when it passes — see [`Self::arrived`].
+    fn bring_up(
+        &mut self,
+        config: &Config,
+        http: &HttpClient,
+        paths: &Paths,
+        store: &Store,
+        tx: &mpsc::UnboundedSender<Update>,
+        arrivals: &mpsc::UnboundedSender<(
+            u64,
+            std::result::Result<sources::TorrentUp, String>,
+        )>,
+    ) {
+        self.generation += 1;
+        if !sources::torrent_wanted(config) {
+            return;
+        }
+        let _ = tx.send(Update::Vpn {
+            badge: anistream_providers::vpn::GuardState::Unverified.badge(),
+            leaking: false,
+        });
+        let generation = self.generation;
+        let (config, http, paths, store, tx, arrivals) = (
+            config.clone(),
+            http.clone(),
+            paths.clone(),
+            store.clone(),
+            tx.clone(),
+            arrivals.clone(),
+        );
+        self.bring_up = Some(tokio::spawn(async move {
+            let outcome = sources::bring_up_torrent(config, http, paths, store, tx).await;
+            let _ = arrivals.send((generation, outcome));
+        }));
+    }
+
+    /// A bring-up finished: put the source in the chain and start what runs beside it, or say
+    /// why it will not come up.
+    #[allow(clippy::too_many_arguments)]
+    fn arrived(
+        &mut self,
+        generation: u64,
+        outcome: std::result::Result<sources::TorrentUp, String>,
+        vpn_guard: &mut Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
+        registry: &ProviderRegistry,
+        store: &Store,
+        config: &anistream::SharedConfig,
+        tx: &mpsc::UnboundedSender<Update>,
+    ) {
+        if generation != self.generation {
+            // Superseded. Its session holds no torrents yet, so letting go of it is enough.
+            return;
+        }
+        self.bring_up = None;
+        let up = match outcome {
+            Ok(up) => up,
+            Err(reason) => {
+                tracing::warn!(%reason, "torrent source not started");
+                let _ = tx.send(Update::ProviderNote(reason));
+                return;
+            }
+        };
+        let snapshot =
+            config.read().map(|c| c.clone()).unwrap_or_else(|e| e.into_inner().clone());
+        sources::place(registry, up.provider, &snapshot);
+        if let Some(warning) = up.warning {
+            let _ = tx.send(Update::Toast(Toast::info(warning)));
+        }
+        *vpn_guard = Some((up.guard, up.session));
+        *self = Self { generation, ..Self::start(vpn_guard, store, config, tx) };
+        let _ = tx.send(Update::Providers(data::provider_rows(registry)));
+        tracing::info!(providers = ?registry.ids(), "torrent source up");
     }
 
     /// Stop everything and halt the session before letting go of it.
@@ -3455,12 +4051,17 @@ impl TorrentTasks {
     /// seeding whatever it holds until the process exits, which for a source the user
     /// just turned off is precisely the traffic they meant to stop.
     async fn stop(&mut self) {
+        // A bring-up still waiting for the guard has no session to halt, only a wait to end.
+        if let Some(waiting) = self.bring_up.take() {
+            waiting.abort();
+        }
         if let Some(session) = self.session.take() {
             session.halt().await;
         }
-        for task in [self.downloads.take(), self.watcher.take(), self.seeding.take()]
-            .into_iter()
-            .flatten()
+        for task in
+            [self.downloads.take(), self.watcher.take(), self.seeding.take(), self.cache.take()]
+                .into_iter()
+                .flatten()
         {
             task.abort();
         }
@@ -3518,18 +4119,30 @@ async fn vpn_watch(
     // The first tick fires immediately; the guard was already verified at startup.
     ticker.tick().await;
     let mut was_leaking = false;
+    let mut log = anistream_providers::vpn::GuardLog::after_passing();
 
     loop {
         ticker.tick().await;
         let state = guard.verify().await;
         let leaking = !state.is_protected();
 
-        if leaking && !was_leaking {
-            tracing::warn!(
-                reason = state.reason().unwrap_or("unknown"),
+        use anistream_providers::vpn::GuardNote;
+        match log.observe(&state, std::time::Instant::now()) {
+            GuardNote::Failing(reason) => tracing::warn!(
+                %reason,
                 action = ?guard.on_leak(),
                 "vpn guard failing — halting torrent traffic"
-            );
+            ),
+            GuardNote::StillFailing { reason, minutes, checks } => {
+                tracing::warn!(%reason, minutes, checks, "vpn guard still failing")
+            }
+            GuardNote::Recovered { minutes } => {
+                tracing::info!(minutes, badge = %state.badge(), "vpn guard recovered")
+            }
+            GuardNote::Passed | GuardNote::Quiet => {}
+        }
+
+        if leaking && !was_leaking {
             // Marking the provider unavailable only stops *new* requests. Without this,
             // librqbit would carry on downloading and seeding the current episode over an
             // unprotected connection.
@@ -3564,6 +4177,7 @@ async fn reload_sources(
     paths: &Paths,
     store: &Store,
     tx: &mpsc::UnboundedSender<Update>,
+    arrivals: &mpsc::UnboundedSender<(u64, std::result::Result<sources::TorrentUp, String>)>,
 ) {
     // Old traffic stops before new traffic starts. The other order would leave two
     // sessions briefly alive, and one of them is the one being switched off.
@@ -3572,25 +4186,22 @@ async fn reload_sources(
 
     let plugins = registry.of_kind(anistream_core::traits::ProviderKind::Plugin);
     let snapshot = config.read().map(|c| c.clone()).unwrap_or_else(|e| e.into_inner().clone());
-    let (rebuilt, guard, note) = sources::build_registry(&snapshot, http, paths).await;
+    let rebuilt = sources::build_registry_deferred(&snapshot, http);
     let mut providers = rebuilt.all();
     providers.extend(plugins);
     registry.replace(providers);
 
-    *vpn_guard = guard;
-    *torrent_tasks = TorrentTasks::start(vpn_guard, store, config, tx);
+    torrent_tasks.bring_up(&snapshot, http, paths, store, tx, arrivals);
 
-    if vpn_guard.is_none() {
+    if !sources::torrent_wanted(&snapshot) {
         // No session: say so, and clear a badge that now describes nothing.
         let _ = tx.send(Update::Vpn { badge: String::new(), leaking: false });
     }
-    let _ = tx.send(Update::ProviderNote(note.unwrap_or_else(|| {
-        if snapshot.providers.torrent.enabled {
-            "sources reloaded".into()
-        } else {
-            "torrents are off — the session was stopped".into()
-        }
-    })));
+    let _ = tx.send(Update::ProviderNote(if sources::torrent_wanted(&snapshot) {
+        "sources reloaded — torrents start once the VPN guard passes".into()
+    } else {
+        "torrents are off — the session was stopped".into()
+    }));
     let _ = tx.send(Update::Providers(data::provider_rows(registry)));
     tracing::info!(providers = ?registry.ids(), "source chain reloaded");
 }
@@ -3695,12 +4306,21 @@ impl Prefetch {
         translation: anistream_core::media::Translation,
     ) -> Option<Resolved> {
         let mut slot = self.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-        let entry = slot.take()?;
-        let matches = entry.id == id
-            && entry.episode == episode
-            && entry.translation == translation
-            && entry.found.elapsed() < PREFETCH_FRESH;
-        matches.then_some(entry.resolved)
+        // Only a match is taken. Any other play — a show opened in passing, a source picked
+        // for a different episode — used to take the entry with it, so the streams found for
+        // the episode about to roll on were gone by the time it did.
+        let entry = slot.as_ref()?;
+        let fresh = entry.found.elapsed() < PREFETCH_FRESH;
+        let matches =
+            entry.id == id && entry.episode == episode && entry.translation == translation;
+        if !fresh {
+            *slot = None;
+            return None;
+        }
+        if !matches {
+            return None;
+        }
+        slot.take().map(|entry| entry.resolved)
     }
 }
 
@@ -3740,19 +4360,105 @@ fn following(rows: &[EpisodeRow], episode: &str) -> Option<String> {
     rows.iter().any(|row| row.number == next).then_some(next)
 }
 
-/// A fresh control channel for a new playback, handing the current player over to it.
+/// A fresh control channel for a new playback, and the handoff from the playback it replaces.
 ///
-/// The old playback, if one is still running, parks its window rather than closing it, and the
-/// new one claims it — which is how pressing N inside the player stays in the same window.
+/// The old playback, once told, parks its window rather than closing it, and the new one claims
+/// it — which is how pressing N inside the player stays in the same window.
 fn take_controls(
     player_tx: &mut Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
-) -> mpsc::UnboundedReceiver<anistream_ui::PlayerCommand> {
-    if let Some(previous) = player_tx.take() {
-        let _ = previous.send(anistream_ui::PlayerCommand::Handover);
-    }
+    successor: anistream_ui::app::Successor,
+) -> (mpsc::UnboundedReceiver<anistream_ui::PlayerCommand>, Handoff) {
+    let previous = player_tx.take();
     let (ptx, prx) = mpsc::unbounded_channel();
     *player_tx = Some(ptx);
-    prx
+    (prx, Handoff { previous, successor })
+}
+
+/// How long a new playback waits for the old one to park its window before opening its own.
+/// Bounded, because a playback still starting reads its controls only once it is playing.
+const HANDOVER_WAIT: Duration = Duration::from_secs(10);
+
+/// The playback a new one takes the window from, told only once the new one has something to
+/// play. Handing over at once closed the window on the episode being watched whenever the new
+/// one's lookup then failed, and a timeout was enough for that.
+struct Handoff {
+    previous: Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+    successor: anistream_ui::app::Successor,
+}
+
+impl Handoff {
+    /// Whether a playback is still running in the window.
+    fn live(&self) -> bool {
+        self.previous.as_ref().is_some_and(|p| !p.is_closed())
+    }
+
+    /// Ask for the window without waiting: nothing can fail between here and playing.
+    fn now(self) {
+        if let Some(previous) = self.previous {
+            let _ = previous.send(anistream_ui::PlayerCommand::Handover(self.successor));
+        }
+    }
+
+    /// Ask for the window and wait until it is parked: claiming it any earlier finds the slot
+    /// empty and opens a second window beside it.
+    async fn complete(self) {
+        let Some(previous) = self.previous else { return };
+        if previous.send(anistream_ui::PlayerCommand::Handover(self.successor)).is_ok() {
+            let _ = tokio::time::timeout(HANDOVER_WAIT, previous.closed()).await;
+        }
+    }
+
+    /// The new playback found nothing, so the old one keeps the window: say why on the video
+    /// it is showing, and pass on the controls the terminal now sends to the new channel until
+    /// the old playback ends. A later playback's handover reaches it the same way.
+    async fn keep(
+        self,
+        mut controls: mpsc::UnboundedReceiver<anistream_ui::PlayerCommand>,
+        reason: String,
+    ) {
+        use anistream_ui::PlayerCommand;
+        let Some(previous) = self.previous else { return };
+        let _ = previous.send(PlayerCommand::Alert(reason));
+        loop {
+            tokio::select! {
+                command = controls.recv() => match command {
+                    // The list loaded for the episode that is not playing: it would give the one
+                    // that is the wrong neighbours.
+                    Some(PlayerCommand::Episodes { .. }) => {}
+                    Some(command) => {
+                        if previous.send(command).is_err() {
+                            break;
+                        }
+                    }
+                    None => break,
+                },
+                () = previous.closed() => break,
+            }
+        }
+    }
+}
+
+/// What a new playback is about to play, as the window it takes over says while it is found.
+fn successor(
+    app: &App,
+    id: anistream_core::ids::AnilistId,
+    episode: &str,
+) -> anistream_ui::app::Successor {
+    // Now Playing is staged for the new playback before it is dispatched, so its title is the
+    // one the terminal shows; a watch party stages nothing, and the open title is the one.
+    let title = app
+        .playing
+        .as_ref()
+        .filter(|playing| playing.id == Some(id))
+        .map(|playing| playing.title.clone())
+        .or_else(|| app.detail.as_ref().filter(|e| e.id == id).map(|e| e.title.clone()))
+        .unwrap_or_default();
+    anistream_ui::app::Successor {
+        id,
+        title,
+        episode: episode.to_owned(),
+        translation: app.config.playback.translation,
+    }
 }
 
 /// The metadata source: AniList first, Tenrai when it fails, the cache when both do.
@@ -4086,6 +4792,35 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn a_lookup_that_fails_leaves_the_controls_with_the_episode_playing() {
+        use anistream_ui::PlayerCommand;
+        let (previous, mut playing) = mpsc::unbounded_channel();
+        let mut player_tx = Some(previous);
+        let successor = anistream_ui::app::Successor {
+            id: anistream_core::ids::AnilistId::new(1),
+            title: "A Show".into(),
+            episode: "5".into(),
+            translation: anistream_core::media::Translation::Sub,
+        };
+        let (controls, handoff) = take_controls(&mut player_tx, successor);
+        assert!(handoff.live());
+        assert!(playing.try_recv().is_err(), "the window was asked for before 5 was found");
+
+        let terminal = player_tx.clone().unwrap();
+        let kept = tokio::spawn(handoff.keep(controls, "a: timed out".into()));
+        terminal.send(PlayerCommand::TogglePause).unwrap();
+        terminal.send(PlayerCommand::Episodes { rows: Vec::new(), next: None }).unwrap();
+        terminal.send(PlayerCommand::Stop).unwrap();
+        assert_eq!(playing.recv().await, Some(PlayerCommand::Alert("a: timed out".into())));
+        assert_eq!(playing.recv().await, Some(PlayerCommand::TogglePause));
+        assert_eq!(playing.recv().await, Some(PlayerCommand::Stop), "5's list passed on to 4");
+
+        // It stands aside once the playback it kept has ended.
+        drop(playing);
+        tokio::time::timeout(Duration::from_secs(5), kept).await.unwrap().unwrap();
+    }
+
+    #[tokio::test]
     async fn a_job_ends_however_its_work_does_even_by_panicking() {
         let (tx, mut rx) = mpsc::unbounded_channel();
         let mut app = test_app();
@@ -4173,6 +4908,16 @@ mod tests {
             entry.found = std::time::Instant::now() - PREFETCH_FRESH - Duration::from_secs(1);
         }
         assert!(prefetch.take(AnilistId::new(7), "6", Translation::Sub).is_none());
+
+        // Any other play leaves them for the episode they are for: a show opened in passing
+        // while the ending ran used to take them with it.
+        prefetch.keep(AnilistId::new(7), "6", Translation::Sub, found());
+        assert!(prefetch.take(AnilistId::new(9), "1", Translation::Sub).is_none());
+        assert!(prefetch.take(AnilistId::new(7), "6", Translation::Dub).is_none());
+        assert!(
+            prefetch.take(AnilistId::new(7), "6", Translation::Sub).is_some(),
+            "still there"
+        );
     }
 
     #[test]
@@ -4194,6 +4939,138 @@ mod tests {
         assert_eq!(following(&rows, "1").as_deref(), Some("2"));
         assert_eq!(following(&rows, "3"), None, "a finale has no next");
         assert_eq!(following(&rows, "OVA"), None);
+    }
+
+    #[test]
+    fn one_command_per_run_and_no_option_without_its_command() {
+        use clap::error::ErrorKind;
+        let parse = |args: &[&str]| {
+            Cli::try_parse_from(std::iter::once("anistream").chain(args.iter().copied()))
+        };
+        let refused = |args: &[&str]| parse(args).map(|_| ()).unwrap_err().kind();
+
+        // Two commands were resolved by the order of the checks in `main`, silently.
+        assert_eq!(refused(&["--stats", "--random"]), ErrorKind::ArgumentConflict);
+        assert_eq!(refused(&["--doctor", "--plugins"]), ErrorKind::ArgumentConflict);
+        assert_eq!(refused(&["--continue", "--play", "1"]), ErrorKind::ArgumentConflict);
+
+        // Alone, these started the interface as if they had not been typed.
+        for alone in [
+            &["--json"][..],
+            &["--screen", "title"],
+            &["--episode", "3"],
+            &["--tracker", "mal"],
+        ] {
+            assert_eq!(refused(alone), ErrorKind::MissingRequiredArgument, "{alone:?}");
+        }
+
+        // `--json` means nothing to these, and the refusal names the command it was given with.
+        for (args, command) in
+            [(&["--doctor", "--json"][..], "--doctor"), (&["--plugins", "--json"], "--plugins")]
+        {
+            let error = parse(args).unwrap_err();
+            assert_eq!(error.kind(), ErrorKind::ArgumentConflict, "{args:?}");
+            assert!(error.to_string().contains(command), "{error}");
+        }
+
+        // A command's flags beside a subcommand were dropped without a word.
+        assert_eq!(
+            refused(&["--stats", "plugin", "stamp", "a.wasm"]),
+            ErrorKind::ArgumentConflict
+        );
+        assert!(parse(&["plugin", "stamp", "a.wasm"]).is_ok());
+        for fine in [
+            &["--stats", "--json"][..],
+            &["--search", "summer", "--json"],
+            &["--preview", "80x24", "--screen", "seasonal"],
+            &["--play", "1", "--episode", "OVA"],
+            &["--login", "--tracker", "mal"],
+            &["--logout", "--tracker", "kitsu"],
+            &[],
+        ] {
+            assert!(parse(fine).is_ok(), "{fine:?}: {:?}", parse(fine).err());
+        }
+    }
+
+    #[test]
+    fn a_preview_must_name_a_size_and_a_screen_that_exist() {
+        use clap::error::ErrorKind;
+        let parse = |args: &[&str]| {
+            Cli::try_parse_from(std::iter::once("anistream").chain(args.iter().copied()))
+        };
+        // Each of these rendered Home at 120x34, or nothing, with exit status 0.
+        for wrong in [&["--preview", "abc"][..], &["--preview", "0x0"], &["--preview", "120x"]]
+        {
+            assert_eq!(
+                parse(wrong).unwrap_err().kind(),
+                ErrorKind::ValueValidation,
+                "{wrong:?}"
+            );
+        }
+        assert_eq!(
+            parse(&["--preview", "80x24", "--screen", "bogus"]).unwrap_err().kind(),
+            ErrorKind::InvalidValue
+        );
+        let cli = parse(&["--preview", "80X24", "--screen", "episodes"]).unwrap();
+        assert_eq!(cli.preview, Some((80, 24)));
+        assert_eq!(cli.screen, Some(PreviewScreen::Episodes));
+    }
+
+    #[test]
+    fn a_moment_is_dated_by_the_calendar_where_the_reader_is() {
+        let zone = jiff::tz::TimeZone::fixed(jiff::tz::offset(2));
+        let at = |s: &str| {
+            s.parse::<jiff::civil::DateTime>().unwrap().to_zoned(zone.clone()).unwrap()
+        };
+        let epoch = |s: &str| at(s).timestamp().as_second();
+        let now = epoch("2026-10-18T09:00");
+        // Twelve hours ago, but before midnight.
+        assert_eq!(
+            describe_moment_in(epoch("2026-10-17T21:00"), now, &zone),
+            "2026-10-17 21:00 (yesterday)"
+        );
+        assert_eq!(
+            describe_moment_in(epoch("2026-10-18T00:30"), now, &zone),
+            "2026-10-18 00:30 (today)"
+        );
+        assert_eq!(
+            describe_moment_in(epoch("2026-10-15T23:59"), now, &zone),
+            "2026-10-15 23:59 (3 days ago)"
+        );
+    }
+
+    #[test]
+    fn a_dataset_refresh_is_described_in_words() {
+        use dataset::RefreshOutcome;
+        let unreachable = RefreshOutcome::Failed {
+            reason: "error sending request for url (https://datasets.example/mapping.json)"
+                .into(),
+        };
+        assert_eq!(describe_refresh(&unreachable), "failed: the server could not be reached");
+        let refused = RefreshOutcome::Failed { reason: "HTTP 503".into() };
+        assert_eq!(describe_refresh(&refused), "failed: HTTP 503");
+        assert_eq!(
+            describe_refresh(&RefreshOutcome::Updated { entries: 12 }),
+            "updated, 12 entries"
+        );
+        for outcome in [unreachable, refused, RefreshOutcome::NotDue, RefreshOutcome::Unchanged]
+        {
+            let said = describe_refresh(&outcome);
+            assert!(!said.contains('{') && !said.contains("Failed"), "Debug text: {said}");
+        }
+    }
+
+    #[test]
+    fn a_broken_config_is_named_by_file_and_line_on_one_line() {
+        let file = std::path::Path::new("/home/someone/.config/anistream/config.toml");
+        let problem = Config::parse("[playback]\nqualty = 720\n").unwrap_err();
+        assert_eq!(
+            config_notice(file, &problem),
+            "config.toml line 2: unknown field `qualty` — using the defaults until it is fixed"
+        );
+        let rule = Config::parse("[playback]\ncommit_threshold = 3.0\n").unwrap_err();
+        let notice = config_notice(file, &rule);
+        assert!(notice.starts_with("config.toml: playback.commit_threshold"), "{notice}");
     }
 
     #[test]

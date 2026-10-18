@@ -229,8 +229,12 @@ impl ImageStore {
         }
     }
 
-    pub fn mark_failed(&self, url: &str) {
-        self.requests.mark(url, RequestState::Failed);
+    /// Record a failed fetch, so the URL is tried again after a backoff.
+    ///
+    /// `offline` is a failure to reach the server at all, as opposed to an answer refusing the
+    /// image; only those are retried at once when the network is seen to be back.
+    pub fn mark_failed(&self, url: &str, offline: bool) {
+        self.requests.fail(url, offline, std::time::Instant::now());
     }
 
     pub fn has(&self, url: &str) -> bool {
@@ -327,16 +331,44 @@ pub fn cache_is_fresh(path: &Path, max_age_secs: u64) -> bool {
 /// visible cover.
 #[derive(Debug, Clone, Default)]
 pub struct ImageRequests {
-    inner: Arc<Mutex<HashMap<String, RequestState>>>,
+    inner: Arc<Mutex<HashMap<String, Slot>>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RequestState {
     Pending,
     Ready,
-    /// Failed; do not retry this session. A broken cover URL will stay broken, and
-    /// retrying every frame would hammer the CDN for nothing.
+    /// Failed; claimable again once its backoff has run, or as soon as the network is seen
+    /// to be back if the failure was not reaching the server at all. Never retried every
+    /// frame, which would hammer the CDN for nothing.
     Failed,
+}
+
+/// One URL's request state, and when a failed one may be tried again.
+#[derive(Debug, Clone, Copy)]
+struct Slot {
+    state: RequestState,
+    /// Failures in a row, which set the backoff.
+    failures: u32,
+    retry_at: Option<std::time::Instant>,
+    /// The last failure was not reaching the server, rather than an answer refusing the
+    /// image — the kind a returning network fixes.
+    offline: bool,
+}
+
+impl Slot {
+    const fn new(state: RequestState) -> Self {
+        Self { state, failures: 0, retry_at: None, offline: false }
+    }
+}
+
+/// Wait before trying a failed image again, after `failures` failures in a row.
+///
+/// Doubling from half a minute to ten. A cover that failed once used to stay a placeholder
+/// for the rest of the session, however soon the network came back; a cover that is really
+/// gone costs one request every ten minutes, and only while it is on screen.
+pub fn retry_backoff(failures: u32) -> std::time::Duration {
+    std::time::Duration::from_secs((30_u64 << failures.saturating_sub(1).min(5)).min(600))
 }
 
 impl ImageRequests {
@@ -344,41 +376,81 @@ impl ImageRequests {
         Self::default()
     }
 
-    /// Claim a URL for fetching. Returns `true` only for the first caller.
-    pub fn claim(&self, url: &str) -> bool {
-        let mut guard = match self.inner.lock() {
+    fn slots(&self) -> std::sync::MutexGuard<'_, HashMap<String, Slot>> {
+        match self.inner.lock() {
             Ok(g) => g,
             Err(poisoned) => poisoned.into_inner(),
-        };
-        if guard.contains_key(url) {
-            return false;
         }
-        guard.insert(url.to_owned(), RequestState::Pending);
-        true
+    }
+
+    /// Claim a URL for fetching. Returns `true` only for the first caller, or for a failed
+    /// URL whose backoff has run.
+    pub fn claim(&self, url: &str) -> bool {
+        self.claim_at(url, std::time::Instant::now())
+    }
+
+    fn claim_at(&self, url: &str, now: std::time::Instant) -> bool {
+        let mut slots = self.slots();
+        match slots.get_mut(url) {
+            None => {
+                slots.insert(url.to_owned(), Slot::new(RequestState::Pending));
+                true
+            }
+            Some(slot)
+                if slot.state == RequestState::Failed
+                    && slot.retry_at.is_none_or(|at| at <= now) =>
+            {
+                slot.state = RequestState::Pending;
+                true
+            }
+            Some(_) => false,
+        }
     }
 
     pub fn mark(&self, url: &str, state: RequestState) {
-        let mut guard = match self.inner.lock() {
-            Ok(g) => g,
-            Err(poisoned) => poisoned.into_inner(),
-        };
-        guard.insert(url.to_owned(), state);
+        match state {
+            RequestState::Failed => self.fail(url, false, std::time::Instant::now()),
+            _ => {
+                self.slots().insert(url.to_owned(), Slot::new(state));
+            }
+        }
+    }
+
+    /// Record a failure and schedule the retry.
+    fn fail(&self, url: &str, offline: bool, now: std::time::Instant) {
+        let mut slots = self.slots();
+        let slot = slots.entry(url.to_owned()).or_insert(Slot::new(RequestState::Pending));
+        slot.failures = slot.failures.saturating_add(1);
+        slot.state = RequestState::Failed;
+        slot.offline = offline;
+        slot.retry_at = Some(now + retry_backoff(slot.failures));
+    }
+
+    /// An image arrived, so the network works: covers that failed for want of one need not
+    /// wait out their backoff. Those the server refused keep theirs.
+    pub fn network_returned(&self) {
+        for slot in self.slots().values_mut() {
+            if slot.state == RequestState::Failed && slot.offline {
+                slot.retry_at = None;
+            }
+        }
+    }
+
+    /// Make every failed image claimable now, for an explicit refresh.
+    pub fn retry_failed(&self) {
+        for slot in self.slots().values_mut() {
+            if slot.state == RequestState::Failed {
+                slot.retry_at = None;
+            }
+        }
     }
 
     pub fn state(&self, url: &str) -> Option<RequestState> {
-        let guard = match self.inner.lock() {
-            Ok(g) => g,
-            Err(poisoned) => poisoned.into_inner(),
-        };
-        guard.get(url).copied()
+        self.slots().get(url).map(|slot| slot.state)
     }
 
     pub fn pending_count(&self) -> usize {
-        let guard = match self.inner.lock() {
-            Ok(g) => g,
-            Err(poisoned) => poisoned.into_inner(),
-        };
-        guard.values().filter(|s| **s == RequestState::Pending).count()
+        self.slots().values().filter(|s| s.state == RequestState::Pending).count()
     }
 }
 
@@ -494,8 +566,8 @@ mod tests {
     }
 
     #[test]
-    fn a_failed_image_is_not_retried() {
-        // A broken cover URL stays broken; retrying each frame would hammer the CDN.
+    fn a_failed_image_is_not_retried_every_frame() {
+        // Retrying each frame would hammer the CDN.
         let requests = ImageRequests::new();
         let url = "https://example.test/missing.jpg";
         requests.claim(url);
@@ -503,6 +575,56 @@ mod tests {
         assert!(!requests.claim(url));
         assert_eq!(requests.state(url), Some(RequestState::Failed));
         assert_eq!(requests.pending_count(), 0);
+    }
+
+    #[test]
+    fn a_failed_image_is_tried_again_once_its_backoff_has_run() {
+        // A cover that failed once stayed a placeholder for the rest of the session.
+        let requests = ImageRequests::new();
+        let url = "https://example.test/a.jpg";
+        let start = std::time::Instant::now();
+        assert!(requests.claim_at(url, start));
+        requests.fail(url, true, start);
+
+        assert!(!requests.claim_at(url, start + std::time::Duration::from_secs(29)));
+        assert!(requests.claim_at(url, start + retry_backoff(1)), "due again");
+        assert_eq!(requests.state(url), Some(RequestState::Pending));
+
+        // A second failure waits longer.
+        let later = start + retry_backoff(1);
+        requests.fail(url, true, later);
+        assert!(!requests.claim_at(url, later + retry_backoff(1)));
+        assert!(requests.claim_at(url, later + retry_backoff(2)));
+    }
+
+    #[test]
+    fn the_backoff_doubles_and_stops_at_ten_minutes() {
+        assert_eq!(retry_backoff(1).as_secs(), 30);
+        assert_eq!(retry_backoff(2).as_secs(), 60);
+        assert_eq!(retry_backoff(5).as_secs(), 480);
+        assert_eq!(retry_backoff(6).as_secs(), 600);
+        assert_eq!(retry_backoff(u32::MAX).as_secs(), 600);
+    }
+
+    #[test]
+    fn a_returning_network_retries_offline_failures_but_not_refusals() {
+        // The image that arrives is the evidence: whatever failed for want of a network can
+        // go now. A cover the server answered 404 for keeps its backoff.
+        let requests = ImageRequests::new();
+        let now = std::time::Instant::now();
+        for url in ["offline", "refused"] {
+            requests.claim_at(url, now);
+        }
+        requests.fail("offline", true, now);
+        requests.fail("refused", false, now);
+
+        requests.network_returned();
+        assert!(requests.claim_at("offline", now));
+        assert!(!requests.claim_at("refused", now));
+
+        // An explicit refresh retries everything.
+        requests.retry_failed();
+        assert!(requests.claim_at("refused", now));
     }
 
     #[test]

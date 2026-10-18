@@ -69,9 +69,10 @@ async fn main() {
         return;
     }
 
-    // A fresh directory so progress starts at zero and is unambiguous.
-    let dir = paths.cache_dir.join("torrents-halt-probe");
-    let _ = tokio::fs::remove_dir_all(&dir).await;
+    // A fresh directory so progress starts at zero and is unambiguous, removed when the probe
+    // ends rather than left in the real cache.
+    let scratch = tempfile::tempdir().expect("scratch directory");
+    let dir = scratch.path().join("torrents");
 
     let session = match TorrentSession::start(guard.clone(), dir.clone(), "halt".into()).await {
         Ok(s) => s,

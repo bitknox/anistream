@@ -82,9 +82,30 @@ impl<T> Attempt<T> {
         }
         self.failures
             .iter()
-            .map(|(id, e)| format!("{id}: {}", e.state_label()))
+            .map(|(id, e)| format!("{id}: {}", described(e)))
             .collect::<Vec<_>>()
             .join(", ")
+    }
+}
+
+/// A failure as a toast names it: by its kind, unless it says it timed out.
+///
+/// The plugin vocabulary has no transport failure, so a plugin's timeout arrives as `Blocked`,
+/// and a toast reading "blocked" over a log reading "operation timed out" sent the viewer after
+/// a ban when the source had only been slow to answer.
+fn described(error: &ProviderError) -> &'static str {
+    let detail = match error {
+        ProviderError::NotFound => "",
+        ProviderError::Blocked(d)
+        | ProviderError::Parse(d)
+        | ProviderError::Transport(d)
+        | ProviderError::Unavailable(d)
+        | ProviderError::Other(d) => d,
+    };
+    if detail.to_ascii_lowercase().contains("timed out") {
+        "timed out"
+    } else {
+        error.state_label()
     }
 }
 
@@ -132,6 +153,26 @@ impl ProviderRegistry {
             Some(at) => providers[at] = provider,
             None => providers.push(provider),
         }
+    }
+
+    /// Add a source that came up after the chain was built, at the place a ranking gives it.
+    ///
+    /// Before the first source that ranks after it, so a source that arrives late — the torrent
+    /// source waits for the VPN guard — still sits where `providers.order` put it rather than
+    /// wherever its arrival time would. A source with the same id is replaced.
+    pub fn insert_ranked(
+        &self,
+        provider: Arc<dyn Provider>,
+        rank: impl Fn(&dyn Provider) -> usize,
+    ) {
+        let id = provider.manifest().id.clone();
+        self.health.register([id.clone()]);
+        let mut providers = self.providers.write().unwrap_or_else(|e| e.into_inner());
+        providers.retain(|p| p.manifest().id != id);
+        let place = rank(provider.as_ref());
+        let at =
+            providers.iter().position(|p| rank(p.as_ref()) > place).unwrap_or(providers.len());
+        providers.insert(at, provider);
     }
 
     /// Take a source out of the chain. Returns whether there was one to take.
@@ -461,6 +502,23 @@ mod tests {
     }
 
     #[test]
+    fn a_late_source_takes_the_place_its_rank_gives_it() {
+        // The torrent source comes up once the VPN guard passes, after sources that were
+        // ready at once; it must still be tried in the order the configuration names.
+        let rank = |p: &dyn Provider| match p.manifest().id.as_str() {
+            "early" => 0,
+            "late" => 1,
+            _ => 2,
+        };
+        let r =
+            registry(vec![MockProvider::new("early").arc(), MockProvider::new("after").arc()]);
+        r.insert_ranked(MockProvider::new("late").arc(), rank);
+        assert_eq!(r.ids(), ["early", "late", "after"]);
+        r.insert_ranked(MockProvider::new("late").arc(), rank);
+        assert_eq!(r.ids(), ["early", "late", "after"], "replaced, not doubled");
+    }
+
+    #[test]
     fn a_removed_source_leaves_the_chain() {
         let r = registry(vec![MockProvider::new("a").arc(), MockProvider::new("b").arc()]);
         assert!(r.remove("a"));
@@ -621,6 +679,18 @@ mod tests {
         assert!(summary.contains("a: blocked"));
         assert!(summary.contains("b: parse error"));
         assert!(summary.contains("c: unreachable"));
+    }
+
+    #[tokio::test]
+    async fn a_timeout_is_named_whatever_it_was_filed_under() {
+        // How a plugin reports one: its vocabulary has no transport failure.
+        let r = registry(vec![
+            MockProvider::new("a")
+                .failing(ProviderError::Blocked("operation timed out".into()))
+                .arc(),
+        ]);
+        let attempt = r.resolve(&ProviderKey::new("k"), "1", Translation::Sub, 0).await;
+        assert_eq!(attempt.summary(), "a: timed out");
     }
 
     #[tokio::test]

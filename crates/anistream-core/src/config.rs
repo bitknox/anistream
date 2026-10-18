@@ -74,12 +74,53 @@ pub struct Config {
     pub keys: BTreeMap<String, String>,
 }
 
+/// Why a configuration could not be used, and where in the file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConfigProblem {
+    /// The line at fault, counting from 1, when the problem is in one place. A rule broken
+    /// across settings — torrents on with no VPN mode — has none.
+    pub line: Option<usize>,
+    pub message: String,
+}
+
+impl std::fmt::Display for ConfigProblem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.line {
+            Some(line) => write!(f, "line {line}: {}", self.message),
+            None => f.write_str(&self.message),
+        }
+    }
+}
+
+impl ConfigProblem {
+    fn from_toml(src: &str, error: &toml::de::Error) -> Self {
+        // The parser's own rendering quotes the source over several lines, which reads well in
+        // a terminal and not at all in a one-line notice. The line number is what a person
+        // needs to find it.
+        let line = error.span().map(|span| {
+            let before = src.as_bytes().get(..span.start).unwrap_or(src.as_bytes());
+            1 + before.iter().filter(|&&b| b == b'\n').count()
+        });
+        Self { line, message: error.message().trim().to_owned() }
+    }
+}
+
 impl Config {
     /// Parse from a TOML string, then validate.
     pub fn from_toml(src: &str) -> Result<Self, crate::Error> {
-        let cfg: Self = toml::from_str(src)
-            .map_err(|e| crate::Error::Config(format!("invalid TOML: {e}")))?;
-        cfg.validate()?;
+        Self::parse(src).map_err(|problem| crate::Error::Config(problem.to_string()))
+    }
+
+    /// [`Self::from_toml`], keeping where the problem is apart from what it is.
+    pub fn parse(src: &str) -> Result<Self, ConfigProblem> {
+        let cfg: Self = toml::from_str(src).map_err(|e| ConfigProblem::from_toml(src, &e))?;
+        cfg.validate().map_err(|e| ConfigProblem {
+            line: None,
+            message: match e {
+                crate::Error::Config(message) => message,
+                other => other.to_string(),
+            },
+        })?;
         Ok(cfg)
     }
 
@@ -88,17 +129,25 @@ impl Config {
     /// A missing config is normal on first run and must not be an error; a *malformed*
     /// one is, because silently ignoring it could mean silently ignoring a VPN setting.
     pub fn load(paths: &Paths) -> Result<Self, crate::Error> {
+        Self::read(paths).map_err(|problem| {
+            crate::Error::Config(format!("{}, {problem}", paths.config_file.display()))
+        })
+    }
+
+    /// [`Self::load`], with the problem kept apart from the file it is in — for an interface
+    /// that names the file its own way.
+    pub fn read(paths: &Paths) -> Result<Self, ConfigProblem> {
         match std::fs::read_to_string(&paths.config_file) {
-            Ok(src) => Self::from_toml(&src),
+            Ok(src) => Self::parse(&src),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
                 let cfg = Self::default();
-                cfg.validate()?;
+                cfg.validate()
+                    .map_err(|e| ConfigProblem { line: None, message: e.to_string() })?;
                 Ok(cfg)
             }
-            Err(e) => Err(crate::Error::Config(format!(
-                "cannot read {}: {e}",
-                paths.config_file.display()
-            ))),
+            Err(e) => {
+                Err(ConfigProblem { line: None, message: format!("cannot be read: {e}") })
+            }
         }
     }
 
@@ -540,7 +589,7 @@ impl Default for PluginsConfig {
 ///
 /// Disabled by default. Torrent traffic exposes your IP to every peer in the swarm, so
 /// this stays off until a VPN mode has been chosen deliberately.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct TorrentConfig {
     pub enabled: bool,
@@ -564,6 +613,30 @@ pub struct TorrentConfig {
     pub max_seeders_age_days: Option<u32>,
     /// Giving back after an episode has been watched.
     pub seeding: SeedingConfig,
+    /// How much of what has been streamed stays on disk, in gigabytes.
+    ///
+    /// A stream's files are deleted when it is let go, unless it is seeding or a download owns
+    /// it. What is still on disk past this — from earlier runs, or episodes kept for a rewatch —
+    /// goes oldest first, at launch and while the app runs. Downloads count toward it but are
+    /// never removed by it. `0` keeps nothing that is not in use.
+    pub cache_limit_gb: u32,
+}
+
+impl Default for TorrentConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            vpn: VpnConfig::default(),
+            rss_url: None,
+            trackers: Vec::new(),
+            curation_url: None,
+            max_seeders_age_days: None,
+            seeding: SeedingConfig::default(),
+            // Room for a dozen episodes at 1080p: enough that resuming or rewatching last
+            // night's episodes is instant, small enough that nobody's disk fills over a season.
+            cache_limit_gb: 20,
+        }
+    }
 }
 
 /// Seeding streamed episodes after they stop playing, and a cap on upload.
@@ -601,6 +674,11 @@ impl SeedingConfig {
 }
 
 impl TorrentConfig {
+    /// [`Self::cache_limit_gb`] in bytes.
+    pub fn cache_limit_bytes(&self) -> u64 {
+        u64::from(self.cache_limit_gb).saturating_mul(1_000_000_000)
+    }
+
     /// Host of the configured indexer, used to keep curated picks on the same service.
     pub fn indexer_host(&self) -> Option<String> {
         let url = self.rss_url.as_deref()?;
@@ -617,14 +695,13 @@ impl TorrentConfig {
             return Ok(());
         }
         // No indexer ships with anistream, so an enabled source with no endpoint would be
-        // silently inert. Say so instead.
+        // silently inert. Say so instead — in words, and short: it is what the Settings toggle
+        // answers with in one toast line, which cut the dotted keys it used to quote before the
+        // part that said what to do.
         match self.rss_url.as_deref().map(str::trim) {
             None | Some("") => {
                 return Err(crate::Error::Config(
-                    "providers.torrent.enabled is true but no providers.torrent.rss_url is \
-                     set: anistream ships no indexer, so the search endpoint is yours to \
-                     supply"
-                        .into(),
+                    "torrents need an indexer; set rss_url under [providers.torrent]".into(),
                 ));
             }
             Some(url) if !url.starts_with("http://") && !url.starts_with("https://") => {
@@ -1106,6 +1183,10 @@ mod tests {
         )
         .expect_err("must not enable a source with nothing to search");
         assert!(err.to_string().contains("rss_url"), "got: {err}");
+        // Said for a person, and short enough for the Settings toast at 80 columns.
+        let crate::Error::Config(reason) = err else { panic!("not a config error: {err}") };
+        assert!(!reason.contains("enabled is true"), "got: {reason}");
+        assert!(format!("not saved: {reason}").chars().count() <= 75, "got: {reason}");
     }
 
     #[test]
@@ -1132,6 +1213,16 @@ mod tests {
         };
         assert_eq!(config.indexer_host().as_deref(), Some("indexer.example"));
         assert_eq!(TorrentConfig::default().indexer_host(), None);
+    }
+
+    #[test]
+    fn the_stream_cache_is_capped_unless_told_otherwise() {
+        // An uncapped cache is how the disk filled, so an unset key must still mean a cap.
+        let unset = Config::from_toml("[providers.torrent]\n").unwrap();
+        assert_eq!(unset.providers.torrent.cache_limit_gb, 20);
+        assert_eq!(unset.providers.torrent.cache_limit_bytes(), 20_000_000_000);
+        let set = Config::from_toml("[providers.torrent]\ncache_limit_gb = 5\n").unwrap();
+        assert_eq!(set.providers.torrent.cache_limit_bytes(), 5_000_000_000);
     }
 
     #[test]
@@ -1217,6 +1308,30 @@ mod tests {
     fn unknown_keys_are_rejected_rather_than_ignored() {
         // A typo in a privacy-relevant key must not be silently discarded.
         let err = Config::from_toml("[providers.torrent.vpn]\nmoed = \"none\"\n").unwrap_err();
-        assert!(err.to_string().contains("invalid TOML"), "got: {err}");
+        assert!(err.to_string().contains("unknown field `moed`"), "got: {err}");
+    }
+
+    #[test]
+    fn a_problem_names_its_line_and_what_is_wrong_on_one_line() {
+        // What the interface shows when the file cannot be used: a person has to find it.
+        let typo = Config::parse("[theme]\nmode = \"adaptive\"\n\n[playback]\nqualty = 720\n")
+            .unwrap_err();
+        assert_eq!(typo.line, Some(5), "{typo:?}");
+        assert!(typo.message.starts_with("unknown field `qualty`"), "{typo:?}");
+
+        let syntax = Config::parse("[playback]\nquality = 1080 ]\n").unwrap_err();
+        assert_eq!(syntax.line, Some(2), "{syntax:?}");
+
+        let wrong_type = Config::parse("[playback]\nquality = \"high\"\n").unwrap_err();
+        assert_eq!(wrong_type.line, Some(2), "{wrong_type:?}");
+
+        for problem in [&typo, &syntax, &wrong_type] {
+            assert!(!problem.to_string().contains('\n'), "{problem}");
+        }
+
+        // A rule across settings has no one line to point at, and names the setting instead.
+        let rule = Config::parse("[playback]\ncommit_threshold = 3.0\n").unwrap_err();
+        assert_eq!(rule.line, None);
+        assert!(rule.message.contains("commit_threshold"), "{rule:?}");
     }
 }

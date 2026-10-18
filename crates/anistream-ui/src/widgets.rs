@@ -369,30 +369,47 @@ impl Widget for Header<'_> {
             return;
         }
         let y = area.top();
+        let title = truncate(self.title, area.width as usize);
+        let title_width = title.chars().count() as u16;
         buf.set_string(
             area.left(),
             y,
-            truncate(self.title, area.width as usize),
+            title,
             self.palette.style(Role::Text).add_modifier(Modifier::BOLD),
         );
 
-        let spans: Vec<Span<'_>> = self
-            .chips
-            .iter()
-            .enumerate()
-            .flat_map(|(i, (text, role))| {
-                let sep = if i == 0 {
-                    Span::raw("")
-                } else {
-                    Span::styled("  ", self.palette.style(Role::TextDim))
-                };
-                [sep, Span::styled(text.clone(), self.palette.style(*role))]
-            })
-            .collect();
+        let line_of = |chips: &[(String, Role)]| {
+            let spans: Vec<Span<'_>> = chips
+                .iter()
+                .enumerate()
+                .flat_map(|(i, (text, role))| {
+                    let sep = if i == 0 {
+                        Span::raw("")
+                    } else {
+                        Span::styled("  ", self.palette.style(Role::TextDim))
+                    };
+                    [sep, Span::styled(text.clone(), self.palette.style(*role))]
+                })
+                .collect();
+            Line::from(spans)
+        };
 
-        let line = Line::from(spans);
+        // Chips give way from the end rather than run over the wordmark: below about thirty
+        // columns they overwrote it, and overlapping text is worse than absent text. A group
+        // mark (the rule-weight interpunct) is never left with nothing after it.
+        let mut chips = self.chips;
+        let line = loop {
+            while let [rest @ .., (_, Role::Rule)] = chips {
+                chips = rest;
+            }
+            let line = line_of(chips);
+            if chips.is_empty() || title_width + 2 + line.width() as u16 <= area.width {
+                break line;
+            }
+            chips = &chips[..chips.len() - 1];
+        };
         let width = line.width() as u16;
-        if width < area.width {
+        if width > 0 {
             let x = area.right() - width;
             buf.set_line(x, y, &line, width);
         }
@@ -406,12 +423,20 @@ impl Widget for Header<'_> {
 pub struct StatusLine<'a> {
     palette: &'a Palette,
     state: &'a str,
+    state_role: Role,
     hints: &'a [(String, &'static str)],
 }
 
 impl<'a> StatusLine<'a> {
     pub fn new(palette: &'a Palette, state: &'a str) -> Self {
-        Self { palette, state, hints: &[] }
+        Self { palette, state, state_role: Role::TextDim, hints: &[] }
+    }
+
+    /// Draw the state in `role` rather than dimmed: a standing problem is state, and should
+    /// read as one.
+    pub fn state_role(mut self, role: Role) -> Self {
+        self.state_role = role;
+        self
     }
 
     pub fn hints(mut self, hints: &'a [(String, &'static str)]) -> Self {
@@ -426,30 +451,41 @@ impl Widget for StatusLine<'_> {
             return;
         }
         let y = area.top();
+        let line_of = |hints: &[(String, &str)]| {
+            let mut spans: Vec<Span<'_>> = Vec::new();
+            for (i, (key, label)) in hints.iter().enumerate() {
+                if i > 0 {
+                    spans.push(Span::styled("   ", self.palette.style(Role::TextDim)));
+                }
+                spans.push(Span::styled(key.clone(), self.palette.style(Role::Text)));
+                spans.push(Span::styled(
+                    format!(" {}", label.to_lowercase()),
+                    self.palette.style(Role::TextDim),
+                ));
+            }
+            Line::from(spans)
+        };
+
+        // Hints give way from the front, so the last — `? keys`, the way to every other key —
+        // is the one a narrow line keeps; for that one the state text is cut short instead.
+        // Overlapping text is worse than absent text, so nothing is ever drawn over anything.
+        let state_width = self.state.chars().count() as u16;
+        let mut shown = self.hints;
+        let mut line = line_of(shown);
+        while shown.len() > 1 && line.width() as u16 + state_width + 2 > area.width {
+            shown = &shown[1..];
+            line = line_of(shown);
+        }
+        let width = line.width() as u16;
+        let fits = width > 0 && width + 2 <= area.width;
+        let state_room = if fits { area.width - width - 2 } else { area.width };
         buf.set_string(
             area.left(),
             y,
-            truncate(self.state, area.width as usize),
-            self.palette.style(Role::TextDim),
+            truncate(self.state, state_room as usize),
+            self.palette.style(self.state_role),
         );
-
-        let mut spans: Vec<Span<'_>> = Vec::new();
-        for (i, (key, label)) in self.hints.iter().enumerate() {
-            if i > 0 {
-                spans.push(Span::styled("   ", self.palette.style(Role::TextDim)));
-            }
-            spans.push(Span::styled(key.clone(), self.palette.style(Role::Text)));
-            spans.push(Span::styled(
-                format!(" {}", label.to_lowercase()),
-                self.palette.style(Role::TextDim),
-            ));
-        }
-
-        let line = Line::from(spans);
-        let width = line.width() as u16;
-        // Only draw the hints if they fit without colliding with the state text.
-        let state_width = self.state.chars().count() as u16;
-        if width > 0 && width + state_width + 2 <= area.width {
+        if fits {
             buf.set_line(area.right() - width, y, &line, width);
         }
     }
@@ -498,6 +534,38 @@ pub fn meta_line(parts: &[&str]) -> String {
     parts.join("  ·  ")
 }
 
+/// A count and its noun, singular when the count is one: `1 episode`, `3 episodes`.
+///
+/// One helper rather than a `format!` at each call site, because each call site was written
+/// for the plural and "queued 1 episodes" is what the first count of one printed.
+pub fn plural(count: usize, noun: &str) -> String {
+    if count == 1 { format!("1 {noun}") } else { format!("{count} {noun}s") }
+}
+
+/// Bytes at human scale, two significant figures.
+///
+/// Its own function because a download's size is the number the screen is most often read for, and
+/// `1288490188 bytes` communicates nothing at a glance. Decimal units, as every size and rate on
+/// screen is: a `kB` that meant 1024 in one place and 1000 in another would make two screens
+/// disagree about the same file.
+pub fn human_bytes(bytes: u64) -> String {
+    const UNITS: [(&str, u64); 4] =
+        [("GB", 1_000_000_000), ("MB", 1_000_000), ("kB", 1_000), ("B", 1)];
+    for (unit, scale) in UNITS {
+        if bytes >= scale {
+            let value = bytes as f64 / scale as f64;
+            // One decimal below ten, none above: `9.4 GB` and `140 MB` are both two digits of real
+            // information, and `140.3 MB` is one of them plus noise.
+            return if value < 10.0 && scale > 1 {
+                format!("{value:.1} {unit}")
+            } else {
+                format!("{} {unit}", value.round() as u64)
+            };
+        }
+    }
+    "0 B".into()
+}
+
 /// Truncate to a cell budget with an ellipsis, counting characters rather than bytes.
 pub fn truncate(text: &str, max: usize) -> String {
     let len = text.chars().count();
@@ -531,9 +599,12 @@ pub fn wrap(text: &str, width: usize, max_lines: usize) -> Vec<String> {
             lines.push(std::mem::take(&mut current));
             if lines.len() == max_lines {
                 // Mark the truncation rather than stopping silently, so the reader knows
-                // there is more.
+                // there is more. One mark: cutting with `truncate` and then appending put a
+                // second ellipsis after the first whenever the line was already full, and a
+                // word that was itself cut short already ends in one.
                 if let Some(last) = lines.last_mut() {
-                    *last = truncate(last, width.saturating_sub(1)) + "…";
+                    let kept: String = last.chars().take(width.saturating_sub(1)).collect();
+                    *last = kept.trim_end_matches('…').trim_end().to_owned() + "…";
                 }
                 return lines;
             }
@@ -744,6 +815,25 @@ mod tests {
     }
 
     #[test]
+    fn header_chips_give_way_rather_than_overwrite_the_wordmark() {
+        let p = palette();
+        let chips = [
+            ("src ✓".to_string(), Role::State),
+            ("·".to_string(), Role::Rule),
+            ("trk 3".to_string(), Role::State),
+        ];
+        let row = |width: u16| {
+            let mut buf = buffer(width, 1);
+            Header::new(&p, "anistream").chips(&chips).render(buf.area, &mut buf);
+            row_text(&buf, 0)
+        };
+        let text = row(24);
+        assert!(text.starts_with("anistream  "), "got {text:?}");
+        assert!(text.trim_end().ends_with("src ✓"), "the last chip and its mark go: {text:?}");
+        assert_eq!(row(12).trim_end(), "anistream", "no room for any chip");
+    }
+
+    #[test]
     fn the_status_line_keeps_state_left_and_hints_right() {
         let p = palette();
         let hints = [("↵".to_string(), "Open"), ("?".to_string(), "Show keys")];
@@ -758,12 +848,31 @@ mod tests {
     fn hints_are_dropped_rather_than_overlapping_the_state() {
         // Overlapping text is worse than absent text.
         let p = palette();
-        let hints = [("↵".to_string(), "Open")];
-        let mut buf = buffer(24, 1);
-        StatusLine::new(&p, "a very long status string here")
+        let hints = [("↵".to_string(), "Open"), ("?".to_string(), "keys")];
+        let mut buf = buffer(40, 1);
+        StatusLine::new(&p, "plugins · sub · 1080p · a long status")
             .hints(&hints)
             .render(buf.area, &mut buf);
-        assert!(!row_text(&buf, 0).contains("open"));
+        let text = row_text(&buf, 0);
+        assert!(!text.contains("open"), "the first hint gives way: {text:?}");
+        // The last one stays, and the state is cut short to make room rather than overdrawn.
+        assert!(text.trim_end().ends_with("? keys"), "got {text:?}");
+        assert!(text.contains('…'), "the state must be truncated, not overlapped: {text:?}");
+    }
+
+    #[test]
+    fn a_short_state_keeps_every_hint_that_fits() {
+        let p = palette();
+        let hints = [
+            ("↵".to_string(), "open"),
+            ("e".to_string(), "episodes"),
+            ("?".to_string(), "keys"),
+        ];
+        let mut buf = buffer(40, 1);
+        StatusLine::new(&p, "plugins · sub · 1080p").hints(&hints).render(buf.area, &mut buf);
+        let text = row_text(&buf, 0);
+        assert!(text.starts_with("plugins · sub · 1080p"), "the state stays whole: {text:?}");
+        assert!(text.trim_end().ends_with("? keys"), "got {text:?}");
     }
 
     #[test]
@@ -792,6 +901,25 @@ mod tests {
         let lines = wrap("one two three four five six seven eight nine ten", 10, 2);
         assert_eq!(lines.len(), 2);
         assert!(lines.last().unwrap().ends_with('…'), "reader must know there is more");
+    }
+
+    #[test]
+    fn a_wrapped_synopsis_ends_in_one_ellipsis() {
+        // The cut line is exactly full: cutting it and then appending gave `……`.
+        let lines = wrap("aaaa bbbb cccc dddd eeee ffff", 9, 1);
+        assert_eq!(lines, vec!["aaaa bbb…"]);
+        // A word too long for the line is cut with its own mark; the budget does not add another.
+        let lines = wrap("abcdefghijklmnop more words", 8, 1);
+        assert_eq!(lines.len(), 1);
+        assert_eq!(lines[0].matches('…').count(), 1, "got {:?}", lines[0]);
+        assert!(lines[0].chars().count() <= 8);
+    }
+
+    #[test]
+    fn counts_of_one_are_singular() {
+        assert_eq!(plural(1, "episode"), "1 episode");
+        assert_eq!(plural(0, "episode"), "0 episodes");
+        assert_eq!(plural(6, "title"), "6 titles");
     }
 
     #[test]

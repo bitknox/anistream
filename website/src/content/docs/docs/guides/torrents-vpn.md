@@ -60,8 +60,15 @@ account cannot be played.
 - Routes the session through your VPN's SOCKS5 proxy.
 - **Forces DHT off.** SOCKS5 UDP-associate is unreliable and librqbit does not document whether
   DHT is tunnelled, so it is treated as a leak.
-- Verifies egress *through the proxy* before any session starts.
+- Verifies egress *through the proxy* before any session starts. In `external` mode the check goes
+  out directly, the way peers connect, whatever `HTTPS_PROXY` says.
+- Keeps checking while it fails, so a VPN connected after launch brings torrents up without a
+  restart. The interface does not wait for it.
 - Re-checks on an interval, and pauses every torrent if a check fails.
+
+The header badge says what the last check found: `vpn ●` with the exit network when it passed,
+`vpn ✕ unreachable` when the proxy or the lookup could not be reached — nothing can leave through
+a proxy that is down — and `vpn ✕ LEAK` when traffic was seen leaving through the wrong network.
 
 ## Its limits
 
@@ -108,3 +115,6 @@ from crowding out the requests the episode you are watching needs.
 
 Seeding after watching is off by default for the same reason finished downloads stop seeding:
 it advertises you as a source for as long as it runs, and that is your call to make.
+
+What streamed episodes leave on disk, and the limit on it, is covered under
+[Disk space](/docs/guides/configuration/#disk-space).

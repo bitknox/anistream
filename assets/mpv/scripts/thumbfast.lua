@@ -11,11 +11,12 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 ]]
 
 -- anistream: modified copy of po5/thumbfast at 0f711de3138c9bd6718209d819ac54022c23ded2.
--- Every change is marked `-- anistream:`: a helper above client_script, three blocks in
+-- Every change is marked `-- anistream:`: a helper above client_script, four blocks in
 -- spawn(), one observer at the end of the file, a timer that hides a frame which never
 -- arrives and one that asks for it again. The thumbnailer opens
 -- user-data/anistream/thumbnail-url instead of `path` when the host sets one, inherits the
--- parent's user-agent, referrer and http-header-fields, and reads HLS one segment at a time.
+-- parent's user-agent, referrer and http-header-fields, reads HLS one segment at a time, and
+-- starts exactly where the first thumbnail was asked for.
 -- Provenance and licence: assets/THIRD-PARTY.md in the anistream repository.
 
 local options = {
@@ -483,11 +484,16 @@ local function spawn(time)
     local vid = properties["vid"]
     has_vid = vid or 0
 
+    -- anistream: the start is exact, whatever allow_fast_seek says. The seeks that follow a
+    -- spawn are written before the child is listening and are lost, so the first thumbnail of
+    -- every file was the frame `--start` landed on, and a keyframe start on HLS can be many
+    -- seconds short of the moment asked for. Every later seek names its own precision, so this
+    -- governs only the start.
     local args = {
         mpv_path, "--no-config", "--msg-level=all=no", "--idle", "--pause", "--keep-open=always", "--really-quiet", "--no-terminal",
         "--load-scripts=no", "--osc=no", "--ytdl=no", "--load-stats-overlay=no", "--load-osd-console=no", "--load-auto-profiles=no",
         "--edition="..(properties["edition"] or "auto"), "--vid="..(vid or "auto"), "--no-sub", "--no-audio",
-        "--start="..time, allow_fast_seek and "--hr-seek=no" or "--hr-seek=yes",
+        "--start="..time, "--hr-seek=yes",
         "--ytdl-format=worst", "--demuxer-readahead-secs=0", "--demuxer-max-bytes=128KiB",
         "--vd-lavc-skiploopfilter=all", "--vd-lavc-software-fallback=1", "--vd-lavc-fast", "--vd-lavc-threads=2", "--hwdec="..(options.hwdec and "auto" or "no"),
         "--vf="..vf_string(filters_all, true),

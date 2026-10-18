@@ -35,21 +35,25 @@ your mpv version, which interface is in use and where its files were written.
 
 ## Keys inside the player
 
+Keys are written as the `?` list in the player writes them, by the key you press: `S` is the S
+key on its own, and `Shift+N` is N with Shift held.
+
 | Key | Action |
 |---|---|
-| `N` / `P` | Next · previous episode |
-| `M`, right click | The anistream menu |
+| `Shift+N` / `Shift+P` | Next · previous episode |
+| `Shift+M`, right click | The anistream menu |
 | `?` | Every key on this list, in the player window |
-| `s` or `Enter` | Skip the opening or ending, while the button is shown |
-| `u` | Undo an automatic skip, while the note is shown |
+| `←` / `→` | Back · forward 5 seconds |
+| `S` or `Enter` | Skip the opening or ending, while the button is shown |
+| `U` | Undo an automatic skip, while the note is shown |
 | `Enter` / `Esc` | Play now · cancel, while Up Next is shown |
 | `Enter` / `Esc` | Switch source · keep waiting, when a stream stops mid-episode |
 | Click the picture | Pause and resume. A double click is fullscreen, as in mpv |
 | Mouse wheel | Volume |
-| `Alt+m` | Mini player |
-| `Alt+z` | Sync subtitles |
+| `Alt+M` | Mini player |
+| `Alt+Z` | Sync subtitles |
 
-Keys that belong to an element only exist while it is on screen. The rest of the time `s` takes
+Keys that belong to an element only exist while it is on screen. The rest of the time `S` takes
 a screenshot and `Enter` and `Esc` do what mpv does. Every binding has a name, so a line like
 `F2 script-binding anistream/menu` in your `input.conf` moves it, and the `?` list shows the key
 you chose. mpv's own full list of bindings is `Shift+I`, then `4`.
@@ -68,7 +72,7 @@ search, and a torrent has its first pieces by then. Cancel keeps the player wher
 
 ## Menus
 
-Press `M` or right click for the anistream menu:
+Press `Shift+M` or right click for the anistream menu:
 
 - **Episodes** jumps to any episode of the season.
 - **Sources** switches to another release of the same episode and keeps your place.
@@ -120,7 +124,7 @@ When you change the audio track, the subtitle track or the subtitle delay, that 
 the series, separately for sub and dub, and matched on later episodes even when their track
 numbers differ. This follows `persist_speed`, which also carries playback speed.
 
-Sync subtitles (`Alt+z`) fixes subtitles that drift: mark a line where it shows and where it should
+Sync subtitles (`Alt+Z`) fixes subtitles that drift: mark a line where it shows and where it should
 show, twice, and anistream works out the delay and speed.
 
 ## Thumbnails

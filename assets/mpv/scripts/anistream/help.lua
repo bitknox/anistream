@@ -221,7 +221,10 @@ local function layout()
         {
             { heading = "Playing" },
             { "Play or pause", { { cmd = "cycle pause" }, { name = "pause-click" } } },
-            { "Back or forward 5 s", { { cmd = "seek -5" }, { cmd = "seek 5" } } },
+            {
+                "Back or forward 5 s",
+                { { cmd = "seek -5" }, { cmd = "seek 5" }, { name = "seek-back" }, { name = "seek-forward" } },
+            },
             { "Volume", { { cmd = "add volume" }, { name = "volume-up" }, { name = "volume-down" } } },
             { "Mute", { { cmd = "cycle mute" } } },
             { "Fullscreen", { { cmd = "cycle fullscreen" } } },

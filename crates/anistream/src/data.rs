@@ -13,10 +13,9 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
     // Local history is the source of truth for progress, so it is read here rather than
     // taken from any remote list — this is what makes the app work with no account.
     let progress = store.and_then(|s| {
-        s.progress(media.id).ok().flatten().map(|p| {
-            let done = p.episodes_done;
-            (done, done.saturating_add(1))
-        })
+        let progress = s.progress(media.id).ok().flatten()?;
+        let completed = s.completed_episodes(media.id).unwrap_or_default();
+        Some((progress.episodes_done, continue_from(&progress, &completed, media.episodes)))
     });
 
     // Where an unfinished episode was left. Read for the *next* episode specifically, which is
@@ -40,7 +39,7 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
     Entry {
         secondary: media.title.secondary().map(str::to_owned),
         resume,
-        format: media.format.map(|f| format!("{f:?}").to_uppercase()),
+        format: media.format.and_then(format_label),
         episodes: media.episodes,
         year: media.season_year,
         score: media.average_score,
@@ -49,7 +48,14 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
         cover_url: media.cover_image.best().map(str::to_owned),
         banner_url: media.banner_image.clone(),
         genres: media.genres.clone(),
-        available_on: media.streaming_services().iter().map(|l| l.site.clone()).collect(),
+        // One mention per service. AniList lists a link per region or per language, so the
+        // same service could appear twice in one line ("YouTube · Bilibili TV · YouTube").
+        available_on: media.streaming_services().iter().fold(Vec::new(), |mut sites, link| {
+            if !sites.contains(&link.site) {
+                sites.push(link.site.clone());
+            }
+            sites
+        }),
         progress,
         airing_in: media.next_airing_episode.map(|n| n.time_until_airing),
         next_episode: media.next_airing_episode.map(|n| n.episode),
@@ -64,7 +70,7 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
                 id: r.id,
                 title: r.title.display().to_owned(),
                 relation: r.relation_type.map_or_else(String::new, |t| t.to_lowercase()),
-                format: r.format.map(|f| format!("{f:?}").to_uppercase()),
+                format: r.format.and_then(format_label),
             })
             .collect(),
         trailer_url: media.trailer_url(),
@@ -76,10 +82,41 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
                 title: node.title.display().to_owned(),
                 // Not a relation — the empty string is what RECOMMENDED rows show there.
                 relation: String::new(),
-                format: node.format.map(|f| format!("{f:?}").to_uppercase()),
+                format: node.format.and_then(format_label),
             })
             .collect(),
         ..Entry::new(media.id, media.title.display())
+    }
+}
+
+/// The episode Continue offers, from where the viewer actually is rather than a count.
+///
+/// The last episode touched, when it is unfinished; otherwise the first after it not yet
+/// watched, and past the season's last episode the first one skipped. "Episodes done plus one"
+/// only holds for someone who never watches out of order: a catch-up, a rewatch or a skipped
+/// recap and it named an episode already finished, or one never started while another sat half
+/// watched.
+pub fn continue_from(
+    progress: &anistream_store::Progress,
+    completed: &[String],
+    total: Option<u32>,
+) -> u32 {
+    let done = |n: u32| completed.iter().any(|e| e.trim().parse::<u32>() == Ok(n));
+    // "OVA" and "12.5" sit outside the numbering; the count is the best guess there is.
+    let Ok(last) = progress.last_episode.trim().parse::<u32>() else {
+        return progress.episodes_done.saturating_add(1);
+    };
+    if !done(last) {
+        return last;
+    }
+    let mut next = last.saturating_add(1);
+    // Bounded: an all-watched tail must still terminate.
+    while done(next) && next - last < 1_000 {
+        next += 1;
+    }
+    match total {
+        Some(total) if next > total => (1..=total).find(|n| !done(*n)).unwrap_or(next),
+        _ => next,
     }
 }
 
@@ -91,10 +128,31 @@ pub fn entry_from_airing(airing: &AiringEntry, now: i64, store: Option<&Store>) 
         // whole is what lets a row about an episode that just aired still say when the one after
         // it is due.
         airing_in: Some(airing.airing_at.saturating_sub(now)),
-        // The calendar is about *this* episode, so the title carries its number.
-        title: format!("{}  ep {}", airing.media.title.display(), airing.episode),
+        // The calendar is about *this* episode, so the row carries its number — beside the
+        // title, not in it, where truncation took it first and the Title page inherited it.
+        airing_episode: Some(airing.episode),
         ..entry_from(&airing.media, store)
     }
+}
+
+/// A format as the metadata line shows it: `TV SHORT`, not the `TVSHORT` that upper-casing
+/// the enum's name produced. `None` for a format AniList has and this build does not know,
+/// which says nothing rather than `UNKNOWN`.
+fn format_label(format: anistream_core::media::MediaFormat) -> Option<String> {
+    use anistream_core::media::MediaFormat as F;
+    Some(
+        match format {
+            F::Tv => "TV",
+            F::TvShort => "TV SHORT",
+            F::Movie => "MOVIE",
+            F::Special => "SPECIAL",
+            F::Ova => "OVA",
+            F::Ona => "ONA",
+            F::Music => "MUSIC",
+            F::Unknown => return None,
+        }
+        .to_owned(),
+    )
 }
 
 /// The metadata ladder's rungs, in the UI's terms.
@@ -107,6 +165,9 @@ pub fn meta_rows(meta: &anistream_meta::Meta) -> Vec<anistream_ui::app::MetaSour
             healthy: h.healthy,
             active: h.active,
             detail: h.detail,
+            retry_at: h.retry_at.and_then(|at| {
+                at.duration_since(std::time::UNIX_EPOCH).ok().map(|d| d.as_secs() as i64)
+            }),
         })
         .collect()
 }
@@ -208,6 +269,10 @@ pub fn episode_rows_with_filler(
     filler: Option<&anistream_meta::filler::FillerList>,
 ) -> Vec<EpisodeRow> {
     let watched = store.events_for(anilist_id, 500).unwrap_or_default();
+    // Completion from the whole log: the rows above are only the last few episodes' worth, and
+    // an episode finished before them must not read as unwatched — nor lose its mark to a
+    // rewatch that was stopped early.
+    let completed = store.completed_episodes(anilist_id).unwrap_or_default();
 
     episodes
         .iter()
@@ -247,17 +312,28 @@ pub fn episode_rows_with_filler(
 
             EpisodeRow {
                 number: episode.number.as_str().to_owned(),
-                title: episode.title.clone(),
+                title: episode.title.as_deref().map(plain_quotes),
                 thumbnail: episode.thumbnail.clone(),
                 description: episode.description.clone(),
                 duration_secs: duration,
                 watched: fraction,
-                completed: event.is_some_and(|e| e.completed),
+                completed: event.is_some_and(|e| e.completed)
+                    || completed.iter().any(|e| e == episode.number.as_str()),
                 kind: classified.map(|(label, _)| label),
                 skippable: classified.is_some_and(|(_, skippable)| skippable),
             }
         })
         .collect()
+}
+
+/// An episode title as it should read, from wherever it was listed.
+///
+/// Listings use a backtick for the apostrophe often enough to matter ("One`s Own"). The terminal
+/// shows it as the stray mark it is, and the player's text renderer drew it as a grave accent
+/// over the letter beside it — so it is put right once, here, where every title enters the
+/// episode table that the terminal and the player both read.
+fn plain_quotes(title: &str) -> String {
+    title.replace('`', "'")
 }
 
 #[cfg(test)]
@@ -416,6 +492,82 @@ mod tests {
         assert!((e.watched_fraction() - 2.0 / 28.0).abs() < 1e-9);
     }
 
+    fn watch(store: &Store, episode: &str, position: f64, completed: bool, at: i64) {
+        store
+            .record_event(&anistream_store::WatchEvent {
+                duration_secs: Some(1440.0),
+                completed,
+                at,
+                ..anistream_store::WatchEvent::new(AnilistId::new(154_587), episode, position)
+            })
+            .unwrap();
+    }
+
+    #[test]
+    fn continue_is_where_the_viewer_actually_is() {
+        // Five finished, then episode 8 left at 8:30: Continue is episode 8, resuming there,
+        // and the count is five — not "episode 6" because five are done.
+        let store = Store::open_in_memory().unwrap();
+        for (at, episode) in ["1", "2", "3", "4", "5"].into_iter().enumerate() {
+            watch(&store, episode, 1400.0, true, at as i64);
+        }
+        watch(&store, "8", 510.0, false, 10);
+        let e = entry_from(&media(), Some(&store));
+        assert_eq!(e.progress, Some((5, 8)));
+        assert_eq!(e.resume.map(|r| r.position), Some(510.0));
+    }
+
+    #[test]
+    fn continue_never_offers_an_episode_already_finished() {
+        // Out of order: 1-4 and 6 finished, 6 last. "Done plus one" said 6 again.
+        let store = Store::open_in_memory().unwrap();
+        for (at, episode) in ["1", "2", "3", "4", "6"].into_iter().enumerate() {
+            watch(&store, episode, 1400.0, true, at as i64);
+        }
+        assert_eq!(entry_from(&media(), Some(&store)).progress, Some((5, 7)));
+
+        // A rewatch of episode 3, finished: past everything already watched after it.
+        watch(&store, "5", 1400.0, true, 20);
+        watch(&store, "3", 1400.0, true, 30);
+        assert_eq!(entry_from(&media(), Some(&store)).progress, Some((6, 7)));
+
+        // The season's last episode, watched with others skipped: back to the first skipped.
+        watch(&store, "28", 1400.0, true, 40);
+        assert_eq!(entry_from(&media(), Some(&store)).progress, Some((7, 7)));
+    }
+
+    #[test]
+    fn a_finished_episode_stays_finished_however_long_ago() {
+        // Every ten seconds of playback is a row, and the table reads the newest few hundred;
+        // an episode finished before them still reads as finished.
+        let store = Store::open_in_memory().unwrap();
+        watch(&store, "1", 1400.0, true, 0);
+        for at in 1..=600 {
+            watch(&store, "2", f64::from(at as u32) * 2.0, false, at);
+        }
+        let episodes: Vec<_> = ["1", "2"]
+            .into_iter()
+            .map(|n| {
+                anistream_core::media::Episode::new(anistream_core::media::EpisodeNumber::new(
+                    n,
+                ))
+            })
+            .collect();
+        let rows = episode_rows(&episodes, &store, AnilistId::new(154_587));
+        assert!(rows[0].completed, "episode 1 lost its mark");
+        assert!(!rows[1].completed);
+    }
+
+    #[test]
+    fn a_backtick_in_an_episode_title_becomes_an_apostrophe() {
+        let store = Store::open_in_memory().unwrap();
+        let mut episode =
+            anistream_core::media::Episode::new(anistream_core::media::EpisodeNumber::new("1"));
+        episode.title = Some("A Mage`s Promise".into());
+        let rows = episode_rows(&[episode], &store, AnilistId::new(1));
+        assert_eq!(rows[0].title.as_deref(), Some("A Mage's Promise"));
+    }
+
     #[test]
     fn a_title_with_no_history_has_no_progress() {
         let store = Store::open_in_memory().unwrap();
@@ -426,8 +578,35 @@ mod tests {
     fn a_calendar_entry_carries_its_episode_number_and_countdown() {
         let airing = AiringEntry { episode: 12, airing_at: 1_000_600, media: media() };
         let e = entry_from_airing(&airing, 1_000_000, None);
-        assert!(e.title.contains("ep 12"));
+        assert_eq!(e.airing_episode, Some(12));
+        // Beside the title, not in it: the title is what the Title page and the Episodes
+        // heading show, and neither is about one episode.
+        assert_eq!(e.title, entry_from(&media(), None).title);
         assert_eq!(e.airing_in, Some(600));
+    }
+
+    #[test]
+    fn a_short_tv_format_reads_as_two_words() {
+        let mut media = media();
+        media.format = Some(anistream_core::media::MediaFormat::TvShort);
+        assert_eq!(entry_from(&media, None).format.as_deref(), Some("TV SHORT"));
+        media.format = Some(anistream_core::media::MediaFormat::Unknown);
+        assert_eq!(entry_from(&media, None).format, None, "absent beats UNKNOWN");
+    }
+
+    #[test]
+    fn a_service_listed_twice_is_named_once() {
+        let media: Media = serde_json::from_value(serde_json::json!({
+            "id": 1,
+            "title": {"romaji": "Invented Show"},
+            "externalLinks": [
+                {"site": "Streamer", "url": "https://a.test/us", "type": "STREAMING"},
+                {"site": "Other", "url": "https://b.test", "type": "STREAMING"},
+                {"site": "Streamer", "url": "https://a.test/jp", "type": "STREAMING"}
+            ]
+        }))
+        .unwrap();
+        assert_eq!(entry_from(&media, None).available_on, vec!["Streamer", "Other"]);
     }
 
     /// Reported as "EP 5 out · EP 6 in now": the row's slot was paired with the *media's* next

@@ -17,7 +17,10 @@
 
 use std::sync::Arc;
 
-use anistream_core::traits::{TrackOp, TrackedEntry, Tracker, WatchStatus};
+use anistream_core::{
+    ids::AnilistId,
+    traits::{TrackOp, TrackedEntry, Tracker, WatchStatus},
+};
 
 use crate::{mal::IdMapping, secret::TokenPair};
 
@@ -29,6 +32,8 @@ pub struct SimklTracker {
     http: reqwest::Client,
     mapping: Arc<dyn IdMapping>,
     token: tokio::sync::RwLock<Option<TokenPair>>,
+    /// [`API`], except in tests, which point it at a local server.
+    api: String,
 }
 
 impl SimklTracker {
@@ -43,6 +48,7 @@ impl SimklTracker {
             http,
             mapping,
             token: tokio::sync::RwLock::new(token),
+            api: API.to_owned(),
         }
     }
 
@@ -64,7 +70,7 @@ impl SimklTracker {
         let token = self.access_token().await?;
         Ok(self
             .http
-            .request(method, format!("{API}{path}"))
+            .request(method, format!("{}{path}", self.api))
             .header("simkl-api-key", &self.client_id)
             .header("authorization", format!("Bearer {token}"))
             .header("content-type", "application/json"))
@@ -100,6 +106,10 @@ impl Tracker for SimklTracker {
 
     fn is_authenticated(&self) -> bool {
         self.token.try_read().map_or(true, |held| held.is_some())
+    }
+
+    fn can_address(&self, op: &TrackOp) -> bool {
+        self.mapping.mal_id(op.anilist_id()).is_some()
     }
 
     async fn accept_credentials(
@@ -164,6 +174,17 @@ impl Tracker for SimklTracker {
     }
 
     async fn push(&self, ops: &[TrackOp]) -> Result<(), anistream_core::Error> {
+        self.push_checked(ops).await.map(drop)
+    }
+
+    /// Simkl answers a write with `200` whatever it made of it, and lists what it could not
+    /// match under `not_found`. Read as success, every unmatched title looked synced, the
+    /// next pull still saw it behind, and the merge queued it again — a push every pull, for
+    /// as long as the app ran.
+    async fn push_checked(
+        &self,
+        ops: &[TrackOp],
+    ) -> Result<Vec<AnilistId>, anistream_core::Error> {
         if !self.is_authenticated() {
             return Err(anistream_core::Error::Auth("signed out".into()));
         }
@@ -172,6 +193,8 @@ impl Tracker for SimklTracker {
         // sent as one batch.
         let mut watched = Vec::new();
         let mut listed = Vec::new();
+        // Which title each MAL id sent stands for, to read `not_found` back with.
+        let mut sent: Vec<(u32, AnilistId)> = Vec::new();
 
         for op in ops {
             let (anilist_id, mal_id) = match op {
@@ -179,8 +202,8 @@ impl Tracker for SimklTracker {
                 | TrackOp::SetStatus { anilist_id, .. }
                 | TrackOp::SetScore { anilist_id, .. } => {
                     let Some(mal_id) = self.mapping.mal_id(*anilist_id) else {
-                        // Named, not silent: a title that cannot sync is exactly what the mapping
-                        // layer exists to make visible.
+                        // The drain holds these until the mappings change (see `can_address`),
+                        // so this is only a caller that skipped the check. Named, not silent.
                         tracing::warn!(
                             anilist_id = anilist_id.get(),
                             "no mal id, so simkl cannot be told about this title"
@@ -190,7 +213,7 @@ impl Tracker for SimklTracker {
                     (*anilist_id, mal_id)
                 }
             };
-            let _ = anilist_id;
+            sent.push((mal_id, anilist_id));
 
             match op {
                 TrackOp::SetProgress { episode, .. } => {
@@ -219,6 +242,7 @@ impl Tracker for SimklTracker {
             }
         }
 
+        let mut ignored: Vec<AnilistId> = Vec::new();
         for (path, items) in [("/sync/history", watched), ("/sync/add-to-list", listed)] {
             if items.is_empty() {
                 continue;
@@ -245,14 +269,176 @@ impl Tracker for SimklTracker {
                     message: format!("{path}: {} {}", status.as_u16(), body.trim()),
                 });
             }
+            // An unreadable body is not a failure: the status said the write was accepted, and
+            // treating it as one would retry a write that may well have landed.
+            let body: serde_json::Value = response.json().await.unwrap_or_default();
+            for mal_id in not_found(&body) {
+                for (_, anilist_id) in sent.iter().filter(|(sent_id, _)| *sent_id == mal_id) {
+                    if !ignored.contains(anilist_id) {
+                        ignored.push(*anilist_id);
+                    }
+                }
+            }
         }
-        Ok(())
+        Ok(ignored)
     }
+}
+
+/// The MAL ids Simkl lists under `not_found`, whichever kind it filed them as.
+///
+/// The entries echo what was sent, so each carries the `ids` object the request named the
+/// title by. Read loosely: a kind Simkl adds later, or an id sent back as a string, must not
+/// turn an unmatched title back into an applied one.
+fn not_found(body: &serde_json::Value) -> Vec<u32> {
+    let Some(kinds) = body["not_found"].as_object() else {
+        return Vec::new();
+    };
+    kinds
+        .values()
+        .filter_map(serde_json::Value::as_array)
+        .flatten()
+        .filter_map(|item| {
+            let mal = &item["ids"]["mal"];
+            mal.as_u64()
+                .or_else(|| mal.as_str()?.parse().ok())
+                .and_then(|id| u32::try_from(id).ok())
+        })
+        .collect()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    const FRIEREN: AnilistId = AnilistId::new(154_587);
+    const UNKNOWN_TO_SIMKL: AnilistId = AnilistId::new(1);
+
+    struct FixedMapping;
+    impl IdMapping for FixedMapping {
+        fn mal_id(&self, anilist_id: AnilistId) -> Option<u32> {
+            match anilist_id.get() {
+                154_587 => Some(52_991),
+                1 => Some(1),
+                _ => None,
+            }
+        }
+        fn anilist_id(&self, _: u32) -> Option<AnilistId> {
+            None
+        }
+    }
+
+    /// A one-shot HTTP server on loopback: answers each request with the next canned body
+    /// and hands back what it was asked, so a test can check both directions.
+    async fn serve(
+        answers: Vec<&'static str>,
+    ) -> (String, tokio::task::JoinHandle<Vec<String>>) {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let handle = tokio::spawn(async move {
+            let mut seen = Vec::new();
+            for answer in answers {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                let mut request = Vec::new();
+                let mut chunk = [0_u8; 4096];
+                // Read the head, then as much body as it declares.
+                loop {
+                    let n = socket.read(&mut chunk).await.unwrap();
+                    request.extend_from_slice(&chunk[..n]);
+                    let text = String::from_utf8_lossy(&request).to_string();
+                    if let Some(end) = text.find("\r\n\r\n") {
+                        let length = text
+                            .lines()
+                            .find_map(|l| {
+                                l.to_ascii_lowercase()
+                                    .strip_prefix("content-length:")
+                                    .map(|v| v.trim().parse::<usize>().unwrap_or(0))
+                            })
+                            .unwrap_or(0);
+                        if request.len() >= end + 4 + length {
+                            break;
+                        }
+                    }
+                    if n == 0 {
+                        break;
+                    }
+                }
+                seen.push(String::from_utf8_lossy(&request).to_string());
+                let reply = format!(
+                    "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{answer}",
+                    answer.len()
+                );
+                socket.write_all(reply.as_bytes()).await.unwrap();
+                socket.shutdown().await.ok();
+            }
+            seen
+        });
+        (base, handle)
+    }
+
+    fn tracker_at(base: String) -> SimklTracker {
+        SimklTracker {
+            api: base,
+            ..SimklTracker::new(
+                "key",
+                reqwest::Client::new(),
+                Arc::new(FixedMapping),
+                Some(TokenPair { access: "tok".into(), refresh: None, expires_at: None }),
+            )
+        }
+    }
+
+    #[tokio::test]
+    async fn a_title_simkl_lists_as_not_found_is_reported_rather_than_counted_as_sent() {
+        // The echo loop's first half: a 200 whose body said "not found" read as applied.
+        let (base, server) = serve(vec![
+            r#"{"added":{"movies":0,"shows":1,"episodes":12},
+                "not_found":{"movies":[],"shows":[{"ids":{"mal":1}}],"episodes":[]}}"#,
+        ])
+        .await;
+        let ignored = tracker_at(base)
+            .push_checked(&[
+                TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 },
+                TrackOp::SetProgress { anilist_id: UNKNOWN_TO_SIMKL, episode: 3 },
+            ])
+            .await
+            .unwrap();
+        assert_eq!(ignored, vec![UNKNOWN_TO_SIMKL]);
+
+        let requests = server.await.unwrap();
+        assert_eq!(requests.len(), 1, "both titles go in one batch");
+        assert!(requests[0].starts_with("POST /sync/history"), "{}", requests[0]);
+        assert!(requests[0].contains(r#""mal":52991"#), "{}", requests[0]);
+    }
+
+    #[tokio::test]
+    async fn a_write_simkl_matched_is_not_reported() {
+        let (base, server) = serve(vec![
+            r#"{"added":{"shows":1,"episodes":12},"not_found":{"shows":[],"episodes":[]}}"#,
+        ])
+        .await;
+        let ignored = tracker_at(base)
+            .push_checked(&[TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 }])
+            .await
+            .unwrap();
+        assert!(ignored.is_empty());
+        server.await.unwrap();
+    }
+
+    #[test]
+    fn not_found_ids_are_read_whatever_kind_or_shape_they_come_in() {
+        let body = serde_json::json!({
+            "not_found": {
+                "shows": [{ "ids": { "mal": 7 } }],
+                "anime": [{ "ids": { "mal": "8" } }],
+                "movies": [],
+            }
+        });
+        let mut ids = not_found(&body);
+        ids.sort_unstable();
+        assert_eq!(ids, vec![7, 8]);
+        assert!(not_found(&serde_json::json!({})).is_empty());
+    }
 
     #[test]
     fn statuses_round_trip_through_simkls_names() {

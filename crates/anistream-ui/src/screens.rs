@@ -20,7 +20,10 @@ use crate::{
         Palette, Role,
         glyph::{self, OBI},
     },
-    widgets::{Divider, Hairline, Header, ObiList, ObiRow, Rail, StatusLine, truncate, wrap},
+    widgets::{
+        Divider, Hairline, Header, ObiList, ObiRow, Rail, StatusLine, human_bytes, truncate,
+        wrap,
+    },
 };
 
 /// Write a line, or nothing at all if it would land outside the buffer.
@@ -93,10 +96,15 @@ pub fn render(frame: &mut TFrame<'_>, app: &App) {
     render_stage(buf, app, geometry.stage);
 
     Hairline::new(&app.palette).render(geometry.status_rule, buf);
-    render_activity(buf, app, &activity, geometry.status_rule, now);
-    render_status(buf, app, &geometry);
-    render_toasts(buf, app, geometry.stage);
+    let caption_end = render_activity(buf, app, &activity, geometry.status_rule, now);
     render_overlay(buf, app, area, &geometry);
+    // After the overlay, so it is not dimmed with the rest: while one is open the status line
+    // carries that overlay's own keys, which are no use faded into the scrim — and the overlay
+    // has to be laid out before its hints can say whether it pages.
+    render_status(buf, app, &geometry);
+    // After the overlay for the same reason: a message answering a key pressed in a picker
+    // is read while the picker is still up.
+    render_toasts(buf, app, geometry.status_rule, caption_end);
     // Last, so it occludes: an eyecatch that toasts could bleed through would not be covering
     // anything.
     render_eyecatch(buf, app, geometry.stage);
@@ -105,17 +113,21 @@ pub fn render(frame: &mut TFrame<'_>, app: &App) {
 fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
     let mut chips: Vec<(String, Role)> = Vec::new();
 
-    let provider = app.source_label();
-    // Torrenting is off until a VPN mode is chosen, and that has to be visible rather
-    // than discovered when playback fails.
-    let torrent_ready = app.config.providers.torrent.enabled;
-    chips.push((
-        format!(
-            "{provider} {}",
-            if torrent_ready { glyph::STATE_READY } else { glyph::STATE_DEGRADED }
-        ),
-        if torrent_ready { Role::State } else { Role::Alert },
-    ));
+    // One chip per configured source, in failover order, each saying how it stands. The chip
+    // used to take its name from the first source in the order and its state from whether
+    // torrents were switched on, so a session that plugins were serving read as broken in the
+    // alert colour. Off is a choice and is said quietly; only a source that is failing alerts.
+    for (source, state) in app.source_states() {
+        use crate::app::SourceState as S;
+        let (mark, role) = match state {
+            S::Ready => (glyph::STATE_READY, Role::State),
+            S::Off => (glyph::STATE_OFF, Role::TextDim),
+            S::HeldBack => (glyph::STATE_DEGRADED, Role::State),
+            S::Failing => (glyph::STATE_DOWN, Role::Alert),
+            S::Pending => (glyph::STATE_UNKNOWN, Role::TextDim),
+        };
+        chips.push((format!("{source} {mark}"), role));
+    }
 
     // VPN state sits next to the source it governs. Always shown when torrenting is
     // configured — discovering a failing guard only when playback refuses would be far
@@ -124,8 +136,8 @@ fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
         chips.push((badge.clone(), if app.vpn_leaking { Role::Alert } else { Role::State }));
     }
 
-    // Only while degraded, like the plugins chip: a healthy ladder is the resting state
-    // and saying so on every frame would be noise. The Providers screen has the detail.
+    // Only while degraded: a healthy ladder is the resting state and saying so on every frame
+    // would be noise. The Providers screen has the detail.
     if app.meta_degraded() {
         chips.push((format!("meta {}", glyph::STATE_DEGRADED), Role::Alert));
     }
@@ -146,7 +158,7 @@ fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
 }
 
 /// The running jobs, newest first, each with how long it has taken, written into the status
-/// hairline.
+/// hairline. Returns the column after the caption, where the rule resumes.
 ///
 /// On the rule rather than in a row of their own: a row that came and went with the work took
 /// a line from the body each time, and everything above it jumped. The rule is always there,
@@ -162,9 +174,9 @@ fn render_activity(
     jobs: &[&crate::app::Job],
     area: Rect,
     now: std::time::Instant,
-) {
+) -> u16 {
     if jobs.is_empty() || area.height == 0 || area.width < 8 {
-        return;
+        return area.left();
     }
     // Lined up with the stage's inset content, with a blank cell either side so the caption
     // sits in a gap in the rule rather than running into it.
@@ -217,6 +229,7 @@ fn render_activity(
     if x < area.right() {
         buf.set_string(x, area.top(), " ", app.palette.style(Role::Text));
     }
+    x + 1
 }
 
 /// A job's label, and what to say after it: the hold-up and its countdown while it lasts,
@@ -239,6 +252,17 @@ fn clock(span: std::time::Duration) -> String {
 }
 
 fn render_status(buf: &mut Buffer, app: &App, geometry: &Frame) {
+    // A config that did not load outranks everything the line would otherwise say: until it
+    // is fixed, the state shown is the defaults', and every setting refuses to save. Here
+    // rather than over the stage's bottom row, which hid whatever list row sat there.
+    if let Some(notice) = app.notice.as_deref() {
+        let hints = status_hints(app);
+        StatusLine::new(&app.palette, notice)
+            .state_role(Role::Alert)
+            .hints(&hints)
+            .render(geometry.status, buf);
+        return;
+    }
     let state = if app.status.is_empty() {
         format!(
             "{} · {} · {}p",
@@ -249,7 +273,7 @@ fn render_status(buf: &mut Buffer, app: &App, geometry: &Frame) {
     } else {
         app.status.clone()
     };
-    let hints = status_hints(&app.keymap, app.nav.current(), app.nav.focus() == Focus::Stage);
+    let hints = status_hints(app);
     StatusLine::new(&app.palette, &state).hints(&hints).render(geometry.status, buf);
 }
 
@@ -296,15 +320,21 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
         // Active filters are shown where they act, or a filtered search would read as
         // AniList having quietly lost titles the user knows exist.
         let summary = app.search_filter.summary();
+        let mut used = prompt.chars().count() as u16;
         if !summary.is_empty() {
-            let used = prompt.chars().count() as u16 + 3;
-            if used < area.width {
-                buf.set_string(
-                    area.left() + used,
-                    y,
-                    truncate(&summary, (area.width - used) as usize),
-                    app.palette.style(Role::TextDim),
-                );
+            let at = used + 3;
+            if at < area.width {
+                let shown = truncate(&summary, (area.width - at) as usize);
+                used = at + shown.chars().count() as u16;
+                buf.set_string(area.left() + at, y, shown, app.palette.style(Role::TextDim));
+            }
+        }
+        // That the answer stopped at one page, at the far end of the prompt. Without it a
+        // capped list read as everything AniList had.
+        if let Some(caption) = app.list_caption() {
+            let width = caption.chars().count() as u16;
+            if used + width + 3 <= area.width {
+                line(buf, area.right() - width, y, caption, app.palette.style(Role::TextDim));
             }
         }
         y += 2;
@@ -339,9 +369,9 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
         }
         // Two shades of empty, kept apart: nothing asked for yet, versus asked and found nothing.
         // Collapsing them would lose the only thing that tells a user which situation they are in.
-        Content::Empty => render_empty(buf, app, area, y, empty_state(section, false)),
+        Content::Empty => render_empty(buf, app, area, y, empty_state(app, section, false)),
         Content::Entries(entries) if entries.is_empty() => {
-            render_empty(buf, app, area, y, empty_state(section, true))
+            render_empty(buf, app, area, y, empty_state(app, section, true))
         }
         Content::Entries(entries) => {
             // Split the stage: list on the left, a preview of the focused title on the
@@ -355,13 +385,44 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
 
             let visible = list_col.height as usize;
             let mut rows: Vec<ObiRow> = Vec::with_capacity(visible + 4);
+            // What the list is, as a ruled heading held at the top: the season, for Seasonal,
+            // which otherwise never said which one it was showing.
+            if section == Section::Seasonal
+                && let Some(caption) = app.list_caption()
+            {
+                rows.push(ObiRow::heading(caption).ruled());
+            }
+            let start = if section == Section::Calendar {
+                calendar_window(entries, app.offset, app.selected, visible)
+            } else {
+                app.offset
+            };
+            // The calendar's episode and time columns, sized to what is in view so the
+            // numbers line up down the list rather than floating at each row's end.
+            let calendar_columns = (section == Section::Calendar).then(|| {
+                let shown = entries.iter().skip(start).take(visible);
+                let episode = shown
+                    .clone()
+                    .filter_map(|e| e.airing_episode)
+                    .map(|ep| format!("ep {ep}").chars().count())
+                    .max()
+                    .unwrap_or(0);
+                let time = shown
+                    .filter_map(|e| e.airing_in)
+                    .map(|secs| calendar_time(secs).chars().count())
+                    .max()
+                    .unwrap_or(0);
+                (episode, time)
+            });
             // The calendar earns its glyph — ruled rows, one heading per day — instead of
             // one undifferentiated run of time. Dates come from each entry's stored
             // countdown against the clock now; only a session left open across midnight
             // can mislabel a boundary, and the next reload corrects it.
             let mut current_day: Option<chrono::NaiveDate> = None;
             let today = chrono::Local::now().date_naive();
-            for (i, entry) in entries.iter().enumerate().skip(app.offset).take(visible) {
+            // The caption's row comes out of the window, not off the end of the list.
+            let fits = visible.saturating_sub(rows.len());
+            for (i, entry) in entries.iter().enumerate().skip(start).take(fits) {
                 if section == Section::Calendar
                     && let Some(secs) = entry.airing_in
                     && let Some(day) = air_date(secs)
@@ -425,16 +486,26 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
                     // The calendar's whole subject is *when*, so time wins over progress
                     // there — and it spans both directions, so a negative countdown is an
                     // episode that has already aired rather than a bug. Aired episodes of
-                    // tracked shows are the actionable ones.
-                    (_, Section::Calendar, Some(secs)) if secs <= 0 => {
-                        Some((crate::widgets::ago(-secs), entry.progress.is_some()))
-                    }
+                    // tracked shows are the actionable ones. The episode is a column of its
+                    // own, in the trailing text, which truncation never reaches.
                     (_, Section::Calendar, Some(secs)) => {
-                        Some((format!("in {}", crate::widgets::countdown(secs)), false))
+                        let (episode_width, time_width) =
+                            calendar_columns.expect("set for the calendar");
+                        let episode = entry
+                            .airing_episode
+                            .map(|ep| format!("ep {ep}"))
+                            .unwrap_or_default();
+                        Some((
+                            format!(
+                                "{episode:<episode_width$}  {:>time_width$}",
+                                calendar_time(secs)
+                            ),
+                            secs <= 0 && entry.progress.is_some(),
+                        ))
                     }
-                    (Some((done, _)), _, _) => {
-                        Some((format!("{}{done}", glyph::OBI_THIN), false))
-                    }
+                    // The same count the preview and the Title page give, rather than a bare
+                    // number that read like a score.
+                    (Some(_), _, _) => entry.progress_label().map(|label| (label, false)),
                     _ => entry.score.map(|s| (s.to_string(), false)),
                 };
                 if let Some((text, fresh)) = trailing {
@@ -455,6 +526,55 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
 }
 
 use crate::app::air_date;
+
+/// A calendar row's time: `in 4d 20h` ahead, `3h ago` once aired.
+fn calendar_time(secs: i64) -> String {
+    if secs <= 0 {
+        crate::widgets::ago(-secs)
+    } else {
+        format!("in {}", crate::widgets::countdown(secs))
+    }
+}
+
+/// Rows the calendar needs to show entries `from..=through`: one each, plus a heading where
+/// the day changes and a blank before every heading but the first. Stops counting past `cap`.
+fn calendar_rows(entries: &[Entry], from: usize, through: usize, cap: usize) -> usize {
+    let mut rows = 0;
+    let mut day = None;
+    for entry in entries.iter().take(through + 1).skip(from) {
+        let this = entry.airing_in.and_then(air_date);
+        if this.is_some() && this != day {
+            rows += if rows == 0 { 1 } else { 2 };
+            day = this;
+        }
+        rows += 1;
+        if rows > cap {
+            break;
+        }
+    }
+    rows
+}
+
+/// Where the calendar's window starts, so its rows fill the screen.
+///
+/// Rendering only: the offset the list keeps counts entries, and day headings take rows it
+/// does not count. Its estimate leaves rows blank at the bottom once the window reaches the
+/// last entry — `G` landed on a half-empty screen — so the window reaches back to fill them,
+/// and moves on when headings would push the selection below the last row.
+fn calendar_window(entries: &[Entry], offset: usize, selected: usize, height: usize) -> usize {
+    let Some(last) = entries.len().checked_sub(1) else { return 0 };
+    let mut start = offset.min(last);
+    if calendar_rows(entries, start, last, height) < height {
+        while start > 0 && calendar_rows(entries, start - 1, last, height) <= height {
+            start -= 1;
+        }
+    }
+    let selected = selected.min(last);
+    while start < selected && calendar_rows(entries, start, selected, height) > height {
+        start += 1;
+    }
+    start
+}
 
 /// `today` / `yesterday` / `tomorrow`, then the weekday and date. Rendered as a caps
 /// heading, so lowercase here.
@@ -537,7 +657,7 @@ const COL_TOKEN: u16 = 44;
 /// dialog you must dismiss to look at anything else is the wrong container for that.
 fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
     if area.height < MIN_TABLE_HEIGHT || area.width < 40 {
-        render_placeholder(buf, app, area, "ACCOUNTS", "not enough room");
+        render_placeholder(buf, app, area, "ACCOUNTS", "needs a larger terminal");
         return;
     }
     let mut y = area.top();
@@ -632,8 +752,8 @@ fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
             break;
         }
         let selected = i == app.selected;
-        if selected && focused {
-            buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
+        if selected {
+            mark_selected(buf, app, area.left(), y, focused);
         }
         buf.set_string(
             area.left() + 2,
@@ -648,20 +768,13 @@ fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
 
         // Needing re-authorisation is not the same as being signed out, and conflating them would
         // hide the one condition the user has to act on.
-        let (label, role) = match (state.connected, state.needs_reauth) {
-            (_, true) => ("sign in again", Role::Alert),
-            (true, _) => ("connected", Role::State),
-            (false, _) => ("not connected", Role::TextDim),
+        // The same marks as the header chip for this tracker, so the two never disagree.
+        let (mark, label, role) = match (state.connected, state.needs_reauth) {
+            (_, true) => (glyph::STATE_DOWN, "sign in again", Role::Alert),
+            (true, _) => (glyph::STATE_READY, "connected", Role::State),
+            (false, _) => (glyph::STATE_OFF, "not connected", Role::TextDim),
         };
-        buf.set_string(
-            area.left() + 16,
-            y,
-            format!(
-                "{} {label}",
-                if state.connected { glyph::STATE_READY } else { glyph::STATE_UNKNOWN }
-            ),
-            app.palette.style(role),
-        );
+        buf.set_string(area.left() + 16, y, format!("{mark} {label}"), app.palette.style(role));
 
         if area.left() + 30 < area.right() {
             // Queue depth belongs beside the account: ops accumulate against a tracker whether or
@@ -688,6 +801,22 @@ fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
             );
         }
         y += 1;
+        // A failed pull says so under its tracker until the next one succeeds: "connected" on
+        // its own read as everything working while the library had stopped updating.
+        if let Some((error, at)) = &state.pull_error
+            && y < area.bottom().saturating_sub(2)
+        {
+            buf.set_string(
+                area.left() + 16,
+                y,
+                truncate(
+                    &format!("pull failed {}: {error}", pull_time(*at)),
+                    area.right().saturating_sub(area.left() + 17) as usize,
+                ),
+                app.palette.style(Role::Alert),
+            );
+            y += 1;
+        }
     }
 
     // File-stored tokens are worth knowing about on a shared machine, but they are a working
@@ -733,7 +862,7 @@ fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
 /// rather than making you go and find it.
 fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
     if area.height < MIN_TABLE_HEIGHT || area.width < 40 {
-        render_placeholder(buf, app, area, "DOWNLOADS", "not enough room");
+        render_placeholder(buf, app, area, "DOWNLOADS", "needs a larger terminal");
         return;
     }
     // What is still seeding after watching takes the bottom of the screen, so the queue above
@@ -775,20 +904,43 @@ fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
     let focused = app.nav.focus() == crate::nav::Focus::Stage;
     // Two rows reserved at the bottom for the selected row's detail — the path or the failure.
     let last_row = area.bottom().saturating_sub(3);
-    for (i, row) in app.downloads.iter().enumerate() {
+    // Anchored to the selection, like the episode table: a queue longer than the screen used
+    // to stop drawing at the fold while the cursor carried on below it.
+    let rows_room = last_row.saturating_sub(y).max(1) as usize;
+    let first = app.selected.saturating_sub(rows_room - 1);
+    // One meter width for the whole table, whatever each row's note says, so the bars line up
+    // as a column. Sized per row, they were as wide as each row's note let them be — and a bar
+    // one cell wide drew only its half block, which is the selection mark's glyph.
+    let room = area.right().saturating_sub(meter_x) as usize;
+    let widest = app.downloads.iter().map(|r| download_note(app, r).chars().count()).max();
+    let meter_width = match room.saturating_sub(widest.unwrap_or(0)).min(20) {
+        width if width < 4 => 0,
+        width => width,
+    };
+    for (i, row) in app.downloads.iter().enumerate().skip(first) {
         if y >= last_row {
             break;
         }
         let selected = i == app.selected;
-        if selected && focused {
-            buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
+        if selected {
+            mark_selected(buf, app, area.left(), y, focused);
         }
 
-        let label = format!("{}  ep {}", row.title, row.episode);
+        // The title gives way to the episode number, never the other way round: five rows of
+        // one show cut at the same place were five identical rows.
+        // Two cells short of the state column, so the number never runs into the state.
+        let room = state_x.saturating_sub(area.left() + 4) as usize;
+        let episode = format!("  ep {}", row.episode);
+        let label = match room.checked_sub(episode.chars().count()) {
+            Some(title_room) if title_room >= 4 => {
+                format!("{}{episode}", truncate(&row.title, title_room))
+            }
+            _ => truncate(&format!("{}{episode}", row.title), room),
+        };
         buf.set_string(
             area.left() + 2,
             y,
-            truncate(&label, state_x.saturating_sub(area.left() + 3) as usize),
+            label,
             if selected {
                 app.palette.style(Role::Text).add_modifier(Modifier::BOLD)
             } else {
@@ -814,34 +966,26 @@ fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
 
         if meter_x < area.right() {
             let room = area.right().saturating_sub(meter_x) as usize;
-            // The byte counts matter as much as the fraction: "62%" of an unknown size says less
-            // than "1.2 of 1.9 GB", and a stalled download is obvious from bytes that stop moving.
-            let sizes = if row.total > 0 {
-                format!("  {} / {}", human_bytes(row.downloaded), human_bytes(row.total))
-            } else {
-                "  waiting for metadata".to_string()
-            };
-            let meter_width = room.saturating_sub(sizes.chars().count()).min(20);
-            set_meter(buf, meter_x, y, &app.palette, row.fraction, meter_width, Role::Obi);
+            let note = download_note(app, row);
+            if meter_width > 0 {
+                set_meter(buf, meter_x, y, &app.palette, row.fraction, meter_width, Role::Obi);
+            }
             buf.set_string(
                 meter_x + meter_width as u16,
                 y,
-                truncate(&sizes, room.saturating_sub(meter_width)),
+                truncate(&note, room.saturating_sub(meter_width)),
                 app.palette.style(Role::TextDim),
             );
         }
         y += 1;
     }
 
-    // The selected row's detail, under a hairline: where the file is, or why it failed.
+    // The selected row's detail, under a hairline: where the file is, why it failed, or what
+    // it is waiting for.
     if let Some(row) = app.downloads.get(app.selected) {
         let detail_y = area.bottom().saturating_sub(1);
-        let (text, role) = match (&row.error, &row.path) {
-            (Some(error), _) => (error.clone(), Role::Alert),
-            (None, Some(path)) => (path.clone(), Role::TextDim),
-            (None, None) => ("resolving a source…".to_string(), Role::TextDim),
-        };
-        if detail_y > y {
+        let (text, role) = download_detail(app, row);
+        if detail_y > y && !text.is_empty() {
             Hairline::new(&app.palette)
                 .render(Rect { y: detail_y.saturating_sub(1), height: 1, ..area }, buf);
             buf.set_string(
@@ -852,6 +996,51 @@ fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
             );
         }
     }
+}
+
+/// What follows a download's meter: the bytes, or what it is waiting on while there are none.
+///
+/// The byte counts matter as much as the fraction: "62%" of an unknown size says less than
+/// "1.2 GB / 1.9 GB", and a stalled download is obvious from bytes that stop moving.
+fn download_note(app: &App, row: &crate::app::DownloadRow) -> String {
+    if row.total > 0 {
+        return format!("  {} / {}", human_bytes(row.downloaded), human_bytes(row.total));
+    }
+    match row.state {
+        "downloading" => "  waiting for metadata".into(),
+        // Downloads come through the torrent session, so with torrents off a queued row will
+        // never start. "waiting for metadata" said so forever.
+        "queued" if !app.config.providers.torrent.enabled => "  torrents are off".into(),
+        "queued" => "  waiting to start".into(),
+        _ => String::new(),
+    }
+}
+
+/// The line under the queue for the selected download.
+fn download_detail(app: &App, row: &crate::app::DownloadRow) -> (String, Role) {
+    if let Some(error) = &row.error {
+        return (error.clone(), Role::Alert);
+    }
+    if let Some(path) = &row.path {
+        return (path.clone(), Role::TextDim);
+    }
+    let text = match row.state {
+        // Paused is not resolving anything: it stopped where the bytes say.
+        "paused" if row.total > 0 => format!(
+            "paused at {} of {} — it carries on from there",
+            human_bytes(row.downloaded),
+            human_bytes(row.total)
+        ),
+        "paused" => "paused before it started".into(),
+        "queued" if !app.config.providers.torrent.enabled => format!(
+            "downloads need torrents, which are off — press {} for Settings",
+            app.section_key(Section::Settings)
+        ),
+        "queued" => "queued — it starts when a download slot is free".into(),
+        "downloading" => "waiting for the torrent's metadata".into(),
+        _ => String::new(),
+    };
+    (text, Role::TextDim)
 }
 
 /// Rows the seeding section needs: a rule, a heading and one row per torrent, at most four,
@@ -921,39 +1110,38 @@ fn time_left(secs: u64) -> String {
     }
 }
 
-/// Bytes at human scale, two significant figures.
-///
-/// Its own function because a download's size is the number the screen is most often read for, and
-/// `1288490188 bytes` communicates nothing at a glance.
-fn human_bytes(bytes: u64) -> String {
-    const UNITS: [(&str, u64); 4] =
-        [("GB", 1_000_000_000), ("MB", 1_000_000), ("kB", 1_000), ("B", 1)];
-    for (unit, scale) in UNITS {
-        if bytes >= scale {
-            let value = bytes as f64 / scale as f64;
-            // One decimal below ten, none above: `9.4 GB` and `140 MB` are both two digits of real
-            // information, and `140.3 MB` is one of them plus noise.
-            return if value < 10.0 && scale > 1 {
-                format!("{value:.1} {unit}")
-            } else {
-                format!("{} {unit}", value.round() as u64)
-            };
-        }
-    }
-    "0 B".into()
-}
-
 /// What an empty screen should say, and what to do about it.
 ///
 /// An empty screen is an invitation to act, not a dead end — and specifically not a reason to
 /// substitute a different kind of list, which is what Home used to do with the current season.
-fn empty_state(section: Section, searched: bool) -> (&'static str, Option<&'static str>) {
+///
+/// Keys are read off the live keymap and said as keys — "press 3" — because a bare `3 for this
+/// season` read as a count of three, and a rebind left it naming the wrong key.
+///
+/// For Continue, asked-and-empty means there is history and none of it is left to continue:
+/// everything was hidden with `x`. That is not "nothing watched yet", which is what it said.
+fn empty_state(app: &App, section: Section, searched: bool) -> (&'static str, Option<String>) {
+    let ways_on = || {
+        format!(
+            "press {} for this season, or {} to search",
+            app.section_key(Section::Seasonal),
+            app.key_for(crate::keymap::Action::FocusSearch),
+        )
+    };
+    // A query typed and not yet run. "Type to search" over it told someone who had typed to
+    // start typing, and an earlier "no matches" answers a query no longer in the field.
+    let typed = app.search_query.trim();
+    let unsent = !typed.is_empty() && typed != app.searched_query;
     match section {
+        Section::Search if unsent => ("↵ to search", None),
         Section::Search if !searched => ("type to search", None),
-        Section::Search => ("no matches", Some("try a shorter query, or the romaji title")),
+        Section::Search => {
+            ("no matches", Some("try a shorter query, or the romaji title".to_owned()))
+        }
+        Section::Home if !searched => ("nothing watched yet", Some(ways_on())),
         Section::Home => (
-            "nothing watched yet",
-            Some("3 for this season · / to search · ↵ on a title to start it"),
+            "nothing to continue",
+            Some(format!("titles you hid come back when you watch them · {}", ways_on())),
         ),
         _ => ("nothing here yet", None),
     }
@@ -964,7 +1152,7 @@ fn render_empty(
     app: &App,
     area: Rect,
     y: u16,
-    (message, hint): (&str, Option<&str>),
+    (message, hint): (&str, Option<String>),
 ) {
     // The pixel mark, above the message — a printer's mark on the blank page. Only when
     // it genuinely fits with room to spare; on a cramped terminal the words win.
@@ -976,15 +1164,12 @@ fn render_empty(
     }
 
     buf.set_string(area.left(), y, glyph::eyebrow(message), app.palette.style(Role::TextDim));
-    if let Some(hint) = hint
-        && y + 2 < area.bottom()
-    {
-        buf.set_string(
-            area.left(),
-            y + 2,
-            truncate(hint, area.width as usize),
-            app.palette.style(Role::TextDim),
-        );
+    if let Some(hint) = hint {
+        // Wrapped rather than cut: the way out is the part of the line that matters most.
+        let room = area.bottom().saturating_sub(y + 2) as usize;
+        for (i, text) in wrap(&hint, area.width as usize, room.min(3)).into_iter().enumerate() {
+            line(buf, area.left(), y + 2 + i as u16, text, app.palette.style(Role::TextDim));
+        }
     }
 }
 
@@ -1044,9 +1229,10 @@ fn render_preview(buf: &mut Buffer, app: &App, area: Rect, entry: &Entry) {
     }
 
     // Genres, on their own line rather than folded into the metadata: three or four of them
-    // would push the format and score off the end of a column this narrow.
+    // would push the format and score off the end of a column this narrow. Named as AniList
+    // names them, the way the Title page does — not set in the metadata's caps.
     if !entry.genres.is_empty() && y < area.bottom() {
-        let genres = glyph::eyebrow(&entry.genres.join("  ·  "));
+        let genres = entry.genres.join("  ·  ");
         buf.set_string(area.left(), y, truncate(&genres, width), dim);
         y += 1;
     }
@@ -1136,7 +1322,7 @@ fn render_preview(buf: &mut Buffer, app: &App, area: Rect, entry: &Entry) {
 
 /// The Title screen: key visual as hero, then the title block.
 fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
-    let Some(entry) = app.detail.as_ref().or(app.selected_entry()) else {
+    let Some(entry) = app.target() else {
         render_placeholder(buf, app, area, "TITLE", "nothing selected");
         return;
     };
@@ -1155,17 +1341,23 @@ fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
     draw_artwork(buf, app, hero, banner_area);
     y += banner_height + 1;
 
+    // Every line below stops at the stage's own bottom, not the buffer's: on a short terminal
+    // the banner leaves only a few rows, and the metadata was drawn on into the status line.
+    let fits = |y: u16| y < area.bottom();
+
     // Bold, not tracked. Letterspacing is for eyebrows and metadata; applied to a real
     // title it doubles the width and truncates the one thing the screen exists to show.
-    line(
-        buf,
-        area.left(),
-        y,
-        truncate(&entry.title, area.width as usize),
-        app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
-    );
+    if fits(y) {
+        line(
+            buf,
+            area.left(),
+            y,
+            truncate(&entry.title, area.width as usize),
+            app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
+        );
+    }
     y += 1;
-    if let Some(secondary) = &entry.secondary {
+    if let Some(secondary) = entry.secondary.as_ref().filter(|_| fits(y)) {
         line(
             buf,
             area.left(),
@@ -1176,14 +1368,16 @@ fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
     }
     y += 2;
 
-    let meta = metadata_line(entry);
-    line(
-        buf,
-        area.left(),
-        y,
-        truncate(&meta, area.width as usize),
-        app.palette.style(Role::TextDim),
-    );
+    if fits(y) {
+        let meta = metadata_line(entry);
+        line(
+            buf,
+            area.left(),
+            y,
+            truncate(&meta, area.width as usize),
+            app.palette.style(Role::TextDim),
+        );
+    }
     y += 2;
 
     if !entry.available_on.is_empty() && y < area.bottom() {
@@ -1229,13 +1423,18 @@ fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
                 format!("{label}   ep {next} next"),
                 app.palette.style(Role::TextDim),
             );
-        } else if let Some(secs) = entry.next_airing_in.filter(|s| *s > 0) {
-            buf.set_string(
-                area.left(),
-                y,
-                format!("next episode in {}", crate::widgets::countdown(secs)),
-                app.palette.style(Role::State),
-            );
+        } else {
+            // The same line the preview gives, so the same fact reads the same on both.
+            let broadcast = broadcast_line(entry);
+            if !broadcast.is_empty() {
+                line(
+                    buf,
+                    area.left(),
+                    y,
+                    truncate(&broadcast, area.width as usize),
+                    app.palette.style(Role::State),
+                );
+            }
         }
     }
 }
@@ -1276,20 +1475,25 @@ fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
     }
 
     if app.episodes.is_empty() {
-        // Two different empties: the filter hiding everything is not a missing source,
-        // and telling someone to check Providers over their own filter would be cruel.
-        let (headline, hint) = if app.episodes_all_filtered_out() {
-            ("nothing matches the filter", "f cycles it — currently showing none")
-        } else {
-            ("no episodes yet", "no source is configured — see the Providers screen")
-        };
-        buf.set_string(
+        let (headline, hint) = empty_episodes(app);
+        line(
+            buf,
             table.left(),
             table.top(),
             glyph::eyebrow(headline),
             app.palette.style(Role::TextDim),
         );
-        buf.set_string(table.left(), table.top() + 2, hint, app.palette.style(Role::TextDim));
+        let room = table.bottom().saturating_sub(table.top() + 2) as usize;
+        for (i, text) in wrap(&hint, table.width as usize, room.min(3)).into_iter().enumerate()
+        {
+            line(
+                buf,
+                table.left(),
+                table.top() + 2 + i as u16,
+                text,
+                app.palette.style(Role::TextDim),
+            );
+        }
         return;
     }
 
@@ -1370,7 +1574,7 @@ fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
         let selected = i == app.episode_selected;
 
         if selected {
-            buf[(table.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
+            mark_selected(buf, app, table.left(), y, app.nav.focus() == Focus::Stage);
         }
 
         let number_style = if selected {
@@ -1434,6 +1638,48 @@ fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
     }
 }
 
+/// Why the episode table is empty, said as what is known.
+///
+/// The filter hiding everything is not a missing source, and telling someone to check
+/// Providers over their own filter would be cruel. Nor is a title that has not aired yet, or a
+/// source that matched and listed nothing: "no source is configured" was said over all of them,
+/// with a ready plugin a screen away.
+fn empty_episodes(app: &App) -> (&'static str, String) {
+    use crate::keymap::Action;
+    if app.episodes_all_filtered_out() {
+        let filter = app.key_for(Action::Filter);
+        return (
+            "nothing matches the filter",
+            format!("{filter} cycles it — showing none now"),
+        );
+    }
+    if !app.providers.iter().any(|p| p.usable) {
+        let providers = app.section_key(Section::Providers);
+        return (
+            "no episodes yet",
+            format!("no source is ready yet — press {providers} for the Providers screen"),
+        );
+    }
+    if let Some(detail) = &app.detail
+        && detail.latest_aired().is_none()
+        && let Some(secs) = detail.next_airing_in.filter(|s| *s > 0)
+    {
+        let episode = detail.next_episode.unwrap_or(1);
+        return (
+            "nothing has aired yet",
+            format!("ep {episode} in {}", crate::widgets::countdown(secs)),
+        );
+    }
+    (
+        "no episodes listed",
+        format!(
+            "the source listed none for this title — {} searches for the right match, {} picks another source",
+            app.key_for(Action::FixMapping),
+            app.key_for(Action::PickProvider),
+        ),
+    )
+}
+
 /// The tracker's list, segmented by status.
 ///
 /// A segment strip over the ordinary catalogue list rather than a new layout: this is the same
@@ -1444,7 +1690,7 @@ fn render_library(buf: &mut Buffer, app: &App, area: Rect) {
     // `MIN_TABLE_HEIGHT` because this screen spends three rows on chrome before any content, and
     // the list renderer below assumes it has room. See `render_providers` for why this exists.
     if area.height < MIN_TABLE_HEIGHT + 3 {
-        render_placeholder(buf, app, area, "LIBRARY", "terminal too small");
+        render_placeholder(buf, app, area, "LIBRARY", "needs a larger terminal");
         return;
     }
     let mut x = area.left();
@@ -1461,7 +1707,7 @@ fn render_library(buf: &mut Buffer, app: &App, area: Rect) {
             break;
         }
         if active {
-            buf[(x, area.top())].set_char(OBI).set_style(app.palette.style(Role::Obi));
+            mark_selected(buf, app, x, area.top(), app.nav.focus() == Focus::Stage);
         }
         buf.set_string(
             x + 2,
@@ -1487,6 +1733,16 @@ fn render_library(buf: &mut Buffer, app: &App, area: Rect) {
         // Written line by line against the space actually available. Writing all four
         // unconditionally put row `body.top() + 3` past the end of the buffer at 24×8 — a panic
         // rather than a truncated sentence, and the size-matrix test is what caught it.
+        // The same next step the Accounts screen gives: with no tracker enabled there is
+        // nothing there to sign in to yet, which pointing at it alone used to hide.
+        let accounts = app.section_key(Section::Accounts);
+        let next = if app.sync.is_empty() {
+            format!(
+                "add one to trackers.enabled in config.toml, then press {accounts} for Accounts"
+            )
+        } else {
+            format!("press {accounts} for Accounts to sign in")
+        };
         let lines = [
             (0, glyph::eyebrow("no account connected")),
             (
@@ -1494,7 +1750,7 @@ fn render_library(buf: &mut Buffer, app: &App, area: Rect) {
                 "your watch history works without one — the Library mirrors a tracker's list"
                     .into(),
             ),
-            (3, "press : and run \"accounts\" to sign in".into()),
+            (3, next),
         ];
         for (offset, text) in lines {
             let y = body.top() + offset;
@@ -1519,7 +1775,7 @@ fn accounts_rows(app: &App) -> Vec<(String, String)> {
     if app.sync.is_empty() {
         return vec![(
             String::new(),
-            "no tracker configured — see trackers.enabled in your config".into(),
+            "no trackers enabled — add one to trackers.enabled in config.toml".into(),
         )];
     }
     app.sync
@@ -1538,8 +1794,12 @@ fn accounts_rows(app: &App) -> Vec<(String, String)> {
                 (None, true) => detail.push("connected".into()),
                 (None, false) => detail.push("not connected".into()),
             }
-            if state.outbox > 0 {
-                detail.push(format!("{} queued", state.outbox));
+            match (state.outbox, state.deferred) {
+                (0, _) => {}
+                (queued, 0) => detail.push(format!("{queued} queued")),
+                (queued, held) => {
+                    detail.push(format!("{queued} queued, {held} waiting for an id mapping"))
+                }
             }
             // Surfaced rather than hidden: someone on a shared machine should know their token
             // is in a file rather than a keychain.
@@ -1551,9 +1811,26 @@ fn accounts_rows(app: &App) -> Vec<(String, String)> {
             if let Some(last) = &state.last {
                 detail.push(last.clone());
             }
+            // Last, so a narrow row truncates the reason rather than the fact.
+            if let Some((error, at)) = &state.pull_error {
+                detail.push(format!("pull failed {}: {error}", pull_time(*at)));
+            }
             (action.to_string(), detail.join("  ·  "))
         })
         .collect()
+}
+
+/// When a pull failed, as a local clock time — with the date once it is not today, because
+/// "14:32" from last week reads as an outage still going on.
+fn pull_time(at: i64) -> String {
+    use chrono::TimeZone;
+    match chrono::Local.timestamp_opt(at, 0).single() {
+        Some(when) if when.date_naive() == chrono::Local::now().date_naive() => {
+            when.format("at %H:%M").to_string()
+        }
+        Some(when) => when.format("on %b %-d at %H:%M").to_string(),
+        None => String::new(),
+    }
 }
 
 /// Divergences the merge refused to guess at.
@@ -1577,7 +1854,7 @@ fn conflict_rows(app: &App) -> Vec<(String, String)> {
 
 /// The list-status picker.
 fn status_rows(app: &App) -> Vec<(String, String)> {
-    let current = app.detail.as_ref().or(app.selected_entry());
+    let current = app.target();
     LibrarySegment::ALL
         .iter()
         .map(|segment| {
@@ -1587,7 +1864,9 @@ fn status_rows(app: &App) -> Vec<(String, String)> {
                 }
                 _ => "",
             };
-            (hint.to_string(), glyph::eyebrow(segment.label()))
+            // A status is a value, and values are lowercase — as the Library strip and every
+            // message that names one already have it.
+            (hint.to_string(), segment.label().to_owned())
         })
         .collect()
 }
@@ -1832,6 +2111,23 @@ const COL_PROVIDER_KIND: u16 = 22;
 const COL_PROVIDER_STATE: u16 = 34;
 const COL_PROVIDER_LATENCY: u16 = 50;
 
+/// One cell of a fixed-column table: cut to its column and to the screen, with an ellipsis
+/// where it is cut, rather than by the edge of the buffer.
+fn table_cell(
+    buf: &mut Buffer,
+    area: Rect,
+    x: u16,
+    width: u16,
+    y: u16,
+    text: &str,
+    style: ratatui::style::Style,
+) {
+    let room = width.min(area.width.saturating_sub(x));
+    if room > 0 {
+        line(buf, area.left() + x, y, truncate(text, room as usize), style);
+    }
+}
+
 /// Provider health. This screen exists because sources die and the user has to be able to
 /// see *which* one and why, rather than facing an unexplained empty list.
 fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
@@ -1840,7 +2136,7 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
     // end of the buffer — a panic at 24×8, which a resize passes through on the way down. Found by
     // the size-matrix test, not by looking.
     if area.height < MIN_TABLE_HEIGHT + 3 {
-        render_placeholder(buf, app, area, "PROVIDERS", "terminal too small");
+        render_placeholder(buf, app, area, "PROVIDERS", "needs a larger terminal");
         return;
     }
     buf.set_string(
@@ -1876,13 +2172,16 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
     }
 
     let head = area.top() + 2;
+    // A column is shown whole or not at all: started wherever it fell and cut by the screen's
+    // edge, it left half words — `STAT`, `read` — at 40 columns.
+    let shows = |x: u16, label: &str| x + label.chars().count() as u16 <= area.width;
     for (label, x) in [
         ("provider", COL_PROVIDER),
         ("kind", COL_PROVIDER_KIND),
         ("state", COL_PROVIDER_STATE),
         ("latency", COL_PROVIDER_LATENCY),
     ] {
-        if x < area.width {
+        if shows(x, label) {
             buf.set_string(
                 area.left() + x,
                 head,
@@ -1898,23 +2197,29 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
         if y >= area.bottom() {
             break;
         }
-        // The obi marks a source that will actually be used, so "which of these is live"
-        // is answerable at a glance.
-        if provider.usable {
-            buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
-        }
-        buf.set_string(
-            area.left() + COL_PROVIDER,
+        // No obi here: it marks the selected row everywhere else, and this table has no
+        // cursor. Whether a source will be used is the state column's job, and the weight of
+        // its name, which drops for one that will not.
+        table_cell(
+            buf,
+            area,
+            COL_PROVIDER,
+            COL_PROVIDER_KIND - COL_PROVIDER - 1,
             y,
-            truncate(&provider.id, (COL_PROVIDER_KIND - COL_PROVIDER - 1) as usize),
+            &provider.id,
             app.palette.style(if provider.usable { Role::Text } else { Role::TextDim }),
         );
-        buf.set_string(
-            area.left() + COL_PROVIDER_KIND,
-            y,
-            truncate(&provider.kind, (COL_PROVIDER_STATE - COL_PROVIDER_KIND - 1) as usize),
-            app.palette.style(Role::TextDim),
-        );
+        if shows(COL_PROVIDER_KIND, "kind") {
+            table_cell(
+                buf,
+                area,
+                COL_PROVIDER_KIND,
+                COL_PROVIDER_STATE - COL_PROVIDER_KIND - 1,
+                y,
+                &provider.kind,
+                app.palette.style(Role::TextDim),
+            );
+        }
 
         // Held back is not unhealthy: local policy is withholding a working source.
         let state_role = match (provider.held_back, provider.usable) {
@@ -1922,18 +2227,28 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
             (false, false) => Role::Alert,
             (false, true) => Role::State,
         };
-        buf.set_string(
-            area.left() + COL_PROVIDER_STATE,
-            y,
-            truncate(&provider.state, (COL_PROVIDER_LATENCY - COL_PROVIDER_STATE - 1) as usize),
-            app.palette.style(state_role),
-        );
-
-        if let Some(ms) = provider.latency_ms {
-            buf.set_string(
-                area.left() + COL_PROVIDER_LATENCY,
+        if shows(COL_PROVIDER_STATE, "state") {
+            table_cell(
+                buf,
+                area,
+                COL_PROVIDER_STATE,
+                COL_PROVIDER_LATENCY - COL_PROVIDER_STATE - 1,
                 y,
-                format!("{ms}ms"),
+                &provider.state,
+                app.palette.style(state_role),
+            );
+        }
+
+        if let Some(ms) = provider.latency_ms
+            && shows(COL_PROVIDER_LATENCY, "latency")
+        {
+            table_cell(
+                buf,
+                area,
+                COL_PROVIDER_LATENCY,
+                u16::MAX,
+                y,
+                &format!("{ms}ms"),
                 app.palette.style(Role::TextDim),
             );
         }
@@ -2028,6 +2343,19 @@ fn store_state(store: &StoreRow) -> (String, Role) {
     }
 }
 
+/// The obi on the selected row: in the accent while the stage has the keyboard, dimmed while
+/// the rail does.
+///
+/// One meaning everywhere, the one the lists have always had. Downloads, Settings and Accounts
+/// hid it while the rail had focus, so the row Enter would act on could not be seen from there,
+/// and Providers drew it on every working source, which no key moves between.
+fn mark_selected(buf: &mut Buffer, app: &App, x: u16, y: u16, focused: bool) {
+    let role = if focused { Role::Obi } else { Role::TextDim };
+    if buf.area().contains(ratatui::layout::Position { x, y }) {
+        buf[(x, y)].set_char(OBI).set_style(app.palette.style(role));
+    }
+}
+
 /// Mark the focused row with the obi and return the style its first column should use.
 fn focus_row(
     buf: &mut Buffer,
@@ -2036,8 +2364,8 @@ fn focus_row(
     y: u16,
     selected: bool,
 ) -> ratatui::style::Style {
-    if selected && app.nav.focus() == Focus::Stage && y < area.bottom() {
-        buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
+    if selected && y < area.bottom() {
+        mark_selected(buf, app, area.left(), y, app.nav.focus() == Focus::Stage);
     }
     if selected {
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD)
@@ -2065,7 +2393,7 @@ fn render_footer(buf: &mut Buffer, app: &App, area: Rect, text: &str, role: Role
 /// Every store this machine has joined, and the way to join another.
 fn render_stores(buf: &mut Buffer, app: &App, area: Rect) {
     if area.height < MIN_TABLE_HEIGHT + 4 || area.width < 40 {
-        render_placeholder(buf, app, area, "PLUGIN STORES", "a larger terminal");
+        render_placeholder(buf, app, area, "PLUGIN STORES", "needs a larger terminal");
         return;
     }
     line(
@@ -2175,11 +2503,11 @@ fn render_stores(buf: &mut Buffer, app: &App, area: Rect) {
 /// One store: its plugins, then what can be done there.
 fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
     let Some(store) = app.store(id) else {
-        render_placeholder(buf, app, area, "PLUGIN STORE", "a moment");
+        render_placeholder(buf, app, area, "PLUGIN STORE", "loading…");
         return;
     };
     if area.height < MIN_TABLE_HEIGHT + 6 || area.width < 40 {
-        render_placeholder(buf, app, area, &store.name, "a larger terminal");
+        render_placeholder(buf, app, area, &store.name, "needs a larger terminal");
         return;
     }
     line(
@@ -2389,7 +2717,7 @@ fn until(at: i64) -> String {
 fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
     let name = app.store(id).map_or("plugin store", |s| s.name.as_str());
     if area.height < MIN_TABLE_HEIGHT + 4 || area.width < 40 {
-        render_placeholder(buf, app, area, "MEMBERS", "a larger terminal");
+        render_placeholder(buf, app, area, "MEMBERS", "needs a larger terminal");
         return;
     }
     line(
@@ -2530,33 +2858,54 @@ fn render_meta_sources(buf: &mut Buffer, app: &App, area: Rect, top: u16) {
         if y >= area.bottom() {
             break;
         }
-        // The obi marks the rung that answered last — same grammar as the source table.
-        if row.active {
-            buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
-        }
-        buf.set_string(
-            area.left() + COL_PROVIDER,
+        // Which rung answered last is in its name's weight and its state, not an obi: that
+        // marks the selected row, and nothing here is selectable.
+        table_cell(
+            buf,
+            area,
+            COL_PROVIDER,
+            COL_PROVIDER_KIND - COL_PROVIDER - 1,
             y,
-            truncate(&row.source, (COL_PROVIDER_KIND - COL_PROVIDER - 1) as usize),
+            &row.source,
             app.palette.style(if row.active { Role::Text } else { Role::TextDim }),
         );
-        buf.set_string(
-            area.left() + COL_PROVIDER_KIND,
+        table_cell(
+            buf,
+            area,
+            COL_PROVIDER_KIND,
+            COL_PROVIDER_STATE - COL_PROVIDER_KIND - 1,
             y,
-            truncate(&row.state, (COL_PROVIDER_STATE - COL_PROVIDER_KIND - 1) as usize),
+            &row.state,
             app.palette.style(if row.healthy { Role::State } else { Role::Alert }),
         );
-        if let Some(detail) = &row.detail
+        if let Some(detail) = meta_detail(row, chrono::Local::now().timestamp())
             && COL_PROVIDER_STATE < area.width
         {
             buf.set_string(
                 area.left() + COL_PROVIDER_STATE,
                 y,
-                truncate(detail, area.width.saturating_sub(COL_PROVIDER_STATE + 2) as usize),
+                truncate(&detail, area.width.saturating_sub(COL_PROVIDER_STATE + 2) as usize),
                 app.palette.style(Role::TextDim),
             );
         }
     }
+}
+
+/// A rung's detail, with when a resting one is next tried said at draw time.
+///
+/// A clock time rather than a countdown: the idle screen is redrawn on change and a slow
+/// heartbeat, so "next try in 39s" stood still for as long as nothing happened, and a clock
+/// time is right whenever it is drawn. Past the deadline the source is not asked until something
+/// needs it, so that is what the row says rather than a time already gone.
+fn meta_detail(row: &crate::app::MetaSourceRow, now: i64) -> Option<String> {
+    use chrono::TimeZone;
+    let Some(at) = row.retry_at else { return row.detail.clone() };
+    let cause = row.detail.as_deref().unwrap_or("failing");
+    let when = match chrono::Local.timestamp_opt(at, 0).single() {
+        Some(when) if at > now => format!("skipped until {}", when.format("%H:%M")),
+        _ => "tried again on the next request".into(),
+    };
+    Some(format!("{when} — {cause}"))
 }
 
 /// Settings, which you can actually change.
@@ -2603,7 +2952,12 @@ fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
         .iter()
         .position(|l| matches!(l, SettingsLine::Row(i) if *i == app.selected))
         .unwrap_or(0);
-    let visible = area.height as usize;
+    // The bottom two rows are kept for the focused row's note whenever there is height to
+    // spare them. The note used to wait for the whole list to fit above it, which the grouped
+    // list never does at an ordinary size — so no note was ever shown. Kept whether or not
+    // the row has one, or the list would jump two rows as the cursor passed a row without.
+    let reserved = if area.height >= 8 { 2 } else { 0 };
+    let visible = (area.height - reserved) as usize;
     let offset = selected_line.saturating_sub(visible.saturating_sub(1));
 
     for (slot, line) in lines.iter().skip(offset).take(visible).enumerate() {
@@ -2626,8 +2980,8 @@ fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
             SettingsLine::Row(i) => {
                 let row = &rows[*i];
                 let selected = *i == app.selected;
-                if selected && focused {
-                    buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
+                if selected {
+                    mark_selected(buf, app, area.left(), y, focused);
                 }
 
                 let label_room = value_x.saturating_sub(area.left() + 3) as usize;
@@ -2659,9 +3013,9 @@ fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
     // One note at a time, for the selected row only. Printing every caveat beside every row
     // would turn a twelve-line screen into a wall and bury the values it exists to show.
     if let Some(note) = rows.get(app.selected).and_then(|r| r.note) {
-        let note_y = area.bottom().saturating_sub(2);
+        let note_y = area.bottom().saturating_sub(1);
         let drawn = lines.len().saturating_sub(offset).min(visible);
-        if note_y > area.top() + drawn as u16 {
+        if reserved > 0 || note_y > area.top() + drawn as u16 + 1 {
             Hairline::new(&app.palette)
                 .render(Rect { y: note_y.saturating_sub(1), height: 1, ..area }, buf);
             buf.set_string(
@@ -2684,46 +3038,118 @@ fn render_placeholder(buf: &mut Buffer, app: &App, area: Rect, title: &str, note
         glyph::eyebrow(title),
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
+    // The note is said as given. It was the tail of "arrives in …", which suited "a moment"
+    // and nothing else: "arrives in not enough room".
     if area.height > 2 {
-        buf.set_string(
+        line(
+            buf,
             area.left(),
             area.top() + 2,
-            format!("arrives in {note}"),
+            truncate(note, area.width as usize),
             app.palette.style(Role::TextDim),
         );
     }
 }
 
-/// Bottom-right transient messages.
-fn render_toasts(buf: &mut Buffer, app: &App, area: Rect) {
-    if app.toasts.is_empty() || area.height < 2 {
+/// The newest transient message, written into the status hairline at its right end.
+///
+/// On the rule rather than over the stage. Stacked in the stage's bottom-right corner, toasts
+/// covered whatever sat there — a setting's value, a download's size, a row's countdown — and
+/// clearing behind them only traded the overlap for a hole. The rule already carries the
+/// activity caption at its left and is otherwise empty, so a message there covers nothing.
+///
+/// Only the newest is shown, with a count of the others still up; the Logs overlay keeps every
+/// one. `from` is where the activity caption ends, and the message never runs into it.
+fn render_toasts(buf: &mut Buffer, app: &App, rule: Rect, from: u16) {
+    let Some(toast) = app.toasts.last() else { return };
+    if rule.height == 0 {
         return;
     }
-    for (i, toast) in app.toasts.iter().rev().take(3).enumerate() {
-        let y = area.bottom().saturating_sub(1 + i as u16);
-        if y <= area.top() {
-            break;
-        }
-        let role = match toast.kind {
-            ToastKind::Info => Role::State,
-            ToastKind::Alert => Role::Alert,
-        };
-        let text = truncate(&toast.text, area.width.saturating_sub(4) as usize);
-        let width = text.chars().count() as u16 + 2;
-        if width >= area.width {
-            continue;
-        }
-        let x = area.right().saturating_sub(width);
-        // Clear behind it first. A toast printed straight over a progress meter interleaves
-        // with the blocks and neither is readable — caught by rendering the Library screen with
-        // a conflict toast up.
-        let ground = app.palette.ground().unwrap_or(app.palette.ground_ref());
-        for cell_x in x..area.right() {
-            buf[(cell_x, y)].set_char(' ').set_bg(ground.to_ratatui());
-        }
-        buf[(x, y)].set_char(OBI).set_style(app.palette.style(role));
-        buf.set_string(x + 2, y, &text, app.palette.style(Role::Text));
+    let role = match toast.kind {
+        ToastKind::Info => Role::State,
+        ToastKind::Alert => Role::Alert,
+    };
+    let more = match app.toasts.len() - 1 {
+        0 => String::new(),
+        n => format!("  +{n}"),
+    };
+    // A gap in the rule either side, the obi and its space, and one cell of rule at the end.
+    let chrome = 1 + 2 + more.chars().count() as u16 + 1 + 1;
+    let room = rule.right().saturating_sub(from.max(rule.left()) + chrome) as usize;
+    if room < 8 {
+        return;
     }
+    let text = truncate(&toast.text, room);
+    let width = chrome - 1 + text.chars().count() as u16;
+    let x = rule.right().saturating_sub(width + 1);
+    let y = rule.top();
+    for cell_x in x..x + width {
+        buf[(cell_x, y)].set_char(' ').set_style(app.palette.style(Role::Text));
+    }
+    buf[(x + 1, y)].set_char(OBI).set_style(app.palette.style(role));
+    let (end, _) = buf.set_stringn(x + 3, y, &text, room, app.palette.style(Role::Text));
+    if !more.is_empty() {
+        buf.set_string(end, y, &more, app.palette.style(Role::TextDim));
+    }
+}
+
+/// How the help table breaks into columns, and the columns into pages, at one size.
+struct HelpLayout {
+    /// Row ranges, one per column, in reading order.
+    columns: Vec<std::ops::Range<usize>>,
+    /// Columns side by side on a page.
+    across: usize,
+    /// Rows in the tallest column.
+    height: usize,
+}
+
+impl HelpLayout {
+    fn pages(&self) -> usize {
+        self.columns.len().div_ceil(self.across.max(1)).max(1)
+    }
+}
+
+/// Lay the help table out in the fewest columns that hold it in `room` rows, or, when it does
+/// not fit even at full width, in pages of columns `room` tall.
+///
+/// Pages rather than a scroll: columns that scroll together read column one's top, then column
+/// two's top, with the rest of column one out of sight between them. A page keeps the reading
+/// order — down the first column, then the next — and every binding is on some page, where a
+/// clipped table hid half of them at 80×24 and all but GLOBAL at 60×20.
+fn help_layout(rows: &[(String, String)], width: u16, room: usize) -> HelpLayout {
+    let is_heading = |i: usize| rows[i].0.is_empty() && !rows[i].1.starts_with(' ');
+    let max_across = layout::columns_for(width, HELP_COLUMN_WIDTH);
+    for across in 1..=max_across {
+        for height in rows.len().div_ceil(across).max(1)..=room {
+            let columns = flow(rows.len(), height, is_heading);
+            if columns.len() <= across {
+                let height = columns.iter().map(ExactSizeIterator::len).max().unwrap_or(1);
+                return HelpLayout { columns, across, height };
+            }
+        }
+    }
+    HelpLayout { columns: flow(rows.len(), room, is_heading), across: max_across, height: room }
+}
+
+/// Break `len` rows into columns of at most `height`, never ending a column on a heading: the
+/// rows under it would start the next column and leave it orphaned at the bottom of this one.
+fn flow(
+    len: usize,
+    height: usize,
+    is_heading: impl Fn(usize) -> bool,
+) -> Vec<std::ops::Range<usize>> {
+    let height = height.max(1);
+    let mut columns = Vec::new();
+    let mut start = 0;
+    while start < len {
+        let mut end = (start + height).min(len);
+        if end < len && end - start > 1 && is_heading(end - 1) {
+            end -= 1;
+        }
+        columns.push(start..end);
+        start = end;
+    }
+    columns
 }
 
 /// Narrowest column the help table reads well in.
@@ -2812,7 +3238,7 @@ fn source_provider_rows(app: &App) -> Vec<(String, String)> {
 }
 
 fn watch_order_rows(app: &App) -> Vec<(String, String)> {
-    let Some(detail) = app.detail.as_ref() else {
+    let Some(detail) = app.target() else {
         return Vec::new();
     };
     detail
@@ -2829,7 +3255,7 @@ fn watch_order_rows(app: &App) -> Vec<(String, String)> {
 }
 
 fn recommendation_rows(app: &App) -> Vec<(String, String)> {
-    let Some(detail) = app.detail.as_ref() else {
+    let Some(detail) = app.target() else {
         return Vec::new();
     };
     detail
@@ -2917,6 +3343,8 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
     let selected = match overlay {
         // The plugin overlay explains before it offers, so its choices start below the facts.
         Overlay::PluginAction => Some(plugin_action_rows(app).1 + app.overlay_selected),
+        // "Nothing logged yet" is a note, not a line that can be picked.
+        Overlay::Logs if app.logs.is_empty() => None,
         _ => matches!(
             overlay,
             Overlay::Accounts
@@ -2944,17 +3372,44 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
 
     // Only the help overlay is a reference table worth columnising. A picker reads as a
     // single ranked list; splitting it would scatter the best match away from the top.
-    let max_columns = if matches!(overlay, Overlay::Help) {
-        layout::columns_for(area.width.saturating_sub(4), HELP_COLUMN_WIDTH)
-    } else {
-        1
-    };
-    // Columns are driven by how much *height* there is, not just how much width. Fitting the
-    // table matters more than keeping it narrow: clipping the last scope would hide whole
-    // categories of binding, and the help overlay is the app's discoverability mechanism.
     let room = host.height.saturating_sub(4).max(1) as usize;
-    let columns = rows.len().div_ceil(room).clamp(1, max_columns.max(1));
-    let per_column = rows.len().div_ceil(columns).max(1);
+    let (columns, column_width, per_column, position) = if matches!(overlay, Overlay::Help) {
+        let available = area.width.saturating_sub(4);
+        let help = help_layout(&rows, available, room);
+        let pages = help.pages();
+        app.help_pages.set(pages);
+        let page = app.help_page.min(pages - 1);
+        let shown: Vec<std::ops::Range<usize>> =
+            help.columns.iter().skip(page * help.across).take(help.across).cloned().collect();
+        // Each column only as wide as its longest row needs. Stretched to share a wide band,
+        // the keys sat a hundred cells from the labels they belong to.
+        let natural = rows
+            .iter()
+            .map(|(key, label)| label.chars().count() + key.chars().count() + 3)
+            .max()
+            .unwrap_or(0) as u16;
+        let width = (available / help.across.max(1) as u16).min(natural + 2);
+        let position = (pages > 1).then(|| format!("page {} of {pages}", page + 1));
+        (shown, width, help.height, position)
+    } else {
+        // One column, windowed around the selection so a long list scrolls with its highlight
+        // rather than letting it walk off the bottom of the band.
+        let visible = rows.len().min(room);
+        let offset = match selected {
+            Some(at) => app
+                .overlay_offset
+                .get()
+                .min(at)
+                .max((at + 1).saturating_sub(visible))
+                .min(rows.len() - visible),
+            None => 0,
+        };
+        app.overlay_offset.set(offset);
+        let position = (rows.len() > visible)
+            .then(|| format!("{}–{} of {}", offset + 1, offset + visible, rows.len()));
+        let shown = std::iter::once(offset..offset + visible).collect();
+        (shown, area.width.saturating_sub(4), visible.max(1), position)
+    };
 
     let height = (per_column as u16 + 4).min(host.height);
     let band = layout::overlay_band(host, height);
@@ -3040,21 +3495,22 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
             glyph::eyebrow(overlay.title()),
             "•".repeat(app.kitsu_pass.chars().count())
         ),
-        // Say what is being asked and why, or a bare "WHICH ONE" over a list of near-identical
-        // release names is a riddle rather than a question.
+        // Say what is being asked, or a bare "WHICH ONE" over a list of near-identical release
+        // names is a riddle rather than a question. Not why: the same list answers a search
+        // typed after `m`, where "no confident match" sat above a 100% candidate.
         Overlay::Disambiguate => format!(
             "{}   {}",
             glyph::eyebrow(overlay.title()),
             match app.detail.as_ref() {
-                Some(detail) => format!("no confident match for {}", detail.title),
-                None => "no confident match".into(),
+                Some(detail) => format!("is {} — enter pins it", detail.title),
+                None => "enter pins it".into(),
             }
         ),
         // Name the title the order is anchored on — a list of sequels floats without it.
         Overlay::WatchOrder => format!(
             "{}   {}",
             glyph::eyebrow(overlay.title()),
-            match app.detail.as_ref() {
+            match app.target() {
                 Some(detail) => format!("around {} — enter opens", detail.title),
                 None => "enter opens".into(),
             }
@@ -3063,7 +3519,7 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         Overlay::Recommendations => format!(
             "{}   {}",
             glyph::eyebrow(overlay.title()),
-            match app.detail.as_ref() {
+            match app.target() {
                 Some(detail) => format!("if you liked {} — enter opens", detail.title),
                 None => "enter opens".into(),
             }
@@ -3093,22 +3549,31 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         ),
         other => glyph::eyebrow(other.title()),
     };
+    // Where in a table too long for the band the window is, so the rest is known to exist.
+    let position = position.filter(|p| p.chars().count() + 8 < band.width as usize);
+    let position_room = position.as_ref().map_or(0, |p| p.chars().count() as u16 + 2);
     line(
         buf,
         band.left() + 2,
         title_y,
-        truncate(&heading, band.width.saturating_sub(3) as usize),
+        truncate(&heading, band.width.saturating_sub(3 + position_room) as usize),
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
+    if let Some(position) = &position {
+        let x = band.right().saturating_sub(position.chars().count() as u16 + 2);
+        buf.set_string(x, title_y, position, app.palette.style(Role::TextDim));
+    }
     if title_y + 1 < band.bottom() {
         Hairline::new(&app.palette).render(Rect { y: title_y + 1, height: 1, ..band }, buf);
     }
 
-    let column_width = band.width.saturating_sub(4) / columns.max(1) as u16;
-    for (i, (key, label)) in rows.iter().enumerate() {
-        let column = i / per_column;
-        let y = title_y + 2 + (i % per_column) as u16;
-        if y >= band.bottom() || column >= columns {
+    let placed = columns.iter().enumerate().flat_map(|(column, range)| {
+        range.clone().enumerate().map(move |(row, i)| (column, row, i))
+    });
+    for (column, row, i) in placed {
+        let Some((key, label)) = rows.get(i) else { continue };
+        let y = title_y + 2 + row as u16;
+        if y >= band.bottom() {
             continue;
         }
         let x = band.left() + 2 + column as u16 * column_width;
@@ -3339,7 +3804,9 @@ fn log_rows(app: &App) -> Vec<(String, String)> {
                 crate::app::ToastKind::Alert => glyph::STATE_DOWN,
                 crate::app::ToastKind::Info => glyph::STATE_UNKNOWN,
             };
-            (String::new(), format!("{marker}  {}", row.text))
+            // A repeat shows as a count where a key would go, not as more lines.
+            let count = if row.count > 1 { format!("×{}", row.count) } else { String::new() };
+            (count, format!("{marker}  {}", row.text))
         })
         .collect()
 }
@@ -3390,7 +3857,11 @@ fn still_panel(app: &App, table: Rect) -> Option<Rect> {
 }
 
 /// Columns the episode table needs before a still may take any width from it.
-const MIN_EPISODE_TABLE_WIDTH: u16 = 44;
+///
+/// Enough for a title column of about thirty cells beside the number, runtime and meter. At
+/// 44 the still kept its width at 80 columns and left the titles ten cells — a column of
+/// `The Heroe…` with a picture beside it. The panel yields instead.
+const MIN_EPISODE_TABLE_WIDTH: u16 = 64;
 
 /// Width in cells for a 16:9 still of a given height.
 ///
@@ -3431,10 +3902,10 @@ fn broadcast_line(entry: &Entry) -> String {
     let mut parts: Vec<String> = Vec::new();
     if let Some((episode, ago)) = entry.latest_aired() {
         parts.push(match ago {
-            Some(ago) => format!("EP {episode} out {}", crate::widgets::ago(ago)),
+            Some(ago) => format!("ep {episode} out {}", crate::widgets::ago(ago)),
             // Known to be out only by inference from the next episode's number, so there
             // is no broadcast time to date it with — absent beats guessed.
-            None => format!("EP {episode} out"),
+            None => format!("ep {episode} out"),
         });
     }
     // The title's own schedule rather than the row's slot, so a calendar row about an episode
@@ -3443,7 +3914,7 @@ fn broadcast_line(entry: &Entry) -> String {
     // non-positive `timeUntilAiring` in the moments around a broadcast.
     if let Some(seconds) = entry.next_airing_in.filter(|s| *s > 0) {
         parts.push(match entry.next_episode {
-            Some(next) => format!("EP {next} in {}", crate::widgets::countdown(seconds)),
+            Some(next) => format!("ep {next} in {}", crate::widgets::countdown(seconds)),
             None => format!("next in {}", crate::widgets::countdown(seconds)),
         });
     }
@@ -3480,11 +3951,16 @@ fn metadata_line(entry: &Entry) -> String {
 pub fn visible_rows(area: Rect, section: Section) -> usize {
     let geometry = layout::compute(area, crate::nav::RailWidth::Expanded);
     let offset = match section {
+        // The prompt and the gap under it.
         Section::Search => 2,
+        // The season's heading, held at the top of the list.
+        Section::Seasonal => 1,
         // Day rulings and their spacer rows share the window with the entries. Five is
         // an estimate — a screenful rarely spans more than three days — and estimating
         // low only scrolls the selection a couple of lines early, never hides it.
         Section::Calendar => 5,
+        // The segment strip, its hairline and a gap sit above the list.
+        Section::Library => 3,
         _ => 0,
     };
     geometry.stage.height.saturating_sub(offset) as usize
@@ -3526,6 +4002,96 @@ mod tests {
         }
     }
 
+    /// Ops held for an id mapping are still queued, and the row says why they have not gone.
+    #[test]
+    fn an_accounts_row_says_how_much_of_the_queue_waits_for_a_mapping() {
+        let mut app = app_with(Content::Entries(Vec::new()));
+        app.apply(Update::Sync(Box::new(crate::app::SyncState {
+            connected: true,
+            outbox: 3,
+            deferred: 2,
+            ..crate::app::SyncState::new("mal")
+        })));
+        let (_, detail) = &accounts_rows(&app)[0];
+        assert!(detail.contains("3 queued, 2 waiting for an id mapping"), "{detail}");
+
+        app.apply(Update::Sync(Box::new(crate::app::SyncState {
+            connected: true,
+            outbox: 3,
+            ..crate::app::SyncState::new("mal")
+        })));
+        let (_, detail) = &accounts_rows(&app)[0];
+        assert!(detail.contains("3 queued") && !detail.contains("mapping"), "{detail}");
+    }
+
+    /// The backoff line was a countdown formatted when the status was sent, and the idle screen
+    /// is not redrawn every second, so it read "next try in 39s" for minutes.
+    #[test]
+    fn a_resting_meta_source_says_until_when_it_is_skipped() {
+        use chrono::TimeZone;
+        let now = chrono::Local::now().timestamp();
+        let mut row = crate::app::MetaSourceRow {
+            source: "anilist".into(),
+            state: "backing off".into(),
+            healthy: false,
+            active: false,
+            detail: Some("network: timed out".into()),
+            retry_at: Some(now + 120),
+        };
+        let clock = chrono::Local.timestamp_opt(now + 120, 0).unwrap().format("%H:%M");
+        assert_eq!(
+            meta_detail(&row, now).as_deref(),
+            Some(format!("skipped until {clock} — network: timed out").as_str())
+        );
+        // Once the deadline is behind it, a time already gone would read as stale.
+        assert_eq!(
+            meta_detail(&row, now + 121).as_deref(),
+            Some("tried again on the next request — network: timed out")
+        );
+        row.retry_at = None;
+        assert_eq!(meta_detail(&row, now).as_deref(), Some("network: timed out"));
+    }
+
+    /// A failed pull used to leave the row saying "connected · pulled 40 titles" from the last
+    /// success, for as long as the outage lasted.
+    #[test]
+    fn an_accounts_row_says_when_and_why_the_last_pull_failed() {
+        let mut app = app_with(Content::Entries(Vec::new()));
+        let at = chrono::Local::now().timestamp() - 60;
+        app.apply(Update::Sync(Box::new(crate::app::SyncState {
+            connected: true,
+            pull_error: Some(("network: timed out".into(), at)),
+            ..crate::app::SyncState::new("anilist")
+        })));
+        let (_, detail) = &accounts_rows(&app)[0];
+        let clock = pull_time(at);
+        assert!(clock.starts_with("at "), "today's failure reads as a clock time: {clock}");
+        assert!(
+            detail.contains(&format!("pull failed {clock}: network: timed out")),
+            "{detail}"
+        );
+        assert!(!detail.contains("pulled"), "{detail}");
+
+        // An older failure carries its date.
+        assert!(pull_time(at - 10 * 86_400).starts_with("on "));
+    }
+
+    #[test]
+    fn the_accounts_screen_shows_a_failed_pull_under_its_tracker() {
+        // The reason used to reach only a list nothing on the screen drew from, so the row kept
+        // saying "connected" while the library had stopped updating.
+        let mut app = app_with(Content::Entries(Vec::new()));
+        app.apply(Update::Sync(Box::new(crate::app::SyncState {
+            connected: true,
+            pull_error: Some(("network: timed out".into(), chrono::Local::now().timestamp())),
+            ..crate::app::SyncState::new("anilist")
+        })));
+        app.go_to_section(Section::Accounts);
+        let text = text_of(&render_to_buffer(&app, 120, 34));
+        assert!(text.contains("pull failed at "), "{text}");
+        assert!(text.contains("network: timed out"), "{text}");
+    }
+
     /// An episode that has already aired has no time left to count down to, and the "out" half
     /// of the line already reports it. Saying "in now" alongside read as a release that never
     /// arrived.
@@ -3539,14 +4105,14 @@ mod tests {
         e.next_airing_in = Some(604_800);
 
         let line = broadcast_line(&e);
-        assert!(line.contains("EP 5 out"), "what is out still gets said: {line}");
-        assert!(line.contains("EP 6 in 7d"), "and when the next one is due: {line}");
+        assert!(line.contains("ep 5 out"), "what is out still gets said: {line}");
+        assert!(line.contains("ep 6 in 7d"), "and when the next one is due: {line}");
         assert!(!line.contains("now"), "the spent slot is not a countdown: {line}");
 
         // Nothing further scheduled — a finished show says only what is out.
         e.next_episode = None;
         e.next_airing_in = None;
-        assert_eq!(broadcast_line(&e), "EP 5 out 1h ago");
+        assert_eq!(broadcast_line(&e), "ep 5 out 1h ago");
     }
 
     /// AniList leaves the length empty while a show airs without an announced one. The card
@@ -3732,6 +4298,40 @@ mod tests {
     }
 
     #[test]
+    fn a_standing_notice_stays_on_every_screen_beside_the_toasts() {
+        let mut app = app_with(Content::Entries(vec![entry(1, "An Invented Show")]));
+        app.notice =
+            Some("config.toml line 5: unknown field `qualty` — running on defaults".into());
+        app.push_toast(crate::app::Toast::info("saved quality"));
+        for _ in 0..500 {
+            app.tick_toasts();
+        }
+        app.push_toast(crate::app::Toast::alert("a passing problem"));
+
+        for section in [Section::Home, Section::Settings, Section::Providers] {
+            app.go_to_section(section);
+            let text = text_of(&render_to_buffer(&app, 120, 34));
+            let rows: Vec<&str> = text.lines().collect();
+            let notice = rows.iter().position(|r| r.contains("unknown field `qualty`"));
+            let toast = rows.iter().position(|r| r.contains("a passing problem"));
+            assert!(notice.is_some(), "{section:?} lost the notice:\n{text}");
+            // The notice is the status line, the screen's last row, and the toast sits on the
+            // rule above it: neither covers the other, and neither covers a row of the stage.
+            assert_eq!(
+                notice,
+                Some(rows.len() - 1),
+                "{section:?}: not on the status line:\n{text}"
+            );
+            assert_eq!(
+                toast.map(|row| row + 1),
+                notice,
+                "{section:?}: the toast belongs on the rule above the notice:\n{text}"
+            );
+            assert!(!text.contains("saved quality"), "toasts still expire");
+        }
+    }
+
+    #[test]
     fn the_loading_pulse_actually_moves_between_frames() {
         let mut app = app_with(Content::Loading);
         let first = text_of(&render_to_buffer(&app, 120, 30));
@@ -3749,6 +4349,8 @@ mod tests {
         let mut app = app_with(Content::Entries(vec![]));
         app.go_to_section(Section::Search);
         app.search_query = "zzzz".into();
+        // Run, as Enter runs it: the answer is for the query in the field.
+        app.searched_query = "zzzz".into();
         app.apply(app.content_here(Content::Entries(vec![])));
         let text = text_of(&render_to_buffer(&app, 120, 30));
         assert!(text.contains("NO MATCHES"), "got {text:?}");
@@ -3777,6 +4379,18 @@ mod tests {
         searched.go_to_section(Section::Search);
         searched.apply(searched.content_here(Content::Entries(vec![])));
         assert!(text_of(&render_to_buffer(&searched, 120, 30)).contains("NO MATCHES"));
+    }
+
+    #[test]
+    fn a_typed_query_not_yet_run_says_enter_runs_it() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Search);
+        for ch in "invented".chars() {
+            app.type_char(ch);
+        }
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("↵ TO SEARCH"), "got {text:?}");
+        assert!(!text.contains("TYPE TO SEARCH"), "got {text:?}");
     }
 
     #[test]
@@ -3875,6 +4489,21 @@ mod tests {
     }
 
     #[test]
+    fn a_short_terminal_keeps_the_title_page_inside_the_stage() {
+        // At ten rows the banner leaves the stage a few lines, and the metadata ran on into
+        // the status rule and line under it.
+        let mut app = app_with(Content::Entries(vec![entry(1, "Invented Show")]));
+        app.nav.focus_stage();
+        app.handle(crate::keymap::Action::Open, 20);
+        let buf = render_to_buffer(&app, 80, 10);
+        let stage = layout::compute(Rect::new(0, 0, 80, 10), app.nav.rail_width()).stage;
+        let below: Vec<String> =
+            text_of(&buf).lines().skip(stage.bottom() as usize).map(str::to_owned).collect();
+        // The status line overwrites the front of a stray line and leaves its tail, the year.
+        assert!(below.iter().all(|l| !l.contains("2023")), "{below:?}");
+    }
+
+    #[test]
     fn an_overlay_spans_the_full_width_so_nothing_bleeds_alongside_it() {
         // A partial-width panel leaves live content visible either side of it, which reads
         // as a rendering fault rather than a modal.
@@ -3917,9 +4546,9 @@ mod tests {
     fn the_episode_table_reads_as_a_timing_sheet() {
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
         app.handle(crate::keymap::Action::Open, 20);
-        app.nav.push(StageView::Episodes(AnilistId::new(1)));
         // As entering episodes does: the table is a view of the open title.
         app.detail = app.selected_entry().cloned();
+        app.nav.push(StageView::Episodes(AnilistId::new(1)));
         app.apply(app.episodes_here(vec![
             episode("9", "Aura the Guillotine", 1.0, true),
             episode("10", "Frieren the Slayer", 0.62, false),
@@ -4069,9 +4698,10 @@ mod tests {
         // Repeating the alert on every verification tick would be noise.
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
         app.apply(Update::Vpn { badge: "vpn ✕  LEAK".into(), leaking: true });
-        let after_first = app.toasts.len();
+        let announced = |a: &App| a.logs.iter().map(|l| l.count).sum::<u32>();
+        let after_first = announced(&app);
         app.apply(Update::Vpn { badge: "vpn ✕  LEAK".into(), leaking: true });
-        assert_eq!(app.toasts.len(), after_first, "re-announced an unchanged leak");
+        assert_eq!(announced(&app), after_first, "re-announced an unchanged leak");
     }
 
     /// An app parked on Now Playing, partway through an episode.
@@ -4162,9 +4792,9 @@ mod tests {
     fn app_at_episodes() -> App {
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
         app.handle(crate::keymap::Action::Open, 20);
-        app.nav.push(StageView::Episodes(AnilistId::new(1)));
         // As entering episodes does: the table is a view of the open title.
         app.detail = app.selected_entry().cloned();
+        app.nav.push(StageView::Episodes(AnilistId::new(1)));
         app.apply(app.episodes_here(vec![
             episode("9", "Aura the Guillotine", 1.0, true),
             episode("10", "Frieren the Slayer", 0.62, false),
@@ -4797,9 +5427,11 @@ mod tests {
 
     #[test]
     fn the_status_line_reports_source_translation_and_quality() {
+        // Torrents lead the default order and are off by default, so the source named is the
+        // first one that is not switched off rather than the first in the list.
         let app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
         let text = text_of(&render_to_buffer(&app, 120, 30));
-        assert!(text.contains("torrent · sub · 1080p"), "status line missing state");
+        assert!(text.contains("plugins · sub · 1080p"), "status line missing state:\n{text}");
     }
 
     #[test]
@@ -4923,6 +5555,62 @@ mod tests {
     }
 
     #[test]
+    fn a_queue_longer_than_the_screen_scrolls_to_its_selection() {
+        // The rows stopped at the fold while the cursor carried on below it.
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Downloads);
+        app.apply(crate::app::Update::Downloads(
+            (1..=40)
+                .map(|n| crate::app::DownloadRow {
+                    id: n,
+                    anilist_id: AnilistId::new(1),
+                    title: "Invented Show".into(),
+                    episode: n.to_string(),
+                    state: "queued",
+                    fraction: 0.0,
+                    downloaded: 0,
+                    total: 0,
+                    error: None,
+                    path: None,
+                })
+                .collect(),
+        ));
+        app.handle(crate::keymap::Action::Bottom, 20);
+        assert_eq!(app.selected, 39);
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("Invented Show  ep 40"), "got {text:?}");
+    }
+
+    #[test]
+    fn the_librarys_selection_stays_inside_the_rows_it_draws() {
+        // Paged as if the list had the whole stage, while three rows go to the segment strip,
+        // so the last few steps of every page moved the highlight below the fold.
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Library);
+        app.apply(app.content_here(Content::Entries(
+            (1..=40).map(|n| entry(n, &format!("Invented Show {n}"))).collect(),
+        )));
+        // Narrow enough that the preview pane, which repeats the title, is not drawn.
+        let area = Rect::new(0, 0, 70, 24);
+        let rows = visible_rows(area, Section::Library);
+        for _ in 0..39 {
+            app.handle(crate::keymap::Action::Down, rows);
+        }
+        let text = text_of(&render_to_buffer(&app, area.width, area.height));
+        assert!(text.contains("Invented Show 40"), "the highlight left the screen: {text:?}");
+    }
+
+    #[test]
+    fn search_with_nothing_typed_shows_its_empty_state_not_the_last_list() {
+        let mut app = app_with(Content::Entries(vec![entry(1, "Invented Show")]));
+        app.handle(crate::keymap::Action::JumpSection(4), 20);
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("TYPE TO SEARCH"), "got {text:?}");
+        assert!(!text.contains("Invented Show"), "the previous list was drawn under Search");
+        assert!(!text.contains("NO MATCHES"));
+    }
+
+    #[test]
     fn sizes_read_at_human_scale() {
         // Two digits of real information, never a third of noise.
         assert_eq!(human_bytes(0), "0 B");
@@ -4986,7 +5674,8 @@ mod tests {
         e.progress = Some((7, 8));
         e.last_aired = Some((8, 3600));
         let app = app_with(Content::Entries(vec![e]));
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        // Too narrow for the preview, whose broadcast line would answer for the row.
+        let text = text_of(&render_to_buffer(&app, 70, 30));
         assert!(text.contains("ep 8 out"), "being behind is the fact worth stating:\n{text}");
     }
 
@@ -5000,7 +5689,8 @@ mod tests {
         e.airing_in = Some(2 * 24 * 3600 + 3600);
         e.next_episode = Some(9);
         let app = app_with(Content::Entries(vec![e]));
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        // Too narrow for the preview, whose broadcast line would answer for the row.
+        let text = text_of(&render_to_buffer(&app, 70, 30));
         assert!(!text.contains("ep 8 out"), "already watched — not news:\n{text}");
         assert!(text.contains("ep 9 in 2d 1h"), "the wait is the fact:\n{text}");
     }
@@ -5016,7 +5706,8 @@ mod tests {
         e.next_episode = Some(9);
         e.airing_in = Some(7 * 24 * 3600);
         let app = app_with(Content::Entries(vec![e]));
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        // Too narrow for the preview, whose broadcast line would answer for the row.
+        let text = text_of(&render_to_buffer(&app, 70, 30));
         assert!(text.contains("ep 8 out"), "the launch went unannounced:\n{text}");
         assert!(!text.contains("ep 9 in"), "counting down is old news beside a launch");
     }
@@ -5030,7 +5721,8 @@ mod tests {
         e.progress = Some((0, 1));
         e.last_aired = Some((4, 3600));
         let app = app_with(Content::Entries(vec![e]));
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        // Too narrow for the preview, whose broadcast line would answer for the row.
+        let text = text_of(&render_to_buffer(&app, 70, 30));
         assert!(text.contains("ep 4 out"), "got:\n{text}");
     }
 
@@ -5045,5 +5737,469 @@ mod tests {
         // Metadata lives in the preview pane, so "2023" only survives at full width.
         assert!(wide.contains("2023"), "the wide layout shows preview metadata");
         assert!(!narrow.contains("2023"), "the narrow layout drops the preview");
+    }
+
+    // ---- Wording and display consistency ----
+
+    /// The rows of a rendered frame, for assertions about one line.
+    fn lines_of(app: &App, width: u16, height: u16) -> Vec<String> {
+        text_of(&render_to_buffer(app, width, height)).lines().map(str::to_owned).collect()
+    }
+
+    fn calendar_with(rows: Vec<Entry>) -> App {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Calendar);
+        app.apply(app.content_here(Content::Entries(rows)));
+        app
+    }
+
+    /// One show, several episodes airing a few minutes apart, under a title long enough to be
+    /// cut: the number has to survive the cut, or the rows read as one row repeated.
+    #[test]
+    fn calendar_rows_keep_their_episode_when_the_title_is_cut() {
+        let rows = (1..=5u32)
+            .map(|ep| Entry {
+                airing_in: Some(3_600 + i64::from(ep) * 60),
+                airing_episode: Some(ep),
+                ..entry(ep, "The Unusually Long Name of an Invented Weekly Broadcast")
+            })
+            .collect();
+        let app = calendar_with(rows);
+        for width in [120, 80] {
+            let text = lines_of(&app, width, 30).join("\n");
+            for ep in 1..=5 {
+                assert!(
+                    text.contains(&format!("ep {ep} ")),
+                    "ep {ep} lost at {width}:\n{text}"
+                );
+            }
+        }
+        // And the episode lines up as a column, rather than trailing each title.
+        let lines = lines_of(&app, 120, 30);
+        let columns: Vec<usize> = lines
+            .iter()
+            .filter_map(|l| l.find("ep ").map(|at| l[..at].chars().count()))
+            .filter(|at| *at > 30 && *at < 70)
+            .collect();
+        assert!(columns.len() >= 5 && columns.windows(2).all(|w| w[0] == w[1]), "{lines:#?}");
+    }
+
+    #[test]
+    fn a_calendar_title_opens_without_its_episode_in_the_heading() {
+        let row =
+            Entry { airing_in: Some(600), airing_episode: Some(7), ..entry(1, "Paper Kite") };
+        let mut app = calendar_with(vec![row]);
+        app.nav.focus_stage();
+        app.handle(crate::keymap::Action::Open, 20);
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("Paper Kite"), "{text}");
+        assert!(!text.contains("Paper Kite  ep 7"), "the row's episode leaked:\n{text}");
+    }
+
+    /// `G` on the calendar left rows blank at the bottom: the offset reserved rows for day
+    /// headings the end of the list did not have.
+    #[test]
+    fn the_end_of_the_calendar_fills_the_screen() {
+        let rows: Vec<Entry> = (0..80u32)
+            .map(|i| Entry {
+                airing_in: Some(3_600 + i64::from(i) * 600),
+                airing_episode: Some(i + 1),
+                ..entry(i + 1, &format!("Weekly {i}"))
+            })
+            .collect();
+        let mut app = calendar_with(rows);
+        app.nav.focus_stage();
+        let visible = visible_rows(Rect::new(0, 0, 120, 30), Section::Calendar);
+        app.handle(crate::keymap::Action::Bottom, visible);
+        let lines = lines_of(&app, 120, 30);
+        // The stage runs from row 2 to the status rule, two from the bottom.
+        let stage = &lines[2..lines.len() - 2];
+        assert!(
+            stage.last().is_some_and(|l| l.contains("Weekly")),
+            "blank at the end:\n{lines:#?}"
+        );
+        assert!(lines.iter().any(|l| l.contains("▌ Weekly 79")), "the last row is selected");
+    }
+
+    #[test]
+    fn an_empty_continue_list_names_keys_as_keys() {
+        let app = app_with(Content::Empty);
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("NOTHING WATCHED YET"), "{text}");
+        assert!(text.contains("press 3 for this season"), "{text}");
+
+        // A rebind is what the sentence says.
+        let mut app = app_with(Content::Empty);
+        let mut keys = std::collections::BTreeMap::new();
+        keys.insert("jump_section_3".to_string(), "S".to_string());
+        assert!(app.keymap.apply_overrides(&keys).is_empty());
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("press S for this season"), "{text}");
+    }
+
+    /// History that is all hidden is not "nothing watched yet".
+    #[test]
+    fn continue_with_everything_hidden_says_so() {
+        let mut app = app_with(Content::Entries(vec![Entry {
+            progress: Some((2, 3)),
+            ..entry(1, "Paper Kite")
+        }]));
+        app.nav.focus_stage();
+        app.handle(crate::keymap::Action::HideFromContinue, 20);
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("NOTHING TO CONTINUE"), "{text}");
+        assert!(!text.contains("NOTHING WATCHED YET"), "{text}");
+    }
+
+    fn episodes_open_on(detail: Entry) -> App {
+        let mut app = app_with(Content::Entries(vec![detail.clone()]));
+        app.nav.push(StageView::Episodes(detail.id));
+        app.detail = Some(detail);
+        app.apply(app.episodes_here(Vec::new()));
+        app
+    }
+
+    #[test]
+    fn an_empty_episode_table_says_what_is_known() {
+        // A source is ready: "no source is configured" was false here.
+        let mut app = episodes_open_on(entry(1, "Paper Kite"));
+        app.apply(Update::Providers(vec![provider("someplugin", "ready", true, false)]));
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("NO EPISODES LISTED"), "{text}");
+        assert!(text.contains("m searches for the right match"), "{text}");
+        assert!(!text.contains("no source is configured"), "{text}");
+
+        // Not out yet: the wait, not a fault.
+        let unaired = Entry {
+            next_episode: Some(1),
+            next_airing_in: Some(36 * 3600),
+            ..entry(2, "Lantern Season")
+        };
+        let mut app = episodes_open_on(unaired);
+        app.apply(Update::Providers(vec![provider("someplugin", "ready", true, false)]));
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("NOTHING HAS AIRED YET"), "{text}");
+        assert!(text.contains("ep 1 in 1d 12h"), "{text}");
+    }
+
+    #[test]
+    fn the_match_picker_heading_does_not_claim_the_match_was_unsure() {
+        let mut app = app_at_episodes();
+        app.apply(Update::MatchChoices {
+            id: AnilistId::new(1),
+            provider_id: "someplugin".into(),
+            candidates: vec![crate::MatchCandidate {
+                title: "Exactly This".into(),
+                key: anistream_core::ids::ProviderKey::new("a"),
+                similarity: 1.0,
+                rejected: None,
+            }],
+        });
+        let text = text_of(&render_to_buffer(&app, 110, 24));
+        assert!(text.contains("100%"));
+        assert!(!text.contains("no confident match"), "{text}");
+        assert!(text.contains("enter pins it"), "{text}");
+    }
+
+    #[test]
+    fn the_header_shows_each_source_as_it_stands() {
+        // Torrents off, plugins serving: nothing is failing, and nothing alerts.
+        let mut app = app_with(Content::Entries(vec![entry(1, "Paper Kite")]));
+        app.apply(Update::Providers(vec![crate::app::ProviderRow {
+            kind: "plugin".into(),
+            ..provider("someplugin", "ready", true, false)
+        }]));
+        let buf = render_to_buffer(&app, 120, 30);
+        let header = text_of(&buf).lines().next().unwrap_or_default().to_owned();
+        assert!(header.contains("torrent ○"), "{header}");
+        assert!(header.contains("plugins ●"), "{header}");
+        assert!(!header.contains('▲'), "off is not degraded: {header}");
+        let alert = app.palette.color(Role::Alert);
+        assert!((0..120).all(|x| buf[(x, 0)].fg != alert), "nothing in the header alerts");
+
+        // A source that is failing does.
+        app.apply(Update::Providers(vec![crate::app::ProviderRow {
+            kind: "plugin".into(),
+            ..provider("someplugin", "down", false, false)
+        }]));
+        let buf = render_to_buffer(&app, 120, 30);
+        let x = find_cell(&buf, "✕").expect("a failing source is marked").0;
+        assert_eq!(buf[(x, 0)].fg, alert);
+    }
+
+    #[test]
+    fn a_signed_out_tracker_is_not_drawn_as_a_separator() {
+        let mut app = app_with(Content::Entries(vec![entry(1, "Paper Kite")]));
+        app.apply(Update::Sync(Box::new(crate::app::SyncState::new("kitsu"))));
+        let header = lines_of(&app, 120, 30)[0].clone();
+        assert!(header.contains("kitsu ○"), "{header}");
+        assert!(!header.contains("kitsu ·"), "{header}");
+    }
+
+    /// Toasts sat in the stage's bottom-right corner, over whatever value was there.
+    #[test]
+    fn a_toast_sits_on_the_status_rule_and_covers_nothing() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Settings);
+        let before = lines_of(&app, 80, 24);
+        app.push_toast(crate::app::Toast::info("saved · counts as watched at"));
+        let after = lines_of(&app, 80, 24);
+        let rule = after.len() - 2;
+        assert!(after[rule].contains("saved · counts as watched at"), "{after:#?}");
+        for (row, (was, is)) in before.iter().zip(&after).enumerate() {
+            if row != rule {
+                assert_eq!(was, is, "row {row} changed under the toast");
+            }
+        }
+        // More than one up: the newest, and how many others.
+        app.push_toast(crate::app::Toast::alert("source unreachable"));
+        let rule_line = lines_of(&app, 80, 24)[rule].clone();
+        assert!(rule_line.contains("source unreachable  +1"), "{rule_line}");
+    }
+
+    #[test]
+    fn a_seasonal_list_names_its_season_and_says_when_it_stopped_short() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Seasonal);
+        app.apply(Update::Caption {
+            view: crate::app::ContentFor::Seasonal,
+            text: "fall 2026 · the 40 most popular".into(),
+        });
+        app.apply(
+            app.content_here(Content::Entries((1..60).map(|i| entry(i, "Show")).collect())),
+        );
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("FALL 2026 · THE 40 MOST POPULAR"), "{text}");
+
+        // A caption belongs to the list it came with.
+        app.apply(Update::Content {
+            view: crate::app::ContentFor::Continue,
+            content: Content::Empty,
+        });
+        app.go_to_section(Section::Home);
+        assert!(app.list_caption().is_none());
+    }
+
+    #[test]
+    fn a_capped_search_says_so_beside_the_prompt() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Search);
+        app.search_query = "kite".into();
+        app.searched_query = "kite".into();
+        let view = app.content_view().unwrap();
+        app.apply(Update::Caption { view: view.clone(), text: "showing the first 30".into() });
+        app.apply(Update::Content { view, content: Content::Entries(vec![entry(1, "Kite")]) });
+        let lines = lines_of(&app, 120, 30);
+        let prompt = lines.iter().find(|l| l.contains("FIND")).unwrap();
+        assert!(prompt.contains("showing the first 30"), "{prompt}");
+    }
+
+    #[test]
+    fn genres_read_the_same_in_the_preview_and_on_the_title() {
+        let e =
+            Entry { genres: vec!["Slice of Life".into(), "Sci-Fi".into()], ..entry(1, "Kite") };
+        let mut app = app_with(Content::Entries(vec![e]));
+        let preview = text_of(&render_to_buffer(&app, 120, 34));
+        assert!(preview.contains("Slice of Life  ·  Sci-Fi"), "{preview}");
+        assert!(!preview.contains("SLICE OF LIFE"), "{preview}");
+        app.nav.focus_stage();
+        app.handle(crate::keymap::Action::Open, 20);
+        let title = text_of(&render_to_buffer(&app, 120, 34));
+        assert!(title.contains("Slice of Life  ·  Sci-Fi"), "{title}");
+    }
+
+    /// The same fact, worded the same way on the preview, the Title page and the rows.
+    #[test]
+    fn the_next_episode_is_worded_one_way() {
+        let e = Entry {
+            last_aired: Some((3, 2 * 86_400)),
+            next_episode: Some(4),
+            next_airing_in: Some(4 * 86_400 + 20 * 3600),
+            airing_in: Some(4 * 86_400 + 20 * 3600),
+            ..entry(1, "Kite")
+        };
+        let mut app = app_with(Content::Entries(vec![e]));
+        let preview = text_of(&render_to_buffer(&app, 120, 34));
+        assert!(preview.contains("ep 3 out 2d ago  ·  ep 4 in 4d 20h"), "{preview}");
+        app.nav.focus_stage();
+        app.handle(crate::keymap::Action::Open, 20);
+        let title = text_of(&render_to_buffer(&app, 120, 34));
+        assert!(title.contains("ep 3 out 2d ago  ·  ep 4 in 4d 20h"), "{title}");
+        assert!(!title.contains("next episode in"), "{title}");
+    }
+
+    #[test]
+    fn progress_on_a_row_reads_as_a_count() {
+        let e = Entry { progress: Some((5, 6)), ..entry(1, "Kite") };
+        let app = app_with(Content::Entries(vec![e]));
+        let text = text_of(&render_to_buffer(&app, 70, 30));
+        assert!(text.contains("5 / 28"), "{text}");
+        assert!(!text.contains("▏5"), "{text}");
+    }
+
+    #[test]
+    fn at_eighty_columns_the_episode_titles_keep_their_room() {
+        let mut app = app_at_episodes();
+        app.episodes[0].thumbnail = Some("https://cdn.example/1.jpg".into());
+        app.episodes[1].title = Some("A Title That Needs Most of Thirty Cells".into());
+        let text = text_of(&render_to_buffer(&app, 80, 24));
+        assert!(text.contains("A Title That Needs Most of Thi"), "{text}");
+    }
+
+    #[test]
+    fn a_placeholder_says_its_note_as_a_phrase() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Downloads);
+        let text = text_of(&render_to_buffer(&app, 40, 7));
+        assert!(text.contains("needs a larger terminal"), "{text}");
+        assert!(!text.contains("arrives in"), "{text}");
+    }
+
+    fn download(
+        title: &str,
+        episode: &str,
+        state: &'static str,
+        of: u64,
+    ) -> crate::app::DownloadRow {
+        crate::app::DownloadRow {
+            id: i64::from(episode.parse::<u8>().unwrap_or(0)),
+            anilist_id: AnilistId::new(1),
+            title: title.into(),
+            episode: episode.into(),
+            state,
+            fraction: if of > 0 { 0.5 } else { 0.0 },
+            downloaded: of / 2,
+            total: of,
+            error: None,
+            path: None,
+        }
+    }
+
+    #[test]
+    fn download_rows_keep_the_episode_and_say_what_they_wait_on() {
+        let long = "An Invented Show With a Title Too Long for the Column";
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Downloads);
+        app.apply(Update::Downloads(vec![
+            download(long, "4", "queued", 0),
+            download(long, "3", "paused", 1_468_000_000),
+            download(long, "2", "downloading", 0),
+        ]));
+        let lines = lines_of(&app, 80, 24);
+        let text = lines.join("\n");
+        for ep in ["ep 4", "ep 3", "ep 2"] {
+            assert!(text.contains(ep), "{ep} cut away:\n{text}");
+        }
+        // Torrents are off by default, so a queued row will never start.
+        assert!(text.contains("torrents are off"), "{text}");
+        assert!(text.contains("waiting for metadata"), "only an active row waits on that");
+        assert_eq!(text.matches("waiting for metadata").count(), 1, "{text}");
+        assert!(text.contains("downloads need torrents, which are off — press 9"), "{text}");
+
+        // The bars are one column of one width.
+        let bars: Vec<(usize, usize)> = lines
+            .iter()
+            .filter(|l| l.contains('░'))
+            .map(|l| {
+                let start = l.find(['█', '░']).unwrap();
+                let width = l[start..].chars().take_while(|c| "█░▏▎▍▌▋▊▉".contains(*c)).count();
+                (l[..start].chars().count(), width)
+            })
+            .collect();
+        assert_eq!(bars.len(), 3, "{text}");
+        assert!(bars.windows(2).all(|w| w[0] == w[1]), "{bars:?}\n{text}");
+
+        // The paused row is not resolving anything.
+        app.nav.focus_stage();
+        app.handle(crate::keymap::Action::Down, 20);
+        let text = text_of(&render_to_buffer(&app, 80, 24));
+        assert!(text.contains("paused at 734 MB of 1.5 GB"), "{text}");
+        assert!(!text.contains("resolving a source"), "{text}");
+    }
+
+    #[test]
+    fn the_selection_mark_dims_with_the_rail_rather_than_vanishing() {
+        for section in [Section::Downloads, Section::Settings, Section::Accounts] {
+            let mut app = app_with(Content::Empty);
+            app.go_to_section(section);
+            app.apply(Update::Downloads(vec![download("Kite", "1", "queued", 0)]));
+            app.apply(Update::Sync(Box::new(crate::app::SyncState::new("kitsu"))));
+            app.nav.focus_rail();
+            let buf = render_to_buffer(&app, 120, 30);
+            let stage_marks: Vec<(u16, u16)> = (2..28)
+                .flat_map(|y| (20..120).map(move |x| (x, y)))
+                .filter(|pos| buf[*pos].symbol() == "▌")
+                .collect();
+            assert_eq!(stage_marks.len(), 1, "{section:?}: {stage_marks:?}");
+            assert_eq!(buf[stage_marks[0]].fg, app.palette.color(Role::TextDim), "{section:?}");
+
+            app.nav.focus_stage();
+            let buf = render_to_buffer(&app, 120, 30);
+            assert_eq!(buf[stage_marks[0]].fg, app.palette.color(Role::Obi), "{section:?}");
+        }
+    }
+
+    #[test]
+    fn providers_rows_carry_no_selection_mark() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Providers);
+        app.apply(Update::Providers(vec![
+            provider("one", "ready", true, false),
+            provider("two", "ready", true, false),
+        ]));
+        let lines = lines_of(&app, 120, 30);
+        let marked =
+            lines.iter().filter(|l| l.contains("▌ one") || l.contains("▌ two")).count();
+        assert_eq!(marked, 0, "{lines:#?}");
+    }
+
+    #[test]
+    fn a_narrow_providers_table_drops_columns_rather_than_halving_words() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Providers);
+        app.apply(Update::Providers(vec![provider("someplugin", "ready", true, false)]));
+        let text = text_of(&render_to_buffer(&app, 40, 15));
+        assert!(
+            !text.contains("STAT\u{20}")
+                && !text.lines().any(|l| l.trim_end().ends_with("STAT"))
+        );
+        assert!(!text.lines().any(|l| l.trim_end().ends_with("read")), "{text}");
+    }
+
+    #[test]
+    fn the_focused_settings_note_shows_at_an_ordinary_size() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Settings);
+        app.nav.focus_stage();
+        let night = crate::app::SettingId::ALL
+            .iter()
+            .position(|id| *id == crate::app::SettingId::NightMode)
+            .unwrap();
+        app.selected = night;
+        let text = text_of(&render_to_buffer(&app, 120, 34));
+        assert!(text.contains("evens out quiet dialogue"), "{text}");
+        assert!(text.contains("NIGHT MODE"), "the row itself is still in view:\n{text}");
+    }
+
+    #[test]
+    fn the_library_points_at_the_same_next_step_as_accounts() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Library);
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("trackers.enabled"), "nothing to sign in to yet:\n{text}");
+        assert!(!text.contains("run \"accounts\""), "{text}");
+
+        app.apply(Update::Sync(Box::new(crate::app::SyncState::new("kitsu"))));
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("press 8 for Accounts to sign in"), "{text}");
+    }
+
+    #[test]
+    fn list_statuses_read_as_lowercase_values_in_the_picker() {
+        let mut app = app_with(Content::Entries(vec![entry(1, "Kite")]));
+        app.nav.open_overlay(Overlay::ListStatus);
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("watching"), "{text}");
+        assert!(!text.contains("WATCHING"), "{text}");
     }
 }

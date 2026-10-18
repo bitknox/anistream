@@ -7,10 +7,11 @@
 use std::time::{Duration, Instant};
 
 use anistream_core::{config::Config, ids::AnilistId, traits::SourceCandidate};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::{
     eyecatch::Eyecatch,
-    keymap::{Action, Keymap},
+    keymap::{Action, Context, Keymap},
     nav::{Focus, Nav, Overlay, Section, StageView},
     theme::{Palette, glyph},
 };
@@ -154,6 +155,58 @@ impl SettingId {
         }
     }
 
+    /// Copy this setting's value from one configuration to another.
+    ///
+    /// What lets one setting be put back to what the file holds after its write failed,
+    /// without disturbing any other — including one changed a moment later whose own write
+    /// worked.
+    pub fn copy(self, from: &Config, to: &mut Config) {
+        let (src, dst) = (&from.playback, &mut to.playback);
+        match self {
+            Self::Theme => to.theme.mode = from.theme.mode,
+            Self::Motion => to.theme.motion = from.theme.motion,
+            Self::Translation => dst.translation = src.translation,
+            Self::Quality => dst.quality = src.quality,
+            Self::Subtitles => dst.subtitle_language.clone_from(&src.subtitle_language),
+            Self::CommitThreshold => dst.commit_threshold = src.commit_threshold,
+            Self::AutoNext => dst.auto_next = src.auto_next,
+            Self::SkipOpening => dst.skip_opening = src.skip_opening,
+            Self::SkipFiller => dst.skip_filler = src.skip_filler,
+            Self::MarkChapters => dst.mark_chapters = src.mark_chapters,
+            Self::Fullscreen => dst.fullscreen = src.fullscreen,
+            Self::Upscaling => dst.upscaling = src.upscaling,
+            Self::PlayerUi => dst.player_ui = src.player_ui,
+            Self::NightMode => dst.night_mode = src.night_mode,
+            Self::DownloadDir => to.downloads.directory.clone_from(&from.downloads.directory),
+            Self::MergeSubtitles => {
+                to.downloads.merge_subtitles = from.downloads.merge_subtitles
+            }
+            Self::KeepSeeding => to.downloads.keep_seeding = from.downloads.keep_seeding,
+            Self::DownloadHook => {
+                to.downloads.on_complete.clone_from(&from.downloads.on_complete)
+            }
+            Self::Presence => to.presence.enabled = from.presence.enabled,
+            Self::PresenceTitle => to.presence.show_title = from.presence.show_title,
+            Self::Torrents => to.providers.torrent.enabled = from.providers.torrent.enabled,
+            Self::SeedRatio => {
+                to.providers.torrent.seeding.ratio = from.providers.torrent.seeding.ratio;
+            }
+            Self::SeedHours => {
+                to.providers.torrent.seeding.hours = from.providers.torrent.seeding.hours;
+            }
+            Self::UploadLimit => {
+                to.providers.torrent.seeding.upload_limit_kib =
+                    from.providers.torrent.seeding.upload_limit_kib;
+            }
+            Self::Syncplay => to.syncplay.enabled = from.syncplay.enabled,
+            Self::SyncplayServer => to.syncplay.server.clone_from(&from.syncplay.server),
+            Self::SyncplayRoom => to.syncplay.room.clone_from(&from.syncplay.room),
+            Self::UpdateCheck => to.updates.check = from.updates.check,
+            // Not editable here, so never written and never rolled back.
+            Self::VpnMode | Self::TokenStorage => {}
+        }
+    }
+
     /// Which heading a row sits under. Purely visual grouping — navigation walks the
     /// whole list, so nothing is ever hidden behind a tab.
     pub const fn category(self) -> &'static str {
@@ -284,23 +337,42 @@ fn table_path(dotted: &'static str) -> &'static [&'static str] {
     }
 }
 
-/// An upload cap as people read it: `unlimited`, `512 KB/s`, `2 MB/s`.
+/// A setting's saved value, with the session's own beside it when they differ.
+fn session_marked(saved: String, current: String) -> String {
+    if saved == current { saved } else { format!("{saved} · {current} this session") }
+}
+
+/// An upload cap as people read it: `unlimited`, `524 kB/s`, `2.1 MB/s`.
+///
+/// The config counts KiB/s, and this said `KB/s` and `MB/s` of those — binary values under the
+/// decimal names every other size here uses. Converted rather than relabelled, so the cap reads in
+/// the same units as the download sizes beside it.
 fn upload_label(kib: u32) -> String {
     match kib {
         0 => "unlimited".into(),
-        k if k >= 1024 && k % 1024 == 0 => format!("{} MB/s", k / 1024),
-        k => format!("{k} KB/s"),
+        k => format!("{}/s", crate::widgets::human_bytes(u64::from(k) * 1024)),
     }
 }
 
-/// Step to the next value in a ladder, clamping at both ends.
+/// Step to the next value in an ascending ladder, clamping at both ends.
 ///
 /// Clamps rather than wraps: arrowing past 2160p round to 480p would be a surprising way to lose
 /// your quality preference, and the ends of the ladder are informative.
-fn step_through<T: Copy + PartialEq>(ladder: &[T], current: T, delta: isize) -> T {
-    let at = ladder.iter().position(|v| *v == current).unwrap_or(0) as isize;
-    let next = (at + delta.signum()).clamp(0, ladder.len() as isize - 1) as usize;
-    ladder[next]
+///
+/// A value that is not on the ladder — one typed into config.toml, like 1440p — steps to the
+/// nearest rung in the arrow's direction, and stays put if there is none that way. It used to
+/// be read as the bottom rung, so → from 1440p saved 720p and → from 97% saved 80%.
+fn step_through<T: Copy + PartialOrd>(ladder: &[T], current: T, delta: isize) -> T {
+    if let Some(at) = ladder.iter().position(|v| *v == current) {
+        let next = (at as isize + delta.signum()).clamp(0, ladder.len() as isize - 1) as usize;
+        return ladder[next];
+    }
+    let toward = if delta > 0 {
+        ladder.iter().find(|v| **v > current)
+    } else {
+        ladder.iter().rev().find(|v| **v < current)
+    };
+    toward.copied().unwrap_or(current)
 }
 
 /// Idle ticks a rail change waits before fetching. The idle tick is 100 ms, so this is ~300 ms —
@@ -333,6 +405,10 @@ pub struct LogRow {
     /// Idle ticks at the time it was recorded, so lines can be shown relative to each other
     /// without pulling a wall clock into the UI crate.
     pub at: u64,
+    /// How many times in a row this exact line arrived. A retry loop or a burst of identical
+    /// failures is one line with a count, so it cannot push the line that explains it off
+    /// the screen.
+    pub count: u32,
 }
 
 /// A title as the list views need it.
@@ -361,6 +437,13 @@ pub struct Entry {
     /// is about, and runs negative once that episode has aired. Everywhere else it is the same
     /// thing as [`Self::next_airing_in`].
     pub airing_in: Option<i64>,
+    /// The episode a calendar row is about — the one [`Self::airing_in`] dates. `None`
+    /// everywhere else.
+    ///
+    /// A field of its own rather than `ep 12` appended to the title. Appended, it was the first
+    /// thing truncation took, so a column of one show's episodes read as identical rows, and it
+    /// followed the title into the Title and Episodes headings.
+    pub airing_episode: Option<u32>,
     /// The episode the title broadcasts next, from its own schedule.
     pub next_episode: Option<u32>,
     /// Seconds until [`Self::next_episode`] airs.
@@ -390,6 +473,10 @@ pub struct Entry {
     pub recommended: Vec<RelatedTitle>,
     /// A watchable trailer URL, when AniList has one. Rides the detail fetch.
     pub trailer_url: Option<String>,
+    /// Where the title sits on the tracker's list, when that is known: a Library row knows its
+    /// segment, and a status set in this session is remembered on the entry. `None` means not
+    /// known, not "on no list" — nothing outside the Library carries the tracker's answer.
+    pub list_status: Option<LibrarySegment>,
 }
 
 /// What the episode table shows.
@@ -479,6 +566,7 @@ impl Entry {
             available_on: Vec::new(),
             progress: None,
             airing_in: None,
+            airing_episode: None,
             next_episode: None,
             next_airing_in: None,
             last_aired: None,
@@ -486,6 +574,7 @@ impl Entry {
             related: Vec::new(),
             recommended: Vec::new(),
             trailer_url: None,
+            list_status: None,
         }
     }
 
@@ -585,6 +674,21 @@ pub struct ProviderRow {
     pub held_back: bool,
 }
 
+/// How one configured source stands, for the header chip that names it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceState {
+    /// At least one of its providers will be tried.
+    Ready,
+    /// Switched off in config. Said quietly: off is a choice, not a fault.
+    Off,
+    /// Working, but withheld by local policy — the VPN guard.
+    HeldBack,
+    /// Registered and not answering, or refused at startup.
+    Failing,
+    /// Nothing registered yet: plugins are still compiling, or there are none.
+    Pending,
+}
+
 /// One rung of the metadata ladder, as the Providers screen shows it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MetaSourceRow {
@@ -594,6 +698,9 @@ pub struct MetaSourceRow {
     /// The rung that answered the most recent request.
     pub active: bool,
     pub detail: Option<String>,
+    /// While the rung is being skipped, when it is next tried, in Unix seconds. Said at draw
+    /// time: a countdown built when the status was sent stood still on an idle screen.
+    pub retry_at: Option<i64>,
 }
 
 /// A plugin store this machine has joined, as the store screens show it.
@@ -896,14 +1003,28 @@ impl NowPlaying {
     pub fn total(&self) -> String {
         self.duration.map_or_else(|| "--:--".into(), Self::clock)
     }
+}
 
-    /// The next episode number, for auto-next.
-    ///
-    /// `None` for a non-numeric label: "OVA" and "Special" have no successor, and guessing one
-    /// would start playing something unrelated.
-    pub fn next_episode(&self) -> Option<String> {
-        self.episode.trim().parse::<u32>().ok().map(|n| (n + 1).to_string())
-    }
+/// How a playback came to an end.
+///
+/// More than `watched` can say: an episode closed past the commit threshold counts as watched,
+/// and rolling on from it would open a new window on someone who just closed one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Ending {
+    /// mpv played the file to its end. `next` is the episode the player kept its window open
+    /// for — set only when the episode rolls on, which the playback decides: auto-next on, Up
+    /// Next not cancelled, and an episode list that has a next episode. Auto-next follows this
+    /// and nothing else, so a window is never kept for an episode that is not coming, and no
+    /// episode is searched for that the list says does not exist.
+    Complete { next: Option<String> },
+    /// The viewer stopped it from the terminal.
+    Stopped,
+    /// The player window went away: the viewer closed it, or mpv exited on its own.
+    Closed,
+    /// It could not play: no stream was found, mpv would not start, or the stream failed.
+    Failed,
+    /// Something else took the stream: a watch party, or the browser for a licensed stream.
+    Elsewhere,
 }
 
 /// One segment of the Library screen.
@@ -945,10 +1066,14 @@ impl LibrarySegment {
         }
     }
 
+    /// The neighbouring segment, stopping at both ends.
+    ///
+    /// Clamps rather than wraps, the same rule as the rail, every list and every value ladder:
+    /// the ends are informative, and the left end is where Left carries on to the rail.
     pub fn step(self, delta: isize) -> Self {
         let all = Self::ALL;
         let current = all.iter().position(|s| *s == self).unwrap_or(0) as isize;
-        let next = (current + delta).rem_euclid(all.len() as isize) as usize;
+        let next = (current + delta).clamp(0, all.len() as isize - 1) as usize;
         all[next]
     }
 }
@@ -965,10 +1090,16 @@ pub struct SyncState {
     pub storage_degraded: bool,
     /// Queued operations waiting to go out.
     pub outbox: u32,
+    /// How many of those wait for an id mapping: titles this tracker cannot be told about
+    /// until the mapping datasets name them.
+    pub deferred: u32,
     /// The tracker rejected our credentials; nothing but re-authorising helps.
     pub needs_reauth: bool,
     /// Most recent sync outcome, in words.
     pub last: Option<String>,
+    /// Why the last library pull failed, and when (epoch seconds). Cleared by the next pull
+    /// that succeeds, so a row never goes on saying "pulled" over an outage.
+    pub pull_error: Option<(String, i64)>,
 }
 
 impl SyncState {
@@ -981,8 +1112,10 @@ impl SyncState {
             storage: None,
             storage_degraded: false,
             outbox: 0,
+            deferred: 0,
             needs_reauth: false,
             last: None,
+            pull_error: None,
         }
     }
 
@@ -992,10 +1125,12 @@ impl SyncState {
     /// actually go anywhere?", which is the only sync question anyone asks.
     pub fn badge(&self) -> String {
         if self.needs_reauth {
-            return format!("{} ✕ sign in", self.tracker);
+            return format!("{} {} sign in", self.tracker, glyph::STATE_DOWN);
         }
+        // Hollow, not the interpunct: the header puts `·` between its groups of chips, and a
+        // signed-out `kitsu ·` read as a separator with a word in front of it.
         if !self.connected {
-            return format!("{} ·", self.tracker);
+            return format!("{} {}", self.tracker, glyph::STATE_OFF);
         }
         match self.outbox {
             0 => format!("{} {}", self.tracker, glyph::SYNC),
@@ -1089,6 +1224,13 @@ pub enum Update {
         view: ContentFor,
         content: Content,
     },
+    /// What a list is, said above it: which season Seasonal is, and that a list stopped at the
+    /// size of one page when there was more. Tagged like [`Update::Content`] and sent before it,
+    /// so a caption never describes a list it did not come with.
+    Caption {
+        view: ContentFor,
+        text: String,
+    },
     /// How to continue the calendar that is arriving: the anchor its pages are numbered
     /// against, how many are loaded, and whether AniList has more behind them.
     CalendarWindow {
@@ -1114,6 +1256,13 @@ pub enum Update {
     /// A setting reached disk. The run loop republishes the configuration its background
     /// tasks read, so saved and in-effect are the same moment.
     SettingsSaved,
+    /// A settings write was attempted, and this is what the file holds afterwards. `failed`
+    /// names the setting whose write did not land, so the screen can put it back rather than
+    /// go on showing a value that was never saved.
+    SettingWritten {
+        on_disk: Box<Config>,
+        failed: Option<(&'static [&'static str], &'static str)>,
+    },
     /// A setting changed what sources should exist. Acted on by the run loop, which owns
     /// the torrent session and the VPN guard; the reducer only needs to not choke on it.
     SourcesChanged,
@@ -1141,10 +1290,15 @@ pub enum Update {
     /// A key pressed inside the player window: step to an adjacent episode.
     PlayerStepEpisode(i64),
     /// The player asked for an episode of what is playing: its Episodes menu, Up Next's
-    /// "play now", or N/P inside the window.
-    PlayerPlayEpisode(String),
-    /// The viewer cancelled Up Next, so this episode's end is not a cue to roll on.
-    AutoNextCancelled,
+    /// "play now", N/P inside the window, or the terminal's n/N. `title` is the episode's name
+    /// from the episode list the playback holds, which is that title's whatever is open here.
+    PlayerPlayEpisode {
+        episode: String,
+        title: Option<String>,
+    },
+    /// The playback just staged found nothing to play, and the one it was to replace keeps
+    /// playing: Now Playing goes back to that one.
+    PlaybackKept,
     /// A playback was handed to its successor mid-episode. Reflected like an ending, without
     /// taking down the Now Playing surface the successor has already put up.
     EpisodeLeft {
@@ -1181,8 +1335,11 @@ pub enum Update {
     },
     SkipCleared,
     PlaybackSpeed(f64),
+    /// A playback is over. `watched` is the tracker's verdict, for the meters; `ending` is how
+    /// it came to an end, which is what decides whether anything plays next.
     PlaybackEnded {
         watched: bool,
+        ending: Ending,
     },
     /// Playback started from a stored position rather than the beginning.
     Resumed {
@@ -1209,6 +1366,12 @@ pub enum Update {
     Image {
         url: String,
         image: Box<image::DynamicImage>,
+    },
+    /// A cover could not be fetched or decoded. Silent: the plate stays, and the URL is tried
+    /// again later. `offline` means the server was not reached at all.
+    ImageFailed {
+        url: String,
+        offline: bool,
     },
     /// The download queue, replacing whatever was there.
     Downloads(Vec<DownloadRow>),
@@ -1250,13 +1413,50 @@ pub enum Update {
     },
 }
 
+/// The rows a screen's cursor walks. See [`App::rows_here`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Rows {
+    /// The section's list: `content`, `selected` and `offset`.
+    List,
+    Downloads,
+    Accounts,
+    Settings,
+    Episodes,
+    Stores,
+    StoreLines,
+    Members,
+}
+
+/// A title page left for one of its relations or recommendations.
+///
+/// Opening a related title replaces `detail` and, once its episodes are asked for, the episode
+/// table; Back pops the view but nothing put them back, so the parent's page and table came back
+/// showing the child. The frame keeps what the parent's view was showing, keyed by the stage
+/// depth of that view so a frame can only ever be restored into the view it was taken from.
+#[derive(Debug, Clone)]
+struct TitleFrame {
+    depth: usize,
+    entry: Entry,
+    episodes_all: Vec<EpisodeRow>,
+    episode_selected: usize,
+    provider_preference: Option<String>,
+}
+
 /// The whole application state.
 pub struct App {
     pub nav: Nav,
     pub palette: Palette,
     pub keymap: Keymap,
+    /// The configuration in effect: what the file says, plus anything changed for this session
+    /// only — `t` for sub or dub, `--theme`.
     pub config: Config,
+    /// What `config.toml` holds, read back after every settings write. The Settings screen
+    /// shows these values and marks a session-only difference, and a write that fails puts
+    /// its setting back to this.
+    pub saved_config: Config,
     pub content: Content,
+    /// The caption for the list on screen, with the view it belongs to. See [`Update::Caption`].
+    pub caption: Option<(ContentFor, String)>,
     /// Selection index within the current content.
     pub selected: usize,
     /// Scroll offset, so long lists page rather than jumping.
@@ -1270,14 +1470,33 @@ pub struct App {
     /// Server-side filters the next search will carry. Sticky across queries on purpose:
     /// narrowing to a genre and then trying three titles should not mean setting it thrice.
     pub search_filter: SearchFilters,
+    /// Whether the keyboard is in the search results rather than the query field.
+    ///
+    /// The field takes every printable key, so `j`, `k` and the title keys could never reach
+    /// the results while it had focus. ↓ moves from the field into the results, where they are
+    /// a list like any other; ↑ from the first row, `/` and Esc go back to typing.
+    pub search_in_results: bool,
     pub palette_query: String,
     /// The Kitsu sign-in prompts' buffers. The password is taken, not copied, when the
     /// exchange is dispatched, and both are cleared on every open and dismiss.
     pub kitsu_user: String,
     pub kitsu_pass: String,
+    /// The title the Title or Episodes view on top is showing, or was last showing.
+    ///
+    /// It outlives that view on purpose — playback reads the loaded title's episode table after
+    /// the viewer has stepped back to a list — so nothing that acts on "the title here" reads it
+    /// directly. [`App::target`] is that question, and it only answers with `detail` where it is
+    /// the title on screen.
     pub detail: Option<Entry>,
+    /// The title pages a relation was opened from, so Back shows each one again as it was.
+    title_trail: Vec<TitleFrame>,
     pub status: String,
     pub toasts: Vec<Toast>,
+    /// A problem that lasts the session, shown on every screen until the app is restarted —
+    /// a config file that did not load, so everything on screen is the defaults. A toast is
+    /// gone in seconds, and the one place this was said before was the terminal, just before
+    /// the interface covered it.
+    pub notice: Option<String>,
     pub should_quit: bool,
     /// Set when the synopsis is expanded on the Title screen.
     pub synopsis_expanded: bool,
@@ -1309,6 +1528,10 @@ pub struct App {
     pub provider_note: Option<String>,
     /// Live playback state, when something is playing.
     pub playing: Option<NowPlaying>,
+    /// The playback still in the window while the one staged over it is looked up. A newer
+    /// playback takes the window only once it has something to play, so until then this one's
+    /// reports are its own, and if the lookup fails it is what Now Playing shows again.
+    superseded: Option<NowPlaying>,
     /// The wipe covering stream resolution, when one is running.
     pub eyecatch: Option<Eyecatch>,
     /// Which Library segment is showing.
@@ -1317,8 +1540,27 @@ pub struct App {
     pub sync: Vec<SyncState>,
     /// Divergences the user has to settle.
     pub conflicts: Vec<ConflictRow>,
+    /// List statuses given with `a` this session, by title, until a Library pull brings the
+    /// tracker's own answer for it.
+    ///
+    /// Not only on the rows, which every reload rebuilds: Home reloaded, and `a` opened at the
+    /// top of the picker rather than on the status just given.
+    statuses_set: std::collections::HashMap<AnilistId, LibrarySegment>,
     /// Selection within an overlay list (Accounts, Conflicts, list status, command palette).
     pub overlay_selected: usize,
+    /// The first row a list overlay showed at the last frame.
+    ///
+    /// Written by the renderer, which is the only place that knows how many rows fit. Kept so the
+    /// window moves only when the highlight would leave it, rather than recomputed from the
+    /// highlight each frame and pinning it to the bottom edge on the way back up.
+    pub overlay_offset: std::cell::Cell<usize>,
+    /// The help overlay's page. Its own field because Help opens on top of a picker, and paging
+    /// through it must not move the picker's selection underneath.
+    pub help_page: usize,
+    /// How many pages the help table ran to at the last frame, written by the renderer — only it
+    /// knows how the table breaks at this size — so paging stops at the last page rather than
+    /// running past it and making the next few presses look dead.
+    pub help_pages: std::cell::Cell<usize>,
     /// Frame counter for the loading pulse, advanced by the idle tick.
     pub pulse: u64,
     /// Idle ticks left before a pending section change is actually fetched.
@@ -1361,14 +1603,16 @@ pub struct App {
     /// triggered by scrolling, which reports no task of its own. The event loop drains this
     /// each iteration.
     pending: Option<Task>,
-    /// Up Next was cancelled in the player for the episode now playing.
-    auto_next_cancelled: bool,
     /// Rows for the Episodes screen — the ones the current filter admits. Everything that
     /// reads or navigates episodes works on this list, which is what keeps the filter from
     /// needing index remapping at every call site.
     pub episodes: Vec<EpisodeRow>,
     /// Every row, unfiltered — the source [`Self::episodes`] is re-derived from.
     episodes_all: Vec<EpisodeRow>,
+    /// Which title the rows are, set with them. `detail` is not enough to say: it moves to a
+    /// title the moment one is opened, while the rows stay the last title's until its own load
+    /// answers, and asked by `detail` they spoke for a show they were never part of.
+    episodes_for: Option<AnilistId>,
     /// The active episode filter, cycled with `f`.
     pub episode_filter: EpisodeFilter,
     /// The provider that actually resolved the most recent stream. The header prefers
@@ -1443,27 +1687,37 @@ impl App {
             nav: Nav::new(),
             palette,
             keymap,
+            saved_config: config.clone(),
             config,
             content: Content::Loading,
+            caption: None,
             selected: 0,
             offset: 0,
             search_query: String::new(),
             searched_query: String::new(),
             search_filter: SearchFilters::default(),
+            search_in_results: false,
             palette_query: String::new(),
             kitsu_user: String::new(),
             kitsu_pass: String::new(),
             detail: None,
+            title_trail: Vec::new(),
             status: String::new(),
             toasts: Vec::new(),
+            notice: None,
             should_quit: false,
             synopsis_expanded: false,
             playing: None,
+            superseded: None,
             eyecatch: None,
             library_segment: LibrarySegment::default(),
             sync: Vec::new(),
             conflicts: Vec::new(),
+            statuses_set: std::collections::HashMap::new(),
             overlay_selected: 0,
+            overlay_offset: std::cell::Cell::new(0),
+            help_page: 0,
+            help_pages: std::cell::Cell::new(1),
             pulse: 0,
             downloads: Vec::new(),
             seeding: Vec::new(),
@@ -1484,7 +1738,6 @@ impl App {
             calendar_more_past: false,
             calendar_loading_past: false,
             pending: None,
-            auto_next_cancelled: false,
             vpn_badge: None,
             vpn_leaking: false,
             providers: Vec::new(),
@@ -1493,6 +1746,7 @@ impl App {
             provider_note: None,
             episodes: Vec::new(),
             episodes_all: Vec::new(),
+            episodes_for: None,
             episode_filter: EpisodeFilter::default(),
             active_provider: None,
             episode_selected: 0,
@@ -1524,8 +1778,62 @@ impl App {
         }
     }
 
+    /// The highlighted row of the list on screen, when the screen on top is one.
+    ///
+    /// `content` stays put while a title is pushed over it, and screens with rows of their own
+    /// (Settings, Accounts, Downloads) never replace it, so an unconditional read answered with
+    /// a row nobody could see: Enter on a title page opened it, and `a` on Accounts asked for
+    /// the status of a show from the list before.
     pub fn selected_entry(&self) -> Option<&Entry> {
+        self.content_view()?;
+        if !matches!(self.nav.current(), StageView::Section(_)) {
+            return None;
+        }
         self.content.entries().get(self.selected)
+    }
+
+    /// The title the screen on top is about: the one every title action means.
+    ///
+    /// On a list it is the highlighted row — as the fuller record of the same title when that is
+    /// the one last opened, because relations, recommendations and the trailer only ride the
+    /// detail fetch. On a title page or its episode table it is that title, and on Now Playing
+    /// the title playing, where the app holds its record. Anywhere else it is nothing, and the
+    /// action says so rather than reaching for a title off screen.
+    ///
+    /// Reading `detail` first, as the handlers used to, acted on whichever title was opened
+    /// last: back on the list, `a`, `*`, Space and the rest all went to that show rather than
+    /// the highlighted one.
+    pub fn target(&self) -> Option<&Entry> {
+        match self.nav.current() {
+            StageView::Title(id) | StageView::Episodes(id) => {
+                self.detail.as_ref().filter(|d| d.id == *id)
+            }
+            StageView::Section(_) => {
+                let row = self.selected_entry()?;
+                Some(self.detail.as_ref().filter(|d| d.id == row.id).unwrap_or(row))
+            }
+            StageView::NowPlaying => {
+                let id = self.playing.as_ref()?.id?;
+                self.detail.iter().chain(self.content.entries()).find(|e| e.id == id)
+            }
+            StageView::Stores | StageView::Store(_) | StageView::StoreMembers(_) => None,
+        }
+    }
+
+    /// The key for `action` as a sentence names it: the first one the help overlay lists, so a
+    /// rebind changes what the sentence says. Unbound, it points at the palette instead.
+    pub fn key_for(&self, action: Action) -> String {
+        let mut keys = self.keymap.keys_for(action);
+        keys.sort();
+        keys.first().map_or_else(
+            || format!("\u{201c}{}\u{201d} in the palette", action.label().to_lowercase()),
+            crate::keymap::Binding::render,
+        )
+    }
+
+    /// The key that jumps to `section`.
+    pub fn section_key(&self, section: Section) -> String {
+        self.key_for(Action::JumpSection(section.index() as u8 + 1))
     }
 
     /// Apply an update from a background task.
@@ -1533,12 +1841,11 @@ impl App {
         // Resolution has finished, one way or the other — let the wipe complete. An alert is
         // as much a result as a first frame is, and holding the band over a failure would
         // leave the user staring at amber.
-        if matches!(
-            update,
-            Update::Playback { .. }
-                | Update::PlaybackEnded { .. }
-                | Update::Toast(Toast { kind: ToastKind::Alert, .. })
-        ) && let Some(eyecatch) = &mut self.eyecatch
+        // A report from the playback still in the window says nothing about the one being found.
+        let ours = self.superseded.is_none();
+        if (matches!(update, Update::Playback { .. } | Update::PlaybackEnded { .. } if ours)
+            || matches!(update, Update::Toast(Toast { kind: ToastKind::Alert, .. })))
+            && let Some(eyecatch) = &mut self.eyecatch
         {
             eyecatch.release();
         }
@@ -1580,11 +1887,30 @@ impl App {
                     self.offset += added;
                 }
             }
+            Update::Caption { view, text } => {
+                if self.content_view().as_ref() == Some(&view) {
+                    self.caption = (!text.is_empty()).then_some((view, text));
+                }
+            }
             Update::Content { view, content } => {
                 if self.content_view().as_ref() != Some(&view) {
                     return;
                 }
+                // A caption is sent just before the list it describes; one left over from
+                // another list describes something no longer on screen.
+                if self.caption.as_ref().is_some_and(|(captioned, _)| *captioned != view) {
+                    self.caption = None;
+                }
                 self.content = content;
+                // A Library pull is the tracker's own answer for the titles it lists, and it
+                // outranks one given here earlier.
+                if matches!(view, ContentFor::Library(_)) {
+                    for entry in
+                        self.content.entries().iter().filter(|e| e.list_status.is_some())
+                    {
+                        self.statuses_set.remove(&entry.id);
+                    }
+                }
                 // Selection must stay in range or the next render would index past the end.
                 self.selected = self.selected.min(self.content.len().saturating_sub(1));
                 if self.content.is_empty() {
@@ -1617,8 +1943,11 @@ impl App {
             }
             // Every way into a title sets a stand-in `detail` for it before the fetch goes out, so
             // a full record for any other id answers a title the user has already left.
-            Update::Detail(entry) => {
-                if self.detail.as_ref().is_some_and(|d| d.id == entry.id) {
+            Update::Detail(mut entry) => {
+                if let Some(detail) = self.detail.as_ref().filter(|d| d.id == entry.id) {
+                    // The record does not carry the tracker's status; the row it was opened
+                    // from may, and losing it here would make `a` forget what it is on.
+                    entry.list_status = entry.list_status.or(detail.list_status);
                     self.detail = Some(*entry);
                 }
             }
@@ -1653,7 +1982,11 @@ impl App {
             }
             Update::Status(status) => self.status = status,
             Update::Toast(toast) => self.push_toast(toast),
-            Update::Image { url, image } => self.images.insert(&url, *image),
+            Update::Image { url, image } => {
+                self.images.insert(&url, *image);
+                self.images.requests().network_returned();
+            }
+            Update::ImageFailed { url, offline } => self.images.mark_failed(&url, offline),
             Update::Providers(rows) => self.providers = rows,
             Update::MetaStatus(rows) => self.meta_status = rows,
             Update::Stores(rows) => self.apply_stores(rows),
@@ -1697,6 +2030,12 @@ impl App {
             // Both are handled outside the reducer, by the loop that owns the background
             // tasks and the session.
             Update::SettingsSaved => {}
+            Update::SettingWritten { on_disk, failed } => {
+                self.saved_config = *on_disk;
+                if let Some((table, key)) = failed {
+                    self.roll_back_setting(table, key);
+                }
+            }
             Update::SourcesChanged => self.status = "reloading sources…".into(),
             Update::ProviderNote(note) => self.provider_note = Some(note),
             Update::ProviderPreference(choice) => self.provider_preference = choice,
@@ -1732,7 +2071,7 @@ impl App {
             Update::Playback { position, duration, paused } => {
                 // Playback updates arrive about once a second and must never resurrect a
                 // finished session, so they only ever mutate an existing one.
-                if let Some(playing) = &mut self.playing {
+                if let Some(playing) = self.superseded.as_mut().or(self.playing.as_mut()) {
                     playing.position = position;
                     playing.paused = paused;
                     if duration.is_some() {
@@ -1774,7 +2113,7 @@ impl App {
                 }
             }
             Update::ActiveProvider(provider) => self.active_provider = Some(provider),
-            Update::PlayerPlayEpisode(episode) => {
+            Update::PlayerPlayEpisode { episode, title: episode_title } => {
                 // By the playing title rather than the open one: the viewer may be browsing
                 // another show in the terminal while the player is the thing they are using.
                 if let Some(playing) = &self.playing
@@ -1782,11 +2121,24 @@ impl App {
                 {
                     let title = playing.title.clone();
                     self.raise_now_playing_titled(id, title, &episode);
+                    self.name_playing_episode(episode_title);
                     self.pending = Some(Task::Play { id, episode });
                 }
             }
-            Update::AutoNextCancelled => self.auto_next_cancelled = true,
+            Update::PlaybackKept => {
+                if let Some(kept) = self.superseded.take() {
+                    self.playing = Some(kept);
+                }
+            }
             Update::EpisodeLeft { id, episode, position, duration, watched } => {
+                // The window has changed hands, so what reports from here on is the successor.
+                if self
+                    .superseded
+                    .as_ref()
+                    .is_some_and(|s| s.id == Some(id) && s.episode == episode)
+                {
+                    self.superseded = None;
+                }
                 self.reflect_watch(Some(id), &episode, position, duration, watched);
             }
             Update::PlayerTranslation(translation) => {
@@ -1796,7 +2148,9 @@ impl App {
                     && let Some(id) = playing.id
                 {
                     let (title, episode) = (playing.title.clone(), playing.episode.clone());
+                    let episode_title = playing.episode_title.clone();
                     self.raise_now_playing_titled(id, title, &episode);
+                    self.name_playing_episode(episode_title);
                     self.pending = Some(Task::Play { id, episode });
                 }
             }
@@ -1858,7 +2212,15 @@ impl App {
                     });
                 }
             }
-            Update::PlaybackEnded { watched } => {
+            // The playback still in the window ended while its successor was being found: the
+            // successor is what was asked for, so nothing comes down and nothing rolls on.
+            Update::PlaybackEnded { watched, .. } if self.superseded.is_some() => {
+                if let Some(finished) = self.superseded.take() {
+                    let NowPlaying { id, episode, position, duration, .. } = finished;
+                    self.reflect_watch(id, &episode, position, duration, watched);
+                }
+            }
+            Update::PlaybackEnded { watched, ending } => {
                 let finished = self.playing.take();
                 if let Some(playing) = &finished {
                     self.reflect_watch(
@@ -1874,37 +2236,33 @@ impl App {
                     self.nav.pop();
                 }
 
-                // Auto-next only follows a *finished* episode. Rolling on after someone quit
-                // ten minutes in would be the opposite of what they asked for.
-                // Read and reset together: a cancel belongs to the episode it was made in.
-                let cancelled = std::mem::take(&mut self.auto_next_cancelled);
-                if watched
-                    && self.config.playback.auto_next
-                    && !cancelled
+                // Auto-next follows the playback's decision and nothing else. That side knows how
+                // the episode ended — closing the window past the commit threshold is `watched`
+                // too, and rolling on from it opened a new window on someone who had just closed
+                // one — whether Up Next was cancelled for this episode, and whether the episode
+                // list has a next one at all. It is also the side keeping a window open for the
+                // next episode, so the two cannot disagree into a window left waiting for an
+                // episode nobody starts.
+                let next = match &ending {
+                    Ending::Complete { next } => next.clone(),
+                    _ => None,
+                };
+                if let Some(next) = next
                     && let Some(finished) = finished
                     && let Some(id) = finished.id
-                    && let Some(next) = finished.next_episode()
                 {
-                    // Which show to continue is the one that just played, not whichever title
-                    // happens to be open. Read from `detail` it was silently nothing whenever
-                    // playback started from a list rather than a title screen.
-                    //
-                    // The filler walk is the one part that does need the open title: it reads
-                    // the episode table, and a table belonging to some other show would match a
-                    // row by bare number and skip against the wrong series.
-                    let rows_are_this_title = self.detail.as_ref().is_some_and(|e| e.id == id);
-                    let after_filler = if rows_are_this_title {
-                        self.next_after_filler(next.clone())
-                    } else {
-                        next.clone()
-                    };
+                    // The filler walk reads this title's episode table, when it is known here.
+                    let after_filler = self.next_after_filler(id, next.clone());
                     if after_filler != next {
                         self.push_toast(Toast::info(format!(
                             "skipped filler — ep {after_filler} next"
                         )));
                     }
-                    self.pending = Some(self.begin_playback(id, after_filler));
-                } else if watched {
+                    // Under the name it was playing under: whichever title is open now may be
+                    // another show entirely.
+                    self.raise_now_playing_titled(id, finished.title, &after_filler);
+                    self.pending = Some(Task::Play { id, episode: after_filler });
+                } else if matches!(ending, Ending::Complete { .. }) {
                     self.push_toast(Toast::info("episode finished"));
                 }
             }
@@ -1914,8 +2272,9 @@ impl App {
                 let announce = state.needs_reauth
                     && !self.sync.iter().any(|s| s.tracker == state.tracker && s.needs_reauth);
                 if announce {
+                    let accounts = self.section_key(Section::Accounts);
                     self.push_toast(Toast::alert(format!(
-                        "{} needs signing in again — :accounts",
+                        "{} needs signing in again — press {accounts} for Accounts",
                         state.tracker
                     )));
                 }
@@ -1942,18 +2301,18 @@ impl App {
                 self.conflicts = rows;
                 if appeared {
                     // Surfaced rather than resolved — the whole point of not guessing.
+                    let settle = self.key_for(Action::ShowConflicts);
                     self.push_toast(Toast::info(format!(
-                        "{} sync disagreement(s) — :conflicts",
-                        self.conflicts.len()
+                        "{} — {settle} settles them",
+                        crate::widgets::plural(self.conflicts.len(), "sync disagreement")
                     )));
                 }
             }
             Update::Resumed { position } => {
                 // Resume happens without asking — mpv is already at the right place by the time
-                // this arrives. Saying so is what keeps it from feeling like a glitch, and names
-                // the key that starts over.
+                // this arrives. Saying so is what keeps it from feeling like a glitch.
                 self.push_toast(Toast::info(format!(
-                    "resumed at {}  ·  r to start over",
+                    "resumed at {}",
                     NowPlaying::clock(position)
                 )));
                 if let Some(playing) = &mut self.playing {
@@ -1976,6 +2335,7 @@ impl App {
                     return;
                 }
                 self.episodes_all = rows;
+                self.episodes_for = Some(id);
                 self.apply_episode_filter();
                 self.episodes_loading = false;
                 // The amber bar lands where the viewer is going: the first unwatched
@@ -1996,6 +2356,15 @@ impl App {
         // first — and when a source breaks, the earliest error is usually the one that explains
         // the rest. This is the whole reason the Logs overlay exists.
         self.log(toast.kind, toast.text.clone());
+        // The same message again is the same message, kept up longer rather than stacked: five
+        // presses of an arrow on Settings are one "saved", not a pile of identical lines. From
+        // anywhere in the stack, and brought up to newest: a copy left under another line was
+        // counted in the rule's "+N", so one message read as two.
+        if let Some(at) =
+            self.toasts.iter().position(|t| t.text == toast.text && t.kind == toast.kind)
+        {
+            self.toasts.remove(at);
+        }
         // Cap the stack so a burst of provider failures cannot cover the screen.
         if self.toasts.len() >= 3 {
             self.toasts.remove(0);
@@ -2005,12 +2374,21 @@ impl App {
 
     /// Append to the log ring, newest last.
     pub fn log(&mut self, kind: ToastKind, text: String) {
+        // The same line again is a count on the last one, not another line.
+        if let Some(last) = self.logs.last_mut()
+            && last.kind == kind
+            && last.text == text
+        {
+            last.count += 1;
+            last.at = self.pulse;
+            return;
+        }
         // Bounded: this runs for the life of the process and a provider retry loop could
         // otherwise grow it without limit.
         if self.logs.len() >= LOG_CAPACITY {
             self.logs.remove(0);
         }
-        self.logs.push(LogRow { kind, text, at: self.pulse });
+        self.logs.push(LogRow { kind, text, at: self.pulse, count: 1 });
     }
 
     /// Reflect a watch into the episode table and the title's progress, without a reload.
@@ -2039,12 +2417,24 @@ impl App {
         }
     }
 
-    /// Re-derive the visible episode list from the full one, keeping the cursor in range.
+    /// Re-derive the visible episode list from the full one, keeping the cursor on the same
+    /// episode.
+    ///
+    /// By episode, not by row: keeping the index put the cursor on whatever episode the new
+    /// view had in that slot, so cycling the filter moved you without a key being pressed. An
+    /// episode the filter now hides hands the cursor to the next one it keeps — which is also
+    /// what makes marking down an unwatched-only list walk forward one episode at a time.
     fn apply_episode_filter(&mut self) {
         let filter = self.episode_filter;
+        let under_cursor = self.episodes.get(self.episode_selected).map(|r| r.number.clone());
         self.episodes = self.episodes_all.iter().filter(|r| filter.keeps(r)).cloned().collect();
+        let kept = under_cursor.and_then(|number| {
+            let from = self.episodes_all.iter().position(|r| r.number == number)?;
+            let next = self.episodes_all[from..].iter().find(|r| filter.keeps(r))?;
+            self.episodes.iter().position(|r| r.number == next.number)
+        });
         self.episode_selected =
-            self.episode_selected.min(self.episodes.len().saturating_sub(1));
+            kept.unwrap_or(self.episode_selected).min(self.episodes.len().saturating_sub(1));
     }
 
     /// Whether the filter is hiding everything — distinct from a title with no episodes.
@@ -2052,13 +2442,68 @@ impl App {
         self.episodes.is_empty() && !self.episodes_all.is_empty()
     }
 
-    /// What the header should call the source: the provider that last actually served,
-    /// falling back to the configured first choice before anything has played.
+    /// What the status line should call the source: the provider that last actually served,
+    /// before anything has played the first configured source that is ready, and failing that
+    /// the first one that is not switched off.
+    ///
+    /// Not simply the first entry in the order: torrents lead the default order and are off by
+    /// default, so that read "torrent" over a session that only plugins could serve.
     pub fn source_label(&self) -> String {
-        self.active_provider
-            .clone()
-            .or_else(|| self.config.providers.order.first().cloned())
-            .unwrap_or_else(|| "no source".into())
+        if let Some(active) = &self.active_provider {
+            return active.clone();
+        }
+        let sources = self.source_states();
+        sources
+            .iter()
+            .find(|(_, state)| *state == SourceState::Ready)
+            .or_else(|| sources.iter().find(|(_, state)| *state != SourceState::Off))
+            .or_else(|| sources.first())
+            .map_or_else(|| "no source".into(), |(id, _)| id.clone())
+    }
+
+    /// Each configured source, in the order failover walks them, and how it stands.
+    ///
+    /// The header's chips. Read from the registered providers rather than the config alone:
+    /// a configured source can be ready, failing, held back by the VPN guard, still loading, or
+    /// off on purpose — and only the last is something the config can say by itself.
+    pub fn source_states(&self) -> Vec<(String, SourceState)> {
+        let providers = &self.config.providers;
+        let of_kind = |kind: &str| -> SourceState {
+            let rows: Vec<&ProviderRow> =
+                self.providers.iter().filter(|p| p.kind == kind).collect();
+            if rows.iter().any(|p| p.usable) {
+                SourceState::Ready
+            } else if rows.iter().any(|p| p.held_back) {
+                SourceState::HeldBack
+            } else if rows.is_empty() {
+                SourceState::Pending
+            } else {
+                SourceState::Failing
+            }
+        };
+        providers
+            .order
+            .iter()
+            .filter(|id| !providers.disabled.contains(id))
+            .filter_map(|id| {
+                let state = match id.as_str() {
+                    "torrent" if !providers.torrent.enabled => SourceState::Off,
+                    // Configured but not registered: the guard refused to start it, and the
+                    // Providers screen carries the reason.
+                    "torrent" => match of_kind("torrent") {
+                        SourceState::Pending if self.provider_note.is_some() => {
+                            SourceState::Failing
+                        }
+                        state => state,
+                    },
+                    "plugins" => of_kind("plugin"),
+                    "remote" if providers.remote_url.is_none() => return None,
+                    "remote" => of_kind("remote"),
+                    _ => return None,
+                };
+                Some((id.clone(), state))
+            })
+            .collect()
     }
 
     /// Badge counts for the rail: work in flight, questions pending.
@@ -2088,6 +2533,53 @@ impl App {
         }
     }
 
+    /// A `u` or `M` mark, reflected wherever the title's progress shows: its table, its page and
+    /// the list rows for it.
+    ///
+    /// Only the table used to change, so after `u` on the next episode the page still read
+    /// "2 / 26 ep 3 next", and so did Home, until the title was opened again.
+    fn mark_episode(&mut self, id: AnilistId, number: &str, watched: bool) {
+        if watched {
+            // A mark is a finished watch with no position, and the reflection of one already
+            // moves the count and Continue the way the store will.
+            self.reflect_watch(Some(id), number, 0.0, None, true);
+            return;
+        }
+        let was_done = self.episodes_all.iter().any(|r| r.number == number && r.completed);
+        self.set_episode_watched(number, false);
+        if !was_done || self.episodes_for != Some(id) {
+            return;
+        }
+        // As the store re-derives Continue from what survives the unmark (`data::continue_from`):
+        // the episode Continue had just moved past is the one to watch again, and past the
+        // table's end it falls back to the first episode not watched.
+        let unmarked = number.trim().parse::<u32>().ok();
+        let numbered = || {
+            self.episodes_all
+                .iter()
+                .filter_map(|r| Some((r.number.trim().parse::<u32>().ok()?, r)))
+        };
+        let last = numbered().map(|(n, _)| n).max();
+        let gap = numbered().find(|(_, r)| !r.completed).map(|(n, _)| n);
+        for entry in self.detail.iter_mut().chain(match &mut self.content {
+            Content::Entries(entries) => entries.iter_mut(),
+            _ => [].iter_mut(),
+        }) {
+            let Some((done, next)) = entry.progress.filter(|_| entry.id == id) else {
+                continue;
+            };
+            let moved = match unmarked {
+                Some(n) if n.saturating_add(1) == next => n,
+                _ if last.is_some_and(|last| next > last) => gap.unwrap_or(next),
+                _ => next,
+            };
+            if moved != next {
+                entry.resume = None;
+            }
+            entry.progress = Some((done.saturating_sub(1), moved));
+        }
+    }
+
     fn reflect_watch(
         &mut self,
         id: Option<AnilistId>,
@@ -2105,19 +2597,37 @@ impl App {
             duration.filter(|d| *d > 0.0).map(|d| (position / d).clamp(0.0, 1.0)).unwrap_or(0.0)
         };
 
-        // The episode table belongs to the loaded detail; while detached the viewer can be
-        // looking at another show entirely, whose rows must neither take this watch nor
-        // speak for it.
-        let rows_apply = match (id, self.detail.as_ref()) {
-            (Some(id), Some(detail)) => detail.id == id,
-            (Some(_), None) => false,
-            (None, _) => true,
+        // The episode table is one title's; while detached the viewer can be looking at
+        // another show entirely, whose rows must neither take this watch nor speak for it.
+        let rows_apply = match id {
+            Some(id) => self.episodes_for == Some(id),
+            None => true,
         };
-        // Whether this finish is a *new* distinct episode, read before the rows are updated.
-        // The store counts distinct completed episodes, so a rewatch must not move the count.
-        let first_completion = completed
-            && rows_apply
-            && !self.episodes.iter().any(|r| r.number == episode && r.completed);
+        // What the table says about this title, read before the rows are updated. Continue is
+        // worked out as the store works it out (see `data::entry_from`): the last episode
+        // touched when it is unfinished, and otherwise the first one after it not yet watched.
+        let rows: &[EpisodeRow] = if rows_apply { &self.episodes_all } else { &[] };
+        let row = |number: &str| rows.iter().find(|r| r.number == number);
+        // A rewatch, which must not move the count: the store counts distinct episodes.
+        let was_done = row(episode).is_some_and(|r| r.completed);
+        // An episode the table knows and has never seen finished, which Continue moves to.
+        let unfinished = row(episode).is_some_and(|r| !r.completed);
+        let after = episode.trim().parse::<u32>().ok().map(|n| {
+            let mut next = n.saturating_add(1);
+            // Bounded: an all-watched tail must still terminate.
+            while next - n < 1_000 && row(&next.to_string()).is_some_and(|r| r.completed) {
+                next += 1;
+            }
+            // Past the table's last episode, the first one in it skipped.
+            let numbers =
+                || rows.iter().filter_map(|r| Some((r.number.trim().parse::<u32>().ok()?, r)));
+            if numbers().map(|(n, _)| n).max().is_some_and(|last| next > last)
+                && let Some((skipped, _)) = numbers().find(|(_, r)| !r.completed)
+            {
+                next = skipped;
+            }
+            next
+        });
 
         if rows_apply {
             for list in [&mut self.episodes, &mut self.episodes_all] {
@@ -2143,8 +2653,13 @@ impl App {
             let next_up = entry.progress.map_or(1, |(_, next)| next).to_string();
             if !completed {
                 // A part-watched episode moves the resume point, so the Continue rail is
-                // current the moment mpv exits rather than at the next reload from the store.
-                if episode == next_up && position > 0.0 {
+                // current the moment mpv exits rather than at the next reload from the store —
+                // and it is where Continue now carries on, unless it is one already watched.
+                if position > 0.0
+                    && (episode == next_up || unfinished)
+                    && let Ok(number) = episode.trim().parse::<u32>()
+                {
+                    entry.progress = Some((entry.progress.map_or(0, |(done, _)| done), number));
                     entry.resume = Some(ResumePoint {
                         position,
                         fraction: duration
@@ -2157,21 +2672,15 @@ impl App {
 
             // Progress counts *completed* episodes, mirroring the store's distinct count: a
             // first watch moves it — including the very first episode of a show with no
-            // history, and an out-of-order catch-up — where a rewatch leaves it alone.
-            match entry.progress {
-                Some((done, next)) if episode == next.to_string() => {
-                    entry.progress = Some((done + 1, next + 1));
-                }
-                Some((done, _)) if first_completion => {
-                    entry.progress = Some((done + 1, done + 2));
-                }
-                None => {
-                    entry.progress = Some((1, 2));
-                }
-                _ => {}
-            }
-            // The episode just finished is no longer something to resume.
-            if episode == next_up {
+            // history, and an out-of-order catch-up the table can vouch for — where a rewatch
+            // leaves it alone. Continue moves past the episode just finished either way.
+            let first =
+                !was_done && (entry.progress.is_none() || rows_apply || episode == next_up);
+            let done = entry.progress.map_or(0, |(done, _)| done) + u32::from(first);
+            let next = after.or(entry.progress.map(|(_, next)| next)).unwrap_or(done + 1);
+            entry.progress = Some((done, next));
+            // Where the previous Continue episode was left is no longer what Continue offers.
+            if next.to_string() != next_up {
                 entry.resume = None;
             }
         }
@@ -2222,6 +2731,140 @@ impl App {
         self.backfill_calendar_if_near_top();
     }
 
+    /// Fit the list's window to `visible_rows` again, after the terminal changed size.
+    ///
+    /// The offset was only ever corrected by moving, so shrinking the terminal left the
+    /// highlighted row — the one every key acts on — below the bottom edge until the next
+    /// keypress. Fitted for the section's list even under a pushed view, so Back lands on a
+    /// window that shows its selection.
+    pub fn fit_to(&mut self, visible_rows: usize) {
+        if self.content_view().is_none() {
+            return;
+        }
+        let len = self.content.len();
+        if len == 0 {
+            self.offset = 0;
+            return;
+        }
+        let rows = visible_rows.max(1);
+        self.selected = self.selected.min(len - 1);
+        if self.selected < self.offset {
+            self.offset = self.selected;
+        } else if self.selected >= self.offset + rows {
+            self.offset = self.selected + 1 - rows;
+        }
+        // A taller window shows more of the list rather than empty rows under its end.
+        self.offset = self.offset.min(len.saturating_sub(rows));
+    }
+
+    /// Which rows the cursor walks on the screen on top, if it has any.
+    ///
+    /// One answer for every movement key. Each screen used to claim ↑ and ↓ for itself, and
+    /// every key it forgot — `g`, `G`, ctrl+u, ctrl+d, or all of them on a title page — fell
+    /// through to the section's list hidden underneath, so `G` on Settings landed on whichever
+    /// row matched the length of a list nobody could see.
+    fn rows_here(&self) -> Option<Rows> {
+        match self.nav.current() {
+            StageView::Episodes(_) => Some(Rows::Episodes),
+            StageView::Stores => Some(Rows::Stores),
+            StageView::Store(_) => Some(Rows::StoreLines),
+            StageView::StoreMembers(_) => Some(Rows::Members),
+            StageView::Section(Section::Downloads) => Some(Rows::Downloads),
+            StageView::Section(Section::Accounts) => Some(Rows::Accounts),
+            StageView::Section(Section::Settings) => Some(Rows::Settings),
+            // A status table with nothing to select.
+            StageView::Section(Section::Providers) => None,
+            StageView::Section(_) => Some(Rows::List),
+            // A title page is one title, not a list, and Now Playing's keys belong to the
+            // player. Moving on either moved the list behind it, so Back landed rows away from
+            // where it was left.
+            StageView::Title(_) | StageView::NowPlaying => None,
+        }
+    }
+
+    /// Up, Down, the pages, Top and Bottom, for whatever has the keyboard.
+    ///
+    /// Every cursor clamps at its ends — the rail, the lists, the tables — so holding a key
+    /// stops somewhere informative rather than cycling.
+    fn move_cursor(&mut self, action: Action, visible_rows: usize) -> Option<Task> {
+        let page = visible_rows.max(1) as isize;
+        let delta = match action {
+            Action::Down => 1,
+            Action::Up => -1,
+            Action::PageDown => page,
+            Action::PageUp => -page,
+            Action::Top | Action::Bottom => 0,
+            _ => return None,
+        };
+
+        // The rail owns the vertical axis when it has focus, all of it: the arrows used to walk
+        // it while `g` and `G` scrolled the list behind it. The rail is shorter than any page,
+        // so a page or an end goes to the first or last section.
+        if self.nav.focus() == Focus::Rail {
+            let all = Section::ALL.len() as isize;
+            return self.step_section(match action {
+                Action::Down => 1,
+                Action::Up => -1,
+                Action::PageUp | Action::Top => -all,
+                _ => all,
+            });
+        }
+
+        let rows = self.rows_here()?;
+        if rows == Rows::List {
+            // Above the first result is the query it answered.
+            if self.search_in_results && action == Action::Up && self.selected == 0 {
+                self.search_in_results = false;
+                return None;
+            }
+            match action {
+                Action::Top => {
+                    self.selected = 0;
+                    self.offset = 0;
+                }
+                Action::Bottom => {
+                    self.selected = self.content.len().saturating_sub(1);
+                    self.offset = self.selected.saturating_sub(visible_rows.saturating_sub(1));
+                }
+                _ => self.move_selection(delta, visible_rows),
+            }
+            return None;
+        }
+
+        let len = match rows {
+            Rows::Downloads => self.downloads.len(),
+            Rows::Accounts => self.sync.len(),
+            Rows::Settings => SettingId::ALL.len(),
+            Rows::Episodes => self.episodes.len(),
+            // The last row is the one that joins another store.
+            Rows::Stores => self.stores.len() + 1,
+            Rows::StoreLines => self
+                .store_view()
+                .and_then(|id| self.store(id))
+                .map_or(0, |s| self.store_lines(s).len()),
+            Rows::Members => self.store_members.len() + self.store_invites.len(),
+            Rows::List => 0,
+        };
+        if len == 0 {
+            return None;
+        }
+        let cursor = match rows {
+            Rows::Downloads | Rows::Accounts | Rows::Settings => &mut self.selected,
+            Rows::Episodes => &mut self.episode_selected,
+            Rows::Stores => &mut self.store_selected,
+            Rows::StoreLines => &mut self.store_line_selected,
+            Rows::Members => &mut self.member_selected,
+            Rows::List => return None,
+        };
+        let last = len as isize - 1;
+        *cursor = match action {
+            Action::Top => 0,
+            Action::Bottom => last,
+            _ => (*cursor as isize).saturating_add(delta).clamp(0, last),
+        } as usize;
+        None
+    }
+
     /// Fetch older broadcasts once the selection nears the top of the calendar.
     ///
     /// Deliberately silent, and deliberately early. The question being asked by scrolling up is
@@ -2245,12 +2888,224 @@ impl App {
         self.pending = Some(Task::LoadCalendarPast { anchor, page: self.calendar_pages + 1 });
     }
 
+    /// Handle a keystroke: text into a focused field first, then the binding it resolves to.
+    ///
+    /// The whole route from key to action in one place, so what a key does in any state can be
+    /// tested as a key rather than as the action someone assumed it would become.
+    pub fn press(&mut self, key: KeyEvent, visible_rows: usize) -> Option<Task> {
+        // Text first: while a field has focus, plain characters are input, not bindings.
+        if self.is_typing() {
+            match key.code {
+                KeyCode::Char(c)
+                    if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
+                {
+                    self.type_char(c);
+                    return None;
+                }
+                KeyCode::Backspace => {
+                    self.backspace();
+                    return None;
+                }
+                _ => {}
+            }
+        }
+        let action = self.keymap.action_for(key, self.key_context())?;
+        self.handle(action, visible_rows)
+    }
+
+    /// Which binding table a keystroke resolves against right now.
+    ///
+    /// Modal whenever an overlay or a text field has the keyboard, so their fixed keys hold
+    /// whatever the rebinds are and the playback table cannot act behind them.
+    pub fn key_context(&self) -> Context {
+        if self.nav.has_overlay() || self.is_typing() {
+            Context::Modal
+        } else if self.playing.is_some() {
+            Context::Playing
+        } else {
+            Context::Browsing
+        }
+    }
+
     /// Handle an action. Returns work for the caller to perform asynchronously.
     pub fn handle(&mut self, action: Action, visible_rows: usize) -> Option<Task> {
         // While typing, most single-key bindings must not fire, or "d" would trigger a
         // download instead of entering a letter.
         if self.is_typing() {
             return self.handle_while_typing(action, visible_rows);
+        }
+        // An open overlay owns the keyboard: no key reaches the screen under it. Behind Help,
+        // the arrows used to change — and save — whatever setting was highlighted.
+        if let Some(overlay) = self.nav.overlay().cloned() {
+            return self.handle_in_overlay(&overlay, action, visible_rows);
+        }
+        self.perform(action, visible_rows)
+    }
+
+    /// What an open, non-text overlay does with each action. Everything not listed is
+    /// swallowed.
+    ///
+    /// Every overlay: Back closes it, Quit quits, and Help toggles the key reference on top —
+    /// stacked, so Esc returns to the question it was opened from. Beyond that there are two
+    /// kinds. **Help and Logs** are references with nothing to lose by leaving, so the keys
+    /// that go somewhere — the palette, search, the section numbers, Logs — close them and go,
+    /// save the section numbers over a playing Now Playing; their movement keys scroll. **Every other overlay asks a question**, and only its own
+    /// keys work until it is answered or dismissed: a `5` in the rating picker must not jump to
+    /// Downloads.
+    fn handle_in_overlay(
+        &mut self,
+        overlay: &Overlay,
+        action: Action,
+        visible_rows: usize,
+    ) -> Option<Task> {
+        match action {
+            Action::Quit => {
+                self.should_quit = true;
+                return None;
+            }
+            Action::Back => {
+                self.nav.close_overlay();
+                return None;
+            }
+            Action::Help if *overlay == Overlay::Help => {
+                self.nav.close_overlay();
+                return None;
+            }
+            Action::Help => {
+                self.open_help();
+                return None;
+            }
+            _ => {}
+        }
+
+        let reference = matches!(overlay, Overlay::Help | Overlay::Logs);
+        if reference {
+            match action {
+                // The same key again closes it, as `?` does for Help.
+                Action::ShowLogs if *overlay == Overlay::Logs => {
+                    self.nav.close_overlay();
+                    return None;
+                }
+                // Over Now Playing the digits belong to the player — `9` and `0` are its
+                // volume — so behind Help or Logs a section number does nothing, rather than
+                // closing the reference and leaving the player for another screen.
+                Action::JumpSection(_)
+                    if self.playing.is_some()
+                        && matches!(self.nav.current(), StageView::NowPlaying) =>
+                {
+                    return None;
+                }
+                Action::CommandPalette
+                | Action::FocusSearch
+                | Action::FilterSearch
+                | Action::JumpSection(_)
+                | Action::ShowLogs
+                | Action::ShowAccounts
+                | Action::ShowConflicts => {
+                    // Replaced rather than stacked: the palette runs what it picks against the
+                    // screen, and anything left open would swallow that.
+                    self.nav.close_all_overlays();
+                    return self.perform(action, visible_rows);
+                }
+                _ => {}
+            }
+        }
+
+        if *overlay == Overlay::Help {
+            let last = self.help_pages.get().saturating_sub(1);
+            self.help_page = match action {
+                Action::Down | Action::PageDown => (self.help_page + 1).min(last),
+                Action::Up | Action::PageUp => self.help_page.saturating_sub(1),
+                Action::Top => 0,
+                Action::Bottom => last,
+                _ => self.help_page,
+            };
+            return None;
+        }
+
+        // The store confirmations and the invite link are questions with one answer key: a
+        // stray `j` must not move the cursor off the member a "remove" is about to be applied to.
+        match (overlay, action) {
+            (Overlay::StoreConfirm, Action::Open) => return self.confirm_store_action(),
+            (Overlay::InviteLink, Action::Open) => {
+                self.nav.close_overlay();
+                self.invite_link = None;
+                return None;
+            }
+            (Overlay::StoreConfirm | Overlay::InviteLink, _) => return None,
+            _ => {}
+        }
+
+        // A list overlay owns movement and Enter. Without this, arrowing through the Accounts
+        // list would scroll the library behind it instead.
+        let len = self.overlay_len();
+        let page = visible_rows.saturating_sub(4).max(1);
+        match action {
+            Action::Down => {
+                self.overlay_selected = (self.overlay_selected + 1).min(len.saturating_sub(1));
+            }
+            Action::Up => self.overlay_selected = self.overlay_selected.saturating_sub(1),
+            Action::PageDown => {
+                self.overlay_selected =
+                    (self.overlay_selected + page).min(len.saturating_sub(1));
+            }
+            Action::PageUp => {
+                self.overlay_selected = self.overlay_selected.saturating_sub(page);
+            }
+            Action::Top => self.overlay_selected = 0,
+            Action::Bottom => self.overlay_selected = len.saturating_sub(1),
+            Action::Open if len > 0 => return self.confirm_overlay(visible_rows),
+            // The filters overlay edits in place: the vertical axis picks a row and the
+            // horizontal one walks its values, the same grammar as the Settings screen.
+            Action::Left if *overlay == Overlay::SearchFilters => {
+                self.search_filter.cycle(self.overlay_selected, false);
+            }
+            Action::Right if *overlay == Overlay::SearchFilters => {
+                self.search_filter.cycle(self.overlay_selected, true);
+            }
+            _ => {}
+        }
+        None
+    }
+
+    /// Open the key reference at its first page.
+    fn open_help(&mut self) {
+        self.help_page = 0;
+        self.nav.open_overlay(Overlay::Help);
+    }
+
+    /// Run an action against the screen, with no overlay or text field in the way.
+    ///
+    /// Separate from [`Self::handle`] so the command palette can run what it picked: opened
+    /// from Search's field, the field still has focus once the palette closes, and going back
+    /// through the typing gate swallowed nearly every command.
+    fn perform(&mut self, action: Action, visible_rows: usize) -> Option<Task> {
+        // The download queue reads Space as pause and `x` as cancel, the keys it borrows from the
+        // player. Resolved before the playback table: idle, those keys arrive as the browsing
+        // actions — play next, remove from Continue — so a download could never be paused or
+        // cancelled at all, and while something plays they would pause the player rather than
+        // the row on screen.
+        if self.in_downloads_stage() {
+            match action {
+                Action::PlayNext | Action::PlayPause => {
+                    let id = self.downloads.get(self.selected)?.id;
+                    return Some(Task::DownloadPause { id });
+                }
+                Action::HideFromContinue | Action::StopPlayback => {
+                    let row = self.downloads.get(self.selected)?;
+                    // A finished download has nothing left to cancel. Cancelling it forgot the
+                    // row and left the file on disk with no way back to it from here.
+                    if row.state == "done" {
+                        let delete = self.key_for(Action::DeleteDownload);
+                        self.push_toast(Toast::info(format!(
+                            "already downloaded — {delete} deletes it and its file"
+                        )));
+                        return None;
+                    }
+                    return Some(Task::DownloadCancel { id: row.id });
+                }
+                _ => {}
+            }
         }
 
         // Playback bindings only mean anything while something is playing, and they collide
@@ -2261,55 +3116,19 @@ impl App {
             return task;
         }
 
-        // An open list overlay owns movement and Enter. Without this, arrowing through the
-        // Accounts list would scroll the library behind it instead.
-        if self.overlay_len() > 0 {
-            match action {
-                Action::Down => {
-                    self.overlay_selected =
-                        (self.overlay_selected + 1).min(self.overlay_len() - 1);
-                    return None;
-                }
-                Action::Up => {
-                    self.overlay_selected = self.overlay_selected.saturating_sub(1);
-                    return None;
-                }
-                Action::Open => return self.confirm_overlay(visible_rows),
-                // The filters overlay edits in place: the vertical axis picks a row and the
-                // horizontal one walks its values, the same grammar as the Settings screen.
-                Action::Left if self.nav.overlay() == Some(&Overlay::SearchFilters) => {
-                    self.search_filter.cycle(self.overlay_selected, false);
-                    return None;
-                }
-                Action::Right if self.nav.overlay() == Some(&Overlay::SearchFilters) => {
-                    self.search_filter.cycle(self.overlay_selected, true);
-                    return None;
-                }
-                _ => {}
-            }
-        }
-
-        // The store confirmations and the invite link are questions with one answer key. Every
-        // other key is swallowed rather than reaching the list underneath: a stray `j` must not
-        // move the cursor off the member a "remove" is about to be applied to.
-        if matches!(self.nav.overlay(), Some(Overlay::StoreConfirm | Overlay::InviteLink)) {
-            match action {
-                Action::Open if self.nav.overlay() == Some(&Overlay::StoreConfirm) => {
-                    return self.confirm_store_action();
-                }
-                Action::Open => {
-                    self.nav.close_overlay();
-                    self.invite_link = None;
-                    return None;
-                }
-                Action::Back | Action::Quit | Action::Help | Action::CommandPalette => {}
-                _ => return None,
-            }
+        // Title commands have nothing to act on without a title, on screen or highlighted, and
+        // each says so the same way rather than some doing nothing at all.
+        if action.acts_on_a_title()
+            && !matches!(self.nav.current(), StageView::NowPlaying)
+            && self.target().is_none()
+        {
+            self.push_toast(Toast::info("nothing selected"));
+            return None;
         }
 
         match action {
             Action::Quit => self.should_quit = true,
-            Action::Help => self.nav.open_overlay(Overlay::Help),
+            Action::Help => self.open_help(),
             // Goes to the screen now rather than opening the modal. The overlay stays in the
             // codebase for the one case it is still right for — being asked to sign in from
             // somewhere else — but "show me my accounts" belongs on a page.
@@ -2331,104 +3150,61 @@ impl App {
                 self.palette_query.clear();
                 self.nav.open_overlay(Overlay::CommandPalette);
             }
-            Action::Back => {
-                if self.nav.back() == crate::nav::BackOutcome::AtRoot {
-                    // At the very root, back is a no-op rather than a quit.
-                    self.status = "at the top — Q to quit".into();
-                }
+            // Out of the search results is back into the query they answered, one step short
+            // of the rail — the same order the two were entered in.
+            Action::Back if self.search_in_results && self.on_search_root() => {
+                self.search_in_results = false;
             }
+            Action::Back => self.go_back(),
             Action::ToggleRail => self.nav.toggle_rail(),
             Action::JumpSection(n) => {
                 if let Some(section) = Section::from_index(usize::from(n).saturating_sub(1)) {
                     return self.go_to_section(section);
                 }
             }
+            // Already on Search, `/` means "let me type" rather than "start again": it returns
+            // to the field with the query and results as they were, without asking again.
+            Action::FocusSearch if self.on_search_root() => {
+                self.search_in_results = false;
+                self.nav.focus_stage();
+            }
             Action::FocusSearch => return self.go_to_section(Section::Search),
-            // The rail owns the vertical axis when it has focus. Without this the arrows
-            // scrolled the list *behind* the focused rail, so the eight top-level views were
-            // reachable only by their number keys — fast once you know them, and undiscoverable
-            // until then. Stepping the rail switches section immediately, exactly as pressing
-            // the number does; a cursor you had to confirm with Enter would make the first
-            // press look like nothing happened.
-            Action::Down if self.nav.focus() == Focus::Rail => return self.step_section(1),
-            Action::Up if self.nav.focus() == Focus::Rail => return self.step_section(-1),
-            // Settings keeps its own cursor: the screen is built from `SettingId::ALL` rather
-            // than from `content`, which is empty here, so the shared clamp would pin it at row
-            // nought and nothing below the first setting would ever be reachable.
-            Action::Down if self.in_downloads_stage() => {
-                self.selected = (self.selected + 1).min(self.downloads.len().saturating_sub(1));
-            }
-            Action::Up if self.in_downloads_stage() => {
-                self.selected = self.selected.saturating_sub(1);
-            }
-            Action::Down if self.in_accounts_stage() => {
-                self.selected = (self.selected + 1).min(self.sync.len().saturating_sub(1));
-            }
-            Action::Up if self.in_accounts_stage() => {
-                self.selected = self.selected.saturating_sub(1);
-            }
-            Action::Down if self.nav.focus() == Focus::Stage && self.in_stores() => {
-                self.store_selected = (self.store_selected + 1).min(self.stores.len());
-            }
-            Action::Up if self.nav.focus() == Focus::Stage && self.in_stores() => {
-                self.store_selected = self.store_selected.saturating_sub(1);
-            }
-            Action::Down if self.nav.focus() == Focus::Stage && self.store_view().is_some() => {
-                let last = self
-                    .store_view()
-                    .and_then(|id| self.store(id))
-                    .map_or(0, |store| self.store_lines(store).len().saturating_sub(1));
-                self.store_line_selected = (self.store_line_selected + 1).min(last);
-            }
-            Action::Up if self.nav.focus() == Focus::Stage && self.store_view().is_some() => {
-                self.store_line_selected = self.store_line_selected.saturating_sub(1);
-            }
-            Action::Down
-                if self.nav.focus() == Focus::Stage && self.members_view().is_some() =>
-            {
-                let last =
-                    (self.store_members.len() + self.store_invites.len()).saturating_sub(1);
-                self.member_selected = (self.member_selected + 1).min(last);
-            }
-            Action::Up if self.nav.focus() == Focus::Stage && self.members_view().is_some() => {
-                self.member_selected = self.member_selected.saturating_sub(1);
-            }
-            Action::Down if self.in_settings_stage() => {
-                self.selected = (self.selected + 1).min(SettingId::ALL.len() - 1);
-            }
-            Action::Up if self.in_settings_stage() => {
-                self.selected = self.selected.saturating_sub(1);
-            }
-            Action::Down if self.in_episodes() => {
-                self.episode_selected =
-                    (self.episode_selected + 1).min(self.episodes.len().saturating_sub(1));
-            }
-            Action::Up if self.in_episodes() => {
-                self.episode_selected = self.episode_selected.saturating_sub(1);
-            }
-            Action::Down => self.move_selection(1, visible_rows),
-            Action::Up => self.move_selection(-1, visible_rows),
-            Action::PageDown => self.move_selection(visible_rows as isize, visible_rows),
-            Action::PageUp => self.move_selection(-(visible_rows as isize), visible_rows),
-            Action::Top => {
-                self.selected = 0;
-                self.offset = 0;
-            }
-            Action::Bottom => {
-                self.selected = self.content.len().saturating_sub(1);
-                self.offset = self.selected.saturating_sub(visible_rows.saturating_sub(1));
-            }
-            // Screens with a horizontal axis claim Left/Right for it: Settings cycles the
-            // selected value, Library steps the status segment. Everywhere else the keys
-            // move focus between rail and stage.
-            Action::Right if self.in_settings_stage() => return self.cycle_setting(1),
-            Action::Left if self.in_settings_stage() => return self.cycle_setting(-1),
+            // Every vertical key, for whatever has the keyboard: the rail when it has focus,
+            // otherwise the rows of the screen on top. See `move_cursor`.
+            Action::Up
+            | Action::Down
+            | Action::PageUp
+            | Action::PageDown
+            | Action::Top
+            | Action::Bottom => return self.move_cursor(action, visible_rows),
+            // Left goes left until nothing is further left, then onto the rail. Screens with a
+            // horizontal axis step it first — Settings a value, Library its segments — and a
+            // pushed view's left is the view it was opened from, so a stack of titles is never
+            // stranded behind a focused rail that switches section on the next ↓.
+            Action::Right if self.in_settings_stage() => return self.step_setting(1),
+            Action::Left if self.in_settings_stage() => return self.step_setting(-1),
             Action::Right if self.in_library_stage() => return self.step_segment(1),
             Action::Left if self.in_library_stage() => return self.step_segment(-1),
             Action::Right => self.nav.focus_stage(),
-            Action::Left => self.nav.focus_rail(),
+            // Now Playing hides the rail and leaves through its own keys, `q` and `x`.
+            Action::Left
+                if self.nav.depth() > 1
+                    && !matches!(self.nav.current(), StageView::NowPlaying) =>
+            {
+                self.go_back();
+            }
+            Action::Left => {
+                self.search_in_results = false;
+                self.nav.focus_rail();
+            }
             // In the episode table Enter plays; everywhere else it opens the title.
             Action::Open if self.in_episodes() => return self.play_selected_episode(),
+            // A title page is already open, so Enter goes one deeper — the episode table — the
+            // way it opens a title from a list and plays an episode from the table. It used to
+            // open whichever row of the list underneath was highlighted.
+            Action::Open if matches!(self.nav.current(), StageView::Title(_)) => {
+                return self.perform(Action::ShowEpisodes, visible_rows);
+            }
             // On Settings, Enter and Space do the obvious thing: cycle a closed set, or
             // open a small typed editor for the values that are text — a screen that
             // points at config.toml for a language code has given up two keys early.
@@ -2488,14 +3264,6 @@ impl App {
                     _ => self.push_toast(Toast::info("not finished yet")),
                 }
             }
-            Action::PlayPause if self.in_downloads_stage() => {
-                let id = self.downloads.get(self.selected)?.id;
-                return Some(Task::DownloadPause { id });
-            }
-            Action::StopPlayback if self.in_downloads_stage() => {
-                let id = self.downloads.get(self.selected)?.id;
-                return Some(Task::DownloadCancel { id });
-            }
             Action::DeleteDownload if self.in_downloads_stage() => {
                 let row = self.downloads.get(self.selected)?;
                 return Some(Task::DownloadDelete { id: row.id });
@@ -2511,12 +3279,7 @@ impl App {
             // episode resumes immediately, no detail screen in between. The title's other
             // views stay one key away — `e` episodes, `s` sources, `w` watch order — and
             // rows with nothing to resume still open normally.
-            Action::Open
-                if matches!(self.nav.current(), StageView::Section(Section::Home))
-                    && self
-                        .selected_entry()
-                        .is_some_and(|e| e.resume.is_some() && e.progress.is_some()) =>
-            {
+            Action::Open if self.resumes_on_enter() => {
                 let entry = self.selected_entry().expect("checked");
                 let id = entry.id;
                 let next = entry.progress.expect("checked").1;
@@ -2527,20 +3290,10 @@ impl App {
             // episode you have not watched.
             Action::PlayNext => return self.play_next_unwatched(),
             Action::ShowEpisodes => {
-                // Which title this is about depends on where it is pressed. On a title screen
-                // it is that title — the list underneath may be sitting on something else
-                // entirely, as it is after stepping through related titles. On a list it is the
-                // row under the cursor.
-                //
-                // The order matters now that `detail` outlives the screen that set it: reading
-                // it first pinned the episode list to the first show opened, and every show
-                // tried afterwards showed that one's episodes until the section was left and
-                // re-entered, which is what clears it.
-                let entry = match self.nav.current() {
-                    StageView::Title(_) => self.detail.as_ref().or(self.selected_entry()),
-                    _ => self.selected_entry().or(self.detail.as_ref()),
-                };
-                if let Some(entry) = entry.cloned() {
+                // On a title screen it is that title — the list underneath may be sitting on
+                // something else entirely, as it is after stepping through related titles. On a
+                // list it is the row under the cursor. See `target`.
+                if let Some(entry) = self.target().cloned() {
                     let id = entry.id;
                     // The episode table is a view *of a title*, and `detail` is how the rest of
                     // the app asks which title that is. Reached by `e` from a list it was left
@@ -2570,7 +3323,7 @@ impl App {
                     let row = self.episodes.get(self.episode_selected)?;
                     (row.number.clone(), !row.completed)
                 };
-                self.set_episode_watched(&number, watched);
+                self.mark_episode(id, &number, watched);
                 // Under the unwatched filter a marked row leaves the view at once —
                 // which is the binge-marking flow working, not a glitch.
                 self.apply_episode_filter();
@@ -2591,14 +3344,28 @@ impl App {
                     .map(|r| r.number.clone())
                     .collect();
                 if marked.is_empty() {
-                    self.push_toast(Toast::info("nothing before this episode to mark"));
+                    // Three different nothings, each said as what it is: "nothing before this
+                    // episode" over an empty table pointed at an episode that was not there.
+                    let why = match self.episodes.get(self.episode_selected) {
+                        None => "no episodes listed to mark".to_owned(),
+                        Some(_) if self.episode_selected == 0 => {
+                            "nothing comes before the first episode".to_owned()
+                        }
+                        Some(row) => {
+                            format!("everything before ep {} is already watched", row.number)
+                        }
+                    };
+                    self.push_toast(Toast::info(why));
                     return None;
                 }
                 for number in &marked {
-                    self.set_episode_watched(number, true);
+                    self.mark_episode(id, number, true);
                 }
                 self.apply_episode_filter();
-                self.push_toast(Toast::info(format!("marked {} watched", marked.len())));
+                self.push_toast(Toast::info(format!(
+                    "marked {} watched",
+                    crate::widgets::plural(marked.len(), "episode")
+                )));
                 return Some(Task::SetWatched { id, episodes: marked, watched: true });
             }
             Action::DownloadRange if self.in_episodes() => {
@@ -2617,7 +3384,9 @@ impl App {
                     self.episode_filter.label()
                 )));
             }
-            Action::Filter if self.nav.section() == Section::Search => {
+            // By the view, not the section: a title opened from the results is a title page,
+            // and `f` there means what it means on every other title page.
+            Action::Filter if self.on_search_root() => {
                 self.overlay_selected = 0;
                 self.nav.open_overlay(Overlay::SearchFilters);
             }
@@ -2639,11 +3408,7 @@ impl App {
                 self.push_toast(Toast::info("watched marks live in the episode table"));
             }
             Action::OpenInBrowser => {
-                let id = match self.nav.current() {
-                    StageView::Episodes(id) | StageView::Title(id) => Some(*id),
-                    _ => self.detail.as_ref().or(self.selected_entry()).map(|e| e.id),
-                };
-                let Some(id) = id else {
+                let Some(id) = self.target().map(|e| e.id) else {
                     self.push_toast(Toast::info("nothing selected"));
                     return None;
                 };
@@ -2652,12 +3417,17 @@ impl App {
                 });
             }
             Action::PickProvider => {
-                let id = match self.nav.current() {
-                    StageView::Episodes(id) | StageView::Title(id) => Some(*id),
-                    _ => self.detail.as_ref().or(self.selected_entry()).map(|e| e.id),
-                };
-                if id.is_none() {
-                    self.push_toast(Toast::info("nothing selected"));
+                // The choice already in force arrives with the title's record, so only a title's
+                // own page knows it. From a list the overlay would open on the pin of whichever
+                // title was opened last, and confirming "automatic" there could quietly undo a
+                // pin the user made.
+                if self.title_on_screen().is_none() {
+                    let hint = if self.target().is_some() {
+                        "a source is pinned from the title's page"
+                    } else {
+                        "nothing selected"
+                    };
+                    self.push_toast(Toast::info(hint));
                     return None;
                 }
                 if self.providers.is_empty() {
@@ -2675,41 +3445,50 @@ impl App {
                 self.nav.open_overlay(Overlay::SourceProvider);
             }
             Action::PlayTrailer => {
-                let Some(entry) = self.detail.as_ref().or(self.selected_entry()) else {
+                let Some(entry) = self.target() else {
                     self.push_toast(Toast::info("nothing selected"));
                     return None;
                 };
                 let Some(url) = entry.trailer_url.clone() else {
                     // Rides the detail fetch, so a list row answers after the title has
                     // been opened once — and some titles genuinely have no trailer.
-                    self.push_toast(Toast::info("no trailer on record for this title"));
+                    let why = self
+                        .off_the_page("the trailer is found")
+                        .unwrap_or_else(|| "no trailer on record for this title".into());
+                    self.push_toast(Toast::info(why));
                     return None;
                 };
                 return Some(Task::PlayTrailer { url, title: entry.title.clone() });
             }
             Action::Recommendations => {
-                let Some(entry) = self.detail.as_ref().or(self.selected_entry()) else {
+                let Some(entry) = self.target() else {
                     self.push_toast(Toast::info("nothing selected"));
                     return None;
                 };
                 if entry.recommended.is_empty() {
                     // Like relations, recommendations ride the detail fetch — and some
                     // titles genuinely have none.
-                    self.push_toast(Toast::info("no recommendations known for this title"));
+                    let why = self
+                        .off_the_page("recommendations are listed")
+                        .unwrap_or_else(|| "no recommendations known for this title".into());
+                    self.push_toast(Toast::info(why));
                     return None;
                 }
                 self.overlay_selected = 0;
                 self.nav.open_overlay(Overlay::Recommendations);
             }
             Action::WatchOrder => {
-                let Some(entry) = self.detail.as_ref().or(self.selected_entry()) else {
+                let Some(entry) = self.target() else {
                     self.push_toast(Toast::info("nothing selected"));
                     return None;
                 };
                 if entry.related.is_empty() {
                     // Empty on list rows too — the relations ride the detail fetch. From a
                     // list this still answers after opening the title once.
-                    self.push_toast(Toast::info("no connected seasons known for this title"));
+                    let why = self
+                        .off_the_page("connected seasons are listed")
+                        .unwrap_or_else(|| "no connected seasons known for this title".into());
+                    self.push_toast(Toast::info(why));
                     return None;
                 }
                 self.overlay_selected = 0;
@@ -2718,12 +3497,18 @@ impl App {
             Action::FixMapping => {
                 // "This matched the wrong thing" — ask the user what to search for, then
                 // re-enter the ordinary disambiguation flow with their words.
-                let id = match self.nav.current() {
-                    StageView::Episodes(id) | StageView::Title(id) => Some(*id),
-                    _ => self.detail.as_ref().or(self.selected_entry()).map(|e| e.id),
-                };
-                let Some(id) = id else {
-                    self.push_toast(Toast::info("nothing selected to re-match"));
+                //
+                // From a title's page or its episodes only: the answer is a new episode table,
+                // which is taken for the title on screen and nowhere else, so from a list the
+                // pick would be asked for and then silently dropped — or, with a title opened
+                // earlier, applied to that title instead of the highlighted one.
+                let Some(id) = self.title_on_screen() else {
+                    let hint = if self.target().is_some() {
+                        "a match is fixed from the title's page"
+                    } else {
+                        "nothing selected to re-match"
+                    };
+                    self.push_toast(Toast::info(hint));
                     return None;
                 };
                 self.manual_target = Some(id);
@@ -2739,7 +3524,7 @@ impl App {
                         (*id, self.episodes.get(self.episode_selected)?.number.clone())
                     }
                     _ => {
-                        let entry = self.detail.as_ref().or(self.selected_entry())?;
+                        let entry = self.target()?;
                         let episode = entry.progress.map_or(1, |(_, next)| next).to_string();
                         (entry.id, episode)
                     }
@@ -2755,7 +3540,7 @@ impl App {
                         (*id, self.episodes.get(self.episode_selected)?.number.clone())
                     }
                     _ => {
-                        let entry = self.detail.as_ref().or(self.selected_entry())?;
+                        let entry = self.target()?;
                         let episode = entry.progress.map_or(1, |(_, next)| next).to_string();
                         (entry.id, episode)
                     }
@@ -2770,7 +3555,7 @@ impl App {
                         (*id, self.episodes.get(self.episode_selected)?.number.clone())
                     }
                     _ => {
-                        let entry = self.detail.as_ref().or(self.selected_entry())?;
+                        let entry = self.target()?;
                         let episode = entry.progress.map_or(1, |(_, next)| next).to_string();
                         (entry.id, episode)
                     }
@@ -2779,12 +3564,23 @@ impl App {
             }
             Action::ToggleSynopsis => self.synopsis_expanded = !self.synopsis_expanded,
             Action::SetListStatus => {
-                if self.detail.as_ref().or(self.selected_entry()).is_some() {
+                if self.signed_in_trackers().is_empty() {
+                    // Nothing keeps a list status but a tracker. Offering the picker anyway
+                    // ended in "marked watching" for a choice that went nowhere.
+                    self.push_toast(Toast::info(
+                        "list status is kept on a tracker, and none is signed in — :accounts",
+                    ));
+                } else if let Some(entry) = self.target() {
                     // Preselect what the title is already on, so the common case is one
-                    // keystroke to confirm rather than a hunt.
-                    self.overlay_selected = LibrarySegment::ALL
-                        .iter()
-                        .position(|s| *s == self.library_segment)
+                    // keystroke to confirm rather than a hunt. The title's own status, where it
+                    // is known — the Library tab last viewed said nothing about a show opened
+                    // from search, and preselected "dropped" for it. Unknown starts at the top.
+                    let current =
+                        self.statuses_set.get(&entry.id).copied().or(entry.list_status);
+                    self.overlay_selected = current
+                        .and_then(|status| {
+                            LibrarySegment::ALL.iter().position(|s| *s == status)
+                        })
                         .unwrap_or(0);
                     self.nav.open_overlay(Overlay::ListStatus);
                 } else {
@@ -2792,7 +3588,11 @@ impl App {
                 }
             }
             Action::RateTitle => {
-                if self.detail.as_ref().or(self.selected_entry()).is_some() {
+                if self.signed_in_trackers().is_empty() {
+                    self.push_toast(Toast::info(
+                        "ratings are kept on a tracker, and none is signed in — :accounts",
+                    ));
+                } else if self.target().is_some() {
                     // No local record of an existing score to preselect, so the cursor
                     // starts at the top and every row is one or two keystrokes away.
                     self.overlay_selected = 0;
@@ -2812,7 +3612,7 @@ impl App {
                 let at_home_list = self.nav.section() == Section::Home
                     && matches!(self.nav.current(), StageView::Section(Section::Home));
                 if !at_home_list {
-                    self.push_toast(Toast::info("removing works on the Home list"));
+                    self.push_toast(Toast::info("removing works on the Continue list"));
                     return None;
                 }
                 let Content::Entries(entries) = &mut self.content else {
@@ -2836,7 +3636,10 @@ impl App {
             }
             Action::ForceResync => {
                 if self.sync.is_empty() {
-                    self.push_toast(Toast::info("no tracker connected — :accounts"));
+                    let accounts = self.section_key(Section::Accounts);
+                    self.push_toast(Toast::info(format!(
+                        "no tracker connected — press {accounts} for Accounts"
+                    )));
                 } else {
                     return Some(Task::SyncNow);
                 }
@@ -2850,18 +3653,47 @@ impl App {
                 let store = self.members_view()?.to_owned();
                 return Some(Task::LoadMembers { store });
             }
-            Action::Refresh => return self.reload(),
+            // A title page and an episode table refresh themselves, not the section's list
+            // under them — which is what `r` used to fetch, saying "loading the calendar" over
+            // a title page that never changed.
+            Action::Refresh if matches!(self.nav.current(), StageView::Title(_)) => {
+                self.images.requests().retry_failed();
+                return self.title_on_screen().map(Task::LoadDetail);
+            }
+            Action::Refresh if self.in_episodes() => {
+                // The rows stay on screen until the answer lands, and the answer keeps the
+                // cursor on its episode; the activity row says the table is being asked again.
+                self.images.requests().retry_failed();
+                return self.title_on_screen().map(Task::LoadEpisodes);
+            }
+            Action::Refresh => {
+                // Asking again means the covers too: one that failed while the network was
+                // down should not wait out its backoff once you have said it is back.
+                self.images.requests().retry_failed();
+                return self.reload();
+            }
             Action::ToggleTranslation => {
+                // For this session: the saved choice is the Settings row's to change.
                 self.config.playback.translation = self.config.playback.translation.toggled();
                 self.push_toast(Toast::info(format!(
-                    "now using {}",
+                    "now using {} for this session",
                     self.config.playback.translation
                 )));
             }
             _ => {
-                // Unimplemented actions announce themselves rather than doing nothing,
-                // which would read as the key being broken.
-                self.push_toast(Toast::info(format!("{} — not wired up yet", action.label())));
+                // An action that means nothing here — a playback key with nothing playing, a
+                // Downloads key elsewhere, usually run from the palette — says where it does
+                // something rather than doing nothing, which would read as the key being broken.
+                let label = action.label();
+                let mut chars = label.chars();
+                let label = match chars.next() {
+                    Some(first) => first.to_lowercase().chain(chars).collect::<String>(),
+                    None => String::new(),
+                };
+                self.push_toast(Toast::info(format!(
+                    "{label} works {}",
+                    action.where_it_works()
+                )));
             }
         }
         None
@@ -2925,37 +3757,35 @@ impl App {
     ///
     /// Driven off the watch log rather than a tracker, so this works with no account at all.
     fn play_next_unwatched(&mut self) -> Option<Task> {
-        let entry = self.detail.as_ref().or(self.selected_entry())?;
+        let Some(entry) = self.target() else {
+            self.push_toast(Toast::info("nothing selected"));
+            return None;
+        };
         let id = entry.id;
         let episode =
             entry.progress.map(|(_, next)| next.to_string()).unwrap_or_else(|| "1".to_string());
         Some(self.begin_playback(id, episode))
     }
 
-    /// Step to an adjacent episode of what is playing.
+    /// Step to an adjacent episode of what is playing, from whichever view is up.
+    ///
+    /// Asked of the playback rather than worked out here. The open title page can be another
+    /// show entirely, or no show at all after starting from Continue, and answering from it
+    /// played that show's episode, or nothing. The playback holds the episode list of the title
+    /// it plays, so it is also the side that can say there is no next episode instead of
+    /// handing the finale's window to a search for one.
     fn step_episode(&mut self, delta: i64) -> Option<Task> {
-        let id = match self.nav.current() {
-            StageView::NowPlaying => self.detail.as_ref()?.id,
-            _ => return None,
-        };
-        let current: i64 = self.playing.as_ref()?.episode.trim().parse().ok()?;
-        let next = current + delta;
-        if next < 1 {
-            self.push_toast(Toast::info("already at the first episode"));
-            return None;
-        }
-        Some(self.begin_playback(id, next.to_string()))
+        self.playing.as_ref()?;
+        Some(Task::Player(PlayerCommand::Step(delta)))
     }
 
-    /// The episode table for a title, when it is the one loaded — what the player's Episodes
-    /// menu lists. Empty for any other title rather than another show's rows.
+    /// The episode table for a title, when the rows loaded are that title's — what the player's
+    /// Episodes menu lists. Empty for any other title rather than another show's rows.
     pub fn episode_rows_for(&self, id: AnilistId) -> &[EpisodeRow] {
         // Every row, not the filtered view: a filter on the title screen is about what to look
-        // at there, not about which episodes exist.
-        match &self.detail {
-            Some(detail) if detail.id == id => &self.episodes_all,
-            _ => &[],
-        }
+        // at there, not about which episodes exist. Asked by the rows' own title rather than
+        // `detail`, which moves to a newly opened title before that title's rows arrive.
+        if self.episodes_for == Some(id) { &self.episodes_all } else { &[] }
     }
 
     /// The episode that follows `episode` of `id`, honouring the filler setting, when the
@@ -2966,21 +3796,22 @@ impl App {
     pub fn next_up(&self, id: AnilistId, episode: &str) -> Option<&EpisodeRow> {
         let rows = self.episode_rows_for(id);
         let next = episode.trim().parse::<u32>().ok()?.checked_add(1)?.to_string();
-        let next = self.next_after_filler(next);
+        let next = self.next_after_filler(id, next);
         rows.iter().find(|r| r.number == next)
     }
 
     /// Where auto-next actually lands, honouring `playback.skip_filler`.
     ///
     /// Steps over episodes marked pure filler (`mixed` is never skipped — it carries
-    /// story). Only rows present in the loaded episode table can be judged; an unknown
-    /// episode is played rather than guessed about.
-    fn next_after_filler(&self, mut next: String) -> String {
+    /// story). Only rows present in the title's episode table can be judged; an unknown
+    /// episode is played rather than guessed about, and another show's table never answers.
+    fn next_after_filler(&self, id: AnilistId, mut next: String) -> String {
         if !self.config.playback.skip_filler {
             return next;
         }
+        let rows = self.episode_rows_for(id);
         let mut steps = 0;
-        while let Some(row) = self.episodes.iter().find(|r| r.number == next) {
+        while let Some(row) = rows.iter().find(|r| r.number == next) {
             if !row.skippable {
                 break;
             }
@@ -3007,10 +3838,12 @@ impl App {
     /// The visual half of starting playback, shared with the Sources pick: eyecatch up,
     /// Now Playing staged, view pushed.
     fn raise_now_playing(&mut self, id: AnilistId, episode: &str) {
-        let title = self
-            .detail
-            .as_ref()
-            .or(self.selected_entry())
+        // Named by the title being played, never by whichever was opened last: Space on a list
+        // row put the previously opened show's name over the wipe.
+        let title = [self.detail.as_ref(), self.selected_entry()]
+            .into_iter()
+            .flatten()
+            .find(|e| e.id == id)
             .map_or_else(|| "playing".to_string(), |e| e.title.clone());
         self.raise_now_playing_titled(id, title, episode);
     }
@@ -3019,12 +3852,19 @@ impl App {
     /// what its rows are called without any list selection being involved.
     fn raise_now_playing_titled(&mut self, id: AnilistId, title: String, episode: &str) {
         self.eyecatch = Some(Eyecatch::new(format!("{title}  ·  ep {episode}")));
+        // One that has reported keeps playing until this one is found; one merely staged before
+        // this was never going to play.
+        let replaced = self.playing.take().filter(|p| p.duration.is_some());
+        if replaced.is_some() && self.superseded.is_none() {
+            self.superseded = replaced;
+        }
         self.playing = Some(NowPlaying {
             id: Some(id),
             title,
             episode: episode.to_owned(),
+            // From this title's table only: the open one can be another show's.
             episode_title: self
-                .episodes
+                .episode_rows_for(id)
                 .iter()
                 .find(|e| e.number == episode)
                 .and_then(|e| e.title.clone()),
@@ -3034,21 +3874,28 @@ impl App {
         self.nav.push(StageView::NowPlaying);
     }
 
+    /// Name the episode just staged, when the caller knows it better than the table here — the
+    /// playback holds its own title's list, whichever title is open in the terminal.
+    fn name_playing_episode(&mut self, title: Option<String>) {
+        if let Some(playing) = &mut self.playing
+            && title.is_some()
+        {
+            playing.episode_title = title;
+        }
+    }
+
     /// Advance the eyecatch one frame, dropping it when the wipe finishes.
+    ///
+    /// A wipe that reaches its deadline reveals without a word. Its clock starts at the keypress,
+    /// so most of what it covers is the search for a source, which the activity row is already
+    /// narrating — alerting on it said the player never started before mpv had been asked to.
+    /// A player that does start and then shows nothing is the playback's to say, timed from
+    /// when mpv was handed the file.
     pub fn tick_animation(&mut self) {
-        if let Some(eyecatch) = &mut self.eyecatch {
-            let gave_up = eyecatch.timed_out();
-            if !eyecatch.advance() {
-                self.eyecatch = None;
-                // A wipe that simply ends reads as success. This one is not: the player never
-                // reported a position, so say so rather than dropping the user onto a screen
-                // that looks like nothing happened.
-                if gave_up {
-                    self.push_toast(Toast::alert(
-                        "the player never started — press x to stop, and check `mpv` runs on its own",
-                    ));
-                }
-            }
+        if let Some(eyecatch) = &mut self.eyecatch
+            && !eyecatch.advance()
+        {
+            self.eyecatch = None;
         }
     }
 
@@ -3109,6 +3956,13 @@ impl App {
         Some(Task::Connect { tracker: tracker.tracker })
     }
 
+    /// The trackers a status or score is queued for: those holding a credential, the same
+    /// rule the queueing side applies. A tracker waiting on a fresh sign-in still counts —
+    /// its queue is kept and drains once it is signed in again.
+    fn signed_in_trackers(&self) -> Vec<&str> {
+        self.sync.iter().filter(|s| s.connected).map(|s| s.tracker.as_str()).collect()
+    }
+
     fn in_settings_stage(&self) -> bool {
         self.nav.section() == Section::Settings
             && self.nav.focus() == Focus::Stage
@@ -3121,12 +3975,188 @@ impl App {
             && matches!(self.nav.current(), StageView::Section(Section::Library))
     }
 
+    /// Step the Library's segment, and from the first one carry Left on to the rail — the
+    /// screen's left edge, where Left goes everywhere else.
     fn step_segment(&mut self, delta: isize) -> Option<Task> {
-        self.library_segment = self.library_segment.step(delta);
+        let next = self.library_segment.step(delta);
+        if next == self.library_segment {
+            if delta < 0 {
+                self.nav.focus_rail();
+            }
+            return None;
+        }
+        self.library_segment = next;
         self.selected = 0;
         self.offset = 0;
         self.content = Content::Loading;
         Some(Task::LoadLibrary(self.library_segment))
+    }
+
+    /// Whether the Search section's own view — the field and its results — is on top.
+    fn on_search_root(&self) -> bool {
+        matches!(self.nav.current(), StageView::Section(Section::Search))
+    }
+
+    /// "… from the title's page", when the screen is not one — said for what rides the detail
+    /// fetch and came back empty here, as `m` and `P` say it for what only that page can do.
+    ///
+    /// A list row never opened carries no relations, recommendations or trailer, so "none known
+    /// for this title" off the page was a guess that read as a fact.
+    fn off_the_page(&self, what: &str) -> Option<String> {
+        self.title_on_screen().is_none().then(|| format!("{what} from the title's page"))
+    }
+
+    /// The title whose page or episode table is on top, by the view's own id.
+    fn title_on_screen(&self) -> Option<AnilistId> {
+        match self.nav.current() {
+            StageView::Title(id) | StageView::Episodes(id) => Some(*id),
+            _ => None,
+        }
+    }
+
+    /// Back: close an overlay, pop a pushed view, or at a section's root hand focus to the rail.
+    fn go_back(&mut self) {
+        match self.nav.back() {
+            crate::nav::BackOutcome::AtRoot => {
+                // At the very root, back is a no-op rather than a quit. Said as a toast:
+                // written to the status line it stayed there, over the state it shows, for
+                // the rest of the session.
+                let quit = self.key_for(Action::Quit);
+                self.push_toast(Toast::info(format!("at the top — {quit} quits")));
+            }
+            crate::nav::BackOutcome::Popped => {
+                if self.nav.focus() == Focus::Rail {
+                    // Coming back from the rail lands in the search field, not mid-results.
+                    self.search_in_results = false;
+                }
+                self.restore_title();
+            }
+            crate::nav::BackOutcome::ClosedOverlay => {}
+        }
+    }
+
+    /// Remember the title page on screen before a relation or recommendation replaces it.
+    fn leave_title(&mut self) {
+        let Some(entry) = self.title_on_screen().and_then(|_| self.detail.clone()) else {
+            return;
+        };
+        let depth = self.nav.depth();
+        // Anything at this depth or deeper describes views that have since been popped.
+        self.title_trail.retain(|frame| frame.depth < depth);
+        self.title_trail.push(TitleFrame {
+            depth,
+            entry,
+            episodes_all: self.episodes_all.clone(),
+            episode_selected: self.episode_selected,
+            provider_preference: self.provider_preference.clone(),
+        });
+    }
+
+    /// After a pop, show the title page a relation was opened from as it was, when that page
+    /// is where Back landed.
+    fn restore_title(&mut self) {
+        let depth = self.nav.depth();
+        self.title_trail.retain(|frame| frame.depth <= depth);
+        let Some(here) = self.title_on_screen() else { return };
+        if !self.title_trail.last().is_some_and(|frame| frame.depth == depth) {
+            return;
+        }
+        let Some(frame) = self.title_trail.pop().filter(|frame| frame.entry.id == here) else {
+            return;
+        };
+        self.detail = Some(frame.entry);
+        self.episodes_all = frame.episodes_all;
+        // Cleared first so the filter places the cursor from the remembered row, not from
+        // whichever row of the child's table it was on.
+        self.episodes.clear();
+        self.episode_selected = frame.episode_selected;
+        self.apply_episode_filter();
+        self.episodes_loading = false;
+        self.provider_preference = frame.provider_preference;
+    }
+
+    /// Left and Right on a Settings row: step its value, stopping at the ends, and from a value
+    /// with nowhere further left to go, carry Left on to the rail.
+    ///
+    /// The same edge rule as everywhere else, which is what makes the rail reachable from here
+    /// by the key that reaches it from every other screen. A two-state value steps like a
+    /// two-rung ladder — Left is off, or the first of its two choices, and Right the other —
+    /// because flipping on both arrows meant Left could never arrive anywhere. Enter and Space
+    /// still flip it. A row the arrows cannot step at all, typed or read-only, is at both ends.
+    fn step_setting(&mut self, delta: isize) -> Option<Task> {
+        let id = *SettingId::ALL.get(self.selected)?;
+        let steppable = id.text_edit().is_none()
+            && self.setting_rows().get(self.selected).is_some_and(|row| row.editable.is_some());
+        if !steppable || self.two_state(id).is_some_and(|second| second == (delta > 0)) {
+            if delta < 0 {
+                self.nav.focus_rail();
+                return None;
+            }
+            // Right on a typed or read-only row still says how that row is changed.
+            return if steppable { None } else { self.cycle_setting(delta) };
+        }
+        let before = self.ladder_value(id);
+        let task = self.cycle_setting(delta);
+        // A ladder already on its last rung: nothing to write, and Left goes on to the rail.
+        if before.is_some()
+            && matches!(&task, Some(Task::SaveSetting { value, .. }) if Some(value) == before.as_ref())
+        {
+            if delta < 0 {
+                self.nav.focus_rail();
+            }
+            return None;
+        }
+        task
+    }
+
+    /// Where a two-state Settings row stands: `Some(true)` on its second state — on, or the
+    /// second of its two choices. `None` for every other row.
+    fn two_state(&self, id: SettingId) -> Option<bool> {
+        use SettingId as S;
+        use anistream_core::config::{PlayerUi, ThemeMode};
+        let c = &self.config;
+        // Theme and sub/dub can differ for this session (`--theme`, `t`), and their arrows
+        // change the saved choice, so that is the one they stand on.
+        let saved = &self.saved_config;
+        Some(match id {
+            S::Theme => saved.theme.mode == ThemeMode::Immersive,
+            S::Translation => {
+                saved.playback.translation == anistream_core::media::Translation::Dub
+            }
+            S::PlayerUi => c.playback.player_ui == PlayerUi::Mpv,
+            S::Motion => c.theme.motion,
+            S::AutoNext => c.playback.auto_next,
+            S::SkipOpening => c.playback.skip_opening,
+            S::SkipFiller => c.playback.skip_filler,
+            S::MarkChapters => c.playback.mark_chapters,
+            S::Fullscreen => c.playback.fullscreen,
+            S::NightMode => c.playback.night_mode,
+            S::MergeSubtitles => c.downloads.merge_subtitles,
+            S::KeepSeeding => c.downloads.keep_seeding,
+            S::Presence => c.presence.enabled,
+            S::PresenceTitle => c.presence.show_title,
+            S::Torrents => c.providers.torrent.enabled,
+            S::Syncplay => c.syncplay.enabled,
+            S::UpdateCheck => c.updates.check,
+            _ => return None,
+        })
+    }
+
+    /// A laddered Settings row's value as it would be written, to tell a step from a stay.
+    fn ladder_value(&self, id: SettingId) -> Option<anistream_core::settings::SettingValue> {
+        use SettingId as S;
+        use anistream_core::settings::SettingValue as V;
+        let playback = &self.config.playback;
+        let seeding = &self.config.providers.torrent.seeding;
+        Some(match id {
+            S::Quality => V::Int(i64::from(playback.quality)),
+            S::CommitThreshold => V::Float((playback.commit_threshold * 100.0).round() / 100.0),
+            S::Upscaling => V::Str(playback.upscaling.name().into()),
+            S::SeedRatio => V::Float(seeding.ratio),
+            S::SeedHours => V::Int(i64::from(seeding.hours)),
+            S::UploadLimit => V::Int(i64::from(seeding.upload_limit_kib)),
+            _ => return None,
+        })
     }
 
     /// Confirm the selection in whichever overlay is open.
@@ -3141,15 +4171,31 @@ impl App {
                 self.nav.close_overlay();
                 self.palette_query.clear();
                 self.overlay_selected = 0;
-                self.handle(action, visible_rows)
+                self.perform(action, visible_rows)
             }
             Some(Overlay::Logs) => None,
             Some(Overlay::ListStatus) => {
-                let entry = self.detail.as_ref().or(self.selected_entry())?;
+                let entry = self.target()?;
                 let id = entry.id;
                 let status = *LibrarySegment::ALL.get(self.overlay_selected)?;
                 self.nav.close_overlay();
-                self.push_toast(Toast::info(format!("marked {}", status.label())));
+                self.push_toast(Toast::info(format!(
+                    "now on your {} list — queued for {}",
+                    status.label(),
+                    self.signed_in_trackers().join(", ")
+                )));
+                // Remembered on every copy of the title on screen, and past the next reload,
+                // so asking again opens on the answer just given.
+                self.statuses_set.insert(id, status);
+                let entries = match &mut self.content {
+                    Content::Entries(entries) => entries.as_mut_slice(),
+                    _ => &mut [],
+                };
+                for entry in self.detail.iter_mut().chain(entries.iter_mut()) {
+                    if entry.id == id {
+                        entry.list_status = Some(status);
+                    }
+                }
                 Some(Task::SetStatus { id, status })
             }
             Some(Overlay::SearchFilters) => {
@@ -3162,15 +4208,21 @@ impl App {
                 }
                 self.searched_query = query.clone();
                 self.content = Content::Loading;
+                // New results start at their top, not at the row the old ones were left on.
+                self.selected = 0;
+                self.offset = 0;
                 Some(Task::Search { query, filter: self.search_filter.clone() })
             }
             Some(Overlay::Rate) => {
-                let entry = self.detail.as_ref().or(self.selected_entry())?;
+                let entry = self.target()?;
                 let id = entry.id;
                 // Rows run 10 down to 1, so the row index is the distance from 10.
                 let score = (10 - self.overlay_selected.min(9)) as f32;
                 self.nav.close_overlay();
-                self.push_toast(Toast::info(format!("rated {score}/10")));
+                self.push_toast(Toast::info(format!(
+                    "rated {score}/10 — queued for {}",
+                    self.signed_in_trackers().join(", ")
+                )));
                 Some(Task::SetScore { id, score })
             }
             Some(Overlay::Conflicts) => {
@@ -3187,10 +4239,7 @@ impl App {
             }
             Some(Overlay::SourceProvider) => {
                 let (provider, _) = self.provider_choices().get(self.overlay_selected)?.clone();
-                let id = match self.nav.current() {
-                    StageView::Episodes(id) | StageView::Title(id) => Some(*id),
-                    _ => self.detail.as_ref().or(self.selected_entry()).map(|e| e.id),
-                }?;
+                let id = self.title_on_screen()?;
                 self.nav.close_overlay();
                 self.overlay_selected = 0;
                 // Reflected immediately rather than waiting for the write to come back: the
@@ -3200,9 +4249,11 @@ impl App {
                 Some(Task::SetProviderPreference { id, provider })
             }
             Some(Overlay::WatchOrder) => {
-                let related = self.detail.as_ref()?.related.get(self.overlay_selected)?.clone();
+                let related = self.target()?.related.get(self.overlay_selected)?.clone();
                 self.nav.close_overlay();
                 self.overlay_selected = 0;
+                // Kept, so Back shows this page again rather than the one about to open.
+                self.leave_title();
                 // A minimal entry stands in until the detail fetch answers — the same
                 // stale-data rule as episodes: never render one title's data under another.
                 self.detail = Some(Entry::new(related.id, related.title));
@@ -3210,10 +4261,10 @@ impl App {
                 Some(Task::LoadDetail(related.id))
             }
             Some(Overlay::Recommendations) => {
-                let pick =
-                    self.detail.as_ref()?.recommended.get(self.overlay_selected)?.clone();
+                let pick = self.target()?.recommended.get(self.overlay_selected)?.clone();
                 self.nav.close_overlay();
                 self.overlay_selected = 0;
+                self.leave_title();
                 // Same stand-in rule as the watch order: never render one title's data
                 // under another while the fetch is in flight.
                 self.detail = Some(Entry::new(pick.id, pick.title));
@@ -3279,10 +4330,8 @@ impl App {
             Some(Overlay::Disambiguate) => self.match_candidates.len(),
             Some(Overlay::Sources) => self.sources.len(),
             Some(Overlay::SourceProvider) => self.provider_choices().len(),
-            Some(Overlay::WatchOrder) => self.detail.as_ref().map_or(0, |e| e.related.len()),
-            Some(Overlay::Recommendations) => {
-                self.detail.as_ref().map_or(0, |e| e.recommended.len())
-            }
+            Some(Overlay::WatchOrder) => self.target().map_or(0, |e| e.related.len()),
+            Some(Overlay::Recommendations) => self.target().map_or(0, |e| e.recommended.len()),
             Some(Overlay::PluginAction) => self.plugin_choices().len(),
             Some(Overlay::PublishPick) => self.local_plugins.len(),
             _ => 0,
@@ -3317,7 +4366,9 @@ impl App {
     /// The Settings screen's rows, built fresh from the live config.
     ///
     /// Read from `self.config` rather than a copy taken at startup, so a row shows the value that
-    /// is actually in force the instant after it is changed.
+    /// is actually in force the instant after it is changed. The two settings that can also be
+    /// changed for a session only, theme and sub/dub, show what is saved and mark the session's
+    /// value beside it: the file and the next launch go by the saved one.
     pub fn setting_rows(&self) -> Vec<SettingRow> {
         use SettingId as S;
         let playback = &self.config.playback;
@@ -3327,7 +4378,10 @@ impl App {
             .map(|id| {
                 let (value, editable, note) = match id {
                     S::Theme => (
-                        format!("{:?}", self.config.theme.mode).to_lowercase(),
+                        session_marked(
+                            format!("{:?}", self.saved_config.theme.mode).to_lowercase(),
+                            format!("{:?}", self.config.theme.mode).to_lowercase(),
+                        ),
                         Some(("theme", "mode")),
                         None,
                     ),
@@ -3335,7 +4389,10 @@ impl App {
                         (on_off(self.config.theme.motion), Some(("theme", "motion")), None)
                     }
                     S::Translation => (
-                        playback.translation.to_string(),
+                        session_marked(
+                            self.saved_config.playback.translation.to_string(),
+                            playback.translation.to_string(),
+                        ),
                         Some(("playback", "translation")),
                         None,
                     ),
@@ -3522,6 +4579,19 @@ impl App {
             .collect()
     }
 
+    /// The name the Settings screen gives the setting stored at `table`.`key`, for saying it
+    /// was saved. The config key (`commit_threshold`) is the file's vocabulary, not the
+    /// screen's, and the value needs no repeating: the row beside it already shows it.
+    ///
+    /// `None` for what is stored without a row of its own, the remembered speed and volume:
+    /// saved in passing, and not something anyone asked to have confirmed.
+    pub fn setting_label(&self, table: &[&str], key: &str) -> Option<&'static str> {
+        self.setting_rows()
+            .into_iter()
+            .find(|row| row.editable.as_ref().is_some_and(|e| e.table == table && e.key == key))
+            .map(|row| row.label)
+    }
+
     /// Step the selected setting through its values.
     ///
     /// Cycling rather than free entry, because every editable setting here has a small closed set
@@ -3542,7 +4612,9 @@ impl App {
 
         let value = match id {
             SettingId::Theme => {
-                let next = match self.config.theme.mode {
+                // From the saved value, which is the one the row shows: the arrows change
+                // what is saved, and a session override simply gives way to it.
+                let next = match self.saved_config.theme.mode {
                     ThemeMode::Adaptive => ThemeMode::Immersive,
                     ThemeMode::Immersive => ThemeMode::Adaptive,
                 };
@@ -3563,7 +4635,7 @@ impl App {
                 V::Bool(self.config.theme.motion)
             }
             SettingId::Translation => {
-                let next = match self.config.playback.translation {
+                let next = match self.saved_config.playback.translation {
                     Translation::Sub => Translation::Dub,
                     Translation::Dub => Translation::Sub,
                 };
@@ -3691,13 +4763,41 @@ impl App {
         Some(Task::SaveSetting { table: edit.table, key: edit.key, value })
     }
 
+    /// Put a setting whose write failed back to what the file holds.
+    ///
+    /// The reducer changes a setting before the write it asks for, so the screen answers at
+    /// once; when the write was refused — enabling torrents with no VPN, an unwritable file —
+    /// the screen and the status line went on showing the value that never landed.
+    fn roll_back_setting(&mut self, table: &[&str], key: &str) {
+        let rows = self.setting_rows();
+        let Some(id) = SettingId::ALL.iter().zip(&rows).find_map(|(id, row)| {
+            let edit = row.editable.as_ref()?;
+            (edit.table == table && edit.key == key).then_some(*id)
+        }) else {
+            return;
+        };
+        id.copy(&self.saved_config, &mut self.config);
+        if id == SettingId::Theme {
+            use anistream_core::config::ThemeMode;
+            self.palette = crate::theme::Palette::of(match self.config.theme.mode {
+                ThemeMode::Immersive => crate::theme::Variant::Immersive,
+                ThemeMode::Adaptive => self.adaptive_variant,
+            });
+        }
+        // The status line falls back to what is in effect, rather than a message about an
+        // earlier save.
+        self.status.clear();
+    }
+
     /// Actions matching the current palette query, in the order they are rendered.
     ///
     /// One source of truth shared by movement, Enter and the renderer. Deriving the selectable
     /// set separately from the drawn set is how a palette ends up running the wrong entry.
     pub fn palette_matches(&self) -> Vec<(Action, String)> {
+        // The keys the screen will read once the palette is closed, not the palette's own.
+        let context = if self.playing.is_some() { Context::Playing } else { Context::Browsing };
         self.keymap
-            .palette_entries(&self.palette_query)
+            .palette_entries(&self.palette_query, context)
             .into_iter()
             .take(PALETTE_ROWS)
             .collect()
@@ -3708,6 +4808,12 @@ impl App {
         // suppressing them would make Escape and the palette mysteriously stop working
         // mid-search.
         if !action.works_while_typing() {
+            return None;
+        }
+        // A prompt is a question, like the list overlays: its own keys and the way out, nothing
+        // else. Search's field is a screen, and keeps the palette, filters and its result list.
+        let in_prompt = self.nav.has_overlay();
+        if in_prompt && matches!(action, Action::CommandPalette | Action::FilterSearch) {
             return None;
         }
         match action {
@@ -3734,7 +4840,7 @@ impl App {
                 self.palette_query.clear();
                 self.nav.open_overlay(Overlay::CommandPalette);
             }
-            Action::Help => self.nav.open_overlay(Overlay::Help),
+            Action::Help => self.open_help(),
             Action::Quit => self.should_quit = true,
             // The two sign-in steps. Enter with nothing typed stays put — an empty
             // submit is a slip of the finger, not an answer.
@@ -3822,7 +4928,8 @@ impl App {
                     }
                     _ => return None,
                 }
-                self.push_toast(Toast::info(format!("saved {}", id.label())));
+                // No toast here: the write reports itself once it has landed, which is the
+                // moment "saved" is true. Saying it now as well put two confirmations up.
                 return Some(Task::SaveSetting {
                     table,
                     key,
@@ -3837,6 +4944,9 @@ impl App {
                 // Resolved against episodes that actually exist, from the unfiltered
                 // list — a filter narrows the view, not what can be fetched.
                 let Some((from, to)) = parse_episode_range(&self.range_query) else {
+                    // Cleared, with the prompt left open for another try. Kept, the retry's
+                    // keys were appended to the refused text and refused again.
+                    self.range_query.clear();
                     self.push_toast(Toast::info("ranges look like 4, 1-12 or 7-"));
                     return None;
                 };
@@ -3851,12 +4961,16 @@ impl App {
                     })
                     .map(|row| row.number.clone())
                     .collect();
-                self.nav.close_overlay();
                 if episodes.is_empty() {
+                    self.range_query.clear();
                     self.push_toast(Toast::info("no episodes in that range"));
                     return None;
                 }
-                self.push_toast(Toast::info(format!("queueing {} episodes…", episodes.len())));
+                self.nav.close_overlay();
+                self.push_toast(Toast::info(format!(
+                    "queueing {}…",
+                    crate::widgets::plural(episodes.len(), "episode")
+                )));
                 return Some(Task::DownloadMany { id, episodes });
             }
             // Enter runs the manual search; the results come back as ordinary match
@@ -3889,15 +5003,27 @@ impl App {
                 // never opened — the key just re-ran the same query. It submits only while there is
                 // something new to ask; once the results on screen are for this query, Enter does
                 // what Enter does everywhere else in the app and opens the selection.
-                if query == self.searched_query && !self.content.is_empty() {
+                if self.search_opens_on_enter() {
                     return self.open_selected();
                 }
                 self.searched_query = query.clone();
                 self.content = Content::Loading;
+                // New results start at their top, not at the row the old ones were left on.
+                self.selected = 0;
+                self.offset = 0;
                 return Some(Task::Search { query, filter: self.search_filter.clone() });
             }
-            Action::Down => self.selected = self.selected.saturating_add(1),
-            Action::Up => self.selected = self.selected.saturating_sub(1),
+            // Down leaves the query for its results, where the keyboard is a list's again: `j`,
+            // `k`, the pages and every title key. Moving the selection from inside the field
+            // instead ran it past the end of the list, unbounded and unscrolled, with `j` and
+            // `k` typed rather than moving it.
+            Action::Down | Action::PageDown
+                if self.on_search_root() && !in_prompt && !self.content.is_empty() =>
+            {
+                self.search_in_results = true;
+            }
+            // Anything else, the vertical keys included: nothing behind a text field moves while
+            // it has the keyboard.
             _ => {}
         }
         None
@@ -3911,6 +5037,20 @@ impl App {
         self.meta_status.iter().any(|row| row.active && row.source != "anilist")
     }
 
+    /// Whether Enter resumes the highlighted row rather than opening it: a part-watched title
+    /// on the Home list. One answer for the key and for the hint that names it.
+    pub fn resumes_on_enter(&self) -> bool {
+        matches!(self.nav.current(), StageView::Section(Section::Home))
+            && self.selected_entry().is_some_and(|e| e.resume.is_some() && e.progress.is_some())
+    }
+
+    /// Whether Enter in Search's field opens the highlighted result rather than searching:
+    /// the results on screen are already for the query as typed.
+    pub fn search_opens_on_enter(&self) -> bool {
+        let query = self.search_query.trim();
+        !query.is_empty() && query == self.searched_query && !self.content.is_empty()
+    }
+
     /// Whether the episode table currently has focus.
     pub fn in_episodes(&self) -> bool {
         matches!(self.nav.current(), StageView::Episodes(_))
@@ -3922,6 +5062,7 @@ impl App {
             || (self.nav.section() == Section::Search
                 && self.nav.focus() == Focus::Stage
                 && !self.nav.has_overlay()
+                && !self.search_in_results
                 // Only the search section's *own* view is a text field. Without this, opening a
                 // result and then typing edited the query behind the title you were looking at,
                 // and `Esc` left the field instead of going back — two different surprises from
@@ -3985,9 +5126,13 @@ impl App {
         }
     }
 
-    /// Push the selected title's detail screen.
-    fn open_selected(&mut self) -> Option<Task> {
-        let entry = self.selected_entry()?.clone();
+    /// Push the selected title's detail screen — what Enter does on a row with nothing to
+    /// resume. Public for `--preview`, which shows a title page from a list whose Enter plays.
+    pub fn open_selected(&mut self) -> Option<Task> {
+        let Some(entry) = self.selected_entry().cloned() else {
+            self.push_toast(Toast::info("nothing selected"));
+            return None;
+        };
         let id = entry.id;
         self.detail = Some(entry);
         self.nav.push(StageView::Title(id));
@@ -4013,7 +5158,12 @@ impl App {
         self.selected = 0;
         self.offset = 0;
         self.detail = None;
-        self.content = Content::Loading;
+        self.title_trail.clear();
+        self.search_in_results = false;
+        // Loading only where a list is about to be asked for. A section with no list of its
+        // own — or Search with nothing typed — would otherwise pulse forever, since the fetch
+        // that ends the pulse never goes out.
+        self.content = if self.fetches_list() { Content::Loading } else { Content::Empty };
         self.reload_countdown = Some(RELOAD_IDLE_TICKS);
         None
     }
@@ -4038,6 +5188,8 @@ impl App {
         self.selected = 0;
         self.offset = 0;
         self.detail = None;
+        self.title_trail.clear();
+        self.search_in_results = false;
         self.reload()
     }
 
@@ -4077,6 +5229,12 @@ impl App {
             Section::Library => ContentFor::Library(self.library_segment),
             _ => return None,
         })
+    }
+
+    /// The caption of the list on screen, when the binary sent one for it.
+    pub fn list_caption(&self) -> Option<&str> {
+        let (view, text) = self.caption.as_ref()?;
+        (self.content_view().as_ref() == Some(view)).then_some(text.as_str())
     }
 
     /// An answer for what is on screen right now: the list for the current view, the episodes
@@ -4133,10 +5291,27 @@ impl App {
             Section::Downloads => Task::LoadDownloads,
             Section::Library => Task::LoadLibrary(self.library_segment),
             // Sections with nothing to fetch yet render their own placeholder.
-            _ => return None,
+            _ => {
+                self.content = Content::Empty;
+                return None;
+            }
         };
-        self.content = Content::Loading;
+        // `content` is the section's list, so a section without one — or a search with nothing
+        // typed — empties it rather than leaving the last section's rows to be drawn, scrolled
+        // and acted on under its heading.
+        self.content = if self.fetches_list() { Content::Loading } else { Content::Empty };
         Some(task)
+    }
+
+    /// Whether the section on screen fills `content` with a list it is about to ask for.
+    fn fetches_list(&self) -> bool {
+        match self.nav.section() {
+            Section::Home | Section::Seasonal | Section::Calendar | Section::Library => true,
+            Section::Search => {
+                !self.search_query.trim().is_empty() || !self.search_filter.is_empty()
+            }
+            _ => false,
+        }
     }
 }
 
@@ -4337,10 +5512,9 @@ impl App {
                 self.local_plugins.clear();
                 Some(Task::LoadLocalPlugins { store: store.id })
             }
-            StoreLine::Admin => {
-                self.status = "opening the admin page in your browser…".into();
-                Some(Task::OpenAdmin { store: store.id })
-            }
+            // No status line of its own: the activity row says it is opening, and a toast says
+            // how it went. A status set here was never cleared, so it outlived both.
+            StoreLine::Admin => Some(Task::OpenAdmin { store: store.id }),
             StoreLine::Leave => {
                 self.store_confirm =
                     Some(StoreConfirm::Leave { store: store.id, name: store.name });
@@ -4524,8 +5698,11 @@ impl SearchFilters {
     ];
     const SEASONS: [(&'static str, &'static str); 4] =
         [("WINTER", "winter"), ("SPRING", "spring"), ("SUMMER", "summer"), ("FALL", "fall")];
-    const FORMATS: [(&'static str, &'static str); 6] = [
+    const FORMATS: [(&'static str, &'static str); 7] = [
         ("TV", "tv"),
+        // Short-form TV — a few minutes an episode — is its own format on AniList, so a
+        // filter without it had no way to find one.
+        ("TV_SHORT", "tv short"),
         ("MOVIE", "movie"),
         ("OVA", "ova"),
         ("ONA", "ona"),
@@ -4560,7 +5737,8 @@ impl SearchFilters {
             })
         };
         match row {
-            0 => self.genre.clone().map(|g| g.to_lowercase()),
+            // A genre is a name, and keeps the casing it has everywhere else it is shown.
+            0 => self.genre.clone(),
             1 => self.year.map(|y| y.to_string()),
             2 => shown(&Self::SEASONS, &self.season),
             3 => shown(&Self::FORMATS, &self.format),
@@ -4691,7 +5869,7 @@ impl Task {
             }
             Self::DownloadEpisode { episode, .. } => format!("queueing ep {episode}"),
             Self::DownloadMany { episodes, .. } => {
-                format!("queueing {} episodes", episodes.len())
+                format!("queueing {}", crate::widgets::plural(episodes.len(), "episode"))
             }
             Self::PlayTrailer { .. } => "opening the trailer".into(),
             Self::LoadStores => "checking plugin stores".into(),
@@ -4977,9 +6155,26 @@ pub enum PlayerCommand {
     ///
     /// Sent by the task runner, never by a key — it is how pressing N inside the player, or
     /// picking an episode from its menu, keeps the same window instead of opening a second one.
-    Handover,
+    /// It names what is coming, so the window can say so while that is found.
+    Handover(Successor),
+    /// Step to the next (`1`) or previous (`-1`) episode of what is playing: the terminal's n
+    /// and N. Answered by the playback, which holds the playing title's episode list.
+    Step(i64),
     /// Toggle the player's fullscreen state.
     Fullscreen,
+    /// Say something on the video. Sent by the task runner when the episode asked for from the
+    /// player could not be found, so the viewer, who is looking at the player, learns why the
+    /// episode they were watching is still on.
+    Alert(String),
+}
+
+/// What a newer playback is about to play, as the window it takes over announces it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Successor {
+    pub id: AnilistId,
+    pub title: String,
+    pub episode: String,
+    pub translation: anistream_core::media::Translation,
 }
 
 #[cfg(test)]
@@ -5145,6 +6340,15 @@ mod tests {
     }
 
     /// An app with one title selected and its episode table loaded, ready to play.
+    /// The end of an episode mpv played to its end, naming the episode the player kept its
+    /// window for when it rolls on.
+    fn finished(next: Option<&str>) -> Update {
+        Update::PlaybackEnded {
+            watched: true,
+            ending: Ending::Complete { next: next.map(Into::into) },
+        }
+    }
+
     fn app_at_episodes() -> App {
         let mut a = app();
         a.apply(a.content_here(entries(3)));
@@ -5261,6 +6465,33 @@ mod tests {
     }
 
     #[test]
+    fn a_watched_mark_moves_the_title_and_its_list_row_too() {
+        // Two watched, three next, on the page and on the list under it.
+        let mut a = app_at_episodes();
+        for n in ["1", "2"] {
+            a.set_episode_watched(n, true);
+        }
+        let at = |a: &App| {
+            let row = a.content.entries()[0].progress;
+            (a.detail.as_ref().and_then(|d| d.progress), row)
+        };
+        a.detail.as_mut().expect("detail").progress = Some((2, 3));
+        if let Content::Entries(rows) = &mut a.content {
+            rows[0].progress = Some((2, 3));
+        }
+
+        a.episode_selected = 2;
+        a.handle(Action::ToggleWatched, 20);
+        assert_eq!(at(&a), (Some((3, 4)), Some((3, 4))), "marking ep 3 moves both on");
+        a.handle(Action::ToggleWatched, 20);
+        assert_eq!(at(&a), (Some((2, 3)), Some((2, 3))), "unmarking puts both back");
+
+        a.episode_selected = 5;
+        a.handle(Action::MarkAllPrevious, 20);
+        assert_eq!(at(&a), (Some((5, 6)), Some((5, 6))), "M catches both up to the cursor");
+    }
+
+    #[test]
     fn marking_previous_marks_only_the_unwatched_before_the_cursor() {
         let mut a = app_at_episodes();
         a.episode_selected = 4;
@@ -5341,6 +6572,140 @@ mod tests {
             other => panic!("expected DownloadMany, got {other:?}"),
         }
         assert_eq!(a.nav.overlay(), None);
+    }
+
+    #[test]
+    fn a_count_of_one_is_said_in_the_singular() {
+        let mut a = app_at_episodes();
+        a.handle(Action::DownloadRange, 20);
+        a.type_char('4');
+        let task = a.handle(Action::Open, 20).expect("one episode is a range too");
+        assert!(a.toasts.iter().any(|t| t.text == "queueing 1 episode…"), "{:?}", a.toasts);
+        assert_eq!(task.activity().as_deref(), Some("queueing 1 episode"));
+    }
+
+    #[test]
+    fn mark_all_previous_says_which_nothing_it_found() {
+        let mut a = app_at_episodes();
+        a.handle(Action::MarkAllPrevious, 20);
+        assert!(a.toasts.iter().any(|t| t.text == "nothing comes before the first episode"));
+
+        a.episode_selected = 3;
+        a.handle(Action::MarkAllPrevious, 20);
+        assert!(
+            a.toasts.iter().any(|t| t.text == "marked 3 episodes watched"),
+            "{:?}",
+            a.toasts
+        );
+        a.handle(Action::MarkAllPrevious, 20);
+        assert!(a.toasts.iter().any(|t| t.text == "everything before ep 4 is already watched"));
+
+        // An empty table has no episode to be before.
+        a.episodes.clear();
+        a.episode_selected = 0;
+        a.handle(Action::MarkAllPrevious, 20);
+        assert!(
+            a.toasts.iter().any(|t| t.text == "no episodes listed to mark"),
+            "{:?}",
+            a.toasts
+        );
+    }
+
+    #[test]
+    fn a_list_status_is_confirmed_as_the_list_it_is_on() {
+        let mut a = app();
+        // List status lives on a tracker, so one is signed in.
+        a.apply(Update::Sync(Box::new(connected(0))));
+        a.apply(a.content_here(entries(1)));
+        a.handle(Action::SetListStatus, 10);
+        a.overlay_selected = 2;
+        let task = a.handle(Action::Open, 10);
+        assert!(matches!(
+            task,
+            Some(Task::SetStatus { status: LibrarySegment::Completed, .. })
+        ));
+        assert!(
+            a.toasts
+                .iter()
+                .any(|t| t.text == "now on your completed list — queued for anilist"),
+            "{:?}",
+            a.toasts
+        );
+    }
+
+    #[test]
+    fn a_saved_setting_is_named_as_the_screen_names_it() {
+        let a = app();
+        assert_eq!(
+            a.setting_label(&["playback"], "commit_threshold"),
+            Some("counts as watched at"),
+            "the screen's words, not the file's key"
+        );
+        assert_eq!(
+            a.setting_label(&["providers", "torrent"], "enabled"),
+            Some("torrent source")
+        );
+        // Kept in passing, with no row of its own: nothing to announce.
+        assert_eq!(a.setting_label(&["playback"], "persisted_speed"), None);
+    }
+
+    #[test]
+    fn a_typed_setting_is_confirmed_once_by_the_write_not_the_keypress() {
+        let mut a = app();
+        let _ = a.go_to_section(Section::Settings);
+        a.nav.focus_stage();
+        a.selected = SettingId::ALL.iter().position(|id| *id == SettingId::Subtitles).unwrap();
+        a.handle(Action::Open, 10);
+        for c in "ger".chars() {
+            a.type_char(c);
+        }
+        let task = a.handle(Action::Open, 10);
+        assert!(matches!(task, Some(Task::SaveSetting { key: "subtitle_language", .. })));
+        assert!(a.toasts.is_empty(), "the save says so when it lands: {:?}", a.toasts);
+    }
+
+    #[test]
+    fn the_format_filter_can_find_short_tv() {
+        let mut filter = SearchFilters::default();
+        filter.cycle(3, true);
+        assert_eq!(filter.row_value(3), "tv");
+        filter.cycle(3, true);
+        assert_eq!(filter.format.as_deref(), Some("TV_SHORT"), "AniList's name for it");
+        assert_eq!(filter.row_value(3), "tv short");
+    }
+
+    #[test]
+    fn a_genre_filter_keeps_the_genre_s_own_casing() {
+        let filter =
+            SearchFilters { genre: Some("Slice of Life".into()), ..Default::default() };
+        assert_eq!(filter.row_value(0), "Slice of Life");
+    }
+
+    #[test]
+    fn the_source_named_is_one_that_is_not_switched_off() {
+        // The default order leads with torrents, which are off by default.
+        let mut a = app();
+        assert_eq!(a.source_label(), "plugins");
+        assert_eq!(
+            a.source_states(),
+            vec![
+                ("torrent".into(), SourceState::Off),
+                ("plugins".into(), SourceState::Pending)
+            ]
+        );
+        a.apply(Update::Providers(vec![ProviderRow {
+            id: "someplugin".into(),
+            kind: "plugin".into(),
+            state: "ready".into(),
+            latency_ms: None,
+            last_error: None,
+            usable: true,
+            held_back: false,
+        }]));
+        assert_eq!(a.source_states()[1], ("plugins".into(), SourceState::Ready));
+        // What actually served wins once something has played.
+        a.apply(Update::ActiveProvider("someplugin".into()));
+        assert_eq!(a.source_label(), "someplugin");
     }
 
     #[test]
@@ -5482,12 +6847,195 @@ mod tests {
     }
 
     #[test]
+    fn a_wipe_that_reaches_its_deadline_reveals_without_blaming_the_player() {
+        // The deadline is counted from the keypress, so a slow source search reached it before
+        // mpv had been started. The playback says when a started player shows nothing.
+        let mut a = app_at_episodes();
+        a.handle(Action::Open, 20);
+        for _ in 0..crate::eyecatch::MAX_HOLD_FRAMES + crate::eyecatch::SWEEP_FRAMES * 2 {
+            a.tick_animation();
+        }
+        assert!(a.eyecatch.is_none(), "the wipe never ended");
+        assert!(a.toasts.iter().all(|t| t.kind != ToastKind::Alert), "{:?}", a.toasts);
+    }
+
+    #[test]
+    fn the_resume_toast_offers_nothing_it_cannot_do() {
+        let mut a = app_at_episodes();
+        a.handle(Action::Open, 20);
+        a.apply(Update::Resumed { position: 87.0 });
+        let toast = a.toasts.last().expect("a toast");
+        assert_eq!(toast.text, "resumed at 1:27");
+    }
+
+    #[test]
+    fn n_while_playing_asks_the_playback_from_any_view() {
+        // From Continue there is no title open at all, and with another show open the open one
+        // is the wrong show: the playback holds the playing title's list, so it answers.
+        let mut a = app();
+        a.apply(a.content_here(entries(3)));
+        a.nav.focus_stage();
+        a.handle(Action::Open, 20);
+        a.playing = Some(NowPlaying {
+            id: Some(AnilistId::new(2)),
+            title: "Title 1".into(),
+            episode: "4".into(),
+            ..NowPlaying::default()
+        });
+        a.nav.pop();
+        assert_eq!(
+            a.handle(Action::NextEpisode, 20),
+            Some(Task::Player(PlayerCommand::Step(1)))
+        );
+        a.detail = a.content.entries().first().cloned();
+        assert_eq!(
+            a.handle(Action::PreviousEpisode, 20),
+            Some(Task::Player(PlayerCommand::Step(-1)))
+        );
+    }
+
+    #[test]
+    fn an_episode_the_player_asks_for_is_of_the_show_playing() {
+        // Title 0's table is loaded and open; Title 1 is the one playing.
+        let mut a = app_at_episodes();
+        a.playing = Some(NowPlaying {
+            id: Some(AnilistId::new(2)),
+            title: "Title 1".into(),
+            episode: "4".into(),
+            ..NowPlaying::default()
+        });
+        a.apply(Update::PlayerPlayEpisode { episode: "5".into(), title: Some("Fifth".into()) });
+        assert_eq!(
+            a.take_pending(),
+            Some(Task::Play { id: AnilistId::new(2), episode: "5".into() })
+        );
+        let playing = a.playing.as_ref().unwrap();
+        assert_eq!(playing.title, "Title 1");
+        assert_eq!(playing.episode_title.as_deref(), Some("Fifth"));
+
+        // Named by nobody, it is left unnamed rather than given the open show's episode 6.
+        a.apply(Update::PlayerPlayEpisode { episode: "6".into(), title: None });
+        assert_eq!(a.playing.as_ref().unwrap().episode_title, None);
+    }
+
+    #[test]
+    fn an_episode_that_cannot_be_found_leaves_the_one_playing_on_screen() {
+        let mut a = app();
+        a.playing = Some(NowPlaying {
+            id: Some(AnilistId::new(2)),
+            title: "Title 1".into(),
+            episode: "4".into(),
+            ..NowPlaying::default()
+        });
+        a.apply(Update::Playback { position: 300.0, duration: Some(1440.0), paused: false });
+        a.apply(Update::PlayerPlayEpisode { episode: "9".into(), title: None });
+        assert_eq!(a.playing.as_ref().unwrap().episode, "9", "staged while it is found");
+
+        // Episode 4 keeps the window meanwhile, and its reports are its own.
+        a.apply(Update::Playback { position: 301.0, duration: Some(1440.0), paused: false });
+        assert_eq!(a.playing.as_ref().unwrap().position, 0.0);
+        assert!(a.eyecatch.is_some(), "a report from 4 is not 9 starting");
+
+        a.apply(Update::Toast(Toast::alert("a: timed out")));
+        a.apply(Update::PlaybackKept);
+        let playing = a.playing.as_ref().unwrap();
+        assert_eq!((playing.episode.as_str(), playing.position), ("4", 301.0));
+
+        // Found, the window changes hands and what reports from then on is the successor.
+        a.apply(Update::PlayerPlayEpisode { episode: "5".into(), title: None });
+        a.apply(Update::EpisodeLeft {
+            id: AnilistId::new(2),
+            episode: "4".into(),
+            position: 302.0,
+            duration: Some(1440.0),
+            watched: false,
+        });
+        a.apply(Update::Playback { position: 1.0, duration: Some(1420.0), paused: false });
+        let playing = a.playing.as_ref().unwrap();
+        assert_eq!((playing.episode.as_str(), playing.position), ("5", 1.0));
+    }
+
+    #[test]
+    fn another_titles_rows_never_speak_for_the_one_opened_after_them() {
+        // Title 0's rows are loaded; Title 1 is opened and its own rows have not arrived. The
+        // open title is Title 1, and Title 0's rows must not be taken for its.
+        let mut a = app_at_episodes();
+        a.detail = a.content.entries().get(1).cloned();
+        assert!(a.episode_rows_for(AnilistId::new(2)).is_empty());
+        assert!(a.next_up(AnilistId::new(2), "1").is_none());
+        assert_eq!(a.episode_rows_for(AnilistId::new(1)).len(), 12, "still Title 0's");
+        a.begin_playback(AnilistId::new(2), "1".into());
+        assert_eq!(a.playing.as_ref().unwrap().episode_title, None);
+    }
+
+    #[test]
+    fn continue_follows_an_unfinished_episode_watched_out_of_order() {
+        // Episodes 1-5 finished; episode 8 left halfway. Continue is episode 8, at 10:00, with
+        // the count still five.
+        let mut a = app_at_episodes();
+        for list in [&mut a.episodes, &mut a.episodes_all] {
+            for row in list.iter_mut().take(5) {
+                row.completed = true;
+            }
+        }
+        a.detail.as_mut().unwrap().progress = Some((5, 6));
+        a.episode_selected = 7;
+        a.handle(Action::Open, 20);
+        a.apply(Update::Playback { position: 600.0, duration: Some(1200.0), paused: false });
+        a.apply(Update::PlaybackEnded { watched: false, ending: Ending::Closed });
+        let entry = a.detail.as_ref().unwrap();
+        assert_eq!(entry.progress, Some((5, 8)));
+        assert_eq!(entry.resume.map(|r| r.position), Some(600.0));
+    }
+
+    #[test]
+    fn after_the_last_episode_continue_goes_back_to_one_skipped() {
+        let mut a = app_at_episodes();
+        for list in [&mut a.episodes, &mut a.episodes_all] {
+            for row in list.iter_mut().take(11).filter(|r| r.number != "4") {
+                row.completed = true;
+            }
+        }
+        a.detail.as_mut().unwrap().progress = Some((10, 12));
+        a.episode_selected = 11;
+        a.handle(Action::Open, 20);
+        a.apply(finished(None));
+        assert_eq!(a.detail.as_ref().unwrap().progress, Some((11, 4)));
+    }
+
+    #[test]
+    fn continue_never_offers_an_episode_already_watched() {
+        // Episodes 1-5 and 7 finished. Finishing 6 counts once, and Continue moves past 7.
+        let mut a = app_at_episodes();
+        for list in [&mut a.episodes, &mut a.episodes_all] {
+            for row in list.iter_mut().take(5) {
+                row.completed = true;
+            }
+            list[6].completed = true;
+        }
+        a.detail.as_mut().unwrap().progress = Some((6, 6));
+        a.episode_selected = 5;
+        a.handle(Action::Open, 20);
+        a.apply(finished(Some("7")));
+        assert_eq!(a.detail.as_ref().unwrap().progress, Some((7, 8)));
+
+        // A rewatch of episode 3 moves neither the count nor Continue back into what is done.
+        a.take_pending();
+        a.apply(Update::PlaybackEnded { watched: false, ending: Ending::Stopped });
+        a.nav.push(StageView::Episodes(AnilistId::new(1)));
+        a.episode_selected = 2;
+        a.handle(Action::Open, 20);
+        a.apply(finished(None));
+        assert_eq!(a.detail.as_ref().unwrap().progress, Some((7, 8)));
+    }
+
+    #[test]
     fn playback_updates_never_resurrect_a_finished_session() {
         // A position tick can arrive after the `Ended` event that preceded it. Recreating
         // `playing` from it would leave a phantom player on screen.
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
-        a.apply(Update::PlaybackEnded { watched: false });
+        a.apply(Update::PlaybackEnded { watched: false, ending: Ending::Closed });
         assert!(a.playing.is_none());
 
         a.apply(Update::Playback { position: 100.0, duration: Some(1435.0), paused: false });
@@ -5498,7 +7046,7 @@ mod tests {
     fn finishing_an_episode_queues_the_next_one() {
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
-        a.apply(Update::PlaybackEnded { watched: true });
+        a.apply(finished(Some("2")));
         assert_eq!(
             a.take_pending(),
             Some(Task::Play { id: AnilistId::new(1), episode: "2".into() }),
@@ -5508,12 +7056,64 @@ mod tests {
 
     #[test]
     fn quitting_partway_does_not_roll_on_to_the_next_episode() {
-        // The distinction auto-next lives or dies on: `watched` means the episode ran to the
-        // commit threshold, not that mpv exited.
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
-        a.apply(Update::PlaybackEnded { watched: false });
+        a.apply(Update::PlaybackEnded { watched: false, ending: Ending::Closed });
         assert_eq!(a.take_pending(), None);
+    }
+
+    #[test]
+    fn closing_or_stopping_past_the_threshold_does_not_roll_on() {
+        // Past the commit threshold the episode counts as watched, and auto-next used to read
+        // that as finished: closing the window during the credits opened a new one on the next
+        // episode. Only an episode mpv played to its end rolls on.
+        for ending in [Ending::Closed, Ending::Stopped] {
+            let mut a = app_at_episodes();
+            a.handle(Action::Open, 20);
+            a.apply(Update::PlaybackEnded { watched: true, ending: ending.clone() });
+            assert_eq!(a.take_pending(), None, "{ending:?} rolled on");
+            assert!(a.episodes[0].completed, "still recorded as watched after {ending:?}");
+        }
+    }
+
+    #[test]
+    fn auto_next_continues_the_show_that_played_under_its_own_name() {
+        // Another show's page is open by the time the episode ends; the next episode is still
+        // the one that played, named as it was, with its own table's episode title.
+        let mut a = app_at_episodes();
+        a.handle(Action::Open, 20);
+        a.detail = a.content.entries().get(1).cloned();
+        a.apply(finished(Some("2")));
+        assert_eq!(
+            a.take_pending(),
+            Some(Task::Play { id: AnilistId::new(1), episode: "2".into() })
+        );
+        let playing = a.playing.as_ref().expect("the next episode is staged");
+        assert_eq!(playing.title, "Title 0");
+        assert_eq!(playing.episode_title.as_deref(), Some("Episode 2"));
+    }
+
+    #[test]
+    fn a_cancel_does_not_carry_over_to_the_next_episode() {
+        // Up Next was cancelled on episode 1, then episode 2 was started from the player. Its
+        // own ending rolls on: whether it does is the playback's to say, per episode, and
+        // nothing of episode 1's choice is held here to overrule it.
+        let mut a = app_at_episodes();
+        a.handle(Action::Open, 20);
+        a.apply(Update::PlayerPlayEpisode { episode: "2".into(), title: None });
+        assert!(matches!(a.take_pending(), Some(Task::Play { .. })));
+        a.apply(Update::EpisodeLeft {
+            id: AnilistId::new(1),
+            episode: "1".into(),
+            position: 300.0,
+            duration: Some(1435.0),
+            watched: false,
+        });
+        a.apply(finished(Some("3")));
+        assert_eq!(
+            a.take_pending(),
+            Some(Task::Play { id: AnilistId::new(1), episode: "3".into() })
+        );
     }
 
     #[test]
@@ -5546,7 +7146,7 @@ mod tests {
         let mut a = app_at_episodes();
         assert_eq!(a.detail.as_ref().unwrap().progress, None);
         a.handle(Action::Open, 20);
-        a.apply(Update::PlaybackEnded { watched: true });
+        a.apply(finished(None));
         assert_eq!(a.detail.as_ref().unwrap().progress, Some((1, 2)));
     }
 
@@ -5562,7 +7162,7 @@ mod tests {
         }
         a.detail.as_mut().unwrap().progress = Some((0, 1));
         a.handle(Action::Open, 20);
-        a.apply(Update::PlaybackEnded { watched: true });
+        a.apply(finished(None));
 
         let entries = a.content.entries();
         assert_eq!(entries[0].progress, Some((1, 2)));
@@ -5575,10 +7175,11 @@ mod tests {
         // hold the same line or the meter jumps on every revisit.
         let mut a = app_at_episodes();
         a.episodes[2].completed = true;
+        a.episodes_all[2].completed = true;
         a.detail.as_mut().unwrap().progress = Some((3, 4));
         a.episode_selected = 2;
         a.handle(Action::Open, 20);
-        a.apply(Update::PlaybackEnded { watched: true });
+        a.apply(finished(None));
         assert_eq!(a.detail.as_ref().unwrap().progress, Some((3, 4)));
     }
 
@@ -5590,7 +7191,7 @@ mod tests {
         a.detail.as_mut().unwrap().progress = Some((0, 1));
         a.handle(Action::Open, 20);
         a.apply(Update::Playback { position: 600.0, duration: Some(1200.0), paused: false });
-        a.apply(Update::PlaybackEnded { watched: false });
+        a.apply(Update::PlaybackEnded { watched: false, ending: Ending::Closed });
 
         let resume = a.detail.as_ref().unwrap().resume.expect("no resume point");
         assert_eq!(resume.position, 600.0);
@@ -5612,24 +7213,26 @@ mod tests {
     }
 
     #[test]
-    fn auto_next_can_be_turned_off() {
+    fn nothing_follows_an_ending_the_player_kept_no_window_for() {
+        // The finale, auto-next turned off, or Up Next cancelled: the playback names no next
+        // episode, and nothing is searched for. Guessing "the number after" here searched for
+        // an episode the list said did not exist, after the finale.
         let mut a = app_at_episodes();
-        a.config.playback.auto_next = false;
+        a.episode_selected = 11;
         a.handle(Action::Open, 20);
-        a.apply(Update::PlaybackEnded { watched: true });
+        a.apply(finished(None));
         assert_eq!(a.take_pending(), None);
+        assert!(a.toasts.iter().any(|t| t.text == "episode finished"));
     }
 
     #[test]
     fn a_non_numeric_episode_has_no_next() {
         // "OVA" and "Special" are real labels with no successor; guessing one would start
         // playing something unrelated.
-        let mut a = app_at_episodes();
-        a.episodes[0].number = "OVA".into();
-        a.episode_selected = 0;
-        a.handle(Action::Open, 20);
-        a.apply(Update::PlaybackEnded { watched: true });
-        assert_eq!(a.take_pending(), None);
+        let a = app_at_episodes();
+        assert!(a.next_up(AnilistId::new(1), "OVA").is_none());
+        assert_eq!(a.next_up(AnilistId::new(1), "11").map(|r| r.number.as_str()), Some("12"));
+        assert!(a.next_up(AnilistId::new(1), "12").is_none(), "the table ends at 12");
     }
 
     #[test]
@@ -5693,13 +7296,15 @@ mod tests {
     fn auto_next_steps_over_filler_when_asked() {
         let mut a = app_at_episodes();
         a.config.playback.skip_filler = true;
-        for i in [1, 2] {
-            a.episodes[i].skippable = true;
-            a.episodes[i].kind = Some("filler");
+        for list in [&mut a.episodes, &mut a.episodes_all] {
+            for i in [1, 2] {
+                list[i].skippable = true;
+                list[i].kind = Some("filler");
+            }
         }
         a.handle(Action::Open, 20); // plays ep 1
 
-        a.apply(Update::PlaybackEnded { watched: true });
+        a.apply(finished(Some("2")));
         let task = a.take_pending().expect("auto-next must fire");
         match task {
             Task::Play { episode, .. } => assert_eq!(episode, "4", "eps 2-3 are pure filler"),
@@ -5714,7 +7319,7 @@ mod tests {
         a.apply(Update::PlaybackSpeed(1.25));
         assert_eq!(a.config.playback.persisted_speed, Some(1.25));
 
-        a.apply(Update::PlaybackEnded { watched: true });
+        a.apply(finished(Some("2")));
         a.take_pending();
         assert_eq!(a.playing.as_ref().map(|p| p.speed), Some(1.25));
     }
@@ -5773,7 +7378,7 @@ mod tests {
     fn a_tracker_with_no_account_is_quiet_rather_than_alarming() {
         // Watching with no account is a supported way to use this, not a fault.
         let state = SyncState { tracker: "anilist".into(), ..SyncState::default() };
-        assert_eq!(state.badge(), "anilist ·");
+        assert_eq!(state.badge(), "anilist ○");
         assert!(!state.is_alerting());
     }
 
@@ -5783,10 +7388,12 @@ mod tests {
         // else in toasts.
         let mut a = app();
         a.apply(Update::Sync(Box::new(SyncState { needs_reauth: true, ..connected(1) })));
-        let after_first = a.toasts.len();
-        assert_eq!(after_first, 1);
+        // Counted in the log, which counts every announcement: the toast stack folds a repeat
+        // into the one already showing, so it cannot tell whether one was made.
+        let announced = |a: &App| a.logs.iter().map(|l| l.count).sum::<u32>();
+        assert_eq!(announced(&a), 1);
         a.apply(Update::Sync(Box::new(SyncState { needs_reauth: true, ..connected(1) })));
-        assert_eq!(a.toasts.len(), after_first, "re-announced an unchanged auth failure");
+        assert_eq!(announced(&a), 1, "re-announced an unchanged auth failure");
     }
 
     #[test]
@@ -5820,9 +7427,10 @@ mod tests {
         assert!(a.toasts.iter().any(|t| t.text.contains("disagreement")));
 
         // A second pull returning the same set must not re-announce.
-        let before = a.toasts.len();
+        let announced = |a: &App| a.logs.iter().map(|l| l.count).sum::<u32>();
+        let before = announced(&a);
         a.apply(Update::Conflicts(vec![conflict("Frieren")]));
-        assert_eq!(a.toasts.len(), before);
+        assert_eq!(announced(&a), before);
     }
 
     fn conflict(title: &str) -> ConflictRow {
@@ -5923,7 +7531,7 @@ mod tests {
     fn enter_on_providers_opens_the_stores_from_the_rail_too() {
         let mut a = app();
         a.go_to_section(Section::Providers);
-        assert_eq!(a.nav.focus(), Focus::Rail);
+        a.nav.focus_rail();
         assert_eq!(a.handle(Action::Open, 20), Some(Task::LoadStores));
         assert_eq!(a.nav.current(), &StageView::Stores);
         assert_eq!(a.nav.focus(), Focus::Stage);
@@ -6375,10 +7983,12 @@ mod tests {
     }
 
     #[test]
-    fn library_segments_cycle_in_both_directions() {
+    fn library_segments_step_both_ways_and_stop_at_the_ends() {
+        // The same rule as the rail and every list: the ends clamp rather than wrap.
         assert_eq!(LibrarySegment::Watching.step(1), LibrarySegment::Planning);
-        assert_eq!(LibrarySegment::Watching.step(-1), LibrarySegment::Dropped);
-        assert_eq!(LibrarySegment::Dropped.step(1), LibrarySegment::Watching);
+        assert_eq!(LibrarySegment::Planning.step(-1), LibrarySegment::Watching);
+        assert_eq!(LibrarySegment::Watching.step(-1), LibrarySegment::Watching);
+        assert_eq!(LibrarySegment::Dropped.step(1), LibrarySegment::Dropped);
     }
 
     #[test]
@@ -6418,8 +8028,15 @@ mod tests {
     fn setting_a_list_status_preselects_the_current_one() {
         // One keystroke to confirm in the common case, rather than a hunt.
         let mut a = app();
-        a.apply(a.content_here(entries(3)));
+        a.apply(Update::Sync(Box::new(connected(0))));
+        a.go_to_section(Section::Library);
         a.library_segment = LibrarySegment::Completed;
+        let mut rows = entries(3);
+        if let Content::Entries(rows) = &mut rows {
+            // As the Library's own fetch marks its rows.
+            rows.iter_mut().for_each(|row| row.list_status = Some(LibrarySegment::Completed));
+        }
+        a.apply(a.content_here(rows));
         a.handle(Action::SetListStatus, 20);
         assert_eq!(a.nav.overlay(), Some(&Overlay::ListStatus));
         assert_eq!(a.overlay_selected, 2);
@@ -6433,8 +8050,44 @@ mod tests {
     }
 
     #[test]
+    fn a_status_given_this_session_outlives_a_reload_until_the_tracker_answers() {
+        let mut a = app();
+        a.apply(Update::Sync(Box::new(connected(0))));
+        a.go_to_section(Section::Home);
+        a.apply(a.content_here(entries(3)));
+        let planning = 1;
+        a.handle(Action::SetListStatus, 20);
+        a.handle(Action::Down, 20);
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Task::SetStatus { id: AnilistId::new(1), status: LibrarySegment::Planning })
+        );
+
+        // Home again: the rows are rebuilt and carry no status of their own.
+        a.go_to_section(Section::Home);
+        a.apply(a.content_here(entries(3)));
+        a.handle(Action::SetListStatus, 20);
+        assert_eq!(a.overlay_selected, planning, "the status given before the reload");
+        a.handle(Action::Back, 20);
+
+        // A pull that lists the title is the tracker's answer, and wins.
+        a.go_to_section(Section::Library);
+        a.library_segment = LibrarySegment::Completed;
+        let mut rows = entries(3);
+        if let Content::Entries(rows) = &mut rows {
+            rows.iter_mut().for_each(|row| row.list_status = Some(LibrarySegment::Completed));
+        }
+        a.apply(a.content_here(rows));
+        a.go_to_section(Section::Home);
+        a.apply(a.content_here(entries(3)));
+        a.handle(Action::SetListStatus, 20);
+        assert_eq!(a.overlay_selected, 0, "nothing given since the pull, so nothing known");
+    }
+
+    #[test]
     fn rating_a_title_queues_a_score_out_of_ten() {
         let mut a = app();
+        a.apply(Update::Sync(Box::new(connected(0))));
         a.apply(a.content_here(entries(3)));
         a.handle(Action::RateTitle, 20);
         assert_eq!(a.nav.overlay(), Some(&Overlay::Rate));
@@ -6472,8 +8125,9 @@ mod tests {
         let mut a = app();
         a.apply(a.content_here(entries(1)));
 
+        // A list row never opened: the trailer is on the record its page fetches.
         a.handle(Action::PlayTrailer, 20);
-        assert!(a.toasts.iter().any(|t| t.text.contains("no trailer")));
+        assert!(a.toasts.iter().any(|t| t.text.contains("from the title's page")));
 
         let mut detail = Entry::new(AnilistId::new(1), "Frieren");
         detail.trailer_url = Some("https://www.youtube.com/watch?v=x".into());
@@ -6494,7 +8148,7 @@ mod tests {
         a.apply(a.content_here(entries(1)));
         a.handle(Action::Recommendations, 20);
         assert!(!a.nav.has_overlay());
-        assert!(a.toasts.iter().any(|t| t.text.contains("no recommendations")));
+        assert!(a.toasts.iter().any(|t| t.text.contains("from the title's page")));
     }
 
     #[test]
@@ -6580,6 +8234,7 @@ mod tests {
             healthy: true,
             active,
             detail: None,
+            retry_at: None,
         };
         a.apply(Update::MetaStatus(vec![row("anilist", true), row("tenrai", false)]));
         assert!(!a.meta_degraded(), "anilist serving is the resting state");
@@ -6589,8 +8244,39 @@ mod tests {
     }
 
     #[test]
+    fn status_and_rating_with_no_tracker_signed_in_say_so_instead_of_pretending() {
+        // "marked watching" and "rated 8/10" used to be said for choices that went nowhere.
+        // A tracker that is configured but signed out does not count.
+        let mut a = app();
+        a.apply(Update::Sync(Box::new(SyncState::new("kitsu"))));
+        a.apply(a.content_here(entries(3)));
+
+        for action in [Action::SetListStatus, Action::RateTitle] {
+            a.toasts.clear();
+            assert_eq!(a.handle(action, 20), None);
+            assert!(!a.nav.has_overlay(), "{action:?} offered a picker that goes nowhere");
+            let said = &a.toasts.last().expect("nothing said").text;
+            assert!(said.contains("none is signed in") && said.contains(":accounts"), "{said}");
+        }
+    }
+
+    #[test]
+    fn a_status_says_which_trackers_it_was_queued_for() {
+        let mut a = app();
+        a.apply(Update::Sync(Box::new(connected(0))));
+        a.apply(Update::Sync(Box::new(SyncState { connected: true, ..SyncState::new("mal") })));
+        a.apply(Update::Sync(Box::new(SyncState::new("kitsu"))));
+        a.apply(a.content_here(entries(3)));
+        a.handle(Action::SetListStatus, 20);
+        a.handle(Action::Open, 20);
+        let said = &a.toasts.last().unwrap().text;
+        assert!(said.ends_with("queued for anilist, mal"), "{said}");
+    }
+
+    #[test]
     fn rating_with_nothing_selected_says_so() {
         let mut a = app();
+        a.apply(Update::Sync(Box::new(connected(0))));
         assert_eq!(a.handle(Action::RateTitle, 20), None);
         assert!(!a.nav.has_overlay());
         assert!(a.toasts.iter().any(|t| t.text.contains("nothing selected")));
@@ -6639,6 +8325,7 @@ mod tests {
         // render indexing past the end.
         let mut a = app();
         a.apply(a.content_here(entries(50)));
+        a.nav.focus_stage();
         a.handle(Action::Bottom, 10);
         assert_eq!(a.selected, 49);
 
@@ -6662,10 +8349,12 @@ mod tests {
     fn scrolling_keeps_the_selection_inside_the_viewport() {
         let mut a = app();
         a.apply(a.content_here(entries(100)));
+        a.nav.focus_stage();
         let rows = 10;
         for _ in 0..25 {
             a.handle(Action::Down, rows);
         }
+        assert_eq!(a.selected, 25);
         assert!(a.selected >= a.offset, "selection scrolled off the top");
         assert!(
             a.selected < a.offset + rows,
@@ -6673,6 +8362,567 @@ mod tests {
             a.selected,
             a.offset
         );
+    }
+
+    /// Continue with `n` titles on screen and the keyboard in the list, as `1` leaves it.
+    fn home_list(n: usize) -> App {
+        let mut a = app();
+        a.handle(Action::JumpSection(1), 5);
+        a.apply(a.content_here(entries(n)));
+        a
+    }
+
+    fn related(id: u32, title: &str) -> RelatedTitle {
+        RelatedTitle {
+            id: AnilistId::new(id),
+            title: title.into(),
+            relation: "sequel".into(),
+            format: None,
+        }
+    }
+
+    fn setting_row(id: SettingId) -> usize {
+        SettingId::ALL.iter().position(|s| *s == id).expect("a settings row")
+    }
+
+    #[test]
+    fn a_title_page_leaves_the_list_under_it_where_it_was() {
+        // Every movement key on a title page used to move the list hidden behind it, so Back
+        // landed rows away from the title just looked at.
+        let mut a = home_list(8);
+        a.handle(Action::Down, 5);
+        a.handle(Action::Down, 5);
+        assert_eq!(a.handle(Action::Open, 5), Some(Task::LoadDetail(AnilistId::new(3))));
+        for action in [
+            Action::Down,
+            Action::Down,
+            Action::Up,
+            Action::Bottom,
+            Action::Top,
+            Action::PageDown,
+            Action::PageUp,
+            Action::Bottom,
+        ] {
+            assert_eq!(a.handle(action, 5), None, "{action:?}");
+        }
+        assert_eq!((a.selected, a.offset), (2, 0), "the hidden list moved");
+        assert_eq!(a.target().map(|e| e.id), Some(AnilistId::new(3)));
+
+        a.handle(Action::Back, 5);
+        assert_eq!(a.nav.current(), &StageView::Section(Section::Home));
+        assert_eq!(a.selected_entry().map(|e| e.id), Some(AnilistId::new(3)));
+    }
+
+    #[test]
+    fn enter_on_a_title_page_opens_its_episodes_rather_than_another_title() {
+        let mut a = home_list(8);
+        a.handle(Action::Open, 5);
+        a.handle(Action::Down, 5);
+        assert_eq!(a.handle(Action::Open, 5), Some(Task::LoadEpisodes(AnilistId::new(1))));
+        assert_eq!(a.nav.current(), &StageView::Episodes(AnilistId::new(1)));
+    }
+
+    #[test]
+    fn refresh_on_a_title_or_its_episodes_asks_for_that_title() {
+        // It used to reload the section's list instead, under a page that never changed.
+        let mut a = home_list(3);
+        a.handle(Action::Open, 5);
+        assert_eq!(a.handle(Action::Refresh, 5), Some(Task::LoadDetail(AnilistId::new(1))));
+        a.handle(Action::ShowEpisodes, 5);
+        assert_eq!(a.handle(Action::Refresh, 5), Some(Task::LoadEpisodes(AnilistId::new(1))));
+        assert_eq!(a.content.len(), 3, "the list under them is left alone");
+    }
+
+    #[test]
+    fn f_on_a_title_opened_from_search_means_what_it_means_on_any_title() {
+        let mut a = app();
+        a.handle(Action::JumpSection(4), 5);
+        type_text(&mut a, "query");
+        assert!(matches!(a.handle(Action::Open, 5), Some(Task::Search { .. })));
+        a.apply(a.content_here(entries(3)));
+        a.handle(Action::Open, 5);
+        assert_eq!(a.nav.current(), &StageView::Title(AnilistId::new(1)));
+
+        a.handle(Action::Filter, 5);
+        assert_eq!(a.nav.overlay(), None, "the search filters opened over a title page");
+    }
+
+    #[test]
+    fn a_list_rows_actions_go_to_that_row_not_the_title_opened_last() {
+        // Back on a list, every title key read the last title opened before the highlighted
+        // row, so `a`, `*`, `d`, Space and the rest all went to the wrong show.
+        let mut a = home_list(5);
+        // List status lives on a tracker, so one is signed in.
+        a.apply(Update::Sync(Box::new(connected(0))));
+        a.handle(Action::Open, 5);
+        // The record the title page fetched, with everything that rides that fetch.
+        let mut opened = Entry::new(AnilistId::new(1), "Title 0");
+        opened.trailer_url = Some("https://video.example/trailer".into());
+        opened.related = vec![related(90, "Its sequel")];
+        opened.recommended = vec![related(91, "Something like it")];
+        a.apply(Update::Detail(Box::new(opened)));
+        a.handle(Action::Back, 5);
+        a.handle(Action::Down, 5);
+        a.handle(Action::Down, 5);
+        let row = AnilistId::new(3);
+        let first = || "1".to_string();
+
+        assert_eq!(
+            a.handle(Action::Download, 5),
+            Some(Task::DownloadEpisode { id: row, episode: first() })
+        );
+        assert_eq!(
+            a.handle(Action::ShowSources, 5),
+            Some(Task::LoadSources { id: row, episode: first() })
+        );
+        assert_eq!(
+            a.handle(Action::PlayParty, 5),
+            Some(Task::PlayParty { id: row, episode: first() })
+        );
+        assert_eq!(
+            a.handle(Action::OpenInBrowser, 5),
+            Some(Task::OpenExternal { url: "https://anilist.co/anime/3".into() })
+        );
+
+        a.handle(Action::SetListStatus, 5);
+        assert_eq!(
+            a.handle(Action::Open, 5),
+            Some(Task::SetStatus { id: row, status: LibrarySegment::Watching })
+        );
+        a.handle(Action::RateTitle, 5);
+        assert_eq!(a.handle(Action::Open, 5), Some(Task::SetScore { id: row, score: 10.0 }));
+
+        // What rides the detail fetch is the opened title's, not this row's.
+        assert_eq!(a.handle(Action::PlayTrailer, 5), None);
+        for action in [Action::WatchOrder, Action::Recommendations] {
+            a.handle(action, 5);
+            assert_eq!(a.nav.overlay(), None, "{action:?} offered the opened title's list");
+        }
+        // Pinning a source and fixing a match need the title's own page; from a list they
+        // say so instead of opening on the other title's state.
+        for action in [Action::PickProvider, Action::FixMapping] {
+            assert_eq!(a.handle(action, 5), None);
+            assert_eq!(a.nav.overlay(), None, "{action:?}");
+        }
+
+        assert_eq!(a.handle(Action::ShowEpisodes, 5), Some(Task::LoadEpisodes(row)));
+        a.handle(Action::Back, 5);
+        assert_eq!(
+            a.handle(Action::PlayNext, 5),
+            Some(Task::Play { id: row, episode: first() })
+        );
+        assert_eq!(a.playing.as_ref().map(|p| p.title.as_str()), Some("Title 2"));
+    }
+
+    #[test]
+    fn on_now_playing_the_title_keys_mean_the_title_playing() {
+        // Space from a list plays the row's next episode while an earlier title is still the
+        // last one opened; Now Playing is about the one playing.
+        let mut a = home_list(5);
+        a.handle(Action::Open, 5);
+        a.handle(Action::Back, 5);
+        a.handle(Action::Down, 5);
+        a.handle(Action::Down, 5);
+        a.handle(Action::PlayNext, 5);
+        assert_eq!(a.nav.current(), &StageView::NowPlaying);
+        assert_eq!(a.target().map(|e| e.id), Some(AnilistId::new(3)));
+        assert_eq!(
+            a.handle(Action::OpenInBrowser, 5),
+            Some(Task::OpenExternal { url: "https://anilist.co/anime/3".into() })
+        );
+    }
+
+    #[test]
+    fn back_from_a_related_title_shows_the_page_it_was_opened_from() {
+        let mut a = home_list(3);
+        a.handle(Action::Open, 5);
+        let parent = AnilistId::new(1);
+        let mut full = Entry::new(parent, "Title 0");
+        full.synopsis = "What the parent is about.".into();
+        full.related = vec![related(90, "Its sequel")];
+        a.apply(Update::Detail(Box::new(full.clone())));
+
+        a.handle(Action::WatchOrder, 5);
+        assert_eq!(a.handle(Action::Open, 5), Some(Task::LoadDetail(AnilistId::new(90))));
+        assert_eq!(a.target().map(|e| e.id), Some(AnilistId::new(90)));
+
+        a.handle(Action::Back, 5);
+        assert_eq!(a.nav.current(), &StageView::Title(parent));
+        assert_eq!(a.target(), Some(&full), "the parent's page came back showing the child");
+    }
+
+    #[test]
+    fn back_through_a_related_titles_episodes_finds_the_parents_table() {
+        let mut a = app_at_episodes();
+        if let Some(detail) = a.detail.as_mut() {
+            detail.related = vec![related(90, "Its sequel")];
+        }
+        a.episode_selected = 4;
+        a.handle(Action::WatchOrder, 5);
+        a.handle(Action::Open, 5);
+        a.handle(Action::ShowEpisodes, 5);
+        a.apply(Update::Episodes {
+            id: AnilistId::new(90),
+            rows: vec![EpisodeRow { number: "1".into(), ..a.episodes_all[0].clone() }],
+        });
+        assert_eq!(a.episodes.len(), 1);
+
+        a.handle(Action::Back, 5);
+        assert_eq!(a.nav.current(), &StageView::Title(AnilistId::new(90)));
+        a.handle(Action::Back, 5);
+        assert_eq!(a.nav.current(), &StageView::Episodes(AnilistId::new(1)));
+        assert_eq!(a.target().map(|e| e.id), Some(AnilistId::new(1)));
+        assert_eq!(a.episodes.len(), 12, "the parent's table, not the child's");
+        assert_eq!(a.episodes[a.episode_selected].number, "5", "and where it was left");
+    }
+
+    #[test]
+    fn every_movement_key_moves_the_episode_table() {
+        // ↑ and ↓ did; `g`, `G` and the pages moved the list behind the table instead.
+        let mut a = app_at_episodes();
+        a.handle(Action::Bottom, 5);
+        assert_eq!(a.episode_selected, 11);
+        a.handle(Action::Top, 5);
+        assert_eq!(a.episode_selected, 0);
+        a.handle(Action::PageDown, 5);
+        assert_eq!(a.episode_selected, 5);
+        a.handle(Action::PageUp, 5);
+        assert_eq!(a.episode_selected, 0);
+        assert_eq!((a.selected, a.offset), (0, 0), "the list under the table stays put");
+    }
+
+    #[test]
+    fn the_filter_keeps_the_same_episode_under_the_cursor() {
+        let mut a = app_at_episodes();
+        for n in ["1", "2", "3"] {
+            a.set_episode_watched(n, true);
+        }
+        a.apply_episode_filter();
+        let under = |a: &App| a.episodes[a.episode_selected].number.clone();
+
+        a.episode_selected = 4;
+        a.handle(Action::Filter, 5);
+        assert_eq!(a.episode_filter, EpisodeFilter::Unwatched);
+        assert_eq!(under(&a), "5", "the cursor kept its row index, not its episode");
+        a.handle(Action::Filter, 5);
+        a.handle(Action::Filter, 5);
+        assert_eq!(a.episode_filter, EpisodeFilter::All);
+        assert_eq!(under(&a), "5");
+
+        // An episode the filter hides hands the cursor to the next one it keeps.
+        a.episode_selected = 1;
+        a.handle(Action::Filter, 5);
+        assert_eq!(under(&a), "4");
+    }
+
+    #[test]
+    fn settings_and_accounts_move_their_own_rows_and_act_on_no_title() {
+        // With Continue loaded before them, `G` landed on the row matching that list's length
+        // and the title keys opened overlays for one of its shows.
+        let mut a = home_list(5);
+        a.handle(Action::JumpSection(9), 5);
+        a.handle(Action::Bottom, 5);
+        assert_eq!(a.selected, SettingId::ALL.len() - 1);
+        a.handle(Action::Top, 5);
+        a.handle(Action::PageDown, 5);
+        assert_eq!(a.selected, 5);
+        let title_keys = [
+            Action::SetListStatus,
+            Action::RateTitle,
+            Action::ShowEpisodes,
+            Action::WatchOrder,
+            Action::Download,
+            Action::ShowSources,
+            Action::OpenInBrowser,
+        ];
+        for action in title_keys {
+            assert_eq!(a.handle(action, 5), None, "{action:?}");
+            assert_eq!(a.nav.overlay(), None, "{action:?}");
+            assert_eq!(a.nav.current(), &StageView::Section(Section::Settings), "{action:?}");
+        }
+
+        a.handle(Action::JumpSection(8), 5);
+        a.apply(Update::Sync(Box::new(SyncState::new("anilist"))));
+        a.apply(Update::Sync(Box::new(SyncState::new("mal"))));
+        a.handle(Action::Bottom, 5);
+        assert_eq!(a.selected, 1);
+        a.handle(Action::PageDown, 5);
+        assert_eq!(a.selected, 1, "past the last tracker");
+        for action in title_keys.into_iter().chain([Action::PlayNext]) {
+            assert_eq!(a.handle(action, 5), None, "{action:?}");
+            assert_eq!(a.nav.overlay(), None, "{action:?}");
+            assert_eq!(a.nav.current(), &StageView::Section(Section::Accounts), "{action:?}");
+        }
+    }
+
+    #[test]
+    fn search_with_nothing_typed_shows_its_own_empty_state() {
+        // Jumped to, it showed the previous section's list; walked to on the rail, a pulse
+        // that never ended, because the fetch that would end it never went out.
+        let mut a = home_list(5);
+        assert_eq!(a.handle(Action::JumpSection(4), 5), None);
+        assert_eq!(a.content, Content::Empty);
+        assert!(a.target().is_none());
+
+        let mut a = home_list(5);
+        a.handle(Action::JumpSection(7), 5);
+        a.nav.focus_rail();
+        for _ in 0..3 {
+            a.handle(Action::Up, 5);
+        }
+        assert_eq!(a.nav.section(), Section::Search);
+        for _ in 0..=RELOAD_IDLE_TICKS {
+            a.tick_pending_reload();
+        }
+        assert_eq!(a.content, Content::Empty);
+        assert_eq!(a.take_pending(), None);
+    }
+
+    #[test]
+    fn down_from_the_search_field_moves_into_results_that_scroll() {
+        let mut a = app();
+        a.handle(Action::JumpSection(4), 5);
+        type_text(&mut a, "query");
+        a.handle(Action::Open, 5);
+        a.apply(a.content_here(entries(40)));
+        assert!(a.is_typing());
+
+        a.handle(Action::Down, 5);
+        assert!(!a.is_typing(), "the results have the keyboard");
+        assert_eq!(a.selected, 0);
+        for _ in 0..12 {
+            a.handle(Action::Down, 5);
+        }
+        assert_eq!(a.selected, 12);
+        assert!(a.offset > 0 && a.selected < a.offset + 5, "the window follows");
+        a.handle(Action::Bottom, 5);
+        a.handle(Action::Down, 5);
+        assert_eq!(a.selected, 39, "bounded at the last result");
+        // A result is a list row like any other.
+        assert_eq!(
+            a.handle(Action::Download, 5),
+            Some(Task::DownloadEpisode { id: AnilistId::new(40), episode: "1".into() })
+        );
+
+        // Back to typing: Esc, ↑ from the first result, or `/`, which does not ask again.
+        a.handle(Action::Back, 5);
+        assert!(a.is_typing());
+        a.handle(Action::Down, 5);
+        a.handle(Action::Top, 5);
+        a.handle(Action::Up, 5);
+        assert!(a.is_typing());
+        a.handle(Action::Down, 5);
+        assert_eq!(a.handle(Action::FocusSearch, 5), None);
+        assert!(a.is_typing());
+        assert_eq!(a.content.len(), 40);
+    }
+
+    #[test]
+    fn a_shorter_window_brings_the_selection_back_into_view() {
+        let mut a = home_list(50);
+        for _ in 0..30 {
+            a.handle(Action::Down, 40);
+        }
+        assert_eq!((a.selected, a.offset), (30, 0));
+        a.fit_to(10);
+        assert!(a.selected >= a.offset && a.selected < a.offset + 10, "offset {}", a.offset);
+
+        // And a taller one shows more of the list rather than empty rows under its end.
+        a.handle(Action::Bottom, 10);
+        assert_eq!(a.offset, 40);
+        a.fit_to(30);
+        assert_eq!(a.offset, 20);
+    }
+
+    #[test]
+    fn the_status_picker_opens_on_the_titles_status_not_the_tab_last_viewed() {
+        let mut a = home_list(3);
+        // List status lives on a tracker, so one is signed in.
+        a.apply(Update::Sync(Box::new(connected(0))));
+        a.library_segment = LibrarySegment::Dropped;
+        a.handle(Action::SetListStatus, 5);
+        assert_eq!(a.overlay_selected, 0, "nothing known about it, so the top");
+        a.overlay_selected = 3;
+        assert_eq!(
+            a.handle(Action::Open, 5),
+            Some(Task::SetStatus { id: AnilistId::new(1), status: LibrarySegment::Paused })
+        );
+        a.handle(Action::SetListStatus, 5);
+        assert_eq!(a.overlay_selected, 3, "the answer just given");
+    }
+
+    #[test]
+    fn space_and_x_pause_and_cancel_the_highlighted_download() {
+        // Idle they arrived as play-next and remove-from-Continue, so nothing in the queue
+        // could be paused or cancelled; playing, they paused the player instead.
+        let download = |id: i64| DownloadRow {
+            id,
+            anilist_id: AnilistId::new(1),
+            title: "Title 0".into(),
+            episode: id.to_string(),
+            state: "downloading",
+            fraction: 0.5,
+            downloaded: 1,
+            total: 2,
+            error: None,
+            path: None,
+        };
+        let mut a = app();
+        a.handle(Action::JumpSection(6), 5);
+        a.apply(Update::Downloads(vec![download(7), download(8)]));
+        a.handle(Action::Down, 5);
+        assert_eq!(a.handle(Action::PlayNext, 5), Some(Task::DownloadPause { id: 8 }));
+        assert_eq!(a.handle(Action::HideFromContinue, 5), Some(Task::DownloadCancel { id: 8 }));
+
+        a.playing = Some(NowPlaying::default());
+        assert_eq!(a.handle(Action::PlayPause, 5), Some(Task::DownloadPause { id: 8 }));
+        assert_eq!(a.handle(Action::StopPlayback, 5), Some(Task::DownloadCancel { id: 8 }));
+    }
+
+    #[test]
+    fn x_on_a_finished_download_keeps_it() {
+        // Cancelling a finished row forgot it and left its file behind, unreachable from here.
+        let mut a = app();
+        a.handle(Action::JumpSection(6), 5);
+        a.apply(Update::Downloads(vec![DownloadRow {
+            id: 3,
+            anilist_id: AnilistId::new(1),
+            title: "Title 0".into(),
+            episode: "1".into(),
+            state: "done",
+            fraction: 1.0,
+            downloaded: 2,
+            total: 2,
+            error: None,
+            path: Some("/tmp/title-0-1.mkv".into()),
+        }]));
+        assert_eq!(a.handle(Action::HideFromContinue, 5), None);
+        assert!(
+            a.toasts.iter().any(|t| t.text == "already downloaded — X deletes it and its file"),
+            "{:?}",
+            a.toasts
+        );
+    }
+
+    #[test]
+    fn a_digit_behind_help_on_now_playing_stays_with_the_player() {
+        // `9` is volume on Now Playing; behind Help it closed Help and went to Settings.
+        let mut a = home_list(3);
+        let _ = a.begin_playback(AnilistId::new(1), "1".into());
+        assert_eq!(a.nav.current(), &StageView::NowPlaying);
+        for overlay in [Action::Help, Action::ShowLogs] {
+            a.handle(overlay, 5);
+            let nine = KeyEvent::new(KeyCode::Char('9'), KeyModifiers::NONE);
+            assert_eq!(a.press(nine, 5), None);
+            assert!(a.nav.has_overlay(), "{overlay:?} must stay open");
+            assert_eq!(a.nav.current(), &StageView::NowPlaying);
+            a.handle(Action::Back, 5);
+        }
+    }
+
+    #[test]
+    fn what_rides_the_detail_fetch_is_pointed_at_the_title_page_from_a_list() {
+        // A row never opened has no relations, recommendations or trailer to go on, so
+        // "none known for this title" there was a guess. `m` and `P` already say where to go.
+        let mut a = home_list(3);
+        let last = |a: &App| a.toasts.last().map(|t| t.text.clone()).unwrap_or_default();
+        for (action, said) in [
+            (Action::WatchOrder, "connected seasons are listed from the title's page"),
+            (Action::Recommendations, "recommendations are listed from the title's page"),
+            (Action::PlayTrailer, "the trailer is found from the title's page"),
+        ] {
+            assert_eq!(a.handle(action, 5), None);
+            assert_eq!(last(&a), said);
+        }
+        // On the page itself, empty is the answer.
+        a.handle(Action::Open, 5);
+        a.handle(Action::WatchOrder, 5);
+        assert_eq!(last(&a), "no connected seasons known for this title");
+    }
+
+    #[test]
+    fn every_number_jump_lands_on_the_stage_and_the_rail_keeps_the_rail() {
+        for n in 1..=9u8 {
+            let mut a = app();
+            a.handle(Action::JumpSection(n), 5);
+            assert_eq!(a.nav.focus(), Focus::Stage, "{n}");
+        }
+        let mut a = app();
+        a.handle(Action::Down, 5);
+        assert_eq!(a.nav.section(), Section::Calendar);
+        assert_eq!(a.nav.focus(), Focus::Rail);
+    }
+
+    #[test]
+    fn left_on_a_title_goes_back_rather_than_stranding_it_behind_the_rail() {
+        // `h` focused the rail over the title page, and the next `j` switched section and
+        // threw the whole stack away.
+        let mut a = home_list(5);
+        a.handle(Action::Open, 5);
+        a.handle(Action::Left, 5);
+        assert_eq!(a.nav.current(), &StageView::Section(Section::Home));
+        assert_eq!(a.nav.focus(), Focus::Stage);
+        a.handle(Action::Down, 5);
+        assert_eq!((a.nav.section(), a.selected), (Section::Home, 1));
+        a.handle(Action::Left, 5);
+        assert_eq!(a.nav.focus(), Focus::Rail);
+    }
+
+    #[test]
+    fn left_reaches_the_rail_from_library_and_settings() {
+        let mut a = app();
+        a.handle(Action::JumpSection(5), 5);
+        a.library_segment = LibrarySegment::Planning;
+        assert_eq!(
+            a.handle(Action::Left, 5),
+            Some(Task::LoadLibrary(LibrarySegment::Watching))
+        );
+        assert_eq!(a.handle(Action::Left, 5), None);
+        assert_eq!(a.nav.focus(), Focus::Rail);
+
+        a.handle(Action::JumpSection(9), 5);
+        a.selected = setting_row(SettingId::Motion);
+        a.config.theme.motion = true;
+        assert_eq!(a.handle(Action::Right, 5), None, "a switch that is on stays on");
+        assert!(a.config.theme.motion);
+        assert!(matches!(
+            a.handle(Action::Left, 5),
+            Some(Task::SaveSetting {
+                value: anistream_core::settings::SettingValue::Bool(false),
+                ..
+            })
+        ));
+        assert_eq!(a.handle(Action::Left, 5), None);
+        assert_eq!(a.nav.focus(), Focus::Rail);
+        assert!(!a.config.theme.motion, "reaching the rail changed nothing");
+
+        // A ladder on its bottom rung and a typed value have nothing further left either.
+        for (row, prepare) in [
+            (
+                SettingId::Quality,
+                (|a: &mut App| a.config.playback.quality = 480) as fn(&mut App),
+            ),
+            (SettingId::Subtitles, |_| {}),
+        ] {
+            a.nav.focus_stage();
+            a.selected = setting_row(row);
+            prepare(&mut a);
+            assert_eq!(a.handle(Action::Left, 5), None, "{row:?}");
+            assert_eq!(a.nav.focus(), Focus::Rail, "{row:?}");
+        }
+        assert_eq!(a.config.playback.quality, 480);
+    }
+
+    #[test]
+    fn the_rail_takes_every_vertical_key_while_it_has_focus() {
+        // The arrows walked the rail while `g` and `G` scrolled the list behind it.
+        let mut a = home_list(20);
+        a.nav.focus_rail();
+        a.handle(Action::Bottom, 5);
+        assert_eq!(a.nav.section(), Section::Settings);
+        a.handle(Action::PageUp, 5);
+        assert_eq!(a.nav.section(), Section::Home);
+        assert_eq!(a.nav.focus(), Focus::Rail);
     }
 
     #[test]
@@ -6722,7 +8972,7 @@ mod tests {
         assert!((a.episodes[0].watched - 0.5).abs() < 1e-6, "got {}", a.episodes[0].watched);
         assert!(!a.episodes[0].completed, "halfway is not finished");
 
-        a.apply(Update::PlaybackEnded { watched: true });
+        a.apply(finished(None));
         assert!(a.episodes[0].completed, "a finished episode must show as finished");
         assert!((a.episodes[0].watched - 1.0).abs() < 1e-6);
         assert_eq!(a.episodes[1].watched, 0.0, "only the episode watched should change");
@@ -6760,7 +9010,7 @@ mod tests {
         );
 
         a.begin_playback(id, "1".into());
-        a.apply(Update::PlaybackEnded { watched: true });
+        a.apply(finished(Some("2")));
 
         assert!(a.episodes[0].completed, "the finished episode must be marked in the table");
         assert!((a.episodes[0].watched - 1.0).abs() < 1e-6, "and its meter filled");
@@ -7097,6 +9347,20 @@ mod tests {
     }
 
     #[test]
+    fn a_toast_already_up_is_refreshed_rather_than_counted_twice() {
+        let mut a = app();
+        for text in ["saved", "saved", "queued", "saved"] {
+            a.push_toast(Toast::info(text));
+        }
+        let up: Vec<&str> = a.toasts.iter().map(|t| t.text.as_str()).collect();
+        assert_eq!(up, ["queued", "saved"], "one of each, the repeat newest");
+        // The log keeps every arrival, a run of repeats as one counted line.
+        let logged: Vec<(&str, u32)> =
+            a.logs.iter().map(|l| (l.text.as_str(), l.count)).collect();
+        assert_eq!(logged, [("saved", 2), ("queued", 1), ("saved", 1)]);
+    }
+
+    #[test]
     fn a_toast_is_also_written_to_the_log() {
         // The toast stack is capped at three and each lives for seconds; when a provider chain
         // fails the *first* error is usually the one that explains the rest.
@@ -7110,6 +9374,130 @@ mod tests {
 
         a.handle(Action::ShowLogs, 10);
         assert_eq!(a.nav.overlay(), Some(&Overlay::Logs));
+    }
+
+    #[test]
+    fn a_value_off_the_ladder_steps_to_the_nearest_rung_the_arrow_points_at() {
+        // From config.toml, not the arrows. → from 1440p saved 720p, and → from 97% saved 80%.
+        const QUALITY: [u32; 4] = [480, 720, 1080, 2160];
+        assert_eq!(step_through(&QUALITY, 1440, 1), 2160);
+        assert_eq!(step_through(&QUALITY, 1440, -1), 1080);
+        assert_eq!(step_through(&QUALITY, 360, -1), 360, "nothing lower: stay put");
+        assert_eq!(step_through(&QUALITY, 360, 1), 480);
+
+        const THRESHOLD: [u32; 5] = [70, 80, 85, 90, 95];
+        assert_eq!(step_through(&THRESHOLD, 97, 1), 97, "nothing higher: stay put");
+        assert_eq!(step_through(&THRESHOLD, 97, -1), 95);
+        assert_eq!(step_through(&THRESHOLD, 82, 1), 85);
+        assert_eq!(step_through(&THRESHOLD, 82, -1), 80);
+    }
+
+    #[test]
+    fn the_settings_screen_steps_an_off_ladder_quality_up_not_down() {
+        use anistream_core::settings::SettingValue;
+        let mut config = Config::default();
+        config.playback.quality = 1440;
+        config.playback.commit_threshold = 0.97;
+        let mut a = App::new(config, Palette::dark(), Keymap::new());
+        a.go_to_section(Section::Settings);
+        a.nav.focus_stage();
+
+        a.selected = SettingId::ALL.iter().position(|id| *id == SettingId::Quality).unwrap();
+        let task = a.handle(Action::Right, 10);
+        assert_eq!(a.config.playback.quality, 2160);
+        assert!(matches!(task, Some(Task::SaveSetting { value: SettingValue::Int(2160), .. })));
+
+        a.selected =
+            SettingId::ALL.iter().position(|id| *id == SettingId::CommitThreshold).unwrap();
+        a.handle(Action::Right, 10);
+        assert_eq!(a.config.playback.commit_threshold, 0.97, "→ never lowers it");
+        a.handle(Action::Left, 10);
+        assert_eq!(a.config.playback.commit_threshold, 0.95);
+    }
+
+    fn setting_text(a: &App, id: SettingId) -> String {
+        let at = SettingId::ALL.iter().position(|row| *row == id).unwrap();
+        a.setting_rows()[at].value.clone()
+    }
+
+    fn settings_at(id: SettingId) -> App {
+        let mut a = app();
+        a.go_to_section(Section::Settings);
+        a.nav.focus_stage();
+        a.selected = SettingId::ALL.iter().position(|row| *row == id).unwrap();
+        a
+    }
+
+    #[test]
+    fn a_refused_settings_write_puts_the_setting_back() {
+        // The value changed before the write and nothing undid it, so a refused write — torrents
+        // on with no VPN configured — went on showing "on" and the status line the new value.
+        let mut a = settings_at(SettingId::Torrents);
+        let Some(Task::SaveSetting { table, key, .. }) = a.handle(Action::Right, 10) else {
+            panic!("no write asked for")
+        };
+        assert!(a.config.providers.torrent.enabled, "the screen answers at once");
+        a.status = "saved quality".into();
+
+        a.apply(Update::SettingWritten {
+            on_disk: Box::new(Config::default()),
+            failed: Some((table, key)),
+        });
+        assert!(!a.config.providers.torrent.enabled, "back to what the file holds");
+        assert_eq!(setting_text(&a, SettingId::Torrents), "off");
+        assert!(a.status.is_empty(), "the status line shows what is in effect again");
+    }
+
+    #[test]
+    fn a_rollback_leaves_other_settings_alone() {
+        // A second setting changed while the first write was refused has its own write, which
+        // landed; undoing everything would undo that too.
+        let mut a = settings_at(SettingId::Quality);
+        a.handle(Action::Right, 10);
+        let mut on_disk = Config::default();
+        on_disk.playback.quality = 2160;
+        a.selected = SettingId::ALL.iter().position(|row| *row == SettingId::Torrents).unwrap();
+        a.handle(Action::Right, 10);
+
+        a.apply(Update::SettingWritten {
+            on_disk: Box::new(on_disk),
+            failed: Some((&["providers", "torrent"], "enabled")),
+        });
+        assert_eq!(a.config.playback.quality, 2160);
+        assert!(!a.config.providers.torrent.enabled);
+    }
+
+    #[test]
+    fn sub_or_dub_for_the_session_shows_beside_the_saved_choice() {
+        // `t` is for this session, and Settings showed it as if saved while the file and the
+        // next launch said otherwise.
+        let mut a = app();
+        a.handle(Action::ToggleTranslation, 10);
+        assert_eq!(setting_text(&a, SettingId::Translation), "sub · dub this session");
+        assert!(a.toasts.last().unwrap().text.contains("for this session"));
+
+        // The arrows change the saved value, the one the row leads with.
+        let mut a = settings_at(SettingId::Translation);
+        a.handle(Action::ToggleTranslation, 10);
+        let task = a.handle(Action::Right, 10);
+        assert!(matches!(
+            task,
+            Some(Task::SaveSetting { key: "translation", value: anistream_core::settings::SettingValue::Str(ref v), .. }) if v == "dub"
+        ));
+        let mut on_disk = Config::default();
+        on_disk.playback.translation = anistream_core::media::Translation::Dub;
+        a.apply(Update::SettingWritten { on_disk: Box::new(on_disk), failed: None });
+        assert_eq!(setting_text(&a, SettingId::Translation), "dub");
+    }
+
+    #[test]
+    fn a_theme_from_the_command_line_shows_as_this_session_only() {
+        use anistream_core::config::ThemeMode;
+        let mut config = Config::default();
+        config.theme.mode = ThemeMode::Immersive;
+        let mut a = App::new(config, Palette::dark(), Keymap::new());
+        a.saved_config.theme.mode = ThemeMode::Adaptive;
+        assert_eq!(setting_text(&a, SettingId::Theme), "adaptive · immersive this session");
     }
 
     #[test]
@@ -7186,11 +9574,12 @@ mod tests {
         let rows = a.setting_rows();
         assert_eq!(rows[a.selected].value, "unlimited");
         a.handle(Action::Right, 10);
-        assert_eq!(a.setting_rows()[a.selected].value, "256 KB/s");
+        // 256 KiB/s in the file, said in the decimal units every other size uses.
+        assert_eq!(a.setting_rows()[a.selected].value, "262 kB/s");
         for _ in 0..3 {
             a.handle(Action::Right, 10);
         }
-        assert_eq!(a.setting_rows()[a.selected].value, "2 MB/s");
+        assert_eq!(a.setting_rows()[a.selected].value, "2.1 MB/s");
     }
 
     #[test]
@@ -7602,7 +9991,40 @@ mod tests {
         a.handle(Action::Back, 10);
         a.handle(Action::Back, 10);
         assert!(!a.should_quit, "back must never quit");
-        assert!(a.status.contains("Q to quit"));
+        assert!(a.toasts.iter().any(|t| t.text == "at the top — Q quits"), "{:?}", a.toasts);
+        // Said once and gone: written to the status line, it stood in for the state line there
+        // for the rest of the session.
+        assert!(a.status.is_empty(), "the status line keeps its state: {:?}", a.status);
+        for _ in 0..200 {
+            a.tick_toasts();
+        }
+        assert!(a.toasts.is_empty());
+    }
+
+    #[test]
+    fn the_way_out_names_the_key_quit_is_actually_on() {
+        let mut a = app();
+        let mut keys = std::collections::BTreeMap::new();
+        keys.insert("quit".to_string(), "ctrl+q".to_string());
+        assert!(a.keymap.apply_overrides(&keys).is_empty());
+        a.handle(Action::Back, 10);
+        assert!(
+            a.toasts.iter().any(|t| t.text == "at the top — ctrl+q quits"),
+            "{:?}",
+            a.toasts
+        );
+    }
+
+    #[test]
+    fn a_repeated_toast_is_kept_up_rather_than_stacked() {
+        let mut a = app();
+        for _ in 0..5 {
+            a.push_toast(Toast::info("saved quality"));
+        }
+        assert_eq!(a.toasts.len(), 1, "one message, said once");
+        assert_eq!(a.logs[0].count, 5, "the log still counts every one");
+        a.push_toast(Toast::info("saved theme"));
+        assert_eq!(a.toasts.len(), 2);
     }
 
     #[test]

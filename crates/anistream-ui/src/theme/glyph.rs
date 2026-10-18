@@ -33,6 +33,9 @@ pub const STATE_READY: char = '●';
 pub const STATE_DEGRADED: char = '▲';
 pub const STATE_DOWN: char = '✕';
 pub const STATE_UNKNOWN: char = '·';
+/// Off on purpose: a source left disabled, a tracker signed out. Hollow beside the filled
+/// [`STATE_READY`], and not the interpunct, which the header also uses between chip groups.
+pub const STATE_OFF: char = '○';
 
 /// Sync indicator for the status line.
 pub const SYNC: char = '⇅';

@@ -29,11 +29,10 @@ async fn main() {
     let paths = Paths::resolve().expect("paths");
     let config = Config::load(&paths).unwrap_or_default();
 
-    // A throwaway database so the probe never disturbs real history or a real outbox.
-    let db = paths.cache_dir.join("sync_probe.db");
-    let _ = std::fs::remove_file(&db);
-    std::fs::create_dir_all(&paths.cache_dir).ok();
-    let store = Store::open(&db).expect("store");
+    // A throwaway database so the probe never disturbs real history or a real outbox, in a
+    // scratch directory removed when it ends rather than left in the real cache.
+    let scratch = tempfile::tempdir().expect("scratch directory");
+    let store = Store::open(scratch.path().join("sync_probe.db")).expect("store");
     let http = HttpClient::new(&config.network).expect("http");
 
     println!("── configuration ──────────────────────────────────────");
@@ -56,7 +55,6 @@ async fn main() {
         println!("  Sign in first:");
         println!("    anistream --login         # opens a browser and waits");
         println!("    anistream --login-url     # or print the URL to open by hand");
-        let _ = std::fs::remove_file(&db);
         return;
     }
     let storage = tokens.storage_for("anilist");
@@ -70,7 +68,6 @@ async fn main() {
     let sync = anistream::tracking::Sync::with_tokens(&config, &store, &http, tokens.clone());
     let Some(tracker) = sync.trackers.first() else {
         println!("  ✕ anilist is not in trackers.enabled");
-        let _ = std::fs::remove_file(&db);
         return;
     };
     println!("  authenticated  {}", tracker.is_authenticated());
@@ -82,7 +79,6 @@ async fn main() {
         Ok(entries) => entries,
         Err(e) => {
             println!("  ✕ {e}");
-            let _ = std::fs::remove_file(&db);
             return;
         }
     };
@@ -128,7 +124,6 @@ async fn main() {
         println!("── verdict ────────────────────────────────────────────");
         println!("  ● read path works: sign-in, library pull, projection.");
         println!("  Re-run with --write to exercise a real push and revert.");
-        let _ = std::fs::remove_file(&db);
         return;
     }
 
@@ -254,7 +249,6 @@ async fn main() {
     println!("  outbox drained through the trait    ●");
     println!("  the push was visible on AniList     {}", tick(landed));
     println!("  your list was left as it was        {}", tick(restored));
-    let _ = std::fs::remove_file(&db);
 }
 
 fn tick(ok: bool) -> &'static str {

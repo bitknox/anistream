@@ -73,7 +73,9 @@ async fn main() {
 
     println!();
     println!("── session ────────────────────────────────────────────");
-    let dir = paths.cache_dir.join("torrents");
+    // A scratch directory removed when the probe ends: what it fetches is not the real cache's.
+    let scratch = tempfile::tempdir().expect("scratch directory");
+    let dir = scratch.path().join("torrents");
     let session = match TorrentSession::start(guard.clone(), dir.clone(), "probe".into()).await
     {
         Ok(s) => {

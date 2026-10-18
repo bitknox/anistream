@@ -49,6 +49,12 @@ pub struct Sync {
     /// Kept so the OAuth token exchange goes through the same configured client — including its
     /// proxy settings — as every other request.
     pub http: anistream_net::HttpClient,
+    /// Each tracker's last library pull failure and when it happened, until a pull succeeds.
+    ///
+    /// Held here rather than sent once, because every state this module publishes replaces
+    /// the previous one whole: the next drain tick would otherwise wipe the error off the
+    /// Accounts screen a minute after it appeared.
+    pub pull_errors: Arc<std::sync::Mutex<std::collections::HashMap<String, (String, i64)>>>,
 }
 
 impl Sync {
@@ -162,6 +168,20 @@ impl Sync {
             store: store.clone(),
             config: config.clone(),
             http: http.clone(),
+            pull_errors: Arc::default(),
+        }
+    }
+
+    fn pull_error(&self, tracker_id: &str) -> Option<(String, i64)> {
+        self.pull_errors.lock().ok()?.get(tracker_id).cloned()
+    }
+
+    fn note_pull(&self, tracker_id: &str, error: Option<(String, i64)>) {
+        if let Ok(mut errors) = self.pull_errors.lock() {
+            match error {
+                Some(error) => errors.insert(tracker_id.to_owned(), error),
+                None => errors.remove(tracker_id),
+            };
         }
     }
 
@@ -179,8 +199,10 @@ impl Sync {
                     storage: Some(storage.describe().to_owned()),
                     storage_degraded: storage.is_degraded(),
                     outbox: self.store.outbox_depth(Some(id)).unwrap_or(0),
+                    deferred: self.store.outbox_deferred(id).unwrap_or(0),
                     needs_reauth: false,
                     last: None,
+                    pull_error: self.pull_error(id),
                 }
             })
             .collect()
@@ -201,20 +223,25 @@ impl Sync {
             storage: Some(storage.describe().to_owned()),
             storage_degraded: storage.is_degraded(),
             outbox: self.store.outbox_depth(Some(id)).unwrap_or(0),
+            deferred: self.store.outbox_deferred(id).unwrap_or(0),
             needs_reauth,
             last,
+            pull_error: self.pull_error(id),
         }
     }
 
-    /// The first tracker's state with a freshly-read queue depth.
+    /// The state of every tracker a status or score was just queued for, with fresh depths.
     ///
-    /// Used right after queueing something, so the `⇅` badge moves the instant you act rather
-    /// than at the next drain tick.
-    pub fn state_after_enqueue(&self) -> SyncState {
-        match self.trackers.first() {
-            Some(tracker) => self.state_for(tracker.as_ref(), false, Some("queued".into())),
-            None => SyncState::default(),
-        }
+    /// Used right after queueing something, so each `⇅` badge moves the instant you act rather
+    /// than at the next drain tick. Signed-in trackers only, the set [`set_status`] queues for.
+    /// With none there is nothing to report — a blank default state here once became a
+    /// nameless row on Accounts and an empty chip in the header.
+    pub fn state_after_enqueue(&self) -> Vec<SyncState> {
+        self.trackers
+            .iter()
+            .filter(|t| t.is_authenticated())
+            .map(|t| self.state_for(t.as_ref(), false, Some("queued".into())))
+            .collect()
     }
 }
 
@@ -349,12 +376,14 @@ pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -
                 // rather than reveal it.
                 let total = row.episodes.unwrap_or(0);
                 row.progress = Some((entry.progress, (entry.progress + 1).min(total.max(1))));
+                // The one place the tracker's status for a title is known, so `a` opens on it.
+                row.list_status = Some(segment);
                 rows.push(row);
             }
             answer(Content::Entries(rows))
         }
         Err(anistream_core::Error::Auth(_)) => {
-            answer(Content::Failed("sign in again — :accounts".into()))
+            answer(Content::Failed("sign in again on the Accounts screen".into()))
         }
         Err(e) => answer(Content::Failed(e.to_string())),
     }
@@ -443,7 +472,11 @@ pub async fn drain_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
     let drains = sync.trackers.iter().map(|tracker| async move {
         match sync::drain(&sync.store, tracker.as_ref(), now).await {
             Ok(report) => {
-                let last = if report.sent > 0 {
+                let last = if report.ignored > 0 {
+                    // Said rather than folded into "sent": the tracker answered for these
+                    // titles and changed nothing.
+                    Some(format!("sent {} · {} not recognised", report.sent, report.ignored))
+                } else if report.sent > 0 {
                     Some(format!("sent {}", report.sent))
                 } else if report.failed > 0 {
                     Some("retrying".to_string())
@@ -485,11 +518,15 @@ pub async fn pull_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
 
         match reconciled {
             Ok(report) => {
+                sync.note_pull(tracker.id(), None);
                 let _ = sync.store.set_meta_i64(&pull_key(tracker.id()), now);
                 let _ = tx.send(Update::Sync(Box::new(sync.state_for(
                     tracker.as_ref(),
                     false,
-                    Some(format!("pulled {} titles", report.seen)),
+                    Some(format!(
+                        "pulled {}",
+                        anistream_ui::widgets::plural(report.seen as usize, "title")
+                    )),
                 ))));
 
                 // Conflicts are titles, so they need names — which means resolving each id
@@ -520,9 +557,17 @@ pub async fn pull_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
                     Some("sign in again".into()),
                 ))));
             }
-            // A tracker outage is expected and must not produce a toast every interval; the
-            // badge and the log carry it.
-            Err(e) => tracing::warn!(tracker = tracker.id(), error = %e, "library pull failed"),
+            // A tracker outage is expected and must not produce a toast every interval. The
+            // Accounts row carries it, with when, until a pull succeeds.
+            Err(e) => {
+                tracing::warn!(tracker = tracker.id(), error = %e, "library pull failed");
+                sync.note_pull(tracker.id(), Some((e.to_string(), now)));
+                let _ = tx.send(Update::Sync(Box::new(sync.state_for(
+                    tracker.as_ref(),
+                    false,
+                    None,
+                ))));
+            }
         }
     }
 }
@@ -807,6 +852,8 @@ async fn activate(
     // stops being dead — without this the user signs in and then waits out a hold they have
     // already resolved.
     let _ = anistream_track::sync::clear_reauth_hold(&sync.store, tracker_id);
+    // Possibly another account: what was sent to the last one says nothing about this one.
+    anistream_track::sync::forget_pushed(&sync.store, tracker_id);
     for state in sync.initial_states() {
         let _ = tx.send(Update::Sync(Box::new(state)));
     }
@@ -917,8 +964,11 @@ pub fn disconnect(sync: &Sync, tracker_id: &str, tx: &mpsc::UnboundedSender<Upda
         // The queue is deliberately left alone. Signing out is not "discard my progress", and
         // signing back in should send what accumulated.
         Ok(()) => Update::Toast(Toast::info(format!(
-            "signed out of {tracker_id} — {} queued op(s) kept",
-            sync.store.outbox_depth(Some(tracker_id)).unwrap_or(0)
+            "signed out of {tracker_id} — {} kept",
+            anistream_ui::widgets::plural(
+                sync.store.outbox_depth(Some(tracker_id)).unwrap_or(0) as usize,
+                "queued change"
+            )
         ))),
         Err(e) => Update::Toast(Toast::alert(format!("could not sign out: {e}"))),
     };
@@ -928,6 +978,7 @@ pub fn disconnect(sync: &Sync, tracker_id: &str, tx: &mpsc::UnboundedSender<Upda
     // whole of signing out, so the header badge and the Accounts list went on showing a connected
     // account until the next restart — and the trackers themselves went on pushing with the
     // credential, because they had cached it at construction.
+    anistream_track::sync::forget_pushed(&sync.store, tracker_id);
     let (sync, tx, tracker_id) = (sync.clone(), tx.clone(), tracker_id.to_owned());
     tokio::spawn(async move {
         if let Some(tracker) = sync.trackers.iter().find(|t| t.id() == tracker_id) {
@@ -981,7 +1032,7 @@ pub fn resolve_conflict(sync: &Sync, id: AnilistId, keep_local: bool) {
         return;
     }
     let now = anistream_store::now();
-    let episodes = sync.store.completed_episode_count(id).unwrap_or(0);
+    let episodes = sync.store.tracker_progress(id).unwrap_or(0);
     if episodes == 0 {
         return;
     }
@@ -1096,6 +1147,78 @@ mod tests {
         set_status(&sync, AnilistId::new(1), LibrarySegment::Completed);
         set_score(&sync, AnilistId::new(1), 8.0);
         assert_eq!(store.outbox_depth(Some("kitsu")).unwrap(), 0);
+    }
+
+    /// A tracker whose library pull fails, or succeeds, as the test sets it.
+    struct Flaky {
+        down: std::sync::atomic::AtomicBool,
+    }
+
+    #[async_trait::async_trait]
+    impl Tracker for Flaky {
+        fn id(&self) -> &str {
+            "flaky"
+        }
+        fn is_authenticated(&self) -> bool {
+            true
+        }
+        async fn pull_library(
+            &self,
+        ) -> Result<Vec<anistream_core::traits::TrackedEntry>, anistream_core::Error> {
+            if self.down.load(std::sync::atomic::Ordering::Relaxed) {
+                Err(anistream_core::Error::Network("timed out".into()))
+            } else {
+                Ok(Vec::new())
+            }
+        }
+        async fn push(&self, _: &[TrackOp]) -> Result<(), anistream_core::Error> {
+            Ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn a_failed_pull_reaches_the_accounts_row_and_a_good_one_clears_it() {
+        // Pull failures only reached the log, so Accounts went on saying "pulled 40 titles"
+        // from the last success for the length of an outage.
+        let mut config = Config::default();
+        config.trackers.enabled.clear();
+        let store = Store::open_in_memory().unwrap();
+        let http = anistream_net::HttpClient::new(&config.network).unwrap();
+        let flaky = Arc::new(Flaky { down: true.into() });
+        let sync =
+            Sync { trackers: vec![flaky.clone()], ..Sync::build(&config, &store, &http) };
+        let (tx, mut rx) = mpsc::unbounded_channel();
+
+        pull_once(&sync, &tx).await;
+        let Some(Update::Sync(state)) = rx.try_recv().ok() else { panic!("no state sent") };
+        let (error, _) = state.pull_error.expect("the failure is on the row");
+        assert!(error.contains("timed out"), "{error}");
+
+        // It survives the next drain's state, which used to replace it whole.
+        assert!(
+            sync.state_for(flaky.as_ref(), false, Some("sent 1".into())).pull_error.is_some()
+        );
+
+        flaky.down.store(false, std::sync::atomic::Ordering::Relaxed);
+        pull_once(&sync, &tx).await;
+        let Some(Update::Sync(state)) = rx.try_recv().ok() else { panic!("no state sent") };
+        assert_eq!(state.pull_error, None);
+        assert_eq!(state.last.as_deref(), Some("pulled 0 titles"));
+    }
+
+    #[test]
+    fn queueing_with_no_tracker_signed_in_reports_no_state() {
+        // A default state stood in for "no tracker", and became a nameless Accounts row.
+        let config = Config::default();
+        let store = Store::open_in_memory().unwrap();
+        let http = anistream_net::HttpClient::new(&config.network).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let tokens = TokenStore::new(dir.path()).file_only();
+        let sync = Sync::with_tokens(&config, &store, &http, tokens);
+        assert!(sync.state_after_enqueue().is_empty(), "signed-out kitsu is not queued for");
+
+        let none = Sync { trackers: Vec::new(), ..sync };
+        assert!(none.state_after_enqueue().is_empty());
     }
 
     #[test]

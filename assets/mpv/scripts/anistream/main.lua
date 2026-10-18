@@ -40,6 +40,8 @@
 --                  Esc/BS, wheel
 --   volume-up      wheel up*            always: volume +2  (*anistream mode only)
 --   volume-down    wheel down*          always: volume -2  (*anistream mode only)
+--   seek-back      Left*                always: back 5 s, exactly  (*anistream mode only)
+--   seek-forward   Right*               always: forward 5 s, exactly  (*anistream mode only)
 --   pause-click    left click*          on the picture: pause/resume after the double-click
 --                                       time; a double click stays mpv's fullscreen toggle
 --
@@ -87,9 +89,12 @@ overlay.register(menu_view)
 overlay.register(help)
 
 -- The bottom-right corner holds one element at a time, the first of these that has something
--- to show. A stall outranks everything (nothing else matters if the video is not moving); Up
--- Next outranks an ending's skip button, since playing on is the better way out of an ending.
-local CORNER = { stall, up_next, skipped, skip }
+-- to show. A stall outranks everything (nothing else matters if the video is not moving). The
+-- note after an automatic skip comes next: it is there for six seconds, and an ending skipped
+-- on its own lands where Up Next is already showing, so ranked below it the way back into the
+-- ending was never on screen and `u` was never bound. Up Next outranks an ending's skip
+-- button, since playing on is the better way out of an ending.
+local CORNER = { stall, skipped, up_next, skip }
 
 ---------------------------------------------------------------------------------------------
 -- The one refresh: visibility, keys, published state
@@ -197,6 +202,16 @@ local function refresh()
                     if wanted[key] == nil then
                         wanted[key] = fn
                     end
+                end
+            end
+        end
+        -- An ending skipped on its own puts its note over Up Next, which keeps counting down
+        -- behind it. Its keys stay live underneath, or Esc did nothing for the six seconds the
+        -- note was up and the next episode started the moment the card came back.
+        if winner == skipped and up_next.wants() and not help.is_open() then
+            for key, fn in pairs(up_next.keys()) do
+                if wanted[key] == nil then
+                    wanted[key] = fn
                 end
             end
         end
@@ -423,6 +438,14 @@ if config.opts.uosc then
     mp.add_key_binding("WHEEL_DOWN", "volume-down", function()
         volume.step(-2)
     end)
+    -- mpv's own arrows seek to a keyframe, which on HLS turned five seconds into seven or eight
+    -- either way. An exact seek decodes on from the keyframe, a matter of milliseconds.
+    mp.add_key_binding("LEFT", "seek-back", function()
+        mp.commandv("seek", "-5", "relative+exact")
+    end, { repeatable = true })
+    mp.add_key_binding("RIGHT", "seek-forward", function()
+        mp.commandv("seek", "5", "relative+exact")
+    end, { repeatable = true })
 
     -- A click on the picture pauses, a double click goes fullscreen (mpv's own MBTN_LEFT_DBL),
     -- so the single click waits out the double-click time before acting: otherwise every
