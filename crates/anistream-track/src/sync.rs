@@ -71,6 +71,16 @@ fn pushed_key(tracker_id: &str, anilist_id: anistream_core::ids::AnilistId) -> S
     format!("pushed_progress:{tracker_id}:{}", anilist_id.get())
 }
 
+/// Forget what has been sent to a tracker, when its account may have changed.
+///
+/// The memory is of a conversation with one account. Kept across a sign-in to another, it
+/// would stop the merge sending that account progress it has never been told.
+pub fn forget_pushed(store: &Store, tracker_id: &str) {
+    if let Err(e) = store.clear_meta_prefix(&format!("pushed_progress:{tracker_id}:")) {
+        tracing::warn!(tracker = tracker_id, error = %e, "could not forget sent progress");
+    }
+}
+
 /// The progress last sent to a tracker for a title.
 fn last_pushed(
     store: &Store,
@@ -812,6 +822,11 @@ mod tests {
         assert_eq!(again.queued, 0, "queued a value the tracker already had");
         assert_eq!(store.outbox_depth(Some("mock")).unwrap(), 0);
 
+        // Signing in again, perhaps to another account, starts the conversation over.
+        forget_pushed(&store, "mock");
+        assert_eq!(pull(&store, &tracker, 6_500, 6_000).await.unwrap().queued, 1);
+        drain(&store, &tracker, 6_501).await.unwrap();
+
         // Episode 13 is new, and goes out.
         store
             .record_event(&WatchEvent {
@@ -849,8 +864,8 @@ mod tests {
 
     #[test]
     fn progress_is_queued_from_completed_episodes_not_a_counter() {
-        // Rewatching must not inflate progress, so the count comes from distinct completed
-        // episodes in the log.
+        // Rewatching must not inflate progress, so it comes from the completed episodes in
+        // the log.
         let store = store_with_completed(12);
         let tracker: Arc<dyn Tracker> = Arc::new(MockTracker::new());
         queue_progress(&store, &[tracker], FRIEREN, 9_000);

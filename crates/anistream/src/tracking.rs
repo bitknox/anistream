@@ -847,6 +847,8 @@ async fn activate(
     // stops being dead — without this the user signs in and then waits out a hold they have
     // already resolved.
     let _ = anistream_track::sync::clear_reauth_hold(&sync.store, tracker_id);
+    // Possibly another account: what was sent to the last one says nothing about this one.
+    anistream_track::sync::forget_pushed(&sync.store, tracker_id);
     for state in sync.initial_states() {
         let _ = tx.send(Update::Sync(Box::new(state)));
     }
@@ -968,6 +970,7 @@ pub fn disconnect(sync: &Sync, tracker_id: &str, tx: &mpsc::UnboundedSender<Upda
     // whole of signing out, so the header badge and the Accounts list went on showing a connected
     // account until the next restart — and the trackers themselves went on pushing with the
     // credential, because they had cached it at construction.
+    anistream_track::sync::forget_pushed(&sync.store, tracker_id);
     let (sync, tx, tracker_id) = (sync.clone(), tx.clone(), tracker_id.to_owned());
     tokio::spawn(async move {
         if let Some(tracker) = sync.trackers.iter().find(|t| t.id() == tracker_id) {
