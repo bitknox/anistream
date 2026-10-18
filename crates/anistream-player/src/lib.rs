@@ -13,6 +13,7 @@ pub mod presence;
 pub mod protocol;
 pub mod skip;
 pub mod tracker;
+pub mod tracks;
 
 pub use external::ExternalPlayer;
 pub use mpv::{Mpv, MpvSession, PlaybackEvent, PlayerError, RemoteCommand};
@@ -20,3 +21,4 @@ pub use presence::{Activity, Presence};
 pub use protocol::{Command, EndReason, Event};
 pub use skip::{SkipInterval, SkipKind};
 pub use tracker::{Action, PlaybackTracker};
+pub use tracks::{TrackAction, TrackInput, TrackPolicy, TrackPreferences};
