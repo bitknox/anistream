@@ -80,6 +80,9 @@ pub enum Command {
     LoadFile {
         url: String,
         options: Vec<(String, String)>,
+        /// Whether this mpv takes the index argument added in 0.38. Before it, the options
+        /// come third, as one string; sent in the newer shape, every load failed.
+        index_slot: bool,
     },
     /// Attach an external subtitle track to the loaded file without selecting it.
     ///
@@ -135,7 +138,7 @@ impl Command {
             Self::ShowText { text, duration_ms } => {
                 vec!["show-text".into(), text.clone().into(), (*duration_ms).into()]
             }
-            Self::LoadFile { url, options } => {
+            Self::LoadFile { url, options, index_slot: true } => {
                 let options: serde_json::Map<String, serde_json::Value> =
                     options.iter().map(|(k, v)| (k.clone(), v.clone().into())).collect();
                 // The index slot is required before the options since mpv 0.38; -1 is "none".
@@ -146,6 +149,17 @@ impl Command {
                     (-1).into(),
                     options.into(),
                 ]
+            }
+            Self::LoadFile { url, options, index_slot: false } => {
+                // Before 0.38 the options are the third argument, a key-value string. Each value
+                // is length-quoted (`%N%`, bytes), so the commas and equals signs inside a
+                // header list arrive intact rather than splitting the string.
+                let joined = options
+                    .iter()
+                    .map(|(k, v)| format!("{k}=%{}%{v}", v.len()))
+                    .collect::<Vec<_>>()
+                    .join(",");
+                vec!["loadfile".into(), url.clone().into(), "replace".into(), joined.into()]
             }
             Self::SubAdd { url, title, language } => vec![
                 "sub-add".into(),
@@ -365,6 +379,48 @@ pub fn parse_line(line: &str) -> Option<Event> {
         Some("seek") | Some("playback-restart") => Some(Event::Seek),
         Some(_) => Some(Event::Ignored),
         None => Some(Event::Ignored),
+    }
+}
+
+/// mpv's version, as far as the player's choices depend on it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct MpvVersion {
+    pub major: u32,
+    pub minor: u32,
+}
+
+impl MpvVersion {
+    /// Read the version from the first line of `mpv --version`: `mpv v0.41.0 Copyright …` from
+    /// release builds, `mpv 0.35.1 Copyright …` from Debian's, `mpv v0.41.0-112-gdeadbeef` from
+    /// git builds.
+    pub fn parse(banner: &str) -> Option<Self> {
+        let version = banner.split_whitespace().nth(1)?.trim_start_matches('v');
+        let mut parts = version.split('.');
+        let major = parts.next()?.parse().ok()?;
+        let minor: String = parts.next()?.chars().take_while(char::is_ascii_digit).collect();
+        Some(Self { major, minor: minor.parse().ok()? })
+    }
+
+    const fn at_least(self, major: u32, minor: u32) -> bool {
+        self.major > major || (self.major == major && self.minor >= minor)
+    }
+
+    /// `loadfile` with an index argument before its options: 0.38.
+    pub const fn has_loadfile_index(self) -> bool {
+        self.at_least(0, 38)
+    }
+
+    /// The `user-data` property the companion is driven through, and `--osd-fonts-dir` for the
+    /// bundled font: both 0.36. Without them the companion has nothing to read and mpv refuses
+    /// the font option outright, so older players run without anistream's interface.
+    pub const fn has_companion_support(self) -> bool {
+        self.at_least(0, 36)
+    }
+}
+
+impl std::fmt::Display for MpvVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}.{}", self.major, self.minor)
     }
 }
 
@@ -791,6 +847,7 @@ mod tests {
         let command = Command::LoadFile {
             url: "https://cdn.test/a.m3u8".into(),
             options: vec![("start".into(), "12".into())],
+            index_slot: true,
         };
         let value = parsed_command(&command, 1);
         assert_eq!(value["command"][0], "loadfile");
@@ -888,5 +945,43 @@ mod tests {
         // user can cycle onto.
         let subs = [subtitle("english", "https://cdn.test/burned", true)];
         assert!(subtitle_order(&subs, Some("eng")).is_empty());
+    }
+
+    #[test]
+    fn an_older_mpv_gets_its_options_third_and_quoted() {
+        // mpv before 0.38 has no index slot; the newer shape made every load fail there.
+        let command = Command::LoadFile {
+            url: "https://cdn.test/a.m3u8".into(),
+            options: vec![
+                ("http-header-fields".into(), r"User-Agent: A (KHTML\, like Gecko)".into()),
+                ("start".into(), "12".into()),
+            ],
+            index_slot: false,
+        };
+        let value = parsed_command(&command, 1);
+        assert_eq!(value["command"][2], "replace");
+        assert_eq!(
+            value["command"][3],
+            r"http-header-fields=%34%User-Agent: A (KHTML\, like Gecko),start=%2%12"
+        );
+        assert!(value["command"].get(4).is_none());
+    }
+
+    #[test]
+    fn mpv_versions_read_from_every_banner_style() {
+        let v = |s| MpvVersion::parse(s).unwrap();
+        assert_eq!(v("mpv v0.41.0 Copyright © 2000-2025"), MpvVersion { major: 0, minor: 41 });
+        assert_eq!(v("mpv 0.35.1 Copyright © 2000-2023"), MpvVersion { major: 0, minor: 35 });
+        assert_eq!(
+            v("mpv v0.41.0-112-gdeadbeef Copyright"),
+            MpvVersion { major: 0, minor: 41 }
+        );
+        assert_eq!(v("mpv 0.40.0+git20250101 Copyright"), MpvVersion { major: 0, minor: 40 });
+        assert!(MpvVersion::parse("not mpv").is_none());
+        assert!(
+            v("mpv 0.37.0").has_companion_support() && !v("mpv 0.37.0").has_loadfile_index()
+        );
+        assert!(!v("mpv 0.35.1").has_companion_support());
+        assert!(v("mpv v0.38.0").has_loadfile_index());
     }
 }

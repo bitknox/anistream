@@ -30,7 +30,8 @@ use crate::{
     companion::{self, ScriptEvent},
     ipc::{self, IpcStream},
     protocol::{
-        Command, EndReason, Event, base_args, file_options, observed, parse_line, session_args,
+        Command, EndReason, Event, MpvVersion, base_args, file_options, observed, parse_line,
+        session_args,
     },
 };
 
@@ -166,6 +167,8 @@ pub struct MpvSession {
     /// Cleared by the reader when the socket closes, which is how a parked session that the
     /// viewer closed while it waited is told apart from one that is still there to reuse.
     alive: Arc<AtomicBool>,
+    /// Whether this mpv takes `loadfile`'s index argument (0.38 and newer).
+    loadfile_index: bool,
 }
 
 impl std::fmt::Debug for MpvSession {
@@ -255,7 +258,8 @@ impl MpvSession {
             request.dub,
         );
         tracing::info!(url = %stream.url, ?options, "loading into mpv");
-        self.send(Command::LoadFile { url: stream.url.clone(), options }).await
+        let index_slot = self.loadfile_index;
+        self.send(Command::LoadFile { url: stream.url.clone(), options, index_slot }).await
     }
 
     /// Attach a stream's external subtitle tracks to the loaded file.
@@ -390,6 +394,8 @@ pub struct Mpv {
     bundle: Option<Bundle>,
     /// `anistream-<key>=<value>` options for the companion: the palette and font.
     theme: Vec<(String, String)>,
+    /// The binary's version, read once on first use.
+    version: Arc<tokio::sync::OnceCell<Option<MpvVersion>>>,
 }
 
 impl Mpv {
@@ -401,6 +407,7 @@ impl Mpv {
             ui: PlayerUi::Mpv,
             bundle: None,
             theme: Vec::new(),
+            version: Arc::new(tokio::sync::OnceCell::new()),
         }
     }
 
@@ -474,9 +481,25 @@ impl Mpv {
         text.lines().next().map(|line| line.trim().to_owned())
     }
 
+    /// The parsed version of the configured binary, read once and kept. `None` when it could
+    /// not be run or its banner not read.
+    pub async fn mpv_version(&self) -> Option<MpvVersion> {
+        *self
+            .version
+            .get_or_init(|| async { self.version().await.and_then(|b| MpvVersion::parse(&b)) })
+            .await
+    }
+
     /// The flags that dress the player: which interface, which scripts, which font.
-    fn interface_args(&self) -> Vec<String> {
+    ///
+    /// None at all for an mpv older than 0.36: it has neither the `user-data` property the
+    /// companion is driven through nor `--osd-fonts-dir`, which it would refuse as an unknown
+    /// option and not start. Plain mpv plays; it just does not wear anistream's interface.
+    fn interface_args(&self, version: Option<MpvVersion>) -> Vec<String> {
         let Some(bundle) = &self.bundle else { return Vec::new() };
+        if version.is_some_and(|v| !v.has_companion_support()) {
+            return Vec::new();
+        }
         let mut args = Vec::new();
         let opt = |key: &str, value: &str| format!("--script-opts-append={key}={value}");
 
@@ -535,10 +558,13 @@ impl Mpv {
         let socket_path = ipc::mpv_endpoint(&self.socket_dir, next_endpoint_id());
         ipc::remove_endpoint(&socket_path).await;
 
+        // An unreadable version is taken as current: that is what nearly everyone runs, and the
+        // older paths only exist for distributions that pin an old mpv.
+        let version = self.mpv_version().await;
         let mut args = base_args(&socket_path.to_string_lossy());
         // Before the user's extra args, so `--no-fullscreen` there still wins.
         args.extend(session_args(request.speed, request.volume, request.fullscreen));
-        args.extend(self.interface_args());
+        args.extend(self.interface_args(version));
         // Last: mpv takes the last value for a repeated flag, so these genuinely override.
         args.extend(self.extra_args.iter().cloned());
 
@@ -583,6 +609,7 @@ impl Mpv {
             socket_path,
             diagnostics,
             alive,
+            loadfile_index: version.is_none_or(MpvVersion::has_loadfile_index),
         };
 
         // Observe the properties the UI needs. Without these, no position updates arrive and
@@ -770,6 +797,20 @@ mod tests {
         // `--doctor` reports both together, so a detected mpv that cannot say which build it is
         // would leave the diagnostic half-blank.
         assert!(mpv.version().await.is_some(), "a detected mpv should report a version");
+    }
+
+    #[test]
+    fn an_mpv_too_old_for_the_interface_starts_without_it() {
+        // 0.35 refuses `--osd-fonts-dir` as an unknown option and would not start at all; 0.37
+        // has everything the interface uses. An unreadable banner is taken as current.
+        let cache = tempfile::tempdir().unwrap();
+        let bundle = Bundle::materialize(cache.path()).unwrap();
+        let mpv = Mpv::new(std::env::temp_dir()).with_ui(PlayerUi::Anistream, Some(bundle));
+        let fonts = |args: Vec<String>| args.iter().any(|a| a.starts_with("--osd-fonts-dir="));
+
+        assert!(mpv.interface_args(MpvVersion::parse("mpv 0.35.1 Copyright")).is_empty());
+        assert!(fonts(mpv.interface_args(MpvVersion::parse("mpv 0.37.0 Copyright"))));
+        assert!(fonts(mpv.interface_args(None)));
     }
 
     #[tokio::test]

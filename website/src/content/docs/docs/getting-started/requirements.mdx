@@ -41,7 +41,9 @@ assembles its own crypto primitives. See
 </TabItem>
 </Tabs>
 
-- **mpv** does all playback, over JSON IPC.
+- **mpv** does all playback, over JSON IPC. The [player interface](/docs/guides/player/), with
+  the skip button, Up Next, menus and thumbnails, needs mpv 0.36 or newer. Older versions play
+  with mpv's own controls. Ubuntu 24.04 ships 0.37 and Debian 12 ships 0.35.
 - **ffmpeg** is used for remuxing and subtitle handling on downloads.
 - **cmake** builds BoringSSL for the browser-fingerprint HTTP stack.
 - **Rust 1.97.1** — the toolchain is pinned by `rust-toolchain.toml`, so `rustup` will pick it up
