@@ -10,7 +10,7 @@ use anistream_net::HttpClient;
 use anistream_providers::{ProviderRegistry, vpn::VpnGuard};
 use anistream_store::Store;
 use anistream_ui::{
-    app::{App, Content, EpisodeRow, Task, Toast, Update},
+    app::{App, Content, ContentFor, EpisodeRow, Task, Toast, Update},
     keymap::Keymap,
     screens, theme,
 };
@@ -360,18 +360,21 @@ async fn preview(
         }
         _ => {}
     }
-    app.apply(Update::Content(Content::Entries(entries)));
+    app.apply(app.content_here(Content::Entries(entries)));
     app.nav.focus_stage();
 
     match screen {
         "title" => {
-            // Fetch the full record so availability badges and the synopsis are real.
-            if let Some(first) = app.selected_entry().map(|e| e.id)
+            // Fetch the full record so availability badges and the synopsis are real. Opened
+            // first: the record is only taken for the title on screen, and opening afterwards
+            // replaced it with the list's thinner entry anyway.
+            let first = app.selected_entry().map(|e| e.id);
+            app.handle(anistream_ui::keymap::Action::Open, 20);
+            if let Some(first) = first
                 && let Ok(media) = meta.media(first).await
             {
                 app.apply(Update::Detail(Box::new(data::entry_from(&media, Some(&store)))));
             }
-            app.handle(anistream_ui::keymap::Action::Open, 20);
         }
         "episodes" => {
             if let Some(id) = app.selected_entry().map(|e| e.id) {
@@ -383,7 +386,7 @@ async fn preview(
                 let (registry, _, note) =
                     sources::build_registry(&app.config, &http, paths).await;
                 match load_episodes(&meta, &store, &registry, id).await {
-                    Ok(EpisodeLoad::Rows(rows)) => app.apply(Update::Episodes(rows)),
+                    Ok(EpisodeLoad::Rows(rows)) => app.apply(app.episodes_here(rows)),
                     // A still frame cannot answer a question, so state it and carry on.
                     Ok(EpisodeLoad::Choose { candidates, .. }) => {
                         eprintln!(
@@ -1610,6 +1613,7 @@ async fn run(
 async fn publish_list(
     meta: &Meta,
     tx: &mpsc::UnboundedSender<Update>,
+    view: ContentFor,
     entries: Vec<anistream_ui::app::Entry>,
     now: i64,
 ) {
@@ -1617,7 +1621,7 @@ async fn publish_list(
     // spend rows of a capped response on titles that cannot use them.
     let ids: Vec<anistream_core::ids::AnilistId> =
         entries.iter().filter(|e| e.airing_in.is_some()).map(|e| e.id).collect();
-    let _ = tx.send(Update::Content(Content::Entries(entries)));
+    let _ = tx.send(Update::Content { view, content: Content::Entries(entries) });
     if ids.is_empty() {
         return;
     }
@@ -1667,10 +1671,12 @@ fn spawn(
         let update = match task {
             Task::LoadContinue => match continue_entries(&meta, &store).await {
                 Ok(entries) => {
-                    publish_list(&meta, &tx, entries, now_epoch()).await;
+                    publish_list(&meta, &tx, ContentFor::Continue, entries, now_epoch()).await;
                     return;
                 }
-                Err(e) => Update::Content(Content::Failed(e)),
+                Err(e) => {
+                    Update::Content { view: ContentFor::Continue, content: Content::Failed(e) }
+                }
             },
             Task::LoadSeasonal => {
                 let (season, year) = current_season();
@@ -1681,10 +1687,14 @@ fn spawn(
                             .iter()
                             .map(|m| data::entry_from(m, Some(&store)))
                             .collect();
-                        publish_list(&meta, &tx, entries, now_epoch()).await;
+                        publish_list(&meta, &tx, ContentFor::Seasonal, entries, now_epoch())
+                            .await;
                         return;
                     }
-                    Err(e) => Update::Content(Content::Failed(e.to_string())),
+                    Err(e) => Update::Content {
+                        view: ContentFor::Seasonal,
+                        content: Content::Failed(e.to_string()),
+                    },
                 }
             }
             Task::LoadCalendar => {
@@ -1699,9 +1709,15 @@ fn spawn(
                             pages: load.pages,
                             more_past: load.more_past,
                         });
-                        Update::Content(Content::Entries(load.entries))
+                        Update::Content {
+                            view: ContentFor::Calendar,
+                            content: Content::Entries(load.entries),
+                        }
                     }
-                    Err(e) => Update::Content(Content::Failed(e)),
+                    Err(e) => Update::Content {
+                        view: ContentFor::Calendar,
+                        content: Content::Failed(e),
+                    },
                 }
             }
             Task::LoadCalendarPast { anchor, page } => {
@@ -1723,6 +1739,7 @@ fn spawn(
                 }
             }
             Task::Search { query, filter } => {
+                let view = ContentFor::Search { query: query.clone(), filter: filter.clone() };
                 let browse = anistream_meta::anilist::BrowseFilter {
                     genres: filter.genre.iter().cloned().collect(),
                     format: filter.format.clone(),
@@ -1739,10 +1756,10 @@ fn spawn(
                             .iter()
                             .map(|m| data::entry_from(m, Some(&store)))
                             .collect();
-                        publish_list(&meta, &tx, entries, now_epoch()).await;
+                        publish_list(&meta, &tx, view, entries, now_epoch()).await;
                         return;
                     }
-                    Err(e) => Update::Content(Content::Failed(e.to_string())),
+                    Err(e) => Update::Content { view, content: Content::Failed(e.to_string()) },
                 }
             }
             Task::LoadDetail(id) => {
@@ -1803,12 +1820,12 @@ fn spawn(
                     Update::Toast(Toast::alert(format!("could not reset the match: {e}")))
                 } else {
                     match load_episodes(&meta, &store, &registry, id).await {
-                        Ok(EpisodeLoad::Rows(rows)) => Update::Episodes(rows),
+                        Ok(EpisodeLoad::Rows(rows)) => Update::Episodes { id, rows },
                         Ok(EpisodeLoad::Choose { provider_id, candidates }) => {
                             Update::MatchChoices { id, provider_id, candidates }
                         }
                         Err(reason) => {
-                            let _ = tx.send(Update::Episodes(Vec::new()));
+                            let _ = tx.send(Update::Episodes { id, rows: Vec::new() });
                             Update::Toast(Toast::alert(reason))
                         }
                     }
@@ -1821,14 +1838,14 @@ fn spawn(
                     Update::Toast(Toast::alert(format!("could not save that match: {e}")))
                 } else {
                     match load_episodes(&meta, &store, &registry, id).await {
-                        Ok(EpisodeLoad::Rows(rows)) => Update::Episodes(rows),
+                        Ok(EpisodeLoad::Rows(rows)) => Update::Episodes { id, rows },
                         // The override *is* the answer, so the ladder cannot come back
                         // undecided; if it somehow does, say so rather than looping.
                         Ok(EpisodeLoad::Choose { .. }) => Update::Toast(Toast::alert(
                             "that match did not stick — the source may have changed",
                         )),
                         Err(reason) => {
-                            let _ = tx.send(Update::Episodes(Vec::new()));
+                            let _ = tx.send(Update::Episodes { id, rows: Vec::new() });
                             Update::Toast(Toast::alert(reason))
                         }
                     }
@@ -1836,14 +1853,14 @@ fn spawn(
             }
             Task::LoadEpisodes(id) => {
                 match load_episodes(&meta, &store, &registry, id).await {
-                    Ok(EpisodeLoad::Rows(rows)) => Update::Episodes(rows),
+                    Ok(EpisodeLoad::Rows(rows)) => Update::Episodes { id, rows },
                     Ok(EpisodeLoad::Choose { provider_id, candidates }) => {
                         Update::MatchChoices { id, provider_id, candidates }
                     }
                     Err(reason) => {
                         // The Episodes screen shows its own empty state, so the reason belongs
                         // in a toast rather than replacing the whole view.
-                        let _ = tx.send(Update::Episodes(Vec::new()));
+                        let _ = tx.send(Update::Episodes { id, rows: Vec::new() });
                         Update::Toast(Toast::alert(reason))
                     }
                 }
@@ -2005,7 +2022,7 @@ fn dispatch(
                     match source_slate(&meta, &store, &registry, id, &episode, translation)
                         .await
                     {
-                        Ok(sources) => Update::Sources(sources),
+                        Ok(candidates) => Update::Sources { id, episode, candidates },
                         Err(reason) => Update::Toast(Toast::alert(reason)),
                     };
                 let _ = tx.send(update);

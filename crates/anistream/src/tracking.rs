@@ -21,7 +21,7 @@ use anistream_store::Store;
 use anistream_track::{AniListTracker, TokenStore, auth, sync};
 use anistream_ui::{
     LibrarySegment,
-    app::{ConflictRow, SyncState, Toast, Update},
+    app::{ConflictRow, ContentFor, SyncState, Toast, Update},
 };
 use tokio::sync::mpsc;
 
@@ -317,20 +317,24 @@ impl anistream_track::kitsu::IdMapping for StoreMapping {
 pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -> Update {
     use anistream_ui::app::Content;
 
+    // Tagged with its segment: switching tabs while a pull is in flight must not show this one
+    // under the next tab's heading.
+    let answer = |content| Update::Content { view: ContentFor::Library(segment), content };
+
     let Some(tracker) = sync.trackers.first() else {
-        return Update::Content(Content::Entries(Vec::new()));
+        return answer(Content::Entries(Vec::new()));
     };
     if !tracker.is_authenticated() {
         // Not a failure. The Library screen renders its own "no account" state, which explains
         // that history works regardless.
-        return Update::Content(Content::Entries(Vec::new()));
+        return answer(Content::Entries(Vec::new()));
     }
 
     // The concrete handle, kept alongside the trait object rather than reached by downcasting:
     // the trait returns only the syncable projection, but this screen needs covers and titles
     // too, and fetching those per title would cost a request each against thirty a minute.
     let Some(anilist) = sync.anilist.as_ref() else {
-        return Update::Content(Content::Entries(Vec::new()));
+        return answer(Content::Entries(Vec::new()));
     };
 
     match anilist.library().await {
@@ -347,12 +351,12 @@ pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -
                 row.progress = Some((entry.progress, (entry.progress + 1).min(total.max(1))));
                 rows.push(row);
             }
-            Update::Content(Content::Entries(rows))
+            answer(Content::Entries(rows))
         }
         Err(anistream_core::Error::Auth(_)) => {
-            Update::Content(Content::Failed("sign in again — :accounts".into()))
+            answer(Content::Failed("sign in again — :accounts".into()))
         }
-        Err(e) => Update::Content(Content::Failed(e.to_string())),
+        Err(e) => answer(Content::Failed(e.to_string())),
     }
 }
 
