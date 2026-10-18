@@ -3035,20 +3035,17 @@ impl App {
     }
 
     /// Advance the eyecatch one frame, dropping it when the wipe finishes.
+    ///
+    /// A wipe that reaches its deadline reveals without a word. Its clock starts at the keypress,
+    /// so most of what it covers is the search for a source, which the activity row is already
+    /// narrating — alerting on it said the player never started before mpv had been asked to.
+    /// A player that does start and then shows nothing is the playback's to say, timed from
+    /// when mpv was handed the file.
     pub fn tick_animation(&mut self) {
-        if let Some(eyecatch) = &mut self.eyecatch {
-            let gave_up = eyecatch.timed_out();
-            if !eyecatch.advance() {
-                self.eyecatch = None;
-                // A wipe that simply ends reads as success. This one is not: the player never
-                // reported a position, so say so rather than dropping the user onto a screen
-                // that looks like nothing happened.
-                if gave_up {
-                    self.push_toast(Toast::alert(
-                        "the player never started — press x to stop, and check `mpv` runs on its own",
-                    ));
-                }
-            }
+        if let Some(eyecatch) = &mut self.eyecatch
+            && !eyecatch.advance()
+        {
+            self.eyecatch = None;
         }
     }
 
@@ -5479,6 +5476,19 @@ mod tests {
             a.tick_animation();
         }
         assert!(a.eyecatch.is_none(), "the wipe never finished");
+    }
+
+    #[test]
+    fn a_wipe_that_reaches_its_deadline_reveals_without_blaming_the_player() {
+        // The deadline is counted from the keypress, so a slow source search reached it before
+        // mpv had been started. The playback says when a started player shows nothing.
+        let mut a = app_at_episodes();
+        a.handle(Action::Open, 20);
+        for _ in 0..crate::eyecatch::MAX_HOLD_FRAMES + crate::eyecatch::SWEEP_FRAMES * 2 {
+            a.tick_animation();
+        }
+        assert!(a.eyecatch.is_none(), "the wipe never ended");
+        assert!(a.toasts.iter().all(|t| t.kind != ToastKind::Alert), "{:?}", a.toasts);
     }
 
     #[test]

@@ -997,7 +997,7 @@ impl Run<'_> {
                 // during a legitimate pause — mpv keeps reporting `time-pos` while paused.
                 _ = tokio::time::sleep(FIRST_FRAME_TIMEOUT), if !ever_played && !warned => {
                     let _ = tx.send(Update::Toast(Toast::alert(format!(
-                        "mpv has not started playing after {}s — the source may have no data, or check `mpv` plays a file on its own",
+                        "mpv has not started playing after {}s — press x to stop; the source may have no data, or check `mpv` plays a file on its own",
                         FIRST_FRAME_TIMEOUT.as_secs()
                     ))));
                     // Deliberately not a stop. mpv may still be buffering a slow torrent, and
