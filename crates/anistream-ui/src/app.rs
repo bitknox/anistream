@@ -6140,7 +6140,7 @@ mod tests {
     fn enter_on_providers_opens_the_stores_from_the_rail_too() {
         let mut a = app();
         a.go_to_section(Section::Providers);
-        assert_eq!(a.nav.focus(), Focus::Rail);
+        a.nav.focus_rail();
         assert_eq!(a.handle(Action::Open, 20), Some(Task::LoadStores));
         assert_eq!(a.nav.current(), &StageView::Stores);
         assert_eq!(a.nav.focus(), Focus::Stage);
@@ -6890,6 +6890,19 @@ mod tests {
             a.selected,
             a.offset
         );
+    }
+
+    #[test]
+    fn every_number_jump_lands_on_the_stage_and_the_rail_keeps_the_rail() {
+        for n in 1..=9u8 {
+            let mut a = app();
+            a.handle(Action::JumpSection(n), 5);
+            assert_eq!(a.nav.focus(), Focus::Stage, "{n}");
+        }
+        let mut a = app();
+        a.handle(Action::Down, 5);
+        assert_eq!(a.nav.section(), Section::Calendar);
+        assert_eq!(a.nav.focus(), Focus::Rail);
     }
 
     #[test]

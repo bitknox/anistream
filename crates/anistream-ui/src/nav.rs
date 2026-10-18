@@ -333,10 +333,16 @@ impl Nav {
         }
     }
 
-    /// Jump to a rail section, resetting the stage.
+    /// Jump to a rail section, resetting the stage, with the keyboard in it.
     ///
     /// Also clears any manual rail override: the user asked for a different place, so the
     /// automatic width for that place is the right starting point.
+    ///
+    /// Focus lands on the stage for every section. A jump names where you want to be, and
+    /// Search has to land there or the first letters typed would be swallowed as navigation —
+    /// so the other sections landing on the rail made `4` behave unlike every other number,
+    /// and left `j` walking the rail away from the section just jumped to. Stepping the rail
+    /// with the arrows keeps the rail focused; that is the caller's to say.
     pub fn go_to(&mut self, section: Section) {
         // Overlays go with the stage they were opened over. An overlay asks a question about
         // one title — "which release?", "what status?" — and the answer is applied to whatever
@@ -347,7 +353,7 @@ impl Nav {
         self.section = section;
         self.stage = vec![StageView::Section(section)];
         self.rail_override = None;
-        self.focus = if section == Section::Search { Focus::Stage } else { Focus::Rail };
+        self.focus = Focus::Stage;
     }
 
     /// Push a view onto the stage.
@@ -576,14 +582,15 @@ mod tests {
     }
 
     #[test]
-    fn search_focuses_the_stage_so_typing_goes_to_the_query() {
-        // Landing on the rail would mean the first keystrokes are swallowed as navigation.
-        let mut nav = Nav::new();
-        nav.go_to(Section::Search);
-        assert_eq!(nav.focus(), Focus::Stage);
-
-        nav.go_to(Section::Seasonal);
-        assert_eq!(nav.focus(), Focus::Rail);
+    fn a_jump_lands_on_the_stage_for_every_section() {
+        // Search has to — landing on the rail would swallow the first keystrokes as
+        // navigation — and every other section lands the same way, so a number key means one
+        // thing wherever it is pressed.
+        for section in Section::ALL {
+            let mut nav = Nav::new();
+            nav.go_to(section);
+            assert_eq!(nav.focus(), Focus::Stage, "{section:?}");
+        }
     }
 
     #[test]
