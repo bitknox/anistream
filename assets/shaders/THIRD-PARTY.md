@@ -11,13 +11,12 @@ The licences are not all the same. Read the table before redistributing.
 |---|---|---|
 | MIT | `Anime4K_*.glsl` | `LICENSE-Anime4K` |
 | MIT | `ArtCNN_C4F16.glsl` | `LICENSE-ArtCNN` |
-| **CC BY-NC 4.0** (model weights) + MIT (ArtCNN architecture) | `AniSD_ArtCNN_C4F32_i4.glsl`, `Ani4Kv2_ArtCNN_C4F32_i2.glsl` | `LICENSE-Upscale-Hub`, `LICENSE-ArtCNN` |
+| **CC BY-NC 4.0** (model weights) + MIT (ArtCNN architecture) | `AniSD_ArtCNN_C4F32_i4.glsl` | `LICENSE-Upscale-Hub`, `LICENSE-ArtCNN` |
 | LGPL-3.0-or-later | `KrigBilateral.glsl`, `SSimDownscaler.glsl` | `LICENSE-LGPL-3.0` (which incorporates `LICENSE-GPL-3.0`) |
 
 ## The non-commercial files
 
-`AniSD_ArtCNN_C4F32_i4.glsl` and `Ani4Kv2_ArtCNN_C4F32_i2.glsl` are **not MIT**. They are
-models trained by Sirosky on the ArtCNN architecture and distributed under Creative Commons
+`AniSD_ArtCNN_C4F32_i4.glsl` is **not MIT**. It is a model trained by Sirosky on the ArtCNN architecture and distributed under Creative Commons
 Attribution-NonCommercial 4.0 International. anistream bundles them because it is free,
 open source and non-commercial, which that licence allows, with attribution. The
 attribution header at the top of each file is the author's and stays intact.
@@ -70,7 +69,7 @@ Source: `https://raw.githubusercontent.com/Artoriuz/ArtCNN/f606e1f0ba7e6f0ab5504
 `LICENSE-ArtCNN` is the repository's `LICENSE` at the same commit
 (`285055c4b8b8bcb891685ca9cc6047baf25a8c1cf56e8ab2cbcdecaea0437c0b`).
 
-### AniSD ArtCNN and Ani4K v2 ArtCNN — Sirosky/Upscale-Hub, CC BY-NC 4.0
+### AniSD ArtCNN — Sirosky/Upscale-Hub, CC BY-NC 4.0
 
 Release assets, which carry no separate commit; the repository's `main` was
 `0498c4147df8f76d224b71a27b832c89934c1e70` when they were fetched.
@@ -78,7 +77,6 @@ Release assets, which carry no separate commit; the repository's `main` was
 | File | Source | SHA-256 |
 |---|---|---|
 | `AniSD_ArtCNN_C4F32_i4.glsl` | `https://github.com/Sirosky/Upscale-Hub/releases/download/AniSD-ArtCNN/AniSD_ArtCNN_C4F32_i4.glsl` (release `AniSD-ArtCNN`, 2024-06-29) | `7790bf1372250f9b429a198b8b603dd0b0b8a72edf7670003bb1df79fca3d46d` |
-| `Ani4Kv2_ArtCNN_C4F32_i2.glsl` | `https://github.com/Sirosky/Upscale-Hub/releases/download/Ani4k-v2-ArtCNN/Ani4Kv2_ArtCNN_C4F32_i2.glsl` (release `Ani4k-v2-ArtCNN`, 2024-06-23) | `c92fabe5990edb0582bae020e1b1d4728bc1bb2e8bdc45f68d7f2c94f1b046ab` |
 
 `LICENSE-Upscale-Hub` is `LICENSE.md` at `0498c4147df8f76d224b71a27b832c89934c1e70`
 (`75aec2004e672b5677a971f641e8b6ea787eda444635bbbb19253d37c83080ec`), the full
@@ -88,7 +86,9 @@ What the models are for, from the author's release notes and wiki: AniSD targets
 standard-definition anime (DVD and SD web, roughly 2000s onward) and aims for faithful,
 natural output; Ani4K v2 targets modern HD anime, from Blu-ray to heavily compressed web
 releases, upscaled to 2K or 4K. The author's sample mpv auto-profile assigns 720p and
-1080p to Ani4K v2 and 480/540/576 to AniSD. The `i2`/`i4` suffixes are the author's
+1080p to Ani4K v2 and 480/540/576 to AniSD. Ani4K v2 is not shipped: it only just held real
+time on a 720p source on an M4 Pro, and ArtCNN C4F16 looked nearly the same at a fraction of
+the cost (see `crates/anistream/src/shaders.rs`). The `i2`/`i4` suffixes are the author's
 training-iteration tags; neither the releases nor the wiki define them further, and only
 one of each is published. The `_CMP` compute variants were not taken: on this Mac (`gpu-next` over MoltenVK) they
 cost about the same as the fragment versions, and the author notes they may only work

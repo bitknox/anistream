@@ -44,7 +44,7 @@ fn context(episode: &str, next: Option<&str>) -> PlaybackContext {
         runtime_secs: None,
         speed: None,
         volume: None,
-        next: next.map(|n| NextEpisode { number: n.into(), title: None }),
+        next: next.map(|n| NextEpisode { number: n.into(), title: None, thumbnail: None }),
         episodes: Vec::new(),
     }
 }

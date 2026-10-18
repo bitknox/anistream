@@ -64,6 +64,8 @@ pub struct PlaybackContext {
 pub struct NextEpisode {
     pub number: String,
     pub title: Option<String>,
+    /// The episode's still, by URL, for the Up Next card.
+    pub thumbnail: Option<String>,
 }
 
 impl NextEpisode {
@@ -420,6 +422,12 @@ pub async fn play(
         cancel_next: false,
         night_applied: false,
         night: settings.night_mode,
+        still: None,
+        // Fetched alongside everything else rather than before it: the card is minutes away
+        // and the episode should not wait on a picture.
+        still_fetch: context.next.as_ref().and_then(|n| n.thumbnail.clone()).map(|url| {
+            tokio::spawn(fetch_still(http.clone(), url, mpv.scratch_dir().to_path_buf()))
+        }),
     };
 
     // Read once: every stream this playback tries is the same series in the same translation.
@@ -709,20 +717,16 @@ struct Run<'a> {
     /// Night mode as the viewer last set it, and whether this window has it applied.
     night: bool,
     night_applied: bool,
+    /// The next episode's still once written out, and the fetch while it is still under way.
+    still: Option<companion::Still>,
+    still_fetch: Option<tokio::task::JoinHandle<Option<companion::Still>>>,
 }
 
 impl Run<'_> {
     /// Tell the companion what it is showing: the episode, what follows, the menus.
     async fn publish(&mut self, session: &MpvSession, streams: &[Stream], current: usize) {
         let context = self.context;
-        let ending = self.skips.iter().find(|s| s.kind == SkipKind::Ending).map(|s| s.start);
-        let next = context.next.as_ref().map(|next| companion::NextUp {
-            number: next.number.clone(),
-            label: next.label(),
-            title: next.title.clone(),
-            at: ending,
-            auto: self.settings.auto_next && !self.cancel_next,
-        });
+        let next = self.next_up();
         let commands = [
             companion::state("episode", &context.episode_info()),
             match &next {
@@ -743,6 +747,19 @@ impl Run<'_> {
             let _ = session.send(command).await;
         }
         self.apply_night(session).await;
+    }
+
+    /// What the Up Next card shows, as it stands now.
+    fn next_up(&self) -> Option<companion::NextUp> {
+        let ending = self.skips.iter().find(|s| s.kind == SkipKind::Ending).map(|s| s.start);
+        self.context.next.as_ref().map(|next| companion::NextUp {
+            number: next.number.clone(),
+            label: next.label(),
+            title: next.title.clone(),
+            at: ending,
+            auto: self.settings.auto_next && !self.cancel_next,
+            thumbnail: self.still.clone(),
+        })
     }
 
     fn menus(&self, streams: &[Stream], current: usize) -> companion::Menus {
@@ -852,6 +869,7 @@ impl Run<'_> {
         let mut stall_shown = false;
         let mut stall_dismissed = false;
         let mut stall_tick = tokio::time::interval(Duration::from_secs(1));
+        let mut still_fetch = self.still_fetch.take();
 
         let outcome = loop {
             // Controls and events are interleaved rather than polled in turn: a keystroke must
@@ -880,6 +898,16 @@ impl Run<'_> {
                     // killing it would turn a wait into a failure; the user now knows and can
                     // press `x`.
                     warned = true;
+                    continue;
+                }
+                fetched = async { still_fetch.as_mut().expect("guarded").await },
+                    if still_fetch.is_some() =>
+                {
+                    still_fetch = None;
+                    self.still = fetched.ok().flatten();
+                    if let Some(next) = self.next_up() {
+                        let _ = session.send(companion::state("next", &next)).await;
+                    }
                     continue;
                 }
                 _ = stall_tick.tick(), if stalled_since.is_some() => {
@@ -1062,6 +1090,8 @@ impl Run<'_> {
             }
         };
 
+        // An unfinished fetch carries over to the next stream this playback tries.
+        self.still_fetch = still_fetch;
         // Cleared before anything else, so quitting never leaves a stale "watching" up.
         rpc.finish().await;
         let _ = session.send(companion::skip_clear()).await;
@@ -1306,6 +1336,43 @@ fn remember_tracks(
             tracing::warn!(error = %e, "could not remember track choices");
         }
     });
+}
+
+/// The size the Up Next still is written at: 16:9, large enough to stay sharp when the card is
+/// drawn at HiDPI scale, small enough to write in a few milliseconds.
+const STILL: (u32, u32) = (640, 360);
+
+/// Fetch an episode still and write it as raw BGRA for `overlay-add`.
+///
+/// Cropped to fill 16:9 rather than letterboxed: stills arrive in every shape and the card has
+/// one. `None` on any failure — the card simply shows no picture.
+async fn fetch_still(
+    http: HttpClient,
+    url: String,
+    dir: std::path::PathBuf,
+) -> Option<companion::Still> {
+    let response = http.plain().get(&url).send().await.ok()?.error_for_status().ok()?;
+    let bytes = response.bytes().await.ok()?;
+    tokio::task::spawn_blocking(move || {
+        let (width, height) = STILL;
+        let image = image::load_from_memory(&bytes).ok()?;
+        let mut pixels = image
+            .resize_to_fill(width, height, image::imageops::FilterType::Lanczos3)
+            .to_rgba8()
+            .into_raw();
+        // mpv's overlays are BGRA; swap red and blue in place.
+        for pixel in pixels.chunks_exact_mut(4) {
+            pixel.swap(0, 2);
+        }
+        let name = format!("upnext-{}.bgra", anistream_ui::image::stable_hash(&url));
+        let path = dir.join(name);
+        std::fs::create_dir_all(&dir).ok()?;
+        std::fs::write(&path, &pixels).ok()?;
+        Some(companion::Still { path: path.to_string_lossy().into_owned(), width, height })
+    })
+    .await
+    .ok()
+    .flatten()
 }
 
 /// The skip kind as the companion names it.

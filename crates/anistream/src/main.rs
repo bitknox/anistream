@@ -3212,6 +3212,7 @@ fn episode_extras(
     let next = app.next_up(id, episode).map(|row| playback::NextEpisode {
         number: row.number.clone(),
         title: row.title.clone(),
+        thumbnail: row.thumbnail.clone(),
     });
     let rows = app
         .episode_rows_for(id)

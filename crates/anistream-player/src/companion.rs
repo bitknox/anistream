@@ -47,6 +47,16 @@ pub struct NextUp {
     pub at: Option<f64>,
     /// Whether the episode will roll on by itself at the end.
     pub auto: bool,
+    /// The episode's still, once it has been fetched and written out for `overlay-add`.
+    pub thumbnail: Option<Still>,
+}
+
+/// An image the companion can show with `overlay-add`: raw BGRA, `width * 4` bytes a row.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Still {
+    pub path: String,
+    pub width: u32,
+    pub height: u32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -336,6 +346,7 @@ mod tests {
             title: None,
             at: Some(1310.0),
             auto: true,
+            thumbnail: None,
         };
         let Command::SetUserData(key, value) = state("next", &next) else { panic!() };
         assert_eq!(key, "next");

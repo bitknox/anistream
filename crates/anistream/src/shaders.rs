@@ -3,7 +3,7 @@
 //!
 //! - **Natural** is ArtCNN: small convolutional luma doublers trained to reconstruct, not
 //!   to restyle. The model follows the source — AniSD for standard-definition masters,
-//!   Ani4K v2 for modern HD, plain ArtCNN where cost decides — with KrigBilateral
+//!   plain ArtCNN for HD — with KrigBilateral
 //!   rebuilding chroma from luma and SSimDownscaler taking the doubled image back down when
 //!   it overshoots the display.
 //! - **Sharp** is Anime4K's own presets: restore, then upscale, with modes A/B/C picked per
@@ -19,9 +19,8 @@
 //! directory by [`materialize`], so the feature works offline and no setting ever points at
 //! a file the user has to find. Provenance is in `assets/shaders/THIRD-PARTY.md`. Licences
 //! differ and matter: Anime4K and ArtCNN are MIT; KrigBilateral and SSimDownscaler are
-//! LGPL-3.0; **the AniSD and Ani4K v2 models are CC BY-NC 4.0**, bundled because
-//! anistream is free and non-commercial — anyone redistributing anistream commercially
-//! must drop those two files.
+//! LGPL-3.0; **the AniSD model is CC BY-NC 4.0**, bundled because anistream is free and
+//! non-commercial — anyone redistributing anistream commercially must drop that file.
 
 use std::hash::{Hash, Hasher};
 use std::path::{Path, PathBuf};
@@ -65,7 +64,6 @@ const SHADERS: &[Shader] = &[
     shader!("ArtCNN_C4F16.glsl"),
     // ArtCNN-architecture models trained by Sirosky (CC BY-NC 4.0, not MIT).
     shader!("AniSD_ArtCNN_C4F32_i4.glsl"),
-    shader!("Ani4Kv2_ArtCNN_C4F32_i2.glsl"),
     // igv's mpv shaders (LGPL-3.0).
     shader!("KrigBilateral.glsl"),
     shader!("SSimDownscaler.glsl"),
@@ -83,7 +81,6 @@ const NOTICES: &[Shader] = &[
 ];
 
 const ANISD: &str = "AniSD_ArtCNN_C4F32_i4.glsl";
-const ANI4KV2: &str = "Ani4Kv2_ArtCNN_C4F32_i2.glsl";
 const ARTCNN_LIGHT: &str = "ArtCNN_C4F16.glsl";
 const KRIG: &str = "KrigBilateral.glsl";
 const SSIM: &str = "SSimDownscaler.glsl";
@@ -275,13 +272,15 @@ const LEVELS: u8 = 2;
 ///    larger than the display. Sharp, when the scale is 1.0–1.3 and the tier has a
 ///    restore pass (modes A/B), runs Anime4K's Restore at native size — Anime4K documents
 ///    that mode A improves 1080p on a 1080p screen — and otherwise falls to chroma only.
-/// 5. **Natural upscaling** follows the model authors: AniSD for SD, Ani4K v2 for 720p
-///    (Sirosky's own auto-profile puts 480/540/576 on AniSD and 720p and 1080p on Ani4K
-///    v2). 1080p-class sources use ArtCNN C4F16 instead: every C4F32-sized network
-///    doubles 2.25× the pixels of 720p there, and on an M4 Pro (16-core GPU, fullscreen
-///    3024×1701) Ani4K v2 and plain ArtCNN C4F32 both drop frames at real time on a
-///    1080p source, while C4F16 holds 1.5× real time. KrigBilateral always; SSimDownscaler
-///    when the doubled image overshoots the display (scale < 2).
+/// 5. **Natural upscaling**: AniSD for SD, as its author's own auto-profile assigns it, and
+///    ArtCNN C4F16 for everything HD. The author's profile puts 720p and 1080p on the Ani4K
+///    v2 model instead, and it was measured: on an M4 Pro (16-core GPU, fullscreen
+///    3024×1701) Ani4K v2 only just holds real time on a 720p source and drops frames on
+///    1080p, as does plain ArtCNN C4F32, while C4F16 holds 2× on 720p and 1.5× on 1080p.
+///    Side by side at 2× zoom the difference from Ani4K v2 is slight; a default that
+///    stutters on most machines until the governor steps in is not, so it is not shipped.
+///    KrigBilateral always; SSimDownscaler when the doubled image overshoots the display
+///    (scale < 2).
 /// 6. **Sharp upscaling** uses Anime4K's documented presets by tier, as its quick-usage
 ///    table assigns them: mode C for 480p, B for 720p, A for 1080p; HQ (VL networks) at
 ///    full budget and Fast (M) one step down. 1080p starts at Fast for the same reason as
@@ -332,8 +331,7 @@ pub fn choose(look: Look, source: &Source, display: Option<Display>, budget: Bud
         Look::Natural => {
             let rungs: &[(&str, &str)] = match tier {
                 Tier::Sd => &[(ANISD, "ArtCNN AniSD"), (ARTCNN_LIGHT, "ArtCNN C4F16")],
-                Tier::Hd => &[(ANI4KV2, "ArtCNN Ani4K v2"), (ARTCNN_LIGHT, "ArtCNN C4F16")],
-                Tier::Fhd => &[(ARTCNN_LIGHT, "ArtCNN C4F16")],
+                Tier::Hd | Tier::Fhd => &[(ARTCNN_LIGHT, "ArtCNN C4F16")],
             };
             let Some(&(model, label)) = rungs.get(usize::from(level)) else {
                 return chroma();
@@ -632,7 +630,7 @@ mod tests {
         assert_eq!(sd.files, [ANISD, KRIG]);
         assert_eq!(sd.upscaler, Some("ArtCNN"));
         let hd = choose(Look::Natural, &HD, Some(MAC), FULL);
-        assert_eq!(hd.files, [ANI4KV2, KRIG]);
+        assert_eq!(hd.files, [ARTCNN_LIGHT, KRIG]);
         let fhd = choose(Look::Natural, &FHD, Some(MAC), FULL);
         assert_eq!(fhd.files, [ARTCNN_LIGHT, KRIG, SSIM]);
     }
@@ -698,7 +696,7 @@ mod tests {
     #[test]
     fn an_unknown_display_is_treated_as_1080p() {
         assert_eq!(choose(Look::Natural, &FHD, None, FULL).files, [KRIG]);
-        assert_eq!(choose(Look::Natural, &HD, None, FULL).files[0], ANI4KV2);
+        assert_eq!(choose(Look::Natural, &HD, None, FULL).files[0], ARTCNN_LIGHT);
         let zero = Some(Display { width: 0, height: 0 });
         assert_eq!(
             choose(Look::Natural, &HD, zero, FULL),
@@ -790,11 +788,9 @@ mod tests {
 
     #[test]
     fn non_commercial_models_keep_their_attribution_header() {
-        for name in [ANISD, ANI4KV2] {
-            let body = SHADERS.iter().find(|s| s.name == name).unwrap().body;
-            assert!(body.starts_with("// "), "{name}");
-            assert!(body.lines().next().unwrap().contains("CC BY-NC 4.0"), "{name}");
-        }
+        let body = SHADERS.iter().find(|s| s.name == ANISD).unwrap().body;
+        assert!(body.starts_with("// "));
+        assert!(body.lines().next().unwrap().contains("CC BY-NC 4.0"));
     }
 
     #[test]
