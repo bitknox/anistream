@@ -107,3 +107,8 @@ The image is published when a `v*` tag is pushed, so the templates above only wo
 has been tagged. GHCR makes a new package private: after the first publish, open the package's
 settings on GitHub (Packages, anistream-store, Package settings) and change its visibility to
 public once, or the platforms cannot pull it.
+
+The serverless templates carry the store as committed WebAssembly. After changing the store's
+crates, a dependency they compile or the toolchain, run `deploy/sync.sh` and commit what it
+writes; CI's `deploy/sync.sh --check` fails until then. A release changes the crates' version, so
+it needs the same.

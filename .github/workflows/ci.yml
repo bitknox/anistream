@@ -98,20 +98,25 @@ jobs:
         run: git diff --exit-code -- ../assets/admin
 
   # The serverless deploy templates carry the store as committed WebAssembly, so deploying one
-  # from its button never needs Rust. This rebuilds it and fails if any committed copy differs.
-  # sync.sh rewrites the paths that would otherwise differ between machines, and wasm-pack is
-  # pinned because it chooses the wasm-opt that shapes the output.
+  # from its button never needs Rust. The package cannot be compared byte for byte with a build
+  # here: cargo mixes the host into every crate's identity, and wasm-bindgen's exported names
+  # carry it. So sync.sh records a fingerprint of the sources it built from, this fails when the
+  # sources have moved on or a template's copy differs, and the build below proves it still
+  # compiles. store-templates runs the committed copies through the whole store journey.
   store-wasm:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - run: rustup toolchain install && rustup target add wasm32-unknown-unknown
+      - name: The committed package matches its sources
+        run: deploy/sync.sh --check
       - uses: taiki-e/install-action@v2
         with:
           tool: wasm-pack@0.13.1
-      - run: deploy/sync.sh
-      - name: The committed builds match their source
-        run: git diff --exit-code -- deploy
+      - name: It still builds
+        run: >-
+          wasm-pack build crates/anistream-store-wasm --release --target web
+          --out-dir "$RUNNER_TEMP/store-wasm" --out-name store --no-pack
 
   # Each serverless template, run on the runner the way its platform runs it, through the whole
   # journey a store's owner and members take: claim, publish in parts, join, download in ranges,
