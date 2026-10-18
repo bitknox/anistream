@@ -1218,6 +1218,12 @@ pub enum Update {
         url: String,
         image: Box<image::DynamicImage>,
     },
+    /// A cover could not be fetched or decoded. Silent: the plate stays, and the URL is tried
+    /// again later. `offline` means the server was not reached at all.
+    ImageFailed {
+        url: String,
+        offline: bool,
+    },
     /// The download queue, replacing whatever was there.
     Downloads(Vec<DownloadRow>),
     /// Watched episodes still seeding, replacing whatever was there.
@@ -1661,7 +1667,11 @@ impl App {
             }
             Update::Status(status) => self.status = status,
             Update::Toast(toast) => self.push_toast(toast),
-            Update::Image { url, image } => self.images.insert(&url, *image),
+            Update::Image { url, image } => {
+                self.images.insert(&url, *image);
+                self.images.requests().network_returned();
+            }
+            Update::ImageFailed { url, offline } => self.images.mark_failed(&url, offline),
             Update::Providers(rows) => self.providers = rows,
             Update::MetaStatus(rows) => self.meta_status = rows,
             Update::Stores(rows) => self.apply_stores(rows),
@@ -2868,7 +2878,12 @@ impl App {
                 let store = self.members_view()?.to_owned();
                 return Some(Task::LoadMembers { store });
             }
-            Action::Refresh => return self.reload(),
+            Action::Refresh => {
+                // Asking again means the covers too: one that failed while the network was
+                // down should not wait out its backoff once you have said it is back.
+                self.images.requests().retry_failed();
+                return self.reload();
+            }
             Action::ToggleTranslation => {
                 self.config.playback.translation = self.config.playback.translation.toggled();
                 self.push_toast(Toast::info(format!(
