@@ -432,6 +432,7 @@ pub async fn play(
         cancel_next: false,
         night_applied: false,
         night: settings.night_mode,
+        prefetch_sent: false,
         look: settings.look,
         tone_mapping: settings.tone_mapping.clone(),
         hdr: None,
@@ -730,6 +731,8 @@ struct Run<'a> {
     /// Night mode as the viewer last set it, and whether this window has it applied.
     night: bool,
     night_applied: bool,
+    /// Whether the next episode has been asked to be found ahead.
+    prefetch_sent: bool,
     /// The upscaling look and HDR curve as the viewer last chose them in the player.
     look: Look,
     tone_mapping: String,
@@ -765,6 +768,29 @@ impl Run<'_> {
             let _ = session.send(command).await;
         }
         self.apply_night(session).await;
+    }
+
+    /// Ask for the next episode's streams once this one's ending begins.
+    ///
+    /// Only when the episode will roll on by itself: fetching ahead for a viewer who stops at
+    /// the end would be a search, and for a torrent a download, nobody asked for.
+    fn maybe_prefetch(&mut self, position: f64, duration: Option<f64>) {
+        if self.prefetch_sent || !self.settings.auto_next || self.cancel_next {
+            return;
+        }
+        let Some(next) = &self.context.next else { return };
+        let ending = self.skips.iter().find(|s| s.kind == SkipKind::Ending).map(|s| s.start);
+        let at = ending.or_else(|| {
+            duration.filter(|d| *d > 2.0 * PREFETCH_LEAD).map(|d| d - PREFETCH_LEAD)
+        });
+        if at.is_some_and(|at| position >= at) {
+            self.prefetch_sent = true;
+            tracing::info!(episode = %next.number, "finding the next episode ahead");
+            let _ = self.tx.send(Update::PrefetchNext {
+                id: self.context.anilist_id,
+                episode: next.number.clone(),
+            });
+        }
     }
 
     /// What the Up Next card shows, as it stands now.
@@ -1146,6 +1172,7 @@ impl Run<'_> {
                 // Our own `loadfile` ending the file it replaced; nothing to record.
                 PlaybackEvent::Replaced => continue,
                 PlaybackEvent::Progress { position, duration } => {
+                    self.maybe_prefetch(*position, *duration);
                     if !ever_played {
                         ever_played = true;
                         let _ = session
@@ -1495,6 +1522,9 @@ fn remember_tracks(
         }
     });
 }
+
+/// How long before the end the next episode is found, when the ending's start is not known.
+const PREFETCH_LEAD: f64 = 90.0;
 
 /// How often the battery is asked about during playback.
 const BATTERY_POLL: Duration = Duration::from_secs(60);

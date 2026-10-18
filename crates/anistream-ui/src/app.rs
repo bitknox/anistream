@@ -928,6 +928,12 @@ pub enum Update {
     PlayerNightMode(bool),
     /// An HDR tone-mapping curve picked in the player.
     PlayerToneMapping(String),
+    /// The episode playing has reached its ending: find the next one's streams now, so Up Next
+    /// can start it without a search.
+    PrefetchNext {
+        id: AnilistId,
+        episode: String,
+    },
     /// Playhead moved.
     Playback {
         position: f64,
@@ -1460,6 +1466,13 @@ impl App {
                             value: anistream_core::settings::SettingValue::Str(name),
                         });
                     }
+                }
+            }
+            Update::PrefetchNext { id, episode } => {
+                // Best effort: an ending that arrives while something else holds the slot simply
+                // plays the next episode the usual way.
+                if self.pending.is_none() {
+                    self.pending = Some(Task::Prefetch { id, episode });
                 }
             }
             Update::PlayerToneMapping(curve) => {
@@ -3894,6 +3907,12 @@ impl Task {
 /// Asynchronous work requested by the reducer.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Task {
+    /// Resolve an episode's streams ahead of playing it, quietly, for a [`Task::Play`] of the
+    /// same episode to pick up.
+    Prefetch {
+        id: AnilistId,
+        episode: String,
+    },
     /// What you were watching, from local history.
     ///
     /// Named for what it is. It used to be `LoadTrending` and it fetched the current season, which
@@ -4707,6 +4726,20 @@ mod tests {
         let resume = a.detail.as_ref().unwrap().resume.expect("no resume point");
         assert_eq!(resume.position, 600.0);
         assert_eq!(resume.fraction, Some(0.5));
+    }
+
+    #[test]
+    fn an_ending_asks_for_the_next_episode_without_taking_a_busy_slot() {
+        let mut a = app();
+        a.apply(Update::PrefetchNext { id: AnilistId::new(3), episode: "6".into() });
+        assert_eq!(
+            a.take_pending(),
+            Some(Task::Prefetch { id: AnilistId::new(3), episode: "6".into() })
+        );
+        // Best effort: a slot already holding work keeps it.
+        a.apply(Update::PlayerNightMode(true));
+        a.apply(Update::PrefetchNext { id: AnilistId::new(3), episode: "6".into() });
+        assert!(matches!(a.take_pending(), Some(Task::SaveSetting { .. })));
     }
 
     #[test]

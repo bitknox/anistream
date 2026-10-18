@@ -184,3 +184,34 @@ async fn a_newer_playback_takes_the_window_mid_episode() {
     assert!(!spawned(&second), "the new playback plays in the handed-over window");
     assert_eq!(ended(&second), Some(true));
 }
+
+fn prefetches(updates: &[Update]) -> Vec<String> {
+    updates
+        .iter()
+        .filter_map(|u| match u {
+            Update::PrefetchNext { episode, .. } => Some(episode.clone()),
+            _ => None,
+        })
+        .collect()
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn the_next_episode_is_asked_for_near_the_end_when_it_will_roll_on() {
+    // A 200-second episode started 5 seconds from its end is well past the 90-second lead.
+    let Some((mpv, _dir)) = player().await else { return };
+    let slot = PlayerSlot::default();
+    let near_end = |next| PlaybackContext { resume_at: Some(195.0), ..context("1", next) };
+
+    let (_keep, commands) = mpsc::unbounded_channel();
+    let rolls_on =
+        run(&mpv, &slot, clip(200), near_end(Some("2")), settings(true), commands).await;
+    assert_eq!(prefetches(&rolls_on), ["2"], "asked for once, for the episode that follows");
+
+    // Without auto-next nothing would play it, so nothing is fetched for it either.
+    slot.release();
+    let (_keep, commands) = mpsc::unbounded_channel();
+    let stops =
+        run(&mpv, &slot, clip(200), near_end(Some("2")), settings(false), commands).await;
+    assert!(prefetches(&stops).is_empty());
+    slot.release();
+}

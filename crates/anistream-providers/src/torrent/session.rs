@@ -96,9 +96,15 @@ pub struct ActiveStream {
     server: StreamServer,
     pub file: TorrentFile,
     pub torrent_id: TorrentIdOrHash,
+    /// librqbit's torrent id and the file's index: what makes two streams the same stream.
+    key: (usize, usize),
 }
 
 impl ActiveStream {
+    fn torrent_id_and_file(&self) -> (usize, usize) {
+        self.key
+    }
+
     /// URL to hand to a player.
     pub fn url(&self) -> &str {
         self.server.url()
@@ -250,8 +256,10 @@ fn fresh_token() -> String {
 pub struct TorrentSession {
     session: Arc<Session>,
     guard: VpnGuard,
-    /// Kept alive so the server is torn down when a new episode starts.
-    active: Mutex<Option<Arc<ActiveStream>>>,
+    /// The stream servers alive right now, oldest first: the episode playing and, while its
+    /// ending runs, the next one being fetched ahead. Starting a third drops the oldest, which
+    /// frees its port and stops work on an episode nobody is watching.
+    active: Mutex<std::collections::VecDeque<Arc<ActiveStream>>>,
     token: String,
     /// Where librqbit writes. Kept so a finished download can be found on disk — the session knows
     /// the file's *name*, and only this makes that into a path.
@@ -267,8 +275,28 @@ pub struct TorrentSession {
     download_ids: Mutex<std::collections::HashSet<usize>>,
 }
 
-/// Streamed swarms kept live: the current episode and the previous one.
-const KEPT_STREAMS: usize = 2;
+/// Stream servers kept at once: the episode playing and the next one, fetched ahead.
+const KEPT_SERVERS: usize = 2;
+
+/// Streamed swarms kept live: the previous episode (still seeding while watched), the current
+/// one, and the next one fetched ahead during the ending.
+const KEPT_STREAMS: usize = 3;
+
+/// Add a stream server to the kept window.
+///
+/// The same file asked for again (a rewatch, a retried resolution) replaces its old server rather
+/// than taking a second place; past [`KEPT_SERVERS`], the oldest goes.
+fn admit<T>(
+    window: &mut std::collections::VecDeque<T>,
+    stream: T,
+    same: impl Fn(&T, &T) -> bool,
+) {
+    window.retain(|kept| !same(kept, &stream));
+    window.push_back(stream);
+    while window.len() > KEPT_SERVERS {
+        window.pop_front();
+    }
+}
 
 /// A torrent being fetched to completion.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -333,7 +361,7 @@ impl TorrentSession {
         Ok(Self {
             session,
             guard,
-            active: Mutex::new(None),
+            active: Mutex::new(std::collections::VecDeque::new()),
             token,
             output_dir: download_dir,
             stream_history: Mutex::new(std::collections::VecDeque::new()),
@@ -441,12 +469,14 @@ impl TorrentSession {
 
         let active = Arc::new(ActiveStream {
             server,
+            key: (handle.id(), file.index),
             file,
             torrent_id: TorrentIdOrHash::Id(handle.id()),
         });
 
-        // Replacing the previous stream drops its server, freeing the port and stopping
-        // work on an episode nobody is watching.
+        // A stream beyond the kept window drops its server, freeing the port and stopping work
+        // on an episode nobody is watching. Two are kept so the next episode can be fetched
+        // ahead while the current one is still being served.
         //
         // `into_inner` on poisoning rather than skipping the write, which is what `if let Ok`
         // did here and at every other lock in this file. A panic elsewhere would have turned
@@ -454,8 +484,10 @@ impl TorrentSession {
         // VPN guard's teardown becomes a no-op exactly when it is most needed. The rest of the
         // workspace already recovers rather than skips.
         {
-            let mut slot = self.active.lock().unwrap_or_else(|e| e.into_inner());
-            *slot = Some(Arc::clone(&active));
+            let mut servers = self.active.lock().unwrap_or_else(|e| e.into_inner());
+            admit(&mut servers, Arc::clone(&active), |a, b| {
+                a.torrent_id_and_file() == b.torrent_id_and_file()
+            });
         }
 
         // Retire streams beyond the kept window, oldest first. Files stay on disk — a
@@ -618,12 +650,9 @@ impl TorrentSession {
         &self.output_dir
     }
 
-    /// Drop the loopback stream server, without touching the torrent.
+    /// Drop every loopback stream server, without touching the torrents.
     pub fn stop(&self) {
-        {
-            let mut slot = self.active.lock().unwrap_or_else(|e| e.into_inner());
-            *slot = None;
-        }
+        self.active.lock().unwrap_or_else(|e| e.into_inner()).clear();
     }
 
     /// Halt all torrent traffic because the guard started leaking.
@@ -889,6 +918,23 @@ mod tests {
             // Binding a listener can fail in a sandbox; that is not what this test is about.
             Err(e) => eprintln!("session start unavailable in this environment: {e}"),
         }
+    }
+
+    #[test]
+    fn the_next_episode_is_served_beside_the_one_playing() {
+        // Fetching the next episode ahead during an ending must not take the server the
+        // current episode is playing from.
+        let mut window = std::collections::VecDeque::new();
+        let same = |a: &(usize, usize), b: &(usize, usize)| a == b;
+        admit(&mut window, (1, 0), same);
+        admit(&mut window, (2, 0), same);
+        assert_eq!(window, [(1, 0), (2, 0)], "playing and next are both served");
+        // Another episode of the same season pack is a different stream.
+        admit(&mut window, (2, 1), same);
+        assert_eq!(window, [(2, 0), (2, 1)], "the oldest goes, not the one playing");
+        // Asking for a file already served replaces it rather than evicting the other.
+        admit(&mut window, (2, 0), same);
+        assert_eq!(window, [(2, 1), (2, 0)]);
     }
 
     /// A stream source that must never be opened.

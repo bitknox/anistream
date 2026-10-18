@@ -56,7 +56,8 @@ offers to undo it.
 
 Near the end of an episode, from the start of its ending when that is known, an Up Next card shows
 the next episode's still and title. With `auto_next = true` the next episode starts in the same
-window when this one ends. Cancel keeps the player where it is.
+window when this one ends. Its streams are found while the ending plays, so it starts without a
+search, and a torrent has its first pieces by then. Cancel keeps the player where it is.
 
 ## Menus
 
