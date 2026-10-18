@@ -3072,6 +3072,7 @@ fn redefines_sources(table: &[&str], key: &str) -> bool {
 struct TorrentTasks {
     downloads: Option<tokio::task::JoinHandle<()>>,
     watcher: Option<tokio::task::JoinHandle<()>>,
+    seeding: Option<tokio::task::JoinHandle<()>>,
     session: Option<Arc<anistream_providers::torrent::TorrentSession>>,
 }
 
@@ -3085,7 +3086,7 @@ impl TorrentTasks {
         let Some((guard, session)) = guard.clone() else {
             // No session means no downloads, which is correct rather than a limitation:
             // every downloadable source here is a torrent.
-            return Self { downloads: None, watcher: None, session: None };
+            return Self { downloads: None, watcher: None, seeding: None, session: None };
         };
 
         let downloads =
@@ -3097,7 +3098,14 @@ impl TorrentTasks {
             leaking: !guard.state().is_protected(),
         });
         let watcher = tokio::spawn(vpn_watch(guard, session.clone(), tx.clone()));
-        Self { downloads: Some(downloads), watcher: Some(watcher), session: Some(session) }
+        let seeding =
+            tokio::spawn(seeding_watch(session.clone(), Arc::clone(config), tx.clone()));
+        Self {
+            downloads: Some(downloads),
+            watcher: Some(watcher),
+            seeding: Some(seeding),
+            session: Some(session),
+        }
     }
 
     /// Stop everything and halt the session before letting go of it.
@@ -3109,8 +3117,51 @@ impl TorrentTasks {
         if let Some(session) = self.session.take() {
             session.halt().await;
         }
-        for task in [self.downloads.take(), self.watcher.take()].into_iter().flatten() {
+        for task in [self.downloads.take(), self.watcher.take(), self.seeding.take()]
+            .into_iter()
+            .flatten()
+        {
             task.abort();
+        }
+    }
+}
+
+/// Keep the session's seeding in line with the settings, retire watched episodes that have
+/// given back enough, and tell the Downloads screen what is still seeding.
+///
+/// Reads the shared config each tick rather than being told about changes: a setting saved on
+/// the Settings screen reaches the session within one tick, upload cap included, with no
+/// rebuild of the source (which would tear down the episode playing).
+async fn seeding_watch(
+    session: Arc<anistream_providers::torrent::TorrentSession>,
+    config: anistream::SharedConfig,
+    tx: mpsc::UnboundedSender<Update>,
+) {
+    let mut ticker = tokio::time::interval(Duration::from_secs(10));
+    let mut shown: Option<Vec<anistream_ui::app::SeedRow>> = None;
+    loop {
+        ticker.tick().await;
+        let goal =
+            config.read().map(|c| c.providers.torrent.seeding.clone()).unwrap_or_default();
+        session.configure_seeding(&goal).await;
+        let rows: Vec<anistream_ui::app::SeedRow> = session
+            .reap_seeding()
+            .await
+            .into_iter()
+            .map(|seed| anistream_ui::app::SeedRow {
+                name: seed.name,
+                uploaded_bytes: seed.uploaded_bytes,
+                ratio: seed.ratio,
+                goal: goal.ratio,
+                left_secs: seed.left.as_secs(),
+            })
+            .collect();
+        // Only when it changed: an idle screen should not redraw every ten seconds for nothing.
+        if shown.as_ref() != Some(&rows) {
+            if tx.send(Update::Seeding(rows.clone())).is_err() {
+                break;
+            }
+            shown = Some(rows);
         }
     }
 }

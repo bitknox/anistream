@@ -562,6 +562,42 @@ pub struct TorrentConfig {
     /// Reserved. Accepted so existing configs keep parsing; currently has no effect —
     /// ranking always trusts the feed's live seeder counts.
     pub max_seeders_age_days: Option<u32>,
+    /// Giving back after an episode has been watched.
+    pub seeding: SeedingConfig,
+}
+
+/// Seeding streamed episodes after they stop playing, and a cap on upload.
+///
+/// An episode uploads to its swarm while it plays either way. These decide what happens after:
+/// with `ratio` at 0 a finished episode stops seeding once newer ones push it out of the session,
+/// within minutes; above 0 it keeps seeding, while anistream is open, until it has given back
+/// that multiple of what it took or `hours` have passed. Off by default for the same reason as
+/// `downloads.keep_seeding`: seeding advertises you as a source for as long as it runs, and that
+/// is not something to switch on for anyone silently.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default, deny_unknown_fields)]
+pub struct SeedingConfig {
+    /// Seed each watched episode until it has uploaded this many times what was downloaded.
+    /// `0` turns seeding after watching off.
+    pub ratio: f64,
+    /// The longest any one episode keeps seeding, whatever its ratio.
+    pub hours: u32,
+    /// Total upload across every torrent, in KiB/s. `0` is unlimited. Worth setting on a slow
+    /// uplink, where seeding could otherwise crowd out the requests the playing episode needs.
+    pub upload_limit_kib: u32,
+}
+
+impl Default for SeedingConfig {
+    fn default() -> Self {
+        Self { ratio: 0.0, hours: 24, upload_limit_kib: 0 }
+    }
+}
+
+impl SeedingConfig {
+    /// Whether watched episodes keep seeding at all.
+    pub fn enabled(&self) -> bool {
+        self.ratio > 0.0 && self.hours > 0
+    }
 }
 
 impl TorrentConfig {

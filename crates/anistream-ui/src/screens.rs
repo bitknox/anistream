@@ -730,6 +730,13 @@ fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
         render_placeholder(buf, app, area, "DOWNLOADS", "not enough room");
         return;
     }
+    // What is still seeding after watching takes the bottom of the screen, so the queue above
+    // keeps its own layout whether or not anything is seeding.
+    let seeding = seeding_height(app, area);
+    if seeding > 0 {
+        render_seeding(buf, app, Rect { y: area.bottom() - seeding, height: seeding, ..area });
+    }
+    let area = Rect { height: area.height - seeding, ..area };
     let mut y = area.top();
     buf.set_string(area.left(), y, glyph::eyebrow("title"), app.palette.style(Role::TextDim));
     let state_x = area.left() + (area.width * 2 / 5).min(46);
@@ -838,6 +845,73 @@ fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
                 app.palette.style(role),
             );
         }
+    }
+}
+
+/// Rows the seeding section needs: a rule, a heading and one row per torrent, at most four,
+/// and none on a screen too short to spare them from the queue.
+fn seeding_height(app: &App, area: Rect) -> u16 {
+    if app.seeding.is_empty() {
+        return 0;
+    }
+    let wanted = 2 + app.seeding.len().min(4) as u16;
+    if area.height < wanted + MIN_TABLE_HEIGHT { 0 } else { wanted }
+}
+
+/// Watched episodes still seeding: each one's progress towards its ratio, the time it has
+/// left and what it has given back. Shown so seeding is never something happening unseen.
+fn render_seeding(buf: &mut Buffer, app: &App, area: Rect) {
+    let mut y = area.top();
+    Hairline::new(&app.palette).render(Rect { y, height: 1, ..area }, buf);
+    y += 1;
+    buf.set_string(
+        area.left(),
+        y,
+        glyph::eyebrow("seeding after watching"),
+        app.palette.style(Role::TextDim),
+    );
+    y += 1;
+    let state_x = area.left() + (area.width * 2 / 5).min(46);
+    for seed in app.seeding.iter().take(4) {
+        if y >= area.bottom() {
+            break;
+        }
+        buf.set_string(
+            area.left() + 2,
+            y,
+            truncate(&seed.name, state_x.saturating_sub(area.left() + 3) as usize),
+            app.palette.style(Role::Text),
+        );
+        if state_x < area.right() {
+            let fraction =
+                if seed.goal > 0.0 { (seed.ratio / seed.goal).min(1.0) } else { 0.0 };
+            let detail = format!(
+                "  {:.1} of {:.1} · {} left · {} up",
+                seed.ratio,
+                seed.goal,
+                time_left(seed.left_secs),
+                human_bytes(seed.uploaded_bytes)
+            );
+            let room = area.right().saturating_sub(state_x) as usize;
+            let meter_width = room.saturating_sub(detail.chars().count()).min(12);
+            set_meter(buf, state_x, y, &app.palette, fraction, meter_width, Role::State);
+            buf.set_string(
+                state_x + meter_width as u16,
+                y,
+                truncate(&detail, room.saturating_sub(meter_width)),
+                app.palette.style(Role::TextDim),
+            );
+        }
+        y += 1;
+    }
+}
+
+/// Seeding time left at the scale it runs on: hours, then minutes in the last one.
+fn time_left(secs: u64) -> String {
+    if secs >= 3600 {
+        format!("{} h", secs.div_ceil(3600))
+    } else {
+        format!("{} min", secs.div_ceil(60))
     }
 }
 
@@ -2790,6 +2864,23 @@ mod tests {
         assert!(row.contains("listing sources for ep 10"), "the newest job leads: {row:?}");
         let caption = row.trim_end_matches(['─', ' ']);
         assert!(caption.ends_with("+3"), "the other three are counted: {row:?}");
+    }
+
+    #[test]
+    fn the_downloads_screen_says_what_is_still_seeding() {
+        let mut app = app_with(Content::Loading);
+        app.go_to_section(Section::Downloads);
+        app.apply(Update::Seeding(vec![crate::app::SeedRow {
+            name: "Show - 05.mkv".into(),
+            uploaded_bytes: 300 * 1024 * 1024,
+            ratio: 0.4,
+            goal: 1.0,
+            left_secs: 18 * 3600,
+        }]));
+        let screen = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(screen.contains("SEEDING AFTER WATCHING") || screen.contains("seeding after watching"));
+        assert!(screen.contains("Show - 05.mkv"), "{screen}");
+        assert!(screen.contains("0.4 of 1.0 · 18 h left"), "{screen}");
     }
 
     #[test]

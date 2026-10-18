@@ -95,6 +95,9 @@ pub enum SettingId {
     PresenceTitle,
     Torrents,
     VpnMode,
+    SeedRatio,
+    SeedHours,
+    UploadLimit,
     TokenStorage,
     Syncplay,
     SyncplayServer,
@@ -105,7 +108,7 @@ pub enum SettingId {
 impl SettingId {
     /// Display order. Grouped by [`Self::category`] — the renderer draws a heading each
     /// time the category changes, so rows of one category must be contiguous here.
-    pub const ALL: [Self; 27] = [
+    pub const ALL: [Self; 30] = [
         Self::Theme,
         Self::Motion,
         Self::Translation,
@@ -126,6 +129,9 @@ impl SettingId {
         Self::DownloadHook,
         Self::Torrents,
         Self::VpnMode,
+        Self::SeedRatio,
+        Self::SeedHours,
+        Self::UploadLimit,
         Self::Presence,
         Self::PresenceTitle,
         Self::TokenStorage,
@@ -169,7 +175,11 @@ impl SettingId {
             | Self::MergeSubtitles
             | Self::KeepSeeding
             | Self::DownloadHook => "downloads",
-            Self::Torrents | Self::VpnMode => "sources",
+            Self::Torrents
+            | Self::VpnMode
+            | Self::SeedRatio
+            | Self::SeedHours
+            | Self::UploadLimit => "sources",
             Self::Presence
             | Self::PresenceTitle
             | Self::TokenStorage
@@ -209,6 +219,9 @@ impl SettingId {
             Self::Presence => "discord presence",
             Self::PresenceTitle => "presence shows the title",
             Self::Torrents => "torrent source",
+            Self::SeedRatio => "seed after watching",
+            Self::SeedHours => "seed for at most",
+            Self::UploadLimit => "upload limit",
             Self::VpnMode => "vpn mode",
             Self::TokenStorage => "token storage",
         }
@@ -263,10 +276,20 @@ fn table_path(dotted: &'static str) -> &'static [&'static str] {
         "playback" => &["playback"],
         "presence" => &["presence"],
         "providers.torrent" => &["providers", "torrent"],
+        "providers.torrent.seeding" => &["providers", "torrent", "seeding"],
         "downloads" => &["downloads"],
         "syncplay" => &["syncplay"],
         "updates" => &["updates"],
         other => unreachable!("no table path for {other}"),
+    }
+}
+
+/// An upload cap as people read it: `unlimited`, `512 KB/s`, `2 MB/s`.
+fn upload_label(kib: u32) -> String {
+    match kib {
+        0 => "unlimited".into(),
+        k if k >= 1024 && k % 1024 == 0 => format!("{} MB/s", k / 1024),
+        k => format!("{k} KB/s"),
     }
 }
 
@@ -550,6 +573,19 @@ pub struct MetaSourceRow {
     /// The rung that answered the most recent request.
     pub active: bool,
     pub detail: Option<String>,
+}
+
+/// A watched episode still seeding, as the Downloads screen lists it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SeedRow {
+    pub name: String,
+    pub uploaded_bytes: u64,
+    /// Uploaded over what this machine has of it.
+    pub ratio: f64,
+    /// The ratio it is seeding towards.
+    pub goal: f64,
+    /// Until the time limit retires it.
+    pub left_secs: u64,
 }
 
 /// One row of the timing-sheet episode table.
@@ -978,6 +1014,8 @@ pub enum Update {
     },
     /// The download queue, replacing whatever was there.
     Downloads(Vec<DownloadRow>),
+    /// Watched episodes still seeding, replacing whatever was there.
+    Seeding(Vec<SeedRow>),
     /// A device-flow code the user has to type somewhere else.
     ///
     /// Its own update rather than a status string or a toast, because it has to survive for up to
@@ -1035,6 +1073,8 @@ pub struct App {
     pub vpn_leaking: bool,
     /// The download queue, as the Downloads screen shows it.
     pub downloads: Vec<DownloadRow>,
+    /// Watched episodes still seeding, for the Downloads screen.
+    pub seeding: Vec<SeedRow>,
     /// A device code awaiting approval, shown on the Accounts screen.
     pub device_code: Option<DeviceCodePrompt>,
     /// Snapshot for the Providers screen.
@@ -1178,6 +1218,7 @@ impl App {
             overlay_selected: 0,
             pulse: 0,
             downloads: Vec::new(),
+            seeding: Vec::new(),
             device_code: None,
             reload_countdown: None,
             episodes_loading: false,
@@ -1318,6 +1359,7 @@ impl App {
                 }
             }
             Update::DeviceCode(prompt) => self.device_code = prompt,
+            Update::Seeding(rows) => self.seeding = rows,
             Update::Downloads(rows) => {
                 self.downloads = rows;
                 // The cursor has to stay in range: a completed row being cleared shortens the list
@@ -3062,6 +3104,25 @@ impl App {
                         None,
                         Some("edit config.toml — turning this off has to be deliberate"),
                     ),
+                    S::SeedRatio => (
+                        if torrent.seeding.ratio > 0.0 {
+                            format!("until ratio {:.1}", torrent.seeding.ratio)
+                        } else {
+                            "off".into()
+                        },
+                        Some(("providers.torrent.seeding", "ratio")),
+                        Some("keeps watched episodes seeding while anistream is open"),
+                    ),
+                    S::SeedHours => (
+                        format!("{} h", torrent.seeding.hours),
+                        Some(("providers.torrent.seeding", "hours")),
+                        Some("the longest one episode keeps seeding, whatever its ratio"),
+                    ),
+                    S::UploadLimit => (
+                        upload_label(torrent.seeding.upload_limit_kib),
+                        Some(("providers.torrent.seeding", "upload_limit_kib")),
+                        Some("caps all torrent upload, so seeding never slows playback"),
+                    ),
                     S::TokenStorage => (
                         self.config.trackers.token_storage.clone(),
                         None,
@@ -3212,6 +3273,27 @@ impl App {
             SettingId::Torrents => {
                 self.config.providers.torrent.enabled = !self.config.providers.torrent.enabled;
                 V::Bool(self.config.providers.torrent.enabled)
+            }
+            SettingId::SeedRatio => {
+                // Tenths, so the ladder can be matched exactly rather than as floats.
+                const LADDER: [u32; 5] = [0, 5, 10, 15, 20];
+                let seeding = &mut self.config.providers.torrent.seeding;
+                let current = (seeding.ratio * 10.0).round() as u32;
+                seeding.ratio = f64::from(step_through(&LADDER, current, delta)) / 10.0;
+                V::Float(seeding.ratio)
+            }
+            SettingId::SeedHours => {
+                const LADDER: [u32; 5] = [1, 6, 12, 24, 72];
+                let seeding = &mut self.config.providers.torrent.seeding;
+                seeding.hours = step_through(&LADDER, seeding.hours, delta);
+                V::Int(i64::from(seeding.hours))
+            }
+            SettingId::UploadLimit => {
+                const LADDER: [u32; 6] = [0, 256, 512, 1024, 2048, 5120];
+                let seeding = &mut self.config.providers.torrent.seeding;
+                seeding.upload_limit_kib =
+                    step_through(&LADDER, seeding.upload_limit_kib, delta);
+                V::Int(i64::from(seeding.upload_limit_kib))
             }
             SettingId::VpnMode | SettingId::TokenStorage => return None,
             // Text values are typed, not cycled — arrows have nothing to step through.
@@ -5832,6 +5914,48 @@ mod tests {
             a.toasts.iter().any(|t| t.text.contains("config.toml")),
             "a read-only row must explain itself"
         );
+    }
+
+    #[test]
+    fn seeding_is_set_from_the_settings_screen() {
+        use anistream_core::settings::SettingValue;
+        let mut a = app();
+        a.go_to_section(Section::Settings);
+        a.nav.focus_stage();
+        let at = |id| SettingId::ALL.iter().position(|row| *row == id).unwrap();
+
+        // Off by default; one step right turns it on, at a modest ratio.
+        a.selected = at(SettingId::SeedRatio);
+        assert_eq!(a.config.providers.torrent.seeding.ratio, 0.0);
+        assert_eq!(
+            a.handle(Action::Right, 10),
+            Some(Task::SaveSetting {
+                table: &["providers", "torrent", "seeding"],
+                key: "ratio",
+                value: SettingValue::Float(0.5),
+            })
+        );
+        assert!(a.config.providers.torrent.seeding.enabled());
+
+        a.selected = at(SettingId::SeedHours);
+        assert_eq!(
+            a.handle(Action::Right, 10),
+            Some(Task::SaveSetting {
+                table: &["providers", "torrent", "seeding"],
+                key: "hours",
+                value: SettingValue::Int(72),
+            })
+        );
+
+        a.selected = at(SettingId::UploadLimit);
+        let rows = a.setting_rows();
+        assert_eq!(rows[a.selected].value, "unlimited");
+        a.handle(Action::Right, 10);
+        assert_eq!(a.setting_rows()[a.selected].value, "256 KB/s");
+        for _ in 0..3 {
+            a.handle(Action::Right, 10);
+        }
+        assert_eq!(a.setting_rows()[a.selected].value, "2 MB/s");
     }
 
     #[test]
