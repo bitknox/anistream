@@ -1748,8 +1748,42 @@ async fn run(
         }
     };
 
+    stop_for_exit(&app, &player_tx, &mut rx).await;
     restore_terminal(&mut terminal)?;
     result
+}
+
+/// How long quitting waits for the playback to record where it was left.
+const EXIT_FLUSH: Duration = Duration::from_secs(2);
+
+/// Stop what is playing, and wait briefly for it to record where it ended.
+///
+/// The tracker writes a history row every ten seconds of playback, so quitting with an episode
+/// open lost up to that much of the resume point: the runtime took mpv down with it, and the
+/// position since the last row went too. Stopped the way `x` stops it, the playback writes its
+/// last row before it reports the ending, which is what this waits for. Only when a playback is
+/// under way: one still finding a source has nothing to save, and the wait would only delay
+/// the exit.
+async fn stop_for_exit(
+    app: &App,
+    player_tx: &Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+    rx: &mut mpsc::UnboundedReceiver<Update>,
+) {
+    let under_way = app.playing.as_ref().is_some_and(|playing| playing.duration.is_some());
+    let Some(controls) = player_tx.as_ref().filter(|_| under_way) else { return };
+    if controls.send(anistream_ui::PlayerCommand::Stop).is_err() {
+        return;
+    }
+    let ended = async {
+        while let Some(update) = rx.recv().await {
+            if matches!(update, Update::PlaybackEnded { .. }) {
+                break;
+            }
+        }
+    };
+    if tokio::time::timeout(EXIT_FLUSH, ended).await.is_err() {
+        tracing::warn!("the player did not stop in time; its last position may be lost");
+    }
 }
 
 /// Publish a list, then follow up with the broadcast dates it needs a second request for.

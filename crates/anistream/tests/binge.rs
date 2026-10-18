@@ -569,6 +569,35 @@ async fn nothing_follows_the_finale() {
     assert!(slot.take().is_none(), "a finale must not leave a window parked");
 }
 
+#[tokio::test(flavor = "multi_thread")]
+async fn stopping_records_where_it_was_left_before_saying_it_ended() {
+    // Quitting the app stops the player this way and waits for the ending, so whatever the
+    // ending reports has to already be in the history: a row is otherwise written only every
+    // ten seconds of playback.
+    let Some((mpv, _dir)) = player().await else { return };
+    let slot = PlayerSlot::default();
+    let (controls, commands) = mpsc::unbounded_channel();
+    let store = Store::open_in_memory().unwrap();
+    let (task, mut rx) = start(
+        &mpv,
+        &slot,
+        vec![clip(60)],
+        context("1", None),
+        settings(true),
+        commands,
+        store.clone(),
+    );
+    let seen = until_playing(&mut rx).await;
+    tokio::time::sleep(Duration::from_secs(3)).await;
+    controls.send(PlayerCommand::Stop).unwrap();
+    let updates = finish(task, rx, seen).await;
+
+    assert_eq!(ended(&updates).map(|(_, ending)| ending), Some(Ending::Stopped));
+    let last = store.events_for(AnilistId::new(1), 1).unwrap();
+    let position = last.first().map(|e| e.position_secs).unwrap_or_default();
+    assert!(position >= 2.5, "the last row is from {position}s, not where it stopped");
+}
+
 /// Read one property from the player window in `dir`.
 async fn ask_mpv(dir: &std::path::Path, property: &str) -> serde_json::Value {
     use tokio::io::AsyncBufReadExt;
