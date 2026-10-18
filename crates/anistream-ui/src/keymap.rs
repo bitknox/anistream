@@ -702,8 +702,11 @@ impl Keymap {
 
     /// Apply `[keys]` overrides from config.
     ///
-    /// Returns the specs it could not understand, so a typo is reported rather than
-    /// silently leaving the default in place and looking like the rebind was ignored.
+    /// Returns the specs it refused, so a typo is reported rather than silently leaving the
+    /// default in place and looking like the rebind was ignored. A rebind onto a key another
+    /// action keeps is refused the same way: taking it would leave that action with no key and
+    /// nothing said, which is how `back = "x"` quietly removed *remove from continue watching*.
+    /// Moving the other action too frees the key, so swapping two keys works.
     pub fn apply_overrides(&mut self, overrides: &BTreeMap<String, String>) -> Vec<String> {
         // Playback actions are rebindable too, and each has to land back in the table it came
         // from — putting `pause` in the browsing table would break `Space` in every list.
@@ -715,6 +718,9 @@ impl Keymap {
             .collect();
 
         let mut rejected = Vec::new();
+        // Every rebind is read before any is applied: whether a key is free depends on the
+        // others, since a key one rebind takes may be one another rebind moves away from.
+        let mut wanted: Vec<(&str, Action, bool, Binding, &str)> = Vec::new();
         for (action_name, spec) in overrides {
             let Some((action, is_playback)) = by_key.get(action_name) else {
                 rejected.push(format!("unknown action {action_name:?}"));
@@ -724,11 +730,69 @@ impl Keymap {
                 rejected.push(format!("cannot parse key {spec:?} for {action_name}"));
                 continue;
             };
+            wanted.push((action_name, *action, *is_playback, binding, spec));
+        }
+
+        let mut accepted = vec![true; wanted.len()];
+        // Two rebinds asking for one key: neither is more right than the other, so neither
+        // gets it.
+        for i in 0..wanted.len() {
+            for j in 0..i {
+                let (a, b) = (&wanted[j], &wanted[i]);
+                if a.2 == b.2 && a.3 == b.3 {
+                    if accepted[i] {
+                        rejected.push(format!(
+                            "key {:?} is given to both {} and {}",
+                            b.4, a.0, b.0
+                        ));
+                    }
+                    accepted[i] = false;
+                    accepted[j] = false;
+                }
+            }
+        }
+        // A key is free when nobody holds it, or when its holder is being moved elsewhere by a
+        // rebind that is itself accepted. Refusing one rebind can leave its action on a key a
+        // second rebind was counting on, so this runs until nothing changes.
+        loop {
+            let mut changed = false;
+            for i in 0..wanted.len() {
+                let (name, action, is_playback, binding, spec) = wanted[i];
+                if !accepted[i] {
+                    continue;
+                }
+                let table = if is_playback { &self.playback } else { &self.bindings };
+                let Some(holder) = table.get(&binding).copied().filter(|h| *h != action) else {
+                    continue;
+                };
+                let holder_moves =
+                    wanted.iter().zip(&accepted).any(|(w, ok)| *ok && w.1 == holder);
+                if !holder_moves {
+                    rejected.push(format!(
+                        "key {spec:?} for {name} is already bound to {}",
+                        holder.config_key()
+                    ));
+                    accepted[i] = false;
+                    changed = true;
+                }
+            }
+            if !changed {
+                break;
+            }
+        }
+
+        // Release first, then bind: a swap only works if neither side's new key is cleared by
+        // the other's release.
+        let moving: Vec<_> = wanted.iter().zip(&accepted).filter(|(_, ok)| **ok).collect();
+        for ((_, action, is_playback, _, _), _) in &moving {
             let table = if *is_playback { &mut self.playback } else { &mut self.bindings };
             // Drop the action's previous bindings so a rebind moves it rather than
             // adding a second key.
             table.retain(|_, a| a != action);
-            table.insert(binding, *action);
+        }
+        for ((_, action, is_playback, binding, _), _) in moving {
+            let table = if *is_playback { &mut self.playback } else { &mut self.bindings };
+            table.insert(*binding, *action);
         }
         rejected
     }
@@ -1248,6 +1312,70 @@ mod tests {
             }
         }
     }
+    #[test]
+    fn a_rebind_onto_a_key_another_action_keeps_is_refused_and_reported() {
+        // `back = "x"` used to take `x` from *remove from continue watching* without a word,
+        // leaving that action with no key at all.
+        let mut keymap = Keymap::new();
+        let rejected =
+            keymap.apply_overrides(&BTreeMap::from([("back".to_string(), "x".to_string())]));
+        assert_eq!(rejected.len(), 1, "{rejected:?}");
+        assert!(rejected[0].contains("already bound to hide_from_continue"), "{rejected:?}");
+        // Refused like an unknown name: nothing changed.
+        assert_eq!(
+            keymap.action_for(key('x'), Context::Browsing),
+            Some(Action::HideFromContinue)
+        );
+        assert_eq!(keymap.action_for(key('q'), Context::Browsing), Some(Action::Back));
+    }
+
+    #[test]
+    fn two_actions_can_swap_keys_when_both_are_rebound() {
+        let mut keymap = Keymap::new();
+        let rejected = keymap.apply_overrides(&BTreeMap::from([
+            ("back".to_string(), "x".to_string()),
+            ("hide_from_continue".to_string(), "q".to_string()),
+        ]));
+        assert!(rejected.is_empty(), "{rejected:?}");
+        assert_eq!(keymap.action_for(key('x'), Context::Browsing), Some(Action::Back));
+        assert_eq!(
+            keymap.action_for(key('q'), Context::Browsing),
+            Some(Action::HideFromContinue)
+        );
+    }
+
+    #[test]
+    fn two_rebinds_asking_for_one_key_both_lose_it() {
+        let mut keymap = Keymap::new();
+        let rejected = keymap.apply_overrides(&BTreeMap::from([
+            ("refresh".to_string(), "z".to_string()),
+            ("toggle_rail".to_string(), "z".to_string()),
+        ]));
+        assert_eq!(rejected.len(), 1, "{rejected:?}");
+        assert!(rejected[0].contains("given to both"), "{rejected:?}");
+        assert_eq!(keymap.action_for(key('z'), Context::Browsing), None);
+        assert_eq!(keymap.action_for(key('r'), Context::Browsing), Some(Action::Refresh));
+    }
+
+    #[test]
+    fn a_refusal_releases_the_key_a_second_rebind_was_counting_on() {
+        // `quit` cannot have `r`, so Refresh keeps it, so `reload` cannot have `R` freed for it
+        // ... in short: a chain of rebinds settles, rather than half-applying.
+        let mut keymap = Keymap::new();
+        let rejected = keymap.apply_overrides(&BTreeMap::from([
+            // Wants `x`, which nobody frees.
+            ("refresh".to_string(), "x".to_string()),
+            // Wants `r`, which only the refused rebind above would have freed.
+            ("toggle_translation".to_string(), "r".to_string()),
+        ]));
+        assert_eq!(rejected.len(), 2, "{rejected:?}");
+        assert_eq!(keymap.action_for(key('r'), Context::Browsing), Some(Action::Refresh));
+        assert_eq!(
+            keymap.action_for(key('t'), Context::Browsing),
+            Some(Action::ToggleTranslation)
+        );
+    }
+
     #[test]
     fn modals_keep_esc_enter_and_the_arrows_whatever_the_rebinds() {
         // With `back` moved to a letter, Esc stopped closing the palette and the letter was

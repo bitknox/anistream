@@ -1446,7 +1446,8 @@ async fn run(
     let meta = build_meta(&config, &http, &store);
 
     let mut keymap = Keymap::new();
-    for problem in keymap.apply_overrides(&config.keys) {
+    let keybinding_problems = keymap.apply_overrides(&config.keys);
+    for problem in &keybinding_problems {
         eprintln!("warning: keybinding: {problem}");
     }
 
@@ -1468,6 +1469,12 @@ async fn run(
     );
     let stores = plugin_stores::Stores::new(&config, &paths).map_err(|e| anyhow::anyhow!(e))?;
     let mut app = App::with_images(config, palette, keymap, engine);
+    // Said inside the app too: the warning above scrolls away behind the alternate screen
+    // before anyone reads it, and a refused rebind otherwise looks like a key that does nothing.
+    for problem in keybinding_problems {
+        tracing::warn!(%problem, "keybinding not applied");
+        app.push_toast(Toast::alert(format!("keybinding not applied: {problem}")));
+    }
     if let Some(note) = provider_note {
         app.apply(Update::ProviderNote(note));
     }
