@@ -20,8 +20,18 @@ is installed.
 Everything ships with a `.sha256` worth checking first.
 
 :::caution[Not code-signed]
-macOS Gatekeeper refuses the `.pkg` on first open — right-click it and choose **Open**. Windows
-SmartScreen warns about the installer — choose **More info**, then **Run anyway**.
+The releases are not signed, so the first open takes one extra step:
+
+- **macOS installer.** Opening the `.pkg` says Apple could not verify it. Choose **Done**, then go
+  to **System Settings → Privacy & Security**, find the line about anistream near the bottom and
+  choose **Open Anyway**.
+- **macOS archive.** A binary downloaded with a browser is refused the first time it runs. Clear
+  the download flag once with `xattr -d com.apple.quarantine anistream`.
+- **Windows.** SmartScreen shows "Windows protected your PC". Choose **More info**, then **Run
+  anyway**.
+
+Updates through `anistream --update` are not downloaded by a browser and open without these
+steps.
 :::
 
 **mpv and ffmpeg are not bundled.** anistream drives mpv for playback and shells out to ffmpeg when
