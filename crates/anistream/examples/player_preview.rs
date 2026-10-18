@@ -43,7 +43,10 @@ async fn main() -> anyhow::Result<()> {
     }
     let video = std::fs::canonicalize(&video)?.to_string_lossy().into_owned();
 
-    let paths = Paths::resolve()?;
+    // Your config, but the player's bundle, shaders, socket and stills go in a scratch
+    // directory removed when this ends, not into the real cache.
+    let scratch = tempfile::tempdir()?;
+    let paths = Paths { cache_dir: scratch.path().to_path_buf(), ..Paths::resolve()? };
     let config = Config::load(&paths)?;
     let mpv = anistream::player::player(&config, &paths);
     println!("player scratch dir: {}", mpv.scratch_dir().display());

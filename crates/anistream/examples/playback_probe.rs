@@ -49,11 +49,11 @@ async fn main() {
     let paths = Paths::resolve().expect("paths");
     let config = Config::load(&paths).unwrap_or_default();
 
-    // A throwaway database, so a probe never writes into real history.
-    let db = paths.cache_dir.join("playback_probe.db");
-    let _ = std::fs::remove_file(&db);
-    std::fs::create_dir_all(&paths.cache_dir).ok();
-    let store = Store::open(&db).expect("store");
+    // Everything the probe writes — history, the player's socket, the torrent it streams — goes
+    // in a scratch directory removed when it ends, so a probe never touches real history or
+    // grows the real cache.
+    let scratch = tempfile::tempdir().expect("scratch directory");
+    let store = Store::open(scratch.path().join("playback_probe.db")).expect("store");
     let http = HttpClient::new(&config.network).expect("http");
 
     println!("── vpn guard ──────────────────────────────────────────");
@@ -70,7 +70,8 @@ async fn main() {
 
     println!();
     println!("── mpv ────────────────────────────────────────────────");
-    let mpv = Mpv::new(paths.runtime_dir()).with_binary(config.playback.mpv_binary.clone());
+    let mpv =
+        Mpv::new(scratch.path().join("run")).with_binary(config.playback.mpv_binary.clone());
     if !mpv.is_available().await {
         return println!("  ✕ {} not found on PATH", config.playback.mpv_binary);
     }
@@ -79,7 +80,7 @@ async fn main() {
     println!();
     println!("── torrent ────────────────────────────────────────────");
     println!("  Big Buck Bunny © Blender Foundation, CC-BY 3.0");
-    let dir = paths.cache_dir.join("torrents");
+    let dir = scratch.path().join("torrents");
     let session = match TorrentSession::start(guard, dir, "probe".into()).await {
         Ok(s) => s,
         Err(e) => return println!("  ✕ session: {e}"),
@@ -250,8 +251,6 @@ async fn main() {
         println!();
         println!("  ● the whole watch path works: peers → mpv → history → resume.");
     }
-
-    let _ = std::fs::remove_file(&db);
 }
 
 fn tick(ok: bool) -> &'static str {
