@@ -2303,13 +2303,15 @@ fn dispatch(
             // Project to trackers only when marking: progress there is monotonic, so an
             // unmark keeps the remote high-water mark and only local history forgets.
             if watched {
-                let count = store.completed_episode_count(id).unwrap_or(0);
-                if count > 0 {
+                let reached = store.tracker_progress(id).unwrap_or(0);
+                if reached > 0 {
                     let op = anistream_core::traits::TrackOp::SetProgress {
                         anilist_id: id,
-                        episode: count,
+                        episode: reached,
                     };
-                    for tracker in &sync.trackers {
+                    // Signed-in trackers only, like a finished episode: the default Kitsu
+                    // entry has no account behind it until someone signs in.
+                    for tracker in sync.trackers.iter().filter(|t| t.is_authenticated()) {
                         let _ = store.enqueue(tracker.id(), &op, now);
                     }
                 }

@@ -981,7 +981,7 @@ pub fn resolve_conflict(sync: &Sync, id: AnilistId, keep_local: bool) {
         return;
     }
     let now = anistream_store::now();
-    let episodes = sync.store.completed_episode_count(id).unwrap_or(0);
+    let episodes = sync.store.tracker_progress(id).unwrap_or(0);
     if episodes == 0 {
         return;
     }

@@ -239,14 +239,16 @@ fn apply(
 
 /// Build the local view of one title from the watch log.
 ///
-/// Progress is derived from completed episodes rather than a stored counter, so rewatching
-/// cannot inflate it — the same rule the projection uses.
+/// Progress is the highest regular episode completed, the same figure [`queue_progress`]
+/// sends: a tracker stores the episode you reached, so comparing its number against a tally
+/// would see a gap after every skipped or elsewhere-watched episode and push the tally over
+/// it. Derived from the log rather than a counter, so rewatching cannot inflate it.
 pub fn local_state(
     store: &Store,
     anilist_id: anistream_core::ids::AnilistId,
 ) -> Result<LocalState, anistream_store::StoreError> {
     Ok(LocalState {
-        progress: store.completed_episode_count(anilist_id)?,
+        progress: store.tracker_progress(anilist_id)?,
         // Status and score are not yet set anywhere but the list-status and rate overlays,
         // which write them straight to the outbox. Until that state is persisted locally, the
         // merge sees "local has no opinion" — which is correct, and means the remote is left
@@ -280,11 +282,11 @@ pub fn queue_progress_for(
     anilist_id: anistream_core::ids::AnilistId,
     now: i64,
 ) {
-    let episodes = match store.completed_episode_count(anilist_id) {
+    let episodes = match store.tracker_progress(anilist_id) {
         Ok(0) => return,
-        Ok(count) => count,
+        Ok(reached) => reached,
         Err(e) => {
-            tracing::warn!(error = %e, "could not count completed episodes");
+            tracing::warn!(error = %e, "could not read the episode reached");
             return;
         }
     };
@@ -648,6 +650,53 @@ mod tests {
             .unwrap();
         queue_progress(&store, &[], FRIEREN, 21_000);
         assert_eq!(store.completed_episode_count(FRIEREN).unwrap(), 12);
+    }
+
+    #[test]
+    fn progress_is_the_episode_reached_even_with_gaps_in_the_log() {
+        // Episodes 1–3 were watched elsewhere and 4–12 here. A distinct count queued 9, which
+        // walked a tracker that already said 12 backwards on the next pull's terms.
+        let store = Store::open_in_memory().unwrap();
+        for ep in 4..=12 {
+            store
+                .record_event(&WatchEvent {
+                    duration_secs: Some(1440.0),
+                    completed: true,
+                    at: 1_000 + i64::from(ep),
+                    ..WatchEvent::new(FRIEREN, ep.to_string(), 1400.0)
+                })
+                .unwrap();
+        }
+        queue_progress_for(&store, &["mock".to_owned()], FRIEREN, 9_000);
+        let queued = store.claim_ready("mock", 9_000, 10).unwrap();
+        assert_eq!(queued[0].op, TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 });
+        assert_eq!(local_state(&store, FRIEREN).unwrap().progress, 12);
+    }
+
+    #[tokio::test]
+    async fn a_gap_in_the_log_is_not_mistaken_for_the_remote_being_ahead() {
+        // The merge reads the same figure the queue sends. With a tally, nine episodes
+        // watched here against a remote at 12 read as "remote ahead" and adopted nothing
+        // new, while the same history queued 9 — two rules for one title.
+        let store = Store::open_in_memory().unwrap();
+        for ep in 4..=12 {
+            store
+                .record_event(&WatchEvent {
+                    duration_secs: Some(1440.0),
+                    completed: true,
+                    at: 1_000 + i64::from(ep),
+                    ..WatchEvent::new(FRIEREN, ep.to_string(), 1400.0)
+                })
+                .unwrap();
+        }
+        let tracker = MockTracker::with_remote(vec![TrackedEntry {
+            anilist_id: FRIEREN,
+            progress: 12,
+            status: WatchStatus::Current,
+            score: None,
+        }]);
+        let report = pull(&store, &tracker, 5_000, 0).await.unwrap();
+        assert_eq!((report.queued, report.adopted), (0, 0), "both sides already agree on 12");
     }
 
     #[test]
