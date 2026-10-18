@@ -445,7 +445,11 @@ pub async fn drain_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
     let drains = sync.trackers.iter().map(|tracker| async move {
         match sync::drain(&sync.store, tracker.as_ref(), now).await {
             Ok(report) => {
-                let last = if report.sent > 0 {
+                let last = if report.ignored > 0 {
+                    // Said rather than folded into "sent": the tracker answered for these
+                    // titles and changed nothing.
+                    Some(format!("sent {} · {} not recognised", report.sent, report.ignored))
+                } else if report.sent > 0 {
                     Some(format!("sent {}", report.sent))
                 } else if report.failed > 0 {
                     Some("retrying".to_string())

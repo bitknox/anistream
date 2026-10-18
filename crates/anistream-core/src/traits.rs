@@ -221,6 +221,19 @@ pub trait Tracker: Send + Sync {
     /// Apply a batch of operations. Must be safe to call twice with the same input.
     async fn push(&self, ops: &[TrackOp]) -> Result<(), crate::Error>;
 
+    /// [`Self::push`], also naming the titles the tracker answered for without applying
+    /// anything.
+    ///
+    /// Some services answer a write with success and a list of what they could not match, so
+    /// the status alone says nothing about whether the list changed. The drain reports those
+    /// titles instead of counting them as sent. Default: `push`, trusting its success.
+    async fn push_checked(
+        &self,
+        ops: &[TrackOp],
+    ) -> Result<Vec<crate::ids::AnilistId>, crate::Error> {
+        self.push(ops).await.map(|()| Vec::new())
+    }
+
     /// Whether this tracker can name the title an op is about, with the id mappings as they
     /// stand.
     ///

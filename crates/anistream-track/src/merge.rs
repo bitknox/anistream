@@ -35,6 +35,12 @@ pub struct LocalState {
     pub status_at: Option<i64>,
     pub score: Option<f32>,
     pub score_at: Option<i64>,
+    /// The highest progress this tracker has already been sent for the title, if any.
+    ///
+    /// Not state about the title but about the conversation with one tracker, and it is what
+    /// stops an echo: a tracker that answers a push with success and keeps reporting a lower
+    /// figure would otherwise be sent the same value again after every pull.
+    pub last_pushed: Option<u32>,
 }
 
 /// What reconciling one title produced.
@@ -102,8 +108,13 @@ pub fn reconcile(
     match local_effective.cmp(&remote.progress) {
         std::cmp::Ordering::Greater => {
             // Only queue if it is not already queued — the outbox coalesces, but skipping the
-            // call keeps the drain quiet on a no-op resync.
-            if pending_progress != Some(local_effective) {
+            // call keeps the drain quiet on a no-op resync — and not if this very value has
+            // already been sent. A tracker still behind after taking it has refused or
+            // ignored it (a title it could not match, an episode past its own count), and
+            // sending it again changes nothing: it did, every pull, for a week. New progress
+            // past what was sent goes out as usual.
+            let already_sent = local.last_pushed.is_some_and(|sent| sent >= local_effective);
+            if pending_progress != Some(local_effective) && !already_sent {
                 merged.push.push(TrackOp::SetProgress {
                     anilist_id: remote.anilist_id,
                     episode: local_effective,
@@ -276,6 +287,24 @@ mod tests {
     }
 
     #[test]
+    fn a_value_already_sent_is_not_sent_again_while_the_remote_stays_behind() {
+        // The echo: the tracker answered the push with success, kept reporting 7, and every
+        // pull queued 12 again. Once sent, 12 waits for local progress to move past it.
+        let local = LocalState { progress: 12, last_pushed: Some(12), ..Default::default() };
+        let merged = reconcile(&local, &remote(7, WatchStatus::Current, None), None);
+        assert!(merged.push.is_empty(), "re-sent a value the tracker already had: {merged:?}");
+        assert_eq!(merged.adopt_progress, None, "and the lower remote is still not adopted");
+
+        let moved_on = LocalState { progress: 13, ..local };
+        let merged = reconcile(&moved_on, &remote(7, WatchStatus::Current, None), None);
+        assert_eq!(
+            merged.push,
+            vec![TrackOp::SetProgress { anilist_id: FRIEREN, episode: 13 }],
+            "new progress still goes out"
+        );
+    }
+
+    #[test]
     fn a_matching_status_is_left_alone() {
         let local = LocalState {
             progress: 5,
@@ -415,6 +444,7 @@ mod tests {
             status_at: Some(2_000),
             score: Some(9.0),
             score_at: Some(2_000),
+            last_pushed: None,
         };
         let merged = reconcile(&local, &remote(1, WatchStatus::Current, Some(3.0)), None);
         assert_eq!(merged.push.len(), 3);
