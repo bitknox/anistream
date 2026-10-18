@@ -366,6 +366,13 @@ pub struct Entry {
     /// is about, and runs negative once that episode has aired. Everywhere else it is the same
     /// thing as [`Self::next_airing_in`].
     pub airing_in: Option<i64>,
+    /// The episode a calendar row is about — the one [`Self::airing_in`] dates. `None`
+    /// everywhere else.
+    ///
+    /// A field of its own rather than `ep 12` appended to the title. Appended, it was the first
+    /// thing truncation took, so a column of one show's episodes read as identical rows, and it
+    /// followed the title into the Title and Episodes headings.
+    pub airing_episode: Option<u32>,
     /// The episode the title broadcasts next, from its own schedule.
     pub next_episode: Option<u32>,
     /// Seconds until [`Self::next_episode`] airs.
@@ -484,6 +491,7 @@ impl Entry {
             available_on: Vec::new(),
             progress: None,
             airing_in: None,
+            airing_episode: None,
             next_episode: None,
             next_airing_in: None,
             last_aired: None,
@@ -1111,6 +1119,13 @@ pub enum Update {
         view: ContentFor,
         content: Content,
     },
+    /// What a list is, said above it: which season Seasonal is, and that a list stopped at the
+    /// size of one page when there was more. Tagged like [`Update::Content`] and sent before it,
+    /// so a caption never describes a list it did not come with.
+    Caption {
+        view: ContentFor,
+        text: String,
+    },
     /// How to continue the calendar that is arriving: the anchor its pages are numbered
     /// against, how many are loaded, and whether AniList has more behind them.
     CalendarWindow {
@@ -1279,6 +1294,8 @@ pub struct App {
     pub keymap: Keymap,
     pub config: Config,
     pub content: Content,
+    /// The caption for the list on screen, with the view it belongs to. See [`Update::Caption`].
+    pub caption: Option<(ContentFor, String)>,
     /// Selection index within the current content.
     pub selected: usize,
     /// Scroll offset, so long lists page rather than jumping.
@@ -1480,6 +1497,7 @@ impl App {
             keymap,
             config,
             content: Content::Loading,
+            caption: None,
             selected: 0,
             offset: 0,
             search_query: String::new(),
@@ -1634,9 +1652,19 @@ impl App {
                     self.offset += added;
                 }
             }
+            Update::Caption { view, text } => {
+                if self.content_view().as_ref() == Some(&view) {
+                    self.caption = (!text.is_empty()).then_some((view, text));
+                }
+            }
             Update::Content { view, content } => {
                 if self.content_view().as_ref() != Some(&view) {
                     return;
+                }
+                // A caption is sent just before the list it describes; one left over from
+                // another list describes something no longer on screen.
+                if self.caption.as_ref().is_some_and(|(captioned, _)| *captioned != view) {
+                    self.caption = None;
                 }
                 self.content = content;
                 // Selection must stay in range or the next render would index past the end.
@@ -4385,6 +4413,12 @@ impl App {
             Section::Library => ContentFor::Library(self.library_segment),
             _ => return None,
         })
+    }
+
+    /// The caption of the list on screen, when the binary sent one for it.
+    pub fn list_caption(&self) -> Option<&str> {
+        let (view, text) = self.caption.as_ref()?;
+        (self.content_view().as_ref() == Some(view)).then_some(text.as_str())
     }
 
     /// An answer for what is on screen right now: the list for the current view, the episodes

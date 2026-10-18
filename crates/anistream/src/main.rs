@@ -1843,9 +1843,19 @@ fn spawn(
                 }
             },
             Task::LoadSeasonal => {
+                const PAGE: u32 = 40;
                 let (season, year) = current_season();
-                match meta.seasonal(season, year, &Default::default(), 1, 40).await {
+                match meta.seasonal(season, year, &Default::default(), 1, PAGE).await {
                     Ok(page) => {
+                        // Which season this is, which the screen never said, and that one
+                        // page is not all of it when it is not.
+                        let season = format!("{} {year}", season.as_str().to_lowercase());
+                        let text = if page.has_next {
+                            format!("{season} · the {PAGE} most popular")
+                        } else {
+                            season
+                        };
+                        let _ = tx.send(Update::Caption { view: ContentFor::Seasonal, text });
                         let entries = page
                             .items
                             .iter()
@@ -1913,8 +1923,17 @@ fn spawn(
                     season: filter.season.clone(),
                     year: filter.year,
                 };
-                match meta.search(&query, &browse, 1, 30).await {
+                const PAGE: u32 = 30;
+                match meta.search(&query, &browse, 1, PAGE).await {
                     Ok(page) => {
+                        // Sent every time, empty when the page held everything, so a caption
+                        // from an earlier run of the same search cannot outlive its answer.
+                        let text = if page.has_next {
+                            format!("showing the first {PAGE}")
+                        } else {
+                            String::new()
+                        };
+                        let _ = tx.send(Update::Caption { view: view.clone(), text });
                         let entries = page
                             .items
                             .iter()

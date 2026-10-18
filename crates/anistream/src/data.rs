@@ -98,8 +98,9 @@ pub fn entry_from_airing(airing: &AiringEntry, now: i64, store: Option<&Store>) 
         // whole is what lets a row about an episode that just aired still say when the one after
         // it is due.
         airing_in: Some(airing.airing_at.saturating_sub(now)),
-        // The calendar is about *this* episode, so the title carries its number.
-        title: format!("{}  ep {}", airing.media.title.display(), airing.episode),
+        // The calendar is about *this* episode, so the row carries its number — beside the
+        // title, not in it, where truncation took it first and the Title page inherited it.
+        airing_episode: Some(airing.episode),
         ..entry_from(&airing.media, store)
     }
 }
@@ -453,7 +454,10 @@ mod tests {
     fn a_calendar_entry_carries_its_episode_number_and_countdown() {
         let airing = AiringEntry { episode: 12, airing_at: 1_000_600, media: media() };
         let e = entry_from_airing(&airing, 1_000_000, None);
-        assert!(e.title.contains("ep 12"));
+        assert_eq!(e.airing_episode, Some(12));
+        // Beside the title, not in it: the title is what the Title page and the Episodes
+        // heading show, and neither is about one episode.
+        assert_eq!(e.title, entry_from(&media(), None).title);
         assert_eq!(e.airing_in, Some(600));
     }
 

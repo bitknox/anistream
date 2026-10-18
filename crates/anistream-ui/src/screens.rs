@@ -303,15 +303,21 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
         // Active filters are shown where they act, or a filtered search would read as
         // AniList having quietly lost titles the user knows exist.
         let summary = app.search_filter.summary();
+        let mut used = prompt.chars().count() as u16;
         if !summary.is_empty() {
-            let used = prompt.chars().count() as u16 + 3;
-            if used < area.width {
-                buf.set_string(
-                    area.left() + used,
-                    y,
-                    truncate(&summary, (area.width - used) as usize),
-                    app.palette.style(Role::TextDim),
-                );
+            let at = used + 3;
+            if at < area.width {
+                let shown = truncate(&summary, (area.width - at) as usize);
+                used = at + shown.chars().count() as u16;
+                buf.set_string(area.left() + at, y, shown, app.palette.style(Role::TextDim));
+            }
+        }
+        // That the answer stopped at one page, at the far end of the prompt. Without it a
+        // capped list read as everything AniList had.
+        if let Some(caption) = app.list_caption() {
+            let width = caption.chars().count() as u16;
+            if used + width + 3 <= area.width {
+                line(buf, area.right() - width, y, caption, app.palette.style(Role::TextDim));
             }
         }
         y += 2;
@@ -362,13 +368,44 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
 
             let visible = list_col.height as usize;
             let mut rows: Vec<ObiRow> = Vec::with_capacity(visible + 4);
+            // What the list is, as a ruled heading held at the top: the season, for Seasonal,
+            // which otherwise never said which one it was showing.
+            if section == Section::Seasonal
+                && let Some(caption) = app.list_caption()
+            {
+                rows.push(ObiRow::heading(caption).ruled());
+            }
+            let start = if section == Section::Calendar {
+                calendar_window(entries, app.offset, app.selected, visible)
+            } else {
+                app.offset
+            };
+            // The calendar's episode and time columns, sized to what is in view so the
+            // numbers line up down the list rather than floating at each row's end.
+            let calendar_columns = (section == Section::Calendar).then(|| {
+                let shown = entries.iter().skip(start).take(visible);
+                let episode = shown
+                    .clone()
+                    .filter_map(|e| e.airing_episode)
+                    .map(|ep| format!("ep {ep}").chars().count())
+                    .max()
+                    .unwrap_or(0);
+                let time = shown
+                    .filter_map(|e| e.airing_in)
+                    .map(|secs| calendar_time(secs).chars().count())
+                    .max()
+                    .unwrap_or(0);
+                (episode, time)
+            });
             // The calendar earns its glyph — ruled rows, one heading per day — instead of
             // one undifferentiated run of time. Dates come from each entry's stored
             // countdown against the clock now; only a session left open across midnight
             // can mislabel a boundary, and the next reload corrects it.
             let mut current_day: Option<chrono::NaiveDate> = None;
             let today = chrono::Local::now().date_naive();
-            for (i, entry) in entries.iter().enumerate().skip(app.offset).take(visible) {
+            // The caption's row comes out of the window, not off the end of the list.
+            let fits = visible.saturating_sub(rows.len());
+            for (i, entry) in entries.iter().enumerate().skip(start).take(fits) {
                 if section == Section::Calendar
                     && let Some(secs) = entry.airing_in
                     && let Some(day) = air_date(secs)
@@ -432,16 +469,26 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
                     // The calendar's whole subject is *when*, so time wins over progress
                     // there — and it spans both directions, so a negative countdown is an
                     // episode that has already aired rather than a bug. Aired episodes of
-                    // tracked shows are the actionable ones.
-                    (_, Section::Calendar, Some(secs)) if secs <= 0 => {
-                        Some((crate::widgets::ago(-secs), entry.progress.is_some()))
-                    }
+                    // tracked shows are the actionable ones. The episode is a column of its
+                    // own, in the trailing text, which truncation never reaches.
                     (_, Section::Calendar, Some(secs)) => {
-                        Some((format!("in {}", crate::widgets::countdown(secs)), false))
+                        let (episode_width, time_width) =
+                            calendar_columns.expect("set for the calendar");
+                        let episode = entry
+                            .airing_episode
+                            .map(|ep| format!("ep {ep}"))
+                            .unwrap_or_default();
+                        Some((
+                            format!(
+                                "{episode:<episode_width$}  {:>time_width$}",
+                                calendar_time(secs)
+                            ),
+                            secs <= 0 && entry.progress.is_some(),
+                        ))
                     }
-                    (Some((done, _)), _, _) => {
-                        Some((format!("{}{done}", glyph::OBI_THIN), false))
-                    }
+                    // The same count the preview and the Title page give, rather than a bare
+                    // number that read like a score.
+                    (Some(_), _, _) => entry.progress_label().map(|label| (label, false)),
                     _ => entry.score.map(|s| (s.to_string(), false)),
                 };
                 if let Some((text, fresh)) = trailing {
@@ -462,6 +509,55 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
 }
 
 use crate::app::air_date;
+
+/// A calendar row's time: `in 4d 20h` ahead, `3h ago` once aired.
+fn calendar_time(secs: i64) -> String {
+    if secs <= 0 {
+        crate::widgets::ago(-secs)
+    } else {
+        format!("in {}", crate::widgets::countdown(secs))
+    }
+}
+
+/// Rows the calendar needs to show entries `from..=through`: one each, plus a heading where
+/// the day changes and a blank before every heading but the first. Stops counting past `cap`.
+fn calendar_rows(entries: &[Entry], from: usize, through: usize, cap: usize) -> usize {
+    let mut rows = 0;
+    let mut day = None;
+    for entry in entries.iter().take(through + 1).skip(from) {
+        let this = entry.airing_in.and_then(air_date);
+        if this.is_some() && this != day {
+            rows += if rows == 0 { 1 } else { 2 };
+            day = this;
+        }
+        rows += 1;
+        if rows > cap {
+            break;
+        }
+    }
+    rows
+}
+
+/// Where the calendar's window starts, so its rows fill the screen.
+///
+/// Rendering only: the offset the list keeps counts entries, and day headings take rows it
+/// does not count. Its estimate leaves rows blank at the bottom once the window reaches the
+/// last entry — `G` landed on a half-empty screen — so the window reaches back to fill them,
+/// and moves on when headings would push the selection below the last row.
+fn calendar_window(entries: &[Entry], offset: usize, selected: usize, height: usize) -> usize {
+    let Some(last) = entries.len().checked_sub(1) else { return 0 };
+    let mut start = offset.min(last);
+    if calendar_rows(entries, start, last, height) < height {
+        while start > 0 && calendar_rows(entries, start - 1, last, height) <= height {
+            start -= 1;
+        }
+    }
+    let selected = selected.min(last);
+    while start < selected && calendar_rows(entries, start, selected, height) > height {
+        start += 1;
+    }
+    start
+}
 
 /// `today` / `yesterday` / `tomorrow`, then the weekday and date. Rendered as a caps
 /// heading, so lowercase here.
@@ -3600,7 +3696,10 @@ fn metadata_line(entry: &Entry) -> String {
 pub fn visible_rows(area: Rect, section: Section) -> usize {
     let geometry = layout::compute(area, crate::nav::RailWidth::Expanded);
     let offset = match section {
+        // The prompt and the gap under it.
         Section::Search => 2,
+        // The season's heading, held at the top of the list.
+        Section::Seasonal => 1,
         // Day rulings and their spacer rows share the window with the entries. Five is
         // an estimate — a screenful rarely spans more than three days — and estimating
         // low only scrolls the selection a couple of lines early, never hides it.
@@ -5180,6 +5279,81 @@ mod tests {
         text_of(&render_to_buffer(app, width, height)).lines().map(str::to_owned).collect()
     }
 
+    fn calendar_with(rows: Vec<Entry>) -> App {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Calendar);
+        app.apply(app.content_here(Content::Entries(rows)));
+        app
+    }
+
+    /// One show, several episodes airing a few minutes apart, under a title long enough to be
+    /// cut: the number has to survive the cut, or the rows read as one row repeated.
+    #[test]
+    fn calendar_rows_keep_their_episode_when_the_title_is_cut() {
+        let rows = (1..=5u32)
+            .map(|ep| Entry {
+                airing_in: Some(3_600 + i64::from(ep) * 60),
+                airing_episode: Some(ep),
+                ..entry(ep, "The Unusually Long Name of an Invented Weekly Broadcast")
+            })
+            .collect();
+        let app = calendar_with(rows);
+        for width in [120, 80] {
+            let text = lines_of(&app, width, 30).join("\n");
+            for ep in 1..=5 {
+                assert!(
+                    text.contains(&format!("ep {ep} ")),
+                    "ep {ep} lost at {width}:\n{text}"
+                );
+            }
+        }
+        // And the episode lines up as a column, rather than trailing each title.
+        let lines = lines_of(&app, 120, 30);
+        let columns: Vec<usize> = lines
+            .iter()
+            .filter_map(|l| l.find("ep ").map(|at| l[..at].chars().count()))
+            .filter(|at| *at > 30 && *at < 70)
+            .collect();
+        assert!(columns.len() >= 5 && columns.windows(2).all(|w| w[0] == w[1]), "{lines:#?}");
+    }
+
+    #[test]
+    fn a_calendar_title_opens_without_its_episode_in_the_heading() {
+        let row =
+            Entry { airing_in: Some(600), airing_episode: Some(7), ..entry(1, "Paper Kite") };
+        let mut app = calendar_with(vec![row]);
+        app.nav.focus_stage();
+        app.handle(crate::keymap::Action::Open, 20);
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("Paper Kite"), "{text}");
+        assert!(!text.contains("Paper Kite  ep 7"), "the row's episode leaked:\n{text}");
+    }
+
+    /// `G` on the calendar left rows blank at the bottom: the offset reserved rows for day
+    /// headings the end of the list did not have.
+    #[test]
+    fn the_end_of_the_calendar_fills_the_screen() {
+        let rows: Vec<Entry> = (0..80u32)
+            .map(|i| Entry {
+                airing_in: Some(3_600 + i64::from(i) * 600),
+                airing_episode: Some(i + 1),
+                ..entry(i + 1, &format!("Weekly {i}"))
+            })
+            .collect();
+        let mut app = calendar_with(rows);
+        app.nav.focus_stage();
+        let visible = visible_rows(Rect::new(0, 0, 120, 30), Section::Calendar);
+        app.handle(crate::keymap::Action::Bottom, visible);
+        let lines = lines_of(&app, 120, 30);
+        // The stage runs from row 2 to the status rule, two from the bottom.
+        let stage = &lines[2..lines.len() - 2];
+        assert!(
+            stage.last().is_some_and(|l| l.contains("Weekly")),
+            "blank at the end:\n{lines:#?}"
+        );
+        assert!(lines.iter().any(|l| l.contains("▌ Weekly 79")), "the last row is selected");
+    }
+
     #[test]
     fn the_header_shows_each_source_as_it_stands() {
         // Torrents off, plugins serving: nothing is failing, and nothing alerts.
@@ -5216,6 +5390,43 @@ mod tests {
     }
 
     #[test]
+    fn a_seasonal_list_names_its_season_and_says_when_it_stopped_short() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Seasonal);
+        app.apply(Update::Caption {
+            view: crate::app::ContentFor::Seasonal,
+            text: "fall 2026 · the 40 most popular".into(),
+        });
+        app.apply(
+            app.content_here(Content::Entries((1..60).map(|i| entry(i, "Show")).collect())),
+        );
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("FALL 2026 · THE 40 MOST POPULAR"), "{text}");
+
+        // A caption belongs to the list it came with.
+        app.apply(Update::Content {
+            view: crate::app::ContentFor::Continue,
+            content: Content::Empty,
+        });
+        app.go_to_section(Section::Home);
+        assert!(app.list_caption().is_none());
+    }
+
+    #[test]
+    fn a_capped_search_says_so_beside_the_prompt() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Search);
+        app.search_query = "kite".into();
+        app.searched_query = "kite".into();
+        let view = app.content_view().unwrap();
+        app.apply(Update::Caption { view: view.clone(), text: "showing the first 30".into() });
+        app.apply(Update::Content { view, content: Content::Entries(vec![entry(1, "Kite")]) });
+        let lines = lines_of(&app, 120, 30);
+        let prompt = lines.iter().find(|l| l.contains("FIND")).unwrap();
+        assert!(prompt.contains("showing the first 30"), "{prompt}");
+    }
+
+    #[test]
     fn genres_read_the_same_in_the_preview_and_on_the_title() {
         let e =
             Entry { genres: vec!["Slice of Life".into(), "Sci-Fi".into()], ..entry(1, "Kite") };
@@ -5247,6 +5458,15 @@ mod tests {
         let title = text_of(&render_to_buffer(&app, 120, 34));
         assert!(title.contains("ep 3 out 2d ago  ·  ep 4 in 4d 20h"), "{title}");
         assert!(!title.contains("next episode in"), "{title}");
+    }
+
+    #[test]
+    fn progress_on_a_row_reads_as_a_count() {
+        let e = Entry { progress: Some((5, 6)), ..entry(1, "Kite") };
+        let app = app_with(Content::Entries(vec![e]));
+        let text = text_of(&render_to_buffer(&app, 70, 30));
+        assert!(text.contains("5 / 28"), "{text}");
+        assert!(!text.contains("▏5"), "{text}");
     }
 
     #[test]
