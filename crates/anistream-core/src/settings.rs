@@ -25,6 +25,8 @@ pub enum SettingValue {
     Int(i64),
     Float(f64),
     Bool(bool),
+    /// Written as a TOML array of strings: `providers.order`, reordered from the Providers screen.
+    List(Vec<String>),
 }
 
 impl SettingValue {
@@ -34,6 +36,7 @@ impl SettingValue {
             Self::Int(i) => toml_edit::Value::from(i),
             Self::Float(f) => toml_edit::Value::from(f),
             Self::Bool(b) => toml_edit::Value::from(b),
+            Self::List(items) => toml_edit::Value::Array(items.into_iter().collect()),
         }
     }
 }
@@ -272,6 +275,31 @@ mod tests {
         assert!(after.contains("# I prefer subs"), "inline comment lost:\n{after}");
         assert!(after.contains("quality = 720"), "value not written:\n{after}");
         assert!(after.contains("translation = \"sub\""), "sibling key lost:\n{after}");
+    }
+
+    #[test]
+    fn a_list_is_written_as_an_array_and_the_rest_of_the_file_survives() {
+        let dir = temp_dir("list");
+        let paths = paths_in(&dir);
+        std::fs::write(
+            &paths.config_file,
+            "# my notes\n[providers]\norder = [\"torrent\", \"plugins\"]  # tried first\n\
+             disabled = [\"remote\"]\n\n[playback]\nquality = 1080\n",
+        )
+        .unwrap();
+
+        let order = ["alpha", "plugins", "torrent"].map(String::from).to_vec();
+        write_key(&paths, &["providers"], "order", SettingValue::List(order.clone())).unwrap();
+
+        let config = crate::config::Config::load(&paths).unwrap();
+        assert_eq!(config.providers.order, order);
+        assert_eq!(config.providers.disabled, ["remote"], "the sibling key was disturbed");
+        assert_eq!(config.playback.quality, 1080, "the other table was disturbed");
+        let after = std::fs::read_to_string(&paths.config_file).unwrap();
+        assert!(after.contains("# my notes"), "leading comment lost:\n{after}");
+        assert!(after.contains("# tried first"), "inline comment lost:\n{after}");
+        assert!(after.contains(r#"order = ["alpha", "plugins", "torrent"]"#), "{after}");
+        assert_eq!(after.matches("order").count(), 1, "key duplicated:\n{after}");
     }
 
     #[test]
