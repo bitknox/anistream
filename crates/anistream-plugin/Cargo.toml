@@ -19,7 +19,7 @@ tracing.workspace = true
 # the on-disk artefact cache itself, so we get it without the `unsafe` that hand-rolling
 # `deserialize_file` would require in a crate whose entire job is running untrusted code.
 wasmtime = { version = "48.0", features = ["component-model", "async", "cranelift", "cache"] }
-wasmtime-wasi = "47.0"
+wasmtime-wasi = "48.0"
 # Regex is lent to guests: a TinyGo or JS plugin bundling its own would be enormous.
 # The same URL parser the HTTP client uses. The allowlist has to read a URL exactly the way
 # the request will, or it is checking a different host than the one contacted.
