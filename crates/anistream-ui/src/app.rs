@@ -2986,8 +2986,17 @@ impl App {
                     return Some(Task::DownloadPause { id });
                 }
                 Action::HideFromContinue | Action::StopPlayback => {
-                    let id = self.downloads.get(self.selected)?.id;
-                    return Some(Task::DownloadCancel { id });
+                    let row = self.downloads.get(self.selected)?;
+                    // A finished download has nothing left to cancel. Cancelling it forgot the
+                    // row and left the file on disk with no way back to it from here.
+                    if row.state == "done" {
+                        let delete = self.key_for(Action::DeleteDownload);
+                        self.push_toast(Toast::info(format!(
+                            "already downloaded — {delete} deletes it and its file"
+                        )));
+                        return None;
+                    }
+                    return Some(Task::DownloadCancel { id: row.id });
                 }
                 _ => {}
             }
@@ -8529,6 +8538,31 @@ mod tests {
         a.playing = Some(NowPlaying::default());
         assert_eq!(a.handle(Action::PlayPause, 5), Some(Task::DownloadPause { id: 8 }));
         assert_eq!(a.handle(Action::StopPlayback, 5), Some(Task::DownloadCancel { id: 8 }));
+    }
+
+    #[test]
+    fn x_on_a_finished_download_keeps_it() {
+        // Cancelling a finished row forgot it and left its file behind, unreachable from here.
+        let mut a = app();
+        a.handle(Action::JumpSection(6), 5);
+        a.apply(Update::Downloads(vec![DownloadRow {
+            id: 3,
+            anilist_id: AnilistId::new(1),
+            title: "Title 0".into(),
+            episode: "1".into(),
+            state: "done",
+            fraction: 1.0,
+            downloaded: 2,
+            total: 2,
+            error: None,
+            path: Some("/tmp/title-0-1.mkv".into()),
+        }]));
+        assert_eq!(a.handle(Action::HideFromContinue, 5), None);
+        assert!(
+            a.toasts.iter().any(|t| t.text == "already downloaded — X deletes it and its file"),
+            "{:?}",
+            a.toasts
+        );
     }
 
     #[test]
