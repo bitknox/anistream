@@ -19,9 +19,9 @@
 //! - **Refresh is not optional.** A month-long token means a client that only stored the access
 //!   token would silently stop syncing every 31 days and look like it had forgotten the account.
 //! - **This is the first tracker that needs the ID mapping.** AniList needed none, being the
-//!   primary key. MAL keys on `mal_id`, so a title with no mapping entry cannot be synced. It is
-//!   logged and skipped rather than raised: the push is a batch, and failing it for one
-//!   unmappable title held every other title's progress behind it indefinitely.
+//!   primary key. MAL keys on `mal_id`, so a title with no mapping entry cannot be synced until
+//!   the datasets gain one. [`Tracker::can_address`] says so, and the drain holds that title's
+//!   ops until the mappings change rather than letting them fail the batch or be dropped.
 
 use anistream_core::{
     ids::AnilistId,
@@ -295,6 +295,10 @@ impl Tracker for MalTracker {
         self.tokens.try_read().map_or(true, |held| held.is_some())
     }
 
+    fn can_address(&self, op: &TrackOp) -> bool {
+        self.mapping.mal_id(op.anilist_id()).is_some()
+    }
+
     async fn accept_credentials(
         &self,
         access: &str,
@@ -422,11 +426,10 @@ impl Tracker for MalTracker {
             if fields.is_empty() {
                 continue;
             }
-            // A title the mapping datasets do not carry a MAL id for cannot be pushed, ever —
-            // and failing the call for it failed the *batch*, so one such title took the other
-            // twenty-four ops down with it on every retry, forever, since nothing discards an
-            // op that can never succeed. Skipped and said out loud instead, which is what
-            // Trakt already does with a show it cannot map.
+            // The drain holds back an op for a title with no MAL id (see `can_address`) until
+            // the mappings change, so one only reaches here from a caller that skipped that
+            // check. Failing the call for it would fail the *batch*, taking every other op
+            // down with it, so it is skipped and said out loud.
             let Some(mal_id) = self.mapping.mal_id(anilist_id) else {
                 tracing::warn!(
                     anilist_id = anilist_id.get(),
@@ -590,6 +593,16 @@ mod tests {
             result.is_ok(),
             "an unmappable title must not fail the batch it happens to share: {result:?}"
         );
+    }
+
+    #[test]
+    fn a_title_is_addressable_only_once_the_mappings_name_it() {
+        // What lets the drain hold an unmapped title's op instead of losing it.
+        let tracker = tracker(None);
+        let mapped = TrackOp::SetProgress { anilist_id: AnilistId::new(154_587), episode: 3 };
+        let unmapped = TrackOp::SetProgress { anilist_id: AnilistId::new(999_999), episode: 3 };
+        assert!(tracker.can_address(&mapped));
+        assert!(!tracker.can_address(&unmapped));
     }
 
     #[tokio::test]

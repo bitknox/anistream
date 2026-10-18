@@ -169,6 +169,12 @@ impl Store {
                 rusqlite::params![source, etag, now, written as u32],
             )?;
 
+            // New mappings are the one thing a deferred outbox op waits for, so every one of
+            // them gets another look — whichever path refreshed the datasets, and whether or
+            // not this pass happened to cover its title. One that is still unmappable is
+            // simply deferred again by the next drain.
+            crate::outbox::wake_deferred_in(tx)?;
+
             Ok(written)
         })
     }

@@ -379,7 +379,27 @@ impl Store {
         })
     }
 
-    /// Distinct completed episode count. This is the value pushed to trackers.
+    /// The highest regular episode completed: the value pushed to trackers.
+    ///
+    /// Trackers store "you are on episode N", not a tally, so a count is the wrong number in
+    /// both directions: episodes 4–12 watched here after 1–3 elsewhere count 9, and a lone
+    /// episode 6 counts 1. Only whole positive numbers are regular episodes. A special — "0",
+    /// a recap numbered "12.5", anything with letters in it — sits outside the numbering a
+    /// tracker counts in, so it neither raises progress nor stands in for an episode.
+    pub fn tracker_progress(&self, anilist_id: AnilistId) -> Result<u32> {
+        self.with_conn(|c| {
+            let highest: i64 = c.query_row(
+                "SELECT COALESCE(MAX(CAST(episode AS INTEGER)), 0) FROM watch_event
+                  WHERE anilist_id = ?1 AND completed = 1
+                    AND episode <> '' AND episode NOT GLOB '*[^0-9]*'",
+                [anilist_id.get()],
+                |r| r.get(0),
+            )?;
+            Ok(highest.clamp(0, i64::from(u32::MAX)) as u32)
+        })
+    }
+
+    /// Distinct completed episodes, however they are numbered.
     pub fn completed_episode_count(&self, anilist_id: AnilistId) -> Result<u32> {
         self.with_conn(|c| {
             Ok(c.query_row(
@@ -639,6 +659,47 @@ mod tests {
         store.record_event(&event("002", 1400.0, 1440.0, 4_000)).unwrap();
         assert_eq!(store.completed_episode_count(FRIEREN).unwrap(), 2);
         assert_eq!(store.progress(FRIEREN).unwrap().unwrap().episodes_done, 2);
+    }
+
+    #[test]
+    fn tracker_progress_is_the_episode_reached_not_a_tally() {
+        // Episodes 1–3 were watched somewhere else, so the log here starts at 4. A count
+        // said 9 and walked the tracker back from 12.
+        let store = Store::open_in_memory().unwrap();
+        for (i, ep) in (4..=12).enumerate() {
+            store
+                .record_event(&event(&ep.to_string(), 1400.0, 1440.0, 1_000 + i as i64))
+                .unwrap();
+        }
+        assert_eq!(store.tracker_progress(FRIEREN).unwrap(), 12);
+
+        // A lone episode 6 is "on episode 6", not "one episode in".
+        let other = Store::open_in_memory().unwrap();
+        other.record_event(&event("6", 1400.0, 1440.0, 1_000)).unwrap();
+        assert_eq!(other.tracker_progress(FRIEREN).unwrap(), 6);
+    }
+
+    #[test]
+    fn specials_neither_raise_tracker_progress_nor_stand_in_for_an_episode() {
+        // A recap numbered 12.5 is not episode 12, and "0" or a lettered special is outside
+        // the numbering a tracker counts in. Counted, these pushed one past the finale.
+        let store = Store::open_in_memory().unwrap();
+        for (i, ep) in ["0", "011", "12.5", "SP1", "13.5"].into_iter().enumerate() {
+            store.record_event(&event(ep, 1400.0, 1440.0, 1_000 + i as i64)).unwrap();
+        }
+        assert_eq!(store.tracker_progress(FRIEREN).unwrap(), 11, "leading zeros still count");
+
+        let specials_only = Store::open_in_memory().unwrap();
+        specials_only.record_event(&event("0", 1400.0, 1440.0, 1_000)).unwrap();
+        assert_eq!(specials_only.tracker_progress(FRIEREN).unwrap(), 0);
+    }
+
+    #[test]
+    fn a_part_watched_episode_is_not_progress() {
+        let store = Store::open_in_memory().unwrap();
+        store.record_event(&event("3", 1400.0, 1440.0, 1_000)).unwrap();
+        store.record_event(&event("4", 300.0, 1440.0, 2_000)).unwrap();
+        assert_eq!(store.tracker_progress(FRIEREN).unwrap(), 3);
     }
 
     #[test]

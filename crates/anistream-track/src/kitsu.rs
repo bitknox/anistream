@@ -306,6 +306,10 @@ impl Tracker for KitsuTracker {
         self.tokens.try_read().map_or(true, |held| held.is_some())
     }
 
+    fn can_address(&self, op: &TrackOp) -> bool {
+        self.mapping.kitsu_id(op.anilist_id()).is_some()
+    }
+
     async fn accept_credentials(
         &self,
         access: &str,
@@ -408,8 +412,9 @@ impl Tracker for KitsuTracker {
             if attributes.is_empty() {
                 continue;
             }
-            // Skipped and said out loud, never raised: failing the batch for one
-            // unmappable title would hold every other title's progress behind it.
+            // The drain holds an unmapped title's ops until the mappings change (see
+            // `can_address`). One that arrives anyway is skipped and said out loud, never
+            // raised: failing the batch would hold every other title's progress behind it.
             let Some(kitsu_id) = self.mapping.kitsu_id(anilist_id) else {
                 tracing::warn!(
                     anilist_id = anilist_id.get(),

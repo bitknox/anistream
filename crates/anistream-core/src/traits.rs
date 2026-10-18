@@ -221,6 +221,30 @@ pub trait Tracker: Send + Sync {
     /// Apply a batch of operations. Must be safe to call twice with the same input.
     async fn push(&self, ops: &[TrackOp]) -> Result<(), crate::Error>;
 
+    /// [`Self::push`], also naming the titles the tracker answered for without applying
+    /// anything.
+    ///
+    /// Some services answer a write with success and a list of what they could not match, so
+    /// the status alone says nothing about whether the list changed. The drain reports those
+    /// titles instead of counting them as sent. Default: `push`, trusting its success.
+    async fn push_checked(
+        &self,
+        ops: &[TrackOp],
+    ) -> Result<Vec<crate::ids::AnilistId>, crate::Error> {
+        self.push(ops).await.map(|()| Vec::new())
+    }
+
+    /// Whether this tracker can name the title an op is about, with the id mappings as they
+    /// stand.
+    ///
+    /// A tracker keyed on its own ids reaches a title through the mapping datasets, and a title
+    /// they do not cover yet cannot be pushed *yet*. The drain holds such an op back until the
+    /// mappings change instead of sending it, so it neither fails the batch nor is lost. Default
+    /// `true` for trackers keyed on AniList ids, which can name every title.
+    fn can_address(&self, _op: &TrackOp) -> bool {
+        true
+    }
+
     /// Drop any in-memory credential.
     ///
     /// Signing out clears the stored token, but a tracker that cached one at construction would

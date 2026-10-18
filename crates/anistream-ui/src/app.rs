@@ -155,6 +155,58 @@ impl SettingId {
         }
     }
 
+    /// Copy this setting's value from one configuration to another.
+    ///
+    /// What lets one setting be put back to what the file holds after its write failed,
+    /// without disturbing any other — including one changed a moment later whose own write
+    /// worked.
+    pub fn copy(self, from: &Config, to: &mut Config) {
+        let (src, dst) = (&from.playback, &mut to.playback);
+        match self {
+            Self::Theme => to.theme.mode = from.theme.mode,
+            Self::Motion => to.theme.motion = from.theme.motion,
+            Self::Translation => dst.translation = src.translation,
+            Self::Quality => dst.quality = src.quality,
+            Self::Subtitles => dst.subtitle_language.clone_from(&src.subtitle_language),
+            Self::CommitThreshold => dst.commit_threshold = src.commit_threshold,
+            Self::AutoNext => dst.auto_next = src.auto_next,
+            Self::SkipOpening => dst.skip_opening = src.skip_opening,
+            Self::SkipFiller => dst.skip_filler = src.skip_filler,
+            Self::MarkChapters => dst.mark_chapters = src.mark_chapters,
+            Self::Fullscreen => dst.fullscreen = src.fullscreen,
+            Self::Upscaling => dst.upscaling = src.upscaling,
+            Self::PlayerUi => dst.player_ui = src.player_ui,
+            Self::NightMode => dst.night_mode = src.night_mode,
+            Self::DownloadDir => to.downloads.directory.clone_from(&from.downloads.directory),
+            Self::MergeSubtitles => {
+                to.downloads.merge_subtitles = from.downloads.merge_subtitles
+            }
+            Self::KeepSeeding => to.downloads.keep_seeding = from.downloads.keep_seeding,
+            Self::DownloadHook => {
+                to.downloads.on_complete.clone_from(&from.downloads.on_complete)
+            }
+            Self::Presence => to.presence.enabled = from.presence.enabled,
+            Self::PresenceTitle => to.presence.show_title = from.presence.show_title,
+            Self::Torrents => to.providers.torrent.enabled = from.providers.torrent.enabled,
+            Self::SeedRatio => {
+                to.providers.torrent.seeding.ratio = from.providers.torrent.seeding.ratio;
+            }
+            Self::SeedHours => {
+                to.providers.torrent.seeding.hours = from.providers.torrent.seeding.hours;
+            }
+            Self::UploadLimit => {
+                to.providers.torrent.seeding.upload_limit_kib =
+                    from.providers.torrent.seeding.upload_limit_kib;
+            }
+            Self::Syncplay => to.syncplay.enabled = from.syncplay.enabled,
+            Self::SyncplayServer => to.syncplay.server.clone_from(&from.syncplay.server),
+            Self::SyncplayRoom => to.syncplay.room.clone_from(&from.syncplay.room),
+            Self::UpdateCheck => to.updates.check = from.updates.check,
+            // Not editable here, so never written and never rolled back.
+            Self::VpnMode | Self::TokenStorage => {}
+        }
+    }
+
     /// Which heading a row sits under. Purely visual grouping — navigation walks the
     /// whole list, so nothing is ever hidden behind a tab.
     pub const fn category(self) -> &'static str {
@@ -285,6 +337,11 @@ fn table_path(dotted: &'static str) -> &'static [&'static str] {
     }
 }
 
+/// A setting's saved value, with the session's own beside it when they differ.
+fn session_marked(saved: String, current: String) -> String {
+    if saved == current { saved } else { format!("{saved} · {current} this session") }
+}
+
 /// An upload cap as people read it: `unlimited`, `512 KB/s`, `2 MB/s`.
 fn upload_label(kib: u32) -> String {
     match kib {
@@ -294,14 +351,25 @@ fn upload_label(kib: u32) -> String {
     }
 }
 
-/// Step to the next value in a ladder, clamping at both ends.
+/// Step to the next value in an ascending ladder, clamping at both ends.
 ///
 /// Clamps rather than wraps: arrowing past 2160p round to 480p would be a surprising way to lose
 /// your quality preference, and the ends of the ladder are informative.
-fn step_through<T: Copy + PartialEq>(ladder: &[T], current: T, delta: isize) -> T {
-    let at = ladder.iter().position(|v| *v == current).unwrap_or(0) as isize;
-    let next = (at + delta.signum()).clamp(0, ladder.len() as isize - 1) as usize;
-    ladder[next]
+///
+/// A value that is not on the ladder — one typed into config.toml, like 1440p — steps to the
+/// nearest rung in the arrow's direction, and stays put if there is none that way. It used to
+/// be read as the bottom rung, so → from 1440p saved 720p and → from 97% saved 80%.
+fn step_through<T: Copy + PartialOrd>(ladder: &[T], current: T, delta: isize) -> T {
+    if let Some(at) = ladder.iter().position(|v| *v == current) {
+        let next = (at as isize + delta.signum()).clamp(0, ladder.len() as isize - 1) as usize;
+        return ladder[next];
+    }
+    let toward = if delta > 0 {
+        ladder.iter().find(|v| **v > current)
+    } else {
+        ladder.iter().rev().find(|v| **v < current)
+    };
+    toward.copied().unwrap_or(current)
 }
 
 /// Idle ticks a rail change waits before fetching. The idle tick is 100 ms, so this is ~300 ms —
@@ -1002,10 +1070,16 @@ pub struct SyncState {
     pub storage_degraded: bool,
     /// Queued operations waiting to go out.
     pub outbox: u32,
+    /// How many of those wait for an id mapping: titles this tracker cannot be told about
+    /// until the mapping datasets name them.
+    pub deferred: u32,
     /// The tracker rejected our credentials; nothing but re-authorising helps.
     pub needs_reauth: bool,
     /// Most recent sync outcome, in words.
     pub last: Option<String>,
+    /// Why the last library pull failed, and when (epoch seconds). Cleared by the next pull
+    /// that succeeds, so a row never goes on saying "pulled" over an outage.
+    pub pull_error: Option<(String, i64)>,
 }
 
 impl SyncState {
@@ -1018,8 +1092,10 @@ impl SyncState {
             storage: None,
             storage_degraded: false,
             outbox: 0,
+            deferred: 0,
             needs_reauth: false,
             last: None,
+            pull_error: None,
         }
     }
 
@@ -1160,6 +1236,13 @@ pub enum Update {
     /// A setting reached disk. The run loop republishes the configuration its background
     /// tasks read, so saved and in-effect are the same moment.
     SettingsSaved,
+    /// A settings write was attempted, and this is what the file holds afterwards. `failed`
+    /// names the setting whose write did not land, so the screen can put it back rather than
+    /// go on showing a value that was never saved.
+    SettingWritten {
+        on_disk: Box<Config>,
+        failed: Option<(&'static [&'static str], &'static str)>,
+    },
     /// A setting changed what sources should exist. Acted on by the run loop, which owns
     /// the torrent session and the VPN guard; the reducer only needs to not choke on it.
     SourcesChanged,
@@ -1256,6 +1339,12 @@ pub enum Update {
         url: String,
         image: Box<image::DynamicImage>,
     },
+    /// A cover could not be fetched or decoded. Silent: the plate stays, and the URL is tried
+    /// again later. `offline` means the server was not reached at all.
+    ImageFailed {
+        url: String,
+        offline: bool,
+    },
     /// The download queue, replacing whatever was there.
     Downloads(Vec<DownloadRow>),
     /// Watched episodes still seeding, replacing whatever was there.
@@ -1330,7 +1419,13 @@ pub struct App {
     pub nav: Nav,
     pub palette: Palette,
     pub keymap: Keymap,
+    /// The configuration in effect: what the file says, plus anything changed for this session
+    /// only — `t` for sub or dub, `--theme`.
     pub config: Config,
+    /// What `config.toml` holds, read back after every settings write. The Settings screen
+    /// shows these values and marks a session-only difference, and a write that fails puts
+    /// its setting back to this.
+    pub saved_config: Config,
     pub content: Content,
     /// The caption for the list on screen, with the view it belongs to. See [`Update::Caption`].
     pub caption: Option<(ContentFor, String)>,
@@ -1547,6 +1642,7 @@ impl App {
             nav: Nav::new(),
             palette,
             keymap,
+            saved_config: config.clone(),
             config,
             content: Content::Loading,
             caption: None,
@@ -1830,7 +1926,11 @@ impl App {
             }
             Update::Status(status) => self.status = status,
             Update::Toast(toast) => self.push_toast(toast),
-            Update::Image { url, image } => self.images.insert(&url, *image),
+            Update::Image { url, image } => {
+                self.images.insert(&url, *image);
+                self.images.requests().network_returned();
+            }
+            Update::ImageFailed { url, offline } => self.images.mark_failed(&url, offline),
             Update::Providers(rows) => self.providers = rows,
             Update::MetaStatus(rows) => self.meta_status = rows,
             Update::Stores(rows) => self.apply_stores(rows),
@@ -1874,6 +1974,12 @@ impl App {
             // Both are handled outside the reducer, by the loop that owns the background
             // tasks and the session.
             Update::SettingsSaved => {}
+            Update::SettingWritten { on_disk, failed } => {
+                self.saved_config = *on_disk;
+                if let Some((table, key)) = failed {
+                    self.roll_back_setting(table, key);
+                }
+            }
             Update::SourcesChanged => self.status = "reloading sources…".into(),
             Update::ProviderNote(note) => self.provider_note = Some(note),
             Update::ProviderPreference(choice) => self.provider_preference = choice,
@@ -3292,7 +3398,13 @@ impl App {
             }
             Action::ToggleSynopsis => self.synopsis_expanded = !self.synopsis_expanded,
             Action::SetListStatus => {
-                if let Some(entry) = self.target() {
+                if self.signed_in_trackers().is_empty() {
+                    // Nothing keeps a list status but a tracker. Offering the picker anyway
+                    // ended in "marked watching" for a choice that went nowhere.
+                    self.push_toast(Toast::info(
+                        "list status is kept on a tracker, and none is signed in — :accounts",
+                    ));
+                } else if let Some(entry) = self.target() {
                     // Preselect what the title is already on, so the common case is one
                     // keystroke to confirm rather than a hunt. The title's own status, where it
                     // is known — the Library tab last viewed said nothing about a show opened
@@ -3309,7 +3421,11 @@ impl App {
                 }
             }
             Action::RateTitle => {
-                if self.target().is_some() {
+                if self.signed_in_trackers().is_empty() {
+                    self.push_toast(Toast::info(
+                        "ratings are kept on a tracker, and none is signed in — :accounts",
+                    ));
+                } else if self.target().is_some() {
                     // No local record of an existing score to preselect, so the cursor
                     // starts at the top and every row is one or two keystrokes away.
                     self.overlay_selected = 0;
@@ -3374,18 +3490,26 @@ impl App {
             // under them — which is what `r` used to fetch, saying "loading the calendar" over
             // a title page that never changed.
             Action::Refresh if matches!(self.nav.current(), StageView::Title(_)) => {
+                self.images.requests().retry_failed();
                 return self.title_on_screen().map(Task::LoadDetail);
             }
             Action::Refresh if self.in_episodes() => {
                 // The rows stay on screen until the answer lands, and the answer keeps the
                 // cursor on its episode; the activity row says the table is being asked again.
+                self.images.requests().retry_failed();
                 return self.title_on_screen().map(Task::LoadEpisodes);
             }
-            Action::Refresh => return self.reload(),
+            Action::Refresh => {
+                // Asking again means the covers too: one that failed while the network was
+                // down should not wait out its backoff once you have said it is back.
+                self.images.requests().retry_failed();
+                return self.reload();
+            }
             Action::ToggleTranslation => {
+                // For this session: the saved choice is the Settings row's to change.
                 self.config.playback.translation = self.config.playback.translation.toggled();
                 self.push_toast(Toast::info(format!(
-                    "now using {}",
+                    "now using {} for this session",
                     self.config.playback.translation
                 )));
             }
@@ -3655,6 +3779,13 @@ impl App {
         Some(Task::Connect { tracker: tracker.tracker })
     }
 
+    /// The trackers a status or score is queued for: those holding a credential, the same
+    /// rule the queueing side applies. A tracker waiting on a fresh sign-in still counts —
+    /// its queue is kept and drains once it is signed in again.
+    fn signed_in_trackers(&self) -> Vec<&str> {
+        self.sync.iter().filter(|s| s.connected).map(|s| s.tracker.as_str()).collect()
+    }
+
     fn in_settings_stage(&self) -> bool {
         self.nav.section() == Section::Settings
             && self.nav.focus() == Focus::Stage
@@ -3798,9 +3929,14 @@ impl App {
         use SettingId as S;
         use anistream_core::config::{PlayerUi, ThemeMode};
         let c = &self.config;
+        // Theme and sub/dub can differ for this session (`--theme`, `t`), and their arrows
+        // change the saved choice, so that is the one they stand on.
+        let saved = &self.saved_config;
         Some(match id {
-            S::Theme => c.theme.mode == ThemeMode::Immersive,
-            S::Translation => c.playback.translation == anistream_core::media::Translation::Dub,
+            S::Theme => saved.theme.mode == ThemeMode::Immersive,
+            S::Translation => {
+                saved.playback.translation == anistream_core::media::Translation::Dub
+            }
             S::PlayerUi => c.playback.player_ui == PlayerUi::Mpv,
             S::Motion => c.theme.motion,
             S::AutoNext => c.playback.auto_next,
@@ -3857,7 +3993,11 @@ impl App {
                 let id = entry.id;
                 let status = *LibrarySegment::ALL.get(self.overlay_selected)?;
                 self.nav.close_overlay();
-                self.push_toast(Toast::info(format!("now on your {} list", status.label())));
+                self.push_toast(Toast::info(format!(
+                    "now on your {} list — queued for {}",
+                    status.label(),
+                    self.signed_in_trackers().join(", ")
+                )));
                 // Remembered on every copy of the title on screen, so asking again opens on
                 // the answer just given.
                 let entries = match &mut self.content {
@@ -3892,7 +4032,10 @@ impl App {
                 // Rows run 10 down to 1, so the row index is the distance from 10.
                 let score = (10 - self.overlay_selected.min(9)) as f32;
                 self.nav.close_overlay();
-                self.push_toast(Toast::info(format!("rated {score}/10")));
+                self.push_toast(Toast::info(format!(
+                    "rated {score}/10 — queued for {}",
+                    self.signed_in_trackers().join(", ")
+                )));
                 Some(Task::SetScore { id, score })
             }
             Some(Overlay::Conflicts) => {
@@ -4036,7 +4179,9 @@ impl App {
     /// The Settings screen's rows, built fresh from the live config.
     ///
     /// Read from `self.config` rather than a copy taken at startup, so a row shows the value that
-    /// is actually in force the instant after it is changed.
+    /// is actually in force the instant after it is changed. The two settings that can also be
+    /// changed for a session only, theme and sub/dub, show what is saved and mark the session's
+    /// value beside it: the file and the next launch go by the saved one.
     pub fn setting_rows(&self) -> Vec<SettingRow> {
         use SettingId as S;
         let playback = &self.config.playback;
@@ -4046,7 +4191,10 @@ impl App {
             .map(|id| {
                 let (value, editable, note) = match id {
                     S::Theme => (
-                        format!("{:?}", self.config.theme.mode).to_lowercase(),
+                        session_marked(
+                            format!("{:?}", self.saved_config.theme.mode).to_lowercase(),
+                            format!("{:?}", self.config.theme.mode).to_lowercase(),
+                        ),
                         Some(("theme", "mode")),
                         None,
                     ),
@@ -4054,7 +4202,10 @@ impl App {
                         (on_off(self.config.theme.motion), Some(("theme", "motion")), None)
                     }
                     S::Translation => (
-                        playback.translation.to_string(),
+                        session_marked(
+                            self.saved_config.playback.translation.to_string(),
+                            playback.translation.to_string(),
+                        ),
                         Some(("playback", "translation")),
                         None,
                     ),
@@ -4274,7 +4425,9 @@ impl App {
 
         let value = match id {
             SettingId::Theme => {
-                let next = match self.config.theme.mode {
+                // From the saved value, which is the one the row shows: the arrows change
+                // what is saved, and a session override simply gives way to it.
+                let next = match self.saved_config.theme.mode {
                     ThemeMode::Adaptive => ThemeMode::Immersive,
                     ThemeMode::Immersive => ThemeMode::Adaptive,
                 };
@@ -4295,7 +4448,7 @@ impl App {
                 V::Bool(self.config.theme.motion)
             }
             SettingId::Translation => {
-                let next = match self.config.playback.translation {
+                let next = match self.saved_config.playback.translation {
                     Translation::Sub => Translation::Dub,
                     Translation::Dub => Translation::Sub,
                 };
@@ -4421,6 +4574,32 @@ impl App {
         };
 
         Some(Task::SaveSetting { table: edit.table, key: edit.key, value })
+    }
+
+    /// Put a setting whose write failed back to what the file holds.
+    ///
+    /// The reducer changes a setting before the write it asks for, so the screen answers at
+    /// once; when the write was refused — enabling torrents with no VPN, an unwritable file —
+    /// the screen and the status line went on showing the value that never landed.
+    fn roll_back_setting(&mut self, table: &[&str], key: &str) {
+        let rows = self.setting_rows();
+        let Some(id) = SettingId::ALL.iter().zip(&rows).find_map(|(id, row)| {
+            let edit = row.editable.as_ref()?;
+            (edit.table == table && edit.key == key).then_some(*id)
+        }) else {
+            return;
+        };
+        id.copy(&self.saved_config, &mut self.config);
+        if id == SettingId::Theme {
+            use anistream_core::config::ThemeMode;
+            self.palette = crate::theme::Palette::of(match self.config.theme.mode {
+                ThemeMode::Immersive => crate::theme::Variant::Immersive,
+                ThemeMode::Adaptive => self.adaptive_variant,
+            });
+        }
+        // The status line falls back to what is in effect, rather than a message about an
+        // earlier save.
+        self.status.clear();
     }
 
     /// Actions matching the current palette query, in the order they are rendered.
@@ -6192,6 +6371,8 @@ mod tests {
     #[test]
     fn a_list_status_is_confirmed_as_the_list_it_is_on() {
         let mut a = app();
+        // List status lives on a tracker, so one is signed in.
+        a.apply(Update::Sync(Box::new(connected(0))));
         a.apply(a.content_here(entries(1)));
         a.handle(Action::SetListStatus, 10);
         a.overlay_selected = 2;
@@ -6201,7 +6382,9 @@ mod tests {
             Some(Task::SetStatus { status: LibrarySegment::Completed, .. })
         ));
         assert!(
-            a.toasts.iter().any(|t| t.text == "now on your completed list"),
+            a.toasts
+                .iter()
+                .any(|t| t.text == "now on your completed list — queued for anilist"),
             "{:?}",
             a.toasts
         );
@@ -7362,6 +7545,7 @@ mod tests {
     fn setting_a_list_status_preselects_the_current_one() {
         // One keystroke to confirm in the common case, rather than a hunt.
         let mut a = app();
+        a.apply(Update::Sync(Box::new(connected(0))));
         a.go_to_section(Section::Library);
         a.library_segment = LibrarySegment::Completed;
         let mut rows = entries(3);
@@ -7385,6 +7569,7 @@ mod tests {
     #[test]
     fn rating_a_title_queues_a_score_out_of_ten() {
         let mut a = app();
+        a.apply(Update::Sync(Box::new(connected(0))));
         a.apply(a.content_here(entries(3)));
         a.handle(Action::RateTitle, 20);
         assert_eq!(a.nav.overlay(), Some(&Overlay::Rate));
@@ -7539,8 +7724,39 @@ mod tests {
     }
 
     #[test]
+    fn status_and_rating_with_no_tracker_signed_in_say_so_instead_of_pretending() {
+        // "marked watching" and "rated 8/10" used to be said for choices that went nowhere.
+        // A tracker that is configured but signed out does not count.
+        let mut a = app();
+        a.apply(Update::Sync(Box::new(SyncState::new("kitsu"))));
+        a.apply(a.content_here(entries(3)));
+
+        for action in [Action::SetListStatus, Action::RateTitle] {
+            a.toasts.clear();
+            assert_eq!(a.handle(action, 20), None);
+            assert!(!a.nav.has_overlay(), "{action:?} offered a picker that goes nowhere");
+            let said = &a.toasts.last().expect("nothing said").text;
+            assert!(said.contains("none is signed in") && said.contains(":accounts"), "{said}");
+        }
+    }
+
+    #[test]
+    fn a_status_says_which_trackers_it_was_queued_for() {
+        let mut a = app();
+        a.apply(Update::Sync(Box::new(connected(0))));
+        a.apply(Update::Sync(Box::new(SyncState { connected: true, ..SyncState::new("mal") })));
+        a.apply(Update::Sync(Box::new(SyncState::new("kitsu"))));
+        a.apply(a.content_here(entries(3)));
+        a.handle(Action::SetListStatus, 20);
+        a.handle(Action::Open, 20);
+        let said = &a.toasts.last().unwrap().text;
+        assert!(said.ends_with("queued for anilist, mal"), "{said}");
+    }
+
+    #[test]
     fn rating_with_nothing_selected_says_so() {
         let mut a = app();
+        a.apply(Update::Sync(Box::new(connected(0))));
         assert_eq!(a.handle(Action::RateTitle, 20), None);
         assert!(!a.nav.has_overlay());
         assert!(a.toasts.iter().any(|t| t.text.contains("nothing selected")));
@@ -7716,6 +7932,8 @@ mod tests {
         // Back on a list, every title key read the last title opened before the highlighted
         // row, so `a`, `*`, `d`, Space and the rest all went to the wrong show.
         let mut a = home_list(5);
+        // List status lives on a tracker, so one is signed in.
+        a.apply(Update::Sync(Box::new(connected(0))));
         a.handle(Action::Open, 5);
         // The record the title page fetched, with everything that rides that fetch.
         let mut opened = Entry::new(AnilistId::new(1), "Title 0");
@@ -7999,6 +8217,8 @@ mod tests {
     #[test]
     fn the_status_picker_opens_on_the_titles_status_not_the_tab_last_viewed() {
         let mut a = home_list(3);
+        // List status lives on a tracker, so one is signed in.
+        a.apply(Update::Sync(Box::new(connected(0))));
         a.library_segment = LibrarySegment::Dropped;
         a.handle(Action::SetListStatus, 5);
         assert_eq!(a.overlay_selected, 0, "nothing known about it, so the top");
@@ -8559,6 +8779,130 @@ mod tests {
 
         a.handle(Action::ShowLogs, 10);
         assert_eq!(a.nav.overlay(), Some(&Overlay::Logs));
+    }
+
+    #[test]
+    fn a_value_off_the_ladder_steps_to_the_nearest_rung_the_arrow_points_at() {
+        // From config.toml, not the arrows. → from 1440p saved 720p, and → from 97% saved 80%.
+        const QUALITY: [u32; 4] = [480, 720, 1080, 2160];
+        assert_eq!(step_through(&QUALITY, 1440, 1), 2160);
+        assert_eq!(step_through(&QUALITY, 1440, -1), 1080);
+        assert_eq!(step_through(&QUALITY, 360, -1), 360, "nothing lower: stay put");
+        assert_eq!(step_through(&QUALITY, 360, 1), 480);
+
+        const THRESHOLD: [u32; 5] = [70, 80, 85, 90, 95];
+        assert_eq!(step_through(&THRESHOLD, 97, 1), 97, "nothing higher: stay put");
+        assert_eq!(step_through(&THRESHOLD, 97, -1), 95);
+        assert_eq!(step_through(&THRESHOLD, 82, 1), 85);
+        assert_eq!(step_through(&THRESHOLD, 82, -1), 80);
+    }
+
+    #[test]
+    fn the_settings_screen_steps_an_off_ladder_quality_up_not_down() {
+        use anistream_core::settings::SettingValue;
+        let mut config = Config::default();
+        config.playback.quality = 1440;
+        config.playback.commit_threshold = 0.97;
+        let mut a = App::new(config, Palette::dark(), Keymap::new());
+        a.go_to_section(Section::Settings);
+        a.nav.focus_stage();
+
+        a.selected = SettingId::ALL.iter().position(|id| *id == SettingId::Quality).unwrap();
+        let task = a.handle(Action::Right, 10);
+        assert_eq!(a.config.playback.quality, 2160);
+        assert!(matches!(task, Some(Task::SaveSetting { value: SettingValue::Int(2160), .. })));
+
+        a.selected =
+            SettingId::ALL.iter().position(|id| *id == SettingId::CommitThreshold).unwrap();
+        a.handle(Action::Right, 10);
+        assert_eq!(a.config.playback.commit_threshold, 0.97, "→ never lowers it");
+        a.handle(Action::Left, 10);
+        assert_eq!(a.config.playback.commit_threshold, 0.95);
+    }
+
+    fn setting_text(a: &App, id: SettingId) -> String {
+        let at = SettingId::ALL.iter().position(|row| *row == id).unwrap();
+        a.setting_rows()[at].value.clone()
+    }
+
+    fn settings_at(id: SettingId) -> App {
+        let mut a = app();
+        a.go_to_section(Section::Settings);
+        a.nav.focus_stage();
+        a.selected = SettingId::ALL.iter().position(|row| *row == id).unwrap();
+        a
+    }
+
+    #[test]
+    fn a_refused_settings_write_puts_the_setting_back() {
+        // The value changed before the write and nothing undid it, so a refused write — torrents
+        // on with no VPN configured — went on showing "on" and the status line the new value.
+        let mut a = settings_at(SettingId::Torrents);
+        let Some(Task::SaveSetting { table, key, .. }) = a.handle(Action::Right, 10) else {
+            panic!("no write asked for")
+        };
+        assert!(a.config.providers.torrent.enabled, "the screen answers at once");
+        a.status = "saved quality".into();
+
+        a.apply(Update::SettingWritten {
+            on_disk: Box::new(Config::default()),
+            failed: Some((table, key)),
+        });
+        assert!(!a.config.providers.torrent.enabled, "back to what the file holds");
+        assert_eq!(setting_text(&a, SettingId::Torrents), "off");
+        assert!(a.status.is_empty(), "the status line shows what is in effect again");
+    }
+
+    #[test]
+    fn a_rollback_leaves_other_settings_alone() {
+        // A second setting changed while the first write was refused has its own write, which
+        // landed; undoing everything would undo that too.
+        let mut a = settings_at(SettingId::Quality);
+        a.handle(Action::Right, 10);
+        let mut on_disk = Config::default();
+        on_disk.playback.quality = 2160;
+        a.selected = SettingId::ALL.iter().position(|row| *row == SettingId::Torrents).unwrap();
+        a.handle(Action::Right, 10);
+
+        a.apply(Update::SettingWritten {
+            on_disk: Box::new(on_disk),
+            failed: Some((&["providers", "torrent"], "enabled")),
+        });
+        assert_eq!(a.config.playback.quality, 2160);
+        assert!(!a.config.providers.torrent.enabled);
+    }
+
+    #[test]
+    fn sub_or_dub_for_the_session_shows_beside_the_saved_choice() {
+        // `t` is for this session, and Settings showed it as if saved while the file and the
+        // next launch said otherwise.
+        let mut a = app();
+        a.handle(Action::ToggleTranslation, 10);
+        assert_eq!(setting_text(&a, SettingId::Translation), "sub · dub this session");
+        assert!(a.toasts.last().unwrap().text.contains("for this session"));
+
+        // The arrows change the saved value, the one the row leads with.
+        let mut a = settings_at(SettingId::Translation);
+        a.handle(Action::ToggleTranslation, 10);
+        let task = a.handle(Action::Right, 10);
+        assert!(matches!(
+            task,
+            Some(Task::SaveSetting { key: "translation", value: anistream_core::settings::SettingValue::Str(ref v), .. }) if v == "dub"
+        ));
+        let mut on_disk = Config::default();
+        on_disk.playback.translation = anistream_core::media::Translation::Dub;
+        a.apply(Update::SettingWritten { on_disk: Box::new(on_disk), failed: None });
+        assert_eq!(setting_text(&a, SettingId::Translation), "dub");
+    }
+
+    #[test]
+    fn a_theme_from_the_command_line_shows_as_this_session_only() {
+        use anistream_core::config::ThemeMode;
+        let mut config = Config::default();
+        config.theme.mode = ThemeMode::Immersive;
+        let mut a = App::new(config, Palette::dark(), Keymap::new());
+        a.saved_config.theme.mode = ThemeMode::Adaptive;
+        assert_eq!(setting_text(&a, SettingId::Theme), "adaptive · immersive this session");
     }
 
     #[test]

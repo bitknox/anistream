@@ -33,6 +33,17 @@ impl Store {
         })
     }
 
+    /// Drop every cursor whose key starts with `prefix`, returning how many there were.
+    pub fn clear_meta_prefix(&self, prefix: &str) -> Result<usize> {
+        self.with_conn(|c| {
+            // `substr` rather than LIKE, so a `_` or `%` in the prefix means itself.
+            Ok(c.execute(
+                "DELETE FROM app_state WHERE substr(key, 1, length(?1)) = ?1",
+                [prefix],
+            )?)
+        })
+    }
+
     /// Remember a title for an id.
     ///
     /// Called whenever a title passes through the app, so that later — in a sync conflict, or a
@@ -70,6 +81,22 @@ mod tests {
     use super::*;
 
     const FRIEREN: AnilistId = AnilistId::new(154_587);
+
+    #[test]
+    fn clearing_by_prefix_takes_only_what_starts_with_it() {
+        let store = Store::open_in_memory().unwrap();
+        store.set_meta_i64("pushed_progress:mal:1", 3).unwrap();
+        store.set_meta_i64("pushed_progress:mal:2", 4).unwrap();
+        store.set_meta_i64("pushed_progress:malx:1", 5).unwrap();
+        store.set_meta_i64("last_pull:mal", 6).unwrap();
+
+        assert_eq!(store.clear_meta_prefix("pushed_progress:mal:").unwrap(), 2);
+        assert_eq!(store.get_meta_i64("pushed_progress:mal:1").unwrap(), None);
+        assert_eq!(store.get_meta_i64("pushed_progress:malx:1").unwrap(), Some(5));
+        assert_eq!(store.get_meta_i64("last_pull:mal").unwrap(), Some(6));
+        // A wildcard character in the prefix means itself.
+        assert_eq!(store.clear_meta_prefix("pushed_progress:_").unwrap(), 0);
+    }
 
     #[test]
     fn a_cursor_round_trips_and_overwrites() {

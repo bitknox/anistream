@@ -1166,10 +1166,14 @@ async fn sync_once(config: &Config, store: &Store, http: &HttpClient) -> Result<
         let now = anistream_store::now();
         match anistream_track::drain(store, tracker.as_ref(), now).await {
             Ok(report) => println!(
-                "  drain          sent {} · failed {} · remaining {}{}",
+                "  drain          sent {} · failed {} · remaining {}{}{}",
                 report.sent,
                 report.failed,
                 report.remaining,
+                match store.outbox_deferred(id).unwrap_or(0) {
+                    0 => String::new(),
+                    held => format!(" · {held} waiting for an id mapping"),
+                },
                 if report.needs_reauth { " · NEEDS RE-AUTH" } else { "" }
             ),
             Err(e) => println!("  ✕ drain: {e}"),
@@ -1475,6 +1479,10 @@ async fn run(
         tracing::warn!(%problem, "keybinding not applied");
         app.push_toast(Toast::alert(format!("keybinding not applied: {problem}")));
     }
+
+    // What the file says, as distinct from what is in effect: `--theme` changes only this
+    // session, and the Settings screen has to be able to tell the two apart.
+    app.saved_config = Config::load(&paths).unwrap_or_default();
     if let Some(note) = provider_note {
         app.apply(Update::ProviderNote(note));
     }
@@ -2139,11 +2147,15 @@ fn dispatch(
             tracking::set_status(sync, id, status);
             // Queued, not sent — the drain owns the network. Reporting the new depth is what
             // makes the badge move immediately.
-            let _ = tx.send(Update::Sync(Box::new(sync.state_after_enqueue())));
+            for state in sync.state_after_enqueue() {
+                let _ = tx.send(Update::Sync(Box::new(state)));
+            }
         }
         Task::SetScore { id, score } => {
             tracking::set_score(sync, id, score);
-            let _ = tx.send(Update::Sync(Box::new(sync.state_after_enqueue())));
+            for state in sync.state_after_enqueue() {
+                let _ = tx.send(Update::Sync(Box::new(state)));
+            }
         }
         Task::ResolveConflict { id, keep_local } => {
             tracking::resolve_conflict(sync, id, keep_local);
@@ -2319,13 +2331,15 @@ fn dispatch(
             // Project to trackers only when marking: progress there is monotonic, so an
             // unmark keeps the remote high-water mark and only local history forgets.
             if watched {
-                let count = store.completed_episode_count(id).unwrap_or(0);
-                if count > 0 {
+                let reached = store.tracker_progress(id).unwrap_or(0);
+                if reached > 0 {
                     let op = anistream_core::traits::TrackOp::SetProgress {
                         anilist_id: id,
-                        episode: count,
+                        episode: reached,
                     };
-                    for tracker in &sync.trackers {
+                    // Signed-in trackers only, like a finished episode: the default Kitsu
+                    // entry has no account behind it until someone signs in.
+                    for tracker in sync.trackers.iter().filter(|t| t.is_authenticated()) {
                         let _ = store.enqueue(tracker.id(), &op, now);
                     }
                 }
@@ -2618,7 +2632,15 @@ fn dispatch(
         // a pure function. Synchronous on purpose — one small file, and a settings change that
         // silently lost a race with the next one would be worse than a paused frame.
         Task::SaveSetting { table, key, value } => {
-            match anistream_core::settings::write_key(paths, table, key, value) {
+            let written = anistream_core::settings::write_key(paths, table, key, value);
+            // Read back whatever the write left, so the Settings screen shows the file rather
+            // than its own hopes — and can put a refused setting back. A file that does not
+            // load is treated the way startup treats it.
+            let _ = tx.send(Update::SettingWritten {
+                on_disk: Box::new(Config::load(paths).unwrap_or_default()),
+                failed: written.is_err().then_some((table, key)),
+            });
+            match written {
                 Ok(()) => {
                     // A toast, named as the Settings screen names it. As a status it stayed
                     // in the status line for the rest of the session, over the state it shows,

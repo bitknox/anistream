@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use anistream_core::{config::Config, ids::AnilistId};
 use anistream_ui::{
     App, Content, Entry, Keymap, Overlay, Palette, Section, StageView, Task,
-    app::{EpisodeRow, NowPlaying, ResumePoint, Toast},
+    app::{EpisodeRow, NowPlaying, ResumePoint, SyncState, Toast, Update},
     keymap::status_hints,
     screens::render_to_buffer,
 };
@@ -232,6 +232,12 @@ fn help_and_logs_let_the_going_somewhere_keys_through() {
 #[test]
 fn help_over_a_picker_returns_to_it_with_its_selection() {
     let mut a = app();
+    // Ratings live on a tracker, so one is signed in.
+    a.apply(Update::Sync(Box::new(SyncState {
+        tracker: "anilist".into(),
+        connected: true,
+        ..SyncState::default()
+    })));
     a.apply(a.content_here(entries(2)));
     a.nav.focus_stage();
     press(&mut a, &["*", "j", "j"]);

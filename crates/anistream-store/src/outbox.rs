@@ -32,6 +32,14 @@ const BACKOFF_MAX_SECS: i64 = 3_600;
 /// attempts, not time.
 const MAX_ATTEMPTS: u32 = 50;
 
+/// `next_retry` for an op held until the id mappings change.
+///
+/// A sentinel rather than a column: `claim_ready` already skips anything not yet due, so a
+/// deferred row stays out of every batch with no change to the query, keeps its place in
+/// the oldest-first order, and still counts in the depth the `⇅` badge shows — it has not
+/// gone anywhere yet.
+const DEFERRED: i64 = i64::MAX;
+
 /// A queued operation.
 #[derive(Debug, Clone, PartialEq)]
 pub struct OutboxEntry {
@@ -215,6 +223,42 @@ impl Store {
         })
     }
 
+    /// Hold an op until the id mappings change.
+    ///
+    /// For an op the tracker cannot address yet: a title the mapping datasets carry no id
+    /// for on that service. Retrying on a timer cannot help and deleting it loses the
+    /// update, so it waits for [`Self::wake_deferred`], which every mapping refresh calls.
+    /// Not counted as an attempt: nothing failed, and the row has to be ready to go the
+    /// moment a mapping arrives rather than an hour into a backoff.
+    pub fn defer(&self, id: i64, reason: &str) -> Result<()> {
+        self.with_conn(|c| {
+            c.execute(
+                "UPDATE sync_outbox SET next_retry = ?1, last_error = ?2 WHERE id = ?3",
+                rusqlite::params![DEFERRED, reason, id],
+            )?;
+            Ok(())
+        })
+    }
+
+    /// Make every deferred op ready again, returning how many there were.
+    ///
+    /// Called by every mapping refresh. Public so that anything else which changes what the
+    /// mappings can answer can say so too.
+    pub fn wake_deferred(&self) -> Result<usize> {
+        self.with_conn(wake_deferred_in)
+    }
+
+    /// Ops held for a mapping, for the Accounts screen.
+    pub fn outbox_deferred(&self, tracker_id: &str) -> Result<u32> {
+        self.with_conn(|c| {
+            Ok(c.query_row(
+                "SELECT COUNT(*) FROM sync_outbox WHERE tracker_id = ?1 AND next_retry = ?2",
+                rusqlite::params![tracker_id, DEFERRED],
+                |r| r.get(0),
+            )?)
+        })
+    }
+
     /// Number of pending operations, for the `⇅` badge in the status line.
     pub fn outbox_depth(&self, tracker_id: Option<&str>) -> Result<u32> {
         self.with_conn(|c| {
@@ -248,6 +292,12 @@ impl Store {
             )?)
         })
     }
+}
+
+/// [`Store::wake_deferred`] on a connection already held, so a mapping refresh can do it
+/// inside its own transaction.
+pub(crate) fn wake_deferred_in(c: &rusqlite::Connection) -> Result<usize> {
+    Ok(c.execute("UPDATE sync_outbox SET next_retry = 0 WHERE next_retry = ?1", [DEFERRED])?)
 }
 
 #[cfg(test)]
@@ -337,6 +387,44 @@ mod tests {
             0,
             "the queue should not carry an operation forever"
         );
+    }
+
+    #[test]
+    fn a_deferred_op_waits_out_of_the_way_until_woken() {
+        // A title with no mapping on this tracker cannot be pushed yet, and must neither block
+        // the ops behind it nor be lost.
+        let store = Store::open_in_memory().unwrap();
+        let held = store.enqueue("mal", &progress(4), 1_000).unwrap().unwrap();
+        let other = TrackOp::SetProgress { anilist_id: AnilistId::new(1), episode: 2 };
+        store.enqueue("mal", &other, 1_001).unwrap();
+
+        store.defer(held, "no mal id mapped").unwrap();
+        let ready = store.claim_ready("mal", i64::MAX - 1, 10).unwrap();
+        assert_eq!(ready.len(), 1, "the deferred op stays out of every batch");
+        assert_eq!(ready[0].op, other);
+        assert_eq!(store.outbox_depth(Some("mal")).unwrap(), 2, "and it is still queued");
+        assert_eq!(store.outbox_deferred("mal").unwrap(), 1);
+
+        // Watching on coalesces into the held row rather than queueing a second one.
+        store.enqueue("mal", &progress(5), 2_000).unwrap();
+        assert_eq!(store.outbox_deferred("mal").unwrap(), 1);
+
+        assert_eq!(store.wake_deferred().unwrap(), 1);
+        let ready = store.claim_ready("mal", 2_000, 10).unwrap();
+        assert!(ready.iter().any(|e| e.op == progress(5) && e.attempts == 0));
+        assert_eq!(store.outbox_deferred("mal").unwrap(), 0);
+    }
+
+    #[test]
+    fn a_mapping_refresh_wakes_what_was_deferred() {
+        // Whichever path refreshes the datasets — startup, a later retry, `--refresh-data` —
+        // the held ops get another look without that path having to know about them.
+        let store = Store::open_in_memory().unwrap();
+        let held = store.enqueue("simkl", &progress(4), 1_000).unwrap().unwrap();
+        store.defer(held, "no mal id mapped").unwrap();
+
+        store.materialise_mapping("test", 0, &[], None, 2_000).unwrap();
+        assert_eq!(store.claim_ready("simkl", 2_000, 10).unwrap().len(), 1);
     }
 
     #[test]
