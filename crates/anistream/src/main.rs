@@ -1435,7 +1435,7 @@ fn random_cli(store: &Store, json: bool) -> Result<()> {
 async fn refresh_data(store: &Store, http: &HttpClient) -> Result<()> {
     let now = now_epoch();
     for (name, outcome) in dataset::refresh_all(store, http, now, true).await {
-        println!("{name:<12} {outcome:?}");
+        println!("{name:<12} {}", describe_refresh(&outcome));
     }
     println!("{} titles mapped", store.mapping_count().unwrap_or(0));
     Ok(())
@@ -1567,19 +1567,7 @@ async fn run(
     tracking::spawn_loops(sync.clone(), tx.clone());
 
     // Keep the mapping datasets current without ever blocking startup.
-    {
-        let store = store.clone();
-        let http = http.clone();
-        let tx = tx.clone();
-        tokio::spawn(async move {
-            let outcomes = dataset::refresh_all(&store, &http, now_epoch(), false).await;
-            if let Some((name, outcome)) = outcomes.iter().find(|(_, o)| o.is_failure()) {
-                let _ = tx.send(Update::Toast(Toast::alert(format!(
-                    "{name} mapping refresh failed: {outcome:?}"
-                ))));
-            }
-        });
-    }
+    tokio::spawn(keep_datasets_current(store.clone(), http.clone(), tx.clone()));
 
     // The torrent stack's live parts, held so a settings change can tear them down and
     // stand them back up without a restart. Both are replaced together: the download
@@ -1826,6 +1814,71 @@ async fn run(
 
     restore_terminal(&mut terminal)?;
     result
+}
+
+/// Refresh the mapping datasets, and keep trying in the background until a refresh succeeds.
+///
+/// A launch without a network used to try once and give up for the session, leaving the
+/// trackers that key on MAL and Kitsu ids without the mappings they need until the next launch.
+/// A failure is said once, in words; the retries back off from five minutes to an hour; and
+/// the recovery is said too, so the last thing on screen stays true. A refresh only fetches what
+/// is due, so a retry asks again for exactly the datasets that failed.
+async fn keep_datasets_current(
+    store: Store,
+    http: HttpClient,
+    tx: mpsc::UnboundedSender<Update>,
+) {
+    let mut wait = Duration::from_secs(5 * 60);
+    let mut said = false;
+    loop {
+        let outcomes = dataset::refresh_all(&store, &http, now_epoch(), false).await;
+        let failed: Vec<&str> =
+            outcomes.iter().filter(|(_, o)| o.is_failure()).map(|(name, _)| *name).collect();
+        let Some(reason) = outcomes.iter().find_map(|(_, o)| match o {
+            dataset::RefreshOutcome::Failed { reason } => Some(reason.as_str()),
+            _ => None,
+        }) else {
+            if said {
+                tracing::info!("mapping datasets refreshed after failing");
+                let _ = tx.send(Update::Toast(Toast::info("mapping data refreshed")));
+            }
+            return;
+        };
+        tracing::warn!(datasets = ?failed, %reason, retry_secs = wait.as_secs(), "mapping refresh failed");
+        if !said {
+            said = true;
+            let _ = tx.send(Update::Toast(Toast::alert(format!(
+                "mapping data could not be refreshed ({}: {}) — trying again in {} min",
+                failed.join(", "),
+                plain_failure(reason),
+                wait.as_secs() / 60
+            ))));
+        }
+        tokio::time::sleep(wait).await;
+        wait = (wait * 2).min(Duration::from_secs(3600));
+    }
+}
+
+/// One dataset refresh's outcome, as a person reads it.
+fn describe_refresh(outcome: &dataset::RefreshOutcome) -> String {
+    match outcome {
+        dataset::RefreshOutcome::NotDue => "current, not due for a check".into(),
+        dataset::RefreshOutcome::Unchanged => "unchanged since the last fetch".into(),
+        dataset::RefreshOutcome::Updated { entries } => format!("updated, {entries} entries"),
+        dataset::RefreshOutcome::Failed { reason } => {
+            format!("failed: {}", plain_failure(reason))
+        }
+    }
+}
+
+/// A request failure without the plumbing: "could not be reached" rather than the client's
+/// "error sending request for url (…)", which names the URL and not the problem.
+fn plain_failure(reason: &str) -> &str {
+    if reason.contains("error sending request") || reason.contains("timed out") {
+        "the server could not be reached"
+    } else {
+        reason
+    }
 }
 
 /// The interface's standing notice for a config file that did not load: which file, which line,
@@ -4400,6 +4453,27 @@ mod tests {
         assert_eq!(following(&rows, "1").as_deref(), Some("2"));
         assert_eq!(following(&rows, "3"), None, "a finale has no next");
         assert_eq!(following(&rows, "OVA"), None);
+    }
+
+    #[test]
+    fn a_dataset_refresh_is_described_in_words() {
+        use dataset::RefreshOutcome;
+        let unreachable = RefreshOutcome::Failed {
+            reason: "error sending request for url (https://datasets.example/mapping.json)"
+                .into(),
+        };
+        assert_eq!(describe_refresh(&unreachable), "failed: the server could not be reached");
+        let refused = RefreshOutcome::Failed { reason: "HTTP 503".into() };
+        assert_eq!(describe_refresh(&refused), "failed: HTTP 503");
+        assert_eq!(
+            describe_refresh(&RefreshOutcome::Updated { entries: 12 }),
+            "updated, 12 entries"
+        );
+        for outcome in [unreachable, refused, RefreshOutcome::NotDue, RefreshOutcome::Unchanged]
+        {
+            let said = describe_refresh(&outcome);
+            assert!(!said.contains('{') && !said.contains("Failed"), "Debug text: {said}");
+        }
     }
 
     #[test]
