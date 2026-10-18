@@ -1527,6 +1527,12 @@ pub struct App {
     pub sync: Vec<SyncState>,
     /// Divergences the user has to settle.
     pub conflicts: Vec<ConflictRow>,
+    /// List statuses given with `a` this session, by title, until a Library pull brings the
+    /// tracker's own answer for it.
+    ///
+    /// Not only on the rows, which every reload rebuilds: Home reloaded, and `a` opened at the
+    /// top of the picker rather than on the status just given.
+    statuses_set: std::collections::HashMap<AnilistId, LibrarySegment>,
     /// Selection within an overlay list (Accounts, Conflicts, list status, command palette).
     pub overlay_selected: usize,
     /// The first row a list overlay showed at the last frame.
@@ -1693,6 +1699,7 @@ impl App {
             library_segment: LibrarySegment::default(),
             sync: Vec::new(),
             conflicts: Vec::new(),
+            statuses_set: std::collections::HashMap::new(),
             overlay_selected: 0,
             overlay_offset: std::cell::Cell::new(0),
             help_page: 0,
@@ -1882,6 +1889,15 @@ impl App {
                     self.caption = None;
                 }
                 self.content = content;
+                // A Library pull is the tracker's own answer for the titles it lists, and it
+                // outranks one given here earlier.
+                if matches!(view, ContentFor::Library(_)) {
+                    for entry in
+                        self.content.entries().iter().filter(|e| e.list_status.is_some())
+                    {
+                        self.statuses_set.remove(&entry.id);
+                    }
+                }
                 // Selection must stay in range or the next render would index past the end.
                 self.selected = self.selected.min(self.content.len().saturating_sub(1));
                 if self.content.is_empty() {
@@ -3525,7 +3541,8 @@ impl App {
                     // keystroke to confirm rather than a hunt. The title's own status, where it
                     // is known — the Library tab last viewed said nothing about a show opened
                     // from search, and preselected "dropped" for it. Unknown starts at the top.
-                    let current = entry.list_status;
+                    let current =
+                        self.statuses_set.get(&entry.id).copied().or(entry.list_status);
                     self.overlay_selected = current
                         .and_then(|status| {
                             LibrarySegment::ALL.iter().position(|s| *s == status)
@@ -4127,8 +4144,9 @@ impl App {
                     status.label(),
                     self.signed_in_trackers().join(", ")
                 )));
-                // Remembered on every copy of the title on screen, so asking again opens on
-                // the answer just given.
+                // Remembered on every copy of the title on screen, and past the next reload,
+                // so asking again opens on the answer just given.
+                self.statuses_set.insert(id, status);
                 let entries = match &mut self.content {
                     Content::Entries(entries) => entries.as_mut_slice(),
                     _ => &mut [],
@@ -7948,6 +7966,41 @@ mod tests {
             Some(Task::SetStatus { id: AnilistId::new(1), status: LibrarySegment::Completed })
         );
         assert!(!a.nav.has_overlay());
+    }
+
+    #[test]
+    fn a_status_given_this_session_outlives_a_reload_until_the_tracker_answers() {
+        let mut a = app();
+        a.apply(Update::Sync(Box::new(connected(0))));
+        a.go_to_section(Section::Home);
+        a.apply(a.content_here(entries(3)));
+        let planning = 1;
+        a.handle(Action::SetListStatus, 20);
+        a.handle(Action::Down, 20);
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Task::SetStatus { id: AnilistId::new(1), status: LibrarySegment::Planning })
+        );
+
+        // Home again: the rows are rebuilt and carry no status of their own.
+        a.go_to_section(Section::Home);
+        a.apply(a.content_here(entries(3)));
+        a.handle(Action::SetListStatus, 20);
+        assert_eq!(a.overlay_selected, planning, "the status given before the reload");
+        a.handle(Action::Back, 20);
+
+        // A pull that lists the title is the tracker's answer, and wins.
+        a.go_to_section(Section::Library);
+        a.library_segment = LibrarySegment::Completed;
+        let mut rows = entries(3);
+        if let Content::Entries(rows) = &mut rows {
+            rows.iter_mut().for_each(|row| row.list_status = Some(LibrarySegment::Completed));
+        }
+        a.apply(a.content_here(rows));
+        a.go_to_section(Section::Home);
+        a.apply(a.content_here(entries(3)));
+        a.handle(Action::SetListStatus, 20);
+        assert_eq!(a.overlay_selected, 0, "nothing given since the pull, so nothing known");
     }
 
     #[test]
