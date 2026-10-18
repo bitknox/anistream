@@ -83,5 +83,7 @@ Playing while downloading means an episode can *count* before its file is comple
 [Watched versus resumable](/docs/guides/configuration/#watched-versus-resumable) keeps those ideas
 apart: `commit_threshold` decides when it is watched, and resume state is its own thing.
 
-Seeding is off by default, which is a privacy choice. Completed downloads get subtitles muxed in
-with a stream copy.
+While an episode streams, its torrent uploads to peers through the guarded connection.
+`keep_seeding` under `[downloads]` decides only whether a finished download keeps seeding
+afterwards. It is off by default, which is a privacy choice. Completed downloads get
+subtitles muxed in with a stream copy.

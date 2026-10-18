@@ -7,47 +7,60 @@ anistream is an anime streaming TUI written in Rust. Real image rendering in the
 mpv for playback, pluggable everything.
 
 :::note[Sources are external]
-anistream hosts no content and ships no sources of its own — not even an index. The torrent
-side is a transport with nothing to search until you supply an endpoint; everything else is a
-provider API or plugin you configure. What you point any of it at is your own decision, at your
-own risk.
+anistream hosts no content and ships no sources of its own, not even an index. The torrent side
+is a transport with nothing to search until you supply an endpoint. Everything else is a provider
+API or plugin you configure. What you point any of it at is your own decision, at your own risk.
 :::
 
 ## Today
 
 anistream is under active development. What is in the app now:
 
-- **Browsing, search, seasonal** — AniList, no account needed
-- **Continue watching** — a half-finished episode is on the home screen with its position, independent of the sync threshold
-- **Airing timeline** — the calendar spans a week back and a week forward, so what just came out is as visible as what is coming
-- **Torrent streaming** — playing while downloading, seekable, gated behind the VPN guard;
-  bring your own indexer
-- **Playback** — mpv over JSON IPC, resume, aniskip, auto-next, persisted speed, and sidecar
-  subtitle tracks fetched with the stream's own headers
-- **Command line** — `--stats`, `--search`, `--export`/`--import`, `--stream-url`, `--doctor` and
-  friends, most with `--json`; `--update` replaces the binary in place
-- **Local history** — SQLite, the source of truth; works with no account at all
-- **Tracker sync** — AniList, MyAnimeList, Simkl and Trakt, with a durable outbox that survives being offline
-- **Filler/recap marking** — AnimeFillerList, for the long-runners where it matters
-- **Downloads** — a screen for what you have pulled down; completed files get subtitles muxed in
-- **Source control** — `P` pins a source per title, the Sources overlay picks exact releases, and
-  playback falls over to another stream when one produces no video
-- **Discord presence** — off by default, and it can show that something is playing without saying what
-- **WASM plugins** — provider plugins in any WASI 0.2 language, sandboxed
+- Browsing, search and seasonal lists from AniList, with no account. When AniList cannot answer,
+  metadata falls back to Tenrai and then to what was last cached (`[meta] fallback`). `Ctrl-F`
+  filters a search by genre, year, season, format, status and sort.
+- A half-finished episode stays on the home screen with its position, independent of the sync
+  threshold. `anistream --continue` resumes it from the shell, and `--play <id>` plays a title's
+  next unwatched episode.
+- The airing calendar spans a week back and a week forward, and on launch one toast says what
+  aired for shows you watch since you were last here.
+- Torrent streaming plays while downloading, is seekable, and sits behind the VPN guard. You bring
+  the indexer.
+- [Playback](/docs/guides/player/) runs in mpv with the app's own controls, seekbar thumbnails, a
+  skip button, Up Next and menus, and one window carries a whole binge. Upscaling uses ArtCNN by
+  default or Anime4K if you ask for it, and how much runs is decided per file. `y` plays an episode
+  in a Syncplay watch party instead.
+- On the command line, `--stats`, `--search`, `--export`/`--import`, `--stream-url`, `--doctor`
+  and more. `--search`, `--stats` and `--random` also take `--json`, and `--update` replaces the
+  binary in place.
+- Local history lives in SQLite. It is the source of truth and works with no account at all.
+- Tracker sync covers AniList, MyAnimeList, Kitsu, Simkl and Trakt, through an outbox that
+  survives being offline. Kitsu is on by default and needs one sign-in. `a` sets a title's list
+  status and `*` rates it, and both sync the same way progress does.
+- Filler and recap episodes are marked from AnimeFillerList, for the long-runners where it matters.
+- A downloads screen lists what you have pulled down, and completed files get subtitles muxed in.
+- `P` pins a source per title, the Sources overlay picks exact releases, and playback falls over to
+  another stream when one produces no video.
+- Discord presence is off by default, and it can show that something is playing without saying
+  what.
+- Provider plugins are sandboxed WebAssembly components in any WASI 0.2 language. A
+  [plugin store](/docs/plugins/stores/) that someone you know runs lets you install their plugins
+  and share your own.
 
 ## In development
 
-- **Kitsu sync.** AniList, MyAnimeList, Simkl and Trakt are done; Kitsu is not.
-- **More sources, as plugins.** The [plugin system](/docs/plugins/authoring/) is the path for new
+- More sources, as plugins. The [plugin system](/docs/plugins/authoring/) is the path for new
   providers.
-- **Licensed-service integration stays deep-link only.** Crunchyroll streams are DRM-protected;
-  anistream will not circumvent DRM, so episodes resolve to a link that opens in Crunchyroll.
+- Licensed services stay links. anistream will not circumvent DRM, so a licensed stream can only
+  ever open in its own service. The title screen already lists where AniList says a title is
+  available, and a provider can return a link that opens in that service rather than a stream for
+  mpv.
 
 ## Where to go next
 
 - [Requirements](/docs/getting-started/requirements/) and
-  [installation](/docs/getting-started/installation/) — prebuilt binaries, or build from source.
-- [Quick start](/docs/getting-started/quick-start/) — browsing needs no account and no config.
-- [Configuration](/docs/guides/configuration/) — every section of `config.toml` is optional.
-- [Writing a provider plugin](/docs/plugins/authoring/) — WebAssembly components in Rust, Go,
-  JavaScript or Python.
+  [installation](/docs/getting-started/installation/): prebuilt binaries, or build from source.
+- [Quick start](/docs/getting-started/quick-start/): browsing needs no account and no config.
+- [Configuration](/docs/guides/configuration/): every section of `config.toml` is optional.
+- [Writing a provider plugin](/docs/plugins/authoring/): WebAssembly components in Rust,
+  JavaScript, or any language that builds a WASI 0.2 component.

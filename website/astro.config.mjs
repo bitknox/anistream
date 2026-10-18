@@ -52,6 +52,8 @@ export default defineConfig({
 				{
 					label: 'Plugins',
 					items: [
+						{ label: 'Plugin stores', link: 'docs/plugins/stores' },
+						{ label: 'Running a store', link: 'docs/plugins/running-a-store' },
 						{ label: 'Writing a provider plugin', link: 'docs/plugins/authoring' },
 						{ label: 'Sandbox & guarantees', link: 'docs/plugins/sandbox' },
 					],

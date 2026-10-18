@@ -6,9 +6,9 @@ description: No sockets, host-lent fetch, and limits a compromised guest cannot 
 **The sandbox has no sockets. The host lends you `fetch`.**
 
 The host owns the browser-shaped TLS/HTTP2 handshake, so a plugin is a parser: it says what to
-request, the host makes the request. Plugins stay kilobytes, inherit the fingerprint, and cannot
-exfiltrate anything — the declared hosts are enforced host-side. Regex, AES-CBC (128/192/256 by
-key length) and per-plugin settings are lent for the same reason.
+request, the host makes the request. A plugin carries no networking stack of its own, inherits the
+fingerprint, and cannot exfiltrate anything, because the declared hosts are enforced host-side.
+Regex, AES-CBC (128/192/256 by key length) and per-plugin settings are lent for the same reason.
 
 ## The limits
 
@@ -27,28 +27,35 @@ a new capability.
 
 ## The allowlist
 
-- **http/https only** — `file:` and `data:` are not transport
-- **Exact host or a subdomain** — `cdn.example.com` is reachable from `example.com`;
-  `example.com.evil.test` is not
-- **No credentials in the URL** — `https://example.com@evil.test/` points at evil.test
-- **No loopback or private addresses**, even if declared — including anistream's own torrent
-  stream server
-- **Redirects are not followed** — the redirect comes back as a response; the next hop is
-  allowlisted again
+- Only `http` and `https` are allowed. `file:` and `data:` are not transport.
+- A declared host covers itself and its subdomains. `cdn.example.com` is reachable from
+  `example.com`, and `example.com.evil.test` is not.
+- No credentials in the URL. `https://example.com@evil.test/` points at evil.test.
+- No loopback or private addresses, even if declared. That includes anistream's own torrent
+  stream server.
+- Redirects are not followed. The redirect comes back as a response, and the next hop is
+  allowlisted again.
 
 Reserved headers (`host`, `content-length`, `connection`, `transfer-encoding`, `accept-encoding`)
 are refused; `referer`, `cookie` and `user-agent` are yours to set.
 
 `config-get` is scoped the same way: a plugin sees only its own
 `[providers.plugins.settings.<id>]` table, one key at a time, and the `describe` that reads a
-plugin's manifest at load time runs with no capabilities at all — no settings, no allowlist, no
+plugin's manifest at load time runs with no capabilities at all: no settings, no allowlist, no
 client.
 
 **WASI is linked, and the context is what withholds.** A `wasm32-wasip2` component in any language
 imports a WASI floor for its standard library, so the whole p2 surface is linked and containment
 comes from an empty context instead: no preopened directories, so nothing on disk is openable;
 every socket address is refused; no environment, no stdio. A guest can read the wall clock and take
-random bytes — that is the extent of it, and neither reaches outside the sandbox.
+random bytes. That is the extent of it, and neither reaches outside the sandbox.
+
+## Plugins from a store
+
+A plugin installed from a [plugin store](/docs/plugins/stores/) shows the hosts it may reach before
+you install it, and again when an update adds new ones. Its bytes are checked against the store's
+signed plugin list before anything is written to the plugin directory, and anistream loads it with
+no network access to confirm that its id, version and hosts match that list.
 
 ## Testing yours
 
