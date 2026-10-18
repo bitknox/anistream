@@ -66,6 +66,7 @@ local up_next = require("elements/up_next")
 local toast = require("elements/toast")
 local pause_flash = require("elements/pause_flash")
 local host = require("host")
+local subs = require("subs")
 
 local PROTOCOL = 1
 
@@ -487,6 +488,8 @@ mp.register_script_message("hello", ready)
 refresh()
 menus.sync_context_menu()
 host.start()
+-- Subtitles rise and settle with the seek bar's own fade.
+subs.follow(timeline)
 -- Every binding above is live before the host hears we are ready.
 keys.flush()
 ready()

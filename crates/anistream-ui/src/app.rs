@@ -2537,8 +2537,10 @@ impl App {
     /// The episode table for a title, when it is the one loaded — what the player's Episodes
     /// menu lists. Empty for any other title rather than another show's rows.
     pub fn episode_rows_for(&self, id: AnilistId) -> &[EpisodeRow] {
+        // Every row, not the filtered view: a filter on the title screen is about what to look
+        // at there, not about which episodes exist.
         match &self.detail {
-            Some(detail) if detail.id == id => &self.episodes,
+            Some(detail) if detail.id == id => &self.episodes_all,
             _ => &[],
         }
     }
@@ -4090,7 +4092,7 @@ pub enum Task {
 ///
 /// Kept as data rather than a call into the player so the reducer stays pure and testable —
 /// the binary routes these to the live session.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum PlayerCommand {
     TogglePause,
     /// Seek by a relative number of seconds; negative goes back.
@@ -4104,6 +4106,13 @@ pub enum PlayerCommand {
     /// Leave mpv running and return to browsing.
     Detach,
     Stop,
+    /// The title's episode list, loaded after playback started because the episode table on
+    /// screen was not this title's — what the player's Episodes menu and Up Next read. `next`
+    /// is the episode that follows the one playing, when the list has it.
+    Episodes {
+        rows: Vec<EpisodeRow>,
+        next: Option<String>,
+    },
     /// A newer playback is starting: hand the player window over to it rather than closing it.
     ///
     /// Sent by the task runner, never by a key — it is how pressing N inside the player, or

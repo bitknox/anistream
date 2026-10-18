@@ -63,10 +63,7 @@ pub fn render(frame: &mut TFrame<'_>, app: &App) {
     let area = frame.area();
     let now = std::time::Instant::now();
     let activity = app.activity(now);
-    let mut geometry = layout::compute(area, app.nav.rail_width());
-    if !activity.is_empty() {
-        geometry = geometry.with_activity();
-    }
+    let geometry = layout::compute(area, app.nav.rail_width());
     let buf = frame.buffer_mut();
 
     // Immersive mode paints its own ground; adaptive inherits the terminal's, which is what
@@ -93,7 +90,7 @@ pub fn render(frame: &mut TFrame<'_>, app: &App) {
     render_stage(buf, app, geometry.stage);
 
     Hairline::new(&app.palette).render(geometry.status_rule, buf);
-    render_activity(buf, app, &activity, geometry.activity, now);
+    render_activity(buf, app, &activity, geometry.status_rule, now);
     render_status(buf, app, &geometry);
     render_toasts(buf, app, geometry.stage);
     render_overlay(buf, app, area, &geometry);
@@ -145,9 +142,14 @@ fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
     Header::new(&app.palette, "anistream").chips(&chips).render(geometry.header, buf);
 }
 
-/// The running jobs, newest first, each with how long it has taken.
+/// The running jobs, newest first, each with how long it has taken, written into the status
+/// hairline.
 ///
-/// One pulse leads the row rather than one per job: the motion says work is alive, and the
+/// On the rule rather than in a row of their own: a row that came and went with the work took
+/// a line from the body each time, and everything above it jumped. The rule is always there,
+/// so the work reads as a caption on it and nothing moves.
+///
+/// One pulse leads the caption rather than one per job: the motion says work is alive, and the
 /// elapsed times say which work and for how long. A job held up on something says on what, and
 /// counts that down instead — two clocks side by side would leave the reader to work out which
 /// one they are waiting on.
@@ -161,10 +163,16 @@ fn render_activity(
     if jobs.is_empty() || area.height == 0 || area.width < 8 {
         return;
     }
+    // Lined up with the stage's inset content, with a blank cell either side so the caption
+    // sits in a gap in the rule rather than running into it.
+    let start = area.left() + 1;
+    let right = area.right().saturating_sub(1);
+    buf.set_string(start, area.top(), " ", app.palette.style(Role::Text));
     let pulse = glyph::pulse(app.pulse);
-    buf.set_string(area.left(), area.top(), &pulse, app.palette.style(Role::Obi));
-    let mut x = area.left() + pulse.chars().count() as u16 + 2;
-    let right = area.right();
+    buf.set_string(start + 1, area.top(), &pulse, app.palette.style(Role::Obi));
+    let mut x = start + 1 + pulse.chars().count() as u16 + 2;
+    // The cell between the pulse and the first label, and the one closing the caption.
+    buf.set_string(x - 2, area.top(), "  ", app.palette.style(Role::Text));
 
     for (shown, job) in jobs.iter().enumerate() {
         let (label, detail) = job_text(job, now);
@@ -177,8 +185,11 @@ fn render_activity(
         let rest = jobs.len() - shown;
         let more = format!("   +{rest}");
         if shown > 0 && x + width + more.chars().count() as u16 > right {
-            buf.set_string(x, area.top(), &more, app.palette.style(Role::TextDim));
-            return;
+            let room = right.saturating_sub(x) as usize;
+            let (mx, _) =
+                buf.set_stringn(x, area.top(), &more, room, app.palette.style(Role::TextDim));
+            x = mx;
+            break;
         }
         let room = right.saturating_sub(x) as usize;
         let (sx, _) =
@@ -198,6 +209,10 @@ fn render_activity(
             );
             x = dx;
         }
+    }
+    // A blank cell before the rule resumes, so the caption reads as sitting in a gap in it.
+    if x < area.right() {
+        buf.set_string(x, area.top(), " ", app.palette.style(Role::Text));
     }
 }
 
@@ -2631,10 +2646,7 @@ pub fn visible_rows(area: Rect, section: Section) -> usize {
         Section::Calendar => 5,
         _ => 0,
     };
-    // One more for the activity row, which takes a body row whenever work is running. Counted
-    // always rather than threading the app in here: an estimate that is one low only scrolls a
-    // line early, where one that is one high would let the selection slip under the row.
-    geometry.stage.height.saturating_sub(offset + 1) as usize
+    geometry.stage.height.saturating_sub(offset) as usize
 }
 
 /// Render into a fresh off-screen buffer.
@@ -2715,22 +2727,30 @@ mod tests {
     }
 
     #[test]
-    fn the_activity_row_appears_only_while_work_runs() {
+    fn running_work_is_captioned_on_the_status_rule_and_moves_nothing() {
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
-        let idle = text_of(&render_to_buffer(&app, 120, 30));
-        assert!(!idle.contains("listing sources"));
+        let idle: Vec<String> =
+            text_of(&render_to_buffer(&app, 120, 30)).lines().map(str::to_owned).collect();
+        assert!(!idle.join("\n").contains("listing sources"));
 
         running(
             &mut app,
             &crate::app::Task::LoadSources { id: AnilistId::new(1), episode: "10".into() },
             3,
         );
-        let busy = render_to_buffer(&app, 120, 30);
-        let rows: Vec<String> = text_of(&busy).lines().map(str::to_owned).collect();
-        // Second to last, between the status hairline and the status line.
-        let row = &rows[rows.len() - 2];
-        assert!(row.contains("listing sources for ep 10 · 3s"), "activity row was {row:?}");
-        assert!(rows[rows.len() - 3].trim_start().starts_with('─'), "hairline above it");
+        let busy: Vec<String> =
+            text_of(&render_to_buffer(&app, 120, 30)).lines().map(str::to_owned).collect();
+        // The status rule, second to last, carries the caption and is still a rule after it.
+        let rule = &busy[busy.len() - 2];
+        assert!(rule.contains("listing sources for ep 10 · 3s"), "status rule was {rule:?}");
+        assert!(rule.trim_start().starts_with('─'), "the rule leads into the caption");
+        assert!(rule.trim_end().ends_with('─'), "and resumes after it");
+        // The point of putting it there: every other row is exactly as it was.
+        for (row, (before, after)) in idle.iter().zip(&busy).enumerate() {
+            if row != busy.len() - 2 {
+                assert_eq!(before, after, "row {row} moved when work started");
+            }
+        }
     }
 
     #[test]
@@ -2768,7 +2788,8 @@ mod tests {
             text_of(&render_to_buffer(&app, 60, 30)).lines().map(str::to_owned).collect();
         let row = &rows[rows.len() - 2];
         assert!(row.contains("listing sources for ep 10"), "the newest job leads: {row:?}");
-        assert!(row.trim_end().ends_with("+3"), "the other three are counted: {row:?}");
+        let caption = row.trim_end_matches(['─', ' ']);
+        assert!(caption.ends_with("+3"), "the other three are counted: {row:?}");
     }
 
     #[test]

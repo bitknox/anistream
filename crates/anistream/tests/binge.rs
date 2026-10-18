@@ -215,3 +215,35 @@ async fn the_next_episode_is_asked_for_near_the_end_when_it_will_roll_on() {
     assert!(prefetches(&stops).is_empty());
     slot.release();
 }
+
+fn row(number: &str) -> anistream_ui::app::EpisodeRow {
+    anistream_ui::app::EpisodeRow {
+        number: number.into(),
+        title: Some(format!("Title {number}")),
+        thumbnail: None,
+        description: None,
+        duration_secs: None,
+        watched: 0.0,
+        completed: false,
+        kind: None,
+        skippable: false,
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn an_episode_list_learned_after_starting_still_keeps_the_window_for_the_next() {
+    // Started from somewhere the episode table did not describe: no list, no next episode.
+    // The list arrives once playback is under way, and the episode then rolls on as usual.
+    let Some((mpv, _dir)) = player().await else { return };
+    let slot = PlayerSlot::default();
+    let (controls, commands) = mpsc::unbounded_channel();
+    controls
+        .send(PlayerCommand::Episodes {
+            rows: vec![row("1"), row("2"), row("3")],
+            next: Some("2".into()),
+        })
+        .unwrap();
+    let updates = run(&mpv, &slot, clip(2), context("1", None), settings(true), commands).await;
+    assert_eq!(ended(&updates), Some(true));
+    assert!(slot.take().is_some(), "the window waits for episode 2");
+}

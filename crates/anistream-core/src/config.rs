@@ -147,8 +147,8 @@ pub struct DownloadsConfig {
     ///
     /// Streaming is different, deliberately: while an episode plays, its torrent uploads
     /// to peers over the guarded connection — watching already gives back. The session
-    /// keeps the current and previous stream's swarms alive and retires older ones (each
-    /// live swarm holds dozens of sockets, and file descriptors are finite). This key
+    /// keeps the previous, current and next episode's swarms alive and retires older ones
+    /// (each live swarm holds dozens of sockets, and file descriptors are finite). This key
     /// only decides whether a *finished download* keeps seeding.
     pub keep_seeding: bool,
 }
