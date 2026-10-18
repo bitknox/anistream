@@ -2453,6 +2453,10 @@ impl App {
     }
 
     /// Run an action against the screen, with no overlay or text field in the way.
+    ///
+    /// Separate from [`Self::handle`] so the command palette can run what it picked: opened
+    /// from Search's field, the field still has focus once the palette closes, and going back
+    /// through the typing gate swallowed nearly every command.
     fn perform(&mut self, action: Action, visible_rows: usize) -> Option<Task> {
         // Playback bindings only mean anything while something is playing, and they collide
         // with browsing keys (`n`, `x`, digits), so they are dispatched first and only then.
@@ -2460,6 +2464,19 @@ impl App {
             && let Some(task) = self.handle_playback(action)
         {
             return task;
+        }
+
+        // Title commands have nothing to act on without a title, on screen or highlighted, and
+        // each says so the same way rather than some doing nothing at all.
+        if action.acts_on_a_title()
+            && !matches!(
+                self.nav.current(),
+                StageView::Title(_) | StageView::Episodes(_) | StageView::NowPlaying
+            )
+            && self.selected_entry().is_none()
+        {
+            self.push_toast(Toast::info("nothing selected"));
+            return None;
         }
 
         match action {
@@ -3009,9 +3026,19 @@ impl App {
                 )));
             }
             _ => {
-                // Unimplemented actions announce themselves rather than doing nothing,
-                // which would read as the key being broken.
-                self.push_toast(Toast::info(format!("{} — not wired up yet", action.label())));
+                // An action that means nothing here — a playback key with nothing playing, a
+                // Downloads key elsewhere, usually run from the palette — says where it does
+                // something rather than doing nothing, which would read as the key being broken.
+                let label = action.label();
+                let mut chars = label.chars();
+                let label = match chars.next() {
+                    Some(first) => first.to_lowercase().chain(chars).collect::<String>(),
+                    None => String::new(),
+                };
+                self.push_toast(Toast::info(format!(
+                    "{label} works {}",
+                    action.where_it_works()
+                )));
             }
         }
         None
@@ -3075,7 +3102,10 @@ impl App {
     ///
     /// Driven off the watch log rather than a tracker, so this works with no account at all.
     fn play_next_unwatched(&mut self) -> Option<Task> {
-        let entry = self.detail.as_ref().or(self.selected_entry())?;
+        let Some(entry) = self.detail.as_ref().or(self.selected_entry()) else {
+            self.push_toast(Toast::info("nothing selected"));
+            return None;
+        };
         let id = entry.id;
         let episode =
             entry.progress.map(|(_, next)| next.to_string()).unwrap_or_else(|| "1".to_string());
@@ -3291,7 +3321,7 @@ impl App {
                 self.nav.close_overlay();
                 self.palette_query.clear();
                 self.overlay_selected = 0;
-                self.handle(action, visible_rows)
+                self.perform(action, visible_rows)
             }
             Some(Overlay::Logs) => None,
             Some(Overlay::ListStatus) => {
@@ -4159,7 +4189,10 @@ impl App {
 
     /// Push the selected title's detail screen.
     fn open_selected(&mut self) -> Option<Task> {
-        let entry = self.selected_entry()?.clone();
+        let Some(entry) = self.selected_entry().cloned() else {
+            self.push_toast(Toast::info("nothing selected"));
+            return None;
+        };
         let id = entry.id;
         self.detail = Some(entry);
         self.nav.push(StageView::Title(id));

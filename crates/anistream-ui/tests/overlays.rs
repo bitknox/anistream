@@ -487,6 +487,84 @@ fn a_narrow_status_line_keeps_the_way_to_help() {
 }
 
 #[test]
+fn a_palette_command_that_means_nothing_here_says_where_it_works() {
+    let mut a = app();
+    a.apply(a.content_here(entries(2)));
+    a.handle(anistream_ui::Action::StopPlayback, ROWS);
+    a.handle(anistream_ui::Action::ClearCompleted, ROWS);
+    let said: Vec<&str> = a.toasts.iter().map(|t| t.text.as_str()).collect();
+    assert!(said.iter().all(|t| !t.contains("not wired up")), "{said:?}");
+    assert!(said.contains(&"stop playback works while something is playing"), "{said:?}");
+    assert!(
+        said.contains(&"clear finished downloads works on the Downloads screen"),
+        "{said:?}"
+    );
+}
+
+#[test]
+fn every_title_command_with_nothing_selected_says_so() {
+    use anistream_ui::Action as A;
+    for action in [
+        A::ShowEpisodes,
+        A::ShowSources,
+        A::PickProvider,
+        A::FixMapping,
+        A::Download,
+        A::WatchOrder,
+        A::Recommendations,
+        A::PlayTrailer,
+        A::OpenInBrowser,
+        A::PlayParty,
+        A::SetListStatus,
+        A::RateTitle,
+        A::PlayNext,
+        A::Open,
+    ] {
+        let mut a = app();
+        a.apply(a.content_here(Content::Entries(Vec::new())));
+        a.nav.focus_stage();
+        assert_eq!(a.handle(action, ROWS), None, "{action:?}");
+        assert!(
+            a.toasts.iter().any(|t| t.text == "nothing selected"),
+            "{action:?} said {:?}",
+            a.toasts
+        );
+        assert!(!a.nav.has_overlay(), "{action:?} opened an overlay about nothing");
+    }
+}
+
+#[test]
+fn the_palette_runs_commands_from_the_search_field() {
+    // Opened from Search's field, the field still had focus when the palette closed, and the
+    // command went back through the typing gate and was dropped.
+    let mut a = app();
+    a.go_to_section(Section::Search);
+    assert!(a.is_typing());
+    press(&mut a, &["ctrl+k"]);
+    for ch in "sett".chars() {
+        a.press(KeyEvent::new(KeyCode::Char(ch), KeyModifiers::NONE), ROWS);
+    }
+    press(&mut a, &["enter"]);
+    assert_eq!(a.nav.section(), Section::Settings, "Go to Settings did not run");
+}
+
+#[test]
+fn going_to_a_section_from_the_palette_goes_to_that_section() {
+    for (query, section) in [
+        ("downloads", Section::Downloads),
+        ("calendar", Section::Calendar),
+        ("sett", Section::Settings),
+    ] {
+        let mut a = app();
+        press(&mut a, &[":"]);
+        a.palette_query = format!("go to {query}");
+        a.overlay_selected = 0;
+        press(&mut a, &["enter"]);
+        assert_eq!(a.nav.section(), section, "{query}");
+    }
+}
+
+#[test]
 fn now_playing_is_a_known_state_for_hints() {
     let mut a = at_episodes();
     a.playing = Some(NowPlaying::default());

@@ -113,8 +113,10 @@ impl Action {
     /// Every action, in the order the command palette lists them.
     ///
     /// Written out rather than derived, because the palette is the app's discoverability
-    /// mechanism and an action missing from it is an action nobody can find. `JumpSection` is
-    /// represented once — eight near-identical rows would bury everything else.
+    /// mechanism and an action missing from it is an action nobody can find. Each section has
+    /// its own entry, after the rest of the global actions: one "Go to section" row could only
+    /// ever go to the first, and nine rows at the top would bury everything else in an
+    /// unfiltered list. Typed, they are found by name — `sett` reaches Settings.
     pub const ALL: &'static [Self] = &[
         Self::Help,
         Self::CommandPalette,
@@ -124,11 +126,19 @@ impl Action {
         Self::Refresh,
         Self::ForceResync,
         Self::ToggleTranslation,
-        Self::JumpSection(1),
         Self::FocusSearch,
         Self::ShowAccounts,
         Self::ShowConflicts,
         Self::ShowLogs,
+        Self::JumpSection(1),
+        Self::JumpSection(2),
+        Self::JumpSection(3),
+        Self::JumpSection(4),
+        Self::JumpSection(5),
+        Self::JumpSection(6),
+        Self::JumpSection(7),
+        Self::JumpSection(8),
+        Self::JumpSection(9),
         Self::Up,
         Self::Down,
         Self::Left,
@@ -188,6 +198,16 @@ impl Action {
             Self::Refresh => "Refresh this view",
             Self::ForceResync => "Force a full resync",
             Self::ToggleTranslation => "Switch sub / dub",
+            // Named for the section, in the rail's order, so the palette can offer each one.
+            Self::JumpSection(1) => "Go to Continue",
+            Self::JumpSection(2) => "Go to Calendar",
+            Self::JumpSection(3) => "Go to Seasonal",
+            Self::JumpSection(4) => "Go to Search",
+            Self::JumpSection(5) => "Go to Library",
+            Self::JumpSection(6) => "Go to Downloads",
+            Self::JumpSection(7) => "Go to Providers",
+            Self::JumpSection(8) => "Go to Accounts",
+            Self::JumpSection(9) => "Go to Settings",
             Self::JumpSection(_) => "Go to section",
             Self::FocusSearch => "Search",
             Self::ShowAccounts => "Accounts and sync",
@@ -344,6 +364,30 @@ impl Action {
                 | Self::Help
                 | Self::FilterSearch
         )
+    }
+
+    /// Whether this action is about one title, so it has nothing to do when no title is on
+    /// screen or highlighted.
+    ///
+    /// Asked once, before any of them runs, so every one of them answers "nothing selected" the
+    /// same way rather than some saying so, some saying something else and some doing nothing.
+    pub const fn acts_on_a_title(self) -> bool {
+        matches!(self.scope(), Scope::Title)
+            || matches!(self, Self::SetListStatus | Self::RateTitle)
+    }
+
+    /// Where an action that does nothing here does something, for the toast that says so.
+    ///
+    /// The palette offers every action from everywhere, so it can run one on a screen where it
+    /// means nothing. Naming the place answers the question that leaves, which "not available"
+    /// would not.
+    pub const fn where_it_works(self) -> &'static str {
+        match self.scope() {
+            Scope::Playback => "while something is playing",
+            Scope::Downloads => "on the Downloads screen",
+            Scope::Episodes => "in the episode table",
+            _ => "on another screen",
+        }
     }
 
     /// Stable machine name, used as the config key and the palette's search text.
@@ -875,11 +919,12 @@ impl Keymap {
                     .into_iter()
                     .map(|(action, mut keys)| {
                         keys.sort();
-                        let rendered = if matches!(action, Action::JumpSection(_)) {
-                            jump_range.clone()
-                        } else {
-                            keys.iter().map(Binding::render).collect::<Vec<_>>().join(" / ")
-                        };
+                        if matches!(action, Action::JumpSection(_)) {
+                            // One row for all of them, so it is labelled for all of them.
+                            return (jump_range.clone(), "Go to section");
+                        }
+                        let rendered =
+                            keys.iter().map(Binding::render).collect::<Vec<_>>().join(" / ");
                         (rendered, action.label())
                     })
                     .collect::<Vec<_>>();
@@ -888,26 +933,72 @@ impl Keymap {
             .collect()
     }
 
-    /// Actions offered by the command palette, filtered by a fuzzy-ish query.
+    /// Actions offered by the command palette, best match first.
+    ///
+    /// The query matches as a subsequence, so `epsd` finds Episodes and `sett` finds Settings —
+    /// a palette is typed fast and abbreviated, and substring matching made a missed letter
+    /// mean no result at all. Ranked by [`match_rank`], ties kept in [`Action::ALL`]'s order.
     pub fn palette_entries(&self, query: &str) -> Vec<(Action, String)> {
         let needle = query.trim().to_lowercase();
         // Driven off `Action::ALL`, not the binding table: an action with no key — Accounts and
         // Conflicts deliberately have none — must still be reachable, and the palette is the
         // only place it can be reached from.
-        Action::ALL
+        let mut ranked: Vec<(u32, usize, Action)> = Action::ALL
             .iter()
-            .filter(|action| {
-                needle.is_empty()
-                    || action.label().to_lowercase().contains(&needle)
-                    || action.config_key().contains(&needle)
+            .enumerate()
+            .filter_map(|(order, action)| {
+                if needle.is_empty() {
+                    return Some((0, order, *action));
+                }
+                let by_label = match_rank(&needle, &action.label().to_lowercase());
+                let by_key = match_rank(&needle, &action.config_key());
+                let rank = match (by_label, by_key) {
+                    (Some(a), Some(b)) => a.min(b),
+                    (a, b) => a.or(b)?,
+                };
+                Some((rank, order, *action))
             })
-            .map(|action| {
-                let mut keys = self.keys_for(*action);
+            .collect();
+        ranked.sort_unstable();
+        ranked
+            .into_iter()
+            .map(|(_, _, action)| {
+                let mut keys = self.keys_for(action);
                 keys.sort();
-                (*action, keys.first().map(Binding::render).unwrap_or_default())
+                (action, keys.first().map(Binding::render).unwrap_or_default())
             })
             .collect()
     }
+}
+
+/// How well `needle` matches `haystack`, lower is better; `None` when it does not match.
+///
+/// Four tiers, so a near-exact hit is never outranked by a scattered one: a prefix, then a
+/// whole-word start, then a substring, then a subsequence ranked by how spread out its letters
+/// are. Both strings are expected lowercase.
+fn match_rank(needle: &str, haystack: &str) -> Option<u32> {
+    if haystack.starts_with(needle) {
+        return Some(0);
+    }
+    if let Some(at) = haystack.find(needle) {
+        let word_start = haystack[..at].ends_with([' ', '_', '/']);
+        return Some(if word_start { 1 } else { 2 });
+    }
+    // Earliest-match subsequence. The span it covers, less the letters themselves, is the gap
+    // the eye has to jump; the start breaks ties toward matches near the front.
+    let mut chars = haystack.char_indices();
+    let mut first = None;
+    let mut last = 0;
+    let mut letters = 0;
+    for wanted in needle.chars().filter(|c| !c.is_whitespace()) {
+        let (at, _) = chars.find(|(_, c)| *c == wanted)?;
+        first.get_or_insert(at);
+        last = at;
+        letters += 1;
+    }
+    let first = first?;
+    let gaps = (last - first + 1).saturating_sub(letters);
+    Some(10 + 2 * gaps as u32 + first as u32)
 }
 
 /// The keys every overlay and text field answers to, whatever the rebinds are.
@@ -1559,5 +1650,34 @@ mod tests {
         let keymap = Keymap::new();
         assert_eq!(keymap.action_for(key('q'), Context::Modal), Some(Action::Back));
         assert_eq!(keymap.action_for(key('q'), Context::Playing), Some(Action::Detach));
+    }
+
+    #[test]
+    fn the_palette_matches_abbreviations_best_first() {
+        let keymap = Keymap::new();
+        let top = |query: &str| keymap.palette_entries(query).first().map(|(a, _)| *a);
+        assert_eq!(top("epsd"), Some(Action::ShowEpisodes));
+        assert_eq!(top("sett"), Some(Action::JumpSection(9)));
+        assert_eq!(top("cal"), Some(Action::JumpSection(2)));
+        assert_eq!(top("dwnld"), Some(Action::Download));
+        // A word start outranks a scattered match of the same letters.
+        assert_eq!(top("trailer"), Some(Action::PlayTrailer));
+        assert!(keymap.palette_entries("qqqq").is_empty());
+    }
+
+    #[test]
+    fn every_section_has_its_own_palette_command() {
+        // One "Go to section" entry could only ever go to the first.
+        let keymap = Keymap::new();
+        let all: Vec<Action> = keymap.palette_entries("").into_iter().map(|(a, _)| a).collect();
+        for n in 1..=Section::ALL.len() as u8 {
+            assert!(all.contains(&Action::JumpSection(n)), "section {n} missing");
+        }
+        let (_, key) = keymap
+            .palette_entries("settings")
+            .into_iter()
+            .find(|(a, _)| *a == Action::JumpSection(9))
+            .expect("Go to Settings");
+        assert_eq!(key, "9");
     }
 }
