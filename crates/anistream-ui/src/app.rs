@@ -2666,12 +2666,7 @@ impl App {
             // episode resumes immediately, no detail screen in between. The title's other
             // views stay one key away — `e` episodes, `s` sources, `w` watch order — and
             // rows with nothing to resume still open normally.
-            Action::Open
-                if matches!(self.nav.current(), StageView::Section(Section::Home))
-                    && self
-                        .selected_entry()
-                        .is_some_and(|e| e.resume.is_some() && e.progress.is_some()) =>
-            {
+            Action::Open if self.resumes_on_enter() => {
                 let entry = self.selected_entry().expect("checked");
                 let id = entry.id;
                 let next = entry.progress.expect("checked").1;
@@ -4050,7 +4045,7 @@ impl App {
                 // never opened — the key just re-ran the same query. It submits only while there is
                 // something new to ask; once the results on screen are for this query, Enter does
                 // what Enter does everywhere else in the app and opens the selection.
-                if query == self.searched_query && !self.content.is_empty() {
+                if self.search_opens_on_enter() {
                     return self.open_selected();
                 }
                 self.searched_query = query.clone();
@@ -4072,6 +4067,20 @@ impl App {
     /// between Providers-screen visits.
     pub fn meta_degraded(&self) -> bool {
         self.meta_status.iter().any(|row| row.active && row.source != "anilist")
+    }
+
+    /// Whether Enter resumes the highlighted row rather than opening it: a part-watched title
+    /// on the Home list. One answer for the key and for the hint that names it.
+    pub fn resumes_on_enter(&self) -> bool {
+        matches!(self.nav.current(), StageView::Section(Section::Home))
+            && self.selected_entry().is_some_and(|e| e.resume.is_some() && e.progress.is_some())
+    }
+
+    /// Whether Enter in Search's field opens the highlighted result rather than searching:
+    /// the results on screen are already for the query as typed.
+    pub fn search_opens_on_enter(&self) -> bool {
+        let query = self.search_query.trim();
+        !query.is_empty() && query == self.searched_query && !self.content.is_empty()
     }
 
     /// Whether the episode table currently has focus.

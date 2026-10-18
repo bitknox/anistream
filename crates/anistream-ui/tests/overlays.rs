@@ -9,7 +9,8 @@ use std::collections::BTreeMap;
 use anistream_core::{config::Config, ids::AnilistId};
 use anistream_ui::{
     App, Content, Entry, Keymap, Overlay, Palette, Section, StageView, Task,
-    app::{EpisodeRow, Toast},
+    app::{EpisodeRow, NowPlaying, ResumePoint, Toast},
+    keymap::status_hints,
     screens::render_to_buffer,
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -65,6 +66,14 @@ fn text_of(buf: &Buffer) -> String {
         out.push('\n');
     }
     out
+}
+
+fn hint_keys(app: &App) -> Vec<String> {
+    status_hints(app).into_iter().map(|(k, _)| k).collect()
+}
+
+fn hint(app: &App, key: &str) -> Option<&'static str> {
+    status_hints(app).into_iter().find(|(k, _)| k == key).map(|(_, label)| label)
 }
 
 /// Settings, with the cursor in the stage on its second row.
@@ -408,4 +417,98 @@ fn identical_log_lines_merge_into_one_with_a_count() {
     let text = text_of(&render_to_buffer(&a, 80, 24));
     let line = text.lines().find(|l| l.contains("cover unavailable")).unwrap();
     assert!(line.contains("×25"), "{line}");
+}
+
+#[test]
+fn typing_in_search_offers_no_key_that_would_be_typed() {
+    let mut a = app();
+    a.go_to_section(Section::Search);
+    assert!(a.is_typing());
+    let keys = hint_keys(&a);
+    assert!(!keys.contains(&"q".to_string()), "q would be typed: {keys:?}");
+    assert!(!keys.contains(&"?".to_string()), "? would be typed: {keys:?}");
+    assert!(keys.contains(&"esc".to_string()));
+    assert_eq!(hint(&a, "↵"), Some("search"));
+}
+
+#[test]
+fn enter_is_named_for_what_it_does() {
+    let mut a = at_episodes();
+    assert_eq!(hint(&a, "↵"), Some("play"), "Enter plays in the episode table");
+
+    let mut e = Entry::new(AnilistId::new(5), "Title");
+    e.progress = Some((7, 8));
+    e.resume = Some(ResumePoint { position: 600.0, fraction: Some(0.5) });
+    a = app();
+    a.apply(a.content_here(Content::Entries(vec![e, Entry::new(AnilistId::new(6), "Other")])));
+    a.nav.focus_stage();
+    assert_eq!(hint(&a, "↵"), Some("play"), "a resumable Continue row plays on Enter");
+    press(&mut a, &["j"]);
+    assert_eq!(hint(&a, "↵"), Some("open"), "a fresh one opens");
+
+    a.go_to_section(Section::Providers);
+    a.nav.focus_stage();
+    assert_eq!(hint(&a, "↵"), Some("stores"));
+
+    a.go_to_section(Section::Downloads);
+    a.nav.focus_stage();
+    assert_eq!(hint(&a, "↵"), Some("play"));
+    assert_eq!(hint(&a, "c"), Some("clear finished"));
+    assert_eq!(hint(&a, "X"), Some("delete"));
+
+    a.go_to_section(Section::Library);
+    a.nav.focus_stage();
+    assert_eq!(hint(&a, "h/l"), Some("list"), "Library's segment keys");
+}
+
+#[test]
+fn an_overlay_shows_its_own_hints() {
+    let mut a = at_episodes();
+    press(&mut a, &["D"]);
+    assert_eq!(hint(&a, "↵"), Some("queue"));
+    assert_eq!(hint(&a, "esc"), Some("cancel"));
+    assert!(!hint_keys(&a).contains(&"?".to_string()), "? would be typed into the range");
+
+    let mut a = app();
+    press(&mut a, &["?"]);
+    render_to_buffer(&a, 80, 24);
+    assert_eq!(hint(&a, "↑↓"), Some("page"));
+    assert_eq!(hint(&a, "esc"), Some("close"));
+}
+
+#[test]
+fn a_narrow_status_line_keeps_the_way_to_help() {
+    let mut a = app();
+    a.apply(a.content_here(entries(3)));
+    a.nav.focus_stage();
+    let text = text_of(&render_to_buffer(&a, 40, 15));
+    let status = text.lines().last().unwrap();
+    assert!(status.trim_end().ends_with("? keys"), "{status:?}");
+}
+
+#[test]
+fn now_playing_is_a_known_state_for_hints() {
+    let mut a = at_episodes();
+    a.playing = Some(NowPlaying::default());
+    a.nav.push(StageView::NowPlaying);
+    assert_eq!(hint(&a, "space"), Some("pause"));
+}
+
+#[test]
+fn an_overlay_keeps_its_hints_legible_above_the_scrim() {
+    // The status line carries the overlay's own keys, so it is drawn over the dimming.
+    let mut a = app();
+    press(&mut a, &["?"]);
+    let buf = render_to_buffer(&a, 80, 24);
+    let status_y = buf.area.height - 1;
+    let text = text_of(&buf);
+    let status = text.lines().last().unwrap();
+    let x = status.find("esc").map(|byte| status[..byte].chars().count()).unwrap() as u16;
+    assert_ne!(
+        buf[(x, status_y)].fg,
+        a.palette.color(anistream_ui::Role::Rule),
+        "the overlay's hints were dimmed with what is behind it"
+    );
+    // And the first frame already knows the table pages at this size.
+    assert!(status.contains("↑↓ page"), "{status:?}");
 }

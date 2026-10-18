@@ -94,9 +94,12 @@ pub fn render(frame: &mut TFrame<'_>, app: &App) {
 
     Hairline::new(&app.palette).render(geometry.status_rule, buf);
     render_activity(buf, app, &activity, geometry.status_rule, now);
-    render_status(buf, app, &geometry);
     render_toasts(buf, app, geometry.stage);
     render_overlay(buf, app, area, &geometry);
+    // After the overlay, so it is not dimmed with the rest: while one is open the status line
+    // carries that overlay's own keys, which are no use faded into the scrim — and the overlay
+    // has to be laid out before its hints can say whether it pages.
+    render_status(buf, app, &geometry);
     // Last, so it occludes: an eyecatch that toasts could bleed through would not be covering
     // anything.
     render_eyecatch(buf, app, geometry.stage);
@@ -249,7 +252,7 @@ fn render_status(buf: &mut Buffer, app: &App, geometry: &Frame) {
     } else {
         app.status.clone()
     };
-    let hints = status_hints(&app.keymap, app.nav.current(), app.nav.focus() == Focus::Stage);
+    let hints = status_hints(app);
     StatusLine::new(&app.palette, &state).hints(&hints).render(geometry.status, buf);
 }
 

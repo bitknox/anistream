@@ -426,30 +426,41 @@ impl Widget for StatusLine<'_> {
             return;
         }
         let y = area.top();
+        let line_of = |hints: &[(String, &str)]| {
+            let mut spans: Vec<Span<'_>> = Vec::new();
+            for (i, (key, label)) in hints.iter().enumerate() {
+                if i > 0 {
+                    spans.push(Span::styled("   ", self.palette.style(Role::TextDim)));
+                }
+                spans.push(Span::styled(key.clone(), self.palette.style(Role::Text)));
+                spans.push(Span::styled(
+                    format!(" {}", label.to_lowercase()),
+                    self.palette.style(Role::TextDim),
+                ));
+            }
+            Line::from(spans)
+        };
+
+        // Hints give way from the front, so the last — `? keys`, the way to every other key —
+        // is the one a narrow line keeps; for that one the state text is cut short instead.
+        // Overlapping text is worse than absent text, so nothing is ever drawn over anything.
+        let state_width = self.state.chars().count() as u16;
+        let mut shown = self.hints;
+        let mut line = line_of(shown);
+        while shown.len() > 1 && line.width() as u16 + state_width + 2 > area.width {
+            shown = &shown[1..];
+            line = line_of(shown);
+        }
+        let width = line.width() as u16;
+        let fits = width > 0 && width + 2 <= area.width;
+        let state_room = if fits { area.width - width - 2 } else { area.width };
         buf.set_string(
             area.left(),
             y,
-            truncate(self.state, area.width as usize),
+            truncate(self.state, state_room as usize),
             self.palette.style(Role::TextDim),
         );
-
-        let mut spans: Vec<Span<'_>> = Vec::new();
-        for (i, (key, label)) in self.hints.iter().enumerate() {
-            if i > 0 {
-                spans.push(Span::styled("   ", self.palette.style(Role::TextDim)));
-            }
-            spans.push(Span::styled(key.clone(), self.palette.style(Role::Text)));
-            spans.push(Span::styled(
-                format!(" {}", label.to_lowercase()),
-                self.palette.style(Role::TextDim),
-            ));
-        }
-
-        let line = Line::from(spans);
-        let width = line.width() as u16;
-        // Only draw the hints if they fit without colliding with the state text.
-        let state_width = self.state.chars().count() as u16;
-        if width > 0 && width + state_width + 2 <= area.width {
+        if fits {
             buf.set_line(area.right() - width, y, &line, width);
         }
     }
@@ -758,12 +769,31 @@ mod tests {
     fn hints_are_dropped_rather_than_overlapping_the_state() {
         // Overlapping text is worse than absent text.
         let p = palette();
-        let hints = [("↵".to_string(), "Open")];
-        let mut buf = buffer(24, 1);
-        StatusLine::new(&p, "a very long status string here")
+        let hints = [("↵".to_string(), "Open"), ("?".to_string(), "keys")];
+        let mut buf = buffer(40, 1);
+        StatusLine::new(&p, "plugins · sub · 1080p · a long status")
             .hints(&hints)
             .render(buf.area, &mut buf);
-        assert!(!row_text(&buf, 0).contains("open"));
+        let text = row_text(&buf, 0);
+        assert!(!text.contains("open"), "the first hint gives way: {text:?}");
+        // The last one stays, and the state is cut short to make room rather than overdrawn.
+        assert!(text.trim_end().ends_with("? keys"), "got {text:?}");
+        assert!(text.contains('…'), "the state must be truncated, not overlapped: {text:?}");
+    }
+
+    #[test]
+    fn a_short_state_keeps_every_hint_that_fits() {
+        let p = palette();
+        let hints = [
+            ("↵".to_string(), "open"),
+            ("e".to_string(), "episodes"),
+            ("?".to_string(), "keys"),
+        ];
+        let mut buf = buffer(40, 1);
+        StatusLine::new(&p, "plugins · sub · 1080p").hints(&hints).render(buf.area, &mut buf);
+        let text = row_text(&buf, 0);
+        assert!(text.starts_with("plugins · sub · 1080p"), "the state stays whole: {text:?}");
+        assert!(text.trim_end().ends_with("? keys"), "got {text:?}");
     }
 
     #[test]

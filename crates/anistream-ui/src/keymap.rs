@@ -260,6 +260,10 @@ impl Action {
             Self::FilterSearch => "filters",
             Self::ForceResync => "resync",
             Self::Help => "keys",
+            Self::Refresh => "refresh",
+            Self::ToggleWatched => "watched",
+            Self::ClearCompleted => "clear finished",
+            Self::DeleteDownload => "delete",
             other => other.label(),
         }
     }
@@ -936,37 +940,164 @@ fn modal_action(binding: Binding) -> Option<Action> {
 /// The two or three contextual hints shown at the right of the status line.
 ///
 /// Deliberately short. A full footer of bindings is the templated look this design avoids;
-/// these are only the actions most likely to be wanted right now.
-pub fn status_hints(
-    keymap: &Keymap,
-    view: &crate::nav::StageView,
-    in_stage: bool,
-) -> Vec<(String, &'static str)> {
+/// these are only the actions most likely to be wanted right now — and each has to be true
+/// where it is shown, so they follow the state the keys are read in, not just the screen:
+/// an open overlay shows its own keys, a text field shows no plain keys at all (they would be
+/// typed), and Enter is named for what it does here. A narrow status line drops hints from the
+/// front, so the last — `? keys`, or an overlay's way out — is the one that always shows.
+pub fn status_hints(app: &crate::app::App) -> Vec<(String, &'static str)> {
     use crate::nav::StageView as V;
-    let wanted: &[Action] = match (view, in_stage) {
+    if let Some(overlay) = app.nav.overlay() {
+        return overlay_hints(app, overlay);
+    }
+    if app.is_typing() {
+        // Search's field: letters are the query, so only the keys that cannot be typed are
+        // offered. Esc and Enter are fixed for every field; see `modal_action`.
+        let enter = if app.search_opens_on_enter() { "open" } else { "search" };
+        let mut hints = vec![("↵".to_string(), enter)];
+        if let Some(key) = app.keymap.keys_for(Action::FilterSearch).first() {
+            hints.push((key.render(), Action::FilterSearch.hint()));
+        }
+        hints.push(("esc".to_string(), "back"));
+        return hints;
+    }
+
+    let keymap = &app.keymap;
+    let key = |action: Action| keymap.keys_for(action).first().map(Binding::render);
+    let in_stage = app.nav.focus() == crate::nav::Focus::Stage;
+    let wanted: Vec<(Action, &'static str)> = match app.nav.current() {
         // Now Playing has its own vocabulary, and it is the one view where the browsing
         // hints would be actively wrong.
-        (V::NowPlaying, _) => &[Action::PlayPause, Action::SkipOpening, Action::Detach],
-        (V::Episodes(_), _) => &[Action::Open, Action::Back],
-        (V::Section(Section::Search), _) => &[Action::Open, Action::FilterSearch, Action::Back],
-        (V::Section(Section::Providers), _) => &[Action::Refresh, Action::Open],
-        (V::Stores | V::Store(_) | V::StoreMembers(_), _) => &[Action::Open, Action::Back],
-        // Settings has nothing to open and no episodes, so offering those keys would be a lie.
-        // Left and Right are what actually do something here.
-        (V::Section(Section::Settings), true) => &[Action::Left, Action::Right],
-        (_, true) => &[Action::Open, Action::ShowEpisodes],
+        V::NowPlaying => vec![
+            (Action::PlayPause, Action::PlayPause.hint()),
+            (Action::SkipOpening, Action::SkipOpening.hint()),
+            (Action::Detach, Action::Detach.hint()),
+        ],
+        // Enter plays in the table; that is the table's whole point.
+        V::Episodes(_) => vec![
+            (Action::Open, "play"),
+            (Action::ToggleWatched, Action::ToggleWatched.hint()),
+            (Action::Back, Action::Back.hint()),
+        ],
+        V::Title(_) => vec![
+            (Action::PlayNext, Action::PlayNext.hint()),
+            (Action::ShowEpisodes, Action::ShowEpisodes.hint()),
+            (Action::Back, Action::Back.hint()),
+        ],
+        V::Stores | V::Store(_) | V::StoreMembers(_) => {
+            vec![(Action::Open, Action::Open.hint()), (Action::Back, Action::Back.hint())]
+        }
         // Focus is on the rail: the arrows walk it, which is exactly the thing nobody could
         // discover when they did not.
-        (_, false) => &[Action::Down, Action::Right],
+        V::Section(_) if !in_stage => {
+            vec![(Action::Down, Action::Down.hint()), (Action::Right, Action::Right.hint())]
+        }
+        V::Section(Section::Home) => vec![
+            // A part-watched row resumes on Enter rather than opening.
+            (Action::Open, if app.resumes_on_enter() { "play" } else { "open" }),
+            (Action::ShowEpisodes, Action::ShowEpisodes.hint()),
+        ],
+        // The segment keys go first so they are dropped first; Enter is what a row is for.
+        V::Section(Section::Library) => {
+            let mut hints: Vec<(String, &'static str)> = Vec::new();
+            if let (Some(left), Some(right)) = (key(Action::Left), key(Action::Right)) {
+                hints.push((format!("{left}/{right}"), "list"));
+            }
+            hints.extend(key(Action::Open).map(|k| (k, "open")));
+            hints.extend(key(Action::ShowEpisodes).map(|k| (k, Action::ShowEpisodes.hint())));
+            return with_help(keymap, hints);
+        }
+        // Enter plays a finished download; nothing on this screen is an "open".
+        V::Section(Section::Downloads) => vec![
+            (Action::ClearCompleted, Action::ClearCompleted.hint()),
+            (Action::DeleteDownload, Action::DeleteDownload.hint()),
+            (Action::Open, "play"),
+        ],
+        // Enter on Providers leads to the plugin stores; the table itself opens nothing.
+        V::Section(Section::Providers) => {
+            vec![(Action::Refresh, Action::Refresh.hint()), (Action::Open, "stores")]
+        }
+        // Enter signs the highlighted tracker in or out, so it is named for which.
+        V::Section(Section::Accounts) => match app.sync.get(app.selected) {
+            Some(tracker) if tracker.connected && !tracker.needs_reauth => {
+                vec![(Action::Open, "sign out")]
+            }
+            Some(_) => vec![(Action::Open, "sign in")],
+            None => Vec::new(),
+        },
+        // Settings has nothing to open and no episodes, so offering those keys would be a lie.
+        // Left and Right are what actually do something here.
+        V::Section(Section::Settings) => {
+            let hints = match (key(Action::Left), key(Action::Right)) {
+                (Some(left), Some(right)) => vec![(format!("{left}/{right}"), "change")],
+                _ => Vec::new(),
+            };
+            return with_help(keymap, hints);
+        }
+        V::Section(_) => vec![
+            (Action::Open, Action::Open.hint()),
+            (Action::ShowEpisodes, Action::ShowEpisodes.hint()),
+        ],
     };
-    wanted
-        .iter()
-        .filter_map(|action| {
-            let key = keymap.keys_for(*action).first().map(Binding::render)?;
-            Some((key, action.hint()))
-        })
-        .chain(std::iter::once(("?".to_string(), Action::Help.hint())))
-        .collect()
+    let hints =
+        wanted.into_iter().filter_map(|(action, label)| Some((key(action)?, label))).collect();
+    with_help(keymap, hints)
+}
+
+/// `? keys` last, so it is the hint a narrow status line keeps.
+fn with_help(
+    keymap: &Keymap,
+    mut hints: Vec<(String, &'static str)>,
+) -> Vec<(String, &'static str)> {
+    if let Some(key) = keymap.keys_for(Action::Help).first() {
+        hints.push((key.render(), Action::Help.hint()));
+    }
+    hints
+}
+
+/// An overlay's own hints. Its keys are the fixed ones from [`modal_action`], so they hold
+/// whatever `[keys]` says. Esc goes last: it is the one a narrow line must keep.
+fn overlay_hints(
+    app: &crate::app::App,
+    overlay: &crate::nav::Overlay,
+) -> Vec<(String, &'static str)> {
+    use crate::nav::Overlay as O;
+    let hint = |key: &str, label: &'static str| (key.to_string(), label);
+    match overlay {
+        O::Help if app.help_pages.get() > 1 => vec![hint("↑↓", "page"), hint("esc", "close")],
+        O::Help => vec![hint("esc", "close")],
+        O::InviteLink => vec![hint("↵", "close")],
+        O::Logs if app.logs.is_empty() => vec![hint("esc", "close")],
+        O::Logs => vec![hint("↑↓", "move"), hint("esc", "close")],
+        O::SearchFilters => {
+            vec![hint("←→", "change"), hint("↵", "search"), hint("esc", "keep")]
+        }
+        O::CommandPalette => vec![hint("↑↓", "move"), hint("↵", "run"), hint("esc", "close")],
+        other => {
+            let verb = match other {
+                O::ListStatus => "set",
+                O::Rate => "rate",
+                O::Sources => "play",
+                O::SourceProvider => "pin",
+                O::Disambiguate => "use",
+                O::WatchOrder | O::Recommendations => "open",
+                O::Accounts => "choose",
+                O::Conflicts => "resolve",
+                O::PluginAction => "choose",
+                O::PublishPick => "publish",
+                O::StoreConfirm => "confirm",
+                O::ManualQuery => "search",
+                O::DownloadRange => "queue",
+                O::EditSetting => "save",
+                O::KitsuUsername => "next",
+                O::KitsuPassword => "sign in",
+                O::JoinStore => "check",
+                O::InviteName => "make link",
+                _ => "choose",
+            };
+            vec![hint("↵", verb), hint("esc", "cancel")]
+        }
+    }
 }
 
 #[cfg(test)]
@@ -1292,26 +1423,41 @@ mod tests {
     #[test]
     fn status_hints_stay_short_and_always_offer_help() {
         // The whole point of not having a footer: at most a few hints, never a wall.
-        let keymap = Keymap::new();
-        let views: Vec<crate::nav::StageView> = Section::ALL
-            .into_iter()
-            .map(crate::nav::StageView::Section)
-            .chain([
-                crate::nav::StageView::NowPlaying,
-                crate::nav::StageView::Episodes(anistream_core::ids::AnilistId::new(1)),
-            ])
-            .collect();
-        for view in &views {
-            for in_stage in [true, false] {
-                let hints = status_hints(&keymap, view, in_stage);
-                assert!(hints.len() <= 4, "{view:?} produced {} hints", hints.len());
-                assert!(
-                    hints.iter().any(|(k, _)| k == "?"),
-                    "discoverability depends on ? always being offered"
-                );
+        use crate::nav::StageView;
+        let mut app = crate::app::App::new(
+            anistream_core::config::Config::default(),
+            crate::theme::Palette::dark(),
+            Keymap::new(),
+        );
+        let check = |app: &crate::app::App, what: &str| {
+            let hints = status_hints(app);
+            assert!(hints.len() <= 4, "{what} produced {} hints", hints.len());
+            assert!(
+                hints.last().is_some_and(|(k, _)| k == "?"),
+                "{what}: discoverability depends on ? always being offered, last: {hints:?}"
+            );
+        };
+        for section in Section::ALL {
+            app.go_to_section(section);
+            app.nav.focus_rail();
+            check(&app, &format!("{section:?} rail"));
+            app.nav.focus_stage();
+            // Search's own view is a text field, where `?` would be typed; see the typing test.
+            if !app.is_typing() {
+                check(&app, &format!("{section:?} stage"));
             }
         }
+        for view in [
+            StageView::NowPlaying,
+            StageView::Episodes(anistream_core::ids::AnilistId::new(1)),
+            StageView::Title(anistream_core::ids::AnilistId::new(1)),
+        ] {
+            app.go_to_section(Section::Home);
+            app.nav.push(view.clone());
+            check(&app, &format!("{view:?}"));
+        }
     }
+
     #[test]
     fn a_rebind_onto_a_key_another_action_keeps_is_refused_and_reported() {
         // `back = "x"` used to take `x` from *remove from continue watching* without a word,
