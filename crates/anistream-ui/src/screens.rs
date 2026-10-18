@@ -874,6 +874,15 @@ fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
     let focused = app.nav.focus() == crate::nav::Focus::Stage;
     // Two rows reserved at the bottom for the selected row's detail — the path or the failure.
     let last_row = area.bottom().saturating_sub(3);
+    // One meter width for the whole table, whatever each row's note says, so the bars line up
+    // as a column. Sized per row, they were as wide as each row's note let them be — and a bar
+    // one cell wide drew only its half block, which is the selection mark's glyph.
+    let room = area.right().saturating_sub(meter_x) as usize;
+    let widest = app.downloads.iter().map(|r| download_note(app, r).chars().count()).max();
+    let meter_width = match room.saturating_sub(widest.unwrap_or(0)).min(20) {
+        width if width < 4 => 0,
+        width => width,
+    };
     for (i, row) in app.downloads.iter().enumerate() {
         if y >= last_row {
             break;
@@ -883,11 +892,21 @@ fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
             buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
         }
 
-        let label = format!("{}  ep {}", row.title, row.episode);
+        // The title gives way to the episode number, never the other way round: five rows of
+        // one show cut at the same place were five identical rows.
+        // Two cells short of the state column, so the number never runs into the state.
+        let room = state_x.saturating_sub(area.left() + 4) as usize;
+        let episode = format!("  ep {}", row.episode);
+        let label = match room.checked_sub(episode.chars().count()) {
+            Some(title_room) if title_room >= 4 => {
+                format!("{}{episode}", truncate(&row.title, title_room))
+            }
+            _ => truncate(&format!("{}{episode}", row.title), room),
+        };
         buf.set_string(
             area.left() + 2,
             y,
-            truncate(&label, state_x.saturating_sub(area.left() + 3) as usize),
+            label,
             if selected {
                 app.palette.style(Role::Text).add_modifier(Modifier::BOLD)
             } else {
@@ -913,34 +932,26 @@ fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
 
         if meter_x < area.right() {
             let room = area.right().saturating_sub(meter_x) as usize;
-            // The byte counts matter as much as the fraction: "62%" of an unknown size says less
-            // than "1.2 of 1.9 GB", and a stalled download is obvious from bytes that stop moving.
-            let sizes = if row.total > 0 {
-                format!("  {} / {}", human_bytes(row.downloaded), human_bytes(row.total))
-            } else {
-                "  waiting for metadata".to_string()
-            };
-            let meter_width = room.saturating_sub(sizes.chars().count()).min(20);
-            set_meter(buf, meter_x, y, &app.palette, row.fraction, meter_width, Role::Obi);
+            let note = download_note(app, row);
+            if meter_width > 0 {
+                set_meter(buf, meter_x, y, &app.palette, row.fraction, meter_width, Role::Obi);
+            }
             buf.set_string(
                 meter_x + meter_width as u16,
                 y,
-                truncate(&sizes, room.saturating_sub(meter_width)),
+                truncate(&note, room.saturating_sub(meter_width)),
                 app.palette.style(Role::TextDim),
             );
         }
         y += 1;
     }
 
-    // The selected row's detail, under a hairline: where the file is, or why it failed.
+    // The selected row's detail, under a hairline: where the file is, why it failed, or what
+    // it is waiting for.
     if let Some(row) = app.downloads.get(app.selected) {
         let detail_y = area.bottom().saturating_sub(1);
-        let (text, role) = match (&row.error, &row.path) {
-            (Some(error), _) => (error.clone(), Role::Alert),
-            (None, Some(path)) => (path.clone(), Role::TextDim),
-            (None, None) => ("resolving a source…".to_string(), Role::TextDim),
-        };
-        if detail_y > y {
+        let (text, role) = download_detail(app, row);
+        if detail_y > y && !text.is_empty() {
             Hairline::new(&app.palette)
                 .render(Rect { y: detail_y.saturating_sub(1), height: 1, ..area }, buf);
             buf.set_string(
@@ -951,6 +962,51 @@ fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
             );
         }
     }
+}
+
+/// What follows a download's meter: the bytes, or what it is waiting on while there are none.
+///
+/// The byte counts matter as much as the fraction: "62%" of an unknown size says less than
+/// "1.2 GB / 1.9 GB", and a stalled download is obvious from bytes that stop moving.
+fn download_note(app: &App, row: &crate::app::DownloadRow) -> String {
+    if row.total > 0 {
+        return format!("  {} / {}", human_bytes(row.downloaded), human_bytes(row.total));
+    }
+    match row.state {
+        "downloading" => "  waiting for metadata".into(),
+        // Downloads come through the torrent session, so with torrents off a queued row will
+        // never start. "waiting for metadata" said so forever.
+        "queued" if !app.config.providers.torrent.enabled => "  torrents are off".into(),
+        "queued" => "  waiting to start".into(),
+        _ => String::new(),
+    }
+}
+
+/// The line under the queue for the selected download.
+fn download_detail(app: &App, row: &crate::app::DownloadRow) -> (String, Role) {
+    if let Some(error) = &row.error {
+        return (error.clone(), Role::Alert);
+    }
+    if let Some(path) = &row.path {
+        return (path.clone(), Role::TextDim);
+    }
+    let text = match row.state {
+        // Paused is not resolving anything: it stopped where the bytes say.
+        "paused" if row.total > 0 => format!(
+            "paused at {} of {} — it carries on from there",
+            human_bytes(row.downloaded),
+            human_bytes(row.total)
+        ),
+        "paused" => "paused before it started".into(),
+        "queued" if !app.config.providers.torrent.enabled => format!(
+            "downloads need torrents, which are off — press {} for Settings",
+            app.section_key(Section::Settings)
+        ),
+        "queued" => "queued — it starts when a download slot is free".into(),
+        "downloading" => "waiting for the torrent's metadata".into(),
+        _ => String::new(),
+    };
+    (text, Role::TextDim)
 }
 
 /// Rows the seeding section needs: a rule, a heading and one row per torrent, at most four,
@@ -2009,6 +2065,23 @@ const COL_PROVIDER_KIND: u16 = 22;
 const COL_PROVIDER_STATE: u16 = 34;
 const COL_PROVIDER_LATENCY: u16 = 50;
 
+/// One cell of a fixed-column table: cut to its column and to the screen, with an ellipsis
+/// where it is cut, rather than by the edge of the buffer.
+fn table_cell(
+    buf: &mut Buffer,
+    area: Rect,
+    x: u16,
+    width: u16,
+    y: u16,
+    text: &str,
+    style: ratatui::style::Style,
+) {
+    let room = width.min(area.width.saturating_sub(x));
+    if room > 0 {
+        line(buf, area.left() + x, y, truncate(text, room as usize), style);
+    }
+}
+
 /// Provider health. This screen exists because sources die and the user has to be able to
 /// see *which* one and why, rather than facing an unexplained empty list.
 fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
@@ -2053,13 +2126,16 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
     }
 
     let head = area.top() + 2;
+    // A column is shown whole or not at all: started wherever it fell and cut by the screen's
+    // edge, it left half words — `STAT`, `read` — at 40 columns.
+    let shows = |x: u16, label: &str| x + label.chars().count() as u16 <= area.width;
     for (label, x) in [
         ("provider", COL_PROVIDER),
         ("kind", COL_PROVIDER_KIND),
         ("state", COL_PROVIDER_STATE),
         ("latency", COL_PROVIDER_LATENCY),
     ] {
-        if x < area.width {
+        if shows(x, label) {
             buf.set_string(
                 area.left() + x,
                 head,
@@ -2080,18 +2156,26 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
         if provider.usable {
             buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
         }
-        buf.set_string(
-            area.left() + COL_PROVIDER,
+        table_cell(
+            buf,
+            area,
+            COL_PROVIDER,
+            COL_PROVIDER_KIND - COL_PROVIDER - 1,
             y,
-            truncate(&provider.id, (COL_PROVIDER_KIND - COL_PROVIDER - 1) as usize),
+            &provider.id,
             app.palette.style(if provider.usable { Role::Text } else { Role::TextDim }),
         );
-        buf.set_string(
-            area.left() + COL_PROVIDER_KIND,
-            y,
-            truncate(&provider.kind, (COL_PROVIDER_STATE - COL_PROVIDER_KIND - 1) as usize),
-            app.palette.style(Role::TextDim),
-        );
+        if shows(COL_PROVIDER_KIND, "kind") {
+            table_cell(
+                buf,
+                area,
+                COL_PROVIDER_KIND,
+                COL_PROVIDER_STATE - COL_PROVIDER_KIND - 1,
+                y,
+                &provider.kind,
+                app.palette.style(Role::TextDim),
+            );
+        }
 
         // Held back is not unhealthy: local policy is withholding a working source.
         let state_role = match (provider.held_back, provider.usable) {
@@ -2099,18 +2183,28 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
             (false, false) => Role::Alert,
             (false, true) => Role::State,
         };
-        buf.set_string(
-            area.left() + COL_PROVIDER_STATE,
-            y,
-            truncate(&provider.state, (COL_PROVIDER_LATENCY - COL_PROVIDER_STATE - 1) as usize),
-            app.palette.style(state_role),
-        );
-
-        if let Some(ms) = provider.latency_ms {
-            buf.set_string(
-                area.left() + COL_PROVIDER_LATENCY,
+        if shows(COL_PROVIDER_STATE, "state") {
+            table_cell(
+                buf,
+                area,
+                COL_PROVIDER_STATE,
+                COL_PROVIDER_LATENCY - COL_PROVIDER_STATE - 1,
                 y,
-                format!("{ms}ms"),
+                &provider.state,
+                app.palette.style(state_role),
+            );
+        }
+
+        if let Some(ms) = provider.latency_ms
+            && shows(COL_PROVIDER_LATENCY, "latency")
+        {
+            table_cell(
+                buf,
+                area,
+                COL_PROVIDER_LATENCY,
+                u16::MAX,
+                y,
+                &format!("{ms}ms"),
                 app.palette.style(Role::TextDim),
             );
         }
@@ -2711,16 +2805,22 @@ fn render_meta_sources(buf: &mut Buffer, app: &App, area: Rect, top: u16) {
         if row.active {
             buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
         }
-        buf.set_string(
-            area.left() + COL_PROVIDER,
+        table_cell(
+            buf,
+            area,
+            COL_PROVIDER,
+            COL_PROVIDER_KIND - COL_PROVIDER - 1,
             y,
-            truncate(&row.source, (COL_PROVIDER_KIND - COL_PROVIDER - 1) as usize),
+            &row.source,
             app.palette.style(if row.active { Role::Text } else { Role::TextDim }),
         );
-        buf.set_string(
-            area.left() + COL_PROVIDER_KIND,
+        table_cell(
+            buf,
+            area,
+            COL_PROVIDER_KIND,
+            COL_PROVIDER_STATE - COL_PROVIDER_KIND - 1,
             y,
-            truncate(&row.state, (COL_PROVIDER_STATE - COL_PROVIDER_KIND - 1) as usize),
+            &row.state,
             app.palette.style(if row.healthy { Role::State } else { Role::Alert }),
         );
         if let Some(detail) = &row.detail
@@ -2780,7 +2880,12 @@ fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
         .iter()
         .position(|l| matches!(l, SettingsLine::Row(i) if *i == app.selected))
         .unwrap_or(0);
-    let visible = area.height as usize;
+    // The bottom two rows are kept for the focused row's note whenever there is height to
+    // spare them. The note used to wait for the whole list to fit above it, which the grouped
+    // list never does at an ordinary size — so no note was ever shown. Kept whether or not
+    // the row has one, or the list would jump two rows as the cursor passed a row without.
+    let reserved = if area.height >= 8 { 2 } else { 0 };
+    let visible = (area.height - reserved) as usize;
     let offset = selected_line.saturating_sub(visible.saturating_sub(1));
 
     for (slot, line) in lines.iter().skip(offset).take(visible).enumerate() {
@@ -2836,9 +2941,9 @@ fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
     // One note at a time, for the selected row only. Printing every caveat beside every row
     // would turn a twelve-line screen into a wall and bury the values it exists to show.
     if let Some(note) = rows.get(app.selected).and_then(|r| r.note) {
-        let note_y = area.bottom().saturating_sub(2);
+        let note_y = area.bottom().saturating_sub(1);
         let drawn = lines.len().saturating_sub(offset).min(visible);
-        if note_y > area.top() + drawn as u16 {
+        if reserved > 0 || note_y > area.top() + drawn as u16 + 1 {
             Hairline::new(&app.palette)
                 .render(Rect { y: note_y.saturating_sub(1), height: 1, ..area }, buf);
             buf.set_string(
@@ -3680,7 +3785,11 @@ fn still_panel(app: &App, table: Rect) -> Option<Rect> {
 }
 
 /// Columns the episode table needs before a still may take any width from it.
-const MIN_EPISODE_TABLE_WIDTH: u16 = 44;
+///
+/// Enough for a title column of about thirty cells beside the number, runtime and meter. At
+/// 44 the still kept its width at 80 columns and left the titles ten cells — a column of
+/// `The Heroe…` with a picture beside it. The panel yields instead.
+const MIN_EPISODE_TABLE_WIDTH: u16 = 64;
 
 /// Width in cells for a 16:9 still of a given height.
 ///
@@ -5646,12 +5755,111 @@ mod tests {
     }
 
     #[test]
+    fn at_eighty_columns_the_episode_titles_keep_their_room() {
+        let mut app = app_at_episodes();
+        app.episodes[0].thumbnail = Some("https://cdn.example/1.jpg".into());
+        app.episodes[1].title = Some("A Title That Needs Most of Thirty Cells".into());
+        let text = text_of(&render_to_buffer(&app, 80, 24));
+        assert!(text.contains("A Title That Needs Most of Thi"), "{text}");
+    }
+
+    #[test]
     fn a_placeholder_says_its_note_as_a_phrase() {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Downloads);
         let text = text_of(&render_to_buffer(&app, 40, 7));
         assert!(text.contains("needs a larger terminal"), "{text}");
         assert!(!text.contains("arrives in"), "{text}");
+    }
+
+    fn download(
+        title: &str,
+        episode: &str,
+        state: &'static str,
+        of: u64,
+    ) -> crate::app::DownloadRow {
+        crate::app::DownloadRow {
+            id: i64::from(episode.parse::<u8>().unwrap_or(0)),
+            anilist_id: AnilistId::new(1),
+            title: title.into(),
+            episode: episode.into(),
+            state,
+            fraction: if of > 0 { 0.5 } else { 0.0 },
+            downloaded: of / 2,
+            total: of,
+            error: None,
+            path: None,
+        }
+    }
+
+    #[test]
+    fn download_rows_keep_the_episode_and_say_what_they_wait_on() {
+        let long = "An Invented Show With a Title Too Long for the Column";
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Downloads);
+        app.apply(Update::Downloads(vec![
+            download(long, "4", "queued", 0),
+            download(long, "3", "paused", 1_468_000_000),
+            download(long, "2", "downloading", 0),
+        ]));
+        let lines = lines_of(&app, 80, 24);
+        let text = lines.join("\n");
+        for ep in ["ep 4", "ep 3", "ep 2"] {
+            assert!(text.contains(ep), "{ep} cut away:\n{text}");
+        }
+        // Torrents are off by default, so a queued row will never start.
+        assert!(text.contains("torrents are off"), "{text}");
+        assert!(text.contains("waiting for metadata"), "only an active row waits on that");
+        assert_eq!(text.matches("waiting for metadata").count(), 1, "{text}");
+        assert!(text.contains("downloads need torrents, which are off — press 9"), "{text}");
+
+        // The bars are one column of one width.
+        let bars: Vec<(usize, usize)> = lines
+            .iter()
+            .filter(|l| l.contains('░'))
+            .map(|l| {
+                let start = l.find(['█', '░']).unwrap();
+                let width = l[start..].chars().take_while(|c| "█░▏▎▍▌▋▊▉".contains(*c)).count();
+                (l[..start].chars().count(), width)
+            })
+            .collect();
+        assert_eq!(bars.len(), 3, "{text}");
+        assert!(bars.windows(2).all(|w| w[0] == w[1]), "{bars:?}\n{text}");
+
+        // The paused row is not resolving anything.
+        app.nav.focus_stage();
+        app.handle(crate::keymap::Action::Down, 20);
+        let text = text_of(&render_to_buffer(&app, 80, 24));
+        assert!(text.contains("paused at 734 MB of 1.5 GB"), "{text}");
+        assert!(!text.contains("resolving a source"), "{text}");
+    }
+
+    #[test]
+    fn a_narrow_providers_table_drops_columns_rather_than_halving_words() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Providers);
+        app.apply(Update::Providers(vec![provider("someplugin", "ready", true, false)]));
+        let text = text_of(&render_to_buffer(&app, 40, 15));
+        assert!(
+            !text.contains("STAT\u{20}")
+                && !text.lines().any(|l| l.trim_end().ends_with("STAT"))
+        );
+        assert!(!text.lines().any(|l| l.trim_end().ends_with("read")), "{text}");
+    }
+
+    #[test]
+    fn the_focused_settings_note_shows_at_an_ordinary_size() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Settings);
+        app.nav.focus_stage();
+        let night = crate::app::SettingId::ALL
+            .iter()
+            .position(|id| *id == crate::app::SettingId::NightMode)
+            .unwrap();
+        app.selected = night;
+        let text = text_of(&render_to_buffer(&app, 120, 34));
+        assert!(text.contains("evens out quiet dialogue"), "{text}");
+        assert!(text.contains("NIGHT MODE"), "the row itself is still in view:\n{text}");
     }
 
     #[test]
