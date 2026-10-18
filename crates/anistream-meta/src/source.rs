@@ -15,9 +15,16 @@
 //! Every successful fetch, from either fresh source, rewrites the cache. The cache is
 //! therefore exactly as stale as the last outage was long — nothing ages in it while
 //! the network works.
+//!
+//! A fresh source that keeps failing is left alone for a while. Each rung waits out its
+//! own timeout before the next is tried, so with the network hanging every screen spent
+//! a timeout on AniList and another on Tenrai before reaching the cache — forty seconds a
+//! view. After a few failures in a row a [`Breaker`] skips the source for a cooldown, then
+//! lets one request through to see whether it is back.
 
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU8, Ordering};
+use std::time::{Duration, Instant};
 
 use anistream_core::ids::AnilistId;
 use anistream_store::Store;
@@ -26,7 +33,7 @@ use crate::{
     anilist::{
         AiringEntry, AniList, AniListError, BrowseFilter, LastAired, Media, Page, Season,
     },
-    tenrai::Tenrai,
+    tenrai::{Tenrai, TenraiError},
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -66,6 +73,81 @@ struct Weather {
     tenrai: Option<String>,
 }
 
+/// Failures in a row that take a fresh source out of the ladder for a cooldown.
+const BREAKER_THRESHOLD: u32 = 3;
+
+/// The first cooldown. Each probe that fails doubles it, up to [`BREAKER_MAX`].
+const BREAKER_COOLDOWN: Duration = Duration::from_secs(30);
+
+/// The longest a source is left alone between probes. Short enough that a recovered
+/// AniList is back on the ground floor within minutes without anyone pressing a key.
+const BREAKER_MAX: Duration = Duration::from_secs(300);
+
+/// A circuit breaker for one fresh source.
+///
+/// Closed, every request goes through. After [`BREAKER_THRESHOLD`] failures in a row it
+/// opens and requests are skipped, so the ladder goes straight to the next rung. When the
+/// cooldown has run, one request goes through as a probe while the rest keep skipping: a
+/// success closes the breaker, a failure opens it again for twice as long.
+#[derive(Debug, Default)]
+struct Breaker {
+    failures: u32,
+    /// Times it has opened since the source last answered, which sets the cooldown.
+    trips: u32,
+    open_until: Option<Instant>,
+}
+
+impl Breaker {
+    /// Whether a request may go to the source now. Past the cooldown this lets one probe
+    /// through and holds everyone else for another cooldown while it is out.
+    fn allows(&mut self, now: Instant) -> bool {
+        match self.open_until {
+            None => true,
+            Some(until) if now >= until => {
+                self.open_until = Some(now + self.cooldown());
+                true
+            }
+            Some(_) => false,
+        }
+    }
+
+    /// The source answered — with data, or with an answer such as "not found".
+    fn answered(&mut self) {
+        *self = Self::default();
+    }
+
+    /// The source failed: unreachable, erroring, or answering in a shape we cannot read.
+    fn failed(&mut self, now: Instant) {
+        self.failures = self.failures.saturating_add(1);
+        if self.failures >= BREAKER_THRESHOLD {
+            self.trips = self.trips.saturating_add(1);
+            self.open_until = Some(now + self.cooldown());
+        }
+    }
+
+    fn cooldown(&self) -> Duration {
+        let doublings = self.trips.saturating_sub(1).min(8);
+        (BREAKER_COOLDOWN * 2_u32.pow(doublings)).min(BREAKER_MAX)
+    }
+
+    /// How long until the next probe, while the source is being skipped.
+    fn resting_for(&self, now: Instant) -> Option<Duration> {
+        self.open_until.filter(|until| *until > now).map(|until| until - now)
+    }
+}
+
+/// One breaker per fresh source.
+#[derive(Debug, Default)]
+struct Breakers {
+    anilist: Breaker,
+    tenrai: Breaker,
+}
+
+/// What a skipped request says instead of asking.
+fn skipped(source: &str, wait: Duration) -> String {
+    format!("{source} skipped after repeated failures; next try in {}s", wait.as_secs().max(1))
+}
+
 /// The metadata source the application talks to, in place of any one service.
 #[derive(Clone)]
 pub struct Meta {
@@ -75,6 +157,7 @@ pub struct Meta {
     rung: std::sync::Arc<AtomicU8>,
     notice: std::sync::Arc<Mutex<Option<String>>>,
     weather: std::sync::Arc<Mutex<Weather>>,
+    breakers: std::sync::Arc<Mutex<Breakers>>,
 }
 
 impl Meta {
@@ -86,6 +169,7 @@ impl Meta {
             rung: std::sync::Arc::new(AtomicU8::new(FRESH)),
             notice: std::sync::Arc::new(Mutex::new(None)),
             weather: std::sync::Arc::new(Mutex::new(Weather::default())),
+            breakers: std::sync::Arc::new(Mutex::new(Breakers::default())),
         }
     }
 
@@ -96,13 +180,33 @@ impl Meta {
         let weather = self.weather.lock().map(|w| (w.anilist.clone(), w.tenrai.clone()));
         let (anilist_err, tenrai_err) = weather.unwrap_or((None, None));
 
+        let now = Instant::now();
+        let (anilist_rest, tenrai_rest) = self
+            .breakers
+            .lock()
+            .map(|b| (b.anilist.resting_for(now), b.tenrai.resting_for(now)))
+            .unwrap_or((None, None));
+
         let mut rows = Vec::with_capacity(3);
         rows.push(SourceHealth {
             source: "anilist",
-            state: if anilist_err.is_none() { "live" } else { "unreachable" },
-            healthy: anilist_err.is_none(),
+            state: match (anilist_rest, &anilist_err) {
+                (Some(_), _) => "backing off",
+                (None, None) => "live",
+                (None, Some(_)) => "unreachable",
+            },
+            healthy: anilist_err.is_none() && anilist_rest.is_none(),
             active: rung == FRESH,
-            detail: anilist_err,
+            detail: match anilist_rest {
+                // Says that requests are being skipped and when the next one goes, so a
+                // screen loading from the fallback does not read as AniList being ignored.
+                Some(wait) => Some(format!(
+                    "skipped until the next try in {}s — {}",
+                    wait.as_secs().max(1),
+                    anilist_err.as_deref().unwrap_or("failing")
+                )),
+                None => anilist_err,
+            },
         });
         rows.push(match &self.tenrai {
             None => SourceHealth {
@@ -114,12 +218,13 @@ impl Meta {
             },
             Some(_) => SourceHealth {
                 source: "tenrai",
-                state: match (rung == TENRAI, tenrai_err.is_none()) {
-                    (true, _) => "serving",
-                    (false, true) => "standby",
-                    (false, false) => "failing",
+                state: match (rung == TENRAI, tenrai_err.is_none(), tenrai_rest.is_some()) {
+                    (true, _, _) => "serving",
+                    (false, _, true) => "backing off",
+                    (false, true, false) => "standby",
+                    (false, false, false) => "failing",
                 },
-                healthy: tenrai_err.is_none(),
+                healthy: tenrai_err.is_none() && tenrai_rest.is_none(),
                 active: rung == TENRAI,
                 detail: tenrai_err,
             },
@@ -149,6 +254,80 @@ impl Meta {
         if let Ok(mut weather) = self.weather.lock() {
             weather.tenrai = error;
         }
+    }
+
+    /// Ask AniList, unless it has failed often enough lately to be skipped.
+    ///
+    /// The call is a future, so a skipped one is never polled and never sends anything.
+    /// Its outcome is noted here — the breaker, and the weather the Providers screen reads —
+    /// so a skip cannot overwrite the error that caused it.
+    async fn ask_anilist<T>(
+        &self,
+        call: impl std::future::Future<Output = std::result::Result<T, AniListError>>,
+    ) -> std::result::Result<T, AniListError> {
+        if let Some(wait) = self.skip("anilist") {
+            return Err(AniListError::Network(skipped("anilist", wait)));
+        }
+        let result = call.await;
+        match &result {
+            Err(e) if Self::descends(e) => {
+                self.note_anilist(Some(e.to_string()));
+                self.trip("anilist");
+            }
+            Ok(_) => {
+                self.note_anilist(None);
+                self.reset("anilist");
+            }
+            // An answer about the title, which says the service is up.
+            Err(_) => self.reset("anilist"),
+        }
+        result
+    }
+
+    /// Ask Tenrai, on the same terms as [`Self::ask_anilist`]. Its weather is noted by the
+    /// callers, which aggregate it across titles.
+    async fn ask_tenrai<T>(
+        &self,
+        call: impl std::future::Future<Output = std::result::Result<T, TenraiError>>,
+    ) -> std::result::Result<T, TenraiError> {
+        if let Some(wait) = self.skip("tenrai") {
+            return Err(TenraiError::Network(skipped("tenrai", wait)));
+        }
+        let result = call.await;
+        match &result {
+            Err(TenraiError::Network(_) | TenraiError::Api(_)) => self.trip("tenrai"),
+            _ => self.reset("tenrai"),
+        }
+        result
+    }
+
+    /// How long a source still has to rest, or `None` to go ahead (claiming the probe).
+    fn skip(&self, source: &str) -> Option<Duration> {
+        let now = Instant::now();
+        let mut breakers = self.breakers.lock().ok()?;
+        let breaker = self.breaker(&mut breakers, source);
+        if breaker.allows(now) { None } else { breaker.resting_for(now) }
+    }
+
+    fn trip(&self, source: &str) {
+        if let Ok(mut breakers) = self.breakers.lock() {
+            let breaker = self.breaker(&mut breakers, source);
+            let was_open = breaker.resting_for(Instant::now()).is_some();
+            breaker.failed(Instant::now());
+            if !was_open && breaker.resting_for(Instant::now()).is_some() {
+                tracing::warn!(source, cooldown = ?breaker.cooldown(), "failing repeatedly; skipping it for a while");
+            }
+        }
+    }
+
+    fn reset(&self, source: &str) {
+        if let Ok(mut breakers) = self.breakers.lock() {
+            self.breaker(&mut breakers, source).answered();
+        }
+    }
+
+    fn breaker<'a>(&self, breakers: &'a mut Breakers, source: &str) -> &'a mut Breaker {
+        if source == "tenrai" { &mut breakers.tenrai } else { &mut breakers.anilist }
     }
 
     /// The lower rungs' collective failure, spelled out. A full-ladder failure that only
@@ -237,23 +416,19 @@ impl Meta {
 
     /// One title, with the full detail-screen surface.
     pub async fn media(&self, id: AnilistId) -> Result<Media> {
-        let primary = match self.anilist.media(id).await {
+        let primary = match self.ask_anilist(self.anilist.media(id)).await {
             Ok(media) => {
-                self.note_anilist(None);
                 self.went(FRESH);
                 self.remember(&media);
                 return Ok(media);
             }
             Err(e) if !Self::descends(&e) => return Err(e.into()),
-            Err(e) => {
-                self.note_anilist(Some(e.to_string()));
-                e
-            }
+            Err(e) => e,
         };
 
         let mut tenrai_error = None;
         if let Some(tenrai) = &self.tenrai {
-            match tenrai.media(id).await {
+            match self.ask_tenrai(tenrai.media(id)).await {
                 Ok(media) => {
                     self.note_tenrai(None);
                     self.went(TENRAI);
@@ -278,9 +453,8 @@ impl Meta {
     /// first, because these are almost always titles from the caller's own history,
     /// then Tenrai for the gaps. A title nothing can describe is omitted, not invented.
     pub async fn media_many(&self, ids: &[AnilistId]) -> Result<Vec<Media>> {
-        let primary = match self.anilist.media_many(ids).await {
+        let primary = match self.ask_anilist(self.anilist.media_many(ids)).await {
             Ok(list) => {
-                self.note_anilist(None);
                 self.went(FRESH);
                 for media in &list {
                     self.remember(media);
@@ -288,10 +462,7 @@ impl Meta {
                 return Ok(list);
             }
             Err(e) if !Self::descends(&e) => return Err(e.into()),
-            Err(e) => {
-                self.note_anilist(Some(e.to_string()));
-                e
-            }
+            Err(e) => e,
         };
 
         let mut assembled = Vec::with_capacity(ids.len());
@@ -301,7 +472,7 @@ impl Meta {
             if let Some(media) = self.recall(*id) {
                 assembled.push(media);
             } else if let Some(tenrai) = &self.tenrai {
-                match tenrai.media(*id).await {
+                match self.ask_tenrai(tenrai.media(*id)).await {
                     Ok(media) => {
                         self.remember(&media);
                         rung = TENRAI;
@@ -331,23 +502,22 @@ impl Meta {
         page: u32,
         per_page: u32,
     ) -> Result<Page<Media>> {
-        let primary = match self.anilist.search_filtered(term, filter, page, per_page).await {
+        let primary = match self
+            .ask_anilist(self.anilist.search_filtered(term, filter, page, per_page))
+            .await
+        {
             Ok(found) => {
-                self.note_anilist(None);
                 self.went(FRESH);
                 self.remember_page(&found);
                 return Ok(found);
             }
             Err(e) if !Self::descends(&e) => return Err(e.into()),
-            Err(e) => {
-                self.note_anilist(Some(e.to_string()));
-                e
-            }
+            Err(e) => e,
         };
 
         let mut tenrai_error = None;
         if let Some(tenrai) = &self.tenrai {
-            match tenrai.search(term, filter, page, per_page).await {
+            match self.ask_tenrai(tenrai.search(term, filter, page, per_page)).await {
                 Ok(found) => {
                     self.note_tenrai(None);
                     self.went(TENRAI);
@@ -376,23 +546,22 @@ impl Meta {
         page: u32,
         per_page: u32,
     ) -> Result<Page<Media>> {
-        let primary = match self.anilist.seasonal(season, year, filter, page, per_page).await {
+        let primary = match self
+            .ask_anilist(self.anilist.seasonal(season, year, filter, page, per_page))
+            .await
+        {
             Ok(found) => {
-                self.note_anilist(None);
                 self.went(FRESH);
                 self.remember_page(&found);
                 return Ok(found);
             }
             Err(e) if !Self::descends(&e) => return Err(e.into()),
-            Err(e) => {
-                self.note_anilist(Some(e.to_string()));
-                e
-            }
+            Err(e) => e,
         };
 
         let mut tenrai_error = None;
         if let Some(tenrai) = &self.tenrai {
-            match tenrai.seasonal(season, year, page, per_page).await {
+            match self.ask_tenrai(tenrai.seasonal(season, year, page, per_page)).await {
                 Ok(mut found) => {
                     found.items.retain(|media| {
                         filter.genres.iter().all(|g| media.genres.contains(g))
@@ -425,7 +594,7 @@ impl Meta {
         page: u32,
         per_page: u32,
     ) -> Result<Page<AiringEntry>> {
-        self.weathered(self.anilist.airing_between(from, to, page, per_page).await)
+        self.weathered(self.anilist.airing_between(from, to, page, per_page)).await
     }
 
     /// The same window, with the sort direction chosen by the caller.
@@ -437,31 +606,30 @@ impl Meta {
         per_page: u32,
         newest_first: bool,
     ) -> Result<Page<AiringEntry>> {
-        self.weathered(
-            self.anilist.airing_between_sorted(from, to, page, per_page, newest_first).await,
-        )
+        self.weathered(self.anilist.airing_between_sorted(
+            from,
+            to,
+            page,
+            per_page,
+            newest_first,
+        ))
+        .await
     }
 
     /// When each title last aired. AniList only — nothing else knows; absent beats guessed.
     pub async fn last_aired(&self, ids: &[AnilistId]) -> Result<Vec<LastAired>> {
-        self.weathered(self.anilist.last_aired(ids).await)
+        self.weathered(self.anilist.last_aired(ids)).await
     }
 
-    /// A passthrough still reports the weather: a calendar failure is the same outage
-    /// the Providers screen should be able to explain.
-    fn weathered<T>(&self, result: std::result::Result<T, AniListError>) -> Result<T> {
-        match result {
-            Ok(value) => {
-                self.note_anilist(None);
-                Ok(value)
-            }
-            Err(e) => {
-                if Self::descends(&e) {
-                    self.note_anilist(Some(e.to_string()));
-                }
-                Err(e.into())
-            }
-        }
+    /// A passthrough still reports the weather — a calendar failure is the same outage the
+    /// Providers screen should be able to explain — and still skips a source that is
+    /// resting, so the calendar and the broadcast lines fail at once rather than after a
+    /// timeout each.
+    async fn weathered<T>(
+        &self,
+        call: impl std::future::Future<Output = std::result::Result<T, AniListError>>,
+    ) -> Result<T> {
+        self.ask_anilist(call).await.map_err(Into::into)
     }
 }
 
@@ -526,6 +694,109 @@ mod tests {
         assert!(text.contains("tenrai"), "got {text:?}");
         assert!(text.contains("504"), "got {text:?}");
         assert!(text.contains("cached"), "got {text:?}");
+    }
+
+    fn meta() -> Meta {
+        let store = Store::open_in_memory().unwrap();
+        let http =
+            anistream_net::HttpClient::new(&anistream_core::config::NetworkConfig::default())
+                .unwrap();
+        Meta::new(
+            AniList::new(http.clone(), 30),
+            Some(crate::tenrai::Tenrai::new(http, store.clone())),
+            store,
+        )
+    }
+
+    #[test]
+    fn a_breaker_opens_after_repeated_failures_and_probes_after_the_cooldown() {
+        let start = Instant::now();
+        let mut breaker = Breaker::default();
+        for _ in 0..BREAKER_THRESHOLD - 1 {
+            breaker.failed(start);
+            assert!(breaker.allows(start), "a failure or two is not an outage");
+        }
+        breaker.failed(start);
+        assert!(!breaker.allows(start), "skipped once it keeps failing");
+        assert_eq!(breaker.resting_for(start), Some(BREAKER_COOLDOWN));
+
+        // After the cooldown one probe goes through, and the rest keep skipping meanwhile.
+        let later = start + BREAKER_COOLDOWN;
+        assert!(breaker.allows(later));
+        assert!(!breaker.allows(later), "only one probe at a time");
+
+        // A failed probe rests twice as long; an answer closes it.
+        breaker.failed(later);
+        assert_eq!(breaker.resting_for(later), Some(BREAKER_COOLDOWN * 2));
+        breaker.answered();
+        assert!(breaker.allows(later));
+        assert_eq!(breaker.resting_for(later), None);
+    }
+
+    #[test]
+    fn a_breaker_rests_no_longer_than_its_ceiling() {
+        let now = Instant::now();
+        let mut breaker = Breaker::default();
+        for _ in 0..40 {
+            breaker.failed(now);
+        }
+        assert_eq!(breaker.cooldown(), BREAKER_MAX);
+    }
+
+    #[tokio::test]
+    async fn a_resting_anilist_is_not_asked_and_says_why_on_the_providers_screen() {
+        // With the network hanging every view waited out AniList's timeout before the
+        // fallback was even tried. A resting source is skipped without a request: the call
+        // below would panic if it were polled.
+        let meta = meta();
+        meta.note_anilist(Some("network: timed out".into()));
+        for _ in 0..BREAKER_THRESHOLD {
+            meta.trip("anilist");
+        }
+
+        let answer: std::result::Result<(), _> =
+            meta.ask_anilist(async { panic!("a resting source was asked") }).await;
+        let Err(AniListError::Network(message)) = answer else { panic!("not skipped") };
+        assert!(message.contains("next try in"), "{message}");
+
+        let row = &meta.health()[0];
+        assert_eq!(row.state, "backing off");
+        assert!(!row.healthy);
+        let detail = row.detail.as_deref().unwrap_or_default();
+        assert!(detail.contains("timed out"), "the cause survives the skip: {detail}");
+        assert!(detail.contains("next try in"), "{detail}");
+
+        // The calendar and the broadcast lines skip too, rather than each waiting it out.
+        assert!(meta.last_aired(&[AnilistId::new(1)]).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn an_answer_closes_the_breaker_and_clears_the_weather() {
+        let meta = meta();
+        meta.trip("anilist");
+        meta.trip("anilist");
+        let found: std::result::Result<(), _> =
+            meta.ask_anilist(async { Err(AniListError::NotFound) }).await;
+        assert!(found.is_err());
+        // Not-found is an answer, so the count starts over.
+        meta.trip("anilist");
+        assert!(meta.skip("anilist").is_none());
+
+        let ok = meta.ask_anilist(async { Ok::<_, AniListError>(1) }).await;
+        assert_eq!(ok.unwrap(), 1);
+        assert_eq!(meta.health()[0].state, "live");
+    }
+
+    #[tokio::test]
+    async fn a_resting_tenrai_is_skipped_too() {
+        let meta = meta();
+        for _ in 0..BREAKER_THRESHOLD {
+            meta.trip("tenrai");
+        }
+        let answer: std::result::Result<(), _> =
+            meta.ask_tenrai(async { panic!("a resting source was asked") }).await;
+        assert!(matches!(answer, Err(TenraiError::Network(_))));
+        assert_eq!(meta.health()[1].state, "backing off");
     }
 
     #[test]
