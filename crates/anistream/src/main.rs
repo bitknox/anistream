@@ -3695,12 +3695,21 @@ impl Prefetch {
         translation: anistream_core::media::Translation,
     ) -> Option<Resolved> {
         let mut slot = self.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-        let entry = slot.take()?;
-        let matches = entry.id == id
-            && entry.episode == episode
-            && entry.translation == translation
-            && entry.found.elapsed() < PREFETCH_FRESH;
-        matches.then_some(entry.resolved)
+        // Only a match is taken. Any other play — a show opened in passing, a source picked
+        // for a different episode — used to take the entry with it, so the streams found for
+        // the episode about to roll on were gone by the time it did.
+        let entry = slot.as_ref()?;
+        let fresh = entry.found.elapsed() < PREFETCH_FRESH;
+        let matches =
+            entry.id == id && entry.episode == episode && entry.translation == translation;
+        if !fresh {
+            *slot = None;
+            return None;
+        }
+        if !matches {
+            return None;
+        }
+        slot.take().map(|entry| entry.resolved)
     }
 }
 
@@ -4173,6 +4182,16 @@ mod tests {
             entry.found = std::time::Instant::now() - PREFETCH_FRESH - Duration::from_secs(1);
         }
         assert!(prefetch.take(AnilistId::new(7), "6", Translation::Sub).is_none());
+
+        // Any other play leaves them for the episode they are for: a show opened in passing
+        // while the ending ran used to take them with it.
+        prefetch.keep(AnilistId::new(7), "6", Translation::Sub, found());
+        assert!(prefetch.take(AnilistId::new(9), "1", Translation::Sub).is_none());
+        assert!(prefetch.take(AnilistId::new(7), "6", Translation::Dub).is_none());
+        assert!(
+            prefetch.take(AnilistId::new(7), "6", Translation::Sub).is_some(),
+            "still there"
+        );
     }
 
     #[test]
