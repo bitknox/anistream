@@ -7,10 +7,11 @@
 use std::time::{Duration, Instant};
 
 use anistream_core::{config::Config, ids::AnilistId, traits::SourceCandidate};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::{
     eyecatch::Eyecatch,
-    keymap::{Action, Keymap},
+    keymap::{Action, Context, Keymap},
     nav::{Focus, Nav, Overlay, Section, StageView},
     theme::{Palette, glyph},
 };
@@ -2245,6 +2246,45 @@ impl App {
         self.pending = Some(Task::LoadCalendarPast { anchor, page: self.calendar_pages + 1 });
     }
 
+    /// Handle a keystroke: text into a focused field first, then the binding it resolves to.
+    ///
+    /// The whole route from key to action in one place, so what a key does in any state can be
+    /// tested as a key rather than as the action someone assumed it would become.
+    pub fn press(&mut self, key: KeyEvent, visible_rows: usize) -> Option<Task> {
+        // Text first: while a field has focus, plain characters are input, not bindings.
+        if self.is_typing() {
+            match key.code {
+                KeyCode::Char(c)
+                    if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
+                {
+                    self.type_char(c);
+                    return None;
+                }
+                KeyCode::Backspace => {
+                    self.backspace();
+                    return None;
+                }
+                _ => {}
+            }
+        }
+        let action = self.keymap.action_for(key, self.key_context())?;
+        self.handle(action, visible_rows)
+    }
+
+    /// Which binding table a keystroke resolves against right now.
+    ///
+    /// Modal whenever an overlay or a text field has the keyboard, so their fixed keys hold
+    /// whatever the rebinds are and the playback table cannot act behind them.
+    pub fn key_context(&self) -> Context {
+        if self.nav.has_overlay() || self.is_typing() {
+            Context::Modal
+        } else if self.playing.is_some() {
+            Context::Playing
+        } else {
+            Context::Browsing
+        }
+    }
+
     /// Handle an action. Returns work for the caller to perform asynchronously.
     pub fn handle(&mut self, action: Action, visible_rows: usize) -> Option<Task> {
         // While typing, most single-key bindings must not fire, or "d" would trigger a
@@ -2252,59 +2292,132 @@ impl App {
         if self.is_typing() {
             return self.handle_while_typing(action, visible_rows);
         }
+        // An open overlay owns the keyboard: no key reaches the screen under it. Behind Help,
+        // the arrows used to change — and save — whatever setting was highlighted.
+        if let Some(overlay) = self.nav.overlay().cloned() {
+            return self.handle_in_overlay(&overlay, action, visible_rows);
+        }
+        self.perform(action, visible_rows)
+    }
 
+    /// What an open, non-text overlay does with each action. Everything not listed is
+    /// swallowed.
+    ///
+    /// Every overlay: Back closes it, Quit quits, and Help toggles the key reference on top —
+    /// stacked, so Esc returns to the question it was opened from. Beyond that there are two
+    /// kinds. **Help and Logs** are references with nothing to lose by leaving, so the keys
+    /// that go somewhere — the palette, search, the section numbers, Logs — close them and go;
+    /// their movement keys scroll. **Every other overlay asks a question**, and only its own
+    /// keys work until it is answered or dismissed: a `5` in the rating picker must not jump to
+    /// Downloads.
+    fn handle_in_overlay(
+        &mut self,
+        overlay: &Overlay,
+        action: Action,
+        visible_rows: usize,
+    ) -> Option<Task> {
+        match action {
+            Action::Quit => {
+                self.should_quit = true;
+                return None;
+            }
+            Action::Back => {
+                self.nav.close_overlay();
+                return None;
+            }
+            Action::Help if *overlay == Overlay::Help => {
+                self.nav.close_overlay();
+                return None;
+            }
+            Action::Help => {
+                self.nav.open_overlay(Overlay::Help);
+                return None;
+            }
+            _ => {}
+        }
+
+        let reference = matches!(overlay, Overlay::Help | Overlay::Logs);
+        if reference {
+            match action {
+                // The same key again closes it, as `?` does for Help.
+                Action::ShowLogs if *overlay == Overlay::Logs => {
+                    self.nav.close_overlay();
+                    return None;
+                }
+                Action::CommandPalette
+                | Action::FocusSearch
+                | Action::FilterSearch
+                | Action::JumpSection(_)
+                | Action::ShowLogs
+                | Action::ShowAccounts
+                | Action::ShowConflicts => {
+                    // Replaced rather than stacked: the palette runs what it picks against the
+                    // screen, and anything left open would swallow that.
+                    self.nav.close_all_overlays();
+                    return self.perform(action, visible_rows);
+                }
+                _ => {}
+            }
+        }
+
+        // A reference with nothing to pick: the rest is swallowed.
+        if *overlay == Overlay::Help {
+            return None;
+        }
+
+        // The store confirmations and the invite link are questions with one answer key: a
+        // stray `j` must not move the cursor off the member a "remove" is about to be applied to.
+        match (overlay, action) {
+            (Overlay::StoreConfirm, Action::Open) => return self.confirm_store_action(),
+            (Overlay::InviteLink, Action::Open) => {
+                self.nav.close_overlay();
+                self.invite_link = None;
+                return None;
+            }
+            (Overlay::StoreConfirm | Overlay::InviteLink, _) => return None,
+            _ => {}
+        }
+
+        // A list overlay owns movement and Enter. Without this, arrowing through the Accounts
+        // list would scroll the library behind it instead.
+        let len = self.overlay_len();
+        let page = visible_rows.saturating_sub(4).max(1);
+        match action {
+            Action::Down => {
+                self.overlay_selected = (self.overlay_selected + 1).min(len.saturating_sub(1));
+            }
+            Action::Up => self.overlay_selected = self.overlay_selected.saturating_sub(1),
+            Action::PageDown => {
+                self.overlay_selected =
+                    (self.overlay_selected + page).min(len.saturating_sub(1));
+            }
+            Action::PageUp => {
+                self.overlay_selected = self.overlay_selected.saturating_sub(page);
+            }
+            Action::Top => self.overlay_selected = 0,
+            Action::Bottom => self.overlay_selected = len.saturating_sub(1),
+            Action::Open if len > 0 => return self.confirm_overlay(visible_rows),
+            // The filters overlay edits in place: the vertical axis picks a row and the
+            // horizontal one walks its values, the same grammar as the Settings screen.
+            Action::Left if *overlay == Overlay::SearchFilters => {
+                self.search_filter.cycle(self.overlay_selected, false);
+            }
+            Action::Right if *overlay == Overlay::SearchFilters => {
+                self.search_filter.cycle(self.overlay_selected, true);
+            }
+            _ => {}
+        }
+        None
+    }
+
+    /// Run an action against the screen, with no overlay or text field in the way.
+    fn perform(&mut self, action: Action, visible_rows: usize) -> Option<Task> {
         // Playback bindings only mean anything while something is playing, and they collide
         // with browsing keys (`n`, `x`, digits), so they are dispatched first and only then.
         if self.playing.is_some()
             && let Some(task) = self.handle_playback(action)
         {
             return task;
-        }
-
-        // An open list overlay owns movement and Enter. Without this, arrowing through the
-        // Accounts list would scroll the library behind it instead.
-        if self.overlay_len() > 0 {
-            match action {
-                Action::Down => {
-                    self.overlay_selected =
-                        (self.overlay_selected + 1).min(self.overlay_len() - 1);
-                    return None;
-                }
-                Action::Up => {
-                    self.overlay_selected = self.overlay_selected.saturating_sub(1);
-                    return None;
-                }
-                Action::Open => return self.confirm_overlay(visible_rows),
-                // The filters overlay edits in place: the vertical axis picks a row and the
-                // horizontal one walks its values, the same grammar as the Settings screen.
-                Action::Left if self.nav.overlay() == Some(&Overlay::SearchFilters) => {
-                    self.search_filter.cycle(self.overlay_selected, false);
-                    return None;
-                }
-                Action::Right if self.nav.overlay() == Some(&Overlay::SearchFilters) => {
-                    self.search_filter.cycle(self.overlay_selected, true);
-                    return None;
-                }
-                _ => {}
-            }
-        }
-
-        // The store confirmations and the invite link are questions with one answer key. Every
-        // other key is swallowed rather than reaching the list underneath: a stray `j` must not
-        // move the cursor off the member a "remove" is about to be applied to.
-        if matches!(self.nav.overlay(), Some(Overlay::StoreConfirm | Overlay::InviteLink)) {
-            match action {
-                Action::Open if self.nav.overlay() == Some(&Overlay::StoreConfirm) => {
-                    return self.confirm_store_action();
-                }
-                Action::Open => {
-                    self.nav.close_overlay();
-                    self.invite_link = None;
-                    return None;
-                }
-                Action::Back | Action::Quit | Action::Help | Action::CommandPalette => {}
-                _ => return None,
-            }
         }
 
         match action {
@@ -3710,6 +3823,12 @@ impl App {
         if !action.works_while_typing() {
             return None;
         }
+        // A prompt is a question, like the list overlays: its own keys and the way out, nothing
+        // else. Search's field is a screen, and keeps the palette, filters and its result list.
+        let in_prompt = self.nav.has_overlay();
+        if in_prompt && matches!(action, Action::CommandPalette | Action::FilterSearch) {
+            return None;
+        }
         match action {
             Action::Back => {
                 let credentials_open = matches!(
@@ -3896,8 +4015,10 @@ impl App {
                 self.content = Content::Loading;
                 return Some(Task::Search { query, filter: self.search_filter.clone() });
             }
-            Action::Down => self.selected = self.selected.saturating_add(1),
-            Action::Up => self.selected = self.selected.saturating_sub(1),
+            // The result list under Search's field. A prompt has no list of its own, and the
+            // arrows used to move the one behind it.
+            Action::Down if !in_prompt => self.selected = self.selected.saturating_add(1),
+            Action::Up if !in_prompt => self.selected = self.selected.saturating_sub(1),
             _ => {}
         }
         None

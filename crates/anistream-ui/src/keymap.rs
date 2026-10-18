@@ -565,6 +565,10 @@ pub enum Context {
     Browsing,
     /// Something is playing, so the playback table is consulted first.
     Playing,
+    /// An overlay or a text field has the keyboard. The playback table is skipped — a dialog
+    /// open over Now Playing answers `q` by closing, not by detaching the player under it — and
+    /// a few keys mean the same thing whatever `[keys]` says; see [`modal_action`].
+    Modal,
 }
 
 impl Default for Keymap {
@@ -735,6 +739,11 @@ impl Keymap {
     /// `?`, `:` and `Esc` keep working while an episode plays.
     pub fn action_for(&self, event: KeyEvent, context: Context) -> Option<Action> {
         let binding = Binding::from_event(event);
+        if context == Context::Modal
+            && let Some(action) = modal_action(binding)
+        {
+            return Some(action);
+        }
         if context == Context::Playing
             && let Some(action) = self.playback.get(&binding)
         {
@@ -830,6 +839,33 @@ impl Keymap {
                 (*action, keys.first().map(Binding::render).unwrap_or_default())
             })
             .collect()
+    }
+}
+
+/// The keys every overlay and text field answers to, whatever the rebinds are.
+///
+/// A rebind is a preference about browsing; it must not be able to take away the way out of a
+/// dialog. With `back` moved to a letter, Esc stopped closing the command palette and the letter
+/// was typed into it instead, so there was no way out at all short of quitting. So Esc always
+/// cancels, Enter always confirms, the arrows always move, and ctrl+c always quits — and the
+/// overlay hints can name these keys without asking the keymap.
+fn modal_action(binding: Binding) -> Option<Action> {
+    if binding.modifiers == KeyModifiers::CONTROL {
+        return (binding.code == KeyCode::Char('c')).then_some(Action::Quit);
+    }
+    if !binding.modifiers.is_empty() {
+        return None;
+    }
+    match binding.code {
+        KeyCode::Esc => Some(Action::Back),
+        KeyCode::Enter => Some(Action::Open),
+        KeyCode::Up => Some(Action::Up),
+        KeyCode::Down => Some(Action::Down),
+        KeyCode::Left => Some(Action::Left),
+        KeyCode::Right => Some(Action::Right),
+        KeyCode::PageUp => Some(Action::PageUp),
+        KeyCode::PageDown => Some(Action::PageDown),
+        _ => None,
     }
 }
 
@@ -1211,5 +1247,43 @@ mod tests {
                 );
             }
         }
+    }
+    #[test]
+    fn modals_keep_esc_enter_and_the_arrows_whatever_the_rebinds() {
+        // With `back` moved to a letter, Esc stopped closing the palette and the letter was
+        // typed into it: no way out at all.
+        let mut keymap = Keymap::new();
+        let rejected = keymap.apply_overrides(&BTreeMap::from([
+            ("back".to_string(), "z".to_string()),
+            ("open".to_string(), "ctrl+o".to_string()),
+            ("down".to_string(), "ctrl+n".to_string()),
+        ]));
+        assert!(rejected.is_empty(), "{rejected:?}");
+        let special = |code| KeyEvent::new(code, KeyModifiers::NONE);
+        assert_eq!(keymap.action_for(special(KeyCode::Esc), Context::Browsing), None);
+        assert_eq!(
+            keymap.action_for(special(KeyCode::Esc), Context::Modal),
+            Some(Action::Back)
+        );
+        assert_eq!(
+            keymap.action_for(special(KeyCode::Enter), Context::Modal),
+            Some(Action::Open)
+        );
+        assert_eq!(
+            keymap.action_for(special(KeyCode::Down), Context::Modal),
+            Some(Action::Down)
+        );
+        let ctrl_c = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL);
+        assert_eq!(keymap.action_for(ctrl_c, Context::Modal), Some(Action::Quit));
+        // The rebinds still work in a modal too.
+        assert_eq!(keymap.action_for(key('z'), Context::Modal), Some(Action::Back));
+    }
+
+    #[test]
+    fn a_modal_reads_the_browsing_table_not_the_playback_one() {
+        // Over Now Playing, `q` in a dialog closes it rather than detaching the player.
+        let keymap = Keymap::new();
+        assert_eq!(keymap.action_for(key('q'), Context::Modal), Some(Action::Back));
+        assert_eq!(keymap.action_for(key('q'), Context::Playing), Some(Action::Detach));
     }
 }

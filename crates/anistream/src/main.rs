@@ -23,7 +23,7 @@ use anistream_ui::{
 use anyhow::{Context, Result};
 use clap::Parser;
 use crossterm::{
-    event::{Event, EventStream, KeyCode, KeyEventKind},
+    event::{Event, EventStream, KeyEventKind},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
@@ -1702,33 +1702,7 @@ async fn run(
             maybe_event = events.next() => {
                 match maybe_event {
                     Some(Ok(Event::Key(key))) if key.kind == KeyEventKind::Press => {
-                        // Text first: while a field has focus, plain characters are input,
-                        // not bindings.
-                        let handled_as_text = app.is_typing()
-                            && match key.code {
-                                KeyCode::Char(c) if key.modifiers.is_empty()
-                                    || key.modifiers == crossterm::event::KeyModifiers::SHIFT =>
-                                {
-                                    app.type_char(c);
-                                    true
-                                }
-                                KeyCode::Backspace => {
-                                    app.backspace();
-                                    true
-                                }
-                                _ => false,
-                            };
-
-                        let context = if app.playing.is_some() {
-                            anistream_ui::keymap::Context::Playing
-                        } else {
-                            anistream_ui::keymap::Context::Browsing
-                        };
-
-                        if !handled_as_text
-                            && let Some(action) = app.keymap.action_for(key, context)
-                            && let Some(task) = app.handle(action, rows)
-                        {
+                        if let Some(task) = app.press(key, rows) {
                             let job = JobGuard::start(&mut app, &task, &tx);
                             dispatch(
                                 task, job, &mut player_tx, &paths, &app, &slot, &prefetch, &meta, &store,
