@@ -71,7 +71,7 @@ Press `M` or right click for the anistream menu:
 - **Sources** switches to another release of the same episode and keeps your place.
 - **Sub / Dub** restarts the episode in the other version, where you were.
 - **Upscaling**, **HDR tone mapping** (only while HDR video is playing) and **Night mode**.
-- **Subtitles** and **Audio** list the file's tracks.
+- **Subtitles** and **Audio** list the file's tracks, by title, or by language when a track has none.
 - **Sync subtitles** and **Mini player**.
 
 ## Upscaling
