@@ -1950,10 +1950,9 @@ impl App {
             }
             Update::Resumed { position } => {
                 // Resume happens without asking — mpv is already at the right place by the time
-                // this arrives. Saying so is what keeps it from feeling like a glitch, and names
-                // the key that starts over.
+                // this arrives. Saying so is what keeps it from feeling like a glitch.
                 self.push_toast(Toast::info(format!(
-                    "resumed at {}  ·  r to start over",
+                    "resumed at {}",
                     NowPlaying::clock(position)
                 )));
                 if let Some(playing) = &mut self.playing {
@@ -5489,6 +5488,15 @@ mod tests {
         }
         assert!(a.eyecatch.is_none(), "the wipe never ended");
         assert!(a.toasts.iter().all(|t| t.kind != ToastKind::Alert), "{:?}", a.toasts);
+    }
+
+    #[test]
+    fn the_resume_toast_offers_nothing_it_cannot_do() {
+        let mut a = app_at_episodes();
+        a.handle(Action::Open, 20);
+        a.apply(Update::Resumed { position: 87.0 });
+        let toast = a.toasts.last().expect("a toast");
+        assert_eq!(toast.text, "resumed at 1:27");
     }
 
     #[test]
