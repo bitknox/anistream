@@ -17,7 +17,10 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use anistream_core::{config::LeakAction, error::ProviderError};
+use anistream_core::{
+    config::{LeakAction, SeedingConfig},
+    error::ProviderError,
+};
 use librqbit::{AddTorrent, AddTorrentOptions, Session, SessionOptions, api::TorrentIdOrHash};
 
 use crate::{
@@ -273,6 +276,49 @@ pub struct TorrentSession {
     /// Torrent ids owned by the download queue. librqbit dedups by infohash, so a stream
     /// and a download of the same episode share an id — eviction must never touch these.
     download_ids: Mutex<std::collections::HashSet<usize>>,
+    /// Watched episodes kept seeding after the streaming window let them go, oldest first.
+    seeding: Mutex<std::collections::VecDeque<Seeding>>,
+    /// How long they seed for, as the settings last said.
+    seed_goal: Mutex<SeedingConfig>,
+}
+
+/// One watched episode giving back.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct Seeding {
+    id: usize,
+    since: std::time::Instant,
+}
+
+/// What the interface shows about one torrent seeding after it was watched.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SeedStatus {
+    pub name: String,
+    pub uploaded_bytes: u64,
+    /// Uploaded over what this machine has of it.
+    pub ratio: f64,
+    /// Until the time limit retires it, whatever the ratio.
+    pub left: std::time::Duration,
+}
+
+/// Swarms kept seeding after watching, beyond the streaming window. Each live swarm holds
+/// dozens of sockets, and with the window's three this keeps the session well inside the
+/// 256 file descriptors macOS starts a process with.
+const MAX_SEEDING: usize = 4;
+
+/// Whether a watched episode has given back enough, or seeded long enough, to retire.
+///
+/// `have` is what this machine holds of the torrent: a streamed episode is often only partly
+/// fetched, and a ratio over the whole release would ask it to upload what it never had.
+pub fn seed_done(
+    uploaded: u64,
+    have: u64,
+    age: std::time::Duration,
+    goal: &SeedingConfig,
+) -> bool {
+    if !goal.enabled() || age >= std::time::Duration::from_secs(u64::from(goal.hours) * 3600) {
+        return true;
+    }
+    have > 0 && uploaded as f64 >= goal.ratio * have as f64
 }
 
 /// Stream servers kept at once: the episode playing and the next one, fetched ahead.
@@ -366,6 +412,8 @@ impl TorrentSession {
             output_dir: download_dir,
             stream_history: Mutex::new(std::collections::VecDeque::new()),
             download_ids: Mutex::new(std::collections::HashSet::new()),
+            seeding: Mutex::new(std::collections::VecDeque::new()),
+            seed_goal: Mutex::new(SeedingConfig::default()),
         })
     }
 
@@ -509,9 +557,7 @@ impl TorrentSession {
             }
         };
         for id in evict {
-            if let Err(e) = self.forget(id, false).await {
-                tracing::warn!(id, error = %e, "could not retire a finished stream");
-            }
+            self.retire_stream(id).await;
         }
 
         Ok(active)
@@ -629,8 +675,9 @@ impl TorrentSession {
 
     /// Forget a torrent entirely, optionally deleting what it has fetched.
     pub async fn forget(&self, id: usize, delete_files: bool) -> Result<(), ProviderError> {
-        // Off both ledgers first — a forgotten id must not shield a future torrent that
+        // Off every ledger first — a forgotten id must not shield a future torrent that
         // happens to be assigned the same number.
+        self.seeding.lock().unwrap_or_else(|e| e.into_inner()).retain(|s| s.id != id);
         {
             let mut ids = self.download_ids.lock().unwrap_or_else(|e| e.into_inner());
             ids.remove(&id);
@@ -643,6 +690,84 @@ impl TorrentSession {
             .delete(TorrentIdOrHash::Id(id), delete_files)
             .await
             .map_err(|e| ProviderError::Transport(format!("removing torrent {id}: {e}")))
+    }
+
+    /// A stream the window let go of: kept seeding when the settings ask for it, otherwise
+    /// removed. Past [`MAX_SEEDING`], the longest-seeding goes first.
+    async fn retire_stream(&self, id: usize) {
+        let enabled = self.seed_goal.lock().unwrap_or_else(|e| e.into_inner()).enabled();
+        let overflow: Vec<usize> = if enabled {
+            let mut pool = self.seeding.lock().unwrap_or_else(|e| e.into_inner());
+            pool.retain(|s| s.id != id);
+            pool.push_back(Seeding { id, since: std::time::Instant::now() });
+            let extra = pool.len().saturating_sub(MAX_SEEDING);
+            pool.drain(..extra).map(|s| s.id).collect()
+        } else {
+            vec![id]
+        };
+        if enabled {
+            tracing::info!(id, "keeping a watched episode seeding");
+        }
+        for id in overflow {
+            if let Err(e) = self.forget(id, false).await {
+                tracing::warn!(id, error = %e, "could not retire a finished stream");
+            }
+        }
+    }
+
+    /// Take the seeding settings as they now stand: the goal for watched episodes, and the cap
+    /// on upload. Cheap and idempotent, so it can be applied on every tick of a watcher.
+    pub async fn configure_seeding(&self, goal: &SeedingConfig) {
+        let upload = std::num::NonZeroU32::new(goal.upload_limit_kib.saturating_mul(1024));
+        self.session.ratelimits.set_upload_bps(upload);
+        let changed = {
+            let mut current = self.seed_goal.lock().unwrap_or_else(|e| e.into_inner());
+            let changed = *current != *goal;
+            *current = goal.clone();
+            changed
+        };
+        if changed {
+            tracing::info!(?goal, "seeding settings applied");
+        }
+        // Turned off: what was seeding stops now rather than when its old goal is met.
+        if !goal.enabled() {
+            self.reap_seeding().await;
+        }
+    }
+
+    /// Retire the watched episodes that have met their goal, and say how the rest stand.
+    pub async fn reap_seeding(&self) -> Vec<SeedStatus> {
+        let goal = self.seed_goal.lock().unwrap_or_else(|e| e.into_inner()).clone();
+        let pool: Vec<Seeding> =
+            self.seeding.lock().unwrap_or_else(|e| e.into_inner()).iter().copied().collect();
+        let limit = std::time::Duration::from_secs(u64::from(goal.hours) * 3600);
+        let mut statuses = Vec::new();
+        for seed in pool {
+            let Some(handle) = self.session.get(TorrentIdOrHash::Id(seed.id)) else {
+                self.seeding
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .retain(|s| s.id != seed.id);
+                continue;
+            };
+            let stats = handle.stats();
+            let age = seed.since.elapsed();
+            if seed_done(stats.uploaded_bytes, stats.progress_bytes, age, &goal) {
+                tracing::info!(id = seed.id, uploaded = stats.uploaded_bytes, "done seeding");
+                if let Err(e) = self.forget(seed.id, false).await {
+                    tracing::warn!(id = seed.id, error = %e, "could not retire a seed");
+                }
+                continue;
+            }
+            let have = stats.progress_bytes.max(1) as f64;
+            statuses.push(SeedStatus {
+                name: handle.name().unwrap_or_else(|| format!("torrent {}", seed.id)),
+                uploaded_bytes: stats.uploaded_bytes,
+                ratio: stats.uploaded_bytes as f64 / have,
+                left: limit.saturating_sub(age),
+            });
+        }
+        statuses
     }
 
     /// Where the session writes files, so a finished download can be located on disk.
@@ -918,6 +1043,24 @@ mod tests {
             // Binding a listener can fail in a sandbox; that is not what this test is about.
             Err(e) => eprintln!("session start unavailable in this environment: {e}"),
         }
+    }
+
+    #[test]
+    fn a_watched_episode_seeds_until_it_gives_back_or_runs_out_of_time() {
+        use std::time::Duration;
+        let goal = SeedingConfig { ratio: 1.0, hours: 24, upload_limit_kib: 0 };
+        let hour = Duration::from_secs(3600);
+        // Ratio over what this machine has, not over the whole release.
+        assert!(!seed_done(400, 1000, hour, &goal));
+        assert!(seed_done(1000, 1000, hour, &goal), "given back what it took");
+        assert!(seed_done(10, 1000, 24 * hour, &goal), "out of time, whatever the ratio");
+        // Nothing fetched yet: nothing owed, so only time retires it.
+        assert!(!seed_done(0, 0, hour, &goal));
+        // Off means off, at once.
+        let off = SeedingConfig { ratio: 0.0, ..goal.clone() };
+        assert!(seed_done(0, 1000, Duration::ZERO, &off));
+        let no_time = SeedingConfig { hours: 0, ..goal };
+        assert!(seed_done(0, 1000, Duration::ZERO, &no_time));
     }
 
     #[test]

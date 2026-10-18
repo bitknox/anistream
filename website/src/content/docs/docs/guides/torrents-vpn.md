@@ -85,3 +85,26 @@ apart: `commit_threshold` decides when it is watched, and resume state is its ow
 
 Seeding is off by default, which is a privacy choice. Completed downloads get subtitles muxed in
 with a stream copy.
+
+## Seeding
+
+An episode uploads to its swarm while it plays, over the guarded connection. What happens after
+it has been watched is up to you, on the Settings screen under sources or in `config.toml`:
+
+```toml
+[providers.torrent.seeding]
+ratio = 1.0              # seed each watched episode until it has given back what it took; 0 is off
+hours = 24               # the longest one episode keeps seeding, whatever its ratio
+upload_limit_kib = 1024  # total upload in KiB/s, 0 for unlimited
+```
+
+The ratio counts what this machine has of the torrent, so an episode you only partly streamed is
+not asked to upload more than it fetched. Seeding only runs while anistream is open, a handful of
+episodes at a time, and the VPN guard stops it along with everything else. The Downloads screen
+lists what is still seeding, how close each episode is to its ratio and how long it has left.
+
+The upload limit covers all torrent traffic, playback included. On a slow uplink it keeps seeding
+from crowding out the requests the episode you are watching needs.
+
+Seeding after watching is off by default for the same reason finished downloads stop seeding:
+it advertises you as a source for as long as it runs, and that is your call to make.
