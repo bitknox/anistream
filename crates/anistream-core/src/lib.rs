@@ -11,6 +11,7 @@ pub mod ids;
 pub mod media;
 pub mod settings;
 pub mod stream;
+pub mod track_memory;
 pub mod traits;
 
 pub use error::{Error, ProviderError, Result};

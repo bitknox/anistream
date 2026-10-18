@@ -11,7 +11,8 @@ answer, metadata falls back to Tenrai — MyAnimeList's mirror, translated home 
 mapping — and only then to what was last cached, so an outage degrades browsing but can never
 stop an episode you have watched before from playing. Fresh first, always; one quiet toast says
 when the ladder moved and when it moved back. Watch history is local
-SQLite. Playback is mpv driven over JSON IPC, with resume, aniskip, auto-next and remembered speed.
+SQLite. Playback is mpv in the app's own look: seekbar thumbnails, a skip button, Up Next and
+menus, one window for a whole binge, and upscaling that adapts to the source and the GPU.
 Search filters server-side — genre, year, season, format, status, sort — from one overlay on
 `ctrl+f`, and a title screen offers its watch order, its recommendations and its trailer.
 
@@ -120,8 +121,10 @@ translation = "sub"
 quality = 1080
 commit_threshold = 0.85    # fraction of runtime that counts as watched and gets synced
 auto_next = true
-skip_opening = true        # skips it, and says so on mpv's OSD
+skip_opening = true        # skips it, with an Undo on the video
 mark_chapters = true       # puts the opening and ending on the seek bar
+upscaling = "natural"      # "natural" (ArtCNN), "sharp" (Anime4K) or "off"
+player_ui = "anistream"    # or "mpv" to keep your own mpv setup
 
 [notifications]
 airing_digest = true       # one toast on launch: what aired for shows you watch
@@ -349,6 +352,7 @@ cargo run -p anistream --example kitsu_probe -- --write    # Kitsu push, then un
 cargo run -p anistream --example meta_probe                # Tenrai translation and the cache write-through
 cargo run -p anistream --example simkl_probe -- --write    # Simkl push, then undo
 cargo run -p anistream --example mend_probe -- <url>       # disguised HLS → mpv
+cargo run -p anistream --example player_preview -- <video> # the player UI as a two-episode binge
 cargo run -p anistream-meta --example filler_probe         # filler parsing
 cargo run -p anistream-meta --example episode_meta_probe   # episode titles, stills, numbering
 cargo run -p anistream --example episodes_probe            # every stage from title to stream

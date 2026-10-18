@@ -16,8 +16,12 @@ translation = "sub"
 quality = 1080
 commit_threshold = 0.85    # fraction of runtime that counts as *watched* and gets synced
 auto_next = true
-skip_opening = true        # skips it, and says so on mpv's OSD
+skip_opening = true        # skips it, with an Undo on the video
 mark_chapters = true       # puts the opening and ending on the seek bar
+upscaling = "natural"      # "natural" (ArtCNN), "sharp" (Anime4K) or "off"
+player_ui = "anistream"    # or "mpv" to keep your own mpv setup
+night_mode = false         # evens out quiet dialogue and loud music
+tone_mapping = "auto"      # how HDR is shown on an SDR display
 
 [providers]
 order = ["torrent", "plugins"]    # tried in order; failover walks the list

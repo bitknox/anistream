@@ -13,11 +13,12 @@
 pub mod curation;
 pub mod http;
 pub mod indexer;
+pub mod pieces;
 pub mod provider;
 pub mod release;
 pub mod session;
 
-pub use http::{StreamServer, StreamSource};
+pub use http::{ReadySource, StreamServer, StreamSource};
 pub use provider::TorrentProvider;
 pub use release::Release;
 pub use session::TorrentSession;

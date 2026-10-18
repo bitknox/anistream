@@ -13,12 +13,12 @@ use std::{
     process::Stdio,
     sync::{
         Arc,
-        atomic::{AtomicU64, Ordering},
+        atomic::{AtomicBool, AtomicU64, Ordering},
     },
     time::Duration,
 };
 
-use anistream_core::{stream::Stream, traits::PlaybackRequest};
+use anistream_core::{config::PlayerUi, stream::Stream, traits::PlaybackRequest};
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
     process::{Child, Command as ProcessCommand},
@@ -26,8 +26,12 @@ use tokio::{
 };
 
 use crate::{
+    bundle::Bundle,
+    companion::{self, ScriptEvent},
     ipc::{self, IpcStream},
-    protocol::{Command, EndReason, Event, base_args, observed, parse_line, stream_args},
+    protocol::{
+        Command, EndReason, Event, base_args, file_options, observed, parse_line, session_args,
+    },
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -43,27 +47,6 @@ pub enum PlayerError {
 
     #[error("mpv exited before playback began")]
     ExitedEarly,
-}
-
-/// The lua shim mpv loads so Shift+N/P work inside the player. Regenerated at every
-/// launch into the runtime dir — disposable, never precious.
-const KEY_SCRIPT: &str = r#"-- anistream's in-player keys. Written at launch; safe to delete.
-local function tell(what, note)
-    mp.osd_message(note)
-    mp.commandv("script-message", "anistream", what)
-end
-mp.add_key_binding("N", "anistream-next", function() tell("next", "next episode…") end)
-mp.add_key_binding("P", "anistream-previous", function() tell("previous", "previous episode…") end)
-"#;
-
-/// A control pressed inside the player window rather than the terminal.
-///
-/// Mid-binge the viewer's hands are on mpv, not the TUI — these let the next episode
-/// start without ever changing focus.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum RemoteCommand {
-    NextEpisode,
-    PreviousEpisode,
 }
 
 /// What the UI needs to know about playback.
@@ -85,9 +68,32 @@ pub enum PlaybackEvent {
     Chapters(Vec<(String, f64)>),
     /// The file finished loading. Until this, property reports describe no file at all.
     Loaded,
-    /// The viewer pressed one of our keys inside mpv itself.
-    Remote(RemoteCommand),
-    /// Playback ended. `complete` is true only when mpv reached the end of the file.
+    /// The viewer did something inside the player — a key, a button, a menu pick.
+    Script(ScriptEvent),
+    /// The decoded picture's parameters, raw.
+    VideoParams(serde_json::Value),
+    /// The video track's description, raw.
+    VideoTrack(serde_json::Value),
+    /// The file's tracks, raw.
+    TrackList(serde_json::Value),
+    Aid(Option<i64>),
+    Sid(Option<i64>),
+    SubDelay(f64),
+    /// Playback is held waiting for data, or has resumed.
+    Buffering(bool),
+    /// Running total of frames the video output dropped.
+    FrameDrops(u64),
+    Seeking(bool),
+    /// The display the window is on, once mpv knows it.
+    Display {
+        width: u32,
+        height: u32,
+    },
+    /// The file was replaced by our own `loadfile`. The player is still there.
+    Replaced,
+    /// Playback of the file ended. `complete` is true only when mpv reached the end of it.
+    ///
+    /// The window outlives this: whether the player closes now is the playback loop's call.
     Ended {
         complete: bool,
     },
@@ -157,6 +163,9 @@ pub struct MpvSession {
     request_id: AtomicU64,
     socket_path: PathBuf,
     diagnostics: Diagnostics,
+    /// Cleared by the reader when the socket closes, which is how a parked session that the
+    /// viewer closed while it waited is told apart from one that is still there to reuse.
+    alive: Arc<AtomicBool>,
 }
 
 impl std::fmt::Debug for MpvSession {
@@ -187,8 +196,7 @@ fn next_endpoint_id() -> u64 {
 /// and only reached when playback ends the way it is supposed to. Every other way out — a
 /// failure between spawning and connecting, an error partway through setting up property
 /// observation, a task dropped mid-play — used to leave mpv running with nothing able to
-/// address it and its socket file behind. `remove_endpoint_blocking` has existed since the
-/// beginning with a doc comment naming the `Drop` this is, and no caller.
+/// address it and its socket file behind.
 impl Drop for MpvSession {
     fn drop(&mut self) {
         // `start_kill` rather than `kill`: this is not an async context, and a signal that has
@@ -204,6 +212,11 @@ impl MpvSession {
         &self.diagnostics
     }
 
+    /// Whether mpv is still there to talk to.
+    pub fn is_alive(&self) -> bool {
+        self.alive.load(Ordering::Relaxed)
+    }
+
     /// Send a command, without waiting for the reply.
     ///
     /// Fire-and-forget is right for playback control: a dropped seek is better than a stalled
@@ -214,6 +227,53 @@ impl MpvSession {
         let mut writer = self.writer.lock().await;
         writer.write_all(line.as_bytes()).await.map_err(|e| PlayerError::Ipc(e.to_string()))?;
         writer.flush().await.map_err(|e| PlayerError::Ipc(e.to_string()))
+    }
+
+    /// Open a stream in this window, in place of whatever was playing.
+    ///
+    /// Everything that belongs to the file — headers, resume point, title, track preference —
+    /// travels with it, so the previous file's never leak into this one. External subtitles are
+    /// attached separately once the file has loaded; see [`Self::add_subtitles`].
+    pub async fn load(
+        &self,
+        stream: &Stream,
+        request: &PlaybackRequest,
+    ) -> Result<(), PlayerError> {
+        // Before the load, so thumbfast sees the right address when it starts on this file.
+        // Torrents give a second address that reads only what is already downloaded, so
+        // thumbnails never pull bandwidth away from the playhead.
+        let thumbnails = match &stream.thumbnail_url {
+            Some(url) => companion::state("thumbnail-url", url),
+            None => companion::clear("thumbnail-url"),
+        };
+        self.send(thumbnails).await?;
+        let options = file_options(
+            &stream.headers,
+            request.start_at,
+            &request.title,
+            request.subtitle_language.as_deref(),
+            request.dub,
+        );
+        tracing::info!(url = %stream.url, ?options, "loading into mpv");
+        self.send(Command::LoadFile { url: stream.url.clone(), options }).await
+    }
+
+    /// Attach a stream's external subtitle tracks to the loaded file.
+    pub async fn add_subtitles(
+        &self,
+        stream: &Stream,
+        subtitle_language: Option<&str>,
+    ) -> Result<(), PlayerError> {
+        for subtitle in crate::protocol::subtitle_order(&stream.subtitles, subtitle_language) {
+            let language = (!subtitle.language.is_empty()).then(|| subtitle.language.clone());
+            self.send(Command::SubAdd {
+                url: subtitle.url.clone(),
+                title: language.clone(),
+                language,
+            })
+            .await?;
+        }
+        Ok(())
     }
 
     pub async fn pause_toggle(&self) -> Result<(), PlayerError> {
@@ -250,19 +310,21 @@ impl MpvSession {
         self.send(Command::Add("volume", delta)).await
     }
 
-    /// Show a message on mpv's own OSD.
+    /// Show a message on the video, in the companion's style.
     ///
-    /// Used for the skip prompt: the viewer is looking at the video, not at the terminal.
-    pub async fn notify(&self, text: impl Into<String>) -> Result<(), PlayerError> {
-        self.send(Command::ShowText { text: text.into(), duration_ms: 3000 }).await
+    /// The viewer is looking at the video, not at the terminal.
+    pub async fn notify(&self, text: impl AsRef<str>) -> Result<(), PlayerError> {
+        self.send(companion::toast(text.as_ref(), companion::Level::Info)).await
     }
 
-    /// Replace the player's chapter list.
+    /// Replace the upscaling chain, all at once.
     ///
-    /// mpv accepts a write to `chapter-list` on a loaded file, which is what puts the markers
-    /// on the seek bar and under chapter navigation without an external file to write and clean
-    /// up. Markers past the runtime are dropped by mpv rather than rejected, so an ending whose
-    /// trailing boundary runs off the end of a slightly short encode still lands.
+    /// One write of the whole list, so a change mid-episode never renders a frame with half a
+    /// chain; an empty list turns upscaling off.
+    pub async fn set_shaders(&self, paths: &[String]) -> Result<(), PlayerError> {
+        self.send(Command::SetProperty("glsl-shaders", serde_json::json!(paths))).await
+    }
+
     /// Ask mpv to restate the chapter list as it stands right now.
     ///
     /// Registering one more observer is the mechanism: mpv greets every new observer
@@ -273,12 +335,23 @@ impl MpvSession {
         self.send(Command::ObserveProperty(observed::CHAPTERS_SETTLED, "chapter-list")).await
     }
 
+    /// Replace the player's chapter list.
+    ///
+    /// mpv accepts a write to `chapter-list` on a loaded file, which is what puts the markers
+    /// on the seek bar and under chapter navigation without an external file to write and clean
+    /// up. Markers past the runtime are dropped by mpv rather than rejected, so an ending whose
+    /// trailing boundary runs off the end of a slightly short encode still lands.
     pub async fn set_chapters(&self, chapters: &[(String, f64)]) -> Result<(), PlayerError> {
         let list: Vec<serde_json::Value> = chapters
             .iter()
             .map(|(title, time)| serde_json::json!({ "title": title, "time": time }))
             .collect();
         self.send(Command::SetProperty("chapter-list", list.into())).await
+    }
+
+    /// Stop the file but keep the window, so it can wait for the next one.
+    pub async fn stop(&self) -> Result<(), PlayerError> {
+        self.send(Command::Stop).await
     }
 
     /// Ask mpv to exit.
@@ -311,11 +384,24 @@ pub struct Mpv {
     binary: String,
     socket_dir: PathBuf,
     extra_args: Vec<String>,
+    ui: PlayerUi,
+    /// Where the bundled scripts, fonts and uosc live once written out. `None` when they could
+    /// not be written, which degrades to mpv's own interface rather than to no playback.
+    bundle: Option<Bundle>,
+    /// `anistream-<key>=<value>` options for the companion: the palette and font.
+    theme: Vec<(String, String)>,
 }
 
 impl Mpv {
     pub fn new(socket_dir: impl Into<PathBuf>) -> Self {
-        Self { binary: "mpv".into(), socket_dir: socket_dir.into(), extra_args: Vec::new() }
+        Self {
+            binary: "mpv".into(),
+            socket_dir: socket_dir.into(),
+            extra_args: Vec::new(),
+            ui: PlayerUi::Mpv,
+            bundle: None,
+            theme: Vec::new(),
+        }
     }
 
     pub fn with_binary(mut self, binary: impl Into<String>) -> Self {
@@ -323,11 +409,23 @@ impl Mpv {
         self
     }
 
+    /// Whose interface the player wears, and where the bundled one was written.
+    pub fn with_ui(mut self, ui: PlayerUi, bundle: Option<Bundle>) -> Self {
+        self.ui = ui;
+        self.bundle = bundle;
+        self
+    }
+
+    /// The companion's palette and font, as `(key, value)` pairs without the prefix.
+    pub fn with_theme(mut self, theme: Vec<(String, String)>) -> Self {
+        self.theme = theme;
+        self
+    }
+
     /// Where this player keeps its per-session scratch files.
     ///
-    /// Exposed so a caller can put a file *next to* the IPC socket and the key script rather
-    /// than inventing its own temp directory — subtitles fetched ahead of playback are the
-    /// case that needs it.
+    /// Exposed so a caller can put a file *next to* the IPC socket rather than inventing its
+    /// own temp directory — subtitles fetched ahead of playback are the case that needs it.
     pub fn scratch_dir(&self) -> &std::path::Path {
         &self.socket_dir
     }
@@ -376,14 +474,57 @@ impl Mpv {
         text.lines().next().map(|line| line.trim().to_owned())
     }
 
-    /// Start playing, returning the session and a stream of events.
-    pub async fn play(
+    /// The flags that dress the player: which interface, which scripts, which font.
+    fn interface_args(&self) -> Vec<String> {
+        let Some(bundle) = &self.bundle else { return Vec::new() };
+        let mut args = Vec::new();
+        let opt = |key: &str, value: &str| format!("--script-opts-append={key}={value}");
+
+        if self.ui == PlayerUi::Anistream {
+            // The user's mpv.conf still applies; the scripts in their mpv folder do not, so a
+            // second OSC or a track picker of their own cannot fight ours.
+            args.push("--load-scripts=no".to_string());
+            // uosc replaces both.
+            args.push("--osc=no".to_string());
+            args.push("--osd-bar=no".to_string());
+            args.push(format!("--osd-fonts-dir={}", bundle.fonts().display()));
+            args.push(format!("--script={}", bundle.uosc().display()));
+            args.push(format!("--script={}", bundle.thumbfast().display()));
+            for (key, value) in bundle.uosc_opts() {
+                args.push(opt(&format!("uosc-{key}"), &value));
+            }
+            for (key, value) in bundle.thumbfast_opts() {
+                args.push(opt(&format!("thumbfast-{key}"), &value));
+            }
+            // thumbfast starts its own hidden mpv, and only finds the running one by itself on
+            // macOS; a configured binary path has to be handed to it.
+            args.push(opt("thumbfast-mpv_path", &self.binary));
+            args.push(opt("anistream-uosc", "yes"));
+        }
+        args.push(format!("--script={}", bundle.companion().display()));
+        // So the companion can close an idle window whose host has gone.
+        args.push(opt("anistream-host_pid", &std::process::id().to_string()));
+        for (key, value) in &self.theme {
+            args.push(opt(&format!("anistream-{key}"), value));
+        }
+        if self.ui == PlayerUi::Anistream
+            && let Some((_, font)) = self.theme.iter().find(|(key, _)| key == "font")
+        {
+            args.push(format!("--osd-font={font}"));
+        }
+        args
+    }
+
+    /// Open the player window with nothing in it yet.
+    ///
+    /// The window comes up idle and files are loaded into it with [`MpvSession::load`], which
+    /// is what lets the same window carry the next episode.
+    pub async fn spawn(
         &self,
-        stream: &Stream,
         request: &PlaybackRequest,
     ) -> Result<(MpvSession, mpsc::UnboundedReceiver<PlaybackEvent>), PlayerError> {
-        // The endpoint only lives on disk on Unix (Windows uses the pipe namespace), but
-        // the in-player key script needs a real directory everywhere.
+        // The endpoint only lives on disk on Unix (Windows uses the pipe namespace), but the
+        // scratch files beside it need a real directory everywhere.
         tokio::fs::create_dir_all(&self.socket_dir)
             .await
             .map_err(|e| PlayerError::Spawn(e.to_string()))?;
@@ -391,39 +532,17 @@ impl Mpv {
         // A unique endpoint per session, so a lingering process from a previous run cannot be
         // mistaken for this one — and so two sessions in *this* run cannot be mistaken for
         // each other.
-        //
         let socket_path = ipc::mpv_endpoint(&self.socket_dir, next_endpoint_id());
         ipc::remove_endpoint(&socket_path).await;
 
-        let mut args = base_args(&socket_path.to_string_lossy(), &request.title);
+        let mut args = base_args(&socket_path.to_string_lossy());
         // Before the user's extra args, so `--no-fullscreen` there still wins.
-        if request.fullscreen {
-            args.push("--fullscreen".to_string());
-        }
-        args.extend(stream_args(
-            &stream.headers,
-            request.start_at,
-            request.speed,
-            request.volume,
-            request.subtitle_language.as_deref(),
-            request.dub,
-            &stream.subtitles,
-        ));
-        // The in-player keys: Shift+N/P step episodes from inside mpv, announced back to
-        // us as script-messages. A file rather than flags because key bindings are the one
-        // thing mpv only takes from a script or input.conf — and replacing the user's
-        // input.conf is not on the table.
-        let key_script = self.socket_dir.join("anistream-keys.lua");
-        if tokio::fs::write(&key_script, KEY_SCRIPT).await.is_ok() {
-            args.push(format!("--script={}", key_script.display()));
-        }
-
-        // After ours, before the URL: mpv takes the last value for a repeated flag, so these
-        // genuinely override.
+        args.extend(session_args(request.speed, request.volume, request.fullscreen));
+        args.extend(self.interface_args());
+        // Last: mpv takes the last value for a repeated flag, so these genuinely override.
         args.extend(self.extra_args.iter().cloned());
-        args.push(stream.url.clone());
 
-        tracing::info!(url = %stream.url, ?args, "starting mpv");
+        tracing::info!(?args, "starting mpv");
 
         let child = ProcessCommand::new(&self.binary)
             .args(&args)
@@ -452,9 +571,10 @@ impl Mpv {
         let socket = connect_with_retry(&socket_path).await?;
         let (read_half, write_half) = ipc::split(socket);
         let writer = Arc::new(Mutex::new(write_half));
+        let alive = Arc::new(AtomicBool::new(true));
 
         let (tx, rx) = mpsc::unbounded_channel();
-        spawn_reader(read_half, tx);
+        spawn_reader(read_half, tx, Arc::clone(&alive));
 
         let session = MpvSession {
             child,
@@ -462,6 +582,7 @@ impl Mpv {
             request_id: AtomicU64::new(1),
             socket_path,
             diagnostics,
+            alive,
         };
 
         // Observe the properties the UI needs. Without these, no position updates arrive and
@@ -473,10 +594,34 @@ impl Mpv {
             (observed::SPEED, "speed"),
             (observed::VOLUME, "volume"),
             (observed::CHAPTERS, "chapter-list"),
+            (observed::VIDEO_PARAMS, "video-params"),
+            (observed::VIDEO_TRACK, "current-tracks/video"),
+            (observed::TRACK_LIST, "track-list"),
+            (observed::AID, "aid"),
+            (observed::SID, "sid"),
+            (observed::SUB_DELAY, "sub-delay"),
+            (observed::PAUSED_FOR_CACHE, "paused-for-cache"),
+            (observed::FRAME_DROPS, "frame-drop-count"),
+            (observed::SEEKING, "seeking"),
+            (observed::DISPLAY_WIDTH, "display-width"),
+            (observed::DISPLAY_HEIGHT, "display-height"),
         ] {
             session.send(Command::ObserveProperty(id, name)).await?;
         }
+        session.send(companion::state("protocol", &companion::PROTOCOL)).await?;
+        session.send(companion::hello()).await?;
 
+        Ok((session, rx))
+    }
+
+    /// Open a window and start playing one stream in it.
+    pub async fn play(
+        &self,
+        stream: &Stream,
+        request: &PlaybackRequest,
+    ) -> Result<(MpvSession, mpsc::UnboundedReceiver<PlaybackEvent>), PlayerError> {
+        let (session, rx) = self.spawn(request).await?;
+        session.load(stream, request).await?;
         Ok((session, rx))
     }
 }
@@ -502,11 +647,20 @@ async fn connect_with_retry(path: &Path) -> Result<IpcStream, PlayerError> {
 }
 
 /// Read events off the socket and forward the ones the UI cares about.
-fn spawn_reader(read_half: ipc::ReadHalf, tx: mpsc::UnboundedSender<PlaybackEvent>) {
+///
+/// Runs for the life of the process rather than of one file: the end of a file is reported
+/// and the reader keeps going, because the same window may be about to play the next one.
+fn spawn_reader(
+    read_half: ipc::ReadHalf,
+    tx: mpsc::UnboundedSender<PlaybackEvent>,
+    alive: Arc<AtomicBool>,
+) {
     tokio::spawn(async move {
         let mut lines = BufReader::new(read_half).lines();
         // Duration arrives separately from position, so it is remembered and attached.
         let mut duration: Option<f64> = None;
+        // Display size arrives as two properties; reported once both are known.
+        let mut display: (Option<u32>, Option<u32>) = (None, None);
 
         loop {
             let line = match lines.next_line().await {
@@ -514,6 +668,7 @@ fn spawn_reader(read_half: ipc::ReadHalf, tx: mpsc::UnboundedSender<PlaybackEven
                 // Socket closed: mpv exited. Anything not already reported as an ending was
                 // an abandonment, not a completion.
                 Ok(None) | Err(_) => {
+                    alive.store(false, Ordering::Relaxed);
                     let _ = tx.send(PlaybackEvent::Ended { complete: false });
                     break;
                 }
@@ -535,25 +690,33 @@ fn spawn_reader(read_half: ipc::ReadHalf, tx: mpsc::UnboundedSender<PlaybackEven
                 Event::Speed(speed) => Some(PlaybackEvent::Speed(speed)),
                 Event::Volume(volume) => Some(PlaybackEvent::Volume(volume)),
                 Event::Chapters(chapters) => Some(PlaybackEvent::Chapters(chapters)),
-                Event::ClientMessage(args) => match args.as_slice() {
-                    [tag, cmd] if tag == "anistream" => match cmd.as_str() {
-                        "next" => Some(PlaybackEvent::Remote(RemoteCommand::NextEpisode)),
-                        "previous" => {
-                            Some(PlaybackEvent::Remote(RemoteCommand::PreviousEpisode))
-                        }
-                        _ => None,
-                    },
-                    _ => None,
-                },
+                Event::ClientMessage(args) => {
+                    companion::parse_event(&args).map(PlaybackEvent::Script)
+                }
+                Event::EndFile(EndReason::Stop) => Some(PlaybackEvent::Replaced),
                 Event::EndFile(reason) => {
-                    let complete = reason.is_complete();
-                    let _ = tx.send(PlaybackEvent::Ended { complete });
-                    if matches!(reason, EndReason::Eof | EndReason::Quit | EndReason::Error) {
-                        break;
-                    }
-                    None
+                    // The next file's duration is its own.
+                    duration = None;
+                    Some(PlaybackEvent::Ended { complete: reason.is_complete() })
                 }
                 Event::FileLoaded => Some(PlaybackEvent::Loaded),
+                Event::VideoParams(value) => Some(PlaybackEvent::VideoParams(value)),
+                Event::VideoTrack(value) => Some(PlaybackEvent::VideoTrack(value)),
+                Event::TrackList(value) => Some(PlaybackEvent::TrackList(value)),
+                Event::Aid(id) => Some(PlaybackEvent::Aid(id)),
+                Event::Sid(id) => Some(PlaybackEvent::Sid(id)),
+                Event::SubDelay(delay) => Some(PlaybackEvent::SubDelay(delay)),
+                Event::Buffering(held) => Some(PlaybackEvent::Buffering(held)),
+                Event::FrameDrops(count) => Some(PlaybackEvent::FrameDrops(count)),
+                Event::Seeking(seeking) => Some(PlaybackEvent::Seeking(seeking)),
+                Event::DisplayWidth(width) => {
+                    display.0 = Some(width);
+                    display_event(display)
+                }
+                Event::DisplayHeight(height) => {
+                    display.1 = Some(height);
+                    display_event(display)
+                }
                 Event::Seek | Event::Reply { .. } | Event::Ignored => None,
             };
 
@@ -565,6 +728,10 @@ fn spawn_reader(read_half: ipc::ReadHalf, tx: mpsc::UnboundedSender<PlaybackEven
             }
         }
     });
+}
+
+fn display_event((width, height): (Option<u32>, Option<u32>)) -> Option<PlaybackEvent> {
+    Some(PlaybackEvent::Display { width: width?, height: height? })
 }
 
 #[cfg(test)]

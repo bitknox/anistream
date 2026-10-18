@@ -77,6 +77,15 @@ pub struct Stream {
     /// between. Surfaced as a toast so the pick is never a mystery.
     #[serde(default)]
     pub pick_note: Option<String>,
+    /// Where a seekbar thumbnailer should read this stream instead of `url`, when that matters.
+    ///
+    /// A thumbnailer is a second player seeking all over the file. Against a web source that
+    /// costs a few range requests; against a torrent, every read of `url` is a stream librqbit
+    /// fetches ahead for, so the thumbnailer would pull the swarm away from the playback head.
+    /// The torrent source sets this to a sibling loopback address that serves only the pieces
+    /// already verified and never waits for the rest. `None` means `url` is fine to read.
+    #[serde(default)]
+    pub thumbnail_url: Option<String>,
 }
 
 impl Stream {
@@ -90,6 +99,7 @@ impl Stream {
             provider_id: String::new(),
             download_source: None,
             pick_note: None,
+            thumbnail_url: None,
         }
     }
 
