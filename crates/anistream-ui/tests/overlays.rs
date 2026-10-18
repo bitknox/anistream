@@ -8,9 +8,12 @@ use std::collections::BTreeMap;
 
 use anistream_core::{config::Config, ids::AnilistId};
 use anistream_ui::{
-    App, Content, Entry, Keymap, Overlay, Palette, Section, StageView, Task, app::EpisodeRow,
+    App, Content, Entry, Keymap, Overlay, Palette, Section, StageView, Task,
+    app::{EpisodeRow, Toast},
+    screens::render_to_buffer,
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use ratatui::buffer::Buffer;
 
 /// Rows the stage shows; what the event loop passes as `visible_rows`.
 const ROWS: usize = 20;
@@ -51,6 +54,17 @@ fn key(spec: &str) -> KeyEvent {
 
 fn press(app: &mut App, keys: &[&str]) -> Vec<Task> {
     keys.iter().filter_map(|k| app.press(key(k), ROWS)).collect()
+}
+
+fn text_of(buf: &Buffer) -> String {
+    let mut out = String::new();
+    for y in 0..buf.area.height {
+        for x in 0..buf.area.width {
+            out.push_str(buf[(x, y)].symbol());
+        }
+        out.push('\n');
+    }
+    out
 }
 
 /// Settings, with the cursor in the stage on its second row.
@@ -252,4 +266,146 @@ fn esc_cancels_the_palette_whatever_back_is_rebound_to() {
     a.keymap.apply_overrides(&BTreeMap::from([("back".into(), "z".into())]));
     press(&mut a, &["D", "esc"]);
     assert_eq!(a.nav.overlay(), None);
+}
+
+/// Open Help at a size, then page through it, collecting what each page shows.
+fn help_pages(width: u16, height: u16) -> Vec<String> {
+    let mut a = app();
+    press(&mut a, &["?"]);
+    let mut pages = vec![text_of(&render_to_buffer(&a, width, height))];
+    for _ in 0..40 {
+        let before = a.help_page;
+        press(&mut a, &["j"]);
+        if a.help_page == before {
+            break;
+        }
+        pages.push(text_of(&render_to_buffer(&a, width, height)));
+    }
+    pages
+}
+
+#[test]
+fn every_binding_is_on_some_page_of_help_at_every_size() {
+    // About half were clipped at 80x24, and only GLOBAL showed at 60x20.
+    let keymap = Keymap::new();
+    for (width, height) in [(80, 24), (60, 20), (40, 15), (120, 36), (200, 60)] {
+        let pages = help_pages(width, height);
+        let all = pages.concat();
+        for (scope, rows) in keymap.help() {
+            assert!(
+                all.contains(scope.heading()),
+                "{width}x{height}: {scope:?} heading missing"
+            );
+            for (_, label) in rows {
+                assert!(all.contains(label), "{width}x{height}: {label:?} is on no page");
+            }
+        }
+        if pages.len() > 1 {
+            assert!(
+                pages[0].contains(&format!("page 1 of {}", pages.len())),
+                "{width}x{height}: a paged table must say so:\n{}",
+                pages[0]
+            );
+        }
+    }
+}
+
+#[test]
+fn help_fits_one_page_where_there_is_room() {
+    assert_eq!(help_pages(120, 36).len(), 1);
+    assert_eq!(help_pages(200, 60).len(), 1);
+    assert!(help_pages(80, 24).len() > 1);
+}
+
+/// Where each help column starts, by finding the scope headings and first entries on screen.
+fn heading_rows(text: &str) -> Vec<(usize, usize)> {
+    // (row, column) of every scope heading on screen.
+    let headings: Vec<&str> = Keymap::new().help().iter().map(|(s, _)| s.heading()).collect();
+    let mut found = Vec::new();
+    for (row, line) in text.lines().enumerate() {
+        let chars: Vec<char> = line.chars().collect();
+        for heading in &headings {
+            let pattern: Vec<char> = heading.chars().collect();
+            for col in 0..chars.len().saturating_sub(pattern.len() - 1) {
+                if chars[col..col + pattern.len()] == pattern[..]
+                    && (col == 0 || chars[col - 1] == ' ')
+                {
+                    found.push((row, col));
+                }
+            }
+        }
+    }
+    found
+}
+
+#[test]
+fn no_scope_heading_is_left_at_the_bottom_of_a_column() {
+    for (width, height) in [(80, 24), (60, 20), (40, 15), (100, 30), (120, 36), (140, 30)] {
+        for page in help_pages(width, height) {
+            let lines: Vec<&str> = page.lines().collect();
+            for (row, col) in heading_rows(&page) {
+                // The row under a heading, in the same column, must be one of its bindings.
+                let below = lines
+                    .get(row + 1)
+                    .map(|l| l.chars().skip(col).take(6).collect::<String>())
+                    .unwrap_or_default();
+                assert!(
+                    below.starts_with("  ") && below.trim().len() > 1,
+                    "{width}x{height}: heading at row {row}, col {col} ends its column:\n{page}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn a_wide_help_keeps_each_key_near_its_label() {
+    // At 200x60 the table was two columns ninety-eight cells wide, keys at the far edge.
+    let page = &help_pages(200, 60)[0];
+    let line = page.lines().find(|l| l.contains("Show keys")).expect("Show keys on screen");
+    let label_at = line.find("Show keys").unwrap();
+    let key_at = line[label_at..].find('?').map(|i| i + label_at).expect("its key");
+    let gap = line[label_at..key_at].chars().count();
+    assert!(gap < 44, "the key is {gap} cells from its label:\n{line}");
+}
+
+#[test]
+fn logs_scroll_with_the_highlight() {
+    let mut a = app();
+    for i in 0..40 {
+        a.push_toast(Toast::info(format!("line {i}")));
+    }
+    press(&mut a, &["L"]);
+    for _ in 0..30 {
+        press(&mut a, &["j"]);
+        let text = text_of(&render_to_buffer(&a, 80, 24));
+        // Newest first: the highlight on row n is line 39 - n.
+        let wanted = format!("line {}", 39 - a.overlay_selected);
+        let marked = text.lines().find(|l| l.starts_with('▌') && l.contains("line "));
+        assert!(
+            marked.is_some_and(|l| l.contains(&wanted)),
+            "highlight on {wanted} is off screen:\n{text}"
+        );
+    }
+    // And back up, without the window jumping to keep the highlight at its bottom edge.
+    press(&mut a, &["k"]);
+    let text = text_of(&render_to_buffer(&a, 80, 24));
+    let rows: Vec<&str> = text.lines().filter(|l| l.contains("line ")).collect();
+    let marked = rows.iter().position(|l| l.starts_with('▌')).unwrap();
+    assert!(marked < rows.len() - 1, "moving up pinned the highlight to the bottom:\n{text}");
+}
+
+#[test]
+fn identical_log_lines_merge_into_one_with_a_count() {
+    let mut a = app();
+    for _ in 0..25 {
+        a.push_toast(Toast::alert("cover unavailable"));
+    }
+    a.push_toast(Toast::info("something else"));
+    assert_eq!(a.logs.len(), 2);
+    assert_eq!(a.logs[0].count, 25);
+    press(&mut a, &["L"]);
+    let text = text_of(&render_to_buffer(&a, 80, 24));
+    let line = text.lines().find(|l| l.contains("cover unavailable")).unwrap();
+    assert!(line.contains("×25"), "{line}");
 }

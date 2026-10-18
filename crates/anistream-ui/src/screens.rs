@@ -2726,6 +2726,65 @@ fn render_toasts(buf: &mut Buffer, app: &App, area: Rect) {
     }
 }
 
+/// How the help table breaks into columns, and the columns into pages, at one size.
+struct HelpLayout {
+    /// Row ranges, one per column, in reading order.
+    columns: Vec<std::ops::Range<usize>>,
+    /// Columns side by side on a page.
+    across: usize,
+    /// Rows in the tallest column.
+    height: usize,
+}
+
+impl HelpLayout {
+    fn pages(&self) -> usize {
+        self.columns.len().div_ceil(self.across.max(1)).max(1)
+    }
+}
+
+/// Lay the help table out in the fewest columns that hold it in `room` rows, or, when it does
+/// not fit even at full width, in pages of columns `room` tall.
+///
+/// Pages rather than a scroll: columns that scroll together read column one's top, then column
+/// two's top, with the rest of column one out of sight between them. A page keeps the reading
+/// order — down the first column, then the next — and every binding is on some page, where a
+/// clipped table hid half of them at 80×24 and all but GLOBAL at 60×20.
+fn help_layout(rows: &[(String, String)], width: u16, room: usize) -> HelpLayout {
+    let is_heading = |i: usize| rows[i].0.is_empty() && !rows[i].1.starts_with(' ');
+    let max_across = layout::columns_for(width, HELP_COLUMN_WIDTH);
+    for across in 1..=max_across {
+        for height in rows.len().div_ceil(across).max(1)..=room {
+            let columns = flow(rows.len(), height, is_heading);
+            if columns.len() <= across {
+                let height = columns.iter().map(ExactSizeIterator::len).max().unwrap_or(1);
+                return HelpLayout { columns, across, height };
+            }
+        }
+    }
+    HelpLayout { columns: flow(rows.len(), room, is_heading), across: max_across, height: room }
+}
+
+/// Break `len` rows into columns of at most `height`, never ending a column on a heading: the
+/// rows under it would start the next column and leave it orphaned at the bottom of this one.
+fn flow(
+    len: usize,
+    height: usize,
+    is_heading: impl Fn(usize) -> bool,
+) -> Vec<std::ops::Range<usize>> {
+    let height = height.max(1);
+    let mut columns = Vec::new();
+    let mut start = 0;
+    while start < len {
+        let mut end = (start + height).min(len);
+        if end < len && end - start > 1 && is_heading(end - 1) {
+            end -= 1;
+        }
+        columns.push(start..end);
+        start = end;
+    }
+    columns
+}
+
 /// Narrowest column the help table reads well in.
 ///
 /// Sized to the longest label ("Mark all previous watched", 24 cells) plus its key and the
@@ -2917,6 +2976,8 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
     let selected = match overlay {
         // The plugin overlay explains before it offers, so its choices start below the facts.
         Overlay::PluginAction => Some(plugin_action_rows(app).1 + app.overlay_selected),
+        // "Nothing logged yet" is a note, not a line that can be picked.
+        Overlay::Logs if app.logs.is_empty() => None,
         _ => matches!(
             overlay,
             Overlay::Accounts
@@ -2944,17 +3005,44 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
 
     // Only the help overlay is a reference table worth columnising. A picker reads as a
     // single ranked list; splitting it would scatter the best match away from the top.
-    let max_columns = if matches!(overlay, Overlay::Help) {
-        layout::columns_for(area.width.saturating_sub(4), HELP_COLUMN_WIDTH)
-    } else {
-        1
-    };
-    // Columns are driven by how much *height* there is, not just how much width. Fitting the
-    // table matters more than keeping it narrow: clipping the last scope would hide whole
-    // categories of binding, and the help overlay is the app's discoverability mechanism.
     let room = host.height.saturating_sub(4).max(1) as usize;
-    let columns = rows.len().div_ceil(room).clamp(1, max_columns.max(1));
-    let per_column = rows.len().div_ceil(columns).max(1);
+    let (columns, column_width, per_column, position) = if matches!(overlay, Overlay::Help) {
+        let available = area.width.saturating_sub(4);
+        let help = help_layout(&rows, available, room);
+        let pages = help.pages();
+        app.help_pages.set(pages);
+        let page = app.help_page.min(pages - 1);
+        let shown: Vec<std::ops::Range<usize>> =
+            help.columns.iter().skip(page * help.across).take(help.across).cloned().collect();
+        // Each column only as wide as its longest row needs. Stretched to share a wide band,
+        // the keys sat a hundred cells from the labels they belong to.
+        let natural = rows
+            .iter()
+            .map(|(key, label)| label.chars().count() + key.chars().count() + 3)
+            .max()
+            .unwrap_or(0) as u16;
+        let width = (available / help.across.max(1) as u16).min(natural + 2);
+        let position = (pages > 1).then(|| format!("page {} of {pages}", page + 1));
+        (shown, width, help.height, position)
+    } else {
+        // One column, windowed around the selection so a long list scrolls with its highlight
+        // rather than letting it walk off the bottom of the band.
+        let visible = rows.len().min(room);
+        let offset = match selected {
+            Some(at) => app
+                .overlay_offset
+                .get()
+                .min(at)
+                .max((at + 1).saturating_sub(visible))
+                .min(rows.len() - visible),
+            None => 0,
+        };
+        app.overlay_offset.set(offset);
+        let position = (rows.len() > visible)
+            .then(|| format!("{}–{} of {}", offset + 1, offset + visible, rows.len()));
+        let shown = std::iter::once(offset..offset + visible).collect();
+        (shown, area.width.saturating_sub(4), visible.max(1), position)
+    };
 
     let height = (per_column as u16 + 4).min(host.height);
     let band = layout::overlay_band(host, height);
@@ -3093,22 +3181,31 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         ),
         other => glyph::eyebrow(other.title()),
     };
+    // Where in a table too long for the band the window is, so the rest is known to exist.
+    let position = position.filter(|p| p.chars().count() + 8 < band.width as usize);
+    let position_room = position.as_ref().map_or(0, |p| p.chars().count() as u16 + 2);
     line(
         buf,
         band.left() + 2,
         title_y,
-        truncate(&heading, band.width.saturating_sub(3) as usize),
+        truncate(&heading, band.width.saturating_sub(3 + position_room) as usize),
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
+    if let Some(position) = &position {
+        let x = band.right().saturating_sub(position.chars().count() as u16 + 2);
+        buf.set_string(x, title_y, position, app.palette.style(Role::TextDim));
+    }
     if title_y + 1 < band.bottom() {
         Hairline::new(&app.palette).render(Rect { y: title_y + 1, height: 1, ..band }, buf);
     }
 
-    let column_width = band.width.saturating_sub(4) / columns.max(1) as u16;
-    for (i, (key, label)) in rows.iter().enumerate() {
-        let column = i / per_column;
-        let y = title_y + 2 + (i % per_column) as u16;
-        if y >= band.bottom() || column >= columns {
+    let placed = columns.iter().enumerate().flat_map(|(column, range)| {
+        range.clone().enumerate().map(move |(row, i)| (column, row, i))
+    });
+    for (column, row, i) in placed {
+        let Some((key, label)) = rows.get(i) else { continue };
+        let y = title_y + 2 + row as u16;
+        if y >= band.bottom() {
             continue;
         }
         let x = band.left() + 2 + column as u16 * column_width;
@@ -3339,7 +3436,9 @@ fn log_rows(app: &App) -> Vec<(String, String)> {
                 crate::app::ToastKind::Alert => glyph::STATE_DOWN,
                 crate::app::ToastKind::Info => glyph::STATE_UNKNOWN,
             };
-            (String::new(), format!("{marker}  {}", row.text))
+            // A repeat shows as a count where a key would go, not as more lines.
+            let count = if row.count > 1 { format!("×{}", row.count) } else { String::new() };
+            (count, format!("{marker}  {}", row.text))
         })
         .collect()
 }

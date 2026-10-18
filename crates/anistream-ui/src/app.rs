@@ -334,6 +334,10 @@ pub struct LogRow {
     /// Idle ticks at the time it was recorded, so lines can be shown relative to each other
     /// without pulling a wall clock into the UI crate.
     pub at: u64,
+    /// How many times in a row this exact line arrived. A retry loop or a burst of identical
+    /// failures is one line with a count, so it cannot push the line that explains it off
+    /// the screen.
+    pub count: u32,
 }
 
 /// A title as the list views need it.
@@ -1320,6 +1324,19 @@ pub struct App {
     pub conflicts: Vec<ConflictRow>,
     /// Selection within an overlay list (Accounts, Conflicts, list status, command palette).
     pub overlay_selected: usize,
+    /// The first row a list overlay showed at the last frame.
+    ///
+    /// Written by the renderer, which is the only place that knows how many rows fit. Kept so the
+    /// window moves only when the highlight would leave it, rather than recomputed from the
+    /// highlight each frame and pinning it to the bottom edge on the way back up.
+    pub overlay_offset: std::cell::Cell<usize>,
+    /// The help overlay's page. Its own field because Help opens on top of a picker, and paging
+    /// through it must not move the picker's selection underneath.
+    pub help_page: usize,
+    /// How many pages the help table ran to at the last frame, written by the renderer — only it
+    /// knows how the table breaks at this size — so paging stops at the last page rather than
+    /// running past it and making the next few presses look dead.
+    pub help_pages: std::cell::Cell<usize>,
     /// Frame counter for the loading pulse, advanced by the idle tick.
     pub pulse: u64,
     /// Idle ticks left before a pending section change is actually fetched.
@@ -1465,6 +1482,9 @@ impl App {
             sync: Vec::new(),
             conflicts: Vec::new(),
             overlay_selected: 0,
+            overlay_offset: std::cell::Cell::new(0),
+            help_page: 0,
+            help_pages: std::cell::Cell::new(1),
             pulse: 0,
             downloads: Vec::new(),
             seeding: Vec::new(),
@@ -2006,12 +2026,21 @@ impl App {
 
     /// Append to the log ring, newest last.
     pub fn log(&mut self, kind: ToastKind, text: String) {
+        // The same line again is a count on the last one, not another line.
+        if let Some(last) = self.logs.last_mut()
+            && last.kind == kind
+            && last.text == text
+        {
+            last.count += 1;
+            last.at = self.pulse;
+            return;
+        }
         // Bounded: this runs for the life of the process and a provider retry loop could
         // otherwise grow it without limit.
         if self.logs.len() >= LOG_CAPACITY {
             self.logs.remove(0);
         }
-        self.logs.push(LogRow { kind, text, at: self.pulse });
+        self.logs.push(LogRow { kind, text, at: self.pulse, count: 1 });
     }
 
     /// Reflect a watch into the episode table and the title's progress, without a reload.
@@ -2330,7 +2359,7 @@ impl App {
                 return None;
             }
             Action::Help => {
-                self.nav.open_overlay(Overlay::Help);
+                self.open_help();
                 return None;
             }
             _ => {}
@@ -2360,8 +2389,15 @@ impl App {
             }
         }
 
-        // A reference with nothing to pick: the rest is swallowed.
         if *overlay == Overlay::Help {
+            let last = self.help_pages.get().saturating_sub(1);
+            self.help_page = match action {
+                Action::Down | Action::PageDown => (self.help_page + 1).min(last),
+                Action::Up | Action::PageUp => self.help_page.saturating_sub(1),
+                Action::Top => 0,
+                Action::Bottom => last,
+                _ => self.help_page,
+            };
             return None;
         }
 
@@ -2410,6 +2446,12 @@ impl App {
         None
     }
 
+    /// Open the key reference at its first page.
+    fn open_help(&mut self) {
+        self.help_page = 0;
+        self.nav.open_overlay(Overlay::Help);
+    }
+
     /// Run an action against the screen, with no overlay or text field in the way.
     fn perform(&mut self, action: Action, visible_rows: usize) -> Option<Task> {
         // Playback bindings only mean anything while something is playing, and they collide
@@ -2422,7 +2464,7 @@ impl App {
 
         match action {
             Action::Quit => self.should_quit = true,
-            Action::Help => self.nav.open_overlay(Overlay::Help),
+            Action::Help => self.open_help(),
             // Goes to the screen now rather than opening the modal. The overlay stays in the
             // codebase for the one case it is still right for — being asked to sign in from
             // somewhere else — but "show me my accounts" belongs on a page.
@@ -3853,7 +3895,7 @@ impl App {
                 self.palette_query.clear();
                 self.nav.open_overlay(Overlay::CommandPalette);
             }
-            Action::Help => self.nav.open_overlay(Overlay::Help),
+            Action::Help => self.open_help(),
             Action::Quit => self.should_quit = true,
             // The two sign-in steps. Enter with nothing typed stays put — an empty
             // submit is a slip of the finger, not an answer.
