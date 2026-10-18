@@ -2074,12 +2074,24 @@ impl App {
         }
     }
 
-    /// Re-derive the visible episode list from the full one, keeping the cursor in range.
+    /// Re-derive the visible episode list from the full one, keeping the cursor on the same
+    /// episode.
+    ///
+    /// By episode, not by row: keeping the index put the cursor on whatever episode the new
+    /// view had in that slot, so cycling the filter moved you without a key being pressed. An
+    /// episode the filter now hides hands the cursor to the next one it keeps — which is also
+    /// what makes marking down an unwatched-only list walk forward one episode at a time.
     fn apply_episode_filter(&mut self) {
         let filter = self.episode_filter;
+        let under_cursor = self.episodes.get(self.episode_selected).map(|r| r.number.clone());
         self.episodes = self.episodes_all.iter().filter(|r| filter.keeps(r)).cloned().collect();
+        let kept = under_cursor.and_then(|number| {
+            let from = self.episodes_all.iter().position(|r| r.number == number)?;
+            let next = self.episodes_all[from..].iter().find(|r| filter.keeps(r))?;
+            self.episodes.iter().position(|r| r.number == next.number)
+        });
         self.episode_selected =
-            self.episode_selected.min(self.episodes.len().saturating_sub(1));
+            kept.unwrap_or(self.episode_selected).min(self.episodes.len().saturating_sub(1));
     }
 
     /// Whether the filter is hiding everything — distinct from a title with no episodes.
@@ -6890,6 +6902,30 @@ mod tests {
             a.selected,
             a.offset
         );
+    }
+
+    #[test]
+    fn the_filter_keeps_the_same_episode_under_the_cursor() {
+        let mut a = app_at_episodes();
+        for n in ["1", "2", "3"] {
+            a.set_episode_watched(n, true);
+        }
+        a.apply_episode_filter();
+        let under = |a: &App| a.episodes[a.episode_selected].number.clone();
+
+        a.episode_selected = 4;
+        a.handle(Action::Filter, 5);
+        assert_eq!(a.episode_filter, EpisodeFilter::Unwatched);
+        assert_eq!(under(&a), "5", "the cursor kept its row index, not its episode");
+        a.handle(Action::Filter, 5);
+        a.handle(Action::Filter, 5);
+        assert_eq!(a.episode_filter, EpisodeFilter::All);
+        assert_eq!(under(&a), "5");
+
+        // An episode the filter hides hands the cursor to the next one it keeps.
+        a.episode_selected = 1;
+        a.handle(Action::Filter, 5);
+        assert_eq!(under(&a), "4");
     }
 
     #[test]
