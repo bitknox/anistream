@@ -28,7 +28,9 @@ cannot compete with these.
 and the menus work with mpv's built-in controller and with your own uosc. In this mode the
 anistream menu also appears in mpv's right-click menu.
 
-`anistream --doctor` reports which interface is in use and where its files were written.
+Both need mpv 0.36 or newer for the skip button, Up Next, the menus and thumbnails. Older
+versions, such as Debian 12's 0.35, play with mpv's own controls. `anistream --doctor` reports
+your mpv version, which interface is in use and where its files were written.
 
 ## Keys inside the player
 
@@ -40,6 +42,7 @@ anistream menu also appears in mpv's right-click menu.
 | `s` or `Enter` | Skip the opening or ending, while the button is shown |
 | `u` | Undo an automatic skip, while the note is shown |
 | `Enter` / `Esc` | Play now · cancel, while Up Next is shown |
+| `Enter` / `Esc` | Switch source · keep waiting, when a stream stops mid-episode |
 | Click the picture | Pause and resume. A double click is fullscreen, as in mpv |
 | Mouse wheel | Volume |
 | `Alt+m` | Mini player |

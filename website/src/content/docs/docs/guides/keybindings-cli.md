@@ -35,6 +35,10 @@ what it shows is what is actually bound, overrides included.
 | `w` | Watch order |
 | `o` | Open on AniList |
 | `a` | Set list status |
+| `*` | Rate out of ten |
+| `b` | Recommendations |
+| `v` | Play the trailer |
+| `x` | Remove from Continue |
 | `i` | Expand synopsis |
 | `u` | Toggle watched |
 | `M` | Mark all previous watched |
@@ -49,8 +53,16 @@ what it shows is what is actually bound, overrides included.
 | `?` | Help |
 | `:` / `Ctrl-K` | Command palette |
 | `/` | Search |
+| `Ctrl-F` | Search filters: genre, year, season, format, status, sort |
 | `L` | Logs |
 | `Q` / `Ctrl-C` | Quit |
+
+**On the Downloads screen**, `Space` pauses and `x` cancels, as they do during playback, and:
+
+| | |
+|---|---|
+| `c` | Clear finished downloads |
+| `X` | Delete a download and its file |
 
 **While something is playing** a separate table takes priority, and it shadows some of the keys
 above — `L` seeks rather than opening the logs:
@@ -80,13 +92,16 @@ refused at startup rather than ignored.
 
 ## Command line
 
-Everything below exits without starting the interface. `--search`, `--stats` and `--random` also
-take `--json`, composable with `jq` and friends rather than a walled garden.
+None of these start the interface. Most answer and exit; `--continue` and `--play` play without
+it, and `--stream-url` and `store serve` keep running until you stop them. `--search`, `--stats`
+and `--random` also take `--json`, composable with `jq` and friends.
 
 | | |
 |---|---|
 | `--doctor` | Terminal support, **mpv and its config**, datasets, configured indexer, VPN guard, kill-switch state |
 | `--search <query>` | Search AniList |
+| `--continue` | Resume the most recent episode, or start the next one, with no interface |
+| `--play <id> [--episode N]` | Play one title; without `--episode` it takes the next unwatched |
 | `--stats` | Watch statistics |
 | `--export <path>` \| `--import <path>` | History as JSON; `-` for stdio |
 | `--random` | Pick something from your history |
@@ -94,6 +109,9 @@ take `--json`, composable with `jq` and friends rather than a walled garden.
 | `--login-url --tracker anilist` | Print the authorize URL and exit, for signing in elsewhere |
 | `--token-to-file` | Move a stored token from the keychain to a `0600` file |
 | `--plugins` | Installed plugins and what each may reach |
+| `plugin stamp <file.wasm> [-o <out>]` | Write a plugin's manifest into it, for [stores](/docs/plugins/running-a-store/) that cannot run plugins |
+| `store serve <dir> --url <address>` | Run a [plugin store](/docs/plugins/running-a-store/) for the people you invite |
+| `store invite` \| `store publish` \| `store admin` | An invite link, a plugin published, a sign-in link for the admin page, from the store's machine |
 | `--stream-url <id> [--episode N]` | Resolve one episode to a URL and hold it open, so `mpv`/`curl` can be pointed at it directly |
 | `--preview 120x34 --screen home` | Render any screen as one frame of text: home, search, title, episodes, calendar, library, downloads, providers, accounts, settings, help, palette |
 | `--refresh-data` | Refresh the ID-mapping datasets |

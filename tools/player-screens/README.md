@@ -18,9 +18,8 @@ original. Use openly licensed footage only.
 1. `tools/player-screens/footage.sh footage` downloads and prepares both. Sol Levante's master
    is read over HTTP ranges; only eight seconds of it are fetched.
 2. Serve the Up Next still: `python3 -m http.server 8765 --bind 127.0.0.1 --directory footage/www`.
-3. Start the scenario: the episode presented as part of the series, with the episode list from
-   `scenario.json`, three sources and Up Next. `player_screens.rs` is the `anistream` crate's
-   example of that name; until it lives in `crates/anistream/examples/`, copy it there.
+3. Start the scenario, the `anistream` crate's `player_screens` example: the episode presented as
+   part of the series, with the episode list from `scenario.json`, three sources and Up Next.
 
    ```sh
    cargo run -p anistream --example player_screens -- footage/kosys-3.1.mkv \

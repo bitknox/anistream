@@ -1,6 +1,6 @@
 ---
-title: Troubleshooting playback
-description: Two commands separate a playback failure into "anistream" or "not anistream".
+title: Troubleshooting
+description: Telling a playback failure from an anistream one, and what the player and plugin stores need when they misbehave.
 ---
 
 Two commands cover most of it:

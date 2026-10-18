@@ -47,7 +47,7 @@ export default defineConfig({
 						{ label: 'The player', link: 'docs/guides/player' },
 						{ label: 'Torrents & the VPN guard', link: 'docs/guides/torrents-vpn' },
 						{ label: 'Trackers & sync', link: 'docs/guides/trackers-sync' },
-						{ label: 'Troubleshooting playback', link: 'docs/guides/troubleshooting' },
+						{ label: 'Troubleshooting', link: 'docs/guides/troubleshooting' },
 					],
 				},
 				{
