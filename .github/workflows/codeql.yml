@@ -1,0 +1,37 @@
+name: CodeQL
+
+# Not on pull requests. The Rust analysis takes about eleven minutes, and the alerts it had
+# raised on this codebase were AES test vectors, a bearer token sent over HTTPS and probes
+# printing whether a refresh token exists — none of which a reviewer needed before merging.
+# Main and a weekly sweep keep the alerts current without putting it in front of every change.
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '23 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [actions, javascript-typescript, rust]
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
