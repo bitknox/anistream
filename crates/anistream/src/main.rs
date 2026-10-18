@@ -1472,6 +1472,9 @@ async fn run(
     );
     let stores = plugin_stores::Stores::new(&config, &paths).map_err(|e| anyhow::anyhow!(e))?;
     let mut app = App::with_images(config, palette, keymap, engine);
+    // What the file says, as distinct from what is in effect: `--theme` changes only this
+    // session, and the Settings screen has to be able to tell the two apart.
+    app.saved_config = Config::load(&paths).unwrap_or_default();
     if let Some(note) = provider_note {
         app.apply(Update::ProviderNote(note));
     }
@@ -2604,7 +2607,15 @@ fn dispatch(
         // a pure function. Synchronous on purpose — one small file, and a settings change that
         // silently lost a race with the next one would be worse than a paused frame.
         Task::SaveSetting { table, key, value } => {
-            match anistream_core::settings::write_key(paths, table, key, value) {
+            let written = anistream_core::settings::write_key(paths, table, key, value);
+            // Read back whatever the write left, so the Settings screen shows the file rather
+            // than its own hopes — and can put a refused setting back. A file that does not
+            // load is treated the way startup treats it.
+            let _ = tx.send(Update::SettingWritten {
+                on_disk: Box::new(Config::load(paths).unwrap_or_default()),
+                failed: written.is_err().then_some((table, key)),
+            });
+            match written {
                 Ok(()) => {
                     let _ = tx.send(Update::Status(format!("saved {key}")));
                     // Republish what the background tasks read, so the next download to

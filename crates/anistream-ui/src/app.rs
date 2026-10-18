@@ -154,6 +154,58 @@ impl SettingId {
         }
     }
 
+    /// Copy this setting's value from one configuration to another.
+    ///
+    /// What lets one setting be put back to what the file holds after its write failed,
+    /// without disturbing any other — including one changed a moment later whose own write
+    /// worked.
+    pub fn copy(self, from: &Config, to: &mut Config) {
+        let (src, dst) = (&from.playback, &mut to.playback);
+        match self {
+            Self::Theme => to.theme.mode = from.theme.mode,
+            Self::Motion => to.theme.motion = from.theme.motion,
+            Self::Translation => dst.translation = src.translation,
+            Self::Quality => dst.quality = src.quality,
+            Self::Subtitles => dst.subtitle_language.clone_from(&src.subtitle_language),
+            Self::CommitThreshold => dst.commit_threshold = src.commit_threshold,
+            Self::AutoNext => dst.auto_next = src.auto_next,
+            Self::SkipOpening => dst.skip_opening = src.skip_opening,
+            Self::SkipFiller => dst.skip_filler = src.skip_filler,
+            Self::MarkChapters => dst.mark_chapters = src.mark_chapters,
+            Self::Fullscreen => dst.fullscreen = src.fullscreen,
+            Self::Upscaling => dst.upscaling = src.upscaling,
+            Self::PlayerUi => dst.player_ui = src.player_ui,
+            Self::NightMode => dst.night_mode = src.night_mode,
+            Self::DownloadDir => to.downloads.directory.clone_from(&from.downloads.directory),
+            Self::MergeSubtitles => {
+                to.downloads.merge_subtitles = from.downloads.merge_subtitles
+            }
+            Self::KeepSeeding => to.downloads.keep_seeding = from.downloads.keep_seeding,
+            Self::DownloadHook => {
+                to.downloads.on_complete.clone_from(&from.downloads.on_complete)
+            }
+            Self::Presence => to.presence.enabled = from.presence.enabled,
+            Self::PresenceTitle => to.presence.show_title = from.presence.show_title,
+            Self::Torrents => to.providers.torrent.enabled = from.providers.torrent.enabled,
+            Self::SeedRatio => {
+                to.providers.torrent.seeding.ratio = from.providers.torrent.seeding.ratio;
+            }
+            Self::SeedHours => {
+                to.providers.torrent.seeding.hours = from.providers.torrent.seeding.hours;
+            }
+            Self::UploadLimit => {
+                to.providers.torrent.seeding.upload_limit_kib =
+                    from.providers.torrent.seeding.upload_limit_kib;
+            }
+            Self::Syncplay => to.syncplay.enabled = from.syncplay.enabled,
+            Self::SyncplayServer => to.syncplay.server.clone_from(&from.syncplay.server),
+            Self::SyncplayRoom => to.syncplay.room.clone_from(&from.syncplay.room),
+            Self::UpdateCheck => to.updates.check = from.updates.check,
+            // Not editable here, so never written and never rolled back.
+            Self::VpnMode | Self::TokenStorage => {}
+        }
+    }
+
     /// Which heading a row sits under. Purely visual grouping — navigation walks the
     /// whole list, so nothing is ever hidden behind a tab.
     pub const fn category(self) -> &'static str {
@@ -282,6 +334,11 @@ fn table_path(dotted: &'static str) -> &'static [&'static str] {
         "updates" => &["updates"],
         other => unreachable!("no table path for {other}"),
     }
+}
+
+/// A setting's saved value, with the session's own beside it when they differ.
+fn session_marked(saved: String, current: String) -> String {
+    if saved == current { saved } else { format!("{saved} · {current} this session") }
 }
 
 /// An upload cap as people read it: `unlimited`, `512 KB/s`, `2 MB/s`.
@@ -1133,6 +1190,13 @@ pub enum Update {
     /// A setting reached disk. The run loop republishes the configuration its background
     /// tasks read, so saved and in-effect are the same moment.
     SettingsSaved,
+    /// A settings write was attempted, and this is what the file holds afterwards. `failed`
+    /// names the setting whose write did not land, so the screen can put it back rather than
+    /// go on showing a value that was never saved.
+    SettingWritten {
+        on_disk: Box<Config>,
+        failed: Option<(&'static [&'static str], &'static str)>,
+    },
     /// A setting changed what sources should exist. Acted on by the run loop, which owns
     /// the torrent session and the VPN guard; the reducer only needs to not choke on it.
     SourcesChanged,
@@ -1280,7 +1344,13 @@ pub struct App {
     pub nav: Nav,
     pub palette: Palette,
     pub keymap: Keymap,
+    /// The configuration in effect: what the file says, plus anything changed for this session
+    /// only — `t` for sub or dub, `--theme`.
     pub config: Config,
+    /// What `config.toml` holds, read back after every settings write. The Settings screen
+    /// shows these values and marks a session-only difference, and a write that fails puts
+    /// its setting back to this.
+    pub saved_config: Config,
     pub content: Content,
     /// Selection index within the current content.
     pub selected: usize,
@@ -1468,6 +1538,7 @@ impl App {
             nav: Nav::new(),
             palette,
             keymap,
+            saved_config: config.clone(),
             config,
             content: Content::Loading,
             selected: 0,
@@ -1726,6 +1797,12 @@ impl App {
             // Both are handled outside the reducer, by the loop that owns the background
             // tasks and the session.
             Update::SettingsSaved => {}
+            Update::SettingWritten { on_disk, failed } => {
+                self.saved_config = *on_disk;
+                if let Some((table, key)) = failed {
+                    self.roll_back_setting(table, key);
+                }
+            }
             Update::SourcesChanged => self.status = "reloading sources…".into(),
             Update::ProviderNote(note) => self.provider_note = Some(note),
             Update::ProviderPreference(choice) => self.provider_preference = choice,
@@ -2896,9 +2973,10 @@ impl App {
                 return self.reload();
             }
             Action::ToggleTranslation => {
+                // For this session: the saved choice is the Settings row's to change.
                 self.config.playback.translation = self.config.playback.translation.toggled();
                 self.push_toast(Toast::info(format!(
-                    "now using {}",
+                    "now using {} for this session",
                     self.config.playback.translation
                 )));
             }
@@ -3375,7 +3453,9 @@ impl App {
     /// The Settings screen's rows, built fresh from the live config.
     ///
     /// Read from `self.config` rather than a copy taken at startup, so a row shows the value that
-    /// is actually in force the instant after it is changed.
+    /// is actually in force the instant after it is changed. The two settings that can also be
+    /// changed for a session only, theme and sub/dub, show what is saved and mark the session's
+    /// value beside it: the file and the next launch go by the saved one.
     pub fn setting_rows(&self) -> Vec<SettingRow> {
         use SettingId as S;
         let playback = &self.config.playback;
@@ -3385,7 +3465,10 @@ impl App {
             .map(|id| {
                 let (value, editable, note) = match id {
                     S::Theme => (
-                        format!("{:?}", self.config.theme.mode).to_lowercase(),
+                        session_marked(
+                            format!("{:?}", self.saved_config.theme.mode).to_lowercase(),
+                            format!("{:?}", self.config.theme.mode).to_lowercase(),
+                        ),
                         Some(("theme", "mode")),
                         None,
                     ),
@@ -3393,7 +3476,10 @@ impl App {
                         (on_off(self.config.theme.motion), Some(("theme", "motion")), None)
                     }
                     S::Translation => (
-                        playback.translation.to_string(),
+                        session_marked(
+                            self.saved_config.playback.translation.to_string(),
+                            playback.translation.to_string(),
+                        ),
                         Some(("playback", "translation")),
                         None,
                     ),
@@ -3600,7 +3686,9 @@ impl App {
 
         let value = match id {
             SettingId::Theme => {
-                let next = match self.config.theme.mode {
+                // From the saved value, which is the one the row shows: the arrows change
+                // what is saved, and a session override simply gives way to it.
+                let next = match self.saved_config.theme.mode {
                     ThemeMode::Adaptive => ThemeMode::Immersive,
                     ThemeMode::Immersive => ThemeMode::Adaptive,
                 };
@@ -3621,7 +3709,7 @@ impl App {
                 V::Bool(self.config.theme.motion)
             }
             SettingId::Translation => {
-                let next = match self.config.playback.translation {
+                let next = match self.saved_config.playback.translation {
                     Translation::Sub => Translation::Dub,
                     Translation::Dub => Translation::Sub,
                 };
@@ -3747,6 +3835,32 @@ impl App {
         };
 
         Some(Task::SaveSetting { table: edit.table, key: edit.key, value })
+    }
+
+    /// Put a setting whose write failed back to what the file holds.
+    ///
+    /// The reducer changes a setting before the write it asks for, so the screen answers at
+    /// once; when the write was refused — enabling torrents with no VPN, an unwritable file —
+    /// the screen and the status line went on showing the value that never landed.
+    fn roll_back_setting(&mut self, table: &[&str], key: &str) {
+        let rows = self.setting_rows();
+        let Some(id) = SettingId::ALL.iter().zip(&rows).find_map(|(id, row)| {
+            let edit = row.editable.as_ref()?;
+            (edit.table == table && edit.key == key).then_some(*id)
+        }) else {
+            return;
+        };
+        id.copy(&self.saved_config, &mut self.config);
+        if id == SettingId::Theme {
+            use anistream_core::config::ThemeMode;
+            self.palette = crate::theme::Palette::of(match self.config.theme.mode {
+                ThemeMode::Immersive => crate::theme::Variant::Immersive,
+                ThemeMode::Adaptive => self.adaptive_variant,
+            });
+        }
+        // The status line falls back to what is in effect, rather than a message about an
+        // earlier save.
+        self.status.clear();
     }
 
     /// Actions matching the current palette query, in the order they are rendered.
@@ -7240,6 +7354,91 @@ mod tests {
         assert_eq!(a.config.playback.commit_threshold, 0.97, "→ never lowers it");
         a.handle(Action::Left, 10);
         assert_eq!(a.config.playback.commit_threshold, 0.95);
+    }
+
+    fn setting_row(a: &App, id: SettingId) -> String {
+        let at = SettingId::ALL.iter().position(|row| *row == id).unwrap();
+        a.setting_rows()[at].value.clone()
+    }
+
+    fn settings_at(id: SettingId) -> App {
+        let mut a = app();
+        a.go_to_section(Section::Settings);
+        a.nav.focus_stage();
+        a.selected = SettingId::ALL.iter().position(|row| *row == id).unwrap();
+        a
+    }
+
+    #[test]
+    fn a_refused_settings_write_puts_the_setting_back() {
+        // The value changed before the write and nothing undid it, so a refused write — torrents
+        // on with no VPN configured — went on showing "on" and the status line the new value.
+        let mut a = settings_at(SettingId::Torrents);
+        let Some(Task::SaveSetting { table, key, .. }) = a.handle(Action::Right, 10) else {
+            panic!("no write asked for")
+        };
+        assert!(a.config.providers.torrent.enabled, "the screen answers at once");
+        a.status = "saved quality".into();
+
+        a.apply(Update::SettingWritten {
+            on_disk: Box::new(Config::default()),
+            failed: Some((table, key)),
+        });
+        assert!(!a.config.providers.torrent.enabled, "back to what the file holds");
+        assert_eq!(setting_row(&a, SettingId::Torrents), "off");
+        assert!(a.status.is_empty(), "the status line shows what is in effect again");
+    }
+
+    #[test]
+    fn a_rollback_leaves_other_settings_alone() {
+        // A second setting changed while the first write was refused has its own write, which
+        // landed; undoing everything would undo that too.
+        let mut a = settings_at(SettingId::Quality);
+        a.handle(Action::Right, 10);
+        let mut on_disk = Config::default();
+        on_disk.playback.quality = 2160;
+        a.selected = SettingId::ALL.iter().position(|row| *row == SettingId::Torrents).unwrap();
+        a.handle(Action::Right, 10);
+
+        a.apply(Update::SettingWritten {
+            on_disk: Box::new(on_disk),
+            failed: Some((&["providers", "torrent"], "enabled")),
+        });
+        assert_eq!(a.config.playback.quality, 2160);
+        assert!(!a.config.providers.torrent.enabled);
+    }
+
+    #[test]
+    fn sub_or_dub_for_the_session_shows_beside_the_saved_choice() {
+        // `t` is for this session, and Settings showed it as if saved while the file and the
+        // next launch said otherwise.
+        let mut a = app();
+        a.handle(Action::ToggleTranslation, 10);
+        assert_eq!(setting_row(&a, SettingId::Translation), "sub · dub this session");
+        assert!(a.toasts.last().unwrap().text.contains("for this session"));
+
+        // The arrows change the saved value, the one the row leads with.
+        let mut a = settings_at(SettingId::Translation);
+        a.handle(Action::ToggleTranslation, 10);
+        let task = a.handle(Action::Right, 10);
+        assert!(matches!(
+            task,
+            Some(Task::SaveSetting { key: "translation", value: anistream_core::settings::SettingValue::Str(ref v), .. }) if v == "dub"
+        ));
+        let mut on_disk = Config::default();
+        on_disk.playback.translation = anistream_core::media::Translation::Dub;
+        a.apply(Update::SettingWritten { on_disk: Box::new(on_disk), failed: None });
+        assert_eq!(setting_row(&a, SettingId::Translation), "dub");
+    }
+
+    #[test]
+    fn a_theme_from_the_command_line_shows_as_this_session_only() {
+        use anistream_core::config::ThemeMode;
+        let mut config = Config::default();
+        config.theme.mode = ThemeMode::Immersive;
+        let mut a = App::new(config, Palette::dark(), Keymap::new());
+        a.saved_config.theme.mode = ThemeMode::Adaptive;
+        assert_eq!(setting_row(&a, SettingId::Theme), "adaptive · immersive this session");
     }
 
     #[test]
