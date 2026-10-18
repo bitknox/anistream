@@ -540,7 +540,7 @@ const COL_TOKEN: u16 = 44;
 /// dialog you must dismiss to look at anything else is the wrong container for that.
 fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
     if area.height < MIN_TABLE_HEIGHT || area.width < 40 {
-        render_placeholder(buf, app, area, "ACCOUNTS", "not enough room");
+        render_placeholder(buf, app, area, "ACCOUNTS", "needs a larger terminal");
         return;
     }
     let mut y = area.top();
@@ -736,7 +736,7 @@ fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
 /// rather than making you go and find it.
 fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
     if area.height < MIN_TABLE_HEIGHT || area.width < 40 {
-        render_placeholder(buf, app, area, "DOWNLOADS", "not enough room");
+        render_placeholder(buf, app, area, "DOWNLOADS", "needs a larger terminal");
         return;
     }
     // What is still seeding after watching takes the bottom of the screen, so the queue above
@@ -1047,9 +1047,10 @@ fn render_preview(buf: &mut Buffer, app: &App, area: Rect, entry: &Entry) {
     }
 
     // Genres, on their own line rather than folded into the metadata: three or four of them
-    // would push the format and score off the end of a column this narrow.
+    // would push the format and score off the end of a column this narrow. Named as AniList
+    // names them, the way the Title page does — not set in the metadata's caps.
     if !entry.genres.is_empty() && y < area.bottom() {
-        let genres = glyph::eyebrow(&entry.genres.join("  ·  "));
+        let genres = entry.genres.join("  ·  ");
         buf.set_string(area.left(), y, truncate(&genres, width), dim);
         y += 1;
     }
@@ -1232,13 +1233,18 @@ fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
                 format!("{label}   ep {next} next"),
                 app.palette.style(Role::TextDim),
             );
-        } else if let Some(secs) = entry.next_airing_in.filter(|s| *s > 0) {
-            buf.set_string(
-                area.left(),
-                y,
-                format!("next episode in {}", crate::widgets::countdown(secs)),
-                app.palette.style(Role::State),
-            );
+        } else {
+            // The same line the preview gives, so the same fact reads the same on both.
+            let broadcast = broadcast_line(entry);
+            if !broadcast.is_empty() {
+                line(
+                    buf,
+                    area.left(),
+                    y,
+                    truncate(&broadcast, area.width as usize),
+                    app.palette.style(Role::State),
+                );
+            }
         }
     }
 }
@@ -1447,7 +1453,7 @@ fn render_library(buf: &mut Buffer, app: &App, area: Rect) {
     // `MIN_TABLE_HEIGHT` because this screen spends three rows on chrome before any content, and
     // the list renderer below assumes it has room. See `render_providers` for why this exists.
     if area.height < MIN_TABLE_HEIGHT + 3 {
-        render_placeholder(buf, app, area, "LIBRARY", "terminal too small");
+        render_placeholder(buf, app, area, "LIBRARY", "needs a larger terminal");
         return;
     }
     let mut x = area.left();
@@ -1490,6 +1496,16 @@ fn render_library(buf: &mut Buffer, app: &App, area: Rect) {
         // Written line by line against the space actually available. Writing all four
         // unconditionally put row `body.top() + 3` past the end of the buffer at 24×8 — a panic
         // rather than a truncated sentence, and the size-matrix test is what caught it.
+        // The same next step the Accounts screen gives: with no tracker enabled there is
+        // nothing there to sign in to yet, which pointing at it alone used to hide.
+        let accounts = app.section_key(Section::Accounts);
+        let next = if app.sync.is_empty() {
+            format!(
+                "add one to trackers.enabled in config.toml, then press {accounts} for Accounts"
+            )
+        } else {
+            format!("press {accounts} for Accounts to sign in")
+        };
         let lines = [
             (0, glyph::eyebrow("no account connected")),
             (
@@ -1497,7 +1513,7 @@ fn render_library(buf: &mut Buffer, app: &App, area: Rect) {
                 "your watch history works without one — the Library mirrors a tracker's list"
                     .into(),
             ),
-            (3, "press : and run \"accounts\" to sign in".into()),
+            (3, next),
         ];
         for (offset, text) in lines {
             let y = body.top() + offset;
@@ -1522,7 +1538,7 @@ fn accounts_rows(app: &App) -> Vec<(String, String)> {
     if app.sync.is_empty() {
         return vec![(
             String::new(),
-            "no tracker configured — see trackers.enabled in your config".into(),
+            "no trackers enabled — add one to trackers.enabled in config.toml".into(),
         )];
     }
     app.sync
@@ -1590,7 +1606,9 @@ fn status_rows(app: &App) -> Vec<(String, String)> {
                 }
                 _ => "",
             };
-            (hint.to_string(), glyph::eyebrow(segment.label()))
+            // A status is a value, and values are lowercase — as the Library strip and every
+            // message that names one already have it.
+            (hint.to_string(), segment.label().to_owned())
         })
         .collect()
 }
@@ -1843,7 +1861,7 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
     // end of the buffer — a panic at 24×8, which a resize passes through on the way down. Found by
     // the size-matrix test, not by looking.
     if area.height < MIN_TABLE_HEIGHT + 3 {
-        render_placeholder(buf, app, area, "PROVIDERS", "terminal too small");
+        render_placeholder(buf, app, area, "PROVIDERS", "needs a larger terminal");
         return;
     }
     buf.set_string(
@@ -2068,7 +2086,7 @@ fn render_footer(buf: &mut Buffer, app: &App, area: Rect, text: &str, role: Role
 /// Every store this machine has joined, and the way to join another.
 fn render_stores(buf: &mut Buffer, app: &App, area: Rect) {
     if area.height < MIN_TABLE_HEIGHT + 4 || area.width < 40 {
-        render_placeholder(buf, app, area, "PLUGIN STORES", "a larger terminal");
+        render_placeholder(buf, app, area, "PLUGIN STORES", "needs a larger terminal");
         return;
     }
     line(
@@ -2178,11 +2196,11 @@ fn render_stores(buf: &mut Buffer, app: &App, area: Rect) {
 /// One store: its plugins, then what can be done there.
 fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
     let Some(store) = app.store(id) else {
-        render_placeholder(buf, app, area, "PLUGIN STORE", "a moment");
+        render_placeholder(buf, app, area, "PLUGIN STORE", "loading…");
         return;
     };
     if area.height < MIN_TABLE_HEIGHT + 6 || area.width < 40 {
-        render_placeholder(buf, app, area, &store.name, "a larger terminal");
+        render_placeholder(buf, app, area, &store.name, "needs a larger terminal");
         return;
     }
     line(
@@ -2392,7 +2410,7 @@ fn until(at: i64) -> String {
 fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
     let name = app.store(id).map_or("plugin store", |s| s.name.as_str());
     if area.height < MIN_TABLE_HEIGHT + 4 || area.width < 40 {
-        render_placeholder(buf, app, area, "MEMBERS", "a larger terminal");
+        render_placeholder(buf, app, area, "MEMBERS", "needs a larger terminal");
         return;
     }
     line(
@@ -2687,11 +2705,14 @@ fn render_placeholder(buf: &mut Buffer, app: &App, area: Rect, title: &str, note
         glyph::eyebrow(title),
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
     );
+    // The note is said as given. It was the tail of "arrives in …", which suited "a moment"
+    // and nothing else: "arrives in not enough room".
     if area.height > 2 {
-        buf.set_string(
+        line(
+            buf,
             area.left(),
             area.top() + 2,
-            format!("arrives in {note}"),
+            truncate(note, area.width as usize),
             app.palette.style(Role::TextDim),
         );
     }
@@ -3533,10 +3554,10 @@ fn broadcast_line(entry: &Entry) -> String {
     let mut parts: Vec<String> = Vec::new();
     if let Some((episode, ago)) = entry.latest_aired() {
         parts.push(match ago {
-            Some(ago) => format!("EP {episode} out {}", crate::widgets::ago(ago)),
+            Some(ago) => format!("ep {episode} out {}", crate::widgets::ago(ago)),
             // Known to be out only by inference from the next episode's number, so there
             // is no broadcast time to date it with — absent beats guessed.
-            None => format!("EP {episode} out"),
+            None => format!("ep {episode} out"),
         });
     }
     // The title's own schedule rather than the row's slot, so a calendar row about an episode
@@ -3545,7 +3566,7 @@ fn broadcast_line(entry: &Entry) -> String {
     // non-positive `timeUntilAiring` in the moments around a broadcast.
     if let Some(seconds) = entry.next_airing_in.filter(|s| *s > 0) {
         parts.push(match entry.next_episode {
-            Some(next) => format!("EP {next} in {}", crate::widgets::countdown(seconds)),
+            Some(next) => format!("ep {next} in {}", crate::widgets::countdown(seconds)),
             None => format!("next in {}", crate::widgets::countdown(seconds)),
         });
     }
@@ -3641,14 +3662,14 @@ mod tests {
         e.next_airing_in = Some(604_800);
 
         let line = broadcast_line(&e);
-        assert!(line.contains("EP 5 out"), "what is out still gets said: {line}");
-        assert!(line.contains("EP 6 in 7d"), "and when the next one is due: {line}");
+        assert!(line.contains("ep 5 out"), "what is out still gets said: {line}");
+        assert!(line.contains("ep 6 in 7d"), "and when the next one is due: {line}");
         assert!(!line.contains("now"), "the spent slot is not a countdown: {line}");
 
         // Nothing further scheduled — a finished show says only what is out.
         e.next_episode = None;
         e.next_airing_in = None;
-        assert_eq!(broadcast_line(&e), "EP 5 out 1h ago");
+        assert_eq!(broadcast_line(&e), "ep 5 out 1h ago");
     }
 
     /// AniList leaves the length empty while a show airs without an announced one. The card
@@ -5088,7 +5109,8 @@ mod tests {
         e.progress = Some((7, 8));
         e.last_aired = Some((8, 3600));
         let app = app_with(Content::Entries(vec![e]));
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        // Too narrow for the preview, whose broadcast line would answer for the row.
+        let text = text_of(&render_to_buffer(&app, 70, 30));
         assert!(text.contains("ep 8 out"), "being behind is the fact worth stating:\n{text}");
     }
 
@@ -5102,7 +5124,8 @@ mod tests {
         e.airing_in = Some(2 * 24 * 3600 + 3600);
         e.next_episode = Some(9);
         let app = app_with(Content::Entries(vec![e]));
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        // Too narrow for the preview, whose broadcast line would answer for the row.
+        let text = text_of(&render_to_buffer(&app, 70, 30));
         assert!(!text.contains("ep 8 out"), "already watched — not news:\n{text}");
         assert!(text.contains("ep 9 in 2d 1h"), "the wait is the fact:\n{text}");
     }
@@ -5118,7 +5141,8 @@ mod tests {
         e.next_episode = Some(9);
         e.airing_in = Some(7 * 24 * 3600);
         let app = app_with(Content::Entries(vec![e]));
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        // Too narrow for the preview, whose broadcast line would answer for the row.
+        let text = text_of(&render_to_buffer(&app, 70, 30));
         assert!(text.contains("ep 8 out"), "the launch went unannounced:\n{text}");
         assert!(!text.contains("ep 9 in"), "counting down is old news beside a launch");
     }
@@ -5132,7 +5156,8 @@ mod tests {
         e.progress = Some((0, 1));
         e.last_aired = Some((4, 3600));
         let app = app_with(Content::Entries(vec![e]));
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        // Too narrow for the preview, whose broadcast line would answer for the row.
+        let text = text_of(&render_to_buffer(&app, 70, 30));
         assert!(text.contains("ep 4 out"), "got:\n{text}");
     }
 
@@ -5147,5 +5172,72 @@ mod tests {
         // Metadata lives in the preview pane, so "2023" only survives at full width.
         assert!(wide.contains("2023"), "the wide layout shows preview metadata");
         assert!(!narrow.contains("2023"), "the narrow layout drops the preview");
+    }
+
+    // ---- Wording and display consistency ----
+
+    #[test]
+    fn genres_read_the_same_in_the_preview_and_on_the_title() {
+        let e =
+            Entry { genres: vec!["Slice of Life".into(), "Sci-Fi".into()], ..entry(1, "Kite") };
+        let mut app = app_with(Content::Entries(vec![e]));
+        let preview = text_of(&render_to_buffer(&app, 120, 34));
+        assert!(preview.contains("Slice of Life  ·  Sci-Fi"), "{preview}");
+        assert!(!preview.contains("SLICE OF LIFE"), "{preview}");
+        app.nav.focus_stage();
+        app.handle(crate::keymap::Action::Open, 20);
+        let title = text_of(&render_to_buffer(&app, 120, 34));
+        assert!(title.contains("Slice of Life  ·  Sci-Fi"), "{title}");
+    }
+
+    /// The same fact, worded the same way on the preview, the Title page and the rows.
+    #[test]
+    fn the_next_episode_is_worded_one_way() {
+        let e = Entry {
+            last_aired: Some((3, 2 * 86_400)),
+            next_episode: Some(4),
+            next_airing_in: Some(4 * 86_400 + 20 * 3600),
+            airing_in: Some(4 * 86_400 + 20 * 3600),
+            ..entry(1, "Kite")
+        };
+        let mut app = app_with(Content::Entries(vec![e]));
+        let preview = text_of(&render_to_buffer(&app, 120, 34));
+        assert!(preview.contains("ep 3 out 2d ago  ·  ep 4 in 4d 20h"), "{preview}");
+        app.nav.focus_stage();
+        app.handle(crate::keymap::Action::Open, 20);
+        let title = text_of(&render_to_buffer(&app, 120, 34));
+        assert!(title.contains("ep 3 out 2d ago  ·  ep 4 in 4d 20h"), "{title}");
+        assert!(!title.contains("next episode in"), "{title}");
+    }
+
+    #[test]
+    fn a_placeholder_says_its_note_as_a_phrase() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Downloads);
+        let text = text_of(&render_to_buffer(&app, 40, 7));
+        assert!(text.contains("needs a larger terminal"), "{text}");
+        assert!(!text.contains("arrives in"), "{text}");
+    }
+
+    #[test]
+    fn the_library_points_at_the_same_next_step_as_accounts() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Library);
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("trackers.enabled"), "nothing to sign in to yet:\n{text}");
+        assert!(!text.contains("run \"accounts\""), "{text}");
+
+        app.apply(Update::Sync(Box::new(crate::app::SyncState::new("kitsu"))));
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("press 8 for Accounts to sign in"), "{text}");
+    }
+
+    #[test]
+    fn list_statuses_read_as_lowercase_values_in_the_picker() {
+        let mut app = app_with(Content::Entries(vec![entry(1, "Kite")]));
+        app.nav.open_overlay(Overlay::ListStatus);
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("watching"), "{text}");
+        assert!(!text.contains("WATCHING"), "{text}");
     }
 }

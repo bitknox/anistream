@@ -263,11 +263,6 @@ fn parse_episode_range(input: &str) -> Option<(u32, Option<u32>)> {
     }
 }
 
-/// `1 episode`, `6 episodes`.
-pub fn episode_count(n: usize) -> String {
-    if n == 1 { "1 episode".into() } else { format!("{n} episodes") }
-}
-
 fn on_off(yes: bool) -> String {
     if yes { "on".into() } else { "off".into() }
 }
@@ -1554,6 +1549,22 @@ impl App {
         self.content.entries().get(self.selected)
     }
 
+    /// The key for `action` as a sentence names it: the first one the help overlay lists, so a
+    /// rebind changes what the sentence says. Unbound, it points at the palette instead.
+    pub fn key_for(&self, action: Action) -> String {
+        let mut keys = self.keymap.keys_for(action);
+        keys.sort();
+        keys.first().map_or_else(
+            || format!("\u{201c}{}\u{201d} in the palette", action.label().to_lowercase()),
+            crate::keymap::Binding::render,
+        )
+    }
+
+    /// The key that jumps to `section`.
+    pub fn section_key(&self, section: Section) -> String {
+        self.key_for(Action::JumpSection(section.index() as u8 + 1))
+    }
+
     /// Apply an update from a background task.
     pub fn apply(&mut self, update: Update) {
         // Resolution has finished, one way or the other — let the wipe complete. An alert is
@@ -1940,8 +1951,9 @@ impl App {
                 let announce = state.needs_reauth
                     && !self.sync.iter().any(|s| s.tracker == state.tracker && s.needs_reauth);
                 if announce {
+                    let accounts = self.section_key(Section::Accounts);
                     self.push_toast(Toast::alert(format!(
-                        "{} needs signing in again — :accounts",
+                        "{} needs signing in again — press {accounts} for Accounts",
                         state.tracker
                     )));
                 }
@@ -1968,9 +1980,10 @@ impl App {
                 self.conflicts = rows;
                 if appeared {
                     // Surfaced rather than resolved — the whole point of not guessing.
+                    let settle = self.key_for(Action::ShowConflicts);
                     self.push_toast(Toast::info(format!(
-                        "{} sync disagreement(s) — :conflicts",
-                        self.conflicts.len()
+                        "{} — {settle} settles them",
+                        crate::widgets::plural(self.conflicts.len(), "sync disagreement")
                     )));
                 }
             }
@@ -2770,7 +2783,10 @@ impl App {
                     self.set_episode_watched(number, true);
                 }
                 self.apply_episode_filter();
-                self.push_toast(Toast::info(format!("marked {} watched", marked.len())));
+                self.push_toast(Toast::info(format!(
+                    "marked {} watched",
+                    crate::widgets::plural(marked.len(), "episode")
+                )));
                 return Some(Task::SetWatched { id, episodes: marked, watched: true });
             }
             Action::DownloadRange if self.in_episodes() => {
@@ -2984,7 +3000,7 @@ impl App {
                 let at_home_list = self.nav.section() == Section::Home
                     && matches!(self.nav.current(), StageView::Section(Section::Home));
                 if !at_home_list {
-                    self.push_toast(Toast::info("removing works on the Home list"));
+                    self.push_toast(Toast::info("removing works on the Continue list"));
                     return None;
                 }
                 let Content::Entries(entries) = &mut self.content else {
@@ -3008,7 +3024,10 @@ impl App {
             }
             Action::ForceResync => {
                 if self.sync.is_empty() {
-                    self.push_toast(Toast::info("no tracker connected — :accounts"));
+                    let accounts = self.section_key(Section::Accounts);
+                    self.push_toast(Toast::info(format!(
+                        "no tracker connected — press {accounts} for Accounts"
+                    )));
                 } else {
                     return Some(Task::SyncNow);
                 }
@@ -3334,7 +3353,7 @@ impl App {
                 let id = entry.id;
                 let status = *LibrarySegment::ALL.get(self.overlay_selected)?;
                 self.nav.close_overlay();
-                self.push_toast(Toast::info(format!("marked {}", status.label())));
+                self.push_toast(Toast::info(format!("now on your {} list", status.label())));
                 Some(Task::SetStatus { id, status })
             }
             Some(Overlay::SearchFilters) => {
@@ -4053,7 +4072,7 @@ impl App {
                 self.nav.close_overlay();
                 self.push_toast(Toast::info(format!(
                     "queueing {}…",
-                    episode_count(episodes.len())
+                    crate::widgets::plural(episodes.len(), "episode")
                 )));
                 return Some(Task::DownloadMany { id, episodes });
             }
@@ -4741,8 +4760,11 @@ impl SearchFilters {
     ];
     const SEASONS: [(&'static str, &'static str); 4] =
         [("WINTER", "winter"), ("SPRING", "spring"), ("SUMMER", "summer"), ("FALL", "fall")];
-    const FORMATS: [(&'static str, &'static str); 6] = [
+    const FORMATS: [(&'static str, &'static str); 7] = [
         ("TV", "tv"),
+        // Short-form TV — a few minutes an episode — is its own format on AniList, so a
+        // filter without it had no way to find one.
+        ("TV_SHORT", "tv short"),
         ("MOVIE", "movie"),
         ("OVA", "ova"),
         ("ONA", "ona"),
@@ -4777,7 +4799,8 @@ impl SearchFilters {
             })
         };
         match row {
-            0 => self.genre.clone().map(|g| g.to_lowercase()),
+            // A genre is a name, and keeps the casing it has everywhere else it is shown.
+            0 => self.genre.clone(),
             1 => self.year.map(|y| y.to_string()),
             2 => shown(&Self::SEASONS, &self.season),
             3 => shown(&Self::FORMATS, &self.format),
@@ -4908,7 +4931,7 @@ impl Task {
             }
             Self::DownloadEpisode { episode, .. } => format!("queueing ep {episode}"),
             Self::DownloadMany { episodes, .. } => {
-                format!("queueing {}", episode_count(episodes.len()))
+                format!("queueing {}", crate::widgets::plural(episodes.len(), "episode"))
             }
             Self::PlayTrailer { .. } => "opening the trailer".into(),
             Self::LoadStores => "checking plugin stores".into(),
@@ -5558,6 +5581,51 @@ mod tests {
             other => panic!("expected DownloadMany, got {other:?}"),
         }
         assert_eq!(a.nav.overlay(), None);
+    }
+
+    #[test]
+    fn a_count_of_one_is_said_in_the_singular() {
+        let mut a = app_at_episodes();
+        a.handle(Action::DownloadRange, 20);
+        a.type_char('4');
+        let task = a.handle(Action::Open, 20).expect("one episode is a range too");
+        assert!(a.toasts.iter().any(|t| t.text == "queueing 1 episode…"), "{:?}", a.toasts);
+        assert_eq!(task.activity().as_deref(), Some("queueing 1 episode"));
+    }
+
+    #[test]
+    fn a_list_status_is_confirmed_as_the_list_it_is_on() {
+        let mut a = app();
+        a.apply(a.content_here(entries(1)));
+        a.handle(Action::SetListStatus, 10);
+        a.overlay_selected = 2;
+        let task = a.handle(Action::Open, 10);
+        assert!(matches!(
+            task,
+            Some(Task::SetStatus { status: LibrarySegment::Completed, .. })
+        ));
+        assert!(
+            a.toasts.iter().any(|t| t.text == "now on your completed list"),
+            "{:?}",
+            a.toasts
+        );
+    }
+
+    #[test]
+    fn the_format_filter_can_find_short_tv() {
+        let mut filter = SearchFilters::default();
+        filter.cycle(3, true);
+        assert_eq!(filter.row_value(3), "tv");
+        filter.cycle(3, true);
+        assert_eq!(filter.format.as_deref(), Some("TV_SHORT"), "AniList's name for it");
+        assert_eq!(filter.row_value(3), "tv short");
+    }
+
+    #[test]
+    fn a_genre_filter_keeps_the_genre_s_own_casing() {
+        let filter =
+            SearchFilters { genre: Some("Slice of Life".into()), ..Default::default() };
+        assert_eq!(filter.row_value(0), "Slice of Life");
     }
 
     #[test]

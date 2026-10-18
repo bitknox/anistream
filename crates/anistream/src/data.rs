@@ -40,7 +40,7 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
     Entry {
         secondary: media.title.secondary().map(str::to_owned),
         resume,
-        format: media.format.map(|f| format!("{f:?}").to_uppercase()),
+        format: media.format.and_then(format_label),
         episodes: media.episodes,
         year: media.season_year,
         score: media.average_score,
@@ -49,7 +49,14 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
         cover_url: media.cover_image.best().map(str::to_owned),
         banner_url: media.banner_image.clone(),
         genres: media.genres.clone(),
-        available_on: media.streaming_services().iter().map(|l| l.site.clone()).collect(),
+        // One mention per service. AniList lists a link per region or per language, so the
+        // same service could appear twice in one line ("YouTube · Bilibili TV · YouTube").
+        available_on: media.streaming_services().iter().fold(Vec::new(), |mut sites, link| {
+            if !sites.contains(&link.site) {
+                sites.push(link.site.clone());
+            }
+            sites
+        }),
         progress,
         airing_in: media.next_airing_episode.map(|n| n.time_until_airing),
         next_episode: media.next_airing_episode.map(|n| n.episode),
@@ -64,7 +71,7 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
                 id: r.id,
                 title: r.title.display().to_owned(),
                 relation: r.relation_type.map_or_else(String::new, |t| t.to_lowercase()),
-                format: r.format.map(|f| format!("{f:?}").to_uppercase()),
+                format: r.format.and_then(format_label),
             })
             .collect(),
         trailer_url: media.trailer_url(),
@@ -76,7 +83,7 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
                 title: node.title.display().to_owned(),
                 // Not a relation — the empty string is what RECOMMENDED rows show there.
                 relation: String::new(),
-                format: node.format.map(|f| format!("{f:?}").to_uppercase()),
+                format: node.format.and_then(format_label),
             })
             .collect(),
         ..Entry::new(media.id, media.title.display())
@@ -95,6 +102,26 @@ pub fn entry_from_airing(airing: &AiringEntry, now: i64, store: Option<&Store>) 
         title: format!("{}  ep {}", airing.media.title.display(), airing.episode),
         ..entry_from(&airing.media, store)
     }
+}
+
+/// A format as the metadata line shows it: `TV SHORT`, not the `TVSHORT` that upper-casing
+/// the enum's name produced. `None` for a format AniList has and this build does not know,
+/// which says nothing rather than `UNKNOWN`.
+fn format_label(format: anistream_core::media::MediaFormat) -> Option<String> {
+    use anistream_core::media::MediaFormat as F;
+    Some(
+        match format {
+            F::Tv => "TV",
+            F::TvShort => "TV SHORT",
+            F::Movie => "MOVIE",
+            F::Special => "SPECIAL",
+            F::Ova => "OVA",
+            F::Ona => "ONA",
+            F::Music => "MUSIC",
+            F::Unknown => return None,
+        }
+        .to_owned(),
+    )
 }
 
 /// The metadata ladder's rungs, in the UI's terms.
@@ -428,6 +455,30 @@ mod tests {
         let e = entry_from_airing(&airing, 1_000_000, None);
         assert!(e.title.contains("ep 12"));
         assert_eq!(e.airing_in, Some(600));
+    }
+
+    #[test]
+    fn a_short_tv_format_reads_as_two_words() {
+        let mut media = media();
+        media.format = Some(anistream_core::media::MediaFormat::TvShort);
+        assert_eq!(entry_from(&media, None).format.as_deref(), Some("TV SHORT"));
+        media.format = Some(anistream_core::media::MediaFormat::Unknown);
+        assert_eq!(entry_from(&media, None).format, None, "absent beats UNKNOWN");
+    }
+
+    #[test]
+    fn a_service_listed_twice_is_named_once() {
+        let media: Media = serde_json::from_value(serde_json::json!({
+            "id": 1,
+            "title": {"romaji": "Invented Show"},
+            "externalLinks": [
+                {"site": "Streamer", "url": "https://a.test/us", "type": "STREAMING"},
+                {"site": "Other", "url": "https://b.test", "type": "STREAMING"},
+                {"site": "Streamer", "url": "https://a.test/jp", "type": "STREAMING"}
+            ]
+        }))
+        .unwrap();
+        assert_eq!(entry_from(&media, None).available_on, vec!["Streamer", "Other"]);
     }
 
     /// Reported as "EP 5 out · EP 6 in now": the row's slot was paired with the *media's* next

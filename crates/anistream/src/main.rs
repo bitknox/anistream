@@ -2408,11 +2408,11 @@ fn dispatch(
                     }
                     (n, Some(reason)) => Update::Toast(Toast::alert(format!(
                         "queued {}, then: {reason}",
-                        anistream_ui::app::episode_count(n)
+                        anistream_ui::widgets::plural(n, "episode")
                     ))),
                     (n, None) => Update::Toast(Toast::info(format!(
                         "queued {}",
-                        anistream_ui::app::episode_count(n)
+                        anistream_ui::widgets::plural(n, "episode")
                     ))),
                 };
                 let _ = tx.send(update);

@@ -396,9 +396,11 @@ impl Meta {
                 Ok(mut found) => {
                     found.items.retain(|media| {
                         filter.genres.iter().all(|g| media.genres.contains(g))
+                            // By AniList's name for the format, which the filter carries:
+                            // the enum's name upper-cased is `TVSHORT`, not `TV_SHORT`.
                             && filter.format.as_deref().is_none_or(|f| {
-                                media.format.map(|m| format!("{m:?}").to_uppercase())
-                                    == Some(f.to_owned())
+                                media.format.and_then(|m| serde_json::to_value(m).ok())
+                                    == Some(serde_json::Value::from(f))
                             })
                     });
                     self.note_tenrai(None);
@@ -468,6 +470,14 @@ impl Meta {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The fallback's format filter compares against the filter's value, which is AniList's
+    /// name for the format. The enum's own name upper-cased is `TVSHORT`, which matched nothing.
+    #[test]
+    fn a_format_compares_by_the_name_the_filter_uses() {
+        let wire = serde_json::to_value(anistream_core::media::MediaFormat::TvShort).ok();
+        assert_eq!(wire, Some(serde_json::Value::from("TV_SHORT")));
+    }
 
     #[test]
     fn health_starts_on_the_ground_floor_with_everything_in_its_place() {

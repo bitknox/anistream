@@ -354,7 +354,7 @@ pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -
             answer(Content::Entries(rows))
         }
         Err(anistream_core::Error::Auth(_)) => {
-            answer(Content::Failed("sign in again — :accounts".into()))
+            answer(Content::Failed("sign in again on the Accounts screen".into()))
         }
         Err(e) => answer(Content::Failed(e.to_string())),
     }
@@ -489,7 +489,10 @@ pub async fn pull_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
                 let _ = tx.send(Update::Sync(Box::new(sync.state_for(
                     tracker.as_ref(),
                     false,
-                    Some(format!("pulled {} titles", report.seen)),
+                    Some(format!(
+                        "pulled {}",
+                        anistream_ui::widgets::plural(report.seen as usize, "title")
+                    )),
                 ))));
 
                 // Conflicts are titles, so they need names — which means resolving each id
@@ -917,8 +920,11 @@ pub fn disconnect(sync: &Sync, tracker_id: &str, tx: &mpsc::UnboundedSender<Upda
         // The queue is deliberately left alone. Signing out is not "discard my progress", and
         // signing back in should send what accumulated.
         Ok(()) => Update::Toast(Toast::info(format!(
-            "signed out of {tracker_id} — {} queued op(s) kept",
-            sync.store.outbox_depth(Some(tracker_id)).unwrap_or(0)
+            "signed out of {tracker_id} — {} kept",
+            anistream_ui::widgets::plural(
+                sync.store.outbox_depth(Some(tracker_id)).unwrap_or(0) as usize,
+                "queued change"
+            )
         ))),
         Err(e) => Update::Toast(Toast::alert(format!("could not sign out: {e}"))),
     };
