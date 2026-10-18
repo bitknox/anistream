@@ -342,12 +342,15 @@ fn session_marked(saved: String, current: String) -> String {
     if saved == current { saved } else { format!("{saved} · {current} this session") }
 }
 
-/// An upload cap as people read it: `unlimited`, `512 KB/s`, `2 MB/s`.
+/// An upload cap as people read it: `unlimited`, `524 kB/s`, `2.1 MB/s`.
+///
+/// The config counts KiB/s, and this said `KB/s` and `MB/s` of those — binary values under the
+/// decimal names every other size here uses. Converted rather than relabelled, so the cap reads in
+/// the same units as the download sizes beside it.
 fn upload_label(kib: u32) -> String {
     match kib {
         0 => "unlimited".into(),
-        k if k >= 1024 && k % 1024 == 0 => format!("{} MB/s", k / 1024),
-        k => format!("{k} KB/s"),
+        k => format!("{}/s", crate::widgets::human_bytes(u64::from(k) * 1024)),
     }
 }
 
@@ -695,6 +698,9 @@ pub struct MetaSourceRow {
     /// The rung that answered the most recent request.
     pub active: bool,
     pub detail: Option<String>,
+    /// While the rung is being skipped, when it is next tried, in Unix seconds. Said at draw
+    /// time: a countdown built when the status was sent stood still on an idle screen.
+    pub retry_at: Option<i64>,
 }
 
 /// A plugin store this machine has joined, as the store screens show it.
@@ -8153,6 +8159,7 @@ mod tests {
             healthy: true,
             active,
             detail: None,
+            retry_at: None,
         };
         a.apply(Update::MetaStatus(vec![row("anilist", true), row("tenrai", false)]));
         assert!(!a.meta_degraded(), "anilist serving is the resting state");
@@ -9492,11 +9499,12 @@ mod tests {
         let rows = a.setting_rows();
         assert_eq!(rows[a.selected].value, "unlimited");
         a.handle(Action::Right, 10);
-        assert_eq!(a.setting_rows()[a.selected].value, "256 KB/s");
+        // 256 KiB/s in the file, said in the decimal units every other size uses.
+        assert_eq!(a.setting_rows()[a.selected].value, "262 kB/s");
         for _ in 0..3 {
             a.handle(Action::Right, 10);
         }
-        assert_eq!(a.setting_rows()[a.selected].value, "2 MB/s");
+        assert_eq!(a.setting_rows()[a.selected].value, "2.1 MB/s");
     }
 
     #[test]

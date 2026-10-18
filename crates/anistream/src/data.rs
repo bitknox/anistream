@@ -165,6 +165,9 @@ pub fn meta_rows(meta: &anistream_meta::Meta) -> Vec<anistream_ui::app::MetaSour
             healthy: h.healthy,
             active: h.active,
             detail: h.detail,
+            retry_at: h.retry_at.and_then(|at| {
+                at.duration_since(std::time::UNIX_EPOCH).ok().map(|d| d.as_secs() as i64)
+            }),
         })
         .collect()
 }

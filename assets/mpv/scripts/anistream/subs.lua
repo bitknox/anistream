@@ -76,7 +76,10 @@ function M.follow(bar)
     overlay.on_frame(function()
         local share = config.opts.uosc and bar.fade.value or 0
         local points = share > 0 and lift_points() * share or 0
-        if math.abs(points - lifted) < 0.01 then
+        -- Steps too small to see are skipped, but never the last one down: the fade eases out,
+        -- so its tail can leave a lift under the threshold, and skipping the drop from there
+        -- left the subtitles a hundredth of a point off where the viewer had them, still lifted.
+        if math.abs(points - lifted) < 0.01 and (points ~= 0 or lifted == 0) then
             return
         end
         if base == nil then
