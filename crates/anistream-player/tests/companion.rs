@@ -523,6 +523,29 @@ async fn an_ending_skipped_under_up_next_still_offers_undo() {
 }
 
 #[tokio::test]
+async fn up_next_can_be_cancelled_while_the_skip_note_covers_it() {
+    // Up Next keeps counting down under the note, and its moment to roll on comes while the
+    // note holds the corner. Esc there did nothing, and the next episode started the moment
+    // the card came back.
+    require_mpv!();
+    let mut player = Player::start(Some(&clip(30)), &["--pause"]).await;
+    player.state("next", json!({"label": "Episode 2", "at": 0.0, "auto": true})).await;
+    player.wait_ui("Up Next", |ui| ui["up_next"]["visible"] == true).await;
+    player
+        .message(
+            "skipped",
+            json!({"kind": "ending", "label": "ending", "from": 12.3, "to": 25.0}),
+        )
+        .await;
+    player.wait_ui("the undo note", |ui| ui["skipped"]["visible"] == true).await;
+    let held = player.held_keys().await;
+    assert!(held.iter().any(|k| k == "ESC") && held.iter().any(|k| k == "u"), "{held:?}");
+    player.key("ESC").await;
+    player.event("cancel-next").await;
+    player.finish().await;
+}
+
+#[tokio::test]
 async fn the_arrows_step_five_seconds_in_anistream_mode() {
     require_mpv!();
     let mut player =

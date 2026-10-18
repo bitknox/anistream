@@ -205,6 +205,16 @@ local function refresh()
                 end
             end
         end
+        -- An ending skipped on its own puts its note over Up Next, which keeps counting down
+        -- behind it. Its keys stay live underneath, or Esc did nothing for the six seconds the
+        -- note was up and the next episode started the moment the card came back.
+        if winner == skipped and up_next.wants() and not help.is_open() then
+            for key, fn in pairs(up_next.keys()) do
+                if wanted[key] == nil then
+                    wanted[key] = fn
+                end
+            end
+        end
     end
     keys.set(wanted)
 
