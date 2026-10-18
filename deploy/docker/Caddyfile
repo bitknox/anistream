@@ -1,0 +1,5 @@
+# HTTPS for the store at STORE_DOMAIN, with plain HTTP redirected to it. Caddy sets
+# X-Forwarded-For, -Proto and -Host on what it passes on, and replaces any a client sent itself.
+{$STORE_DOMAIN} {
+	reverse_proxy store:7878
+}

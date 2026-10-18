@@ -1,0 +1,53 @@
+# The anistream plugin store on a home machine, with no domain name and no open ports. Tailscale
+# gives it the HTTPS address https://<STORE_HOSTNAME>.<TAILNET>, and Funnel makes that address
+# public, so friends who do not use Tailscale can join too. From this directory:
+#
+#   cat > .env <<'EOF'
+#   TS_AUTHKEY=tskey-auth-...
+#   TAILNET=tail1234.ts.net
+#   EOF
+#   docker compose -f compose.tailscale.yaml up -d
+#   docker compose -f compose.tailscale.yaml logs store       # the owner invite
+#
+# Set STORE_EXPOSE=serve to keep the store on your tailnet only. README.md here covers the
+# tailnet settings Funnel needs.
+name: anistream-store-tailscale
+
+services:
+  tailscale:
+    image: tailscale/tailscale:stable
+    restart: unless-stopped
+    environment:
+      TS_AUTHKEY: ${TS_AUTHKEY:?set TS_AUTHKEY to an auth key from the Tailscale admin console}
+      TS_HOSTNAME: ${STORE_HOSTNAME:-anistream-store}
+      TS_STATE_DIR: /var/lib/tailscale
+      # Log in on the first start only. The node's identity is kept in the state volume, and the
+      # auth key may well have expired by the next restart.
+      TS_AUTH_ONCE: "true"
+      # funnel.json serves the store publicly, serve.json to your tailnet only.
+      TS_SERVE_CONFIG: /config/${STORE_EXPOSE:-funnel}.json
+    volumes:
+      - tailscale:/var/lib/tailscale
+      # The directory rather than the file: Tailscale only notices edits to a mounted directory.
+      - ./tailscale:/config:ro
+
+  store:
+    image: ghcr.io/bitknox/anistream-store:1
+    restart: unless-stopped
+    # The tailscale container's network, so Serve and the store reach each other on loopback.
+    network_mode: service:tailscale
+    depends_on:
+      - tailscale
+    environment:
+      ANISTREAM_STORE_URL: https://${STORE_HOSTNAME:-anistream-store}.${TAILNET:?set TAILNET to your tailnet's DNS name, such as tail1234.ts.net}
+      # Loopback only, which keeps the store off the Docker network. Serve connects from
+      # 127.0.0.1, and the store believes forwarded headers from loopback, so it needs no
+      # --trust-proxy here.
+      ANISTREAM_STORE_LISTEN: 127.0.0.1:7878
+      ANISTREAM_STORE_NAME: ${STORE_NAME:-}
+    volumes:
+      - store:/data
+
+volumes:
+  tailscale:
+  store:

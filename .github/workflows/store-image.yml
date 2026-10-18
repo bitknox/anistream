@@ -1,0 +1,180 @@
+name: Store image
+
+# The plugin store's container image, ghcr.io/bitknox/anistream-store, which the Fly, Render,
+# Railway, Heroku and Docker templates under deploy/ run. Each release publishes it; a pull
+# request that could change it only checks that it still builds.
+on:
+  push:
+    tags: ['v*']
+  # Publishes an existing release's image again, after a fix to the Dockerfile or to this
+  # workflow, without cutting a new tag.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to build and publish, such as v1.0.0
+        required: true
+        type: string
+  pull_request:
+    paths:
+      - crates/anistream-store-server/**
+      - crates/anistream-plugin-store/**
+      - crates/anistream-store-core/**
+      - crates/anistream-plugin/**
+      - crates/anistream-core/**
+      - Cargo.toml
+      - Cargo.lock
+      - rust-toolchain.toml
+      - wit/**
+      - .dockerignore
+      - deploy/container/Dockerfile
+      - .github/workflows/store-image.yml
+
+# A newer push to the same pull request makes the running build moot. A release is left to
+# finish, since cancelling it would leave the tag without an image.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# The workflow's own token pushes to GHCR, which also links the package to this repository.
+# Nothing here writes to the repository itself.
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/bitknox/anistream-store
+  # One list for both jobs: the build job needs it for the version label, the merge job for the
+  # tags. `value` is empty on a tag push, which makes the action read the pushed tag instead.
+  # Pre-release tags such as v1.1.0-rc.1 only get their own version tag, never `latest` or `1`.
+  IMAGE_TAGS: |
+    type=semver,pattern={{version}},value=${{ inputs.tag }}
+    type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tag }}
+    type=semver,pattern={{major}},value=${{ inputs.tag }}
+
+jobs:
+  # Docker's "distribute build across multiple runners" pattern: each architecture compiles on a
+  # runner of its own kind, because a Rust build this size under QEMU emulation is many times
+  # slower, and pushes its image by digest. `merge` then publishes one set of tags covering both.
+  build:
+    name: build (${{ matrix.platform }})
+    runs-on: ${{ matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+        # A pull request only needs to know the image still builds; one architecture says so.
+        exclude:
+          - platform: ${{ github.event_name == 'pull_request' && 'linux/arm64' || 'none' }}
+
+    steps:
+      - name: Prepare
+        run: |
+          platform=${{ matrix.platform }}
+          echo "PLATFORM_PAIR=${platform//\//-}" >> "$GITHUB_ENV"
+
+      # `inputs.tag` is empty on a tag push or a pull request, and checkout then takes the ref
+      # that triggered the run.
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          tags: ${{ env.IMAGE_TAGS }}
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      # The checked-out directory as context rather than the action's default Git context, so
+      # that .dockerignore applies and a dispatched run builds the tag it was given.
+      #
+      # The Actions cache holds layers, not the cargo cache mounts, so it saves the compile only
+      # when the source is unchanged, as on a re-run. Pull requests read it but never write it,
+      # for the same reason as in ci.yml: their entries would push the release builds' out of the
+      # repository's cache quota.
+      - name: Build, and push by digest
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: deploy/container/Dockerfile
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ env.IMAGE }}
+          outputs: ${{ github.event_name == 'pull_request' && 'type=cacheonly' || 'type=image,push-by-digest=true,name-canonical=true,push=true' }}
+          cache-from: type=gha,scope=store-image-${{ env.PLATFORM_PAIR }}
+          cache-to: ${{ github.event_name != 'pull_request' && format('type=gha,mode=max,scope=store-image-{0}', env.PLATFORM_PAIR) || '' }}
+
+      - name: Export digest
+        if: github.event_name != 'pull_request'
+        run: |
+          mkdir -p "$RUNNER_TEMP/digests"
+          digest="${{ steps.build.outputs.digest }}"
+          touch "$RUNNER_TEMP/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
+          tags: ${{ env.IMAGE_TAGS }}
+
+      # Docker's documented step, with arrays in place of word splitting. GHCR shows a
+      # multi-architecture image's description from the index rather than from the images' labels,
+      # so the index carries it as an annotation.
+      - name: Create the manifest list and push it
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          mapfile -t tags < <(jq -r '.tags[] | ("-t", .)' <<< "$DOCKER_METADATA_OUTPUT_JSON")
+          sources=()
+          for digest in *; do sources+=("$IMAGE@sha256:$digest"); done
+          docker buildx imagetools create "${tags[@]}" \
+            --annotation "index:org.opencontainers.image.source=https://github.com/bitknox/anistream" \
+            --annotation "index:org.opencontainers.image.description=A private plugin store for anistream." \
+            --annotation "index:org.opencontainers.image.licenses=MIT" \
+            "${sources[@]}"
+
+      - name: Inspect the image
+        run: docker buildx imagetools inspect "$IMAGE:$VERSION"
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}

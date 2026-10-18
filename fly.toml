@@ -1,0 +1,44 @@
+# Fly.io: the anistream plugin store from its published image, with a volume for its files.
+# In an empty directory:
+#
+#   fly launch --from https://github.com/bitknox/anistream --copy-config
+#
+# `fly launch` clones the repository, reads this file and asks for an app name and a region.
+# There is no `app` line, so each launch gets a name of its own. The store finds its address,
+# https://<app>.fly.dev, and trusts Fly's proxy without being told; its owner invite is in
+# `fly logs`. See deploy/README.md.
+
+# Machines get no swap by default. Checking an uploaded JavaScript plugin compiles it, which can
+# briefly need around 500 MB, and swap lets a small machine get through that instead of being
+# stopped for running out of memory.
+swap_size_mb = 512
+
+[build]
+  image = "ghcr.io/bitknox/anistream-store:1"
+
+# One volume, so one machine: flyctl creates a single machine for a process group with a mount.
+# The volume's mount point is given to the image's user, so the store writes to it unprivileged.
+[mounts]
+  source = "anistream_store"
+  destination = "/data"
+  initial_size = "1gb"
+
+# The machine stops when nobody uses the store and Fly starts it on the next request. That costs
+# a second or two on a member's first refresh, and while it is stopped only storage is billed.
+[http_service]
+  internal_port = 7878
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/healthz"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

@@ -1,0 +1,11 @@
+{
+  "name": "anistream-store-vercel",
+  "private": true,
+  "type": "module",
+  "description": "An anistream plugin store, as a Vercel function on Postgres",
+  "license": "MIT",
+  "dependencies": {
+    "@vercel/functions": "^3.10.1",
+    "pg": "^8.23.1"
+  }
+}

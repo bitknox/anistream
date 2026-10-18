@@ -1,0 +1,29 @@
+{
+  "name": "anistream-plugin-store",
+  "private": true,
+  "type": "module",
+  "description": "An anistream plugin store on Cloudflare Workers, D1 and R2.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.151.1"
+  },
+  "cloudflare": {
+    "bindings": {
+      "ANISTREAM_STORE_SETUP_CODE": {
+        "description": "A code you choose, which claims the store from its admin page at `/admin/` while nobody owns it yet. Make it long and random, for example the output of `openssl rand -hex 16`, and keep it to yourself."
+      },
+      "ANISTREAM_STORE_NAME": {
+        "description": "The store's name, as the people you invite see it in anistream."
+      },
+      "DB": {
+        "description": "The D1 database that keeps the store's members, invites and plugin list."
+      },
+      "FILES": {
+        "description": "The R2 bucket that keeps the plugin files."
+      }
+    }
+  }
+}

@@ -1,0 +1,14 @@
+# The store is one function answering every path. The site itself has no files to publish, but
+# Netlify publishes a directory all the same, so it gets an empty one.
+[build]
+  publish = "public"
+
+[functions]
+  directory = "netlify/functions"
+  # The store's WebAssembly, read from disk when the function first runs. The bundler's tracing
+  # finds it too; listing it keeps it shipped should the tracing ever miss it.
+  included_files = ["store/store_bg.wasm"]
+
+# Asked for when deploying with the button.
+[template.environment]
+  ANISTREAM_STORE_SETUP_CODE = "A long code you make up. You enter it once on the store's admin page to become its owner."

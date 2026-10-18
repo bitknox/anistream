@@ -1,0 +1,29 @@
+{
+  "name": "anistream plugin store",
+  "description": "A private plugin store for anistream. Friends join with an invite link and install the plugins you publish.",
+  "repository": "https://github.com/bitknox/anistream",
+  "keywords": ["anistream", "plugins", "webassembly"],
+  "stack": "container",
+  "success_url": "/admin/",
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:essential-0"
+    }
+  ],
+  "env": {
+    "ANISTREAM_STORE_SETUP_CODE": {
+      "description": "Claims the store from its admin page while nobody owns it. Generated for you: find it under Settings, Config Vars.",
+      "generator": "secret"
+    },
+    "ANISTREAM_STORE_NAME": {
+      "description": "The store's name, as members see it.",
+      "required": false
+    }
+  }
+}

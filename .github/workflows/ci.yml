@@ -82,6 +82,58 @@ jobs:
         uses: ilammy/setup-nasm@v1
       - run: cargo clippy --workspace --all-targets -- -D warnings
 
+  # The plugin store's admin page is committed as built output, so building the server never
+  # needs bun. This rebuilds it from source and fails if the two have drifted apart.
+  admin-page:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crates/anistream-store-core/admin
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - name: The committed build matches its source
+        run: git diff --exit-code -- ../assets/admin
+
+  # The serverless deploy templates carry the store as committed WebAssembly, so deploying one
+  # from its button never needs Rust. This rebuilds it and fails if any committed copy differs.
+  # sync.sh rewrites the paths that would otherwise differ between machines, and wasm-pack is
+  # pinned because it chooses the wasm-opt that shapes the output.
+  store-wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install && rustup target add wasm32-unknown-unknown
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack@0.13.1
+      - run: deploy/sync.sh
+      - name: The committed builds match their source
+        run: git diff --exit-code -- deploy
+
+  # Each serverless template, run on the runner the way its platform runs it, through the whole
+  # journey a store's owner and members take: claim, publish in parts, join, download in ranges,
+  # remove, sign in to the admin page. Nothing else exercises the templates' JavaScript.
+  store-templates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - uses: oven-sh/setup-bun@v2
+      # Vercel's functions run on Node 24, and the Netlify and test hosts run on whatever node is
+      # first on the path.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Install each template's dependencies
+        run: for dir in cloudflare vercel netlify test; do (cd "deploy/$dir" && bun install --frozen-lockfile); done
+      - run: deploy/test/journeys.sh
+
   audit:
     runs-on: ubuntu-latest
     steps:
