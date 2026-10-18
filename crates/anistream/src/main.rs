@@ -33,6 +33,24 @@ use tokio::sync::mpsc;
 
 #[derive(Parser, Debug)]
 #[command(name = "anistream", version, about = "An anime streaming TUI")]
+// One command per run. Resolved silently by the order of the checks in `main`, `--stats
+// --random` printed the stats and dropped the rest without a word.
+#[command(group(
+    clap::ArgGroup::new("command").multiple(false).args([
+        "doctor", "update", "refresh_data", "preview", "login", "login_url", "logout", "sync",
+        "token_to_file", "search", "stats", "export", "import", "random", "stream_url", "play",
+        "continue_watching", "plugins",
+    ])
+))]
+// The options that only mean something to some commands. Alone, each used to start the
+// interface as if it had not been typed.
+#[command(group(clap::ArgGroup::new("json_command").multiple(true).args(["search", "stats", "random"])))]
+#[command(group(clap::ArgGroup::new("episode_command").multiple(true).args(["stream_url", "play"])))]
+#[command(group(
+    clap::ArgGroup::new("tracker_command")
+        .multiple(true)
+        .args(["login", "login_url", "logout", "token_to_file"])
+))]
 struct Cli {
     /// Force a theme mode, overriding config.
     #[arg(long, value_parser = ["adaptive", "immersive"])]
@@ -58,13 +76,12 @@ struct Cli {
     ///
     /// Lets the layout be inspected without an interactive terminal — useful for checking
     /// the design at a given size, and for seeing it at all over a non-tty connection.
-    #[arg(long, value_name = "WIDTHxHEIGHT")]
-    preview: Option<String>,
+    #[arg(long, value_name = "WIDTHxHEIGHT", value_parser = parse_size)]
+    preview: Option<(u16, u16)>,
 
-    /// Which screen to preview: home, search, title, episodes, calendar, library, downloads,
-    /// providers, accounts, settings, help, palette.
-    #[arg(long, default_value = "home")]
-    screen: String,
+    /// Which screen `--preview` renders. Home when left out.
+    #[arg(long, value_enum, requires = "preview")]
+    screen: Option<PreviewScreen>,
 
     /// Sign in to a tracker and exit.
     ///
@@ -75,9 +92,10 @@ struct Cli {
     #[arg(long, value_name = "TOKEN", num_args = 0..=1, default_missing_value = "")]
     login: Option<String>,
 
-    /// Which tracker `--login` is for.
-    #[arg(long, default_value = "anilist")]
-    tracker: String,
+    /// Which tracker `--login`, `--login-url`, `--logout` and `--token-to-file` are for.
+    /// AniList when left out.
+    #[arg(long, requires = "tracker_command")]
+    tracker: Option<String>,
 
     /// Print the authorize URL for `--tracker` and exit.
     #[arg(long)]
@@ -122,11 +140,11 @@ struct Cli {
     #[arg(long)]
     random: bool,
 
-    /// Emit JSON instead of text, for the commands that support it.
+    /// Emit JSON instead of text: for `--search`, `--stats` and `--random`.
     ///
     /// The point of the non-interactive commands: composable with `jq` and friends rather than a
     /// walled garden.
-    #[arg(long)]
+    #[arg(long, requires = "json_command")]
     json: bool,
 
     /// Resolve one episode to a playable URL, print it, and hold it open.
@@ -141,7 +159,7 @@ struct Cli {
     /// Which episode `--stream-url` and `--play` act on. Accepts non-numeric ids like `OVA`.
     ///
     /// Left unset, `--stream-url` takes episode 1 and `--play` takes the next unwatched.
-    #[arg(long)]
+    #[arg(long, requires = "episode_command")]
     episode: Option<String>,
 
     /// Play one title without the TUI: resolve, hand to mpv, record history, exit.
@@ -165,6 +183,41 @@ struct Cli {
 
     #[command(subcommand)]
     command: Option<Command>,
+}
+
+/// The screens `--preview` can render.
+#[derive(clap::ValueEnum, Clone, Copy, Debug, PartialEq, Eq)]
+enum PreviewScreen {
+    Home,
+    Calendar,
+    Seasonal,
+    Search,
+    Library,
+    Downloads,
+    Providers,
+    Accounts,
+    Settings,
+    /// The first Continue title's page.
+    Title,
+    /// The first Continue title's episode table.
+    Episodes,
+    Help,
+    Palette,
+}
+
+/// `WIDTHxHEIGHT`, refused when it is not one, rather than quietly rendered at 120x34.
+fn parse_size(text: &str) -> std::result::Result<(u16, u16), String> {
+    let expected = || format!("expected WIDTHxHEIGHT, like 120x34, not {text:?}");
+    let (width, height) = text.split_once(['x', 'X']).ok_or_else(expected)?;
+    let (width, height): (u16, u16) = (
+        width.trim().parse().map_err(|_| expected())?,
+        height.trim().parse().map_err(|_| expected())?,
+    );
+    // Zero rows printed nothing at all; past a thousand a frame is a mistake, not a terminal.
+    if !(1..=1000).contains(&width) || !(1..=1000).contains(&height) {
+        return Err(format!("{width}x{height} cannot be drawn: each side must be 1 to 1000"));
+    }
+    Ok((width, height))
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -228,20 +281,21 @@ async fn main() -> Result<()> {
     if cli.refresh_data {
         return refresh_data(&store, &http).await;
     }
+    let tracker = cli.tracker.as_deref().unwrap_or("anilist");
     if cli.login_url {
-        return print_login_url(&config, &cli.tracker);
+        return print_login_url(&config, tracker);
     }
     if let Some(token) = &cli.login {
-        return login(&config, &cli.tracker, token, &http).await;
+        return login(&config, tracker, token, &http).await;
     }
     if cli.logout {
-        return forget_token(&config, &cli.tracker);
+        return forget_token(&config, tracker);
     }
     if cli.sync {
         return sync_once(&config, &store, &http).await;
     }
     if cli.token_to_file {
-        return migrate_token(&config, &cli.tracker);
+        return migrate_token(&config, tracker);
     }
     if cli.plugins {
         return list_plugins(&config, &paths).await;
@@ -289,8 +343,9 @@ async fn main() -> Result<()> {
     if cli.random {
         return random_cli(&store, cli.json);
     }
-    if let Some(size) = &cli.preview {
-        return preview(config, http, store, &paths, size, &cli.screen, !cli.no_images).await;
+    if let Some(size) = cli.preview {
+        let screen = cli.screen.unwrap_or(PreviewScreen::Home);
+        return preview(config, http, store, &paths, size, screen, !cli.no_images).await;
     }
 
     run(config, paths, http, store, !cli.no_images, config_problem).await
@@ -331,171 +386,141 @@ async fn store_command(command: Command, paths: &Paths) -> Result<()> {
 }
 
 /// Render one frame with live data and print it as text.
+///
+/// Reached the way a person reaches the screen in the running app: the same startup state —
+/// sources with plugins loaded, sync and store rows — then the same keys, whose tasks are
+/// dispatched exactly as the event loop dispatches them and whose updates are applied until
+/// nothing is outstanding. Assembling each screen by hand instead drifted from the live one:
+/// the title preview pressed Enter on a resumable row and rendered Now Playing, the episode
+/// table never left LOADING, and Library and Providers showed state the app never had.
 async fn preview(
     config: Config,
     http: HttpClient,
     store: Store,
     paths: &Paths,
-    size: &str,
-    screen: &str,
+    (width, height): (u16, u16),
+    screen: PreviewScreen,
     images: bool,
 ) -> Result<()> {
-    use anistream_ui::nav::{Overlay, Section};
+    use anistream_ui::keymap::Action;
     use ratatui::{Terminal, backend::TestBackend};
-
-    let (width, height) = size
-        .split_once(['x', 'X'])
-        .and_then(|(w, h)| Some((w.trim().parse().ok()?, h.trim().parse().ok()?)))
-        .unwrap_or((120u16, 34u16));
 
     let palette = theme::resolve_with(config.theme.mode, None);
     let meta = build_meta(&config, &http, &store);
-    let engine = anistream_ui::image::ImageEngine::detect(images);
+    let mut keymap = Keymap::new();
+    for problem in keymap.apply_overrides(&config.keys) {
+        eprintln!("[keybinding: {problem}]");
+    }
+    let engine =
+        anistream_ui::image::ImageEngine::detect(images).with_cache_dir(paths.image_cache());
     let graphics = engine.graphics();
-    let mut app = App::with_images(config, palette, Keymap::new(), engine);
 
-    let entries = match screen {
-        "calendar" => {
-            let now = now_epoch();
-            calendar_timeline(&meta, &store, now).await.map(|l| l.entries).unwrap_or_default()
-        }
-        "search" => meta
-            .search("frieren", &Default::default(), 1, 20)
-            .await
-            .map(|p| p.items.iter().map(|m| data::entry_from(m, Some(&store))).collect())
-            .unwrap_or_default(),
-        // Through the same function the running app uses, or `--preview` would render a screen
-        // that does not exist — which defeats the point of having it.
-        _ => continue_entries(&meta, &store).await.unwrap_or_default(),
+    // The sources a running app has a moment after launch: the torrent source once its guard
+    // has answered, and the plugins once compiled.
+    let (registry, guard, mut note) =
+        sources::build_registry(&config, &http, paths, &store).await;
+    let plugins = sources::spawn_plugin_load(
+        registry.clone(),
+        config.clone(),
+        http.clone(),
+        paths.clone(),
+    );
+    if let Ok(Some(reason)) = plugins.await {
+        note = Some(reason);
+    }
+    let stores = plugin_stores::Stores::new(&config, paths).map_err(|e| anyhow::anyhow!(e))?;
+    let mut app = App::with_images(config, palette, keymap, engine);
+    if let Some(note) = note {
+        app.apply(Update::ProviderNote(note));
+    }
+    if let Some((guard, _)) = &guard {
+        let state = guard.state();
+        app.apply(Update::Vpn { badge: state.badge(), leaking: !state.is_protected() });
+    }
+    match stores.rows() {
+        Ok(rows) => app.apply(Update::Stores(rows)),
+        Err(e) => app.apply(Update::Toast(Toast::alert(e))),
+    }
+    app.apply(Update::Providers(data::provider_rows(&registry)));
+    let sync = tracking::Sync::build(&app.config, &store, &http);
+    for state in sync.initial_states() {
+        app.apply(Update::Sync(Box::new(state)));
+    }
+
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let mut run = PreviewRun {
+        tx,
+        rows: screens::visible_rows(
+            ratatui::layout::Rect::new(0, 0, width, height),
+            app.nav.section(),
+        ),
+        player_tx: None,
+        slot: PlayerSlot::default(),
+        prefetch: Prefetch::default(),
+        meta,
+        store,
+        registry,
+        http,
+        sync,
+        stores,
+        paths: paths.clone(),
     };
 
-    // The broadcast line needs its own request, so the preview has to make it too — otherwise
-    // `--preview` would render a frame that is subtly different from the running app, which
-    // defeats the point of having it.
-    let mut entries = entries;
-    let airing: Vec<anistream_core::ids::AnilistId> =
-        entries.iter().filter(|e| e.airing_in.is_some()).map(|e| e.id).collect();
-    if !airing.is_empty()
-        && let Ok(rows) = meta.last_aired(&airing).await
-    {
-        let now = now_epoch();
-        // Aired rows only: AniList has answered this query with a schedule row whose air
-        // time is still ahead, and "EP 13 out just now" for next week's episode is exactly
-        // the lie the broadcast line exists not to tell.
-        for row in rows.into_iter().filter(|r| r.airing_at <= now) {
-            if let Some(entry) = entries.iter_mut().find(|e| e.id == row.media_id) {
-                entry.last_aired = Some((row.episode, now.saturating_sub(row.airing_at)));
-            }
-        }
+    // Launch: Home loads.
+    if let Some(task) = app.reload() {
+        run.dispatch(&mut app, task);
+    }
+    run.settle(&mut app, &mut rx).await;
+
+    let section = |n: u8| Action::JumpSection(n);
+    let keys: Vec<Action> = match screen {
+        PreviewScreen::Home => Vec::new(),
+        PreviewScreen::Calendar => vec![section(2)],
+        PreviewScreen::Seasonal => vec![section(3)],
+        PreviewScreen::Search => vec![section(4), Action::Open],
+        PreviewScreen::Library => vec![section(5)],
+        PreviewScreen::Downloads => vec![section(6)],
+        PreviewScreen::Providers => vec![section(7)],
+        PreviewScreen::Accounts => vec![section(8)],
+        PreviewScreen::Settings => vec![section(9)],
+        // Into the list; the title is opened below, not with Enter, which plays a row with
+        // something to resume.
+        PreviewScreen::Title | PreviewScreen::Episodes => vec![Action::Open],
+        PreviewScreen::Help => vec![Action::Help],
+        PreviewScreen::Palette => vec![Action::CommandPalette],
+    };
+    for action in keys {
+        run.press(&mut app, action).await;
     }
 
     match screen {
-        "search" => {
-            app.go_to_section(Section::Search);
-            app.search_query = "frieren".into();
+        // A query typed and sent, as at the keyboard. A word rather than a title, so the
+        // preview shows what search looks like without depending on one show.
+        PreviewScreen::Search => {
+            "summer".chars().for_each(|c| app.type_char(c));
+            run.press(&mut app, Action::Open).await;
         }
-        "calendar" => {
-            app.go_to_section(Section::Calendar);
-        }
-        "settings" => {
-            app.go_to_section(Section::Settings);
-        }
-        "accounts" => {
-            app.go_to_section(Section::Accounts);
-            for state in tracking::Sync::build(&app.config, &store, &http).initial_states() {
-                app.apply(Update::Sync(Box::new(state)));
+        PreviewScreen::Title | PreviewScreen::Episodes => {
+            if let Some(task) = app.open_selected() {
+                run.dispatch(&mut app, task);
+                run.settle(&mut app, &mut rx).await;
+            } else {
+                eprintln!("[title: nothing on Home to open — watch something first]");
+            }
+            if screen == PreviewScreen::Episodes {
+                run.press(&mut app, Action::ShowEpisodes).await;
             }
         }
-        "providers" => {
-            let (registry, _, note) =
-                sources::build_registry(&app.config, &http, paths, &store).await;
-            registry.check_all(now_epoch()).await;
-            app.go_to_section(Section::Providers);
-            if let Some(note) = note {
-                app.apply(Update::ProviderNote(note));
-            }
-            app.apply(Update::Providers(data::provider_rows(&registry)));
-            app.apply(Update::MetaStatus(data::meta_rows(&meta)));
-        }
-        "library" => {
-            // Rendered from the local rows rather than a tracker fetch: a preview must not
-            // depend on being signed in, and the screen is the same either way.
-            app.go_to_section(Section::Library);
-        }
-        "downloads" => {
-            app.go_to_section(Section::Downloads);
-            if let Ok(rows) = store.downloads() {
-                app.apply(Update::Downloads(rows.iter().map(downloads::to_row).collect()));
-            }
-        }
+        PreviewScreen::Palette => "ep".chars().for_each(|c| app.type_char(c)),
         _ => {}
     }
-    app.apply(app.content_here(Content::Entries(entries)));
-    app.nav.focus_stage();
-
-    match screen {
-        "title" => {
-            // Fetch the full record so availability badges and the synopsis are real. Opened
-            // first: the record is only taken for the title on screen, and opening afterwards
-            // replaced it with the list's thinner entry anyway.
-            let first = app.selected_entry().map(|e| e.id);
-            app.handle(anistream_ui::keymap::Action::Open, 20);
-            if let Some(first) = first
-                && let Ok(media) = meta.media(first).await
-            {
-                app.apply(Update::Detail(Box::new(data::entry_from(&media, Some(&store)))));
-            }
-        }
-        "episodes" => {
-            if let Some(id) = app.selected_entry().map(|e| e.id) {
-                app.handle(anistream_ui::keymap::Action::Open, 20);
-                if let Ok(media) = meta.media(id).await {
-                    app.apply(Update::Detail(Box::new(data::entry_from(&media, Some(&store)))));
-                }
-                app.handle(anistream_ui::keymap::Action::ShowEpisodes, 20);
-                let (registry, _, note) =
-                    sources::build_registry(&app.config, &http, paths, &store).await;
-                match load_episodes(&meta, &store, &registry, id).await {
-                    Ok(EpisodeLoad::Rows(rows)) => app.apply(app.episodes_here(rows)),
-                    // A still frame cannot answer a question, so state it and carry on.
-                    Ok(EpisodeLoad::Choose { candidates, .. }) => {
-                        eprintln!(
-                            "[episodes: {} possible matches, none confident]",
-                            candidates.len()
-                        );
-                    }
-                    Err(reason) => {
-                        eprintln!("[episodes: {reason}]");
-                        if let Some(note) = note {
-                            eprintln!("[sources: {note}]");
-                        }
-                    }
-                }
-            }
-        }
-        "help" => app.nav.open_overlay(Overlay::Help),
-        "palette" => {
-            app.nav.open_overlay(Overlay::CommandPalette);
-            app.palette_query = "ep".into();
-        }
-        _ => {}
-    }
-
-    // The event loop normally drives artwork; a one-shot render has to fetch inline so the
-    // preview shows what the real UI would.
-    for url in app.visible_artwork(height as usize) {
-        if let Ok(response) = http.plain().get(&url).send().await
-            && response.status().is_success()
-            && let Ok(bytes) = response.bytes().await
-            && let Ok(decoded) = image::load_from_memory(&bytes)
-        {
-            app.apply(Update::Image {
-                url,
-                image: Box::new(anistream_ui::image::downscale(decoded, 900)),
-            });
-        }
-    }
-    eprintln!("[graphics: {graphics:?}, {} image(s) loaded]", app.images.len());
+    // Whatever the last keys started.
+    run.settle(&mut app, &mut rx).await;
+    eprintln!(
+        "[graphics: {}, {} image(s) loaded]",
+        describe_graphics(graphics),
+        app.images.len()
+    );
 
     let mut terminal = Terminal::new(TestBackend::new(width, height))?;
     terminal.draw(|f| screens::render(f, &app))?;
@@ -509,15 +534,144 @@ async fn preview(
     Ok(())
 }
 
+/// What `--preview` drives the app with: the same handles the event loop holds.
+struct PreviewRun {
+    tx: mpsc::UnboundedSender<Update>,
+    rows: usize,
+    player_tx: Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+    slot: PlayerSlot,
+    prefetch: Prefetch,
+    meta: Meta,
+    store: Store,
+    registry: ProviderRegistry,
+    http: HttpClient,
+    sync: tracking::Sync,
+    stores: plugin_stores::Stores,
+    paths: Paths,
+}
+
+impl PreviewRun {
+    /// How long a preview waits for the screen's work before drawing whatever it has.
+    const PATIENCE: Duration = Duration::from_secs(30);
+
+    /// Press a key, as the event loop does.
+    async fn press(&mut self, app: &mut App, action: anistream_ui::keymap::Action) {
+        if let Some(task) = app.handle(action, self.rows) {
+            self.dispatch(app, task);
+        }
+    }
+
+    /// Hand a task to the same dispatcher the event loop uses — unless running it would do
+    /// something a still frame must not: play, download, sign in, change a setting or a store.
+    fn dispatch(&mut self, app: &mut App, task: Task) {
+        let loads = matches!(
+            task,
+            Task::LoadContinue
+                | Task::LoadSeasonal
+                | Task::LoadCalendar
+                | Task::LoadCalendarPast { .. }
+                | Task::Search { .. }
+                | Task::LoadDetail(_)
+                | Task::LoadEpisodes(_)
+                | Task::CheckProviders
+                | Task::LoadLibrary(_)
+                | Task::LoadDownloads
+                | Task::LoadStores
+        );
+        if !loads {
+            eprintln!("[preview: not run: {task:?}]");
+            return;
+        }
+        let job = JobGuard::start(app, &task, &self.tx);
+        dispatch(
+            task,
+            job,
+            &mut self.player_tx,
+            &self.paths,
+            app,
+            &self.slot,
+            &self.prefetch,
+            &self.meta,
+            &self.store,
+            &self.registry,
+            &self.http,
+            &self.sync,
+            &self.stores,
+            &self.tx,
+        );
+    }
+
+    /// Apply updates until the work is done and the screen's covers are in, as the event loop
+    /// would over the same moments.
+    async fn settle(&mut self, app: &mut App, rx: &mut mpsc::UnboundedReceiver<Update>) {
+        let deadline = tokio::time::Instant::now() + Self::PATIENCE;
+        loop {
+            if let Some(task) = app.take_pending() {
+                self.dispatch(app, task);
+            }
+            let mut fetching = false;
+            for url in app.visible_artwork(self.rows) {
+                artwork::spawn_fetch(
+                    url,
+                    self.paths.image_cache(),
+                    self.http.clone(),
+                    self.tx.clone(),
+                );
+                fetching = true;
+            }
+            // Quiet for this long with no work outstanding means done. Longer while covers are
+            // on their way, which report back without a job.
+            let quiet =
+                if fetching { Duration::from_secs(3) } else { Duration::from_millis(400) };
+            let wait = if app.jobs.is_empty() { quiet } else { Self::PATIENCE };
+            let wait =
+                wait.min(deadline.saturating_duration_since(tokio::time::Instant::now()));
+            match tokio::time::timeout(wait, rx.recv()).await {
+                Ok(Some(update)) => {
+                    app.apply(update);
+                    if let Some(notice) = self.meta.take_notice() {
+                        app.apply(Update::MetaStatus(data::meta_rows(&self.meta)));
+                        app.apply(Update::Toast(Toast::info(notice)));
+                    }
+                }
+                Ok(None) => return,
+                Err(_) if app.jobs.is_empty() => return,
+                Err(_) => {
+                    let waiting: Vec<&str> =
+                        app.jobs.iter().map(|j| j.label.as_str()).collect();
+                    eprintln!("[preview: drawn while still {}]", waiting.join(", "));
+                    return;
+                }
+            }
+        }
+    }
+}
+
 /// Report the environment, without starting the UI.
 async fn doctor(config: &Config, paths: &Paths, store: &Store, images: bool) -> Result<()> {
     let engine = anistream_ui::image::ImageEngine::detect(images);
     let background = theme::detect::detect_background();
     let palette = theme::resolve_with(config.theme.mode, background);
 
+    // First, since everything below it reads the configuration.
+    println!("config");
+    match Config::read(paths) {
+        Ok(_) if !paths.config_file.exists() => {
+            println!("  file        none yet — every setting at its default")
+        }
+        Ok(_) => println!("  file        {}", paths.config_file.display()),
+        Err(problem) => {
+            println!("  file        {}", paths.config_file.display());
+            println!("              ✕ {problem}");
+            println!("              not loaded: what follows is the defaults");
+        }
+    }
+    println!();
+
     println!("terminal");
-    println!("  graphics    {:?}", engine.graphics());
-    println!("  cell size   {:?}", engine.font_size());
+    println!("  graphics    {}", describe_graphics(engine.graphics()));
+    let (cell_width, cell_height) = engine.font_size();
+    println!("  cell size   {cell_width}×{cell_height} px");
     match background {
         Some(bg) => println!(
             "  background  #{:02X}{:02X}{:02X}  luminance {:.3}",
@@ -528,7 +682,14 @@ async fn doctor(config: &Config, paths: &Paths, store: &Store, images: bool) -> 
         ),
         None => println!("  background  not reported (OSC 11 unanswered)"),
     }
-    println!("  palette     {:?}", palette.variant);
+    println!(
+        "  palette     {}",
+        match palette.variant {
+            theme::Variant::Dark => "adaptive, on a dark background",
+            theme::Variant::Light => "adaptive, on a light background",
+            theme::Variant::Immersive => "immersive",
+        }
+    );
 
     println!();
     println!("data");
@@ -539,9 +700,11 @@ async fn doctor(config: &Config, paths: &Paths, store: &Store, images: bool) -> 
             Ok(Some(state)) => println!(
                 "  {:<11} fetched {} · {} entries{}",
                 spec.name,
-                state.fetched_at.map_or("never".into(), |t| format!("at {t}")),
+                state.fetched_at.map_or("never".into(), describe_moment),
                 state.item_count.unwrap_or(0),
-                state.last_error.map_or(String::new(), |e| format!(" · last error: {e}"))
+                state
+                    .last_error
+                    .map_or(String::new(), |e| format!(" · last error: {}", plain_failure(&e)))
             ),
             _ => println!("  {:<11} never fetched", spec.name),
         }
@@ -619,7 +782,14 @@ async fn doctor(config: &Config, paths: &Paths, store: &Store, images: bool) -> 
         return Ok(());
     }
 
-    println!("  torrent     enabled, vpn mode {:?}", config.providers.torrent.vpn.mode);
+    println!(
+        "  torrent     enabled, vpn mode {}",
+        match config.providers.torrent.vpn.mode {
+            anistream_core::config::VpnMode::Socks5 => "socks5",
+            anistream_core::config::VpnMode::External => "external",
+            anistream_core::config::VpnMode::None => "none",
+        }
+    );
 
     // Which indexer, if any. anistream ships none, so "enabled" on its own does not mean
     // the source has anything to search.
@@ -1225,8 +1395,9 @@ async fn list_plugins(config: &Config, paths: &Paths) -> Result<()> {
         ..Default::default()
     };
     println!(
-        "limits            {} MiB memory · {:?} per call",
-        config.providers.plugins.memory_mb, limits.deadline
+        "limits            {} MB memory · {} s per call",
+        config.providers.plugins.memory_mb,
+        limits.deadline.as_secs()
     );
     if !config.providers.order.iter().any(|p| p == "plugins") {
         println!(
@@ -1302,7 +1473,9 @@ async fn search_cli(
                     "title": m.title.display(),
                     "romaji": m.title.romaji,
                     "english": m.title.english,
-                    "format": m.format.map(|f| format!("{f:?}").to_uppercase()),
+                    // AniList's own names, `TV_SHORT` included: a stable machine value, apart
+                    // from however the interface labels it.
+                    "format": m.format.and_then(|f| serde_json::to_value(f).ok()),
                     "episodes": m.episodes,
                     "year": m.season_year,
                     "score": m.average_score,
@@ -1419,7 +1592,9 @@ fn random_cli(store: &Store, json: bool) -> Result<()> {
                 "anilist_id": id.get(),
                 "title": title,
                 "episodes_completed": progress.as_ref().map(|p| p.episodes_done),
-                "next_episode": progress.as_ref().map(|p| p.episodes_done + 1),
+                // A string, as every episode is in this output and the export: episodes are
+                // named, not counted — `OVA` and `12.5` are episodes too. Counts stay numbers.
+                "next_episode": progress.as_ref().map(|p| (p.episodes_done + 1).to_string()),
             }))?
         );
     } else {
@@ -1862,6 +2037,32 @@ async fn keep_datasets_current(
         tokio::time::sleep(wait).await;
         wait = (wait * 2).min(Duration::from_secs(3600));
     }
+}
+
+/// What the terminal's graphics support amounts to, in words.
+fn describe_graphics(graphics: anistream_ui::image::Graphics) -> &'static str {
+    match graphics {
+        anistream_ui::image::Graphics::Native => "a graphics protocol, so covers are pictures",
+        anistream_ui::image::Graphics::Halfblocks => {
+            "no graphics protocol, so covers are drawn in half blocks"
+        }
+        anistream_ui::image::Graphics::Disabled => "off (--no-images)",
+    }
+}
+
+/// A moment, as a local date and time and how long ago that was.
+fn describe_moment(epoch: i64) -> String {
+    let Ok(at) = jiff::Timestamp::from_second(epoch) else {
+        return "at an unreadable time".into();
+    };
+    let local = at.to_zoned(jiff::tz::TimeZone::system());
+    let days = (now_epoch() - epoch).max(0) / 86_400;
+    let ago = match days {
+        0 => "today".to_owned(),
+        1 => "yesterday".to_owned(),
+        n => format!("{n} days ago"),
+    };
+    format!("{} ({ago})", local.strftime("%Y-%m-%d %H:%M"))
 }
 
 /// One dataset refresh's outcome, as a person reads it.
@@ -4458,6 +4659,68 @@ mod tests {
         assert_eq!(following(&rows, "1").as_deref(), Some("2"));
         assert_eq!(following(&rows, "3"), None, "a finale has no next");
         assert_eq!(following(&rows, "OVA"), None);
+    }
+
+    #[test]
+    fn one_command_per_run_and_no_option_without_its_command() {
+        use clap::error::ErrorKind;
+        let parse = |args: &[&str]| {
+            Cli::try_parse_from(std::iter::once("anistream").chain(args.iter().copied()))
+        };
+        let refused = |args: &[&str]| parse(args).map(|_| ()).unwrap_err().kind();
+
+        // Two commands were resolved by the order of the checks in `main`, silently.
+        assert_eq!(refused(&["--stats", "--random"]), ErrorKind::ArgumentConflict);
+        assert_eq!(refused(&["--doctor", "--plugins"]), ErrorKind::ArgumentConflict);
+        assert_eq!(refused(&["--continue", "--play", "1"]), ErrorKind::ArgumentConflict);
+
+        // Alone, these started the interface as if they had not been typed.
+        for alone in [
+            &["--json"][..],
+            &["--screen", "title"],
+            &["--episode", "3"],
+            &["--tracker", "mal"],
+            // `--json` means nothing to these either.
+            &["--doctor", "--json"],
+            &["--plugins", "--json"],
+        ] {
+            assert_eq!(refused(alone), ErrorKind::MissingRequiredArgument, "{alone:?}");
+        }
+        for fine in [
+            &["--stats", "--json"][..],
+            &["--search", "summer", "--json"],
+            &["--preview", "80x24", "--screen", "seasonal"],
+            &["--play", "1", "--episode", "OVA"],
+            &["--login", "--tracker", "mal"],
+            &["--logout", "--tracker", "kitsu"],
+            &[],
+        ] {
+            assert!(parse(fine).is_ok(), "{fine:?}: {:?}", parse(fine).err());
+        }
+    }
+
+    #[test]
+    fn a_preview_must_name_a_size_and_a_screen_that_exist() {
+        use clap::error::ErrorKind;
+        let parse = |args: &[&str]| {
+            Cli::try_parse_from(std::iter::once("anistream").chain(args.iter().copied()))
+        };
+        // Each of these rendered Home at 120x34, or nothing, with exit status 0.
+        for wrong in [&["--preview", "abc"][..], &["--preview", "0x0"], &["--preview", "120x"]]
+        {
+            assert_eq!(
+                parse(wrong).unwrap_err().kind(),
+                ErrorKind::ValueValidation,
+                "{wrong:?}"
+            );
+        }
+        assert_eq!(
+            parse(&["--preview", "80x24", "--screen", "bogus"]).unwrap_err().kind(),
+            ErrorKind::InvalidValue
+        );
+        let cli = parse(&["--preview", "80X24", "--screen", "episodes"]).unwrap();
+        assert_eq!(cli.preview, Some((80, 24)));
+        assert_eq!(cli.screen, Some(PreviewScreen::Episodes));
     }
 
     #[test]

@@ -43,6 +43,8 @@ clap.workspace = true
 crossterm.workspace = true
 futures.workspace = true
 image.workspace = true
+# Local dates in `--doctor`. Already in the tree, through anistream-core.
+jiff.workspace = true
 ratatui.workspace = true
 serde_json.workspace = true
 tokio.workspace = true

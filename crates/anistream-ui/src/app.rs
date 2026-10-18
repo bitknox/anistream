@@ -3991,8 +3991,9 @@ impl App {
         }
     }
 
-    /// Push the selected title's detail screen.
-    fn open_selected(&mut self) -> Option<Task> {
+    /// Push the selected title's detail screen — what Enter does on a row with nothing to
+    /// resume. Public for `--preview`, which shows a title page from a list whose Enter plays.
+    pub fn open_selected(&mut self) -> Option<Task> {
         let entry = self.selected_entry()?.clone();
         let id = entry.id;
         self.detail = Some(entry);
