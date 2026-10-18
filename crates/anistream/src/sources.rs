@@ -10,7 +10,10 @@ use std::{sync::Arc, time::Duration};
 use anistream_core::config::{Config, Paths};
 use anistream_net::HttpClient;
 use anistream_providers::{
-    ProviderRegistry, remote::RemoteHttpProvider, torrent::TorrentSession, vpn::VpnGuard,
+    ProviderRegistry,
+    remote::RemoteHttpProvider,
+    torrent::TorrentSession,
+    vpn::{GuardState, VpnGuard},
 };
 
 /// Assemble the provider chain from config, waiting for the torrent source.
@@ -23,15 +26,23 @@ use anistream_providers::{
 /// Only sources that are actually configured are registered. A source listed in `order` but
 /// unconfigured is skipped rather than added as a permanently-failing entry, which would
 /// clutter the Providers screen with something the user never asked for.
+///
+/// The last element is the guard's verdict when it is what held the torrent source back, for
+/// a preview to show as the interface would.
 pub async fn build_registry(
     config: &Config,
     http: &HttpClient,
     paths: &Paths,
     store: &anistream_store::Store,
-) -> (ProviderRegistry, Option<(VpnGuard, Arc<TorrentSession>)>, Option<String>) {
+) -> (
+    ProviderRegistry,
+    Option<(VpnGuard, Arc<TorrentSession>)>,
+    Option<String>,
+    Option<GuardState>,
+) {
     let registry = build_registry_deferred(config, http);
     if !torrent_wanted(config) {
-        return (registry, None, None);
+        return (registry, None, None, None);
     }
     let started = std::time::Instant::now();
     let outcome = start_torrent_provider(config, http, paths, store).await;
@@ -43,13 +54,13 @@ pub async fn build_registry(
                 eprintln!("warning: {warning}");
             }
             place(&registry, up.provider, config);
-            (registry, Some((up.guard, up.session)), None)
+            (registry, Some((up.guard, up.session)), None, None)
         }
         // A source that cannot start safely is left out rather than registered as
         // permanently failing — and the reason is surfaced, not swallowed.
-        Err(reason) => {
+        Err((reason, held)) => {
             tracing::warn!(%reason, "torrent source not started");
-            (registry, None, Some(reason))
+            (registry, None, Some(reason), held)
         }
     }
 }
@@ -251,17 +262,20 @@ async fn start_torrent_provider(
     http: &HttpClient,
     paths: &Paths,
     store: &anistream_store::Store,
-) -> std::result::Result<TorrentUp, String> {
-    let (settings, guard) = prepare_torrent(config)?;
+) -> std::result::Result<TorrentUp, (String, Option<GuardState>)> {
+    let (settings, guard) = prepare_torrent(config).map_err(|reason| (reason, None))?;
 
     let state = guard.verify().await;
     if !state.is_protected() {
-        return Err(format!("vpn guard: {}", state.reason().unwrap_or("egress not verified")));
+        let reason = format!("vpn guard: {}", state.reason().unwrap_or("egress not verified"));
+        return Err((reason, Some(state)));
     }
     tracing::info!(badge = %state.badge(), "vpn guard satisfied");
 
     sweep_before_session(config, paths, store).await;
-    start_torrent_session(config, http, paths, settings, guard).await
+    start_torrent_session(config, http, paths, settings, guard)
+        .await
+        .map_err(|reason| (reason, None))
 }
 
 /// Bring the torrent source up for the interface, however long the VPN guard takes to pass.
@@ -392,4 +406,36 @@ fn random_token() -> String {
     let mut hasher = std::collections::hash_map::RandomState::new().build_hasher();
     hasher.write_u64(anistream_store::now() as u64);
     format!("{:016x}", hasher.finish())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A preview shows the badge and toast the interface would, so the guard's verdict has to
+    /// come back with the reason it held the torrent source out.
+    #[tokio::test]
+    async fn a_guard_that_holds_torrents_back_comes_back_with_its_verdict() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = Paths {
+            config_file: dir.path().join("config.toml"),
+            data_dir: dir.path().join("data"),
+            cache_dir: dir.path().join("cache"),
+        };
+        let mut config = Config::default();
+        let torrent = &mut config.providers.torrent;
+        torrent.enabled = true;
+        torrent.rss_url = Some("http://127.0.0.1:1/rss".into());
+        // A proxy nothing listens on: the egress check fails at once and offline.
+        torrent.vpn.socks_url = Some("socks5://127.0.0.1:1".into());
+        let http = HttpClient::new(&config.network).unwrap();
+        let store = anistream_store::Store::open_in_memory().unwrap();
+
+        let (registry, guard, note, held) =
+            build_registry(&config, &http, &paths, &store).await;
+        assert!(guard.is_none() && !registry.ids().iter().any(|id| id == "torrent"));
+        assert!(note.is_some_and(|n| n.starts_with("vpn guard:")));
+        let held = held.expect("the verdict that held it back");
+        assert!(!held.is_protected(), "{held:?}");
+    }
 }

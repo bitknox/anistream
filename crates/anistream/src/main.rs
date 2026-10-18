@@ -345,7 +345,17 @@ async fn main() -> Result<()> {
     }
     if let Some(size) = cli.preview {
         let screen = cli.screen.unwrap_or(PreviewScreen::Home);
-        return preview(config, http, store, &paths, size, screen, !cli.no_images).await;
+        return preview(
+            config,
+            http,
+            store,
+            &paths,
+            size,
+            screen,
+            !cli.no_images,
+            config_problem,
+        )
+        .await;
     }
 
     run(config, paths, http, store, !cli.no_images, config_problem).await
@@ -393,6 +403,7 @@ async fn store_command(command: Command, paths: &Paths) -> Result<()> {
 /// nothing is outstanding. Assembling each screen by hand instead drifted from the live one:
 /// the title preview pressed Enter on a resumable row and rendered Now Playing, the episode
 /// table never left LOADING, and Library and Providers showed state the app never had.
+#[allow(clippy::too_many_arguments)]
 async fn preview(
     config: Config,
     http: HttpClient,
@@ -401,6 +412,7 @@ async fn preview(
     (width, height): (u16, u16),
     screen: PreviewScreen,
     images: bool,
+    config_problem: Option<anistream_core::config::ConfigProblem>,
 ) -> Result<()> {
     use anistream_ui::keymap::Action;
     use ratatui::{Terminal, backend::TestBackend};
@@ -417,7 +429,7 @@ async fn preview(
 
     // The sources a running app has a moment after launch: the torrent source once its guard
     // has answered, and the plugins once compiled.
-    let (registry, guard, mut note) =
+    let (registry, guard, mut note, held) =
         sources::build_registry(&config, &http, paths, &store).await;
     let plugins = sources::spawn_plugin_load(
         registry.clone(),
@@ -433,9 +445,13 @@ async fn preview(
     if let Some(note) = note {
         app.apply(Update::ProviderNote(note));
     }
-    if let Some((guard, _)) = &guard {
-        let state = guard.state();
+    // A failed guard included: the interface puts its verdict on the chip and toasts it, and
+    // a preview without it showed a machine whose torrents were fine.
+    if let Some(state) = guard.as_ref().map(|(guard, _)| guard.state()).or(held) {
         app.apply(Update::Vpn { badge: state.badge(), leaking: !state.is_protected() });
+    }
+    if let Some(problem) = &config_problem {
+        show_config_problem(&mut app, paths, problem);
     }
     match stores.rows() {
         Ok(rows) => app.apply(Update::Stores(rows)),
@@ -1682,12 +1698,8 @@ async fn run(
     // What the file says, as distinct from what is in effect: `--theme` changes only this
     // session, and the Settings screen has to be able to tell the two apart.
     app.saved_config = Config::load(&paths).unwrap_or_default();
-    if let Some(problem) = config_problem {
-        app.notice = Some(config_notice(&paths.config_file, &problem));
-        app.log(
-            anistream_ui::app::ToastKind::Alert,
-            format!("{}, {problem} — using the defaults", paths.config_file.display()),
-        );
+    if let Some(problem) = &config_problem {
+        show_config_problem(&mut app, &paths, problem);
     }
     // Joined stores as they were left, so Providers can count them on the first frame.
     match stores.rows() {
@@ -2090,6 +2102,20 @@ fn plain_failure(reason: &str) -> &str {
     } else {
         reason
     }
+}
+
+/// Say that the config did not load, on the status line for as long as the session runs and in
+/// the log. The interface and its previews both, so a preview shows the frame a person would see.
+fn show_config_problem(
+    app: &mut App,
+    paths: &Paths,
+    problem: &anistream_core::config::ConfigProblem,
+) {
+    app.notice = Some(config_notice(&paths.config_file, problem));
+    app.log(
+        anistream_ui::app::ToastKind::Alert,
+        format!("{}, {problem} — using the defaults", paths.config_file.display()),
+    );
 }
 
 /// The interface's standing notice for a config file that did not load: which file, which line,
@@ -3687,7 +3713,7 @@ async fn stream_url(
     let meta = build_meta(config, http, store);
 
     let started = std::time::Instant::now();
-    let (registry, guard, note) = sources::build_registry(config, http, paths, store).await;
+    let (registry, guard, note, _) = sources::build_registry(config, http, paths, store).await;
     println!("sources     {:?} in {:?}", registry.ids(), started.elapsed());
     if let Some(note) = &note {
         println!("note        {note}");
@@ -3760,7 +3786,7 @@ async fn play_cli(
 ) -> Result<()> {
     let meta = build_meta(config, http, store);
 
-    let (registry, guard, note) = sources::build_registry(config, http, paths, store).await;
+    let (registry, guard, note, _) = sources::build_registry(config, http, paths, store).await;
     if let Some(note) = &note {
         println!("note        {note}");
     }
