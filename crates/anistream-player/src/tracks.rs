@@ -797,8 +797,11 @@ fn family(code: &str) -> Option<usize> {
 }
 
 /// The primary subtag, lowercased: `en-US` is `en`, `pt_BR` is `pt`.
+///
+/// Some sources send a label where the code belongs, `English (CR English)`; its first word is
+/// the language, so that is what is read.
 fn primary_subtag(code: &str) -> String {
-    code.trim().split(['-', '_']).next().unwrap_or_default().to_lowercase()
+    code.trim().split(['-', '_', ' ', '(']).next().unwrap_or_default().to_lowercase()
 }
 
 /// Labels that say the language is not known, which is not a language to match.
@@ -1652,6 +1655,26 @@ mod tests {
         ];
         let mut session = Session::new(sub_watcher(), None);
         let actions = session.load(tracks, Some(1), Some(1));
+        assert_eq!(sets(&actions), [&TrackAction::SetSid(Some(2))]);
+    }
+
+    #[test]
+    fn a_label_sent_as_the_language_is_read_as_one() {
+        assert!(language_matches("English (CR English)", "eng"));
+        assert!(language_matches("Portuguese (CR Portuguese(Brazil))", "pt"));
+        assert!(!language_matches("Italian (CR Italian)", "eng"));
+
+        // As one source lists its tracks, with mpv having settled on one of the others.
+        let label = |id, name: &str| sub(id, name, name);
+        let tracks = vec![
+            video(),
+            audio(1, "jpn", "Japanese"),
+            label(1, "Portuguese (CR Portuguese(Brazil))"),
+            label(2, "English (CR English)"),
+            label(3, "Italian (CR Italian)"),
+        ];
+        let mut session = Session::new(sub_watcher(), None);
+        let actions = session.load(tracks, Some(1), Some(3));
         assert_eq!(sets(&actions), [&TrackAction::SetSid(Some(2))]);
     }
 
