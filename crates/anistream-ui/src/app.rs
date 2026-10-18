@@ -293,14 +293,25 @@ fn upload_label(kib: u32) -> String {
     }
 }
 
-/// Step to the next value in a ladder, clamping at both ends.
+/// Step to the next value in an ascending ladder, clamping at both ends.
 ///
 /// Clamps rather than wraps: arrowing past 2160p round to 480p would be a surprising way to lose
 /// your quality preference, and the ends of the ladder are informative.
-fn step_through<T: Copy + PartialEq>(ladder: &[T], current: T, delta: isize) -> T {
-    let at = ladder.iter().position(|v| *v == current).unwrap_or(0) as isize;
-    let next = (at + delta.signum()).clamp(0, ladder.len() as isize - 1) as usize;
-    ladder[next]
+///
+/// A value that is not on the ladder — one typed into config.toml, like 1440p — steps to the
+/// nearest rung in the arrow's direction, and stays put if there is none that way. It used to
+/// be read as the bottom rung, so → from 1440p saved 720p and → from 97% saved 80%.
+fn step_through<T: Copy + PartialOrd>(ladder: &[T], current: T, delta: isize) -> T {
+    if let Some(at) = ladder.iter().position(|v| *v == current) {
+        let next = (at as isize + delta.signum()).clamp(0, ladder.len() as isize - 1) as usize;
+        return ladder[next];
+    }
+    let toward = if delta > 0 {
+        ladder.iter().find(|v| **v > current)
+    } else {
+        ladder.iter().rev().find(|v| **v < current)
+    };
+    toward.copied().unwrap_or(current)
 }
 
 /// Idle ticks a rail change waits before fetching. The idle tick is 100 ms, so this is ~300 ms —
@@ -7190,6 +7201,45 @@ mod tests {
 
         a.handle(Action::ShowLogs, 10);
         assert_eq!(a.nav.overlay(), Some(&Overlay::Logs));
+    }
+
+    #[test]
+    fn a_value_off_the_ladder_steps_to_the_nearest_rung_the_arrow_points_at() {
+        // From config.toml, not the arrows. → from 1440p saved 720p, and → from 97% saved 80%.
+        const QUALITY: [u32; 4] = [480, 720, 1080, 2160];
+        assert_eq!(step_through(&QUALITY, 1440, 1), 2160);
+        assert_eq!(step_through(&QUALITY, 1440, -1), 1080);
+        assert_eq!(step_through(&QUALITY, 360, -1), 360, "nothing lower: stay put");
+        assert_eq!(step_through(&QUALITY, 360, 1), 480);
+
+        const THRESHOLD: [u32; 5] = [70, 80, 85, 90, 95];
+        assert_eq!(step_through(&THRESHOLD, 97, 1), 97, "nothing higher: stay put");
+        assert_eq!(step_through(&THRESHOLD, 97, -1), 95);
+        assert_eq!(step_through(&THRESHOLD, 82, 1), 85);
+        assert_eq!(step_through(&THRESHOLD, 82, -1), 80);
+    }
+
+    #[test]
+    fn the_settings_screen_steps_an_off_ladder_quality_up_not_down() {
+        use anistream_core::settings::SettingValue;
+        let mut config = Config::default();
+        config.playback.quality = 1440;
+        config.playback.commit_threshold = 0.97;
+        let mut a = App::new(config, Palette::dark(), Keymap::new());
+        a.go_to_section(Section::Settings);
+        a.nav.focus_stage();
+
+        a.selected = SettingId::ALL.iter().position(|id| *id == SettingId::Quality).unwrap();
+        let task = a.handle(Action::Right, 10);
+        assert_eq!(a.config.playback.quality, 2160);
+        assert!(matches!(task, Some(Task::SaveSetting { value: SettingValue::Int(2160), .. })));
+
+        a.selected =
+            SettingId::ALL.iter().position(|id| *id == SettingId::CommitThreshold).unwrap();
+        a.handle(Action::Right, 10);
+        assert_eq!(a.config.playback.commit_threshold, 0.97, "→ never lowers it");
+        a.handle(Action::Left, 10);
+        assert_eq!(a.config.playback.commit_threshold, 0.95);
     }
 
     #[test]
