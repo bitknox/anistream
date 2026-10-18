@@ -489,14 +489,35 @@ impl Entry {
         }
     }
 
+    /// What progress is counted against, and whether that is the season's length. AniList
+    /// leaves the length empty while a show airs without an announced one, and counting against
+    /// nothing read as "2 / 0"; the newest episode out is the honest stand-in until it is known.
+    pub fn progress_of(&self) -> Option<(u32, bool)> {
+        match self.episodes.filter(|n| *n > 0) {
+            Some(total) => Some((total, true)),
+            None => self.latest_aired().map(|(episode, _)| (episode, false)),
+        }
+    }
+
     /// Fraction watched, for the progress meter.
     pub fn watched_fraction(&self) -> f64 {
-        match (self.progress, self.episodes) {
-            (Some((done, _)), Some(total)) if total > 0 => {
-                (f64::from(done) / f64::from(total)).clamp(0.0, 1.0)
+        match (self.progress, self.progress_of()) {
+            (Some((done, _)), Some((of, _))) => {
+                (f64::from(done) / f64::from(of)).clamp(0.0, 1.0)
             }
             _ => 0.0,
         }
+    }
+
+    /// The count beside the meter: `2 / 12`, `2 / 3 aired` while the length is unannounced, or
+    /// `2 watched` when there is nothing to count against.
+    pub fn progress_label(&self) -> Option<String> {
+        let (done, _) = self.progress?;
+        Some(match self.progress_of() {
+            Some((total, true)) => format!("{done} / {total}"),
+            Some((aired, false)) => format!("{done} / {aired} aired"),
+            None => format!("{done} watched"),
+        })
     }
 
     /// The newest episode known to be out, with how long ago when that is known too.
@@ -6385,6 +6406,27 @@ mod tests {
 
         e.episodes = Some(0);
         assert_eq!(e.watched_fraction(), 0.0, "must not divide by zero");
+    }
+
+    #[test]
+    fn progress_counts_against_what_is_known() {
+        let mut e = Entry::new(AnilistId::new(1), "x");
+        e.progress = Some((2, 3));
+        assert_eq!(
+            e.progress_label().as_deref(),
+            Some("2 watched"),
+            "nothing to count against"
+        );
+        assert_eq!(e.watched_fraction(), 0.0);
+
+        // Airing, with no announced length: episode 3 next means 2 are out.
+        e.next_episode = Some(3);
+        assert_eq!(e.progress_label().as_deref(), Some("2 / 2 aired"));
+        assert_eq!(e.watched_fraction(), 1.0, "caught up is a full meter, not an empty one");
+
+        e.episodes = Some(12);
+        assert_eq!(e.progress_label().as_deref(), Some("2 / 12"));
+        assert!((e.watched_fraction() - 2.0 / 12.0).abs() < 1e-9);
     }
 
     #[test]
