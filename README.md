@@ -54,8 +54,10 @@ no build step:
 - **Other Linux** — the `.AppImage`: `chmod +x`, run it from a terminal
 
 The installers put `anistream` on your `PATH` and add a launcher; the archives hold just the
-binary. Every asset has a `.sha256` beside it. The builds are not code-signed yet: macOS wants a
-right-click → **Open** the first time, Windows SmartScreen wants **More info → Run anyway**.
+binary. Every asset has a `.sha256` beside it. The builds are not code-signed yet. The first time,
+macOS wants **Open Anyway** in System Settings → Privacy & Security for the `.pkg`, or
+`xattr -d com.apple.quarantine anistream` for the archive's binary, and Windows SmartScreen wants
+**More info → Run anyway**.
 
 mpv and ffmpeg are not bundled — install those first (`brew install mpv ffmpeg`,
 `winget install shinchiro.mpv Gyan.FFmpeg`, or your distro's packages; the `.deb` pulls them in
