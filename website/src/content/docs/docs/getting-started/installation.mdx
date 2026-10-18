@@ -19,16 +19,27 @@ build several ways:
 Everything ships with a `.sha256` worth checking first.
 
 :::caution[Not code-signed]
-macOS Gatekeeper refuses the `.pkg` on first open: right-click it and choose **Open**. Windows
-SmartScreen warns about the installer: choose **More info**, then **Run anyway**.
+The releases are not signed, so the first open takes one extra step:
+
+- **macOS installer.** Opening the `.pkg` says Apple could not verify it. Choose **Done**, then go
+  to **System Settings → Privacy & Security**, find the line about anistream near the bottom and
+  choose **Open Anyway**.
+- **macOS archive.** A binary downloaded with a browser is refused the first time it runs. Clear
+  the download flag once with `xattr -d com.apple.quarantine anistream`.
+- **Windows.** SmartScreen shows "Windows protected your PC". Choose **More info**, then **Run
+  anyway**.
+
+Updates through `anistream --update` are not downloaded by a browser and open without these
+steps.
 :::
 
 **mpv and ffmpeg are not bundled.** anistream drives mpv for playback and shells out to ffmpeg when
 muxing subtitles into a completed download. The `.deb` declares both as dependencies. On macOS and
 Windows, install them yourself, as in Prerequisites below.
 
-anistream wants mpv 0.39 or newer. Older builds play, but without the in-player menus and the
-one-window binge. `anistream --doctor` says which version you have.
+anistream's [player interface](/docs/guides/player/), with the skip button, Up Next, menus and
+thumbnails, needs mpv 0.36 or newer. Older versions play with mpv's own controls; Ubuntu 24.04
+ships 0.37 and Debian 12 ships 0.35. `anistream --doctor` says which version you have.
 
 There is no Homebrew formula and no `cargo install` yet. To build from source instead, install the
 prerequisites and then build.

@@ -10,6 +10,12 @@
 	box-sizing: border-box;
 }
 
+/* Safari 26 and later tint their toolbar from the page, not from theme-color: from a fixed
+   element across the top if there is one, otherwise from the root's background. */
+html {
+	background: var(--ani-ground);
+}
+
 body.landing {
 	background: var(--ani-ground);
 	color: var(--ani-text);
@@ -59,7 +65,10 @@ html.js .hero-h1 .hch {
 }
 
 /* ── The page eyecatch: amber band wipe on load ─────────────────────────── */
+/* Out of the page except during the wipe: Safari samples a fixed element across the top for
+   its toolbar, invisible or not, and would stay amber. */
 .eyecatch-page {
+	display: none;
 	position: fixed;
 	inset: 0;
 	background: var(--ani-obi);

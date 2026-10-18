@@ -9,9 +9,10 @@ A prebuilt install needs only mpv and ffmpeg. The `.deb` pulls both in. Elsewher
 with `brew install mpv ffmpeg`, `winget install shinchiro.mpv Gyan.FFmpeg`, or your distro's
 packages.
 
-- **mpv** 0.39 or newer does all playback, over JSON IPC. anistream brings its own controls,
-  thumbnails and shaders, so a stock mpv is enough. Older builds play, but without the in-player
-  menus and the one-window binge.
+- **mpv** does all playback, over JSON IPC. anistream brings its own controls, thumbnails and
+  shaders, so a stock mpv is enough. The [player interface](/docs/guides/player/), with the skip
+  button, Up Next, menus and thumbnails, needs mpv 0.36 or newer. Older versions play with mpv's
+  own controls; Ubuntu 24.04 ships 0.37 and Debian 12 ships 0.35.
 - **ffmpeg** is used for remuxing and subtitle handling on downloads.
 
 ## Building from source

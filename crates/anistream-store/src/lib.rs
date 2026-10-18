@@ -21,6 +21,7 @@ pub mod preference;
 pub mod schema;
 pub mod state;
 pub mod stats;
+pub mod track_memory;
 
 use std::{
     path::Path,

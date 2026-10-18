@@ -116,6 +116,8 @@ async fn main() {
         runtime_secs: None,
         speed: None,
         volume: None,
+        next: None,
+        episodes: Vec::new(),
     };
 
     let (tx, mut rx) = mpsc::unbounded_channel::<Update>();
@@ -154,27 +156,38 @@ async fn main() {
 
     let store_for_play = store.clone();
     let playing = tokio::spawn(async move {
+        let settings = anistream::playback::PlaySettings {
+            threshold: config.playback.commit_threshold,
+            auto_skip: config.playback.skip_opening,
+            mark_chapters: config.playback.mark_chapters,
+            // Windowless run — fullscreen would be meaningless with `--vo=null`.
+            fullscreen: false,
+            subtitle_language: Some(config.playback.subtitle_language.clone()),
+            // One episode and done: nothing would claim a parked window.
+            auto_next: false,
+            night_mode: false,
+            remember_tracks: false,
+            look: config.playback.upscaling.into(),
+            shader_dir: None,
+            tone_mapping: config.playback.tone_mapping.clone(),
+            // No trackers: this probe checks the local path, and queueing against a real
+            // account from a test run would be wrong.
+            tracker_ids: Vec::new(),
+            // Presence off: the probe measures the torrent-to-mpv-to-history path, and reaching
+            // out to a Discord socket would add a variable that has nothing to do with it.
+            presence: Default::default(),
+            // Syncplay off, same reasoning.
+            syncplay: Default::default(),
+            party: false,
+        };
         anistream::playback::play(
             vec![stream],
             context,
             store_for_play,
             http,
             mpv,
-            config.playback.commit_threshold,
-            config.playback.skip_opening,
-            config.playback.mark_chapters,
-            // Windowless run — fullscreen would be meaningless with `--vo=null`.
-            false,
-            Some(config.playback.subtitle_language.clone()),
-            // No trackers: this probe checks the local path, and queueing against a real
-            // account from a test run would be wrong.
-            Vec::new(),
-            // Presence off: the probe measures the torrent-to-mpv-to-history path, and reaching
-            // out to a Discord socket would add a variable that has nothing to do with it.
-            Default::default(),
-            // Syncplay off, same reasoning.
-            Default::default(),
-            false,
+            settings,
+            anistream::slot::PlayerSlot::default(),
             tx,
             command_rx,
         )

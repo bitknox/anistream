@@ -85,6 +85,8 @@ pub enum SettingId {
     MarkChapters,
     Fullscreen,
     Upscaling,
+    PlayerUi,
+    NightMode,
     DownloadDir,
     MergeSubtitles,
     KeepSeeding,
@@ -93,6 +95,9 @@ pub enum SettingId {
     PresenceTitle,
     Torrents,
     VpnMode,
+    SeedRatio,
+    SeedHours,
+    UploadLimit,
     TokenStorage,
     Syncplay,
     SyncplayServer,
@@ -103,7 +108,7 @@ pub enum SettingId {
 impl SettingId {
     /// Display order. Grouped by [`Self::category`] — the renderer draws a heading each
     /// time the category changes, so rows of one category must be contiguous here.
-    pub const ALL: [Self; 25] = [
+    pub const ALL: [Self; 30] = [
         Self::Theme,
         Self::Motion,
         Self::Translation,
@@ -116,12 +121,17 @@ impl SettingId {
         Self::MarkChapters,
         Self::Fullscreen,
         Self::Upscaling,
+        Self::PlayerUi,
+        Self::NightMode,
         Self::DownloadDir,
         Self::MergeSubtitles,
         Self::KeepSeeding,
         Self::DownloadHook,
         Self::Torrents,
         Self::VpnMode,
+        Self::SeedRatio,
+        Self::SeedHours,
+        Self::UploadLimit,
         Self::Presence,
         Self::PresenceTitle,
         Self::TokenStorage,
@@ -158,12 +168,18 @@ impl SettingId {
             | Self::SkipFiller
             | Self::MarkChapters
             | Self::Fullscreen
-            | Self::Upscaling => "playback",
+            | Self::Upscaling
+            | Self::PlayerUi
+            | Self::NightMode => "playback",
             Self::DownloadDir
             | Self::MergeSubtitles
             | Self::KeepSeeding
             | Self::DownloadHook => "downloads",
-            Self::Torrents | Self::VpnMode => "sources",
+            Self::Torrents
+            | Self::VpnMode
+            | Self::SeedRatio
+            | Self::SeedHours
+            | Self::UploadLimit => "sources",
             Self::Presence
             | Self::PresenceTitle
             | Self::TokenStorage
@@ -190,6 +206,8 @@ impl SettingId {
             Self::MarkChapters => "mark opening and ending",
             Self::Fullscreen => "start fullscreen",
             Self::Upscaling => "upscaling",
+            Self::PlayerUi => "player interface",
+            Self::NightMode => "night mode",
             Self::DownloadDir => "download folder",
             Self::MergeSubtitles => "merge subtitles in",
             Self::KeepSeeding => "keep seeding",
@@ -201,6 +219,9 @@ impl SettingId {
             Self::Presence => "discord presence",
             Self::PresenceTitle => "presence shows the title",
             Self::Torrents => "torrent source",
+            Self::SeedRatio => "seed after watching",
+            Self::SeedHours => "seed for at most",
+            Self::UploadLimit => "upload limit",
             Self::VpnMode => "vpn mode",
             Self::TokenStorage => "token storage",
         }
@@ -219,8 +240,8 @@ fn upscaling_label(mode: anistream_core::config::Upscaling) -> &'static str {
     use anistream_core::config::Upscaling as U;
     match mode {
         U::Off => "off",
-        U::Anime4kFast => "anime4k fast",
-        U::Anime4kQuality => "anime4k quality",
+        U::Natural => "natural · ArtCNN",
+        U::Sharp => "sharp · Anime4K",
     }
 }
 
@@ -255,10 +276,20 @@ fn table_path(dotted: &'static str) -> &'static [&'static str] {
         "playback" => &["playback"],
         "presence" => &["presence"],
         "providers.torrent" => &["providers", "torrent"],
+        "providers.torrent.seeding" => &["providers", "torrent", "seeding"],
         "downloads" => &["downloads"],
         "syncplay" => &["syncplay"],
         "updates" => &["updates"],
         other => unreachable!("no table path for {other}"),
+    }
+}
+
+/// An upload cap as people read it: `unlimited`, `512 KB/s`, `2 MB/s`.
+fn upload_label(kib: u32) -> String {
+    match kib {
+        0 => "unlimited".into(),
+        k if k >= 1024 && k % 1024 == 0 => format!("{} MB/s", k / 1024),
+        k => format!("{k} KB/s"),
     }
 }
 
@@ -721,6 +752,19 @@ impl PluginChoice {
     }
 }
 
+/// A watched episode still seeding, as the Downloads screen lists it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct SeedRow {
+    pub name: String,
+    pub uploaded_bytes: u64,
+    /// Uploaded over what this machine has of it.
+    pub ratio: f64,
+    /// The ratio it is seeding towards.
+    pub goal: f64,
+    /// Until the time limit retires it.
+    pub left_secs: u64,
+}
+
 /// One row of the timing-sheet episode table.
 #[derive(Debug, Clone, PartialEq)]
 pub struct EpisodeRow {
@@ -1075,6 +1119,34 @@ pub enum Update {
     ActiveProvider(String),
     /// A key pressed inside the player window: step to an adjacent episode.
     PlayerStepEpisode(i64),
+    /// The player asked for an episode of what is playing: its Episodes menu, Up Next's
+    /// "play now", or N/P inside the window.
+    PlayerPlayEpisode(String),
+    /// The viewer cancelled Up Next, so this episode's end is not a cue to roll on.
+    AutoNextCancelled,
+    /// A playback was handed to its successor mid-episode. Reflected like an ending, without
+    /// taking down the Now Playing surface the successor has already put up.
+    EpisodeLeft {
+        id: AnilistId,
+        episode: String,
+        position: f64,
+        duration: Option<f64>,
+        watched: bool,
+    },
+    /// Sub or dub, picked in the player: the episode restarts in the other one, where it was.
+    PlayerTranslation(anistream_core::media::Translation),
+    /// An upscaling mode picked in the player, by its config name.
+    PlayerUpscaling(String),
+    /// Night mode toggled in the player.
+    PlayerNightMode(bool),
+    /// An HDR tone-mapping curve picked in the player.
+    PlayerToneMapping(String),
+    /// The episode playing has reached its ending: find the next one's streams now, so Up Next
+    /// can start it without a search.
+    PrefetchNext {
+        id: AnilistId,
+        episode: String,
+    },
     /// Playhead moved.
     Playback {
         position: f64,
@@ -1119,6 +1191,8 @@ pub enum Update {
     },
     /// The download queue, replacing whatever was there.
     Downloads(Vec<DownloadRow>),
+    /// Watched episodes still seeding, replacing whatever was there.
+    Seeding(Vec<SeedRow>),
     /// A device-flow code the user has to type somewhere else.
     ///
     /// Its own update rather than a status string or a toast, because it has to survive for up to
@@ -1197,6 +1271,8 @@ pub struct App {
     pub vpn_leaking: bool,
     /// The download queue, as the Downloads screen shows it.
     pub downloads: Vec<DownloadRow>,
+    /// Watched episodes still seeding, for the Downloads screen.
+    pub seeding: Vec<SeedRow>,
     /// A device code awaiting approval, shown on the Accounts screen.
     pub device_code: Option<DeviceCodePrompt>,
     /// Snapshot for the Providers screen.
@@ -1264,6 +1340,8 @@ pub struct App {
     /// triggered by scrolling, which reports no task of its own. The event loop drains this
     /// each iteration.
     pending: Option<Task>,
+    /// Up Next was cancelled in the player for the episode now playing.
+    auto_next_cancelled: bool,
     /// Rows for the Episodes screen — the ones the current filter admits. Everything that
     /// reads or navigates episodes works on this list, which is what keeps the filter from
     /// needing index remapping at every call site.
@@ -1367,6 +1445,7 @@ impl App {
             overlay_selected: 0,
             pulse: 0,
             downloads: Vec::new(),
+            seeding: Vec::new(),
             device_code: None,
             reload_countdown: None,
             episodes_loading: false,
@@ -1384,6 +1463,7 @@ impl App {
             calendar_more_past: false,
             calendar_loading_past: false,
             pending: None,
+            auto_next_cancelled: false,
             vpn_badge: None,
             vpn_leaking: false,
             providers: Vec::new(),
@@ -1522,6 +1602,7 @@ impl App {
                 }
             }
             Update::DeviceCode(prompt) => self.device_code = prompt,
+            Update::Seeding(rows) => self.seeding = rows,
             Update::Downloads(rows) => {
                 self.downloads = rows;
                 // The cursor has to stay in range: a completed row being cleared shortens the list
@@ -1672,6 +1753,71 @@ impl App {
                 }
             }
             Update::ActiveProvider(provider) => self.active_provider = Some(provider),
+            Update::PlayerPlayEpisode(episode) => {
+                // By the playing title rather than the open one: the viewer may be browsing
+                // another show in the terminal while the player is the thing they are using.
+                if let Some(playing) = &self.playing
+                    && let Some(id) = playing.id
+                {
+                    let title = playing.title.clone();
+                    self.raise_now_playing_titled(id, title, &episode);
+                    self.pending = Some(Task::Play { id, episode });
+                }
+            }
+            Update::AutoNextCancelled => self.auto_next_cancelled = true,
+            Update::EpisodeLeft { id, episode, position, duration, watched } => {
+                self.reflect_watch(Some(id), &episode, position, duration, watched);
+            }
+            Update::PlayerTranslation(translation) => {
+                self.config.playback.translation = translation;
+                self.push_toast(Toast::info(format!("now using {translation}")));
+                if let Some(playing) = &self.playing
+                    && let Some(id) = playing.id
+                {
+                    let (title, episode) = (playing.title.clone(), playing.episode.clone());
+                    self.raise_now_playing_titled(id, title, &episode);
+                    self.pending = Some(Task::Play { id, episode });
+                }
+            }
+            Update::PlayerUpscaling(name) => {
+                if let Some(mode) = anistream_core::config::Upscaling::from_name(&name) {
+                    self.config.playback.upscaling = mode;
+                    if self.pending.is_none() {
+                        self.pending = Some(Task::SaveSetting {
+                            table: &["playback"],
+                            key: "upscaling",
+                            value: anistream_core::settings::SettingValue::Str(name),
+                        });
+                    }
+                }
+            }
+            Update::PrefetchNext { id, episode } => {
+                // Best effort: an ending that arrives while something else holds the slot simply
+                // plays the next episode the usual way.
+                if self.pending.is_none() {
+                    self.pending = Some(Task::Prefetch { id, episode });
+                }
+            }
+            Update::PlayerToneMapping(curve) => {
+                self.config.playback.tone_mapping = curve.clone();
+                if self.pending.is_none() {
+                    self.pending = Some(Task::SaveSetting {
+                        table: &["playback"],
+                        key: "tone_mapping",
+                        value: anistream_core::settings::SettingValue::Str(curve),
+                    });
+                }
+            }
+            Update::PlayerNightMode(on) => {
+                self.config.playback.night_mode = on;
+                if self.pending.is_none() {
+                    self.pending = Some(Task::SaveSetting {
+                        table: &["playback"],
+                        key: "night_mode",
+                        value: anistream_core::settings::SettingValue::Bool(on),
+                    });
+                }
+            }
             Update::PlayerStepEpisode(delta) => {
                 // Same path the terminal's n/N keys take; `pending` because `apply` has
                 // no return channel, exactly like auto-next.
@@ -1709,8 +1855,11 @@ impl App {
 
                 // Auto-next only follows a *finished* episode. Rolling on after someone quit
                 // ten minutes in would be the opposite of what they asked for.
+                // Read and reset together: a cancel belongs to the episode it was made in.
+                let cancelled = std::mem::take(&mut self.auto_next_cancelled);
                 if watched
                     && self.config.playback.auto_next
+                    && !cancelled
                     && let Some(finished) = finished
                     && let Some(id) = finished.id
                     && let Some(next) = finished.next_episode()
@@ -2777,6 +2926,29 @@ impl App {
         Some(self.begin_playback(id, next.to_string()))
     }
 
+    /// The episode table for a title, when it is the one loaded — what the player's Episodes
+    /// menu lists. Empty for any other title rather than another show's rows.
+    pub fn episode_rows_for(&self, id: AnilistId) -> &[EpisodeRow] {
+        // Every row, not the filtered view: a filter on the title screen is about what to look
+        // at there, not about which episodes exist.
+        match &self.detail {
+            Some(detail) if detail.id == id => &self.episodes_all,
+            _ => &[],
+        }
+    }
+
+    /// The episode that follows `episode` of `id`, honouring the filler setting, when the
+    /// episode table can vouch that it exists.
+    ///
+    /// `None` when the table is not this title's or has no such row: the player then shows no
+    /// Up Next card and closes at the end, which is right for a finale and harmless otherwise.
+    pub fn next_up(&self, id: AnilistId, episode: &str) -> Option<&EpisodeRow> {
+        let rows = self.episode_rows_for(id);
+        let next = episode.trim().parse::<u32>().ok()?.checked_add(1)?.to_string();
+        let next = self.next_after_filler(next);
+        rows.iter().find(|r| r.number == next)
+    }
+
     /// Where auto-next actually lands, honouring `playback.skip_filler`.
     ///
     /// Steps over episodes marked pure filler (`mixed` is never skipped — it carries
@@ -3185,8 +3357,23 @@ impl App {
                     S::Upscaling => (
                         upscaling_label(playback.upscaling).into(),
                         Some(("playback", "upscaling")),
-                        // Assembled per playback, so the next episode uses this.
-                        Some("applies to the next episode you start"),
+                        // Read per playback, so the next episode uses this; the player's own
+                        // menu changes the one playing.
+                        Some("adapts to the source and your GPU · from the next episode"),
+                    ),
+                    S::PlayerUi => (
+                        match playback.player_ui {
+                            anistream_core::config::PlayerUi::Anistream => "anistream",
+                            anistream_core::config::PlayerUi::Mpv => "your mpv setup",
+                        }
+                        .into(),
+                        Some(("playback", "player_ui")),
+                        Some("thumbnails, menus and the skip button in anistream's look"),
+                    ),
+                    S::NightMode => (
+                        on_off(playback.night_mode),
+                        Some(("playback", "night_mode")),
+                        Some("evens out quiet dialogue and loud music"),
                     ),
                     S::DownloadDir => (
                         self.config
@@ -3277,6 +3464,25 @@ impl App {
                         None,
                         Some("edit config.toml — turning this off has to be deliberate"),
                     ),
+                    S::SeedRatio => (
+                        if torrent.seeding.ratio > 0.0 {
+                            format!("until ratio {:.1}", torrent.seeding.ratio)
+                        } else {
+                            "off".into()
+                        },
+                        Some(("providers.torrent.seeding", "ratio")),
+                        Some("keeps watched episodes seeding while anistream is open"),
+                    ),
+                    S::SeedHours => (
+                        format!("{} h", torrent.seeding.hours),
+                        Some(("providers.torrent.seeding", "hours")),
+                        Some("the longest one episode keeps seeding, whatever its ratio"),
+                    ),
+                    S::UploadLimit => (
+                        upload_label(torrent.seeding.upload_limit_kib),
+                        Some(("providers.torrent.seeding", "upload_limit_kib")),
+                        Some("caps all torrent upload, so seeding never slows playback"),
+                    ),
                     S::TokenStorage => (
                         self.config.trackers.token_storage.clone(),
                         None,
@@ -3362,21 +3568,27 @@ impl App {
             }
             SettingId::Upscaling => {
                 use anistream_core::config::Upscaling as U;
-                const LADDER: [U; 3] = [U::Off, U::Anime4kFast, U::Anime4kQuality];
+                const LADDER: [U; 3] = [U::Off, U::Natural, U::Sharp];
                 let at = LADDER
                     .iter()
                     .position(|u| *u == self.config.playback.upscaling)
                     .unwrap_or(0) as isize;
                 let next = LADDER[(at + delta).clamp(0, 2) as usize];
                 self.config.playback.upscaling = next;
-                V::Str(
-                    match next {
-                        U::Off => "off",
-                        U::Anime4kFast => "anime4k-fast",
-                        U::Anime4kQuality => "anime4k-quality",
-                    }
-                    .into(),
-                )
+                V::Str(next.name().into())
+            }
+            SettingId::PlayerUi => {
+                use anistream_core::config::PlayerUi as P;
+                let next = match self.config.playback.player_ui {
+                    P::Anistream => P::Mpv,
+                    P::Mpv => P::Anistream,
+                };
+                self.config.playback.player_ui = next;
+                V::Str(if next == P::Anistream { "anistream" } else { "mpv" }.into())
+            }
+            SettingId::NightMode => {
+                self.config.playback.night_mode = !self.config.playback.night_mode;
+                V::Bool(self.config.playback.night_mode)
             }
             SettingId::MergeSubtitles => {
                 self.config.downloads.merge_subtitles = !self.config.downloads.merge_subtitles;
@@ -3421,6 +3633,27 @@ impl App {
             SettingId::Torrents => {
                 self.config.providers.torrent.enabled = !self.config.providers.torrent.enabled;
                 V::Bool(self.config.providers.torrent.enabled)
+            }
+            SettingId::SeedRatio => {
+                // Tenths, so the ladder can be matched exactly rather than as floats.
+                const LADDER: [u32; 5] = [0, 5, 10, 15, 20];
+                let seeding = &mut self.config.providers.torrent.seeding;
+                let current = (seeding.ratio * 10.0).round() as u32;
+                seeding.ratio = f64::from(step_through(&LADDER, current, delta)) / 10.0;
+                V::Float(seeding.ratio)
+            }
+            SettingId::SeedHours => {
+                const LADDER: [u32; 5] = [1, 6, 12, 24, 72];
+                let seeding = &mut self.config.providers.torrent.seeding;
+                seeding.hours = step_through(&LADDER, seeding.hours, delta);
+                V::Int(i64::from(seeding.hours))
+            }
+            SettingId::UploadLimit => {
+                const LADDER: [u32; 6] = [0, 256, 512, 1024, 2048, 5120];
+                let seeding = &mut self.config.providers.torrent.seeding;
+                seeding.upload_limit_kib =
+                    step_through(&LADDER, seeding.upload_limit_kib, delta);
+                V::Int(i64::from(seeding.upload_limit_kib))
             }
             SettingId::VpnMode | SettingId::TokenStorage => return None,
             // Text values are typed, not cycled — arrows have nothing to step through.
@@ -4460,6 +4693,12 @@ impl Task {
 /// Asynchronous work requested by the reducer.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Task {
+    /// Resolve an episode's streams ahead of playing it, quietly, for a [`Task::Play`] of the
+    /// same episode to pick up.
+    Prefetch {
+        id: AnilistId,
+        episode: String,
+    },
     /// What you were watching, from local history.
     ///
     /// Named for what it is. It used to be `LoadTrending` and it fetched the current season, which
@@ -4692,7 +4931,7 @@ pub enum Task {
 ///
 /// Kept as data rather than a call into the player so the reducer stays pure and testable —
 /// the binary routes these to the live session.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum PlayerCommand {
     TogglePause,
     /// Seek by a relative number of seconds; negative goes back.
@@ -4706,6 +4945,18 @@ pub enum PlayerCommand {
     /// Leave mpv running and return to browsing.
     Detach,
     Stop,
+    /// The title's episode list, loaded after playback started because the episode table on
+    /// screen was not this title's — what the player's Episodes menu and Up Next read. `next`
+    /// is the episode that follows the one playing, when the list has it.
+    Episodes {
+        rows: Vec<EpisodeRow>,
+        next: Option<String>,
+    },
+    /// A newer playback is starting: hand the player window over to it rather than closing it.
+    ///
+    /// Sent by the task runner, never by a key — it is how pressing N inside the player, or
+    /// picking an episode from its menu, keeps the same window instead of opening a second one.
+    Handover,
     /// Toggle the player's fullscreen state.
     Fullscreen,
 }
@@ -5323,6 +5574,20 @@ mod tests {
         let resume = a.detail.as_ref().unwrap().resume.expect("no resume point");
         assert_eq!(resume.position, 600.0);
         assert_eq!(resume.fraction, Some(0.5));
+    }
+
+    #[test]
+    fn an_ending_asks_for_the_next_episode_without_taking_a_busy_slot() {
+        let mut a = app();
+        a.apply(Update::PrefetchNext { id: AnilistId::new(3), episode: "6".into() });
+        assert_eq!(
+            a.take_pending(),
+            Some(Task::Prefetch { id: AnilistId::new(3), episode: "6".into() })
+        );
+        // Best effort: a slot already holding work keeps it.
+        a.apply(Update::PlayerNightMode(true));
+        a.apply(Update::PrefetchNext { id: AnilistId::new(3), episode: "6".into() });
+        assert!(matches!(a.take_pending(), Some(Task::SaveSetting { .. })));
     }
 
     #[test]
@@ -6863,6 +7128,48 @@ mod tests {
             a.toasts.iter().any(|t| t.text.contains("config.toml")),
             "a read-only row must explain itself"
         );
+    }
+
+    #[test]
+    fn seeding_is_set_from_the_settings_screen() {
+        use anistream_core::settings::SettingValue;
+        let mut a = app();
+        a.go_to_section(Section::Settings);
+        a.nav.focus_stage();
+        let at = |id| SettingId::ALL.iter().position(|row| *row == id).unwrap();
+
+        // Off by default; one step right turns it on, at a modest ratio.
+        a.selected = at(SettingId::SeedRatio);
+        assert_eq!(a.config.providers.torrent.seeding.ratio, 0.0);
+        assert_eq!(
+            a.handle(Action::Right, 10),
+            Some(Task::SaveSetting {
+                table: &["providers", "torrent", "seeding"],
+                key: "ratio",
+                value: SettingValue::Float(0.5),
+            })
+        );
+        assert!(a.config.providers.torrent.seeding.enabled());
+
+        a.selected = at(SettingId::SeedHours);
+        assert_eq!(
+            a.handle(Action::Right, 10),
+            Some(Task::SaveSetting {
+                table: &["providers", "torrent", "seeding"],
+                key: "hours",
+                value: SettingValue::Int(72),
+            })
+        );
+
+        a.selected = at(SettingId::UploadLimit);
+        let rows = a.setting_rows();
+        assert_eq!(rows[a.selected].value, "unlimited");
+        a.handle(Action::Right, 10);
+        assert_eq!(a.setting_rows()[a.selected].value, "256 KB/s");
+        for _ in 0..3 {
+            a.handle(Action::Right, 10);
+        }
+        assert_eq!(a.setting_rows()[a.selected].value, "2 MB/s");
     }
 
     #[test]

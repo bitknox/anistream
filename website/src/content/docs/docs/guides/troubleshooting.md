@@ -36,8 +36,8 @@ text only.
 
 ## The player
 
-anistream's player features want mpv 0.39 or newer. Older builds play, but without the in-player
-menus and the one-window binge. `anistream --doctor` prints your mpv version, the
+anistream's player interface, with the skip button, Up Next, menus and thumbnails, needs mpv 0.36
+or newer. Older versions play with mpv's own controls. `anistream --doctor` prints your mpv version, the
 [player interface](/docs/guides/player/) in use and where its files were written.
 
 With the default `player_ui = "anistream"`, the scripts in your own mpv folder are not loaded. If

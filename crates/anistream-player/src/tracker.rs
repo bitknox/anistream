@@ -79,6 +79,9 @@ pub struct PlaybackTracker {
     volume: Option<f64>,
     committed: bool,
     offering: Option<SkipKind>,
+    /// Segments the viewer went back into after an automatic skip. Undo means "I want to watch
+    /// this", so skipping it again the moment the playhead re-enters would undo the undo.
+    declined: Vec<SkipKind>,
     ended: bool,
 }
 
@@ -112,6 +115,7 @@ impl PlaybackTracker {
             volume: None,
             committed: false,
             offering: None,
+            declined: Vec::new(),
             ended: false,
         }
     }
@@ -158,6 +162,13 @@ impl PlaybackTracker {
         self.duration.is_some_and(|d| d > 0.0) && self.fraction() >= self.threshold
     }
 
+    /// Stop offering (and auto-skipping) this kind of segment for the rest of the file.
+    pub fn decline(&mut self, kind: SkipKind) {
+        if !self.declined.contains(&kind) {
+            self.declined.push(kind);
+        }
+    }
+
     /// The segment currently offering a skip, for the UI.
     pub fn offered_skip(&self) -> Option<&SkipInterval> {
         active(&self.skips, self.position)
@@ -200,6 +211,7 @@ impl PlaybackTracker {
 
                 // Skip prompt, driven off position.
                 match active(&self.skips, self.position) {
+                    Some(interval) if self.declined.contains(&interval.kind) => {}
                     Some(interval) => {
                         // Emitted once per entry into the interval, whether or not auto-skip is
                         // on: the action is the same either way, and *acting* on it — seeking
@@ -235,8 +247,21 @@ impl PlaybackTracker {
                 }
             }
 
-            // Remote controls are the session's business, not the tracker's.
-            PlaybackEvent::Remote(_) => {}
+            // Input from the player, picture and track state, buffering: the session's business,
+            // not the tracker's. Listed rather than wildcarded so a new kind of event is a
+            // decision here rather than silently ignored.
+            PlaybackEvent::Script(_)
+            | PlaybackEvent::VideoParams(_)
+            | PlaybackEvent::VideoTrack(_)
+            | PlaybackEvent::TrackList(_)
+            | PlaybackEvent::Aid(_)
+            | PlaybackEvent::Sid(_)
+            | PlaybackEvent::SubDelay(_)
+            | PlaybackEvent::Buffering(_)
+            | PlaybackEvent::FrameDrops(_)
+            | PlaybackEvent::Seeking(_)
+            | PlaybackEvent::Display { .. }
+            | PlaybackEvent::Replaced => {}
 
             PlaybackEvent::Loaded => {
                 if let Some(action) = self.file_became_real() {
@@ -661,5 +686,21 @@ mod tests {
         let mut t = tracker();
         t.observe(&PlaybackEvent::Progress { position: 9_999.0, duration: Some(1500.0) });
         assert_eq!(t.fraction(), 1.0);
+    }
+
+    #[test]
+    fn an_undone_skip_is_not_taken_again() {
+        // Auto-skip seeks past the opening; undo seeks back to its start. Re-offering on the
+        // way back in would skip it a second time, which is the opposite of what undo asked.
+        let opening = SkipInterval { kind: SkipKind::Opening, start: 3.0, end: 93.0 };
+        let mut t = PlaybackTracker::new(0.85, vec![opening], true);
+        t.observe(&PlaybackEvent::Loaded);
+        assert!(
+            t.observe(&progress(4.0)).iter().any(|a| matches!(a, Action::OfferSkip { .. }))
+        );
+        t.observe(&progress(93.5));
+        t.decline(SkipKind::Opening);
+        let back = t.observe(&progress(3.1));
+        assert!(!back.iter().any(|a| matches!(a, Action::OfferSkip { .. })), "{back:?}");
     }
 }

@@ -147,8 +147,8 @@ pub struct DownloadsConfig {
     ///
     /// Streaming is different, deliberately: while an episode plays, its torrent uploads
     /// to peers over the guarded connection — watching already gives back. The session
-    /// keeps the current and previous stream's swarms alive and retires older ones (each
-    /// live swarm holds dozens of sockets, and file descriptors are finite). This key
+    /// keeps the previous, current and next episode's swarms alive and retires older ones
+    /// (each live swarm holds dozens of sockets, and file descriptors are finite). This key
     /// only decides whether a *finished download* keeps seeding.
     pub keep_seeding: bool,
 }
@@ -217,16 +217,47 @@ impl Default for DownloadsConfig {
     }
 }
 
-/// Real-time upscaling modes.
+/// Real-time upscaling, chosen as a look rather than a shader list: the chain itself adapts to
+/// the source, the display, the battery and how the GPU is keeping up.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Upscaling {
-    #[default]
+    /// mpv's own scalers.
     Off,
-    /// Anime4K mode A with the medium networks — fine on integrated graphics.
-    Anime4kFast,
-    /// Anime4K mode A with the large networks — wants a discrete GPU.
-    Anime4kQuality,
+    /// ArtCNN: faithful line work and texture, nothing restyled.
+    #[default]
+    Natural,
+    /// Anime4K: crisper lines and heavier cleanup. The old `anime4k-fast` and
+    /// `anime4k-quality` settings read as this; how heavy a chain runs is now decided by the
+    /// budget rather than by the setting.
+    #[serde(alias = "anime4k-fast", alias = "anime4k-quality")]
+    Sharp,
+}
+
+impl Upscaling {
+    pub const ALL: [Self; 3] = [Self::Off, Self::Natural, Self::Sharp];
+
+    /// The name the config file uses.
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Off => "off",
+            Self::Natural => "natural",
+            Self::Sharp => "sharp",
+        }
+    }
+
+    pub fn from_name(name: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|mode| mode.name() == name)
+    }
+}
+
+/// Whose interface the player wears. See [`PlaybackConfig::player_ui`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PlayerUi {
+    #[default]
+    Anistream,
+    Mpv,
 }
 
 /// Watch parties via Syncplay.
@@ -384,12 +415,27 @@ pub struct PlaybackConfig {
     /// Start mpv fullscreen. The viewer can still leave it with mpv's own `f` key;
     /// this only chooses how the window opens.
     pub fullscreen: bool,
-    /// Real-time upscaling via Anime4K, applied as mpv shader chains.
+    /// Real-time upscaling: `natural` (ArtCNN), `sharp` (Anime4K) or `off`.
     ///
-    /// The shaders ship inside the binary (MIT, vendored from bloc97/Anime4K), so this
-    /// is a toggle rather than a scavenger hunt. `fast` suits integrated graphics;
-    /// `quality` wants a discrete GPU. Worth turning on for 720p batch rips.
+    /// The shaders ship inside the binary, so this is a choice of look rather than a scavenger
+    /// hunt. Which networks actually run is decided per file: nothing heavy when the source
+    /// already fills the display, a lighter chain on battery, and one step lighter whenever
+    /// frames start dropping. HDR sources only get chroma work.
     pub upscaling: Upscaling,
+    /// Whose interface the player wears.
+    ///
+    /// `anistream` brings its own: uosc with seekbar thumbnails, the opening and ending marked
+    /// on the timeline, the skip button and in-player menus, in the app's colours and font. It
+    /// still reads your `mpv.conf` but does not load the scripts in your mpv folder. `mpv` leaves
+    /// your own setup as it is and adds only the companion script that the skip button, Up Next
+    /// and the menus need.
+    pub player_ui: PlayerUi,
+    /// Even out loud and quiet passages, so dialogue stays audible at low volume without the
+    /// opening being loud. One audio filter, toggled from the player's menu as well.
+    pub night_mode: bool,
+    /// How HDR video is mapped to an SDR display. `auto` is mpv's own choice, which is right
+    /// for most screens; the player's menu offers the alternatives while HDR is playing.
+    pub tone_mapping: String,
     /// Reserved. Accepted so existing configs keep parsing, but currently has no
     /// effect: players are routed by what a stream needs (mpv for media, the handoff
     /// player for external deep links), not by preference order.
@@ -416,7 +462,10 @@ impl Default for PlaybackConfig {
             persisted_speed: None,
             persist_volume: true,
             persisted_volume: None,
-            upscaling: Upscaling::Off,
+            upscaling: Upscaling::Natural,
+            player_ui: PlayerUi::Anistream,
+            night_mode: false,
+            tone_mapping: "auto".into(),
             skip_opening: true,
             mark_chapters: true,
             skip_filler: false,
@@ -513,6 +562,42 @@ pub struct TorrentConfig {
     /// Reserved. Accepted so existing configs keep parsing; currently has no effect —
     /// ranking always trusts the feed's live seeder counts.
     pub max_seeders_age_days: Option<u32>,
+    /// Giving back after an episode has been watched.
+    pub seeding: SeedingConfig,
+}
+
+/// Seeding streamed episodes after they stop playing, and a cap on upload.
+///
+/// An episode uploads to its swarm while it plays either way. These decide what happens after:
+/// with `ratio` at 0 a finished episode stops seeding once newer ones push it out of the session,
+/// within minutes; above 0 it keeps seeding, while anistream is open, until it has given back
+/// that multiple of what it took or `hours` have passed. Off by default for the same reason as
+/// `downloads.keep_seeding`: seeding advertises you as a source for as long as it runs, and that
+/// is not something to switch on for anyone silently.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default, deny_unknown_fields)]
+pub struct SeedingConfig {
+    /// Seed each watched episode until it has uploaded this many times what was downloaded.
+    /// `0` turns seeding after watching off.
+    pub ratio: f64,
+    /// The longest any one episode keeps seeding, whatever its ratio.
+    pub hours: u32,
+    /// Total upload across every torrent, in KiB/s. `0` is unlimited. Worth setting on a slow
+    /// uplink, where seeding could otherwise crowd out the requests the playing episode needs.
+    pub upload_limit_kib: u32,
+}
+
+impl Default for SeedingConfig {
+    fn default() -> Self {
+        Self { ratio: 0.0, hours: 24, upload_limit_kib: 0 }
+    }
+}
+
+impl SeedingConfig {
+    /// Whether watched episodes keep seeding at all.
+    pub fn enabled(&self) -> bool {
+        self.ratio > 0.0 && self.hours > 0
+    }
 }
 
 impl TorrentConfig {
@@ -858,6 +943,19 @@ impl Default for NetworkConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_old_anime4k_settings_still_read_as_sharp() {
+        // Existing configs said `anime4k-fast` or `anime4k-quality`; refusing them would turn
+        // a working config into a startup error. Both chose Anime4K's look.
+        for old in ["anime4k-fast", "anime4k-quality"] {
+            let cfg = Config::from_toml(&format!("[playback]\nupscaling = \"{old}\"")).unwrap();
+            assert_eq!(cfg.playback.upscaling, Upscaling::Sharp, "{old}");
+        }
+        let off = Config::from_toml("[playback]\nupscaling = \"off\"").unwrap();
+        assert_eq!(off.playback.upscaling, Upscaling::Off, "an explicit off stays off");
+        assert_eq!(Config::default().playback.upscaling, Upscaling::Natural);
+    }
 
     #[test]
     fn defaults_are_valid_and_torrenting_is_off() {

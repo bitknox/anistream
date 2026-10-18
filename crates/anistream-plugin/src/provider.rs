@@ -74,6 +74,7 @@ impl WasmProvider {
             // Providers screen and for health accounting, so a plugin cannot claim to be
             // another source.
             provider_id: self.manifest.id.clone(),
+            thumbnail_url: None,
         }
     }
 }

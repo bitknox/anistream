@@ -1,6 +1,12 @@
 //! anistream — an anime streaming TUI.
 
-use anistream::{artwork, data, downloads, playback, plugin_stores, sources, tracking};
+use anistream::{
+    artwork, data, downloads, playback,
+    player::{player, shader_dir},
+    plugin_stores,
+    slot::PlayerSlot,
+    sources, tracking,
+};
 
 use std::{io, sync::Arc, time::Duration};
 
@@ -212,7 +218,7 @@ async fn main() -> Result<()> {
         return anistream::updates::self_update(&http).await;
     }
     if cli.doctor {
-        return doctor(&config, &store, !cli.no_images).await;
+        return doctor(&config, &paths, &store, !cli.no_images).await;
     }
     if cli.refresh_data {
         return refresh_data(&store, &http).await;
@@ -498,7 +504,7 @@ async fn preview(
 }
 
 /// Report the environment, without starting the UI.
-async fn doctor(config: &Config, store: &Store, images: bool) -> Result<()> {
+async fn doctor(config: &Config, paths: &Paths, store: &Store, images: bool) -> Result<()> {
     let engine = anistream_ui::image::ImageEngine::detect(images);
     let background = theme::detect::detect_background();
     let palette = theme::resolve_with(config.theme.mode, background);
@@ -556,10 +562,47 @@ async fn doctor(config: &Config, store: &Store, images: bool) -> Result<()> {
                 ),
                 None => println!("  mpv.conf    none"),
             }
+            // Older mpv still plays, but drops parts of the player: say which, here as well as
+            // at launch, so a degraded player has an explanation.
+            if let Some(note) =
+                anistream_player::protocol::MpvVersion::parse(&version).and_then(old_mpv_note)
+            {
+                println!("              {note}");
+            }
         }
         None => {
             println!("  mpv         ✕ not runnable as {:?}", config.playback.mpv_binary);
             println!("              install it (brew install mpv), or set playback.mpv_binary");
+        }
+    }
+
+    use anistream_core::config::PlayerUi;
+    match config.playback.player_ui {
+        PlayerUi::Anistream => {
+            println!(
+                "  interface   anistream (uosc, thumbnails, companion) — your mpv scripts are not loaded"
+            )
+        }
+        PlayerUi::Mpv => println!("  interface   your mpv setup, plus the companion script"),
+    }
+    match anistream_player::Bundle::materialize(&paths.cache_dir) {
+        Ok(bundle) => println!("  bundle      {}", bundle.root().display()),
+        Err(e) => {
+            println!("  bundle      ✕ could not be written: {e} — mpv's own look is used")
+        }
+    }
+    // With the user's scripts loaded, another script can take keys or tracks ours expect.
+    // Listing them is enough for a human to spot the one that fights.
+    if config.playback.player_ui == PlayerUi::Mpv
+        && let Some(dir) =
+            dirs_config_mpv().and_then(|conf| conf.parent().map(|d| d.join("scripts")))
+        && let Ok(entries) = std::fs::read_dir(&dir)
+    {
+        let mut names: Vec<String> =
+            entries.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+        names.sort();
+        if !names.is_empty() {
+            println!("  scripts     {} — {}", dir.display(), names.join(", "));
         }
     }
 
@@ -1538,6 +1581,10 @@ async fn run(
     // The live player's control channel. Replaced on each new playback, so a stale sender from
     // a finished episode can never steer the current one.
     let mut player_tx: Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>> = None;
+    // The player window kept between episodes, claimed by whichever playback comes next.
+    let slot = PlayerSlot::default();
+    // The next episode's streams, found while the current one's ending plays.
+    let prefetch = Prefetch::default();
     let mpv = player(&app.config, &paths);
     if !mpv.is_available().await {
         // Said once at startup rather than at the moment you press Enter on an episode.
@@ -1545,6 +1592,8 @@ async fn run(
             "{} not found — install mpv to play anything",
             app.config.playback.mpv_binary
         ))));
+    } else if let Some(note) = mpv.mpv_version().await.and_then(old_mpv_note) {
+        app.apply(Update::Toast(Toast::info(note)));
     }
 
     let result = loop {
@@ -1570,7 +1619,9 @@ async fn run(
                 job,
                 &mut player_tx,
                 &paths,
-                &app.config,
+                &app,
+                &slot,
+                &prefetch,
                 &meta,
                 &store,
                 &registry,
@@ -1680,7 +1731,7 @@ async fn run(
                         {
                             let job = JobGuard::start(&mut app, &task, &tx);
                             dispatch(
-                                task, job, &mut player_tx, &paths, &app.config, &meta, &store,
+                                task, job, &mut player_tx, &paths, &app, &slot, &prefetch, &meta, &store,
                                 &registry, &http, &sync, &stores, &tx,
                             );
                         }
@@ -1917,6 +1968,7 @@ fn spawn(
             // Handled in `dispatch`, which owns the live player's control channel and the
             // tracker set. Reaching here would mean a routing mistake, so it says so.
             Task::Play { .. }
+            | Task::Prefetch { .. }
             | Task::PlayParty { .. }
             | Task::LoadSources { .. }
             | Task::PlaySource { .. }
@@ -2026,7 +2078,9 @@ fn dispatch(
     job: Option<JobGuard>,
     player_tx: &mut Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
     paths: &Paths,
-    config: &Config,
+    app: &App,
+    slot: &PlayerSlot,
+    prefetch: &Prefetch,
     meta: &Meta,
     store: &Store,
     registry: &ProviderRegistry,
@@ -2035,6 +2089,7 @@ fn dispatch(
     stores: &plugin_stores::Stores,
     tx: &mpsc::UnboundedSender<Update>,
 ) {
+    let config = &app.config;
     // No player handle is passed in: every playback path builds its own from the config
     // above, which is the live one the Settings screen edits. A handle held across the
     // session is exactly how a turned-off upscaler kept running.
@@ -2102,14 +2157,42 @@ fn dispatch(
                 let _ = tx.send(update);
             });
         }
+        Task::Prefetch { id, episode } => {
+            let (meta, store, registry, playback, prefetch) = (
+                meta.clone(),
+                store.clone(),
+                registry.clone(),
+                config.playback.clone(),
+                prefetch.clone(),
+            );
+            tokio::spawn(async move {
+                // Quiet: the steps of a search nobody is waiting on must not take the status
+                // line from the episode playing. Nothing reads this channel.
+                let (quiet, _) = mpsc::unbounded_channel();
+                let found = resolve_for_playback(
+                    &meta, &store, &registry, id, &episode, None, &playback, None, &quiet,
+                )
+                .await;
+                match found {
+                    Ok(resolved) => prefetch.keep(id, &episode, playback.translation, resolved),
+                    Err(reason) => {
+                        tracing::info!(%reason, "could not find the next episode ahead")
+                    }
+                }
+            });
+        }
         Task::Play { id, episode } => {
             // A fresh channel per playback, and dropping the old sender is what tells a
             // previous session its controls are gone.
-            let (ptx, prx) = mpsc::unbounded_channel();
-            *player_tx = Some(ptx);
+            let prx = take_controls(player_tx);
+            let prefetched = prefetch.take(id, &episode, config.playback.translation);
             // Tracker ids rather than trackers: playback only needs to know which queues to
             // append to, and passing the set would couple the player to the sync layer.
             let tracker_ids = signed_in_tracker_ids(sync);
+            let extras = episode_extras(app, id, &episode);
+            if extras.1.is_empty() {
+                fill_episodes(id, &episode, meta, store, registry, player_tx);
+            }
             spawn_playback(
                 id,
                 episode,
@@ -2123,16 +2206,25 @@ fn dispatch(
                 http,
                 &player(config, paths),
                 tracker_ids,
+                extras,
+                slot.clone(),
+                shader_dir(config, paths),
+                prefetched,
                 job,
                 tx,
             );
         }
         Task::PlaySource { id, episode, provider_id, source_id } => {
             // Identical to Play except the stream comes from the exact release the user
-            // picked — same fresh channel, same session-replacement semantics.
-            let (ptx, prx) = mpsc::unbounded_channel();
-            *player_tx = Some(ptx);
+            // picked — same fresh channel, same session-replacement semantics. Never from the
+            // streams found ahead: the pick names its own release.
+            let prx = take_controls(player_tx);
+            let prefetched = None;
             let tracker_ids = signed_in_tracker_ids(sync);
+            let extras = episode_extras(app, id, &episode);
+            if extras.1.is_empty() {
+                fill_episodes(id, &episode, meta, store, registry, player_tx);
+            }
             spawn_playback(
                 id,
                 episode,
@@ -2146,15 +2238,20 @@ fn dispatch(
                 http,
                 &player(config, paths),
                 tracker_ids,
+                extras,
+                slot.clone(),
+                shader_dir(config, paths),
+                prefetched,
                 job,
                 tx,
             );
         }
         Task::PlayParty { id, episode } => {
             // Same resolution as Play; the handoff at the end is the only difference.
-            let (ptx, prx) = mpsc::unbounded_channel();
-            *player_tx = Some(ptx);
+            let prx = take_controls(player_tx);
+            let prefetched = None;
             let tracker_ids = signed_in_tracker_ids(sync);
+            let extras = episode_extras(app, id, &episode);
             spawn_playback(
                 id,
                 episode,
@@ -2168,6 +2265,10 @@ fn dispatch(
                 http,
                 &player(config, paths),
                 tracker_ids,
+                extras,
+                slot.clone(),
+                shader_dir(config, paths),
+                prefetched,
                 job,
                 tx,
             );
@@ -2421,15 +2522,20 @@ fn dispatch(
             // playback session all the same: a downloaded episode records history, resumes,
             // and syncs exactly like a streamed one. It used to go straight to mpv with no
             // context, which made downloads second-class in every way that matters.
-            let (ptx, prx) = mpsc::unbounded_channel();
-            *player_tx = Some(ptx);
+            let prx = take_controls(player_tx);
             let tracker_ids = signed_in_tracker_ids(sync);
-            let (config, store, http, mpv, tx) = (
+            let (next, episodes) = episode_extras(app, id, &episode);
+            if episodes.is_empty() {
+                fill_episodes(id, &episode, meta, store, registry, player_tx);
+            }
+            let shaders = shader_dir(config, paths);
+            let (config, store, http, mpv, tx, slot) = (
                 config.clone(),
                 store.clone(),
                 http.clone(),
                 player(config, paths),
                 tx.clone(),
+                slot.clone(),
             );
             tokio::spawn(async move {
                 let _job = job;
@@ -2461,6 +2567,12 @@ fn dispatch(
                         .persist_volume
                         .then_some(playback.persisted_volume)
                         .flatten(),
+                    next,
+                    episodes,
+                };
+                let settings = playback::PlaySettings {
+                    shader_dir: shaders,
+                    ..play_settings(&config, tracker_ids, config.syncplay.enabled)
                 };
                 playback::play(
                     vec![stream],
@@ -2468,15 +2580,8 @@ fn dispatch(
                     store,
                     http,
                     mpv,
-                    playback.commit_threshold,
-                    playback.skip_opening,
-                    playback.mark_chapters,
-                    playback.fullscreen,
-                    Some(playback.subtitle_language.clone()),
-                    tracker_ids,
-                    config.presence.clone(),
-                    config.syncplay.clone(),
-                    config.syncplay.enabled,
+                    settings,
+                    slot,
                     tx,
                     prx,
                 )
@@ -2750,6 +2855,12 @@ fn spawn_playback(
     http: &HttpClient,
     mpv: &anistream_player::Mpv,
     tracker_ids: Vec<String>,
+    // What the player's Up Next card and Episodes menu show, read from the episode table.
+    extras: (Option<playback::NextEpisode>, Vec<playback::EpisodeEntry>),
+    slot: PlayerSlot,
+    shader_dir: Option<std::path::PathBuf>,
+    // This episode's streams, found ahead while the previous one's ending played.
+    prefetched: Option<Resolved>,
     job: Option<JobGuard>,
     tx: &mpsc::UnboundedSender<Update>,
 ) {
@@ -2765,29 +2876,40 @@ fn spawn_playback(
 
     tokio::spawn(async move {
         let playback = config.playback.clone();
-        let context = match resolve_for_playback(
-            &meta,
-            &store,
-            &registry,
-            id,
-            &episode,
-            pick,
-            &playback,
-            job.as_ref(),
-            &tx,
-        )
-        .await
-        {
+        let resolved = match prefetched {
+            Some(found) => {
+                tracing::info!(episode = %episode, "playing from the streams found ahead");
+                Ok(found)
+            }
+            None => {
+                resolve_for_playback(
+                    &meta,
+                    &store,
+                    &registry,
+                    id,
+                    &episode,
+                    pick,
+                    &playback,
+                    job.as_ref(),
+                    &tx,
+                )
+                .await
+            }
+        };
+        let context = match resolved {
             Ok(pair) => pair,
             Err(reason) => {
                 // The failure ladder's first rung: name the failure rather than showing an
                 // empty screen. Releasing the eyecatch is what the alert does for us.
                 let _ = tx.send(Update::Toast(Toast::alert(reason)));
+                // A window left open for this episode would wait for nothing.
+                slot.release();
                 let _ = tx.send(Update::PlaybackEnded { watched: false });
                 return;
             }
         };
-        let (streams, context) = context;
+        let (streams, mut context) = context;
+        (context.next, context.episodes) = extras;
         // Resolved: from here the wait is mpv opening, which Now Playing shows itself, and the
         // session lasts the episode — far too long to hold a "starting" job open for.
         drop(job);
@@ -2798,25 +2920,9 @@ fn spawn_playback(
             let _ = tx.send(Update::Toast(Toast::info(note)));
         }
 
-        playback::play(
-            streams,
-            context,
-            store,
-            http,
-            mpv,
-            playback.commit_threshold,
-            playback.skip_opening,
-            playback.mark_chapters,
-            playback.fullscreen,
-            Some(playback.subtitle_language.clone()),
-            tracker_ids,
-            config.presence.clone(),
-            config.syncplay.clone(),
-            party,
-            tx,
-            commands,
-        )
-        .await;
+        let settings =
+            playback::PlaySettings { shader_dir, ..play_settings(&config, tracker_ids, party) };
+        playback::play(streams, context, store, http, mpv, settings, slot, tx, commands).await;
     });
 }
 
@@ -2935,6 +3041,9 @@ async fn resolve_for_playback(
         runtime_secs: media.duration.map(|minutes| minutes * 60),
         speed: playback.persist_speed.then_some(playback.persisted_speed).flatten(),
         volume: playback.persist_volume.then_some(playback.persisted_volume).flatten(),
+        // Filled in by the caller, which has the episode table; headless play has none.
+        next: None,
+        episodes: Vec::new(),
     };
     Ok((streams, context))
 }
@@ -3241,22 +3350,20 @@ async fn play_cli(
     // The same queue set the TUI uses: signed-in trackers, not merely enabled ones.
     let sync = tracking::Sync::build(config, store, http);
     let tracker_ids = signed_in_tracker_ids(&sync);
-    let playback = config.playback.clone();
+    let settings = playback::PlaySettings {
+        shader_dir: shader_dir(config, paths),
+        ..play_settings(config, tracker_ids.clone(), config.syncplay.enabled)
+    };
+    // Headless plays one episode: nothing would ever claim a parked window.
+    let settings = playback::PlaySettings { auto_next: false, ..settings };
     playback::play(
         streams,
         context,
         store.clone(),
         http.clone(),
         mpv,
-        playback.commit_threshold,
-        playback.skip_opening,
-        playback.mark_chapters,
-        playback.fullscreen,
-        Some(playback.subtitle_language.clone()),
-        tracker_ids.clone(),
-        config.presence.clone(),
-        config.syncplay.clone(),
-        config.syncplay.enabled,
+        settings,
+        PlayerSlot::default(),
         tx,
         prx,
     )
@@ -3306,6 +3413,7 @@ fn redefines_sources(table: &[&str], key: &str) -> bool {
 struct TorrentTasks {
     downloads: Option<tokio::task::JoinHandle<()>>,
     watcher: Option<tokio::task::JoinHandle<()>>,
+    seeding: Option<tokio::task::JoinHandle<()>>,
     session: Option<Arc<anistream_providers::torrent::TorrentSession>>,
 }
 
@@ -3319,7 +3427,7 @@ impl TorrentTasks {
         let Some((guard, session)) = guard.clone() else {
             // No session means no downloads, which is correct rather than a limitation:
             // every downloadable source here is a torrent.
-            return Self { downloads: None, watcher: None, session: None };
+            return Self { downloads: None, watcher: None, seeding: None, session: None };
         };
 
         let downloads =
@@ -3331,7 +3439,14 @@ impl TorrentTasks {
             leaking: !guard.state().is_protected(),
         });
         let watcher = tokio::spawn(vpn_watch(guard, session.clone(), tx.clone()));
-        Self { downloads: Some(downloads), watcher: Some(watcher), session: Some(session) }
+        let seeding =
+            tokio::spawn(seeding_watch(session.clone(), Arc::clone(config), tx.clone()));
+        Self {
+            downloads: Some(downloads),
+            watcher: Some(watcher),
+            seeding: Some(seeding),
+            session: Some(session),
+        }
     }
 
     /// Stop everything and halt the session before letting go of it.
@@ -3343,8 +3458,51 @@ impl TorrentTasks {
         if let Some(session) = self.session.take() {
             session.halt().await;
         }
-        for task in [self.downloads.take(), self.watcher.take()].into_iter().flatten() {
+        for task in [self.downloads.take(), self.watcher.take(), self.seeding.take()]
+            .into_iter()
+            .flatten()
+        {
             task.abort();
+        }
+    }
+}
+
+/// Keep the session's seeding in line with the settings, retire watched episodes that have
+/// given back enough, and tell the Downloads screen what is still seeding.
+///
+/// Reads the shared config each tick rather than being told about changes: a setting saved on
+/// the Settings screen reaches the session within one tick, upload cap included, with no
+/// rebuild of the source (which would tear down the episode playing).
+async fn seeding_watch(
+    session: Arc<anistream_providers::torrent::TorrentSession>,
+    config: anistream::SharedConfig,
+    tx: mpsc::UnboundedSender<Update>,
+) {
+    let mut ticker = tokio::time::interval(Duration::from_secs(10));
+    let mut shown: Option<Vec<anistream_ui::app::SeedRow>> = None;
+    loop {
+        ticker.tick().await;
+        let goal =
+            config.read().map(|c| c.providers.torrent.seeding.clone()).unwrap_or_default();
+        session.configure_seeding(&goal).await;
+        let rows: Vec<anistream_ui::app::SeedRow> = session
+            .reap_seeding()
+            .await
+            .into_iter()
+            .map(|seed| anistream_ui::app::SeedRow {
+                name: seed.name,
+                uploaded_bytes: seed.uploaded_bytes,
+                ratio: seed.ratio,
+                goal: goal.ratio,
+                left_secs: seed.left.as_secs(),
+            })
+            .collect();
+        // Only when it changed: an idle screen should not redraw every ten seconds for nothing.
+        if shown.as_ref() != Some(&rows) {
+            if tx.send(Update::Seeding(rows.clone())).is_err() {
+                break;
+            }
+            shown = Some(rows);
         }
     }
 }
@@ -3437,22 +3595,164 @@ async fn reload_sources(
     tracing::info!(providers = ?registry.ids(), "source chain reloaded");
 }
 
-/// The player, built from the configuration *as it stands now*.
+/// What one playback runs under, from the config as it stands now.
+fn play_settings(
+    config: &Config,
+    tracker_ids: Vec<String>,
+    party: bool,
+) -> playback::PlaySettings {
+    let playback = &config.playback;
+    playback::PlaySettings {
+        threshold: playback.commit_threshold,
+        auto_skip: playback.skip_opening,
+        mark_chapters: playback.mark_chapters,
+        fullscreen: playback.fullscreen,
+        subtitle_language: Some(playback.subtitle_language.clone()),
+        auto_next: playback.auto_next,
+        night_mode: playback.night_mode,
+        remember_tracks: playback.persist_speed,
+        look: playback.upscaling.into(),
+        // Filled in by the caller, which knows where the cache is.
+        shader_dir: None,
+        tone_mapping: playback.tone_mapping.clone(),
+        tracker_ids,
+        presence: config.presence.clone(),
+        syncplay: config.syncplay.clone(),
+        party,
+    }
+}
+
+/// What the player's Up Next card and Episodes menu need from the episode table.
+fn episode_extras(
+    app: &App,
+    id: anistream_core::ids::AnilistId,
+    episode: &str,
+) -> (Option<playback::NextEpisode>, Vec<playback::EpisodeEntry>) {
+    let next = app.next_up(id, episode).map(|row| playback::NextEpisode {
+        number: row.number.clone(),
+        title: row.title.clone(),
+        thumbnail: row.thumbnail.clone(),
+    });
+    let rows = app
+        .episode_rows_for(id)
+        .iter()
+        .map(|row| playback::EpisodeEntry {
+            number: row.number.clone(),
+            title: row.title.clone(),
+            watched: row.completed,
+            filler: row.skippable,
+        })
+        .collect();
+    (next, rows)
+}
+
+/// An episode's streams and playback context, as resolution produces them.
+type Resolved = (Vec<anistream_core::stream::Stream>, playback::PlaybackContext);
+
+/// How long streams found ahead stay usable. Long enough to cover a viewer who lets the ending
+/// and a post-credits scene play out; short enough that a signed stream URL is still good.
+const PREFETCH_FRESH: Duration = Duration::from_secs(15 * 60);
+
+/// The next episode's streams, found while the current one's ending plays.
 ///
-/// Built per playback rather than held from launch, and that is the whole point.
-/// `upscaling`, `mpv_binary` and `mpv_args` are all editable on the Settings screen,
-/// so a handle made once at startup freezes whatever they were then — turning Anime4K
-/// off did nothing until the app was restarted, because `--glsl-shaders` stayed in the
-/// argument list every episode was spawned with. Shader files are written on demand and
-/// skipped when already current, so rebuilding costs a stat per shader.
-fn player(config: &Config, paths: &Paths) -> anistream_player::Mpv {
-    // Upscaling shaders first, the user's own flags after — mpv takes the last value
-    // for a repeated flag, so a hand-written --glsl-shaders always wins.
-    let mut args = anistream::shaders::mpv_args(config.playback.upscaling, &paths.cache_dir);
-    args.extend(config.playback.mpv_args.clone());
-    anistream_player::Mpv::new(paths.runtime_dir())
-        .with_binary(config.playback.mpv_binary.clone())
-        .with_extra_args(args)
+/// One entry: only the episode about to play is worth holding, and a newer prefetch replaces
+/// an older one. Taken, not copied, by the playback it was for.
+#[derive(Clone, Default)]
+struct Prefetch(Arc<std::sync::Mutex<Option<Prefetched>>>);
+
+struct Prefetched {
+    id: anistream_core::ids::AnilistId,
+    episode: String,
+    translation: anistream_core::media::Translation,
+    found: std::time::Instant,
+    resolved: Resolved,
+}
+
+impl Prefetch {
+    fn keep(
+        &self,
+        id: anistream_core::ids::AnilistId,
+        episode: &str,
+        translation: anistream_core::media::Translation,
+        resolved: Resolved,
+    ) {
+        tracing::info!(%episode, streams = resolved.0.len(), "next episode found ahead");
+        let entry = Prefetched {
+            id,
+            episode: episode.to_owned(),
+            translation,
+            found: std::time::Instant::now(),
+            resolved,
+        };
+        *self.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(entry);
+    }
+
+    /// The streams found ahead for exactly this episode, translation and title, if still fresh.
+    fn take(
+        &self,
+        id: anistream_core::ids::AnilistId,
+        episode: &str,
+        translation: anistream_core::media::Translation,
+    ) -> Option<Resolved> {
+        let mut slot = self.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+        let entry = slot.take()?;
+        let matches = entry.id == id
+            && entry.episode == episode
+            && entry.translation == translation
+            && entry.found.elapsed() < PREFETCH_FRESH;
+        matches.then_some(entry.resolved)
+    }
+}
+
+/// Load a title's episode list for a playback the episode table on screen could not describe.
+///
+/// The table belongs to whichever title is open, so a playback started from Home or Continue
+/// had no episode list: the player's Episodes menu was empty and, with no next episode known,
+/// there was no Up Next card, no fetching ahead and no keeping the window for the binge.
+/// Loaded in the background after playback starts, never in front of it, and handed to the
+/// playback through its controls.
+fn fill_episodes(
+    id: anistream_core::ids::AnilistId,
+    episode: &str,
+    meta: &Meta,
+    store: &Store,
+    registry: &ProviderRegistry,
+    controls: &Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+) {
+    let Some(controls) = controls.clone() else { return };
+    let (meta, store, registry, episode) =
+        (meta.clone(), store.clone(), registry.clone(), episode.to_owned());
+    tokio::spawn(async move {
+        match load_episodes(&meta, &store, &registry, id).await {
+            Ok(EpisodeLoad::Rows(rows)) if !rows.is_empty() => {
+                let next = following(&rows, &episode);
+                let _ = controls.send(anistream_ui::PlayerCommand::Episodes { rows, next });
+            }
+            Ok(_) => {}
+            Err(reason) => tracing::debug!(%reason, "no episode list for the player"),
+        }
+    });
+}
+
+/// The episode after `episode` in a list, when the list has it.
+fn following(rows: &[EpisodeRow], episode: &str) -> Option<String> {
+    let next = episode.trim().parse::<u32>().ok()?.checked_add(1)?.to_string();
+    rows.iter().any(|row| row.number == next).then_some(next)
+}
+
+/// A fresh control channel for a new playback, handing the current player over to it.
+///
+/// The old playback, if one is still running, parks its window rather than closing it, and the
+/// new one claims it — which is how pressing N inside the player stays in the same window.
+fn take_controls(
+    player_tx: &mut Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+) -> mpsc::UnboundedReceiver<anistream_ui::PlayerCommand> {
+    if let Some(previous) = player_tx.take() {
+        let _ = previous.send(anistream_ui::PlayerCommand::Handover);
+    }
+    let (ptx, prx) = mpsc::unbounded_channel();
+    *player_tx = Some(ptx);
+    prx
 }
 
 /// The metadata source: AniList first, Tenrai when it fails, the cache when both do.
@@ -3477,6 +3777,19 @@ fn in_path(names: &[&str]) -> bool {
         names
             .iter()
             .any(|name| dir.join(name).is_file() || dir.join(format!("{name}.exe")).is_file())
+    })
+}
+
+/// What an older mpv costs, in a sentence, or `None` when it costs nothing.
+///
+/// Ubuntu 24.04 ships 0.37 and Debian 12 ships 0.35, and the `.deb` installs whichever the system
+/// has, so this is a common case rather than an edge one.
+fn old_mpv_note(version: anistream_player::protocol::MpvVersion) -> Option<String> {
+    (!version.has_companion_support()).then(|| {
+        format!(
+            "mpv {version} plays, but anistream's player (skip button, Up Next, menus, \
+             thumbnails) needs mpv 0.36 or newer"
+        )
     })
 }
 
@@ -3791,32 +4104,96 @@ mod tests {
     }
 
     #[test]
-    fn the_player_reflects_the_upscaler_as_it_stands_now() {
+    fn the_player_reflects_the_config_as_it_stands_now() {
         // The bug this encodes: the handle was built once at launch, so turning Anime4K
         // off left `--glsl-shaders` in the arguments of every episode for the rest of the
-        // session — the GPU stayed pinned by a feature the settings screen said was off.
+        // session. Shaders are now set per file over IPC and never ride the command line,
+        // but what does — the HDR curve — must still follow the settings screen.
         let paths = Paths {
             cache_dir: std::env::temp_dir().join("anistream-player-config-test"),
             ..Paths::resolve().expect("paths")
         };
         let mut config = Config::default();
 
-        config.playback.upscaling = anistream_core::config::Upscaling::Anime4kQuality;
-        let with_shaders = player(&config, &paths);
-        let on = with_shaders.args_for_test();
+        config.playback.upscaling = anistream_core::config::Upscaling::Sharp;
+        config.playback.tone_mapping = "bt.2390".into();
+        let player_now = player(&config, &paths);
+        let args = player_now.args_for_test();
+        assert!(!args.iter().any(|a| a.starts_with("--glsl-shaders")), "{args:?}");
+        assert!(args.iter().any(|a| a == "--tone-mapping=bt.2390"), "{args:?}");
+
+        config.playback.tone_mapping = "auto".into();
+        let args = player(&config, &paths).args_for_test().to_vec();
+        assert!(!args.iter().any(|a| a.starts_with("--tone-mapping")), "auto is mpv's own");
+
+        // A chain of the user's own is theirs: no runtime chain may replace it.
+        assert!(shader_dir(&config, &paths).is_some());
+        config.playback.mpv_args = vec!["--glsl-shaders=~~/mine.glsl".into()];
+        assert!(shader_dir(&config, &paths).is_none());
+        let _ = std::fs::remove_dir_all(&paths.cache_dir);
+    }
+
+    #[test]
+    fn streams_found_ahead_serve_only_the_episode_they_were_found_for() {
+        use anistream_core::{ids::AnilistId, media::Translation};
+        let context = |episode: &str| playback::PlaybackContext {
+            anilist_id: AnilistId::new(7),
+            mal_id: None,
+            episode: episode.into(),
+            title: "t".into(),
+            translation: Translation::Sub,
+            resume_at: None,
+            runtime_secs: None,
+            speed: None,
+            volume: None,
+            next: None,
+            episodes: Vec::new(),
+        };
+        let found = || (Vec::new(), context("6"));
+        let prefetch = Prefetch::default();
+
+        prefetch.keep(AnilistId::new(7), "6", Translation::Sub, found());
+        assert!(prefetch.take(AnilistId::new(7), "6", Translation::Sub).is_some());
         assert!(
-            on.iter().any(|a| a.starts_with("--glsl-shaders=")),
-            "upscaling on should chain shaders, got {on:?}"
+            prefetch.take(AnilistId::new(7), "6", Translation::Sub).is_none(),
+            "taken once"
         );
 
-        config.playback.upscaling = anistream_core::config::Upscaling::Off;
-        let without = player(&config, &paths);
-        let off = without.args_for_test();
-        assert!(
-            !off.iter().any(|a| a.starts_with("--glsl-shaders=")),
-            "upscaling off must carry no shader chain, got {off:?}"
-        );
-        let _ = std::fs::remove_dir_all(&paths.cache_dir);
+        // Another episode, the other translation or another title start from scratch.
+        prefetch.keep(AnilistId::new(7), "6", Translation::Sub, found());
+        assert!(prefetch.take(AnilistId::new(7), "8", Translation::Sub).is_none());
+        prefetch.keep(AnilistId::new(7), "6", Translation::Sub, found());
+        assert!(prefetch.take(AnilistId::new(7), "6", Translation::Dub).is_none());
+        prefetch.keep(AnilistId::new(7), "6", Translation::Sub, found());
+        assert!(prefetch.take(AnilistId::new(9), "6", Translation::Sub).is_none());
+
+        // Too old to trust a signed stream URL.
+        prefetch.keep(AnilistId::new(7), "6", Translation::Sub, found());
+        if let Some(entry) = prefetch.0.lock().unwrap().as_mut() {
+            entry.found = std::time::Instant::now() - PREFETCH_FRESH - Duration::from_secs(1);
+        }
+        assert!(prefetch.take(AnilistId::new(7), "6", Translation::Sub).is_none());
+    }
+
+    #[test]
+    fn the_following_episode_is_only_offered_when_the_list_has_it() {
+        let rows: Vec<EpisodeRow> = ["1", "2", "3"]
+            .into_iter()
+            .map(|n| EpisodeRow {
+                number: n.into(),
+                title: None,
+                thumbnail: None,
+                description: None,
+                duration_secs: None,
+                watched: 0.0,
+                completed: false,
+                kind: None,
+                skippable: false,
+            })
+            .collect();
+        assert_eq!(following(&rows, "1").as_deref(), Some("2"));
+        assert_eq!(following(&rows, "3"), None, "a finale has no next");
+        assert_eq!(following(&rows, "OVA"), None);
     }
 
     #[test]

@@ -75,7 +75,7 @@ dependencies = [
 
 [[package]]
 name = "anistream"
-version = "0.8.1"
+version = "0.9.0"
 dependencies = [
  "anistream-core",
  "anistream-meta",
@@ -112,7 +112,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-core"
-version = "0.8.1"
+version = "0.9.0"
 dependencies = [
  "async-trait",
  "directories",
@@ -127,7 +127,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-meta"
-version = "0.8.1"
+version = "0.9.0"
 dependencies = [
  "anistream-core",
  "anistream-net",
@@ -143,7 +143,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-net"
-version = "0.8.1"
+version = "0.9.0"
 dependencies = [
  "anistream-core",
  "reqwest 0.13.1",
@@ -156,7 +156,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-player"
-version = "0.8.1"
+version = "0.9.0"
 dependencies = [
  "anistream-core",
  "anistream-net",
@@ -164,6 +164,8 @@ dependencies = [
  "open",
  "serde",
  "serde_json",
+ "sha2",
+ "tempfile",
  "thiserror 2.0.19",
  "tokio",
  "tracing",
@@ -171,7 +173,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-plugin"
-version = "0.8.1"
+version = "0.9.0"
 dependencies = [
  "aes",
  "anistream-core",
@@ -218,7 +220,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-providers"
-version = "0.8.1"
+version = "0.9.0"
 dependencies = [
  "anistream-core",
  "anistream-meta",
@@ -236,7 +238,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-store"
-version = "0.8.1"
+version = "0.9.0"
 dependencies = [
  "anistream-core",
  "rusqlite",
@@ -292,7 +294,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-track"
-version = "0.8.1"
+version = "0.9.0"
 dependencies = [
  "anistream-core",
  "anistream-meta",
@@ -311,7 +313,7 @@ dependencies = [
 
 [[package]]
 name = "anistream-ui"
-version = "0.8.1"
+version = "0.9.0"
 dependencies = [
  "anistream-core",
  "chrono",

@@ -54,6 +54,9 @@ Section "anistream (required)" SecCore
 	File "${SOURCE}\anistream.ico"
 	File "${SOURCE}\LICENSE"
 	File "${SOURCE}\README.md"
+	SetOutPath "$INSTDIR\third-party"
+	File /r "${SOURCE}\third-party\*"
+	SetOutPath "$INSTDIR"
 
 	WriteRegStr HKCU "Software\anistream" "InstallDir" "$INSTDIR"
 	WriteUninstaller "$INSTDIR\uninstall.exe"
@@ -110,6 +113,7 @@ Section "Uninstall"
 	Delete "$INSTDIR\anistream.ico"
 	Delete "$INSTDIR\LICENSE"
 	Delete "$INSTDIR\README.md"
+	RMDir /r "$INSTDIR\third-party"
 	Delete "$INSTDIR\uninstall.exe"
 	RMDir "$INSTDIR"
 
