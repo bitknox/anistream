@@ -18,8 +18,10 @@ function M.parse_json(text)
     return value
 end
 
+-- Only the JSON: mpv 0.37 and older return `json, nil`, and the trailing nil handed on to
+-- `commandv` is an argument that is not a string, which those versions reject.
 function M.format_json(value)
-    return utils.format_json(value)
+    return (utils.format_json(value))
 end
 
 -- Fields from the host are read through these: a number may arrive as a string ("5") or a
@@ -52,7 +54,7 @@ end
 -- `args = ["anistream", event, json?]`.
 function M.emit(event, payload)
     if payload ~= nil then
-        mp.commandv("script-message", "anistream", event, utils.format_json(payload))
+        mp.commandv("script-message", "anistream", event, M.format_json(payload))
     else
         mp.commandv("script-message", "anistream", event)
     end

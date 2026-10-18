@@ -503,10 +503,12 @@ async fn doctor(config: &Config, paths: &Paths, store: &Store, images: bool) -> 
                 ),
                 None => println!("  mpv.conf    none"),
             }
-            // The companion uses `mp.input` pickers and per-file `loadfile` options; older
-            // builds play, but the in-player menus and the one-window binge degrade.
-            if mpv_minor(&version).is_some_and(|minor| minor < 39) {
-                println!("              anistream's player features want mpv 0.39 or newer");
+            // Older mpv still plays, but drops parts of the player: say which, here as well as
+            // at launch, so a degraded player has an explanation.
+            if let Some(note) =
+                anistream_player::protocol::MpvVersion::parse(&version).and_then(old_mpv_note)
+            {
+                println!("              {note}");
             }
         }
         None => {
@@ -1506,6 +1508,8 @@ async fn run(
             "{} not found — install mpv to play anything",
             app.config.playback.mpv_binary
         ))));
+    } else if let Some(note) = mpv.mpv_version().await.and_then(old_mpv_note) {
+        app.apply(Update::Toast(Toast::info(note)));
     }
 
     let result = loop {
@@ -3439,18 +3443,23 @@ fn in_path(names: &[&str]) -> bool {
     })
 }
 
+/// What an older mpv costs, in a sentence, or `None` when it costs nothing.
+///
+/// Ubuntu 24.04 ships 0.37 and Debian 12 ships 0.35, and the `.deb` installs whichever the system
+/// has, so this is a common case rather than an edge one.
+fn old_mpv_note(version: anistream_player::protocol::MpvVersion) -> Option<String> {
+    (!version.has_companion_support()).then(|| {
+        format!(
+            "mpv {version} plays, but anistream's player (skip button, Up Next, menus, \
+             thumbnails) needs mpv 0.36 or newer"
+        )
+    })
+}
+
 /// Where mpv keeps its own configuration, if it is in the usual place.
 ///
 /// Not authoritative — mpv honours `MPV_HOME` and a portable-config directory too — so this is a
 /// pointer for the human reading `--doctor`, not something the app acts on.
-/// The minor version from mpv's banner, `mpv v0.41.0 …` → 41.
-fn mpv_minor(banner: &str) -> Option<u32> {
-    let version = banner.split_whitespace().nth(1)?.trim_start_matches('v');
-    let mut parts = version.split('.');
-    (parts.next()? == "0").then_some(())?;
-    parts.next()?.parse().ok()
-}
-
 fn dirs_config_mpv() -> Option<std::path::PathBuf> {
     if let Ok(home) = std::env::var("MPV_HOME") {
         return Some(std::path::PathBuf::from(home).join("mpv.conf"));

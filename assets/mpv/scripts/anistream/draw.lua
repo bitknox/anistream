@@ -24,17 +24,30 @@ end
 
 local has_escape_ass = nil
 
+-- Looked up in mpv's command list rather than tried: an unknown command is logged as an error,
+-- once a session, on every mpv that lacks it.
+local function escape_ass_exists()
+    if has_escape_ass == nil then
+        has_escape_ass = false
+        for _, command in ipairs(mp.get_property_native("command-list") or {}) do
+            if command.name == "escape-ass" then
+                has_escape_ass = true
+                break
+            end
+        end
+    end
+    return has_escape_ass
+end
+
 -- `escape-ass` arrived in mpv 0.38; the fallback covers what can break an event: braces open
 -- override blocks and a backslash before n/N/h is a line break or hard space.
 function M.escape(text)
     text = tostring(text or "")
-    if has_escape_ass ~= false then
+    if escape_ass_exists() then
         local escaped = mp.command_native({ "escape-ass", text })
         if type(escaped) == "string" then
-            has_escape_ass = true
             return escaped
         end
-        has_escape_ass = false
     end
     text = text:gsub("\\", "\\\226\129\160"):gsub("{", "\\{"):gsub("\n", " ")
     return text
