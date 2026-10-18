@@ -230,15 +230,18 @@ impl Sync {
         }
     }
 
-    /// The first tracker's state with a freshly-read queue depth.
+    /// The state of every tracker a status or score was just queued for, with fresh depths.
     ///
-    /// Used right after queueing something, so the `⇅` badge moves the instant you act rather
-    /// than at the next drain tick.
-    pub fn state_after_enqueue(&self) -> SyncState {
-        match self.trackers.first() {
-            Some(tracker) => self.state_for(tracker.as_ref(), false, Some("queued".into())),
-            None => SyncState::default(),
-        }
+    /// Used right after queueing something, so each `⇅` badge moves the instant you act rather
+    /// than at the next drain tick. Signed-in trackers only, the set [`set_status`] queues for.
+    /// With none there is nothing to report — a blank default state here once became a
+    /// nameless row on Accounts and an empty chip in the header.
+    pub fn state_after_enqueue(&self) -> Vec<SyncState> {
+        self.trackers
+            .iter()
+            .filter(|t| t.is_authenticated())
+            .map(|t| self.state_for(t.as_ref(), false, Some("queued".into())))
+            .collect()
     }
 }
 
@@ -1190,6 +1193,21 @@ mod tests {
         let Some(Update::Sync(state)) = rx.try_recv().ok() else { panic!("no state sent") };
         assert_eq!(state.pull_error, None);
         assert_eq!(state.last.as_deref(), Some("pulled 0 titles"));
+    }
+
+    #[test]
+    fn queueing_with_no_tracker_signed_in_reports_no_state() {
+        // A default state stood in for "no tracker", and became a nameless Accounts row.
+        let config = Config::default();
+        let store = Store::open_in_memory().unwrap();
+        let http = anistream_net::HttpClient::new(&config.network).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let tokens = TokenStore::new(dir.path()).file_only();
+        let sync = Sync::with_tokens(&config, &store, &http, tokens);
+        assert!(sync.state_after_enqueue().is_empty(), "signed-out kitsu is not queued for");
+
+        let none = Sync { trackers: Vec::new(), ..sync };
+        assert!(none.state_after_enqueue().is_empty());
     }
 
     #[test]

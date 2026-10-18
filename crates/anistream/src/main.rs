@@ -2127,11 +2127,15 @@ fn dispatch(
             tracking::set_status(sync, id, status);
             // Queued, not sent — the drain owns the network. Reporting the new depth is what
             // makes the badge move immediately.
-            let _ = tx.send(Update::Sync(Box::new(sync.state_after_enqueue())));
+            for state in sync.state_after_enqueue() {
+                let _ = tx.send(Update::Sync(Box::new(state)));
+            }
         }
         Task::SetScore { id, score } => {
             tracking::set_score(sync, id, score);
-            let _ = tx.send(Update::Sync(Box::new(sync.state_after_enqueue())));
+            for state in sync.state_after_enqueue() {
+                let _ = tx.send(Update::Sync(Box::new(state)));
+            }
         }
         Task::ResolveConflict { id, keep_local } => {
             tracking::resolve_conflict(sync, id, keep_local);

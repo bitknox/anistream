@@ -2787,7 +2787,13 @@ impl App {
             }
             Action::ToggleSynopsis => self.synopsis_expanded = !self.synopsis_expanded,
             Action::SetListStatus => {
-                if self.detail.as_ref().or(self.selected_entry()).is_some() {
+                if self.signed_in_trackers().is_empty() {
+                    // Nothing keeps a list status but a tracker. Offering the picker anyway
+                    // ended in "marked watching" for a choice that went nowhere.
+                    self.push_toast(Toast::info(
+                        "list status is kept on a tracker, and none is signed in — :accounts",
+                    ));
+                } else if self.detail.as_ref().or(self.selected_entry()).is_some() {
                     // Preselect what the title is already on, so the common case is one
                     // keystroke to confirm rather than a hunt.
                     self.overlay_selected = LibrarySegment::ALL
@@ -2800,7 +2806,11 @@ impl App {
                 }
             }
             Action::RateTitle => {
-                if self.detail.as_ref().or(self.selected_entry()).is_some() {
+                if self.signed_in_trackers().is_empty() {
+                    self.push_toast(Toast::info(
+                        "ratings are kept on a tracker, and none is signed in — :accounts",
+                    ));
+                } else if self.detail.as_ref().or(self.selected_entry()).is_some() {
                     // No local record of an existing score to preselect, so the cursor
                     // starts at the top and every row is one or two keystrokes away.
                     self.overlay_selected = 0;
@@ -3117,6 +3127,13 @@ impl App {
         Some(Task::Connect { tracker: tracker.tracker })
     }
 
+    /// The trackers a status or score is queued for: those holding a credential, the same
+    /// rule the queueing side applies. A tracker waiting on a fresh sign-in still counts —
+    /// its queue is kept and drains once it is signed in again.
+    fn signed_in_trackers(&self) -> Vec<&str> {
+        self.sync.iter().filter(|s| s.connected).map(|s| s.tracker.as_str()).collect()
+    }
+
     fn in_settings_stage(&self) -> bool {
         self.nav.section() == Section::Settings
             && self.nav.focus() == Focus::Stage
@@ -3157,7 +3174,11 @@ impl App {
                 let id = entry.id;
                 let status = *LibrarySegment::ALL.get(self.overlay_selected)?;
                 self.nav.close_overlay();
-                self.push_toast(Toast::info(format!("marked {}", status.label())));
+                self.push_toast(Toast::info(format!(
+                    "marked {} — queued for {}",
+                    status.label(),
+                    self.signed_in_trackers().join(", ")
+                )));
                 Some(Task::SetStatus { id, status })
             }
             Some(Overlay::SearchFilters) => {
@@ -3178,7 +3199,10 @@ impl App {
                 // Rows run 10 down to 1, so the row index is the distance from 10.
                 let score = (10 - self.overlay_selected.min(9)) as f32;
                 self.nav.close_overlay();
-                self.push_toast(Toast::info(format!("rated {score}/10")));
+                self.push_toast(Toast::info(format!(
+                    "rated {score}/10 — queued for {}",
+                    self.signed_in_trackers().join(", ")
+                )));
                 Some(Task::SetScore { id, score })
             }
             Some(Overlay::Conflicts) => {
@@ -6426,6 +6450,7 @@ mod tests {
     fn setting_a_list_status_preselects_the_current_one() {
         // One keystroke to confirm in the common case, rather than a hunt.
         let mut a = app();
+        a.apply(Update::Sync(Box::new(connected(0))));
         a.apply(a.content_here(entries(3)));
         a.library_segment = LibrarySegment::Completed;
         a.handle(Action::SetListStatus, 20);
@@ -6443,6 +6468,7 @@ mod tests {
     #[test]
     fn rating_a_title_queues_a_score_out_of_ten() {
         let mut a = app();
+        a.apply(Update::Sync(Box::new(connected(0))));
         a.apply(a.content_here(entries(3)));
         a.handle(Action::RateTitle, 20);
         assert_eq!(a.nav.overlay(), Some(&Overlay::Rate));
@@ -6597,8 +6623,39 @@ mod tests {
     }
 
     #[test]
+    fn status_and_rating_with_no_tracker_signed_in_say_so_instead_of_pretending() {
+        // "marked watching" and "rated 8/10" used to be said for choices that went nowhere.
+        // A tracker that is configured but signed out does not count.
+        let mut a = app();
+        a.apply(Update::Sync(Box::new(SyncState::new("kitsu"))));
+        a.apply(a.content_here(entries(3)));
+
+        for action in [Action::SetListStatus, Action::RateTitle] {
+            a.toasts.clear();
+            assert_eq!(a.handle(action, 20), None);
+            assert!(!a.nav.has_overlay(), "{action:?} offered a picker that goes nowhere");
+            let said = &a.toasts.last().expect("nothing said").text;
+            assert!(said.contains("none is signed in") && said.contains(":accounts"), "{said}");
+        }
+    }
+
+    #[test]
+    fn a_status_says_which_trackers_it_was_queued_for() {
+        let mut a = app();
+        a.apply(Update::Sync(Box::new(connected(0))));
+        a.apply(Update::Sync(Box::new(SyncState { connected: true, ..SyncState::new("mal") })));
+        a.apply(Update::Sync(Box::new(SyncState::new("kitsu"))));
+        a.apply(a.content_here(entries(3)));
+        a.handle(Action::SetListStatus, 20);
+        a.handle(Action::Open, 20);
+        let said = &a.toasts.last().unwrap().text;
+        assert!(said.ends_with("queued for anilist, mal"), "{said}");
+    }
+
+    #[test]
     fn rating_with_nothing_selected_says_so() {
         let mut a = app();
+        a.apply(Update::Sync(Box::new(connected(0))));
         assert_eq!(a.handle(Action::RateTitle, 20), None);
         assert!(!a.nav.has_overlay());
         assert!(a.toasts.iter().any(|t| t.text.contains("nothing selected")));
