@@ -1626,12 +1626,23 @@ async fn run(
         app.apply(Update::Toast(Toast::info(note)));
     }
 
+    // Painting on change rather than on every tick: see `Repaint`. `idle_tick` is whether
+    // nothing but the ticker woke this pass, the one case that may skip it.
+    let mut repaint = anistream::tty::Repaint::default();
+    let mut idle_tick = false;
     let result = loop {
-        // Broken out of rather than returned from: a terminal that can no longer be drawn on
-        // still has to be given back, and the player closed.
-        if let Err(e) = terminal.draw(|frame| screens::render(frame, &app)) {
-            break Err(e.into());
+        let now = std::time::Instant::now();
+        // Work on screen keeps its clocks and its pulse moving, the eyecatch its wipe.
+        let live = !app.jobs.is_empty() || app.is_animating();
+        if !idle_tick || repaint.due(live, now) {
+            // Broken out of rather than returned from: a terminal that can no longer be drawn
+            // on still has to be given back, and the player closed.
+            if let Err(e) = terminal.draw(|frame| screens::render(frame, &app)) {
+                break Err(e.into());
+            }
+            repaint.painted(terminal.backend_mut().take_wrote(), now);
         }
+        idle_tick = false;
         if app.should_quit {
             break Ok(());
         }
@@ -1751,7 +1762,12 @@ async fn run(
                 // Whatever an open overlay made of the key, a signal is not a request to close it.
                 app.should_quit = true;
             }
-            _ = ticker.tick() => app.tick_toasts(),
+            _ = ticker.tick() => {
+                // A toast going is a change; one counting down is not.
+                let toasts = app.toasts.len();
+                app.tick_toasts();
+                idle_tick = app.toasts.len() == toasts;
+            }
             // The eyecatch is the only thing in this app that animates, so the fast tick only
             // exists while one is running rather than burning a frame budget all the time.
             _ = tokio::time::sleep(Duration::from_millis(anistream_ui::eyecatch::FRAME_MS)),
@@ -3232,18 +3248,21 @@ async fn load_episodes(
     Ok(EpisodeLoad::Rows(data::episode_rows(&episodes, store, id)))
 }
 
-fn setup_terminal() -> Result<Terminal<CrosstermBackend<io::Stdout>>> {
+/// The terminal the interface draws on.
+type Tui = Terminal<anistream::tty::Quiet<CrosstermBackend<io::Stdout>>>;
+
+fn setup_terminal() -> Result<Tui> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
     // Best effort: the legacy Windows console has no bracketed paste and says so with an error,
     // and a paste arriving as keystrokes is a lesser thing than the app not starting.
     let _ = execute!(stdout, crossterm::event::EnableBracketedPaste);
-    let terminal = Terminal::new(CrosstermBackend::new(stdout))?;
+    let terminal = Terminal::new(anistream::tty::Quiet::new(CrosstermBackend::new(stdout)))?;
     Ok(terminal)
 }
 
-fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
+fn restore_terminal(terminal: &mut Tui) -> Result<()> {
     Ok(anistream::tty::restore(terminal.backend_mut())?)
 }
 
