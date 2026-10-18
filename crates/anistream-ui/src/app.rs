@@ -263,6 +263,11 @@ fn parse_episode_range(input: &str) -> Option<(u32, Option<u32>)> {
     }
 }
 
+/// `1 episode`, `6 episodes`.
+pub fn episode_count(n: usize) -> String {
+    if n == 1 { "1 episode".into() } else { format!("{n} episodes") }
+}
+
 fn on_off(yes: bool) -> String {
     if yes { "on".into() } else { "off".into() }
 }
@@ -4023,6 +4028,9 @@ impl App {
                 // Resolved against episodes that actually exist, from the unfiltered
                 // list — a filter narrows the view, not what can be fetched.
                 let Some((from, to)) = parse_episode_range(&self.range_query) else {
+                    // Cleared, with the prompt left open for another try. Kept, the retry's
+                    // keys were appended to the refused text and refused again.
+                    self.range_query.clear();
                     self.push_toast(Toast::info("ranges look like 4, 1-12 or 7-"));
                     return None;
                 };
@@ -4037,12 +4045,16 @@ impl App {
                     })
                     .map(|row| row.number.clone())
                     .collect();
-                self.nav.close_overlay();
                 if episodes.is_empty() {
+                    self.range_query.clear();
                     self.push_toast(Toast::info("no episodes in that range"));
                     return None;
                 }
-                self.push_toast(Toast::info(format!("queueing {} episodes…", episodes.len())));
+                self.nav.close_overlay();
+                self.push_toast(Toast::info(format!(
+                    "queueing {}…",
+                    episode_count(episodes.len())
+                )));
                 return Some(Task::DownloadMany { id, episodes });
             }
             // Enter runs the manual search; the results come back as ordinary match
@@ -4896,7 +4908,7 @@ impl Task {
             }
             Self::DownloadEpisode { episode, .. } => format!("queueing ep {episode}"),
             Self::DownloadMany { episodes, .. } => {
-                format!("queueing {} episodes", episodes.len())
+                format!("queueing {}", episode_count(episodes.len()))
             }
             Self::PlayTrailer { .. } => "opening the trailer".into(),
             Self::LoadStores => "checking plugin stores".into(),

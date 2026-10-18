@@ -565,6 +565,32 @@ fn going_to_a_section_from_the_palette_goes_to_that_section() {
 }
 
 #[test]
+fn a_refused_range_is_cleared_and_the_prompt_stays_open() {
+    // Kept, the next keys appended to it: `12-4` then `1-3` read as `12-41-3`.
+    let mut a = at_episodes();
+    press(&mut a, &["D", "1", "2", "-", "4", "enter"]);
+    assert_eq!(a.nav.overlay(), Some(&Overlay::DownloadRange));
+    assert_eq!(a.range_query, "", "the refused range must not stay in the field");
+    let tasks = press(&mut a, &["1", "-", "3", "enter"]);
+    match tasks.as_slice() {
+        [Task::DownloadMany { episodes, .. }] => assert_eq!(episodes, &["1", "2", "3"]),
+        other => panic!("expected the retry to queue 1-3, got {other:?}"),
+    }
+
+    let mut a = at_episodes();
+    press(&mut a, &["D", "4", "0", "enter"]);
+    assert_eq!(a.nav.overlay(), Some(&Overlay::DownloadRange), "nothing in range: try again");
+    assert_eq!(a.range_query, "");
+}
+
+#[test]
+fn a_one_episode_range_is_not_plural() {
+    let mut a = at_episodes();
+    press(&mut a, &["D", "4", "enter"]);
+    assert!(a.toasts.iter().any(|t| t.text == "queueing 1 episode…"), "{:?}", a.toasts);
+}
+
+#[test]
 fn now_playing_is_a_known_state_for_hints() {
     let mut a = at_episodes();
     a.playing = Some(NowPlaying::default());

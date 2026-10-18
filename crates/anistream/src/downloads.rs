@@ -404,6 +404,51 @@ pub fn publish_now(store: &Store, tx: &mpsc::UnboundedSender<Update>) {
     publish(store, tx);
 }
 
+/// Why an episode was not queued, and whether the same answer holds for the rest of the title.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Refusal {
+    /// About this episode only: no source has it, and the next one may still be there.
+    Episode(String),
+    /// About the title: it could not be matched, or its source streams but cannot be downloaded.
+    /// Asking again for another episode would walk the same chain to the same answer.
+    Title(String),
+}
+
+impl std::fmt::Display for Refusal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Episode(reason) | Self::Title(reason) => f.write_str(reason),
+        }
+    }
+}
+
+/// Queue a range of episodes one at a time, stopping at the first refusal that holds for the
+/// whole title.
+///
+/// Returns how many were queued and the last reason one was not. Without the stop, a source
+/// that streams but cannot download was asked again for every episode left — about fifty
+/// seconds for six, with the job still running and the Downloads screen empty — to arrive at the
+/// answer it gave for the first.
+pub async fn enqueue_each<F, Fut>(
+    episodes: &[String],
+    mut enqueue: F,
+) -> (usize, Option<String>)
+where
+    F: FnMut(String) -> Fut,
+    Fut: std::future::Future<Output = Result<(), Refusal>>,
+{
+    let mut queued = 0;
+    let mut failed = None;
+    for episode in episodes {
+        match enqueue(episode.clone()).await {
+            Ok(()) => queued += 1,
+            Err(Refusal::Title(reason)) => return (queued, Some(reason)),
+            Err(Refusal::Episode(reason)) => failed = Some(reason),
+        }
+    }
+    (queued, failed)
+}
+
 /// Queue an episode, resolving a magnet for it first.
 ///
 /// Resolution happens here rather than in the manager because it needs the provider chain and the
@@ -415,7 +460,7 @@ pub async fn enqueue(
     anilist_id: AnilistId,
     episode: &str,
     translation: Translation,
-) -> Result<Download, String> {
+) -> Result<Download, Refusal> {
     // Already queued or finished: report that instead of resolving again.
     if let Ok(Some(existing)) = store.download_for(anilist_id, episode)
         && existing.state != DownloadState::Failed
@@ -423,7 +468,7 @@ pub async fn enqueue(
         return Ok(existing);
     }
 
-    let media = meta.media(anilist_id).await.map_err(|e| e.to_string())?;
+    let media = meta.media(anilist_id).await.map_err(|e| Refusal::Title(e.to_string()))?;
     let title = media.title.display();
     let now = anistream_store::now();
     let resolution = anistream_providers::resolve(
@@ -435,10 +480,9 @@ pub async fn enqueue(
         now,
     )
     .await;
-    let key = resolution
-        .key()
-        .cloned()
-        .ok_or_else(|| format!("could not match this title: {}", resolution.explain()))?;
+    let key = resolution.key().cloned().ok_or_else(|| {
+        Refusal::Title(format!("could not match this title: {}", resolution.explain()))
+    })?;
 
     let attempt = registry.resolve(&key, episode, translation, now).await;
     // Summarised before the value is taken: the summary names which providers failed, and that is
@@ -453,11 +497,54 @@ pub async fn enqueue(
         .and_then(|s| s.download_source.clone())
         .ok_or_else(|| {
             if streams.is_empty() {
-                format!("no source has this episode: {summary}")
+                Refusal::Episode(format!("no source has this episode: {summary}"))
             } else {
-                "this source streams but cannot be downloaded".to_string()
+                Refusal::Title("this source streams but cannot be downloaded".to_string())
             }
         })?;
 
-    store.enqueue_download(anilist_id, episode, title, &magnet).map_err(|e| e.to_string())
+    // A store that cannot write one row will not write the next.
+    store
+        .enqueue_download(anilist_id, episode, title, &magnet)
+        .map_err(|e| Refusal::Title(e.to_string()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn episodes(n: u32) -> Vec<String> {
+        (1..=n).map(|n| n.to_string()).collect()
+    }
+
+    #[tokio::test]
+    async fn a_range_stops_at_the_first_refusal_that_holds_for_the_title() {
+        let mut asked = Vec::new();
+        let (queued, failed) = enqueue_each(&episodes(6), |episode| {
+            asked.push(episode.clone());
+            async move {
+                match episode.as_str() {
+                    "1" => Ok(()),
+                    _ => Err(Refusal::Title("cannot be downloaded".into())),
+                }
+            }
+        })
+        .await;
+        assert_eq!(queued, 1);
+        assert_eq!(failed.as_deref(), Some("cannot be downloaded"));
+        assert_eq!(asked, ["1", "2"], "the rest of the range was asked for anyway");
+    }
+
+    #[tokio::test]
+    async fn a_missing_episode_does_not_stop_the_rest() {
+        let (queued, failed) = enqueue_each(&episodes(4), |episode| async move {
+            match episode.as_str() {
+                "2" => Err(Refusal::Episode("no source has this episode".into())),
+                _ => Ok(()),
+            }
+        })
+        .await;
+        assert_eq!(queued, 3);
+        assert_eq!(failed.as_deref(), Some("no source has this episode"));
+    }
 }
