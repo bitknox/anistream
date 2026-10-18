@@ -2080,6 +2080,15 @@ impl App {
         // first — and when a source breaks, the earliest error is usually the one that explains
         // the rest. This is the whole reason the Logs overlay exists.
         self.log(toast.kind, toast.text.clone());
+        // The same message again is the same message, kept up longer rather than stacked: five
+        // presses of an arrow on Settings are one "saved", not a pile of identical lines.
+        if let Some(last) = self.toasts.last_mut()
+            && last.text == toast.text
+            && last.kind == toast.kind
+        {
+            last.ttl = toast.ttl;
+            return;
+        }
         // Cap the stack so a burst of provider failures cannot cover the screen.
         if self.toasts.len() >= 3 {
             self.toasts.remove(0);
@@ -2623,8 +2632,11 @@ impl App {
             }
             Action::Back => {
                 if self.nav.back() == crate::nav::BackOutcome::AtRoot {
-                    // At the very root, back is a no-op rather than a quit.
-                    self.status = "at the top — Q to quit".into();
+                    // At the very root, back is a no-op rather than a quit. Said as a toast:
+                    // written to the status line it stayed there, over the state it shows,
+                    // for the rest of the session.
+                    let quit = self.key_for(Action::Quit);
+                    self.push_toast(Toast::info(format!("at the top — {quit} quits")));
                 }
             }
             Action::ToggleRail => self.nav.toggle_rail(),
@@ -3826,6 +3838,19 @@ impl App {
             .collect()
     }
 
+    /// The name the Settings screen gives the setting stored at `table`.`key`, for saying it
+    /// was saved. The config key (`commit_threshold`) is the file's vocabulary, not the
+    /// screen's, and the value needs no repeating: the row beside it already shows it.
+    ///
+    /// `None` for what is stored without a row of its own, the remembered speed and volume:
+    /// saved in passing, and not something anyone asked to have confirmed.
+    pub fn setting_label(&self, table: &[&str], key: &str) -> Option<&'static str> {
+        self.setting_rows()
+            .into_iter()
+            .find(|row| row.editable.as_ref().is_some_and(|e| e.table == table && e.key == key))
+            .map(|row| row.label)
+    }
+
     /// Step the selected setting through its values.
     ///
     /// Cycling rather than free entry, because every editable setting here has a small closed set
@@ -4132,7 +4157,8 @@ impl App {
                     }
                     _ => return None,
                 }
-                self.push_toast(Toast::info(format!("saved {}", id.label())));
+                // No toast here: the write reports itself once it has landed, which is the
+                // moment "saved" is true. Saying it now as well put two confirmations up.
                 return Some(Task::SaveSetting {
                     table,
                     key,
@@ -4679,10 +4705,9 @@ impl App {
                 self.local_plugins.clear();
                 Some(Task::LoadLocalPlugins { store: store.id })
             }
-            StoreLine::Admin => {
-                self.status = "opening the admin page in your browser…".into();
-                Some(Task::OpenAdmin { store: store.id })
-            }
+            // No status line of its own: the activity row says it is opening, and a toast says
+            // how it went. A status set here was never cleared, so it outlived both.
+            StoreLine::Admin => Some(Task::OpenAdmin { store: store.id }),
             StoreLine::Leave => {
                 self.store_confirm =
                     Some(StoreConfirm::Leave { store: store.id, name: store.name });
@@ -5718,6 +5743,37 @@ mod tests {
     }
 
     #[test]
+    fn a_saved_setting_is_named_as_the_screen_names_it() {
+        let a = app();
+        assert_eq!(
+            a.setting_label(&["playback"], "commit_threshold"),
+            Some("counts as watched at"),
+            "the screen's words, not the file's key"
+        );
+        assert_eq!(
+            a.setting_label(&["providers", "torrent"], "enabled"),
+            Some("torrent source")
+        );
+        // Kept in passing, with no row of its own: nothing to announce.
+        assert_eq!(a.setting_label(&["playback"], "persisted_speed"), None);
+    }
+
+    #[test]
+    fn a_typed_setting_is_confirmed_once_by_the_write_not_the_keypress() {
+        let mut a = app();
+        let _ = a.go_to_section(Section::Settings);
+        a.nav.focus_stage();
+        a.selected = SettingId::ALL.iter().position(|id| *id == SettingId::Subtitles).unwrap();
+        a.handle(Action::Open, 10);
+        for c in "ger".chars() {
+            a.type_char(c);
+        }
+        let task = a.handle(Action::Open, 10);
+        assert!(matches!(task, Some(Task::SaveSetting { key: "subtitle_language", .. })));
+        assert!(a.toasts.is_empty(), "the save says so when it lands: {:?}", a.toasts);
+    }
+
+    #[test]
     fn the_format_filter_can_find_short_tv() {
         let mut filter = SearchFilters::default();
         filter.cycle(3, true);
@@ -6201,10 +6257,12 @@ mod tests {
         // else in toasts.
         let mut a = app();
         a.apply(Update::Sync(Box::new(SyncState { needs_reauth: true, ..connected(1) })));
-        let after_first = a.toasts.len();
-        assert_eq!(after_first, 1);
+        // Counted in the log, which counts every announcement: the toast stack folds a repeat
+        // into the one already showing, so it cannot tell whether one was made.
+        let announced = |a: &App| a.logs.iter().map(|l| l.count).sum::<u32>();
+        assert_eq!(announced(&a), 1);
         a.apply(Update::Sync(Box::new(SyncState { needs_reauth: true, ..connected(1) })));
-        assert_eq!(a.toasts.len(), after_first, "re-announced an unchanged auth failure");
+        assert_eq!(announced(&a), 1, "re-announced an unchanged auth failure");
     }
 
     #[test]
@@ -6238,9 +6296,10 @@ mod tests {
         assert!(a.toasts.iter().any(|t| t.text.contains("disagreement")));
 
         // A second pull returning the same set must not re-announce.
-        let before = a.toasts.len();
+        let announced = |a: &App| a.logs.iter().map(|l| l.count).sum::<u32>();
+        let before = announced(&a);
         a.apply(Update::Conflicts(vec![conflict("Frieren")]));
-        assert_eq!(a.toasts.len(), before);
+        assert_eq!(announced(&a), before);
     }
 
     fn conflict(title: &str) -> ConflictRow {
@@ -8020,7 +8079,40 @@ mod tests {
         a.handle(Action::Back, 10);
         a.handle(Action::Back, 10);
         assert!(!a.should_quit, "back must never quit");
-        assert!(a.status.contains("Q to quit"));
+        assert!(a.toasts.iter().any(|t| t.text == "at the top — Q quits"), "{:?}", a.toasts);
+        // Said once and gone: written to the status line, it stood in for the state line there
+        // for the rest of the session.
+        assert!(a.status.is_empty(), "the status line keeps its state: {:?}", a.status);
+        for _ in 0..200 {
+            a.tick_toasts();
+        }
+        assert!(a.toasts.is_empty());
+    }
+
+    #[test]
+    fn the_way_out_names_the_key_quit_is_actually_on() {
+        let mut a = app();
+        let mut keys = std::collections::BTreeMap::new();
+        keys.insert("quit".to_string(), "ctrl+q".to_string());
+        assert!(a.keymap.apply_overrides(&keys).is_empty());
+        a.handle(Action::Back, 10);
+        assert!(
+            a.toasts.iter().any(|t| t.text == "at the top — ctrl+q quits"),
+            "{:?}",
+            a.toasts
+        );
+    }
+
+    #[test]
+    fn a_repeated_toast_is_kept_up_rather_than_stacked() {
+        let mut a = app();
+        for _ in 0..5 {
+            a.push_toast(Toast::info("saved quality"));
+        }
+        assert_eq!(a.toasts.len(), 1, "one message, said once");
+        assert_eq!(a.logs[0].count, 5, "the log still counts every one");
+        a.push_toast(Toast::info("saved theme"));
+        assert_eq!(a.toasts.len(), 2);
     }
 
     #[test]

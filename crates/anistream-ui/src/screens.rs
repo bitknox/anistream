@@ -93,13 +93,15 @@ pub fn render(frame: &mut TFrame<'_>, app: &App) {
     render_stage(buf, app, geometry.stage);
 
     Hairline::new(&app.palette).render(geometry.status_rule, buf);
-    render_activity(buf, app, &activity, geometry.status_rule, now);
-    render_toasts(buf, app, geometry.stage);
+    let caption_end = render_activity(buf, app, &activity, geometry.status_rule, now);
     render_overlay(buf, app, area, &geometry);
     // After the overlay, so it is not dimmed with the rest: while one is open the status line
     // carries that overlay's own keys, which are no use faded into the scrim — and the overlay
     // has to be laid out before its hints can say whether it pages.
     render_status(buf, app, &geometry);
+    // After the overlay for the same reason: a message answering a key pressed in a picker
+    // is read while the picker is still up.
+    render_toasts(buf, app, geometry.status_rule, caption_end);
     // Last, so it occludes: an eyecatch that toasts could bleed through would not be covering
     // anything.
     render_eyecatch(buf, app, geometry.stage);
@@ -153,7 +155,7 @@ fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
 }
 
 /// The running jobs, newest first, each with how long it has taken, written into the status
-/// hairline.
+/// hairline. Returns the column after the caption, where the rule resumes.
 ///
 /// On the rule rather than in a row of their own: a row that came and went with the work took
 /// a line from the body each time, and everything above it jumped. The rule is always there,
@@ -169,9 +171,9 @@ fn render_activity(
     jobs: &[&crate::app::Job],
     area: Rect,
     now: std::time::Instant,
-) {
+) -> u16 {
     if jobs.is_empty() || area.height == 0 || area.width < 8 {
-        return;
+        return area.left();
     }
     // Lined up with the stage's inset content, with a blank cell either side so the caption
     // sits in a gap in the rule rather than running into it.
@@ -224,6 +226,7 @@ fn render_activity(
     if x < area.right() {
         buf.set_string(x, area.top(), " ", app.palette.style(Role::Text));
     }
+    x + 1
 }
 
 /// A job's label, and what to say after it: the hold-up and its countdown while it lasts,
@@ -2811,35 +2814,45 @@ fn render_placeholder(buf: &mut Buffer, app: &App, area: Rect, title: &str, note
     }
 }
 
-/// Bottom-right transient messages.
-fn render_toasts(buf: &mut Buffer, app: &App, area: Rect) {
-    if app.toasts.is_empty() || area.height < 2 {
+/// The newest transient message, written into the status hairline at its right end.
+///
+/// On the rule rather than over the stage. Stacked in the stage's bottom-right corner, toasts
+/// covered whatever sat there — a setting's value, a download's size, a row's countdown — and
+/// clearing behind them only traded the overlap for a hole. The rule already carries the
+/// activity caption at its left and is otherwise empty, so a message there covers nothing.
+///
+/// Only the newest is shown, with a count of the others still up; the Logs overlay keeps every
+/// one. `from` is where the activity caption ends, and the message never runs into it.
+fn render_toasts(buf: &mut Buffer, app: &App, rule: Rect, from: u16) {
+    let Some(toast) = app.toasts.last() else { return };
+    if rule.height == 0 {
         return;
     }
-    for (i, toast) in app.toasts.iter().rev().take(3).enumerate() {
-        let y = area.bottom().saturating_sub(1 + i as u16);
-        if y <= area.top() {
-            break;
-        }
-        let role = match toast.kind {
-            ToastKind::Info => Role::State,
-            ToastKind::Alert => Role::Alert,
-        };
-        let text = truncate(&toast.text, area.width.saturating_sub(4) as usize);
-        let width = text.chars().count() as u16 + 2;
-        if width >= area.width {
-            continue;
-        }
-        let x = area.right().saturating_sub(width);
-        // Clear behind it first. A toast printed straight over a progress meter interleaves
-        // with the blocks and neither is readable — caught by rendering the Library screen with
-        // a conflict toast up.
-        let ground = app.palette.ground().unwrap_or(app.palette.ground_ref());
-        for cell_x in x..area.right() {
-            buf[(cell_x, y)].set_char(' ').set_bg(ground.to_ratatui());
-        }
-        buf[(x, y)].set_char(OBI).set_style(app.palette.style(role));
-        buf.set_string(x + 2, y, &text, app.palette.style(Role::Text));
+    let role = match toast.kind {
+        ToastKind::Info => Role::State,
+        ToastKind::Alert => Role::Alert,
+    };
+    let more = match app.toasts.len() - 1 {
+        0 => String::new(),
+        n => format!("  +{n}"),
+    };
+    // A gap in the rule either side, the obi and its space, and one cell of rule at the end.
+    let chrome = 1 + 2 + more.chars().count() as u16 + 1 + 1;
+    let room = rule.right().saturating_sub(from.max(rule.left()) + chrome) as usize;
+    if room < 8 {
+        return;
+    }
+    let text = truncate(&toast.text, room);
+    let width = chrome - 1 + text.chars().count() as u16;
+    let x = rule.right().saturating_sub(width + 1);
+    let y = rule.top();
+    for cell_x in x..x + width {
+        buf[(cell_x, y)].set_char(' ').set_style(app.palette.style(Role::Text));
+    }
+    buf[(x + 1, y)].set_char(OBI).set_style(app.palette.style(role));
+    let (end, _) = buf.set_stringn(x + 3, y, &text, room, app.palette.style(Role::Text));
+    if !more.is_empty() {
+        buf.set_string(end, y, &more, app.palette.style(Role::TextDim));
     }
 }
 
@@ -4288,9 +4301,10 @@ mod tests {
         // Repeating the alert on every verification tick would be noise.
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
         app.apply(Update::Vpn { badge: "vpn ✕  LEAK".into(), leaking: true });
-        let after_first = app.toasts.len();
+        let announced = |a: &App| a.logs.iter().map(|l| l.count).sum::<u32>();
+        let after_first = announced(&app);
         app.apply(Update::Vpn { badge: "vpn ✕  LEAK".into(), leaking: true });
-        assert_eq!(app.toasts.len(), after_first, "re-announced an unchanged leak");
+        assert_eq!(announced(&app), after_first, "re-announced an unchanged leak");
     }
 
     /// An app parked on Now Playing, partway through an episode.
@@ -5387,6 +5401,27 @@ mod tests {
         let header = lines_of(&app, 120, 30)[0].clone();
         assert!(header.contains("kitsu ○"), "{header}");
         assert!(!header.contains("kitsu ·"), "{header}");
+    }
+
+    /// Toasts sat in the stage's bottom-right corner, over whatever value was there.
+    #[test]
+    fn a_toast_sits_on_the_status_rule_and_covers_nothing() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Settings);
+        let before = lines_of(&app, 80, 24);
+        app.push_toast(crate::app::Toast::info("saved · counts as watched at"));
+        let after = lines_of(&app, 80, 24);
+        let rule = after.len() - 2;
+        assert!(after[rule].contains("saved · counts as watched at"), "{after:#?}");
+        for (row, (was, is)) in before.iter().zip(&after).enumerate() {
+            if row != rule {
+                assert_eq!(was, is, "row {row} changed under the toast");
+            }
+        }
+        // More than one up: the newest, and how many others.
+        app.push_toast(crate::app::Toast::alert("source unreachable"));
+        let rule_line = lines_of(&app, 80, 24)[rule].clone();
+        assert!(rule_line.contains("source unreachable  +1"), "{rule_line}");
     }
 
     #[test]

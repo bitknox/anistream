@@ -1824,11 +1824,13 @@ fn spawn(
             let until = std::time::Instant::now() + wait;
             match &job {
                 Some(job) => job.note("AniList limit", Some(until)),
+                // No job to note it on. A toast, which goes when it is done: as a status it
+                // stayed, still counting "12s", after the wait was over.
                 None => {
-                    let _ = tx.send(Update::Status(format!(
+                    let _ = tx.send(Update::Toast(Toast::info(format!(
                         "waiting {}s on the AniList rate limit",
                         wait.as_secs().max(1)
-                    )));
+                    ))));
                 }
             }
         }
@@ -2604,7 +2606,13 @@ fn dispatch(
         Task::SaveSetting { table, key, value } => {
             match anistream_core::settings::write_key(paths, table, key, value) {
                 Ok(()) => {
-                    let _ = tx.send(Update::Status(format!("saved {key}")));
+                    // A toast, named as the Settings screen names it. As a status it stayed
+                    // in the status line for the rest of the session, over the state it shows,
+                    // and it said the file's key — "saved commit_threshold". What has no row
+                    // there, the remembered speed and volume, is saved without a word.
+                    if let Some(label) = app.setting_label(table, key) {
+                        let _ = tx.send(Update::Toast(Toast::info(format!("saved · {label}"))));
+                    }
                     // Republish what the background tasks read, so the next download to
                     // finish honours the value that was just written.
                     let _ = tx.send(Update::SettingsSaved);
