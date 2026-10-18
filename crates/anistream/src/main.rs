@@ -188,7 +188,7 @@ async fn main() -> Result<()> {
         return anistream::updates::self_update(&http).await;
     }
     if cli.doctor {
-        return doctor(&config, &store, !cli.no_images).await;
+        return doctor(&config, &paths, &store, !cli.no_images).await;
     }
     if cli.refresh_data {
         return refresh_data(&store, &http).await;
@@ -440,7 +440,7 @@ async fn preview(
 }
 
 /// Report the environment, without starting the UI.
-async fn doctor(config: &Config, store: &Store, images: bool) -> Result<()> {
+async fn doctor(config: &Config, paths: &Paths, store: &Store, images: bool) -> Result<()> {
     let engine = anistream_ui::image::ImageEngine::detect(images);
     let background = theme::detect::detect_background();
     let palette = theme::resolve_with(config.theme.mode, background);
@@ -498,10 +498,45 @@ async fn doctor(config: &Config, store: &Store, images: bool) -> Result<()> {
                 ),
                 None => println!("  mpv.conf    none"),
             }
+            // The companion uses `mp.input` pickers and per-file `loadfile` options; older
+            // builds play, but the in-player menus and the one-window binge degrade.
+            if mpv_minor(&version).is_some_and(|minor| minor < 39) {
+                println!("              anistream's player features want mpv 0.39 or newer");
+            }
         }
         None => {
             println!("  mpv         ✕ not runnable as {:?}", config.playback.mpv_binary);
             println!("              install it (brew install mpv), or set playback.mpv_binary");
+        }
+    }
+
+    use anistream_core::config::PlayerUi;
+    match config.playback.player_ui {
+        PlayerUi::Anistream => {
+            println!(
+                "  interface   anistream (uosc, thumbnails, companion) — your mpv scripts are not loaded"
+            )
+        }
+        PlayerUi::Mpv => println!("  interface   your mpv setup, plus the companion script"),
+    }
+    match anistream_player::Bundle::materialize(&paths.cache_dir) {
+        Ok(bundle) => println!("  bundle      {}", bundle.root().display()),
+        Err(e) => {
+            println!("  bundle      ✕ could not be written: {e} — mpv's own look is used")
+        }
+    }
+    // With the user's scripts loaded, another script can take keys or tracks ours expect.
+    // Listing them is enough for a human to spot the one that fights.
+    if config.playback.player_ui == PlayerUi::Mpv
+        && let Some(dir) =
+            dirs_config_mpv().and_then(|conf| conf.parent().map(|d| d.join("scripts")))
+        && let Ok(entries) = std::fs::read_dir(&dir)
+    {
+        let mut names: Vec<String> =
+            entries.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+        names.sort();
+        if !names.is_empty() {
+            println!("  scripts     {} — {}", dir.display(), names.join(", "));
         }
     }
 
@@ -3234,6 +3269,14 @@ fn in_path(names: &[&str]) -> bool {
 ///
 /// Not authoritative — mpv honours `MPV_HOME` and a portable-config directory too — so this is a
 /// pointer for the human reading `--doctor`, not something the app acts on.
+/// The minor version from mpv's banner, `mpv v0.41.0 …` → 41.
+fn mpv_minor(banner: &str) -> Option<u32> {
+    let version = banner.split_whitespace().nth(1)?.trim_start_matches('v');
+    let mut parts = version.split('.');
+    (parts.next()? == "0").then_some(())?;
+    parts.next()?.parse().ok()
+}
+
 fn dirs_config_mpv() -> Option<std::path::PathBuf> {
     if let Ok(home) = std::env::var("MPV_HOME") {
         return Some(std::path::PathBuf::from(home).join("mpv.conf"));
