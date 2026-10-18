@@ -905,9 +905,11 @@ async fn an_idle_window_closes_once_its_host_has_gone() {
 async fn subtitles_lift_over_the_controls_and_settle_back_where_the_viewer_had_them() {
     // The seek bar ran through the bottom subtitle line while the controls were up.
     require_mpv!();
+    // mpv's longest idle time holds the controls up until the lift has been seen: with a short
+    // one from the start, a loaded machine could hide them again before the lift was drawn.
     let mut player = Player::start(
         Some(&clip(30)),
-        &["--pause", "--cursor-autohide=400", "--script-opts-append=anistream-uosc=yes"],
+        &["--pause", "--cursor-autohide=30000", "--script-opts-append=anistream-uosc=yes"],
     )
     .await;
     // The viewer's own position, which every lift starts from and returns to.
@@ -917,6 +919,9 @@ async fn subtitles_lift_over_the_controls_and_settle_back_where_the_viewer_had_t
     let lifted =
         player.wait_property("sub-pos", |v| v.as_f64().is_some_and(|p| p < 95.0)).await;
     assert!(lifted.as_f64().unwrap() > 50.0, "lifted clear of the bar, not off the screen");
+    // Then let them go: the idle time is read at each wake, and pausing is one.
+    player.set("cursor-autohide", json!(400)).await;
+    player.set("pause", json!(true)).await;
     player.wait_ui("the bar to leave", |ui| ui["timeline"] == false).await;
     player.wait_property("sub-pos", |v| v.as_f64() == Some(96.0)).await;
     player.finish().await;
