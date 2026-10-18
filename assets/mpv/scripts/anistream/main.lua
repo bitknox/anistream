@@ -66,6 +66,7 @@ local up_next = require("elements/up_next")
 local toast = require("elements/toast")
 local pause_flash = require("elements/pause_flash")
 local host = require("host")
+local subs = require("subs")
 
 local PROTOCOL = 1
 
@@ -172,6 +173,8 @@ local function refresh()
     local seekbar = timeline.wants() and not menu_view.is_open() and not loading.card_visible()
     overlay.show(timeline, seekbar)
     timeline.observe(seekbar)
+    -- Subtitles step out of the way of the bar while it is up.
+    subs.follow(seekbar)
     overlay.show(volume, volume.wants() and not menu_view.is_open() and not loading.card_visible())
     overlay.show(pause_flash, pause_flash.wants() and not menu_view.is_open()
         and not loading.card_visible())

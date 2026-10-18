@@ -807,6 +807,26 @@ async fn an_idle_window_closes_once_its_host_has_gone() {
 }
 
 #[tokio::test]
+async fn subtitles_lift_over_the_controls_and_settle_back_where_the_viewer_had_them() {
+    // The seek bar ran through the bottom subtitle line while the controls were up.
+    require_mpv!();
+    let mut player = Player::start(
+        Some(&clip(30)),
+        &["--pause", "--cursor-autohide=400", "--script-opts-append=anistream-uosc=yes"],
+    )
+    .await;
+    // The viewer's own position, which every lift starts from and returns to.
+    player.set("sub-pos", json!(96)).await;
+    player.set("pause", json!(false)).await;
+    player.wait_ui("the bar", |ui| ui["timeline"] == true).await;
+    let lifted = player.wait_property("sub-pos", |v| v.as_f64().is_some_and(|p| p < 95.0)).await;
+    assert!(lifted.as_f64().unwrap() > 50.0, "lifted clear of the bar, not off the screen");
+    player.wait_ui("the bar to leave", |ui| ui["timeline"] == false).await;
+    player.wait_property("sub-pos", |v| v.as_f64() == Some(96.0)).await;
+    player.finish().await;
+}
+
+#[tokio::test]
 async fn a_click_on_the_picture_pauses_and_a_double_click_leaves_it_alone() {
     require_mpv!();
     let mut player = Player::start(
