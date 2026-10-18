@@ -5,8 +5,18 @@ on:
     branches: [main]
   pull_request:
 
+# A newer push to the same pull request makes the running checks moot. Pushes to main are left
+# to finish, because their caches are the ones every pull request restores from.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   CARGO_TERM_COLOR: always
+  # Line tables keep a failing test's backtrace readable. Full debug info only adds link time
+  # and cache size, and on Windows uploading the cache had become the slowest step after the
+  # build itself.
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
 
 jobs:
   test:
@@ -20,12 +30,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      # The toolchain comes from rust-toolchain.toml, so there is nothing to pin here.
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
+      # Installs exactly what rust-toolchain.toml pins. Installing `stable` first only
+      # downloaded a second toolchain that the pinned one then replaced.
+      - run: rustup toolchain install
 
+      # Only main saves. Pull requests restore main's cache, and letting each of them upload
+      # its own pushed main's out of the repository's cache quota.
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
 
       # aws-lc-sys assembles its own primitives and needs NASM on Windows. It is not on the
       # runner image, and without it the build fails inside a C dependency rather than anywhere
@@ -34,21 +47,47 @@ jobs:
         if: matrix.os == 'windows-latest'
         uses: ilammy/setup-nasm@v1
 
-      - name: Build
-        run: cargo build --workspace --all-targets
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
 
+      # nextest builds every test target and runs the binaries in parallel, where `cargo test`
+      # runs them one after another; a separate build step only compiled the same code twice.
       - name: Test
-        run: cargo test --workspace
+        run: cargo nextest run --workspace
 
-      - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+  # Its own job rather than a step after the tests, so it runs beside them instead of adding
+  # to them: clippy checks dependencies in a different mode and cannot reuse the test build.
+  # Still on every OS, because the Windows named-pipe and macOS paths only exist there.
+  clippy:
+    name: clippy (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: Install NASM
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/setup-nasm@v1
+      - run: cargo clippy --workspace --all-targets -- -D warnings
 
   audit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      # A prebuilt binary: compiling cargo-audit from source took two minutes per run.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
       # Advisory policy lives in .cargo/audit.toml, where each ignore carries its
-      # justification — a silent pass would defeat the point of running this.
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cargo install cargo-audit --locked
-      - run: cargo audit
+      # justification — a silent pass would defeat the point of running this. Invoked
+      # directly rather than through `cargo`, which would install the pinned toolchain only
+      # to read Cargo.lock.
+      - run: cargo-audit audit
