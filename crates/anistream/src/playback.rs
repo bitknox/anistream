@@ -22,7 +22,7 @@ use anistream_player::{
     skip,
 };
 use anistream_store::{Store, WatchEvent};
-use anistream_ui::app::{PlayerCommand, Toast, Update};
+use anistream_ui::app::{Ending, PlayerCommand, Successor, Toast, Update};
 use futures::StreamExt;
 use tokio::sync::mpsc;
 
@@ -96,6 +96,32 @@ impl PlaybackContext {
     /// The title the window and the player's top bar show.
     pub fn window_title(&self) -> String {
         format!("{} · {}", self.title, self.episode_label())
+    }
+
+    /// What the window says while it waits for the playback taking it over.
+    ///
+    /// Worded against this one, because "the next episode" is only true of one of the ways a
+    /// window changes hands: another series, a switch to the dub, an episode picked from the
+    /// menu, and the previous episode all come through here too.
+    pub fn handing_to(&self, successor: &Successor) -> String {
+        let number = |episode: &str| episode.trim().parse::<i64>().ok();
+        if successor.id != self.anilist_id {
+            return format!("Opening {} · Episode {}…", successor.title, successor.episode);
+        }
+        if successor.episode == self.episode {
+            return if successor.translation == self.translation {
+                format!("Opening {} again…", self.episode_label())
+            } else {
+                format!("Switching to the {}…", successor.translation)
+            };
+        }
+        match (number(&self.episode), number(&successor.episode)) {
+            (Some(now), Some(then)) if then == now + 1 => "Opening the next episode…".into(),
+            (Some(now), Some(then)) if then == now - 1 => {
+                "Opening the previous episode…".into()
+            }
+            _ => format!("Opening Episode {}…", successor.episode),
+        }
     }
 
     fn episode_info(&self, episodes: &[EpisodeEntry]) -> companion::EpisodeInfo {
@@ -341,13 +367,16 @@ enum FileOutcome {
         exited: bool,
         /// The viewer asked for this from the terminal.
         stopped: bool,
+        /// mpv quit, rather than failing or dying: the viewer closed the window or pressed q,
+        /// or `stopped` asked it to.
+        quit: bool,
         /// Nothing was ever shown.
         no_frames: bool,
     },
     /// The viewer picked another stream from the menu, or accepted the stall prompt's offer.
     Switch { to: usize, at: f64 },
-    /// A newer playback is taking over this window.
-    Handover,
+    /// A newer playback is taking over this window, for this.
+    Handover(Successor),
 }
 
 /// The audio filter night mode adds, labelled so removing it leaves the viewer's own alone.
@@ -386,7 +415,7 @@ pub async fn play(
 ) {
     let Some(first) = streams.first() else {
         slot.release();
-        let _ = tx.send(Update::PlaybackEnded { watched: false });
+        let _ = tx.send(Update::PlaybackEnded { watched: false, ending: Ending::Failed });
         return;
     };
 
@@ -402,6 +431,9 @@ pub async fn play(
             Err(e) => Update::Toast(Toast::alert(format!("could not open: {e}"))),
         };
         let _ = tx.send(update);
+        // Nothing plays here, so Now Playing comes down rather than waiting on a player that
+        // was never going to report.
+        let _ = tx.send(Update::PlaybackEnded { watched: false, ending: Ending::Elsewhere });
         return;
     }
 
@@ -411,7 +443,7 @@ pub async fn play(
     if settings.party {
         slot.release();
         hand_to_syncplay(&settings.syncplay, &first.url, &tx);
-        let _ = tx.send(Update::PlaybackEnded { watched: false });
+        let _ = tx.send(Update::PlaybackEnded { watched: false, ending: Ending::Elsewhere });
         return;
     }
 
@@ -530,7 +562,8 @@ pub async fn play(
                     let _ = tx.send(Update::Toast(Toast::alert(format!("mpv: {e}"))));
                     // The player never existed, but the UI has Now Playing up and a control
                     // surface pointed at it. Saying so is what takes them down.
-                    let _ = tx.send(Update::PlaybackEnded { watched: false });
+                    let _ = tx
+                        .send(Update::PlaybackEnded { watched: false, ending: Ending::Failed });
                     let _ = tx.send(Update::Status(String::new()));
                     return;
                 }
@@ -582,13 +615,13 @@ pub async fn play(
                 // left may be the one to come back to.
                 tried = vec![false; total];
             }
-            FileOutcome::Handover => {
+            FileOutcome::Handover(successor) => {
                 if let Some(player) = player.take() {
                     let _ = player
                         .session
                         .send(companion::state(
                             "status",
-                            &companion::Status::loading("Opening the next episode…", None),
+                            &companion::Status::loading(context.handing_to(&successor), None),
                         ))
                         .await;
                     // Silence what was playing while the next stream is found.
@@ -597,7 +630,7 @@ pub async fn play(
                 }
                 return;
             }
-            FileOutcome::Ended { watched, complete, exited, stopped, no_frames } => {
+            FileOutcome::Ended { watched, complete, exited, stopped, quit, no_frames } => {
                 let reported = match (&player, no_frames) {
                     (Some(p), true) => p.session.diagnostics().most_relevant().await,
                     _ => None,
@@ -606,8 +639,8 @@ pub async fn play(
                 if no_frames && !stopped && !exited && !last {
                     // The point of carrying alternates: whether segments actually decode is
                     // knowable only in front of a player, so a stream that never showed a frame
-                    // fails over — in the same window — unless the viewer stopped it themselves,
-                    // which is an instruction, not a failure.
+                    // fails over — in the same window — unless the viewer stopped it or closed
+                    // the window themselves, which is an instruction, not a failure.
                     tracing::warn!(url = %stream.url, ?reported, "no frames; trying the next stream");
                     let _ = tx.send(Update::Toast(Toast::info(format!(
                         "no video from that stream — trying {} of {total}",
@@ -624,8 +657,9 @@ pub async fn play(
                     && !run.cancel_next
                     && !exited
                     && run.next.is_some();
+                let next = run.next.as_ref().filter(|_| rolls_on);
                 if let Some(player) = player.take() {
-                    if rolls_on && let Some(next) = &run.next {
+                    if let Some(next) = next {
                         let _ = player
                             .session
                             .send(companion::state(
@@ -642,7 +676,11 @@ pub async fn play(
                     }
                 }
 
-                if no_frames {
+                // Not for a player the viewer closed or stopped: quitting before the first frame
+                // is a choice, and "mpv exited without playing anything" would blame mpv for it.
+                // Both are checked, because a quit that reaches mpv before the file has started
+                // ends no file, and only the socket closing says anything happened.
+                if no_frames && !stopped && !quit {
                     let message = match reported {
                         Some(line) => format!("mpv could not play this: {line}"),
                         None => {
@@ -656,8 +694,19 @@ pub async fn play(
 
                 // Exactly one ending per playback, sent only now that this attempt is known to
                 // be the last: the tracker's verdict when it reached one, and otherwise the
-                // honest `false` for a session that never played.
-                let _ = tx.send(Update::PlaybackEnded { watched: watched.unwrap_or(false) });
+                // honest `false` for a session that never played. The ending names the next
+                // episode only when the window was kept for it, which is what auto-next follows.
+                let ending = if complete {
+                    Ending::Complete { next: next.map(|n| n.number.clone()) }
+                } else if stopped {
+                    Ending::Stopped
+                } else if exited {
+                    Ending::Closed
+                } else {
+                    Ending::Failed
+                };
+                let _ = tx
+                    .send(Update::PlaybackEnded { watched: watched.unwrap_or(false), ending });
                 let _ = tx.send(Update::Status(String::new()));
                 return;
             }
@@ -990,6 +1039,7 @@ impl Run<'_> {
                         complete: false,
                         exited: true,
                         stopped,
+                        quit: session.has_quit(),
                         no_frames: !ever_played,
                     },
                 },
@@ -1051,7 +1101,7 @@ impl Run<'_> {
                 }
                 command = commands.recv(), if self.controls_open => {
                     match command {
-                        Some(PlayerCommand::Handover) => {
+                        Some(PlayerCommand::Handover(successor)) => {
                             // Flush what was watched before the window changes hands.
                             self.record_actions(&mut tracker, &PlaybackEvent::Ended { complete: false }, stream, &mut committed, &mut ending).await;
                             let _ = tx.send(Update::EpisodeLeft {
@@ -1061,7 +1111,7 @@ impl Run<'_> {
                                 duration: tracker.duration(),
                                 watched: ending.unwrap_or(false),
                             });
-                            break FileOutcome::Handover;
+                            break FileOutcome::Handover(successor);
                         }
                         Some(PlayerCommand::Episodes { rows, next }) => {
                             if let Some(url) = self.learn_episodes(rows, next)
@@ -1081,6 +1131,10 @@ impl Run<'_> {
                             }
                             let menus = self.menus(streams, index);
                             let _ = session.send(companion::state("menus", &menus)).await;
+                            continue;
+                        }
+                        Some(PlayerCommand::Step(delta)) => {
+                            self.step(delta, session, true).await;
                             continue;
                         }
                         Some(command) => {
@@ -1321,11 +1375,14 @@ impl Run<'_> {
             if let PlaybackEvent::Ended { complete } = event
                 && file_ended
             {
+                // `end-file` for a quit arrives before the socket closes, so the window is
+                // already as good as gone when mpv says it is quitting.
                 break FileOutcome::Ended {
                     watched: ending,
                     complete,
-                    exited: !session.is_alive(),
+                    exited: !session.is_alive() || session.has_quit(),
                     stopped,
+                    quit: session.has_quit(),
                     no_frames: !ever_played,
                 };
             }
@@ -1337,6 +1394,53 @@ impl Run<'_> {
         rpc.finish().await;
         let _ = session.send(companion::skip_clear()).await;
         outcome
+    }
+
+    /// Step to an adjacent episode: N/P in the player, n/N in the terminal.
+    ///
+    /// The next playback's arrival is what ends this one — the task runner hands this window
+    /// over to it — so nothing stops here, and nothing at all happens when the episode list says
+    /// there is no such episode: asking for it anyway handed the finale's window to a search
+    /// that could only fail, which closed the window on the episode being watched. An episode
+    /// list not known yet is no evidence either way, and the step goes ahead.
+    async fn step(&self, delta: i64, session: &MpvSession, from_terminal: bool) {
+        let target = self.context.episode.trim().parse::<i64>().ok().map(|n| n + delta);
+        let listed = |n: i64| {
+            self.episodes.is_empty() || self.episodes.iter().any(|e| e.number == n.to_string())
+        };
+        let refusal = match target {
+            Some(n) if n < 1 => Some("Already at the first episode".to_owned()),
+            Some(n) if listed(n) => None,
+            // "OVA" and "Special" have no neighbour to guess at.
+            _ if delta > 0 => Some(match target {
+                Some(_) => {
+                    format!("No next episode · {} is the last", self.context.episode_label())
+                }
+                None => "No next episode".to_owned(),
+            }),
+            _ => Some("No previous episode".to_owned()),
+        };
+        match (refusal, target) {
+            (Some(refusal), _) => {
+                // Said where the key was pressed.
+                if from_terminal {
+                    let _ = self.tx.send(Update::Toast(Toast::info(refusal.to_lowercase())));
+                } else {
+                    let _ = session.notify(refusal).await;
+                }
+            }
+            (None, Some(n)) => {
+                let episode = n.to_string();
+                let title = self.episode_title(&episode);
+                let _ = self.tx.send(Update::PlayerPlayEpisode { episode, title });
+            }
+            (None, None) => {}
+        }
+    }
+
+    /// An episode's name, from the list this playback holds.
+    fn episode_title(&self, number: &str) -> Option<String> {
+        self.episodes.iter().find(|e| e.number == number).and_then(|e| e.title.clone())
     }
 
     /// Answer what the viewer did inside the player. `Some` ends the file.
@@ -1356,27 +1460,20 @@ impl Run<'_> {
                 tracing::debug!(uosc, "companion script ready");
             }
             ScriptEvent::Next | ScriptEvent::Previous => {
-                // The next playback's arrival is what ends this one — the task runner hands
-                // this window over to it — so nothing stops here.
-                let step = if matches!(event, ScriptEvent::Next) { 1 } else { -1 };
-                match context.episode.trim().parse::<i64>().ok().map(|n| n + step) {
-                    Some(n) if n >= 1 => {
-                        let _ = tx.send(Update::PlayerPlayEpisode(n.to_string()));
-                    }
-                    _ => {
-                        let _ = session.notify("already at the first episode").await;
-                    }
-                }
+                let delta = if matches!(event, ScriptEvent::Next) { 1 } else { -1 };
+                self.step(delta, session, false).await;
             }
             ScriptEvent::PlayNext => {
                 if let Some(next) = &self.next {
-                    let _ = tx.send(Update::PlayerPlayEpisode(next.number.clone()));
+                    let _ = tx.send(Update::PlayerPlayEpisode {
+                        episode: next.number.clone(),
+                        title: next.title.clone(),
+                    });
                 }
             }
-            ScriptEvent::CancelNext => {
-                self.cancel_next = true;
-                let _ = tx.send(Update::AutoNextCancelled);
-            }
+            // Held here, for this playback only: the next one starts with Up Next as the
+            // settings have it, however this episode was left.
+            ScriptEvent::CancelNext => self.cancel_next = true,
             ScriptEvent::Skip => {
                 if let Some(to) = tracker.offered_skip().map(|s| s.end) {
                     let _ = session.seek_to(to).await;
@@ -1391,7 +1488,10 @@ impl Run<'_> {
             ScriptEvent::Choose(choice) => match choice {
                 Choice::Episode(number) => {
                     if *number != context.episode {
-                        let _ = tx.send(Update::PlayerPlayEpisode(number.clone()));
+                        let _ = tx.send(Update::PlayerPlayEpisode {
+                            episode: number.clone(),
+                            title: self.episode_title(number),
+                        });
                     }
                 }
                 Choice::Source(id) => {
@@ -1862,7 +1962,9 @@ async fn apply_command(session: &MpvSession, command: PlayerCommand) {
         // Detaching is purely a UI move — mpv is untouched, which is the whole point.
         PlayerCommand::Detach => {}
         // Handled by the playback loop itself, which owns the window and what it shows.
-        PlayerCommand::Handover | PlayerCommand::Episodes { .. } => {}
+        PlayerCommand::Handover(_)
+        | PlayerCommand::Episodes { .. }
+        | PlayerCommand::Step(_) => {}
         PlayerCommand::Stop => {
             let _ = session.quit().await;
         }
@@ -1990,6 +2092,46 @@ mod tests {
             hls("torrent", "http://127.0.0.1:4040/s/2"),
         ];
         assert_eq!(source_details(&local), ["HLS · 1", "HLS · 2"]);
+    }
+
+    fn context_for(episode: &str) -> PlaybackContext {
+        PlaybackContext {
+            anilist_id: AnilistId::new(1),
+            mal_id: None,
+            episode: episode.into(),
+            title: "A Show".into(),
+            translation: Translation::Sub,
+            resume_at: None,
+            runtime_secs: None,
+            speed: None,
+            volume: None,
+            next: None,
+            episodes: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn a_window_changing_hands_says_what_is_coming() {
+        let now = context_for("6");
+        let to = |id: u32, title: &str, episode: &str, translation| Successor {
+            id: AnilistId::new(id),
+            title: title.into(),
+            episode: episode.into(),
+            translation,
+        };
+        let sub = Translation::Sub;
+        assert_eq!(now.handing_to(&to(1, "A Show", "7", sub)), "Opening the next episode…");
+        assert_eq!(now.handing_to(&to(1, "A Show", "5", sub)), "Opening the previous episode…");
+        assert_eq!(now.handing_to(&to(1, "A Show", "11", sub)), "Opening Episode 11…");
+        assert_eq!(
+            now.handing_to(&to(1, "A Show", "6", Translation::Dub)),
+            "Switching to the dub…"
+        );
+        assert_eq!(now.handing_to(&to(1, "A Show", "6", sub)), "Opening Episode 6 again…");
+        assert_eq!(
+            now.handing_to(&to(2, "Another Show", "1", sub)),
+            "Opening Another Show · Episode 1…"
+        );
     }
 
     #[test]
