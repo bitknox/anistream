@@ -1,5 +1,5 @@
-anistream-store-core v0.9.0 (./crates/anistream-store-core) 
-anistream-store-wasm v0.9.0 (./crates/anistream-store-wasm) 
+anistream-store-core v1.0.0 (./crates/anistream-store-core) 
+anistream-store-wasm v1.0.0 (./crates/anistream-store-wasm) 
 async-trait v0.1.91 (proc-macro) 
 base64 v0.22.1 alloc,default,std
 block-buffer v0.10.4 
@@ -107,14 +107,14 @@ crates/anistream-store-core/admin/src/components/Said.tsx 4d6fa5ae1ea7fa8cf3f850
 crates/anistream-store-core/admin/src/components/Section.tsx 2ec6972d4a95ee1772191a22bb42a7d5402a8eea
 crates/anistream-store-core/admin/src/components/SignedOut.tsx bd3f7790821b81656d2c9811880c796984f4b84f
 crates/anistream-store-core/admin/src/components/StatusLine.tsx 38af893523808c3a29df1cd2feb6ab4f34ab9c48
-crates/anistream-store-core/admin/src/format.ts d73e6858379207ad3be15b28196584593d40ba78
+crates/anistream-store-core/admin/src/format.ts 4265bcbe35ee48db5269a09f7cc553144ce0b200
 crates/anistream-store-core/admin/src/main.tsx 65a79bab337bb311f49b9f3d517aa8d34715da92
 crates/anistream-store-core/admin/src/nagare.ts 11ebf2e00ccf5384316ae65fe703352a8b9ba42d
 crates/anistream-store-core/admin/src/types.ts f6ff921b7e788f52912b921f4086826d4adf6e2e
 crates/anistream-store-core/admin/tsconfig.json 1cf3988dd42ea3c0fad51bcc3ecb8d920c1c5302
 crates/anistream-store-core/admin/vite.config.ts 84f2de15e06df58906c74dccdc6ca623c36fef85
 crates/anistream-store-core/assets/admin/admin.css 9c03ce7fd8938cbe3c7d7309fac501d1d10656c9
-crates/anistream-store-core/assets/admin/admin.js 6345eb7b7d6bfaa356293032fc13da84dd93bb4a
+crates/anistream-store-core/assets/admin/admin.js ac2a91fdbb543941e72a4e51e668894575fb019c
 crates/anistream-store-core/assets/admin/favicon.svg 7fd3f4f0d7f44735364da14fd1593f70038a92d9
 crates/anistream-store-core/assets/admin/fonts/OFL.txt 90bf32bcf01f94fa7fdbdcaac099dc2175cbfefb
 crates/anistream-store-core/assets/admin/fonts/zen-kaku-gothic-new-kana-700-normal.woff2 e0772adc285c78a6344f8b09be577b2396bac44b

@@ -20,10 +20,11 @@ export function until(at: number): string {
 	return `expires in ${Math.floor(span / 86_400)} days`;
 }
 
+// Decimal units, as anistream itself shows sizes, so a plugin reads the same size in both.
 export function bytes(size: number): string {
-	if (size < 1024) return `${size} B`;
-	if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
-	return `${(size / 1024 / 1024).toFixed(1)} MB`;
+	if (size < 1000) return `${size} B`;
+	if (size < 1_000_000) return `${Math.round(size / 1000)} kB`;
+	return `${(size / 1_000_000).toFixed(1)} MB`;
 }
 
 export function plural(count: number, one: string, many = `${one}s`): string {
