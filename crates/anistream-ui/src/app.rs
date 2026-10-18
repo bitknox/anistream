@@ -3402,7 +3402,10 @@ impl App {
                 let Some(url) = entry.trailer_url.clone() else {
                     // Rides the detail fetch, so a list row answers after the title has
                     // been opened once — and some titles genuinely have no trailer.
-                    self.push_toast(Toast::info("no trailer on record for this title"));
+                    let why = self
+                        .off_the_page("the trailer is found")
+                        .unwrap_or_else(|| "no trailer on record for this title".into());
+                    self.push_toast(Toast::info(why));
                     return None;
                 };
                 return Some(Task::PlayTrailer { url, title: entry.title.clone() });
@@ -3415,7 +3418,10 @@ impl App {
                 if entry.recommended.is_empty() {
                     // Like relations, recommendations ride the detail fetch — and some
                     // titles genuinely have none.
-                    self.push_toast(Toast::info("no recommendations known for this title"));
+                    let why = self
+                        .off_the_page("recommendations are listed")
+                        .unwrap_or_else(|| "no recommendations known for this title".into());
+                    self.push_toast(Toast::info(why));
                     return None;
                 }
                 self.overlay_selected = 0;
@@ -3429,7 +3435,10 @@ impl App {
                 if entry.related.is_empty() {
                     // Empty on list rows too — the relations ride the detail fetch. From a
                     // list this still answers after opening the title once.
-                    self.push_toast(Toast::info("no connected seasons known for this title"));
+                    let why = self
+                        .off_the_page("connected seasons are listed")
+                        .unwrap_or_else(|| "no connected seasons known for this title".into());
+                    self.push_toast(Toast::info(why));
                     return None;
                 }
                 self.overlay_selected = 0;
@@ -3929,6 +3938,15 @@ impl App {
     /// Whether the Search section's own view — the field and its results — is on top.
     fn on_search_root(&self) -> bool {
         matches!(self.nav.current(), StageView::Section(Section::Search))
+    }
+
+    /// "… from the title's page", when the screen is not one — said for what rides the detail
+    /// fetch and came back empty here, as `m` and `P` say it for what only that page can do.
+    ///
+    /// A list row never opened carries no relations, recommendations or trailer, so "none known
+    /// for this title" off the page was a guess that read as a fact.
+    fn off_the_page(&self, what: &str) -> Option<String> {
+        self.title_on_screen().is_none().then(|| format!("{what} from the title's page"))
     }
 
     /// The title whose page or episode table is on top, by the view's own id.
@@ -7973,8 +7991,9 @@ mod tests {
         let mut a = app();
         a.apply(a.content_here(entries(1)));
 
+        // A list row never opened: the trailer is on the record its page fetches.
         a.handle(Action::PlayTrailer, 20);
-        assert!(a.toasts.iter().any(|t| t.text.contains("no trailer")));
+        assert!(a.toasts.iter().any(|t| t.text.contains("from the title's page")));
 
         let mut detail = Entry::new(AnilistId::new(1), "Frieren");
         detail.trailer_url = Some("https://www.youtube.com/watch?v=x".into());
@@ -7995,7 +8014,7 @@ mod tests {
         a.apply(a.content_here(entries(1)));
         a.handle(Action::Recommendations, 20);
         assert!(!a.nav.has_overlay());
-        assert!(a.toasts.iter().any(|t| t.text.contains("no recommendations")));
+        assert!(a.toasts.iter().any(|t| t.text.contains("from the title's page")));
     }
 
     #[test]
@@ -8664,6 +8683,26 @@ mod tests {
             assert_eq!(a.nav.current(), &StageView::NowPlaying);
             a.handle(Action::Back, 5);
         }
+    }
+
+    #[test]
+    fn what_rides_the_detail_fetch_is_pointed_at_the_title_page_from_a_list() {
+        // A row never opened has no relations, recommendations or trailer to go on, so
+        // "none known for this title" there was a guess. `m` and `P` already say where to go.
+        let mut a = home_list(3);
+        let last = |a: &App| a.toasts.last().map(|t| t.text.clone()).unwrap_or_default();
+        for (action, said) in [
+            (Action::WatchOrder, "connected seasons are listed from the title's page"),
+            (Action::Recommendations, "recommendations are listed from the title's page"),
+            (Action::PlayTrailer, "the trailer is found from the title's page"),
+        ] {
+            assert_eq!(a.handle(action, 5), None);
+            assert_eq!(last(&a), said);
+        }
+        // On the page itself, empty is the answer.
+        a.handle(Action::Open, 5);
+        a.handle(Action::WatchOrder, 5);
+        assert_eq!(last(&a), "no connected seasons known for this title");
     }
 
     #[test]
