@@ -258,8 +258,11 @@ function M.still()
     return still_key ~= nil
 end
 
+-- The keys the card takes while it is shown; the keys overlay lists them from here too.
+M.KEYS = { ENTER = play_now, KP_ENTER = play_now, ESC = cancel }
+
 function M.keys()
-    return { ENTER = play_now, KP_ENTER = play_now, ESC = cancel }
+    return M.KEYS
 end
 
 return M

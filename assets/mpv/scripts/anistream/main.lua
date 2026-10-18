@@ -26,6 +26,7 @@
 --   subtitles      -                    always: subtitle tracks (anistream mode: our menu)
 --   audio          -                    always: audio tracks (anistream mode: our menu)
 --   mini           Alt+m                always: mini player on/off
+--   keys           ?                    always: the keys overlay (this table, for viewers)
 --   sub-sync       Alt+z                always: start (or stop) two-point subtitle sync
 --   skip           S, Enter             while the skip button is shown
 --   undo-skip      u                    while "Skipped … · Undo" is shown
@@ -65,6 +66,7 @@ local stall = require("elements/stall")
 local up_next = require("elements/up_next")
 local toast = require("elements/toast")
 local pause_flash = require("elements/pause_flash")
+local help = require("help")
 local host = require("host")
 local subs = require("subs")
 
@@ -82,6 +84,7 @@ overlay.register(toast)
 overlay.register(subsync.element)
 overlay.register(pause_flash)
 overlay.register(menu_view)
+overlay.register(help)
 
 -- The bottom-right corner holds one element at a time, the first of these that has something
 -- to show. A stall outranks everything (nothing else matters if the video is not moving); Up
@@ -112,6 +115,9 @@ local function publish()
         sync = subsync.step(),
         -- Also beyond the brief: our own menu and seek bar, in anistream mode.
         menu = menu_view.view(),
+        -- And the keys overlay, with what it lists while open (`label -> keys`).
+        keys = help.is_open(),
+        keys_listed = help.is_open() and help.listed() or nil,
         timeline = overlay.visible(timeline),
         -- Which form the volume control last drew, "row" or "pill": what a fade showed.
         volume = volume.drawn(),
@@ -170,18 +176,22 @@ local function refresh()
     overlay.show(toast, toast.wants())
     overlay.show(subsync.element, subsync.element.wants())
     overlay.show(menu_view, menu_view.wants())
-    local seekbar = timeline.wants() and not menu_view.is_open() and not loading.card_visible()
+    overlay.show(help, help.wants())
+    -- The controls give way to anything that takes the middle of the window.
+    local covered = menu_view.is_open() or help.is_open() or loading.card_visible()
+    local seekbar = timeline.wants() and not covered
     overlay.show(timeline, seekbar)
     timeline.observe(seekbar)
-    overlay.show(volume, volume.wants() and not menu_view.is_open() and not loading.card_visible())
-    overlay.show(pause_flash, pause_flash.wants() and not menu_view.is_open()
-        and not loading.card_visible())
+    overlay.show(volume, volume.wants() and not covered)
+    overlay.show(pause_flash, pause_flash.wants() and not covered)
 
-    -- The open menu owns the keyboard; then a running sync (Enter marks, Esc stops); then
-    -- whatever holds the corner.
+    -- The keys overlay holds only its close key while it is up. Otherwise the open menu owns
+    -- the keyboard; then a running sync (Enter marks, Esc stops); then whatever holds the
+    -- corner.
     local wanted = {}
+    local holders = help.is_open() and { help } or { menu_view, subsync.element, winner }
     if not app.modal then
-        for _, el in ipairs({ menu_view, subsync.element, winner }) do
+        for _, el in ipairs(holders) do
             if overlay.visible(el) then
                 for key, fn in pairs(el.keys()) do
                     if wanted[key] == nil then
@@ -348,7 +358,8 @@ end)
 if config.opts.uosc then
     local last_flash = -math.huge
     local function wake()
-        if p.idle or menu_view.is_open() or app.modal or loading.card_visible() then
+        local covered = menu_view.is_open() or help.is_open() or loading.card_visible()
+        if p.idle or app.modal or covered then
             return
         end
         timeline.poke()
@@ -385,7 +396,7 @@ end
 subsync.notify = function(text, alert)
     toast.show(text, alert and "alert" or "info", 4)
 end
-menus.actions = { mini = mini.toggle, ["sub-sync"] = subsync.start }
+menus.actions = { mini = mini.toggle, ["sub-sync"] = subsync.start, keys = help.open }
 menus.mini_on = mini.active
 
 mp.add_key_binding("N", "next", function()
@@ -460,6 +471,13 @@ mp.add_key_binding(nil, "audio", function()
 end)
 mp.add_key_binding("Alt+m", "mini", mini.toggle)
 mp.add_key_binding("Alt+z", "sub-sync", subsync.start)
+-- mpv's own ? toggles the stats page that lists every binding by command; this is the same
+-- question asked by a viewer, and that page stays one key away (the overlay says which).
+mp.add_key_binding("?", "keys", help.toggle)
+help.before_open = function()
+    -- One overlay at a time in the middle of the window.
+    menu_view.close()
+end
 
 mp.add_key_binding(nil, "skip", skip.take)
 mp.add_key_binding(nil, "undo-skip", skipped.undo)
