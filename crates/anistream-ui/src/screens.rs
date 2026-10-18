@@ -20,7 +20,10 @@ use crate::{
         Palette, Role,
         glyph::{self, OBI},
     },
-    widgets::{Divider, Hairline, Header, ObiList, ObiRow, Rail, StatusLine, truncate, wrap},
+    widgets::{
+        Divider, Hairline, Header, ObiList, ObiRow, Rail, StatusLine, human_bytes, truncate,
+        wrap,
+    },
 };
 
 /// Write a line, or nothing at all if it would land outside the buffer.
@@ -1105,28 +1108,6 @@ fn time_left(secs: u64) -> String {
     } else {
         format!("{} min", secs.div_ceil(60))
     }
-}
-
-/// Bytes at human scale, two significant figures.
-///
-/// Its own function because a download's size is the number the screen is most often read for, and
-/// `1288490188 bytes` communicates nothing at a glance.
-fn human_bytes(bytes: u64) -> String {
-    const UNITS: [(&str, u64); 4] =
-        [("GB", 1_000_000_000), ("MB", 1_000_000), ("kB", 1_000), ("B", 1)];
-    for (unit, scale) in UNITS {
-        if bytes >= scale {
-            let value = bytes as f64 / scale as f64;
-            // One decimal below ten, none above: `9.4 GB` and `140 MB` are both two digits of real
-            // information, and `140.3 MB` is one of them plus noise.
-            return if value < 10.0 && scale > 1 {
-                format!("{value:.1} {unit}")
-            } else {
-                format!("{} {unit}", value.round() as u64)
-            };
-        }
-    }
-    "0 B".into()
 }
 
 /// What an empty screen should say, and what to do about it.

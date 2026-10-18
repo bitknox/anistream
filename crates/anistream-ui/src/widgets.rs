@@ -525,6 +525,30 @@ pub fn plural(count: usize, noun: &str) -> String {
     if count == 1 { format!("1 {noun}") } else { format!("{count} {noun}s") }
 }
 
+/// Bytes at human scale, two significant figures.
+///
+/// Its own function because a download's size is the number the screen is most often read for, and
+/// `1288490188 bytes` communicates nothing at a glance. Decimal units, as every size and rate on
+/// screen is: a `kB` that meant 1024 in one place and 1000 in another would make two screens
+/// disagree about the same file.
+pub fn human_bytes(bytes: u64) -> String {
+    const UNITS: [(&str, u64); 4] =
+        [("GB", 1_000_000_000), ("MB", 1_000_000), ("kB", 1_000), ("B", 1)];
+    for (unit, scale) in UNITS {
+        if bytes >= scale {
+            let value = bytes as f64 / scale as f64;
+            // One decimal below ten, none above: `9.4 GB` and `140 MB` are both two digits of real
+            // information, and `140.3 MB` is one of them plus noise.
+            return if value < 10.0 && scale > 1 {
+                format!("{value:.1} {unit}")
+            } else {
+                format!("{} {unit}", value.round() as u64)
+            };
+        }
+    }
+    "0 B".into()
+}
+
 /// Truncate to a cell budget with an ellipsis, counting characters rather than bytes.
 pub fn truncate(text: &str, max: usize) -> String {
     let len = text.chars().count();

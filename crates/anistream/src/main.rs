@@ -1399,7 +1399,9 @@ async fn list_plugins(config: &Config, paths: &Paths) -> Result<()> {
         ..Default::default()
     };
     println!(
-        "limits            {} MB memory · {} s per call",
+        // MiB, as the config documents it. The number is the file's own, so it keeps its unit:
+        // "64 MB" was a decimal name on what is 67 MB.
+        "limits            {} MiB memory · {} s per call",
         config.providers.plugins.memory_mb,
         limits.deadline.as_secs()
     );
