@@ -1514,6 +1514,12 @@ impl Run<'_> {
                 Choice::NightMode(on) => {
                     self.night = *on;
                     self.apply_night(session).await;
+                    // The menu's toggle offers the opposite of what it was last told, so it has
+                    // to be told: left stale, turning night mode off offered "off" again, and
+                    // it could never be turned back on.
+                    let _ = session
+                        .send(companion::state("menus", &self.menus(streams, index)))
+                        .await;
                     let _ = tx.send(Update::PlayerNightMode(*on));
                 }
             },

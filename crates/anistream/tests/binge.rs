@@ -568,3 +568,77 @@ async fn nothing_follows_the_finale() {
     assert_eq!(ended(&updates), Some((true, complete(None))), "the finale played to its end");
     assert!(slot.take().is_none(), "a finale must not leave a window parked");
 }
+
+/// Read one property from the player window in `dir`.
+async fn ask_mpv(dir: &std::path::Path, property: &str) -> serde_json::Value {
+    use tokio::io::AsyncBufReadExt;
+    let socket = std::fs::read_dir(dir)
+        .unwrap()
+        .filter_map(|entry| entry.ok().map(|e| e.path()))
+        .find(|path| path.extension().is_some_and(|ext| ext == "sock"))
+        .expect("the player's socket");
+    let stream = anistream_player::ipc::connect(&socket).await.unwrap();
+    let (read, mut write) = anistream_player::ipc::split(stream);
+    let line = format!(
+        "{}\n",
+        serde_json::json!({ "command": ["get_property", property], "request_id": 4242 })
+    );
+    write.write_all(line.as_bytes()).await.unwrap();
+    let mut lines = tokio::io::BufReader::new(read).lines();
+    while let Ok(Some(line)) = lines.next_line().await {
+        let value: serde_json::Value = serde_json::from_str(&line).unwrap_or_default();
+        if value["request_id"] == 4242 {
+            return value["data"].clone();
+        }
+    }
+    serde_json::Value::Null
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn night_mode_can_be_turned_back_on_from_the_menu() {
+    // The menu's toggle offers the opposite of what it was last told; told nothing after the
+    // first toggle, it offered "off" again and night mode could not come back.
+    let Some((mpv, dir)) = player().await else { return };
+    let slot = PlayerSlot::default();
+    let (_keep, commands) = mpsc::unbounded_channel();
+    let store = Store::open_in_memory().unwrap();
+    let night = PlaySettings { night_mode: true, ..settings(false) };
+    let (task, mut rx) =
+        start(&mpv, &slot, vec![clip(8)], context("1", None), night, commands, store);
+    let seen = until_playing(&mut rx).await;
+    let menu = || async {
+        ask_mpv(dir.path(), "user-data/anistream/menus").await["night_mode"].clone()
+    };
+    assert_eq!(menu().await, true);
+
+    let choose = |on: bool| {
+        let payload = serde_json::json!({ "menu": "night_mode", "value": on }).to_string();
+        serde_json::json!(["script-message", "anistream", "choose", payload])
+    };
+    tell_mpv(dir.path(), choose(false)).await;
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(3);
+    while menu().await != false && tokio::time::Instant::now() < deadline {
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    assert_eq!(menu().await, false, "the menu still offers turning it off");
+
+    tell_mpv(dir.path(), choose(true)).await;
+    let deadline = tokio::time::Instant::now() + Duration::from_secs(3);
+    while menu().await != true && tokio::time::Instant::now() < deadline {
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    assert_eq!(menu().await, true);
+    let filters = ask_mpv(dir.path(), "af").await.to_string();
+    assert!(filters.contains("anistream-night"), "{filters}");
+
+    tell_mpv(dir.path(), serde_json::json!(["quit"])).await;
+    let updates = finish(task, rx, seen).await;
+    let saved: Vec<bool> = updates
+        .iter()
+        .filter_map(|u| match u {
+            Update::PlayerNightMode(on) => Some(*on),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(saved, [false, true]);
+}
