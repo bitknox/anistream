@@ -738,8 +738,8 @@ fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
             break;
         }
         let selected = i == app.selected;
-        if selected && focused {
-            buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
+        if selected {
+            mark_selected(buf, app, area.left(), y, focused);
         }
         buf.set_string(
             area.left() + 2,
@@ -888,8 +888,8 @@ fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
             break;
         }
         let selected = i == app.selected;
-        if selected && focused {
-            buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
+        if selected {
+            mark_selected(buf, app, area.left(), y, focused);
         }
 
         // The title gives way to the episode number, never the other way round: five rows of
@@ -1549,7 +1549,7 @@ fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
         let selected = i == app.episode_selected;
 
         if selected {
-            buf[(table.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
+            mark_selected(buf, app, table.left(), y, app.nav.focus() == Focus::Stage);
         }
 
         let number_style = if selected {
@@ -1682,7 +1682,7 @@ fn render_library(buf: &mut Buffer, app: &App, area: Rect) {
             break;
         }
         if active {
-            buf[(x, area.top())].set_char(OBI).set_style(app.palette.style(Role::Obi));
+            mark_selected(buf, app, x, area.top(), app.nav.focus() == Focus::Stage);
         }
         buf.set_string(
             x + 2,
@@ -2151,11 +2151,9 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
         if y >= area.bottom() {
             break;
         }
-        // The obi marks a source that will actually be used, so "which of these is live"
-        // is answerable at a glance.
-        if provider.usable {
-            buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
-        }
+        // No obi here: it marks the selected row everywhere else, and this table has no
+        // cursor. Whether a source will be used is the state column's job, and the weight of
+        // its name, which drops for one that will not.
         table_cell(
             buf,
             area,
@@ -2299,6 +2297,19 @@ fn store_state(store: &StoreRow) -> (String, Role) {
     }
 }
 
+/// The obi on the selected row: in the accent while the stage has the keyboard, dimmed while
+/// the rail does.
+///
+/// One meaning everywhere, the one the lists have always had. Downloads, Settings and Accounts
+/// hid it while the rail had focus, so the row Enter would act on could not be seen from there,
+/// and Providers drew it on every working source, which no key moves between.
+fn mark_selected(buf: &mut Buffer, app: &App, x: u16, y: u16, focused: bool) {
+    let role = if focused { Role::Obi } else { Role::TextDim };
+    if buf.area().contains(ratatui::layout::Position { x, y }) {
+        buf[(x, y)].set_char(OBI).set_style(app.palette.style(role));
+    }
+}
+
 /// Mark the focused row with the obi and return the style its first column should use.
 fn focus_row(
     buf: &mut Buffer,
@@ -2307,8 +2318,8 @@ fn focus_row(
     y: u16,
     selected: bool,
 ) -> ratatui::style::Style {
-    if selected && app.nav.focus() == Focus::Stage && y < area.bottom() {
-        buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
+    if selected && y < area.bottom() {
+        mark_selected(buf, app, area.left(), y, app.nav.focus() == Focus::Stage);
     }
     if selected {
         app.palette.style(Role::Text).add_modifier(Modifier::BOLD)
@@ -2801,10 +2812,8 @@ fn render_meta_sources(buf: &mut Buffer, app: &App, area: Rect, top: u16) {
         if y >= area.bottom() {
             break;
         }
-        // The obi marks the rung that answered last — same grammar as the source table.
-        if row.active {
-            buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
-        }
+        // Which rung answered last is in its name's weight and its state, not an obi: that
+        // marks the selected row, and nothing here is selectable.
         table_cell(
             buf,
             area,
@@ -2908,8 +2917,8 @@ fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
             SettingsLine::Row(i) => {
                 let row = &rows[*i];
                 let selected = *i == app.selected;
-                if selected && focused {
-                    buf[(area.left(), y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
+                if selected {
+                    mark_selected(buf, app, area.left(), y, focused);
                 }
 
                 let label_room = value_x.saturating_sub(area.left() + 3) as usize;
@@ -5832,6 +5841,42 @@ mod tests {
         let text = text_of(&render_to_buffer(&app, 80, 24));
         assert!(text.contains("paused at 734 MB of 1.5 GB"), "{text}");
         assert!(!text.contains("resolving a source"), "{text}");
+    }
+
+    #[test]
+    fn the_selection_mark_dims_with_the_rail_rather_than_vanishing() {
+        for section in [Section::Downloads, Section::Settings, Section::Accounts] {
+            let mut app = app_with(Content::Empty);
+            app.go_to_section(section);
+            app.apply(Update::Downloads(vec![download("Kite", "1", "queued", 0)]));
+            app.apply(Update::Sync(Box::new(crate::app::SyncState::new("kitsu"))));
+            app.nav.focus_rail();
+            let buf = render_to_buffer(&app, 120, 30);
+            let stage_marks: Vec<(u16, u16)> = (2..28)
+                .flat_map(|y| (20..120).map(move |x| (x, y)))
+                .filter(|pos| buf[*pos].symbol() == "▌")
+                .collect();
+            assert_eq!(stage_marks.len(), 1, "{section:?}: {stage_marks:?}");
+            assert_eq!(buf[stage_marks[0]].fg, app.palette.color(Role::TextDim), "{section:?}");
+
+            app.nav.focus_stage();
+            let buf = render_to_buffer(&app, 120, 30);
+            assert_eq!(buf[stage_marks[0]].fg, app.palette.color(Role::Obi), "{section:?}");
+        }
+    }
+
+    #[test]
+    fn providers_rows_carry_no_selection_mark() {
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Providers);
+        app.apply(Update::Providers(vec![
+            provider("one", "ready", true, false),
+            provider("two", "ready", true, false),
+        ]));
+        let lines = lines_of(&app, 120, 30);
+        let marked =
+            lines.iter().filter(|l| l.contains("▌ one") || l.contains("▌ two")).count();
+        assert_eq!(marked, 0, "{lines:#?}");
     }
 
     #[test]
