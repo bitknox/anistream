@@ -33,6 +33,9 @@ use tokio::sync::mpsc;
 
 #[derive(Parser, Debug)]
 #[command(name = "anistream", version, about = "An anime streaming TUI")]
+// Nothing here means anything to `store` or `plugin`, and `--stats plugin stamp …` ran the stamp
+// without a word about the flag it dropped.
+#[command(args_conflicts_with_subcommands = true)]
 // One command per run. Resolved silently by the order of the checks in `main`, `--stats
 // --random` printed the stats and dropped the rest without a word.
 #[command(group(
@@ -144,7 +147,12 @@ struct Cli {
     ///
     /// The point of the non-interactive commands: composable with `jq` and friends rather than a
     /// walled garden.
-    #[arg(long, requires = "json_command")]
+    // Refused by name beside the other commands: `--doctor --json` was told it lacked
+    // `--search`, `--stats` or `--random`, as though it had asked for one of them.
+    #[arg(long, requires = "json_command", conflicts_with_all = [
+        "doctor", "update", "refresh_data", "preview", "login", "login_url", "logout", "sync",
+        "token_to_file", "export", "import", "stream_url", "play", "continue_watching", "plugins",
+    ])]
     json: bool,
 
     /// Resolve one episode to a playable URL, print it, and hold it open.
@@ -4953,12 +4961,25 @@ mod tests {
             &["--screen", "title"],
             &["--episode", "3"],
             &["--tracker", "mal"],
-            // `--json` means nothing to these either.
-            &["--doctor", "--json"],
-            &["--plugins", "--json"],
         ] {
             assert_eq!(refused(alone), ErrorKind::MissingRequiredArgument, "{alone:?}");
         }
+
+        // `--json` means nothing to these, and the refusal names the command it was given with.
+        for (args, command) in
+            [(&["--doctor", "--json"][..], "--doctor"), (&["--plugins", "--json"], "--plugins")]
+        {
+            let error = parse(args).unwrap_err();
+            assert_eq!(error.kind(), ErrorKind::ArgumentConflict, "{args:?}");
+            assert!(error.to_string().contains(command), "{error}");
+        }
+
+        // A command's flags beside a subcommand were dropped without a word.
+        assert_eq!(
+            refused(&["--stats", "plugin", "stamp", "a.wasm"]),
+            ErrorKind::ArgumentConflict
+        );
+        assert!(parse(&["plugin", "stamp", "a.wasm"]).is_ok());
         for fine in [
             &["--stats", "--json"][..],
             &["--search", "summer", "--json"],
