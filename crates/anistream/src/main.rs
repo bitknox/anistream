@@ -1,6 +1,6 @@
 //! anistream — an anime streaming TUI.
 
-use anistream::{artwork, data, downloads, playback, sources, tracking};
+use anistream::{artwork, data, downloads, playback, plugin_stores, sources, tracking};
 
 use std::{io, sync::Arc, time::Duration};
 
@@ -156,6 +156,25 @@ struct Cli {
     /// be inspectable without reading its source.
     #[arg(long)]
     plugins: bool,
+
+    #[command(subcommand)]
+    command: Option<Command>,
+}
+
+#[derive(clap::Subcommand, Debug)]
+enum Command {
+    /// Run a plugin store, or look after one from the command line.
+    #[command(subcommand)]
+    Store(anistream_store_server::StoreCommand),
+    /// Work with plugin files.
+    #[command(subcommand)]
+    Plugin(PluginCommand),
+}
+
+#[derive(clap::Subcommand, Debug)]
+enum PluginCommand {
+    /// Write a plugin's manifest into it, so a store that cannot run plugins can read it.
+    Stamp(anistream_store_server::StampArgs),
 }
 
 #[tokio::main]
@@ -168,6 +187,11 @@ async fn main() -> Result<()> {
 
     let cli = Cli::parse();
     let paths = Paths::resolve().context("resolving config paths")?;
+    // A store server is a long-running service in someone's terminal or a unit file, so it logs
+    // where they are looking rather than to the app's log file.
+    if let Some(command) = cli.command {
+        return store_command(command, &paths).await;
+    }
     init_logging(&paths);
 
     let mut config = Config::load(&paths).unwrap_or_else(|e| {
@@ -259,6 +283,40 @@ async fn main() -> Result<()> {
     }
 
     run(config, paths, http, store, !cli.no_images).await
+}
+
+/// `anistream store …` and `anistream plugin …`.
+async fn store_command(command: Command, paths: &Paths) -> Result<()> {
+    use tracing_subscriber::{EnvFilter, fmt};
+    // A server's log is its record of who joined and what was published. A one-off command has
+    // nothing to say beyond its answer.
+    let serving =
+        matches!(command, Command::Store(anistream_store_server::StoreCommand::Serve(_)));
+    let level = if serving { "info" } else { "warn" };
+    let _ = fmt()
+        .with_writer(io::stderr)
+        .with_env_filter(
+            EnvFilter::try_from_env("ANISTREAM_LOG").unwrap_or_else(|_| EnvFilter::new(level)),
+        )
+        .try_init();
+    let cache = paths.cache_dir.join("wasm");
+    let outcome = match command {
+        Command::Store(command) => anistream_store_server::run(command, Some(&cache)).await,
+        Command::Plugin(PluginCommand::Stamp(args)) => {
+            anistream_store_server::stamp(&args, Some(&cache)).await.map(|info| {
+                println!("stamped {} {}", info.id, info.version);
+                println!(
+                    "  may contact   {}",
+                    if info.allowed_hosts.is_empty() {
+                        "nothing".into()
+                    } else {
+                        info.allowed_hosts.join(", ")
+                    }
+                );
+            })
+        }
+    };
+    outcome.map_err(|e| anyhow::anyhow!(e))
 }
 
 /// Render one frame with live data and print it as text.
@@ -1365,9 +1423,15 @@ async fn run(
         http.clone(),
         paths.clone(),
     );
+    let stores = plugin_stores::Stores::new(&config, &paths).map_err(|e| anyhow::anyhow!(e))?;
     let mut app = App::with_images(config, palette, keymap, engine);
     if let Some(note) = provider_note {
         app.apply(Update::ProviderNote(note));
+    }
+    // Joined stores as they were left, so Providers can count them on the first frame.
+    match stores.rows() {
+        Ok(rows) => app.apply(Update::Stores(rows)),
+        Err(e) => app.apply(Update::Toast(Toast::alert(e))),
     }
 
     // Background work reports through this channel; nothing off the UI thread ever touches
@@ -1405,6 +1469,25 @@ async fn run(
                             .send(Update::Providers(data::provider_rows(&registry)));
                     }
                 }
+            }
+        });
+    }
+
+    // Each joined store asked for its current list, once, in the background. Updates are said
+    // once at launch, the way a new release is, and never installed without being asked.
+    if !app.stores.is_empty() {
+        let (stores, tx) = (stores.clone(), tx.clone());
+        tokio::spawn(async move {
+            if let Ok(rows) = stores.refresh().await {
+                let _ = tx.send(Update::Stores(rows));
+            }
+            let updates = stores.pending_updates();
+            if !updates.is_empty() {
+                let _ = tx.send(Update::Toast(Toast::info(format!(
+                    "plugin {} ready: {} — Providers, Enter",
+                    if updates.len() == 1 { "update" } else { "updates" },
+                    updates.join(", ")
+                ))));
             }
         });
     }
@@ -1493,12 +1576,18 @@ async fn run(
                 &registry,
                 &http,
                 &sync,
+                &stores,
                 &tx,
             );
         }
 
         tokio::select! {
-            Some(update) = rx.recv() => {
+            Some(mut update) = rx.recv() => {
+                // Handed to the terminal's clipboard on the way in, so the overlay can say
+                // whether it was.
+                if let Update::InviteLink(view) = &mut update {
+                    view.copied = copy_to_clipboard(terminal.backend_mut(), &view.link.0);
+                }
                 // A finished episode should reach the tracker now, not at the next drain
                 // tick — up to a minute later, the pushed progress looked simply absent.
                 if matches!(update, Update::ProgressQueued) {
@@ -1592,10 +1681,13 @@ async fn run(
                             let job = JobGuard::start(&mut app, &task, &tx);
                             dispatch(
                                 task, job, &mut player_tx, &paths, &app.config, &meta, &store,
-                                &registry, &http, &sync, &tx,
+                                &registry, &http, &sync, &stores, &tx,
                             );
                         }
                     }
+                    // Arrives whole with bracketed paste on, so a pasted link cannot fire
+                    // bindings on its way into a field.
+                    Some(Ok(Event::Paste(text))) => app.paste(&text),
                     Some(Ok(Event::Resize(_, _))) => {}
                     Some(Err(e)) => break Err(anyhow::anyhow!(e)),
                     None => break Ok(()),
@@ -1851,7 +1943,21 @@ fn spawn(
             | Task::DownloadClearCompleted
             | Task::LoadDownloads
             | Task::PlayLocal { .. }
-            | Task::SaveSetting { .. } => {
+            | Task::SaveSetting { .. }
+            | Task::LoadStores
+            | Task::PreviewStore { .. }
+            | Task::JoinStore { .. }
+            | Task::LeaveStore { .. }
+            | Task::InstallPlugin { .. }
+            | Task::RemovePlugin { .. }
+            | Task::CreateInvite { .. }
+            | Task::LoadMembers { .. }
+            | Task::RemoveMember { .. }
+            | Task::CancelInvite { .. }
+            | Task::LoadLocalPlugins { .. }
+            | Task::PublishPlugin { .. }
+            | Task::UnpublishPlugin { .. }
+            | Task::OpenAdmin { .. } => {
                 tracing::error!(?task, "task reached the generic spawner");
                 return;
             }
@@ -1926,6 +2032,7 @@ fn dispatch(
     registry: &ProviderRegistry,
     http: &HttpClient,
     sync: &tracking::Sync,
+    stores: &plugin_stores::Stores,
     tx: &mpsc::UnboundedSender<Update>,
 ) {
     // No player handle is passed in: every playback path builds its own from the config
@@ -2402,7 +2509,223 @@ fn dispatch(
                 }
             }
         }
+        task @ (Task::LoadStores
+        | Task::PreviewStore { .. }
+        | Task::JoinStore { .. }
+        | Task::LeaveStore { .. }
+        | Task::InstallPlugin { .. }
+        | Task::RemovePlugin { .. }
+        | Task::CreateInvite { .. }
+        | Task::LoadMembers { .. }
+        | Task::RemoveMember { .. }
+        | Task::CancelInvite { .. }
+        | Task::LoadLocalPlugins { .. }
+        | Task::PublishPlugin { .. }
+        | Task::UnpublishPlugin { .. }
+        | Task::OpenAdmin { .. }) => {
+            let context = StoreTaskContext {
+                stores: stores.clone(),
+                registry: registry.clone(),
+                config: config.clone(),
+                http: http.clone(),
+                paths: paths.clone(),
+                tx: tx.clone(),
+            };
+            tokio::spawn(async move {
+                let _job = job;
+                context.run(task).await;
+            });
+        }
         other => spawn(other, job, meta, store, registry, tx),
+    }
+}
+
+/// What a plugin store task needs, moved into the task that runs it.
+struct StoreTaskContext {
+    stores: plugin_stores::Stores,
+    registry: ProviderRegistry,
+    config: Config,
+    http: HttpClient,
+    paths: Paths,
+    tx: mpsc::UnboundedSender<Update>,
+}
+
+impl StoreTaskContext {
+    fn send(&self, update: Update) {
+        let _ = self.tx.send(update);
+    }
+
+    fn toast(&self, toast: Toast) {
+        self.send(Update::Toast(toast));
+    }
+
+    /// The store rows as they now stand, from disk.
+    fn rows(&self) {
+        match self.stores.rows() {
+            Ok(rows) => self.send(Update::Stores(rows)),
+            Err(e) => self.toast(Toast::alert(e)),
+        }
+    }
+
+    async fn members(&self, store: &str) {
+        match self.stores.members(store).await {
+            Ok((members, invites)) => {
+                self.send(Update::StoreMembers { store: store.to_owned(), members, invites });
+            }
+            Err(e) => self.toast(Toast::alert(e)),
+        }
+    }
+
+    async fn run(&self, task: Task) {
+        match task {
+            Task::LoadStores => {
+                // What is on disk answers at once; the network fills in behind it.
+                self.rows();
+                match self.stores.refresh().await {
+                    Ok(rows) => self.send(Update::Stores(rows)),
+                    Err(e) => self.toast(Toast::alert(e)),
+                }
+            }
+            Task::PreviewStore { link } => {
+                self.send(Update::StorePreview(self.stores.preview(&link.0).await));
+            }
+            Task::JoinStore { link } => match self.stores.join(&link.0).await {
+                Ok(joined) => {
+                    self.rows();
+                    self.send(Update::StoreJoined { store: joined.id.clone() });
+                    self.toast(Toast::info(format!(
+                        "joined {} as {}",
+                        joined.name, joined.member.name
+                    )));
+                }
+                Err(e) => self.toast(Toast::alert(e)),
+            },
+            Task::LeaveStore { store } => match self.stores.leave(&store).await {
+                Ok(name) => {
+                    self.rows();
+                    self.toast(Toast::info(format!(
+                        "left {name} — its plugins stay installed"
+                    )));
+                }
+                Err(e) => self.toast(Toast::alert(e)),
+            },
+            Task::InstallPlugin { store, plugin } => {
+                match self.stores.install(&store, &plugin).await {
+                    Ok((entry, path)) => {
+                        self.rows();
+                        self.load_installed(&entry.name, &entry.version, &path).await;
+                    }
+                    Err(e) => {
+                        // The install refreshed the list on its way, so the screen catches up
+                        // with whatever made it refuse.
+                        self.rows();
+                        self.toast(Toast::alert(format!("{plugin} not installed: {e}")));
+                    }
+                }
+            }
+            Task::RemovePlugin { plugin } => match self.stores.remove(&plugin).await {
+                Ok(()) => {
+                    self.registry.remove(&plugin);
+                    self.send(Update::Providers(data::provider_rows(&self.registry)));
+                    self.rows();
+                    self.toast(Toast::info(format!("removed {plugin}")));
+                }
+                Err(e) => self.toast(Toast::alert(e)),
+            },
+            Task::CreateInvite { store, name } => {
+                match self.stores.invite(&store, name).await {
+                    Ok(view) => self.send(Update::InviteLink(view)),
+                    Err(e) => self.toast(Toast::alert(e)),
+                }
+            }
+            Task::LoadMembers { store } => self.members(&store).await,
+            Task::RemoveMember { store, member } => {
+                match self.stores.remove_member(&store, &member).await {
+                    Ok(()) => {
+                        self.toast(Toast::info("removed — their devices stopped working here"))
+                    }
+                    Err(e) => self.toast(Toast::alert(e)),
+                }
+                self.members(&store).await;
+            }
+            Task::CancelInvite { store, invite } => {
+                match self.stores.cancel_invite(&store, &invite).await {
+                    Ok(()) => {
+                        self.toast(Toast::info("invite cancelled — the link no longer works"))
+                    }
+                    Err(e) => self.toast(Toast::alert(e)),
+                }
+                self.members(&store).await;
+            }
+            Task::LoadLocalPlugins { store } => match self.stores.local_plugins(&store).await {
+                Ok(plugins) => self.send(Update::LocalPlugins { store, plugins }),
+                Err(e) => self.toast(Toast::alert(e)),
+            },
+            Task::PublishPlugin { store, plugin } => {
+                match self.stores.publish(&store, &plugin).await {
+                    Ok(entry) => {
+                        self.rows();
+                        self.toast(Toast::info(format!(
+                            "published {} {}",
+                            entry.name, entry.version
+                        )));
+                    }
+                    Err(e) => self.toast(Toast::alert(format!("{plugin} not published: {e}"))),
+                }
+            }
+            Task::UnpublishPlugin { store, plugin } => {
+                match self.stores.unpublish(&store, &plugin).await {
+                    Ok(()) => {
+                        self.rows();
+                        self.toast(Toast::info(format!("{plugin} is no longer offered")));
+                    }
+                    Err(e) => self.toast(Toast::alert(e)),
+                }
+            }
+            Task::OpenAdmin { store } => match self.stores.admin_link(&store).await {
+                Ok(link) => match open::that_detached(&link) {
+                    Ok(()) => self.toast(Toast::info(
+                        "opened the admin page in your browser — the link works once, for ten minutes",
+                    )),
+                    Err(e) => self.toast(Toast::alert(format!(
+                        "could not open a browser ({e}) — on the store's machine, `anistream store admin` prints a link"
+                    ))),
+                },
+                Err(e) => self.toast(Toast::alert(e)),
+            },
+            other => tracing::error!(task = ?other, "not a plugin store task"),
+        }
+    }
+
+    /// Bring a just-installed plugin into the running chain, so it is usable without a restart.
+    async fn load_installed(&self, name: &str, version: &str, path: &std::path::Path) {
+        if !sources::plugins_enabled(&self.config) {
+            self.toast(Toast::info(format!(
+                "installed {name} {version} — \"plugins\" is off in providers.order, so it is not used"
+            )));
+            return;
+        }
+        match sources::load_plugin(&self.config, &self.http, &self.paths, path).await {
+            Ok(provider) => {
+                // Only ever swaps a plugin for a plugin. Whatever the id, a store's download does
+                // not get to take a built-in source's place in the chain.
+                let id = provider.manifest().id.clone();
+                if self.registry.get(&id).is_some_and(|existing| {
+                    existing.manifest().kind != anistream_core::traits::ProviderKind::Plugin
+                }) {
+                    self.toast(Toast::alert(format!(
+                        "installed {name}, but {id} is a built-in source's name — not loaded"
+                    )));
+                    return;
+                }
+                self.registry.put(provider);
+                self.send(Update::Providers(data::provider_rows(&self.registry)));
+                self.toast(Toast::info(format!("installed {name} {version}")));
+            }
+            Err(e) => {
+                self.toast(Toast::alert(format!("installed {name}, but it does not load: {e}")))
+            }
+        }
     }
 }
 
@@ -2722,15 +3045,28 @@ fn setup_terminal() -> Result<Terminal<CrosstermBackend<io::Stdout>>> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen)?;
+    // Best effort: the legacy Windows console has no bracketed paste and says so with an error,
+    // and a paste arriving as keystrokes is a lesser thing than the app not starting.
+    let _ = execute!(stdout, crossterm::event::EnableBracketedPaste);
     let terminal = Terminal::new(CrosstermBackend::new(stdout))?;
     Ok(terminal)
 }
 
 fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
     disable_raw_mode()?;
+    let _ = execute!(terminal.backend_mut(), crossterm::event::DisableBracketedPaste);
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     terminal.show_cursor()?;
     Ok(())
+}
+
+/// Ask the terminal to put `text` on the clipboard (OSC 52). Returns whether the request was
+/// written; whether the terminal honours it is up to its settings, which is why the link is also
+/// shown in full.
+fn copy_to_clipboard(out: &mut impl io::Write, text: &str) -> bool {
+    use base64::Engine;
+    let encoded = base64::engine::general_purpose::STANDARD.encode(text);
+    write!(out, "\x1b]52;c;{encoded}\x07").and_then(|()| out.flush()).is_ok()
 }
 
 /// Log to a file, never to the terminal.

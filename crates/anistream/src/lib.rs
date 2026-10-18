@@ -22,6 +22,7 @@ pub mod downloads;
 pub mod focus;
 pub mod mend;
 pub mod playback;
+pub mod plugin_stores;
 pub mod remux;
 pub mod shaders;
 pub mod sources;

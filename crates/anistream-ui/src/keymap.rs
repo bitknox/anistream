@@ -850,6 +850,7 @@ pub fn status_hints(
         (V::Episodes(_), _) => &[Action::Open, Action::Back],
         (V::Section(Section::Search), _) => &[Action::Open, Action::FilterSearch, Action::Back],
         (V::Section(Section::Providers), _) => &[Action::Refresh, Action::Open],
+        (V::Stores | V::Store(_) | V::StoreMembers(_), _) => &[Action::Open, Action::Back],
         // Settings has nothing to open and no episodes, so offering those keys would be a lie.
         // Left and Right are what actually do something here.
         (V::Section(Section::Settings), true) => &[Action::Left, Action::Right],

@@ -544,6 +544,183 @@ pub struct MetaSourceRow {
     pub detail: Option<String>,
 }
 
+/// A plugin store this machine has joined, as the store screens show it.
+///
+/// Flattened by the binary from the store client's own state, so this crate knows nothing about
+/// the protocol — the same arrangement as [`ProviderRow`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StoreRow {
+    pub id: String,
+    pub name: String,
+    pub url: String,
+    /// The store key's fingerprint, in groups of four.
+    pub fingerprint: String,
+    /// Who this machine joined as.
+    pub member: String,
+    pub owner: bool,
+    pub state: StoreState,
+    pub plugins: Vec<StorePluginRow>,
+}
+
+impl StoreRow {
+    pub fn updates(&self) -> usize {
+        self.plugins
+            .iter()
+            .filter(|p| matches!(p.status, StorePluginStatus::Update { .. }))
+            .count()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StoreState {
+    Ready,
+    /// The last refresh failed. The plugins listed are the last list that was verified.
+    Offline(String),
+    /// The store no longer accepts this device.
+    Revoked,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StorePluginRow {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    /// What the plugin may contact. Shown before anything is installed.
+    pub hosts: Vec<String>,
+    pub status: StorePluginStatus,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StorePluginStatus {
+    Available,
+    Installed,
+    /// A newer version is offered, and these are the hosts it adds.
+    Update {
+        from: String,
+        new_hosts: Vec<String>,
+    },
+    /// A file with this id is in the plugin directory and did not come from a store.
+    AddedByHand,
+    /// Installed from another store, which keeps it updated.
+    OtherStore(String),
+}
+
+/// A store about to be joined, for the confirmation.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StorePreview {
+    pub link: Secret,
+    pub name: String,
+    pub url: String,
+    pub fingerprint: String,
+    pub already_joined: bool,
+}
+
+/// A store action waiting for a yes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StoreConfirm {
+    Join(StorePreview),
+    Leave { store: String, name: String },
+    RemoveMember { store: String, member: String, name: String, devices: u32 },
+    CancelInvite { store: String, invite: String, name: String },
+    Unpublish { store: String, plugin: String, name: String },
+}
+
+/// A freshly made invite link.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InviteLinkView {
+    pub store: String,
+    pub link: Secret,
+    /// Who it is for. `None` is another device of your own.
+    pub for_whom: Option<String>,
+    pub expires_at: i64,
+    /// Whether it was handed to the terminal's clipboard.
+    pub copied: bool,
+}
+
+/// One member of a store, for its owner.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StoreMemberRow {
+    pub id: String,
+    pub name: String,
+    pub owner: bool,
+    pub devices: u32,
+    pub last_seen: Option<i64>,
+    pub you: bool,
+}
+
+/// An invite nobody has used yet.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StoreInviteRow {
+    pub id: String,
+    pub name: String,
+    pub device: bool,
+    pub expires_at: i64,
+}
+
+/// A plugin in the local plugin directory that an owner could publish.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LocalPluginRow {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    pub hosts: Vec<String>,
+    /// The version the store already offers, if it offers one.
+    pub published: Option<String>,
+}
+
+/// One line of a store's screen: a plugin, or something to do.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StoreLine {
+    Plugin(usize),
+    LinkDevice,
+    Invite,
+    Members,
+    Publish,
+    /// The store's admin page, in a browser. Owners only.
+    Admin,
+    Leave,
+}
+
+impl StoreLine {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Plugin(_) => "",
+            Self::LinkDevice => "link another device",
+            Self::Invite => "invite someone",
+            Self::Members => "members",
+            Self::Publish => "publish a plugin",
+            Self::Admin => "open the admin page",
+            Self::Leave => "leave this store",
+        }
+    }
+}
+
+/// What can be done with a store's plugin from its overlay.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PluginChoice {
+    Install,
+    Update(String),
+    /// Overwrite a file of the same name that was added by hand.
+    Replace,
+    Remove,
+    /// Stop offering it. Owners only.
+    Unpublish,
+    Cancel,
+}
+
+impl PluginChoice {
+    pub fn label(&self) -> String {
+        match self {
+            Self::Install => "install".into(),
+            Self::Update(version) => format!("update to {version}"),
+            Self::Replace => "replace the copy added by hand".into(),
+            Self::Remove => "remove from this machine".into(),
+            Self::Unpublish => "stop offering it in this store".into(),
+            Self::Cancel => "cancel".into(),
+        }
+    }
+}
+
 /// One row of the timing-sheet episode table.
 #[derive(Debug, Clone, PartialEq)]
 pub struct EpisodeRow {
@@ -955,6 +1132,27 @@ pub enum Update {
     /// which titles came back. The list renders immediately without it and gains the line when
     /// it lands, rather than the whole screen waiting on an embellishment.
     LastAired(Vec<(AnilistId, u32, i64)>),
+    /// Every joined plugin store, replacing whatever was there.
+    Stores(Vec<StoreRow>),
+    /// What a pasted invite link leads to, or why it leads nowhere.
+    StorePreview(Result<StorePreview, String>),
+    /// A store was joined. The view moves into it if the user is still on the store list.
+    StoreJoined {
+        store: String,
+    },
+    /// An invite link to show and send.
+    InviteLink(InviteLinkView),
+    /// A store's members and unused invites, for its owner.
+    StoreMembers {
+        store: String,
+        members: Vec<StoreMemberRow>,
+        invites: Vec<StoreInviteRow>,
+    },
+    /// Local plugins an owner could publish to a store.
+    LocalPlugins {
+        store: String,
+        plugins: Vec<LocalPluginRow>,
+    },
 }
 
 /// The whole application state.
@@ -1099,6 +1297,35 @@ pub struct App {
     /// Selection within the episode table, tracked separately from list selection so
     /// stepping back out of Episodes does not disturb where you were in the list.
     pub episode_selected: usize,
+    /// Joined plugin stores.
+    pub stores: Vec<StoreRow>,
+    /// Whether the store list has arrived at least once, so "none joined" is not said early.
+    pub stores_loaded: bool,
+    /// Cursors for the three store screens. Separate, so stepping back out of a store finds the
+    /// store list where it was.
+    pub store_selected: usize,
+    pub store_line_selected: usize,
+    pub member_selected: usize,
+    /// The store whose members are on screen, and them.
+    pub members_for: Option<String>,
+    pub store_members: Vec<StoreMemberRow>,
+    pub store_invites: Vec<StoreInviteRow>,
+    /// What is being typed into the join prompt: an invite link.
+    pub join_link: String,
+    /// What is being typed into the invite prompt: who it is for.
+    pub invite_name: String,
+    /// The store action the confirm overlay is asking about.
+    pub store_confirm: Option<StoreConfirm>,
+    /// The invite link overlay's link.
+    pub invite_link: Option<InviteLinkView>,
+    /// The plugin the plugin overlay is about: store id, plugin id.
+    pub plugin_action: Option<(String, String)>,
+    /// What that overlay offers, fixed when it opened. A store list arriving while it is open
+    /// must not reorder the choices under the cursor and turn "stop offering it" into "remove".
+    pub plugin_options: Vec<PluginChoice>,
+    /// Plugins that could be published, and the store they would go to.
+    pub local_plugins: Vec<LocalPluginRow>,
+    pub publish_for: Option<String>,
 }
 
 impl App {
@@ -1177,6 +1404,22 @@ impl App {
             range_query: String::new(),
             edit_value: String::new(),
             edit_target: None,
+            stores: Vec::new(),
+            stores_loaded: false,
+            store_selected: 0,
+            store_line_selected: 0,
+            member_selected: 0,
+            members_for: None,
+            store_members: Vec::new(),
+            store_invites: Vec::new(),
+            join_link: String::new(),
+            invite_name: String::new(),
+            store_confirm: None,
+            invite_link: None,
+            plugin_action: None,
+            plugin_options: Vec::new(),
+            local_plugins: Vec::new(),
+            publish_for: None,
         }
     }
 
@@ -1311,6 +1554,44 @@ impl App {
             Update::Image { url, image } => self.images.insert(&url, *image),
             Update::Providers(rows) => self.providers = rows,
             Update::MetaStatus(rows) => self.meta_status = rows,
+            Update::Stores(rows) => self.apply_stores(rows),
+            Update::StorePreview(outcome) => self.apply_store_preview(outcome),
+            Update::StoreJoined { store } => {
+                // Into the store just joined, but only from the list it was joined from. A join
+                // that finishes after the user has gone elsewhere must not drag them back.
+                if self.nav.current() == &StageView::Stores && self.store(&store).is_some() {
+                    self.store_line_selected = 0;
+                    self.nav.push(StageView::Store(store));
+                }
+            }
+            Update::InviteLink(view) => {
+                self.invite_link = Some(view);
+                self.nav.open_overlay(Overlay::InviteLink);
+            }
+            Update::StoreMembers { store, members, invites } => {
+                if self.members_for.as_deref() == Some(store.as_str()) {
+                    self.store_members = members;
+                    self.store_invites = invites;
+                    let rows = self.store_members.len() + self.store_invites.len();
+                    self.member_selected = self.member_selected.min(rows.saturating_sub(1));
+                }
+            }
+            Update::LocalPlugins { store, plugins } => {
+                // Only for the store still on screen; a late answer for another is dropped.
+                let here = self.nav.current() == &StageView::Store(store.clone());
+                if self.publish_for.as_deref() != Some(store.as_str()) || !here {
+                    return;
+                }
+                if plugins.is_empty() {
+                    self.push_toast(Toast::info(
+                        "no plugins in the plugin directory to publish — `anistream --plugins` shows where it is",
+                    ));
+                    return;
+                }
+                self.local_plugins = plugins;
+                self.overlay_selected = 0;
+                self.nav.open_overlay(Overlay::PublishPick);
+            }
             // Both are handled outside the reducer, by the loop that owns the background
             // tasks and the session.
             Update::SettingsSaved => {}
@@ -1838,6 +2119,24 @@ impl App {
             }
         }
 
+        // The store confirmations and the invite link are questions with one answer key. Every
+        // other key is swallowed rather than reaching the list underneath: a stray `j` must not
+        // move the cursor off the member a "remove" is about to be applied to.
+        if matches!(self.nav.overlay(), Some(Overlay::StoreConfirm | Overlay::InviteLink)) {
+            match action {
+                Action::Open if self.nav.overlay() == Some(&Overlay::StoreConfirm) => {
+                    return self.confirm_store_action();
+                }
+                Action::Open => {
+                    self.nav.close_overlay();
+                    self.invite_link = None;
+                    return None;
+                }
+                Action::Back | Action::Quit | Action::Help | Action::CommandPalette => {}
+                _ => return None,
+            }
+        }
+
         match action {
             Action::Quit => self.should_quit = true,
             Action::Help => self.nav.open_overlay(Overlay::Help),
@@ -1898,6 +2197,32 @@ impl App {
             Action::Up if self.in_accounts_stage() => {
                 self.selected = self.selected.saturating_sub(1);
             }
+            Action::Down if self.nav.focus() == Focus::Stage && self.in_stores() => {
+                self.store_selected = (self.store_selected + 1).min(self.stores.len());
+            }
+            Action::Up if self.nav.focus() == Focus::Stage && self.in_stores() => {
+                self.store_selected = self.store_selected.saturating_sub(1);
+            }
+            Action::Down if self.nav.focus() == Focus::Stage && self.store_view().is_some() => {
+                let last = self
+                    .store_view()
+                    .and_then(|id| self.store(id))
+                    .map_or(0, |store| self.store_lines(store).len().saturating_sub(1));
+                self.store_line_selected = (self.store_line_selected + 1).min(last);
+            }
+            Action::Up if self.nav.focus() == Focus::Stage && self.store_view().is_some() => {
+                self.store_line_selected = self.store_line_selected.saturating_sub(1);
+            }
+            Action::Down
+                if self.nav.focus() == Focus::Stage && self.members_view().is_some() =>
+            {
+                let last =
+                    (self.store_members.len() + self.store_invites.len()).saturating_sub(1);
+                self.member_selected = (self.member_selected + 1).min(last);
+            }
+            Action::Up if self.nav.focus() == Focus::Stage && self.members_view().is_some() => {
+                self.member_selected = self.member_selected.saturating_sub(1);
+            }
             Action::Down if self.in_settings_stage() => {
                 self.selected = (self.selected + 1).min(SettingId::ALL.len() - 1);
             }
@@ -1950,6 +2275,22 @@ impl App {
                 return self.cycle_setting(1);
             }
             Action::Open if self.in_accounts_stage() => return self.toggle_account(),
+            // Plugin stores live behind Providers: Enter there opens them, from the rail too,
+            // because the provider table has nothing else to open.
+            Action::Open if self.on_providers() => return self.open_stores(),
+            Action::Open if self.nav.focus() == Focus::Stage && self.in_stores() => {
+                return self.open_store_row();
+            }
+            Action::Open if self.nav.focus() == Focus::Stage && self.store_view().is_some() => {
+                let id = self.store_view()?.to_owned();
+                return self.open_store_line(&id);
+            }
+            Action::Open
+                if self.nav.focus() == Focus::Stage && self.members_view().is_some() =>
+            {
+                let id = self.members_view()?.to_owned();
+                return self.open_member_row(&id);
+            }
             // Enter plays a finished download from disk. Nothing else on this screen is an "open".
             Action::Open if self.in_downloads_stage() => {
                 let row = self.downloads.get(self.selected)?.clone();
@@ -2330,6 +2671,15 @@ impl App {
                     return Some(Task::SyncNow);
                 }
             }
+            // On the store screens, refreshing means asking the stores again, not re-checking
+            // the provider table they were opened from.
+            Action::Refresh if self.in_stores() || self.store_view().is_some() => {
+                return Some(Task::LoadStores);
+            }
+            Action::Refresh if self.members_view().is_some() => {
+                let store = self.members_view()?.to_owned();
+                return Some(Task::LoadMembers { store });
+            }
             Action::Refresh => return self.reload(),
             Action::ToggleTranslation => {
                 self.config.playback.translation = self.config.playback.translation.toggled();
@@ -2708,6 +3058,14 @@ impl App {
                 self.nav.close_overlay();
                 self.account_action(tracker)
             }
+            Some(Overlay::PluginAction) => self.confirm_plugin_choice(),
+            Some(Overlay::PublishPick) => {
+                let plugin = self.local_plugins.get(self.overlay_selected)?.id.clone();
+                let store = self.publish_for.clone()?;
+                self.nav.close_overlay();
+                self.overlay_selected = 0;
+                Some(Task::PublishPlugin { store, plugin })
+            }
             _ => None,
         }
     }
@@ -2732,6 +3090,8 @@ impl App {
             Some(Overlay::Recommendations) => {
                 self.detail.as_ref().map_or(0, |e| e.recommended.len())
             }
+            Some(Overlay::PluginAction) => self.plugin_choices().len(),
+            Some(Overlay::PublishPick) => self.local_plugins.len(),
             _ => 0,
         }
     }
@@ -3112,6 +3472,9 @@ impl App {
                     self.kitsu_user.clear();
                     self.kitsu_pass.clear();
                 }
+                // An invite link is a one-time credential; a dismissed prompt forgets it.
+                self.join_link.clear();
+                self.invite_name.clear();
             }
             Action::CommandPalette => {
                 self.palette_query.clear();
@@ -3139,6 +3502,27 @@ impl App {
                 self.kitsu_user.clear();
                 self.nav.close_overlay();
                 return Some(Task::ConnectKitsu { username, password });
+            }
+            Action::Open if self.nav.overlay() == Some(&Overlay::JoinStore) => {
+                // A link that wrapped in a chat window arrives with spaces and line breaks in
+                // it, and a URL has no place for either.
+                let link: String =
+                    self.join_link.chars().filter(|c| !c.is_whitespace()).collect();
+                if link.is_empty() {
+                    return None;
+                }
+                self.nav.close_overlay();
+                return Some(Task::PreviewStore { link: Secret(link) });
+            }
+            Action::Open if self.nav.overlay() == Some(&Overlay::InviteName) => {
+                let name = self.invite_name.trim().to_owned();
+                if name.is_empty() {
+                    return None;
+                }
+                let store = self.store_view()?.to_owned();
+                self.invite_name.clear();
+                self.nav.close_overlay();
+                return Some(Task::CreateInvite { store, name: Some(name) });
             }
             // Mid-query is exactly when filters are wanted, so ctrl+f cannot wait for the
             // box to lose focus.
@@ -3312,6 +3696,13 @@ impl App {
             self.kitsu_user.push(ch);
         } else if self.nav.overlay() == Some(&Overlay::KitsuPassword) {
             self.kitsu_pass.push(ch);
+        } else if self.nav.overlay() == Some(&Overlay::JoinStore) {
+            self.join_link.push(ch);
+        } else if self.nav.overlay() == Some(&Overlay::InviteName) {
+            // The server takes up to 64; stopping here says so before it is refused.
+            if self.invite_name.chars().count() < 64 {
+                self.invite_name.push(ch);
+            }
         } else if self.nav.section() == Section::Search {
             self.search_query.push(ch);
         }
@@ -3331,6 +3722,10 @@ impl App {
             self.kitsu_user.pop();
         } else if self.nav.overlay() == Some(&Overlay::KitsuPassword) {
             self.kitsu_pass.pop();
+        } else if self.nav.overlay() == Some(&Overlay::JoinStore) {
+            self.join_link.pop();
+        } else if self.nav.overlay() == Some(&Overlay::InviteName) {
+            self.invite_name.pop();
         } else if self.nav.section() == Section::Search {
             self.search_query.pop();
         }
@@ -3535,6 +3930,301 @@ impl App {
     }
 }
 
+/// Plugin stores.
+impl App {
+    pub fn store(&self, id: &str) -> Option<&StoreRow> {
+        self.stores.iter().find(|s| s.id == id)
+    }
+
+    /// Providers' own view, where Enter opens the stores.
+    fn on_providers(&self) -> bool {
+        self.nav.section() == Section::Providers
+            && matches!(self.nav.current(), StageView::Section(Section::Providers))
+    }
+
+    fn in_stores(&self) -> bool {
+        self.nav.current() == &StageView::Stores
+    }
+
+    /// The store whose page is on screen.
+    pub fn store_view(&self) -> Option<&str> {
+        match self.nav.current() {
+            StageView::Store(id) => Some(id),
+            _ => None,
+        }
+    }
+
+    /// The store whose members are on screen.
+    pub fn members_view(&self) -> Option<&str> {
+        match self.nav.current() {
+            StageView::StoreMembers(id) => Some(id),
+            _ => None,
+        }
+    }
+
+    /// What a store's page lists, top to bottom: its plugins, then what can be done there.
+    ///
+    /// The actions are rows rather than keys. They are used rarely enough that a key nobody
+    /// remembers is worse than a line that says what it does.
+    pub fn store_lines(&self, store: &StoreRow) -> Vec<StoreLine> {
+        let mut lines: Vec<StoreLine> =
+            (0..store.plugins.len()).map(StoreLine::Plugin).collect();
+        if store.state != StoreState::Revoked {
+            lines.push(StoreLine::LinkDevice);
+            if store.owner {
+                lines.extend([
+                    StoreLine::Invite,
+                    StoreLine::Members,
+                    StoreLine::Publish,
+                    StoreLine::Admin,
+                ]);
+            }
+        }
+        lines.push(StoreLine::Leave);
+        lines
+    }
+
+    fn apply_stores(&mut self, rows: Vec<StoreRow>) {
+        self.stores = rows;
+        self.stores_loaded = true;
+        // One past the last store is the "join a store" row.
+        self.store_selected = self.store_selected.min(self.stores.len());
+
+        // A store that was left takes its screens with it, rather than leaving a page about
+        // something that no longer exists.
+        let gone = |app: &Self, id: &str| app.store(id).is_none();
+        if let Some(id) = self.members_view().map(str::to_owned)
+            && gone(self, &id)
+        {
+            self.nav.close_all_overlays();
+            self.nav.pop();
+        }
+        if let Some(id) = self.store_view().map(str::to_owned) {
+            if gone(self, &id) {
+                self.nav.close_all_overlays();
+                self.nav.pop();
+            } else if let Some(store) = self.store(&id) {
+                let last = self.store_lines(store).len().saturating_sub(1);
+                self.store_line_selected = self.store_line_selected.min(last);
+            }
+        }
+    }
+
+    fn apply_store_preview(&mut self, outcome: Result<StorePreview, String>) {
+        match outcome {
+            // Asked from the store list with nothing open. Anywhere else, a confirmation that
+            // took over would be answering a question the user is not looking at — and an open
+            // "leave" or "remove" would quietly become a "join" under the same Enter.
+            Ok(_) if !self.in_stores() || self.nav.has_overlay() => {
+                self.push_toast(Toast::info("the invite checked out — paste it again to join"));
+            }
+            Ok(preview) => {
+                self.store_confirm = Some(StoreConfirm::Join(preview));
+                self.nav.open_overlay(Overlay::StoreConfirm);
+            }
+            Err(reason) => {
+                self.push_toast(Toast::alert(reason));
+                // Back to the prompt with the link still in it, so a link cut short in the
+                // copy can be finished rather than pasted again — when the user is still here.
+                if self.in_stores() && !self.nav.has_overlay() {
+                    self.nav.open_overlay(Overlay::JoinStore);
+                }
+            }
+        }
+    }
+
+    fn open_stores(&mut self) -> Option<Task> {
+        self.store_selected = 0;
+        self.nav.push(StageView::Stores);
+        Some(Task::LoadStores)
+    }
+
+    /// Enter on the store list: into a store, or the join prompt from the last row.
+    fn open_store_row(&mut self) -> Option<Task> {
+        match self.stores.get(self.store_selected) {
+            Some(store) => {
+                let id = store.id.clone();
+                self.store_line_selected = 0;
+                self.nav.push(StageView::Store(id));
+            }
+            None => {
+                self.join_link.clear();
+                self.nav.open_overlay(Overlay::JoinStore);
+            }
+        }
+        None
+    }
+
+    fn open_store_line(&mut self, id: &str) -> Option<Task> {
+        let store = self.store(id)?.clone();
+        let line = *self.store_lines(&store).get(self.store_line_selected)?;
+        match line {
+            StoreLine::Plugin(i) => {
+                let plugin = store.plugins.get(i)?.id.clone();
+                self.show_plugin(&store.id, &plugin);
+                None
+            }
+            StoreLine::LinkDevice => Some(Task::CreateInvite { store: store.id, name: None }),
+            StoreLine::Invite => {
+                self.invite_name.clear();
+                self.nav.open_overlay(Overlay::InviteName);
+                None
+            }
+            StoreLine::Members => {
+                self.members_for = Some(store.id.clone());
+                self.store_members.clear();
+                self.store_invites.clear();
+                self.member_selected = 0;
+                self.nav.push(StageView::StoreMembers(store.id.clone()));
+                Some(Task::LoadMembers { store: store.id })
+            }
+            StoreLine::Publish => {
+                self.publish_for = Some(store.id.clone());
+                self.local_plugins.clear();
+                Some(Task::LoadLocalPlugins { store: store.id })
+            }
+            StoreLine::Admin => {
+                self.status = "opening the admin page in your browser…".into();
+                Some(Task::OpenAdmin { store: store.id })
+            }
+            StoreLine::Leave => {
+                self.store_confirm =
+                    Some(StoreConfirm::Leave { store: store.id, name: store.name });
+                self.nav.open_overlay(Overlay::StoreConfirm);
+                None
+            }
+        }
+    }
+
+    /// Open the plugin overlay for one of a store's plugins, with its choices as they stand now.
+    pub fn show_plugin(&mut self, store: &str, plugin: &str) {
+        self.plugin_action = Some((store.to_owned(), plugin.to_owned()));
+        self.plugin_options = self.current_plugin_choices();
+        self.overlay_selected = 0;
+        self.nav.open_overlay(Overlay::PluginAction);
+    }
+
+    /// The store and plugin the plugin overlay is about.
+    pub fn plugin_in_action(&self) -> Option<(&StoreRow, &StorePluginRow)> {
+        let (store_id, plugin_id) = self.plugin_action.as_ref()?;
+        let store = self.store(store_id)?;
+        let plugin = store.plugins.iter().find(|p| &p.id == plugin_id)?;
+        Some((store, plugin))
+    }
+
+    /// What the plugin overlay offers, in order, as it was when the overlay opened.
+    pub fn plugin_choices(&self) -> &[PluginChoice] {
+        &self.plugin_options
+    }
+
+    /// What the plugin overlay would offer for the plugin it is about, from the rows as they are.
+    fn current_plugin_choices(&self) -> Vec<PluginChoice> {
+        let Some((store, plugin)) = self.plugin_in_action() else { return Vec::new() };
+        // A store that refused this device cannot be downloaded from, but what it installed
+        // can still be removed.
+        let live = store.state != StoreState::Revoked;
+        let mut choices = Vec::new();
+        match &plugin.status {
+            StorePluginStatus::Available if live => choices.push(PluginChoice::Install),
+            StorePluginStatus::Update { .. } if live => {
+                choices.push(PluginChoice::Update(plugin.version.clone()));
+            }
+            StorePluginStatus::AddedByHand if live => choices.push(PluginChoice::Replace),
+            _ => {}
+        }
+        if matches!(
+            plugin.status,
+            StorePluginStatus::Installed | StorePluginStatus::Update { .. }
+        ) {
+            choices.push(PluginChoice::Remove);
+        }
+        if store.owner && live {
+            choices.push(PluginChoice::Unpublish);
+        }
+        choices.push(PluginChoice::Cancel);
+        choices
+    }
+
+    fn confirm_plugin_choice(&mut self) -> Option<Task> {
+        let choice = self.plugin_options.get(self.overlay_selected)?.clone();
+        self.plugin_options.clear();
+        let name = self.plugin_in_action().map(|(_, p)| p.name.clone()).unwrap_or_default();
+        let (store, plugin) = self.plugin_action.clone()?;
+        self.nav.close_overlay();
+        self.overlay_selected = 0;
+        match choice {
+            PluginChoice::Install | PluginChoice::Update(_) | PluginChoice::Replace => {
+                Some(Task::InstallPlugin { store, plugin })
+            }
+            PluginChoice::Remove => Some(Task::RemovePlugin { plugin }),
+            PluginChoice::Unpublish => {
+                self.store_confirm = Some(StoreConfirm::Unpublish { store, plugin, name });
+                self.nav.open_overlay(Overlay::StoreConfirm);
+                None
+            }
+            PluginChoice::Cancel => None,
+        }
+    }
+
+    fn confirm_store_action(&mut self) -> Option<Task> {
+        let confirm = self.store_confirm.take()?;
+        self.nav.close_overlay();
+        Some(match confirm {
+            StoreConfirm::Join(preview) => {
+                self.join_link.clear();
+                Task::JoinStore { link: preview.link }
+            }
+            StoreConfirm::Leave { store, .. } => Task::LeaveStore { store },
+            StoreConfirm::RemoveMember { store, member, .. } => {
+                Task::RemoveMember { store, member }
+            }
+            StoreConfirm::CancelInvite { store, invite, .. } => {
+                Task::CancelInvite { store, invite }
+            }
+            StoreConfirm::Unpublish { store, plugin, .. } => {
+                Task::UnpublishPlugin { store, plugin }
+            }
+        })
+    }
+
+    /// Enter on the members screen: remove a member, or cancel an unused invite.
+    fn open_member_row(&mut self, store: &str) -> Option<Task> {
+        let at = self.member_selected;
+        if let Some(member) = self.store_members.get(at) {
+            if member.you {
+                self.push_toast(Toast::info("that is you — a store always keeps its owner"));
+                return None;
+            }
+            self.store_confirm = Some(StoreConfirm::RemoveMember {
+                store: store.to_owned(),
+                member: member.id.clone(),
+                name: member.name.clone(),
+                devices: member.devices,
+            });
+        } else {
+            let invite = self.store_invites.get(at - self.store_members.len())?;
+            self.store_confirm = Some(StoreConfirm::CancelInvite {
+                store: store.to_owned(),
+                invite: invite.id.clone(),
+                name: invite.name.clone(),
+            });
+        }
+        self.nav.open_overlay(Overlay::StoreConfirm);
+        None
+    }
+
+    /// Feed pasted text to whichever field is active. Control characters are dropped, so the
+    /// newline a copy brings along does not arrive as Enter halfway through a link.
+    pub fn paste(&mut self, text: &str) {
+        if !self.is_typing() {
+            return;
+        }
+        for ch in text.chars().filter(|c| !c.is_control()) {
+            self.type_char(ch);
+        }
+    }
+}
+
 /// Server-side search filters, set from the FILTERS overlay on the Search screen.
 ///
 /// Wire values rather than display values — what AniList's enums expect, lowercased only
@@ -3684,7 +4374,7 @@ impl SearchFilters {
 /// Exists for exactly one reason: `Task` derives `Debug` and the task router logs a task
 /// when routing goes wrong. A plain `String` there would put a password in the log file;
 /// this prints a placeholder instead, everywhere, unconditionally.
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Secret(pub String);
 
 impl std::fmt::Debug for Secret {
@@ -3750,6 +4440,18 @@ impl Task {
                 format!("queueing {} episodes", episodes.len())
             }
             Self::PlayTrailer { .. } => "opening the trailer".into(),
+            Self::LoadStores => "checking plugin stores".into(),
+            Self::PreviewStore { .. } => "checking the invite".into(),
+            Self::JoinStore { .. } => "joining the store".into(),
+            Self::LeaveStore { .. } => "leaving the store".into(),
+            Self::InstallPlugin { plugin, .. } => format!("installing {plugin}"),
+            Self::CreateInvite { .. } => "making an invite".into(),
+            Self::LoadMembers { .. } => "loading members".into(),
+            Self::RemoveMember { .. } => "removing access".into(),
+            Self::LoadLocalPlugins { .. } => "reading local plugins".into(),
+            Self::PublishPlugin { plugin, .. } => format!("publishing {plugin}"),
+            Self::UnpublishPlugin { plugin, .. } => format!("withdrawing {plugin}"),
+            Self::OpenAdmin { .. } => "opening the admin page".into(),
             _ => return None,
         })
     }
@@ -3928,6 +4630,61 @@ pub enum Task {
         table: &'static [&'static str],
         key: &'static str,
         value: anistream_core::settings::SettingValue,
+    },
+    /// Read the joined stores, then refresh each one's plugin list.
+    LoadStores,
+    /// Check a pasted invite link against the store it names, before spending it.
+    PreviewStore {
+        link: Secret,
+    },
+    /// Spend an invite link for a token and join.
+    JoinStore {
+        link: Secret,
+    },
+    /// Forget a store and revoke this device's token there.
+    LeaveStore {
+        store: String,
+    },
+    /// Install a store's plugin, or update it.
+    InstallPlugin {
+        store: String,
+        plugin: String,
+    },
+    /// Delete an installed plugin from this machine.
+    RemovePlugin {
+        plugin: String,
+    },
+    /// Make an invite link: for someone new with a name, for another device of yours without.
+    CreateInvite {
+        store: String,
+        name: Option<String>,
+    },
+    LoadMembers {
+        store: String,
+    },
+    RemoveMember {
+        store: String,
+        member: String,
+    },
+    CancelInvite {
+        store: String,
+        invite: String,
+    },
+    /// List local plugins an owner could publish.
+    LoadLocalPlugins {
+        store: String,
+    },
+    PublishPlugin {
+        store: String,
+        plugin: String,
+    },
+    UnpublishPlugin {
+        store: String,
+        plugin: String,
+    },
+    /// Ask a store for a one-time sign-in link and open its admin page in the browser.
+    OpenAdmin {
+        store: String,
     },
 }
 
@@ -4836,6 +5593,463 @@ mod tests {
         // And it cannot run off the end.
         a.handle(Action::Down, 20);
         assert_eq!(a.overlay_selected, 2);
+    }
+
+    fn store_row(id: &str, owner: bool, plugins: Vec<StorePluginRow>) -> StoreRow {
+        StoreRow {
+            id: id.into(),
+            name: format!("store {id}"),
+            url: "https://plugins.example".into(),
+            fingerprint: "9f3c 1a2b 77de 0c41".into(),
+            member: "Johan".into(),
+            owner,
+            state: StoreState::Ready,
+            plugins,
+        }
+    }
+
+    fn store_plugin(id: &str, status: StorePluginStatus) -> StorePluginRow {
+        StorePluginRow {
+            id: id.into(),
+            name: id.into(),
+            version: "2.0.0".into(),
+            hosts: vec!["api.example".into()],
+            status,
+        }
+    }
+
+    /// An app on Providers → stores, with the given stores.
+    fn at_stores(stores: Vec<StoreRow>) -> App {
+        let mut a = app();
+        a.go_to_section(Section::Providers);
+        assert_eq!(a.handle(Action::Open, 20), Some(Task::LoadStores));
+        a.apply(Update::Stores(stores));
+        a
+    }
+
+    fn type_text(a: &mut App, text: &str) {
+        for ch in text.chars() {
+            a.type_char(ch);
+        }
+    }
+
+    #[test]
+    fn enter_on_providers_opens_the_stores_from_the_rail_too() {
+        let mut a = app();
+        a.go_to_section(Section::Providers);
+        assert_eq!(a.nav.focus(), Focus::Rail);
+        assert_eq!(a.handle(Action::Open, 20), Some(Task::LoadStores));
+        assert_eq!(a.nav.current(), &StageView::Stores);
+        assert_eq!(a.nav.focus(), Focus::Stage);
+    }
+
+    #[test]
+    fn joining_is_paste_check_confirm() {
+        let mut a = at_stores(Vec::new());
+        // With nothing joined, the only row is "join a store".
+        assert_eq!(a.handle(Action::Open, 20), None);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::JoinStore));
+        assert!(a.is_typing());
+
+        // A link that wrapped in a chat window, pasted with its line break.
+        a.paste("https://plugins.example/join/abc\n  #key");
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Task::PreviewStore {
+                link: Secret("https://plugins.example/join/abc#key".into())
+            })
+        );
+        assert!(!a.nav.has_overlay());
+
+        a.apply(Update::StorePreview(Ok(StorePreview {
+            link: Secret("https://plugins.example/join/abc#key".into()),
+            name: "Our plugins".into(),
+            url: "https://plugins.example".into(),
+            fingerprint: "9f3c".into(),
+            already_joined: false,
+        })));
+        assert_eq!(a.nav.overlay(), Some(&Overlay::StoreConfirm));
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Task::JoinStore {
+                link: Secret("https://plugins.example/join/abc#key".into())
+            })
+        );
+        assert!(a.join_link.is_empty(), "the spent link is not kept");
+
+        // Joined: the new store opens, because the user is still on the list it was joined from.
+        a.apply(Update::Stores(vec![store_row("abc", false, Vec::new())]));
+        a.apply(Update::StoreJoined { store: "abc".into() });
+        assert_eq!(a.nav.current(), &StageView::Store("abc".into()));
+    }
+
+    #[test]
+    fn a_bad_link_says_why_and_reopens_the_prompt_with_the_link_kept() {
+        let mut a = at_stores(Vec::new());
+        a.handle(Action::Open, 20);
+        type_text(&mut a, "https://plugins.example/join/abc");
+        a.handle(Action::Open, 20);
+        a.apply(Update::StorePreview(Err("the link is missing the store's key".into())));
+        assert_eq!(a.nav.overlay(), Some(&Overlay::JoinStore));
+        assert_eq!(a.join_link, "https://plugins.example/join/abc");
+        assert!(a.toasts.iter().any(|t| t.text.contains("missing the store's key")));
+    }
+
+    #[test]
+    fn a_dismissed_join_prompt_forgets_the_link() {
+        let mut a = at_stores(Vec::new());
+        a.handle(Action::Open, 20);
+        type_text(&mut a, "https://plugins.example/join/abc#key");
+        a.handle(Action::Back, 20);
+        assert!(a.join_link.is_empty());
+    }
+
+    #[test]
+    fn a_join_that_finishes_elsewhere_does_not_drag_the_user_back() {
+        let mut a = at_stores(Vec::new());
+        a.go_to_section(Section::Home);
+        a.apply(Update::Stores(vec![store_row("abc", false, Vec::new())]));
+        a.apply(Update::StoreJoined { store: "abc".into() });
+        assert_eq!(a.nav.current(), &StageView::Section(Section::Home));
+    }
+
+    #[test]
+    fn a_plugin_is_installed_from_its_overlay() {
+        let mut a = at_stores(vec![store_row(
+            "abc",
+            false,
+            vec![store_plugin("example", StorePluginStatus::Available)],
+        )]);
+        a.handle(Action::Open, 20);
+        assert_eq!(a.nav.current(), &StageView::Store("abc".into()));
+        a.handle(Action::Open, 20);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::PluginAction));
+        assert_eq!(a.plugin_choices(), vec![PluginChoice::Install, PluginChoice::Cancel]);
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Task::InstallPlugin { store: "abc".into(), plugin: "example".into() })
+        );
+        assert!(!a.nav.has_overlay());
+    }
+
+    #[test]
+    fn an_update_offers_the_new_version_and_removal() {
+        let mut a = at_stores(vec![store_row(
+            "abc",
+            false,
+            vec![store_plugin(
+                "example",
+                StorePluginStatus::Update { from: "1.0.0".into(), new_hosts: Vec::new() },
+            )],
+        )]);
+        a.handle(Action::Open, 20);
+        a.handle(Action::Open, 20);
+        assert_eq!(
+            a.plugin_choices(),
+            vec![
+                PluginChoice::Update("2.0.0".into()),
+                PluginChoice::Remove,
+                PluginChoice::Cancel
+            ]
+        );
+        a.handle(Action::Down, 20);
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Task::RemovePlugin { plugin: "example".into() })
+        );
+    }
+
+    #[test]
+    fn a_store_that_removed_this_device_can_only_have_its_plugins_removed() {
+        let mut store = store_row(
+            "abc",
+            true,
+            vec![
+                store_plugin(
+                    "kept",
+                    StorePluginStatus::Update { from: "1.0.0".into(), new_hosts: Vec::new() },
+                ),
+                store_plugin("never", StorePluginStatus::Available),
+            ],
+        );
+        store.state = StoreState::Revoked;
+        let mut a = at_stores(vec![store.clone()]);
+        a.handle(Action::Open, 20);
+        // No device, invite or owner rows: only the plugins and leaving.
+        assert_eq!(
+            a.store_lines(&store),
+            vec![StoreLine::Plugin(0), StoreLine::Plugin(1), StoreLine::Leave]
+        );
+        a.handle(Action::Open, 20);
+        assert_eq!(a.plugin_choices(), vec![PluginChoice::Remove, PluginChoice::Cancel]);
+        a.handle(Action::Back, 20);
+        a.handle(Action::Down, 20);
+        a.handle(Action::Open, 20);
+        assert_eq!(a.plugin_choices(), vec![PluginChoice::Cancel]);
+    }
+
+    #[test]
+    fn an_owner_invites_someone_by_name() {
+        let mut a = at_stores(vec![store_row("abc", true, Vec::new())]);
+        a.handle(Action::Open, 20);
+        let lines = a.store_lines(a.store("abc").unwrap());
+        assert_eq!(
+            lines,
+            vec![
+                StoreLine::LinkDevice,
+                StoreLine::Invite,
+                StoreLine::Members,
+                StoreLine::Publish,
+                StoreLine::Admin,
+                StoreLine::Leave
+            ]
+        );
+        a.handle(Action::Down, 20);
+        a.handle(Action::Open, 20);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::InviteName));
+        // An empty name is a slip, not an answer.
+        assert_eq!(a.handle(Action::Open, 20), None);
+        type_text(&mut a, "Alex");
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Task::CreateInvite { store: "abc".into(), name: Some("Alex".into()) })
+        );
+
+        a.apply(Update::InviteLink(InviteLinkView {
+            store: "abc".into(),
+            link: Secret("https://plugins.example/join/x#y".into()),
+            for_whom: Some("Alex".into()),
+            expires_at: 0,
+            copied: true,
+        }));
+        assert_eq!(a.nav.overlay(), Some(&Overlay::InviteLink));
+        a.handle(Action::Open, 20);
+        assert!(!a.nav.has_overlay());
+        assert!(a.invite_link.is_none());
+    }
+
+    #[test]
+    fn an_owner_opens_the_admin_page_from_the_store() {
+        let mut a = at_stores(vec![store_row("abc", true, Vec::new())]);
+        a.handle(Action::Open, 20);
+        for _ in 0..4 {
+            a.handle(Action::Down, 20);
+        }
+        assert_eq!(a.handle(Action::Open, 20), Some(Task::OpenAdmin { store: "abc".into() }));
+    }
+
+    #[test]
+    fn a_member_has_no_admin_page_row() {
+        let a = at_stores(vec![store_row("abc", false, Vec::new())]);
+        assert!(!a.store_lines(a.store("abc").unwrap()).contains(&StoreLine::Admin));
+    }
+
+    #[test]
+    fn linking_a_device_is_one_enter() {
+        let mut a = at_stores(vec![store_row("abc", false, Vec::new())]);
+        a.handle(Action::Open, 20);
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Task::CreateInvite { store: "abc".into(), name: None })
+        );
+    }
+
+    #[test]
+    fn removing_a_member_asks_first_and_ignores_stray_keys() {
+        let mut a = at_stores(vec![store_row("abc", true, Vec::new())]);
+        a.handle(Action::Open, 20);
+        a.handle(Action::Down, 20);
+        a.handle(Action::Down, 20);
+        assert_eq!(a.handle(Action::Open, 20), Some(Task::LoadMembers { store: "abc".into() }));
+        assert_eq!(a.nav.current(), &StageView::StoreMembers("abc".into()));
+
+        let member = |id: &str, you| StoreMemberRow {
+            id: id.into(),
+            name: id.into(),
+            owner: you,
+            devices: 1,
+            last_seen: None,
+            you,
+        };
+        a.apply(Update::StoreMembers {
+            store: "abc".into(),
+            members: vec![member("me", true), member("alex", false)],
+            invites: vec![StoreInviteRow {
+                id: "inv".into(),
+                name: "sam".into(),
+                device: false,
+                expires_at: 0,
+            }],
+        });
+
+        // Yourself: refused with a reason, not a confirmation.
+        assert_eq!(a.handle(Action::Open, 20), None);
+        assert!(!a.nav.has_overlay());
+
+        a.handle(Action::Down, 20);
+        a.handle(Action::Open, 20);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::StoreConfirm));
+        // A stray key must not move the cursor off the person being removed.
+        a.handle(Action::Down, 20);
+        assert_eq!(a.member_selected, 1);
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Task::RemoveMember { store: "abc".into(), member: "alex".into() })
+        );
+
+        a.handle(Action::Down, 20);
+        a.handle(Action::Open, 20);
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Task::CancelInvite { store: "abc".into(), invite: "inv".into() })
+        );
+    }
+
+    #[test]
+    fn leaving_asks_first_and_the_page_goes_with_the_store() {
+        let mut a = at_stores(vec![store_row("abc", false, Vec::new())]);
+        a.handle(Action::Open, 20);
+        a.handle(Action::Down, 20);
+        assert_eq!(a.handle(Action::Open, 20), None);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::StoreConfirm));
+        assert_eq!(a.handle(Action::Open, 20), Some(Task::LeaveStore { store: "abc".into() }));
+
+        a.apply(Update::Stores(Vec::new()));
+        assert_eq!(a.nav.current(), &StageView::Stores);
+    }
+
+    #[test]
+    fn publishing_picks_from_local_plugins_for_the_store_on_screen() {
+        let mut a = at_stores(vec![store_row("abc", true, Vec::new())]);
+        a.handle(Action::Open, 20);
+        for _ in 0..3 {
+            a.handle(Action::Down, 20);
+        }
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Task::LoadLocalPlugins { store: "abc".into() })
+        );
+        let local = LocalPluginRow {
+            id: "example".into(),
+            name: "Example".into(),
+            version: "1.0.0".into(),
+            hosts: Vec::new(),
+            published: None,
+        };
+        // An answer for another store is not offered here.
+        a.apply(Update::LocalPlugins { store: "other".into(), plugins: vec![local.clone()] });
+        assert!(!a.nav.has_overlay());
+
+        a.apply(Update::LocalPlugins { store: "abc".into(), plugins: vec![local] });
+        assert_eq!(a.nav.overlay(), Some(&Overlay::PublishPick));
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Task::PublishPlugin { store: "abc".into(), plugin: "example".into() })
+        );
+    }
+
+    #[test]
+    fn nothing_to_publish_says_so() {
+        let mut a = at_stores(vec![store_row("abc", true, Vec::new())]);
+        a.handle(Action::Open, 20);
+        for _ in 0..3 {
+            a.handle(Action::Down, 20);
+        }
+        a.handle(Action::Open, 20);
+        a.apply(Update::LocalPlugins { store: "abc".into(), plugins: Vec::new() });
+        assert!(!a.nav.has_overlay());
+        assert!(a.toasts.iter().any(|t| t.text.contains("no plugins")));
+    }
+
+    #[test]
+    fn the_store_cursor_stops_at_the_join_row() {
+        let mut a = at_stores(vec![
+            store_row("a", false, Vec::new()),
+            store_row("b", false, Vec::new()),
+        ]);
+        for _ in 0..5 {
+            a.handle(Action::Down, 20);
+        }
+        assert_eq!(a.store_selected, 2, "one past the stores is the join row");
+        a.handle(Action::Open, 20);
+        assert_eq!(a.nav.overlay(), Some(&Overlay::JoinStore));
+    }
+
+    #[test]
+    fn refreshing_a_store_screen_asks_the_stores_again() {
+        let mut a = at_stores(vec![store_row("abc", true, Vec::new())]);
+        assert_eq!(a.handle(Action::Refresh, 20), Some(Task::LoadStores));
+        a.handle(Action::Open, 20);
+        assert_eq!(a.handle(Action::Refresh, 20), Some(Task::LoadStores));
+        a.handle(Action::Down, 20);
+        a.handle(Action::Down, 20);
+        a.handle(Action::Open, 20);
+        assert_eq!(
+            a.handle(Action::Refresh, 20),
+            Some(Task::LoadMembers { store: "abc".into() })
+        );
+    }
+
+    #[test]
+    fn a_store_list_arriving_does_not_reorder_an_open_plugin_overlay() {
+        let mut a = at_stores(vec![store_row(
+            "abc",
+            true,
+            vec![store_plugin("example", StorePluginStatus::Installed)],
+        )]);
+        a.handle(Action::Open, 20);
+        a.handle(Action::Open, 20);
+        assert_eq!(
+            a.plugin_choices(),
+            [PluginChoice::Remove, PluginChoice::Unpublish, PluginChoice::Cancel]
+        );
+        a.handle(Action::Down, 20);
+        // The refresh that opening the screen asked for lands now, with an update waiting.
+        a.apply(Update::Stores(vec![store_row(
+            "abc",
+            true,
+            vec![store_plugin(
+                "example",
+                StorePluginStatus::Update { from: "1.0.0".into(), new_hosts: Vec::new() },
+            )],
+        )]));
+        a.handle(Action::Open, 20);
+        assert_eq!(
+            a.store_confirm,
+            Some(StoreConfirm::Unpublish {
+                store: "abc".into(),
+                plugin: "example".into(),
+                name: "example".into()
+            }),
+            "the choice under the cursor is still the one that was there"
+        );
+    }
+
+    #[test]
+    fn a_late_preview_does_not_take_over_an_open_question() {
+        let mut a = at_stores(vec![store_row("abc", false, Vec::new())]);
+        a.handle(Action::Open, 20);
+        a.handle(Action::Down, 20);
+        a.handle(Action::Open, 20);
+        let leave = a.store_confirm.clone();
+        assert!(matches!(leave, Some(StoreConfirm::Leave { .. })));
+        a.apply(Update::StorePreview(Ok(StorePreview {
+            link: Secret("x".into()),
+            name: "Other".into(),
+            url: "https://other.example".into(),
+            fingerprint: "0000".into(),
+            already_joined: false,
+        })));
+        assert_eq!(a.store_confirm, leave);
+        assert_eq!(a.handle(Action::Open, 20), Some(Task::LeaveStore { store: "abc".into() }));
+    }
+
+    #[test]
+    fn a_paste_outside_a_text_field_does_nothing() {
+        let mut a = at_stores(Vec::new());
+        a.paste("dddd");
+        assert!(a.join_link.is_empty());
+        assert!(a.toasts.is_empty(), "no stray bindings fired");
     }
 
     #[test]
