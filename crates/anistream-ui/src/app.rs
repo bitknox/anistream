@@ -590,6 +590,21 @@ pub struct ProviderRow {
     pub held_back: bool,
 }
 
+/// How one configured source stands, for the header chip that names it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceState {
+    /// At least one of its providers will be tried.
+    Ready,
+    /// Switched off in config. Said quietly: off is a choice, not a fault.
+    Off,
+    /// Working, but withheld by local policy — the VPN guard.
+    HeldBack,
+    /// Registered and not answering, or refused at startup.
+    Failing,
+    /// Nothing registered yet: plugins are still compiling, or there are none.
+    Pending,
+}
+
 /// One rung of the metadata ladder, as the Providers screen shows it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MetaSourceRow {
@@ -997,10 +1012,12 @@ impl SyncState {
     /// actually go anywhere?", which is the only sync question anyone asks.
     pub fn badge(&self) -> String {
         if self.needs_reauth {
-            return format!("{} ✕ sign in", self.tracker);
+            return format!("{} {} sign in", self.tracker, glyph::STATE_DOWN);
         }
+        // Hollow, not the interpunct: the header puts `·` between its groups of chips, and a
+        // signed-out `kitsu ·` read as a separator with a word in front of it.
         if !self.connected {
-            return format!("{} ·", self.tracker);
+            return format!("{} {}", self.tracker, glyph::STATE_OFF);
         }
         match self.outbox {
             0 => format!("{} {}", self.tracker, glyph::SYNC),
@@ -2100,13 +2117,68 @@ impl App {
         self.episodes.is_empty() && !self.episodes_all.is_empty()
     }
 
-    /// What the header should call the source: the provider that last actually served,
-    /// falling back to the configured first choice before anything has played.
+    /// What the status line should call the source: the provider that last actually served,
+    /// before anything has played the first configured source that is ready, and failing that
+    /// the first one that is not switched off.
+    ///
+    /// Not simply the first entry in the order: torrents lead the default order and are off by
+    /// default, so that read "torrent" over a session that only plugins could serve.
     pub fn source_label(&self) -> String {
-        self.active_provider
-            .clone()
-            .or_else(|| self.config.providers.order.first().cloned())
-            .unwrap_or_else(|| "no source".into())
+        if let Some(active) = &self.active_provider {
+            return active.clone();
+        }
+        let sources = self.source_states();
+        sources
+            .iter()
+            .find(|(_, state)| *state == SourceState::Ready)
+            .or_else(|| sources.iter().find(|(_, state)| *state != SourceState::Off))
+            .or_else(|| sources.first())
+            .map_or_else(|| "no source".into(), |(id, _)| id.clone())
+    }
+
+    /// Each configured source, in the order failover walks them, and how it stands.
+    ///
+    /// The header's chips. Read from the registered providers rather than the config alone:
+    /// a configured source can be ready, failing, held back by the VPN guard, still loading, or
+    /// off on purpose — and only the last is something the config can say by itself.
+    pub fn source_states(&self) -> Vec<(String, SourceState)> {
+        let providers = &self.config.providers;
+        let of_kind = |kind: &str| -> SourceState {
+            let rows: Vec<&ProviderRow> =
+                self.providers.iter().filter(|p| p.kind == kind).collect();
+            if rows.iter().any(|p| p.usable) {
+                SourceState::Ready
+            } else if rows.iter().any(|p| p.held_back) {
+                SourceState::HeldBack
+            } else if rows.is_empty() {
+                SourceState::Pending
+            } else {
+                SourceState::Failing
+            }
+        };
+        providers
+            .order
+            .iter()
+            .filter(|id| !providers.disabled.contains(id))
+            .filter_map(|id| {
+                let state = match id.as_str() {
+                    "torrent" if !providers.torrent.enabled => SourceState::Off,
+                    // Configured but not registered: the guard refused to start it, and the
+                    // Providers screen carries the reason.
+                    "torrent" => match of_kind("torrent") {
+                        SourceState::Pending if self.provider_note.is_some() => {
+                            SourceState::Failing
+                        }
+                        state => state,
+                    },
+                    "plugins" => of_kind("plugin"),
+                    "remote" if providers.remote_url.is_none() => return None,
+                    "remote" => of_kind("remote"),
+                    _ => return None,
+                };
+                Some((id.clone(), state))
+            })
+            .collect()
     }
 
     /// Badge counts for the rail: work in flight, questions pending.
@@ -5629,6 +5701,33 @@ mod tests {
     }
 
     #[test]
+    fn the_source_named_is_one_that_is_not_switched_off() {
+        // The default order leads with torrents, which are off by default.
+        let mut a = app();
+        assert_eq!(a.source_label(), "plugins");
+        assert_eq!(
+            a.source_states(),
+            vec![
+                ("torrent".into(), SourceState::Off),
+                ("plugins".into(), SourceState::Pending)
+            ]
+        );
+        a.apply(Update::Providers(vec![ProviderRow {
+            id: "someplugin".into(),
+            kind: "plugin".into(),
+            state: "ready".into(),
+            latency_ms: None,
+            last_error: None,
+            usable: true,
+            held_back: false,
+        }]));
+        assert_eq!(a.source_states()[1], ("plugins".into(), SourceState::Ready));
+        // What actually served wins once something has played.
+        a.apply(Update::ActiveProvider("someplugin".into()));
+        assert_eq!(a.source_label(), "someplugin");
+    }
+
+    #[test]
     fn a_nonsense_range_is_refused_with_a_hint() {
         let mut a = app_at_episodes();
         a.handle(Action::DownloadRange, 20);
@@ -6058,7 +6157,7 @@ mod tests {
     fn a_tracker_with_no_account_is_quiet_rather_than_alarming() {
         // Watching with no account is a supported way to use this, not a fault.
         let state = SyncState { tracker: "anilist".into(), ..SyncState::default() };
-        assert_eq!(state.badge(), "anilist ·");
+        assert_eq!(state.badge(), "anilist ○");
         assert!(!state.is_alerting());
     }
 

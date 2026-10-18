@@ -108,17 +108,21 @@ pub fn render(frame: &mut TFrame<'_>, app: &App) {
 fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
     let mut chips: Vec<(String, Role)> = Vec::new();
 
-    let provider = app.source_label();
-    // Torrenting is off until a VPN mode is chosen, and that has to be visible rather
-    // than discovered when playback fails.
-    let torrent_ready = app.config.providers.torrent.enabled;
-    chips.push((
-        format!(
-            "{provider} {}",
-            if torrent_ready { glyph::STATE_READY } else { glyph::STATE_DEGRADED }
-        ),
-        if torrent_ready { Role::State } else { Role::Alert },
-    ));
+    // One chip per configured source, in failover order, each saying how it stands. The chip
+    // used to take its name from the first source in the order and its state from whether
+    // torrents were switched on, so a session that plugins were serving read as broken in the
+    // alert colour. Off is a choice and is said quietly; only a source that is failing alerts.
+    for (source, state) in app.source_states() {
+        use crate::app::SourceState as S;
+        let (mark, role) = match state {
+            S::Ready => (glyph::STATE_READY, Role::State),
+            S::Off => (glyph::STATE_OFF, Role::TextDim),
+            S::HeldBack => (glyph::STATE_DEGRADED, Role::State),
+            S::Failing => (glyph::STATE_DOWN, Role::Alert),
+            S::Pending => (glyph::STATE_UNKNOWN, Role::TextDim),
+        };
+        chips.push((format!("{source} {mark}"), role));
+    }
 
     // VPN state sits next to the source it governs. Always shown when torrenting is
     // configured — discovering a failing guard only when playback refuses would be far
@@ -127,8 +131,8 @@ fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
         chips.push((badge.clone(), if app.vpn_leaking { Role::Alert } else { Role::State }));
     }
 
-    // Only while degraded, like the plugins chip: a healthy ladder is the resting state
-    // and saying so on every frame would be noise. The Providers screen has the detail.
+    // Only while degraded: a healthy ladder is the resting state and saying so on every frame
+    // would be noise. The Providers screen has the detail.
     if app.meta_degraded() {
         chips.push((format!("meta {}", glyph::STATE_DEGRADED), Role::Alert));
     }
@@ -651,20 +655,13 @@ fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
 
         // Needing re-authorisation is not the same as being signed out, and conflating them would
         // hide the one condition the user has to act on.
-        let (label, role) = match (state.connected, state.needs_reauth) {
-            (_, true) => ("sign in again", Role::Alert),
-            (true, _) => ("connected", Role::State),
-            (false, _) => ("not connected", Role::TextDim),
+        // The same marks as the header chip for this tracker, so the two never disagree.
+        let (mark, label, role) = match (state.connected, state.needs_reauth) {
+            (_, true) => (glyph::STATE_DOWN, "sign in again", Role::Alert),
+            (true, _) => (glyph::STATE_READY, "connected", Role::State),
+            (false, _) => (glyph::STATE_OFF, "not connected", Role::TextDim),
         };
-        buf.set_string(
-            area.left() + 16,
-            y,
-            format!(
-                "{} {label}",
-                if state.connected { glyph::STATE_READY } else { glyph::STATE_UNKNOWN }
-            ),
-            app.palette.style(role),
-        );
+        buf.set_string(area.left() + 16, y, format!("{mark} {label}"), app.palette.style(role));
 
         if area.left() + 30 < area.right() {
             // Queue depth belongs beside the account: ops accumulate against a tracker whether or
@@ -4920,9 +4917,11 @@ mod tests {
 
     #[test]
     fn the_status_line_reports_source_translation_and_quality() {
+        // Torrents lead the default order and are off by default, so the source named is the
+        // first one that is not switched off rather than the first in the list.
         let app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
         let text = text_of(&render_to_buffer(&app, 120, 30));
-        assert!(text.contains("torrent · sub · 1080p"), "status line missing state");
+        assert!(text.contains("plugins · sub · 1080p"), "status line missing state:\n{text}");
     }
 
     #[test]
@@ -5175,6 +5174,46 @@ mod tests {
     }
 
     // ---- Wording and display consistency ----
+
+    /// The rows of a rendered frame, for assertions about one line.
+    fn lines_of(app: &App, width: u16, height: u16) -> Vec<String> {
+        text_of(&render_to_buffer(app, width, height)).lines().map(str::to_owned).collect()
+    }
+
+    #[test]
+    fn the_header_shows_each_source_as_it_stands() {
+        // Torrents off, plugins serving: nothing is failing, and nothing alerts.
+        let mut app = app_with(Content::Entries(vec![entry(1, "Paper Kite")]));
+        app.apply(Update::Providers(vec![crate::app::ProviderRow {
+            kind: "plugin".into(),
+            ..provider("someplugin", "ready", true, false)
+        }]));
+        let buf = render_to_buffer(&app, 120, 30);
+        let header = text_of(&buf).lines().next().unwrap_or_default().to_owned();
+        assert!(header.contains("torrent ○"), "{header}");
+        assert!(header.contains("plugins ●"), "{header}");
+        assert!(!header.contains('▲'), "off is not degraded: {header}");
+        let alert = app.palette.color(Role::Alert);
+        assert!((0..120).all(|x| buf[(x, 0)].fg != alert), "nothing in the header alerts");
+
+        // A source that is failing does.
+        app.apply(Update::Providers(vec![crate::app::ProviderRow {
+            kind: "plugin".into(),
+            ..provider("someplugin", "down", false, false)
+        }]));
+        let buf = render_to_buffer(&app, 120, 30);
+        let x = find_cell(&buf, "✕").expect("a failing source is marked").0;
+        assert_eq!(buf[(x, 0)].fg, alert);
+    }
+
+    #[test]
+    fn a_signed_out_tracker_is_not_drawn_as_a_separator() {
+        let mut app = app_with(Content::Entries(vec![entry(1, "Paper Kite")]));
+        app.apply(Update::Sync(Box::new(crate::app::SyncState::new("kitsu"))));
+        let header = lines_of(&app, 120, 30)[0].clone();
+        assert!(header.contains("kitsu ○"), "{header}");
+        assert!(!header.contains("kitsu ·"), "{header}");
+    }
 
     #[test]
     fn genres_read_the_same_in_the_preview_and_on_the_title() {
