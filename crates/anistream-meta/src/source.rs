@@ -226,7 +226,14 @@ impl Meta {
                 },
                 healthy: tenrai_err.is_none() && tenrai_rest.is_none(),
                 active: rung == TENRAI,
-                detail: tenrai_err,
+                detail: match tenrai_rest {
+                    Some(wait) => Some(format!(
+                        "skipped until the next try in {}s — {}",
+                        wait.as_secs().max(1),
+                        tenrai_err.as_deref().unwrap_or("failing")
+                    )),
+                    None => tenrai_err,
+                },
             },
         });
         let cached = self.store.cached_media_count().unwrap_or(0);
@@ -250,10 +257,22 @@ impl Meta {
         }
     }
 
+    /// Tenrai's weather is noted by the callers, which see skips as errors too. While it is
+    /// resting the error that put it there is kept, so a skip cannot stand in for the cause.
     fn note_tenrai(&self, error: Option<String>) {
+        if error.is_some() && self.resting("tenrai") {
+            return;
+        }
         if let Ok(mut weather) = self.weather.lock() {
             weather.tenrai = error;
         }
+    }
+
+    fn resting(&self, source: &str) -> bool {
+        self.breakers
+            .lock()
+            .map(|mut b| self.breaker(&mut b, source).resting_for(Instant::now()).is_some())
+            .unwrap_or(false)
     }
 
     /// Ask AniList, unless it has failed often enough lately to be skipped.
@@ -797,6 +816,11 @@ mod tests {
             meta.ask_tenrai(async { panic!("a resting source was asked") }).await;
         assert!(matches!(answer, Err(TenraiError::Network(_))));
         assert_eq!(meta.health()[1].state, "backing off");
+
+        // The skip, noted by a caller, does not replace the cause.
+        meta.note_tenrai(Some("network: tenrai skipped".into()));
+        let detail = meta.health()[1].detail.clone().unwrap_or_default();
+        assert!(detail.contains("next try in") && detail.ends_with("failing"), "{detail}");
     }
 
     #[test]
