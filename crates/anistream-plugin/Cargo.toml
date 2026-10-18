@@ -10,10 +10,16 @@ description = "WebAssembly component host for provider plugins, with a capabilit
 # No doc example is written as a test, and rustdoc spends seconds per crate finding none.
 doctest = false
 
+[features]
+default = ["fetch"]
+# Lend plugins the browser-emulating HTTP client. Off, a host can only ask plugins to describe
+# themselves — enough for a plugin store's server, without the network stack in its build.
+fetch = ["dep:anistream-net"]
+
 [dependencies]
 anistream-core.workspace = true
 anyhow.workspace = true
-anistream-net.workspace = true
+anistream-net = { workspace = true, optional = true }
 async-trait.workspace = true
 thiserror.workspace = true
 tokio.workspace = true

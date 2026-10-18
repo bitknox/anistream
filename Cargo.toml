@@ -19,7 +19,11 @@ anistream-core = { path = "crates/anistream-core" }
 anistream-net = { path = "crates/anistream-net" }
 anistream-meta = { path = "crates/anistream-meta" }
 anistream-player = { path = "crates/anistream-player" }
-anistream-plugin = { path = "crates/anistream-plugin" }
+anistream-plugin = { path = "crates/anistream-plugin", default-features = false }
+anistream-plugin-store = { path = "crates/anistream-plugin-store" }
+anistream-store-core = { path = "crates/anistream-store-core" }
+anistream-store-server = { path = "crates/anistream-store-server" }
+anistream-store-wasm = { path = "crates/anistream-store-wasm" }
 anistream-providers = { path = "crates/anistream-providers" }
 anistream-store = { path = "crates/anistream-store" }
 anistream-track = { path = "crates/anistream-track" }
