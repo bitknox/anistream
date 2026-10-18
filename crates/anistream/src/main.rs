@@ -1987,6 +1987,7 @@ async fn run(
         }
     };
 
+    stop_for_exit(&app, &player_tx, &mut rx).await;
     restore_terminal(&mut terminal)?;
     result
 }
@@ -2096,6 +2097,39 @@ fn config_notice(
     let what = problem.message.split(", expected").next().unwrap_or(&problem.message);
     let place = problem.line.map_or_else(String::new, |line| format!(" line {line}"));
     format!("{name}{place}: {what} — using the defaults until it is fixed")
+}
+
+/// How long quitting waits for the playback to record where it was left.
+const EXIT_FLUSH: Duration = Duration::from_secs(2);
+
+/// Stop what is playing, and wait briefly for it to record where it ended.
+///
+/// The tracker writes a history row every ten seconds of playback, so quitting with an episode
+/// open lost up to that much of the resume point: the runtime took mpv down with it, and the
+/// position since the last row went too. Stopped the way `x` stops it, the playback writes its
+/// last row before it reports the ending, which is what this waits for. Only when a playback is
+/// under way: one still finding a source has nothing to save, and the wait would only delay
+/// the exit.
+async fn stop_for_exit(
+    app: &App,
+    player_tx: &Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+    rx: &mut mpsc::UnboundedReceiver<Update>,
+) {
+    let under_way = app.playing.as_ref().is_some_and(|playing| playing.duration.is_some());
+    let Some(controls) = player_tx.as_ref().filter(|_| under_way) else { return };
+    if controls.send(anistream_ui::PlayerCommand::Stop).is_err() {
+        return;
+    }
+    let ended = async {
+        while let Some(update) = rx.recv().await {
+            if matches!(update, Update::PlaybackEnded { .. }) {
+                break;
+            }
+        }
+    };
+    if tokio::time::timeout(EXIT_FLUSH, ended).await.is_err() {
+        tracing::warn!("the player did not stop in time; its last position may be lost");
+    }
 }
 
 /// Publish a list, then follow up with the broadcast dates it needs a second request for.
@@ -2563,7 +2597,7 @@ fn dispatch(
         Task::Play { id, episode } => {
             // A fresh channel per playback, and dropping the old sender is what tells a
             // previous session its controls are gone.
-            let prx = take_controls(player_tx);
+            let prx = take_controls(player_tx, successor(app, id, &episode));
             let prefetched = prefetch.take(id, &episode, config.playback.translation);
             // Tracker ids rather than trackers: playback only needs to know which queues to
             // append to, and passing the set would couple the player to the sync layer.
@@ -2597,7 +2631,7 @@ fn dispatch(
             // Identical to Play except the stream comes from the exact release the user
             // picked — same fresh channel, same session-replacement semantics. Never from the
             // streams found ahead: the pick names its own release.
-            let prx = take_controls(player_tx);
+            let prx = take_controls(player_tx, successor(app, id, &episode));
             let prefetched = None;
             let tracker_ids = signed_in_tracker_ids(sync);
             let extras = episode_extras(app, id, &episode);
@@ -2627,7 +2661,7 @@ fn dispatch(
         }
         Task::PlayParty { id, episode } => {
             // Same resolution as Play; the handoff at the end is the only difference.
-            let prx = take_controls(player_tx);
+            let prx = take_controls(player_tx, successor(app, id, &episode));
             let prefetched = None;
             let tracker_ids = signed_in_tracker_ids(sync);
             let extras = episode_extras(app, id, &episode);
@@ -2911,7 +2945,7 @@ fn dispatch(
             // playback session all the same: a downloaded episode records history, resumes,
             // and syncs exactly like a streamed one. It used to go straight to mpv with no
             // context, which made downloads second-class in every way that matters.
-            let prx = take_controls(player_tx);
+            let prx = take_controls(player_tx, successor(app, id, &episode));
             let tracker_ids = signed_in_tracker_ids(sync);
             let (next, episodes) = episode_extras(app, id, &episode);
             if episodes.is_empty() {
@@ -3313,7 +3347,12 @@ fn spawn_playback(
                 let _ = tx.send(Update::Toast(Toast::alert(reason)));
                 // A window left open for this episode would wait for nothing.
                 slot.release();
-                let _ = tx.send(Update::PlaybackEnded { watched: false });
+                let _ = tx.send(Update::PlaybackEnded {
+                    watched: false,
+                    ending: anistream_ui::app::Ending::Failed,
+                });
+                // The playback this one took over left its "playing" line up for it to replace.
+                let _ = tx.send(Update::Status(String::new()));
                 return;
             }
         };
@@ -3439,12 +3478,10 @@ async fn resolve_for_playback(
         anilist_id: id,
         mal_id,
         episode: episode.to_owned(),
-        title: media
-            .match_target()
-            .titles
-            .first()
-            .cloned()
-            .unwrap_or_else(|| format!("anilist {}", id.get())),
+        // The name the terminal shows the title by, so the player's top bar, the window and
+        // the terminal agree. The match target's first title is whichever the matcher tries
+        // first, which is often the romaji one.
+        title: media.title.display().to_owned(),
         translation: playback.translation,
         resume_at,
         runtime_secs: media.duration.map(|minutes| minutes * 60),
@@ -3745,7 +3782,7 @@ async fn play_cli(
             match update {
                 Update::Status(s) if !s.trim().is_empty() => println!("{s}"),
                 Update::Toast(t) => println!("{}", t.text),
-                Update::PlaybackEnded { watched: w } => watched = w,
+                Update::PlaybackEnded { watched: w, .. } => watched = w,
                 _ => {}
             }
         }
@@ -4212,12 +4249,21 @@ impl Prefetch {
         translation: anistream_core::media::Translation,
     ) -> Option<Resolved> {
         let mut slot = self.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
-        let entry = slot.take()?;
-        let matches = entry.id == id
-            && entry.episode == episode
-            && entry.translation == translation
-            && entry.found.elapsed() < PREFETCH_FRESH;
-        matches.then_some(entry.resolved)
+        // Only a match is taken. Any other play — a show opened in passing, a source picked
+        // for a different episode — used to take the entry with it, so the streams found for
+        // the episode about to roll on were gone by the time it did.
+        let entry = slot.as_ref()?;
+        let fresh = entry.found.elapsed() < PREFETCH_FRESH;
+        let matches =
+            entry.id == id && entry.episode == episode && entry.translation == translation;
+        if !fresh {
+            *slot = None;
+            return None;
+        }
+        if !matches {
+            return None;
+        }
+        slot.take().map(|entry| entry.resolved)
     }
 }
 
@@ -4263,13 +4309,37 @@ fn following(rows: &[EpisodeRow], episode: &str) -> Option<String> {
 /// new one claims it — which is how pressing N inside the player stays in the same window.
 fn take_controls(
     player_tx: &mut Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+    successor: anistream_ui::app::Successor,
 ) -> mpsc::UnboundedReceiver<anistream_ui::PlayerCommand> {
     if let Some(previous) = player_tx.take() {
-        let _ = previous.send(anistream_ui::PlayerCommand::Handover);
+        let _ = previous.send(anistream_ui::PlayerCommand::Handover(successor));
     }
     let (ptx, prx) = mpsc::unbounded_channel();
     *player_tx = Some(ptx);
     prx
+}
+
+/// What a new playback is about to play, as the window it takes over says while it is found.
+fn successor(
+    app: &App,
+    id: anistream_core::ids::AnilistId,
+    episode: &str,
+) -> anistream_ui::app::Successor {
+    // Now Playing is staged for the new playback before it is dispatched, so its title is the
+    // one the terminal shows; a watch party stages nothing, and the open title is the one.
+    let title = app
+        .playing
+        .as_ref()
+        .filter(|playing| playing.id == Some(id))
+        .map(|playing| playing.title.clone())
+        .or_else(|| app.detail.as_ref().filter(|e| e.id == id).map(|e| e.title.clone()))
+        .unwrap_or_default();
+    anistream_ui::app::Successor {
+        id,
+        title,
+        episode: episode.to_owned(),
+        translation: app.config.playback.translation,
+    }
 }
 
 /// The metadata source: AniList first, Tenrai when it fails, the cache when both do.
@@ -4690,6 +4760,16 @@ mod tests {
             entry.found = std::time::Instant::now() - PREFETCH_FRESH - Duration::from_secs(1);
         }
         assert!(prefetch.take(AnilistId::new(7), "6", Translation::Sub).is_none());
+
+        // Any other play leaves them for the episode they are for: a show opened in passing
+        // while the ending ran used to take them with it.
+        prefetch.keep(AnilistId::new(7), "6", Translation::Sub, found());
+        assert!(prefetch.take(AnilistId::new(9), "1", Translation::Sub).is_none());
+        assert!(prefetch.take(AnilistId::new(7), "6", Translation::Dub).is_none());
+        assert!(
+            prefetch.take(AnilistId::new(7), "6", Translation::Sub).is_some(),
+            "still there"
+        );
     }
 
     #[test]

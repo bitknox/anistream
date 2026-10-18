@@ -411,6 +411,21 @@ impl Store {
         })
     }
 
+    /// The episodes ever completed, each once: what [`Self::completed_episode_count`] counts.
+    ///
+    /// Read whole rather than off [`Self::events_for`], whose limit is a few episodes' worth of
+    /// rows — every ten seconds of playback is one — so an early episode drops out of it.
+    pub fn completed_episodes(&self, anilist_id: AnilistId) -> Result<Vec<String>> {
+        self.with_conn(|c| {
+            let mut stmt = c.prepare(
+                "SELECT DISTINCT episode FROM watch_event
+                  WHERE anilist_id = ?1 AND completed = 1",
+            )?;
+            let rows = stmt.query_map([anilist_id.get()], |r| r.get(0))?;
+            Ok(rows.collect::<rusqlite::Result<Vec<String>>>()?)
+        })
+    }
+
     /// Full event log for a title, newest first. Used by the stats view.
     pub fn events_for(&self, anilist_id: AnilistId, limit: u32) -> Result<Vec<WatchEvent>> {
         self.with_conn(|c| {

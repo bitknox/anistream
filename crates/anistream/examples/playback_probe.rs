@@ -143,8 +143,8 @@ async fn main() {
                 }
                 Update::Status(s) if !s.is_empty() => println!("  status: {s}"),
                 Update::Toast(t) => println!("  toast: {}", t.text),
-                Update::PlaybackEnded { watched } => {
-                    println!("  ended (watched: {watched})");
+                Update::PlaybackEnded { watched, ending } => {
+                    println!("  ended (watched: {watched}, {ending:?})");
                 }
                 _ => {}
             }

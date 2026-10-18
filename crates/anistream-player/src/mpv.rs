@@ -167,6 +167,9 @@ pub struct MpvSession {
     /// Cleared by the reader when the socket closes, which is how a parked session that the
     /// viewer closed while it waited is told apart from one that is still there to reuse.
     alive: Arc<AtomicBool>,
+    /// Set by the reader when mpv ends a file because it is quitting: the viewer closed the
+    /// window or pressed q, or something asked it to quit. See [`Self::has_quit`].
+    quit: Arc<AtomicBool>,
     /// Whether this mpv takes `loadfile`'s index argument (0.38 and newer).
     loadfile_index: bool,
 }
@@ -218,6 +221,16 @@ impl MpvSession {
     /// Whether mpv is still there to talk to.
     pub fn is_alive(&self) -> bool {
         self.alive.load(Ordering::Relaxed)
+    }
+
+    /// Whether mpv said it is quitting.
+    ///
+    /// `end-file` with reason `quit` arrives a moment *before* the socket closes, so a file's
+    /// ending read against [`Self::is_alive`] alone still saw a live window, and took a window
+    /// the viewer had just closed for a stream that failed: it fell over to the next stream in
+    /// a new window. This is the window going away, said at the moment mpv says it.
+    pub fn has_quit(&self) -> bool {
+        self.quit.load(Ordering::Relaxed)
     }
 
     /// Send a command, without waiting for the reply.
@@ -598,9 +611,10 @@ impl Mpv {
         let (read_half, write_half) = ipc::split(socket);
         let writer = Arc::new(Mutex::new(write_half));
         let alive = Arc::new(AtomicBool::new(true));
+        let quit = Arc::new(AtomicBool::new(false));
 
         let (tx, rx) = mpsc::unbounded_channel();
-        spawn_reader(read_half, tx, Arc::clone(&alive));
+        spawn_reader(read_half, tx, Arc::clone(&alive), Arc::clone(&quit));
 
         let session = MpvSession {
             child,
@@ -609,6 +623,7 @@ impl Mpv {
             socket_path,
             diagnostics,
             alive,
+            quit,
             loadfile_index: version.is_none_or(MpvVersion::has_loadfile_index),
         };
 
@@ -681,6 +696,7 @@ fn spawn_reader(
     read_half: ipc::ReadHalf,
     tx: mpsc::UnboundedSender<PlaybackEvent>,
     alive: Arc<AtomicBool>,
+    quit: Arc<AtomicBool>,
 ) {
     tokio::spawn(async move {
         let mut lines = BufReader::new(read_half).lines();
@@ -724,6 +740,11 @@ fn spawn_reader(
                 Event::EndFile(reason) => {
                     // The next file's duration is its own.
                     duration = None;
+                    // Before the ending is sent, so whoever reads it already knows the window
+                    // is going with it.
+                    if reason == EndReason::Quit {
+                        quit.store(true, Ordering::Relaxed);
+                    }
                     Some(PlaybackEvent::Ended { complete: reason.is_complete() })
                 }
                 Event::FileLoaded => Some(PlaybackEvent::Loaded),

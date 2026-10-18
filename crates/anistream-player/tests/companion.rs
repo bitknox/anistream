@@ -501,6 +501,57 @@ async fn the_corner_shows_one_thing_at_a_time() {
 }
 
 #[tokio::test]
+async fn an_ending_skipped_under_up_next_still_offers_undo() {
+    // An ending skipped on its own lands where Up Next is already up. The note offering the way
+    // back takes the corner for its few seconds, with `u`, and Up Next has it again after.
+    require_mpv!();
+    let mut player = Player::start(Some(&clip(30)), &["--pause"]).await;
+    player.state("next", json!({"label": "Episode 2", "at": 0.0, "auto": true})).await;
+    player.wait_ui("Up Next", |ui| ui["up_next"]["visible"] == true).await;
+    player
+        .message(
+            "skipped",
+            json!({"kind": "ending", "label": "ending", "from": 12.3, "to": 25.0}),
+        )
+        .await;
+    let ui = player.wait_ui("the undo note", |ui| ui["skipped"]["visible"] == true).await;
+    assert_eq!(ui["up_next"]["visible"], false, "{ui}");
+    player.key("u").await;
+    assert_eq!(player.event("undo-skip").await, json!({"to": 12.3}));
+    player.wait_ui("Up Next again", |ui| ui["up_next"]["visible"] == true).await;
+    player.finish().await;
+}
+
+#[tokio::test]
+async fn the_arrows_step_five_seconds_in_anistream_mode() {
+    require_mpv!();
+    let mut player =
+        Player::start(Some(&clip(60)), &["--pause", "--script-opts-append=anistream-uosc=yes"])
+            .await;
+    let held = player.held_keys().await;
+    assert!(held.iter().any(|k| k == "RIGHT") && held.iter().any(|k| k == "LEFT"), "{held:?}");
+    player.key("RIGHT").await;
+    player
+        .wait_property("time-pos", |v| v.as_f64().is_some_and(|t| (t - 5.0).abs() < 0.05))
+        .await;
+    player.key("RIGHT").await;
+    player
+        .wait_property("time-pos", |v| v.as_f64().is_some_and(|t| (t - 10.0).abs() < 0.05))
+        .await;
+    // The keys overlay lists them under the row they belong to.
+    player.binding("keys").await;
+    let ui = player.wait_ui("the keys overlay", |ui| ui["keys"] == true).await;
+    assert_eq!(ui["keys_listed"]["Back or forward 5 s"], "←  →", "{ui}");
+    player.finish().await;
+
+    // In `mpv` mode the arrows stay the viewer's own.
+    let mut player = Player::start(Some(&clip(60)), &["--pause"]).await;
+    let held = player.held_keys().await;
+    assert!(!held.iter().any(|k| k == "RIGHT"), "{held:?}");
+    player.finish().await;
+}
+
+#[tokio::test]
 async fn the_loading_card_follows_status() {
     require_mpv!();
     let mut player = Player::start(None, &[]).await;
