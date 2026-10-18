@@ -33,6 +33,9 @@ use tokio::sync::mpsc;
 
 #[derive(Parser, Debug)]
 #[command(name = "anistream", version, about = "An anime streaming TUI")]
+// Nothing here means anything to `store` or `plugin`, and `--stats plugin stamp …` ran the stamp
+// without a word about the flag it dropped.
+#[command(args_conflicts_with_subcommands = true)]
 // One command per run. Resolved silently by the order of the checks in `main`, `--stats
 // --random` printed the stats and dropped the rest without a word.
 #[command(group(
@@ -144,7 +147,12 @@ struct Cli {
     ///
     /// The point of the non-interactive commands: composable with `jq` and friends rather than a
     /// walled garden.
-    #[arg(long, requires = "json_command")]
+    // Refused by name beside the other commands: `--doctor --json` was told it lacked
+    // `--search`, `--stats` or `--random`, as though it had asked for one of them.
+    #[arg(long, requires = "json_command", conflicts_with_all = [
+        "doctor", "update", "refresh_data", "preview", "login", "login_url", "logout", "sync",
+        "token_to_file", "export", "import", "stream_url", "play", "continue_watching", "plugins",
+    ])]
     json: bool,
 
     /// Resolve one episode to a playable URL, print it, and hold it open.
@@ -345,7 +353,17 @@ async fn main() -> Result<()> {
     }
     if let Some(size) = cli.preview {
         let screen = cli.screen.unwrap_or(PreviewScreen::Home);
-        return preview(config, http, store, &paths, size, screen, !cli.no_images).await;
+        return preview(
+            config,
+            http,
+            store,
+            &paths,
+            size,
+            screen,
+            !cli.no_images,
+            config_problem,
+        )
+        .await;
     }
 
     run(config, paths, http, store, !cli.no_images, config_problem).await
@@ -393,6 +411,7 @@ async fn store_command(command: Command, paths: &Paths) -> Result<()> {
 /// nothing is outstanding. Assembling each screen by hand instead drifted from the live one:
 /// the title preview pressed Enter on a resumable row and rendered Now Playing, the episode
 /// table never left LOADING, and Library and Providers showed state the app never had.
+#[allow(clippy::too_many_arguments)]
 async fn preview(
     config: Config,
     http: HttpClient,
@@ -401,6 +420,7 @@ async fn preview(
     (width, height): (u16, u16),
     screen: PreviewScreen,
     images: bool,
+    config_problem: Option<anistream_core::config::ConfigProblem>,
 ) -> Result<()> {
     use anistream_ui::keymap::Action;
     use ratatui::{Terminal, backend::TestBackend};
@@ -417,7 +437,7 @@ async fn preview(
 
     // The sources a running app has a moment after launch: the torrent source once its guard
     // has answered, and the plugins once compiled.
-    let (registry, guard, mut note) =
+    let (registry, guard, mut note, held) =
         sources::build_registry(&config, &http, paths, &store).await;
     let plugins = sources::spawn_plugin_load(
         registry.clone(),
@@ -433,9 +453,13 @@ async fn preview(
     if let Some(note) = note {
         app.apply(Update::ProviderNote(note));
     }
-    if let Some((guard, _)) = &guard {
-        let state = guard.state();
+    // A failed guard included: the interface puts its verdict on the chip and toasts it, and
+    // a preview without it showed a machine whose torrents were fine.
+    if let Some(state) = guard.as_ref().map(|(guard, _)| guard.state()).or(held) {
         app.apply(Update::Vpn { badge: state.badge(), leaking: !state.is_protected() });
+    }
+    if let Some(problem) = &config_problem {
+        show_config_problem(&mut app, paths, problem);
     }
     match stores.rows() {
         Ok(rows) => app.apply(Update::Stores(rows)),
@@ -1684,12 +1708,8 @@ async fn run(
     // What the file says, as distinct from what is in effect: `--theme` changes only this
     // session, and the Settings screen has to be able to tell the two apart.
     app.saved_config = Config::load(&paths).unwrap_or_default();
-    if let Some(problem) = config_problem {
-        app.notice = Some(config_notice(&paths.config_file, &problem));
-        app.log(
-            anistream_ui::app::ToastKind::Alert,
-            format!("{}, {problem} — using the defaults", paths.config_file.display()),
-        );
+    if let Some(problem) = &config_problem {
+        show_config_problem(&mut app, &paths, problem);
     }
     // Joined stores as they were left, so Providers can count them on the first frame.
     match stores.rows() {
@@ -2050,11 +2070,20 @@ fn describe_graphics(graphics: anistream_ui::image::Graphics) -> &'static str {
 
 /// A moment, as a local date and time and how long ago that was.
 fn describe_moment(epoch: i64) -> String {
-    let Ok(at) = jiff::Timestamp::from_second(epoch) else {
+    describe_moment_in(epoch, now_epoch(), &jiff::tz::TimeZone::system())
+}
+
+/// [`describe_moment`] against a given now and zone. Days are counted between calendar dates
+/// where the reader is: counting whole 86,400 s blocks called last night's refresh "today".
+fn describe_moment_in(epoch: i64, now: i64, zone: &jiff::tz::TimeZone) -> String {
+    let (Ok(at), Ok(now)) =
+        (jiff::Timestamp::from_second(epoch), jiff::Timestamp::from_second(now))
+    else {
         return "at an unreadable time".into();
     };
-    let local = at.to_zoned(jiff::tz::TimeZone::system());
-    let days = (now_epoch() - epoch).max(0) / 86_400;
+    let local = at.to_zoned(zone.clone());
+    let today = now.to_zoned(zone.clone()).date();
+    let days = local.date().until(today).map_or(0, |span| span.get_days()).max(0);
     let ago = match days {
         0 => "today".to_owned(),
         1 => "yesterday".to_owned(),
@@ -2083,6 +2112,20 @@ fn plain_failure(reason: &str) -> &str {
     } else {
         reason
     }
+}
+
+/// Say that the config did not load, on the status line for as long as the session runs and in
+/// the log. The interface and its previews both, so a preview shows the frame a person would see.
+fn show_config_problem(
+    app: &mut App,
+    paths: &Paths,
+    problem: &anistream_core::config::ConfigProblem,
+) {
+    app.notice = Some(config_notice(&paths.config_file, problem));
+    app.log(
+        anistream_ui::app::ToastKind::Alert,
+        format!("{}, {problem} — using the defaults", paths.config_file.display()),
+    );
 }
 
 /// The interface's standing notice for a config file that did not load: which file, which line,
@@ -2597,9 +2640,9 @@ fn dispatch(
             });
         }
         Task::Play { id, episode } => {
-            // A fresh channel per playback, and dropping the old sender is what tells a
-            // previous session its controls are gone.
-            let prx = take_controls(player_tx, successor(app, id, &episode));
+            // A fresh channel per playback. The one playing gives up its window only once
+            // this one has something to play — see `Handoff`.
+            let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
             let prefetched = prefetch.take(id, &episode, config.playback.translation);
             // Tracker ids rather than trackers: playback only needs to know which queues to
             // append to, and passing the set would couple the player to the sync layer.
@@ -2614,6 +2657,7 @@ fn dispatch(
                 None,
                 config.syncplay.enabled,
                 prx,
+                handoff,
                 config,
                 meta,
                 store,
@@ -2633,7 +2677,7 @@ fn dispatch(
             // Identical to Play except the stream comes from the exact release the user
             // picked — same fresh channel, same session-replacement semantics. Never from the
             // streams found ahead: the pick names its own release.
-            let prx = take_controls(player_tx, successor(app, id, &episode));
+            let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
             let prefetched = None;
             let tracker_ids = signed_in_tracker_ids(sync);
             let extras = episode_extras(app, id, &episode);
@@ -2646,6 +2690,7 @@ fn dispatch(
                 Some((provider_id, source_id)),
                 config.syncplay.enabled,
                 prx,
+                handoff,
                 config,
                 meta,
                 store,
@@ -2663,7 +2708,7 @@ fn dispatch(
         }
         Task::PlayParty { id, episode } => {
             // Same resolution as Play; the handoff at the end is the only difference.
-            let prx = take_controls(player_tx, successor(app, id, &episode));
+            let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
             let prefetched = None;
             let tracker_ids = signed_in_tracker_ids(sync);
             let extras = episode_extras(app, id, &episode);
@@ -2673,6 +2718,7 @@ fn dispatch(
                 None,
                 true,
                 prx,
+                handoff,
                 config,
                 meta,
                 store,
@@ -2944,7 +2990,9 @@ fn dispatch(
             // playback session all the same: a downloaded episode records history, resumes,
             // and syncs exactly like a streamed one. It used to go straight to mpv with no
             // context, which made downloads second-class in every way that matters.
-            let prx = take_controls(player_tx, successor(app, id, &episode));
+            // Nothing to look up, so nothing can fail before it plays.
+            let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
+            handoff.now();
             let tracker_ids = signed_in_tracker_ids(sync);
             let (next, episodes) = episode_extras(app, id, &episode);
             if episodes.is_empty() {
@@ -3290,6 +3338,7 @@ fn spawn_playback(
     // Hand the resolved stream to a Syncplay party instead of a private session.
     party: bool,
     commands: mpsc::UnboundedReceiver<anistream_ui::PlayerCommand>,
+    handoff: Handoff,
     config: &Config,
     meta: &Meta,
     store: &Store,
@@ -3340,6 +3389,14 @@ fn spawn_playback(
         };
         let context = match resolved {
             Ok(pair) => pair,
+            // The episode being watched carries on, and the window with it: only the lookup
+            // failed, and closing what was playing over it would punish the viewer for asking.
+            Err(reason) if handoff.live() => {
+                let _ = tx.send(Update::Toast(Toast::alert(reason.clone())));
+                let _ = tx.send(Update::PlaybackKept);
+                handoff.keep(commands, reason).await;
+                return;
+            }
             Err(reason) => {
                 // The failure ladder's first rung: name the failure rather than showing an
                 // empty screen. Releasing the eyecatch is what the alert does for us.
@@ -3369,6 +3426,7 @@ fn spawn_playback(
 
         let settings =
             playback::PlaySettings { shader_dir, ..play_settings(&config, tracker_ids, party) };
+        handoff.complete().await;
         playback::play(streams, context, store, http, mpv, settings, slot, tx, commands).await;
     });
 }
@@ -3662,7 +3720,7 @@ async fn stream_url(
     let meta = build_meta(config, http, store);
 
     let started = std::time::Instant::now();
-    let (registry, guard, note) = sources::build_registry(config, http, paths, store).await;
+    let (registry, guard, note, _) = sources::build_registry(config, http, paths, store).await;
     println!("sources     {:?} in {:?}", registry.ids(), started.elapsed());
     if let Some(note) = &note {
         println!("note        {note}");
@@ -3735,7 +3793,7 @@ async fn play_cli(
 ) -> Result<()> {
     let meta = build_meta(config, http, store);
 
-    let (registry, guard, note) = sources::build_registry(config, http, paths, store).await;
+    let (registry, guard, note, _) = sources::build_registry(config, http, paths, store).await;
     if let Some(note) = &note {
         println!("note        {note}");
     }
@@ -4302,20 +4360,82 @@ fn following(rows: &[EpisodeRow], episode: &str) -> Option<String> {
     rows.iter().any(|row| row.number == next).then_some(next)
 }
 
-/// A fresh control channel for a new playback, handing the current player over to it.
+/// A fresh control channel for a new playback, and the handoff from the playback it replaces.
 ///
-/// The old playback, if one is still running, parks its window rather than closing it, and the
-/// new one claims it — which is how pressing N inside the player stays in the same window.
+/// The old playback, once told, parks its window rather than closing it, and the new one claims
+/// it — which is how pressing N inside the player stays in the same window.
 fn take_controls(
     player_tx: &mut Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
     successor: anistream_ui::app::Successor,
-) -> mpsc::UnboundedReceiver<anistream_ui::PlayerCommand> {
-    if let Some(previous) = player_tx.take() {
-        let _ = previous.send(anistream_ui::PlayerCommand::Handover(successor));
-    }
+) -> (mpsc::UnboundedReceiver<anistream_ui::PlayerCommand>, Handoff) {
+    let previous = player_tx.take();
     let (ptx, prx) = mpsc::unbounded_channel();
     *player_tx = Some(ptx);
-    prx
+    (prx, Handoff { previous, successor })
+}
+
+/// How long a new playback waits for the old one to park its window before opening its own.
+/// Bounded, because a playback still starting reads its controls only once it is playing.
+const HANDOVER_WAIT: Duration = Duration::from_secs(10);
+
+/// The playback a new one takes the window from, told only once the new one has something to
+/// play. Handing over at once closed the window on the episode being watched whenever the new
+/// one's lookup then failed, and a timeout was enough for that.
+struct Handoff {
+    previous: Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+    successor: anistream_ui::app::Successor,
+}
+
+impl Handoff {
+    /// Whether a playback is still running in the window.
+    fn live(&self) -> bool {
+        self.previous.as_ref().is_some_and(|p| !p.is_closed())
+    }
+
+    /// Ask for the window without waiting: nothing can fail between here and playing.
+    fn now(self) {
+        if let Some(previous) = self.previous {
+            let _ = previous.send(anistream_ui::PlayerCommand::Handover(self.successor));
+        }
+    }
+
+    /// Ask for the window and wait until it is parked: claiming it any earlier finds the slot
+    /// empty and opens a second window beside it.
+    async fn complete(self) {
+        let Some(previous) = self.previous else { return };
+        if previous.send(anistream_ui::PlayerCommand::Handover(self.successor)).is_ok() {
+            let _ = tokio::time::timeout(HANDOVER_WAIT, previous.closed()).await;
+        }
+    }
+
+    /// The new playback found nothing, so the old one keeps the window: say why on the video
+    /// it is showing, and pass on the controls the terminal now sends to the new channel until
+    /// the old playback ends. A later playback's handover reaches it the same way.
+    async fn keep(
+        self,
+        mut controls: mpsc::UnboundedReceiver<anistream_ui::PlayerCommand>,
+        reason: String,
+    ) {
+        use anistream_ui::PlayerCommand;
+        let Some(previous) = self.previous else { return };
+        let _ = previous.send(PlayerCommand::Alert(reason));
+        loop {
+            tokio::select! {
+                command = controls.recv() => match command {
+                    // The list loaded for the episode that is not playing: it would give the one
+                    // that is the wrong neighbours.
+                    Some(PlayerCommand::Episodes { .. }) => {}
+                    Some(command) => {
+                        if previous.send(command).is_err() {
+                            break;
+                        }
+                    }
+                    None => break,
+                },
+                () = previous.closed() => break,
+            }
+        }
+    }
 }
 
 /// What a new playback is about to play, as the window it takes over says while it is found.
@@ -4672,6 +4792,35 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn a_lookup_that_fails_leaves_the_controls_with_the_episode_playing() {
+        use anistream_ui::PlayerCommand;
+        let (previous, mut playing) = mpsc::unbounded_channel();
+        let mut player_tx = Some(previous);
+        let successor = anistream_ui::app::Successor {
+            id: anistream_core::ids::AnilistId::new(1),
+            title: "A Show".into(),
+            episode: "5".into(),
+            translation: anistream_core::media::Translation::Sub,
+        };
+        let (controls, handoff) = take_controls(&mut player_tx, successor);
+        assert!(handoff.live());
+        assert!(playing.try_recv().is_err(), "the window was asked for before 5 was found");
+
+        let terminal = player_tx.clone().unwrap();
+        let kept = tokio::spawn(handoff.keep(controls, "a: timed out".into()));
+        terminal.send(PlayerCommand::TogglePause).unwrap();
+        terminal.send(PlayerCommand::Episodes { rows: Vec::new(), next: None }).unwrap();
+        terminal.send(PlayerCommand::Stop).unwrap();
+        assert_eq!(playing.recv().await, Some(PlayerCommand::Alert("a: timed out".into())));
+        assert_eq!(playing.recv().await, Some(PlayerCommand::TogglePause));
+        assert_eq!(playing.recv().await, Some(PlayerCommand::Stop), "5's list passed on to 4");
+
+        // It stands aside once the playback it kept has ended.
+        drop(playing);
+        tokio::time::timeout(Duration::from_secs(5), kept).await.unwrap().unwrap();
+    }
+
+    #[tokio::test]
     async fn a_job_ends_however_its_work_does_even_by_panicking() {
         let (tx, mut rx) = mpsc::unbounded_channel();
         let mut app = test_app();
@@ -4811,12 +4960,25 @@ mod tests {
             &["--screen", "title"],
             &["--episode", "3"],
             &["--tracker", "mal"],
-            // `--json` means nothing to these either.
-            &["--doctor", "--json"],
-            &["--plugins", "--json"],
         ] {
             assert_eq!(refused(alone), ErrorKind::MissingRequiredArgument, "{alone:?}");
         }
+
+        // `--json` means nothing to these, and the refusal names the command it was given with.
+        for (args, command) in
+            [(&["--doctor", "--json"][..], "--doctor"), (&["--plugins", "--json"], "--plugins")]
+        {
+            let error = parse(args).unwrap_err();
+            assert_eq!(error.kind(), ErrorKind::ArgumentConflict, "{args:?}");
+            assert!(error.to_string().contains(command), "{error}");
+        }
+
+        // A command's flags beside a subcommand were dropped without a word.
+        assert_eq!(
+            refused(&["--stats", "plugin", "stamp", "a.wasm"]),
+            ErrorKind::ArgumentConflict
+        );
+        assert!(parse(&["plugin", "stamp", "a.wasm"]).is_ok());
         for fine in [
             &["--stats", "--json"][..],
             &["--search", "summer", "--json"],
@@ -4852,6 +5014,29 @@ mod tests {
         let cli = parse(&["--preview", "80X24", "--screen", "episodes"]).unwrap();
         assert_eq!(cli.preview, Some((80, 24)));
         assert_eq!(cli.screen, Some(PreviewScreen::Episodes));
+    }
+
+    #[test]
+    fn a_moment_is_dated_by_the_calendar_where_the_reader_is() {
+        let zone = jiff::tz::TimeZone::fixed(jiff::tz::offset(2));
+        let at = |s: &str| {
+            s.parse::<jiff::civil::DateTime>().unwrap().to_zoned(zone.clone()).unwrap()
+        };
+        let epoch = |s: &str| at(s).timestamp().as_second();
+        let now = epoch("2026-10-18T09:00");
+        // Twelve hours ago, but before midnight.
+        assert_eq!(
+            describe_moment_in(epoch("2026-10-17T21:00"), now, &zone),
+            "2026-10-17 21:00 (yesterday)"
+        );
+        assert_eq!(
+            describe_moment_in(epoch("2026-10-18T00:30"), now, &zone),
+            "2026-10-18 00:30 (today)"
+        );
+        assert_eq!(
+            describe_moment_in(epoch("2026-10-15T23:59"), now, &zone),
+            "2026-10-15 23:59 (3 days ago)"
+        );
     }
 
     #[test]

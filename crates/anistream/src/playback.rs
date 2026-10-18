@@ -1328,6 +1328,7 @@ impl Run<'_> {
             for action in tracker.observe(&event) {
                 match action {
                     Action::OfferSkip { kind, to } => {
+                        let to = skip_target(to, tracker.duration());
                         if tracker.auto_skips() {
                             let from = tracker.position();
                             let _ = session.seek_to(to).await;
@@ -1475,7 +1476,9 @@ impl Run<'_> {
             // settings have it, however this episode was left.
             ScriptEvent::CancelNext => self.cancel_next = true,
             ScriptEvent::Skip => {
-                if let Some(to) = tracker.offered_skip().map(|s| s.end) {
+                if let Some(to) =
+                    tracker.offered_skip().map(|s| skip_target(s.end, tracker.duration()))
+                {
                     let _ = session.seek_to(to).await;
                 }
             }
@@ -1800,6 +1803,23 @@ const fn kind_id(kind: SkipKind) -> &'static str {
     kind.label()
 }
 
+/// How far short of the end a skip lands when its segment runs to the end of the file.
+///
+/// An ending cut as the release's last chapter ends exactly at the runtime, and aniskip's times,
+/// taken against another rip, can end past it. Seeking there left mpv seeking at end-of-file for
+/// up to most of a minute, until Up Next fired on its own; landing just short lets the last
+/// frames play and the file end the ordinary way, which is what rolls on to the next episode.
+const SKIP_SHORT_OF_END: f64 = 1.0;
+
+/// Where a skip to `to` lands in a file `duration` long: `to` itself, unless that is at or past
+/// the end. An unknown length is no reason to second-guess the segment.
+fn skip_target(to: f64, duration: Option<f64>) -> f64 {
+    match duration {
+        Some(d) if d > SKIP_SHORT_OF_END => to.min(d - SKIP_SHORT_OF_END),
+        _ => to,
+    }
+}
+
 /// Each stream's second line in the Sources menu, told apart where two would read the same.
 ///
 /// A provider often offers an episode from several servers with nothing else between them, and
@@ -1965,6 +1985,9 @@ async fn apply_command(session: &MpvSession, command: PlayerCommand) {
         PlayerCommand::Fullscreen => {
             let _ = session.fullscreen_toggle().await;
         }
+        PlayerCommand::Alert(text) => {
+            let _ = session.send(companion::toast(&text, companion::Level::Alert)).await;
+        }
         // Detaching is purely a UI move — mpv is untouched, which is the whole point.
         PlayerCommand::Detach => {}
         // Handled by the playback loop itself, which owns the window and what it shows.
@@ -2098,6 +2121,16 @@ mod tests {
             hls("torrent", "http://127.0.0.1:4040/s/2"),
         ];
         assert_eq!(source_details(&local), ["HLS · 1", "HLS · 2"]);
+    }
+
+    #[test]
+    fn a_skip_that_reaches_the_end_lands_just_short_of_it() {
+        // An ending that closes the file, and aniskip's ending for a longer rip.
+        assert_eq!(skip_target(1420.0, Some(1420.0)), 1420.0 - SKIP_SHORT_OF_END);
+        assert_eq!(skip_target(1507.0, Some(1420.0)), 1420.0 - SKIP_SHORT_OF_END);
+        // Anything short of the end, or a length not known yet, is the segment's own end.
+        assert_eq!(skip_target(93.2, Some(1420.0)), 93.2);
+        assert_eq!(skip_target(1507.0, None), 1507.0);
     }
 
     fn context_for(episode: &str) -> PlaybackContext {

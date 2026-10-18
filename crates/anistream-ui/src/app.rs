@@ -1296,6 +1296,9 @@ pub enum Update {
         episode: String,
         title: Option<String>,
     },
+    /// The playback just staged found nothing to play, and the one it was to replace keeps
+    /// playing: Now Playing goes back to that one.
+    PlaybackKept,
     /// A playback was handed to its successor mid-episode. Reflected like an ending, without
     /// taking down the Now Playing surface the successor has already put up.
     EpisodeLeft {
@@ -1525,6 +1528,10 @@ pub struct App {
     pub provider_note: Option<String>,
     /// Live playback state, when something is playing.
     pub playing: Option<NowPlaying>,
+    /// The playback still in the window while the one staged over it is looked up. A newer
+    /// playback takes the window only once it has something to play, so until then this one's
+    /// reports are its own, and if the lookup fails it is what Now Playing shows again.
+    superseded: Option<NowPlaying>,
     /// The wipe covering stream resolution, when one is running.
     pub eyecatch: Option<Eyecatch>,
     /// Which Library segment is showing.
@@ -1701,6 +1708,7 @@ impl App {
             should_quit: false,
             synopsis_expanded: false,
             playing: None,
+            superseded: None,
             eyecatch: None,
             library_segment: LibrarySegment::default(),
             sync: Vec::new(),
@@ -1833,12 +1841,11 @@ impl App {
         // Resolution has finished, one way or the other — let the wipe complete. An alert is
         // as much a result as a first frame is, and holding the band over a failure would
         // leave the user staring at amber.
-        if matches!(
-            update,
-            Update::Playback { .. }
-                | Update::PlaybackEnded { .. }
-                | Update::Toast(Toast { kind: ToastKind::Alert, .. })
-        ) && let Some(eyecatch) = &mut self.eyecatch
+        // A report from the playback still in the window says nothing about the one being found.
+        let ours = self.superseded.is_none();
+        if (matches!(update, Update::Playback { .. } | Update::PlaybackEnded { .. } if ours)
+            || matches!(update, Update::Toast(Toast { kind: ToastKind::Alert, .. })))
+            && let Some(eyecatch) = &mut self.eyecatch
         {
             eyecatch.release();
         }
@@ -2064,7 +2071,7 @@ impl App {
             Update::Playback { position, duration, paused } => {
                 // Playback updates arrive about once a second and must never resurrect a
                 // finished session, so they only ever mutate an existing one.
-                if let Some(playing) = &mut self.playing {
+                if let Some(playing) = self.superseded.as_mut().or(self.playing.as_mut()) {
                     playing.position = position;
                     playing.paused = paused;
                     if duration.is_some() {
@@ -2118,7 +2125,20 @@ impl App {
                     self.pending = Some(Task::Play { id, episode });
                 }
             }
+            Update::PlaybackKept => {
+                if let Some(kept) = self.superseded.take() {
+                    self.playing = Some(kept);
+                }
+            }
             Update::EpisodeLeft { id, episode, position, duration, watched } => {
+                // The window has changed hands, so what reports from here on is the successor.
+                if self
+                    .superseded
+                    .as_ref()
+                    .is_some_and(|s| s.id == Some(id) && s.episode == episode)
+                {
+                    self.superseded = None;
+                }
                 self.reflect_watch(Some(id), &episode, position, duration, watched);
             }
             Update::PlayerTranslation(translation) => {
@@ -2190,6 +2210,14 @@ impl App {
                         key: "persisted_volume",
                         value: anistream_core::settings::SettingValue::Float(volume),
                     });
+                }
+            }
+            // The playback still in the window ended while its successor was being found: the
+            // successor is what was asked for, so nothing comes down and nothing rolls on.
+            Update::PlaybackEnded { watched, .. } if self.superseded.is_some() => {
+                if let Some(finished) = self.superseded.take() {
+                    let NowPlaying { id, episode, position, duration, .. } = finished;
+                    self.reflect_watch(id, &episode, position, duration, watched);
                 }
             }
             Update::PlaybackEnded { watched, ending } => {
@@ -3824,6 +3852,12 @@ impl App {
     /// what its rows are called without any list selection being involved.
     fn raise_now_playing_titled(&mut self, id: AnilistId, title: String, episode: &str) {
         self.eyecatch = Some(Eyecatch::new(format!("{title}  ·  ep {episode}")));
+        // One that has reported keeps playing until this one is found; one merely staged before
+        // this was never going to play.
+        let replaced = self.playing.take().filter(|p| p.duration.is_some());
+        if replaced.is_some() && self.superseded.is_none() {
+            self.superseded = replaced;
+        }
         self.playing = Some(NowPlaying {
             id: Some(id),
             title,
@@ -6128,6 +6162,10 @@ pub enum PlayerCommand {
     Step(i64),
     /// Toggle the player's fullscreen state.
     Fullscreen,
+    /// Say something on the video. Sent by the task runner when the episode asked for from the
+    /// player could not be found, so the viewer, who is looking at the player, learns why the
+    /// episode they were watching is still on.
+    Alert(String),
 }
 
 /// What a newer playback is about to play, as the window it takes over announces it.
@@ -6878,6 +6916,43 @@ mod tests {
         // Named by nobody, it is left unnamed rather than given the open show's episode 6.
         a.apply(Update::PlayerPlayEpisode { episode: "6".into(), title: None });
         assert_eq!(a.playing.as_ref().unwrap().episode_title, None);
+    }
+
+    #[test]
+    fn an_episode_that_cannot_be_found_leaves_the_one_playing_on_screen() {
+        let mut a = app();
+        a.playing = Some(NowPlaying {
+            id: Some(AnilistId::new(2)),
+            title: "Title 1".into(),
+            episode: "4".into(),
+            ..NowPlaying::default()
+        });
+        a.apply(Update::Playback { position: 300.0, duration: Some(1440.0), paused: false });
+        a.apply(Update::PlayerPlayEpisode { episode: "9".into(), title: None });
+        assert_eq!(a.playing.as_ref().unwrap().episode, "9", "staged while it is found");
+
+        // Episode 4 keeps the window meanwhile, and its reports are its own.
+        a.apply(Update::Playback { position: 301.0, duration: Some(1440.0), paused: false });
+        assert_eq!(a.playing.as_ref().unwrap().position, 0.0);
+        assert!(a.eyecatch.is_some(), "a report from 4 is not 9 starting");
+
+        a.apply(Update::Toast(Toast::alert("a: timed out")));
+        a.apply(Update::PlaybackKept);
+        let playing = a.playing.as_ref().unwrap();
+        assert_eq!((playing.episode.as_str(), playing.position), ("4", 301.0));
+
+        // Found, the window changes hands and what reports from then on is the successor.
+        a.apply(Update::PlayerPlayEpisode { episode: "5".into(), title: None });
+        a.apply(Update::EpisodeLeft {
+            id: AnilistId::new(2),
+            episode: "4".into(),
+            position: 302.0,
+            duration: Some(1440.0),
+            watched: false,
+        });
+        a.apply(Update::Playback { position: 1.0, duration: Some(1420.0), paused: false });
+        let playing = a.playing.as_ref().unwrap();
+        assert_eq!((playing.episode.as_str(), playing.position), ("5", 1.0));
     }
 
     #[test]
