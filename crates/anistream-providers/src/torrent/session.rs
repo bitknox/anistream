@@ -538,12 +538,15 @@ impl TorrentSession {
             });
         }
 
-        // Retire streams beyond the kept window, oldest first. Files stay on disk — a
-        // rewatch re-adds instantly — and torrents the download queue owns are never
-        // touched, id collisions included (librqbit dedups by infohash).
+        // Playing again, so no longer only seeding: the pool's goal must not retire, and
+        // delete, an episode that is on screen.
+        self.seeding.lock().unwrap_or_else(|e| e.into_inner()).retain(|s| s.id != handle.id());
+
+        // Retire streams beyond the kept window, oldest first — files and all, unless they
+        // join the seeding pool. Torrents the download queue owns are never touched, id
+        // collisions included (librqbit dedups by infohash).
         let evict: Vec<usize> = {
-            let owned_by_downloads =
-                self.download_ids.lock().map(|ids| ids.contains(&handle.id())).unwrap_or(false);
+            let owned_by_downloads = self.owned_by_downloads(handle.id());
             match self.stream_history.lock() {
                 Ok(mut history) => {
                     history.retain(|id| *id != handle.id());
@@ -614,6 +617,8 @@ impl TorrentSession {
             let mut history = self.stream_history.lock().unwrap_or_else(|e| e.into_inner());
             history.retain(|id| *id != handle.id());
         }
+        // Nor may the seeding pool, whose goal would otherwise forget it mid-download.
+        self.seeding.lock().unwrap_or_else(|e| e.into_inner()).retain(|s| s.id != handle.id());
 
         Ok(DownloadHandle { id: handle.id(), name: file.name.clone(), total: file.length })
     }
@@ -692,8 +697,29 @@ impl TorrentSession {
             .map_err(|e| ProviderError::Transport(format!("removing torrent {id}: {e}")))
     }
 
+    /// Whether the download queue owns this torrent, and so whether its files are the user's.
+    fn owned_by_downloads(&self, id: usize) -> bool {
+        self.download_ids.lock().unwrap_or_else(|e| e.into_inner()).contains(&id)
+    }
+
+    /// Forget a torrent the streaming side has finished with, and delete what it fetched.
+    ///
+    /// Deleted rather than left for a rewatch: nothing else ever removes a stream's files, and
+    /// a cache that only grows is how the disk filled. A torrent the download queue has taken
+    /// over since is only dropped from the streaming side's books — its files are the user's.
+    async fn discard(&self, id: usize) {
+        if self.owned_by_downloads(id) {
+            self.seeding.lock().unwrap_or_else(|e| e.into_inner()).retain(|s| s.id != id);
+            return;
+        }
+        match self.forget(id, true).await {
+            Ok(()) => tracing::info!(id, "finished stream removed from disk"),
+            Err(e) => tracing::warn!(id, error = %e, "could not remove a finished stream"),
+        }
+    }
+
     /// A stream the window let go of: kept seeding when the settings ask for it, otherwise
-    /// removed. Past [`MAX_SEEDING`], the longest-seeding goes first.
+    /// removed, files included. Past [`MAX_SEEDING`], the longest-seeding goes first.
     async fn retire_stream(&self, id: usize) {
         let enabled = self.seed_goal.lock().unwrap_or_else(|e| e.into_inner()).enabled();
         let overflow: Vec<usize> = if enabled {
@@ -709,9 +735,7 @@ impl TorrentSession {
             tracing::info!(id, "keeping a watched episode seeding");
         }
         for id in overflow {
-            if let Err(e) = self.forget(id, false).await {
-                tracing::warn!(id, error = %e, "could not retire a finished stream");
-            }
+            self.discard(id).await;
         }
     }
 
@@ -754,9 +778,7 @@ impl TorrentSession {
             let age = seed.since.elapsed();
             if seed_done(stats.uploaded_bytes, stats.progress_bytes, age, &goal) {
                 tracing::info!(id = seed.id, uploaded = stats.uploaded_bytes, "done seeding");
-                if let Err(e) = self.forget(seed.id, false).await {
-                    tracing::warn!(id = seed.id, error = %e, "could not retire a seed");
-                }
+                self.discard(seed.id).await;
                 continue;
             }
             let have = stats.progress_bytes.max(1) as f64;
@@ -773,6 +795,45 @@ impl TorrentSession {
     /// Where the session writes files, so a finished download can be located on disk.
     pub fn output_dir(&self) -> &std::path::Path {
         &self.output_dir
+    }
+
+    /// The entries of [`Self::output_dir`] a torrent in this session is using, in the terms
+    /// [`crate::torrent::cache`] prunes by: every one is in use, playing, seeding or
+    /// downloading, and none may be swept.
+    ///
+    /// Read from where librqbit says each torrent writes, not assumed from its name, so a
+    /// single-file torrent and a batch folder are both found where they actually are.
+    pub fn live_entries(&self) -> std::collections::HashSet<std::ffi::OsString> {
+        let handles = self.session.with_torrents(|torrents| {
+            torrents.map(|(_, handle)| handle.clone()).collect::<Vec<_>>()
+        });
+        let api = librqbit::Api::new(Arc::clone(&self.session), None);
+        let mut entries = std::collections::HashSet::new();
+        for handle in handles {
+            let Ok(details) = api.api_torrent_details(TorrentIdOrHash::Id(handle.id())) else {
+                continue;
+            };
+            let folder = PathBuf::from(details.output_folder);
+            let files: Vec<PathBuf> = handle
+                .with_metadata(|metadata| {
+                    metadata.file_infos.iter().map(|f| f.relative_filename.clone()).collect()
+                })
+                .unwrap_or_default();
+            // Still waiting for metadata: its folder is all there is to protect.
+            if files.is_empty()
+                && let Some(entry) = crate::torrent::cache::entry_of(&self.output_dir, &folder)
+            {
+                entries.insert(entry);
+            }
+            for file in files {
+                if let Some(entry) =
+                    crate::torrent::cache::entry_of(&self.output_dir, &folder.join(file))
+                {
+                    entries.insert(entry);
+                }
+            }
+        }
+        entries
     }
 
     /// Drop every loopback stream server, without touching the torrents.
@@ -1043,6 +1104,93 @@ mod tests {
             // Binding a listener can fail in a sandbox; that is not what this test is about.
             Err(e) => eprintln!("session start unavailable in this environment: {e}"),
         }
+    }
+
+    /// Two files, so librqbit treats the torrent as a batch and writes it to a folder of its own.
+    const BATCH: [(&str, usize); 2] = [("ep01.mkv", 40_000), ("ep02.mkv", 30_000)];
+
+    /// A session over `root` holding one local, paused, offline torrent of `files`, written
+    /// where librqbit writes a batch: `root/<name>/`.
+    async fn session_with_local_torrent(
+        root: &std::path::Path,
+        name: &str,
+        files: &[(&str, usize)],
+    ) -> (TorrentSession, usize) {
+        use anistream_core::config::{VpnConfig, VpnMode};
+        let pack = root.join(name);
+        std::fs::create_dir_all(&pack).unwrap();
+        for (file, bytes) in files {
+            std::fs::write(pack.join(file), vec![7_u8; *bytes]).unwrap();
+        }
+        let torrent = librqbit::create_torrent(
+            &pack,
+            librqbit::CreateTorrentOptions { name: Some(name), piece_length: Some(16 * 1024) },
+        )
+        .await
+        .unwrap();
+        let guard = VpnGuard::new(VpnConfig {
+            mode: VpnMode::None,
+            i_understand_my_ip_is_exposed: true,
+            ..Default::default()
+        })
+        .unwrap();
+        guard.verify().await;
+        let session =
+            TorrentSession::start(guard, root.to_path_buf(), "tok".into()).await.unwrap();
+        let handle = session
+            .session
+            .add_torrent(
+                AddTorrent::from_bytes(torrent.as_bytes().unwrap()),
+                Some(AddTorrentOptions {
+                    paused: true,
+                    overwrite: true,
+                    disable_trackers: true,
+                    ..Default::default()
+                }),
+            )
+            .await
+            .unwrap()
+            .into_handle()
+            .unwrap();
+        handle.wait_until_initialized().await.unwrap();
+        (session, handle.id())
+    }
+
+    #[tokio::test]
+    async fn a_finished_stream_takes_its_files_with_it() {
+        // Nothing else ever deleted a stream, so the cache only grew until the disk was full.
+        let root = tempfile::tempdir().unwrap();
+        let (session, id) =
+            session_with_local_torrent(root.path(), "Invented Batch", &BATCH).await;
+        assert!(session.live_entries().contains(std::ffi::OsStr::new("Invented Batch")));
+
+        session.discard(id).await;
+
+        assert!(!root.path().join("Invented Batch").exists(), "the folder goes too");
+        assert!(session.live_entries().is_empty(), "and the session lets go of it");
+        session.session.stop().await;
+    }
+
+    #[tokio::test]
+    async fn a_stream_the_download_queue_took_over_keeps_its_files() {
+        // The same episode queued for download shares the torrent (librqbit dedups by
+        // infohash), and a download is a file the user asked to keep.
+        let root = tempfile::tempdir().unwrap();
+        let (session, id) = session_with_local_torrent(root.path(), "Kept Batch", &BATCH).await;
+        session.download_ids.lock().unwrap().insert(id);
+        session
+            .seeding
+            .lock()
+            .unwrap()
+            .push_back(Seeding { id, since: std::time::Instant::now() });
+
+        session.discard(id).await;
+
+        assert!(root.path().join("Kept Batch/ep02.mkv").exists());
+        assert!(session.live_entries().contains(std::ffi::OsStr::new("Kept Batch")));
+        assert!(session.seeding.lock().unwrap().is_empty(), "no longer the pool's to retire");
+        assert!(session.progress_of(id).is_some(), "still in the session for the download");
+        session.session.stop().await;
     }
 
     #[test]

@@ -10,6 +10,7 @@
 //! Gated by [`crate::vpn::VpnGuard`]. The provider reports itself unavailable — and is
 //! therefore never contacted — until the guard passes.
 
+pub mod cache;
 pub mod curation;
 pub mod http;
 pub mod indexer;

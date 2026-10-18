@@ -92,9 +92,11 @@ refused at startup rather than ignored.
 
 ## Command line
 
-None of these start the interface. Most answer and exit; `--continue` and `--play` play without
-it, and `--stream-url` and `store serve` keep running until you stop them. `--search`, `--stats`
-and `--random` also take `--json`, composable with `jq` and friends.
+None of these start the interface, and one runs at a time: two together are refused. Most answer
+and exit; `--continue` and `--play` play without it, and `--stream-url` and `store serve` keep
+running until you stop them. `--search`, `--stats` and `--random` also take `--json`, composable
+with `jq` and friends. An option given without the command it belongs to, such as `--json` or
+`--episode` on its own, is refused too.
 
 | | |
 |---|---|
@@ -113,7 +115,7 @@ and `--random` also take `--json`, composable with `jq` and friends.
 | `store serve <dir> --url <address>` | Run a [plugin store](/docs/plugins/running-a-store/) for the people you invite |
 | `store invite` \| `store publish` \| `store admin` | An invite link, a plugin published, a sign-in link for the admin page, from the store's machine |
 | `--stream-url <id> [--episode N]` | Resolve one episode to a URL and hold it open, so `mpv`/`curl` can be pointed at it directly |
-| `--preview 120x34 --screen home` | Render any screen as one frame of text: home, search, title, episodes, calendar, library, downloads, providers, accounts, settings, help, palette |
+| `--preview 120x34 --screen home` | Render any screen as one frame of text, reached the way the app reaches it: home, calendar, seasonal, search, library, downloads, providers, accounts, settings, title, episodes, help, palette |
 | `--refresh-data` | Refresh the ID-mapping datasets |
 | `--update` | Download the latest release, verify its SHA-256, replace the binary |
 | `--theme adaptive\|immersive` · `--no-images` | Presentation switches |

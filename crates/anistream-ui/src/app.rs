@@ -1464,6 +1464,11 @@ pub struct App {
     title_trail: Vec<TitleFrame>,
     pub status: String,
     pub toasts: Vec<Toast>,
+    /// A problem that lasts the session, shown on every screen until the app is restarted —
+    /// a config file that did not load, so everything on screen is the defaults. A toast is
+    /// gone in seconds, and the one place this was said before was the terminal, just before
+    /// the interface covered it.
+    pub notice: Option<String>,
     pub should_quit: bool,
     /// Set when the synopsis is expanded on the Title screen.
     pub synopsis_expanded: bool,
@@ -1659,6 +1664,7 @@ impl App {
             title_trail: Vec::new(),
             status: String::new(),
             toasts: Vec::new(),
+            notice: None,
             should_quit: false,
             synopsis_expanded: false,
             playing: None,
@@ -4937,8 +4943,9 @@ impl App {
         }
     }
 
-    /// Push the selected title's detail screen.
-    fn open_selected(&mut self) -> Option<Task> {
+    /// Push the selected title's detail screen — what Enter does on a row with nothing to
+    /// resume. Public for `--preview`, which shows a title page from a list whose Enter plays.
+    pub fn open_selected(&mut self) -> Option<Task> {
         let Some(entry) = self.selected_entry().cloned() else {
             self.push_toast(Toast::info("nothing selected"));
             return None;

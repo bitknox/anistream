@@ -28,6 +28,8 @@ librqbit = { version = "8.1.1", default-features = false, features = ["rust-tls"
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "test-util"] }
 reqwest.workspace = true
+# Scratch directories for the cache tests and the probes, removed however they end.
+tempfile = "3"
 
 [lints]
 workspace = true

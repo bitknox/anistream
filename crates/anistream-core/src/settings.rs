@@ -59,6 +59,19 @@ pub fn write_key(
         }
     };
 
+    // A file that does not load is left exactly as it is. The app is running on defaults
+    // because of it, and a write on top would either fail for the same reason after the fact or,
+    // worse, succeed — and leave the user to find their file changed while it was broken. Said
+    // in their terms: which file, which line, and that nothing was touched.
+    if let Err(problem) = crate::config::Config::parse(&existing) {
+        let name = path
+            .file_name()
+            .map_or_else(|| path.display().to_string(), |n| n.to_string_lossy().into_owned());
+        return Err(crate::Error::Config(format!(
+            "{name} is left as it is until it loads — {problem}"
+        )));
+    }
+
     let mut doc = existing.parse::<toml_edit::DocumentMut>().map_err(|e| {
         crate::Error::Config(format!("{} is not valid TOML: {e}", path.display()))
     })?;
@@ -114,7 +127,14 @@ pub fn write_key(
 ///
 /// Truncating the real file first would leave the user with an empty config if the process died
 /// mid-write — and this file can carry a client secret that is not recoverable from anywhere else.
+///
+/// The temporary file is private from the moment it exists, rather than created with whatever
+/// the umask allows and narrowed afterwards — which left the secret world-readable in between.
+/// And it is named for this write alone: with one fixed name, two instances saving at once wrote
+/// into the same file, and whichever renamed second could install the two interleaved.
 fn write_atomically(path: &Path, bytes: &[u8]) -> Result<(), crate::Error> {
+    use std::io::Write;
+
     let parent = path.parent().ok_or_else(|| {
         crate::Error::Config(format!("{} has no parent directory", path.display()))
     })?;
@@ -122,22 +142,74 @@ fn write_atomically(path: &Path, bytes: &[u8]) -> Result<(), crate::Error> {
         crate::Error::Config(format!("cannot create {}: {e}", parent.display()))
     })?;
 
-    let temporary = path.with_extension("toml.new");
-    std::fs::write(&temporary, bytes).map_err(|e| {
-        crate::Error::Config(format!("cannot write {}: {e}", temporary.display()))
+    // The original's permissions, so a rename never widens them; a new file starts private,
+    // since it may be given a client secret at the next sign-in.
+    #[cfg(unix)]
+    let mode = {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::metadata(path).map_or(0o600, |meta| meta.permissions().mode() & 0o7777)
+    };
+
+    let (temporary, mut file) = create_temporary(path, |options| {
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(mode);
+        }
+        let _ = options;
+    })
+    .map_err(|e| {
+        crate::Error::Config(format!("cannot write next to {}: {e}", path.display()))
     })?;
 
-    // Carry the original's permissions across. The file may hold an OAuth client secret, and a
-    // rename would otherwise silently widen it from 0600 to whatever the umask allows.
-    #[cfg(unix)]
-    if let Ok(meta) = std::fs::metadata(path) {
-        use std::os::unix::fs::PermissionsExt;
-        let mode = meta.permissions().mode();
-        let _ = std::fs::set_permissions(&temporary, std::fs::Permissions::from_mode(mode));
+    let written = (|| {
+        file.write_all(bytes)?;
+        // The umask may have taken bits the original had; put back exactly what it was.
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            file.set_permissions(std::fs::Permissions::from_mode(mode))?;
+        }
+        file.sync_all()?;
+        std::fs::rename(&temporary, path)
+    })();
+    if let Err(e) = written {
+        let _ = std::fs::remove_file(&temporary);
+        return Err(crate::Error::Config(format!("cannot replace {}: {e}", path.display())));
     }
+    Ok(())
+}
 
-    std::fs::rename(&temporary, path)
-        .map_err(|e| crate::Error::Config(format!("cannot replace {}: {e}", path.display())))
+/// Create a temporary file beside `path` under a name no other write is using.
+///
+/// `create_new`, so a name that exists — another instance's write in flight — is never opened
+/// and truncated; the next name is tried instead.
+fn create_temporary(
+    path: &Path,
+    configure: impl Fn(&mut std::fs::OpenOptions),
+) -> std::io::Result<(std::path::PathBuf, std::fs::File)> {
+    use std::sync::atomic::{AtomicU32, Ordering};
+    static WRITES: AtomicU32 = AtomicU32::new(0);
+
+    let name = path.file_name().map_or_else(|| "config.toml".into(), |n| n.to_string_lossy());
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.subsec_nanos());
+    let mut last = None;
+    for _ in 0..16 {
+        let write = WRITES.fetch_add(1, Ordering::Relaxed);
+        let candidate = path
+            .with_file_name(format!(".{name}.{}-{write}-{nanos:09}.tmp", std::process::id()));
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        configure(&mut options);
+        match options.open(&candidate) {
+            Ok(file) => return Ok((candidate, file)),
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => last = Some(e),
+            Err(e) => return Err(e),
+        }
+    }
+    Err(last.unwrap_or_else(|| std::io::Error::other("no free temporary name")))
 }
 
 #[cfg(test)]
@@ -254,6 +326,78 @@ mod tests {
         assert!(after.contains("0.85"), "the file was modified anyway:\n{after}");
     }
 
+    #[cfg(unix)]
+    #[test]
+    fn a_private_file_stays_private_and_a_new_one_starts_private() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = temp_dir("modes");
+        let paths = paths_in(&dir);
+        let mode = |p: &Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
+
+        write_key(&paths, &["playback"], "quality", SettingValue::Int(720)).unwrap();
+        assert_eq!(mode(&paths.config_file), 0o600, "a new config may soon hold a secret");
+
+        std::fs::set_permissions(&paths.config_file, std::fs::Permissions::from_mode(0o640))
+            .unwrap();
+        write_key(&paths, &["playback"], "quality", SettingValue::Int(480)).unwrap();
+        assert_eq!(mode(&paths.config_file), 0o640, "the user's own choice is kept");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn the_temporary_file_is_never_readable_by_others() {
+        // The window this closes: the secret sat in a file created with the umask's 0644 until
+        // a chmod after the write.
+        use std::os::unix::fs::PermissionsExt;
+        let dir = temp_dir("temporary");
+        let file = dir.join("config.toml");
+        let (temporary, _handle) = create_temporary(&file, |options| {
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600);
+        })
+        .unwrap();
+        let mode = std::fs::metadata(&temporary).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode & 0o077, 0, "group or others could read it: {mode:o}");
+        // And it is this write's own: a second one does not land on it.
+        let (other, _) = create_temporary(&file, |_| {}).unwrap();
+        assert_ne!(temporary, other);
+    }
+
+    #[test]
+    fn writes_racing_each_other_never_leave_a_broken_file() {
+        // Two instances saving at once used to write into one shared temporary file.
+        let dir = temp_dir("racing");
+        let paths = paths_in(&dir);
+        write_key(&paths, &["playback"], "quality", SettingValue::Int(720)).unwrap();
+        let writers: Vec<_> = (0..8)
+            .map(|n| {
+                let paths = paths.clone();
+                std::thread::spawn(move || {
+                    for i in 0..20 {
+                        let value = if (n + i) % 2 == 0 { "sub" } else { "dub" };
+                        let _ = write_key(
+                            &paths,
+                            &["playback"],
+                            "translation",
+                            SettingValue::Str(value.into()),
+                        );
+                    }
+                })
+            })
+            .collect();
+        for writer in writers {
+            writer.join().unwrap();
+        }
+        let config = crate::config::Config::load(&paths).expect("the file still loads");
+        assert_eq!(config.playback.quality, 720);
+        let leftovers: Vec<_> = std::fs::read_dir(&dir)
+            .unwrap()
+            .flatten()
+            .filter(|e| e.file_name().to_string_lossy().ends_with(".tmp"))
+            .collect();
+        assert!(leftovers.is_empty(), "temporary files left behind: {leftovers:?}");
+    }
+
     #[test]
     fn writing_the_same_key_twice_does_not_duplicate_it() {
         let dir = temp_dir("twice");
@@ -276,5 +420,23 @@ mod tests {
             std::fs::read_to_string(&paths.config_file).unwrap(),
             "this is not = = toml\n"
         );
+    }
+
+    #[test]
+    fn a_file_that_does_not_load_is_never_written_over_even_when_the_edit_would_fix_it() {
+        // The app runs on defaults while the file is broken, so a setting changed then is a
+        // change to the defaults on screen — not an instruction to rewrite the user's file.
+        let dir = temp_dir("unloadable");
+        let paths = paths_in(&dir);
+        let broken = "[playback]\nquality = 1080\nqualty = 720\n";
+        std::fs::write(&paths.config_file, broken).unwrap();
+
+        let err =
+            write_key(&paths, &["playback"], "quality", SettingValue::Int(720)).unwrap_err();
+
+        let said = err.to_string();
+        assert!(said.contains("config.toml") && said.contains("line 3"), "{said}");
+        assert!(said.contains("left as it is"), "{said}");
+        assert_eq!(std::fs::read_to_string(&paths.config_file).unwrap(), broken);
     }
 }

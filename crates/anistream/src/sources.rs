@@ -13,7 +13,12 @@ use anistream_providers::{
     ProviderRegistry, remote::RemoteHttpProvider, torrent::TorrentSession, vpn::VpnGuard,
 };
 
-/// Assemble the provider chain from config.
+/// Assemble the provider chain from config, waiting for the torrent source.
+///
+/// For the command-line paths, which need every source before they can do anything. The
+/// interface uses [`build_registry_deferred`] and [`bring_up_torrent`] instead, because the
+/// torrent source waits on the VPN guard, and a guard whose tunnel is down takes as long as its
+/// timeout to say so.
 ///
 /// Only sources that are actually configured are registered. A source listed in `order` but
 /// unconfigured is skipped rather than added as a permanently-failing entry, which would
@@ -22,11 +27,37 @@ pub async fn build_registry(
     config: &Config,
     http: &HttpClient,
     paths: &Paths,
+    store: &anistream_store::Store,
 ) -> (ProviderRegistry, Option<(VpnGuard, Arc<TorrentSession>)>, Option<String>) {
-    let mut providers: Vec<std::sync::Arc<dyn anistream_core::traits::Provider>> = Vec::new();
-    let mut vpn_guard = None;
-    let mut note: Option<String> = None;
+    let registry = build_registry_deferred(config, http);
+    if !torrent_wanted(config) {
+        return (registry, None, None);
+    }
+    let started = std::time::Instant::now();
+    let outcome = start_torrent_provider(config, http, paths, store).await;
+    tracing::info!(elapsed = ?started.elapsed(), ok = outcome.is_ok(), "torrent source");
+    match outcome {
+        Ok(up) => {
+            // No interface to tell: these paths print to the terminal they were run from.
+            if let Some(warning) = &up.warning {
+                eprintln!("warning: {warning}");
+            }
+            place(&registry, up.provider, config);
+            (registry, Some((up.guard, up.session)), None)
+        }
+        // A source that cannot start safely is left out rather than registered as
+        // permanently failing — and the reason is surfaced, not swallowed.
+        Err(reason) => {
+            tracing::warn!(%reason, "torrent source not started");
+            (registry, None, Some(reason))
+        }
+    }
+}
 
+/// The provider chain as config describes it, less the torrent source, which joins it once the
+/// VPN guard has passed — see [`bring_up_torrent`].
+pub fn build_registry_deferred(config: &Config, http: &HttpClient) -> ProviderRegistry {
+    let mut providers: Vec<std::sync::Arc<dyn anistream_core::traits::Provider>> = Vec::new();
     for id in &config.providers.order {
         if config.providers.disabled.contains(id) {
             continue;
@@ -40,23 +71,8 @@ pub async fn build_registry(
                     )));
                 }
             }
-            "torrent" if config.providers.torrent.enabled => {
-                let started = std::time::Instant::now();
-                let outcome = start_torrent_provider(config, http, paths).await;
-                tracing::info!(elapsed = ?started.elapsed(), ok = outcome.is_ok(), "torrent source");
-                match outcome {
-                    Ok((provider, guard, session)) => {
-                        vpn_guard = Some((guard, session));
-                        providers.push(provider);
-                    }
-                    // A source that cannot start safely is left out rather than registered
-                    // as permanently failing — and the reason is surfaced, not swallowed.
-                    Err(reason) => {
-                        tracing::warn!(%reason, "torrent source not started");
-                        note = Some(reason);
-                    }
-                }
-            }
+            // Joins later, at its place in the order: see `place`.
+            "torrent" if config.providers.torrent.enabled => {}
             // Off by default: torrenting stays unreachable until a VPN mode is chosen.
             "torrent" => tracing::info!("torrent source disabled in config"),
             // Every `.wasm` in the plugin directory, registered at this point in the order. A
@@ -68,8 +84,31 @@ pub async fn build_registry(
             other => tracing::warn!(provider = other, "unknown provider in config order"),
         }
     }
+    ProviderRegistry::new(providers)
+}
 
-    (ProviderRegistry::new(providers), vpn_guard, note)
+/// Whether the configuration asks for the torrent source at all.
+pub fn torrent_wanted(config: &Config) -> bool {
+    config.providers.torrent.enabled
+        && config.providers.order.iter().any(|id| id == "torrent")
+        && !config.providers.disabled.iter().any(|id| id == "torrent")
+}
+
+/// Put a source that came up late where `providers.order` puts it.
+pub fn place(
+    registry: &ProviderRegistry,
+    provider: Arc<dyn anistream_core::traits::Provider>,
+    config: &Config,
+) {
+    let order = &config.providers.order;
+    registry.insert_ranked(provider, |p| {
+        // Plugins have ids of their own; the order names them all as one entry.
+        let name = match p.manifest().kind {
+            anistream_core::traits::ProviderKind::Plugin => "plugins",
+            _ => p.manifest().id.as_str(),
+        };
+        order.iter().position(|id| id == name).unwrap_or(order.len())
+    });
 }
 
 /// Load plugins in the background and add them to a live registry.
@@ -174,16 +213,21 @@ async fn load_plugins(
         .collect())
 }
 
-/// Bring up the VPN guard, verify egress, then start the torrent session.
-///
-/// Ordering is the whole point: the guard is verified *before* a session exists, so there is
-/// no window in which torrent traffic could leave unprotected.
-async fn start_torrent_provider(
+/// The torrent source, up: its provider, the guard it runs behind, and its session.
+pub struct TorrentUp {
+    pub provider: Arc<dyn anistream_core::traits::Provider>,
+    pub guard: VpnGuard,
+    pub session: Arc<TorrentSession>,
+    /// Said once the source is up, when there is no OS-level kill switch behind the guard.
+    pub warning: Option<String>,
+}
+
+/// What the torrent source needs before its guard can be checked: an indexer to search, and a
+/// guard the configuration can build. Both missing are mistakes a retry cannot fix.
+fn prepare_torrent(
     config: &Config,
-    http: &HttpClient,
-    paths: &Paths,
 ) -> std::result::Result<
-    (Arc<dyn anistream_core::traits::Provider>, VpnGuard, Arc<TorrentSession>),
+    (anistream_providers::torrent::provider::IndexerSettings, VpnGuard),
     String,
 > {
     // No indexer, no source. anistream ships none, so this is the user's to supply and
@@ -194,8 +238,21 @@ async fn start_torrent_provider(
     .ok_or_else(|| {
         "no providers.torrent.rss_url configured (anistream ships no indexer)".to_owned()
     })?;
-
     let guard = VpnGuard::new(config.providers.torrent.vpn.clone())?;
+    Ok((settings, guard))
+}
+
+/// Bring up the VPN guard, verify egress, then start the torrent session.
+///
+/// Ordering is the whole point: the guard is verified *before* a session exists, so there is
+/// no window in which torrent traffic could leave unprotected.
+async fn start_torrent_provider(
+    config: &Config,
+    http: &HttpClient,
+    paths: &Paths,
+    store: &anistream_store::Store,
+) -> std::result::Result<TorrentUp, String> {
+    let (settings, guard) = prepare_torrent(config)?;
 
     let state = guard.verify().await;
     if !state.is_protected() {
@@ -203,18 +260,104 @@ async fn start_torrent_provider(
     }
     tracing::info!(badge = %state.badge(), "vpn guard satisfied");
 
-    // Warn loudly when there is no OS-level kill switch. The guard below is
-    // application-level: it stops *anistream* leaking, but cannot stop a bug in anistream,
-    // a change in librqbit, or any other process. Only a firewall rule can.
+    sweep_before_session(config, paths, store).await;
+    start_torrent_session(config, http, paths, settings, guard).await
+}
+
+/// Bring the torrent source up for the interface, however long the VPN guard takes to pass.
+///
+/// The interface draws while this runs: a tunnel that is down made the guard's check wait out
+/// its whole timeout before the first frame, with the terminal not yet set up and every key
+/// echoing into the shell. And it keeps checking rather than giving up, so a VPN connected a
+/// minute after launch brings torrents up without a restart — a failed check used to leave
+/// the source out for the rest of the session. Each verdict reaches the badge as it arrives.
+///
+/// Errs only for what no amount of waiting fixes: a configuration that cannot work, or a
+/// session that would not start.
+pub async fn bring_up_torrent(
+    config: Config,
+    http: HttpClient,
+    paths: Paths,
+    store: anistream_store::Store,
+    tx: tokio::sync::mpsc::UnboundedSender<anistream_ui::app::Update>,
+) -> std::result::Result<TorrentUp, String> {
+    use anistream_providers::vpn::{GuardLog, GuardNote, GuardState};
+    use anistream_ui::app::Update;
+
+    let (settings, guard) = prepare_torrent(&config)?;
+    // Before the wait rather than after it: a cache left full by an earlier run should not stay
+    // full for as long as the tunnel is down.
+    sweep_before_session(&config, &paths, &store).await;
+
+    let mut log = GuardLog::default();
+    // Quick at first, for a tunnel that is a moment from connecting, then no more often than
+    // the guard's own interval — and that interval at once for a real leak, where every check
+    // reaches the lookup service.
+    let mut wait = Duration::from_secs(5);
+    loop {
+        let state = guard.verify().await;
+        let leaking = !state.is_protected();
+        if tx.send(Update::Vpn { badge: state.badge(), leaking }).is_err() {
+            return Err("the interface has closed".into());
+        }
+        match log.observe(&state, std::time::Instant::now()) {
+            GuardNote::Failing(reason) => {
+                tracing::warn!(%reason, "vpn guard failing; torrents wait for it");
+                let _ = tx.send(Update::ProviderNote(format!(
+                    "torrents start once the VPN guard passes: {reason}"
+                )));
+            }
+            GuardNote::StillFailing { reason, minutes, checks } => {
+                tracing::warn!(%reason, minutes, checks, "vpn guard still failing");
+            }
+            GuardNote::Recovered { minutes } => {
+                tracing::info!(minutes, badge = %state.badge(), "vpn guard satisfied");
+            }
+            GuardNote::Passed => tracing::info!(badge = %state.badge(), "vpn guard satisfied"),
+            GuardNote::Quiet => {}
+        }
+        if !leaking {
+            break;
+        }
+        let ceiling = guard.verify_interval();
+        if matches!(state, GuardState::Leaking { .. }) {
+            wait = ceiling;
+        }
+        tokio::time::sleep(wait.min(ceiling)).await;
+        wait = (wait * 2).min(ceiling);
+    }
+
+    start_torrent_session(&config, &http, &paths, settings, guard).await
+}
+
+/// Bring the stream cache within its limit before a session exists, so nothing a session is
+/// about to write can be mistaken for a leftover. Nothing is live yet; downloads are kept by the
+/// sweep itself.
+async fn sweep_before_session(config: &Config, paths: &Paths, store: &anistream_store::Store) {
+    let dir = paths.cache_dir.join("torrents");
+    let limit = config.providers.torrent.cache_limit_bytes();
+    crate::prune::sweep_torrent_cache(dir, limit, store, Default::default()).await;
+}
+
+/// Start the torrent session and its provider behind a guard that has just passed.
+async fn start_torrent_session(
+    config: &Config,
+    http: &HttpClient,
+    paths: &Paths,
+    settings: anistream_providers::torrent::provider::IndexerSettings,
+    guard: VpnGuard,
+) -> std::result::Result<TorrentUp, String> {
+    // Said when there is no OS-level kill switch. The guard is application-level: it stops
+    // *anistream* leaking, but cannot stop a bug in anistream, a change in librqbit, or any
+    // other process. Only a firewall rule can.
     let enforcement = anistream_providers::vpn::detect_kernel_enforcement().await;
-    if enforcement.is_enforced() {
+    let warning = if enforcement.is_enforced() {
         tracing::info!("os-level kill switch enforced");
+        None
     } else {
         tracing::warn!(advice = enforcement.advice(), "no os-level kill switch");
-        eprintln!("warning: no OS-level VPN kill switch detected.");
-        eprintln!("         {}", enforcement.advice());
-        eprintln!("         anistream's own guard is defence in depth, not a guarantee.");
-    }
+        Some("no OS-level kill switch behind the VPN guard — see anistream --doctor".to_owned())
+    };
 
     let session = Arc::new(
         anistream_providers::torrent::TorrentSession::start(
@@ -226,8 +369,8 @@ async fn start_torrent_provider(
         .map_err(|e| e.to_string())?,
     );
 
-    Ok((
-        Arc::new(anistream_providers::torrent::TorrentProvider::new(
+    Ok(TorrentUp {
+        provider: Arc::new(anistream_providers::torrent::TorrentProvider::new(
             http.clone(),
             guard.clone(),
             Arc::clone(&session),
@@ -236,7 +379,8 @@ async fn start_torrent_provider(
         )),
         guard,
         session,
-    ))
+        warning,
+    })
 }
 
 /// An unguessable path segment for the loopback stream server.

@@ -267,8 +267,9 @@ cargo run -p anistream-providers --example torrent_probe -- \
 
 ## Command line
 
-None of these start the interface. Most answer and exit; `--stream-url` and `store serve` keep
-running until you stop them. `--search`, `--stats` and `--random` also take `--json`.
+None of these start the interface, and one runs at a time. Most answer and exit; `--stream-url`
+and `store serve` keep running until you stop them. `--search`, `--stats` and `--random` also take
+`--json`.
 
 |                                                     |                                                                                                                            |
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -285,7 +286,7 @@ running until you stop them. `--search`, `--stats` and `--random` also take `--j
 | `store serve <dir> --url <address>`                 | Run a plugin store for people you invite; `store invite`, `store publish` and `store admin` do the owner's jobs from the store's machine |
 | `plugin stamp <file.wasm> [-o <out>]`               | Write a plugin's manifest into it, for stores that cannot run plugins                                                      |
 | `--stream-url <id> [--episode N]`                   | Resolve one episode to a URL and hold it open, so `mpv` or `curl` can be pointed at it                                     |
-| `--preview 120x34 --screen home`                    | Render one screen as text: home, search, title, episodes, calendar, library, downloads, providers, accounts, settings, help, palette |
+| `--preview 120x34 --screen home`                    | Render one screen as text: home, calendar, seasonal, search, library, downloads, providers, accounts, settings, title, episodes, help, palette |
 | `--refresh-data`                                    | Refresh the ID-mapping datasets                                                                                            |
 
 `--theme adaptive|immersive` and `--no-images` override presentation for one run without touching

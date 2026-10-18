@@ -95,6 +95,7 @@ dependencies = [
  "crossterm",
  "futures",
  "image",
+ "jiff",
  "open",
  "rand 0.10.2",
  "ratatui",
@@ -232,6 +233,7 @@ dependencies = [
  "reqwest 0.13.1",
  "serde",
  "serde_json",
+ "tempfile",
  "tokio",
  "tracing",
 ]
