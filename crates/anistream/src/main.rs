@@ -2824,32 +2824,26 @@ fn dispatch(
                 let _job = job;
                 // Sequential enqueues, not parallel: each one is only a resolve + a queue
                 // row, and the download manager's own concurrency cap paces the fetches.
-                let (queued, failed) = downloads::enqueue_each(&episodes, |episode| {
+                let outcome = downloads::enqueue_each(&episodes, |episode| {
                     let (store, registry, meta, tx) = (&store, &registry, &meta, &tx);
                     async move {
-                        downloads::enqueue(store, registry, meta, id, &episode, translation)
-                            .await?;
+                        let (_, queued) = downloads::enqueue(
+                            store,
+                            registry,
+                            meta,
+                            id,
+                            &episode,
+                            translation,
+                        )
+                        .await?;
                         // Each row as it lands, so the Downloads screen fills while the rest
                         // resolve rather than saying nothing is queued until the end.
                         downloads::publish_now(store, tx);
-                        Ok(())
+                        Ok(queued)
                     }
                 })
                 .await;
-                let update = match (queued, failed) {
-                    (0, Some(reason)) => {
-                        Update::Toast(Toast::alert(format!("nothing queued: {reason}")))
-                    }
-                    (n, Some(reason)) => Update::Toast(Toast::alert(format!(
-                        "queued {}, then: {reason}",
-                        anistream_ui::widgets::plural(n, "episode")
-                    ))),
-                    (n, None) => Update::Toast(Toast::info(format!(
-                        "queued {}",
-                        anistream_ui::widgets::plural(n, "episode")
-                    ))),
-                };
-                let _ = tx.send(update);
+                let _ = tx.send(Update::Toast(outcome.toast()));
             });
         }
 
@@ -2871,10 +2865,13 @@ fn dispatch(
                 )
                 .await
                 {
-                    Ok(row) => Update::Toast(Toast::info(format!(
+                    Ok((row, downloads::Queued::New)) => Update::Toast(Toast::info(format!(
                         "queued {} ep {}",
                         row.title, row.episode
                     ))),
+                    Ok((row, downloads::Queued::Existing)) => Update::Toast(Toast::info(
+                        format!("{} ep {} is already in downloads", row.title, row.episode),
+                    )),
                     Err(refusal) => Update::Toast(Toast::alert(refusal.to_string())),
                 };
                 let _ = tx.send(update);
