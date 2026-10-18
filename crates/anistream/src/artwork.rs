@@ -20,7 +20,7 @@ use tokio::sync::mpsc;
 
 /// How long a cached cover stays valid. Art changes rarely; a month avoids re-fetching a
 /// library's worth of images while still letting a replaced cover through eventually.
-const CACHE_TTL_SECS: u64 = 30 * 24 * 3_600;
+pub const CACHE_TTL_SECS: u64 = 30 * 24 * 3_600;
 
 /// Longest edge kept in memory.
 ///

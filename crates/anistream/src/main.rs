@@ -1457,6 +1457,11 @@ async fn run(
         eprintln!("warning: keybinding: {problem}");
     }
 
+    // Old logs, stale covers and the player's leftovers, off the critical path.
+    {
+        let paths = paths.clone();
+        tokio::task::spawn_blocking(move || anistream::prune::sweep_at_launch(&paths));
+    }
     // With torrents off nothing else would ever prune what an earlier run streamed. With them
     // on, the session prunes on its way up, before it writes anything.
     if !config.providers.torrent.enabled {

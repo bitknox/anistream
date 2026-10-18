@@ -109,6 +109,9 @@ Past the limit the least recently watched go first, at launch and every couple o
 anistream runs. Downloads count toward the limit but are never removed by it; set
 `downloads.directory` to move finished downloads out of the cache altogether.
 
+The rest of the cache directory looks after itself: logs are kept for two weeks, cover art for a
+month, and what the player leaves behind for a day.
+
 ## Notifications, metadata and updates
 
 ```toml
