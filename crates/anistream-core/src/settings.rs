@@ -135,6 +135,7 @@ pub fn write_key(
 fn write_atomically(path: &Path, bytes: &[u8]) -> Result<(), crate::Error> {
     use std::io::Write;
 
+    let path = &linked_file(path);
     let parent = path.parent().ok_or_else(|| {
         crate::Error::Config(format!("{} has no parent directory", path.display()))
     })?;
@@ -178,6 +179,27 @@ fn write_atomically(path: &Path, bytes: &[u8]) -> Result<(), crate::Error> {
         return Err(crate::Error::Config(format!("cannot replace {}: {e}", path.display())));
     }
     Ok(())
+}
+
+/// The file a link at `path` leads to, or `path` itself when it is no link.
+///
+/// A config kept in a dotfiles repository and linked into place is common, and renaming over the
+/// link replaced it with a regular file: the setting stuck, and the repository silently stopped
+/// being the config. The write goes to the target instead, which may not exist yet. Followed by
+/// hand rather than canonicalised, since a link to a file not created yet has no canonical form,
+/// and bounded, since a loop of links leads nowhere.
+fn linked_file(path: &Path) -> std::path::PathBuf {
+    let mut at = path.to_path_buf();
+    for _ in 0..40 {
+        let Ok(target) = std::fs::read_link(&at) else { break };
+        // A relative target is relative to the link's own directory; `join` keeps an absolute
+        // one as it is.
+        at = match at.parent() {
+            Some(parent) => parent.join(target),
+            None => target,
+        };
+    }
+    at
 }
 
 /// Create a temporary file beside `path` under a name no other write is using.
@@ -301,6 +323,31 @@ mod tests {
             !crate::config::Config::load(&paths).unwrap().providers.torrent.enabled,
             "a refused write must change nothing"
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_linked_config_stays_a_link_and_its_target_is_written() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = temp_dir("linked");
+        let paths = paths_in(&dir);
+        let dotfiles = dir.join("dotfiles");
+        std::fs::create_dir_all(&dotfiles).unwrap();
+        let target = dotfiles.join("anistream.toml");
+        std::fs::write(&target, "[playback]\nquality = 1080\n").unwrap();
+        std::fs::set_permissions(&target, std::fs::Permissions::from_mode(0o640)).unwrap();
+        // Relative, as `ln -s` is usually given.
+        std::os::unix::fs::symlink("dotfiles/anistream.toml", &paths.config_file).unwrap();
+
+        write_key(&paths, &["playback"], "quality", SettingValue::Int(720)).unwrap();
+
+        let link = std::fs::symlink_metadata(&paths.config_file).unwrap();
+        assert!(link.file_type().is_symlink(), "the link was replaced by a file");
+        assert!(std::fs::read_to_string(&target).unwrap().contains("quality = 720"));
+        let mode = std::fs::metadata(&target).unwrap().permissions().mode() & 0o7777;
+        assert_eq!(mode, 0o640, "the target's mode was not kept");
+        let strays: Vec<_> = std::fs::read_dir(&dotfiles).unwrap().flatten().collect();
+        assert_eq!(strays.len(), 1, "a temporary file was left behind: {strays:?}");
     }
 
     #[test]
