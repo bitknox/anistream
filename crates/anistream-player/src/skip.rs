@@ -37,9 +37,10 @@ impl SkipKind {
 /// Release groups routinely author `OP`/`ED`/`Intro`/`Outro` chapters into the mkv, and
 /// those were cut against *this exact encode* — where aniskip's community times were taken
 /// against whichever rip the submitter had. When a file declares chapters, they outrank
-/// the API. An interval needs a following chapter to bound it; an unbounded final chapter
-/// is left alone rather than guessed at.
-pub fn from_chapters(chapters: &[(String, f64)]) -> Vec<SkipInterval> {
+/// the API. An interval runs to the next chapter, or for the last one to the end of the file,
+/// which is how a release that ends on its ED is cut. While the length is not known yet, a
+/// final chapter is left alone rather than guessed at.
+pub fn from_chapters(chapters: &[(String, f64)], duration: Option<f64>) -> Vec<SkipInterval> {
     let classify = |title: &str| -> Option<SkipKind> {
         let t = title.trim().to_ascii_lowercase();
         // Terse, conventional names only. "Part A", "Avant" and friends stay unclassified
@@ -58,7 +59,7 @@ pub fn from_chapters(chapters: &[(String, f64)]) -> Vec<SkipInterval> {
         .enumerate()
         .filter_map(|(i, (title, start))| {
             let kind = classify(title)?;
-            let end = chapters.get(i + 1).map(|(_, t)| *t)?;
+            let end = chapters.get(i + 1).map(|(_, t)| *t).or(duration)?;
             (end > *start).then_some(SkipInterval { kind, start: *start, end })
         })
         .collect()
@@ -108,13 +109,16 @@ mod chapter_tests {
 
     #[test]
     fn conventional_chapter_names_become_skips() {
-        let skips = from_chapters(&chapters(&[
-            ("Intro", 0.0),
-            ("Part A", 90.0),
-            ("Part B", 700.0),
-            ("Outro", 1320.0),
-            ("Preview", 1410.0),
-        ]));
+        let skips = from_chapters(
+            &chapters(&[
+                ("Intro", 0.0),
+                ("Part A", 90.0),
+                ("Part B", 700.0),
+                ("Outro", 1320.0),
+                ("Preview", 1410.0),
+            ]),
+            Some(1440.0),
+        );
         assert_eq!(
             skips,
             vec![
@@ -127,15 +131,27 @@ mod chapter_tests {
     #[test]
     fn ambiguous_and_unbounded_chapters_are_left_alone() {
         // "Avant" is a cold open — skipping it would skip story. And a final chapter has
-        // no bound, so it is not guessed at.
+        // no bound until the file's length is known, so it is not guessed at.
         let skips =
-            from_chapters(&chapters(&[("Avant", 0.0), ("Part A", 60.0), ("ED", 1300.0)]));
+            from_chapters(&chapters(&[("Avant", 0.0), ("Part A", 60.0), ("ED", 1300.0)]), None);
         assert!(skips.is_empty(), "got {skips:?}");
     }
 
     #[test]
+    fn an_ending_that_closes_the_file_runs_to_its_end() {
+        // Plenty of releases stop on the ED, with no preview chapter after it.
+        let skips = from_chapters(&chapters(&[("Part A", 0.0), ("ED", 1300.0)]), Some(1420.0));
+        assert_eq!(
+            skips,
+            vec![SkipInterval { kind: SkipKind::Ending, start: 1300.0, end: 1420.0 }]
+        );
+        // A chapter list that claims to start past the end is not believed.
+        assert!(from_chapters(&chapters(&[("ED", 1500.0)]), Some(1420.0)).is_empty());
+    }
+
+    #[test]
     fn ncop_variants_count_as_openings() {
-        let skips = from_chapters(&chapters(&[("NCOP1", 10.0), ("Part A", 100.0)]));
+        let skips = from_chapters(&chapters(&[("NCOP1", 10.0), ("Part A", 100.0)]), None);
         assert_eq!(skips[0].kind, SkipKind::Opening);
     }
 
@@ -166,7 +182,7 @@ mod chapter_tests {
             SkipInterval { kind: SkipKind::Opening, start: 0.0, end: 90.0 },
             SkipInterval { kind: SkipKind::Ending, start: 1320.0, end: 1410.0 },
         ];
-        assert_eq!(from_chapters(&to_chapters(&skips)), skips);
+        assert_eq!(from_chapters(&to_chapters(&skips), Some(1440.0)), skips);
     }
 
     #[test]
