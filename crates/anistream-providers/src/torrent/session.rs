@@ -21,7 +21,13 @@ use anistream_core::{config::LeakAction, error::ProviderError};
 use librqbit::{AddTorrent, AddTorrentOptions, Session, SessionOptions, api::TorrentIdOrHash};
 
 use crate::{
-    torrent::http::{StreamServer, StreamSource, serve},
+    torrent::{
+        http::{
+            Range, ReadySource, SeekableRead, StreamServer, StreamSource, serve,
+            serve_with_thumbnails,
+        },
+        pieces::{HavePieces, PieceLayout},
+    },
     vpn::VpnGuard,
 };
 
@@ -97,6 +103,12 @@ impl ActiveStream {
     pub fn url(&self) -> &str {
         self.server.url()
     }
+
+    /// URL to hand to a seekbar thumbnailer instead of [`Self::url`]: the same file, only the
+    /// pieces already verified, and never a wait. See [`VerifiedFile`].
+    pub fn thumbnail_url(&self) -> Option<&str> {
+        self.server.thumbnail_url()
+    }
 }
 
 /// Reads one file out of a live torrent.
@@ -124,6 +136,114 @@ impl StreamSource for TorrentFileSource {
     fn name(&self) -> String {
         self.name.clone()
     }
+}
+
+/// Reads the verified pieces of one torrent file straight from disk, for seekbar thumbnails.
+///
+/// A thumbnailer seeking around the file through [`TorrentFileSource`] would open a librqbit
+/// stream per request, and librqbit fetches ahead of every open stream in turn — so each hover
+/// would pull the swarm toward wherever the pointer was, away from the playback head. This
+/// asks librqbit for nothing. It reads the have-bitfield, serves the leading run of verified
+/// pieces, and reads those bytes from the file librqbit is writing.
+///
+/// Why these two halves, among what librqbit 8.1 exposes:
+///
+/// - **The have-bitfield comes from `Api::api_dump_haves`.** It is the one public view of the
+///   bitfield librqbit's own streams consult before every read, so "verified" means here what
+///   it means to playback, paused or live, and including pieces the start-up check found on
+///   disk from an earlier session. The other candidates fall short: a storage middleware's
+///   `on_piece_completed` hook only hears about pieces downloaded *now*, so a resumed or
+///   rewatched episode would have no thumbnails, and hashing pieces ourselves would duplicate
+///   the verifier at the cost of a full piece hash on every miss. The price is parsing `Debug`
+///   text, which [`HavePieces::from_librqbit_dump`] does strictly, failing closed.
+/// - **The bytes come from the file on disk.** Every librqbit read path that is public goes
+///   through a stream. The file is the one librqbit's filesystem storage writes, at its output
+///   folder (from `Api::api_torrent_details`) joined with the metadata's relative filename,
+///   the same rule the storage uses to open it. A piece is marked as had only after librqbit
+///   has read it back from that file and checked its hash, so once the bitfield says so the
+///   bytes are final and visible to any reader. It is opened read-only, per request; a file
+///   that has gone — or a download folder whose path is not UTF-8, which that API reports
+///   lossily — fails to open and is answered as nothing on hand.
+struct VerifiedFile {
+    api: librqbit::Api,
+    torrent: TorrentIdOrHash,
+    layout: PieceLayout,
+    pieces: u32,
+    path: PathBuf,
+}
+
+impl VerifiedFile {
+    /// Describe file `index` of a torrent whose metadata is resolved.
+    fn new(
+        session: &Arc<Session>,
+        handle: &librqbit::ManagedTorrent,
+        index: usize,
+    ) -> Result<Self, ProviderError> {
+        let api = librqbit::Api::new(Arc::clone(session), None);
+        let torrent = TorrentIdOrHash::Id(handle.id());
+        let folder = api
+            .api_torrent_details(torrent)
+            .map_err(|e| ProviderError::Other(format!("locating torrent output: {e}")))?
+            .output_folder;
+        let (layout, pieces, relative) = handle
+            .with_metadata(|metadata| {
+                let file = metadata.file_infos.get(index)?;
+                let layout = PieceLayout::new(
+                    file.offset_in_torrent,
+                    metadata.lengths.default_piece_length(),
+                );
+                Some((layout, metadata.lengths.total_pieces(), file.relative_filename.clone()))
+            })
+            .ok()
+            .flatten()
+            .ok_or_else(|| ProviderError::Parse(format!("torrent has no file {index}")))?;
+        Ok(Self { api, torrent, layout, pieces, path: PathBuf::from(folder).join(relative) })
+    }
+
+    fn have(&self) -> Option<HavePieces> {
+        // Errs while the torrent is still initialising or once it is forgotten; both mean
+        // nothing can be vouched for.
+        let dump = self.api.api_dump_haves(self.torrent).ok()?;
+        let have = HavePieces::from_librqbit_dump(&dump, self.pieces);
+        // Once per process: this is asked on every thumbnail request, and the cause is a
+        // librqbit upgrade, which will not go away between hovers.
+        static WARNED: std::sync::Once = std::sync::Once::new();
+        if have.is_none() {
+            WARNED.call_once(|| {
+                tracing::warn!("unrecognised librqbit have-bitfield; thumbnails are off");
+            });
+        }
+        have
+    }
+}
+
+impl ReadySource for VerifiedFile {
+    fn ready(&self, range: Range) -> Option<Range> {
+        let have = self.have()?;
+        self.layout.ready_prefix(range, |piece| have.has(piece))
+    }
+
+    fn open(&self) -> std::io::Result<Box<dyn SeekableRead>> {
+        let file = std::fs::File::open(&self.path)?;
+        Ok(Box::new(tokio::fs::File::from_std(file)))
+    }
+}
+
+/// A fresh 128-bit path segment for a thumbnail path.
+///
+/// Its own token rather than the stream's, so a URL for one never names the other. The same
+/// standard-library source as the session's token: `RandomState` keys are drawn from the OS.
+fn fresh_token() -> String {
+    use std::hash::{BuildHasher, Hasher};
+    let half = |salt: u64| {
+        let mut hasher = std::collections::hash_map::RandomState::new().build_hasher();
+        hasher.write_u64(salt);
+        hasher.finish()
+    };
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_nanos() as u64);
+    format!("{:016x}{:016x}", half(nanos), half(!nanos))
 }
 
 /// Owns the librqbit session and the streams built from it.
@@ -306,9 +426,18 @@ impl TorrentSession {
             length: file.length,
             name: file.name.clone(),
         };
-        let server = serve(source, &self.token)
-            .await
-            .map_err(|e| ProviderError::Other(format!("starting stream server: {e}")))?;
+        // Thumbnails are a nicety: a torrent whose file cannot be located still streams.
+        let served = match VerifiedFile::new(&self.session, &handle, file.index) {
+            Ok(verified) => {
+                serve_with_thumbnails(source, &self.token, verified, &fresh_token()).await
+            }
+            Err(e) => {
+                tracing::warn!(error = %e, "serving without thumbnails");
+                serve(source, &self.token).await
+            }
+        };
+        let server =
+            served.map_err(|e| ProviderError::Other(format!("starting stream server: {e}")))?;
 
         let active = Arc::new(ActiveStream {
             server,
@@ -760,5 +889,180 @@ mod tests {
             // Binding a listener can fail in a sandbox; that is not what this test is about.
             Err(e) => eprintln!("session start unavailable in this environment: {e}"),
         }
+    }
+
+    /// A stream source that must never be opened.
+    struct Unopenable(u64);
+
+    impl StreamSource for Unopenable {
+        fn open(&self) -> std::io::Result<Box<dyn SeekableRead>> {
+            panic!("the thumbnail path opened a prioritising stream");
+        }
+        fn len(&self) -> u64 {
+            self.0
+        }
+        fn name(&self) -> String {
+            "episode.mkv".into()
+        }
+    }
+
+    async fn get(url: &str, range: &str) -> (String, Vec<u8>) {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let rest = url.trim_start_matches("http://");
+        let (authority, path) = rest.split_once('/').unwrap();
+        let mut socket = tokio::net::TcpStream::connect(authority).await.unwrap();
+        let req =
+            format!("GET /{path} HTTP/1.1\r\nHost: {authority}\r\nRange: {range}\r\n\r\n");
+        socket.write_all(req.as_bytes()).await.unwrap();
+        let mut raw = Vec::new();
+        tokio::time::timeout(std::time::Duration::from_secs(5), socket.read_to_end(&mut raw))
+            .await
+            .expect("the thumbnail path waited instead of answering")
+            .unwrap();
+        let split = raw.windows(4).position(|w| w == b"\r\n\r\n").unwrap();
+        (String::from_utf8_lossy(&raw[..split]).into_owned(), raw[split + 4..].to_vec())
+    }
+
+    /// The data of a chunked body, ignoring the framing.
+    fn dechunk(mut raw: &[u8]) -> Vec<u8> {
+        let mut data = Vec::new();
+        while let Some(eol) = raw.windows(2).position(|w| w == b"\r\n") {
+            let size =
+                usize::from_str_radix(std::str::from_utf8(&raw[..eol]).unwrap(), 16).unwrap();
+            if size == 0 {
+                break;
+            }
+            data.extend_from_slice(&raw[eol + 2..eol + 2 + size]);
+            raw = &raw[eol + 2 + size + 2..];
+        }
+        data
+    }
+
+    #[tokio::test]
+    async fn thumbnails_read_only_verified_pieces_of_a_real_torrent() {
+        // A real librqbit session over a batch already on disk, one piece of the episode
+        // damaged after hashing so the start-up check leaves it missing. Offline throughout:
+        // no DHT, no trackers, no listener, and the torrent stays paused.
+        //
+        // This is what pins `api_dump_haves`' text to the parser. If a librqbit upgrade
+        // changes it, thumbnails would quietly turn off; here, the test fails instead.
+        const PIECE: u32 = 16 * 1024;
+        let root = std::env::temp_dir().join(format!(
+            "anistream-thumbs-{}-{}",
+            std::process::id(),
+            fresh_token()
+        ));
+        let pack = root.join("pack");
+        std::fs::create_dir_all(&pack).unwrap();
+        // The extra is not a whole number of pieces, so the episode starts mid-piece and its
+        // first piece is shared — the boundary case the layout has to get right. Nine pieces
+        // in all, so librqbit's bitfield carries padding past the last one.
+        let extra: Vec<u8> = (0..40_000_u32).map(|i| (i % 7) as u8).collect();
+        let episode: Vec<u8> = (0..(6 * PIECE + 1234)).map(|i| (i % 251) as u8).collect();
+        std::fs::write(pack.join("extra.bin"), &extra).unwrap();
+        std::fs::write(pack.join("episode.mkv"), &episode).unwrap();
+
+        let torrent = librqbit::create_torrent(
+            &pack,
+            librqbit::CreateTorrentOptions { name: Some("pack"), piece_length: Some(PIECE) },
+        )
+        .await
+        .unwrap();
+
+        // Where the episode sits in the torrent, to damage a piece wholly inside it.
+        let mut offset = 0_u64;
+        for details in torrent.as_info().info.iter_file_details().unwrap() {
+            if details.filename.to_string().unwrap().ends_with("episode.mkv") {
+                break;
+            }
+            offset += details.len;
+        }
+        let layout = PieceLayout::new(offset, PIECE);
+        let damaged = layout.piece_of(3 * u64::from(PIECE));
+        let damaged_at = (damaged * u64::from(PIECE) - offset + 10) as usize;
+        let mut on_disk = episode.clone();
+        on_disk[damaged_at] ^= 0xff;
+        std::fs::write(pack.join("episode.mkv"), &on_disk).unwrap();
+
+        let session = Session::new_with_opts(
+            root.clone(),
+            SessionOptions {
+                disable_dht: true,
+                disable_dht_persistence: true,
+                listen_port_range: None,
+                enable_upnp_port_forwarding: false,
+                ..Default::default()
+            },
+        )
+        .await
+        .unwrap();
+        let handle = session
+            .add_torrent(
+                AddTorrent::from_bytes(torrent.as_bytes().unwrap()),
+                Some(AddTorrentOptions {
+                    paused: true,
+                    overwrite: true,
+                    disable_trackers: true,
+                    ..Default::default()
+                }),
+            )
+            .await
+            .unwrap()
+            .into_handle()
+            .unwrap();
+        handle.wait_until_initialized().await.unwrap();
+
+        let index = files_of(&handle)
+            .iter()
+            .position(|f| f.name.ends_with("episode.mkv"))
+            .expect("episode in the torrent");
+        let verified = VerifiedFile::new(&session, &handle, index).unwrap();
+        // Found where librqbit's storage put it, through the session's default subfolder.
+        assert_eq!(verified.path, pack.join("episode.mkv"));
+
+        let have = verified.have().expect("librqbit's have-bitfield text no longer parses");
+        let pieces = handle.with_metadata(|m| m.lengths.total_pieces()).unwrap();
+        assert_eq!(pieces % 8, 1, "the torrent should leave padding in the bitfield");
+        assert_eq!(have.len(), pieces as usize);
+        for piece in 0..u64::from(pieces) {
+            assert_eq!(have.has(piece), piece != damaged, "piece {piece}");
+        }
+
+        let len = episode.len() as u64;
+        let damaged_start = damaged * u64::from(PIECE) - offset;
+        let server = serve_with_thumbnails(Unopenable(len), "s", verified, "t").await.unwrap();
+        let url = server.thumbnail_url().unwrap().to_owned();
+
+        // From the start: the verified run up to the damaged piece, and not a byte of it.
+        let (head, body) = get(&url, "bytes=0-").await;
+        assert!(
+            head.contains(&format!("Content-Range: bytes 0-{}/{len}", damaged_start - 1)),
+            "got {head}"
+        );
+        assert_eq!(dechunk(&body), &episode[..damaged_start as usize]);
+
+        // Inside the damaged piece: nothing, at once.
+        let (head, body) = get(&url, &format!("bytes={}-", damaged_start + 5)).await;
+        assert!(
+            head.contains(&format!("bytes {0}-{0}/{len}", damaged_start + 5)),
+            "got {head}"
+        );
+        assert!(dechunk(&body).is_empty());
+
+        // Past it: everything to the end, exactly as the stream path would send it.
+        let after = damaged_start + u64::from(PIECE);
+        let (head, body) = get(&url, &format!("bytes={after}-")).await;
+        assert!(head.contains("Content-Length"), "got {head}");
+        assert_eq!(body, &episode[after as usize..]);
+
+        // A forgotten torrent can vouch for nothing, and still answers rather than waiting.
+        session.delete(TorrentIdOrHash::Id(handle.id()), false).await.unwrap();
+        let (head, body) = get(&url, "bytes=0-").await;
+        assert!(head.contains(&format!("bytes 0-0/{len}")), "got {head}");
+        assert!(dechunk(&body).is_empty());
+
+        drop(server);
+        session.stop().await;
+        std::fs::remove_dir_all(&root).ok();
     }
 }

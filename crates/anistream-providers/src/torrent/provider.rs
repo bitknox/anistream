@@ -217,6 +217,9 @@ impl TorrentProvider {
             // The magnet, not the loopback URL: the download queue persists this and resumes from
             // it, and the loopback address stops existing the moment the session does.
             download_source: Some(magnet.clone()),
+            // Never `url` for thumbnails: every read of that is a stream librqbit fetches
+            // ahead for, and a thumbnailer seeking around would starve playback.
+            thumbnail_url: active.thumbnail_url().map(str::to_owned),
             ..Stream::new(active.url(), StreamKind::TorrentHttp)
         }])
     }
