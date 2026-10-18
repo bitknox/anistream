@@ -254,6 +254,28 @@ const MIGRATIONS: &[(&str, &str)] = &[
     CREATE INDEX IF NOT EXISTS idx_mapping_tvdb ON mapping(tvdb_id);
     "#,
     ),
+    (
+        "0005_track_memory",
+        r#"
+    -- The audio and subtitle tracks the viewer chose in the player for a series, and the
+    -- subtitle delay they settled on, carried to the next episode.
+    --
+    -- Keyed by translation as well as title: the same viewer wants different tracks from a
+    -- dub than from a sub, and one choice overwriting the other would make switching back
+    -- and forth start from the wrong place each time.
+    --
+    -- The choice itself is JSON. It describes tracks by language, title and flags rather
+    -- than by id — ids are per file — and that description is the player's vocabulary,
+    -- which may grow; a column per field would need a migration every time it did.
+    CREATE TABLE track_memory (
+        anilist_id  INTEGER NOT NULL,
+        translation TEXT    NOT NULL,
+        memory      TEXT    NOT NULL,
+        updated_at  INTEGER NOT NULL,
+        PRIMARY KEY (anilist_id, translation)
+    );
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.
@@ -366,6 +388,7 @@ mod tests {
             "sync_outbox",
             "episode_meta",
             "provider_preference",
+            "track_memory",
         ] {
             let found: bool = conn
                 .query_row(
