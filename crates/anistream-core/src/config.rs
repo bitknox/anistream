@@ -695,14 +695,13 @@ impl TorrentConfig {
             return Ok(());
         }
         // No indexer ships with anistream, so an enabled source with no endpoint would be
-        // silently inert. Say so instead.
+        // silently inert. Say so instead — in words, and short: it is what the Settings toggle
+        // answers with in one toast line, which cut the dotted keys it used to quote before the
+        // part that said what to do.
         match self.rss_url.as_deref().map(str::trim) {
             None | Some("") => {
                 return Err(crate::Error::Config(
-                    "providers.torrent.enabled is true but no providers.torrent.rss_url is \
-                     set: anistream ships no indexer, so the search endpoint is yours to \
-                     supply"
-                        .into(),
+                    "torrents need an indexer; set rss_url under [providers.torrent]".into(),
                 ));
             }
             Some(url) if !url.starts_with("http://") && !url.starts_with("https://") => {
@@ -1184,6 +1183,10 @@ mod tests {
         )
         .expect_err("must not enable a source with nothing to search");
         assert!(err.to_string().contains("rss_url"), "got: {err}");
+        // Said for a person, and short enough for the Settings toast at 80 columns.
+        let crate::Error::Config(reason) = err else { panic!("not a config error: {err}") };
+        assert!(!reason.contains("enabled is true"), "got: {reason}");
+        assert!(format!("not saved: {reason}").chars().count() <= 75, "got: {reason}");
     }
 
     #[test]
