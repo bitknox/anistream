@@ -48,6 +48,7 @@ pub fn on_battery() -> Option<bool> {
 /// Only the "Now drawing from" line is read: it is the system's own verdict. The
 /// per-battery lines that follow describe charge state ("charged", "AC attached; not
 /// charging") rather than where the power comes from.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 fn parse_pmset(output: &str) -> Option<bool> {
     let line = output.lines().find(|l| l.contains("drawing from"))?;
     let source = line.split('\'').nth(1)?;
