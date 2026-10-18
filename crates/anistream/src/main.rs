@@ -1720,7 +1720,13 @@ async fn run(
                     // Arrives whole with bracketed paste on, so a pasted link cannot fire
                     // bindings on its way into a field.
                     Some(Ok(Event::Paste(text))) => app.paste(&text),
-                    Some(Ok(Event::Resize(_, _))) => {}
+                    // The next frame redraws at the new size on its own; the list's window does
+                    // not follow by itself, and a shorter terminal would otherwise leave the
+                    // highlighted row below the bottom edge.
+                    Some(Ok(Event::Resize(width, height))) => {
+                        let area = ratatui::layout::Rect::new(0, 0, width, height);
+                        app.fit_to(screens::visible_rows(area, app.nav.section()));
+                    }
                     Some(Err(e)) => break Err(anyhow::anyhow!(e)),
                     None => break Ok(()),
                     _ => {}

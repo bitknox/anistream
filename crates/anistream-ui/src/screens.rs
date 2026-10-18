@@ -778,7 +778,11 @@ fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
     let focused = app.nav.focus() == crate::nav::Focus::Stage;
     // Two rows reserved at the bottom for the selected row's detail — the path or the failure.
     let last_row = area.bottom().saturating_sub(3);
-    for (i, row) in app.downloads.iter().enumerate() {
+    // Anchored to the selection, like the episode table: a queue longer than the screen used
+    // to stop drawing at the fold while the cursor carried on below it.
+    let room = last_row.saturating_sub(y).max(1) as usize;
+    let first = app.selected.saturating_sub(room - 1);
+    for (i, row) in app.downloads.iter().enumerate().skip(first) {
         if y >= last_row {
             break;
         }
@@ -3587,6 +3591,8 @@ pub fn visible_rows(area: Rect, section: Section) -> usize {
         // an estimate — a screenful rarely spans more than three days — and estimating
         // low only scrolls the selection a couple of lines early, never hides it.
         Section::Calendar => 5,
+        // The segment strip, its hairline and a gap sit above the list.
+        Section::Library => 3,
         _ => 0,
     };
     geometry.stage.height.saturating_sub(offset) as usize
@@ -5022,6 +5028,52 @@ mod tests {
         let text = text_of(&render_to_buffer(&app, 120, 30));
         assert!(text.contains("failed"));
         assert!(text.contains("no peers after 60s"), "the reason must survive the toast");
+    }
+
+    #[test]
+    fn a_queue_longer_than_the_screen_scrolls_to_its_selection() {
+        // The rows stopped at the fold while the cursor carried on below it.
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Downloads);
+        app.apply(crate::app::Update::Downloads(
+            (1..=40)
+                .map(|n| crate::app::DownloadRow {
+                    id: n,
+                    anilist_id: AnilistId::new(1),
+                    title: "Invented Show".into(),
+                    episode: n.to_string(),
+                    state: "queued",
+                    fraction: 0.0,
+                    downloaded: 0,
+                    total: 0,
+                    error: None,
+                    path: None,
+                })
+                .collect(),
+        ));
+        app.handle(crate::keymap::Action::Bottom, 20);
+        assert_eq!(app.selected, 39);
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("Invented Show  ep 40"), "got {text:?}");
+    }
+
+    #[test]
+    fn the_librarys_selection_stays_inside_the_rows_it_draws() {
+        // Paged as if the list had the whole stage, while three rows go to the segment strip,
+        // so the last few steps of every page moved the highlight below the fold.
+        let mut app = app_with(Content::Empty);
+        app.go_to_section(Section::Library);
+        app.apply(app.content_here(Content::Entries(
+            (1..=40).map(|n| entry(n, &format!("Invented Show {n}"))).collect(),
+        )));
+        // Narrow enough that the preview pane, which repeats the title, is not drawn.
+        let area = Rect::new(0, 0, 70, 24);
+        let rows = visible_rows(area, Section::Library);
+        for _ in 0..39 {
+            app.handle(crate::keymap::Action::Down, rows);
+        }
+        let text = text_of(&render_to_buffer(&app, area.width, area.height));
+        assert!(text.contains("Invented Show 40"), "the highlight left the screen: {text:?}");
     }
 
     #[test]

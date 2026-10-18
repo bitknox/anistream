@@ -2364,6 +2364,32 @@ impl App {
         self.backfill_calendar_if_near_top();
     }
 
+    /// Fit the list's window to `visible_rows` again, after the terminal changed size.
+    ///
+    /// The offset was only ever corrected by moving, so shrinking the terminal left the
+    /// highlighted row — the one every key acts on — below the bottom edge until the next
+    /// keypress. Fitted for the section's list even under a pushed view, so Back lands on a
+    /// window that shows its selection.
+    pub fn fit_to(&mut self, visible_rows: usize) {
+        if self.content_view().is_none() {
+            return;
+        }
+        let len = self.content.len();
+        if len == 0 {
+            self.offset = 0;
+            return;
+        }
+        let rows = visible_rows.max(1);
+        self.selected = self.selected.min(len - 1);
+        if self.selected < self.offset {
+            self.offset = self.selected;
+        } else if self.selected >= self.offset + rows {
+            self.offset = self.selected + 1 - rows;
+        }
+        // A taller window shows more of the list rather than empty rows under its end.
+        self.offset = self.offset.min(len.saturating_sub(rows));
+    }
+
     /// Which rows the cursor walks on the screen on top, if it has any.
     ///
     /// One answer for every movement key. Each screen used to claim ↑ and ↓ for itself, and
@@ -7651,6 +7677,23 @@ mod tests {
         assert_eq!(a.handle(Action::FocusSearch, 5), None);
         assert!(a.is_typing());
         assert_eq!(a.content.len(), 40);
+    }
+
+    #[test]
+    fn a_shorter_window_brings_the_selection_back_into_view() {
+        let mut a = home_list(50);
+        for _ in 0..30 {
+            a.handle(Action::Down, 40);
+        }
+        assert_eq!((a.selected, a.offset), (30, 0));
+        a.fit_to(10);
+        assert!(a.selected >= a.offset && a.selected < a.offset + 10, "offset {}", a.offset);
+
+        // And a taller one shows more of the list rather than empty rows under its end.
+        a.handle(Action::Bottom, 10);
+        assert_eq!(a.offset, 40);
+        a.fit_to(30);
+        assert_eq!(a.offset, 20);
     }
 
     #[test]
