@@ -3030,12 +3030,10 @@ async fn resolve_for_playback(
         anilist_id: id,
         mal_id,
         episode: episode.to_owned(),
-        title: media
-            .match_target()
-            .titles
-            .first()
-            .cloned()
-            .unwrap_or_else(|| format!("anilist {}", id.get())),
+        // The name the terminal shows the title by, so the player's top bar, the window and
+        // the terminal agree. The match target's first title is whichever the matcher tries
+        // first, which is often the romaji one.
+        title: media.title.display().to_owned(),
         translation: playback.translation,
         resume_at,
         runtime_secs: media.duration.map(|minutes| minutes * 60),
