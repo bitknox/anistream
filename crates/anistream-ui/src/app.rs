@@ -2898,8 +2898,8 @@ impl App {
     /// Every overlay: Back closes it, Quit quits, and Help toggles the key reference on top —
     /// stacked, so Esc returns to the question it was opened from. Beyond that there are two
     /// kinds. **Help and Logs** are references with nothing to lose by leaving, so the keys
-    /// that go somewhere — the palette, search, the section numbers, Logs — close them and go;
-    /// their movement keys scroll. **Every other overlay asks a question**, and only its own
+    /// that go somewhere — the palette, search, the section numbers, Logs — close them and go,
+    /// save the section numbers over a playing Now Playing; their movement keys scroll. **Every other overlay asks a question**, and only its own
     /// keys work until it is answered or dismissed: a `5` in the rating picker must not jump to
     /// Downloads.
     fn handle_in_overlay(
@@ -2934,6 +2934,15 @@ impl App {
                 // The same key again closes it, as `?` does for Help.
                 Action::ShowLogs if *overlay == Overlay::Logs => {
                     self.nav.close_overlay();
+                    return None;
+                }
+                // Over Now Playing the digits belong to the player — `9` and `0` are its
+                // volume — so behind Help or Logs a section number does nothing, rather than
+                // closing the reference and leaving the player for another screen.
+                Action::JumpSection(_)
+                    if self.playing.is_some()
+                        && matches!(self.nav.current(), StageView::NowPlaying) =>
+                {
                     return None;
                 }
                 Action::CommandPalette
@@ -4709,8 +4718,10 @@ impl App {
     /// One source of truth shared by movement, Enter and the renderer. Deriving the selectable
     /// set separately from the drawn set is how a palette ends up running the wrong entry.
     pub fn palette_matches(&self) -> Vec<(Action, String)> {
+        // The keys the screen will read once the palette is closed, not the palette's own.
+        let context = if self.playing.is_some() { Context::Playing } else { Context::Browsing };
         self.keymap
-            .palette_entries(&self.palette_query)
+            .palette_entries(&self.palette_query, context)
             .into_iter()
             .take(PALETTE_ROWS)
             .collect()
@@ -8637,6 +8648,22 @@ mod tests {
             "{:?}",
             a.toasts
         );
+    }
+
+    #[test]
+    fn a_digit_behind_help_on_now_playing_stays_with_the_player() {
+        // `9` is volume on Now Playing; behind Help it closed Help and went to Settings.
+        let mut a = home_list(3);
+        let _ = a.begin_playback(AnilistId::new(1), "1".into());
+        assert_eq!(a.nav.current(), &StageView::NowPlaying);
+        for overlay in [Action::Help, Action::ShowLogs] {
+            a.handle(overlay, 5);
+            let nine = KeyEvent::new(KeyCode::Char('9'), KeyModifiers::NONE);
+            assert_eq!(a.press(nine, 5), None);
+            assert!(a.nav.has_overlay(), "{overlay:?} must stay open");
+            assert_eq!(a.nav.current(), &StageView::NowPlaying);
+            a.handle(Action::Back, 5);
+        }
     }
 
     #[test]

@@ -947,12 +947,14 @@ impl Keymap {
             .collect()
     }
 
-    /// Actions offered by the command palette, best match first.
+    /// Actions offered by the command palette, best match first, each with the key that runs
+    /// it in `context` — the screen's, once the palette is closed. While something plays, `L`
+    /// seeks rather than opening Logs, and the palette said `L` for Logs.
     ///
     /// The query matches as a subsequence, so `epsd` finds Episodes and `sett` finds Settings —
     /// a palette is typed fast and abbreviated, and substring matching made a missed letter
     /// mean no result at all. Ranked by [`match_rank`], ties kept in [`Action::ALL`]'s order.
-    pub fn palette_entries(&self, query: &str) -> Vec<(Action, String)> {
+    pub fn palette_entries(&self, query: &str, context: Context) -> Vec<(Action, String)> {
         let needle = query.trim().to_lowercase();
         // Driven off `Action::ALL`, not the binding table: an action with no key — Accounts and
         // Conflicts deliberately have none — must still be reachable, and the palette is the
@@ -977,7 +979,7 @@ impl Keymap {
         ranked
             .into_iter()
             .map(|(_, _, action)| {
-                let mut keys = self.keys_for(action);
+                let mut keys = self.keys_in(action, context);
                 keys.sort();
                 (action, keys.first().map(Binding::render).unwrap_or_default())
             })
@@ -1480,17 +1482,20 @@ mod tests {
     #[test]
     fn the_command_palette_filters_by_label_and_by_config_key() {
         let keymap = Keymap::new();
-        let all = keymap.palette_entries("");
+        let all = keymap.palette_entries("", Context::Browsing);
         assert!(all.len() > 20, "palette should expose everything, got {}", all.len());
 
-        let episodes = keymap.palette_entries("episode");
+        let episodes = keymap.palette_entries("episode", Context::Browsing);
         assert!(episodes.iter().any(|(a, _)| *a == Action::ShowEpisodes));
 
         // Config-key search works too, so `show_episodes` finds it.
         assert!(
-            keymap.palette_entries("show_ep").iter().any(|(a, _)| *a == Action::ShowEpisodes)
+            keymap
+                .palette_entries("show_ep", Context::Browsing)
+                .iter()
+                .any(|(a, _)| *a == Action::ShowEpisodes)
         );
-        assert!(keymap.palette_entries("zzzz").is_empty());
+        assert!(keymap.palette_entries("zzzz", Context::Browsing).is_empty());
     }
 
     #[test]
@@ -1500,7 +1505,7 @@ mod tests {
         // exist *only* here — which is why this cannot be driven off the binding table.
         let keymap = Keymap::new();
         let listed: Vec<Action> =
-            keymap.palette_entries("").into_iter().map(|(a, _)| a).collect();
+            keymap.palette_entries("", Context::Browsing).into_iter().map(|(a, _)| a).collect();
         for action in Action::ALL {
             assert!(listed.contains(action), "{action:?} is unreachable from the palette");
         }
@@ -1510,7 +1515,7 @@ mod tests {
     #[test]
     fn a_keyless_action_shows_no_key_rather_than_a_wrong_one() {
         let keymap = Keymap::new();
-        let entries = keymap.palette_entries("accounts");
+        let entries = keymap.palette_entries("accounts", Context::Browsing);
         let (action, rendered) = entries.first().expect("Accounts is not in the palette");
         assert_eq!(*action, Action::ShowAccounts);
         assert!(rendered.is_empty(), "showed {rendered:?} for an unbound action");
@@ -1519,7 +1524,7 @@ mod tests {
     #[test]
     fn a_bound_action_still_shows_its_key_in_the_palette() {
         let keymap = Keymap::new();
-        let entries = keymap.palette_entries("episodes");
+        let entries = keymap.palette_entries("episodes", Context::Browsing);
         let (_, rendered) = entries
             .iter()
             .find(|(a, _)| *a == Action::ShowEpisodes)
@@ -1532,7 +1537,7 @@ mod tests {
         // `keys_for` spans both tables, so the palette has to show `space` for pause even
         // though pause lives outside the browsing map.
         let keymap = Keymap::new();
-        let entries = keymap.palette_entries("pause");
+        let entries = keymap.palette_entries("pause", Context::Browsing);
         let (_, rendered) = entries
             .iter()
             .find(|(a, _)| *a == Action::PlayPause)
@@ -1541,10 +1546,28 @@ mod tests {
     }
 
     #[test]
+    fn the_palette_names_no_key_the_player_has_taken() {
+        // `L` opens Logs on a list and seeks thirty seconds on while an episode plays.
+        let keymap = Keymap::new();
+        let logs = |context| {
+            keymap
+                .palette_entries("logs", context)
+                .into_iter()
+                .find(|(a, _)| *a == Action::ShowLogs)
+                .map(|(_, key)| key)
+        };
+        assert_eq!(logs(Context::Browsing).as_deref(), Some("L"));
+        assert_eq!(logs(Context::Playing).as_deref(), Some(""), "no key opens Logs then");
+    }
+
+    #[test]
     fn config_keys_are_snake_case_and_unique() {
         let keymap = Keymap::new();
-        let mut keys: Vec<String> =
-            keymap.palette_entries("").iter().map(|(a, _)| a.config_key()).collect();
+        let mut keys: Vec<String> = keymap
+            .palette_entries("", Context::Browsing)
+            .iter()
+            .map(|(a, _)| a.config_key())
+            .collect();
         let count = keys.len();
         keys.sort();
         keys.dedup();
@@ -1719,26 +1742,29 @@ mod tests {
     #[test]
     fn the_palette_matches_abbreviations_best_first() {
         let keymap = Keymap::new();
-        let top = |query: &str| keymap.palette_entries(query).first().map(|(a, _)| *a);
+        let top = |query: &str| {
+            keymap.palette_entries(query, Context::Browsing).first().map(|(a, _)| *a)
+        };
         assert_eq!(top("epsd"), Some(Action::ShowEpisodes));
         assert_eq!(top("sett"), Some(Action::JumpSection(9)));
         assert_eq!(top("cal"), Some(Action::JumpSection(2)));
         assert_eq!(top("dwnld"), Some(Action::Download));
         // A word start outranks a scattered match of the same letters.
         assert_eq!(top("trailer"), Some(Action::PlayTrailer));
-        assert!(keymap.palette_entries("qqqq").is_empty());
+        assert!(keymap.palette_entries("qqqq", Context::Browsing).is_empty());
     }
 
     #[test]
     fn every_section_has_its_own_palette_command() {
         // One "Go to section" entry could only ever go to the first.
         let keymap = Keymap::new();
-        let all: Vec<Action> = keymap.palette_entries("").into_iter().map(|(a, _)| a).collect();
+        let all: Vec<Action> =
+            keymap.palette_entries("", Context::Browsing).into_iter().map(|(a, _)| a).collect();
         for n in 1..=Section::ALL.len() as u8 {
             assert!(all.contains(&Action::JumpSection(n)), "section {n} missing");
         }
         let (_, key) = keymap
-            .palette_entries("settings")
+            .palette_entries("settings", Context::Browsing)
             .into_iter()
             .find(|(a, _)| *a == Action::JumpSection(9))
             .expect("Go to Settings");
