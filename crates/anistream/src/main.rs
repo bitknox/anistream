@@ -3485,33 +3485,61 @@ async fn resolve_for_playback(
         tracing::debug!(provider = %name, "pinned source is not registered, using the chain");
     }
     let registry = pinned.as_ref().unwrap_or(registry);
-
-    let resolution = anistream_providers::resolve(
-        store,
-        registry,
-        id,
-        &media.match_target(),
-        playback.translation,
-        now,
-    )
-    .await;
-    let key = resolution
-        .key()
-        .cloned()
-        .ok_or_else(|| format!("could not match this title: {}", resolution.explain()))?;
+    let target = media.match_target();
 
     step(format!("searching sources for ep {episode}"));
     let mut streams = match &pick {
         // A picked release goes straight to its provider, no failover: substituting a
-        // different stream for the one the user chose would silently undo the choice.
-        Some((provider_id, source_id)) => registry
-            .resolve_source(provider_id, &key, episode, playback.translation, source_id, now)
-            .await
-            .map_err(|e| format!("could not start that release: {e}"))?,
+        // different stream for the one the user chose would silently undo the choice. Matched
+        // on that provider, whose key it is.
+        Some((provider_id, source_id)) => {
+            let source = registry
+                .pinned(provider_id)
+                .ok_or_else(|| format!("{provider_id} is not a source any more"))?;
+            let resolution = anistream_providers::resolve(
+                store,
+                &source,
+                id,
+                &target,
+                playback.translation,
+                now,
+            )
+            .await;
+            let key = resolution.key().cloned().ok_or_else(|| {
+                format!("could not match this title: {}", resolution.explain())
+            })?;
+            source
+                .resolve_source(
+                    provider_id,
+                    &key,
+                    episode,
+                    playback.translation,
+                    source_id,
+                    now,
+                )
+                .await
+                .map_err(|e| format!("could not start that release: {e}"))?
+        }
         None => {
-            let attempt = registry.resolve(&key, episode, playback.translation, now).await;
-            let summary = attempt.summary();
-            attempt.value.ok_or(summary)?
+            let answer = anistream_providers::first_answer(
+                store,
+                registry,
+                id,
+                &target,
+                playback.translation,
+                now,
+                |source, key| async move {
+                    source.resolve(&key, episode, playback.translation, now).await
+                },
+            )
+            .await;
+            match answer {
+                anistream_providers::Answer::Answered { value, .. } => value,
+                anistream_providers::Answer::Ambiguous { .. } => {
+                    return Err(format!("could not match this title: {}", answer.explain()));
+                }
+                anistream_providers::Answer::Unanswered { .. } => return Err(answer.explain()),
+            }
         }
     };
 
@@ -3567,21 +3595,25 @@ async fn source_slate(
         return Err("no sources configured — see the Providers screen".into());
     }
     let media = meta.media(id).await.map_err(|e| e.to_string())?;
+    let target = media.match_target();
     let now = now_epoch();
-    let resolution = anistream_providers::resolve(
-        store,
-        registry,
-        id,
-        &media.match_target(),
-        translation,
-        now,
-    )
-    .await;
-    let key = resolution
-        .key()
-        .cloned()
-        .ok_or_else(|| format!("could not match this title: {}", resolution.explain()))?;
-    Ok(registry.sources(&key, episode, translation, now).await)
+    // Each provider's releases under its own key: one provider's key means nothing to another.
+    // A provider that cannot match the title has nothing to offer here, and the rest still do.
+    let mut slate = Vec::new();
+    let mut reasons = Vec::new();
+    for provider_id in registry.usable_ids() {
+        let Some(source) = registry.pinned(&provider_id) else { continue };
+        let resolution =
+            anistream_providers::resolve(store, &source, id, &target, translation, now).await;
+        match resolution.key() {
+            Some(key) => slate.extend(source.sources(key, episode, translation, now).await),
+            None => reasons.push(format!("{provider_id}: {}", resolution.explain())),
+        }
+    }
+    if slate.is_empty() && !reasons.is_empty() {
+        return Err(format!("could not match this title: {}", reasons.join(", ")));
+    }
+    Ok(slate)
 }
 
 /// What loading a title's episodes produced.
@@ -3608,24 +3640,31 @@ async fn load_episodes(
     let target = media.match_target();
     let now = now_epoch();
 
-    let resolution = anistream_providers::resolve(
+    // From the source playback would use: the one pinned for this title, or else the first in
+    // the order that has it, so the table's numbering is the one Enter plays.
+    let pinned = store.provider_preference(id).ok().flatten().and_then(|p| registry.pinned(&p));
+    let registry = pinned.as_ref().unwrap_or(registry);
+    let answer = anistream_providers::first_answer(
         store,
         registry,
         id,
         &target,
         anistream_core::media::Translation::Sub,
         now,
+        |source, key| async move {
+            source.episodes(&key, anistream_core::media::Translation::Sub, now).await
+        },
     )
     .await;
 
-    let key = match &resolution {
-        anistream_providers::Resolution::Resolved { key, .. } => key.clone(),
+    let mut episodes = match answer {
+        anistream_providers::Answer::Answered { value, .. } => value,
         // Candidates exist, none confidently enough to pick. That is a question, not a
         // failure: the user can see which of these is their show, and the answer is
         // remembered as an override so it is asked once.
-        anistream_providers::Resolution::Ambiguous { provider_id, candidates } => {
+        anistream_providers::Answer::Ambiguous { provider_id, candidates } => {
             return Ok(EpisodeLoad::Choose {
-                provider_id: provider_id.clone(),
+                provider_id,
                 candidates: candidates
                     .iter()
                     .map(|candidate| anistream_ui::MatchCandidate {
@@ -3637,14 +3676,10 @@ async fn load_episodes(
                     .collect(),
             });
         }
-        anistream_providers::Resolution::NotFound { .. } => {
-            return Err(format!("could not match this title: {}", resolution.explain()));
+        anistream_providers::Answer::Unanswered { .. } => {
+            return Err(format!("could not list episodes: {}", answer.explain()));
         }
     };
-
-    let attempt = registry.episodes(&key, anistream_core::media::Translation::Sub, now).await;
-    let summary = attempt.summary();
-    let mut episodes = attempt.value.ok_or(summary)?;
 
     // A torrent source knows an episode exists but not what it is called. The metadata we
     // already fetched above does, so name them before they reach the table.
@@ -3733,26 +3768,28 @@ async fn stream_url(
     println!("title       {}", media.title.display());
 
     let now = now_epoch();
-    let resolution = anistream_providers::resolve(
+    let translation = config.playback.translation;
+    let answer = anistream_providers::first_answer(
         store,
         &registry,
         id,
         &media.match_target(),
-        config.playback.translation,
+        translation,
         now,
+        |source, key| async move { source.resolve(&key, episode, translation, now).await },
     )
     .await;
-    let Some(key) = resolution.key().cloned() else {
-        anyhow::bail!("could not match this title: {}", resolution.explain());
-    };
-    println!("matched     {key:?} via {}", resolution.explain());
-
-    let attempt = registry.resolve(&key, episode, config.playback.translation, now).await;
-    let streams = match attempt.value {
-        Some(streams) if !streams.is_empty() => streams,
-        // An empty list is the silent case: a successful call that answers "nothing".
-        Some(_) => anyhow::bail!("resolved to zero streams: {}", attempt.summary()),
-        None => anyhow::bail!("every source failed: {}", attempt.summary()),
+    let streams = match answer {
+        anistream_providers::Answer::Answered { provider_id, key, value } => {
+            println!("matched     {key:?} on {provider_id}");
+            value
+        }
+        anistream_providers::Answer::Ambiguous { .. } => {
+            anyhow::bail!("could not match this title: {}", answer.explain())
+        }
+        anistream_providers::Answer::Unanswered { .. } => {
+            anyhow::bail!("every source failed: {}", answer.explain())
+        }
     };
 
     println!();

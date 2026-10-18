@@ -1,13 +1,14 @@
 //! Provider registry and failover.
 //!
-//! The single most important behaviour in this module is *when not to fail over*. A
-//! provider that answers correctly and simply has no such title has done its job; moving on
-//! to the next one would burn the whole chain to reach the same answer, and would mask a
-//! correct "not found" behind whatever the last provider in the list happens to say.
+//! Every source keeps its own catalogue, so one that has no such title or episode says nothing
+//! about the next: `NotFound` moves the walk on, as `Blocked`, `Parse` and `Transport` do. What
+//! sets it apart is that it is an answer rather than a fault, so it never counts against the
+//! source's health ([`ProviderError::counts_against_health`]), and the attempt still reports it
+//! by name when no source has what was asked for.
 //!
-//! So `NotFound` stops the walk, while `Blocked`, `Parse` and `Transport` continue it. That
-//! asymmetry is [`ProviderError::should_failover`], and it is the reason the error enum is
-//! shaped the way it is.
+//! A [`ProviderKey`] is only meaningful to the source that issued it, so a walk that carries one
+//! is a walk over one source. Asking each source for a title under its own key is
+//! [`crate::resolve::first_answer`]'s work.
 
 use std::{sync::Arc, time::Instant};
 
@@ -241,6 +242,11 @@ impl ProviderRegistry {
         })
     }
 
+    /// The ids of the sources worth trying right now, in preference order.
+    pub fn usable_ids(&self) -> Vec<String> {
+        self.candidates().iter().map(|p| p.manifest().id.clone()).collect()
+    }
+
     /// Providers that are worth trying right now, in preference order.
     fn candidates(&self) -> Vec<Arc<dyn Provider>> {
         let usable = self.health.usable(&self.ids());
@@ -281,12 +287,11 @@ impl ProviderRegistry {
                 }
                 Err(error) => {
                     self.health.record_failure(&id, &error, now);
-                    let should_continue = error.should_failover();
+                    // A source without the title speaks for its own catalogue only.
+                    let should_continue =
+                        error.should_failover() || matches!(error, ProviderError::NotFound);
                     tracing::debug!(provider = %id, %error, should_continue, "provider failed");
                     failures.push((id, error));
-
-                    // `NotFound` is an answer, not a fault. Continuing past it would spend
-                    // every remaining provider to arrive at the same conclusion.
                     if !should_continue {
                         break;
                     }
@@ -647,20 +652,19 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_not_found_stops_the_walk_instead_of_burning_the_chain() {
-        // The most important behaviour here. A source that answers "I do not have that" has
-        // done its job; continuing would spend every remaining provider for the same answer
-        // and could mask it behind a different provider's error.
-        let b = MockProvider::new("b").with_streams(vec![stream("from-b")]);
-        let calls = b.call_count();
+    async fn a_not_found_moves_on_without_counting_against_the_source() {
+        // Sources keep their own catalogues: one without the title says nothing about the next.
         let r = registry(vec![
             MockProvider::new("a").failing(ProviderError::NotFound).arc(),
-            b.arc(),
+            MockProvider::new("b")
+                .with_hits(vec![SearchHit::new(ProviderKey::new("b-1"), "x")])
+                .arc(),
         ]);
 
-        let attempt = r.resolve(&ProviderKey::new("k"), "1", Translation::Sub, 0).await;
-        assert!(!attempt.is_success());
-        assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 0, "b must not be called");
+        let attempt = r.search("x", Translation::Sub, 0).await;
+        assert_eq!(attempt.provider.as_deref(), Some("b"));
+        assert_eq!(attempt.failures, [("a".to_owned(), ProviderError::NotFound)]);
+        assert!(r.health().get("a").is_some_and(|h| h.is_usable()), "an answer is not a fault");
     }
 
     #[tokio::test]
@@ -701,9 +705,8 @@ mod tests {
             MockProvider::new("b").with_streams(vec![stream("from-b")]).arc(),
         ]);
         let attempt = r.resolve(&ProviderKey::new("k"), "1", Translation::Sub, 0).await;
-        // Empty maps to NotFound, which stops the walk — so this reports failure rather
-        // than silently succeeding with nothing.
-        assert!(!attempt.is_success());
+        // Empty maps to NotFound, so the walk moves on to a source that has something.
+        assert_eq!(attempt.provider.as_deref(), Some("b"));
         assert_eq!(attempt.failures[0].1, ProviderError::NotFound);
     }
 
