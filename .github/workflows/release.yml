@@ -73,6 +73,7 @@ jobs:
           mkdir -p "dist/${name}"
           cp "target/${{ matrix.target }}/release/anistream" "dist/${name}/"
           cp README.md LICENSE "dist/${name}/"
+          packaging/third-party.sh "dist/${name}/third-party"
           tar -czf "dist/${name}.tar.gz" -C dist "${name}"
           shasum -a 256 "dist/${name}.tar.gz" > "dist/${name}.tar.gz.sha256"
 
@@ -87,6 +88,11 @@ jobs:
           New-Item -ItemType Directory -Force -Path "dist/$name" | Out-Null
           Copy-Item "target/${{ matrix.target }}/release/anistream.exe" "dist/$name/"
           Copy-Item README.md,LICENSE "dist/$name/"
+          # The notices for what the binary embeds; packaging/third-party.sh for the others.
+          New-Item -ItemType Directory -Force -Path "dist/$name/third-party" | Out-Null
+          Copy-Item assets/THIRD-PARTY.md "dist/$name/third-party/"
+          Copy-Item assets/shaders/THIRD-PARTY.md "dist/$name/third-party/THIRD-PARTY-shaders.md"
+          Copy-Item assets/mpv/licenses/*,assets/shaders/LICENSE-* "dist/$name/third-party/"
           Compress-Archive -Path "dist/$name" -DestinationPath "dist/$name.zip"
           (Get-FileHash "dist/$name.zip" -Algorithm SHA256).Hash.ToLower() +
             "  $name.zip" | Out-File "dist/$name.zip.sha256" -Encoding ascii
@@ -107,6 +113,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
           Copy-Item "target/${{ matrix.target }}/release/anistream.exe" $stage
           Copy-Item assets/icon/anistream.ico,LICENSE,README.md $stage
+          Copy-Item "dist/*/third-party" $stage -Recurse
           # Braces are load-bearing: without them pwsh parses `$env:ProgramFiles` and
           # appends `(x86)` as literal text, pointing at a directory that does not exist.
           & "${env:ProgramFiles(x86)}\NSIS\makensis.exe" `
@@ -137,6 +144,7 @@ jobs:
           install -m 755 "target/${arch}/release/anistream" "$app/Contents/MacOS/anistream"
           iconutil -c icns assets/icon/anistream.iconset \
             -o "$app/Contents/Resources/anistream.icns"
+          packaging/third-party.sh "$app/Contents/Resources/third-party"
 
           # Installing the .app also puts the binary on PATH, so the two ways of running it stay
           # the same build rather than drifting apart.
@@ -169,6 +177,7 @@ jobs:
           install -m 644 packaging/linux/anistream.desktop \
             "$root/usr/share/applications/anistream.desktop"
           install -m 644 LICENSE "$root/usr/share/doc/anistream/copyright"
+          packaging/third-party.sh "$root/usr/share/doc/anistream/third-party"
           for size in 16 32 48 64 128 256 512; do
             dir="$root/usr/share/icons/hicolor/${size}x${size}/apps"
             mkdir -p "$dir"
@@ -220,6 +229,7 @@ jobs:
           install -m 644 assets/icon/256x256.png \
             "$appdir/usr/share/icons/hicolor/256x256/apps/anistream.png"
           cp "$appdir/anistream.png" "$appdir/.DirIcon"
+          packaging/third-party.sh "$appdir/usr/share/doc/anistream/third-party"
           ln -s usr/bin/anistream "$appdir/AppRun"
 
           curl -fsSL -o appimagetool \

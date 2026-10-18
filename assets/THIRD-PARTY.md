@@ -5,6 +5,10 @@ Everything under `assets/mpv/` is embedded in the anistream binary and written t
 included, so a copy of each licence travels with every binary. This file records where each
 piece came from and under what terms. Update it in the same commit as the files.
 
+The upscaling shaders under `assets/shaders/` are recorded separately, in
+[`assets/shaders/THIRD-PARTY.md`](shaders/THIRD-PARTY.md). Release packages carry both files and
+every licence text in a `third-party/` folder (`packaging/third-party.sh`).
+
 ## uosc
 
 | | |
