@@ -2572,7 +2572,7 @@ mod tests {
 
     fn app_with(content: Content) -> App {
         let mut app = App::new(Config::default(), Palette::dark(), Keymap::new());
-        app.apply(Update::Content(content));
+        app.apply(app.content_here(content));
         app
     }
 
@@ -2694,7 +2694,7 @@ mod tests {
         let mut app = app_with(Content::Entries(vec![]));
         app.go_to_section(Section::Search);
         app.search_query = "zzzz".into();
-        app.apply(crate::app::Update::Content(Content::Entries(vec![])));
+        app.apply(app.content_here(Content::Entries(vec![])));
         let text = text_of(&render_to_buffer(&app, 120, 30));
         assert!(text.contains("NO MATCHES"), "got {text:?}");
         assert!(!text.contains("COULD NOT"));
@@ -2715,12 +2715,12 @@ mod tests {
         // The two shades of empty. Collapsing them loses the only signal that says which you are in.
         let mut untouched = app_with(Content::Empty);
         untouched.go_to_section(Section::Search);
-        untouched.apply(crate::app::Update::Content(Content::Empty));
+        untouched.apply(untouched.content_here(Content::Empty));
         assert!(text_of(&render_to_buffer(&untouched, 120, 30)).contains("TYPE TO SEARCH"));
 
         let mut searched = app_with(Content::Empty);
         searched.go_to_section(Section::Search);
-        searched.apply(crate::app::Update::Content(Content::Entries(vec![])));
+        searched.apply(searched.content_here(Content::Entries(vec![])));
         assert!(text_of(&render_to_buffer(&searched, 120, 30)).contains("NO MATCHES"));
     }
 
@@ -2863,7 +2863,9 @@ mod tests {
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
         app.handle(crate::keymap::Action::Open, 20);
         app.nav.push(StageView::Episodes(AnilistId::new(1)));
-        app.apply(Update::Episodes(vec![
+        // As entering episodes does: the table is a view of the open title.
+        app.detail = app.selected_entry().cloned();
+        app.apply(app.episodes_here(vec![
             episode("9", "Aura the Guillotine", 1.0, true),
             episode("10", "Frieren the Slayer", 0.62, false),
             episode("11", "A Real Hero", 0.0, false),
@@ -3106,7 +3108,9 @@ mod tests {
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
         app.handle(crate::keymap::Action::Open, 20);
         app.nav.push(StageView::Episodes(AnilistId::new(1)));
-        app.apply(Update::Episodes(vec![
+        // As entering episodes does: the table is a view of the open title.
+        app.detail = app.selected_entry().cloned();
+        app.apply(app.episodes_here(vec![
             episode("9", "Aura the Guillotine", 1.0, true),
             episode("10", "Frieren the Slayer", 0.62, false),
             episode("11", "A Real Hero", 0.0, false),
@@ -3672,7 +3676,7 @@ mod tests {
         aired.airing_in = Some(-1);
         let mut upcoming = entry(2, "Airs Later");
         upcoming.airing_in = Some(26 * 3600);
-        app.apply(crate::app::Update::Content(Content::Entries(vec![aired, upcoming])));
+        app.apply(app.content_here(Content::Entries(vec![aired, upcoming])));
 
         let text = text_of(&render_to_buffer(&app, 120, 30));
         // Labels computed by the same helpers the renderer uses, so the assertion holds
