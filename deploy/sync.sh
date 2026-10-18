@@ -27,8 +27,8 @@ files=(store.js store_bg.wasm store.d.ts store_bg.wasm.d.ts)
 # stale. Content, not commits, so an uncommitted change counts.
 sources() (
   cd "$root"
-  tree="$(cargo tree --quiet -p anistream-store-wasm --target wasm32-unknown-unknown \
-    -e normal,build --prefix none --format '{p} {f}' |
+  tree="$(cargo tree --quiet --color never -p anistream-store-wasm \
+    --target wasm32-unknown-unknown -e normal,build --prefix none --format '{p} {f}' |
     sed -e 's/ (\*)$//' -e "s|$root|.|" | LC_ALL=C sort -u)"
   printf '%s\n' "$tree"
   awk '/^\[/ { keep = /^\[profile\.release/ } keep' Cargo.toml
