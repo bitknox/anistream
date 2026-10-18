@@ -15,6 +15,7 @@ pub mod presence;
 pub mod protocol;
 pub mod skip;
 pub mod tracker;
+pub mod tracks;
 
 pub use bundle::Bundle;
 pub use companion::{Choice, ScriptEvent};
@@ -24,3 +25,4 @@ pub use presence::{Activity, Presence};
 pub use protocol::{Command, EndReason, Event};
 pub use skip::{SkipInterval, SkipKind};
 pub use tracker::{Action, PlaybackTracker};
+pub use tracks::{TrackAction, TrackInput, TrackPolicy, TrackPreferences};
