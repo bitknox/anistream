@@ -960,10 +960,14 @@ impl LibrarySegment {
         }
     }
 
+    /// The neighbouring segment, stopping at both ends.
+    ///
+    /// Clamps rather than wraps, the same rule as the rail, every list and every value ladder:
+    /// the ends are informative, and the left end is where Left carries on to the rail.
     pub fn step(self, delta: isize) -> Self {
         let all = Self::ALL;
         let current = all.iter().position(|s| *s == self).unwrap_or(0) as isize;
-        let next = (current + delta).rem_euclid(all.len() as isize) as usize;
+        let next = (current + delta).clamp(0, all.len() as isize - 1) as usize;
         all[next]
     }
 }
@@ -2720,14 +2724,22 @@ impl App {
             | Action::PageDown
             | Action::Top
             | Action::Bottom => return self.move_cursor(action, visible_rows),
-            // Screens with a horizontal axis claim Left/Right for it: Settings cycles the
-            // selected value, Library steps the status segment. Everywhere else the keys
-            // move focus between rail and stage.
-            Action::Right if self.in_settings_stage() => return self.cycle_setting(1),
-            Action::Left if self.in_settings_stage() => return self.cycle_setting(-1),
+            // Left goes left until nothing is further left, then onto the rail. Screens with a
+            // horizontal axis step it first — Settings a value, Library its segments — and a
+            // pushed view's left is the view it was opened from, so a stack of titles is never
+            // stranded behind a focused rail that switches section on the next ↓.
+            Action::Right if self.in_settings_stage() => return self.step_setting(1),
+            Action::Left if self.in_settings_stage() => return self.step_setting(-1),
             Action::Right if self.in_library_stage() => return self.step_segment(1),
             Action::Left if self.in_library_stage() => return self.step_segment(-1),
             Action::Right => self.nav.focus_stage(),
+            // Now Playing hides the rail and leaves through its own keys, `q` and `x`.
+            Action::Left
+                if self.nav.depth() > 1
+                    && !matches!(self.nav.current(), StageView::NowPlaying) =>
+            {
+                self.go_back();
+            }
             Action::Left => self.nav.focus_rail(),
             // In the episode table Enter plays; everywhere else it opens the title.
             Action::Open if self.in_episodes() => return self.play_selected_episode(),
@@ -3453,8 +3465,17 @@ impl App {
             && matches!(self.nav.current(), StageView::Section(Section::Library))
     }
 
+    /// Step the Library's segment, and from the first one carry Left on to the rail — the
+    /// screen's left edge, where Left goes everywhere else.
     fn step_segment(&mut self, delta: isize) -> Option<Task> {
-        self.library_segment = self.library_segment.step(delta);
+        let next = self.library_segment.step(delta);
+        if next == self.library_segment {
+            if delta < 0 {
+                self.nav.focus_rail();
+            }
+            return None;
+        }
+        self.library_segment = next;
         self.selected = 0;
         self.offset = 0;
         self.content = Content::Loading;
@@ -3522,6 +3543,85 @@ impl App {
         self.apply_episode_filter();
         self.episodes_loading = false;
         self.provider_preference = frame.provider_preference;
+    }
+
+    /// Left and Right on a Settings row: step its value, stopping at the ends, and from a value
+    /// with nowhere further left to go, carry Left on to the rail.
+    ///
+    /// The same edge rule as everywhere else, which is what makes the rail reachable from here
+    /// by the key that reaches it from every other screen. A two-state value steps like a
+    /// two-rung ladder — Left is off, or the first of its two choices, and Right the other —
+    /// because flipping on both arrows meant Left could never arrive anywhere. Enter and Space
+    /// still flip it. A row the arrows cannot step at all, typed or read-only, is at both ends.
+    fn step_setting(&mut self, delta: isize) -> Option<Task> {
+        let id = *SettingId::ALL.get(self.selected)?;
+        let steppable = id.text_edit().is_none()
+            && self.setting_rows().get(self.selected).is_some_and(|row| row.editable.is_some());
+        if !steppable || self.two_state(id).is_some_and(|second| second == (delta > 0)) {
+            if delta < 0 {
+                self.nav.focus_rail();
+                return None;
+            }
+            // Right on a typed or read-only row still says how that row is changed.
+            return if steppable { None } else { self.cycle_setting(delta) };
+        }
+        let before = self.ladder_value(id);
+        let task = self.cycle_setting(delta);
+        // A ladder already on its last rung: nothing to write, and Left goes on to the rail.
+        if before.is_some()
+            && matches!(&task, Some(Task::SaveSetting { value, .. }) if Some(value) == before.as_ref())
+        {
+            if delta < 0 {
+                self.nav.focus_rail();
+            }
+            return None;
+        }
+        task
+    }
+
+    /// Where a two-state Settings row stands: `Some(true)` on its second state — on, or the
+    /// second of its two choices. `None` for every other row.
+    fn two_state(&self, id: SettingId) -> Option<bool> {
+        use SettingId as S;
+        use anistream_core::config::{PlayerUi, ThemeMode};
+        let c = &self.config;
+        Some(match id {
+            S::Theme => c.theme.mode == ThemeMode::Immersive,
+            S::Translation => c.playback.translation == anistream_core::media::Translation::Dub,
+            S::PlayerUi => c.playback.player_ui == PlayerUi::Mpv,
+            S::Motion => c.theme.motion,
+            S::AutoNext => c.playback.auto_next,
+            S::SkipOpening => c.playback.skip_opening,
+            S::SkipFiller => c.playback.skip_filler,
+            S::MarkChapters => c.playback.mark_chapters,
+            S::Fullscreen => c.playback.fullscreen,
+            S::NightMode => c.playback.night_mode,
+            S::MergeSubtitles => c.downloads.merge_subtitles,
+            S::KeepSeeding => c.downloads.keep_seeding,
+            S::Presence => c.presence.enabled,
+            S::PresenceTitle => c.presence.show_title,
+            S::Torrents => c.providers.torrent.enabled,
+            S::Syncplay => c.syncplay.enabled,
+            S::UpdateCheck => c.updates.check,
+            _ => return None,
+        })
+    }
+
+    /// A laddered Settings row's value as it would be written, to tell a step from a stay.
+    fn ladder_value(&self, id: SettingId) -> Option<anistream_core::settings::SettingValue> {
+        use SettingId as S;
+        use anistream_core::settings::SettingValue as V;
+        let playback = &self.config.playback;
+        let seeding = &self.config.providers.torrent.seeding;
+        Some(match id {
+            S::Quality => V::Int(i64::from(playback.quality)),
+            S::CommitThreshold => V::Float((playback.commit_threshold * 100.0).round() / 100.0),
+            S::Upscaling => V::Str(playback.upscaling.name().into()),
+            S::SeedRatio => V::Float(seeding.ratio),
+            S::SeedHours => V::Int(i64::from(seeding.hours)),
+            S::UploadLimit => V::Int(i64::from(seeding.upload_limit_kib)),
+            _ => return None,
+        })
     }
 
     /// Confirm the selection in whichever overlay is open.
@@ -6832,10 +6932,12 @@ mod tests {
     }
 
     #[test]
-    fn library_segments_cycle_in_both_directions() {
+    fn library_segments_step_both_ways_and_stop_at_the_ends() {
+        // The same rule as the rail and every list: the ends clamp rather than wrap.
         assert_eq!(LibrarySegment::Watching.step(1), LibrarySegment::Planning);
-        assert_eq!(LibrarySegment::Watching.step(-1), LibrarySegment::Dropped);
-        assert_eq!(LibrarySegment::Dropped.step(1), LibrarySegment::Watching);
+        assert_eq!(LibrarySegment::Planning.step(-1), LibrarySegment::Watching);
+        assert_eq!(LibrarySegment::Watching.step(-1), LibrarySegment::Watching);
+        assert_eq!(LibrarySegment::Dropped.step(1), LibrarySegment::Dropped);
     }
 
     #[test]
@@ -7158,6 +7260,10 @@ mod tests {
         }
     }
 
+    fn setting_row(id: SettingId) -> usize {
+        SettingId::ALL.iter().position(|s| *s == id).expect("a settings row")
+    }
+
     #[test]
     fn a_title_page_leaves_the_list_under_it_where_it_was() {
         // Every movement key on a title page used to move the list hidden behind it, so Back
@@ -7475,6 +7581,66 @@ mod tests {
         a.handle(Action::Down, 5);
         assert_eq!(a.nav.section(), Section::Calendar);
         assert_eq!(a.nav.focus(), Focus::Rail);
+    }
+
+    #[test]
+    fn left_on_a_title_goes_back_rather_than_stranding_it_behind_the_rail() {
+        // `h` focused the rail over the title page, and the next `j` switched section and
+        // threw the whole stack away.
+        let mut a = home_list(5);
+        a.handle(Action::Open, 5);
+        a.handle(Action::Left, 5);
+        assert_eq!(a.nav.current(), &StageView::Section(Section::Home));
+        assert_eq!(a.nav.focus(), Focus::Stage);
+        a.handle(Action::Down, 5);
+        assert_eq!((a.nav.section(), a.selected), (Section::Home, 1));
+        a.handle(Action::Left, 5);
+        assert_eq!(a.nav.focus(), Focus::Rail);
+    }
+
+    #[test]
+    fn left_reaches_the_rail_from_library_and_settings() {
+        let mut a = app();
+        a.handle(Action::JumpSection(5), 5);
+        a.library_segment = LibrarySegment::Planning;
+        assert_eq!(
+            a.handle(Action::Left, 5),
+            Some(Task::LoadLibrary(LibrarySegment::Watching))
+        );
+        assert_eq!(a.handle(Action::Left, 5), None);
+        assert_eq!(a.nav.focus(), Focus::Rail);
+
+        a.handle(Action::JumpSection(9), 5);
+        a.selected = setting_row(SettingId::Motion);
+        a.config.theme.motion = true;
+        assert_eq!(a.handle(Action::Right, 5), None, "a switch that is on stays on");
+        assert!(a.config.theme.motion);
+        assert!(matches!(
+            a.handle(Action::Left, 5),
+            Some(Task::SaveSetting {
+                value: anistream_core::settings::SettingValue::Bool(false),
+                ..
+            })
+        ));
+        assert_eq!(a.handle(Action::Left, 5), None);
+        assert_eq!(a.nav.focus(), Focus::Rail);
+        assert!(!a.config.theme.motion, "reaching the rail changed nothing");
+
+        // A ladder on its bottom rung and a typed value have nothing further left either.
+        for (row, prepare) in [
+            (
+                SettingId::Quality,
+                (|a: &mut App| a.config.playback.quality = 480) as fn(&mut App),
+            ),
+            (SettingId::Subtitles, |_| {}),
+        ] {
+            a.nav.focus_stage();
+            a.selected = setting_row(row);
+            prepare(&mut a);
+            assert_eq!(a.handle(Action::Left, 5), None, "{row:?}");
+            assert_eq!(a.nav.focus(), Focus::Rail, "{row:?}");
+        }
+        assert_eq!(a.config.playback.quality, 480);
     }
 
     #[test]

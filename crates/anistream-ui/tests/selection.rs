@@ -87,6 +87,16 @@ fn enter_on_a_title_page_opens_its_episodes_and_the_hint_says_so() {
 }
 
 #[test]
+fn h_then_j_on_a_title_page_keeps_the_section() {
+    // `h` focused the rail over the title, and `j` then switched section and dropped the stack.
+    let mut a = home(5);
+    press(&mut a, &["enter", "h", "j"]);
+    assert_eq!(a.nav.section(), Section::Home);
+    assert_eq!(a.nav.current(), &StageView::Section(Section::Home));
+    assert_eq!(a.selected, 1);
+}
+
+#[test]
 fn settings_g_and_ctrl_d_reach_its_own_last_row() {
     // With a list loaded before it, `G` stopped at the row matching that list's length.
     let mut a = home(5);
