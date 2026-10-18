@@ -1836,6 +1836,14 @@ fn spawn(
         }
         let update = match task {
             Task::LoadContinue => match continue_entries(&meta, &store).await {
+                // Nothing in the history at all is a different empty from a history with
+                // nothing left to continue — everything hidden with `x` — and only the first
+                // is "nothing watched yet". `Empty` says it is the first.
+                Ok(entries)
+                    if entries.is_empty() && store.stats().is_ok_and(|s| s.titles == 0) =>
+                {
+                    Update::Content { view: ContentFor::Continue, content: Content::Empty }
+                }
                 Ok(entries) => {
                     publish_list(&meta, &tx, ContentFor::Continue, entries, now_epoch()).await;
                     return;

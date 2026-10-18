@@ -355,9 +355,9 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
         }
         // Two shades of empty, kept apart: nothing asked for yet, versus asked and found nothing.
         // Collapsing them would lose the only thing that tells a user which situation they are in.
-        Content::Empty => render_empty(buf, app, area, y, empty_state(section, false)),
+        Content::Empty => render_empty(buf, app, area, y, empty_state(app, section, false)),
         Content::Entries(entries) if entries.is_empty() => {
-            render_empty(buf, app, area, y, empty_state(section, true))
+            render_empty(buf, app, area, y, empty_state(app, section, true))
         }
         Content::Entries(entries) => {
             // Split the stage: list on the left, a preview of the focused title on the
@@ -1046,13 +1046,29 @@ fn human_bytes(bytes: u64) -> String {
 ///
 /// An empty screen is an invitation to act, not a dead end — and specifically not a reason to
 /// substitute a different kind of list, which is what Home used to do with the current season.
-fn empty_state(section: Section, searched: bool) -> (&'static str, Option<&'static str>) {
+///
+/// Keys are read off the live keymap and said as keys — "press 3" — because a bare `3 for this
+/// season` read as a count of three, and a rebind left it naming the wrong key.
+///
+/// For Continue, asked-and-empty means there is history and none of it is left to continue:
+/// everything was hidden with `x`. That is not "nothing watched yet", which is what it said.
+fn empty_state(app: &App, section: Section, searched: bool) -> (&'static str, Option<String>) {
+    let ways_on = || {
+        format!(
+            "press {} for this season, or {} to search",
+            app.section_key(Section::Seasonal),
+            app.key_for(crate::keymap::Action::FocusSearch),
+        )
+    };
     match section {
         Section::Search if !searched => ("type to search", None),
-        Section::Search => ("no matches", Some("try a shorter query, or the romaji title")),
+        Section::Search => {
+            ("no matches", Some("try a shorter query, or the romaji title".to_owned()))
+        }
+        Section::Home if !searched => ("nothing watched yet", Some(ways_on())),
         Section::Home => (
-            "nothing watched yet",
-            Some("3 for this season · / to search · ↵ on a title to start it"),
+            "nothing to continue",
+            Some(format!("titles you hid come back when you watch them · {}", ways_on())),
         ),
         _ => ("nothing here yet", None),
     }
@@ -1063,7 +1079,7 @@ fn render_empty(
     app: &App,
     area: Rect,
     y: u16,
-    (message, hint): (&str, Option<&str>),
+    (message, hint): (&str, Option<String>),
 ) {
     // The pixel mark, above the message — a printer's mark on the blank page. Only when
     // it genuinely fits with room to spare; on a cramped terminal the words win.
@@ -1075,15 +1091,12 @@ fn render_empty(
     }
 
     buf.set_string(area.left(), y, glyph::eyebrow(message), app.palette.style(Role::TextDim));
-    if let Some(hint) = hint
-        && y + 2 < area.bottom()
-    {
-        buf.set_string(
-            area.left(),
-            y + 2,
-            truncate(hint, area.width as usize),
-            app.palette.style(Role::TextDim),
-        );
+    if let Some(hint) = hint {
+        // Wrapped rather than cut: the way out is the part of the line that matters most.
+        let room = area.bottom().saturating_sub(y + 2) as usize;
+        for (i, text) in wrap(&hint, area.width as usize, room.min(3)).into_iter().enumerate() {
+            line(buf, area.left(), y + 2 + i as u16, text, app.palette.style(Role::TextDim));
+        }
     }
 }
 
@@ -1381,20 +1394,25 @@ fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
     }
 
     if app.episodes.is_empty() {
-        // Two different empties: the filter hiding everything is not a missing source,
-        // and telling someone to check Providers over their own filter would be cruel.
-        let (headline, hint) = if app.episodes_all_filtered_out() {
-            ("nothing matches the filter", "f cycles it — currently showing none")
-        } else {
-            ("no episodes yet", "no source is configured — see the Providers screen")
-        };
-        buf.set_string(
+        let (headline, hint) = empty_episodes(app);
+        line(
+            buf,
             table.left(),
             table.top(),
             glyph::eyebrow(headline),
             app.palette.style(Role::TextDim),
         );
-        buf.set_string(table.left(), table.top() + 2, hint, app.palette.style(Role::TextDim));
+        let room = table.bottom().saturating_sub(table.top() + 2) as usize;
+        for (i, text) in wrap(&hint, table.width as usize, room.min(3)).into_iter().enumerate()
+        {
+            line(
+                buf,
+                table.left(),
+                table.top() + 2 + i as u16,
+                text,
+                app.palette.style(Role::TextDim),
+            );
+        }
         return;
     }
 
@@ -1537,6 +1555,48 @@ fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
             buf.set_string(tail_x, y, kind, app.palette.style(role));
         }
     }
+}
+
+/// Why the episode table is empty, said as what is known.
+///
+/// The filter hiding everything is not a missing source, and telling someone to check
+/// Providers over their own filter would be cruel. Nor is a title that has not aired yet, or a
+/// source that matched and listed nothing: "no source is configured" was said over all of them,
+/// with a ready plugin a screen away.
+fn empty_episodes(app: &App) -> (&'static str, String) {
+    use crate::keymap::Action;
+    if app.episodes_all_filtered_out() {
+        let filter = app.key_for(Action::Filter);
+        return (
+            "nothing matches the filter",
+            format!("{filter} cycles it — showing none now"),
+        );
+    }
+    if !app.providers.iter().any(|p| p.usable) {
+        let providers = app.section_key(Section::Providers);
+        return (
+            "no episodes yet",
+            format!("no source is ready yet — press {providers} for the Providers screen"),
+        );
+    }
+    if let Some(detail) = &app.detail
+        && detail.latest_aired().is_none()
+        && let Some(secs) = detail.next_airing_in.filter(|s| *s > 0)
+    {
+        let episode = detail.next_episode.unwrap_or(1);
+        return (
+            "nothing has aired yet",
+            format!("ep {episode} in {}", crate::widgets::countdown(secs)),
+        );
+    }
+    (
+        "no episodes listed",
+        format!(
+            "the source listed none for this title — {} searches for the right match, {} picks another source",
+            app.key_for(Action::FixMapping),
+            app.key_for(Action::PickProvider),
+        ),
+    )
 }
 
 /// The tracker's list, segmented by status.
@@ -3258,14 +3318,15 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
             glyph::eyebrow(overlay.title()),
             "•".repeat(app.kitsu_pass.chars().count())
         ),
-        // Say what is being asked and why, or a bare "WHICH ONE" over a list of near-identical
-        // release names is a riddle rather than a question.
+        // Say what is being asked, or a bare "WHICH ONE" over a list of near-identical release
+        // names is a riddle rather than a question. Not why: the same list answers a search
+        // typed after `m`, where "no confident match" sat above a 100% candidate.
         Overlay::Disambiguate => format!(
             "{}   {}",
             glyph::eyebrow(overlay.title()),
             match app.detail.as_ref() {
-                Some(detail) => format!("no confident match for {}", detail.title),
-                None => "no confident match".into(),
+                Some(detail) => format!("is {} — enter pins it", detail.title),
+                None => "enter pins it".into(),
             }
         ),
         // Name the title the order is anchored on — a list of sequels floats without it.
@@ -5366,6 +5427,86 @@ mod tests {
             "blank at the end:\n{lines:#?}"
         );
         assert!(lines.iter().any(|l| l.contains("▌ Weekly 79")), "the last row is selected");
+    }
+
+    #[test]
+    fn an_empty_continue_list_names_keys_as_keys() {
+        let app = app_with(Content::Empty);
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("NOTHING WATCHED YET"), "{text}");
+        assert!(text.contains("press 3 for this season"), "{text}");
+
+        // A rebind is what the sentence says.
+        let mut app = app_with(Content::Empty);
+        let mut keys = std::collections::BTreeMap::new();
+        keys.insert("jump_section_3".to_string(), "S".to_string());
+        assert!(app.keymap.apply_overrides(&keys).is_empty());
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("press S for this season"), "{text}");
+    }
+
+    /// History that is all hidden is not "nothing watched yet".
+    #[test]
+    fn continue_with_everything_hidden_says_so() {
+        let mut app = app_with(Content::Entries(vec![Entry {
+            progress: Some((2, 3)),
+            ..entry(1, "Paper Kite")
+        }]));
+        app.nav.focus_stage();
+        app.handle(crate::keymap::Action::HideFromContinue, 20);
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("NOTHING TO CONTINUE"), "{text}");
+        assert!(!text.contains("NOTHING WATCHED YET"), "{text}");
+    }
+
+    fn episodes_open_on(detail: Entry) -> App {
+        let mut app = app_with(Content::Entries(vec![detail.clone()]));
+        app.nav.push(StageView::Episodes(detail.id));
+        app.detail = Some(detail);
+        app.apply(app.episodes_here(Vec::new()));
+        app
+    }
+
+    #[test]
+    fn an_empty_episode_table_says_what_is_known() {
+        // A source is ready: "no source is configured" was false here.
+        let mut app = episodes_open_on(entry(1, "Paper Kite"));
+        app.apply(Update::Providers(vec![provider("someplugin", "ready", true, false)]));
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("NO EPISODES LISTED"), "{text}");
+        assert!(text.contains("m searches for the right match"), "{text}");
+        assert!(!text.contains("no source is configured"), "{text}");
+
+        // Not out yet: the wait, not a fault.
+        let unaired = Entry {
+            next_episode: Some(1),
+            next_airing_in: Some(36 * 3600),
+            ..entry(2, "Lantern Season")
+        };
+        let mut app = episodes_open_on(unaired);
+        app.apply(Update::Providers(vec![provider("someplugin", "ready", true, false)]));
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("NOTHING HAS AIRED YET"), "{text}");
+        assert!(text.contains("ep 1 in 1d 12h"), "{text}");
+    }
+
+    #[test]
+    fn the_match_picker_heading_does_not_claim_the_match_was_unsure() {
+        let mut app = app_at_episodes();
+        app.apply(Update::MatchChoices {
+            id: AnilistId::new(1),
+            provider_id: "someplugin".into(),
+            candidates: vec![crate::MatchCandidate {
+                title: "Exactly This".into(),
+                key: anistream_core::ids::ProviderKey::new("a"),
+                similarity: 1.0,
+                rejected: None,
+            }],
+        });
+        let text = text_of(&render_to_buffer(&app, 110, 24));
+        assert!(text.contains("100%"));
+        assert!(!text.contains("no confident match"), "{text}");
+        assert!(text.contains("enter pins it"), "{text}");
     }
 
     #[test]

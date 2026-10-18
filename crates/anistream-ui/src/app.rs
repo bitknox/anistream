@@ -2888,7 +2888,18 @@ impl App {
                     .map(|r| r.number.clone())
                     .collect();
                 if marked.is_empty() {
-                    self.push_toast(Toast::info("nothing before this episode to mark"));
+                    // Three different nothings, each said as what it is: "nothing before this
+                    // episode" over an empty table pointed at an episode that was not there.
+                    let why = match self.episodes.get(self.episode_selected) {
+                        None => "no episodes listed to mark".to_owned(),
+                        Some(_) if self.episode_selected == 0 => {
+                            "nothing comes before the first episode".to_owned()
+                        }
+                        Some(row) => {
+                            format!("everything before ep {} is already watched", row.number)
+                        }
+                    };
+                    self.push_toast(Toast::info(why));
                     return None;
                 }
                 for number in &marked {
@@ -5722,6 +5733,33 @@ mod tests {
         let task = a.handle(Action::Open, 20).expect("one episode is a range too");
         assert!(a.toasts.iter().any(|t| t.text == "queueing 1 episode…"), "{:?}", a.toasts);
         assert_eq!(task.activity().as_deref(), Some("queueing 1 episode"));
+    }
+
+    #[test]
+    fn mark_all_previous_says_which_nothing_it_found() {
+        let mut a = app_at_episodes();
+        a.handle(Action::MarkAllPrevious, 20);
+        assert!(a.toasts.iter().any(|t| t.text == "nothing comes before the first episode"));
+
+        a.episode_selected = 3;
+        a.handle(Action::MarkAllPrevious, 20);
+        assert!(
+            a.toasts.iter().any(|t| t.text == "marked 3 episodes watched"),
+            "{:?}",
+            a.toasts
+        );
+        a.handle(Action::MarkAllPrevious, 20);
+        assert!(a.toasts.iter().any(|t| t.text == "everything before ep 4 is already watched"));
+
+        // An empty table has no episode to be before.
+        a.episodes.clear();
+        a.episode_selected = 0;
+        a.handle(Action::MarkAllPrevious, 20);
+        assert!(
+            a.toasts.iter().any(|t| t.text == "no episodes listed to mark"),
+            "{:?}",
+            a.toasts
+        );
     }
 
     #[test]
