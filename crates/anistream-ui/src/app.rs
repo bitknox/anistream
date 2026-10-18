@@ -263,11 +263,6 @@ fn parse_episode_range(input: &str) -> Option<(u32, Option<u32>)> {
     }
 }
 
-/// `1 episode`, `6 episodes`.
-pub fn episode_count(n: usize) -> String {
-    if n == 1 { "1 episode".into() } else { format!("{n} episodes") }
-}
-
 fn on_off(yes: bool) -> String {
     if yes { "on".into() } else { "off".into() }
 }
@@ -371,6 +366,13 @@ pub struct Entry {
     /// is about, and runs negative once that episode has aired. Everywhere else it is the same
     /// thing as [`Self::next_airing_in`].
     pub airing_in: Option<i64>,
+    /// The episode a calendar row is about — the one [`Self::airing_in`] dates. `None`
+    /// everywhere else.
+    ///
+    /// A field of its own rather than `ep 12` appended to the title. Appended, it was the first
+    /// thing truncation took, so a column of one show's episodes read as identical rows, and it
+    /// followed the title into the Title and Episodes headings.
+    pub airing_episode: Option<u32>,
     /// The episode the title broadcasts next, from its own schedule.
     pub next_episode: Option<u32>,
     /// Seconds until [`Self::next_episode`] airs.
@@ -493,6 +495,7 @@ impl Entry {
             available_on: Vec::new(),
             progress: None,
             airing_in: None,
+            airing_episode: None,
             next_episode: None,
             next_airing_in: None,
             last_aired: None,
@@ -598,6 +601,21 @@ pub struct ProviderRow {
     pub usable: bool,
     /// Withheld by local policy rather than broken — a failing VPN guard, say.
     pub held_back: bool,
+}
+
+/// How one configured source stands, for the header chip that names it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceState {
+    /// At least one of its providers will be tried.
+    Ready,
+    /// Switched off in config. Said quietly: off is a choice, not a fault.
+    Off,
+    /// Working, but withheld by local policy — the VPN guard.
+    HeldBack,
+    /// Registered and not answering, or refused at startup.
+    Failing,
+    /// Nothing registered yet: plugins are still compiling, or there are none.
+    Pending,
 }
 
 /// One rung of the metadata ladder, as the Providers screen shows it.
@@ -1011,10 +1029,12 @@ impl SyncState {
     /// actually go anywhere?", which is the only sync question anyone asks.
     pub fn badge(&self) -> String {
         if self.needs_reauth {
-            return format!("{} ✕ sign in", self.tracker);
+            return format!("{} {} sign in", self.tracker, glyph::STATE_DOWN);
         }
+        // Hollow, not the interpunct: the header puts `·` between its groups of chips, and a
+        // signed-out `kitsu ·` read as a separator with a word in front of it.
         if !self.connected {
-            return format!("{} ·", self.tracker);
+            return format!("{} {}", self.tracker, glyph::STATE_OFF);
         }
         match self.outbox {
             0 => format!("{} {}", self.tracker, glyph::SYNC),
@@ -1107,6 +1127,13 @@ pub enum Update {
     Content {
         view: ContentFor,
         content: Content,
+    },
+    /// What a list is, said above it: which season Seasonal is, and that a list stopped at the
+    /// size of one page when there was more. Tagged like [`Update::Content`] and sent before it,
+    /// so a caption never describes a list it did not come with.
+    Caption {
+        view: ContentFor,
+        text: String,
     },
     /// How to continue the calendar that is arriving: the anchor its pages are numbered
     /// against, how many are loaded, and whether AniList has more behind them.
@@ -1305,6 +1332,8 @@ pub struct App {
     pub keymap: Keymap,
     pub config: Config,
     pub content: Content,
+    /// The caption for the list on screen, with the view it belongs to. See [`Update::Caption`].
+    pub caption: Option<(ContentFor, String)>,
     /// Selection index within the current content.
     pub selected: usize,
     /// Scroll offset, so long lists page rather than jumping.
@@ -1520,6 +1549,7 @@ impl App {
             keymap,
             config,
             content: Content::Loading,
+            caption: None,
             selected: 0,
             offset: 0,
             search_query: String::new(),
@@ -1646,6 +1676,22 @@ impl App {
         }
     }
 
+    /// The key for `action` as a sentence names it: the first one the help overlay lists, so a
+    /// rebind changes what the sentence says. Unbound, it points at the palette instead.
+    pub fn key_for(&self, action: Action) -> String {
+        let mut keys = self.keymap.keys_for(action);
+        keys.sort();
+        keys.first().map_or_else(
+            || format!("\u{201c}{}\u{201d} in the palette", action.label().to_lowercase()),
+            crate::keymap::Binding::render,
+        )
+    }
+
+    /// The key that jumps to `section`.
+    pub fn section_key(&self, section: Section) -> String {
+        self.key_for(Action::JumpSection(section.index() as u8 + 1))
+    }
+
     /// Apply an update from a background task.
     pub fn apply(&mut self, update: Update) {
         // Resolution has finished, one way or the other — let the wipe complete. An alert is
@@ -1698,9 +1744,19 @@ impl App {
                     self.offset += added;
                 }
             }
+            Update::Caption { view, text } => {
+                if self.content_view().as_ref() == Some(&view) {
+                    self.caption = (!text.is_empty()).then_some((view, text));
+                }
+            }
             Update::Content { view, content } => {
                 if self.content_view().as_ref() != Some(&view) {
                     return;
+                }
+                // A caption is sent just before the list it describes; one left over from
+                // another list describes something no longer on screen.
+                if self.caption.as_ref().is_some_and(|(captioned, _)| *captioned != view) {
+                    self.caption = None;
                 }
                 self.content = content;
                 // Selection must stay in range or the next render would index past the end.
@@ -2035,8 +2091,9 @@ impl App {
                 let announce = state.needs_reauth
                     && !self.sync.iter().any(|s| s.tracker == state.tracker && s.needs_reauth);
                 if announce {
+                    let accounts = self.section_key(Section::Accounts);
                     self.push_toast(Toast::alert(format!(
-                        "{} needs signing in again — :accounts",
+                        "{} needs signing in again — press {accounts} for Accounts",
                         state.tracker
                     )));
                 }
@@ -2063,9 +2120,10 @@ impl App {
                 self.conflicts = rows;
                 if appeared {
                     // Surfaced rather than resolved — the whole point of not guessing.
+                    let settle = self.key_for(Action::ShowConflicts);
                     self.push_toast(Toast::info(format!(
-                        "{} sync disagreement(s) — :conflicts",
-                        self.conflicts.len()
+                        "{} — {settle} settles them",
+                        crate::widgets::plural(self.conflicts.len(), "sync disagreement")
                     )));
                 }
             }
@@ -2117,6 +2175,15 @@ impl App {
         // first — and when a source breaks, the earliest error is usually the one that explains
         // the rest. This is the whole reason the Logs overlay exists.
         self.log(toast.kind, toast.text.clone());
+        // The same message again is the same message, kept up longer rather than stacked: five
+        // presses of an arrow on Settings are one "saved", not a pile of identical lines.
+        if let Some(last) = self.toasts.last_mut()
+            && last.text == toast.text
+            && last.kind == toast.kind
+        {
+            last.ttl = toast.ttl;
+            return;
+        }
         // Cap the stack so a burst of provider failures cannot cover the screen.
         if self.toasts.len() >= 3 {
             self.toasts.remove(0);
@@ -2194,13 +2261,68 @@ impl App {
         self.episodes.is_empty() && !self.episodes_all.is_empty()
     }
 
-    /// What the header should call the source: the provider that last actually served,
-    /// falling back to the configured first choice before anything has played.
+    /// What the status line should call the source: the provider that last actually served,
+    /// before anything has played the first configured source that is ready, and failing that
+    /// the first one that is not switched off.
+    ///
+    /// Not simply the first entry in the order: torrents lead the default order and are off by
+    /// default, so that read "torrent" over a session that only plugins could serve.
     pub fn source_label(&self) -> String {
-        self.active_provider
-            .clone()
-            .or_else(|| self.config.providers.order.first().cloned())
-            .unwrap_or_else(|| "no source".into())
+        if let Some(active) = &self.active_provider {
+            return active.clone();
+        }
+        let sources = self.source_states();
+        sources
+            .iter()
+            .find(|(_, state)| *state == SourceState::Ready)
+            .or_else(|| sources.iter().find(|(_, state)| *state != SourceState::Off))
+            .or_else(|| sources.first())
+            .map_or_else(|| "no source".into(), |(id, _)| id.clone())
+    }
+
+    /// Each configured source, in the order failover walks them, and how it stands.
+    ///
+    /// The header's chips. Read from the registered providers rather than the config alone:
+    /// a configured source can be ready, failing, held back by the VPN guard, still loading, or
+    /// off on purpose — and only the last is something the config can say by itself.
+    pub fn source_states(&self) -> Vec<(String, SourceState)> {
+        let providers = &self.config.providers;
+        let of_kind = |kind: &str| -> SourceState {
+            let rows: Vec<&ProviderRow> =
+                self.providers.iter().filter(|p| p.kind == kind).collect();
+            if rows.iter().any(|p| p.usable) {
+                SourceState::Ready
+            } else if rows.iter().any(|p| p.held_back) {
+                SourceState::HeldBack
+            } else if rows.is_empty() {
+                SourceState::Pending
+            } else {
+                SourceState::Failing
+            }
+        };
+        providers
+            .order
+            .iter()
+            .filter(|id| !providers.disabled.contains(id))
+            .filter_map(|id| {
+                let state = match id.as_str() {
+                    "torrent" if !providers.torrent.enabled => SourceState::Off,
+                    // Configured but not registered: the guard refused to start it, and the
+                    // Providers screen carries the reason.
+                    "torrent" => match of_kind("torrent") {
+                        SourceState::Pending if self.provider_note.is_some() => {
+                            SourceState::Failing
+                        }
+                        state => state,
+                    },
+                    "plugins" => of_kind("plugin"),
+                    "remote" if providers.remote_url.is_none() => return None,
+                    "remote" => of_kind("remote"),
+                    _ => return None,
+                };
+                Some((id.clone(), state))
+            })
+            .collect()
     }
 
     /// Badge counts for the rail: work in flight, questions pending.
@@ -2959,14 +3081,28 @@ impl App {
                     .map(|r| r.number.clone())
                     .collect();
                 if marked.is_empty() {
-                    self.push_toast(Toast::info("nothing before this episode to mark"));
+                    // Three different nothings, each said as what it is: "nothing before this
+                    // episode" over an empty table pointed at an episode that was not there.
+                    let why = match self.episodes.get(self.episode_selected) {
+                        None => "no episodes listed to mark".to_owned(),
+                        Some(_) if self.episode_selected == 0 => {
+                            "nothing comes before the first episode".to_owned()
+                        }
+                        Some(row) => {
+                            format!("everything before ep {} is already watched", row.number)
+                        }
+                    };
+                    self.push_toast(Toast::info(why));
                     return None;
                 }
                 for number in &marked {
                     self.set_episode_watched(number, true);
                 }
                 self.apply_episode_filter();
-                self.push_toast(Toast::info(format!("marked {} watched", marked.len())));
+                self.push_toast(Toast::info(format!(
+                    "marked {} watched",
+                    crate::widgets::plural(marked.len(), "episode")
+                )));
                 return Some(Task::SetWatched { id, episodes: marked, watched: true });
             }
             Action::DownloadRange if self.in_episodes() => {
@@ -3193,7 +3329,7 @@ impl App {
                 let at_home_list = self.nav.section() == Section::Home
                     && matches!(self.nav.current(), StageView::Section(Section::Home));
                 if !at_home_list {
-                    self.push_toast(Toast::info("removing works on the Home list"));
+                    self.push_toast(Toast::info("removing works on the Continue list"));
                     return None;
                 }
                 let Content::Entries(entries) = &mut self.content else {
@@ -3217,7 +3353,10 @@ impl App {
             }
             Action::ForceResync => {
                 if self.sync.is_empty() {
-                    self.push_toast(Toast::info("no tracker connected — :accounts"));
+                    let accounts = self.section_key(Section::Accounts);
+                    self.push_toast(Toast::info(format!(
+                        "no tracker connected — press {accounts} for Accounts"
+                    )));
                 } else {
                     return Some(Task::SyncNow);
                 }
@@ -3561,8 +3700,13 @@ impl App {
     /// Back: close an overlay, pop a pushed view, or at a section's root hand focus to the rail.
     fn go_back(&mut self) {
         match self.nav.back() {
-            // At the very root, back is a no-op rather than a quit.
-            crate::nav::BackOutcome::AtRoot => self.status = "at the top — Q to quit".into(),
+            crate::nav::BackOutcome::AtRoot => {
+                // At the very root, back is a no-op rather than a quit. Said as a toast:
+                // written to the status line it stayed there, over the state it shows, for
+                // the rest of the session.
+                let quit = self.key_for(Action::Quit);
+                self.push_toast(Toast::info(format!("at the top — {quit} quits")));
+            }
             crate::nav::BackOutcome::Popped => {
                 if self.nav.focus() == Focus::Rail {
                     // Coming back from the rail lands in the search field, not mid-results.
@@ -3713,7 +3857,7 @@ impl App {
                 let id = entry.id;
                 let status = *LibrarySegment::ALL.get(self.overlay_selected)?;
                 self.nav.close_overlay();
-                self.push_toast(Toast::info(format!("marked {}", status.label())));
+                self.push_toast(Toast::info(format!("now on your {} list", status.label())));
                 // Remembered on every copy of the title on screen, so asking again opens on
                 // the answer just given.
                 let entries = match &mut self.content {
@@ -4097,6 +4241,19 @@ impl App {
             .collect()
     }
 
+    /// The name the Settings screen gives the setting stored at `table`.`key`, for saying it
+    /// was saved. The config key (`commit_threshold`) is the file's vocabulary, not the
+    /// screen's, and the value needs no repeating: the row beside it already shows it.
+    ///
+    /// `None` for what is stored without a row of its own, the remembered speed and volume:
+    /// saved in passing, and not something anyone asked to have confirmed.
+    pub fn setting_label(&self, table: &[&str], key: &str) -> Option<&'static str> {
+        self.setting_rows()
+            .into_iter()
+            .find(|row| row.editable.as_ref().is_some_and(|e| e.table == table && e.key == key))
+            .map(|row| row.label)
+    }
+
     /// Step the selected setting through its values.
     ///
     /// Cycling rather than free entry, because every editable setting here has a small closed set
@@ -4403,7 +4560,8 @@ impl App {
                     }
                     _ => return None,
                 }
-                self.push_toast(Toast::info(format!("saved {}", id.label())));
+                // No toast here: the write reports itself once it has landed, which is the
+                // moment "saved" is true. Saying it now as well put two confirmations up.
                 return Some(Task::SaveSetting {
                     table,
                     key,
@@ -4443,7 +4601,7 @@ impl App {
                 self.nav.close_overlay();
                 self.push_toast(Toast::info(format!(
                     "queueing {}…",
-                    episode_count(episodes.len())
+                    crate::widgets::plural(episodes.len(), "episode")
                 )));
                 return Some(Task::DownloadMany { id, episodes });
             }
@@ -4702,6 +4860,12 @@ impl App {
             Section::Library => ContentFor::Library(self.library_segment),
             _ => return None,
         })
+    }
+
+    /// The caption of the list on screen, when the binary sent one for it.
+    pub fn list_caption(&self) -> Option<&str> {
+        let (view, text) = self.caption.as_ref()?;
+        (self.content_view().as_ref() == Some(view)).then_some(text.as_str())
     }
 
     /// An answer for what is on screen right now: the list for the current view, the episodes
@@ -4979,10 +5143,9 @@ impl App {
                 self.local_plugins.clear();
                 Some(Task::LoadLocalPlugins { store: store.id })
             }
-            StoreLine::Admin => {
-                self.status = "opening the admin page in your browser…".into();
-                Some(Task::OpenAdmin { store: store.id })
-            }
+            // No status line of its own: the activity row says it is opening, and a toast says
+            // how it went. A status set here was never cleared, so it outlived both.
+            StoreLine::Admin => Some(Task::OpenAdmin { store: store.id }),
             StoreLine::Leave => {
                 self.store_confirm =
                     Some(StoreConfirm::Leave { store: store.id, name: store.name });
@@ -5166,8 +5329,11 @@ impl SearchFilters {
     ];
     const SEASONS: [(&'static str, &'static str); 4] =
         [("WINTER", "winter"), ("SPRING", "spring"), ("SUMMER", "summer"), ("FALL", "fall")];
-    const FORMATS: [(&'static str, &'static str); 6] = [
+    const FORMATS: [(&'static str, &'static str); 7] = [
         ("TV", "tv"),
+        // Short-form TV — a few minutes an episode — is its own format on AniList, so a
+        // filter without it had no way to find one.
+        ("TV_SHORT", "tv short"),
         ("MOVIE", "movie"),
         ("OVA", "ova"),
         ("ONA", "ona"),
@@ -5202,7 +5368,8 @@ impl SearchFilters {
             })
         };
         match row {
-            0 => self.genre.clone().map(|g| g.to_lowercase()),
+            // A genre is a name, and keeps the casing it has everywhere else it is shown.
+            0 => self.genre.clone(),
             1 => self.year.map(|y| y.to_string()),
             2 => shown(&Self::SEASONS, &self.season),
             3 => shown(&Self::FORMATS, &self.format),
@@ -5333,7 +5500,7 @@ impl Task {
             }
             Self::DownloadEpisode { episode, .. } => format!("queueing ep {episode}"),
             Self::DownloadMany { episodes, .. } => {
-                format!("queueing {}", episode_count(episodes.len()))
+                format!("queueing {}", crate::widgets::plural(episodes.len(), "episode"))
             }
             Self::PlayTrailer { .. } => "opening the trailer".into(),
             Self::LoadStores => "checking plugin stores".into(),
@@ -5986,6 +6153,136 @@ mod tests {
     }
 
     #[test]
+    fn a_count_of_one_is_said_in_the_singular() {
+        let mut a = app_at_episodes();
+        a.handle(Action::DownloadRange, 20);
+        a.type_char('4');
+        let task = a.handle(Action::Open, 20).expect("one episode is a range too");
+        assert!(a.toasts.iter().any(|t| t.text == "queueing 1 episode…"), "{:?}", a.toasts);
+        assert_eq!(task.activity().as_deref(), Some("queueing 1 episode"));
+    }
+
+    #[test]
+    fn mark_all_previous_says_which_nothing_it_found() {
+        let mut a = app_at_episodes();
+        a.handle(Action::MarkAllPrevious, 20);
+        assert!(a.toasts.iter().any(|t| t.text == "nothing comes before the first episode"));
+
+        a.episode_selected = 3;
+        a.handle(Action::MarkAllPrevious, 20);
+        assert!(
+            a.toasts.iter().any(|t| t.text == "marked 3 episodes watched"),
+            "{:?}",
+            a.toasts
+        );
+        a.handle(Action::MarkAllPrevious, 20);
+        assert!(a.toasts.iter().any(|t| t.text == "everything before ep 4 is already watched"));
+
+        // An empty table has no episode to be before.
+        a.episodes.clear();
+        a.episode_selected = 0;
+        a.handle(Action::MarkAllPrevious, 20);
+        assert!(
+            a.toasts.iter().any(|t| t.text == "no episodes listed to mark"),
+            "{:?}",
+            a.toasts
+        );
+    }
+
+    #[test]
+    fn a_list_status_is_confirmed_as_the_list_it_is_on() {
+        let mut a = app();
+        a.apply(a.content_here(entries(1)));
+        a.handle(Action::SetListStatus, 10);
+        a.overlay_selected = 2;
+        let task = a.handle(Action::Open, 10);
+        assert!(matches!(
+            task,
+            Some(Task::SetStatus { status: LibrarySegment::Completed, .. })
+        ));
+        assert!(
+            a.toasts.iter().any(|t| t.text == "now on your completed list"),
+            "{:?}",
+            a.toasts
+        );
+    }
+
+    #[test]
+    fn a_saved_setting_is_named_as_the_screen_names_it() {
+        let a = app();
+        assert_eq!(
+            a.setting_label(&["playback"], "commit_threshold"),
+            Some("counts as watched at"),
+            "the screen's words, not the file's key"
+        );
+        assert_eq!(
+            a.setting_label(&["providers", "torrent"], "enabled"),
+            Some("torrent source")
+        );
+        // Kept in passing, with no row of its own: nothing to announce.
+        assert_eq!(a.setting_label(&["playback"], "persisted_speed"), None);
+    }
+
+    #[test]
+    fn a_typed_setting_is_confirmed_once_by_the_write_not_the_keypress() {
+        let mut a = app();
+        let _ = a.go_to_section(Section::Settings);
+        a.nav.focus_stage();
+        a.selected = SettingId::ALL.iter().position(|id| *id == SettingId::Subtitles).unwrap();
+        a.handle(Action::Open, 10);
+        for c in "ger".chars() {
+            a.type_char(c);
+        }
+        let task = a.handle(Action::Open, 10);
+        assert!(matches!(task, Some(Task::SaveSetting { key: "subtitle_language", .. })));
+        assert!(a.toasts.is_empty(), "the save says so when it lands: {:?}", a.toasts);
+    }
+
+    #[test]
+    fn the_format_filter_can_find_short_tv() {
+        let mut filter = SearchFilters::default();
+        filter.cycle(3, true);
+        assert_eq!(filter.row_value(3), "tv");
+        filter.cycle(3, true);
+        assert_eq!(filter.format.as_deref(), Some("TV_SHORT"), "AniList's name for it");
+        assert_eq!(filter.row_value(3), "tv short");
+    }
+
+    #[test]
+    fn a_genre_filter_keeps_the_genre_s_own_casing() {
+        let filter =
+            SearchFilters { genre: Some("Slice of Life".into()), ..Default::default() };
+        assert_eq!(filter.row_value(0), "Slice of Life");
+    }
+
+    #[test]
+    fn the_source_named_is_one_that_is_not_switched_off() {
+        // The default order leads with torrents, which are off by default.
+        let mut a = app();
+        assert_eq!(a.source_label(), "plugins");
+        assert_eq!(
+            a.source_states(),
+            vec![
+                ("torrent".into(), SourceState::Off),
+                ("plugins".into(), SourceState::Pending)
+            ]
+        );
+        a.apply(Update::Providers(vec![ProviderRow {
+            id: "someplugin".into(),
+            kind: "plugin".into(),
+            state: "ready".into(),
+            latency_ms: None,
+            last_error: None,
+            usable: true,
+            held_back: false,
+        }]));
+        assert_eq!(a.source_states()[1], ("plugins".into(), SourceState::Ready));
+        // What actually served wins once something has played.
+        a.apply(Update::ActiveProvider("someplugin".into()));
+        assert_eq!(a.source_label(), "someplugin");
+    }
+
+    #[test]
     fn a_nonsense_range_is_refused_with_a_hint() {
         let mut a = app_at_episodes();
         a.handle(Action::DownloadRange, 20);
@@ -6415,7 +6712,7 @@ mod tests {
     fn a_tracker_with_no_account_is_quiet_rather_than_alarming() {
         // Watching with no account is a supported way to use this, not a fault.
         let state = SyncState { tracker: "anilist".into(), ..SyncState::default() };
-        assert_eq!(state.badge(), "anilist ·");
+        assert_eq!(state.badge(), "anilist ○");
         assert!(!state.is_alerting());
     }
 
@@ -6425,10 +6722,12 @@ mod tests {
         // else in toasts.
         let mut a = app();
         a.apply(Update::Sync(Box::new(SyncState { needs_reauth: true, ..connected(1) })));
-        let after_first = a.toasts.len();
-        assert_eq!(after_first, 1);
+        // Counted in the log, which counts every announcement: the toast stack folds a repeat
+        // into the one already showing, so it cannot tell whether one was made.
+        let announced = |a: &App| a.logs.iter().map(|l| l.count).sum::<u32>();
+        assert_eq!(announced(&a), 1);
         a.apply(Update::Sync(Box::new(SyncState { needs_reauth: true, ..connected(1) })));
-        assert_eq!(a.toasts.len(), after_first, "re-announced an unchanged auth failure");
+        assert_eq!(announced(&a), 1, "re-announced an unchanged auth failure");
     }
 
     #[test]
@@ -6462,9 +6761,10 @@ mod tests {
         assert!(a.toasts.iter().any(|t| t.text.contains("disagreement")));
 
         // A second pull returning the same set must not re-announce.
-        let before = a.toasts.len();
+        let announced = |a: &App| a.logs.iter().map(|l| l.count).sum::<u32>();
+        let before = announced(&a);
         a.apply(Update::Conflicts(vec![conflict("Frieren")]));
-        assert_eq!(a.toasts.len(), before);
+        assert_eq!(announced(&a), before);
     }
 
     fn conflict(title: &str) -> ConflictRow {
@@ -8751,7 +9051,40 @@ mod tests {
         a.handle(Action::Back, 10);
         a.handle(Action::Back, 10);
         assert!(!a.should_quit, "back must never quit");
-        assert!(a.status.contains("Q to quit"));
+        assert!(a.toasts.iter().any(|t| t.text == "at the top — Q quits"), "{:?}", a.toasts);
+        // Said once and gone: written to the status line, it stood in for the state line there
+        // for the rest of the session.
+        assert!(a.status.is_empty(), "the status line keeps its state: {:?}", a.status);
+        for _ in 0..200 {
+            a.tick_toasts();
+        }
+        assert!(a.toasts.is_empty());
+    }
+
+    #[test]
+    fn the_way_out_names_the_key_quit_is_actually_on() {
+        let mut a = app();
+        let mut keys = std::collections::BTreeMap::new();
+        keys.insert("quit".to_string(), "ctrl+q".to_string());
+        assert!(a.keymap.apply_overrides(&keys).is_empty());
+        a.handle(Action::Back, 10);
+        assert!(
+            a.toasts.iter().any(|t| t.text == "at the top — ctrl+q quits"),
+            "{:?}",
+            a.toasts
+        );
+    }
+
+    #[test]
+    fn a_repeated_toast_is_kept_up_rather_than_stacked() {
+        let mut a = app();
+        for _ in 0..5 {
+            a.push_toast(Toast::info("saved quality"));
+        }
+        assert_eq!(a.toasts.len(), 1, "one message, said once");
+        assert_eq!(a.logs[0].count, 5, "the log still counts every one");
+        a.push_toast(Toast::info("saved theme"));
+        assert_eq!(a.toasts.len(), 2);
     }
 
     #[test]

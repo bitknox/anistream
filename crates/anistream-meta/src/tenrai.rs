@@ -169,8 +169,13 @@ impl Tenrai {
             path.push_str(&format!("&genres={id}"));
         }
         if let Some(format) = &filter.format {
-            // MAL speaks the same format words in lowercase.
-            path.push_str(&format!("&type={}", format.to_lowercase()));
+            // MAL speaks the same format words in lowercase, except that it has no short-form
+            // TV type: those are filed under `tv` there.
+            let kind = match format.as_str() {
+                "TV_SHORT" => "tv".to_owned(),
+                other => other.to_lowercase(),
+            };
+            path.push_str(&format!("&type={kind}"));
         }
         if let Some(status) = &filter.status {
             let status = match status.as_str() {

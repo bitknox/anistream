@@ -1830,16 +1830,26 @@ fn spawn(
             let until = std::time::Instant::now() + wait;
             match &job {
                 Some(job) => job.note("AniList limit", Some(until)),
+                // No job to note it on. A toast, which goes when it is done: as a status it
+                // stayed, still counting "12s", after the wait was over.
                 None => {
-                    let _ = tx.send(Update::Status(format!(
+                    let _ = tx.send(Update::Toast(Toast::info(format!(
                         "waiting {}s on the AniList rate limit",
                         wait.as_secs().max(1)
-                    )));
+                    ))));
                 }
             }
         }
         let update = match task {
             Task::LoadContinue => match continue_entries(&meta, &store).await {
+                // Nothing in the history at all is a different empty from a history with
+                // nothing left to continue — everything hidden with `x` — and only the first
+                // is "nothing watched yet". `Empty` says it is the first.
+                Ok(entries)
+                    if entries.is_empty() && store.stats().is_ok_and(|s| s.titles == 0) =>
+                {
+                    Update::Content { view: ContentFor::Continue, content: Content::Empty }
+                }
                 Ok(entries) => {
                     publish_list(&meta, &tx, ContentFor::Continue, entries, now_epoch()).await;
                     return;
@@ -1849,9 +1859,19 @@ fn spawn(
                 }
             },
             Task::LoadSeasonal => {
+                const PAGE: u32 = 40;
                 let (season, year) = current_season();
-                match meta.seasonal(season, year, &Default::default(), 1, 40).await {
+                match meta.seasonal(season, year, &Default::default(), 1, PAGE).await {
                     Ok(page) => {
+                        // Which season this is, which the screen never said, and that one
+                        // page is not all of it when it is not.
+                        let season = format!("{} {year}", season.as_str().to_lowercase());
+                        let text = if page.has_next {
+                            format!("{season} · the {PAGE} most popular")
+                        } else {
+                            season
+                        };
+                        let _ = tx.send(Update::Caption { view: ContentFor::Seasonal, text });
                         let entries = page
                             .items
                             .iter()
@@ -1919,8 +1939,17 @@ fn spawn(
                     season: filter.season.clone(),
                     year: filter.year,
                 };
-                match meta.search(&query, &browse, 1, 30).await {
+                const PAGE: u32 = 30;
+                match meta.search(&query, &browse, 1, PAGE).await {
                     Ok(page) => {
+                        // Sent every time, empty when the page held everything, so a caption
+                        // from an earlier run of the same search cannot outlive its answer.
+                        let text = if page.has_next {
+                            format!("showing the first {PAGE}")
+                        } else {
+                            String::new()
+                        };
+                        let _ = tx.send(Update::Caption { view: view.clone(), text });
                         let entries = page
                             .items
                             .iter()
@@ -2414,11 +2443,11 @@ fn dispatch(
                     }
                     (n, Some(reason)) => Update::Toast(Toast::alert(format!(
                         "queued {}, then: {reason}",
-                        anistream_ui::app::episode_count(n)
+                        anistream_ui::widgets::plural(n, "episode")
                     ))),
                     (n, None) => Update::Toast(Toast::info(format!(
                         "queued {}",
-                        anistream_ui::app::episode_count(n)
+                        anistream_ui::widgets::plural(n, "episode")
                     ))),
                 };
                 let _ = tx.send(update);
@@ -2591,7 +2620,13 @@ fn dispatch(
         Task::SaveSetting { table, key, value } => {
             match anistream_core::settings::write_key(paths, table, key, value) {
                 Ok(()) => {
-                    let _ = tx.send(Update::Status(format!("saved {key}")));
+                    // A toast, named as the Settings screen names it. As a status it stayed
+                    // in the status line for the rest of the session, over the state it shows,
+                    // and it said the file's key — "saved commit_threshold". What has no row
+                    // there, the remembered speed and volume, is saved without a word.
+                    if let Some(label) = app.setting_label(table, key) {
+                        let _ = tx.send(Update::Toast(Toast::info(format!("saved · {label}"))));
+                    }
                     // Republish what the background tasks read, so the next download to
                     // finish honours the value that was just written.
                     let _ = tx.send(Update::SettingsSaved);

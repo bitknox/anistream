@@ -509,6 +509,14 @@ pub fn meta_line(parts: &[&str]) -> String {
     parts.join("  ·  ")
 }
 
+/// A count and its noun, singular when the count is one: `1 episode`, `3 episodes`.
+///
+/// One helper rather than a `format!` at each call site, because each call site was written
+/// for the plural and "queued 1 episodes" is what the first count of one printed.
+pub fn plural(count: usize, noun: &str) -> String {
+    if count == 1 { format!("1 {noun}") } else { format!("{count} {noun}s") }
+}
+
 /// Truncate to a cell budget with an ellipsis, counting characters rather than bytes.
 pub fn truncate(text: &str, max: usize) -> String {
     let len = text.chars().count();
@@ -542,9 +550,12 @@ pub fn wrap(text: &str, width: usize, max_lines: usize) -> Vec<String> {
             lines.push(std::mem::take(&mut current));
             if lines.len() == max_lines {
                 // Mark the truncation rather than stopping silently, so the reader knows
-                // there is more.
+                // there is more. One mark: cutting with `truncate` and then appending put a
+                // second ellipsis after the first whenever the line was already full, and a
+                // word that was itself cut short already ends in one.
                 if let Some(last) = lines.last_mut() {
-                    *last = truncate(last, width.saturating_sub(1)) + "…";
+                    let kept: String = last.chars().take(width.saturating_sub(1)).collect();
+                    *last = kept.trim_end_matches('…').trim_end().to_owned() + "…";
                 }
                 return lines;
             }
@@ -822,6 +833,25 @@ mod tests {
         let lines = wrap("one two three four five six seven eight nine ten", 10, 2);
         assert_eq!(lines.len(), 2);
         assert!(lines.last().unwrap().ends_with('…'), "reader must know there is more");
+    }
+
+    #[test]
+    fn a_wrapped_synopsis_ends_in_one_ellipsis() {
+        // The cut line is exactly full: cutting it and then appending gave `……`.
+        let lines = wrap("aaaa bbbb cccc dddd eeee ffff", 9, 1);
+        assert_eq!(lines, vec!["aaaa bbb…"]);
+        // A word too long for the line is cut with its own mark; the budget does not add another.
+        let lines = wrap("abcdefghijklmnop more words", 8, 1);
+        assert_eq!(lines.len(), 1);
+        assert_eq!(lines[0].matches('…').count(), 1, "got {:?}", lines[0]);
+        assert!(lines[0].chars().count() <= 8);
+    }
+
+    #[test]
+    fn counts_of_one_are_singular() {
+        assert_eq!(plural(1, "episode"), "1 episode");
+        assert_eq!(plural(0, "episode"), "0 episodes");
+        assert_eq!(plural(6, "title"), "6 titles");
     }
 
     #[test]

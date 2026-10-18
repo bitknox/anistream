@@ -212,7 +212,7 @@ impl Action {
             Self::FocusSearch => "Search",
             Self::ShowAccounts => "Accounts and sync",
             Self::ShowConflicts => "Resolve sync conflicts",
-            Self::ShowLogs => "Recent errors and traces",
+            Self::ShowLogs => "Recent messages",
             Self::Up => "Move up",
             Self::Down => "Move down",
             Self::Left => "Move left",
