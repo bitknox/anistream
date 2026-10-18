@@ -538,10 +538,11 @@ function full() {
 	let introDone = false;
 	const intro = gsap.timeline();
 	const ec = $('.eyecatch-page');
-	intro.set(ec, { transformOrigin: 'left', scaleX: 0 });
+	intro.set(ec, { display: 'block', transformOrigin: 'left', scaleX: 0 });
 	intro.to(ec, { scaleX: 1, duration: 0.3, ease: 'power2.in' });
 	intro.set(ec, { transformOrigin: 'right' });
 	intro.to(ec, { scaleX: 0, duration: 0.38, ease: 'power2.out' });
+	intro.set(ec, { display: 'none' });
 	intro.to(
 		'.hero-h1 .hch',
 		{ opacity: 1, y: 0, duration: 0.55, stagger: 0.026, ease: 'power3.out' },
