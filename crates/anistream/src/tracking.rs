@@ -49,6 +49,12 @@ pub struct Sync {
     /// Kept so the OAuth token exchange goes through the same configured client — including its
     /// proxy settings — as every other request.
     pub http: anistream_net::HttpClient,
+    /// Each tracker's last library pull failure and when it happened, until a pull succeeds.
+    ///
+    /// Held here rather than sent once, because every state this module publishes replaces
+    /// the previous one whole: the next drain tick would otherwise wipe the error off the
+    /// Accounts screen a minute after it appeared.
+    pub pull_errors: Arc<std::sync::Mutex<std::collections::HashMap<String, (String, i64)>>>,
 }
 
 impl Sync {
@@ -162,6 +168,20 @@ impl Sync {
             store: store.clone(),
             config: config.clone(),
             http: http.clone(),
+            pull_errors: Arc::default(),
+        }
+    }
+
+    fn pull_error(&self, tracker_id: &str) -> Option<(String, i64)> {
+        self.pull_errors.lock().ok()?.get(tracker_id).cloned()
+    }
+
+    fn note_pull(&self, tracker_id: &str, error: Option<(String, i64)>) {
+        if let Ok(mut errors) = self.pull_errors.lock() {
+            match error {
+                Some(error) => errors.insert(tracker_id.to_owned(), error),
+                None => errors.remove(tracker_id),
+            };
         }
     }
 
@@ -182,6 +202,7 @@ impl Sync {
                     deferred: self.store.outbox_deferred(id).unwrap_or(0),
                     needs_reauth: false,
                     last: None,
+                    pull_error: self.pull_error(id),
                 }
             })
             .collect()
@@ -205,6 +226,7 @@ impl Sync {
             deferred: self.store.outbox_deferred(id).unwrap_or(0),
             needs_reauth,
             last,
+            pull_error: self.pull_error(id),
         }
     }
 
@@ -491,6 +513,7 @@ pub async fn pull_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
 
         match reconciled {
             Ok(report) => {
+                sync.note_pull(tracker.id(), None);
                 let _ = sync.store.set_meta_i64(&pull_key(tracker.id()), now);
                 let _ = tx.send(Update::Sync(Box::new(sync.state_for(
                     tracker.as_ref(),
@@ -526,9 +549,17 @@ pub async fn pull_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
                     Some("sign in again".into()),
                 ))));
             }
-            // A tracker outage is expected and must not produce a toast every interval; the
-            // badge and the log carry it.
-            Err(e) => tracing::warn!(tracker = tracker.id(), error = %e, "library pull failed"),
+            // A tracker outage is expected and must not produce a toast every interval. The
+            // Accounts row carries it, with when, until a pull succeeds.
+            Err(e) => {
+                tracing::warn!(tracker = tracker.id(), error = %e, "library pull failed");
+                sync.note_pull(tracker.id(), Some((e.to_string(), now)));
+                let _ = tx.send(Update::Sync(Box::new(sync.state_for(
+                    tracker.as_ref(),
+                    false,
+                    None,
+                ))));
+            }
         }
     }
 }
@@ -1102,6 +1133,63 @@ mod tests {
         set_status(&sync, AnilistId::new(1), LibrarySegment::Completed);
         set_score(&sync, AnilistId::new(1), 8.0);
         assert_eq!(store.outbox_depth(Some("kitsu")).unwrap(), 0);
+    }
+
+    /// A tracker whose library pull fails, or succeeds, as the test sets it.
+    struct Flaky {
+        down: std::sync::atomic::AtomicBool,
+    }
+
+    #[async_trait::async_trait]
+    impl Tracker for Flaky {
+        fn id(&self) -> &str {
+            "flaky"
+        }
+        fn is_authenticated(&self) -> bool {
+            true
+        }
+        async fn pull_library(
+            &self,
+        ) -> Result<Vec<anistream_core::traits::TrackedEntry>, anistream_core::Error> {
+            if self.down.load(std::sync::atomic::Ordering::Relaxed) {
+                Err(anistream_core::Error::Network("timed out".into()))
+            } else {
+                Ok(Vec::new())
+            }
+        }
+        async fn push(&self, _: &[TrackOp]) -> Result<(), anistream_core::Error> {
+            Ok(())
+        }
+    }
+
+    #[tokio::test]
+    async fn a_failed_pull_reaches_the_accounts_row_and_a_good_one_clears_it() {
+        // Pull failures only reached the log, so Accounts went on saying "pulled 40 titles"
+        // from the last success for the length of an outage.
+        let mut config = Config::default();
+        config.trackers.enabled.clear();
+        let store = Store::open_in_memory().unwrap();
+        let http = anistream_net::HttpClient::new(&config.network).unwrap();
+        let flaky = Arc::new(Flaky { down: true.into() });
+        let sync =
+            Sync { trackers: vec![flaky.clone()], ..Sync::build(&config, &store, &http) };
+        let (tx, mut rx) = mpsc::unbounded_channel();
+
+        pull_once(&sync, &tx).await;
+        let Some(Update::Sync(state)) = rx.try_recv().ok() else { panic!("no state sent") };
+        let (error, _) = state.pull_error.expect("the failure is on the row");
+        assert!(error.contains("timed out"), "{error}");
+
+        // It survives the next drain's state, which used to replace it whole.
+        assert!(
+            sync.state_for(flaky.as_ref(), false, Some("sent 1".into())).pull_error.is_some()
+        );
+
+        flaky.down.store(false, std::sync::atomic::Ordering::Relaxed);
+        pull_once(&sync, &tx).await;
+        let Some(Update::Sync(state)) = rx.try_recv().ok() else { panic!("no state sent") };
+        assert_eq!(state.pull_error, None);
+        assert_eq!(state.last.as_deref(), Some("pulled 0 titles"));
     }
 
     #[test]

@@ -1555,9 +1555,26 @@ fn accounts_rows(app: &App) -> Vec<(String, String)> {
             if let Some(last) = &state.last {
                 detail.push(last.clone());
             }
+            // Last, so a narrow row truncates the reason rather than the fact.
+            if let Some((error, at)) = &state.pull_error {
+                detail.push(format!("pull failed {}: {error}", pull_time(*at)));
+            }
             (action.to_string(), detail.join("  ·  "))
         })
         .collect()
+}
+
+/// When a pull failed, as a local clock time — with the date once it is not today, because
+/// "14:32" from last week reads as an outage still going on.
+fn pull_time(at: i64) -> String {
+    use chrono::TimeZone;
+    match chrono::Local.timestamp_opt(at, 0).single() {
+        Some(when) if when.date_naive() == chrono::Local::now().date_naive() => {
+            when.format("at %H:%M").to_string()
+        }
+        Some(when) => when.format("on %b %-d at %H:%M").to_string(),
+        None => String::new(),
+    }
 }
 
 /// Divergences the merge refused to guess at.
@@ -3550,6 +3567,30 @@ mod tests {
         })));
         let (_, detail) = &accounts_rows(&app)[0];
         assert!(detail.contains("3 queued") && !detail.contains("mapping"), "{detail}");
+    }
+
+    /// A failed pull used to leave the row saying "connected · pulled 40 titles" from the last
+    /// success, for as long as the outage lasted.
+    #[test]
+    fn an_accounts_row_says_when_and_why_the_last_pull_failed() {
+        let mut app = app_with(Content::Entries(Vec::new()));
+        let at = chrono::Local::now().timestamp() - 60;
+        app.apply(Update::Sync(Box::new(crate::app::SyncState {
+            connected: true,
+            pull_error: Some(("network: timed out".into(), at)),
+            ..crate::app::SyncState::new("anilist")
+        })));
+        let (_, detail) = &accounts_rows(&app)[0];
+        let clock = pull_time(at);
+        assert!(clock.starts_with("at "), "today's failure reads as a clock time: {clock}");
+        assert!(
+            detail.contains(&format!("pull failed {clock}: network: timed out")),
+            "{detail}"
+        );
+        assert!(!detail.contains("pulled"), "{detail}");
+
+        // An older failure carries its date.
+        assert!(pull_time(at - 10 * 86_400).starts_with("on "));
     }
 
     /// An episode that has already aired has no time left to count down to, and the "out" half

@@ -972,6 +972,9 @@ pub struct SyncState {
     pub needs_reauth: bool,
     /// Most recent sync outcome, in words.
     pub last: Option<String>,
+    /// Why the last library pull failed, and when (epoch seconds). Cleared by the next pull
+    /// that succeeds, so a row never goes on saying "pulled" over an outage.
+    pub pull_error: Option<(String, i64)>,
 }
 
 impl SyncState {
@@ -987,6 +990,7 @@ impl SyncState {
             deferred: 0,
             needs_reauth: false,
             last: None,
+            pull_error: None,
         }
     }
 

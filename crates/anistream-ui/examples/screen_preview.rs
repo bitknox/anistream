@@ -52,6 +52,7 @@ fn main() {
         deferred: 0,
         needs_reauth: false,
         last: Some("pulled 214 titles".into()),
+        pull_error: None,
     })));
     app.go_to_section(anistream_ui::Section::Library);
     app.apply(app.content_here(Content::Entries(vec![
