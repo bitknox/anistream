@@ -29,7 +29,7 @@ what it shows is what is actually bound, overrides included.
 | `e` / `s` | Episodes · sources |
 | `P` | Pin a source for this title |
 | `d` | Download |
-| `t` | Sub / dub |
+| `t` | Sub / dub for this session; Settings saves a choice |
 | `f` | Filter |
 | `m` | Fix a wrong match |
 | `w` | Watch order |

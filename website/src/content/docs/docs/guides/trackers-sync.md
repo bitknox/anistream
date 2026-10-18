@@ -58,8 +58,14 @@ remote genuinely disagree the conflict gets its own screen instead of a silent o
 An episode is pushed when it crosses `commit_threshold`, 85% of runtime by default. It is set high
 so that opening an episode to check the subtitles does not mark it seen.
 
+MyAnimeList, Kitsu, Simkl and Trakt name titles by their own ids, which come from the ID-mapping
+datasets. An update for a title the datasets do not cover yet waits in the queue without holding
+up the rest, and goes out once a refresh adds the title. Accounts counts these as waiting for an id
+mapping.
+
 `a` sets a title's list status and `*` rates it out of ten. Both are queued in the same outbox for
-every tracker you are signed in to, and each tracker converts the rating to its own scale.
+every tracker you are signed in to, and each tracker converts the rating to its own scale. Both
+live only on trackers, so with none signed in the keys say so instead.
 
 ## Token storage
 
