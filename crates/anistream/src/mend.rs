@@ -790,6 +790,11 @@ async fn handle_connection(socket: TcpStream, upstream: Arc<Upstream>) -> std::i
                 }
                 fetched.body[start..].to_vec()
             };
+            // The thumbnailer's refusals are logged and its answers were not, so a seek bar
+            // showing no thumbnails could not be told from one that never asked.
+            if class == Class::Thumbnail {
+                tracing::debug!(url = %url, bytes = body.len(), "thumbnail request answered");
+            }
 
             let head = format!(
                 "HTTP/1.1 200 OK\r\n\
