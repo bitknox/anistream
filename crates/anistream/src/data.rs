@@ -247,7 +247,7 @@ pub fn episode_rows_with_filler(
 
             EpisodeRow {
                 number: episode.number.as_str().to_owned(),
-                title: episode.title.clone(),
+                title: episode.title.as_deref().map(plain_quotes),
                 thumbnail: episode.thumbnail.clone(),
                 description: episode.description.clone(),
                 duration_secs: duration,
@@ -258,6 +258,16 @@ pub fn episode_rows_with_filler(
             }
         })
         .collect()
+}
+
+/// An episode title as it should read, from wherever it was listed.
+///
+/// Listings use a backtick for the apostrophe often enough to matter ("One`s Own"). The terminal
+/// shows it as the stray mark it is, and the player's text renderer drew it as a grave accent
+/// over the letter beside it — so it is put right once, here, where every title enters the
+/// episode table that the terminal and the player both read.
+fn plain_quotes(title: &str) -> String {
+    title.replace('`', "'")
 }
 
 #[cfg(test)]
@@ -414,6 +424,16 @@ mod tests {
         let e = entry_from(&media(), Some(&store));
         assert_eq!(e.progress, Some((2, 3)), "two done, three is next");
         assert!((e.watched_fraction() - 2.0 / 28.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn a_backtick_in_an_episode_title_becomes_an_apostrophe() {
+        let store = Store::open_in_memory().unwrap();
+        let mut episode =
+            anistream_core::media::Episode::new(anistream_core::media::EpisodeNumber::new("1"));
+        episode.title = Some("A Mage`s Promise".into());
+        let rows = episode_rows(&[episode], &store, AnilistId::new(1));
+        assert_eq!(rows[0].title.as_deref(), Some("A Mage's Promise"));
     }
 
     #[test]
