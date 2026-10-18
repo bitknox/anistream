@@ -1506,6 +1506,7 @@ mod tests {
             provider_id: "test".into(),
             download_source: None,
             pick_note: None,
+            thumbnail_url: None,
         };
         let scratch = tempfile::tempdir().unwrap();
         let mpv = Mpv::new(scratch.path());
