@@ -2323,13 +2323,13 @@ impl App {
         // the rest. This is the whole reason the Logs overlay exists.
         self.log(toast.kind, toast.text.clone());
         // The same message again is the same message, kept up longer rather than stacked: five
-        // presses of an arrow on Settings are one "saved", not a pile of identical lines.
-        if let Some(last) = self.toasts.last_mut()
-            && last.text == toast.text
-            && last.kind == toast.kind
+        // presses of an arrow on Settings are one "saved", not a pile of identical lines. From
+        // anywhere in the stack, and brought up to newest: a copy left under another line was
+        // counted in the rule's "+N", so one message read as two.
+        if let Some(at) =
+            self.toasts.iter().position(|t| t.text == toast.text && t.kind == toast.kind)
         {
-            last.ttl = toast.ttl;
-            return;
+            self.toasts.remove(at);
         }
         // Cap the stack so a burst of provider failures cannot cover the screen.
         if self.toasts.len() >= 3 {
@@ -9262,6 +9262,20 @@ mod tests {
             matched.iter().position(|(action, _)| *action == Action::Help).unwrap();
         a.handle(Action::Open, 10);
         assert_eq!(a.nav.overlay(), Some(&Overlay::Help), "the chosen action must run");
+    }
+
+    #[test]
+    fn a_toast_already_up_is_refreshed_rather_than_counted_twice() {
+        let mut a = app();
+        for text in ["saved", "saved", "queued", "saved"] {
+            a.push_toast(Toast::info(text));
+        }
+        let up: Vec<&str> = a.toasts.iter().map(|t| t.text.as_str()).collect();
+        assert_eq!(up, ["queued", "saved"], "one of each, the repeat newest");
+        // The log keeps every arrival, a run of repeats as one counted line.
+        let logged: Vec<(&str, u32)> =
+            a.logs.iter().map(|l| (l.text.as_str(), l.count)).collect();
+        assert_eq!(logged, [("saved", 2), ("queued", 1), ("saved", 1)]);
     }
 
     #[test]
