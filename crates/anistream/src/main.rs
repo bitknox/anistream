@@ -10,7 +10,7 @@ use anistream_net::HttpClient;
 use anistream_providers::{ProviderRegistry, vpn::VpnGuard};
 use anistream_store::Store;
 use anistream_ui::{
-    app::{App, Content, EpisodeRow, Task, Toast, Update},
+    app::{App, Content, EpisodeRow, JobId, Task, Toast, Update},
     keymap::Keymap,
     screens, theme,
 };
@@ -1442,7 +1442,8 @@ async fn run(
     let mut terminal = setup_terminal().context("preparing the terminal")?;
 
     if let Some(task) = app.reload() {
-        spawn(task, &meta, &store, &registry, &tx);
+        let job = JobGuard::start(&mut app, &task, &tx);
+        spawn(task, job, &meta, &store, &registry, &tx);
     }
 
     let mut events = EventStream::new();
@@ -1477,8 +1478,10 @@ async fn run(
         // Auto-next is queued by the reducer rather than returned, because an episode ending
         // arrives as an update rather than a keystroke.
         if let Some(task) = app.take_pending() {
+            let job = JobGuard::start(&mut app, &task, &tx);
             dispatch(
                 task,
+                job,
                 &mut player_tx,
                 &paths,
                 &app.config,
@@ -1583,8 +1586,9 @@ async fn run(
                             && let Some(action) = app.keymap.action_for(key, context)
                             && let Some(task) = app.handle(action, rows)
                         {
+                            let job = JobGuard::start(&mut app, &task, &tx);
                             dispatch(
-                                task, &mut player_tx, &paths, &app.config, &meta, &store,
+                                task, job, &mut player_tx, &paths, &app.config, &meta, &store,
                                 &registry, &http, &sync, &tx,
                             );
                         }
@@ -1639,9 +1643,38 @@ async fn publish_list(
     }
 }
 
+/// Ends its [`Job`](anistream_ui::app::Job) when dropped.
+///
+/// Moved into the future that does the work, so the job ends exactly when that future does —
+/// on success, on an early return, on a panic — with no path having to remember to say so.
+/// That is what the status line lacked: its "…" messages were cleared only by the code paths
+/// that thought to, and outlived their work on every other one.
+struct JobGuard {
+    id: JobId,
+    tx: mpsc::UnboundedSender<Update>,
+}
+
+impl JobGuard {
+    fn start(app: &mut App, task: &Task, tx: &mpsc::UnboundedSender<Update>) -> Option<Self> {
+        app.begin_job(task).map(|id| Self { id, tx: tx.clone() })
+    }
+
+    /// Say what the work is held up on, and until when if that is known.
+    fn note(&self, note: impl Into<String>, until: Option<std::time::Instant>) {
+        let _ = self.tx.send(Update::JobNote { job: self.id, note: note.into(), until });
+    }
+}
+
+impl Drop for JobGuard {
+    fn drop(&mut self) {
+        let _ = self.tx.send(Update::JobDone(self.id));
+    }
+}
+
 /// Run a task off the UI thread and report the result back through the channel.
 fn spawn(
     task: Task,
+    job: Option<JobGuard>,
     meta: &Meta,
     store: &Store,
     registry: &ProviderRegistry,
@@ -1655,14 +1688,21 @@ fn spawn(
     tokio::spawn(async move {
         // Say so before waiting, not after. At thirty requests a minute a burst of navigation can
         // drain the budget, and the token bucket then delays every request — which presented as an
-        // indefinite loading indicator and looked exactly like a hang.
+        // indefinite loading indicator and looked exactly like a hang. As a note on the job it
+        // counts down and goes away with the work, where a status line kept saying "12s" after.
         if let Some(wait) = meta.rate_limit_wait().await
             && wait.as_millis() > 400
         {
-            let _ = tx.send(Update::Status(format!(
-                "waiting {}s on the AniList rate limit",
-                wait.as_secs().max(1)
-            )));
+            let until = std::time::Instant::now() + wait;
+            match &job {
+                Some(job) => job.note("AniList limit", Some(until)),
+                None => {
+                    let _ = tx.send(Update::Status(format!(
+                        "waiting {}s on the AniList rate limit",
+                        wait.as_secs().max(1)
+                    )));
+                }
+            }
         }
         let update = match task {
             Task::LoadContinue => match continue_entries(&meta, &store).await {
@@ -1860,6 +1900,7 @@ fn spawn(
 #[allow(clippy::too_many_arguments)]
 fn dispatch(
     task: Task,
+    job: Option<JobGuard>,
     player_tx: &mut Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
     paths: &Paths,
     config: &Config,
@@ -1878,6 +1919,7 @@ fn dispatch(
         Task::SyncNow => {
             let (sync, tx) = (sync.clone(), tx.clone());
             tokio::spawn(async move {
+                let _job = job;
                 tracking::drain_once(&sync, &tx).await;
                 tracking::pull_once(&sync, &tx).await;
                 let _ = tx.send(Update::Status(String::new()));
@@ -1885,11 +1927,17 @@ fn dispatch(
         }
         Task::Connect { tracker } => {
             let (sync, tx) = (sync.clone(), tx.clone());
-            tokio::spawn(tracking::connect(sync, tracker, tx));
+            tokio::spawn(async move {
+                let _job = job;
+                tracking::connect(sync, tracker, tx).await;
+            });
         }
         Task::ConnectKitsu { username, password } => {
             let (sync, tx) = (sync.clone(), tx.clone());
-            tokio::spawn(tracking::connect_kitsu(sync, username, password.0, tx));
+            tokio::spawn(async move {
+                let _job = job;
+                tracking::connect_kitsu(sync, username, password.0, tx).await;
+            });
         }
         Task::Disconnect { tracker } => tracking::disconnect(sync, &tracker, tx),
         Task::SetStatus { id, status } => {
@@ -1925,6 +1973,7 @@ fn dispatch(
         Task::LoadLibrary(segment) => {
             let (sync, tx, store) = (sync.clone(), tx.clone(), store.clone());
             tokio::spawn(async move {
+                let _job = job;
                 let update = tracking::load_library(&sync, &store, segment).await;
                 let _ = tx.send(update);
             });
@@ -1950,6 +1999,7 @@ fn dispatch(
                 http,
                 &player(config, paths),
                 tracker_ids,
+                job,
                 tx,
             );
         }
@@ -1972,6 +2022,7 @@ fn dispatch(
                 http,
                 &player(config, paths),
                 tracker_ids,
+                job,
                 tx,
             );
         }
@@ -1993,6 +2044,7 @@ fn dispatch(
                 http,
                 &player(config, paths),
                 tracker_ids,
+                job,
                 tx,
             );
         }
@@ -2001,6 +2053,7 @@ fn dispatch(
                 (store.clone(), registry.clone(), meta.clone(), tx.clone());
             let translation = config.playback.translation;
             tokio::spawn(async move {
+                let _job = job;
                 let update =
                     match source_slate(&meta, &store, &registry, id, &episode, translation)
                         .await
@@ -2052,6 +2105,7 @@ fn dispatch(
             let mpv_binary = config.playback.mpv_binary.clone();
             let tx = tx.clone();
             tokio::spawn(async move {
+                let _job = job;
                 // mpv streams YouTube through yt-dlp, and without it the window opens and
                 // dies with nothing to say. Checked up front so the failure mode is a
                 // browser tab rather than a mystery.
@@ -2087,6 +2141,7 @@ fn dispatch(
             let (registry, meta, tx) = (registry.clone(), meta.clone(), tx.clone());
             let translation = config.playback.translation;
             tokio::spawn(async move {
+                let _job = job;
                 let now = now_epoch();
                 let attempt = registry.search(&query, translation, now).await;
                 let provider_id = attempt.provider.clone().unwrap_or_default();
@@ -2126,6 +2181,7 @@ fn dispatch(
                 (store.clone(), registry.clone(), meta.clone(), tx.clone());
             let translation = config.playback.translation;
             tokio::spawn(async move {
+                let _job = job;
                 // Sequential enqueues, not parallel: each one is only a resolve + a queue
                 // row, and the download manager's own concurrency cap paces the fetches.
                 let mut queued = 0usize;
@@ -2154,6 +2210,7 @@ fn dispatch(
                 (store.clone(), registry.clone(), meta.clone(), tx.clone());
             let translation = config.playback.translation;
             tokio::spawn(async move {
+                let _job = job;
                 // Resolving needs the provider chain, so this is a task rather than inline — the
                 // same walk playback does, which is the point: a download is "play it, to disk".
                 let update = match downloads::enqueue(
@@ -2251,6 +2308,7 @@ fn dispatch(
                 tx.clone(),
             );
             tokio::spawn(async move {
+                let _job = job;
                 let playback = config.playback.clone();
                 let stream = anistream_core::stream::Stream::new(
                     path,
@@ -2327,7 +2385,7 @@ fn dispatch(
                 }
             }
         }
-        other => spawn(other, meta, store, registry, tx),
+        other => spawn(other, job, meta, store, registry, tx),
     }
 }
 
@@ -2352,6 +2410,7 @@ fn spawn_playback(
     http: &HttpClient,
     mpv: &anistream_player::Mpv,
     tracker_ids: Vec<String>,
+    job: Option<JobGuard>,
     tx: &mpsc::UnboundedSender<Update>,
 ) {
     let (config, meta, store, registry, http, mpv, tx) = (
@@ -2367,7 +2426,15 @@ fn spawn_playback(
     tokio::spawn(async move {
         let playback = config.playback.clone();
         let context = match resolve_for_playback(
-            &meta, &store, &registry, id, &episode, pick, &playback, &tx,
+            &meta,
+            &store,
+            &registry,
+            id,
+            &episode,
+            pick,
+            &playback,
+            job.as_ref(),
+            &tx,
         )
         .await
         {
@@ -2381,6 +2448,9 @@ fn spawn_playback(
             }
         };
         let (streams, context) = context;
+        // Resolved: from here the wait is mpv opening, which Now Playing shows itself, and the
+        // session lasts the episode — far too long to hold a "starting" job open for.
+        drop(job);
         // Say why this release, so an automatic pick is never a mystery. The active-provider
         // header is sent from playback itself, per attempt, so failover never credits the
         // stream that just failed.
@@ -2420,16 +2490,25 @@ async fn resolve_for_playback(
     episode: &str,
     pick: Option<(String, String)>,
     playback: &anistream_core::config::PlaybackConfig,
+    job: Option<&JobGuard>,
     tx: &mpsc::UnboundedSender<Update>,
 ) -> std::result::Result<(Vec<anistream_core::stream::Stream>, playback::PlaybackContext), String>
 {
+    // The step under way, on the job when there is one; the CLI has no activity row and reads
+    // the status channel instead.
+    let step = |text: String| match job {
+        Some(job) => job.note(text, None),
+        None => {
+            let _ = tx.send(Update::Status(text));
+        }
+    };
     if registry.is_empty() {
         return Err("no sources configured — see the Providers screen".into());
     }
     // Phase-labelled, because the wait between Enter and mpv is where every tool in
     // this category earns its "is it frozen?" issues. The status line names the rung
     // being climbed; the eyecatch's own timer says how long it has taken.
-    let _ = tx.send(Update::Status("looking up the title…".into()));
+    step("looking up the title".into());
     let media = meta.media(id).await.map_err(|e| e.to_string())?;
     let now = now_epoch();
 
@@ -2470,7 +2549,7 @@ async fn resolve_for_playback(
         .cloned()
         .ok_or_else(|| format!("could not match this title: {}", resolution.explain()))?;
 
-    let _ = tx.send(Update::Status(format!("searching sources for ep {episode}…")));
+    step(format!("searching sources for ep {episode}"));
     let mut streams = match &pick {
         // A picked release goes straight to its provider, no failover: substituting a
         // different stream for the one the user chose would silently undo the choice.
@@ -2777,6 +2856,7 @@ async fn play_cli(
         &episode,
         None,
         &config.playback,
+        None,
         &tx,
     )
     .await
@@ -3325,6 +3405,37 @@ fn current_season() -> (anistream_meta::anilist::Season, u16) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn test_app() -> App {
+        App::new(Config::default(), theme::Palette::dark(), Keymap::new())
+    }
+
+    #[test]
+    fn a_job_starts_only_for_work_someone_waits_on() {
+        let (tx, _rx) = mpsc::unbounded_channel();
+        let mut app = test_app();
+        let score = Task::SetScore { id: anistream_core::ids::AnilistId::new(1), score: 7.0 };
+        assert!(JobGuard::start(&mut app, &score, &tx).is_none());
+        assert!(JobGuard::start(&mut app, &Task::CheckProviders, &tx).is_some());
+    }
+
+    #[tokio::test]
+    async fn a_job_ends_however_its_work_does_even_by_panicking() {
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        let mut app = test_app();
+        let job = JobGuard::start(&mut app, &Task::CheckProviders, &tx).unwrap();
+        let id = job.id;
+
+        let work = tokio::spawn(async move {
+            let job = job;
+            job.note("held up", None);
+            panic!("the provider check fell over");
+        });
+        assert!(work.await.is_err(), "the task did panic");
+
+        assert!(matches!(rx.recv().await, Some(Update::JobNote { job, .. }) if job == id));
+        assert!(matches!(rx.recv().await, Some(Update::JobDone(job)) if job == id));
+    }
 
     #[test]
     fn the_player_reflects_the_upscaler_as_it_stands_now() {

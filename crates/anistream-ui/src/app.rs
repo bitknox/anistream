@@ -4,6 +4,8 @@
 //! split is what keeps the event loop honest — the UI thread only ever applies already-
 //! computed [`Update`]s, so a slow provider or a large image decode cannot stall a frame.
 
+use std::time::{Duration, Instant};
+
 use anistream_core::{config::Config, ids::AnilistId, traits::SourceCandidate};
 
 use crate::{
@@ -812,6 +814,14 @@ impl Content {
 /// guarantees the render loop is never blocked on I/O.
 #[derive(Debug)]
 pub enum Update {
+    /// What a running [`Job`] is held up on, and until when.
+    JobNote {
+        job: JobId,
+        note: String,
+        until: Option<Instant>,
+    },
+    /// The work carrying this job has ended, whether it succeeded or not.
+    JobDone(JobId),
     Content(Content),
     /// How to continue the calendar that is arriving: the anchor its pages are numbered
     /// against, how many are loaded, and whether AniList has more behind them.
@@ -995,6 +1005,9 @@ pub struct App {
     /// Separate from `episodes.is_empty()`, which cannot tell "still loading" from "this source has
     /// no episodes" — and those need opposite messages.
     pub episodes_loading: bool,
+    /// Running work, oldest first. See [`Job`].
+    pub jobs: Vec<Job>,
+    next_job: u64,
     /// The palette variant detection settled on at startup.
     ///
     /// Kept so switching *out* of immersive mode can restore the right one without re-querying
@@ -1096,6 +1109,8 @@ impl App {
             device_code: None,
             reload_countdown: None,
             episodes_loading: false,
+            jobs: Vec::new(),
+            next_job: 0,
             adaptive_variant: match palette.variant {
                 // Started in immersive, so there is no detected variant to remember. Dark is the
                 // safer default of the two, and a restart re-runs real detection.
@@ -1409,6 +1424,12 @@ impl App {
                     None => self.sync.push(*state),
                 }
             }
+            Update::JobNote { job, note, until } => {
+                if let Some(job) = self.jobs.iter_mut().find(|j| j.id == job) {
+                    job.note = Some((note, until));
+                }
+            }
+            Update::JobDone(job) => self.jobs.retain(|j| j.id != job),
             Update::ProgressQueued => {
                 // Optimistic, and safe to be: the row is already in SQLite by the time this
                 // arrives, so the count can only be corrected downward by the next drain.
@@ -2159,7 +2180,6 @@ impl App {
                     }
                 };
                 self.source_context = Some((id, episode.clone()));
-                self.status = format!("listing sources for ep {episode}…");
                 return Some(Task::LoadSources { id, episode });
             }
             Action::PlayParty => {
@@ -2175,7 +2195,6 @@ impl App {
                         (entry.id, episode)
                     }
                 };
-                self.status = format!("resolving ep {episode} for the party…");
                 return Some(Task::PlayParty { id, episode });
             }
             Action::Download => {
@@ -2191,7 +2210,6 @@ impl App {
                         (entry.id, episode)
                     }
                 };
-                self.status = format!("queueing ep {episode}…");
                 return Some(Task::DownloadEpisode { id, episode });
             }
             Action::ToggleSynopsis => self.synopsis_expanded = !self.synopsis_expanded,
@@ -2255,7 +2273,6 @@ impl App {
                 if self.sync.is_empty() {
                     self.push_toast(Toast::info("no tracker connected — :accounts"));
                 } else {
-                    self.status = "resyncing…".into();
                     return Some(Task::SyncNow);
                 }
             }
@@ -3067,7 +3084,6 @@ impl App {
                 let password = Secret(std::mem::take(&mut self.kitsu_pass));
                 self.kitsu_user.clear();
                 self.nav.close_overlay();
-                self.status = "signing in to kitsu…".into();
                 return Some(Task::ConnectKitsu { username, password });
             }
             // Mid-query is exactly when filters are wanted, so ctrl+f cannot wait for the
@@ -3161,10 +3177,8 @@ impl App {
                 if query.is_empty() {
                     self.episodes.clear();
                     self.episodes_loading = true;
-                    self.status = "reset to the automatic match…".into();
                     return Some(Task::ClearMatch { id });
                 }
-                self.status = format!("searching sources for {query:?}…");
                 return Some(Task::ManualSearch { id, query });
             }
             Action::Down if self.nav.overlay() == Some(&Overlay::CommandPalette) => {
@@ -3322,6 +3336,28 @@ impl App {
         self.offset = 0;
         self.detail = None;
         self.reload()
+    }
+
+    /// Start a [`Job`] for `task`, if it is work the user will wait on.
+    ///
+    /// Called by whoever runs the task, at the moment it does, so the job's clock starts when
+    /// the work does; the runner ends it with [`Update::JobDone`] when the work stops.
+    pub fn begin_job(&mut self, task: &Task) -> Option<JobId> {
+        let label = task.activity()?;
+        self.next_job += 1;
+        let id = JobId(self.next_job);
+        self.jobs.push(Job { id, label, started: Instant::now(), note: None });
+        Some(id)
+    }
+
+    /// The jobs worth showing at `now`, newest first: the thing just asked for leads, and work
+    /// that has been running a while trails after it.
+    pub fn activity(&self, now: Instant) -> Vec<&Job> {
+        self.jobs
+            .iter()
+            .rev()
+            .filter(|job| now.saturating_duration_since(job.started) >= ACTIVITY_DELAY)
+            .collect()
     }
 
     /// Work needed to populate the current view.
@@ -3556,6 +3592,68 @@ pub struct Secret(pub String);
 impl std::fmt::Debug for Secret {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("Secret(«redacted»)")
+    }
+}
+
+/// Identifies one [`Job`], so the work that finishes it can say which.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct JobId(u64);
+
+/// Something the user started and is waiting on, shown in the activity row until it ends.
+///
+/// The status line could only hold one sentence, written when work began and cleared — when it
+/// was cleared at all — by whichever path remembered to. So a message outlived its work, and two
+/// pieces of work overwrote each other. A job instead ends when the work that carries it ends,
+/// however it ends, and every running one is listed with how long it has taken.
+#[derive(Debug, Clone)]
+pub struct Job {
+    pub id: JobId,
+    pub label: String,
+    pub started: Instant,
+    /// What the work is held up on, when that is not the work itself — a rate-limit pause —
+    /// and until when, so the row can count it down rather than state a figure that goes stale.
+    pub note: Option<(String, Option<Instant>)>,
+}
+
+/// How long work runs before it earns a place in the activity row. Most loads answer well
+/// inside this, and a row that blinked in and out on every keypress would shift the screen for
+/// nothing; past it, the wait is long enough to wonder about.
+pub const ACTIVITY_DELAY: Duration = Duration::from_millis(600);
+
+impl Task {
+    /// What to call this in the activity row, or `None` for work nobody waits on: writes that
+    /// land in the outbox, player commands, and anything that finishes as it is asked.
+    pub fn activity(&self) -> Option<String> {
+        Some(match self {
+            Self::LoadContinue => "loading continue watching".into(),
+            Self::LoadSeasonal => "loading this season".into(),
+            Self::LoadCalendar => "loading the calendar".into(),
+            Self::LoadCalendarPast { .. } => "loading earlier broadcasts".into(),
+            Self::Search { query, .. } if query.is_empty() => "browsing".into(),
+            Self::Search { query, .. } => format!("searching \u{201c}{query}\u{201d}"),
+            Self::LoadDetail(_) => "loading the title".into(),
+            Self::LoadEpisodes(_) => "loading episodes".into(),
+            Self::ClearMatch { .. } | Self::FixMatch { .. } => "rematching sources".into(),
+            Self::CheckProviders => "checking providers".into(),
+            Self::LoadLibrary(segment) => format!("loading your {} list", segment.label()),
+            Self::SyncNow => "syncing".into(),
+            Self::Connect { tracker } => format!("signing in to {tracker}"),
+            Self::ConnectKitsu { .. } => "signing in to kitsu".into(),
+            Self::Play { episode, .. } | Self::PlaySource { episode, .. } => {
+                format!("starting ep {episode}")
+            }
+            Self::PlayParty { episode, .. } => format!("starting ep {episode} for the party"),
+            Self::LoadSources { episode, .. } => format!("listing sources for ep {episode}"),
+            Self::ManualSearch { query, .. } => {
+                format!("searching sources for \u{201c}{query}\u{201d}")
+            }
+            Self::DownloadEpisode { episode, .. } => format!("queueing ep {episode}"),
+            Self::DownloadMany { episodes, .. } => {
+                format!("queueing {} episodes", episodes.len())
+            }
+            Self::PlayTrailer { .. } => "opening the trailer".into(),
+            _ => return None,
+        })
     }
 }
 
@@ -5581,6 +5679,53 @@ mod tests {
         assert_eq!(a.selected, 0);
         assert!(a.detail.is_none(), "stale detail from another section");
         assert_eq!(a.nav.depth(), 1);
+    }
+
+    /// Started long enough ago to be shown.
+    fn aged(a: &mut App, id: JobId, by: Duration) {
+        let job = a.jobs.iter_mut().find(|j| j.id == id).expect("a running job");
+        job.started = Instant::now().checked_sub(by).expect("a clock that far back");
+    }
+
+    #[test]
+    fn only_work_someone_waits_on_becomes_a_job() {
+        let mut a = app();
+        assert!(a.begin_job(&Task::LoadSeasonal).is_some());
+        assert!(
+            a.begin_job(&Task::LoadSources { id: AnilistId::new(1), episode: "3".into() })
+                .is_some()
+        );
+        // Outbox writes and player commands finish as they are asked; a row for them would only
+        // ever flash.
+        assert!(a.begin_job(&Task::SetScore { id: AnilistId::new(1), score: 8.0 }).is_none());
+        assert!(a.begin_job(&Task::Player(PlayerCommand::TogglePause)).is_none());
+        assert_eq!(a.jobs.len(), 2);
+    }
+
+    #[test]
+    fn a_job_runs_until_its_work_says_it_ended() {
+        let mut a = app();
+        let id = a.begin_job(&Task::CheckProviders).unwrap();
+        a.apply(Update::JobNote { job: id, note: "AniList limit".into(), until: None });
+        assert_eq!(a.jobs[0].note.as_ref().map(|(n, _)| n.as_str()), Some("AniList limit"));
+
+        a.apply(Update::JobDone(id));
+        assert!(a.jobs.is_empty());
+        // A second end, or one for a job long gone, is harmless.
+        a.apply(Update::JobDone(id));
+    }
+
+    #[test]
+    fn work_earns_the_row_only_once_it_has_taken_a_while() {
+        let mut a = app();
+        let older = a.begin_job(&Task::LoadCalendar).unwrap();
+        let newer = a.begin_job(&Task::CheckProviders).unwrap();
+        assert!(a.activity(Instant::now()).is_empty(), "quick answers never show");
+
+        aged(&mut a, older, Duration::from_secs(5));
+        aged(&mut a, newer, Duration::from_secs(1));
+        let shown: Vec<_> = a.activity(Instant::now()).iter().map(|j| j.id).collect();
+        assert_eq!(shown, [newer, older], "the thing just asked for leads");
     }
 
     #[test]

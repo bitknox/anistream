@@ -36,11 +36,31 @@ pub struct Frame {
     pub stage: Rect,
     /// Hairline above the status line.
     pub status_rule: Rect,
+    /// Running work, between the status hairline and the status line. Zero-height unless
+    /// [`Frame::with_activity`] made room for it.
+    pub activity: Rect,
     /// State on the left, a few contextual hints on the right.
     pub status: Rect,
 }
 
 impl Frame {
+    /// Make room for the activity row by taking one row from the body.
+    ///
+    /// It sits under the status hairline, grouped with the status line it extends rather than
+    /// with the content above. A body too short to spare a row keeps it: on a terminal that
+    /// small the list matters more than knowing how long it has been loading.
+    pub fn with_activity(mut self) -> Self {
+        if self.status.height == 0 || self.stage.height < 4 {
+            return self;
+        }
+        for body in [&mut self.rail, &mut self.divider, &mut self.stage] {
+            body.height -= 1;
+        }
+        self.status_rule.y -= 1;
+        self.activity = Rect { y: self.status_rule.y + 1, height: 1, ..self.status_rule };
+        self
+    }
+
     pub fn has_rail(&self) -> bool {
         self.rail.width > 0
     }
@@ -93,7 +113,9 @@ pub fn compute(area: Rect, requested: RailWidth) -> Frame {
         height: status_h,
     };
 
-    Frame { header, header_rule, rail, divider, stage, status_rule, status }
+    let activity = Rect { y: status.y, height: 0, ..status };
+
+    Frame { header, header_rule, rail, divider, stage, status_rule, activity, status }
 }
 
 /// Resolve the rail width against the available space.
@@ -194,6 +216,28 @@ mod tests {
         assert_eq!(f.rail.x, 0);
         assert_eq!(f.divider.x, f.rail.width);
         assert_eq!(f.stage.x, f.rail.width + f.divider.width);
+    }
+
+    #[test]
+    fn the_activity_row_takes_one_body_row_and_sits_under_the_status_hairline() {
+        let a = area(120, 40);
+        let plain = compute(a, RailWidth::Expanded);
+        let busy = plain.with_activity();
+
+        assert_eq!(plain.activity.height, 0, "no row until there is work to show");
+        assert_eq!(busy.stage.height, plain.stage.height - 1);
+        assert_eq!(busy.rail.height, plain.rail.height - 1);
+        assert_eq!(busy.activity.y, busy.status_rule.y + 1, "grouped with the status line");
+        assert_eq!(busy.activity.y + 1, busy.status.y);
+        assert_eq!(busy.status, plain.status, "the status line itself does not move");
+        assert_eq!(busy.stage.bottom(), busy.status_rule.y, "nothing left between the two");
+        assert_eq!(busy.activity.width, a.width);
+    }
+
+    #[test]
+    fn a_body_too_short_to_spare_a_row_keeps_it() {
+        let tiny = compute(area(80, 7), RailWidth::Expanded);
+        assert_eq!(tiny.with_activity(), tiny);
     }
 
     #[test]
