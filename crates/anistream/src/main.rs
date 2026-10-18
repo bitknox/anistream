@@ -25,7 +25,7 @@ use clap::Parser;
 use crossterm::{
     event::{Event, EventStream, KeyCode, KeyEventKind},
     execute,
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+    terminal::{EnterAlternateScreen, enable_raw_mode},
 };
 use futures::StreamExt;
 use ratatui::{Terminal, backend::CrosstermBackend};
@@ -1580,6 +1580,10 @@ async fn run(
         Arc::new(std::sync::RwLock::new(app.config.clone()));
     let mut torrent_tasks = TorrentTasks::start(&vpn_guard, &store, &shared_config, &tx);
 
+    // Both before the terminal changes state, so there is no moment in which a signal or a
+    // panic could leave it raw.
+    anistream::tty::install_panic_hook();
+    let mut signals = anistream::tty::Signals::new().context("listening for signals")?;
     let mut terminal = setup_terminal().context("preparing the terminal")?;
 
     if let Some(task) = app.reload() {
@@ -1609,12 +1613,20 @@ async fn run(
     }
 
     let result = loop {
-        terminal.draw(|frame| screens::render(frame, &app))?;
+        // Broken out of rather than returned from: a terminal that can no longer be drawn on
+        // still has to be given back, and the player closed.
+        if let Err(e) = terminal.draw(|frame| screens::render(frame, &app)) {
+            break Err(e.into());
+        }
         if app.should_quit {
             break Ok(());
         }
 
-        let rows = screens::visible_rows(terminal.size()?.into(), app.nav.section());
+        let size = match terminal.size() {
+            Ok(size) => size,
+            Err(e) => break Err(e.into()),
+        };
+        let rows = screens::visible_rows(size.into(), app.nav.section());
 
         // Prefetch only what is on screen plus a short lookahead. `visible_artwork` claims
         // each URL, so a re-render cannot re-request one already in flight.
@@ -1679,7 +1691,8 @@ async fn run(
                     // the one that draws. Without a frame here the app would simply stop
                     // responding with nothing on screen to say why.
                     app.apply(Update::Status("reloading sources…".into()));
-                    terminal.draw(|frame| screens::render(frame, &app))?;
+                    // A failure here fails again at the top of the loop, which ends it.
+                    let _ = terminal.draw(|frame| screens::render(frame, &app));
                     reload_sources(
                         &registry,
                         &mut torrent_tasks,
@@ -1702,6 +1715,21 @@ async fn run(
                 if ended && !app.will_play_next() && app.playing.is_none() {
                     anistream::focus::refocus_terminal();
                 }
+            }
+            // Asked to end from outside — a kill, the terminal closing — which leaves the way
+            // Q does, so the player is closed rather than orphaned and playing on.
+            signal = signals.recv() => {
+                tracing::info!(signal, "shutting down");
+                anistream::tty::exit_on_second_signal();
+                if let Some(task) = app.handle(anistream_ui::keymap::Action::Quit, rows) {
+                    let job = JobGuard::start(&mut app, &task, &tx);
+                    dispatch(
+                        task, job, &mut player_tx, &paths, &app, &slot, &prefetch, &meta, &store,
+                        &registry, &http, &sync, &stores, &tx,
+                    );
+                }
+                // Whatever an open overlay made of the key, a signal is not a request to close it.
+                app.should_quit = true;
             }
             _ = ticker.tick() => app.tick_toasts(),
             // The eyecatch is the only thing in this app that animates, so the fast tick only
@@ -3174,11 +3202,7 @@ fn setup_terminal() -> Result<Terminal<CrosstermBackend<io::Stdout>>> {
 }
 
 fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
-    disable_raw_mode()?;
-    let _ = execute!(terminal.backend_mut(), crossterm::event::DisableBracketedPaste);
-    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
-    terminal.show_cursor()?;
-    Ok(())
+    Ok(anistream::tty::restore(terminal.backend_mut())?)
 }
 
 /// Ask the terminal to put `text` on the clipboard (OSC 52). Returns whether the request was

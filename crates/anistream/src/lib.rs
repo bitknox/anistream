@@ -32,4 +32,5 @@ pub mod shaders;
 pub mod slot;
 pub mod sources;
 pub mod tracking;
+pub mod tty;
 pub mod updates;
