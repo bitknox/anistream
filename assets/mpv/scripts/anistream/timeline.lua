@@ -182,8 +182,10 @@ mp.register_script_message("thumbfast-info", function(json)
     thumb = (info.width and info.height and not info.disabled) and info or nil
 end)
 
+-- Whole seconds rounded down, as the terminal's Now Playing counts them, so the two never show
+-- the same runtime a second apart; and rounded down, the elapsed time never passes the total.
 local function clock(seconds)
-    seconds = math.max(0, math.floor(seconds + 0.5))
+    seconds = math.max(0, math.floor(seconds))
     local h, m, s = math.floor(seconds / 3600), math.floor(seconds % 3600 / 60), seconds % 60
     if h > 0 then
         return string.format("%d:%02d:%02d", h, m, s)
