@@ -28,6 +28,21 @@ pub mod observed {
     /// "what did the file actually bring?" into an ordinary chapters event, the only
     /// question fire-and-forget IPC can ask without reply plumbing.
     pub const CHAPTERS_SETTLED: u64 = 8;
+    /// The decoded picture's size, colourspace and transfer — what the upscaling chain and
+    /// the HDR badge are chosen from.
+    pub const VIDEO_PARAMS: u64 = 9;
+    pub const TRACK_LIST: u64 = 10;
+    pub const AID: u64 = 11;
+    pub const SID: u64 = 12;
+    pub const SUB_DELAY: u64 = 13;
+    /// True while playback is held waiting for the network — the mid-episode stall signal.
+    pub const PAUSED_FOR_CACHE: u64 = 14;
+    /// Frames the video output dropped. Rising steadily means the shader chain is too heavy.
+    pub const FRAME_DROPS: u64 = 15;
+    pub const DISPLAY_WIDTH: u64 = 16;
+    pub const DISPLAY_HEIGHT: u64 = 17;
+    /// The video track as mpv describes it, which is where Dolby Vision shows up.
+    pub const VIDEO_TRACK: u64 = 18;
 }
 
 /// A command to send to mpv.
@@ -53,10 +68,43 @@ pub enum Command {
         text: String,
         duration_ms: u32,
     },
+    /// Open a file in place of whatever is playing, with options that apply to it alone.
+    ///
+    /// This is what lets one mpv window carry a whole binge: headers, the resume point and the
+    /// title belong to the file, so the next episode — or a fallback stream — gets its own
+    /// without the previous one's leaking across. mpv takes the option values as strings only;
+    /// a JSON array is refused outright (measured), which is why list options arrive here
+    /// already joined and escaped.
     LoadFile {
         url: String,
-        replace: bool,
+        options: Vec<(String, String)>,
     },
+    /// Attach an external subtitle track to the loaded file without selecting it.
+    ///
+    /// After the file loads rather than as a load option: `sub-files` is a path list split on
+    /// `:`, which every URL contains.
+    SubAdd {
+        url: String,
+        title: Option<String>,
+        language: Option<String>,
+    },
+    /// Publish a value to the companion script under `user-data/anistream/<key>`.
+    ///
+    /// State rather than a message: the script observes these, so it sees the latest value
+    /// whenever it starts, including after mpv reloads it.
+    SetUserData(&'static str, serde_json::Value),
+    /// Tell the companion script something, as `script-message-to anistream <command> <json>`.
+    ScriptMessage {
+        command: &'static str,
+        payload: serde_json::Value,
+    },
+    /// Add or remove one labelled audio filter, leaving any the user set alone.
+    AudioFilter {
+        add: bool,
+        filter: String,
+    },
+    /// Stop the file and go idle, keeping the window.
+    Stop,
     Quit,
 }
 
@@ -85,11 +133,42 @@ impl Command {
             Self::ShowText { text, duration_ms } => {
                 vec!["show-text".into(), text.clone().into(), (*duration_ms).into()]
             }
-            Self::LoadFile { url, replace } => vec![
-                "loadfile".into(),
+            Self::LoadFile { url, options } => {
+                let options: serde_json::Map<String, serde_json::Value> =
+                    options.iter().map(|(k, v)| (k.clone(), v.clone().into())).collect();
+                // The index slot is required before the options since mpv 0.38; -1 is "none".
+                vec![
+                    "loadfile".into(),
+                    url.clone().into(),
+                    "replace".into(),
+                    (-1).into(),
+                    options.into(),
+                ]
+            }
+            Self::SubAdd { url, title, language } => vec![
+                "sub-add".into(),
                 url.clone().into(),
-                if *replace { "replace" } else { "append-play" }.into(),
+                "auto".into(),
+                title.clone().unwrap_or_default().into(),
+                language.clone().unwrap_or_default().into(),
             ],
+            Self::SetUserData(key, value) => vec![
+                "set_property".into(),
+                format!("user-data/anistream/{key}").into(),
+                value.clone(),
+            ],
+            Self::ScriptMessage { command, payload } => vec![
+                "script-message-to".into(),
+                "anistream".into(),
+                (*command).into(),
+                payload.to_string().into(),
+            ],
+            Self::AudioFilter { add, filter } => vec![
+                "af".into(),
+                if *add { "add" } else { "remove" }.into(),
+                filter.clone().into(),
+            ],
+            Self::Stop => vec!["stop".into()],
             Self::Quit => vec!["quit".into()],
         };
 
@@ -109,6 +188,11 @@ pub enum EndReason {
     Eof,
     /// User stopped it, or we asked mpv to quit.
     Quit,
+    /// Replaced by another file — our own `loadfile`, for the next episode or a fallback
+    /// stream. Kept apart from [`Self::Quit`] because with one window per binge it is routine
+    /// rather than an exit, and the playback loop has to tell its own replacement from the
+    /// viewer closing the player.
+    Stop,
     /// Skipped to another file in the playlist.
     Redirect,
     /// Playback failed.
@@ -120,7 +204,8 @@ impl EndReason {
     fn parse(raw: Option<&str>) -> Self {
         match raw {
             Some("eof") => Self::Eof,
-            Some("quit") | Some("stop") => Self::Quit,
+            Some("quit") => Self::Quit,
+            Some("stop") => Self::Stop,
             Some("redirect") => Self::Redirect,
             Some("error") => Self::Error,
             _ => Self::Unknown,
@@ -148,6 +233,22 @@ pub enum Event {
     FileLoaded,
     EndFile(EndReason),
     Seek,
+    /// `video-params`, raw: the upscaling and HDR logic read their own fields from it.
+    VideoParams(serde_json::Value),
+    /// `current-tracks/video`, raw.
+    VideoTrack(serde_json::Value),
+    /// `track-list`, raw: the track policy parses it.
+    TrackList(serde_json::Value),
+    /// The selected audio track, `None` when audio is off.
+    Aid(Option<i64>),
+    /// The selected subtitle track, `None` when subtitles are off.
+    Sid(Option<i64>),
+    SubDelay(f64),
+    /// Whether playback is held waiting for data.
+    Buffering(bool),
+    FrameDrops(u64),
+    DisplayWidth(u32),
+    DisplayHeight(u32),
     /// A `script-message` broadcast from inside mpv — our injected key bindings speak
     /// through these.
     ClientMessage(Vec<String>),
@@ -227,6 +328,29 @@ pub fn parse_line(line: &str) -> Option<Event> {
                 Some("eof-reached") => value.and_then(|v| v.as_bool()).map(|reached| {
                     if reached { Event::EndFile(EndReason::Eof) } else { Event::Ignored }
                 }),
+                // Null before a file is open; passed through as-is so the readers decide.
+                Some("video-params") => value.filter(|v| v.is_object()).map(Event::VideoParams),
+                Some("current-tracks/video") => {
+                    value.filter(|v| v.is_object()).map(Event::VideoTrack)
+                }
+                Some("track-list") => value.filter(|v| v.is_array()).map(Event::TrackList),
+                Some("aid") => value.map(|v| Event::Aid(track_id(&v))),
+                Some("sid") => value.map(|v| Event::Sid(track_id(&v))),
+                Some("sub-delay") => value.and_then(|v| v.as_f64()).map(Event::SubDelay),
+                Some("paused-for-cache") => {
+                    value.and_then(|v| v.as_bool()).map(Event::Buffering)
+                }
+                Some("frame-drop-count") => {
+                    value.and_then(|v| v.as_u64()).map(Event::FrameDrops)
+                }
+                Some("display-width") => value
+                    .and_then(|v| v.as_u64())
+                    .and_then(|w| u32::try_from(w).ok())
+                    .map(Event::DisplayWidth),
+                Some("display-height") => value
+                    .and_then(|v| v.as_u64())
+                    .and_then(|h| u32::try_from(h).ok())
+                    .map(Event::DisplayHeight),
                 _ => Some(Event::Ignored),
             }
             .or(Some(Event::Ignored))
@@ -240,52 +364,40 @@ pub fn parse_line(line: &str) -> Option<Event> {
     }
 }
 
+/// Read a track selection: mpv reports a number, or `false` when the track is off.
+fn track_id(value: &serde_json::Value) -> Option<i64> {
+    value.as_i64()
+}
+
 /// The arguments anistream always passes to mpv.
 ///
-/// `--idle=no` matters: without it mpv lingers after the file ends and the process never
-/// exits, so "playback finished" is never observed.
-pub fn base_args(socket_path: &str, title: &str) -> Vec<String> {
+/// `--idle=yes` with `--force-window=yes` keeps the window up between files, and that is what
+/// lets one mpv carry a whole binge: the next episode, or a fallback stream, loads into the same
+/// window with fullscreen and position intact, rather than a new process opening a new window
+/// (on macOS, a fullscreen Space sliding away and back every episode). The playback loop decides
+/// when the player is done; it is no longer inferred from mpv exiting at the end of a file.
+pub fn base_args(socket_path: &str) -> Vec<String> {
     vec![
         format!("--input-ipc-server={socket_path}"),
         // Our own IPC must not be fought over by a user config that sets its own socket.
         "--no-input-terminal".to_string(),
-        "--idle=no".to_string(),
-        format!("--force-media-title={title}"),
+        "--idle=yes".to_string(),
+        "--force-window=yes".to_string(),
         // Keeps a partially-downloaded torrent stream from being treated as a hard error
         // when a read stalls waiting for pieces.
         "--network-timeout=60".to_string(),
     ]
 }
 
-/// Extra arguments for one stream.
-/// Widen a language code so mpv's track matching sees both ISO forms.
-fn language_variants(code: &str) -> String {
-    match code {
-        "eng" | "en" => "en,eng".into(),
-        "jpn" | "ja" | "jp" => "ja,jpn,jp".into(),
-        other => other.to_owned(),
-    }
-}
-
-pub fn stream_args(
-    headers: &[(String, String)],
-    start_at: Option<f64>,
-    speed: Option<f64>,
-    volume: Option<f64>,
-    subtitle_language: Option<&str>,
-    dub: bool,
-    subtitles: &[Subtitle],
-) -> Vec<String> {
+/// Flags that belong to the player rather than to one file.
+///
+/// Speed and volume are set once when the window opens and then live in the session: a viewer
+/// who slows playback down mid-episode keeps that speed into the next one because it is the same
+/// player, not because anything was carried.
+pub fn session_args(speed: Option<f64>, volume: Option<f64>, fullscreen: bool) -> Vec<String> {
     let mut args = Vec::new();
-
-    // Referer-locked CDNs turn into a 403 without these, which looks like a dead source.
-    if !headers.is_empty() {
-        let joined =
-            headers.iter().map(|(k, v)| format!("{k}: {v}")).collect::<Vec<_>>().join(",");
-        args.push(format!("--http-header-fields={joined}"));
-    }
-    if let Some(seconds) = start_at.filter(|s| *s > 1.0) {
-        args.push(format!("--start={seconds}"));
+    if fullscreen {
+        args.push("--fullscreen".to_string());
     }
     if let Some(speed) = speed.filter(|s| (*s - 1.0).abs() > f64::EPSILON) {
         args.push(format!("--speed={speed}"));
@@ -295,36 +407,91 @@ pub fn stream_args(
     if let Some(volume) = volume.filter(|v| (0.0..=100.0).contains(v)) {
         args.push(format!("--volume={volume}"));
     }
+    args
+}
+
+/// Escape one item of an mpv string list.
+///
+/// mpv splits list options on commas and honours a backslash before one. A browser user agent
+/// has a comma in it — `(KHTML, like Gecko)` — and joined unescaped it reached the CDN as two
+/// headers, the second of them garbage (measured against mpv 0.41).
+fn list_item(item: &str) -> String {
+    item.replace('\\', "\\\\").replace(',', "\\,")
+}
+
+/// Widen a language code so mpv's track matching sees both ISO forms.
+fn language_variants(code: &str) -> String {
+    match code {
+        "eng" | "en" => "en,eng".into(),
+        "jpn" | "ja" | "jp" => "ja,jpn,jp".into(),
+        other => other.to_owned(),
+    }
+}
+
+/// What one file needs, passed alongside its `loadfile`.
+///
+/// Per-file rather than process flags, because the process now outlives the file: a referer
+/// that belongs to one provider's CDN must not be sent to the next episode's, and the next
+/// episode's resume point is its own.
+pub fn file_options(
+    headers: &[(String, String)],
+    start_at: Option<f64>,
+    title: &str,
+    subtitle_language: Option<&str>,
+    dub: bool,
+) -> Vec<(String, String)> {
+    let mut options = Vec::new();
+    let mut set = |key: &str, value: String| options.push((key.to_owned(), value));
+
+    // Referer-locked CDNs turn into a 403 without these, which looks like a dead source.
+    if !headers.is_empty() {
+        let joined = headers
+            .iter()
+            .map(|(k, v)| list_item(&format!("{k}: {v}")))
+            .collect::<Vec<_>>()
+            .join(",");
+        set("http-header-fields", joined);
+    }
+    if let Some(seconds) = start_at.filter(|s| *s > 1.0) {
+        set("start", seconds.to_string());
+    }
+    set("force-media-title", title.to_owned());
+
     // Track selection follows the *watching* preference, not track order in the file —
     // dual-audio releases routinely put the dub first, and mpv's default would hand a
     // sub watcher the dub (and vice versa).
     if let Some(language) = subtitle_language {
         let own = language_variants(language);
         if dub {
-            args.push(format!("--alang={own}"));
-            args.push(format!("--slang={own}"));
+            set("alang", own.clone());
+            set("slang", own);
             // With matching audio, full subtitles are redundant; this keeps only the
             // forced track — signs and songs — which is what a dub watcher wants.
-            args.push("--subs-with-matching-audio=no".into());
+            set("subs-with-matching-audio", "no".into());
         } else {
-            args.push("--alang=ja,jpn,jp".into());
-            args.push(format!("--slang={own}"));
+            set("alang", "ja,jpn,jp".into());
+            set("slang", own);
         }
     }
+    options
+}
 
-    // Subtitles a source hands over as separate files.
-    //
-    // Without this they are simply lost, and silently: a source that ships its subtitles beside
-    // the video rather than muxed into the container plays with no subtitles at all, while the
-    // video itself is perfectly fine. Sources that mux need nothing here, which is why the
-    // omission stayed invisible for as long as it did.
-    //
-    // `hard` tracks are skipped: they are already burned into the video, so adding them would be
-    // an empty second track the user can cycle onto.
-    //
-    // Order is load-bearing. mpv numbers external files in the order they are given and, with
-    // nothing better to go on, selects the first — so the preferred language goes first rather
-    // than whichever the source happened to list first.
+/// The external subtitle tracks to attach, in the order to attach them.
+///
+/// Without these they are simply lost, and silently: a source that ships its subtitles beside
+/// the video rather than muxed into the container plays with no subtitles at all, while the
+/// video itself is perfectly fine.
+///
+/// `hard` tracks are left out: they are already burned into the video, so adding them would be
+/// an empty second track the user can cycle onto.
+///
+/// Order is load-bearing. mpv numbers tracks in the order they arrive and, with nothing better
+/// to go on, selects the first — so the preferred language goes first rather than whichever the
+/// source happened to list first.
+pub fn subtitle_order<'a>(
+    subtitles: &'a [Subtitle],
+    subtitle_language: Option<&str>,
+) -> Vec<&'a Subtitle> {
     let mut soft: Vec<&Subtitle> = subtitles.iter().filter(|s| !s.hard).collect();
     if let Some(language) = subtitle_language {
         let wanted = language_variants(language);
@@ -338,11 +505,7 @@ pub fn stream_args(
             })
         });
     }
-    for subtitle in soft {
-        args.push(format!("--sub-file={}", subtitle.url));
-    }
-
-    args
+    soft
 }
 
 #[cfg(test)]
@@ -517,12 +680,17 @@ mod tests {
     }
 
     #[test]
-    fn base_args_keep_mpv_from_lingering_after_the_file_ends() {
-        // Without --idle=no mpv stays alive and playback completion is never observed.
-        let args = base_args("/tmp/sock", "Frieren");
-        assert!(args.iter().any(|a| a == "--idle=no"));
+    fn the_window_outlives_the_file() {
+        // One window per binge: without idle and a forced window, mpv closes between episodes
+        // and the next one opens a new window, fullscreen lost.
+        let args = base_args("/tmp/sock");
+        assert!(args.iter().any(|a| a == "--idle=yes"));
+        assert!(args.iter().any(|a| a == "--force-window=yes"));
         assert!(args.iter().any(|a| a == "--input-ipc-server=/tmp/sock"));
-        assert!(args.iter().any(|a| a.contains("Frieren")));
+    }
+
+    fn option<'a>(options: &'a [(String, String)], key: &str) -> Option<&'a str> {
+        options.iter().find(|(k, _)| k == key).map(|(_, v)| v.as_str())
     }
 
     #[test]
@@ -531,64 +699,144 @@ mod tests {
             ("Referer".to_string(), "https://example.test/".to_string()),
             ("Origin".to_string(), "https://example.test".to_string()),
         ];
-        let args = stream_args(&headers, None, None, None, None, false, &[]);
-        let joined = args.join(" ");
-        assert!(joined.contains("--http-header-fields="));
-        assert!(joined.contains("Referer: https://example.test/"));
-        assert!(joined.contains("Origin: https://example.test"));
+        let options = file_options(&headers, None, "t", None, false);
+        assert_eq!(
+            option(&options, "http-header-fields"),
+            Some("Referer: https://example.test/,Origin: https://example.test")
+        );
     }
 
     #[test]
-    fn no_headers_means_no_header_argument() {
-        assert!(stream_args(&[], None, None, None, None, false, &[]).is_empty());
+    fn a_comma_inside_a_header_does_not_split_it_in_two() {
+        // A browser user agent has `(KHTML, like Gecko)` in it. Joined unescaped, mpv read it
+        // as two headers and sent the second, `like Gecko) …`, as garbage.
+        let headers = vec![(
+            "User-Agent".to_string(),
+            "Mozilla/5.0 (KHTML, like Gecko) Chrome/150".to_string(),
+        )];
+        let options = file_options(&headers, None, "t", None, false);
+        assert_eq!(
+            option(&options, "http-header-fields"),
+            Some(r"User-Agent: Mozilla/5.0 (KHTML\, like Gecko) Chrome/150")
+        );
     }
 
     #[test]
-    fn a_resume_point_becomes_a_start_argument() {
-        let args = stream_args(&[], Some(612.5), None, None, None, false, &[]);
-        assert!(args.iter().any(|a| a == "--start=612.5"));
+    fn no_headers_means_no_header_option() {
+        assert!(
+            option(&file_options(&[], None, "t", None, false), "http-header-fields").is_none()
+        );
+    }
+
+    #[test]
+    fn a_resume_point_becomes_a_start_option() {
+        let options = file_options(&[], Some(612.5), "t", None, false);
+        assert_eq!(option(&options, "start"), Some("612.5"));
     }
 
     #[test]
     fn a_trivial_resume_point_is_not_passed() {
         // Resuming at half a second is indistinguishable from starting, and passing it
         // makes mpv seek for no reason.
-        assert!(stream_args(&[], Some(0.4), None, None, None, false, &[]).is_empty());
-        assert!(stream_args(&[], Some(0.0), None, None, None, false, &[]).is_empty());
+        assert!(option(&file_options(&[], Some(0.4), "t", None, false), "start").is_none());
+        assert!(option(&file_options(&[], Some(0.0), "t", None, false), "start").is_none());
+    }
+
+    #[test]
+    fn the_title_travels_with_the_file() {
+        // With one window across episodes, a process-wide title would keep naming the first.
+        let options = file_options(&[], None, "Episode 6", None, false);
+        assert_eq!(option(&options, "force-media-title"), Some("Episode 6"));
     }
 
     #[test]
     fn normal_speed_is_not_passed_but_a_carried_speed_is() {
-        assert!(stream_args(&[], None, Some(1.0), None, None, false, &[]).is_empty());
-        assert!(
-            stream_args(&[], None, Some(1.5), None, None, false, &[])
-                .iter()
-                .any(|a| a == "--speed=1.5")
-        );
+        assert!(session_args(Some(1.0), None, false).is_empty());
+        assert!(session_args(Some(1.5), None, false).iter().any(|a| a == "--speed=1.5"));
+        assert!(session_args(None, None, true).iter().any(|a| a == "--fullscreen"));
     }
 
     #[test]
     fn a_sub_watcher_gets_original_audio_with_their_subtitles() {
         // The old behaviour set `--alang` to the *subtitle* language, which on a
         // dual-audio release handed a sub watcher the dub. Track order never decides.
-        let args = stream_args(&[], None, None, None, Some("eng"), false, &[]);
-        assert!(args.iter().any(|a| a == "--alang=ja,jpn,jp"), "got {args:?}");
-        assert!(args.iter().any(|a| a == "--slang=en,eng"), "got {args:?}");
-        assert!(!args.iter().any(|a| a.contains("subs-with-matching-audio")));
+        let options = file_options(&[], None, "t", Some("eng"), false);
+        assert_eq!(option(&options, "alang"), Some("ja,jpn,jp"));
+        assert_eq!(option(&options, "slang"), Some("en,eng"));
+        assert!(option(&options, "subs-with-matching-audio").is_none());
     }
 
     #[test]
     fn a_dub_watcher_gets_their_audio_and_signs_only_subtitles() {
-        let args = stream_args(&[], None, None, None, Some("eng"), true, &[]);
-        assert!(args.iter().any(|a| a == "--alang=en,eng"), "got {args:?}");
-        assert!(
-            args.iter().any(|a| a == "--subs-with-matching-audio=no"),
-            "full subs over matching audio are redundant: {args:?}"
+        let options = file_options(&[], None, "t", Some("eng"), true);
+        assert_eq!(option(&options, "alang"), Some("en,eng"));
+        assert_eq!(
+            option(&options, "subs-with-matching-audio"),
+            Some("no"),
+            "full subs over matching audio are redundant"
         );
+    }
+
+    #[test]
+    fn a_load_carries_its_options_after_the_index_slot() {
+        // mpv 0.38 put an index argument before the options; without it the options are read
+        // as the index and the load fails.
+        let command = Command::LoadFile {
+            url: "https://cdn.test/a.m3u8".into(),
+            options: vec![("start".into(), "12".into())],
+        };
+        let value = parsed_command(&command, 1);
+        assert_eq!(value["command"][0], "loadfile");
+        assert_eq!(value["command"][2], "replace");
+        assert_eq!(value["command"][3], -1);
+        assert_eq!(value["command"][4]["start"], "12");
+    }
+
+    #[test]
+    fn companion_state_lands_under_its_own_namespace() {
+        let value =
+            parsed_command(&Command::SetUserData("next", serde_json::json!({ "n": 1 })), 1);
+        assert_eq!(value["command"][1], "user-data/anistream/next");
+        let message = parsed_command(
+            &Command::ScriptMessage { command: "skip-clear", payload: serde_json::json!({}) },
+            2,
+        );
+        assert_eq!(message["command"][0], "script-message-to");
+        assert_eq!(message["command"][1], "anistream");
+        assert_eq!(message["command"][3], "{}", "payloads travel as JSON text");
+    }
+
+    #[test]
+    fn a_replaced_file_is_told_apart_from_quitting() {
+        // `loadfile` for the next episode ends the current file with `stop`. Reading that as
+        // a quit would close the session the next episode is about to play in.
+        let stop = r#"{"event":"end-file","reason":"stop"}"#;
+        assert_eq!(parse_line(stop), Some(Event::EndFile(EndReason::Stop)));
+        assert!(!EndReason::Stop.is_complete());
+    }
+
+    #[test]
+    fn track_selections_read_off_as_none() {
+        let on = r#"{"event":"property-change","name":"sid","data":2}"#;
+        let off = r#"{"event":"property-change","name":"sid","data":false}"#;
+        assert_eq!(parse_line(on), Some(Event::Sid(Some(2))));
+        assert_eq!(parse_line(off), Some(Event::Sid(None)));
+    }
+
+    #[test]
+    fn buffering_and_dropped_frames_are_parsed() {
+        let held = r#"{"event":"property-change","name":"paused-for-cache","data":true}"#;
+        let drops = r#"{"event":"property-change","name":"frame-drop-count","data":14}"#;
+        assert_eq!(parse_line(held), Some(Event::Buffering(true)));
+        assert_eq!(parse_line(drops), Some(Event::FrameDrops(14)));
     }
 
     fn subtitle(language: &str, url: &str, hard: bool) -> Subtitle {
         Subtitle { language: language.into(), url: url.into(), hard, format: None }
+    }
+
+    fn urls<'a>(order: &[&'a Subtitle]) -> Vec<&'a str> {
+        order.iter().map(|s| s.url.as_str()).collect()
     }
 
     #[test]
@@ -596,26 +844,19 @@ mod tests {
         // Without this a source that ships its subtitles as a separate `.vtt` plays with no
         // subtitles at all, and silently — the video itself is fine.
         let subs = [subtitle("english", "https://cdn.test/eng.vtt", false)];
-        let args = stream_args(&[], None, None, None, Some("eng"), false, &subs);
-        assert!(
-            args.iter().any(|a| a == "--sub-file=https://cdn.test/eng.vtt"),
-            "got {args:?}"
-        );
+        assert_eq!(urls(&subtitle_order(&subs, Some("eng"))), ["https://cdn.test/eng.vtt"]);
     }
 
     #[test]
     fn the_preferred_language_is_offered_first() {
-        // mpv numbers external files in the order given and selects the first, so ordering
+        // mpv numbers tracks in the order they arrive and selects the first, so ordering
         // here is what decides which track the user actually sees.
         let subs = [
             subtitle("spanish", "https://cdn.test/spa.vtt", false),
             subtitle("english", "https://cdn.test/eng.vtt", false),
         ];
-        let args = stream_args(&[], None, None, None, Some("eng"), false, &subs);
-        let files: Vec<&String> =
-            args.iter().filter(|a| a.starts_with("--sub-file=")).collect();
-        assert_eq!(files[0], "--sub-file=https://cdn.test/eng.vtt", "got {files:?}");
-        assert_eq!(files.len(), 2, "the others stay available to cycle onto");
+        let order = subtitle_order(&subs, Some("eng"));
+        assert_eq!(urls(&order), ["https://cdn.test/eng.vtt", "https://cdn.test/spa.vtt"]);
     }
 
     #[test]
@@ -627,12 +868,8 @@ mod tests {
                 subtitle("french", "https://cdn.test/fr.vtt", false),
                 subtitle(spelling, "https://cdn.test/en.vtt", false),
             ];
-            let args = stream_args(&[], None, None, None, Some("eng"), false, &subs);
-            let first = args.iter().find(|a| a.starts_with("--sub-file=")).unwrap();
-            assert_eq!(
-                first, "--sub-file=https://cdn.test/en.vtt",
-                "{spelling} lost its match"
-            );
+            let order = subtitle_order(&subs, Some("eng"));
+            assert_eq!(order[0].url, "https://cdn.test/en.vtt", "{spelling} lost its match");
         }
     }
 
@@ -641,13 +878,6 @@ mod tests {
         // A hard track is already in the video; adding it would be an empty second entry the
         // user can cycle onto.
         let subs = [subtitle("english", "https://cdn.test/burned", true)];
-        let args = stream_args(&[], None, None, None, Some("eng"), false, &subs);
-        assert!(!args.iter().any(|a| a.starts_with("--sub-file=")), "got {args:?}");
-    }
-
-    #[test]
-    fn no_subtitles_means_no_subtitle_arguments() {
-        let args = stream_args(&[], None, None, None, None, false, &[]);
-        assert!(!args.iter().any(|a| a.starts_with("--sub-file=")), "got {args:?}");
+        assert!(subtitle_order(&subs, Some("eng")).is_empty());
     }
 }

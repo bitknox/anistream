@@ -1,6 +1,6 @@
 //! anistream — an anime streaming TUI.
 
-use anistream::{artwork, data, downloads, playback, sources, tracking};
+use anistream::{artwork, data, downloads, playback, slot::PlayerSlot, sources, tracking};
 
 use std::{io, sync::Arc, time::Duration};
 
@@ -1455,6 +1455,8 @@ async fn run(
     // The live player's control channel. Replaced on each new playback, so a stale sender from
     // a finished episode can never steer the current one.
     let mut player_tx: Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>> = None;
+    // The player window kept between episodes, claimed by whichever playback comes next.
+    let slot = PlayerSlot::default();
     let mpv = player(&app.config, &paths);
     if !mpv.is_available().await {
         // Said once at startup rather than at the moment you press Enter on an episode.
@@ -1487,7 +1489,8 @@ async fn run(
                 job,
                 &mut player_tx,
                 &paths,
-                &app.config,
+                &app,
+                &slot,
                 &meta,
                 &store,
                 &registry,
@@ -1591,7 +1594,7 @@ async fn run(
                         {
                             let job = JobGuard::start(&mut app, &task, &tx);
                             dispatch(
-                                task, job, &mut player_tx, &paths, &app.config, &meta, &store,
+                                task, job, &mut player_tx, &paths, &app, &slot, &meta, &store,
                                 &registry, &http, &sync, &tx,
                             );
                         }
@@ -1920,7 +1923,8 @@ fn dispatch(
     job: Option<JobGuard>,
     player_tx: &mut Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
     paths: &Paths,
-    config: &Config,
+    app: &App,
+    slot: &PlayerSlot,
     meta: &Meta,
     store: &Store,
     registry: &ProviderRegistry,
@@ -1928,6 +1932,7 @@ fn dispatch(
     sync: &tracking::Sync,
     tx: &mpsc::UnboundedSender<Update>,
 ) {
+    let config = &app.config;
     // No player handle is passed in: every playback path builds its own from the config
     // above, which is the live one the Settings screen edits. A handle held across the
     // session is exactly how a turned-off upscaler kept running.
@@ -1998,11 +2003,11 @@ fn dispatch(
         Task::Play { id, episode } => {
             // A fresh channel per playback, and dropping the old sender is what tells a
             // previous session its controls are gone.
-            let (ptx, prx) = mpsc::unbounded_channel();
-            *player_tx = Some(ptx);
+            let prx = take_controls(player_tx);
             // Tracker ids rather than trackers: playback only needs to know which queues to
             // append to, and passing the set would couple the player to the sync layer.
             let tracker_ids = signed_in_tracker_ids(sync);
+            let extras = episode_extras(app, id, &episode);
             spawn_playback(
                 id,
                 episode,
@@ -2016,6 +2021,8 @@ fn dispatch(
                 http,
                 &player(config, paths),
                 tracker_ids,
+                extras,
+                slot.clone(),
                 job,
                 tx,
             );
@@ -2023,9 +2030,9 @@ fn dispatch(
         Task::PlaySource { id, episode, provider_id, source_id } => {
             // Identical to Play except the stream comes from the exact release the user
             // picked — same fresh channel, same session-replacement semantics.
-            let (ptx, prx) = mpsc::unbounded_channel();
-            *player_tx = Some(ptx);
+            let prx = take_controls(player_tx);
             let tracker_ids = signed_in_tracker_ids(sync);
+            let extras = episode_extras(app, id, &episode);
             spawn_playback(
                 id,
                 episode,
@@ -2039,15 +2046,17 @@ fn dispatch(
                 http,
                 &player(config, paths),
                 tracker_ids,
+                extras,
+                slot.clone(),
                 job,
                 tx,
             );
         }
         Task::PlayParty { id, episode } => {
             // Same resolution as Play; the handoff at the end is the only difference.
-            let (ptx, prx) = mpsc::unbounded_channel();
-            *player_tx = Some(ptx);
+            let prx = take_controls(player_tx);
             let tracker_ids = signed_in_tracker_ids(sync);
+            let extras = episode_extras(app, id, &episode);
             spawn_playback(
                 id,
                 episode,
@@ -2061,6 +2070,8 @@ fn dispatch(
                 http,
                 &player(config, paths),
                 tracker_ids,
+                extras,
+                slot.clone(),
                 job,
                 tx,
             );
@@ -2314,15 +2325,16 @@ fn dispatch(
             // playback session all the same: a downloaded episode records history, resumes,
             // and syncs exactly like a streamed one. It used to go straight to mpv with no
             // context, which made downloads second-class in every way that matters.
-            let (ptx, prx) = mpsc::unbounded_channel();
-            *player_tx = Some(ptx);
+            let prx = take_controls(player_tx);
             let tracker_ids = signed_in_tracker_ids(sync);
-            let (config, store, http, mpv, tx) = (
+            let (next, episodes) = episode_extras(app, id, &episode);
+            let (config, store, http, mpv, tx, slot) = (
                 config.clone(),
                 store.clone(),
                 http.clone(),
                 player(config, paths),
                 tx.clone(),
+                slot.clone(),
             );
             tokio::spawn(async move {
                 let _job = job;
@@ -2354,22 +2366,18 @@ fn dispatch(
                         .persist_volume
                         .then_some(playback.persisted_volume)
                         .flatten(),
+                    next,
+                    episodes,
                 };
+                let settings = play_settings(&config, tracker_ids, config.syncplay.enabled);
                 playback::play(
                     vec![stream],
                     context,
                     store,
                     http,
                     mpv,
-                    playback.commit_threshold,
-                    playback.skip_opening,
-                    playback.mark_chapters,
-                    playback.fullscreen,
-                    Some(playback.subtitle_language.clone()),
-                    tracker_ids,
-                    config.presence.clone(),
-                    config.syncplay.clone(),
-                    config.syncplay.enabled,
+                    settings,
+                    slot,
                     tx,
                     prx,
                 )
@@ -2427,6 +2435,9 @@ fn spawn_playback(
     http: &HttpClient,
     mpv: &anistream_player::Mpv,
     tracker_ids: Vec<String>,
+    // What the player's Up Next card and Episodes menu show, read from the episode table.
+    extras: (Option<playback::NextEpisode>, Vec<playback::EpisodeEntry>),
+    slot: PlayerSlot,
     job: Option<JobGuard>,
     tx: &mpsc::UnboundedSender<Update>,
 ) {
@@ -2460,11 +2471,14 @@ fn spawn_playback(
                 // The failure ladder's first rung: name the failure rather than showing an
                 // empty screen. Releasing the eyecatch is what the alert does for us.
                 let _ = tx.send(Update::Toast(Toast::alert(reason)));
+                // A window left open for this episode would wait for nothing.
+                slot.release();
                 let _ = tx.send(Update::PlaybackEnded { watched: false });
                 return;
             }
         };
-        let (streams, context) = context;
+        let (streams, mut context) = context;
+        (context.next, context.episodes) = extras;
         // Resolved: from here the wait is mpv opening, which Now Playing shows itself, and the
         // session lasts the episode — far too long to hold a "starting" job open for.
         drop(job);
@@ -2475,25 +2489,8 @@ fn spawn_playback(
             let _ = tx.send(Update::Toast(Toast::info(note)));
         }
 
-        playback::play(
-            streams,
-            context,
-            store,
-            http,
-            mpv,
-            playback.commit_threshold,
-            playback.skip_opening,
-            playback.mark_chapters,
-            playback.fullscreen,
-            Some(playback.subtitle_language.clone()),
-            tracker_ids,
-            config.presence.clone(),
-            config.syncplay.clone(),
-            party,
-            tx,
-            commands,
-        )
-        .await;
+        let settings = play_settings(&config, tracker_ids, party);
+        playback::play(streams, context, store, http, mpv, settings, slot, tx, commands).await;
     });
 }
 
@@ -2612,6 +2609,9 @@ async fn resolve_for_playback(
         runtime_secs: media.duration.map(|minutes| minutes * 60),
         speed: playback.persist_speed.then_some(playback.persisted_speed).flatten(),
         volume: playback.persist_volume.then_some(playback.persisted_volume).flatten(),
+        // Filled in by the caller, which has the episode table; headless play has none.
+        next: None,
+        episodes: Vec::new(),
     };
     Ok((streams, context))
 }
@@ -2905,22 +2905,17 @@ async fn play_cli(
     // The same queue set the TUI uses: signed-in trackers, not merely enabled ones.
     let sync = tracking::Sync::build(config, store, http);
     let tracker_ids = signed_in_tracker_ids(&sync);
-    let playback = config.playback.clone();
+    let settings = play_settings(config, tracker_ids.clone(), config.syncplay.enabled);
+    // Headless plays one episode: nothing would ever claim a parked window.
+    let settings = playback::PlaySettings { auto_next: false, ..settings };
     playback::play(
         streams,
         context,
         store.clone(),
         http.clone(),
         mpv,
-        playback.commit_threshold,
-        playback.skip_opening,
-        playback.mark_chapters,
-        playback.fullscreen,
-        Some(playback.subtitle_language.clone()),
-        tracker_ids.clone(),
-        config.presence.clone(),
-        config.syncplay.clone(),
-        config.syncplay.enabled,
+        settings,
+        PlayerSlot::default(),
         tx,
         prx,
     )
@@ -3114,9 +3109,100 @@ fn player(config: &Config, paths: &Paths) -> anistream_player::Mpv {
     // for a repeated flag, so a hand-written --glsl-shaders always wins.
     let mut args = anistream::shaders::mpv_args(config.playback.upscaling, &paths.cache_dir);
     args.extend(config.playback.mpv_args.clone());
+    // Content-addressed and skipped when current, so this is a stat per launch of a player.
+    let bundle = anistream_player::Bundle::materialize(&paths.cache_dir)
+        .inspect_err(|e| {
+            tracing::warn!(error = %e, "could not write the player bundle; using mpv's own look")
+        })
+        .ok();
     anistream_player::Mpv::new(paths.runtime_dir())
         .with_binary(config.playback.mpv_binary.clone())
+        .with_ui(config.playback.player_ui, bundle)
+        .with_theme(player_theme())
         .with_extra_args(args)
+}
+
+/// The companion's palette and font: the immersive palette, because a video window is dark
+/// whatever the terminal is.
+fn player_theme() -> Vec<(String, String)> {
+    use anistream_ui::theme::{Palette, Role};
+    let palette = Palette::immersive();
+    let hex =
+        |rgb: anistream_ui::theme::Rgb| format!("#{:02X}{:02X}{:02X}", rgb.r, rgb.g, rgb.b);
+    let mut theme: Vec<(String, String)> = [
+        ("text", Role::Text),
+        ("dim", Role::TextDim),
+        ("obi", Role::Obi),
+        ("state", Role::State),
+        ("alert", Role::Alert),
+    ]
+    .into_iter()
+    .map(|(key, role)| (key.to_owned(), hex(palette.get(role))))
+    .collect();
+    theme.push(("ground".into(), hex(palette.ground_ref())));
+    theme.push(("font".into(), "Zen Kaku Gothic New".into()));
+    theme
+}
+
+/// What one playback runs under, from the config as it stands now.
+fn play_settings(
+    config: &Config,
+    tracker_ids: Vec<String>,
+    party: bool,
+) -> playback::PlaySettings {
+    let playback = &config.playback;
+    playback::PlaySettings {
+        threshold: playback.commit_threshold,
+        auto_skip: playback.skip_opening,
+        mark_chapters: playback.mark_chapters,
+        fullscreen: playback.fullscreen,
+        subtitle_language: Some(playback.subtitle_language.clone()),
+        auto_next: playback.auto_next,
+        night_mode: playback.night_mode,
+        upscaling: playback.upscaling,
+        tracker_ids,
+        presence: config.presence.clone(),
+        syncplay: config.syncplay.clone(),
+        party,
+    }
+}
+
+/// What the player's Up Next card and Episodes menu need from the episode table.
+fn episode_extras(
+    app: &App,
+    id: anistream_core::ids::AnilistId,
+    episode: &str,
+) -> (Option<playback::NextEpisode>, Vec<playback::EpisodeEntry>) {
+    let next = app.next_up(id, episode).map(|row| playback::NextEpisode {
+        number: row.number.clone(),
+        title: row.title.clone(),
+    });
+    let rows = app
+        .episode_rows_for(id)
+        .iter()
+        .map(|row| playback::EpisodeEntry {
+            number: row.number.clone(),
+            title: row.title.clone(),
+            watched: row.completed,
+            filler: row.skippable,
+        })
+        .collect();
+    (next, rows)
+}
+
+/// A fresh control channel for a new playback, handing the current player over to it.
+///
+/// The old playback, if one is still running, parks its window rather than closing it, and the
+/// new one claims it — which is how pressing N inside the player stays in the same window.
+fn take_controls(
+    player_tx: &mut Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+) -> mpsc::UnboundedReceiver<anistream_ui::PlayerCommand> {
+    if let Some(previous) = player_tx.take() {
+        let _ = previous.send(anistream_ui::PlayerCommand::Handover);
+    }
+    let (ptx, prx) = mpsc::unbounded_channel();
+    *player_tx = Some(ptx);
+    prx
 }
 
 /// The metadata source: AniList first, Tenrai when it fails, the cache when both do.

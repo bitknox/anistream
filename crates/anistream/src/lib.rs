@@ -24,6 +24,7 @@ pub mod mend;
 pub mod playback;
 pub mod remux;
 pub mod shaders;
+pub mod slot;
 pub mod sources;
 pub mod tracking;
 pub mod updates;

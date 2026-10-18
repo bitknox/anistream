@@ -6,6 +6,8 @@
 //! else. Their streams are Widevine + PlayReady protected, so mpv cannot play them, and the
 //! honest answer is to hand off rather than pretend.
 
+pub mod bundle;
+pub mod companion;
 pub mod external;
 pub mod ipc;
 pub mod mpv;
@@ -14,8 +16,10 @@ pub mod protocol;
 pub mod skip;
 pub mod tracker;
 
+pub use bundle::Bundle;
+pub use companion::{Choice, ScriptEvent};
 pub use external::ExternalPlayer;
-pub use mpv::{Mpv, MpvSession, PlaybackEvent, PlayerError, RemoteCommand};
+pub use mpv::{Mpv, MpvSession, PlaybackEvent, PlayerError};
 pub use presence::{Activity, Presence};
 pub use protocol::{Command, EndReason, Event};
 pub use skip::{SkipInterval, SkipKind};

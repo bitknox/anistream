@@ -229,6 +229,32 @@ pub enum Upscaling {
     Anime4kQuality,
 }
 
+impl Upscaling {
+    pub const ALL: [Self; 3] = [Self::Off, Self::Anime4kFast, Self::Anime4kQuality];
+
+    /// The name the config file uses.
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Off => "off",
+            Self::Anime4kFast => "anime4k-fast",
+            Self::Anime4kQuality => "anime4k-quality",
+        }
+    }
+
+    pub fn from_name(name: &str) -> Option<Self> {
+        Self::ALL.into_iter().find(|mode| mode.name() == name)
+    }
+}
+
+/// Whose interface the player wears. See [`PlaybackConfig::player_ui`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum PlayerUi {
+    #[default]
+    Anistream,
+    Mpv,
+}
+
 /// Watch parties via Syncplay.
 ///
 /// A handoff, not a session: Syncplay owns the player it launches, so progress is not
@@ -390,6 +416,20 @@ pub struct PlaybackConfig {
     /// is a toggle rather than a scavenger hunt. `fast` suits integrated graphics;
     /// `quality` wants a discrete GPU. Worth turning on for 720p batch rips.
     pub upscaling: Upscaling,
+    /// Whose interface the player wears.
+    ///
+    /// `anistream` brings its own: uosc with seekbar thumbnails, the opening and ending marked
+    /// on the timeline, the skip button and in-player menus, in the app's colours and font. It
+    /// still reads your `mpv.conf` but does not load the scripts in your mpv folder. `mpv` leaves
+    /// your own setup as it is and adds only the companion script that the skip button, Up Next
+    /// and the menus need.
+    pub player_ui: PlayerUi,
+    /// Even out loud and quiet passages, so dialogue stays audible at low volume without the
+    /// opening being loud. One audio filter, toggled from the player's menu as well.
+    pub night_mode: bool,
+    /// How HDR video is mapped to an SDR display. `auto` is mpv's own choice, which is right
+    /// for most screens; the player's menu offers the alternatives while HDR is playing.
+    pub tone_mapping: String,
     /// Reserved. Accepted so existing configs keep parsing, but currently has no
     /// effect: players are routed by what a stream needs (mpv for media, the handoff
     /// player for external deep links), not by preference order.
@@ -417,6 +457,9 @@ impl Default for PlaybackConfig {
             persist_volume: true,
             persisted_volume: None,
             upscaling: Upscaling::Off,
+            player_ui: PlayerUi::Anistream,
+            night_mode: false,
+            tone_mapping: "auto".into(),
             skip_opening: true,
             mark_chapters: true,
             skip_filler: false,
