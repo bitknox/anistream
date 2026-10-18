@@ -113,6 +113,19 @@ impl Tracker for TraktTracker {
         self.token.try_read().map_or(true, |held| held.is_some())
     }
 
+    /// Progress needs a TVDB id and a season to put the episode in; both come from the
+    /// datasets, so a later refresh can supply either. Status and score are never sent to
+    /// Trakt, and saying they are addressable lets the push discard them as it always has.
+    fn can_address(&self, op: &TrackOp) -> bool {
+        match op {
+            TrackOp::SetProgress { anilist_id, episode } => {
+                self.mapping.tvdb_id(*anilist_id).is_some()
+                    && self.mapping.season_episode(*anilist_id, *episode).is_some()
+            }
+            TrackOp::SetStatus { .. } | TrackOp::SetScore { .. } => true,
+        }
+    }
+
     async fn accept_credentials(
         &self,
         access: &str,
@@ -315,6 +328,25 @@ mod tests {
             .push(&[TrackOp::SetProgress { anilist_id: AnilistId::new(1), episode: 3 }])
             .await;
         assert!(result.is_ok(), "an unmappable title is not an error, got {result:?}");
+    }
+
+    #[test]
+    fn progress_with_no_tvdb_id_waits_for_the_mappings_but_a_status_does_not() {
+        // A missing TVDB id is something a dataset refresh can fix, so the drain holds that
+        // op. A status never goes to Trakt at all, so holding it would hold it forever.
+        let tracker = TraktTracker::new(
+            "id",
+            reqwest::Client::new(),
+            Arc::new(Fixed { tvdb: None, offset: 0 }),
+            None,
+        );
+        let id = AnilistId::new(1);
+        assert!(!tracker.can_address(&TrackOp::SetProgress { anilist_id: id, episode: 3 }));
+        assert!(tracker.can_address(&TrackOp::SetStatus {
+            anilist_id: id,
+            status: WatchStatus::Completed,
+            at: 0
+        }));
     }
 
     #[tokio::test]

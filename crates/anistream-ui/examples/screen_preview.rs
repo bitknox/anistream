@@ -49,6 +49,7 @@ fn main() {
         storage: Some("OS keychain".into()),
         storage_degraded: false,
         outbox: 2,
+        deferred: 0,
         needs_reauth: false,
         last: Some("pulled 214 titles".into()),
     })));

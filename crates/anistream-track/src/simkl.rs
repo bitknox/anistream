@@ -102,6 +102,10 @@ impl Tracker for SimklTracker {
         self.token.try_read().map_or(true, |held| held.is_some())
     }
 
+    fn can_address(&self, op: &TrackOp) -> bool {
+        self.mapping.mal_id(op.anilist_id()).is_some()
+    }
+
     async fn accept_credentials(
         &self,
         access: &str,
@@ -179,8 +183,8 @@ impl Tracker for SimklTracker {
                 | TrackOp::SetStatus { anilist_id, .. }
                 | TrackOp::SetScore { anilist_id, .. } => {
                     let Some(mal_id) = self.mapping.mal_id(*anilist_id) else {
-                        // Named, not silent: a title that cannot sync is exactly what the mapping
-                        // layer exists to make visible.
+                        // The drain holds these until the mappings change (see `can_address`),
+                        // so this is only a caller that skipped the check. Named, not silent.
                         tracing::warn!(
                             anilist_id = anilist_id.get(),
                             "no mal id, so simkl cannot be told about this title"

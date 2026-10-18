@@ -1166,10 +1166,14 @@ async fn sync_once(config: &Config, store: &Store, http: &HttpClient) -> Result<
         let now = anistream_store::now();
         match anistream_track::drain(store, tracker.as_ref(), now).await {
             Ok(report) => println!(
-                "  drain          sent {} · failed {} · remaining {}{}",
+                "  drain          sent {} · failed {} · remaining {}{}{}",
                 report.sent,
                 report.failed,
                 report.remaining,
+                match store.outbox_deferred(id).unwrap_or(0) {
+                    0 => String::new(),
+                    held => format!(" · {held} waiting for an id mapping"),
+                },
                 if report.needs_reauth { " · NEEDS RE-AUTH" } else { "" }
             ),
             Err(e) => println!("  ✕ drain: {e}"),

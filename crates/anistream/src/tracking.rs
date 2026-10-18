@@ -179,6 +179,7 @@ impl Sync {
                     storage: Some(storage.describe().to_owned()),
                     storage_degraded: storage.is_degraded(),
                     outbox: self.store.outbox_depth(Some(id)).unwrap_or(0),
+                    deferred: self.store.outbox_deferred(id).unwrap_or(0),
                     needs_reauth: false,
                     last: None,
                 }
@@ -201,6 +202,7 @@ impl Sync {
             storage: Some(storage.describe().to_owned()),
             storage_degraded: storage.is_degraded(),
             outbox: self.store.outbox_depth(Some(id)).unwrap_or(0),
+            deferred: self.store.outbox_deferred(id).unwrap_or(0),
             needs_reauth,
             last,
         }

@@ -31,13 +31,16 @@ pub struct DrainReport {
     /// Set when the tracker rejected our credentials. The user has to re-authorise; retrying
     /// cannot help.
     pub needs_reauth: bool,
+    /// Ops held back because the tracker cannot address their title until the id mappings
+    /// change. Still queued, and counted in `remaining`.
+    pub deferred: u32,
     /// Ops still queued after this pass.
     pub remaining: u32,
 }
 
 impl DrainReport {
     pub fn did_nothing(&self) -> bool {
-        self.sent == 0 && self.failed == 0 && !self.needs_reauth
+        self.sent == 0 && self.failed == 0 && self.deferred == 0 && !self.needs_reauth
     }
 }
 
@@ -97,8 +100,30 @@ pub async fn drain(
         return Ok(report);
     }
 
-    let claimed = store.claim_ready(id, now, DRAIN_BATCH)?;
+    let mut claimed = store.claim_ready(id, now, DRAIN_BATCH)?;
     if claimed.is_empty() {
+        return Ok(report);
+    }
+
+    // A title the mapping datasets carry no id for on this tracker cannot be pushed *yet*.
+    // These used to go out anyway, be skipped inside the push, and be deleted with the rest of
+    // a successful batch — and every such title later gained an id, so the update was simply
+    // lost. Held back instead, out of the way of the ops behind them, until a mapping refresh
+    // wakes them.
+    let (sendable, unaddressable): (Vec<_>, Vec<_>) =
+        claimed.drain(..).partition(|entry| tracker.can_address(&entry.op));
+    for entry in &unaddressable {
+        store.defer(entry.id, "no id for this title on this tracker yet")?;
+        tracing::info!(
+            tracker = id,
+            anilist_id = entry.op.anilist_id().get(),
+            "no id mapped for this title yet; holding its update until the mappings change"
+        );
+    }
+    report.deferred = unaddressable.len() as u32;
+    let claimed = sendable;
+    if claimed.is_empty() {
+        report.remaining = store.outbox_depth(Some(id))?;
         return Ok(report);
     }
 
@@ -301,6 +326,20 @@ pub fn queue_progress_for(
     }
 }
 
+/// Give every op held for a missing id mapping another chance.
+///
+/// A mapping refresh already does this as part of writing the table; this is for anything
+/// else that learns the mappings may have changed and wants the next drain to look again.
+pub fn retry_deferred(store: &Store) -> u32 {
+    match store.wake_deferred() {
+        Ok(woken) => woken as u32,
+        Err(e) => {
+            tracing::warn!(error = %e, "could not wake deferred outbox ops");
+            0
+        }
+    }
+}
+
 /// Total queued ops across every tracker, for the `⇅` badge.
 pub fn depth(store: &Store) -> u32 {
     store.outbox_depth(None).unwrap_or(0)
@@ -331,6 +370,8 @@ mod tests {
         remote: Vec<TrackedEntry>,
         pushed: Mutex<Vec<Vec<TrackOp>>>,
         pulls: Mutex<u32>,
+        /// Titles this tracker has no id for, as a tracker keyed on its own ids would.
+        unmapped: Mutex<Vec<AnilistId>>,
     }
 
     impl MockTracker {
@@ -341,6 +382,7 @@ mod tests {
                 remote: Vec::new(),
                 pushed: Mutex::new(Vec::new()),
                 pulls: Mutex::new(0),
+                unmapped: Mutex::new(Vec::new()),
             }
         }
 
@@ -369,6 +411,10 @@ mod tests {
 
         fn is_authenticated(&self) -> bool {
             self.authenticated
+        }
+
+        fn can_address(&self, op: &TrackOp) -> bool {
+            !self.unmapped.lock().unwrap().contains(&op.anilist_id())
         }
 
         async fn pull_library(&self) -> Result<Vec<TrackedEntry>, anistream_core::Error> {
@@ -505,6 +551,64 @@ mod tests {
         assert!(report.did_nothing());
         assert_eq!(report.remaining, 1);
         assert!(tracker.batches().is_empty(), "must not call an unauthenticated tracker");
+    }
+
+    #[tokio::test]
+    async fn an_unmappable_title_is_held_not_lost_and_does_not_hold_up_the_rest() {
+        // The datasets had no MAL id for a title yet. Its op used to be skipped inside the
+        // push and then deleted with the successful batch — and every such title gained an
+        // id within weeks, by which time the update was gone.
+        let store = Store::open_in_memory().unwrap();
+        let obscure = AnilistId::new(999_999);
+        store
+            .enqueue("mock", &TrackOp::SetProgress { anilist_id: obscure, episode: 3 }, 0)
+            .unwrap();
+        store
+            .enqueue("mock", &TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 }, 1)
+            .unwrap();
+        let tracker = MockTracker::new();
+        tracker.unmapped.lock().unwrap().push(obscure);
+
+        let report = drain(&store, &tracker, 100).await.unwrap();
+        assert_eq!((report.sent, report.deferred, report.remaining), (1, 1, 1));
+        assert_eq!(
+            tracker.batches(),
+            vec![vec![TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 }]],
+            "only the addressable op goes out"
+        );
+
+        // Later passes leave it alone: no request, no attempt counted against it.
+        let idle = drain(&store, &tracker, 10_000).await.unwrap();
+        assert!(idle.did_nothing());
+        assert_eq!(tracker.batches().len(), 1);
+
+        // The datasets gain the id; the refresh wakes the op and the next pass sends it.
+        tracker.unmapped.lock().unwrap().clear();
+        store.materialise_mapping("test", 0, &[], None, 20_000).unwrap();
+        let after = drain(&store, &tracker, 20_000).await.unwrap();
+        assert_eq!((after.sent, after.remaining), (1, 0));
+        assert_eq!(
+            tracker.batches()[1],
+            vec![TrackOp::SetProgress { anilist_id: obscure, episode: 3 }]
+        );
+    }
+
+    #[tokio::test]
+    async fn a_failed_refresh_still_leaves_a_way_to_retry_what_was_held() {
+        // A session whose startup refresh failed has no new mappings to wake anything with.
+        // A later refresh does it by itself; `retry_deferred` is the explicit lever.
+        let store = Store::open_in_memory().unwrap();
+        let obscure = AnilistId::new(999_999);
+        store
+            .enqueue("mock", &TrackOp::SetProgress { anilist_id: obscure, episode: 3 }, 0)
+            .unwrap();
+        let tracker = MockTracker::new();
+        tracker.unmapped.lock().unwrap().push(obscure);
+        drain(&store, &tracker, 100).await.unwrap();
+
+        tracker.unmapped.lock().unwrap().clear();
+        assert_eq!(retry_deferred(&store), 1);
+        assert_eq!(drain(&store, &tracker, 200).await.unwrap().sent, 1);
     }
 
     #[tokio::test]

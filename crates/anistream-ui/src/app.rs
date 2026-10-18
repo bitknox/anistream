@@ -965,6 +965,9 @@ pub struct SyncState {
     pub storage_degraded: bool,
     /// Queued operations waiting to go out.
     pub outbox: u32,
+    /// How many of those wait for an id mapping: titles this tracker cannot be told about
+    /// until the mapping datasets name them.
+    pub deferred: u32,
     /// The tracker rejected our credentials; nothing but re-authorising helps.
     pub needs_reauth: bool,
     /// Most recent sync outcome, in words.
@@ -981,6 +984,7 @@ impl SyncState {
             storage: None,
             storage_degraded: false,
             outbox: 0,
+            deferred: 0,
             needs_reauth: false,
             last: None,
         }

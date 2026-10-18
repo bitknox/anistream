@@ -221,6 +221,17 @@ pub trait Tracker: Send + Sync {
     /// Apply a batch of operations. Must be safe to call twice with the same input.
     async fn push(&self, ops: &[TrackOp]) -> Result<(), crate::Error>;
 
+    /// Whether this tracker can name the title an op is about, with the id mappings as they
+    /// stand.
+    ///
+    /// A tracker keyed on its own ids reaches a title through the mapping datasets, and a title
+    /// they do not cover yet cannot be pushed *yet*. The drain holds such an op back until the
+    /// mappings change instead of sending it, so it neither fails the batch nor is lost. Default
+    /// `true` for trackers keyed on AniList ids, which can name every title.
+    fn can_address(&self, _op: &TrackOp) -> bool {
+        true
+    }
+
     /// Drop any in-memory credential.
     ///
     /// Signing out clears the stored token, but a tracker that cached one at construction would
