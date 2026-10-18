@@ -40,6 +40,8 @@
 --                  Esc/BS, wheel
 --   volume-up      wheel up*            always: volume +2  (*anistream mode only)
 --   volume-down    wheel down*          always: volume -2  (*anistream mode only)
+--   seek-back      Left*                always: back 5 s, exactly  (*anistream mode only)
+--   seek-forward   Right*               always: forward 5 s, exactly  (*anistream mode only)
 --   pause-click    left click*          on the picture: pause/resume after the double-click
 --                                       time; a double click stays mpv's fullscreen toggle
 --
@@ -426,6 +428,14 @@ if config.opts.uosc then
     mp.add_key_binding("WHEEL_DOWN", "volume-down", function()
         volume.step(-2)
     end)
+    -- mpv's own arrows seek to a keyframe, which on HLS turned five seconds into seven or eight
+    -- either way. An exact seek decodes on from the keyframe, a matter of milliseconds.
+    mp.add_key_binding("LEFT", "seek-back", function()
+        mp.commandv("seek", "-5", "relative+exact")
+    end, { repeatable = true })
+    mp.add_key_binding("RIGHT", "seek-forward", function()
+        mp.commandv("seek", "5", "relative+exact")
+    end, { repeatable = true })
 
     -- A click on the picture pauses, a double click goes fullscreen (mpv's own MBTN_LEFT_DBL),
     -- so the single click waits out the double-click time before acting: otherwise every

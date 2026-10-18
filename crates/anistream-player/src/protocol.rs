@@ -61,6 +61,11 @@ pub enum Command {
     Add(&'static str, f64),
     ObserveProperty(u64, &'static str),
     /// Relative or absolute seek, in seconds.
+    ///
+    /// Both land exactly. mpv's default precision makes a relative seek go to a keyframe, and on
+    /// HLS that turned the arrow keys' five seconds into seven or eight either way (measured);
+    /// an exact seek decodes forward from the keyframe instead, which took 30–200 ms on the
+    /// same stream.
     Seek {
         seconds: f64,
         absolute: bool,
@@ -133,7 +138,7 @@ impl Command {
             Self::Seek { seconds, absolute } => vec![
                 "seek".into(),
                 (*seconds).into(),
-                if *absolute { "absolute" } else { "relative" }.into(),
+                if *absolute { "absolute+exact" } else { "relative+exact" }.into(),
             ],
             Self::ShowText { text, duration_ms } => {
                 vec!["show-text".into(), text.clone().into(), (*duration_ms).into()]
@@ -610,11 +615,11 @@ mod tests {
     fn a_relative_seek_is_distinguished_from_an_absolute_one() {
         // Confusing the two turns "back 30 seconds" into "jump to 0:30".
         let relative = parsed_command(&Command::Seek { seconds: -30.0, absolute: false }, 1);
-        assert_eq!(relative["command"][2], "relative");
+        assert_eq!(relative["command"][2], "relative+exact");
         assert_eq!(relative["command"][1], -30.0);
 
         let absolute = parsed_command(&Command::Seek { seconds: 300.0, absolute: true }, 1);
-        assert_eq!(absolute["command"][2], "absolute");
+        assert_eq!(absolute["command"][2], "absolute+exact");
     }
 
     #[test]
