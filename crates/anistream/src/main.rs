@@ -2595,9 +2595,9 @@ fn dispatch(
             });
         }
         Task::Play { id, episode } => {
-            // A fresh channel per playback, and dropping the old sender is what tells a
-            // previous session its controls are gone.
-            let prx = take_controls(player_tx, successor(app, id, &episode));
+            // A fresh channel per playback. The one playing gives up its window only once
+            // this one has something to play — see `Handoff`.
+            let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
             let prefetched = prefetch.take(id, &episode, config.playback.translation);
             // Tracker ids rather than trackers: playback only needs to know which queues to
             // append to, and passing the set would couple the player to the sync layer.
@@ -2612,6 +2612,7 @@ fn dispatch(
                 None,
                 config.syncplay.enabled,
                 prx,
+                handoff,
                 config,
                 meta,
                 store,
@@ -2631,7 +2632,7 @@ fn dispatch(
             // Identical to Play except the stream comes from the exact release the user
             // picked — same fresh channel, same session-replacement semantics. Never from the
             // streams found ahead: the pick names its own release.
-            let prx = take_controls(player_tx, successor(app, id, &episode));
+            let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
             let prefetched = None;
             let tracker_ids = signed_in_tracker_ids(sync);
             let extras = episode_extras(app, id, &episode);
@@ -2644,6 +2645,7 @@ fn dispatch(
                 Some((provider_id, source_id)),
                 config.syncplay.enabled,
                 prx,
+                handoff,
                 config,
                 meta,
                 store,
@@ -2661,7 +2663,7 @@ fn dispatch(
         }
         Task::PlayParty { id, episode } => {
             // Same resolution as Play; the handoff at the end is the only difference.
-            let prx = take_controls(player_tx, successor(app, id, &episode));
+            let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
             let prefetched = None;
             let tracker_ids = signed_in_tracker_ids(sync);
             let extras = episode_extras(app, id, &episode);
@@ -2671,6 +2673,7 @@ fn dispatch(
                 None,
                 true,
                 prx,
+                handoff,
                 config,
                 meta,
                 store,
@@ -2945,7 +2948,9 @@ fn dispatch(
             // playback session all the same: a downloaded episode records history, resumes,
             // and syncs exactly like a streamed one. It used to go straight to mpv with no
             // context, which made downloads second-class in every way that matters.
-            let prx = take_controls(player_tx, successor(app, id, &episode));
+            // Nothing to look up, so nothing can fail before it plays.
+            let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
+            handoff.now();
             let tracker_ids = signed_in_tracker_ids(sync);
             let (next, episodes) = episode_extras(app, id, &episode);
             if episodes.is_empty() {
@@ -3291,6 +3296,7 @@ fn spawn_playback(
     // Hand the resolved stream to a Syncplay party instead of a private session.
     party: bool,
     commands: mpsc::UnboundedReceiver<anistream_ui::PlayerCommand>,
+    handoff: Handoff,
     config: &Config,
     meta: &Meta,
     store: &Store,
@@ -3341,6 +3347,14 @@ fn spawn_playback(
         };
         let context = match resolved {
             Ok(pair) => pair,
+            // The episode being watched carries on, and the window with it: only the lookup
+            // failed, and closing what was playing over it would punish the viewer for asking.
+            Err(reason) if handoff.live() => {
+                let _ = tx.send(Update::Toast(Toast::alert(reason.clone())));
+                let _ = tx.send(Update::PlaybackKept);
+                handoff.keep(commands, reason).await;
+                return;
+            }
             Err(reason) => {
                 // The failure ladder's first rung: name the failure rather than showing an
                 // empty screen. Releasing the eyecatch is what the alert does for us.
@@ -3370,6 +3384,7 @@ fn spawn_playback(
 
         let settings =
             playback::PlaySettings { shader_dir, ..play_settings(&config, tracker_ids, party) };
+        handoff.complete().await;
         playback::play(streams, context, store, http, mpv, settings, slot, tx, commands).await;
     });
 }
@@ -4303,20 +4318,82 @@ fn following(rows: &[EpisodeRow], episode: &str) -> Option<String> {
     rows.iter().any(|row| row.number == next).then_some(next)
 }
 
-/// A fresh control channel for a new playback, handing the current player over to it.
+/// A fresh control channel for a new playback, and the handoff from the playback it replaces.
 ///
-/// The old playback, if one is still running, parks its window rather than closing it, and the
-/// new one claims it — which is how pressing N inside the player stays in the same window.
+/// The old playback, once told, parks its window rather than closing it, and the new one claims
+/// it — which is how pressing N inside the player stays in the same window.
 fn take_controls(
     player_tx: &mut Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
     successor: anistream_ui::app::Successor,
-) -> mpsc::UnboundedReceiver<anistream_ui::PlayerCommand> {
-    if let Some(previous) = player_tx.take() {
-        let _ = previous.send(anistream_ui::PlayerCommand::Handover(successor));
-    }
+) -> (mpsc::UnboundedReceiver<anistream_ui::PlayerCommand>, Handoff) {
+    let previous = player_tx.take();
     let (ptx, prx) = mpsc::unbounded_channel();
     *player_tx = Some(ptx);
-    prx
+    (prx, Handoff { previous, successor })
+}
+
+/// How long a new playback waits for the old one to park its window before opening its own.
+/// Bounded, because a playback still starting reads its controls only once it is playing.
+const HANDOVER_WAIT: Duration = Duration::from_secs(10);
+
+/// The playback a new one takes the window from, told only once the new one has something to
+/// play. Handing over at once closed the window on the episode being watched whenever the new
+/// one's lookup then failed, and a timeout was enough for that.
+struct Handoff {
+    previous: Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+    successor: anistream_ui::app::Successor,
+}
+
+impl Handoff {
+    /// Whether a playback is still running in the window.
+    fn live(&self) -> bool {
+        self.previous.as_ref().is_some_and(|p| !p.is_closed())
+    }
+
+    /// Ask for the window without waiting: nothing can fail between here and playing.
+    fn now(self) {
+        if let Some(previous) = self.previous {
+            let _ = previous.send(anistream_ui::PlayerCommand::Handover(self.successor));
+        }
+    }
+
+    /// Ask for the window and wait until it is parked: claiming it any earlier finds the slot
+    /// empty and opens a second window beside it.
+    async fn complete(self) {
+        let Some(previous) = self.previous else { return };
+        if previous.send(anistream_ui::PlayerCommand::Handover(self.successor)).is_ok() {
+            let _ = tokio::time::timeout(HANDOVER_WAIT, previous.closed()).await;
+        }
+    }
+
+    /// The new playback found nothing, so the old one keeps the window: say why on the video
+    /// it is showing, and pass on the controls the terminal now sends to the new channel until
+    /// the old playback ends. A later playback's handover reaches it the same way.
+    async fn keep(
+        self,
+        mut controls: mpsc::UnboundedReceiver<anistream_ui::PlayerCommand>,
+        reason: String,
+    ) {
+        use anistream_ui::PlayerCommand;
+        let Some(previous) = self.previous else { return };
+        let _ = previous.send(PlayerCommand::Alert(reason));
+        loop {
+            tokio::select! {
+                command = controls.recv() => match command {
+                    // The list loaded for the episode that is not playing: it would give the one
+                    // that is the wrong neighbours.
+                    Some(PlayerCommand::Episodes { .. }) => {}
+                    Some(command) => {
+                        if previous.send(command).is_err() {
+                            break;
+                        }
+                    }
+                    None => break,
+                },
+                () = previous.closed() => break,
+            }
+        }
+    }
 }
 
 /// What a new playback is about to play, as the window it takes over says while it is found.
@@ -4670,6 +4747,35 @@ mod tests {
         let score = Task::SetScore { id: anistream_core::ids::AnilistId::new(1), score: 7.0 };
         assert!(JobGuard::start(&mut app, &score, &tx).is_none());
         assert!(JobGuard::start(&mut app, &Task::CheckProviders, &tx).is_some());
+    }
+
+    #[tokio::test]
+    async fn a_lookup_that_fails_leaves_the_controls_with_the_episode_playing() {
+        use anistream_ui::PlayerCommand;
+        let (previous, mut playing) = mpsc::unbounded_channel();
+        let mut player_tx = Some(previous);
+        let successor = anistream_ui::app::Successor {
+            id: anistream_core::ids::AnilistId::new(1),
+            title: "A Show".into(),
+            episode: "5".into(),
+            translation: anistream_core::media::Translation::Sub,
+        };
+        let (controls, handoff) = take_controls(&mut player_tx, successor);
+        assert!(handoff.live());
+        assert!(playing.try_recv().is_err(), "the window was asked for before 5 was found");
+
+        let terminal = player_tx.clone().unwrap();
+        let kept = tokio::spawn(handoff.keep(controls, "a: timed out".into()));
+        terminal.send(PlayerCommand::TogglePause).unwrap();
+        terminal.send(PlayerCommand::Episodes { rows: Vec::new(), next: None }).unwrap();
+        terminal.send(PlayerCommand::Stop).unwrap();
+        assert_eq!(playing.recv().await, Some(PlayerCommand::Alert("a: timed out".into())));
+        assert_eq!(playing.recv().await, Some(PlayerCommand::TogglePause));
+        assert_eq!(playing.recv().await, Some(PlayerCommand::Stop), "5's list passed on to 4");
+
+        // It stands aside once the playback it kept has ended.
+        drop(playing);
+        tokio::time::timeout(Duration::from_secs(5), kept).await.unwrap().unwrap();
     }
 
     #[tokio::test]

@@ -82,9 +82,30 @@ impl<T> Attempt<T> {
         }
         self.failures
             .iter()
-            .map(|(id, e)| format!("{id}: {}", e.state_label()))
+            .map(|(id, e)| format!("{id}: {}", described(e)))
             .collect::<Vec<_>>()
             .join(", ")
+    }
+}
+
+/// A failure as a toast names it: by its kind, unless it says it timed out.
+///
+/// The plugin vocabulary has no transport failure, so a plugin's timeout arrives as `Blocked`,
+/// and a toast reading "blocked" over a log reading "operation timed out" sent the viewer after
+/// a ban when the source had only been slow to answer.
+fn described(error: &ProviderError) -> &'static str {
+    let detail = match error {
+        ProviderError::NotFound => "",
+        ProviderError::Blocked(d)
+        | ProviderError::Parse(d)
+        | ProviderError::Transport(d)
+        | ProviderError::Unavailable(d)
+        | ProviderError::Other(d) => d,
+    };
+    if detail.to_ascii_lowercase().contains("timed out") {
+        "timed out"
+    } else {
+        error.state_label()
     }
 }
 
@@ -658,6 +679,18 @@ mod tests {
         assert!(summary.contains("a: blocked"));
         assert!(summary.contains("b: parse error"));
         assert!(summary.contains("c: unreachable"));
+    }
+
+    #[tokio::test]
+    async fn a_timeout_is_named_whatever_it_was_filed_under() {
+        // How a plugin reports one: its vocabulary has no transport failure.
+        let r = registry(vec![
+            MockProvider::new("a")
+                .failing(ProviderError::Blocked("operation timed out".into()))
+                .arc(),
+        ]);
+        let attempt = r.resolve(&ProviderKey::new("k"), "1", Translation::Sub, 0).await;
+        assert_eq!(attempt.summary(), "a: timed out");
     }
 
     #[tokio::test]

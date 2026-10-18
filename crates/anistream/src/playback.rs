@@ -1985,6 +1985,9 @@ async fn apply_command(session: &MpvSession, command: PlayerCommand) {
         PlayerCommand::Fullscreen => {
             let _ = session.fullscreen_toggle().await;
         }
+        PlayerCommand::Alert(text) => {
+            let _ = session.send(companion::toast(&text, companion::Level::Alert)).await;
+        }
         // Detaching is purely a UI move — mpv is untouched, which is the whole point.
         PlayerCommand::Detach => {}
         // Handled by the playback loop itself, which owns the window and what it shows.
