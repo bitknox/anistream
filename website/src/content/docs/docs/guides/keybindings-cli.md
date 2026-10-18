@@ -60,11 +60,13 @@ above — `L` seeks rather than opening the logs:
 | `Space` | Pause |
 | `←` / `→` | ±5s · `H` / `L` ±30s |
 | `n` / `N` | Next · previous episode |
-| `S` | Skip the opening (says so on mpv's OSD) |
+| `S` | Skip the opening or ending (`S` works inside the player too) |
 | `[` / `]` | Speed down / up |
 | `9` / `0` | Volume down / up |
 | `F` | Fullscreen |
 | `q` / `x` | Detach · stop |
+
+Keys inside the player window itself are listed in [The player](/docs/guides/player/#keys-inside-the-player).
 
 Overrides:
 

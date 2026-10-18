@@ -44,6 +44,7 @@ export default defineConfig({
 					items: [
 						{ label: 'Configuration', link: 'docs/guides/configuration' },
 						{ label: 'Keybindings & CLI', link: 'docs/guides/keybindings-cli' },
+						{ label: 'The player', link: 'docs/guides/player' },
 						{ label: 'Torrents & the VPN guard', link: 'docs/guides/torrents-vpn' },
 						{ label: 'Trackers & sync', link: 'docs/guides/trackers-sync' },
 						{ label: 'Troubleshooting playback', link: 'docs/guides/troubleshooting' },
