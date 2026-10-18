@@ -6,6 +6,10 @@ rust-version.workspace = true
 license.workspace = true
 description = "Playback: mpv over JSON IPC, external handoff, and skip data"
 
+[lib]
+# No doc example is written as a test, and rustdoc spends seconds per crate finding none.
+doctest = false
+
 [dependencies]
 anistream-core.workspace = true
 anistream-net.workspace = true

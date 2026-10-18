@@ -808,6 +808,26 @@ impl Content {
     }
 }
 
+/// Which list an [`Update::Content`] answers.
+///
+/// Requests are not cancelled when the user moves on, and the AniList rate limiter spaces them
+/// unevenly, so the answer for a section just left can land after the switch. Untagged, it was
+/// shown under the new section's heading until that section's own answer replaced it. The reducer
+/// takes a list only while the view it was fetched for is still the one on screen.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ContentFor {
+    Continue,
+    Seasonal,
+    Calendar,
+    /// The query and filters as submitted, so a slow answer to an earlier search cannot replace
+    /// the results of a later one.
+    Search {
+        query: String,
+        filter: SearchFilters,
+    },
+    Library(LibrarySegment),
+}
+
 /// A computed change, applied on the UI thread.
 ///
 /// Async work never touches [`App`] directly; it sends one of these instead. That is what
@@ -822,7 +842,11 @@ pub enum Update {
     },
     /// The work carrying this job has ended, whether it succeeded or not.
     JobDone(JobId),
-    Content(Content),
+    /// A list, tagged with the view that asked for it. See [`ContentFor`].
+    Content {
+        view: ContentFor,
+        content: Content,
+    },
     /// How to continue the calendar that is arriving: the anchor its pages are numbered
     /// against, how many are loaded, and whether AniList has more behind them.
     CalendarWindow {
@@ -861,8 +885,13 @@ pub enum Update {
         provider_id: String,
         candidates: Vec<MatchCandidate>,
     },
-    /// The selectable releases for the episode the user asked about.
-    Sources(Vec<SourceCandidate>),
+    /// The selectable releases for the episode the user asked about, named so an answer for
+    /// an episode whose picker has since closed is not offered against the next one.
+    Sources {
+        id: AnilistId,
+        episode: String,
+        candidates: Vec<SourceCandidate>,
+    },
     /// The user changed the player volume.
     PlaybackVolume(f64),
     /// Which provider the current stream actually came from.
@@ -895,7 +924,12 @@ pub enum Update {
     ProgressQueued,
     /// Divergences from a library pull, replacing whatever was there.
     Conflicts(Vec<ConflictRow>),
-    Episodes(Vec<EpisodeRow>),
+    /// A title's episode table, named so a slow load for a title already left cannot fill the
+    /// table of the one opened since.
+    Episodes {
+        id: AnilistId,
+        rows: Vec<EpisodeRow>,
+    },
     /// VPN state changed. `leaking` drives the alert colouring.
     Vpn {
         badge: String,
@@ -1167,6 +1201,11 @@ impl App {
 
         match update {
             Update::CalendarWindow { anchor, pages, more_past } => {
+                // Paging for a calendar the user has left would let a scroll elsewhere ask for
+                // history nobody is looking at.
+                if self.nav.section() != Section::Calendar {
+                    return;
+                }
                 self.calendar_anchor = Some(anchor);
                 self.calendar_pages = pages;
                 self.calendar_more_past = more_past;
@@ -1197,7 +1236,10 @@ impl App {
                     self.offset += added;
                 }
             }
-            Update::Content(content) => {
+            Update::Content { view, content } => {
+                if self.content_view().as_ref() != Some(&view) {
+                    return;
+                }
                 self.content = content;
                 // Selection must stay in range or the next render would index past the end.
                 self.selected = self.selected.min(self.content.len().saturating_sub(1));
@@ -1229,7 +1271,13 @@ impl App {
                         next.saturating_sub((next - start_of_today.min(next)).min(12));
                 }
             }
-            Update::Detail(entry) => self.detail = Some(*entry),
+            // Every way into a title sets a stand-in `detail` for it before the fetch goes out, so
+            // a full record for any other id answers a title the user has already left.
+            Update::Detail(entry) => {
+                if self.detail.as_ref().is_some_and(|d| d.id == entry.id) {
+                    self.detail = Some(*entry);
+                }
+            }
             Update::DeviceCode(prompt) => self.device_code = prompt,
             Update::Downloads(rows) => {
                 self.downloads = rows;
@@ -1269,10 +1317,11 @@ impl App {
             Update::SourcesChanged => self.status = "reloading sources…".into(),
             Update::ProviderNote(note) => self.provider_note = Some(note),
             Update::ProviderPreference(choice) => self.provider_preference = choice,
-            Update::Sources(candidates) => {
-                // A stale answer — the user has navigated away since asking — is not a
-                // question worth interrupting them with.
-                if self.source_context.is_none() {
+            Update::Sources { id, episode, candidates } => {
+                // A stale answer — the user has navigated away since asking, or asked about
+                // another episode — is not a question worth interrupting them with, and offering
+                // one episode's releases under another's context would play the wrong one.
+                if self.source_context.as_ref() != Some(&(id, episode)) {
                     return;
                 }
                 if candidates.is_empty() {
@@ -1286,8 +1335,8 @@ impl App {
             }
             Update::MatchChoices { id, provider_id, candidates } => {
                 // An empty set is not a question worth asking; the caller reports it as a
-                // plain failure instead.
-                if candidates.is_empty() {
+                // plain failure instead. Nor is one about a title the user has left.
+                if candidates.is_empty() || !self.detail.as_ref().is_some_and(|d| d.id == id) {
                     return;
                 }
                 self.episodes_loading = false;
@@ -1469,7 +1518,12 @@ impl App {
                 self.vpn_badge = Some(badge);
                 self.vpn_leaking = leaking;
             }
-            Update::Episodes(rows) => {
+            Update::Episodes { id, rows } => {
+                // `detail` is the title the table is a view of; rows for any other belong to a
+                // load the user has since walked away from.
+                if !self.detail.as_ref().is_some_and(|d| d.id == id) {
+                    return;
+                }
                 self.episodes_all = rows;
                 self.apply_episode_filter();
                 self.episodes_loading = false;
@@ -3360,6 +3414,49 @@ impl App {
             .collect()
     }
 
+    /// The list the current view shows, if it shows one — what an [`Update::Content`] has to
+    /// be tagged with to be taken.
+    pub fn content_view(&self) -> Option<ContentFor> {
+        Some(match self.nav.section() {
+            Section::Home => ContentFor::Continue,
+            Section::Seasonal => ContentFor::Seasonal,
+            Section::Calendar => ContentFor::Calendar,
+            Section::Search => ContentFor::Search {
+                query: self.searched_query.clone(),
+                filter: self.search_filter.clone(),
+            },
+            Section::Library => ContentFor::Library(self.library_segment),
+            _ => return None,
+        })
+    }
+
+    /// An answer for what is on screen right now: the list for the current view, the episodes
+    /// of the open title, the releases for the open picker.
+    ///
+    /// For callers that hold the app while they fill it — the preview, tests — and so cannot be
+    /// answering a request the user has since left. Background work tags its answer with what
+    /// it was asked for instead. An answer with nothing on screen to take it (no list view, no
+    /// open title) is tagged so the reducer drops it, exactly as it would a late one.
+    pub fn content_here(&self, content: Content) -> Update {
+        // With no list view on screen the reducer drops every tag, so which one is moot.
+        let view = self.content_view().unwrap_or(ContentFor::Continue);
+        Update::Content { view, content }
+    }
+
+    /// [`Self::content_here`] for the open title's episode table.
+    pub fn episodes_here(&self, rows: Vec<EpisodeRow>) -> Update {
+        // No title open means the reducer drops the rows whatever id they carry.
+        let id = self.detail.as_ref().map_or(AnilistId::new(0), |d| d.id);
+        Update::Episodes { id, rows }
+    }
+
+    /// [`Self::content_here`] for the open source picker.
+    pub fn sources_here(&self, candidates: Vec<SourceCandidate>) -> Update {
+        let (id, episode) =
+            self.source_context.clone().unwrap_or((AnilistId::new(0), String::new()));
+        Update::Sources { id, episode, candidates }
+    }
+
     /// Work needed to populate the current view.
     pub fn reload(&mut self) -> Option<Task> {
         // Whatever is fetched next replaces the content, so the calendar's paging describes a
@@ -3377,10 +3474,11 @@ impl App {
             Section::Search
                 if !self.search_query.trim().is_empty() || !self.search_filter.is_empty() =>
             {
-                Task::Search {
-                    query: self.search_query.clone(),
-                    filter: self.search_filter.clone(),
-                }
+                // Recorded as submitted, the same as Enter does, because the answer is tagged
+                // with this query and only taken while it is still the one on screen.
+                let query = self.search_query.trim().to_owned();
+                self.searched_query = query.clone();
+                Task::Search { query, filter: self.search_filter.clone() }
             }
             Section::Providers => Task::CheckProviders,
             Section::Downloads => Task::LoadDownloads,
@@ -3885,7 +3983,7 @@ mod tests {
             pages: 3,
             more_past: true,
         });
-        a.apply(Update::Content(entries(150)));
+        a.apply(a.content_here(entries(150)));
         a
     }
 
@@ -3949,7 +4047,7 @@ mod tests {
     fn a_backfill_that_arrives_after_the_user_has_left_is_dropped() {
         let mut a = calendar_loaded();
         let _ = a.go_to_section(Section::Seasonal);
-        a.apply(Update::Content(entries(20)));
+        a.apply(a.content_here(entries(20)));
 
         a.apply(Update::CalendarBackfill {
             page: Some(4),
@@ -4006,7 +4104,7 @@ mod tests {
         let _ = a.go_to_section(Section::Seasonal);
         let _ = a.go_to_section(Section::Calendar);
         a.nav.focus_stage();
-        a.apply(Update::Content(entries(150)));
+        a.apply(a.content_here(entries(150)));
 
         a.selected = 2;
         a.handle(Action::Up, 20);
@@ -4020,23 +4118,26 @@ mod tests {
     /// An app with one title selected and its episode table loaded, ready to play.
     fn app_at_episodes() -> App {
         let mut a = app();
-        a.apply(Update::Content(entries(3)));
-        a.apply(Update::Episodes(
-            (1..=12)
-                .map(|n| EpisodeRow {
-                    number: n.to_string(),
-                    title: Some(format!("Episode {n}")),
-                    duration_secs: Some(1435),
-                    watched: 0.0,
-                    completed: false,
-                    kind: None,
-                    skippable: false,
-                    thumbnail: None,
-                    description: None,
-                })
-                .collect(),
-        ));
+        a.apply(a.content_here(entries(3)));
+        // The title first: a table is only taken for the title it is a view of.
         a.detail = a.content.entries().first().cloned();
+        a.apply(
+            a.episodes_here(
+                (1..=12)
+                    .map(|n| EpisodeRow {
+                        number: n.to_string(),
+                        title: Some(format!("Episode {n}")),
+                        duration_secs: Some(1435),
+                        watched: 0.0,
+                        completed: false,
+                        kind: None,
+                        skippable: false,
+                        thumbnail: None,
+                        description: None,
+                    })
+                    .collect(),
+            ),
+        );
         a.nav.push(StageView::Episodes(AnilistId::new(1)));
         a
     }
@@ -4086,7 +4187,7 @@ mod tests {
         let task = a.handle(Action::ShowSources, 20).expect("asking must produce a task");
         assert!(matches!(task, Task::LoadSources { .. }), "got {task:?}");
 
-        a.apply(Update::Sources(vec![
+        a.apply(a.sources_here(vec![
             source("[A] Show - 1 (1080p)", true),
             source("[B] Show - 1 (1080p)", false),
         ]));
@@ -4113,7 +4214,7 @@ mod tests {
     fn an_empty_slate_answers_with_a_toast_rather_than_an_empty_overlay() {
         let mut a = app_at_episodes();
         a.handle(Action::ShowSources, 20);
-        a.apply(Update::Sources(Vec::new()));
+        a.apply(a.sources_here(Vec::new()));
         assert_ne!(a.nav.overlay(), Some(&Overlay::Sources));
         assert!(a.source_context.is_none(), "an answered question is not left pending");
     }
@@ -4183,7 +4284,7 @@ mod tests {
         let mut e = Entry::new(AnilistId::new(5), "Frieren");
         e.progress = Some((7, 8));
         e.resume = Some(ResumePoint { position: 600.0, fraction: Some(0.5) });
-        a.apply(Update::Content(Content::Entries(vec![e])));
+        a.apply(a.content_here(Content::Entries(vec![e])));
         a.nav.focus_stage();
 
         let task = a.handle(Action::Open, 20).expect("enter must resume");
@@ -4269,7 +4370,7 @@ mod tests {
     fn a_source_slate_nobody_asked_for_stays_quiet() {
         // A stale answer arriving after the user navigated away must not interrupt.
         let mut a = app_at_episodes();
-        a.apply(Update::Sources(vec![source("[A] Show - 1 (1080p)", true)]));
+        a.apply(a.sources_here(vec![source("[A] Show - 1 (1080p)", true)]));
         assert_ne!(a.nav.overlay(), Some(&Overlay::Sources));
     }
 
@@ -4304,7 +4405,7 @@ mod tests {
     fn picking_a_candidate_pins_it_and_reloads() {
         let mut a = app_at_episodes();
         a.apply(Update::MatchChoices {
-            id: AnilistId::new(7),
+            id: AnilistId::new(1),
             provider_id: "torrent".into(),
             candidates: vec![candidate("Frieren S1", 0.62), candidate("Frieren S2", 0.61)],
         });
@@ -4315,7 +4416,7 @@ mod tests {
         assert_eq!(
             task,
             Task::FixMatch {
-                id: AnilistId::new(7),
+                id: AnilistId::new(1),
                 provider_id: "torrent".into(),
                 key: anistream_core::ids::ProviderKey::new("Frieren S2"),
             }
@@ -4389,7 +4490,7 @@ mod tests {
     #[test]
     fn x_on_home_dismisses_the_selected_title_from_continue() {
         let mut a = app();
-        a.apply(Update::Content(entries(3)));
+        a.apply(a.content_here(entries(3)));
         a.selected = 1;
         let task = a.handle(Action::HideFromContinue, 20);
         assert_eq!(task, Some(Task::HideFromContinue { id: AnilistId::new(2) }));
@@ -4540,7 +4641,7 @@ mod tests {
         // With nothing playing, `x` and `n` have to fall through to their browsing meaning
         // rather than being swallowed by a player that is not there.
         let mut a = app();
-        a.apply(Update::Content(entries(3)));
+        a.apply(a.content_here(entries(3)));
         assert_eq!(a.handle(Action::NextEpisode, 20), None);
         assert!(a.playing.is_none());
     }
@@ -4723,7 +4824,7 @@ mod tests {
     fn an_open_list_overlay_owns_movement() {
         // Without this, arrowing through Accounts would scroll the library behind it.
         let mut a = app();
-        a.apply(Update::Content(entries(10)));
+        a.apply(a.content_here(entries(10)));
         a.apply(Update::Conflicts(vec![conflict("a"), conflict("b"), conflict("c")]));
         a.handle(Action::ShowConflicts, 20);
 
@@ -4785,7 +4886,7 @@ mod tests {
         // A stale selection index into a different list would point at the wrong title.
         let mut a = app();
         a.go_to_section(Section::Library);
-        a.apply(Update::Content(entries(10)));
+        a.apply(a.content_here(entries(10)));
         a.selected = 7;
         a.nav.focus_stage();
 
@@ -4799,7 +4900,7 @@ mod tests {
     fn horizontal_keys_still_move_focus_outside_the_library() {
         // The segment behaviour is Library-specific; everywhere else h/l crosses the divider.
         let mut a = app();
-        a.apply(Update::Content(entries(3)));
+        a.apply(a.content_here(entries(3)));
         a.nav.focus_stage();
         a.handle(Action::Left, 20);
         assert_eq!(a.nav.focus(), Focus::Rail);
@@ -4817,7 +4918,7 @@ mod tests {
     fn setting_a_list_status_preselects_the_current_one() {
         // One keystroke to confirm in the common case, rather than a hunt.
         let mut a = app();
-        a.apply(Update::Content(entries(3)));
+        a.apply(a.content_here(entries(3)));
         a.library_segment = LibrarySegment::Completed;
         a.handle(Action::SetListStatus, 20);
         assert_eq!(a.nav.overlay(), Some(&Overlay::ListStatus));
@@ -4834,7 +4935,7 @@ mod tests {
     #[test]
     fn rating_a_title_queues_a_score_out_of_ten() {
         let mut a = app();
-        a.apply(Update::Content(entries(3)));
+        a.apply(a.content_here(entries(3)));
         a.handle(Action::RateTitle, 20);
         assert_eq!(a.nav.overlay(), Some(&Overlay::Rate));
 
@@ -4849,7 +4950,7 @@ mod tests {
     #[test]
     fn recommendations_open_a_list_and_enter_walks_into_the_pick() {
         let mut a = app();
-        a.apply(Update::Content(entries(1)));
+        a.apply(a.content_here(entries(1)));
         let mut detail = Entry::new(AnilistId::new(1), "Frieren");
         detail.recommended = vec![RelatedTitle {
             id: AnilistId::new(99),
@@ -4869,7 +4970,7 @@ mod tests {
     #[test]
     fn the_trailer_key_plays_when_known_and_says_so_when_not() {
         let mut a = app();
-        a.apply(Update::Content(entries(1)));
+        a.apply(a.content_here(entries(1)));
 
         a.handle(Action::PlayTrailer, 20);
         assert!(a.toasts.iter().any(|t| t.text.contains("no trailer")));
@@ -4890,7 +4991,7 @@ mod tests {
     #[test]
     fn recommendations_with_none_known_say_so_rather_than_opening_nothing() {
         let mut a = app();
-        a.apply(Update::Content(entries(1)));
+        a.apply(a.content_here(entries(1)));
         a.handle(Action::Recommendations, 20);
         assert!(!a.nav.has_overlay());
         assert!(a.toasts.iter().any(|t| t.text.contains("no recommendations")));
@@ -5008,7 +5109,7 @@ mod tests {
     #[test]
     fn selection_cannot_move_outside_the_content() {
         let mut a = app();
-        a.apply(Update::Content(entries(3)));
+        a.apply(a.content_here(entries(3)));
         // The rail owns the vertical axis while it has focus, and it holds focus at startup.
         a.nav.focus_stage();
 
@@ -5026,7 +5127,7 @@ mod tests {
     #[test]
     fn moving_in_empty_content_is_a_no_op() {
         let mut a = app();
-        a.apply(Update::Content(Content::Entries(vec![])));
+        a.apply(a.content_here(Content::Entries(vec![])));
         a.handle(Action::Down, 10);
         a.handle(Action::Bottom, 10);
         assert_eq!(a.selected, 0);
@@ -5037,11 +5138,11 @@ mod tests {
         // The crash this prevents: selecting item 40, a refresh returning 3, and the next
         // render indexing past the end.
         let mut a = app();
-        a.apply(Update::Content(entries(50)));
+        a.apply(a.content_here(entries(50)));
         a.handle(Action::Bottom, 10);
         assert_eq!(a.selected, 49);
 
-        a.apply(Update::Content(entries(3)));
+        a.apply(a.content_here(entries(3)));
         assert!(a.selected < 3, "selection {} out of range", a.selected);
         assert!(a.selected_entry().is_some());
     }
@@ -5049,9 +5150,9 @@ mod tests {
     #[test]
     fn emptying_content_resets_selection_and_scroll() {
         let mut a = app();
-        a.apply(Update::Content(entries(50)));
+        a.apply(a.content_here(entries(50)));
         a.handle(Action::Bottom, 10);
-        a.apply(Update::Content(Content::Entries(vec![])));
+        a.apply(a.content_here(Content::Entries(vec![])));
         assert_eq!(a.selected, 0);
         assert_eq!(a.offset, 0);
         assert!(a.selected_entry().is_none());
@@ -5060,7 +5161,7 @@ mod tests {
     #[test]
     fn scrolling_keeps_the_selection_inside_the_viewport() {
         let mut a = app();
-        a.apply(Update::Content(entries(100)));
+        a.apply(a.content_here(entries(100)));
         let rows = 10;
         for _ in 0..25 {
             a.handle(Action::Down, rows);
@@ -5079,13 +5180,13 @@ mod tests {
         // Reported from real use: the episode table still showed the old state after an episode
         // finished, so it looked as though nothing had been recorded.
         let mut a = app();
-        a.apply(Update::Content(entries(3)));
+        a.apply(a.content_here(entries(3)));
         a.nav.focus_stage();
         let id = a.selected_entry().expect("an entry").id;
         a.detail = Some(a.selected_entry().expect("an entry").clone());
         // Push the view first: it clears any previous title's rows, which is the point.
         a.handle(Action::ShowEpisodes, 10);
-        a.apply(Update::Episodes(vec![
+        a.apply(a.episodes_here(vec![
             EpisodeRow {
                 number: "1".into(),
                 title: None,
@@ -5135,26 +5236,28 @@ mod tests {
     fn reaching_episodes_by_key_still_lands_a_finished_watch_on_the_table() {
         let mut a = app();
         a.config.playback.auto_next = true;
-        a.apply(Update::Content(entries(3)));
+        a.apply(a.content_here(entries(3)));
         a.nav.focus_stage();
         let id = a.selected_entry().expect("an entry").id;
         // Straight from the list — no detail screen in between, which is the whole point.
         a.handle(Action::ShowEpisodes, 10);
-        a.apply(Update::Episodes(
-            (1..=3)
-                .map(|n| EpisodeRow {
-                    number: n.to_string(),
-                    title: None,
-                    duration_secs: Some(1440),
-                    watched: 0.0,
-                    completed: false,
-                    kind: None,
-                    skippable: false,
-                    thumbnail: None,
-                    description: None,
-                })
-                .collect(),
-        ));
+        a.apply(
+            a.episodes_here(
+                (1..=3)
+                    .map(|n| EpisodeRow {
+                        number: n.to_string(),
+                        title: None,
+                        duration_secs: Some(1440),
+                        watched: 0.0,
+                        completed: false,
+                        kind: None,
+                        skippable: false,
+                        thumbnail: None,
+                        description: None,
+                    })
+                    .collect(),
+            ),
+        );
 
         a.begin_playback(id, "1".into());
         a.apply(Update::PlaybackEnded { watched: true });
@@ -5175,7 +5278,7 @@ mod tests {
     #[test]
     fn each_show_in_a_list_opens_its_own_episodes() {
         let mut a = app();
-        a.apply(Update::Content(entries(3)));
+        a.apply(a.content_here(entries(3)));
         a.nav.focus_stage();
 
         assert_eq!(
@@ -5208,11 +5311,11 @@ mod tests {
         // progress — until the new load answered, then corrected itself. Stale content presented as
         // current is worse than an honest wait.
         let mut a = app();
-        a.apply(Update::Content(entries(3)));
+        a.apply(a.content_here(entries(3)));
         a.nav.focus_stage();
         a.detail = Some(a.selected_entry().expect("an entry").clone());
         a.handle(Action::ShowEpisodes, 10);
-        a.apply(Update::Episodes(vec![EpisodeRow {
+        a.apply(a.episodes_here(vec![EpisodeRow {
             number: "7".into(),
             title: Some("from the first title".into()),
             duration_secs: Some(1440),
@@ -5240,20 +5343,22 @@ mod tests {
     #[test]
     fn a_source_with_no_episodes_reads_differently_from_one_still_loading() {
         let mut a = app();
-        a.apply(Update::Content(entries(1)));
+        a.apply(a.content_here(entries(1)));
         a.detail = Some(a.selected_entry().expect("an entry").clone());
         a.handle(Action::ShowEpisodes, 10);
         assert!(a.episodes_loading);
         // An empty answer is still an answer, and must clear the wait.
-        a.apply(Update::Episodes(Vec::new()));
+        a.apply(a.episodes_here(Vec::new()));
         assert!(!a.episodes_loading, "an empty result is not a permanent loading state");
     }
 
     #[test]
     fn a_re_watch_quit_early_does_not_erase_that_it_was_finished() {
         let mut a = app();
-        a.apply(Update::Content(entries(1)));
-        a.apply(Update::Episodes(vec![EpisodeRow {
+        a.apply(a.content_here(entries(1)));
+        let id = a.selected_entry().expect("an entry").id;
+        a.detail = Some(a.selected_entry().expect("an entry").clone());
+        a.apply(a.episodes_here(vec![EpisodeRow {
             number: "1".into(),
             title: None,
             duration_secs: Some(1440),
@@ -5264,8 +5369,6 @@ mod tests {
             thumbnail: None,
             description: None,
         }]));
-        let id = a.selected_entry().expect("an entry").id;
-        a.detail = Some(a.selected_entry().expect("an entry").clone());
         a.begin_playback(id, "1".into());
         a.apply(Update::Playback { position: 60.0, duration: Some(1440.0), paused: false });
         assert!(a.episodes[0].completed, "still finished");
@@ -5288,7 +5391,7 @@ mod tests {
             a.handle(Action::Open, 10),
             Some(Task::Search { query: "frieren".into(), filter: SearchFilters::default() })
         );
-        a.apply(Update::Content(entries(3)));
+        a.apply(a.content_here(entries(3)));
 
         // Second Enter opens the highlighted result rather than asking again.
         let task = a.handle(Action::Open, 10);
@@ -5414,7 +5517,7 @@ mod tests {
         // which is how the app starts — the eight top-level views were reachable only by their
         // number keys. Fast if you know them, invisible if you do not.
         let mut a = app();
-        a.apply(Update::Content(entries(3)));
+        a.apply(a.content_here(entries(3)));
         assert_eq!(a.nav.focus(), Focus::Rail, "the app starts on the rail");
 
         a.handle(Action::Down, 10);
@@ -5439,7 +5542,7 @@ mod tests {
     #[test]
     fn enter_on_the_rail_moves_into_the_stage_rather_than_opening_a_title() {
         let mut a = app();
-        a.apply(Update::Content(entries(3)));
+        a.apply(a.content_here(entries(3)));
         let task = a.handle(Action::Open, 10);
         assert_eq!(task, None, "it must not open a title the user never selected");
         assert_eq!(a.nav.focus(), Focus::Stage);
@@ -5612,7 +5715,7 @@ mod tests {
     #[test]
     fn opening_an_entry_pushes_the_title_view_and_asks_for_detail() {
         let mut a = app();
-        a.apply(Update::Content(entries(3)));
+        a.apply(a.content_here(entries(3)));
         a.nav.focus_stage();
         let task = a.handle(Action::Open, 10);
         assert_eq!(task, Some(Task::LoadDetail(AnilistId::new(1))));
@@ -5671,7 +5774,7 @@ mod tests {
     #[test]
     fn switching_section_clears_stale_selection_and_detail() {
         let mut a = app();
-        a.apply(Update::Content(entries(10)));
+        a.apply(a.content_here(entries(10)));
         a.handle(Action::Bottom, 5);
         a.handle(Action::Open, 5);
 
@@ -5728,6 +5831,130 @@ mod tests {
         assert_eq!(shown, [newer, older], "the thing just asked for leads");
     }
 
+    // Requests are never cancelled, so every answer below is one the app really receives when
+    // the user moves faster than the network: it has to be recognised as late and left alone.
+
+    #[test]
+    fn a_late_list_for_the_section_just_left_is_not_shown_under_the_next() {
+        let mut a = app();
+        let _ = a.go_to_section(Section::Seasonal);
+        let _ = a.go_to_section(Section::Calendar);
+        a.apply(Update::Content { view: ContentFor::Seasonal, content: entries(5) });
+        assert!(matches!(a.content, Content::Loading), "the calendar showed seasonal's list");
+
+        a.apply(Update::Content { view: ContentFor::Calendar, content: entries(3) });
+        assert_eq!(a.content.len(), 3, "the calendar's own answer must still land");
+    }
+
+    #[test]
+    fn a_slow_answer_to_an_earlier_search_does_not_replace_a_later_one() {
+        let mut a = app();
+        let _ = a.go_to_section(Section::Search);
+        a.nav.focus_stage();
+        for query in ["fri", "frieren"] {
+            a.search_query = query.into();
+            assert!(matches!(a.handle(Action::Open, 20), Some(Task::Search { .. })));
+        }
+        let answer = |query: &str, n| Update::Content {
+            view: ContentFor::Search { query: query.into(), filter: SearchFilters::default() },
+            content: entries(n),
+        };
+        a.apply(answer("frieren", 2));
+        a.apply(answer("fri", 9));
+        assert_eq!(
+            a.content.len(),
+            2,
+            "the results for \"fri\" replaced those for \"frieren\""
+        );
+    }
+
+    #[test]
+    fn a_late_list_for_another_library_segment_is_not_shown() {
+        let mut a = app();
+        let _ = a.go_to_section(Section::Library);
+        a.library_segment = LibrarySegment::Completed;
+        a.apply(Update::Content {
+            view: ContentFor::Library(LibrarySegment::Watching),
+            content: entries(4),
+        });
+        assert!(a.content.is_empty(), "completed showed the watching list");
+    }
+
+    #[test]
+    fn a_late_record_for_a_title_already_left_is_not_shown_on_the_next() {
+        let mut a = app();
+        a.apply(a.content_here(entries(3)));
+        a.nav.focus_stage();
+        a.handle(Action::Open, 20); // title 1
+        a.handle(Action::Back, 20);
+        a.handle(Action::Down, 20);
+        a.handle(Action::Open, 20); // title 2
+        a.apply(Update::Detail(Box::new(Entry::new(AnilistId::new(1), "Title one, in full"))));
+        assert_eq!(a.detail.as_ref().map(|d| d.id), Some(AnilistId::new(2)));
+
+        a.apply(Update::Detail(Box::new(Entry::new(AnilistId::new(2), "Title two, in full"))));
+        assert_eq!(a.detail.as_ref().map(|d| d.title.as_str()), Some("Title two, in full"));
+    }
+
+    #[test]
+    fn late_episodes_for_a_title_already_left_do_not_fill_the_next_ones_table() {
+        let mut a = app();
+        a.apply(a.content_here(entries(3)));
+        a.nav.focus_stage();
+        a.handle(Action::ShowEpisodes, 20); // title 1
+        a.handle(Action::Back, 20);
+        a.handle(Action::Down, 20);
+        a.handle(Action::ShowEpisodes, 20); // title 2
+        let row = |n: &str| EpisodeRow {
+            number: n.into(),
+            title: None,
+            duration_secs: None,
+            watched: 0.0,
+            completed: false,
+            kind: None,
+            skippable: false,
+            thumbnail: None,
+            description: None,
+        };
+        a.apply(Update::Episodes { id: AnilistId::new(1), rows: vec![row("1")] });
+        assert!(a.episodes.is_empty(), "title two's table showed title one's episodes");
+        assert!(a.episodes_loading, "title two's own load is still outstanding");
+
+        a.apply(Update::Episodes { id: AnilistId::new(2), rows: vec![row("1"), row("2")] });
+        assert_eq!(a.episodes.len(), 2);
+    }
+
+    #[test]
+    fn a_match_question_about_a_title_already_left_is_not_asked() {
+        let mut a = app_at_episodes();
+        a.apply(Update::MatchChoices {
+            id: AnilistId::new(7),
+            provider_id: "torrent".into(),
+            candidates: vec![candidate("Something else", 0.6)],
+        });
+        assert_ne!(a.nav.overlay(), Some(&Overlay::Disambiguate));
+    }
+
+    #[test]
+    fn releases_for_another_episode_are_not_offered_against_this_one() {
+        let mut a = app_at_episodes();
+        a.handle(Action::ShowSources, 20);
+        let (id, asked) = a.source_context.clone().expect("a pending question");
+        a.apply(Update::Sources {
+            id,
+            episode: format!("{asked}0"),
+            candidates: vec![source("[A] Show - 10 (1080p)", true)],
+        });
+        assert_ne!(
+            a.nav.overlay(),
+            Some(&Overlay::Sources),
+            "offered another episode's releases"
+        );
+
+        a.apply(a.sources_here(vec![source("[A] Show - 1 (1080p)", true)]));
+        assert_eq!(a.nav.overlay(), Some(&Overlay::Sources));
+    }
+
     #[test]
     fn each_browsable_section_requests_its_own_data() {
         let mut a = app();
@@ -5745,7 +5972,7 @@ mod tests {
         // The screen must never look empty while data is in flight — an empty list with no
         // explanation is the failure mode this whole design avoids.
         let mut a = app();
-        a.apply(Update::Content(entries(3)));
+        a.apply(a.content_here(entries(3)));
         a.go_to_section(Section::Home);
         assert_eq!(a.content, Content::Loading);
     }
@@ -5753,7 +5980,7 @@ mod tests {
     #[test]
     fn a_failure_is_content_rather_than_an_empty_list() {
         let mut a = app();
-        a.apply(Update::Content(Content::Failed("anilist unreachable".into())));
+        a.apply(a.content_here(Content::Failed("anilist unreachable".into())));
         assert!(matches!(a.content, Content::Failed(_)));
         assert!(a.content.is_empty());
     }

@@ -27,9 +27,9 @@ fn main() {
         progress: Some((11, 12)),
         ..Entry::new(AnilistId::new(154_587), "Sousou no Frieren")
     };
-    app.apply(Update::Content(Content::Entries(vec![entry.clone()])));
+    app.apply(app.content_here(Content::Entries(vec![entry.clone()])));
     app.detail = Some(entry.clone());
-    app.apply(Update::Episodes(vec![EpisodeRow {
+    app.apply(app.episodes_here(vec![EpisodeRow {
         number: "11".into(),
         title: Some("Frieren the Slayer".into()),
         duration_secs: Some(1435),
@@ -53,7 +53,7 @@ fn main() {
         last: Some("pulled 214 titles".into()),
     })));
     app.go_to_section(anistream_ui::Section::Library);
-    app.apply(Update::Content(Content::Entries(vec![
+    app.apply(app.content_here(Content::Entries(vec![
         Entry { progress: Some((11, 12)), episodes: Some(28), ..entry.clone() },
         Entry {
             progress: Some((4, 5)),

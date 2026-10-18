@@ -4,9 +4,12 @@
 //! wrong — can be exercised deterministically, with no network. It also counts calls, which
 //! is how "a held-back provider is never contacted" is actually proven rather than assumed.
 
-use std::sync::{
-    Arc,
-    atomic::{AtomicUsize, Ordering},
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    },
+    time::Duration,
 };
 
 use anistream_core::{
@@ -14,7 +17,7 @@ use anistream_core::{
     ids::ProviderKey,
     media::{Episode, SearchHit, Translation},
     stream::Stream,
-    traits::{Provider, ProviderKind, ProviderManifest},
+    traits::{Provider, ProviderKind, ProviderManifest, SourceCandidate},
 };
 use async_trait::async_trait;
 
@@ -23,9 +26,12 @@ pub struct MockProvider {
     hits: Vec<SearchHit>,
     episodes: Vec<Episode>,
     streams: Vec<Stream>,
+    sources: Vec<SourceCandidate>,
     error: Option<ProviderError>,
     unavailable: Option<String>,
     calls: Arc<AtomicUsize>,
+    /// How long each call takes to answer, so tests can tell asking at once from asking in turn.
+    latency: Duration,
 }
 
 impl MockProvider {
@@ -42,9 +48,11 @@ impl MockProvider {
             hits: Vec::new(),
             episodes: Vec::new(),
             streams: Vec::new(),
+            sources: Vec::new(),
             error: None,
             unavailable: None,
             calls: Arc::new(AtomicUsize::new(0)),
+            latency: Duration::ZERO,
         }
     }
 
@@ -64,6 +72,16 @@ impl MockProvider {
     }
 
     /// Fail every call with this error.
+    pub fn with_sources(mut self, sources: Vec<SourceCandidate>) -> Self {
+        self.sources = sources;
+        self
+    }
+
+    pub fn with_latency(mut self, latency: Duration) -> Self {
+        self.latency = latency;
+        self
+    }
+
     pub fn failing(mut self, error: ProviderError) -> Self {
         self.error = Some(error);
         self
@@ -89,7 +107,10 @@ impl MockProvider {
         Arc::new(self)
     }
 
-    fn record(&self) -> Result<(), ProviderError> {
+    async fn record(&self) -> Result<(), ProviderError> {
+        if !self.latency.is_zero() {
+            tokio::time::sleep(self.latency).await;
+        }
         self.calls.fetch_add(1, Ordering::SeqCst);
         match &self.error {
             Some(e) => Err(e.clone()),
@@ -109,7 +130,7 @@ impl Provider for MockProvider {
         _query: &str,
         _translation: Translation,
     ) -> Result<Vec<SearchHit>, ProviderError> {
-        self.record()?;
+        self.record().await?;
         Ok(self.hits.clone())
     }
 
@@ -118,7 +139,7 @@ impl Provider for MockProvider {
         _key: &ProviderKey,
         _translation: Translation,
     ) -> Result<Vec<Episode>, ProviderError> {
-        self.record()?;
+        self.record().await?;
         Ok(self.episodes.clone())
     }
 
@@ -128,8 +149,18 @@ impl Provider for MockProvider {
         _episode: &str,
         _translation: Translation,
     ) -> Result<Vec<Stream>, ProviderError> {
-        self.record()?;
+        self.record().await?;
         Ok(self.streams.clone())
+    }
+
+    async fn sources(
+        &self,
+        _key: &ProviderKey,
+        _episode: &str,
+        _translation: Translation,
+    ) -> Result<Vec<SourceCandidate>, ProviderError> {
+        self.record().await?;
+        Ok(self.sources.clone())
     }
 
     fn is_available(&self) -> Result<(), ProviderError> {

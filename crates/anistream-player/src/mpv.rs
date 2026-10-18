@@ -617,13 +617,15 @@ mod tests {
         );
     }
 
-    #[tokio::test]
+    // Paused time: the retry loop's sleeps resolve instantly instead of costing five real
+    // seconds, and the bound below is measured in the same virtual clock they advance.
+    #[tokio::test(start_paused = true)]
     async fn connecting_to_a_socket_that_never_appears_fails_with_a_reason() {
         let path = std::env::temp_dir().join("anistream-nonexistent.sock");
         let _ = std::fs::remove_file(&path);
 
         // Shortened by pointing at a path nothing will ever create; the retry loop bounds it.
-        let started = std::time::Instant::now();
+        let started = tokio::time::Instant::now();
         let error = connect_with_retry(&path).await.unwrap_err();
         assert!(matches!(error, PlayerError::Ipc(_)));
         assert!(
