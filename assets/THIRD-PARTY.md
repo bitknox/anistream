@@ -37,16 +37,21 @@ https://github.com/google/material-design-icons (`LICENSE` at `49d4db35df873165d
 | What | seekbar thumbnailer: `assets/mpv/scripts/thumbfast.lua` |
 | Source | https://github.com/po5/thumbfast, `master` at `0f711de3138c9bd6718209d819ac54022c23ded2` (2026-06-28) |
 | Upstream file sha256 | `a3d08e71eae8b892f6cd39f9593ea219768e709312d176bca883841b156448bf` |
+| Shipped file sha256 | `5f0fbf02ecc4fb926541238400feb8fedbcbf7a0c221a855d86f64049805ca12` |
 | Licence | MPL-2.0, `assets/mpv/licenses/LICENSE-thumbfast` |
 | Changes | Yes, each marked `-- anistream:` in the file; summarised below. |
 
 The patch makes the thumbnailer open `user-data/anistream/thumbnail-url` instead of the
 playing file's `path` when the host sets it (a torrent stream gives the thumbnailer its own
-URL so it does not disturb piece priority), retires a running thumbnailer when that URL
-changes mid-file, and passes the parent's `http-header-fields` (one
-`--http-header-fields-append` per entry, so commas survive), `user-agent` and `referrer` to
-the child process. It also hides a thumbnail whose frame has not arrived within 350 ms, so a
-seek into a part of a torrent not yet downloaded shows nothing rather than the last frame. The modified file is shipped in source form, as MPL-2.0 requires.
+URL so it does not disturb piece priority, and an HLS stream an entry to the mender that
+never holds it through a rate limit), retires a running thumbnailer when that URL changes
+mid-file, and passes the parent's `http-header-fields` (one `--http-header-fields-append` per
+entry, so commas survive), `user-agent` and `referrer` to the child process. The child reads
+HLS one segment at a time (`--demuxer-lavf-o-append=http_multiple=0`) rather than fetching the
+next segment before returning anything of the current one. It also hides a thumbnail whose
+frame has not arrived within 350 ms, so a seek the host's URL cannot answer yet shows nothing
+rather than the last frame, and asks again every second while the pointer rests there. The
+modified file is shipped in source form, as MPL-2.0 requires.
 `assets/mpv/thumbfast-opts.conf` is anistream's own and not part of thumbfast.
 
 ## Zen Kaku Gothic New

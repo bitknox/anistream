@@ -490,9 +490,15 @@ pub async fn play(
         // playback — and replaced on the next, so a stream that failed leaves nothing behind.
         let mut menders = crate::mend::Menders::default();
         if stream.kind == StreamKind::Hls {
+            let original = stream.url.clone();
             stream.url = menders
-                .route(&http, &stream.url, &stream.headers, &mender_token(&context, attempt))
+                .route(&http, &original, &stream.headers, &mender_token(&context, attempt))
                 .await;
+            // The seek bar's thumbnailer reads the same stream through its own entry, which
+            // answers from what playback already fetched and never waits out a rate limit.
+            // Unset when the mender could not start, and thumbfast then opens the stream as
+            // the player does.
+            stream.thumbnail_url = menders.thumbnail_url(&original);
         }
         attempt += 1;
 
