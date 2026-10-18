@@ -14,6 +14,7 @@
 local app = require("app")
 local config = require("config")
 local help = require("help")
+local lang_names = require("lang")
 local menu_view = require("menu_view")
 local screen = require("screen")
 local util = require("util")
@@ -48,7 +49,10 @@ local function track_entries(kind)
             local notes = {}
             local lang = util.str(track.lang)
             local title = util.str(track.title)
-            if lang and title then
+            -- A release that titles its tracks has named them; one that does not left a code,
+            -- which reads better as the language it stands for.
+            local named = title or lang_names.name(lang)
+            if lang and named then
                 notes[#notes + 1] = lang
             end
             if track.forced then
@@ -58,7 +62,7 @@ local function track_entries(kind)
                 notes[#notes + 1] = "external"
             end
             list[#list + 1] = {
-                title = title or lang or ("Track " .. tostring(track.id)),
+                title = named or lang or ("Track " .. tostring(track.id)),
                 hint = table.concat(notes, " · "),
                 current = track.selected == true,
                 command = string.format("set %s %d", property, track.id),

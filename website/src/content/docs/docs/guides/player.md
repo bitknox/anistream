@@ -9,8 +9,9 @@ terminal. One mpv window carries a whole binge. The next episode loads into the 
 one played in, so fullscreen and window position stay put.
 
 The controls appear when you move the mouse, pause or seek, and leave about a second later.
-When they are hidden the screen shows the video and nothing else. While they are up, subtitles
-move up out of their way and settle back when they go.
+While they are up, the bottom of the picture is shaded so they read over a bright scene, and
+subtitles move up out of their way and settle back when they go. When they are hidden the screen
+shows the video and nothing else.
 
 ## Two interfaces
 
@@ -70,7 +71,7 @@ Press `M` or right click for the anistream menu:
 - **Sources** switches to another release of the same episode and keeps your place.
 - **Sub / Dub** restarts the episode in the other version, where you were.
 - **Upscaling**, **HDR tone mapping** (only while HDR video is playing) and **Night mode**.
-- **Subtitles** and **Audio** list the file's tracks.
+- **Subtitles** and **Audio** list the file's tracks, by title, or by language when a track has none.
 - **Sync subtitles** and **Mini player**.
 
 ## Upscaling

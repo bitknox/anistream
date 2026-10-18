@@ -64,6 +64,9 @@ pub struct PlaybackTracker {
     /// Set by the player's file-loaded event. Chapter reports before it describe no file —
     /// mpv greets a new observer with the current value even when nothing is playing.
     loaded: bool,
+    /// The file's own chapters, kept because an ending that closes the file is only a span
+    /// once its length is known, which can be after the chapters arrive.
+    file_chapters: Option<Vec<(String, f64)>>,
 
     position: f64,
     duration: Option<f64>,
@@ -105,6 +108,7 @@ impl PlaybackTracker {
             mark_chapters: false,
             marked: false,
             loaded: false,
+            file_chapters: None,
             position: 0.0,
             duration: None,
             last_recorded: 0.0,
@@ -131,6 +135,24 @@ impl PlaybackTracker {
 
     pub fn position(&self) -> f64 {
         self.position
+    }
+
+    /// The segments as they stand: aniskip's, until the file's own chapters say otherwise.
+    pub fn skips(&self) -> &[SkipInterval] {
+        &self.skips
+    }
+
+    /// Take the file's chapters as the skips, when they name any. They outrank aniskip: they
+    /// were authored against this exact encode, where community times were taken against
+    /// someone else's.
+    fn adopt_file_chapters(&mut self) -> bool {
+        let Some(chapters) = &self.file_chapters else { return false };
+        let from_file = crate::skip::from_chapters(chapters, self.duration);
+        if from_file.is_empty() {
+            return false;
+        }
+        self.skips = from_file;
+        true
     }
 
     pub fn duration(&self) -> Option<f64> {
@@ -189,7 +211,12 @@ impl PlaybackTracker {
                     actions.push(action);
                 }
                 if let Some(d) = duration {
+                    let learned = self.duration.is_none_or(|known| (known - *d).abs() > 0.5);
                     self.duration = Some(*d);
+                    // An ending chapter that closes the file was waiting for this.
+                    if learned {
+                        self.adopt_file_chapters();
+                    }
                 }
 
                 // Accumulate real watch time only for forward movement of a plausible size.
@@ -281,11 +308,8 @@ impl PlaybackTracker {
                 if !self.loaded {
                     return actions;
                 }
-                // The file's own chapters outrank aniskip: they were authored against this
-                // exact encode, where community times were taken against someone else's.
-                let from_file = crate::skip::from_chapters(chapters);
-                if !from_file.is_empty() {
-                    self.skips = from_file;
+                self.file_chapters = (!chapters.is_empty()).then(|| chapters.clone());
+                if self.adopt_file_chapters() {
                     return actions;
                 }
                 // Nothing authored into the stream — HLS cannot carry chapters at all — so the
@@ -425,6 +449,24 @@ mod tests {
         let actions = t.observe(&PlaybackEvent::Chapters(echo));
         assert!(marks(&actions).is_none(), "wrote a second time");
         assert_eq!(t.skips, skips(), "the ending survived its own round trip");
+    }
+
+    /// A release that ends on its ED reports the chapters before the length, and the ending
+    /// only becomes a span once the length is known. Until then nothing changes.
+    #[test]
+    fn an_ending_that_closes_the_file_is_taken_once_the_length_is_known() {
+        let mut t = PlaybackTracker::new(0.85, Vec::new(), false);
+        t.observe(&PlaybackEvent::Loaded);
+        let authored = vec![("Part A".to_string(), 0.0), ("ED".to_string(), 1300.0)];
+        t.observe(&PlaybackEvent::Chapters(authored));
+        assert!(t.skips().is_empty(), "guessed at an unbounded ending");
+
+        t.observe(&PlaybackEvent::Progress { position: 10.0, duration: Some(1420.0) });
+        assert_eq!(
+            t.skips(),
+            [SkipInterval { kind: SkipKind::Ending, start: 1300.0, end: 1420.0 }],
+            "the ending runs to the end of the file"
+        );
     }
 
     #[test]

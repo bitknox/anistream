@@ -1103,25 +1103,28 @@ fn render_preview(buf: &mut Buffer, app: &App, area: Rect, entry: &Entry) {
         buf.set_string(area.left(), y + i as u16, line, app.palette.style(Role::TextDim));
     }
 
-    if let Some((done, _)) = entry.progress {
-        let total = entry.episodes.unwrap_or(0);
+    if let Some(label) = entry.progress_label() {
         let meter_y = area.bottom().saturating_sub(1);
-        let meter_width = (area.width as usize).saturating_sub(14).min(20);
-        set_meter(
-            buf,
-            area.left(),
-            meter_y,
-            &app.palette,
-            entry.watched_fraction(),
-            meter_width,
-            Role::Obi,
-        );
-        buf.set_string(
-            area.left() + meter_width as u16 + 2,
-            meter_y,
-            format!("{done} / {total}"),
-            app.palette.style(Role::TextDim),
-        );
+        // A meter only when there is something to measure against; the label keeps its room.
+        let meter_width = if entry.progress_of().is_some() {
+            (area.width as usize).saturating_sub(label.chars().count() + 2).min(20)
+        } else {
+            0
+        };
+        let mut x = area.left();
+        if meter_width > 0 {
+            set_meter(
+                buf,
+                x,
+                meter_y,
+                &app.palette,
+                entry.watched_fraction(),
+                meter_width,
+                Role::Obi,
+            );
+            x += meter_width as u16 + 2;
+        }
+        buf.set_string(x, meter_y, label, app.palette.style(Role::TextDim));
     }
 }
 
@@ -1208,21 +1211,16 @@ fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
 
     // Progress, or the countdown to the next broadcast — whichever the viewer needs next.
     if y < area.bottom() {
-        if let Some((done, next)) = entry.progress {
-            let total = entry.episodes.unwrap_or(0);
-            set_meter(
-                buf,
-                area.left(),
-                y,
-                &app.palette,
-                entry.watched_fraction(),
-                20,
-                Role::Obi,
-            );
+        if let (Some((_, next)), Some(label)) = (entry.progress, entry.progress_label()) {
+            let mut x = area.left();
+            if entry.progress_of().is_some() {
+                set_meter(buf, x, y, &app.palette, entry.watched_fraction(), 20, Role::Obi);
+                x += 22;
+            }
             buf.set_string(
-                area.left() + 22,
+                x,
                 y,
-                format!("{done} / {total}   ep {next} next"),
+                format!("{label}   ep {next} next"),
                 app.palette.style(Role::TextDim),
             );
         } else if let Some(secs) = entry.next_airing_in.filter(|s| *s > 0) {
@@ -2782,6 +2780,23 @@ mod tests {
         assert_eq!(broadcast_line(&e), "EP 5 out 1h ago");
     }
 
+    /// AniList leaves the length empty while a show airs without an announced one. The card
+    /// read "2 / 0" under an empty meter; it counts against what has aired instead.
+    #[test]
+    fn progress_on_a_show_with_no_announced_length_counts_what_has_aired() {
+        let mut e = entry(1, "Item");
+        e.episodes = None;
+        e.next_episode = Some(3);
+        e.progress = Some((2, 3));
+        let app = app_with(Content::Entries(vec![e.clone()]));
+        let area = Rect::new(0, 0, 60, 24);
+        let mut buf = Buffer::empty(area);
+        render_preview(&mut buf, &app, area, &e);
+        let text = text_of(&buf);
+        assert!(text.contains("2 / 2 aired"), "card was:\n{text}");
+        assert!(!text.contains("/ 0"), "card was:\n{text}");
+    }
+
     fn text_of(buf: &Buffer) -> String {
         (0..buf.area.height)
             .map(|y| {
@@ -2878,7 +2893,10 @@ mod tests {
             left_secs: 18 * 3600,
         }]));
         let screen = text_of(&render_to_buffer(&app, 120, 30));
-        assert!(screen.contains("SEEDING AFTER WATCHING") || screen.contains("seeding after watching"));
+        assert!(
+            screen.contains("SEEDING AFTER WATCHING")
+                || screen.contains("seeding after watching")
+        );
         assert!(screen.contains("Show - 05.mkv"), "{screen}");
         assert!(screen.contains("0.4 of 1.0 · 18 h left"), "{screen}");
     }

@@ -24,6 +24,14 @@ local M = { id = "timeline", region = "canvas" }
 local LINE = 3
 local LINE_ACTIVE = 6
 
+-- The shade behind the bar and uosc's control row: how far above the bar it starts, at scale 1,
+-- and how dark it gets. It reaches that depth at the bar, so the bar and the icons all sit on
+-- the same ground, and is drawn as thin bands so it falls off above rather than ending in an
+-- edge.
+local SHADE_RISE = 110
+local SHADE_DEPTH = 0.72
+local SHADE_BANDS = 40
+
 local shown_until = 0
 local hide_timer = nil
 local dragging = false
@@ -247,6 +255,18 @@ function M.draw(ctx, _, _, w, h)
         return
     end
     local pos = position or mp.get_property_native("time-pos") or 0
+
+    -- Shade first, under everything here and under uosc's icons: the time and the icons are
+    -- light, and over a bright frame nothing else would hold them apart from the picture.
+    local top = g.band_top - SHADE_RISE * s
+    local full = (g.line_y - top) / (h - top)
+    for i = 0, SHADE_BANDS - 1 do
+        local y0 = top + (h - top) * i / SHADE_BANDS
+        local y1 = top + (h - top) * (i + 1) / SHADE_BANDS
+        local t = math.min(1, (i + 0.5) / SHADE_BANDS / full)
+        ctx:rect(0, y0, w, y1, config.color.ground, SHADE_DEPTH * t * t * (3 - 2 * t), 0)
+    end
+
     local mouse = overlay.mouse()
     local active = dragging or ctx.hover == "timeline"
     local thick = draw.round((active and LINE_ACTIVE or LINE) * s)

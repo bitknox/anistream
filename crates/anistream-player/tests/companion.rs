@@ -649,6 +649,27 @@ async fn escape_cancels_a_sync_without_touching_the_timing() {
     let _ = std::fs::remove_dir_all(dir);
 }
 
+/// Tracks that carry only a language code are named in the menu. `lang.lua` is pure, so it is
+/// checked on its own, inside mpv's Lua, by a script that quits with 1 on a wrong name.
+#[tokio::test]
+async fn a_language_code_becomes_its_name() {
+    require_mpv!();
+    let test = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/lua/lang_test.lua");
+    let output = Command::new("mpv")
+        .arg("--no-config")
+        .arg("--load-scripts=no")
+        .arg("--idle=yes")
+        .arg("--vo=null")
+        .arg("--ao=null")
+        .arg(format!("--script={}", test.display()))
+        .arg(format!("--script-opts=lang_test-dir={}", script_dir().display()))
+        .output()
+        .await
+        .expect("run mpv");
+    let said = String::from_utf8_lossy(&output.stderr);
+    assert!(output.status.success(), "lang.lua named something wrongly:\n{said}");
+}
+
 fn sample_menus() -> Value {
     json!({
         "episodes": [
