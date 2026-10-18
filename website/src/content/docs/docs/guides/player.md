@@ -9,8 +9,9 @@ terminal. One mpv window carries a whole binge. The next episode loads into the 
 one played in, so fullscreen and window position stay put.
 
 The controls appear when you move the mouse, pause or seek, and leave about a second later.
-When they are hidden the screen shows the video and nothing else. While they are up, subtitles
-move up out of their way and settle back when they go.
+While they are up, the bottom of the picture is shaded so they read over a bright scene, and
+subtitles move up out of their way and settle back when they go. When they are hidden the screen
+shows the video and nothing else.
 
 ## Two interfaces
 
