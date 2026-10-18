@@ -272,25 +272,28 @@ impl ProviderRegistry {
         translation: Translation,
         now: i64,
     ) -> Vec<SourceCandidate> {
-        let mut out = Vec::new();
-        for provider in self.candidates() {
+        // Every provider is asked at once. This gathers rather than fails over, so nothing
+        // depends on order except the slate's, and `join_all` keeps that in candidate order:
+        // the picker waits for the slowest source instead of the sum of them all.
+        let listings = self.candidates().into_iter().map(|provider| async move {
             let id = provider.manifest().id.clone();
             if provider.is_available().is_err() {
-                continue;
+                return Vec::new();
             }
             let started = Instant::now();
             match provider.sources(key, episode, translation).await {
-                Ok(mut candidates) => {
+                Ok(candidates) => {
                     self.health.record_success(&id, started.elapsed(), now);
-                    out.append(&mut candidates);
+                    candidates
                 }
                 Err(error) => {
                     self.health.record_failure(&id, &error, now);
                     tracing::debug!(provider = %id, %error, "sources listing failed");
+                    Vec::new()
                 }
             }
-        }
-        out
+        });
+        futures::future::join_all(listings).await.concat()
     }
 
     /// Resolve a specific pick from [`Self::sources`] on the provider that offered it.
@@ -350,26 +353,72 @@ impl ProviderRegistry {
     }
 
     /// Probe every provider, for the Providers screen.
+    ///
+    /// Concurrently: each provider is its own host, so the screen waits for the slowest probe
+    /// rather than the sum of them. Each latency is still timed from its own start.
     pub async fn check_all(&self, now: i64) {
-        for provider in &self.snapshot() {
+        let probes = self.snapshot().into_iter().map(|provider| async move {
             let id = provider.manifest().id.clone();
             if let Err(reason) = provider.is_available() {
                 self.health.record_failure(&id, &reason, now);
-                continue;
+                return;
             }
             let started = Instant::now();
             match provider.health_check().await {
                 Ok(()) => self.health.record_success(&id, started.elapsed(), now),
                 Err(e) => self.health.record_failure(&id, &e, now),
             }
-        }
+        });
+        futures::future::join_all(probes).await;
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
+
     use super::*;
     use crate::mock::MockProvider;
+
+    #[tokio::test(start_paused = true)]
+    async fn every_provider_is_probed_at_once() {
+        let slow = |id| MockProvider::new(id).with_latency(Duration::from_millis(300)).arc();
+        let registry = registry(vec![slow("a"), slow("b"), slow("c")]);
+
+        let started = tokio::time::Instant::now();
+        registry.check_all(0).await;
+        let took = started.elapsed();
+        assert!(took < Duration::from_millis(400), "probes ran in turn: {took:?}");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn sources_are_gathered_at_once_and_kept_in_provider_order() {
+        let listing = |id: &str, ms| {
+            MockProvider::new(id)
+                .with_latency(Duration::from_millis(ms))
+                .with_sources(vec![SourceCandidate {
+                    id: format!("{id}-release"),
+                    provider_id: id.into(),
+                    title: id.into(),
+                    quality: None,
+                    seeders: None,
+                    size: None,
+                    dual_audio: false,
+                    dubbed: false,
+                    auto_pick: false,
+                }])
+                .arc()
+        };
+        // The first provider answers last, so arrival order is the reverse of provider order.
+        let registry = registry(vec![listing("a", 300), listing("b", 100)]);
+
+        let started = tokio::time::Instant::now();
+        let slate = registry.sources(&ProviderKey::new("k"), "1", Translation::Sub, 0).await;
+        let took = started.elapsed();
+        assert!(took < Duration::from_millis(400), "providers were asked in turn: {took:?}");
+        let order: Vec<_> = slate.iter().map(|c| c.provider_id.as_str()).collect();
+        assert_eq!(order, ["a", "b"], "the slate must keep provider order, not arrival order");
+    }
 
     fn registry(providers: Vec<Arc<dyn Provider>>) -> ProviderRegistry {
         ProviderRegistry::new(providers)
