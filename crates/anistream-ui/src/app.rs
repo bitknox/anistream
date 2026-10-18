@@ -2483,6 +2483,53 @@ impl App {
         }
     }
 
+    /// A `u` or `M` mark, reflected wherever the title's progress shows: its table, its page and
+    /// the list rows for it.
+    ///
+    /// Only the table used to change, so after `u` on the next episode the page still read
+    /// "2 / 26 ep 3 next", and so did Home, until the title was opened again.
+    fn mark_episode(&mut self, id: AnilistId, number: &str, watched: bool) {
+        if watched {
+            // A mark is a finished watch with no position, and the reflection of one already
+            // moves the count and Continue the way the store will.
+            self.reflect_watch(Some(id), number, 0.0, None, true);
+            return;
+        }
+        let was_done = self.episodes_all.iter().any(|r| r.number == number && r.completed);
+        self.set_episode_watched(number, false);
+        if !was_done || self.episodes_for != Some(id) {
+            return;
+        }
+        // As the store re-derives Continue from what survives the unmark (`data::continue_from`):
+        // the episode Continue had just moved past is the one to watch again, and past the
+        // table's end it falls back to the first episode not watched.
+        let unmarked = number.trim().parse::<u32>().ok();
+        let numbered = || {
+            self.episodes_all
+                .iter()
+                .filter_map(|r| Some((r.number.trim().parse::<u32>().ok()?, r)))
+        };
+        let last = numbered().map(|(n, _)| n).max();
+        let gap = numbered().find(|(_, r)| !r.completed).map(|(n, _)| n);
+        for entry in self.detail.iter_mut().chain(match &mut self.content {
+            Content::Entries(entries) => entries.iter_mut(),
+            _ => [].iter_mut(),
+        }) {
+            let Some((done, next)) = entry.progress.filter(|_| entry.id == id) else {
+                continue;
+            };
+            let moved = match unmarked {
+                Some(n) if n.saturating_add(1) == next => n,
+                _ if last.is_some_and(|last| next > last) => gap.unwrap_or(next),
+                _ => next,
+            };
+            if moved != next {
+                entry.resume = None;
+            }
+            entry.progress = Some((done.saturating_sub(1), moved));
+        }
+    }
+
     fn reflect_watch(
         &mut self,
         id: Option<AnilistId>,
@@ -3217,7 +3264,7 @@ impl App {
                     let row = self.episodes.get(self.episode_selected)?;
                     (row.number.clone(), !row.completed)
                 };
-                self.set_episode_watched(&number, watched);
+                self.mark_episode(id, &number, watched);
                 // Under the unwatched filter a marked row leaves the view at once —
                 // which is the binge-marking flow working, not a glitch.
                 self.apply_episode_filter();
@@ -3253,7 +3300,7 @@ impl App {
                     return None;
                 }
                 for number in &marked {
-                    self.set_episode_watched(number, true);
+                    self.mark_episode(id, number, true);
                 }
                 self.apply_episode_filter();
                 self.push_toast(Toast::info(format!(
@@ -6324,6 +6371,33 @@ mod tests {
         let task = a.handle(Action::ToggleWatched, 20).expect("toggling back must too");
         assert!(!a.episodes[0].completed);
         assert!(matches!(task, Task::SetWatched { watched: false, .. }), "got {task:?}");
+    }
+
+    #[test]
+    fn a_watched_mark_moves_the_title_and_its_list_row_too() {
+        // Two watched, three next, on the page and on the list under it.
+        let mut a = app_at_episodes();
+        for n in ["1", "2"] {
+            a.set_episode_watched(n, true);
+        }
+        let at = |a: &App| {
+            let row = a.content.entries()[0].progress;
+            (a.detail.as_ref().and_then(|d| d.progress), row)
+        };
+        a.detail.as_mut().expect("detail").progress = Some((2, 3));
+        if let Content::Entries(rows) = &mut a.content {
+            rows[0].progress = Some((2, 3));
+        }
+
+        a.episode_selected = 2;
+        a.handle(Action::ToggleWatched, 20);
+        assert_eq!(at(&a), (Some((3, 4)), Some((3, 4))), "marking ep 3 moves both on");
+        a.handle(Action::ToggleWatched, 20);
+        assert_eq!(at(&a), (Some((2, 3)), Some((2, 3))), "unmarking puts both back");
+
+        a.episode_selected = 5;
+        a.handle(Action::MarkAllPrevious, 20);
+        assert_eq!(at(&a), (Some((5, 6)), Some((5, 6))), "M catches both up to the cursor");
     }
 
     #[test]
