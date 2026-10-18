@@ -1103,12 +1103,30 @@ pub fn status_hints(app: &crate::app::App) -> Vec<(String, &'static str)> {
             hints.extend(key(Action::ShowEpisodes).map(|k| (k, Action::ShowEpisodes.hint())));
             return with_help(keymap, hints);
         }
-        // Enter plays a finished download; nothing on this screen is an "open".
-        V::Section(Section::Downloads) => vec![
-            (Action::ClearCompleted, Action::ClearCompleted.hint()),
-            (Action::DeleteDownload, Action::DeleteDownload.hint()),
-            (Action::Open, "play"),
-        ],
+        // Enter plays a finished download; nothing on this screen is an "open". Space and `x`
+        // pause and cancel the highlighted row — the play-next and remove keys while idle, the
+        // player's pause and stop while something plays — so they are named by whichever table
+        // the keys are read from now, and only where the row can take them.
+        V::Section(Section::Downloads) => {
+            let playing = app.playing.is_some();
+            let (pause, cancel) = if playing {
+                (Action::PlayPause, Action::StopPlayback)
+            } else {
+                (Action::PlayNext, Action::HideFromContinue)
+            };
+            let clear = (Action::ClearCompleted, Action::ClearCompleted.hint());
+            match app.downloads.get(app.selected).map(|row| row.state) {
+                Some("complete") => vec![
+                    clear,
+                    (Action::DeleteDownload, Action::DeleteDownload.hint()),
+                    (Action::Open, "play"),
+                ],
+                Some("failed") => vec![clear, (cancel, "cancel")],
+                Some("paused") => vec![clear, (cancel, "cancel"), (pause, "resume")],
+                Some(_) => vec![clear, (cancel, "cancel"), (pause, "pause")],
+                None => Vec::new(),
+            }
+        }
         // Enter on Providers leads to the plugin stores; the table itself opens nothing.
         V::Section(Section::Providers) => {
             vec![(Action::Refresh, Action::Refresh.hint()), (Action::Open, "stores")]

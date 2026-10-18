@@ -2678,6 +2678,25 @@ impl App {
     /// from Search's field, the field still has focus once the palette closes, and going back
     /// through the typing gate swallowed nearly every command.
     fn perform(&mut self, action: Action, visible_rows: usize) -> Option<Task> {
+        // The download queue reads Space as pause and `x` as cancel, the keys it borrows from the
+        // player. Resolved before the playback table: idle, those keys arrive as the browsing
+        // actions — play next, remove from Continue — so a download could never be paused or
+        // cancelled at all, and while something plays they would pause the player rather than
+        // the row on screen.
+        if self.in_downloads_stage() {
+            match action {
+                Action::PlayNext | Action::PlayPause => {
+                    let id = self.downloads.get(self.selected)?.id;
+                    return Some(Task::DownloadPause { id });
+                }
+                Action::HideFromContinue | Action::StopPlayback => {
+                    let id = self.downloads.get(self.selected)?.id;
+                    return Some(Task::DownloadCancel { id });
+                }
+                _ => {}
+            }
+        }
+
         // Playback bindings only mean anything while something is playing, and they collide
         // with browsing keys (`n`, `x`, digits), so they are dispatched first and only then.
         if self.playing.is_some()
@@ -2833,14 +2852,6 @@ impl App {
                     }
                     _ => self.push_toast(Toast::info("not finished yet")),
                 }
-            }
-            Action::PlayPause if self.in_downloads_stage() => {
-                let id = self.downloads.get(self.selected)?.id;
-                return Some(Task::DownloadPause { id });
-            }
-            Action::StopPlayback if self.in_downloads_stage() => {
-                let id = self.downloads.get(self.selected)?.id;
-                return Some(Task::DownloadCancel { id });
             }
             Action::DeleteDownload if self.in_downloads_stage() => {
                 let row = self.downloads.get(self.selected)?;
@@ -7655,6 +7666,34 @@ mod tests {
         );
         a.handle(Action::SetListStatus, 5);
         assert_eq!(a.overlay_selected, 3, "the answer just given");
+    }
+
+    #[test]
+    fn space_and_x_pause_and_cancel_the_highlighted_download() {
+        // Idle they arrived as play-next and remove-from-Continue, so nothing in the queue
+        // could be paused or cancelled; playing, they paused the player instead.
+        let download = |id: i64| DownloadRow {
+            id,
+            anilist_id: AnilistId::new(1),
+            title: "Title 0".into(),
+            episode: id.to_string(),
+            state: "downloading",
+            fraction: 0.5,
+            downloaded: 1,
+            total: 2,
+            error: None,
+            path: None,
+        };
+        let mut a = app();
+        a.handle(Action::JumpSection(6), 5);
+        a.apply(Update::Downloads(vec![download(7), download(8)]));
+        a.handle(Action::Down, 5);
+        assert_eq!(a.handle(Action::PlayNext, 5), Some(Task::DownloadPause { id: 8 }));
+        assert_eq!(a.handle(Action::HideFromContinue, 5), Some(Task::DownloadCancel { id: 8 }));
+
+        a.playing = Some(NowPlaying::default());
+        assert_eq!(a.handle(Action::PlayPause, 5), Some(Task::DownloadPause { id: 8 }));
+        assert_eq!(a.handle(Action::StopPlayback, 5), Some(Task::DownloadCancel { id: 8 }));
     }
 
     #[test]

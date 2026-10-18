@@ -452,6 +452,19 @@ fn enter_is_named_for_what_it_does() {
 
     a.go_to_section(Section::Downloads);
     a.nav.focus_stage();
+    // The queue's keys are named for the highlighted row, so it needs a finished one here.
+    a.apply(anistream_ui::Update::Downloads(vec![anistream_ui::app::DownloadRow {
+        id: 1,
+        anilist_id: AnilistId::new(5),
+        title: "Title".into(),
+        episode: "1".into(),
+        state: "complete",
+        fraction: 1.0,
+        downloaded: 2,
+        total: 2,
+        error: None,
+        path: Some("/downloads/title-1.mkv".into()),
+    }]));
     assert_eq!(hint(&a, "↵"), Some("play"));
     assert_eq!(hint(&a, "c"), Some("clear finished"));
     assert_eq!(hint(&a, "X"), Some("delete"));

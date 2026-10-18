@@ -7,7 +7,7 @@
 use anistream_core::{config::Config, ids::AnilistId};
 use anistream_ui::{
     App, Content, Entry, Focus, Keymap, Palette, Section, StageView, Task, Update,
-    keymap::status_hints,
+    app::DownloadRow, keymap::status_hints,
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -60,6 +60,21 @@ fn home(n: u32) -> App {
     press(&mut a, &["1"]);
     a.apply(a.content_here(entries(n)));
     a
+}
+
+fn download(id: i64, state: &'static str) -> DownloadRow {
+    DownloadRow {
+        id,
+        anilist_id: AnilistId::new(1),
+        title: "Title 1".into(),
+        episode: id.to_string(),
+        state,
+        fraction: 0.5,
+        downloaded: 1,
+        total: 2,
+        error: None,
+        path: Some("/downloads/title-1.mkv".into()),
+    }
 }
 
 #[test]
@@ -143,4 +158,21 @@ fn down_moves_from_the_search_field_into_its_results() {
     assert!(a.selected < a.offset + ROWS, "the last result is off screen");
     press(&mut a, &["esc"]);
     assert!(a.is_typing(), "Esc from the results returns to the field");
+}
+
+#[test]
+fn space_and_x_pause_and_cancel_downloads_while_idle_and_say_so() {
+    let mut a = app();
+    press(&mut a, &["6"]);
+    a.apply(Update::Downloads(vec![download(7, "downloading"), download(8, "paused")]));
+    assert_eq!(hint(&a, "space"), Some("pause"));
+    assert_eq!(hint(&a, "x"), Some("cancel"));
+    assert_eq!(press(&mut a, &[" "]), vec![Task::DownloadPause { id: 7 }]);
+    press(&mut a, &["j"]);
+    assert_eq!(hint(&a, "space"), Some("resume"));
+    assert_eq!(press(&mut a, &["x"]), vec![Task::DownloadCancel { id: 8 }]);
+
+    a.apply(Update::Downloads(vec![download(9, "complete")]));
+    assert_eq!(hint(&a, "↵"), Some("play"));
+    assert_eq!(hint(&a, "space"), None, "a finished download has nothing to pause");
 }
