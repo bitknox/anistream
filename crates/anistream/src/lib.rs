@@ -26,6 +26,7 @@ pub mod playback;
 pub mod player;
 pub mod plugin_stores;
 pub mod power;
+pub mod prune;
 pub mod remux;
 pub mod shaders;
 pub mod slot;

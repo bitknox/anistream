@@ -402,7 +402,8 @@ async fn preview(
             }
         }
         "providers" => {
-            let (registry, _, note) = sources::build_registry(&app.config, &http, paths).await;
+            let (registry, _, note) =
+                sources::build_registry(&app.config, &http, paths, &store).await;
             registry.check_all(now_epoch()).await;
             app.go_to_section(Section::Providers);
             if let Some(note) = note {
@@ -448,7 +449,7 @@ async fn preview(
                 }
                 app.handle(anistream_ui::keymap::Action::ShowEpisodes, 20);
                 let (registry, _, note) =
-                    sources::build_registry(&app.config, &http, paths).await;
+                    sources::build_registry(&app.config, &http, paths, &store).await;
                 match load_episodes(&meta, &store, &registry, id).await {
                     Ok(EpisodeLoad::Rows(rows)) => app.apply(app.episodes_here(rows)),
                     // A still frame cannot answer a question, so state it and carry on.
@@ -1450,13 +1451,24 @@ async fn run(
         eprintln!("warning: keybinding: {problem}");
     }
 
+    // With torrents off nothing else would ever prune what an earlier run streamed. With them
+    // on, the session prunes on its way up, before it writes anything.
+    if !config.providers.torrent.enabled {
+        let (dir, limit) =
+            (paths.cache_dir.join("torrents"), config.providers.torrent.cache_limit_bytes());
+        let store = store.clone();
+        tokio::spawn(async move {
+            anistream::prune::sweep_torrent_cache(dir, limit, &store, Default::default()).await;
+        });
+    }
+
     let engine =
         anistream_ui::image::ImageEngine::detect(images).with_cache_dir(paths.image_cache());
     tracing::info!(graphics = ?engine.graphics(), "image engine ready");
     // Mutable: a settings change can stand the torrent stack down and back up, which
     // replaces the guard along with the session it protects.
     let (registry, mut vpn_guard, provider_note) =
-        sources::build_registry(&config, &http, &paths).await;
+        sources::build_registry(&config, &http, &paths, &store).await;
     tracing::info!(providers = ?registry.ids(), "provider registry ready");
     // Plugins join the chain when they have finished compiling. Nothing waits on this: the first
     // frame is worth more than a source you have not asked for yet.
@@ -3218,7 +3230,7 @@ async fn stream_url(
     let meta = build_meta(config, http, store);
 
     let started = std::time::Instant::now();
-    let (registry, guard, note) = sources::build_registry(config, http, paths).await;
+    let (registry, guard, note) = sources::build_registry(config, http, paths, store).await;
     println!("sources     {:?} in {:?}", registry.ids(), started.elapsed());
     if let Some(note) = &note {
         println!("note        {note}");
@@ -3291,7 +3303,7 @@ async fn play_cli(
 ) -> Result<()> {
     let meta = build_meta(config, http, store);
 
-    let (registry, guard, note) = sources::build_registry(config, http, paths).await;
+    let (registry, guard, note) = sources::build_registry(config, http, paths, store).await;
     if let Some(note) = &note {
         println!("note        {note}");
     }
@@ -3414,6 +3426,8 @@ struct TorrentTasks {
     downloads: Option<tokio::task::JoinHandle<()>>,
     watcher: Option<tokio::task::JoinHandle<()>>,
     seeding: Option<tokio::task::JoinHandle<()>>,
+    /// Keeps the stream cache within its limit while the session writes to it.
+    cache: Option<tokio::task::JoinHandle<()>>,
     session: Option<Arc<anistream_providers::torrent::TorrentSession>>,
 }
 
@@ -3427,7 +3441,13 @@ impl TorrentTasks {
         let Some((guard, session)) = guard.clone() else {
             // No session means no downloads, which is correct rather than a limitation:
             // every downloadable source here is a torrent.
-            return Self { downloads: None, watcher: None, seeding: None, session: None };
+            return Self {
+                downloads: None,
+                watcher: None,
+                seeding: None,
+                cache: None,
+                session: None,
+            };
         };
 
         let downloads =
@@ -3441,10 +3461,16 @@ impl TorrentTasks {
         let watcher = tokio::spawn(vpn_watch(guard, session.clone(), tx.clone()));
         let seeding =
             tokio::spawn(seeding_watch(session.clone(), Arc::clone(config), tx.clone()));
+        let cache = tokio::spawn(anistream::prune::torrent_cache_watch(
+            session.clone(),
+            store.clone(),
+            Arc::clone(config),
+        ));
         Self {
             downloads: Some(downloads),
             watcher: Some(watcher),
             seeding: Some(seeding),
+            cache: Some(cache),
             session: Some(session),
         }
     }
@@ -3458,9 +3484,10 @@ impl TorrentTasks {
         if let Some(session) = self.session.take() {
             session.halt().await;
         }
-        for task in [self.downloads.take(), self.watcher.take(), self.seeding.take()]
-            .into_iter()
-            .flatten()
+        for task in
+            [self.downloads.take(), self.watcher.take(), self.seeding.take(), self.cache.take()]
+                .into_iter()
+                .flatten()
         {
             task.abort();
         }
@@ -3572,7 +3599,7 @@ async fn reload_sources(
 
     let plugins = registry.of_kind(anistream_core::traits::ProviderKind::Plugin);
     let snapshot = config.read().map(|c| c.clone()).unwrap_or_else(|e| e.into_inner().clone());
-    let (rebuilt, guard, note) = sources::build_registry(&snapshot, http, paths).await;
+    let (rebuilt, guard, note) = sources::build_registry(&snapshot, http, paths, store).await;
     let mut providers = rebuilt.all();
     providers.extend(plugins);
     registry.replace(providers);

@@ -92,6 +92,22 @@ A misspelled key is not ignored, so the warning on stderr is worth reading befor
 over it.
 :::
 
+## Disk space
+
+Streamed episodes are written to the cache directory: `~/.cache/anistream/torrents` on Linux,
+`~/Library/Caches/anistream/torrents` on macOS and `%LOCALAPPDATA%\anistream\cache\torrents` on
+Windows. An episode's files are deleted once it is no longer playing, fetched ahead or
+[seeding](/docs/guides/torrents-vpn/#seeding), and the directory as a whole is held to a limit:
+
+```toml
+[providers.torrent]
+cache_limit_gb = 20    # what streamed episodes may keep on disk; 0 keeps only what is in use
+```
+
+Past the limit the least recently watched go first, at launch and every couple of minutes while
+anistream runs. Downloads count toward the limit but are never removed by it; set
+`downloads.directory` to move finished downloads out of the cache altogether.
+
 ## Notifications, metadata and updates
 
 ```toml

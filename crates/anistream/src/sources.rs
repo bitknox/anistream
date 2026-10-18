@@ -22,6 +22,7 @@ pub async fn build_registry(
     config: &Config,
     http: &HttpClient,
     paths: &Paths,
+    store: &anistream_store::Store,
 ) -> (ProviderRegistry, Option<(VpnGuard, Arc<TorrentSession>)>, Option<String>) {
     let mut providers: Vec<std::sync::Arc<dyn anistream_core::traits::Provider>> = Vec::new();
     let mut vpn_guard = None;
@@ -42,7 +43,7 @@ pub async fn build_registry(
             }
             "torrent" if config.providers.torrent.enabled => {
                 let started = std::time::Instant::now();
-                let outcome = start_torrent_provider(config, http, paths).await;
+                let outcome = start_torrent_provider(config, http, paths, store).await;
                 tracing::info!(elapsed = ?started.elapsed(), ok = outcome.is_ok(), "torrent source");
                 match outcome {
                     Ok((provider, guard, session)) => {
@@ -182,6 +183,7 @@ async fn start_torrent_provider(
     config: &Config,
     http: &HttpClient,
     paths: &Paths,
+    store: &anistream_store::Store,
 ) -> std::result::Result<
     (Arc<dyn anistream_core::traits::Provider>, VpnGuard, Arc<TorrentSession>),
     String,
@@ -216,14 +218,16 @@ async fn start_torrent_provider(
         eprintln!("         anistream's own guard is defence in depth, not a guarantee.");
     }
 
+    // Pruned before the session exists, so nothing it is about to write can be mistaken for a
+    // leftover. Nothing is live yet; downloads are kept by the sweep itself.
+    let dir = paths.cache_dir.join("torrents");
+    let limit = config.providers.torrent.cache_limit_bytes();
+    crate::prune::sweep_torrent_cache(dir.clone(), limit, store, Default::default()).await;
+
     let session = Arc::new(
-        anistream_providers::torrent::TorrentSession::start(
-            guard.clone(),
-            paths.cache_dir.join("torrents"),
-            random_token(),
-        )
-        .await
-        .map_err(|e| e.to_string())?,
+        anistream_providers::torrent::TorrentSession::start(guard.clone(), dir, random_token())
+            .await
+            .map_err(|e| e.to_string())?,
     );
 
     Ok((

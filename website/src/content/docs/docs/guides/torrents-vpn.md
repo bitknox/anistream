@@ -108,3 +108,6 @@ from crowding out the requests the episode you are watching needs.
 
 Seeding after watching is off by default for the same reason finished downloads stop seeding:
 it advertises you as a source for as long as it runs, and that is your call to make.
+
+What streamed episodes leave on disk, and the limit on it, is covered under
+[Disk space](/docs/guides/configuration/#disk-space).

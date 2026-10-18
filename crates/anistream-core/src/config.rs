@@ -540,7 +540,7 @@ impl Default for PluginsConfig {
 ///
 /// Disabled by default. Torrent traffic exposes your IP to every peer in the swarm, so
 /// this stays off until a VPN mode has been chosen deliberately.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct TorrentConfig {
     pub enabled: bool,
@@ -564,6 +564,30 @@ pub struct TorrentConfig {
     pub max_seeders_age_days: Option<u32>,
     /// Giving back after an episode has been watched.
     pub seeding: SeedingConfig,
+    /// How much of what has been streamed stays on disk, in gigabytes.
+    ///
+    /// A stream's files are deleted when it is let go, unless it is seeding or a download owns
+    /// it. What is still on disk past this — from earlier runs, or episodes kept for a rewatch —
+    /// goes oldest first, at launch and while the app runs. Downloads count toward it but are
+    /// never removed by it. `0` keeps nothing that is not in use.
+    pub cache_limit_gb: u32,
+}
+
+impl Default for TorrentConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            vpn: VpnConfig::default(),
+            rss_url: None,
+            trackers: Vec::new(),
+            curation_url: None,
+            max_seeders_age_days: None,
+            seeding: SeedingConfig::default(),
+            // Room for a dozen episodes at 1080p: enough that resuming or rewatching last
+            // night's episodes is instant, small enough that nobody's disk fills over a season.
+            cache_limit_gb: 20,
+        }
+    }
 }
 
 /// Seeding streamed episodes after they stop playing, and a cap on upload.
@@ -601,6 +625,11 @@ impl SeedingConfig {
 }
 
 impl TorrentConfig {
+    /// [`Self::cache_limit_gb`] in bytes.
+    pub fn cache_limit_bytes(&self) -> u64 {
+        u64::from(self.cache_limit_gb).saturating_mul(1_000_000_000)
+    }
+
     /// Host of the configured indexer, used to keep curated picks on the same service.
     pub fn indexer_host(&self) -> Option<String> {
         let url = self.rss_url.as_deref()?;
@@ -1132,6 +1161,16 @@ mod tests {
         };
         assert_eq!(config.indexer_host().as_deref(), Some("indexer.example"));
         assert_eq!(TorrentConfig::default().indexer_host(), None);
+    }
+
+    #[test]
+    fn the_stream_cache_is_capped_unless_told_otherwise() {
+        // An uncapped cache is how the disk filled, so an unset key must still mean a cap.
+        let unset = Config::from_toml("[providers.torrent]\n").unwrap();
+        assert_eq!(unset.providers.torrent.cache_limit_gb, 20);
+        assert_eq!(unset.providers.torrent.cache_limit_bytes(), 20_000_000_000);
+        let set = Config::from_toml("[providers.torrent]\ncache_limit_gb = 5\n").unwrap();
+        assert_eq!(set.providers.torrent.cache_limit_bytes(), 5_000_000_000);
     }
 
     #[test]
