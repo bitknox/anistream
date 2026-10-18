@@ -2884,17 +2884,34 @@ fn render_meta_sources(buf: &mut Buffer, app: &App, area: Rect, top: u16) {
             &row.state,
             app.palette.style(if row.healthy { Role::State } else { Role::Alert }),
         );
-        if let Some(detail) = &row.detail
+        if let Some(detail) = meta_detail(row, chrono::Local::now().timestamp())
             && COL_PROVIDER_STATE < area.width
         {
             buf.set_string(
                 area.left() + COL_PROVIDER_STATE,
                 y,
-                truncate(detail, area.width.saturating_sub(COL_PROVIDER_STATE + 2) as usize),
+                truncate(&detail, area.width.saturating_sub(COL_PROVIDER_STATE + 2) as usize),
                 app.palette.style(Role::TextDim),
             );
         }
     }
+}
+
+/// A rung's detail, with when a resting one is next tried said at draw time.
+///
+/// A clock time rather than a countdown: the idle screen is redrawn on change and a slow
+/// heartbeat, so "next try in 39s" stood still for as long as nothing happened, and a clock
+/// time is right whenever it is drawn. Past the deadline the source is not asked until something
+/// needs it, so that is what the row says rather than a time already gone.
+fn meta_detail(row: &crate::app::MetaSourceRow, now: i64) -> Option<String> {
+    use chrono::TimeZone;
+    let Some(at) = row.retry_at else { return row.detail.clone() };
+    let cause = row.detail.as_deref().unwrap_or("failing");
+    let when = match chrono::Local.timestamp_opt(at, 0).single() {
+        Some(when) if at > now => format!("skipped until {}", when.format("%H:%M")),
+        _ => "tried again on the next request".into(),
+    };
+    Some(format!("{when} — {cause}"))
 }
 
 /// Settings, which you can actually change.
@@ -4011,6 +4028,34 @@ mod tests {
         })));
         let (_, detail) = &accounts_rows(&app)[0];
         assert!(detail.contains("3 queued") && !detail.contains("mapping"), "{detail}");
+    }
+
+    /// The backoff line was a countdown formatted when the status was sent, and the idle screen
+    /// is not redrawn every second, so it read "next try in 39s" for minutes.
+    #[test]
+    fn a_resting_meta_source_says_until_when_it_is_skipped() {
+        use chrono::TimeZone;
+        let now = chrono::Local::now().timestamp();
+        let mut row = crate::app::MetaSourceRow {
+            source: "anilist".into(),
+            state: "backing off".into(),
+            healthy: false,
+            active: false,
+            detail: Some("network: timed out".into()),
+            retry_at: Some(now + 120),
+        };
+        let clock = chrono::Local.timestamp_opt(now + 120, 0).unwrap().format("%H:%M");
+        assert_eq!(
+            meta_detail(&row, now).as_deref(),
+            Some(format!("skipped until {clock} — network: timed out").as_str())
+        );
+        // Once the deadline is behind it, a time already gone would read as stale.
+        assert_eq!(
+            meta_detail(&row, now + 121).as_deref(),
+            Some("tried again on the next request — network: timed out")
+        );
+        row.retry_at = None;
+        assert_eq!(meta_detail(&row, now).as_deref(), Some("network: timed out"));
     }
 
     /// A failed pull used to leave the row saying "connected · pulled 40 titles" from the last

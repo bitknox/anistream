@@ -24,7 +24,7 @@
 
 use std::sync::Mutex;
 use std::sync::atomic::{AtomicU8, Ordering};
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
 use anistream_core::ids::AnilistId;
 use anistream_store::Store;
@@ -64,6 +64,11 @@ pub struct SourceHealth {
     pub active: bool,
     /// The last error, or the cache's size — whatever explains the state.
     pub detail: Option<String>,
+    /// While the source is being skipped, when the next request goes through as a probe.
+    ///
+    /// A deadline rather than a countdown: the screen is redrawn on change, not every second,
+    /// so "next try in 39s" formatted here read 39s for as long as the screen sat idle.
+    pub retry_at: Option<SystemTime>,
 }
 
 /// The last error each fresh source produced, cleared on its next success.
@@ -197,16 +202,14 @@ impl Meta {
             },
             healthy: anilist_err.is_none() && anilist_rest.is_none(),
             active: rung == FRESH,
+            // The cause, beside the deadline: the screen says that requests are being skipped
+            // and until when, so a screen loading from the fallback does not read as AniList
+            // being ignored.
             detail: match anilist_rest {
-                // Says that requests are being skipped and when the next one goes, so a
-                // screen loading from the fallback does not read as AniList being ignored.
-                Some(wait) => Some(format!(
-                    "skipped until the next try in {}s — {}",
-                    wait.as_secs().max(1),
-                    anilist_err.as_deref().unwrap_or("failing")
-                )),
+                Some(_) => Some(anilist_err.unwrap_or_else(|| "failing".into())),
                 None => anilist_err,
             },
+            retry_at: anilist_rest.map(|wait| SystemTime::now() + wait),
         });
         rows.push(match &self.tenrai {
             None => SourceHealth {
@@ -215,6 +218,7 @@ impl Meta {
                 healthy: true,
                 active: false,
                 detail: Some("meta.fallback = false".into()),
+                retry_at: None,
             },
             Some(_) => SourceHealth {
                 source: "tenrai",
@@ -227,13 +231,10 @@ impl Meta {
                 healthy: tenrai_err.is_none() && tenrai_rest.is_none(),
                 active: rung == TENRAI,
                 detail: match tenrai_rest {
-                    Some(wait) => Some(format!(
-                        "skipped until the next try in {}s — {}",
-                        wait.as_secs().max(1),
-                        tenrai_err.as_deref().unwrap_or("failing")
-                    )),
+                    Some(_) => Some(tenrai_err.unwrap_or_else(|| "failing".into())),
                     None => tenrai_err,
                 },
+                retry_at: tenrai_rest.map(|wait| SystemTime::now() + wait),
             },
         });
         let cached = self.store.cached_media_count().unwrap_or(0);
@@ -247,6 +248,7 @@ impl Meta {
                 1 => "1 title".into(),
                 n => format!("{n} titles"),
             }),
+            retry_at: None,
         });
         rows
     }
@@ -793,7 +795,10 @@ mod tests {
         assert!(!row.healthy);
         let detail = row.detail.as_deref().unwrap_or_default();
         assert!(detail.contains("timed out"), "the cause survives the skip: {detail}");
-        assert!(detail.contains("next try in"), "{detail}");
+        // A deadline, not a countdown: one formatted here froze on an idle screen.
+        let retry = row.retry_at.expect("a resting source says when it is tried again");
+        let ahead = retry.duration_since(std::time::SystemTime::now()).unwrap_or_default();
+        assert!(ahead > Duration::ZERO && ahead <= BREAKER_COOLDOWN, "{ahead:?}");
 
         // The calendar and the broadcast lines skip too, rather than each waiting it out.
         assert!(meta.last_aired(&[AnilistId::new(1)]).await.is_err());
@@ -829,8 +834,9 @@ mod tests {
 
         // The skip, noted by a caller, does not replace the cause.
         meta.note_tenrai(Some("network: tenrai skipped".into()));
-        let detail = meta.health()[1].detail.clone().unwrap_or_default();
-        assert!(detail.contains("next try in") && detail.ends_with("failing"), "{detail}");
+        let row = &meta.health()[1];
+        assert_eq!(row.detail.as_deref(), Some("failing"));
+        assert!(row.retry_at.is_some());
     }
 
     #[test]

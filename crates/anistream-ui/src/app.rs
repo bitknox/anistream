@@ -695,6 +695,9 @@ pub struct MetaSourceRow {
     /// The rung that answered the most recent request.
     pub active: bool,
     pub detail: Option<String>,
+    /// While the rung is being skipped, when it is next tried, in Unix seconds. Said at draw
+    /// time: a countdown built when the status was sent stood still on an idle screen.
+    pub retry_at: Option<i64>,
 }
 
 /// A plugin store this machine has joined, as the store screens show it.
@@ -7996,6 +7999,7 @@ mod tests {
             healthy: true,
             active,
             detail: None,
+            retry_at: None,
         };
         a.apply(Update::MetaStatus(vec![row("anilist", true), row("tenrai", false)]));
         assert!(!a.meta_degraded(), "anilist serving is the resting state");
