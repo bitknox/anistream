@@ -607,6 +607,7 @@ impl Mpv {
             session.send(Command::ObserveProperty(id, name)).await?;
         }
         session.send(companion::state("protocol", &companion::PROTOCOL)).await?;
+        session.send(companion::hello()).await?;
 
         Ok((session, rx))
     }

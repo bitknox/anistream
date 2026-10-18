@@ -177,6 +177,14 @@ pub fn stall_clear() -> Command {
     message("stall-clear", serde_json::json!({}))
 }
 
+/// Ask the companion to say `ready` again.
+///
+/// mpv keeps no client messages for a client that connects later, so the `ready` the script
+/// sends as it loads is usually gone by the time the socket is up.
+pub fn hello() -> Command {
+    message("hello", serde_json::json!({}))
+}
+
 fn message(command: &'static str, payload: serde_json::Value) -> Command {
     Command::ScriptMessage { command, payload }
 }
