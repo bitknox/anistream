@@ -36,7 +36,8 @@ anistream menu also appears in mpv's right-click menu.
 |---|---|
 | `N` / `P` | Next · previous episode |
 | `M`, right click | The anistream menu |
-| `S` or `Enter` | Skip the opening or ending, while the button is shown |
+| `?` | Every key on this list, in the player window |
+| `s` or `Enter` | Skip the opening or ending, while the button is shown |
 | `u` | Undo an automatic skip, while the note is shown |
 | `Enter` / `Esc` | Play now · cancel, while Up Next is shown |
 | Click the picture | Pause and resume. A double click is fullscreen, as in mpv |
@@ -44,9 +45,10 @@ anistream menu also appears in mpv's right-click menu.
 | `Alt+m` | Mini player |
 | `Alt+z` | Sync subtitles |
 
-Keys that belong to an element only exist while it is on screen. The rest of the time `S` takes
+Keys that belong to an element only exist while it is on screen. The rest of the time `s` takes
 a screenshot and `Enter` and `Esc` do what mpv does. Every binding has a name, so a line like
-`F2 script-binding anistream/menu` in your `input.conf` moves it.
+`F2 script-binding anistream/menu` in your `input.conf` moves it, and the `?` list shows the key
+you chose. mpv's own full list of bindings is `Shift+I`, then `4`.
 
 ## Skipping and Up Next
 
