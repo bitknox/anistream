@@ -2124,19 +2124,37 @@ impl App {
             duration.filter(|d| *d > 0.0).map(|d| (position / d).clamp(0.0, 1.0)).unwrap_or(0.0)
         };
 
-        // The episode table belongs to the loaded detail; while detached the viewer can be
-        // looking at another show entirely, whose rows must neither take this watch nor
-        // speak for it.
-        let rows_apply = match (id, self.detail.as_ref()) {
-            (Some(id), Some(detail)) => detail.id == id,
-            (Some(_), None) => false,
-            (None, _) => true,
+        // The episode table is one title's; while detached the viewer can be looking at
+        // another show entirely, whose rows must neither take this watch nor speak for it.
+        let rows_apply = match id {
+            Some(id) => self.episodes_for == Some(id),
+            None => true,
         };
-        // Whether this finish is a *new* distinct episode, read before the rows are updated.
-        // The store counts distinct completed episodes, so a rewatch must not move the count.
-        let first_completion = completed
-            && rows_apply
-            && !self.episodes.iter().any(|r| r.number == episode && r.completed);
+        // What the table says about this title, read before the rows are updated. Continue is
+        // worked out as the store works it out (see `data::entry_from`): the last episode
+        // touched when it is unfinished, and otherwise the first one after it not yet watched.
+        let rows: &[EpisodeRow] = if rows_apply { &self.episodes_all } else { &[] };
+        let row = |number: &str| rows.iter().find(|r| r.number == number);
+        // A rewatch, which must not move the count: the store counts distinct episodes.
+        let was_done = row(episode).is_some_and(|r| r.completed);
+        // An episode the table knows and has never seen finished, which Continue moves to.
+        let unfinished = row(episode).is_some_and(|r| !r.completed);
+        let after = episode.trim().parse::<u32>().ok().map(|n| {
+            let mut next = n.saturating_add(1);
+            // Bounded: an all-watched tail must still terminate.
+            while next - n < 1_000 && row(&next.to_string()).is_some_and(|r| r.completed) {
+                next += 1;
+            }
+            // Past the table's last episode, the first one in it skipped.
+            let numbers =
+                || rows.iter().filter_map(|r| Some((r.number.trim().parse::<u32>().ok()?, r)));
+            if numbers().map(|(n, _)| n).max().is_some_and(|last| next > last)
+                && let Some((skipped, _)) = numbers().find(|(_, r)| !r.completed)
+            {
+                next = skipped;
+            }
+            next
+        });
 
         if rows_apply {
             for list in [&mut self.episodes, &mut self.episodes_all] {
@@ -2162,8 +2180,13 @@ impl App {
             let next_up = entry.progress.map_or(1, |(_, next)| next).to_string();
             if !completed {
                 // A part-watched episode moves the resume point, so the Continue rail is
-                // current the moment mpv exits rather than at the next reload from the store.
-                if episode == next_up && position > 0.0 {
+                // current the moment mpv exits rather than at the next reload from the store —
+                // and it is where Continue now carries on, unless it is one already watched.
+                if position > 0.0
+                    && (episode == next_up || unfinished)
+                    && let Ok(number) = episode.trim().parse::<u32>()
+                {
+                    entry.progress = Some((entry.progress.map_or(0, |(done, _)| done), number));
                     entry.resume = Some(ResumePoint {
                         position,
                         fraction: duration
@@ -2176,21 +2199,15 @@ impl App {
 
             // Progress counts *completed* episodes, mirroring the store's distinct count: a
             // first watch moves it — including the very first episode of a show with no
-            // history, and an out-of-order catch-up — where a rewatch leaves it alone.
-            match entry.progress {
-                Some((done, next)) if episode == next.to_string() => {
-                    entry.progress = Some((done + 1, next + 1));
-                }
-                Some((done, _)) if first_completion => {
-                    entry.progress = Some((done + 1, done + 2));
-                }
-                None => {
-                    entry.progress = Some((1, 2));
-                }
-                _ => {}
-            }
-            // The episode just finished is no longer something to resume.
-            if episode == next_up {
+            // history, and an out-of-order catch-up the table can vouch for — where a rewatch
+            // leaves it alone. Continue moves past the episode just finished either way.
+            let first =
+                !was_done && (entry.progress.is_none() || rows_apply || episode == next_up);
+            let done = entry.progress.map_or(0, |(done, _)| done) + u32::from(first);
+            let next = after.or(entry.progress.map(|(_, next)| next)).unwrap_or(done + 1);
+            entry.progress = Some((done, next));
+            // Where the previous Continue episode was left is no longer what Continue offers.
+            if next.to_string() != next_up {
                 entry.resume = None;
             }
         }
@@ -5612,6 +5629,67 @@ mod tests {
     }
 
     #[test]
+    fn continue_follows_an_unfinished_episode_watched_out_of_order() {
+        // Episodes 1-5 finished; episode 8 left halfway. Continue is episode 8, at 10:00, with
+        // the count still five.
+        let mut a = app_at_episodes();
+        for list in [&mut a.episodes, &mut a.episodes_all] {
+            for row in list.iter_mut().take(5) {
+                row.completed = true;
+            }
+        }
+        a.detail.as_mut().unwrap().progress = Some((5, 6));
+        a.episode_selected = 7;
+        a.handle(Action::Open, 20);
+        a.apply(Update::Playback { position: 600.0, duration: Some(1200.0), paused: false });
+        a.apply(Update::PlaybackEnded { watched: false, ending: Ending::Closed });
+        let entry = a.detail.as_ref().unwrap();
+        assert_eq!(entry.progress, Some((5, 8)));
+        assert_eq!(entry.resume.map(|r| r.position), Some(600.0));
+    }
+
+    #[test]
+    fn after_the_last_episode_continue_goes_back_to_one_skipped() {
+        let mut a = app_at_episodes();
+        for list in [&mut a.episodes, &mut a.episodes_all] {
+            for row in list.iter_mut().take(11).filter(|r| r.number != "4") {
+                row.completed = true;
+            }
+        }
+        a.detail.as_mut().unwrap().progress = Some((10, 12));
+        a.episode_selected = 11;
+        a.handle(Action::Open, 20);
+        a.apply(finished(None));
+        assert_eq!(a.detail.as_ref().unwrap().progress, Some((11, 4)));
+    }
+
+    #[test]
+    fn continue_never_offers_an_episode_already_watched() {
+        // Episodes 1-5 and 7 finished. Finishing 6 counts once, and Continue moves past 7.
+        let mut a = app_at_episodes();
+        for list in [&mut a.episodes, &mut a.episodes_all] {
+            for row in list.iter_mut().take(5) {
+                row.completed = true;
+            }
+            list[6].completed = true;
+        }
+        a.detail.as_mut().unwrap().progress = Some((6, 6));
+        a.episode_selected = 5;
+        a.handle(Action::Open, 20);
+        a.apply(finished(Some("7")));
+        assert_eq!(a.detail.as_ref().unwrap().progress, Some((7, 8)));
+
+        // A rewatch of episode 3 moves neither the count nor Continue back into what is done.
+        a.take_pending();
+        a.apply(Update::PlaybackEnded { watched: false, ending: Ending::Stopped });
+        a.nav.push(StageView::Episodes(AnilistId::new(1)));
+        a.episode_selected = 2;
+        a.handle(Action::Open, 20);
+        a.apply(finished(None));
+        assert_eq!(a.detail.as_ref().unwrap().progress, Some((7, 8)));
+    }
+
+    #[test]
     fn playback_updates_never_resurrect_a_finished_session() {
         // A position tick can arrive after the `Ended` event that preceded it. Recreating
         // `playing` from it would leave a phantom player on screen.
@@ -5757,6 +5835,7 @@ mod tests {
         // hold the same line or the meter jumps on every revisit.
         let mut a = app_at_episodes();
         a.episodes[2].completed = true;
+        a.episodes_all[2].completed = true;
         a.detail.as_mut().unwrap().progress = Some((3, 4));
         a.episode_selected = 2;
         a.handle(Action::Open, 20);
