@@ -43,6 +43,8 @@ pub mod observed {
     pub const DISPLAY_HEIGHT: u64 = 17;
     /// The video track as mpv describes it, which is where Dolby Vision shows up.
     pub const VIDEO_TRACK: u64 = 18;
+    /// A seek in progress — frames dropped meanwhile say nothing about the GPU.
+    pub const SEEKING: u64 = 19;
 }
 
 /// A command to send to mpv.
@@ -247,6 +249,7 @@ pub enum Event {
     /// Whether playback is held waiting for data.
     Buffering(bool),
     FrameDrops(u64),
+    Seeking(bool),
     DisplayWidth(u32),
     DisplayHeight(u32),
     /// A `script-message` broadcast from inside mpv — our injected key bindings speak
@@ -343,6 +346,7 @@ pub fn parse_line(line: &str) -> Option<Event> {
                 Some("frame-drop-count") => {
                     value.and_then(|v| v.as_u64()).map(Event::FrameDrops)
                 }
+                Some("seeking") => value.and_then(|v| v.as_bool()).map(Event::Seeking),
                 Some("display-width") => value
                     .and_then(|v| v.as_u64())
                     .and_then(|w| u32::try_from(w).ok())

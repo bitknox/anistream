@@ -26,7 +26,12 @@ use anistream_ui::app::{PlayerCommand, Toast, Update};
 use futures::StreamExt;
 use tokio::sync::mpsc;
 
-use crate::slot::{Player, PlayerSlot};
+use crate::{
+    picture::{self, Governor, HdrKind},
+    power,
+    shaders::{self, Look},
+    slot::{Player, PlayerSlot},
+};
 /// How long mpv may go without reporting a position before we say something.
 ///
 /// Generous, because a torrent legitimately takes a while to find peers and fill a buffer — the
@@ -310,7 +315,12 @@ pub struct PlaySettings {
     /// Keep the viewer's audio and subtitle picks and subtitle delay per series, from
     /// `playback.persist_speed` — which has always promised "speed and track choice".
     pub remember_tracks: bool,
-    pub upscaling: anistream_core::config::Upscaling,
+    pub look: Look,
+    /// Where the shaders were written. `None` turns runtime upscaling off entirely — the
+    /// cache could not be written, or the user passes their own `--glsl-shaders`.
+    pub shader_dir: Option<std::path::PathBuf>,
+    /// The HDR tone-mapping curve, from `playback.tone_mapping`.
+    pub tone_mapping: String,
     /// Tracker ids to queue progress against when the episode completes.
     pub tracker_ids: Vec<String>,
     pub presence: anistream_core::config::PresenceConfig,
@@ -422,6 +432,9 @@ pub async fn play(
         cancel_next: false,
         night_applied: false,
         night: settings.night_mode,
+        look: settings.look,
+        tone_mapping: settings.tone_mapping.clone(),
+        hdr: None,
         still: None,
         // Fetched alongside everything else rather than before it: the card is minutes away
         // and the episode should not wait on a picture.
@@ -717,6 +730,11 @@ struct Run<'a> {
     /// Night mode as the viewer last set it, and whether this window has it applied.
     night: bool,
     night_applied: bool,
+    /// The upscaling look and HDR curve as the viewer last chose them in the player.
+    look: Look,
+    tone_mapping: String,
+    /// What the current file is, for the tone-mapping menu.
+    hdr: Option<HdrKind>,
     /// The next episode's still once written out, and the fetch while it is still under way.
     still: Option<companion::Still>,
     still_fetch: Option<tokio::task::JoinHandle<Option<companion::Still>>>,
@@ -794,8 +812,8 @@ impl Run<'_> {
                 },
                 options: vec!["sub", "dub"],
             },
-            upscaling: upscaling_menu(self.settings.upscaling),
-            tone_mapping: None,
+            upscaling: shaders::menu(self.look),
+            tone_mapping: picture::tone_mapping_menu(self.hdr, &self.tone_mapping),
             night_mode: self.night,
         }
     }
@@ -870,6 +888,18 @@ impl Run<'_> {
         let mut stall_dismissed = false;
         let mut stall_tick = tokio::time::interval(Duration::from_secs(1));
         let mut still_fetch = self.still_fetch.take();
+        // The picture: what the file is, and what the GPU is saying about the chain.
+        let mut source: Option<shaders::Source> = None;
+        let mut video_params = serde_json::Value::Null;
+        let mut video_track: Option<serde_json::Value> = None;
+        let mut drops = 0_u64;
+        let mut seeking = false;
+        let mut buffering = false;
+        let mut picture_tick = tokio::time::interval(Duration::from_secs(1));
+        // The governor keeps its steps across episodes in this window, but its evidence is
+        // per file.
+        player.picture.governor.new_file();
+        self.hdr = None;
 
         let outcome = loop {
             // Controls and events are interleaved rather than polled in turn: a keystroke must
@@ -907,6 +937,31 @@ impl Run<'_> {
                     self.still = fetched.ok().flatten();
                     if let Some(next) = self.next_up() {
                         let _ = session.send(companion::state("next", &next)).await;
+                    }
+                    continue;
+                }
+                _ = picture_tick.tick() => {
+                    let picture = &mut player.picture;
+                    let mut changed = false;
+                    // Battery about once a minute: cheap, but a subprocess on macOS.
+                    if picture.battery_checked.is_none_or(|t| t.elapsed() >= BATTERY_POLL) {
+                        picture.battery_checked = Some(tokio::time::Instant::now());
+                        let on = tokio::task::spawn_blocking(power::on_battery)
+                            .await
+                            .ok()
+                            .flatten()
+                            .unwrap_or(false);
+                        changed |= std::mem::replace(&mut picture.on_battery, on) != on;
+                    }
+                    // Fed once a second, and only while a chain runs: drops with no shaders
+                    // are not ours to fix.
+                    if !picture.applied.is_empty() && ever_played {
+                        let time = picture.clock.elapsed().as_secs_f64();
+                        let held = tracker.is_paused() || buffering || seeking;
+                        changed |= picture.governor.sample(time, drops, held).is_some();
+                    }
+                    if changed {
+                        self.apply_picture(&mut player.picture, session, source.as_ref(), streams, index, true).await;
                     }
                     continue;
                 }
@@ -968,6 +1023,84 @@ impl Run<'_> {
             }
 
             match &event {
+                PlaybackEvent::VideoParams(_) | PlaybackEvent::VideoTrack(_) => {
+                    match &event {
+                        PlaybackEvent::VideoParams(params) => video_params = params.clone(),
+                        PlaybackEvent::VideoTrack(track) => video_track = Some(track.clone()),
+                        _ => {}
+                    }
+                    // Only a change in size or kind matters; HDR10+ restates video-params with
+                    // fresh scene metadata on every frame.
+                    let fresh = read_source(&video_params, video_track.as_ref());
+                    if fresh.is_some() && fresh != source {
+                        source = fresh;
+                        self.hdr = source.and_then(|s| s.hdr);
+                        self.apply_picture(
+                            &mut player.picture,
+                            session,
+                            source.as_ref(),
+                            streams,
+                            index,
+                            false,
+                        )
+                        .await;
+                    }
+                    continue;
+                }
+                PlaybackEvent::Display { width, height } => {
+                    player.picture.display =
+                        Some(shaders::Display { width: *width, height: *height });
+                    self.apply_picture(
+                        &mut player.picture,
+                        session,
+                        source.as_ref(),
+                        streams,
+                        index,
+                        false,
+                    )
+                    .await;
+                    continue;
+                }
+                PlaybackEvent::FrameDrops(count) => {
+                    drops = *count;
+                    continue;
+                }
+                PlaybackEvent::Seeking(now) => {
+                    seeking = *now;
+                    continue;
+                }
+                PlaybackEvent::Script(ScriptEvent::Choose(Choice::Upscaling(id))) => {
+                    if let Some(look) = Look::from_id(id) {
+                        self.look = look;
+                        // A new look starts at full budget; the governor earns its steps again.
+                        player.picture.governor.reset();
+                        self.apply_picture(
+                            &mut player.picture,
+                            session,
+                            source.as_ref(),
+                            streams,
+                            index,
+                            false,
+                        )
+                        .await;
+                        let _ = tx.send(Update::PlayerUpscaling(id.clone()));
+                    }
+                    continue;
+                }
+                PlaybackEvent::Script(ScriptEvent::Choose(Choice::ToneMapping(id))) => {
+                    let _ = session
+                        .send(anistream_player::protocol::Command::SetProperty(
+                            "tone-mapping",
+                            id.clone().into(),
+                        ))
+                        .await;
+                    self.tone_mapping = id.clone();
+                    let _ = session
+                        .send(companion::state("menus", &self.menus(streams, index)))
+                        .await;
+                    let _ = tx.send(Update::PlayerToneMapping(id.clone()));
+                    continue;
+                }
                 PlaybackEvent::Script(script) => {
                     if let Some(outcome) = self
                         .answer(script, session, &mut tracker, &mut last_skip, streams, index)
@@ -999,6 +1132,7 @@ impl Run<'_> {
                     }
                 }
                 PlaybackEvent::Buffering(held) => {
+                    buffering = *held;
                     if *held && ever_played {
                         stalled_since.get_or_insert_with(tokio::time::Instant::now);
                     } else if !*held {
@@ -1168,17 +1302,8 @@ impl Run<'_> {
                         let _ = tx.send(Update::PlayerTranslation(wanted));
                     }
                 }
-                Choice::Upscaling(id) => {
-                    let _ = tx.send(Update::PlayerUpscaling(id.clone()));
-                }
-                Choice::ToneMapping(id) => {
-                    let _ = session
-                        .send(anistream_player::protocol::Command::SetProperty(
-                            "tone-mapping",
-                            id.clone().into(),
-                        ))
-                        .await;
-                }
+                // Handled where the picture state lives, in `file`.
+                Choice::Upscaling(_) | Choice::ToneMapping(_) => {}
                 Choice::NightMode(on) => {
                     self.night = *on;
                     self.apply_night(session).await;
@@ -1188,6 +1313,39 @@ impl Run<'_> {
             ScriptEvent::StallSwitch | ScriptEvent::StallWait => {}
         }
         None
+    }
+
+    /// Choose the upscaling chain for the file as it now stands, and set it if it changed.
+    ///
+    /// `announce` is for changes the viewer did not ask for — the governor easing, the battery
+    /// — which get a short note on the video; a pick from the menu speaks for itself.
+    async fn apply_picture(
+        &self,
+        picture: &mut PictureState,
+        session: &MpvSession,
+        source: Option<&shaders::Source>,
+        streams: &[Stream],
+        index: usize,
+        announce: bool,
+    ) {
+        let (Some(source), Some(dir)) = (source, &self.settings.shader_dir) else { return };
+        let budget =
+            shaders::Budget { on_battery: picture.on_battery, eased: picture.governor.eased() };
+        let chain = shaders::choose(self.look, source, picture.display, budget);
+        let paths = shaders::paths(&chain, dir);
+        if paths != picture.applied && session.set_shaders(&paths).await.is_ok() {
+            tracing::info!(label = chain.label, ?budget, "upscaling chain");
+            picture.applied = paths;
+            if announce {
+                let _ = session.notify(format!("Upscaling eased · {}", chain.label)).await;
+            }
+        }
+        let media = companion::Media {
+            hdr: source.hdr.map(HdrKind::badge),
+            upscaler: chain.upscaler.map(str::to_owned),
+        };
+        let _ = session.send(companion::state("media", &media)).await;
+        let _ = session.send(companion::state("menus", &self.menus(streams, index))).await;
     }
 
     /// Carry out what the track policy decided.
@@ -1338,6 +1496,52 @@ fn remember_tracks(
     });
 }
 
+/// How often the battery is asked about during playback.
+const BATTERY_POLL: Duration = Duration::from_secs(60);
+
+/// What the window is doing to the picture.
+///
+/// Kept with the player rather than the episode, like the track policy: a GPU that could not
+/// keep up on episode 3 will not on episode 4 either, so the governor's steps carry over, and
+/// mpv keeps the chain from one file to the next, so what is applied is the window's.
+pub struct PictureState {
+    governor: Governor,
+    /// The chain mpv is running, as absolute paths; compared before every write.
+    applied: Vec<String>,
+    display: Option<shaders::Display>,
+    on_battery: bool,
+    battery_checked: Option<tokio::time::Instant>,
+    /// The governor's clock: monotonic, so a pause or a seek cannot move it.
+    clock: std::time::Instant,
+}
+
+impl Default for PictureState {
+    fn default() -> Self {
+        Self {
+            governor: Governor::new(Governor::DEFAULT_CAP),
+            applied: Vec::new(),
+            display: None,
+            on_battery: false,
+            battery_checked: None,
+            clock: std::time::Instant::now(),
+        }
+    }
+}
+
+/// The picture's size and kind, from `video-params` — `dw`/`dh`, the size after aspect
+/// correction, which is what is actually shown.
+fn read_source(
+    params: &serde_json::Value,
+    track: Option<&serde_json::Value>,
+) -> Option<shaders::Source> {
+    let dimension = |key: &str| params.get(key)?.as_u64().and_then(|v| u32::try_from(v).ok());
+    Some(shaders::Source {
+        width: dimension("dw")?,
+        height: dimension("dh")?,
+        hdr: picture::classify(params, track),
+    })
+}
+
 /// The size the Up Next still is written at: 16:9, large enough to stay sharp when the card is
 /// drawn at HiDPI scale, small enough to write in a few milliseconds.
 const STILL: (u32, u32) = (640, 360);
@@ -1391,23 +1595,6 @@ fn stream_detail(stream: &Stream) -> String {
     match stream.quality {
         Some(quality) => format!("{quality}p · {kind}"),
         None => kind.to_owned(),
-    }
-}
-
-/// The upscaling menu for the configured mode.
-fn upscaling_menu(mode: anistream_core::config::Upscaling) -> companion::OptionsMenu {
-    let option = |id: &str, label: &str, hint: &str| companion::MenuOption {
-        id: id.into(),
-        label: label.into(),
-        hint: Some(hint.into()),
-    };
-    companion::OptionsMenu {
-        current: mode.name().into(),
-        options: vec![
-            option("off", "Off", "mpv's own scaling"),
-            option("anime4k-fast", "Anime4K · fast", "integrated graphics"),
-            option("anime4k-quality", "Anime4K · quality", "discrete GPU"),
-        ],
     }
 }
 

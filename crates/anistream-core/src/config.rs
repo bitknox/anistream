@@ -217,27 +217,32 @@ impl Default for DownloadsConfig {
     }
 }
 
-/// Real-time upscaling modes.
+/// Real-time upscaling, chosen as a look rather than a shader list: the chain itself adapts to
+/// the source, the display, the battery and how the GPU is keeping up.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Upscaling {
-    #[default]
+    /// mpv's own scalers.
     Off,
-    /// Anime4K mode A with the medium networks — fine on integrated graphics.
-    Anime4kFast,
-    /// Anime4K mode A with the large networks — wants a discrete GPU.
-    Anime4kQuality,
+    /// ArtCNN: faithful line work and texture, nothing restyled.
+    #[default]
+    Natural,
+    /// Anime4K: crisper lines and heavier cleanup. The old `anime4k-fast` and
+    /// `anime4k-quality` settings read as this; how heavy a chain runs is now decided by the
+    /// budget rather than by the setting.
+    #[serde(alias = "anime4k-fast", alias = "anime4k-quality")]
+    Sharp,
 }
 
 impl Upscaling {
-    pub const ALL: [Self; 3] = [Self::Off, Self::Anime4kFast, Self::Anime4kQuality];
+    pub const ALL: [Self; 3] = [Self::Off, Self::Natural, Self::Sharp];
 
     /// The name the config file uses.
     pub const fn name(self) -> &'static str {
         match self {
             Self::Off => "off",
-            Self::Anime4kFast => "anime4k-fast",
-            Self::Anime4kQuality => "anime4k-quality",
+            Self::Natural => "natural",
+            Self::Sharp => "sharp",
         }
     }
 
@@ -410,11 +415,12 @@ pub struct PlaybackConfig {
     /// Start mpv fullscreen. The viewer can still leave it with mpv's own `f` key;
     /// this only chooses how the window opens.
     pub fullscreen: bool,
-    /// Real-time upscaling via Anime4K, applied as mpv shader chains.
+    /// Real-time upscaling: `natural` (ArtCNN), `sharp` (Anime4K) or `off`.
     ///
-    /// The shaders ship inside the binary (MIT, vendored from bloc97/Anime4K), so this
-    /// is a toggle rather than a scavenger hunt. `fast` suits integrated graphics;
-    /// `quality` wants a discrete GPU. Worth turning on for 720p batch rips.
+    /// The shaders ship inside the binary, so this is a choice of look rather than a scavenger
+    /// hunt. Which networks actually run is decided per file: nothing heavy when the source
+    /// already fills the display, a lighter chain on battery, and one step lighter whenever
+    /// frames start dropping. HDR sources only get chroma work.
     pub upscaling: Upscaling,
     /// Whose interface the player wears.
     ///
@@ -456,7 +462,7 @@ impl Default for PlaybackConfig {
             persisted_speed: None,
             persist_volume: true,
             persisted_volume: None,
-            upscaling: Upscaling::Off,
+            upscaling: Upscaling::Natural,
             player_ui: PlayerUi::Anistream,
             night_mode: false,
             tone_mapping: "auto".into(),
@@ -901,6 +907,19 @@ impl Default for NetworkConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_old_anime4k_settings_still_read_as_sharp() {
+        // Existing configs said `anime4k-fast` or `anime4k-quality`; refusing them would turn
+        // a working config into a startup error. Both chose Anime4K's look.
+        for old in ["anime4k-fast", "anime4k-quality"] {
+            let cfg = Config::from_toml(&format!("[playback]\nupscaling = \"{old}\"")).unwrap();
+            assert_eq!(cfg.playback.upscaling, Upscaling::Sharp, "{old}");
+        }
+        let off = Config::from_toml("[playback]\nupscaling = \"off\"").unwrap();
+        assert_eq!(off.playback.upscaling, Upscaling::Off, "an explicit off stays off");
+        assert_eq!(Config::default().playback.upscaling, Upscaling::Natural);
+    }
 
     #[test]
     fn defaults_are_valid_and_torrenting_is_off() {

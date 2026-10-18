@@ -83,6 +83,7 @@ pub enum PlaybackEvent {
     Buffering(bool),
     /// Running total of frames the video output dropped.
     FrameDrops(u64),
+    Seeking(bool),
     /// The display the window is on, once mpv knows it.
     Display {
         width: u32,
@@ -599,6 +600,7 @@ impl Mpv {
             (observed::SUB_DELAY, "sub-delay"),
             (observed::PAUSED_FOR_CACHE, "paused-for-cache"),
             (observed::FRAME_DROPS, "frame-drop-count"),
+            (observed::SEEKING, "seeking"),
             (observed::DISPLAY_WIDTH, "display-width"),
             (observed::DISPLAY_HEIGHT, "display-height"),
         ] {
@@ -703,6 +705,7 @@ fn spawn_reader(
                 Event::SubDelay(delay) => Some(PlaybackEvent::SubDelay(delay)),
                 Event::Buffering(held) => Some(PlaybackEvent::Buffering(held)),
                 Event::FrameDrops(count) => Some(PlaybackEvent::FrameDrops(count)),
+                Event::Seeking(seeking) => Some(PlaybackEvent::Seeking(seeking)),
                 Event::DisplayWidth(width) => {
                     display.0 = Some(width);
                     display_event(display)

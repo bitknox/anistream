@@ -167,7 +167,9 @@ async fn main() {
             auto_next: false,
             night_mode: false,
             remember_tracks: false,
-            upscaling: config.playback.upscaling,
+            look: config.playback.upscaling.into(),
+            shader_dir: None,
+            tone_mapping: config.playback.tone_mapping.clone(),
             // No trackers: this probe checks the local path, and queueing against a real
             // account from a test run would be wrong.
             tracker_ids: Vec::new(),

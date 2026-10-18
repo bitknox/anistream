@@ -227,8 +227,8 @@ fn upscaling_label(mode: anistream_core::config::Upscaling) -> &'static str {
     use anistream_core::config::Upscaling as U;
     match mode {
         U::Off => "off",
-        U::Anime4kFast => "anime4k fast",
-        U::Anime4kQuality => "anime4k quality",
+        U::Natural => "natural · ArtCNN",
+        U::Sharp => "sharp · Anime4K",
     }
 }
 
@@ -926,6 +926,8 @@ pub enum Update {
     PlayerUpscaling(String),
     /// Night mode toggled in the player.
     PlayerNightMode(bool),
+    /// An HDR tone-mapping curve picked in the player.
+    PlayerToneMapping(String),
     /// Playhead moved.
     Playback {
         position: f64,
@@ -1458,6 +1460,16 @@ impl App {
                             value: anistream_core::settings::SettingValue::Str(name),
                         });
                     }
+                }
+            }
+            Update::PlayerToneMapping(curve) => {
+                self.config.playback.tone_mapping = curve.clone();
+                if self.pending.is_none() {
+                    self.pending = Some(Task::SaveSetting {
+                        table: &["playback"],
+                        key: "tone_mapping",
+                        value: anistream_core::settings::SettingValue::Str(curve),
+                    });
                 }
             }
             Update::PlayerNightMode(on) => {
@@ -2928,8 +2940,9 @@ impl App {
                     S::Upscaling => (
                         upscaling_label(playback.upscaling).into(),
                         Some(("playback", "upscaling")),
-                        // Assembled per playback, so the next episode uses this.
-                        Some("applies to the next episode you start"),
+                        // Read per playback, so the next episode uses this; the player's own
+                        // menu changes the one playing.
+                        Some("adapts to the source and your GPU · from the next episode"),
                     ),
                     S::PlayerUi => (
                         match playback.player_ui {
@@ -3119,21 +3132,14 @@ impl App {
             }
             SettingId::Upscaling => {
                 use anistream_core::config::Upscaling as U;
-                const LADDER: [U; 3] = [U::Off, U::Anime4kFast, U::Anime4kQuality];
+                const LADDER: [U; 3] = [U::Off, U::Natural, U::Sharp];
                 let at = LADDER
                     .iter()
                     .position(|u| *u == self.config.playback.upscaling)
                     .unwrap_or(0) as isize;
                 let next = LADDER[(at + delta).clamp(0, 2) as usize];
                 self.config.playback.upscaling = next;
-                V::Str(
-                    match next {
-                        U::Off => "off",
-                        U::Anime4kFast => "anime4k-fast",
-                        U::Anime4kQuality => "anime4k-quality",
-                    }
-                    .into(),
-                )
+                V::Str(next.name().into())
             }
             SettingId::PlayerUi => {
                 use anistream_core::config::PlayerUi as P;

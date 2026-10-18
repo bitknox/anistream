@@ -119,15 +119,15 @@ impl Look {
     }
 }
 
-/// The old setting, mapped. `off` stays off — it was the default, so it cannot be told
-/// apart from a choice, and switching shaders on for someone who never asked is not this
-/// change's call. Both Anime4K modes become Sharp: those users chose Anime4K's look, and
-/// the fast/quality split is now the budget's job.
+/// The setting, as a look. The old Anime4K modes already read as `Sharp` in the config
+/// (serde aliases): those users chose Anime4K's look, and the fast/quality split is now the
+/// budget's job.
 impl From<Upscaling> for Look {
-    fn from(old: Upscaling) -> Look {
-        match old {
+    fn from(setting: Upscaling) -> Look {
+        match setting {
             Upscaling::Off => Look::Off,
-            Upscaling::Anime4kFast | Upscaling::Anime4kQuality => Look::Sharp,
+            Upscaling::Natural => Look::Natural,
+            Upscaling::Sharp => Look::Sharp,
         }
     }
 }
@@ -501,53 +501,29 @@ pub fn paths(chain: &Chain, dir: &Path) -> Vec<String> {
     chain.files.iter().map(|name| dir.join(name).display().to_string()).collect()
 }
 
-// --- The old spawn-time argument ---------------------------------------------------------
-
-/// Anime4K "mode A", medium networks — what `anime4k-fast` has always meant.
-const LEGACY_FAST: &[&str] = &[
-    "Anime4K_Clamp_Highlights.glsl",
-    "Anime4K_Restore_CNN_M.glsl",
-    "Anime4K_Upscale_CNN_x2_M.glsl",
-    "Anime4K_AutoDownscalePre_x2.glsl",
-    "Anime4K_AutoDownscalePre_x4.glsl",
-    "Anime4K_Upscale_CNN_x2_S.glsl",
-];
-
-/// Anime4K "mode A (HQ)", large networks — `anime4k-quality`.
-const LEGACY_QUALITY: &[&str] = &[
-    "Anime4K_Clamp_Highlights.glsl",
-    "Anime4K_Restore_CNN_VL.glsl",
-    "Anime4K_Upscale_CNN_x2_VL.glsl",
-    "Anime4K_AutoDownscalePre_x2.glsl",
-    "Anime4K_AutoDownscalePre_x4.glsl",
-    "Anime4K_Upscale_CNN_x2_M.glsl",
-];
-
-/// The spawn-time `--glsl-shaders` argument for the old setting, unchanged in behaviour.
-///
-/// Kept until the host sets chains over IPC from [`choose`]; then it goes.
-pub fn mpv_args(mode: Upscaling, cache_dir: &Path) -> Vec<String> {
-    let chain = match mode {
-        Upscaling::Off => return Vec::new(),
-        Upscaling::Anime4kFast => LEGACY_FAST,
-        Upscaling::Anime4kQuality => LEGACY_QUALITY,
-    };
-    let Some(dir) = materialize(cache_dir) else {
-        return Vec::new();
-    };
-    // On the command line mpv takes the chain as a platform path list.
-    let separator = if cfg!(windows) { ";" } else { ":" };
-    let list = chain
-        .iter()
-        .map(|name| dir.join(name).display().to_string())
-        .collect::<Vec<_>>()
-        .join(separator);
-    vec![format!("--glsl-shaders={list}")]
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Anime4K "mode A", medium networks — what `anime4k-fast` used to be.
+    const LEGACY_FAST: &[&str] = &[
+        "Anime4K_Clamp_Highlights.glsl",
+        "Anime4K_Restore_CNN_M.glsl",
+        "Anime4K_Upscale_CNN_x2_M.glsl",
+        "Anime4K_AutoDownscalePre_x2.glsl",
+        "Anime4K_AutoDownscalePre_x4.glsl",
+        "Anime4K_Upscale_CNN_x2_S.glsl",
+    ];
+
+    /// Anime4K "mode A (HQ)", large networks — what `anime4k-quality` used to be.
+    const LEGACY_QUALITY: &[&str] = &[
+        "Anime4K_Clamp_Highlights.glsl",
+        "Anime4K_Restore_CNN_VL.glsl",
+        "Anime4K_Upscale_CNN_x2_VL.glsl",
+        "Anime4K_AutoDownscalePre_x2.glsl",
+        "Anime4K_AutoDownscalePre_x4.glsl",
+        "Anime4K_Upscale_CNN_x2_M.glsl",
+    ];
 
     const FHD: Source = Source { width: 1920, height: 1080, hdr: None };
     const HD: Source = Source { width: 1280, height: 720, hdr: None };
@@ -768,8 +744,8 @@ mod tests {
         }
         assert_eq!(Look::from_id("natural-auto"), None);
         assert_eq!(Look::from(Upscaling::Off), Look::Off);
-        assert_eq!(Look::from(Upscaling::Anime4kFast), Look::Sharp);
-        assert_eq!(Look::from(Upscaling::Anime4kQuality), Look::Sharp);
+        assert_eq!(Look::from(Upscaling::Natural), Look::Natural);
+        assert_eq!(Look::from(Upscaling::Sharp), Look::Sharp);
         assert_eq!(Look::default(), Look::Natural);
     }
 
@@ -817,25 +793,6 @@ mod tests {
         assert_eq!(paths.len(), chain.files.len());
         for p in &paths {
             assert!(Path::new(p).is_absolute() && Path::new(p).is_file(), "{p}");
-        }
-    }
-
-    #[test]
-    fn off_produces_no_arguments_and_writes_nothing() {
-        let tmp = tempfile::tempdir().unwrap();
-        assert!(mpv_args(Upscaling::Off, tmp.path()).is_empty());
-        assert!(!tmp.path().join("shaders").exists());
-    }
-
-    #[test]
-    fn a_legacy_mode_produces_one_chain_argument_with_real_files() {
-        let tmp = tempfile::tempdir().unwrap();
-        let args = mpv_args(Upscaling::Anime4kFast, tmp.path());
-        assert_eq!(args.len(), 1);
-        let list = args[0].strip_prefix("--glsl-shaders=").unwrap();
-        let separator = if cfg!(windows) { ';' } else { ':' };
-        for p in list.split(separator) {
-            assert!(Path::new(p).is_file(), "{p}");
         }
     }
 }

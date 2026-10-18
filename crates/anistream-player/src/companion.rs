@@ -109,28 +109,16 @@ pub struct TranslationMenu {
     pub options: Vec<&'static str>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct MenuOption {
-    pub id: String,
-    pub label: String,
-    pub hint: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize)]
-pub struct OptionsMenu {
-    pub current: String,
-    pub options: Vec<MenuOption>,
-}
-
 /// Everything the in-player menus list.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Menus {
     pub episodes: Vec<EpisodeItem>,
     pub sources: Vec<SourceItem>,
     pub translation: TranslationMenu,
-    pub upscaling: OptionsMenu,
-    /// Only while the picture is HDR — the choice means nothing otherwise.
-    pub tone_mapping: Option<OptionsMenu>,
+    /// `{current, options: [{id, label, hint}]}`, built by the upscaling chooser.
+    pub upscaling: serde_json::Value,
+    /// The same shape, or null while the picture is not HDR — the choice means nothing then.
+    pub tone_mapping: serde_json::Value,
     pub night_mode: bool,
 }
 

@@ -259,6 +259,7 @@ impl PlaybackTracker {
             | PlaybackEvent::SubDelay(_)
             | PlaybackEvent::Buffering(_)
             | PlaybackEvent::FrameDrops(_)
+            | PlaybackEvent::Seeking(_)
             | PlaybackEvent::Display { .. }
             | PlaybackEvent::Replaced => {}
 

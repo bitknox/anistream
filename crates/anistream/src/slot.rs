@@ -37,12 +37,20 @@ pub struct Player {
     pub tracks: TrackPolicy,
     /// Whose memory `tracks` holds — what the next file's leftovers are stored under.
     pub tracks_for: Option<(AnilistId, Translation)>,
+    /// The upscaling chain and what it has learned about this machine.
+    pub picture: crate::playback::PictureState,
 }
 
 impl Player {
     pub fn new(session: MpvSession, events: UnboundedReceiver<PlaybackEvent>) -> Self {
         let preferences = TrackPreferences { translation: Translation::Sub, language: None };
-        Self { session, events, tracks: TrackPolicy::new(preferences, None), tracks_for: None }
+        Self {
+            session,
+            events,
+            tracks: TrackPolicy::new(preferences, None),
+            tracks_for: None,
+            picture: Default::default(),
+        }
     }
 }
 

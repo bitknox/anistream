@@ -2058,6 +2058,7 @@ fn dispatch(
                 tracker_ids,
                 extras,
                 slot.clone(),
+                shader_dir(config, paths),
                 job,
                 tx,
             );
@@ -2083,6 +2084,7 @@ fn dispatch(
                 tracker_ids,
                 extras,
                 slot.clone(),
+                shader_dir(config, paths),
                 job,
                 tx,
             );
@@ -2107,6 +2109,7 @@ fn dispatch(
                 tracker_ids,
                 extras,
                 slot.clone(),
+                shader_dir(config, paths),
                 job,
                 tx,
             );
@@ -2363,6 +2366,7 @@ fn dispatch(
             let prx = take_controls(player_tx);
             let tracker_ids = signed_in_tracker_ids(sync);
             let (next, episodes) = episode_extras(app, id, &episode);
+            let shaders = shader_dir(config, paths);
             let (config, store, http, mpv, tx, slot) = (
                 config.clone(),
                 store.clone(),
@@ -2404,7 +2408,10 @@ fn dispatch(
                     next,
                     episodes,
                 };
-                let settings = play_settings(&config, tracker_ids, config.syncplay.enabled);
+                let settings = playback::PlaySettings {
+                    shader_dir: shaders,
+                    ..play_settings(&config, tracker_ids, config.syncplay.enabled)
+                };
                 playback::play(
                     vec![stream],
                     context,
@@ -2473,6 +2480,7 @@ fn spawn_playback(
     // What the player's Up Next card and Episodes menu show, read from the episode table.
     extras: (Option<playback::NextEpisode>, Vec<playback::EpisodeEntry>),
     slot: PlayerSlot,
+    shader_dir: Option<std::path::PathBuf>,
     job: Option<JobGuard>,
     tx: &mpsc::UnboundedSender<Update>,
 ) {
@@ -2524,7 +2532,8 @@ fn spawn_playback(
             let _ = tx.send(Update::Toast(Toast::info(note)));
         }
 
-        let settings = play_settings(&config, tracker_ids, party);
+        let settings =
+            playback::PlaySettings { shader_dir, ..play_settings(&config, tracker_ids, party) };
         playback::play(streams, context, store, http, mpv, settings, slot, tx, commands).await;
     });
 }
@@ -2940,7 +2949,10 @@ async fn play_cli(
     // The same queue set the TUI uses: signed-in trackers, not merely enabled ones.
     let sync = tracking::Sync::build(config, store, http);
     let tracker_ids = signed_in_tracker_ids(&sync);
-    let settings = play_settings(config, tracker_ids.clone(), config.syncplay.enabled);
+    let settings = playback::PlaySettings {
+        shader_dir: shader_dir(config, paths),
+        ..play_settings(config, tracker_ids.clone(), config.syncplay.enabled)
+    };
     // Headless plays one episode: nothing would ever claim a parked window.
     let settings = playback::PlaySettings { auto_next: false, ..settings };
     playback::play(
@@ -3140,9 +3152,14 @@ async fn reload_sources(
 /// argument list every episode was spawned with. Shader files are written on demand and
 /// skipped when already current, so rebuilding costs a stat per shader.
 fn player(config: &Config, paths: &Paths) -> anistream_player::Mpv {
-    // Upscaling shaders first, the user's own flags after — mpv takes the last value
-    // for a repeated flag, so a hand-written --glsl-shaders always wins.
-    let mut args = anistream::shaders::mpv_args(config.playback.upscaling, &paths.cache_dir);
+    // Upscaling is no longer on the command line: the chain is chosen per file and set over
+    // IPC (see `playback`). What is left here is the HDR curve the viewer picked, before the
+    // user's own flags so a hand-written one still wins.
+    let mut args = Vec::new();
+    let curve = &config.playback.tone_mapping;
+    if !curve.is_empty() && curve != anistream::picture::DEFAULT_TONE_MAPPING {
+        args.push(format!("--tone-mapping={curve}"));
+    }
     args.extend(config.playback.mpv_args.clone());
     // Content-addressed and skipped when current, so this is a stat per launch of a player.
     let bundle = anistream_player::Bundle::materialize(&paths.cache_dir)
@@ -3155,6 +3172,17 @@ fn player(config: &Config, paths: &Paths) -> anistream_player::Mpv {
         .with_ui(config.playback.player_ui, bundle)
         .with_theme(player_theme())
         .with_extra_args(args)
+}
+
+/// Where the upscaling shaders were written, or `None` when anistream should leave
+/// `glsl-shaders` alone: the cache could not be written, or the user passes their own chain
+/// in `playback.mpv_args`, which our runtime writes would otherwise replace.
+fn shader_dir(config: &Config, paths: &Paths) -> Option<std::path::PathBuf> {
+    let own_chain = config.playback.mpv_args.iter().any(|arg| arg.starts_with("--glsl-shader"));
+    if own_chain {
+        return None;
+    }
+    anistream::shaders::materialize(&paths.cache_dir)
 }
 
 /// The companion's palette and font: the immersive palette, because a video window is dark
@@ -3195,7 +3223,10 @@ fn play_settings(
         auto_next: playback.auto_next,
         night_mode: playback.night_mode,
         remember_tracks: playback.persist_speed,
-        upscaling: playback.upscaling,
+        look: playback.upscaling.into(),
+        // Filled in by the caller, which knows where the cache is.
+        shader_dir: None,
+        tone_mapping: playback.tone_mapping.clone(),
         tracker_ids,
         presence: config.presence.clone(),
         syncplay: config.syncplay.clone(),
@@ -3586,31 +3617,32 @@ mod tests {
     }
 
     #[test]
-    fn the_player_reflects_the_upscaler_as_it_stands_now() {
+    fn the_player_reflects_the_config_as_it_stands_now() {
         // The bug this encodes: the handle was built once at launch, so turning Anime4K
         // off left `--glsl-shaders` in the arguments of every episode for the rest of the
-        // session — the GPU stayed pinned by a feature the settings screen said was off.
+        // session. Shaders are now set per file over IPC and never ride the command line,
+        // but what does — the HDR curve — must still follow the settings screen.
         let paths = Paths {
             cache_dir: std::env::temp_dir().join("anistream-player-config-test"),
             ..Paths::resolve().expect("paths")
         };
         let mut config = Config::default();
 
-        config.playback.upscaling = anistream_core::config::Upscaling::Anime4kQuality;
-        let with_shaders = player(&config, &paths);
-        let on = with_shaders.args_for_test();
-        assert!(
-            on.iter().any(|a| a.starts_with("--glsl-shaders=")),
-            "upscaling on should chain shaders, got {on:?}"
-        );
+        config.playback.upscaling = anistream_core::config::Upscaling::Sharp;
+        config.playback.tone_mapping = "bt.2390".into();
+        let player_now = player(&config, &paths);
+        let args = player_now.args_for_test();
+        assert!(!args.iter().any(|a| a.starts_with("--glsl-shaders")), "{args:?}");
+        assert!(args.iter().any(|a| a == "--tone-mapping=bt.2390"), "{args:?}");
 
-        config.playback.upscaling = anistream_core::config::Upscaling::Off;
-        let without = player(&config, &paths);
-        let off = without.args_for_test();
-        assert!(
-            !off.iter().any(|a| a.starts_with("--glsl-shaders=")),
-            "upscaling off must carry no shader chain, got {off:?}"
-        );
+        config.playback.tone_mapping = "auto".into();
+        let args = player(&config, &paths).args_for_test().to_vec();
+        assert!(!args.iter().any(|a| a.starts_with("--tone-mapping")), "auto is mpv's own");
+
+        // A chain of the user's own is theirs: no runtime chain may replace it.
+        assert!(shader_dir(&config, &paths).is_some());
+        config.playback.mpv_args = vec!["--glsl-shaders=~~/mine.glsl".into()];
+        assert!(shader_dir(&config, &paths).is_none());
         let _ = std::fs::remove_dir_all(&paths.cache_dir);
     }
 
