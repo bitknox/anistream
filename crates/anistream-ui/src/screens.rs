@@ -61,7 +61,12 @@ fn set_meter(
 /// Paint a whole frame.
 pub fn render(frame: &mut TFrame<'_>, app: &App) {
     let area = frame.area();
-    let geometry = layout::compute(area, app.nav.rail_width());
+    let now = std::time::Instant::now();
+    let activity = app.activity(now);
+    let mut geometry = layout::compute(area, app.nav.rail_width());
+    if !activity.is_empty() {
+        geometry = geometry.with_activity();
+    }
     let buf = frame.buffer_mut();
 
     // Immersive mode paints its own ground; adaptive inherits the terminal's, which is what
@@ -88,6 +93,7 @@ pub fn render(frame: &mut TFrame<'_>, app: &App) {
     render_stage(buf, app, geometry.stage);
 
     Hairline::new(&app.palette).render(geometry.status_rule, buf);
+    render_activity(buf, app, &activity, geometry.activity, now);
     render_status(buf, app, &geometry);
     render_toasts(buf, app, geometry.stage);
     render_overlay(buf, app, area, &geometry);
@@ -137,6 +143,81 @@ fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
     }
 
     Header::new(&app.palette, "anistream").chips(&chips).render(geometry.header, buf);
+}
+
+/// The running jobs, newest first, each with how long it has taken.
+///
+/// One pulse leads the row rather than one per job: the motion says work is alive, and the
+/// elapsed times say which work and for how long. A job held up on something says on what, and
+/// counts that down instead — two clocks side by side would leave the reader to work out which
+/// one they are waiting on.
+fn render_activity(
+    buf: &mut Buffer,
+    app: &App,
+    jobs: &[&crate::app::Job],
+    area: Rect,
+    now: std::time::Instant,
+) {
+    if jobs.is_empty() || area.height == 0 || area.width < 8 {
+        return;
+    }
+    let pulse = glyph::pulse(app.pulse);
+    buf.set_string(area.left(), area.top(), &pulse, app.palette.style(Role::Obi));
+    let mut x = area.left() + pulse.chars().count() as u16 + 2;
+    let right = area.right();
+
+    for (shown, job) in jobs.iter().enumerate() {
+        let (label, detail) = job_text(job, now);
+        let separator = if shown == 0 { "" } else { "   ·   " };
+        let width = (separator.chars().count()
+            + label.chars().count()
+            + detail.as_ref().map_or(0, |d| d.chars().count() + 3)) as u16;
+        // Whatever does not fit is counted rather than cut mid-word; the first job always gets
+        // what room there is, because it is the one just asked for.
+        let rest = jobs.len() - shown;
+        let more = format!("   +{rest}");
+        if shown > 0 && x + width + more.chars().count() as u16 > right {
+            buf.set_string(x, area.top(), &more, app.palette.style(Role::TextDim));
+            return;
+        }
+        let room = right.saturating_sub(x) as usize;
+        let (sx, _) =
+            buf.set_stringn(x, area.top(), separator, room, app.palette.style(Role::Rule));
+        let room = right.saturating_sub(sx) as usize;
+        let (lx, _) =
+            buf.set_stringn(sx, area.top(), &label, room, app.palette.style(Role::Text));
+        x = lx;
+        if let Some(detail) = detail {
+            let room = right.saturating_sub(x) as usize;
+            let (dx, _) = buf.set_stringn(
+                x,
+                area.top(),
+                format!(" · {detail}"),
+                room,
+                app.palette.style(Role::TextDim),
+            );
+            x = dx;
+        }
+    }
+}
+
+/// A job's label, and what to say after it: the hold-up and its countdown while it lasts,
+/// otherwise the elapsed time once there is a second of it to show.
+fn job_text(job: &crate::app::Job, now: std::time::Instant) -> (String, Option<String>) {
+    let held = job.note.as_ref().and_then(|(note, until)| match until {
+        Some(until) if *until <= now => None,
+        Some(until) => Some(format!("{note}, {}", clock(until.saturating_duration_since(now)))),
+        None => Some(note.clone()),
+    });
+    let ran = now.saturating_duration_since(job.started);
+    let detail = held.or_else(|| (ran.as_secs() >= 1).then(|| clock(ran)));
+    (job.label.clone(), detail)
+}
+
+/// `7s`, then `1m 05s`: seconds are what a wait is felt in, and minutes only once there are any.
+fn clock(span: std::time::Duration) -> String {
+    let secs = span.as_secs().max(1);
+    if secs < 60 { format!("{secs}s") } else { format!("{}m {:02}s", secs / 60, secs % 60) }
 }
 
 fn render_status(buf: &mut Buffer, app: &App, geometry: &Frame) {
@@ -2550,7 +2631,10 @@ pub fn visible_rows(area: Rect, section: Section) -> usize {
         Section::Calendar => 5,
         _ => 0,
     };
-    geometry.stage.height.saturating_sub(offset) as usize
+    // One more for the activity row, which takes a body row whenever work is running. Counted
+    // always rather than threading the app in here: an estimate that is one low only scrolls a
+    // line early, where one that is one high would let the selection slip under the row.
+    geometry.stage.height.saturating_sub(offset + 1) as usize
 }
 
 /// Render into a fresh off-screen buffer.
@@ -2619,6 +2703,78 @@ mod tests {
             })
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    fn running(app: &mut App, task: &crate::app::Task, for_secs: u64) -> crate::app::JobId {
+        let id = app.begin_job(task).expect("a job");
+        let job = app.jobs.iter_mut().find(|j| j.id == id).unwrap();
+        job.started = std::time::Instant::now()
+            .checked_sub(std::time::Duration::from_secs(for_secs))
+            .unwrap();
+        id
+    }
+
+    #[test]
+    fn the_activity_row_appears_only_while_work_runs() {
+        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let idle = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(!idle.contains("listing sources"));
+
+        running(
+            &mut app,
+            &crate::app::Task::LoadSources { id: AnilistId::new(1), episode: "10".into() },
+            3,
+        );
+        let busy = render_to_buffer(&app, 120, 30);
+        let rows: Vec<String> = text_of(&busy).lines().map(str::to_owned).collect();
+        // Second to last, between the status hairline and the status line.
+        let row = &rows[rows.len() - 2];
+        assert!(row.contains("listing sources for ep 10 · 3s"), "activity row was {row:?}");
+        assert!(rows[rows.len() - 3].trim_start().starts_with('─'), "hairline above it");
+    }
+
+    #[test]
+    fn a_hold_up_is_counted_down_in_place_of_the_runtime() {
+        let mut app = app_with(Content::Loading);
+        let id = running(&mut app, &crate::app::Task::LoadSeasonal, 4);
+        let until = std::time::Instant::now() + std::time::Duration::from_millis(12_400);
+        app.apply(Update::JobNote {
+            job: id,
+            note: "AniList limit".into(),
+            until: Some(until),
+        });
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("loading this season · AniList limit, 12s"), "{text}");
+        assert!(!text.contains("· 4s"), "two clocks at once");
+
+        // Once the hold-up has passed it is no longer the thing being waited on.
+        let job = &app.jobs[0];
+        let (_, detail) = job_text(job, until + std::time::Duration::from_millis(1));
+        assert!(detail.is_some_and(|d| !d.contains("AniList")));
+    }
+
+    #[test]
+    fn jobs_that_do_not_fit_are_counted_rather_than_cut() {
+        let mut app = app_with(Content::Loading);
+        for _ in 0..3 {
+            running(&mut app, &crate::app::Task::CheckProviders, 2);
+        }
+        running(
+            &mut app,
+            &crate::app::Task::LoadSources { id: AnilistId::new(1), episode: "10".into() },
+            2,
+        );
+        let rows: Vec<String> =
+            text_of(&render_to_buffer(&app, 60, 30)).lines().map(str::to_owned).collect();
+        let row = &rows[rows.len() - 2];
+        assert!(row.contains("listing sources for ep 10"), "the newest job leads: {row:?}");
+        assert!(row.trim_end().ends_with("+3"), "the other three are counted: {row:?}");
+    }
+
+    #[test]
+    fn long_waits_read_in_minutes() {
+        assert_eq!(clock(std::time::Duration::from_secs(7)), "7s");
+        assert_eq!(clock(std::time::Duration::from_secs(65)), "1m 05s");
     }
 
     #[test]
