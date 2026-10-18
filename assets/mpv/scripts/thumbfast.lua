@@ -11,11 +11,12 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 ]]
 
 -- anistream: modified copy of po5/thumbfast at 0f711de3138c9bd6718209d819ac54022c23ded2.
--- Every change is marked `-- anistream:`: a helper above client_script, two blocks in
--- spawn(), one observer at the end of the file, and a timer that hides a frame which never
--- arrives. The thumbnailer opens user-data/anistream/thumbnail-url instead of `path` when the
--- host sets one, and inherits the parent's user-agent, referrer and http-header-fields. Provenance and licence:
--- assets/THIRD-PARTY.md in the anistream repository.
+-- Every change is marked `-- anistream:`: a helper above client_script, three blocks in
+-- spawn(), one observer at the end of the file, a timer that hides a frame which never
+-- arrives and one that asks for it again. The thumbnailer opens
+-- user-data/anistream/thumbnail-url instead of `path` when the host sets one, inherits the
+-- parent's user-agent, referrer and http-header-fields, and reads HLS one segment at a time.
+-- Provenance and licence: assets/THIRD-PARTY.md in the anistream repository.
 
 local options = {
     -- Socket path (leave empty for auto)
@@ -541,6 +542,11 @@ local function spawn(time)
             table.insert(args, "--"..name.."="..value)
         end
     end
+    -- anistream: ffmpeg's HLS reader opens the segment after the one it is reading before it
+    -- returns any of the first, so every thumbnail of an HLS stream cost two whole segments
+    -- and waited for both. A thumbnail needs one frame of one segment. Other formats do not
+    -- have the option and ignore it.
+    table.insert(args, "--demuxer-lavf-o-append=http_multiple=0")
 
     table.insert(args, "--")
     table.insert(args, path)
@@ -745,13 +751,32 @@ local function check_new_thumb()
     return false
 end
 
--- anistream: a torrent's thumbnail URL serves only pieces already downloaded, and a seek into
--- a part that is not yet there produces no frame at all. Without this the previous thumbnail
--- would stay up over a time it does not show; a frame that has not arrived within this long
--- is hidden until the next one does. Verified pieces answer in about 50 ms.
+-- anistream: a thumbnail that never arrives is asked for again while the pointer rests on
+-- it. The host's thumbnail URL turns a request away rather than keep the thumbnailer waiting
+-- (a torrent piece not downloaded yet, an HLS host rate-limiting), and thumbfast asks only
+-- when the pointer moves, so a turned-away thumbnail stayed missing after the cause had gone.
+local anistream_retry_timer = mp.add_periodic_timer(1, function()
+    if anistream_spawned_url and show_thumbnail and last_seek_time then
+        request_seek()
+    else
+        anistream_retry_timer:kill()
+    end
+end)
+anistream_retry_timer:kill()
+
+-- anistream: the host's thumbnail URL answers at once rather than make the thumbnailer wait —
+-- a torrent's serves only pieces already downloaded, an HLS stream's turns a request away
+-- while the host is rate-limiting — and a seek it cannot answer produces no frame at all.
+-- Without this the previous thumbnail would stay up over a time it does not show; a frame
+-- that has not arrived within this long is hidden until the next one does. A verified piece
+-- or a segment already fetched answers in about 50 ms.
 local anistream_stale_timer = mp.add_timeout(0.35, function()
     if anistream_spawned_url and show_thumbnail and x ~= nil then
         mp.command_native_async({"overlay-remove", options.overlay_id}, function() end)
+    end
+    if anistream_spawned_url and show_thumbnail then
+        anistream_retry_timer:kill()
+        anistream_retry_timer:resume()
     end
 end)
 anistream_stale_timer:kill()
@@ -759,6 +784,7 @@ anistream_stale_timer:kill()
 file_timer = mp.add_periodic_timer(file_check_period, function()
     if check_new_thumb() then
         anistream_stale_timer:kill() -- anistream: the frame arrived
+        anistream_retry_timer:kill() -- anistream
         draw(real_w, real_h, script_name)
     end
 end)
@@ -768,6 +794,7 @@ local function clear()
     file_timer:kill()
     seek_timer:kill()
     anistream_stale_timer:kill() -- anistream
+    anistream_retry_timer:kill() -- anistream
     if options.quit_after_inactivity > 0 then
         if show_thumbnail or activity_timer:is_enabled() then
             activity_timer:kill()
@@ -831,6 +858,7 @@ local function thumb(time, r_x, r_y, script)
     last_seek_time = time
     -- anistream: start the clock on this frame; see anistream_stale_timer.
     if anistream_spawned_url then
+        anistream_retry_timer:kill()
         anistream_stale_timer:kill()
         anistream_stale_timer:resume()
     end
