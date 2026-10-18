@@ -1046,6 +1046,10 @@ pub fn status_hints(app: &crate::app::App) -> Vec<(String, &'static str)> {
         // offered. Esc and Enter are fixed for every field; see `modal_action`.
         let enter = if app.search_opens_on_enter() { "open" } else { "search" };
         let mut hints = vec![("↵".to_string(), enter)];
+        // ↓ is how the keyboard gets from the field into the results; with none it does nothing.
+        if !app.content.is_empty() {
+            hints.push(("↓".to_string(), "results"));
+        }
         if let Some(key) = app.keymap.keys_for(Action::FilterSearch).first() {
             hints.push((key.render(), Action::FilterSearch.hint()));
         }

@@ -127,3 +127,20 @@ fn every_number_key_lands_the_same_way() {
         assert_eq!(a.nav.focus(), Focus::Stage, "{n}");
     }
 }
+
+#[test]
+fn down_moves_from_the_search_field_into_its_results() {
+    let mut a = app();
+    press(&mut a, &["4", "q", "u", "e", "r", "y"]);
+    assert_eq!(a.search_query, "query", "letters are typed in the field");
+    assert!(matches!(press(&mut a, &["enter"]).as_slice(), [Task::Search { .. }]));
+    a.apply(a.content_here(entries(30)));
+    assert_eq!(hint(&a, "↓"), Some("results"));
+
+    press(&mut a, &["down", "j", "j", "G"]);
+    assert_eq!(a.search_query, "query", "j and G were typed into the query");
+    assert_eq!(a.selected, 29);
+    assert!(a.selected < a.offset + ROWS, "the last result is off screen");
+    press(&mut a, &["esc"]);
+    assert!(a.is_typing(), "Esc from the results returns to the field");
+}

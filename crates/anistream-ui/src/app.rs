@@ -1318,6 +1318,12 @@ pub struct App {
     /// Server-side filters the next search will carry. Sticky across queries on purpose:
     /// narrowing to a genre and then trying three titles should not mean setting it thrice.
     pub search_filter: SearchFilters,
+    /// Whether the keyboard is in the search results rather than the query field.
+    ///
+    /// The field takes every printable key, so `j`, `k` and the title keys could never reach
+    /// the results while it had focus. ↓ moves from the field into the results, where they are
+    /// a list like any other; ↑ from the first row, `/` and Esc go back to typing.
+    pub search_in_results: bool,
     pub palette_query: String,
     /// The Kitsu sign-in prompts' buffers. The password is taken, not copied, when the
     /// exchange is dispatched, and both are cleared on every open and dismiss.
@@ -1519,6 +1525,7 @@ impl App {
             search_query: String::new(),
             searched_query: String::new(),
             search_filter: SearchFilters::default(),
+            search_in_results: false,
             palette_query: String::new(),
             kitsu_user: String::new(),
             kitsu_pass: String::new(),
@@ -2412,6 +2419,11 @@ impl App {
 
         let rows = self.rows_here()?;
         if rows == Rows::List {
+            // Above the first result is the query it answered.
+            if self.search_in_results && action == Action::Up && self.selected == 0 {
+                self.search_in_results = false;
+                return None;
+            }
             match action {
                 Action::Top => {
                     self.selected = 0;
@@ -2708,12 +2720,23 @@ impl App {
                 self.palette_query.clear();
                 self.nav.open_overlay(Overlay::CommandPalette);
             }
+            // Out of the search results is back into the query they answered, one step short
+            // of the rail — the same order the two were entered in.
+            Action::Back if self.search_in_results && self.on_search_root() => {
+                self.search_in_results = false;
+            }
             Action::Back => self.go_back(),
             Action::ToggleRail => self.nav.toggle_rail(),
             Action::JumpSection(n) => {
                 if let Some(section) = Section::from_index(usize::from(n).saturating_sub(1)) {
                     return self.go_to_section(section);
                 }
+            }
+            // Already on Search, `/` means "let me type" rather than "start again": it returns
+            // to the field with the query and results as they were, without asking again.
+            Action::FocusSearch if self.on_search_root() => {
+                self.search_in_results = false;
+                self.nav.focus_stage();
             }
             Action::FocusSearch => return self.go_to_section(Section::Search),
             // Every vertical key, for whatever has the keyboard: the rail when it has focus,
@@ -2740,7 +2763,10 @@ impl App {
             {
                 self.go_back();
             }
-            Action::Left => self.nav.focus_rail(),
+            Action::Left => {
+                self.search_in_results = false;
+                self.nav.focus_rail();
+            }
             // In the episode table Enter plays; everywhere else it opens the title.
             Action::Open if self.in_episodes() => return self.play_selected_episode(),
             // A title page is already open, so Enter goes one deeper — the episode table — the
@@ -3500,7 +3526,13 @@ impl App {
         match self.nav.back() {
             // At the very root, back is a no-op rather than a quit.
             crate::nav::BackOutcome::AtRoot => self.status = "at the top — Q to quit".into(),
-            crate::nav::BackOutcome::Popped => self.restore_title(),
+            crate::nav::BackOutcome::Popped => {
+                if self.nav.focus() == Focus::Rail {
+                    // Coming back from the rail lands in the search field, not mid-results.
+                    self.search_in_results = false;
+                }
+                self.restore_title();
+            }
             crate::nav::BackOutcome::ClosedOverlay => {}
         }
     }
@@ -3668,6 +3700,9 @@ impl App {
                 }
                 self.searched_query = query.clone();
                 self.content = Content::Loading;
+                // New results start at their top, not at the row the old ones were left on.
+                self.selected = 0;
+                self.offset = 0;
                 Some(Task::Search { query, filter: self.search_filter.clone() })
             }
             Some(Overlay::Rate) => {
@@ -4410,12 +4445,22 @@ impl App {
                 }
                 self.searched_query = query.clone();
                 self.content = Content::Loading;
+                // New results start at their top, not at the row the old ones were left on.
+                self.selected = 0;
+                self.offset = 0;
                 return Some(Task::Search { query, filter: self.search_filter.clone() });
             }
-            // The result list under Search's field. A prompt has no list of its own, and the
-            // arrows used to move the one behind it.
-            Action::Down if !in_prompt => self.selected = self.selected.saturating_add(1),
-            Action::Up if !in_prompt => self.selected = self.selected.saturating_sub(1),
+            // Down leaves the query for its results, where the keyboard is a list's again: `j`,
+            // `k`, the pages and every title key. Moving the selection from inside the field
+            // instead ran it past the end of the list, unbounded and unscrolled, with `j` and
+            // `k` typed rather than moving it.
+            Action::Down | Action::PageDown
+                if self.on_search_root() && !in_prompt && !self.content.is_empty() =>
+            {
+                self.search_in_results = true;
+            }
+            // Anything else, the vertical keys included: nothing behind a text field moves while
+            // it has the keyboard.
             _ => {}
         }
         None
@@ -4454,6 +4499,7 @@ impl App {
             || (self.nav.section() == Section::Search
                 && self.nav.focus() == Focus::Stage
                 && !self.nav.has_overlay()
+                && !self.search_in_results
                 // Only the search section's *own* view is a text field. Without this, opening a
                 // result and then typing edited the query behind the title you were looking at,
                 // and `Esc` left the field instead of going back — two different surprises from
@@ -4549,6 +4595,7 @@ impl App {
         self.offset = 0;
         self.detail = None;
         self.title_trail.clear();
+        self.search_in_results = false;
         // Loading only where a list is about to be asked for. A section with no list of its
         // own — or Search with nothing typed — would otherwise pulse forever, since the fetch
         // that ends the pulse never goes out.
@@ -4578,6 +4625,7 @@ impl App {
         self.offset = 0;
         self.detail = None;
         self.title_trail.clear();
+        self.search_in_results = false;
         self.reload()
     }
 
@@ -7553,6 +7601,45 @@ mod tests {
         }
         assert_eq!(a.content, Content::Empty);
         assert_eq!(a.take_pending(), None);
+    }
+
+    #[test]
+    fn down_from_the_search_field_moves_into_results_that_scroll() {
+        let mut a = app();
+        a.handle(Action::JumpSection(4), 5);
+        type_text(&mut a, "query");
+        a.handle(Action::Open, 5);
+        a.apply(a.content_here(entries(40)));
+        assert!(a.is_typing());
+
+        a.handle(Action::Down, 5);
+        assert!(!a.is_typing(), "the results have the keyboard");
+        assert_eq!(a.selected, 0);
+        for _ in 0..12 {
+            a.handle(Action::Down, 5);
+        }
+        assert_eq!(a.selected, 12);
+        assert!(a.offset > 0 && a.selected < a.offset + 5, "the window follows");
+        a.handle(Action::Bottom, 5);
+        a.handle(Action::Down, 5);
+        assert_eq!(a.selected, 39, "bounded at the last result");
+        // A result is a list row like any other.
+        assert_eq!(
+            a.handle(Action::Download, 5),
+            Some(Task::DownloadEpisode { id: AnilistId::new(40), episode: "1".into() })
+        );
+
+        // Back to typing: Esc, ↑ from the first result, or `/`, which does not ask again.
+        a.handle(Action::Back, 5);
+        assert!(a.is_typing());
+        a.handle(Action::Down, 5);
+        a.handle(Action::Top, 5);
+        a.handle(Action::Up, 5);
+        assert!(a.is_typing());
+        a.handle(Action::Down, 5);
+        assert_eq!(a.handle(Action::FocusSearch, 5), None);
+        assert!(a.is_typing());
+        assert_eq!(a.content.len(), 40);
     }
 
     #[test]
