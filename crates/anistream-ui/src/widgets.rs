@@ -369,30 +369,47 @@ impl Widget for Header<'_> {
             return;
         }
         let y = area.top();
+        let title = truncate(self.title, area.width as usize);
+        let title_width = title.chars().count() as u16;
         buf.set_string(
             area.left(),
             y,
-            truncate(self.title, area.width as usize),
+            title,
             self.palette.style(Role::Text).add_modifier(Modifier::BOLD),
         );
 
-        let spans: Vec<Span<'_>> = self
-            .chips
-            .iter()
-            .enumerate()
-            .flat_map(|(i, (text, role))| {
-                let sep = if i == 0 {
-                    Span::raw("")
-                } else {
-                    Span::styled("  ", self.palette.style(Role::TextDim))
-                };
-                [sep, Span::styled(text.clone(), self.palette.style(*role))]
-            })
-            .collect();
+        let line_of = |chips: &[(String, Role)]| {
+            let spans: Vec<Span<'_>> = chips
+                .iter()
+                .enumerate()
+                .flat_map(|(i, (text, role))| {
+                    let sep = if i == 0 {
+                        Span::raw("")
+                    } else {
+                        Span::styled("  ", self.palette.style(Role::TextDim))
+                    };
+                    [sep, Span::styled(text.clone(), self.palette.style(*role))]
+                })
+                .collect();
+            Line::from(spans)
+        };
 
-        let line = Line::from(spans);
+        // Chips give way from the end rather than run over the wordmark: below about thirty
+        // columns they overwrote it, and overlapping text is worse than absent text. A group
+        // mark (the rule-weight interpunct) is never left with nothing after it.
+        let mut chips = self.chips;
+        let line = loop {
+            while let [rest @ .., (_, Role::Rule)] = chips {
+                chips = rest;
+            }
+            let line = line_of(chips);
+            if chips.is_empty() || title_width + 2 + line.width() as u16 <= area.width {
+                break line;
+            }
+            chips = &chips[..chips.len() - 1];
+        };
         let width = line.width() as u16;
-        if width < area.width {
+        if width > 0 {
             let x = area.right() - width;
             buf.set_line(x, y, &line, width);
         }
@@ -771,6 +788,25 @@ mod tests {
         let text = row_text(&buf, 0);
         assert!(text.starts_with("anistream"));
         assert!(text.trim_end().ends_with("ai ✓"), "got {text:?}");
+    }
+
+    #[test]
+    fn header_chips_give_way_rather_than_overwrite_the_wordmark() {
+        let p = palette();
+        let chips = [
+            ("src ✓".to_string(), Role::State),
+            ("·".to_string(), Role::Rule),
+            ("trk 3".to_string(), Role::State),
+        ];
+        let row = |width: u16| {
+            let mut buf = buffer(width, 1);
+            Header::new(&p, "anistream").chips(&chips).render(buf.area, &mut buf);
+            row_text(&buf, 0)
+        };
+        let text = row(24);
+        assert!(text.starts_with("anistream  "), "got {text:?}");
+        assert!(text.trim_end().ends_with("src ✓"), "the last chip and its mark go: {text:?}");
+        assert_eq!(row(12).trim_end(), "anistream", "no room for any chip");
     }
 
     #[test]
