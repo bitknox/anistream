@@ -406,12 +406,20 @@ impl Widget for Header<'_> {
 pub struct StatusLine<'a> {
     palette: &'a Palette,
     state: &'a str,
+    state_role: Role,
     hints: &'a [(String, &'static str)],
 }
 
 impl<'a> StatusLine<'a> {
     pub fn new(palette: &'a Palette, state: &'a str) -> Self {
-        Self { palette, state, hints: &[] }
+        Self { palette, state, state_role: Role::TextDim, hints: &[] }
+    }
+
+    /// Draw the state in `role` rather than dimmed: a standing problem is state, and should
+    /// read as one.
+    pub fn state_role(mut self, role: Role) -> Self {
+        self.state_role = role;
+        self
     }
 
     pub fn hints(mut self, hints: &'a [(String, &'static str)]) -> Self {
@@ -458,7 +466,7 @@ impl Widget for StatusLine<'_> {
             area.left(),
             y,
             truncate(self.state, state_room as usize),
-            self.palette.style(Role::TextDim),
+            self.palette.style(self.state_role),
         );
         if fits {
             buf.set_line(area.right() - width, y, &line, width);

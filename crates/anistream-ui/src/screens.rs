@@ -94,9 +94,6 @@ pub fn render(frame: &mut TFrame<'_>, app: &App) {
 
     Hairline::new(&app.palette).render(geometry.status_rule, buf);
     let caption_end = render_activity(buf, app, &activity, geometry.status_rule, now);
-    // The session's standing notice, on the stage's bottom row. Toasts sit on the status rule,
-    // so the two never compete for a place.
-    render_notice(buf, app, geometry.stage);
     render_overlay(buf, app, area, &geometry);
     // After the overlay, so it is not dimmed with the rest: while one is open the status line
     // carries that overlay's own keys, which are no use faded into the scrim — and the overlay
@@ -252,6 +249,17 @@ fn clock(span: std::time::Duration) -> String {
 }
 
 fn render_status(buf: &mut Buffer, app: &App, geometry: &Frame) {
+    // A config that did not load outranks everything the line would otherwise say: until it
+    // is fixed, the state shown is the defaults', and every setting refuses to save. Here
+    // rather than over the stage's bottom row, which hid whatever list row sat there.
+    if let Some(notice) = app.notice.as_deref() {
+        let hints = status_hints(app);
+        StatusLine::new(&app.palette, notice)
+            .state_role(Role::Alert)
+            .hints(&hints)
+            .render(geometry.status, buf);
+        return;
+    }
     let state = if app.status.is_empty() {
         format!(
             "{} · {} · {}p",
@@ -790,6 +798,22 @@ fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
             );
         }
         y += 1;
+        // A failed pull says so under its tracker until the next one succeeds: "connected" on
+        // its own read as everything working while the library had stopped updating.
+        if let Some((error, at)) = &state.pull_error
+            && y < area.bottom().saturating_sub(2)
+        {
+            buf.set_string(
+                area.left() + 16,
+                y,
+                truncate(
+                    &format!("pull failed {}: {error}", pull_time(*at)),
+                    area.right().saturating_sub(area.left() + 17) as usize,
+                ),
+                app.palette.style(Role::Alert),
+            );
+            y += 1;
+        }
     }
 
     // File-stored tokens are worth knowing about on a shared machine, but they are a working
@@ -3016,26 +3040,6 @@ fn render_placeholder(buf: &mut Buffer, app: &App, area: Rect, title: &str, note
     }
 }
 
-/// The session's standing notice, on the stage's bottom row.
-///
-/// Drawn like an alert toast so it reads as one, but across the whole row and for good: it
-/// describes something that stays true until the app restarts.
-fn render_notice(buf: &mut Buffer, app: &App, area: Rect) {
-    let Some(notice) = app.notice.as_deref() else { return };
-    if area.height < 2 || area.width < 8 {
-        return;
-    }
-    let y = area.bottom() - 1;
-    let ground = app.palette.ground().unwrap_or(app.palette.ground_ref());
-    for x in area.left()..area.right() {
-        buf[(x, y)].set_char(' ').set_bg(ground.to_ratatui());
-    }
-    let text = truncate(notice, area.width.saturating_sub(4) as usize);
-    let x = area.right().saturating_sub(text.chars().count() as u16 + 2);
-    buf[(x, y)].set_char(OBI).set_style(app.palette.style(Role::Alert));
-    buf.set_string(x + 2, y, &text, app.palette.style(Role::Text));
-}
-
 /// The newest transient message, written into the status hairline at its right end.
 ///
 /// On the rule rather than over the stage. Stacked in the stage's bottom-right corner, toasts
@@ -4033,6 +4037,22 @@ mod tests {
         assert!(pull_time(at - 10 * 86_400).starts_with("on "));
     }
 
+    #[test]
+    fn the_accounts_screen_shows_a_failed_pull_under_its_tracker() {
+        // The reason used to reach only a list nothing on the screen drew from, so the row kept
+        // saying "connected" while the library had stopped updating.
+        let mut app = app_with(Content::Entries(Vec::new()));
+        app.apply(Update::Sync(Box::new(crate::app::SyncState {
+            connected: true,
+            pull_error: Some(("network: timed out".into(), chrono::Local::now().timestamp())),
+            ..crate::app::SyncState::new("anilist")
+        })));
+        app.go_to_section(Section::Accounts);
+        let text = text_of(&render_to_buffer(&app, 120, 34));
+        assert!(text.contains("pull failed at "), "{text}");
+        assert!(text.contains("network: timed out"), "{text}");
+    }
+
     /// An episode that has already aired has no time left to count down to, and the "out" half
     /// of the line already reports it. Saying "in now" alongside read as a release that never
     /// arrived.
@@ -4256,12 +4276,17 @@ mod tests {
             let notice = rows.iter().position(|r| r.contains("unknown field `qualty`"));
             let toast = rows.iter().position(|r| r.contains("a passing problem"));
             assert!(notice.is_some(), "{section:?} lost the notice:\n{text}");
-            // The notice holds the stage's last row and the toast the status rule under it, so
-            // neither covers the other.
+            // The notice is the status line, the screen's last row, and the toast sits on the
+            // rule above it: neither covers the other, and neither covers a row of the stage.
             assert_eq!(
-                toast,
-                notice.map(|row| row + 1),
-                "{section:?}: the toast belongs on the rule below the notice:\n{text}"
+                notice,
+                Some(rows.len() - 1),
+                "{section:?}: not on the status line:\n{text}"
+            );
+            assert_eq!(
+                toast.map(|row| row + 1),
+                notice,
+                "{section:?}: the toast belongs on the rule above the notice:\n{text}"
             );
             assert!(!text.contains("saved quality"), "toasts still expire");
         }
