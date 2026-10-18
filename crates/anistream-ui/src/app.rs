@@ -85,6 +85,8 @@ pub enum SettingId {
     MarkChapters,
     Fullscreen,
     Upscaling,
+    PlayerUi,
+    NightMode,
     DownloadDir,
     MergeSubtitles,
     KeepSeeding,
@@ -103,7 +105,7 @@ pub enum SettingId {
 impl SettingId {
     /// Display order. Grouped by [`Self::category`] — the renderer draws a heading each
     /// time the category changes, so rows of one category must be contiguous here.
-    pub const ALL: [Self; 25] = [
+    pub const ALL: [Self; 27] = [
         Self::Theme,
         Self::Motion,
         Self::Translation,
@@ -116,6 +118,8 @@ impl SettingId {
         Self::MarkChapters,
         Self::Fullscreen,
         Self::Upscaling,
+        Self::PlayerUi,
+        Self::NightMode,
         Self::DownloadDir,
         Self::MergeSubtitles,
         Self::KeepSeeding,
@@ -158,7 +162,9 @@ impl SettingId {
             | Self::SkipFiller
             | Self::MarkChapters
             | Self::Fullscreen
-            | Self::Upscaling => "playback",
+            | Self::Upscaling
+            | Self::PlayerUi
+            | Self::NightMode => "playback",
             Self::DownloadDir
             | Self::MergeSubtitles
             | Self::KeepSeeding
@@ -190,6 +196,8 @@ impl SettingId {
             Self::MarkChapters => "mark opening and ending",
             Self::Fullscreen => "start fullscreen",
             Self::Upscaling => "upscaling",
+            Self::PlayerUi => "player interface",
+            Self::NightMode => "night mode",
             Self::DownloadDir => "download folder",
             Self::MergeSubtitles => "merge subtitles in",
             Self::KeepSeeding => "keep seeding",
@@ -2923,6 +2931,20 @@ impl App {
                         // Assembled per playback, so the next episode uses this.
                         Some("applies to the next episode you start"),
                     ),
+                    S::PlayerUi => (
+                        match playback.player_ui {
+                            anistream_core::config::PlayerUi::Anistream => "anistream",
+                            anistream_core::config::PlayerUi::Mpv => "your mpv setup",
+                        }
+                        .into(),
+                        Some(("playback", "player_ui")),
+                        Some("thumbnails, menus and the skip button in anistream's look"),
+                    ),
+                    S::NightMode => (
+                        on_off(playback.night_mode),
+                        Some(("playback", "night_mode")),
+                        Some("evens out quiet dialogue and loud music"),
+                    ),
                     S::DownloadDir => (
                         self.config
                             .downloads
@@ -3112,6 +3134,19 @@ impl App {
                     }
                     .into(),
                 )
+            }
+            SettingId::PlayerUi => {
+                use anistream_core::config::PlayerUi as P;
+                let next = match self.config.playback.player_ui {
+                    P::Anistream => P::Mpv,
+                    P::Mpv => P::Anistream,
+                };
+                self.config.playback.player_ui = next;
+                V::Str(if next == P::Anistream { "anistream" } else { "mpv" }.into())
+            }
+            SettingId::NightMode => {
+                self.config.playback.night_mode = !self.config.playback.night_mode;
+                V::Bool(self.config.playback.night_mode)
             }
             SettingId::MergeSubtitles => {
                 self.config.downloads.merge_subtitles = !self.config.downloads.merge_subtitles;
