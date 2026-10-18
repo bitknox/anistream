@@ -17,7 +17,8 @@ use std::{
     time::Duration,
 };
 
-use anistream_player::{MpvSession, PlaybackEvent};
+use anistream_core::{ids::AnilistId, media::Translation};
+use anistream_player::{MpvSession, PlaybackEvent, TrackPolicy, TrackPreferences};
 use tokio::sync::mpsc::UnboundedReceiver;
 
 /// How long a parked window waits for the next playback.
@@ -30,6 +31,19 @@ const PARK_LIMIT: Duration = Duration::from_secs(120);
 pub struct Player {
     pub session: MpvSession,
     pub events: UnboundedReceiver<PlaybackEvent>,
+    /// The track policy travels with the process rather than the episode: mpv carries an
+    /// explicit track id and the subtitle delay from one file into the next, so whatever
+    /// chooses tracks has to know what the previous file left behind.
+    pub tracks: TrackPolicy,
+    /// Whose memory `tracks` holds — what the next file's leftovers are stored under.
+    pub tracks_for: Option<(AnilistId, Translation)>,
+}
+
+impl Player {
+    pub fn new(session: MpvSession, events: UnboundedReceiver<PlaybackEvent>) -> Self {
+        let preferences = TrackPreferences { translation: Translation::Sub, language: None };
+        Self { session, events, tracks: TrackPolicy::new(preferences, None), tracks_for: None }
+    }
 }
 
 /// At most one parked player, shared by every playback the task runner starts.

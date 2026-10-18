@@ -166,6 +166,7 @@ async fn main() {
             // One episode and done: nothing would claim a parked window.
             auto_next: false,
             night_mode: false,
+            remember_tracks: false,
             upscaling: config.playback.upscaling,
             // No trackers: this probe checks the local path, and queueing against a real
             // account from a test run would be wrong.

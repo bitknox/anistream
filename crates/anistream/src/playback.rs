@@ -18,7 +18,8 @@ use anistream_core::{
 use anistream_net::HttpClient;
 use anistream_player::{
     Action, Choice, ExternalPlayer, Mpv, MpvSession, PlaybackEvent, PlaybackTracker,
-    ScriptEvent, SkipInterval, SkipKind, companion, skip,
+    ScriptEvent, SkipInterval, SkipKind, TrackAction, TrackInput, TrackPreferences, companion,
+    skip,
 };
 use anistream_store::{Store, WatchEvent};
 use anistream_ui::app::{PlayerCommand, Toast, Update};
@@ -304,6 +305,9 @@ pub struct PlaySettings {
     /// Whether a finished episode rolls on to the next, from `playback.auto_next`.
     pub auto_next: bool,
     pub night_mode: bool,
+    /// Keep the viewer's audio and subtitle picks and subtitle delay per series, from
+    /// `playback.persist_speed` — which has always promised "speed and track choice".
+    pub remember_tracks: bool,
     pub upscaling: anistream_core::config::Upscaling,
     /// Tracker ids to queue progress against when the episode completes.
     pub tracker_ids: Vec<String>,
@@ -418,6 +422,21 @@ pub async fn play(
         night: settings.night_mode,
     };
 
+    // Read once: every stream this playback tries is the same series in the same translation.
+    let memory = if settings.remember_tracks {
+        let (store, id, translation) = (store.clone(), context.anilist_id, context.translation);
+        tokio::task::spawn_blocking(move || store.track_memory(id, translation))
+            .await
+            .ok()
+            .and_then(|read| {
+                read.inspect_err(|e| tracing::debug!(error = %e, "no track memory"))
+                    .ok()
+                    .flatten()
+            })
+    } else {
+        None
+    };
+
     let total = streams.len();
     // Named in the log so "did fallback have anything to work with" is answerable after the
     // fact — a pool of one behaves exactly like the old single-stream path.
@@ -475,7 +494,7 @@ pub async fn play(
         if player.is_none() {
             let _ = tx.send(Update::Status("starting mpv…".into()));
             match mpv.spawn(&request).await {
-                Ok((session, events)) => player = Some(Player { session, events }),
+                Ok((session, events)) => player = Some(Player::new(session, events)),
                 Err(e) if last => {
                     let _ = tx.send(Update::Toast(Toast::alert(format!("mpv: {e}"))));
                     // The player never existed, but the UI has Now Playing up and a control
@@ -492,6 +511,22 @@ pub async fn play(
             }
         }
         let Some(current) = player.as_mut() else { continue };
+
+        // The track policy belongs to the process; point it at this series before the file
+        // loads, and settle what it still owed the previous one.
+        let preferences = TrackPreferences {
+            translation: context.translation,
+            language: settings.subtitle_language.clone(),
+        };
+        let owed = current.tracks.prepare(preferences, memory.clone());
+        let key = (context.anilist_id, context.translation);
+        if let Some(previous) = current.tracks_for.replace(key) {
+            for action in owed {
+                if let TrackAction::Remember(memory) = action {
+                    remember_tracks(&store, settings.remember_tracks, previous, memory);
+                }
+            }
+        }
 
         run.publish(&current.session, &streams, index).await;
         if let Err(e) = current.session.load(&stream, &request).await {
@@ -883,6 +918,27 @@ impl Run<'_> {
                 }
             };
 
+            // Tracks first, and for every event: the policy reads the clock off each one.
+            let track_input = match &event {
+                PlaybackEvent::TrackList(list) => Some(TrackInput::TrackList(
+                    anistream_player::tracks::parse_track_list(list),
+                )),
+                PlaybackEvent::Aid(id) => Some(TrackInput::Aid(*id)),
+                PlaybackEvent::Sid(id) => Some(TrackInput::Sid(*id)),
+                PlaybackEvent::SubDelay(delay) => Some(TrackInput::SubDelay(*delay)),
+                PlaybackEvent::Loaded => Some(TrackInput::FileLoaded),
+                PlaybackEvent::Ended { .. } | PlaybackEvent::Replaced => {
+                    Some(TrackInput::EndFile)
+                }
+                PlaybackEvent::Progress { .. } => Some(TrackInput::Tick),
+                _ => None,
+            };
+            if let Some(input) = track_input {
+                for action in player.tracks.observe(&input, std::time::Instant::now()) {
+                    self.apply_track(action, session).await;
+                }
+            }
+
             match &event {
                 PlaybackEvent::Script(script) => {
                     if let Some(outcome) = self
@@ -1104,6 +1160,20 @@ impl Run<'_> {
         None
     }
 
+    /// Carry out what the track policy decided.
+    async fn apply_track(&self, action: TrackAction, session: &MpvSession) {
+        if let TrackAction::Remember(memory) = action {
+            let key = (self.context.anilist_id, self.context.translation);
+            remember_tracks(self.store, self.settings.remember_tracks, key, memory);
+            return;
+        }
+        if let Some((name, value)) = action.property() {
+            let _ = session
+                .send(anistream_player::protocol::Command::SetProperty(name, value))
+                .await;
+        }
+    }
+
     /// Carry out a tracker action that is not about skipping.
     async fn act(
         &self,
@@ -1218,6 +1288,24 @@ impl Run<'_> {
             let _ = self.tx.send(Update::ProgressQueued);
         }
     }
+}
+
+/// Store a series' track memory, off the async worker.
+fn remember_tracks(
+    store: &Store,
+    enabled: bool,
+    (id, translation): (AnilistId, Translation),
+    memory: anistream_player::tracks::TrackMemory,
+) {
+    if !enabled {
+        return;
+    }
+    let store = store.clone();
+    tokio::task::spawn_blocking(move || {
+        if let Err(e) = store.remember_tracks(id, translation, &memory) {
+            tracing::warn!(error = %e, "could not remember track choices");
+        }
+    });
 }
 
 /// The skip kind as the companion names it.

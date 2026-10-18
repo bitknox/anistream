@@ -58,6 +58,7 @@ fn settings(auto_next: bool) -> PlaySettings {
         subtitle_language: None,
         auto_next,
         night_mode: false,
+        remember_tracks: true,
         upscaling: Default::default(),
         tracker_ids: Vec::new(),
         presence: Default::default(),

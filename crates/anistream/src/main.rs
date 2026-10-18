@@ -3194,6 +3194,7 @@ fn play_settings(
         subtitle_language: Some(playback.subtitle_language.clone()),
         auto_next: playback.auto_next,
         night_mode: playback.night_mode,
+        remember_tracks: playback.persist_speed,
         upscaling: playback.upscaling,
         tracker_ids,
         presence: config.presence.clone(),

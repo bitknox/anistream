@@ -334,8 +334,8 @@ pub fn parse_line(line: &str) -> Option<Event> {
                     value.filter(|v| v.is_object()).map(Event::VideoTrack)
                 }
                 Some("track-list") => value.filter(|v| v.is_array()).map(Event::TrackList),
-                Some("aid") => value.map(|v| Event::Aid(track_id(&v))),
-                Some("sid") => value.map(|v| Event::Sid(track_id(&v))),
+                Some("aid") => value.as_ref().and_then(track_id).map(Event::Aid),
+                Some("sid") => value.as_ref().and_then(track_id).map(Event::Sid),
                 Some("sub-delay") => value.and_then(|v| v.as_f64()).map(Event::SubDelay),
                 Some("paused-for-cache") => {
                     value.and_then(|v| v.as_bool()).map(Event::Buffering)
@@ -364,9 +364,12 @@ pub fn parse_line(line: &str) -> Option<Event> {
     }
 }
 
-/// Read a track selection: mpv reports a number, or `false` when the track is off.
-fn track_id(value: &serde_json::Value) -> Option<i64> {
-    value.as_i64()
+/// Read a track selection: a number, or `false` when the track is off.
+///
+/// `"auto"` is what mpv reports between files. It is not a selection, and reading it as "off"
+/// would look like the viewer turning subtitles off every time a file ends.
+fn track_id(value: &serde_json::Value) -> Option<Option<i64>> {
+    crate::tracks::parse_track_id(value)
 }
 
 /// The arguments anistream always passes to mpv.
@@ -819,8 +822,10 @@ mod tests {
     fn track_selections_read_off_as_none() {
         let on = r#"{"event":"property-change","name":"sid","data":2}"#;
         let off = r#"{"event":"property-change","name":"sid","data":false}"#;
+        let between = r#"{"event":"property-change","name":"sid","data":"auto"}"#;
         assert_eq!(parse_line(on), Some(Event::Sid(Some(2))));
         assert_eq!(parse_line(off), Some(Event::Sid(None)));
+        assert_eq!(parse_line(between), Some(Event::Ignored), "auto is not a choice");
     }
 
     #[test]
