@@ -6,6 +6,7 @@
 //! else. Their streams are Widevine + PlayReady protected, so mpv cannot play them, and the
 //! honest answer is to hand off rather than pretend.
 
+pub mod bundle;
 pub mod external;
 pub mod ipc;
 pub mod mpv;
