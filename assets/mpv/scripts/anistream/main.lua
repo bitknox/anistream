@@ -87,9 +87,12 @@ overlay.register(menu_view)
 overlay.register(help)
 
 -- The bottom-right corner holds one element at a time, the first of these that has something
--- to show. A stall outranks everything (nothing else matters if the video is not moving); Up
--- Next outranks an ending's skip button, since playing on is the better way out of an ending.
-local CORNER = { stall, up_next, skipped, skip }
+-- to show. A stall outranks everything (nothing else matters if the video is not moving). The
+-- note after an automatic skip comes next: it is there for six seconds, and an ending skipped
+-- on its own lands where Up Next is already showing, so ranked below it the way back into the
+-- ending was never on screen and `u` was never bound. Up Next outranks an ending's skip
+-- button, since playing on is the better way out of an ending.
+local CORNER = { stall, skipped, up_next, skip }
 
 ---------------------------------------------------------------------------------------------
 -- The one refresh: visibility, keys, published state

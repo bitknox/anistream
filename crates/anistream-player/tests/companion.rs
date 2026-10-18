@@ -501,6 +501,28 @@ async fn the_corner_shows_one_thing_at_a_time() {
 }
 
 #[tokio::test]
+async fn an_ending_skipped_under_up_next_still_offers_undo() {
+    // An ending skipped on its own lands where Up Next is already up. The note offering the way
+    // back takes the corner for its few seconds, with `u`, and Up Next has it again after.
+    require_mpv!();
+    let mut player = Player::start(Some(&clip(30)), &["--pause"]).await;
+    player.state("next", json!({"label": "Episode 2", "at": 0.0, "auto": true})).await;
+    player.wait_ui("Up Next", |ui| ui["up_next"]["visible"] == true).await;
+    player
+        .message(
+            "skipped",
+            json!({"kind": "ending", "label": "ending", "from": 12.3, "to": 25.0}),
+        )
+        .await;
+    let ui = player.wait_ui("the undo note", |ui| ui["skipped"]["visible"] == true).await;
+    assert_eq!(ui["up_next"]["visible"], false, "{ui}");
+    player.key("u").await;
+    assert_eq!(player.event("undo-skip").await, json!({"to": 12.3}));
+    player.wait_ui("Up Next again", |ui| ui["up_next"]["visible"] == true).await;
+    player.finish().await;
+}
+
+#[tokio::test]
 async fn the_loading_card_follows_status() {
     require_mpv!();
     let mut player = Player::start(None, &[]).await;
