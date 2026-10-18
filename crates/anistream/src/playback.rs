@@ -872,11 +872,12 @@ impl Run<'_> {
                 .collect(),
             sources: streams
                 .iter()
+                .zip(source_details(streams))
                 .enumerate()
-                .map(|(i, s)| companion::SourceItem {
+                .map(|(i, (s, detail))| companion::SourceItem {
                     id: i.to_string(),
                     label: s.provider_id.clone(),
-                    detail: Some(stream_detail(s)),
+                    detail: Some(detail),
                     current: i == current,
                 })
                 .collect(),
@@ -1693,7 +1694,63 @@ const fn kind_id(kind: SkipKind) -> &'static str {
     kind.label()
 }
 
-/// A stream's second line in the Sources menu.
+/// Each stream's second line in the Sources menu, told apart where two would read the same.
+///
+/// A provider often offers an episode from several servers with nothing else between them, and
+/// two rows reading "HLS" under the same provider gave no reason to pick either, nor a way to
+/// see which one was playing. The server's name tells them apart, and a number where even that
+/// is shared.
+fn source_details(streams: &[Stream]) -> Vec<String> {
+    let detail = |i: usize, server: bool| {
+        let base = stream_detail(&streams[i]);
+        match server.then(|| server_name(&streams[i].url)).flatten() {
+            Some(name) => format!("{base} · {name}"),
+            None => base,
+        }
+    };
+    let alike = |i: usize, j: usize, server: bool| {
+        streams[i].provider_id == streams[j].provider_id
+            && detail(i, server) == detail(j, server)
+    };
+    let shared =
+        |i: usize, server: bool| (0..streams.len()).any(|j| j != i && alike(i, j, server));
+    (0..streams.len())
+        .map(|i| {
+            if !shared(i, false) {
+                return detail(i, false);
+            }
+            if !shared(i, true) {
+                return detail(i, true);
+            }
+            // In the order they are listed, which is the order they are ranked.
+            let nth = (0..i).filter(|&j| alike(i, j, true)).count() + 1;
+            format!("{} · {nth}", detail(i, true))
+        })
+        .collect()
+}
+
+/// The part of a stream's host that names its server: `edge.alpha.example` is `alpha`. An
+/// address is kept whole; a loopback one names no server, and torrents share it.
+fn server_name(url: &str) -> Option<String> {
+    let authority = url.split_once("://")?.1.split(['/', '?', '#']).next()?;
+    let host = authority.rsplit_once('@').map_or(authority, |(_, host)| host);
+    let host = host.rsplit_once(':').map_or(host, |(host, _)| host);
+    if host.parse::<std::net::IpAddr>().is_ok_and(|ip| ip.is_loopback()) {
+        return None;
+    }
+    if host.parse::<std::net::IpAddr>().is_ok() {
+        return Some(host.to_owned());
+    }
+    let labels: Vec<&str> = host.split('.').filter(|l| !l.is_empty()).collect();
+    let name = match labels.as_slice() {
+        [] => return None,
+        [only] => *only,
+        [.., name, _suffix] => *name,
+    };
+    Some(name.to_owned())
+}
+
+/// A stream's second line in the Sources menu, before telling twins apart.
 fn stream_detail(stream: &Stream) -> String {
     let kind = match stream.kind {
         StreamKind::Hls => "HLS",
@@ -1908,6 +1965,31 @@ mod tests {
         // "OVA" and "S1" are real episode labels; asking aniskip about them is meaningless.
         let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
         assert!(fetch_skips(&http, Some(52_991), "OVA", None).await.is_empty());
+    }
+
+    fn hls(provider: &str, url: &str) -> Stream {
+        Stream { provider_id: provider.into(), ..Stream::new(url, StreamKind::Hls) }
+    }
+
+    #[test]
+    fn sources_that_would_read_the_same_are_told_apart() {
+        let streams = [
+            hls("plugin", "https://edge-1.alpha.example/a/master.m3u8"),
+            hls("plugin", "https://cdn.beta.example/b/master.m3u8?token=x"),
+            hls("plugin", "https://cdn.beta.example/c/master.m3u8"),
+            hls("other", "https://cdn.gamma.example/master.m3u8").with_quality(720),
+        ];
+        assert_eq!(
+            source_details(&streams),
+            ["HLS · alpha", "HLS · beta · 1", "HLS · beta · 2", "720p · HLS"],
+            "a row already unique is left as it was"
+        );
+        // A loopback address names no server; torrents behind it are numbered.
+        let local = [
+            hls("torrent", "http://127.0.0.1:4040/s/1"),
+            hls("torrent", "http://127.0.0.1:4040/s/2"),
+        ];
+        assert_eq!(source_details(&local), ["HLS · 1", "HLS · 2"]);
     }
 
     #[test]
