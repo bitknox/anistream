@@ -12,9 +12,9 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 -- anistream: modified copy of po5/thumbfast at 0f711de3138c9bd6718209d819ac54022c23ded2.
 -- Every change is marked `-- anistream:`: a helper above client_script, two blocks in
--- spawn() and one observer at the end of the file. The thumbnailer opens
--- user-data/anistream/thumbnail-url instead of `path` when the host sets one, and inherits
--- the parent's user-agent, referrer and http-header-fields. Provenance and licence:
+-- spawn(), one observer at the end of the file, and a timer that hides a frame which never
+-- arrives. The thumbnailer opens user-data/anistream/thumbnail-url instead of `path` when the
+-- host sets one, and inherits the parent's user-agent, referrer and http-header-fields. Provenance and licence:
 -- assets/THIRD-PARTY.md in the anistream repository.
 
 local options = {
@@ -745,8 +745,20 @@ local function check_new_thumb()
     return false
 end
 
+-- anistream: a torrent's thumbnail URL serves only pieces already downloaded, and a seek into
+-- a part that is not yet there produces no frame at all. Without this the previous thumbnail
+-- would stay up over a time it does not show; a frame that has not arrived within this long
+-- is hidden until the next one does. Verified pieces answer in about 50 ms.
+local anistream_stale_timer = mp.add_timeout(0.35, function()
+    if anistream_spawned_url and show_thumbnail and x ~= nil then
+        mp.command_native_async({"overlay-remove", options.overlay_id}, function() end)
+    end
+end)
+anistream_stale_timer:kill()
+
 file_timer = mp.add_periodic_timer(file_check_period, function()
     if check_new_thumb() then
+        anistream_stale_timer:kill() -- anistream: the frame arrived
         draw(real_w, real_h, script_name)
     end
 end)
@@ -755,6 +767,7 @@ file_timer:kill()
 local function clear()
     file_timer:kill()
     seek_timer:kill()
+    anistream_stale_timer:kill() -- anistream
     if options.quit_after_inactivity > 0 then
         if show_thumbnail or activity_timer:is_enabled() then
             activity_timer:kill()
@@ -816,6 +829,11 @@ local function thumb(time, r_x, r_y, script)
 
     if time == last_seek_time then return end
     last_seek_time = time
+    -- anistream: start the clock on this frame; see anistream_stale_timer.
+    if anistream_spawned_url then
+        anistream_stale_timer:kill()
+        anistream_stale_timer:resume()
+    end
     if not spawned then spawn(time) end
     request_seek()
     if not file_timer:is_enabled() then file_timer:resume() end

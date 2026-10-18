@@ -41,7 +41,8 @@ playing file's `path` when the host sets it (a torrent stream gives the thumbnai
 URL so it does not disturb piece priority), retires a running thumbnailer when that URL
 changes mid-file, and passes the parent's `http-header-fields` (one
 `--http-header-fields-append` per entry, so commas survive), `user-agent` and `referrer` to
-the child process. The modified file is shipped in source form, as MPL-2.0 requires.
+the child process. It also hides a thumbnail whose frame has not arrived within 350 ms, so a
+seek into a part of a torrent not yet downloaded shows nothing rather than the last frame. The modified file is shipped in source form, as MPL-2.0 requires.
 `assets/mpv/thumbfast-opts.conf` is anistream's own and not part of thumbfast.
 
 ## Zen Kaku Gothic New

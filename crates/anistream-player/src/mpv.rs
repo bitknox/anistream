@@ -241,9 +241,7 @@ impl MpvSession {
         // Before the load, so thumbfast sees the right address when it starts on this file.
         // Torrents give a second address that reads only what is already downloaded, so
         // thumbnails never pull bandwidth away from the playhead.
-        // MERGE: `stream.thumbnail_url` arrives with the torrent-thumbnail branch.
-        let thumbnail_url: Option<String> = None;
-        let thumbnails = match &thumbnail_url {
+        let thumbnails = match &stream.thumbnail_url {
             Some(url) => companion::state("thumbnail-url", url),
             None => companion::clear("thumbnail-url"),
         };
