@@ -2,16 +2,16 @@
 
 A provider plugin is a WebAssembly component: search terms in, episodes and stream URLs out.
 anistream loads `*.wasm` from the plugin directory (`anistream --plugins` prints it) and treats it
-like a native source — same ranking, health tracking and failover. Any WASI 0.2 language works;
-reference implementations in Rust and JavaScript live in `plugins/`.
+like a native source, with the same ranking, health tracking and failover. Any WASI 0.2 language
+works, and reference implementations in Rust and JavaScript live in `plugins/`.
 
-**The sandbox has no sockets — the host lends `fetch`.** The host owns the browser-shaped TLS
+**The sandbox has no sockets. The host lends `fetch`.** The host owns the browser-shaped TLS
 fingerprint; your plugin is a parser. It cannot reach anything outside its declared
 `allowed-hosts`, enforced host-side.
 
 ## The interface
 
-`wit/anistream-provider.wit` is the contract — package `anistream:provider@1.1.0`:
+`wit/anistream-provider.wit` is the contract, package `anistream:provider@1.1.0`:
 
 ```wit
 interface host {                          // what you may call
@@ -36,15 +36,15 @@ interface provider {                      // what you must export
 }
 ```
 
-- `fetch-many` — several requests concurrently, results in request order. Same allowlist and
+- `fetch-many`: several requests concurrently, results in request order. Same allowlist and
   fetch budget, per request. Return *all* your streams from `resolve`: playback falls over to
   the next stream when one produces no frames, so ordering is a hint, not a verdict.
-- `sources` — the selectable releases for the Sources overlay, best-first. An empty list means
-  "nothing to choose between": an answer, not a failure.
-- `resolve-source` — one candidate's id back into streams. Never fall back to the automatic pick.
-- `aes-decrypt` — AES-CBC; the key length selects 128, 192 or 256.
-- `config-get` — reads `[providers.plugins.settings.<your-id>]` from the user's config.toml.
-  Every key is optional; work with all of them unset.
+- `sources`: the selectable releases for the Sources overlay, best-first. An empty list means
+  "nothing to choose between", which is an answer and not a failure.
+- `resolve-source`: one candidate's id back into streams. Never fall back to the automatic pick.
+- `aes-decrypt`: AES-CBC. The key length selects 128, 192 or 256.
+- `config-get`: reads `[providers.plugins.settings.<your-id>]` from the user's config.toml.
+  Every key is optional, so work with all of them unset.
 
 Record fields are documented in the WIT. Easy to miss: `synonyms`/`format` on a search hit (title
 matching), `description`/`thumbnail`/`air-date`/`filler` on an episode, `format` on a subtitle
@@ -54,22 +54,22 @@ Errors map one-for-one onto the registry's failover rules:
 
 | Return         | Meaning                                      | Failover?                  |
 | -------------- | -------------------------------------------- | -------------------------- |
-| `not-found`    | Works, no such title or episode              | **No** — this is an answer |
+| `not-found`    | Works, no such title or episode              | **No**, this is an answer  |
 | `blocked(msg)` | Bot protection, rate limit, geo-block, ban   | Yes                        |
 | `parse(msg)`   | Response arrived, did not look like expected | Yes                        |
 | `other(msg)`   | Anything else                                | Yes                        |
 
-Do not flatten `not-found` into `other` — that makes every missing episode walk the whole chain.
+Do not flatten `not-found` into `other`. That makes every missing episode walk the whole chain.
 
 ## Rust
 
 ```sh
 cargo build --release --target wasm32-wasip2 \
   --manifest-path plugins/example-rust/Cargo.toml
-# then copy the .wasm into the plugin directory — `anistream --plugins` prints it
+# then copy the .wasm into the plugin directory; `anistream --plugins` prints it
 ```
 
-Start from `plugins/example-rust/src/lib.rs` — it exercises the whole ABI against a stable
+Start from `plugins/example-rust/src/lib.rs`. It exercises the whole ABI against a stable
 endpoint.
 
 ## JavaScript
@@ -84,7 +84,7 @@ Five differences from Rust:
 - Imports carry the package version: `anistream:provider/host@1.1.0`.
 - Names are lowerCamelCase: `list-episodes` → `listEpisodes`.
 - Errors are thrown, not returned: `throw { tag: 'not-found' }`. `fetch` needs `try`/`catch`.
-- Exports run without a receiver — `this.resolve(…)` traps; share a plain function.
+- Exports run without a receiver: `this.resolve(…)` traps, so share a plain function.
 - `--disable all` strips WASI.
 
 ## Cost
@@ -115,11 +115,11 @@ grant a new capability.
 | Methods         | GET, POST                 |
 
 The allowlist: http/https only; exact host or subdomain; no credentials in the URL; no loopback or
-private addresses even if declared; redirects are not followed — the next hop is allowlisted
+private addresses even if declared; redirects are not followed, and the next hop is allowlisted
 again. Reserved headers (`host`, `content-length`, `connection`, `transfer-encoding`,
 `accept-encoding`) are refused; `referer`, `cookie` and `user-agent` are yours. `config-get` sees
 only your own settings table, and the `describe` that reads your manifest at load time runs with
-no capabilities at all — no settings, no allowlist, no client.
+no capabilities at all: no settings, no allowlist, no client.
 
 WASI is linked, and the context is what withholds: no preopened directories, so nothing on disk is
 openable; every socket address is refused; no environment, no stdio. A guest can read the clock and
@@ -135,6 +135,29 @@ The conformance suite runs the same assertions against both references, plus `te
 which spins, allocates without bound, fetches an undeclared host and probes undeclared settings.
 Copy the `assert_reference_behaviour` shape for your own plugin.
 
-A published plugin is a `.wasm` file someone drops in a directory, so: declare the narrowest
-`allowed-hosts` that works (`anistream --plugins` shows it to users), name yourself clearly in
-`display_name`, and version `describe()`.
+To share a plugin, publish it to a plugin store ([plugin-stores.md](plugin-stores.md)), or hand
+over the `.wasm` for someone to put in their plugin directory. Either way, declare the narrowest
+`allowed-hosts` that works, since anistream shows it to users, name yourself clearly in
+`display-name`, and version `describe()`.
+
+A store reads the id, version and hosts from the plugin itself, and checks them:
+
+- The id is 1 to 64 characters of `a`–`z`, `0`–`9`, `-` and `_`, and does not start with `-` or
+  `_`. It cannot be `torrent`, `remote` or `plugins`, the names of anistream's own sources. The id
+  becomes the file name on every member's machine, so use one no other plugin uses.
+- The version is 1 to 64 letters, digits and `.+-_`, and does not start with `.`.
+- A published version never changes. Publish a new version for any change, however small.
+
+A store that cannot run WebAssembly, such as one on Cloudflare Workers, Vercel or Netlify, cannot
+ask the plugin what it is. It needs the plugin to carry its manifest in an `anistream:manifest`
+custom section, and refuses one without it. anistream adds the section when you publish from the
+app. For a plugin you publish some other way, stamp it first:
+
+```sh
+anistream plugin stamp plugin.wasm            # in place, or --out stamped.wasm
+```
+
+Stamping loads the plugin with no capabilities, asks it to describe itself and writes the answer
+into the file. A store that can run the plugin checks the section against the plugin's own answer.
+Every member's app loads the plugin before installing it and refuses one whose answer differs from
+the store's list, so nothing trusts the section further than that.

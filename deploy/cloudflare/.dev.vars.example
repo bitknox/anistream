@@ -1,0 +1,3 @@
+# The code that claims the store from its admin page while nobody owns it yet. Pick something
+# long and random, such as the output of `openssl rand -hex 16`.
+ANISTREAM_STORE_SETUP_CODE=

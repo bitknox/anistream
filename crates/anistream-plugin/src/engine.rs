@@ -254,7 +254,7 @@ impl anistream::provider::host::Host for PluginState {
 pub struct PluginHost {
     engine: wasmtime::Engine,
     limits: Limits,
-    http: Option<anistream_net::HttpClient>,
+    http: Option<crate::HttpClient>,
     /// Per-plugin settings from `[providers.plugins.settings.<id>]`, keyed by plugin id.
     /// Served to a guest one key at a time through the lent `config-get`.
     settings:
@@ -289,10 +289,7 @@ impl PluginHost {
     ///
     /// `http` may be `None`, yielding a host whose plugins load and describe themselves but
     /// cannot fetch — which is exactly what `plugin inspect` and the conformance tests want.
-    pub fn new(
-        limits: Limits,
-        http: Option<anistream_net::HttpClient>,
-    ) -> Result<Self, PluginError> {
+    pub fn new(limits: Limits, http: Option<crate::HttpClient>) -> Result<Self, PluginError> {
         Self::with_cache(limits, http, None)
     }
 
@@ -309,16 +306,10 @@ impl PluginHost {
     /// would most likely get wrong.
     pub fn with_cache(
         limits: Limits,
-        http: Option<anistream_net::HttpClient>,
+        http: Option<crate::HttpClient>,
         cache_dir: Option<&Path>,
     ) -> Result<Self, PluginError> {
-        let mut config = wasmtime::Config::new();
-        config
-            .wasm_component_model(true)
-            // The only mechanism that can stop a guest which never yields. Everything else here
-            // is a default; async support is unconditional in wasmtime 47 and no longer a flag.
-            .epoch_interruption(true);
-
+        let mut config = Self::config();
         if let Some(dir) = cache_dir {
             // Best-effort: a cache that will not initialise costs a slow start, never a failure,
             // so a bad path must not stop plugins from loading at all.
@@ -335,7 +326,38 @@ impl PluginHost {
             }
         }
 
-        let engine = wasmtime::Engine::new(&config)
+        Self::from_config(limits, http, &config)
+    }
+
+    /// A host for asking plugins what they are, each once, and never running them after.
+    ///
+    /// That is what a plugin store does with every upload, on machines rented by the half
+    /// gigabyte. Compiling on every core at once holds every core's work in memory together: the
+    /// JavaScript reference plugin peaked at about 650 MB that way, and at about 460 MB one
+    /// function at a time, for a few seconds more on an upload. Nothing is cached, because no
+    /// upload is compiled twice. It cannot fetch.
+    pub fn for_inspection(limits: Limits) -> Result<Self, PluginError> {
+        let mut config = Self::config();
+        config.parallel_compilation(false);
+        Self::from_config(limits, None, &config)
+    }
+
+    fn config() -> wasmtime::Config {
+        let mut config = wasmtime::Config::new();
+        config
+            .wasm_component_model(true)
+            // The only mechanism that can stop a guest which never yields. Everything else here
+            // is a default; async support is unconditional in wasmtime 47 and no longer a flag.
+            .epoch_interruption(true);
+        config
+    }
+
+    fn from_config(
+        limits: Limits,
+        http: Option<crate::HttpClient>,
+        config: &wasmtime::Config,
+    ) -> Result<Self, PluginError> {
+        let engine = wasmtime::Engine::new(config)
             .map_err(|e| PluginError::Load { path: "engine".into(), message: e.to_string() })?;
 
         let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
@@ -516,7 +538,7 @@ pub struct LoadedPlugin {
     component: wasmtime::component::Component,
     manifest: Manifest,
     limits: Limits,
-    http: Option<anistream_net::HttpClient>,
+    http: Option<crate::HttpClient>,
     /// This plugin's own settings, served through `config-get` on every call but `describe`.
     settings: std::collections::BTreeMap<String, String>,
 }

@@ -1,0 +1,29 @@
+// An anistream plugin store on Cloudflare Workers, with its records in D1 and plugin files in R2.
+//
+// Neither binding names an id. The Deploy to Cloudflare button, and `wrangler deploy` from
+// Wrangler 4.45 on, create the database and the bucket on the first deploy and link them.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "anistream-plugin-store",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-16",
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    // The store's name, as members see it in anistream.
+    "ANISTREAM_STORE_NAME": "Plugin store"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "anistream-plugin-store"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "FILES",
+      "bucket_name": "anistream-plugin-store-files"
+    }
+  ]
+}

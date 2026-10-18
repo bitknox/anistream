@@ -1,0 +1,29 @@
+[package]
+name = "anistream-store-server"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "The plugin store server: `anistream-store serve`, the binary the container image runs"
+
+[lib]
+doctest = false
+
+[[bin]]
+name = "anistream-store"
+path = "src/main.rs"
+
+[dependencies]
+anistream-plugin-store.workspace = true
+# The plugin host without `fetch`: a store asks plugins what they are and never lends them the
+# network, so the browser-emulating stack stays out of the server's build.
+anistream-plugin.workspace = true
+async-trait.workspace = true
+clap.workspace = true
+tempfile = "3"
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[lints]
+workspace = true

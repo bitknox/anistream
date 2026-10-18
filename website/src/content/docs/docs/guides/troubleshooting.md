@@ -1,6 +1,6 @@
 ---
-title: Troubleshooting playback
-description: Two commands separate a playback failure into "anistream" or "not anistream".
+title: Troubleshooting
+description: Telling a playback failure from an anistream one, and what the player and plugin stores need when they misbehave.
 ---
 
 Two commands cover most of it:
@@ -18,17 +18,32 @@ roll daily under the cache directory (see
 [where things live](/docs/getting-started/installation/#where-things-live)) at `info`, and
 `ANISTREAM_LOG=debug` turns up the detail.
 
-## Slow starts
+## Plugins arriving late
 
-A slow start is usually plugin compilation. The JavaScript reference plugin takes about 874 ms, and
-`anistream --plugins` lists what is installed. Drop `"plugins"` from `providers.order` if you do
-not use them.
+Plugins load after the first frame, so they never hold up the interface. They are compiled in the
+background and join your sources when they are ready, and the compiled code is cached for later
+launches. The slow case is the first launch after you install a large plugin: the JavaScript
+reference plugin takes about a second to compile, and until it has, it is missing from the
+Providers screen and from failover. `anistream --plugins` lists what is installed. Drop
+`"plugins"` from `providers.order` if you do not use them.
 
 ## No images
 
 Cover art needs a terminal graphics protocol: Ghostty, Kitty, iTerm2 or WezTerm. Elsewhere it falls
-back to halfblocks, and `anistream --doctor` reports which protocol was detected. `--no-images`
-forces halfblocks if a terminal advertises a protocol it does not deliver.
+back to halfblocks, and `anistream --doctor` reports which protocol was detected. If a terminal
+advertises a protocol it does not deliver, `--no-images` turns graphics off and anistream runs in
+text only.
+
+## The player
+
+anistream's player interface, with the skip button, Up Next, menus and thumbnails, needs mpv 0.36
+or newer. Older versions play with mpv's own controls. `anistream --doctor` prints your mpv version, the
+[player interface](/docs/guides/player/) in use and where its files were written.
+
+With the default `player_ui = "anistream"`, the scripts in your own mpv folder are not loaded. If
+you need them, or another script fights the anistream controls for keys or tracks, try
+`player_ui = "mpv"` under `[playback]`. It keeps your own mpv setup and adds only the companion
+script, and `--doctor` then lists the scripts it found.
 
 ## "Which one?" when opening episodes
 
@@ -42,3 +57,18 @@ once per title per source.
 Check the Providers screen (`7` by default). It names which source broke and why, from the same
 health tracking that drives failover. Then check [configuration](/docs/guides/configuration/): a
 source that is not configured and guarded is not reachable.
+
+## Plugin stores
+
+An invite link works once, and only for seven days. If joining says the invite was used, cancelled
+or has expired, ask the store's owner for a new one.
+
+"The store no longer accepts this device" means the owner removed you, or this device was revoked
+from another one. Plugins you already installed stay on your machine. Ask the owner for a new
+invite to join again.
+
+anistream joins stores over HTTPS only, apart from a store on the same machine. A plain `http://`
+link to any other host is refused.
+
+If the admin page does not open in a browser, run `anistream store admin <dir>` on the store's
+machine. It prints a sign-in link that works once.

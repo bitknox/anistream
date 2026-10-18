@@ -82,6 +82,63 @@ jobs:
         uses: ilammy/setup-nasm@v1
       - run: cargo clippy --workspace --all-targets -- -D warnings
 
+  # The plugin store's admin page is committed as built output, so building the server never
+  # needs bun. This rebuilds it from source and fails if the two have drifted apart.
+  admin-page:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: crates/anistream-store-core/admin
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - name: The committed build matches its source
+        run: git diff --exit-code -- ../assets/admin
+
+  # The serverless deploy templates carry the store as committed WebAssembly, so deploying one
+  # from its button never needs Rust. The package cannot be compared byte for byte with a build
+  # here: cargo mixes the host into every crate's identity, and wasm-bindgen's exported names
+  # carry it. So sync.sh records the sources it built from, this fails with a diff when they have
+  # moved on or a template's copy differs, and the build below proves it still compiles.
+  # store-templates runs the committed copies through the whole store journey.
+  store-wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install && rustup target add wasm32-unknown-unknown
+      - name: The committed package matches its sources
+        run: deploy/sync.sh --check
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack@0.13.1
+      - name: It still builds
+        run: >-
+          wasm-pack build crates/anistream-store-wasm --release --target web
+          --out-dir "$RUNNER_TEMP/store-wasm" --out-name store --no-pack
+
+  # Each serverless template, run on the runner the way its platform runs it, through the whole
+  # journey a store's owner and members take: claim, publish in parts, join, download in ranges,
+  # remove, sign in to the admin page. Nothing else exercises the templates' JavaScript.
+  store-templates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - uses: oven-sh/setup-bun@v2
+      # Vercel's functions run on Node 24, and the Netlify and test hosts run on whatever node is
+      # first on the path.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Install each template's dependencies
+        run: for dir in cloudflare vercel netlify test; do (cd "deploy/$dir" && bun install --frozen-lockfile); done
+      - run: deploy/test/journeys.sh
+
   audit:
     runs-on: ubuntu-latest
     steps:

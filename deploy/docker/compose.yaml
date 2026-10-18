@@ -1,0 +1,47 @@
+# The anistream plugin store on a server with a domain name: the store, and Caddy in front of it
+# for HTTPS. Caddy gets the certificate from Let's Encrypt and renews it. Point the domain at this
+# machine, open ports 80 and 443, then from this directory:
+#
+#   echo STORE_DOMAIN=plugins.example.com > .env
+#   docker compose up -d
+#   docker compose logs store       # the owner invite
+#
+# See README.md here for invites, updates and backups.
+name: anistream-store
+
+services:
+  store:
+    image: ghcr.io/bitknox/anistream-store:1
+    restart: unless-stopped
+    environment:
+      ANISTREAM_STORE_URL: https://${STORE_DOMAIN:?set STORE_DOMAIN to the store's domain name}
+      # The store publishes no ports, so Caddy is the only way in and the X-Forwarded-* headers
+      # it sets can be believed.
+      ANISTREAM_STORE_TRUST_PROXY: "true"
+      # The name members see. Empty means the default, "Plugin store".
+      ANISTREAM_STORE_NAME: ${STORE_NAME:-}
+    volumes:
+      - store:/data
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      STORE_DOMAIN: ${STORE_DOMAIN:?set STORE_DOMAIN to the store's domain name}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Caddy's certificates and keys. Losing them only means fetching new ones, but Let's
+      # Encrypt limits how often that can happen.
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - store
+
+volumes:
+  store:
+  caddy_data:
+  caddy_config:

@@ -487,6 +487,56 @@ body.landing {
 	margin-top: 0.8rem;
 }
 
+/* The player: the comparison, then three stills */
+.player-block {
+	padding-block: 1.9rem;
+}
+
+.player-shots {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 1.25rem;
+	margin-top: 2.4rem;
+}
+
+.player-shots figure {
+	margin: 0;
+}
+
+.player-shots a {
+	display: block;
+}
+
+.player-shots a:focus-visible {
+	outline: 2px solid var(--ani-obi);
+	outline-offset: 3px;
+}
+
+.player-shots img {
+	display: block;
+	width: 100%;
+	height: auto;
+	border: 1px solid var(--ani-rule);
+}
+
+.player-shots figcaption {
+	margin-top: 0.55rem;
+	font-size: 0.88rem;
+	color: var(--ani-dim);
+}
+
+.player-credit {
+	margin-top: 1.8rem;
+	font-size: 0.82rem;
+	color: var(--ani-dim);
+}
+
+.player-credit a {
+	color: inherit;
+	text-decoration-color: var(--ani-rule);
+	text-underline-offset: 0.2em;
+}
+
 /* Feature rows: mono eyebrow column + copy */
 .feat {
 	display: grid;
@@ -629,6 +679,9 @@ body.landing {
 	.feat {
 		grid-template-columns: 1fr;
 		gap: 0.9rem;
+	}
+	.player-shots {
+		grid-template-columns: 1fr;
 	}
 	.plate {
 		width: 64px;

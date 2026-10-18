@@ -89,9 +89,7 @@ pub fn spawn_plugin_load(
     paths: Paths,
 ) -> tokio::task::JoinHandle<Option<String>> {
     tokio::spawn(async move {
-        if !config.providers.order.iter().any(|id| id == "plugins")
-            || config.providers.disabled.iter().any(|id| id == "plugins")
-        {
+        if !plugins_enabled(&config) {
             return None;
         }
         let started = std::time::Instant::now();
@@ -110,22 +108,57 @@ pub fn spawn_plugin_load(
     })
 }
 
+/// The limits `[providers.plugins]` sets.
+pub fn plugin_limits(config: &Config) -> anistream_plugin::Limits {
+    anistream_plugin::Limits {
+        memory_bytes: config.providers.plugins.memory_mb.max(1).saturating_mul(1024 * 1024),
+        deadline: Duration::from_secs(config.providers.plugins.deadline_secs.max(1)),
+        ..Default::default()
+    }
+}
+
+/// A plugin host as the app runs plugins: lent the HTTP client, given the user's settings, and
+/// caching compiled components.
+fn plugin_host(
+    config: &Config,
+    http: &HttpClient,
+    paths: &Paths,
+) -> std::result::Result<anistream_plugin::PluginHost, String> {
+    let cache = paths.cache_dir.join("wasm");
+    Ok(anistream_plugin::PluginHost::with_cache(
+        plugin_limits(config),
+        Some(http.clone()),
+        Some(&cache),
+    )
+    .map_err(|e| e.to_string())?
+    .with_plugin_settings(config.providers.plugins.settings.clone()))
+}
+
+/// Whether plugins are part of the chain at all.
+pub fn plugins_enabled(config: &Config) -> bool {
+    config.providers.order.iter().any(|id| id == "plugins")
+        && !config.providers.disabled.iter().any(|id| id == "plugins")
+}
+
+/// Load one plugin file as a provider, for a plugin installed while the app runs.
+pub async fn load_plugin(
+    config: &Config,
+    http: &HttpClient,
+    paths: &Paths,
+    path: &std::path::Path,
+) -> std::result::Result<Arc<dyn anistream_core::traits::Provider>, String> {
+    let host = plugin_host(config, http, paths)?;
+    let plugin = host.load(path).await.map_err(|e| e.to_string())?;
+    Ok(Arc::new(anistream_plugin::WasmProvider::new(plugin)))
+}
+
 /// Load every plugin in the plugin directory as a provider.
 async fn load_plugins(
     config: &Config,
     http: &HttpClient,
     paths: &Paths,
 ) -> std::result::Result<Vec<Arc<dyn anistream_core::traits::Provider>>, String> {
-    let limits = anistream_plugin::Limits {
-        memory_bytes: config.providers.plugins.memory_mb.max(1).saturating_mul(1024 * 1024),
-        deadline: Duration::from_secs(config.providers.plugins.deadline_secs.max(1)),
-        ..Default::default()
-    };
-    let cache = paths.cache_dir.join("wasm");
-    let host =
-        anistream_plugin::PluginHost::with_cache(limits, Some(http.clone()), Some(&cache))
-            .map_err(|e| e.to_string())?
-            .with_plugin_settings(config.providers.plugins.settings.clone());
+    let host = plugin_host(config, http, paths)?;
 
     let dir = paths.plugin_dir();
     let providers = anistream_plugin::load_providers(&host, &dir).await;

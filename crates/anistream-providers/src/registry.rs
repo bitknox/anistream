@@ -119,6 +119,29 @@ impl ProviderRegistry {
         *held = providers;
     }
 
+    /// Add a source, or swap it for a newer build of itself.
+    ///
+    /// A replacement keeps its place in the chain. An updated plugin moving to the back would
+    /// change which source serves a stream because of when it was installed, the same race
+    /// [`Self::extend`] avoids for late arrivals.
+    pub fn put(&self, provider: Arc<dyn Provider>) {
+        let id = provider.manifest().id.clone();
+        self.health.register([id.clone()]);
+        let mut providers = self.providers.write().unwrap_or_else(|e| e.into_inner());
+        match providers.iter().position(|p| p.manifest().id == id) {
+            Some(at) => providers[at] = provider,
+            None => providers.push(provider),
+        }
+    }
+
+    /// Take a source out of the chain. Returns whether there was one to take.
+    pub fn remove(&self, id: &str) -> bool {
+        let mut providers = self.providers.write().unwrap_or_else(|e| e.into_inner());
+        let before = providers.len();
+        providers.retain(|p| p.manifest().id != id);
+        providers.len() != before
+    }
+
     /// The whole chain, for a caller assembling a replacement for it.
     pub fn all(&self) -> Vec<Arc<dyn Provider>> {
         self.snapshot()
@@ -422,6 +445,27 @@ mod tests {
 
     fn registry(providers: Vec<Arc<dyn Provider>>) -> ProviderRegistry {
         ProviderRegistry::new(providers)
+    }
+
+    #[test]
+    fn an_updated_source_keeps_its_place_and_a_new_one_goes_last() {
+        let r = registry(vec![
+            MockProvider::new("a").arc(),
+            MockProvider::new("b").arc(),
+            MockProvider::new("c").arc(),
+        ]);
+        r.put(MockProvider::new("b").with_streams(vec![stream("newer")]).arc());
+        assert_eq!(r.ids(), ["a", "b", "c"]);
+        r.put(MockProvider::new("d").arc());
+        assert_eq!(r.ids(), ["a", "b", "c", "d"]);
+    }
+
+    #[test]
+    fn a_removed_source_leaves_the_chain() {
+        let r = registry(vec![MockProvider::new("a").arc(), MockProvider::new("b").arc()]);
+        assert!(r.remove("a"));
+        assert!(!r.remove("a"));
+        assert_eq!(r.ids(), ["b"]);
     }
 
     fn stream(url: &str) -> Stream {

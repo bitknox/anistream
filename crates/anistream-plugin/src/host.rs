@@ -67,7 +67,7 @@ pub struct Capabilities {
     limits: Limits,
     fetches: Arc<AtomicU32>,
     /// `None` in tests that exercise policy without a network.
-    http: Option<anistream_net::HttpClient>,
+    http: Option<crate::HttpClient>,
     /// This plugin's section of the user's configuration, served one key at a time through
     /// `config-get`. Read-only pairs the host does not interpret — how a login-gated source
     /// receives an API key without the guest gaining any filesystem access.
@@ -79,7 +79,7 @@ impl Capabilities {
         plugin_id: impl Into<String>,
         allowed_hosts: Vec<String>,
         limits: Limits,
-        http: Option<anistream_net::HttpClient>,
+        http: Option<crate::HttpClient>,
     ) -> Self {
         Self {
             plugin_id: plugin_id.into(),
@@ -162,7 +162,25 @@ impl Capabilities {
         let Some(http) = &self.http else {
             return Err(HostError::Transport("no http client in this host".into()));
         };
+        self.send(http, request).await
+    }
 
+    /// Without `fetch` there is no client, so there is nothing to send with.
+    #[cfg(not(feature = "fetch"))]
+    async fn send(
+        &self,
+        http: &crate::HttpClient,
+        _request: Request,
+    ) -> Result<Response, HostError> {
+        match *http {}
+    }
+
+    #[cfg(feature = "fetch")]
+    async fn send(
+        &self,
+        http: &crate::HttpClient,
+        request: Request,
+    ) -> Result<Response, HostError> {
         tracing::debug!(plugin = %self.plugin_id, url = %request.url, "plugin fetch");
 
         // The emulating client: a plugin inherits the same TLS/HTTP2 fingerprint as the native

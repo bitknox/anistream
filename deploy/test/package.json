@@ -1,0 +1,10 @@
+{
+  "name": "anistream-store-journeys",
+  "private": true,
+  "type": "module",
+  "description": "Runs the store's journey test against the serverless templates on this machine.",
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.10",
+    "@electric-sql/pglite-socket": "^0.2.13"
+  }
+}

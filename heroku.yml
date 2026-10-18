@@ -1,0 +1,5 @@
+# Heroku builds deploy/heroku/Dockerfile, which only names the published image. With no `run`
+# section, the web dyno starts the image's own command. app.json describes the rest.
+build:
+  docker:
+    web: deploy/heroku/Dockerfile

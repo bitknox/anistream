@@ -1,0 +1,39 @@
+[package]
+name = "anistream-store-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Plugin stores, portable: the protocol, its rules and its HTTP routes, for every place a store runs"
+
+[lib]
+# No doc example is written as a test, and rustdoc spends seconds per crate finding none.
+doctest = false
+
+# Everything here compiles to wasm32 as well as natively: the same rules run in the reference
+# server and in a Worker or a serverless function. No sockets, no files, no native crypto.
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+async-trait.workspace = true
+base64 = "0.22"
+url = "2"
+ed25519-dalek = { version = "2.2", default-features = false, features = ["std", "zeroize"] }
+sha2 = "0.10"
+getrandom = "0.2"
+
+[features]
+# The fake inspector, for other crates' tests.
+testing = []
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# The JavaScript runtime's crypto.getRandomValues, on platforms that have no operating system.
+getrandom = { version = "0.2", features = ["js"] }
+
+[dev-dependencies]
+tokio = { workspace = true }
+
+[lints]
+workspace = true

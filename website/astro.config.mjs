@@ -47,12 +47,14 @@ export default defineConfig({
 						{ label: 'The player', link: 'docs/guides/player' },
 						{ label: 'Torrents & the VPN guard', link: 'docs/guides/torrents-vpn' },
 						{ label: 'Trackers & sync', link: 'docs/guides/trackers-sync' },
-						{ label: 'Troubleshooting playback', link: 'docs/guides/troubleshooting' },
+						{ label: 'Troubleshooting', link: 'docs/guides/troubleshooting' },
 					],
 				},
 				{
 					label: 'Plugins',
 					items: [
+						{ label: 'Plugin stores', link: 'docs/plugins/stores' },
+						{ label: 'Running a store', link: 'docs/plugins/running-a-store' },
 						{ label: 'Writing a provider plugin', link: 'docs/plugins/authoring' },
 						{ label: 'Sandbox & guarantees', link: 'docs/plugins/sandbox' },
 					],

@@ -1,0 +1,1019 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   The store's admin page — Obi & Silk, as on the homepage. The tokens are
+   website/src/styles/theme.css; the layout is website/src/styles/landing.css.
+   Structure from hairlines and negative space; amber is the only saturated
+   colour in the chrome.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@font-face {
+	font-family: 'Zen Kaku Gothic New';
+	font-weight: 400;
+	font-display: swap;
+	src: url('/fonts/zen-kaku-gothic-new-latin-400-normal.woff2') format('woff2');
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+		U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+	font-family: 'Zen Kaku Gothic New';
+	font-weight: 500;
+	font-display: swap;
+	src: url('/fonts/zen-kaku-gothic-new-latin-500-normal.woff2') format('woff2');
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+		U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+	font-family: 'Zen Kaku Gothic New';
+	font-weight: 700;
+	font-display: swap;
+	src: url('/fonts/zen-kaku-gothic-new-latin-700-normal.woff2') format('woff2');
+	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+		U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Kana only, at the spine's weight: the one place Japanese is set. */
+@font-face {
+	font-family: 'Zen Kaku Gothic New';
+	font-weight: 700;
+	font-display: swap;
+	src: url('/fonts/zen-kaku-gothic-new-kana-700-normal.woff2') format('woff2');
+	unicode-range: U+3001-3002, U+3041-307F, U+3081-308F, U+3091-3093, U+3099-309A, U+309D-309E,
+		U+30A1-30E1, U+30E3-30ED, U+30EF-30F0, U+30F2-30F4, U+30FB-30FE;
+}
+
+:root {
+	/* Dark — immersive dusk indigo, 藍 */
+	--ani-ground: #161a2e;
+	--ani-text: #e4e0d6; /* 絹 silk */
+	--ani-dim: #9298b5; /* 霞 haze */
+	--ani-obi: #f2a64b; /* 琥珀 amber */
+	--ani-state: #7fc7d9; /* 水 water */
+	--ani-alert: #e06b54; /* 朱 vermilion */
+	--ani-rule: color-mix(in srgb, var(--ani-text) 22%, var(--ani-ground));
+	--ani-rule-faint: color-mix(in srgb, var(--ani-text) 12%, var(--ani-ground));
+	--ani-raised: color-mix(in srgb, var(--ani-text) 6%, var(--ani-ground));
+
+	--ani-font-display: 'Zen Kaku Gothic New', 'Hiragino Kaku Gothic ProN', sans-serif;
+	--ani-font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+	--status-h: 2.6rem;
+	color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+	:root {
+		/* Light — silk paper */
+		--ani-ground: #f0ede4;
+		--ani-text: #1e2033;
+		--ani-dim: #4f546e;
+		--ani-obi: #7a4309;
+		--ani-state: #1f5d6e;
+		--ani-alert: #94301f;
+		color-scheme: light;
+	}
+}
+
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+html {
+	background: var(--ani-ground);
+}
+
+body {
+	position: relative;
+	min-height: 100vh;
+	background: var(--ani-ground);
+	color: var(--ani-text);
+	font-family: var(--ani-font-display);
+	font-weight: 400;
+	line-height: 1.7;
+	-webkit-font-smoothing: antialiased;
+	overflow-x: hidden;
+	padding-bottom: var(--status-h);
+}
+
+a {
+	color: inherit;
+	text-decoration: none;
+}
+
+button,
+input {
+	font: inherit;
+	color: inherit;
+}
+
+.wrap {
+	position: relative;
+	z-index: 1;
+	max-width: 1040px;
+	margin-inline: auto;
+	padding-inline: clamp(1.25rem, 4vw, 2.5rem);
+}
+
+.mono,
+code {
+	font-family: var(--ani-font-mono);
+}
+
+code {
+	white-space: nowrap;
+	font-size: 0.9em;
+	padding: 0.1em 0.35em;
+	border: 1px solid var(--ani-rule-faint);
+	background: var(--ani-raised);
+}
+
+.dim {
+	color: var(--ani-dim);
+}
+
+.obi-glyph {
+	color: var(--ani-obi);
+}
+
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
+/* ── Nav ────────────────────────────────────────────────────────────────── */
+.nav {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6rem 2rem;
+	align-items: baseline;
+	justify-content: space-between;
+	padding-block: 1.4rem;
+	border-bottom: 1px solid var(--ani-rule-faint);
+}
+
+.brand {
+	font-weight: 500;
+	letter-spacing: 0.02em;
+	font-size: 1.05rem;
+}
+
+.brand-sub {
+	margin-left: 0.5rem;
+	font-family: var(--ani-font-mono);
+	font-size: 0.85rem;
+	font-weight: 400;
+	color: var(--ani-dim);
+}
+
+.nav-session {
+	display: flex;
+	gap: 1.5rem;
+	font-family: var(--ani-font-mono);
+	font-size: 0.85rem;
+	color: var(--ani-dim);
+}
+
+.link {
+	background: none;
+	border: 0;
+	padding: 0;
+	cursor: pointer;
+	color: inherit;
+	text-decoration: underline;
+	text-decoration-color: var(--ani-rule);
+	text-underline-offset: 0.25em;
+}
+
+.link:hover,
+.link:focus-visible {
+	color: var(--ani-obi);
+	text-decoration-color: var(--ani-obi);
+}
+
+/* ── Hero: the store's name ─────────────────────────────────────────────── */
+.hero {
+	position: relative;
+	padding-block: clamp(3rem, 9vh, 5.5rem) 0.5rem;
+}
+
+/* The homepage's vertical spine, on its own plane: it climbs faster than the page. */
+.spine {
+	position: absolute;
+	top: -2rem;
+	right: clamp(0rem, 1vw, 1.5rem);
+	writing-mode: vertical-rl;
+	font-weight: 700;
+	font-size: clamp(3.5rem, 9vw, 7.5rem);
+	line-height: 1;
+	letter-spacing: 0.06em;
+	color: var(--ani-text);
+	opacity: 0.055;
+	user-select: none;
+	pointer-events: none;
+	white-space: nowrap;
+	transform: translate3d(0, calc(var(--scroll, 0) * -0.4px), 0);
+	will-change: transform;
+}
+
+.hero-eyebrow {
+	position: relative;
+	font-family: var(--ani-font-mono);
+	font-size: 0.85rem;
+	color: var(--ani-obi);
+	margin-bottom: 1.1rem;
+}
+
+.hero-h1 {
+	position: relative;
+	font-weight: 700;
+	font-size: clamp(2rem, 5.2vw, 3.4rem);
+	line-height: 1.15;
+	letter-spacing: 0.005em;
+	max-width: 18ch;
+	overflow-wrap: anywhere;
+}
+
+.hero-h1 .hch {
+	display: inline-block;
+	animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+	animation-delay: calc(560ms + var(--i, 0) * 26ms);
+}
+
+.hero-facts {
+	position: relative;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem 2.5rem;
+	margin-top: 1.6rem;
+	font-family: var(--ani-font-mono);
+	font-size: 0.85rem;
+}
+
+.hero-facts div,
+.facts div {
+	display: flex;
+	gap: 0.7rem;
+	align-items: baseline;
+	min-width: 0;
+}
+
+.hero-facts dt,
+.facts dt {
+	color: var(--ani-dim);
+	font-family: var(--ani-font-mono);
+	font-size: 0.78rem;
+	flex-shrink: 0;
+}
+
+.hero-facts dd {
+	overflow-wrap: anywhere;
+}
+
+.hero-facts a:hover,
+.hero-facts a:focus-visible {
+	color: var(--ani-obi);
+}
+
+/* Signed out */
+.hero-h1-static {
+	max-width: none;
+}
+
+.hero-reason {
+	position: relative;
+	margin-top: 1.2rem;
+	color: var(--ani-alert);
+	max-width: 58ch;
+}
+
+/* Numbered because it is a sequence; flush with the column, numbers in their own gutter. */
+.steps {
+	position: relative;
+	margin-top: 1.8rem;
+	max-width: 58ch;
+	color: var(--ani-dim);
+	list-style: none;
+	counter-reset: step;
+}
+
+.steps li {
+	display: grid;
+	grid-template-columns: 2ch 1fr;
+	gap: 0.8rem;
+	margin-bottom: 0.5rem;
+	counter-increment: step;
+}
+
+.steps li::before {
+	content: counter(step);
+	font-family: var(--ani-font-mono);
+	color: var(--ani-obi);
+}
+
+.steps b,
+.hero-alt b {
+	color: var(--ani-text);
+	font-weight: 500;
+}
+
+.hero-alt {
+	position: relative;
+	margin-top: 1.4rem;
+	max-width: 58ch;
+	color: var(--ani-dim);
+	font-size: 0.95rem;
+}
+
+/* Claiming a store nobody owns: one field, its button beside it until the column is too narrow. */
+.claim-form {
+	position: relative;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem 1.2rem;
+	align-items: end;
+	margin-top: 1.8rem;
+	max-width: 40rem;
+}
+
+.claim-form .field {
+	flex: 1 1 16rem;
+}
+
+/* As tall as the field beside it. */
+.claim-form .btn {
+	padding-block: 0.8rem;
+}
+
+/* The owner invite a claim produced, on the same plate as a new invite link. */
+.hero .made {
+	margin-top: 1.8rem;
+	margin-bottom: 0;
+	max-width: 46rem;
+}
+
+/* ── Sections ───────────────────────────────────────────────────────────── */
+.sect {
+	padding-block: clamp(2.5rem, 6vh, 4rem) 0;
+}
+
+.rule {
+	height: 1px;
+	background: var(--ani-rule);
+	transform-origin: left;
+	animation: draw 0.7s cubic-bezier(0.33, 1, 0.68, 1) 0.85s both;
+}
+
+.sect-head {
+	padding-block: 2rem 0.8rem;
+	animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.95s both;
+}
+
+.eyebrow {
+	display: inline-block;
+	font-family: var(--ani-font-mono);
+	font-size: 0.82rem;
+	color: var(--ani-obi);
+	white-space: pre;
+}
+
+.sect-title {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem 2rem;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: 0.4rem;
+}
+
+.sect h2 {
+	font-weight: 500;
+	font-size: clamp(1.4rem, 3vw, 1.9rem);
+	letter-spacing: 0.005em;
+}
+
+.sect-lede {
+	color: var(--ani-dim);
+	max-width: 62ch;
+	margin-top: 0.7rem;
+	font-size: 0.98rem;
+}
+
+/* ── Rows: the homepage's feature grid, with the app's obi ──────────────── */
+.row {
+	position: relative;
+	display: grid;
+	grid-template-columns: 150px minmax(0, 1fr) auto;
+	gap: 0.6rem 2rem;
+	align-items: start;
+	padding-block: 1.35rem;
+	border-top: 1px solid var(--ani-rule-faint);
+	animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) 1.05s both;
+}
+
+/* The obi marks the row in hand, exactly as the app's one-cell focus bar does. */
+.row::before {
+	content: '';
+	position: absolute;
+	left: calc(-1 * clamp(0.75rem, 2vw, 1.25rem));
+	top: -1px;
+	bottom: 0;
+	width: 4px;
+	background: var(--ani-obi);
+	transform: scaleY(0);
+	transform-origin: top;
+	transition: transform 160ms ease;
+}
+
+.row:hover::before,
+.row:focus-within::before {
+	transform: scaleY(1);
+}
+
+.row-label {
+	font-family: var(--ani-font-mono);
+	font-size: 0.85rem;
+	color: var(--ani-obi);
+	padding-top: 0.15rem;
+	overflow-wrap: anywhere;
+}
+
+.row-body h3 {
+	font-weight: 500;
+	font-size: 1.1rem;
+	letter-spacing: 0.005em;
+	line-height: 1.45;
+}
+
+.row-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6rem;
+	justify-content: flex-end;
+}
+
+.row-note {
+	font-family: var(--ani-font-mono);
+	font-size: 0.82rem;
+	color: var(--ani-dim);
+	padding-top: 0.45rem;
+}
+
+.rename {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6rem;
+	align-items: center;
+}
+
+.rename input {
+	flex: 1 1 14rem;
+	max-width: 22rem;
+	padding: 0.4rem 0.7rem;
+	border: 1px solid var(--ani-obi);
+	background: var(--ani-raised);
+	font-size: 1.05rem;
+	font-weight: 500;
+	box-shadow: inset 4px 0 0 var(--ani-obi);
+	outline: none;
+}
+
+.facts {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.15rem 2rem;
+	margin-top: 0.35rem;
+	font-size: 0.92rem;
+	color: var(--ani-text);
+}
+
+.facts dd {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.facts .mono {
+	font-size: 0.86rem;
+}
+
+.devices {
+	list-style: none;
+	margin-top: 0.9rem;
+	border-left: 1px solid var(--ani-rule);
+}
+
+.devices li {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem 1.4rem;
+	align-items: center;
+	padding: 0.35rem 0 0.35rem 1rem;
+	font-size: 0.92rem;
+}
+
+.device-label {
+	font-family: var(--ani-font-mono);
+	font-size: 0.86rem;
+	min-width: 10ch;
+}
+
+/* Smaller inside the device list, so a device and its revoke stay on one line. */
+.devices .btn {
+	padding: 0.25rem 0.75rem;
+	font-size: 0.8rem;
+}
+
+/* ── Buttons, as on the homepage ────────────────────────────────────────── */
+.btn {
+	display: inline-block;
+	padding: 0.55rem 1.2rem;
+	border: 1px solid var(--ani-rule);
+	background: transparent;
+	font-family: var(--ani-font-mono);
+	font-size: 0.86rem;
+	line-height: 1.4;
+	cursor: pointer;
+	white-space: nowrap;
+	transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+}
+
+.btn:hover,
+.btn:focus-visible {
+	border-color: var(--ani-obi);
+	color: var(--ani-obi);
+}
+
+.btn:disabled {
+	cursor: default;
+	opacity: 0.45;
+	border-color: var(--ani-rule);
+	color: inherit;
+}
+
+.btn-solid {
+	background: var(--ani-obi);
+	border-color: var(--ani-obi);
+	color: var(--ani-ground);
+	font-weight: 500;
+}
+
+.btn-solid:hover,
+.btn-solid:focus-visible {
+	background: transparent;
+	color: var(--ani-obi);
+}
+
+.btn-solid:disabled {
+	background: transparent;
+}
+
+.btn-quiet {
+	border-color: var(--ani-rule-faint);
+	color: var(--ani-dim);
+}
+
+/* The second press of a destructive question: named, in vermilion, never the default look. */
+.btn-danger {
+	border-color: var(--ani-alert);
+	color: var(--ani-alert);
+}
+
+.btn-danger:hover,
+.btn-danger:focus-visible {
+	background: var(--ani-alert);
+	border-color: var(--ani-alert);
+	color: var(--ani-ground);
+}
+
+.confirm {
+	display: inline-flex;
+	flex-wrap: wrap;
+	gap: 0.6rem;
+	justify-content: flex-end;
+	animation: settle 160ms ease-out;
+}
+
+/* ── Invites ────────────────────────────────────────────────────────────── */
+.invite-form {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 1rem 2rem;
+	align-items: end;
+	padding-block: 1.4rem 1.8rem;
+	border-top: 1px solid var(--ani-rule-faint);
+	animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) 1.05s both;
+}
+
+.field {
+	display: grid;
+	gap: 0.45rem;
+	grid-column: 1;
+}
+
+.field span,
+.check span {
+	font-family: var(--ani-font-mono);
+	font-size: 0.8rem;
+	color: var(--ani-dim);
+}
+
+.field input {
+	width: 100%;
+	max-width: 32rem;
+	padding: 0.55rem 0.8rem;
+	border: 1px solid var(--ani-rule);
+	background: var(--ani-raised);
+	font-size: 1rem;
+}
+
+.field input:focus {
+	outline: none;
+	border-color: var(--ani-obi);
+	box-shadow: inset 4px 0 0 var(--ani-obi);
+}
+
+.check {
+	grid-column: 1;
+	display: flex;
+	gap: 0.65rem;
+	align-items: center;
+	cursor: pointer;
+}
+
+.check input {
+	accent-color: var(--ani-obi);
+	width: 1rem;
+	height: 1rem;
+}
+
+.invite-form .btn {
+	grid-column: 2;
+	grid-row: 1 / span 2;
+	align-self: end;
+}
+
+.made {
+	position: relative;
+	margin-bottom: 1.8rem;
+	padding: 1.2rem 1.4rem 1.3rem 1.6rem;
+	border: 1px solid var(--ani-rule);
+	background: var(--ani-raised);
+	animation: settle 220ms ease-out;
+}
+
+/* The plate's obi, as on the homepage's cover plate. */
+.made::before {
+	content: '';
+	position: absolute;
+	left: -1px;
+	top: -1px;
+	bottom: -1px;
+	width: 4px;
+	background: var(--ani-obi);
+}
+
+.made-for {
+	font-family: var(--ani-font-mono);
+	font-size: 0.8rem;
+	color: var(--ani-dim);
+}
+
+.made-link {
+	margin-top: 0.4rem;
+	font-family: var(--ani-font-mono);
+	font-size: 0.9rem;
+	word-break: break-all;
+	user-select: all;
+}
+
+.made-actions {
+	display: flex;
+	gap: 0.8rem;
+	margin-top: 1rem;
+}
+
+.pending-h {
+	font-weight: 500;
+	font-size: 1rem;
+	padding-block: 0.6rem 0.8rem;
+	color: var(--ani-dim);
+}
+
+/* ── Nagare ─────────────────────────────────────────────────────────────── */
+.nagare {
+	display: flex;
+	align-items: flex-end;
+	gap: 1.6rem;
+	padding-block: 1.6rem;
+	border-top: 1px solid var(--ani-rule-faint);
+}
+
+.hero .nagare {
+	margin-top: 2.6rem;
+	border-top: 0;
+}
+
+.nagare canvas {
+	width: 102px;
+	height: 96px;
+	image-rendering: pixelated;
+	flex-shrink: 0;
+}
+
+.nagare-note {
+	color: var(--ani-dim);
+	max-width: 46ch;
+	font-size: 0.95rem;
+}
+
+/* ── Footer and status line ─────────────────────────────────────────────── */
+.footer {
+	margin-top: clamp(4rem, 10vh, 6rem);
+	padding-block: 2rem 2.4rem;
+	border-top: 1px solid var(--ani-rule-faint);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.8rem 2.5rem;
+	align-items: baseline;
+	justify-content: space-between;
+	font-family: var(--ani-font-mono);
+	font-size: 0.8rem;
+	color: var(--ani-dim);
+}
+
+.footer a:hover,
+.footer a:focus-visible {
+	color: var(--ani-obi);
+}
+
+/* The app's status line: what just happened, at the foot of the screen. */
+.status {
+	position: fixed;
+	inset-inline: 0;
+	bottom: 0;
+	z-index: 20;
+	min-height: var(--status-h);
+	display: flex;
+	align-items: center;
+	padding: 0.45rem clamp(1.25rem, 4vw, 2.5rem);
+	border-top: 1px solid var(--ani-rule-faint);
+	background: var(--ani-ground);
+	font-family: var(--ani-font-mono);
+	font-size: 0.82rem;
+	color: var(--ani-dim);
+}
+
+.status-text {
+	/* The column's own width, so the line starts where the page's text does. */
+	max-width: calc(1040px - 2 * clamp(1.25rem, 4vw, 2.5rem));
+	width: 100%;
+	margin-inline: auto;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+.status-text .obi-glyph {
+	margin-right: 0.6rem;
+}
+
+.status-text.is-alert,
+.status-text.is-alert .obi-glyph {
+	color: var(--ani-alert);
+}
+
+/* An alert is read in full: it grows the line upward rather than trailing off, its later lines
+   hanging under its first rather than under the obi. */
+.status-text.is-alert {
+	display: flex;
+	white-space: normal;
+}
+
+.status-text.is-alert .obi-glyph {
+	flex-shrink: 0;
+}
+
+.status-said {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+/* Work under way, drawn across the line's top rule the way a section's rule draws itself. */
+.status-progress {
+	position: absolute;
+	inset-inline: 0;
+	top: -1px;
+	height: 2px;
+	background: var(--ani-obi);
+	transform: scaleX(var(--progress, 0));
+	transform-origin: left;
+	transition: transform 280ms cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+/* ── Motion: the homepage's, and only that ──────────────────────────────── */
+
+/* The eyecatch: an amber band wipes across and away as the page arrives. */
+.eyecatch {
+	position: fixed;
+	inset: 0;
+	z-index: 100;
+	background: var(--ani-obi);
+	pointer-events: none;
+	animation: eyecatch 0.68s both;
+}
+
+@keyframes eyecatch {
+	0% {
+		transform: scaleX(0);
+		transform-origin: left;
+		animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+	}
+	44% {
+		transform: scaleX(1);
+		transform-origin: left;
+	}
+	44.01% {
+		transform: scaleX(1);
+		transform-origin: right;
+		animation-timing-function: cubic-bezier(0, 0.55, 0.45, 1);
+	}
+	100% {
+		transform: scaleX(0);
+		transform-origin: right;
+	}
+}
+
+@keyframes rise {
+	from {
+		opacity: 0;
+		transform: translateY(0.55em);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+@keyframes draw {
+	from {
+		transform: scaleX(0);
+	}
+	to {
+		transform: scaleX(1);
+	}
+}
+
+@keyframes settle {
+	from {
+		opacity: 0;
+		transform: translateY(4px);
+	}
+	to {
+		opacity: 1;
+		transform: none;
+	}
+}
+
+.prefade {
+	animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.7s both;
+}
+
+.hero-facts.prefade {
+	animation-delay: 0.95s;
+}
+
+/* The ambient halfblock field: every bit on its own plane, nearer ones faster. */
+.ambient {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 0;
+}
+
+.amb {
+	position: absolute;
+	font-family: var(--ani-font-mono);
+	color: var(--ani-text);
+	user-select: none;
+	transform: translate3d(0, calc(var(--scroll, 0) * var(--d, 0.2) * -1px), 0);
+	will-change: transform;
+}
+
+.amb-drift {
+	display: inline-block;
+	animation: drift var(--drift, 20s) ease-in-out infinite alternate;
+}
+
+@keyframes drift {
+	from {
+		transform: translateX(-24px);
+	}
+	to {
+		transform: translateX(24px);
+	}
+}
+
+/* Dragging a plugin over the page: the obi band crosses it, and leaves the way it came. */
+.drop-band {
+	position: fixed;
+	inset-inline: 0;
+	top: 42%;
+	z-index: 90;
+	padding-block: 1.6rem;
+	background: var(--ani-obi);
+	color: var(--ani-ground);
+	font-family: var(--ani-font-mono);
+	font-weight: 500;
+	font-size: clamp(1.1rem, 2.6vw, 1.6rem);
+	text-align: center;
+	pointer-events: none;
+}
+
+.drop-band.is-in {
+	transform-origin: left;
+	animation: draw 0.3s cubic-bezier(0.55, 0, 1, 0.45) both;
+}
+
+.drop-band.is-out {
+	transform-origin: right;
+	animation: undraw 0.38s cubic-bezier(0, 0.55, 0.45, 1) both;
+}
+
+@keyframes undraw {
+	from {
+		transform: scaleX(1);
+	}
+	to {
+		transform: scaleX(0);
+	}
+}
+
+/* ── Focus, reduced motion, small screens ───────────────────────────────── */
+:focus-visible {
+	outline: 2px solid var(--ani-obi);
+	outline-offset: 3px;
+}
+
+.field input:focus-visible {
+	outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.eyecatch,
+	.ambient {
+		display: none;
+	}
+	.hero-h1 .hch,
+	.prefade,
+	.rule,
+	.sect-head,
+	.row,
+	.invite-form,
+	.made,
+	.confirm {
+		animation: none;
+	}
+	.spine,
+	.amb {
+		transform: none;
+	}
+	.drop-band.is-in,
+	.drop-band.is-out {
+		animation-duration: 1ms;
+	}
+	.row::before,
+	.status-progress {
+		transition: none;
+	}
+}
+
+@media (max-width: 760px) {
+	.spine {
+		font-size: 4.2rem;
+		opacity: 0.04;
+	}
+	.row {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 0.4rem;
+	}
+	.row-actions {
+		justify-content: flex-start;
+	}
+	.row::before {
+		left: -0.75rem;
+	}
+	.invite-form {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	.invite-form .btn {
+		grid-column: 1;
+		grid-row: auto;
+		justify-self: start;
+	}
+}

@@ -2,6 +2,7 @@
 import '../styles/theme.css';
 import '../styles/landing.css';
 import TerminalDemo from '../components/TerminalDemo.astro';
+import UpscaleCompare from '../components/UpscaleCompare.astro';
 
 const headline = [['An', 'anime'], ['streaming', '「TUI」。']];
 const hlines = headline.map((line) =>
@@ -12,37 +13,42 @@ const features = [
 	{
 		eyebrow: '/ browse',
 		title: 'Browse without an account',
-		body: 'Search, seasonal charts and an airing calendar ruled by day — today, tomorrow, the week — from AniList’s public API. Watch order untangles prequels and sequels in place. No login, no config — browsing is the default state of the app.',
+		body: 'Search, seasonal charts and an airing calendar laid out by day, from AniList’s public API. Watch order untangles prequels and sequels in place. No login and no config: browsing is the default state of the app.',
 	},
 	{
 		eyebrow: '▶ playback',
 		title: 'mpv does the playing',
-		body: 'JSON IPC to real mpv: resume to the second, auto-next, persisted speed and volume, and Shift+N/P step episodes from inside the player itself. Opening-skip prefers the file’s own chapter markers and falls back to aniskip. Anime4K upscaling ships inside the binary — a config toggle, not a shader hunt. Licensed services open in their own apps, by deep link.',
+		body: 'Real mpv in the app’s own look: seekbar thumbnails, a skip button, Up Next, and menus for episodes, sources and tracks, with one window for a whole binge. Resume is to the second, and opening-skip prefers the file’s own chapters before falling back to aniskip. Upscaling ships inside the binary, ArtCNN for a natural look or Anime4K for a sharp one, chosen per file for the source, the display and the battery.',
 	},
 	{
 		eyebrow: '▞ together',
 		title: 'Watch parties, one key deep',
-		body: 'Press y and the episode you were about to play opens in a Syncplay room instead — same resolution, shared pacing, everyone’s player in step. A party is a handoff, deliberately: the room’s pauses are not your watch history.',
+		body: 'Press y and the episode you were about to play opens in a Syncplay room instead, at the same resolution, with everyone’s player in step. A party is a handoff, so the room’s pauses are not your watch history.',
 	},
 	{
 		eyebrow: '⌕ chosen',
 		title: 'Every pick explains itself',
-		body: 'Automatic selection is ranked, curated against SeaDex where it has an opinion, and says why in one line. Disagree? One key lists the whole slate — seeders, size, audio — and your choice is exact, with no failover behind it. Sub or dub preference picks the audio and subtitle tracks too, never file order.',
+		body: 'Automatic selection is ranked, follows your own curation endpoint where you set one, and says why in one line. Disagree? One key lists the whole slate with seeders, size and audio, and your choice is exact, with no failover behind it. Sub or dub preference picks the audio and subtitle tracks too, never file order.',
 	},
 	{
 		eyebrow: '▥ local-first',
 		title: 'Local is the source of truth',
-		body: 'History is SQLite on your disk and works with no account at all. Sync is a projection of it — never the other way around.',
+		body: 'History is SQLite on your disk and works with no account at all. Sync is a projection of it, never the other way around.',
 	},
 	{
 		eyebrow: '⇅ sync',
 		title: 'Sync that survives being offline',
-		body: 'AniList, MyAnimeList, Simkl and Trakt through a durable outbox. Watch offline for a week; it pushes in order when you return. Real conflicts get a screen, not a silent overwrite.',
+		body: 'AniList, MyAnimeList, Kitsu, Simkl and Trakt through a durable outbox. Watch offline for a week and it pushes in order when you return. Real conflicts get a screen, not a silent overwrite.',
 	},
 	{
 		eyebrow: '▢ plugins',
 		title: 'Bring your own sources, as plugins',
-		body: 'Provider plugins are sandboxed WASM components in Rust, Go, JavaScript or Python — built for legitimate APIs, self-hosted services, and your own media. The sandbox has no sockets; the host lends fetch, so a plugin is kilobytes and cannot exfiltrate.',
+		body: 'Provider plugins are sandboxed WebAssembly components, written in Rust, JavaScript or any language that builds for WASI 0.2, for legitimate APIs, self-hosted services and your own media. The sandbox has no sockets. The host lends fetch, and only to the hosts a plugin declares.',
+	},
+	{
+		eyebrow: '⇄ stores',
+		title: 'Plugins, shared by invite',
+		body: 'Run a small private plugin store and send invite links to the people you choose. They install and update its plugins from the Providers screen. Each device gets its own token, and every plugin list is signed with the store’s key. Templates deploy a store to Cloudflare, Vercel, Netlify, Render, Heroku, Fly or Railway, or it runs on a box at home, and its owner manages it from the app or a web admin page.',
 	},
 	{
 		eyebrow: '▚ graphics',
@@ -52,7 +58,7 @@ const features = [
 	{
 		eyebrow: '● guarded',
 		title: 'If you torrent, it fails closed',
-		body: 'Torrent support exists, and it is never assumed: off by default, unreachable until a VPN mode is chosen and egress is verified through the proxy. DHT forced off, re-checked on an interval, every transfer paused the moment a check fails — and seeding stops when a download completes, unless you opt in.',
+		body: 'Torrent support exists, and it is never assumed: off by default, unreachable until a VPN mode is chosen and egress is verified through the proxy. DHT is forced off, the check repeats on an interval, and every transfer pauses the moment one fails. A finished download stops seeding unless you opt in.',
 	},
 	{
 		eyebrow: '↓ offline',
@@ -70,13 +76,14 @@ const bandItems = [
 	'browse · watch · track · sync · extend',
 	'real images in the terminal',
 	'local is the source of truth',
-	'plugins in rust · go · js · python',
+	'sandboxed wasm plugins',
+	'invite-only plugin stores',
 	'fail-closed vpn guard',
 	'syncplay watch parties',
-	'anime4k upscaling built in',
+	'artcnn and anime4k upscaling, per file',
 	'verified self-update',
-	'hosts no content — every source is external',
-	'MIT, built from source',
+	'hosts no content, every source is external',
+	'MIT, prebuilt for macOS, Linux and Windows',
 ];
 const bandText = bandItems.map((t) => `▌ ${t}`).join('   ') + '   ';
 
@@ -95,7 +102,7 @@ const installHtml = [
 		<title>anistream — an anime streaming TUI</title>
 		<meta
 			name="description"
-			content="An anime streaming TUI in Rust — browse, watch, track, sync and extend in one client. Hosts no content; every source is external."
+			content="An anime streaming TUI in Rust: browse, watch, track, sync and extend in one client. Hosts no content; every source is external."
 		/>
 		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 		<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#161a2e" />
@@ -152,7 +159,7 @@ const installHtml = [
 							>
 						</h1>
 						<p class="hero-sub prefade">
-							The whole loop in one client — browse, watch, track, sync, extend. Written in Rust,
+							The whole loop in one client: browse, watch, track, sync, extend. Written in Rust,
 							played by mpv, lives in your terminal.
 						</p>
 						<div class="hero-ctas prefade">
@@ -175,7 +182,7 @@ const installHtml = [
 			</header>
 		</div>
 
-		<div class="obi-band" role="note" aria-label="browse, watch, track, sync, extend — real images in the terminal, local-first, plugins, fail-closed VPN guard. anistream hosts no content; every source is external. MIT, built from source.">
+		<div class="obi-band" role="note" aria-label="browse, watch, track, sync, extend. Real images in the terminal, local-first, sandboxed plugins, invite-only plugin stores, a fail-closed VPN guard. anistream hosts no content; every source is external. MIT, prebuilt for macOS, Linux and Windows.">
 			<div class="obi-track" aria-hidden="true">
 				<span>{bandText}</span><span>{bandText}</span>
 			</div>
@@ -188,7 +195,7 @@ const installHtml = [
 						<span class="eyebrow">── features</span>
 						<h2 id="features-h">The whole loop, one client</h2>
 						<p class="sect-lede">
-							Browse, watch, track, sync, extend — a complete platform, not a wrapper around one
+							Browse, watch, track, sync, extend: a complete platform, not a wrapper around one
 							website. Every volatile piece sits behind a trait, so the client outlives any single
 							source.
 						</p>
@@ -209,6 +216,65 @@ const installHtml = [
 					}
 				</section>
 
+				<section class="sect" aria-labelledby="player-h">
+					<div class="rule"></div>
+					<div class="sect-head reveal">
+						<span class="eyebrow">▶ player</span>
+						<h2 id="player-h">Inside the player</h2>
+						<p class="sect-lede">
+							mpv plays everything, dressed as anistream: seekbar thumbnails, a skip button while
+							the opening runs, one menu for episodes, sources and tracks, and an Up Next card at
+							the ending. Drag the line to see a 720p stream at 1440p, as it is, upscaled, or held
+							against the 4K master it was made from.
+						</p>
+					</div>
+					<div class="player-block reveal">
+						<UpscaleCompare
+							alt="A close-up of a character's eye from a 720p stream, shown at 1440p"
+							off="/player/compare-off.webp"
+							looks={[
+								{ id: 'natural', label: 'natural', note: 'ArtCNN', src: '/player/compare-natural.webp' },
+								{ id: 'sharp', label: 'sharp', note: 'Anime4K', src: '/player/compare-sharp.webp' },
+								{ id: 'original', label: 'original', note: '4K master', src: '/player/compare-original.webp' },
+							]}
+							width={1200}
+							height={800}
+						>
+							Natural keeps the line work as it was drawn, and on this frame it comes closest to
+							the 4K master. Sharp gives crisper lines and cleans up more. The network is chosen
+							per file, for the source, the display and the battery.
+						</UpscaleCompare>
+						<div class="player-shots">
+							<figure>
+								<a href="/player/player-skip.webp">
+									<img src="/player/player-skip.webp" alt="The show's logo during its opening, with a Skip opening button in the corner" width="1920" height="1080" loading="lazy" decoding="async" />
+								</a>
+								<figcaption>The opening, taken from the file's chapters, with a button to skip it.</figcaption>
+							</figure>
+							<figure>
+								<a href="/player/player-menu.webp">
+									<img src="/player/player-menu.webp" alt="The anistream menu inside the player: episodes, sources, sub or dub, upscaling, night mode, subtitles, audio" width="1920" height="1080" loading="lazy" decoding="async" />
+								</a>
+								<figcaption>Episodes, sources, sub or dub, upscaling and tracks, in one menu.</figcaption>
+							</figure>
+							<figure>
+								<a href="/player/player-up-next.webp">
+									<img src="/player/player-up-next.webp" alt="An Up Next card over the ending credits, naming episode 3.2 with a still from its preview" width="1920" height="1080" loading="lazy" decoding="async" />
+								</a>
+								<figcaption>Up Next at the ending, and the next episode in the same window.</figcaption>
+							</figure>
+						</div>
+						<p class="player-credit">
+							Player frames from{' '}
+							<a href="https://opap.jp/">こうしす！ #3.1</a>{' '}
+							by OPAP-JP contributors, and the comparison from{' '}
+							<a href="https://opencontent.netflix.com/">Sol Levante</a>{' '}
+							by Netflix and Production I.G, both licensed{' '}
+							<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
+						</p>
+					</div>
+				</section>
+
 				<section class="sect" aria-labelledby="sources-h">
 					<div class="rule"></div>
 					<div class="sect-head reveal">
@@ -218,13 +284,13 @@ const installHtml = [
 					<div class="plain-block reveal">
 						<p>
 							<strong>anistream hosts no content and ships no sources of its own.</strong>
-							The intended path is legitimate: AniList’s public API for browsing, deep links that
-							open licensed services in their own apps — never scraped, never DRM-circumvented —
-							and plugins for APIs you have the right to use, self-hosted servers, and your own
-							media. Torrent support exists too, off by default and unreachable without the VPN
-							guard; what you point any external source at is your decision, at your own risk,
-							under the laws that apply to you. Every source is a config edit away from being
-							removed.
+							The intended path is legitimate: AniList’s public API for browsing, a pointer to
+							where each title is licensed, and plugins for APIs you have the right to use,
+							self-hosted servers and your own media. anistream never circumvents DRM. It lists no
+							plugin stores either: a store is run by someone you know, for the people they invite.
+							Torrent support exists too, off by default and unreachable without the VPN guard.
+							What you point any external source at is your decision, at your own risk, under the
+							laws that apply to you, and every source is a config edit away from being removed.
 						</p>
 					</div>
 				</section>
@@ -239,8 +305,9 @@ const installHtml = [
 						<p>
 							Binaries for macOS, Linux and Windows are on the
 							<a href="https://github.com/bitknox/anistream/releases">releases page</a>, or build
-							it yourself from the code. Either way you need mpv and ffmpeg installed — neither is
-							bundled. Browsing works immediately, with no account and no config.
+							it yourself from the code. Either way you need mpv and ffmpeg installed, since
+							neither is bundled; the player's own interface wants mpv 0.36 or newer. Browsing
+							works immediately, with no account and no config.
 						</p>
 						<pre class="code-block" tabindex="0" set:html={installHtml} />
 						<p class="tests-line">
@@ -257,13 +324,15 @@ const installHtml = [
 					</div>
 					<div class="plain-block reveal">
 						<p>
-							anistream is under active development. Kitsu sync is still to come, and the plugin
-							system is the path for new sources. Follow along, open an issue, or write a provider
-							plugin: the architecture was built for other people’s ideas to plug into.
+							anistream is under active development. Plugins are the path for new sources, and
+							plugin stores share them with the people you choose. Follow along, open an issue,
+							write a provider plugin or run a store: the architecture was built for other
+							people’s ideas to plug into.
 						</p>
 						<div class="hero-ctas" style="margin-top: 1.8rem">
 							<a class="btn" href="https://github.com/bitknox/anistream">follow on github</a>
 							<a class="btn" href="/docs/plugins/authoring/">write a plugin</a>
+							<a class="btn" href="/docs/plugins/stores/">run a store</a>
 						</div>
 						<div class="mascot-row">
 							<canvas

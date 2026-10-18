@@ -26,6 +26,22 @@ toast says what aired for shows you watch since you were last here — a digest,
 
 ![The library screen, with the watching tab and cover art](assets/library.png)
 
+### Inside the player
+
+![A character's eye from a 720p stream at 1440p, four times: with no upscaling, with Natural (ArtCNN), with Sharp (Anime4K), and the 4K master it was made from](assets/screenshots/player-upscaling-compare.webp)
+
+| | |
+| --- | --- |
+| ![The player's controls over a close-up, with a thumbnail of the opening above the seek bar and the subtitle above both](assets/screenshots/player-controls.webp) | ![The anistream menu inside the player](assets/screenshots/player-menu.webp) |
+| Thumbnails on the seek bar, subtitles moved above it | Episodes, sources, sub or dub, upscaling and tracks |
+| ![The show's logo during its opening, with a Skip opening button](assets/screenshots/player-skip.webp) | ![An Up Next card over the ending credits, naming episode 3.2](assets/screenshots/player-up-next.webp) |
+| The opening, from the file's own chapters | Up Next at the ending, in the same window |
+
+<sub>Player frames from こうしす！ #3.1 by [OPAP-JP contributors](https://opap.jp/), and the
+comparison from [Sol Levante](https://opencontent.netflix.com/) by Netflix and Production I.G, both
+licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); see
+[their notice](assets/screenshots/NOTICE.md).</sub>
+
 Torrent streaming uses librqbit, plays while downloading and is seekable. You supply the indexer.
 It sits behind a fail-closed VPN guard and is unreachable without one. There is a downloads screen
 for what you have pulled down, and completed files get their subtitles muxed in.
@@ -45,23 +61,27 @@ as a link that opens in that service.
 
 ## Install
 
-Every [release](https://github.com/bitknox/anistream/releases) ships ready to run — no toolchain,
-no build step:
+Every [release](https://github.com/bitknox/anistream/releases) ships ready to run, with no toolchain
+and no build step:
 
-- **macOS** — `anistream.pkg`, or the `.tar.gz` archive for `PATH`-only installs
-- **Windows** — `anistream-<version>-setup.exe`, or the `.zip`
-- **Debian / Ubuntu** — `anistream-<version>-amd64.deb`, or the `.tar.gz`
-- **Other Linux** — the `.AppImage`: `chmod +x`, run it from a terminal
+| System | Download |
+| --- | --- |
+| macOS | `anistream-<version>-aarch64-apple-darwin.pkg` for Apple silicon, `…-x86_64-apple-darwin.pkg` for Intel, or the `.tar.gz` for `PATH`-only installs |
+| Windows | `anistream-<version>-setup.exe`, or the `.zip` |
+| Debian, Ubuntu | `anistream-<version>-amd64.deb`, or the `.tar.gz` |
+| Other Linux | The `.AppImage`: `chmod +x`, then run it from a terminal |
 
-The installers put `anistream` on your `PATH` and add a launcher; the archives hold just the
-binary. Every asset has a `.sha256` beside it. The builds are not code-signed yet. The first time,
-macOS wants **Open Anyway** in System Settings → Privacy & Security for the `.pkg`, or
-`xattr -d com.apple.quarantine anistream` for the archive's binary, and Windows SmartScreen wants
-**More info → Run anyway**.
+The installers put `anistream` on your `PATH` and add a launcher. The archives hold the binary,
+this README, the licence and a `third-party` folder of notices. Every asset has a `.sha256` beside
+it. The builds are not code-signed yet. The first time, macOS wants **Open Anyway** in System
+Settings → Privacy & Security for the `.pkg`, or `xattr -d com.apple.quarantine anistream` for the
+archive's binary, and Windows SmartScreen wants **More info → Run anyway**.
 
-mpv and ffmpeg are not bundled — install those first (`brew install mpv ffmpeg`,
+mpv and ffmpeg are not bundled, so install those first (`brew install mpv ffmpeg`,
 `winget install shinchiro.mpv Gyan.FFmpeg`, or your distro's packages; the `.deb` pulls them in
-as dependencies).
+as dependencies). The player's own interface (skip button, Up Next, menus, thumbnails) needs mpv
+0.36 or newer. Older versions play with mpv's own controls, and `anistream --doctor` says which
+you have.
 
 ### Updating
 
@@ -247,8 +267,8 @@ cargo run -p anistream-providers --example torrent_probe -- \
 
 ## Command line
 
-These all exit without starting the interface. `--search`, `--stats` and `--random` also take
-`--json`.
+None of these start the interface. Most answer and exit; `--stream-url` and `store serve` keep
+running until you stop them. `--search`, `--stats` and `--random` also take `--json`.
 
 |                                                     |                                                                                                                            |
 | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -262,6 +282,8 @@ These all exit without starting the interface. `--search`, `--stats` and `--rand
 | `--login [--tracker mal]` \| `--logout` \| `--sync` | Tracker accounts                                                                                                           |
 | `--login-url --tracker anilist`                     | Print the authorize URL and exit, for signing in on another machine                                                        |
 | `--plugins`                                         | Installed plugins and what each may reach                                                                                  |
+| `store serve <dir> --url <address>`                 | Run a plugin store for people you invite; `store invite`, `store publish` and `store admin` do the owner's jobs from the store's machine |
+| `plugin stamp <file.wasm> [-o <out>]`               | Write a plugin's manifest into it, for stores that cannot run plugins                                                      |
 | `--stream-url <id> [--episode N]`                   | Resolve one episode to a URL and hold it open, so `mpv` or `curl` can be pointed at it                                     |
 | `--preview 120x34 --screen home`                    | Render one screen as text: home, search, title, episodes, calendar, library, downloads, providers, accounts, settings, help, palette |
 | `--refresh-data`                                    | Refresh the ID-mapping datasets                                                                                            |
@@ -299,8 +321,10 @@ anistream --stream-url 154587 --episode 1 # resolve one episode, print the URL, 
 is in anistream. If it does not, it is the player or the source, and mpv says which. anistream
 captures mpv's stderr and surfaces the relevant line.
 
-A slow start is usually plugin compilation — the JavaScript reference plugin takes about a second.
-`--plugins` lists what is installed; drop `"plugins"` from `providers.order` if you do not use them.
+Plugins compile in the background and are cached, so they never hold up the first frame; a large
+one, such as the JavaScript reference plugin, joins the sources a second or so after a fresh
+install. `--plugins` lists what is installed; drop `"plugins"` from `providers.order` if you do not
+use them.
 
 ## Plugins
 
@@ -309,9 +333,16 @@ Provider plugins are WebAssembly components in any language targeting WASI 0.2 �
 plugin is a parser. `anistream --plugins` shows what each installed plugin may contact, and that
 list is enforced host-side. Per-plugin settings live under `[providers.plugins.settings.<id>]`.
 
+Plugins can also be shared through a plugin store: a small server that someone runs for the people
+they invite. Paste an invite link under **Providers** to join one, then install from its list.
+anistream lists no stores of its own. [deploy/](deploy/README.md) has one-click templates for
+running a store on Cloudflare, Vercel, Netlify, Render, Heroku, Fly or Railway, or on a machine of
+your own, and **[docs/plugin-stores.md](docs/plugin-stores.md)** covers running one and the
+protocol.
+
 ## Architecture
 
-Ten crates, volatility increasing left to right:
+Fourteen crates. The app's, volatility increasing left to right:
 
 ```
  AniList        ID mapping        Provider         Player
@@ -329,12 +360,17 @@ Ten crates, volatility increasing left to right:
 filler) · `-store` (SQLite) · `-providers` (torrent transport, remote, mock) · `-player` (mpv IPC) ·
 `-track` (AniList, MAL, Kitsu, Simkl, Trakt, sync) · `-plugin` (WASM host) · `-ui` (ratatui) · `anistream` (wiring).
 
+Plugin stores have four of their own: `-store-core` (the protocol, the store's rules and its admin
+page, built natively and to WebAssembly) · `-plugin-store` (the client and the reference server) ·
+`-store-server` (`anistream store …` and the standalone `anistream-store`) · `-store-wasm` (the
+store for Workers and serverless functions). `-store` is the app's own history, and unrelated.
+
 Sources decay, so every volatile piece sits behind a trait and the core never depends on one.
 
 ## Development
 
 ```sh
-cargo test --workspace        # 1047 tests, no network
+cargo test --workspace        # no network
 cargo clippy --workspace --all-targets
 cargo run -p anistream-ui --example screen_preview     # look at the layouts
 ```

@@ -8,14 +8,13 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 Every release on the [releases page](https://github.com/bitknox/anistream/releases) ships the same
 build several ways:
 
-**An installer** — `.pkg` on macOS, `setup.exe` on Windows, `.deb` on Debian and Ubuntu. Each one
-puts `anistream` on your `PATH` *and* adds a launcher, so you can type it or click it. The launcher
-opens your terminal, since that is where anistream lives.
-
-**An AppImage** — for every other Linux distro: `chmod +x` it and run it from a terminal. Nothing
-is installed.
-
-**An archive** — `.tar.gz` or `.zip` holding just the binary, for putting on `PATH` yourself.
+- An installer: `.pkg` on macOS, `setup.exe` on Windows, `.deb` on Debian and Ubuntu. Each one
+  puts `anistream` on your `PATH` *and* adds a launcher, so you can type it or click it. The
+  launcher opens your terminal, since that is where anistream lives.
+- An AppImage for every other Linux distro. `chmod +x` it and run it from a terminal. Nothing is
+  installed.
+- An archive, `.tar.gz` or `.zip`, for putting the binary on `PATH` yourself. It holds the binary,
+  the README, the licence and a `third-party` folder with the notices for what anistream bundles.
 
 Everything ships with a `.sha256` worth checking first.
 
@@ -35,8 +34,12 @@ steps.
 :::
 
 **mpv and ffmpeg are not bundled.** anistream drives mpv for playback and shells out to ffmpeg when
-muxing subtitles into a completed download. The `.deb` declares both as dependencies; on macOS and
-Windows, install them yourself — see Prerequisites below.
+muxing subtitles into a completed download. The `.deb` declares both as dependencies. On macOS and
+Windows, install them yourself, as in Prerequisites below.
+
+anistream's [player interface](/docs/guides/player/), with the skip button, Up Next, menus and
+thumbnails, needs mpv 0.36 or newer. Older versions play with mpv's own controls; Ubuntu 24.04
+ships 0.37 and Debian 12 ships 0.35. `anistream --doctor` says which version you have.
 
 There is no Homebrew formula and no `cargo install` yet. To build from source instead, install the
 prerequisites and then build.
@@ -48,7 +51,7 @@ anistream --update
 ```
 
 That downloads the latest release for your platform, verifies it against the published SHA-256,
-and replaces the binary in place — restart anistream to use it. The app also checks GitHub for a
+and replaces the binary in place. Restart anistream to use it. The app also checks GitHub for a
 new release once a day (one cached HTTPS request, nothing downloaded) and mentions it in a toast.
 Turn the check off with:
 
@@ -96,7 +99,7 @@ winget install --id shinchiro.mpv
 winget install --id Microsoft.VisualStudio.2022.BuildTools
 ```
 
-The Visual Studio installer needs the **Desktop development with C++** workload — the bare package
+The Visual Studio installer needs the **Desktop development with C++** workload. The bare package
 does not include the C compiler on its own. NASM is there because the torrent stack's crypto
 assembles its own primitives on Windows.
 
@@ -115,8 +118,9 @@ cd anistream
 cargo run --release
 ```
 
-The first build is slow — BoringSSL, librqbit and a WASM runtime are in the tree — and incremental
-after that. The binary ends up at `target/release/anistream` if you want it on your `PATH`.
+The first build is slow, since BoringSSL, librqbit and a WASM runtime are in the tree, and
+incremental after that. The binary ends up at `target/release/anistream` if you want it on your
+`PATH`.
 
 ## Where things live
 
@@ -128,6 +132,8 @@ after that. The binary ends up at `target/release/anistream` if you want it on y
 | Config | `~/Library/Application Support/anistream/config.toml` |
 | History database | `~/Library/Application Support/anistream/anistream.db` |
 | Plugins | `~/Library/Application Support/anistream/plugins/*.wasm` |
+| Joined plugin stores | `~/Library/Application Support/anistream/plugin-stores.json` |
+| Player files and shaders | `~/Library/Caches/anistream/mpv/` and `~/Library/Caches/anistream/shaders/` |
 | Logs | `~/Library/Caches/anistream/logs/` |
 
 </TabItem>
@@ -138,6 +144,8 @@ after that. The binary ends up at `target/release/anistream` if you want it on y
 | Config | `~/.config/anistream/config.toml` |
 | History database | `~/.local/share/anistream/anistream.db` |
 | Plugins | `~/.config/anistream/plugins/*.wasm` |
+| Joined plugin stores | `~/.local/share/anistream/plugin-stores.json` |
+| Player files and shaders | `~/.cache/anistream/mpv/` and `~/.cache/anistream/shaders/` |
 | Logs | `~/.cache/anistream/logs/` |
 
 </TabItem>
@@ -148,19 +156,26 @@ after that. The binary ends up at `target/release/anistream` if you want it on y
 | Config | `%APPDATA%\anistream\config\config.toml` |
 | History database | `%APPDATA%\anistream\data\anistream.db` |
 | Plugins | `%APPDATA%\anistream\config\plugins\*.wasm` |
+| Joined plugin stores | `%APPDATA%\anistream\data\plugin-stores.json` |
+| Player files and shaders | `%LOCALAPPDATA%\anistream\cache\mpv\` and `%LOCALAPPDATA%\anistream\cache\shaders\` |
 | Logs | `%LOCALAPPDATA%\anistream\cache\logs\` |
 
 </TabItem>
 </Tabs>
 
-Plugins always sit beside `config.toml`, whatever that path is — `anistream --plugins` prints the
+Plugins always sit beside `config.toml`, whatever that path is. `anistream --plugins` prints the
 directory it is actually reading. Logs roll daily, at `info` unless `ANISTREAM_LOG` says otherwise.
 
-No config file is required — one is only written when you change something in the Settings screen,
+The player's controls, fonts and scripts and the upscaling shaders ship inside the binary, and
+anistream writes them into the cache directory when it needs them. `anistream --doctor` prints
+where the player files are. The tokens for joined plugin stores are kept wherever tracker tokens
+are, which `trackers.token_storage` decides.
+
+No config file is required. One is only written when you change something in the Settings screen,
 and those writes are format-preserving, so comments you add by hand survive.
 
 :::note
-Running from `cargo` rather than an installed binary has one consequence for tracker tokens: macOS
-keys keychain access on the binary, and every rebuild produces a new one. See
+Running from `cargo` rather than an installed binary has one consequence for tracker and store
+tokens: macOS keys keychain access on the binary, and every rebuild produces a new one. See
 [token storage](/docs/guides/trackers-sync/#token-storage).
 :::

@@ -117,6 +117,12 @@ pub enum StageView {
     Episodes(anistream_core::ids::AnilistId),
     /// mpv control surface.
     NowPlaying,
+    /// Plugin stores this machine has joined, reached from Providers.
+    Stores,
+    /// One store's plugins and what can be done there. Named by the store's id.
+    Store(String),
+    /// Who has joined a store, for its owner.
+    StoreMembers(String),
 }
 
 impl StageView {
@@ -125,7 +131,7 @@ impl StageView {
         match self {
             Self::Episodes(_) | Self::NowPlaying => true,
             Self::Section(s) => s.wants_wide_stage(),
-            Self::Title(_) => false,
+            Self::Title(_) | Self::Stores | Self::Store(_) | Self::StoreMembers(_) => false,
         }
     }
 
@@ -159,6 +165,18 @@ pub enum Overlay {
     Accounts,
     Conflicts,
     Logs,
+    /// Paste an invite link.
+    JoinStore,
+    /// A store action that needs a yes: joining, leaving, removing someone.
+    StoreConfirm,
+    /// What can be done with one of a store's plugins.
+    PluginAction,
+    /// Who an invite is for.
+    InviteName,
+    /// A freshly made invite link, to copy and send.
+    InviteLink,
+    /// Which local plugin to publish to a store.
+    PublishPick,
 }
 
 impl Overlay {
@@ -182,6 +200,12 @@ impl Overlay {
             Self::Accounts => "ACCOUNTS",
             Self::Conflicts => "CONFLICTS",
             Self::Logs => "LOGS",
+            Self::JoinStore => "JOIN A STORE",
+            Self::StoreConfirm => "CONFIRM",
+            Self::PluginAction => "PLUGIN",
+            Self::InviteName => "INVITE SOMEONE",
+            Self::InviteLink => "INVITE LINK",
+            Self::PublishPick => "PUBLISH A PLUGIN",
         }
     }
 
@@ -195,6 +219,8 @@ impl Overlay {
                 | Self::EditSetting
                 | Self::KitsuUsername
                 | Self::KitsuPassword
+                | Self::JoinStore
+                | Self::InviteName
         )
     }
 }

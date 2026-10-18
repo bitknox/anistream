@@ -1,0 +1,33 @@
+# Render Blueprint for the anistream plugin store, read by the button
+# https://render.com/deploy?repo=https://github.com/bitknox/anistream
+#
+# One web service with a 1 GB disk for the store's database and plugin files. On Render the store
+# finds its address, https://<service>.onrender.com, and trusts Render's proxy without being
+# told. See deploy/README.md.
+services:
+  - type: web
+    name: anistream-store
+    # The published image, wrapped by deploy/render/Dockerfile only to run it as root: Render
+    # mounts disks owned by root and has no setting for the user a service runs as. Building it
+    # is a pull and one layer; nothing is compiled.
+    runtime: docker
+    dockerfilePath: ./deploy/render/Dockerfile
+    dockerContext: ./deploy/render
+    # Render's smallest paid instance (formerly "Starter"). A disk needs a paid instance.
+    plan: 0.5c-512mb
+    # Render advises this for deploy buttons: otherwise every commit to this repository would
+    # redeploy everyone's store. Update from the dashboard instead (deploy/README.md).
+    autoDeployTrigger: "off"
+    healthCheckPath: /healthz
+    disk:
+      name: anistream-store
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      # Claims the store from https://<service>.onrender.com/admin/ while nobody owns it. Render
+      # generates it; it is under the service's Environment tab.
+      - key: ANISTREAM_STORE_SETUP_CODE
+        generateValue: true
+      # The name members see. Asked for when the Blueprint is created.
+      - key: ANISTREAM_STORE_NAME
+        sync: false

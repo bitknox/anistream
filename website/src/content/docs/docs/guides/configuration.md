@@ -4,7 +4,8 @@ description: Every section of config.toml is optional. The defaults are the reco
 ---
 
 `~/.config/anistream/config.toml` on Linux, `~/Library/Application Support/anistream/config.toml`
-on macOS. Every section is optional — a missing file is a valid configuration. The Settings screen
+on macOS and `%APPDATA%\anistream\config\config.toml` on Windows. Every section is optional, and a
+missing file is a valid configuration. The Settings screen
 edits the same file in place, format-preserving, so hand-written comments survive.
 
 ```toml
@@ -49,12 +50,13 @@ content and none of the entries are on until you configure them:
 
 - `"torrent"` — the BitTorrent transport, pointed at an indexer you configure and gated
   behind the [VPN guard](/docs/guides/torrents-vpn/)
-- `"plugins"` — any [provider plugins](/docs/plugins/authoring/) you have installed
+- `"plugins"` — any [provider plugins](/docs/plugins/authoring/) you have installed, by hand or
+  from a [plugin store](/docs/plugins/stores/)
 - `"remote"` — a Consumet-shaped API you host yourself, which does nothing until
   `providers.remote_url` names it
 
-Drop `"plugins"` from the order if you are not using them; the JavaScript reference plugin costs
-~874 ms to compile at startup.
+Plugins compile in the background and are cached, so they never hold up the first frame. An
+installed plugin is only used while `"plugins"` is in the order; drop it if you use none.
 
 The order is a default, not a rule: `P` on a title pins one source for that title, and `s` on an
 episode picks an exact release. Pinned sources do not fail over.
@@ -73,10 +75,15 @@ All keys are optional and defined by the plugin; anistream passes them through u
 ```toml
 [downloads]
 directory = "~/Downloads/anistream"
+merge_subtitles = true     # mux sidecar subtitles into the file, a stream copy with no re-encode
+on_complete = "…"          # a command run after each download, with ANISTREAM_PATH, _TITLE, _EPISODE
+keep_seeding = false       # whether a finished download keeps seeding
 ```
 
-Completed downloads get subtitles muxed into the file, as a stream copy with no re-encode. Seeding
-is off by default, which is a privacy choice.
+`on_complete` is for refreshing a media library or renaming to a scheme of your own; a failure is
+logged, never fatal. A finished download stops seeding unless you ask otherwise, which is a privacy
+choice. What a watched episode does is set under
+[Seeding](/docs/guides/torrents-vpn/#seeding).
 
 :::caution
 Every section is validated with unknown keys rejected, and a config that fails to parse falls back
@@ -84,6 +91,39 @@ to the defaults **wholesale** — losing your VPN mode, indexer and tracker cred
 A misspelled key is not ignored, so the warning on stderr is worth reading before the TUI paints
 over it.
 :::
+
+## Notifications, metadata and updates
+
+```toml
+[notifications]
+airing_digest = true   # one line on launch: what aired for shows you watch
+desktop = false        # send the same line to the desktop too
+
+[meta]
+fallback = true        # when AniList cannot answer, ask Tenrai before using cached data
+
+[updates]
+check = true           # ask GitHub once a day whether a new release exists
+```
+
+The update check downloads nothing; `anistream --update` does that when you run it.
+
+## Discord and Syncplay
+
+```toml
+[presence]
+enabled = false        # show what you are watching on your Discord profile
+show_title = true      # or only that something is playing
+
+[syncplay]
+server = "syncplay.pl:8995"
+room = "…"             # required before y can start a party
+name = "anistream"
+```
+
+Presence is off until you turn it on, since it publishes what you watch to a third party.
+`presence.client_id` names the Discord application it appears under. A watch party needs
+Syncplay installed; `syncplay.binary` points at it if it is not on your `PATH`.
 
 ## Everything else
 

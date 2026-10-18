@@ -24,6 +24,7 @@ pub mod mend;
 pub mod picture;
 pub mod playback;
 pub mod player;
+pub mod plugin_stores;
 pub mod power;
 pub mod remux;
 pub mod shaders;

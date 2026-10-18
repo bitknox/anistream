@@ -1,0 +1,38 @@
+# The build context for deploy/container/Dockerfile, which compiles `anistream-store` from the
+# Cargo workspace. Cargo reads every member's manifest (crates/*) even to build one package, and
+# crates read wit/ and assets/ at compile time, so those stay. The rest is left out to keep the
+# context small, and so that editing the website or the docs does not invalidate the build.
+
+# Build output. target/ alone runs to tens of gigabytes on a working machine.
+**/target
+# Other toolchains' dependencies, such as the admin page's under crates/anistream-store-core.
+**/node_modules
+
+# Version control, CI, editor and agent state.
+.git
+.github
+.claude
+**/.DS_Store
+
+# Separate builds, outside the workspace: plugins are excluded from it in Cargo.toml, and the
+# website and the deploy templates have their own toolchains.
+plugins
+website
+deploy
+
+# Prose, packaging and platform templates nothing compiles.
+docs
+packaging
+tools
+/README.md
+/app.json
+/fly.toml
+/heroku.yml
+/render.yaml
+
+# README screenshots and local runtime files. assets/icon and assets/shaders stay: the app's
+# crates include them.
+/assets/*.png
+/mpv-shot*
+/anistream.db*
+/.anistream

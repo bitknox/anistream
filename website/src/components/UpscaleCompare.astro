@@ -1,0 +1,211 @@
+---
+// One frame, upscaled two ways: the source as it is on the left, a chosen look on the right,
+// and a divider to drag between them. The divider is a range input laid over the picture, so
+// it works from the keyboard and reads as a slider to a screen reader without any of its own
+// event handling.
+
+interface Look {
+	id: string;
+	label: string;
+	note: string;
+	src: string;
+}
+
+interface Props {
+	/** What the frame shows, for anyone who cannot see it. */
+	alt: string;
+	/** The frame with no upscaling. */
+	off: string;
+	looks: Look[];
+	width: number;
+	height: number;
+}
+
+const { alt, off, looks, width, height } = Astro.props;
+---
+
+<figure class="compare" data-compare>
+	<div class="compare-choice" role="radiogroup" aria-label="Compare with">
+		{
+			looks.map((look, i) => (
+				<button
+					type="button"
+					role="radio"
+					aria-checked={i === 0 ? 'true' : 'false'}
+					tabindex={i === 0 ? 0 : -1}
+					data-src={look.src}
+					data-label={look.label}
+				>
+					{look.label} <span class="compare-note">{look.note}</span>
+				</button>
+			))
+		}
+	</div>
+	<div class="compare-frame" style={`aspect-ratio: ${width} / ${height}`}>
+		<img class="compare-off" src={off} alt={`${alt}, with no upscaling`} width={width} height={height} loading="lazy" decoding="async" />
+		<img
+			class="compare-look"
+			src={looks[0].src}
+			alt={`${alt}, upscaled`}
+			width={width}
+			height={height}
+			loading="lazy"
+			decoding="async"
+		/>
+		<span class="compare-tag compare-tag-off" aria-hidden="true">off</span>
+		<span class="compare-tag compare-tag-look" aria-hidden="true">{looks[0].label}</span>
+		<span class="compare-divider" aria-hidden="true"></span>
+		<input
+			class="compare-range"
+			type="range"
+			min="0"
+			max="100"
+			value="50"
+			step="0.5"
+			aria-label={`Divide the picture between no upscaling and ${looks[0].label}`}
+		/>
+	</div>
+	<figcaption><slot /></figcaption>
+</figure>
+
+<style>
+	.compare {
+		margin: 0;
+		--pos: 50%;
+	}
+	.compare-choice {
+		display: flex;
+		gap: 0.25rem;
+		margin-bottom: 0.75rem;
+		font-family: var(--ani-font-mono);
+		font-size: 0.8rem;
+	}
+	.compare-choice button {
+		font: inherit;
+		color: var(--ani-dim);
+		background: none;
+		border: 1px solid var(--ani-rule-faint);
+		padding: 0.35rem 0.75rem;
+		cursor: pointer;
+	}
+	.compare-choice button[aria-checked='true'] {
+		color: var(--ani-text);
+		border-color: var(--ani-obi);
+		box-shadow: inset 3px 0 0 var(--ani-obi);
+	}
+	.compare-choice button:focus-visible {
+		outline: 2px solid var(--ani-obi);
+		outline-offset: 2px;
+	}
+	.compare-note {
+		color: var(--ani-dim);
+		margin-left: 0.35rem;
+	}
+	.compare-frame {
+		position: relative;
+		overflow: hidden;
+		border: 1px solid var(--ani-rule);
+		background: var(--ani-raised);
+		user-select: none;
+		touch-action: pan-y;
+	}
+	.compare-frame img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		display: block;
+	}
+	.compare-look {
+		clip-path: inset(0 0 0 var(--pos));
+	}
+	.compare-divider {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: var(--pos);
+		width: 2px;
+		margin-left: -1px;
+		background: var(--ani-obi);
+		pointer-events: none;
+	}
+	.compare-divider::after {
+		content: '';
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 0.9rem;
+		height: 2.6rem;
+		transform: translate(-50%, -50%);
+		background: var(--ani-obi);
+	}
+	.compare-tag {
+		position: absolute;
+		top: 0.6rem;
+		font-family: var(--ani-font-mono);
+		font-size: 0.75rem;
+		color: #e4e0d6;
+		background: rgb(22 26 46 / 0.78);
+		padding: 0.2rem 0.5rem;
+		pointer-events: none;
+	}
+	.compare-tag-off {
+		left: 0.6rem;
+	}
+	.compare-tag-look {
+		right: 0.6rem;
+	}
+	.compare-range {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		margin: 0;
+		opacity: 0;
+		cursor: ew-resize;
+	}
+	.compare-frame:has(.compare-range:focus-visible) {
+		outline: 2px solid var(--ani-obi);
+		outline-offset: 3px;
+	}
+	figcaption {
+		margin-top: 0.6rem;
+		font-size: 0.85rem;
+		color: var(--ani-dim);
+	}
+</style>
+
+<script>
+	for (const figure of document.querySelectorAll<HTMLElement>('[data-compare]')) {
+		const range = figure.querySelector<HTMLInputElement>('.compare-range')!;
+		const look = figure.querySelector<HTMLImageElement>('.compare-look')!;
+		const tag = figure.querySelector<HTMLElement>('.compare-tag-look')!;
+		const buttons = [...figure.querySelectorAll<HTMLButtonElement>('.compare-choice button')];
+
+		const place = () => figure.style.setProperty('--pos', `${range.value}%`);
+		range.addEventListener('input', place);
+		place();
+
+		const choose = (button: HTMLButtonElement) => {
+			for (const b of buttons) {
+				b.setAttribute('aria-checked', String(b === button));
+				b.tabIndex = b === button ? 0 : -1;
+			}
+			look.src = button.dataset.src!;
+			tag.textContent = button.dataset.label!;
+			range.setAttribute('aria-label', `Divide the picture between no upscaling and ${button.dataset.label}`);
+		};
+		buttons.forEach((button, i) => {
+			button.addEventListener('click', () => choose(button));
+			// A radio group moves with the arrow keys.
+			button.addEventListener('keydown', (event) => {
+				const step = event.key === 'ArrowRight' || event.key === 'ArrowDown' ? 1 : event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 0;
+				if (!step) return;
+				event.preventDefault();
+				const next = buttons[(i + step + buttons.length) % buttons.length];
+				next.focus();
+				choose(next);
+			});
+		});
+	}
+</script>
