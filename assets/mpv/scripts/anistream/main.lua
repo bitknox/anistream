@@ -65,6 +65,7 @@ local stall = require("elements/stall")
 local up_next = require("elements/up_next")
 local toast = require("elements/toast")
 local pause_flash = require("elements/pause_flash")
+local host = require("host")
 
 local PROTOCOL = 1
 
@@ -485,6 +486,7 @@ mp.register_script_message("hello", ready)
 
 refresh()
 menus.sync_context_menu()
+host.start()
 -- Every binding above is live before the host hears we are ready.
 keys.flush()
 ready()

@@ -19,6 +19,9 @@ M.opts = {
     -- Set by the host in its own launch mode, where it bundles uosc beside this script. It is
     -- also what "anistream mode" means here: the window is ours to paint between episodes.
     uosc = false,
+    -- The host's process id, and how often (seconds) to check it is still running. See host.lua.
+    host_pid = 0,
+    host_check = 5,
 }
 mp_options.read_options(M.opts, "anistream")
 

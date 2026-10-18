@@ -778,6 +778,35 @@ async fn the_volume_pill_does_not_flash_as_the_controls_leave() {
 }
 
 #[tokio::test]
+async fn an_idle_window_closes_once_its_host_has_gone() {
+    // The window outlives its file so the next episode can play in it. A host that was closed
+    // or killed must not leave it open on the loading card forever.
+    require_mpv!();
+    let host = std::process::Command::new("sleep").arg("1").spawn().expect("a stand-in host");
+    let pid = host.id().to_string();
+    let mut player = Player::start(
+        None,
+        &[
+            &format!("--script-opts-append=anistream-host_pid={pid}"),
+            "--script-opts-append=anistream-host_check=0.3",
+        ],
+    )
+    .await;
+    // While the host lives the idle window stays.
+    tokio::time::sleep(Duration::from_millis(600)).await;
+    assert!(player.child.try_wait().unwrap().is_none(), "closed while its host was alive");
+    let mut host = host;
+    let _ = host.wait();
+    // Its host gone, the idle window closes by itself.
+    let exited = timeout(Duration::from_secs(5), player.child.wait()).await;
+    assert!(exited.is_ok(), "an idle window with no host must close");
+    // Already gone, so no `finish`: only the log is left to check.
+    sleep(Duration::from_millis(50)).await;
+    let log = player.stderr.lock().unwrap().clone();
+    assert!(!log.contains("Lua error"), "the script raised an error:\n{log}");
+}
+
+#[tokio::test]
 async fn a_click_on_the_picture_pauses_and_a_double_click_leaves_it_alone() {
     require_mpv!();
     let mut player = Player::start(

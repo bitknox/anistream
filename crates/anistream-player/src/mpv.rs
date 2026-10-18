@@ -502,6 +502,8 @@ impl Mpv {
             args.push(opt("anistream-uosc", "yes"));
         }
         args.push(format!("--script={}", bundle.companion().display()));
+        // So the companion can close an idle window whose host has gone.
+        args.push(opt("anistream-host_pid", &std::process::id().to_string()));
         for (key, value) in &self.theme {
             args.push(opt(&format!("anistream-{key}"), value));
         }
