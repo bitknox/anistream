@@ -81,6 +81,36 @@ jiff = { version = "0.2", features = ["serde"] }
 # Widevine streams cannot be decoded locally.
 open = "5"
 
+# Line tables are enough for a backtrace through a dependency; full debug info for ~650 crates
+# mostly costs link time across a dozen test binaries, and disk. Workspace crates keep it.
+[profile.dev.package."*"]
+debug = "line-tables-only"
+
+# The wasm compiler runs inside debug test binaries: an unoptimised Cranelift spends 18 s on the
+# JavaScript plugin that an optimised one compiles in about one, and the conformance tests that
+# load it saturate every core while they do. Optimising only the compiler keeps the rest of the
+# dev build fast to compile and debuggable.
+[profile.dev.package.cranelift-codegen]
+opt-level = 3
+[profile.dev.package.cranelift-frontend]
+opt-level = 3
+[profile.dev.package.cranelift-entity]
+opt-level = 3
+[profile.dev.package.cranelift-bforest]
+opt-level = 3
+[profile.dev.package.cranelift-bitset]
+opt-level = 3
+[profile.dev.package.cranelift-control]
+opt-level = 3
+[profile.dev.package.regalloc2]
+opt-level = 3
+[profile.dev.package.wasmparser]
+opt-level = 3
+[profile.dev.package.wasmtime-environ]
+opt-level = 3
+[profile.dev.package.wasmtime-internal-cranelift]
+opt-level = 3
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 

@@ -6,6 +6,10 @@ rust-version.workspace = true
 license.workspace = true
 description = "Tracker sync: the Tracker trait, AniList implementation, OAuth and the outbox drain"
 
+[lib]
+# No doc example is written as a test, and rustdoc spends seconds per crate finding none.
+doctest = false
+
 [dependencies]
 anistream-core.workspace = true
 anistream-meta.workspace = true

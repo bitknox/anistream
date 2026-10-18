@@ -6,6 +6,10 @@ rust-version.workspace = true
 license.workspace = true
 description = "WebAssembly component host for provider plugins, with a capability sandbox"
 
+[lib]
+# No doc example is written as a test, and rustdoc spends seconds per crate finding none.
+doctest = false
+
 [dependencies]
 anistream-core.workspace = true
 anyhow.workspace = true
