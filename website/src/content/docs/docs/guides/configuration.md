@@ -86,10 +86,11 @@ choice. What a watched episode does is set under
 [Seeding](/docs/guides/torrents-vpn/#seeding).
 
 :::caution
-Every section is validated with unknown keys rejected, and a config that fails to parse falls back
-to the defaults **wholesale** — losing your VPN mode, indexer and tracker credentials for that run.
-A misspelled key is not ignored, so the warning on stderr is worth reading before the TUI paints
-over it.
+Every section is validated with unknown keys rejected, and a config that fails to load is not used
+at all: anistream runs on the defaults **wholesale**, without your VPN mode, indexer and tracker
+credentials, until the file is fixed. It says so on every screen, naming the file and the line,
+and the Settings screen saves nothing until the file loads again, so a broken file is never
+written over.
 :::
 
 ## Disk space

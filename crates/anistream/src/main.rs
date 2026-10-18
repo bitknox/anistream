@@ -200,10 +200,15 @@ async fn main() -> Result<()> {
     }
     init_logging(&paths);
 
-    let mut config = Config::load(&paths).unwrap_or_else(|e| {
-        // A malformed config must not stop the app from starting, but it must be loud —
-        // silently ignoring it could mean silently ignoring a VPN setting.
-        eprintln!("warning: {e}\nfalling back to defaults");
+    // A malformed config must not stop the app from starting, but it must be loud — silently
+    // ignoring it could mean silently ignoring a VPN setting. Logged, printed for the commands
+    // that print, and kept for the interface, which says so for as long as it runs.
+    let mut config_problem = None;
+    let mut config = Config::read(&paths).unwrap_or_else(|problem| {
+        let file = paths.config_file.display();
+        tracing::error!(%file, %problem, "config not loaded; using the defaults");
+        eprintln!("warning: {file}, {problem}\nfalling back to defaults");
+        config_problem = Some(problem);
         Config::default()
     });
     if let Some(mode) = &cli.theme {
@@ -288,7 +293,7 @@ async fn main() -> Result<()> {
         return preview(config, http, store, &paths, size, &cli.screen, !cli.no_images).await;
     }
 
-    run(config, paths, http, store, !cli.no_images).await
+    run(config, paths, http, store, !cli.no_images, config_problem).await
 }
 
 /// `anistream store …` and `anistream plugin …`.
@@ -1442,6 +1447,7 @@ async fn run(
     http: HttpClient,
     store: Store,
     images: bool,
+    config_problem: Option<anistream_core::config::ConfigProblem>,
 ) -> Result<()> {
     let palette = theme::resolve(config.theme.mode);
     let meta = build_meta(&config, &http, &store);
@@ -1481,6 +1487,13 @@ async fn run(
     );
     let stores = plugin_stores::Stores::new(&config, &paths).map_err(|e| anyhow::anyhow!(e))?;
     let mut app = App::with_images(config, palette, keymap, engine);
+    if let Some(problem) = config_problem {
+        app.notice = Some(config_notice(&paths.config_file, &problem));
+        app.log(
+            anistream_ui::app::ToastKind::Alert,
+            format!("{}, {problem} — using the defaults", paths.config_file.display()),
+        );
+    }
     // Joined stores as they were left, so Providers can count them on the first frame.
     match stores.rows() {
         Ok(rows) => app.apply(Update::Stores(rows)),
@@ -1797,6 +1810,22 @@ async fn run(
 
     restore_terminal(&mut terminal)?;
     result
+}
+
+/// The interface's standing notice for a config file that did not load: which file, which line,
+/// what is wrong there, and what that means for the session.
+///
+/// One line, so the parser's list of every key it would have accepted is left to the log.
+fn config_notice(
+    file: &std::path::Path,
+    problem: &anistream_core::config::ConfigProblem,
+) -> String {
+    let name = file
+        .file_name()
+        .map_or_else(|| file.display().to_string(), |n| n.to_string_lossy().into_owned());
+    let what = problem.message.split(", expected").next().unwrap_or(&problem.message);
+    let place = problem.line.map_or_else(String::new, |line| format!(" line {line}"));
+    format!("{name}{place}: {what} — using the defaults until it is fixed")
 }
 
 /// Publish a list, then follow up with the broadcast dates it needs a second request for.
@@ -2655,9 +2684,15 @@ fn dispatch(
                     }
                 }
                 // The guard reaching the UI: enabling torrents with no VPN configured fails
-                // validation here, so no arrow key can write a config that would leak.
+                // validation here, so no arrow key can write a config that would leak. And a
+                // file that did not load at launch is refused by name and line.
                 Err(e) => {
-                    let _ = tx.send(Update::Toast(Toast::alert(format!("not saved: {e}"))));
+                    let reason = match e {
+                        anistream_core::Error::Config(reason) => reason,
+                        other => other.to_string(),
+                    };
+                    let _ =
+                        tx.send(Update::Toast(Toast::alert(format!("not saved: {reason}"))));
                 }
             }
         }
@@ -4346,6 +4381,19 @@ mod tests {
         assert_eq!(following(&rows, "1").as_deref(), Some("2"));
         assert_eq!(following(&rows, "3"), None, "a finale has no next");
         assert_eq!(following(&rows, "OVA"), None);
+    }
+
+    #[test]
+    fn a_broken_config_is_named_by_file_and_line_on_one_line() {
+        let file = std::path::Path::new("/home/someone/.config/anistream/config.toml");
+        let problem = Config::parse("[playback]\nqualty = 720\n").unwrap_err();
+        assert_eq!(
+            config_notice(file, &problem),
+            "config.toml line 2: unknown field `qualty` — using the defaults until it is fixed"
+        );
+        let rule = Config::parse("[playback]\ncommit_threshold = 3.0\n").unwrap_err();
+        let notice = config_notice(file, &rule);
+        assert!(notice.starts_with("config.toml: playback.commit_threshold"), "{notice}");
     }
 
     #[test]

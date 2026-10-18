@@ -74,12 +74,53 @@ pub struct Config {
     pub keys: BTreeMap<String, String>,
 }
 
+/// Why a configuration could not be used, and where in the file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConfigProblem {
+    /// The line at fault, counting from 1, when the problem is in one place. A rule broken
+    /// across settings — torrents on with no VPN mode — has none.
+    pub line: Option<usize>,
+    pub message: String,
+}
+
+impl std::fmt::Display for ConfigProblem {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.line {
+            Some(line) => write!(f, "line {line}: {}", self.message),
+            None => f.write_str(&self.message),
+        }
+    }
+}
+
+impl ConfigProblem {
+    fn from_toml(src: &str, error: &toml::de::Error) -> Self {
+        // The parser's own rendering quotes the source over several lines, which reads well in
+        // a terminal and not at all in a one-line notice. The line number is what a person
+        // needs to find it.
+        let line = error.span().map(|span| {
+            let before = src.as_bytes().get(..span.start).unwrap_or(src.as_bytes());
+            1 + before.iter().filter(|&&b| b == b'\n').count()
+        });
+        Self { line, message: error.message().trim().to_owned() }
+    }
+}
+
 impl Config {
     /// Parse from a TOML string, then validate.
     pub fn from_toml(src: &str) -> Result<Self, crate::Error> {
-        let cfg: Self = toml::from_str(src)
-            .map_err(|e| crate::Error::Config(format!("invalid TOML: {e}")))?;
-        cfg.validate()?;
+        Self::parse(src).map_err(|problem| crate::Error::Config(problem.to_string()))
+    }
+
+    /// [`Self::from_toml`], keeping where the problem is apart from what it is.
+    pub fn parse(src: &str) -> Result<Self, ConfigProblem> {
+        let cfg: Self = toml::from_str(src).map_err(|e| ConfigProblem::from_toml(src, &e))?;
+        cfg.validate().map_err(|e| ConfigProblem {
+            line: None,
+            message: match e {
+                crate::Error::Config(message) => message,
+                other => other.to_string(),
+            },
+        })?;
         Ok(cfg)
     }
 
@@ -88,17 +129,25 @@ impl Config {
     /// A missing config is normal on first run and must not be an error; a *malformed*
     /// one is, because silently ignoring it could mean silently ignoring a VPN setting.
     pub fn load(paths: &Paths) -> Result<Self, crate::Error> {
+        Self::read(paths).map_err(|problem| {
+            crate::Error::Config(format!("{}, {problem}", paths.config_file.display()))
+        })
+    }
+
+    /// [`Self::load`], with the problem kept apart from the file it is in — for an interface
+    /// that names the file its own way.
+    pub fn read(paths: &Paths) -> Result<Self, ConfigProblem> {
         match std::fs::read_to_string(&paths.config_file) {
-            Ok(src) => Self::from_toml(&src),
+            Ok(src) => Self::parse(&src),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
                 let cfg = Self::default();
-                cfg.validate()?;
+                cfg.validate()
+                    .map_err(|e| ConfigProblem { line: None, message: e.to_string() })?;
                 Ok(cfg)
             }
-            Err(e) => Err(crate::Error::Config(format!(
-                "cannot read {}: {e}",
-                paths.config_file.display()
-            ))),
+            Err(e) => {
+                Err(ConfigProblem { line: None, message: format!("cannot be read: {e}") })
+            }
         }
     }
 
@@ -1256,6 +1305,30 @@ mod tests {
     fn unknown_keys_are_rejected_rather_than_ignored() {
         // A typo in a privacy-relevant key must not be silently discarded.
         let err = Config::from_toml("[providers.torrent.vpn]\nmoed = \"none\"\n").unwrap_err();
-        assert!(err.to_string().contains("invalid TOML"), "got: {err}");
+        assert!(err.to_string().contains("unknown field `moed`"), "got: {err}");
+    }
+
+    #[test]
+    fn a_problem_names_its_line_and_what_is_wrong_on_one_line() {
+        // What the interface shows when the file cannot be used: a person has to find it.
+        let typo = Config::parse("[theme]\nmode = \"adaptive\"\n\n[playback]\nqualty = 720\n")
+            .unwrap_err();
+        assert_eq!(typo.line, Some(5), "{typo:?}");
+        assert!(typo.message.starts_with("unknown field `qualty`"), "{typo:?}");
+
+        let syntax = Config::parse("[playback]\nquality = 1080 ]\n").unwrap_err();
+        assert_eq!(syntax.line, Some(2), "{syntax:?}");
+
+        let wrong_type = Config::parse("[playback]\nquality = \"high\"\n").unwrap_err();
+        assert_eq!(wrong_type.line, Some(2), "{wrong_type:?}");
+
+        for problem in [&typo, &syntax, &wrong_type] {
+            assert!(!problem.to_string().contains('\n'), "{problem}");
+        }
+
+        // A rule across settings has no one line to point at, and names the setting instead.
+        let rule = Config::parse("[playback]\ncommit_threshold = 3.0\n").unwrap_err();
+        assert_eq!(rule.line, None);
+        assert!(rule.message.contains("commit_threshold"), "{rule:?}");
     }
 }

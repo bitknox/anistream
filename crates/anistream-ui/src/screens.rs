@@ -95,7 +95,8 @@ pub fn render(frame: &mut TFrame<'_>, app: &App) {
     Hairline::new(&app.palette).render(geometry.status_rule, buf);
     render_activity(buf, app, &activity, geometry.status_rule, now);
     render_status(buf, app, &geometry);
-    render_toasts(buf, app, geometry.stage);
+    let above_notice = render_notice(buf, app, geometry.stage);
+    render_toasts(buf, app, above_notice);
     render_overlay(buf, app, area, &geometry);
     // Last, so it occludes: an eyecatch that toasts could bleed through would not be covering
     // anything.
@@ -2695,6 +2696,28 @@ fn render_placeholder(buf: &mut Buffer, app: &App, area: Rect, title: &str, note
 }
 
 /// Bottom-right transient messages.
+/// The session's standing notice, on the stage's bottom row, and the stage above it for the
+/// toasts — which stack over it rather than hiding it.
+///
+/// Drawn like an alert toast so it reads as one, but across the whole row and for good: it
+/// describes something that stays true until the app restarts.
+fn render_notice(buf: &mut Buffer, app: &App, area: Rect) -> Rect {
+    let Some(notice) = app.notice.as_deref() else { return area };
+    if area.height < 2 || area.width < 8 {
+        return area;
+    }
+    let y = area.bottom() - 1;
+    let ground = app.palette.ground().unwrap_or(app.palette.ground_ref());
+    for x in area.left()..area.right() {
+        buf[(x, y)].set_char(' ').set_bg(ground.to_ratatui());
+    }
+    let text = truncate(notice, area.width.saturating_sub(4) as usize);
+    let x = area.right().saturating_sub(text.chars().count() as u16 + 2);
+    buf[(x, y)].set_char(OBI).set_style(app.palette.style(Role::Alert));
+    buf.set_string(x + 2, y, &text, app.palette.style(Role::Text));
+    Rect { height: area.height - 1, ..area }
+}
+
 fn render_toasts(buf: &mut Buffer, app: &App, area: Rect) {
     if app.toasts.is_empty() || area.height < 2 {
         return;
@@ -3729,6 +3752,29 @@ mod tests {
         );
         // Skeleton rows, so the layout does not jump when the real list replaces them.
         assert!(text.contains('░'), "no skeleton rows");
+    }
+
+    #[test]
+    fn a_standing_notice_stays_on_every_screen_with_toasts_above_it() {
+        let mut app = app_with(Content::Entries(vec![entry(1, "An Invented Show")]));
+        app.notice =
+            Some("config.toml line 5: unknown field `qualty` — running on defaults".into());
+        app.push_toast(crate::app::Toast::info("saved quality"));
+        for _ in 0..500 {
+            app.tick_toasts();
+        }
+        app.push_toast(crate::app::Toast::alert("a passing problem"));
+
+        for section in [Section::Home, Section::Settings, Section::Providers] {
+            app.go_to_section(section);
+            let text = text_of(&render_to_buffer(&app, 120, 34));
+            let rows: Vec<&str> = text.lines().collect();
+            let notice = rows.iter().position(|r| r.contains("unknown field `qualty`"));
+            let toast = rows.iter().position(|r| r.contains("a passing problem"));
+            assert!(notice.is_some(), "{section:?} lost the notice:\n{text}");
+            assert!(toast < notice, "{section:?}: the toast must sit above it:\n{text}");
+            assert!(!text.contains("saved quality"), "toasts still expire");
+        }
     }
 
     #[test]

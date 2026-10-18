@@ -59,6 +59,19 @@ pub fn write_key(
         }
     };
 
+    // A file that does not load is left exactly as it is. The app is running on defaults
+    // because of it, and a write on top would either fail for the same reason after the fact or,
+    // worse, succeed — and leave the user to find their file changed while it was broken. Said
+    // in their terms: which file, which line, and that nothing was touched.
+    if let Err(problem) = crate::config::Config::parse(&existing) {
+        let name = path
+            .file_name()
+            .map_or_else(|| path.display().to_string(), |n| n.to_string_lossy().into_owned());
+        return Err(crate::Error::Config(format!(
+            "{name} is left as it is until it loads — {problem}"
+        )));
+    }
+
     let mut doc = existing.parse::<toml_edit::DocumentMut>().map_err(|e| {
         crate::Error::Config(format!("{} is not valid TOML: {e}", path.display()))
     })?;
@@ -276,5 +289,23 @@ mod tests {
             std::fs::read_to_string(&paths.config_file).unwrap(),
             "this is not = = toml\n"
         );
+    }
+
+    #[test]
+    fn a_file_that_does_not_load_is_never_written_over_even_when_the_edit_would_fix_it() {
+        // The app runs on defaults while the file is broken, so a setting changed then is a
+        // change to the defaults on screen — not an instruction to rewrite the user's file.
+        let dir = temp_dir("unloadable");
+        let paths = paths_in(&dir);
+        let broken = "[playback]\nquality = 1080\nqualty = 720\n";
+        std::fs::write(&paths.config_file, broken).unwrap();
+
+        let err =
+            write_key(&paths, &["playback"], "quality", SettingValue::Int(720)).unwrap_err();
+
+        let said = err.to_string();
+        assert!(said.contains("config.toml") && said.contains("line 3"), "{said}");
+        assert!(said.contains("left as it is"), "{said}");
+        assert_eq!(std::fs::read_to_string(&paths.config_file).unwrap(), broken);
     }
 }
