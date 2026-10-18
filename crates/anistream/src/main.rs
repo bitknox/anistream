@@ -3313,7 +3313,10 @@ impl StoreTaskContext {
                     )));
                     return;
                 }
+                // Where the order puts it, as the next launch would, rather than at the end. An
+                // update was swapped in place and keeps it.
                 self.registry.put(provider);
+                sources::arrange(&self.registry, &self.config);
                 self.send(Update::Providers(data::provider_rows(&self.registry)));
                 self.toast(Toast::info(format!("installed {name} {version}")));
             }
@@ -4190,6 +4193,9 @@ async fn reload_sources(
     let mut providers = rebuilt.all();
     providers.extend(plugins);
     registry.replace(providers);
+    // The plugins were carried across behind the rebuilt sources; a plugin the order names
+    // ahead of one of those goes back in front of it.
+    sources::arrange(registry, &snapshot);
 
     torrent_tasks.bring_up(&snapshot, http, paths, store, tx, arrivals);
 
