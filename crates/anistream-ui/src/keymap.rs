@@ -1070,9 +1070,10 @@ pub fn status_hints(app: &crate::app::App) -> Vec<(String, &'static str)> {
             (Action::ToggleWatched, Action::ToggleWatched.hint()),
             (Action::Back, Action::Back.hint()),
         ],
+        // Enter on a title page goes one deeper, into its episodes.
         V::Title(_) => vec![
             (Action::PlayNext, Action::PlayNext.hint()),
-            (Action::ShowEpisodes, Action::ShowEpisodes.hint()),
+            (Action::Open, Action::ShowEpisodes.hint()),
             (Action::Back, Action::Back.hint()),
         ],
         V::Stores | V::Store(_) | V::StoreMembers(_) => {

@@ -349,6 +349,8 @@ pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -
                 // rather than reveal it.
                 let total = row.episodes.unwrap_or(0);
                 row.progress = Some((entry.progress, (entry.progress + 1).min(total.max(1))));
+                // The one place the tracker's status for a title is known, so `a` opens on it.
+                row.list_status = Some(segment);
                 rows.push(row);
             }
             answer(Content::Entries(rows))

@@ -1139,7 +1139,7 @@ fn render_preview(buf: &mut Buffer, app: &App, area: Rect, entry: &Entry) {
 
 /// The Title screen: key visual as hero, then the title block.
 fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
-    let Some(entry) = app.detail.as_ref().or(app.selected_entry()) else {
+    let Some(entry) = app.target() else {
         render_placeholder(buf, app, area, "TITLE", "nothing selected");
         return;
     };
@@ -1580,7 +1580,7 @@ fn conflict_rows(app: &App) -> Vec<(String, String)> {
 
 /// The list-status picker.
 fn status_rows(app: &App) -> Vec<(String, String)> {
-    let current = app.detail.as_ref().or(app.selected_entry());
+    let current = app.target();
     LibrarySegment::ALL
         .iter()
         .map(|segment| {
@@ -2874,7 +2874,7 @@ fn source_provider_rows(app: &App) -> Vec<(String, String)> {
 }
 
 fn watch_order_rows(app: &App) -> Vec<(String, String)> {
-    let Some(detail) = app.detail.as_ref() else {
+    let Some(detail) = app.target() else {
         return Vec::new();
     };
     detail
@@ -2891,7 +2891,7 @@ fn watch_order_rows(app: &App) -> Vec<(String, String)> {
 }
 
 fn recommendation_rows(app: &App) -> Vec<(String, String)> {
-    let Some(detail) = app.detail.as_ref() else {
+    let Some(detail) = app.target() else {
         return Vec::new();
     };
     detail
@@ -3145,7 +3145,7 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         Overlay::WatchOrder => format!(
             "{}   {}",
             glyph::eyebrow(overlay.title()),
-            match app.detail.as_ref() {
+            match app.target() {
                 Some(detail) => format!("around {} — enter opens", detail.title),
                 None => "enter opens".into(),
             }
@@ -3154,7 +3154,7 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         Overlay::Recommendations => format!(
             "{}   {}",
             glyph::eyebrow(overlay.title()),
-            match app.detail.as_ref() {
+            match app.target() {
                 Some(detail) => format!("if you liked {} — enter opens", detail.title),
                 None => "enter opens".into(),
             }
@@ -4019,9 +4019,9 @@ mod tests {
     fn the_episode_table_reads_as_a_timing_sheet() {
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
         app.handle(crate::keymap::Action::Open, 20);
-        app.nav.push(StageView::Episodes(AnilistId::new(1)));
         // As entering episodes does: the table is a view of the open title.
         app.detail = app.selected_entry().cloned();
+        app.nav.push(StageView::Episodes(AnilistId::new(1)));
         app.apply(app.episodes_here(vec![
             episode("9", "Aura the Guillotine", 1.0, true),
             episode("10", "Frieren the Slayer", 0.62, false),
@@ -4264,9 +4264,9 @@ mod tests {
     fn app_at_episodes() -> App {
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
         app.handle(crate::keymap::Action::Open, 20);
-        app.nav.push(StageView::Episodes(AnilistId::new(1)));
         // As entering episodes does: the table is a view of the open title.
         app.detail = app.selected_entry().cloned();
+        app.nav.push(StageView::Episodes(AnilistId::new(1)));
         app.apply(app.episodes_here(vec![
             episode("9", "Aura the Guillotine", 1.0, true),
             episode("10", "Frieren the Slayer", 0.62, false),
@@ -5022,6 +5022,16 @@ mod tests {
         let text = text_of(&render_to_buffer(&app, 120, 30));
         assert!(text.contains("failed"));
         assert!(text.contains("no peers after 60s"), "the reason must survive the toast");
+    }
+
+    #[test]
+    fn search_with_nothing_typed_shows_its_empty_state_not_the_last_list() {
+        let mut app = app_with(Content::Entries(vec![entry(1, "Invented Show")]));
+        app.handle(crate::keymap::Action::JumpSection(4), 20);
+        let text = text_of(&render_to_buffer(&app, 120, 30));
+        assert!(text.contains("TYPE TO SEARCH"), "got {text:?}");
+        assert!(!text.contains("Invented Show"), "the previous list was drawn under Search");
+        assert!(!text.contains("NO MATCHES"));
     }
 
     #[test]
