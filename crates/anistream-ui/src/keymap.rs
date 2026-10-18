@@ -874,6 +874,20 @@ impl Keymap {
             .collect()
     }
 
+    /// The keys that reach `action` once the screen has the keyboard in `context`: every key
+    /// bound to it, less any browsing key the playback table takes while something plays.
+    ///
+    /// `q` is *back* on a list and *detach* while an episode plays, so naming every bound key
+    /// told a viewer to press the one that let go of the player.
+    pub fn keys_in(&self, action: Action, context: Context) -> Vec<Binding> {
+        self.keys_for(action)
+            .into_iter()
+            .filter(|b| {
+                context != Context::Playing || self.playback.get(b).is_none_or(|a| *a == action)
+            })
+            .collect()
+    }
+
     /// The help overlay's content, grouped by scope.
     ///
     /// Generated from the live table — this *is* the documentation, so it cannot drift.
@@ -1058,7 +1072,9 @@ pub fn status_hints(app: &crate::app::App) -> Vec<(String, &'static str)> {
     }
 
     let keymap = &app.keymap;
-    let key = |action: Action| keymap.keys_for(action).first().map(Binding::render);
+    // By the table the keys are read from now, so a hint is never a key the player has taken.
+    let context = app.key_context();
+    let key = |action: Action| keymap.keys_in(action, context).first().map(Binding::render);
     let in_stage = app.nav.focus() == crate::nav::Focus::Stage;
     let wanted: Vec<(Action, &'static str)> = match app.nav.current() {
         // Now Playing has its own vocabulary, and it is the one view where the browsing
@@ -1074,9 +1090,14 @@ pub fn status_hints(app: &crate::app::App) -> Vec<(String, &'static str)> {
             (Action::ToggleWatched, Action::ToggleWatched.hint()),
             (Action::Back, Action::Back.hint()),
         ],
-        // Enter on a title page goes one deeper, into its episodes.
+        // Enter on a title page goes one deeper, into its episodes. Space is play next only
+        // while nothing plays; then it pauses the player, as on every other screen.
         V::Title(_) => vec![
-            (Action::PlayNext, Action::PlayNext.hint()),
+            if app.playing.is_some() {
+                (Action::PlayPause, Action::PlayPause.hint())
+            } else {
+                (Action::PlayNext, Action::PlayNext.hint())
+            },
             (Action::Open, Action::ShowEpisodes.hint()),
             (Action::Back, Action::Back.hint()),
         ],
@@ -1570,6 +1591,26 @@ mod tests {
             app.nav.push(view.clone());
             check(&app, &format!("{view:?}"));
         }
+    }
+
+    #[test]
+    fn a_title_page_under_playback_hints_the_keys_the_player_leaves() {
+        // Space pauses and `q` detaches while something plays, so "space play next" and
+        // "q back" were both wrong there.
+        let mut app = crate::app::App::new(
+            anistream_core::config::Config::default(),
+            crate::theme::Palette::dark(),
+            Keymap::new(),
+        );
+        app.nav.push(crate::nav::StageView::Title(anistream_core::ids::AnilistId::new(1)));
+        let hints = status_hints(&app);
+        assert!(hints.contains(&("space".into(), "play next")), "{hints:?}");
+
+        app.playing = Some(crate::app::NowPlaying::default());
+        let hints = status_hints(&app);
+        assert!(hints.contains(&("space".into(), "pause")), "{hints:?}");
+        assert!(hints.iter().all(|(_, label)| *label != "play next"), "{hints:?}");
+        assert!(hints.contains(&("esc".into(), "Back")), "{hints:?}");
     }
 
     #[test]
