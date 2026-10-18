@@ -1465,10 +1465,11 @@ async fn run(
     let engine =
         anistream_ui::image::ImageEngine::detect(images).with_cache_dir(paths.image_cache());
     tracing::info!(graphics = ?engine.graphics(), "image engine ready");
-    // Mutable: a settings change can stand the torrent stack down and back up, which
-    // replaces the guard along with the session it protects.
-    let (registry, mut vpn_guard, provider_note) =
-        sources::build_registry(&config, &http, &paths, &store).await;
+    // Without the torrent source, which comes up behind the interface once the VPN guard
+    // passes: see `TorrentTasks::bring_up`. Mutable: a settings change can stand the torrent
+    // stack down and back up, which replaces the guard along with the session it protects.
+    let registry = sources::build_registry_deferred(&config, &http);
+    let mut vpn_guard = None;
     tracing::info!(providers = ?registry.ids(), "provider registry ready");
     // Plugins join the chain when they have finished compiling. Nothing waits on this: the first
     // frame is worth more than a source you have not asked for yet.
@@ -1480,9 +1481,6 @@ async fn run(
     );
     let stores = plugin_stores::Stores::new(&config, &paths).map_err(|e| anyhow::anyhow!(e))?;
     let mut app = App::with_images(config, palette, keymap, engine);
-    if let Some(note) = provider_note {
-        app.apply(Update::ProviderNote(note));
-    }
     // Joined stores as they were left, so Providers can count them on the first frame.
     match stores.rows() {
         Ok(rows) => app.apply(Update::Stores(rows)),
@@ -1578,7 +1576,10 @@ async fn run(
     // setting is written, so "saved" and "in effect" are the same moment.
     let shared_config: anistream::SharedConfig =
         Arc::new(std::sync::RwLock::new(app.config.clone()));
-    let mut torrent_tasks = TorrentTasks::start(&vpn_guard, &store, &shared_config, &tx);
+    // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
+    let (arrivals_tx, mut arrivals) = mpsc::unbounded_channel();
+    let mut torrent_tasks = TorrentTasks::default();
+    torrent_tasks.bring_up(&app.config, &http, &paths, &store, &tx, &arrivals_tx);
 
     // Both before the terminal changes state, so there is no moment in which a signal or a
     // panic could leave it raw.
@@ -1679,20 +1680,14 @@ async fn run(
                 }
                 // A source setting changed. Awaited here rather than spawned: this owns the
                 // session and the guard, and two rebuilds racing would leave one of their
-                // sessions running with nothing holding it.
+                // sessions running with nothing holding it. Quick: the new torrent source
+                // comes up behind the interface, as at launch.
                 if matches!(update, Update::SettingsSaved | Update::SourcesChanged)
                     && let Ok(mut shared) = shared_config.write()
                 {
                     *shared = app.config.clone();
                 }
                 if matches!(update, Update::SourcesChanged) {
-                    // Painted before the work, not after: standing a torrent session up
-                    // includes verifying the VPN, which takes seconds, and this loop is
-                    // the one that draws. Without a frame here the app would simply stop
-                    // responding with nothing on screen to say why.
-                    app.apply(Update::Status("reloading sources…".into()));
-                    // A failure here fails again at the top of the loop, which ends it.
-                    let _ = terminal.draw(|frame| screens::render(frame, &app));
                     reload_sources(
                         &registry,
                         &mut torrent_tasks,
@@ -1702,9 +1697,9 @@ async fn run(
                         &paths,
                         &store,
                         &tx,
+                        &arrivals_tx,
                     )
                     .await;
-                    app.apply(Update::Status(String::new()));
                 }
                 let ended = matches!(update, Update::PlaybackEnded { .. });
                 app.apply(update);
@@ -1715,6 +1710,18 @@ async fn run(
                 if ended && !app.will_play_next() && app.playing.is_none() {
                     anistream::focus::refocus_terminal();
                 }
+            }
+            // The torrent source is up, or will not come up; only the latest bring-up counts.
+            Some((generation, outcome)) = arrivals.recv() => {
+                torrent_tasks.arrived(
+                    generation,
+                    outcome,
+                    &mut vpn_guard,
+                    &registry,
+                    &store,
+                    &shared_config,
+                    &tx,
+                );
             }
             // Asked to end from outside — a kill, the terminal closing — which leaves the way
             // Q does, so the player is closed rather than orphaned and playing on.
@@ -3446,7 +3453,13 @@ fn redefines_sources(table: &[&str], key: &str) -> bool {
 /// Grouped so they can be stopped and started as one. A source the user has just switched
 /// off must stop *seeding*, not merely stop being offered — and that means the tasks
 /// holding its session have to end with it.
+#[derive(Default)]
 struct TorrentTasks {
+    /// Waiting for the VPN guard to pass, before there is a session.
+    bring_up: Option<tokio::task::JoinHandle<()>>,
+    /// Which bring-up the current one is. A result from an earlier one — the settings changed
+    /// while it waited — describes a source that has since been switched off or replaced.
+    generation: u64,
     downloads: Option<tokio::task::JoinHandle<()>>,
     watcher: Option<tokio::task::JoinHandle<()>>,
     seeding: Option<tokio::task::JoinHandle<()>>,
@@ -3465,13 +3478,7 @@ impl TorrentTasks {
         let Some((guard, session)) = guard.clone() else {
             // No session means no downloads, which is correct rather than a limitation:
             // every downloadable source here is a torrent.
-            return Self {
-                downloads: None,
-                watcher: None,
-                seeding: None,
-                cache: None,
-                session: None,
-            };
+            return Self::default();
         };
 
         let downloads =
@@ -3491,6 +3498,8 @@ impl TorrentTasks {
             Arc::clone(config),
         ));
         Self {
+            bring_up: None,
+            generation: 0,
             downloads: Some(downloads),
             watcher: Some(watcher),
             seeding: Some(seeding),
@@ -3499,12 +3508,94 @@ impl TorrentTasks {
         }
     }
 
+    /// Start bringing the torrent source up, when the configuration asks for it.
+    ///
+    /// In the background: the guard's check is a network request through a tunnel that may
+    /// be down, and the first frame must not wait on it. The badge says what the guard found
+    /// meanwhile, and the source joins the chain when it passes — see [`Self::arrived`].
+    fn bring_up(
+        &mut self,
+        config: &Config,
+        http: &HttpClient,
+        paths: &Paths,
+        store: &Store,
+        tx: &mpsc::UnboundedSender<Update>,
+        arrivals: &mpsc::UnboundedSender<(
+            u64,
+            std::result::Result<sources::TorrentUp, String>,
+        )>,
+    ) {
+        self.generation += 1;
+        if !sources::torrent_wanted(config) {
+            return;
+        }
+        let _ = tx.send(Update::Vpn {
+            badge: anistream_providers::vpn::GuardState::Unverified.badge(),
+            leaking: false,
+        });
+        let generation = self.generation;
+        let (config, http, paths, store, tx, arrivals) = (
+            config.clone(),
+            http.clone(),
+            paths.clone(),
+            store.clone(),
+            tx.clone(),
+            arrivals.clone(),
+        );
+        self.bring_up = Some(tokio::spawn(async move {
+            let outcome = sources::bring_up_torrent(config, http, paths, store, tx).await;
+            let _ = arrivals.send((generation, outcome));
+        }));
+    }
+
+    /// A bring-up finished: put the source in the chain and start what runs beside it, or say
+    /// why it will not come up.
+    #[allow(clippy::too_many_arguments)]
+    fn arrived(
+        &mut self,
+        generation: u64,
+        outcome: std::result::Result<sources::TorrentUp, String>,
+        vpn_guard: &mut Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
+        registry: &ProviderRegistry,
+        store: &Store,
+        config: &anistream::SharedConfig,
+        tx: &mpsc::UnboundedSender<Update>,
+    ) {
+        if generation != self.generation {
+            // Superseded. Its session holds no torrents yet, so letting go of it is enough.
+            return;
+        }
+        self.bring_up = None;
+        let up = match outcome {
+            Ok(up) => up,
+            Err(reason) => {
+                tracing::warn!(%reason, "torrent source not started");
+                let _ = tx.send(Update::ProviderNote(reason));
+                return;
+            }
+        };
+        let snapshot =
+            config.read().map(|c| c.clone()).unwrap_or_else(|e| e.into_inner().clone());
+        sources::place(registry, up.provider, &snapshot);
+        if let Some(warning) = up.warning {
+            let _ = tx.send(Update::Toast(Toast::info(warning)));
+        }
+        *vpn_guard = Some((up.guard, up.session));
+        *self = Self { generation, ..Self::start(vpn_guard, store, config, tx) };
+        let _ = tx.send(Update::Providers(data::provider_rows(registry)));
+        tracing::info!(providers = ?registry.ids(), "torrent source up");
+    }
+
     /// Stop everything and halt the session before letting go of it.
     ///
     /// Halting first is the whole point: dropping the handles would leave librqbit
     /// seeding whatever it holds until the process exits, which for a source the user
     /// just turned off is precisely the traffic they meant to stop.
     async fn stop(&mut self) {
+        // A bring-up still waiting for the guard has no session to halt, only a wait to end.
+        if let Some(waiting) = self.bring_up.take() {
+            waiting.abort();
+        }
         if let Some(session) = self.session.take() {
             session.halt().await;
         }
@@ -3569,18 +3660,30 @@ async fn vpn_watch(
     // The first tick fires immediately; the guard was already verified at startup.
     ticker.tick().await;
     let mut was_leaking = false;
+    let mut log = anistream_providers::vpn::GuardLog::after_passing();
 
     loop {
         ticker.tick().await;
         let state = guard.verify().await;
         let leaking = !state.is_protected();
 
-        if leaking && !was_leaking {
-            tracing::warn!(
-                reason = state.reason().unwrap_or("unknown"),
+        use anistream_providers::vpn::GuardNote;
+        match log.observe(&state, std::time::Instant::now()) {
+            GuardNote::Failing(reason) => tracing::warn!(
+                %reason,
                 action = ?guard.on_leak(),
                 "vpn guard failing — halting torrent traffic"
-            );
+            ),
+            GuardNote::StillFailing { reason, minutes, checks } => {
+                tracing::warn!(%reason, minutes, checks, "vpn guard still failing")
+            }
+            GuardNote::Recovered { minutes } => {
+                tracing::info!(minutes, badge = %state.badge(), "vpn guard recovered")
+            }
+            GuardNote::Passed | GuardNote::Quiet => {}
+        }
+
+        if leaking && !was_leaking {
             // Marking the provider unavailable only stops *new* requests. Without this,
             // librqbit would carry on downloading and seeding the current episode over an
             // unprotected connection.
@@ -3615,6 +3718,7 @@ async fn reload_sources(
     paths: &Paths,
     store: &Store,
     tx: &mpsc::UnboundedSender<Update>,
+    arrivals: &mpsc::UnboundedSender<(u64, std::result::Result<sources::TorrentUp, String>)>,
 ) {
     // Old traffic stops before new traffic starts. The other order would leave two
     // sessions briefly alive, and one of them is the one being switched off.
@@ -3623,25 +3727,22 @@ async fn reload_sources(
 
     let plugins = registry.of_kind(anistream_core::traits::ProviderKind::Plugin);
     let snapshot = config.read().map(|c| c.clone()).unwrap_or_else(|e| e.into_inner().clone());
-    let (rebuilt, guard, note) = sources::build_registry(&snapshot, http, paths, store).await;
+    let rebuilt = sources::build_registry_deferred(&snapshot, http);
     let mut providers = rebuilt.all();
     providers.extend(plugins);
     registry.replace(providers);
 
-    *vpn_guard = guard;
-    *torrent_tasks = TorrentTasks::start(vpn_guard, store, config, tx);
+    torrent_tasks.bring_up(&snapshot, http, paths, store, tx, arrivals);
 
-    if vpn_guard.is_none() {
+    if !sources::torrent_wanted(&snapshot) {
         // No session: say so, and clear a badge that now describes nothing.
         let _ = tx.send(Update::Vpn { badge: String::new(), leaking: false });
     }
-    let _ = tx.send(Update::ProviderNote(note.unwrap_or_else(|| {
-        if snapshot.providers.torrent.enabled {
-            "sources reloaded".into()
-        } else {
-            "torrents are off — the session was stopped".into()
-        }
-    })));
+    let _ = tx.send(Update::ProviderNote(if sources::torrent_wanted(&snapshot) {
+        "sources reloaded — torrents start once the VPN guard passes".into()
+    } else {
+        "torrents are off — the session was stopped".into()
+    }));
     let _ = tx.send(Update::Providers(data::provider_rows(registry)));
     tracing::info!(providers = ?registry.ids(), "source chain reloaded");
 }

@@ -75,6 +75,13 @@ pub enum GuardState {
     Protected { egress: Box<Egress> },
     /// Traffic is not going where it should. Torrenting must stop.
     Leaking { reason: String },
+    /// The check could not be made: the proxy is down, or the egress lookup did not answer.
+    ///
+    /// Failing all the same — an unverified guard is a failing guard — but not a leak, and
+    /// told apart from one. With Mullvad's in-tunnel proxy this is what a dropped tunnel looks
+    /// like, and it is the safe outcome: nothing can leave through a proxy that cannot be
+    /// reached. Calling it a leak sent people looking for a leak that was not there.
+    Unreachable { reason: String },
     /// The user explicitly accepted an unprotected connection.
     Unprotected,
 }
@@ -90,13 +97,14 @@ impl GuardState {
             Self::Unverified => "vpn ·  checking".into(),
             Self::Protected { egress } => format!("vpn ●  {}", egress.describe()),
             Self::Leaking { .. } => "vpn ✕  LEAK".into(),
+            Self::Unreachable { .. } => "vpn ✕  unreachable".into(),
             Self::Unprotected => "vpn ✕  unprotected".into(),
         }
     }
 
     pub fn reason(&self) -> Option<&str> {
         match self {
-            Self::Leaking { reason } => Some(reason),
+            Self::Leaking { reason } | Self::Unreachable { reason } => Some(reason),
             Self::Unverified => Some("not yet verified"),
             _ => None,
         }
@@ -236,6 +244,8 @@ pub struct VpnGuard {
     config: VpnConfig,
     state: Arc<RwLock<GuardState>>,
     client: reqwest::Client,
+    /// Where egress is looked up. Fixed by the config; a field so a test can stand in for it.
+    endpoint: String,
 }
 
 impl std::fmt::Debug for VpnGuard {
@@ -255,6 +265,14 @@ impl VpnGuard {
     pub fn new(config: VpnConfig) -> Result<Self, String> {
         let mut builder = reqwest::Client::builder().timeout(Duration::from_secs(15));
 
+        // Outside proxy mode the check goes out the way the torrent session does: directly.
+        // Left to itself the client would honour `HTTPS_PROXY`, which librqbit's peer
+        // connections do not, so the guard measured the proxy's exit and passed while every
+        // peer saw the real address.
+        if config.mode != VpnMode::Socks5 {
+            builder = builder.no_proxy();
+        }
+
         if config.mode == VpnMode::Socks5 {
             let url = config
                 .socks_url
@@ -267,7 +285,14 @@ impl VpnGuard {
         }
 
         let client = builder.build().map_err(|e| format!("building guard client: {e}"))?;
-        Ok(Self { config, state: Arc::new(RwLock::new(GuardState::Unverified)), client })
+        let endpoint =
+            if config.mullvad_exit { MULLVAD_ENDPOINT } else { EGRESS_ENDPOINT }.to_owned();
+        Ok(Self {
+            config,
+            state: Arc::new(RwLock::new(GuardState::Unverified)),
+            client,
+            endpoint,
+        })
     }
 
     pub fn config(&self) -> &VpnConfig {
@@ -325,31 +350,111 @@ impl VpnGuard {
             return GuardState::Unprotected;
         }
 
-        let endpoint =
-            if self.config.mullvad_exit { MULLVAD_ENDPOINT } else { EGRESS_ENDPOINT };
-
-        let next = match self.client.get(endpoint).send().await {
+        // Only an egress that was seen and is wrong is a leak. Everything else here is a check
+        // that could not be made, which fails just as closed and is told apart in the badge.
+        let route = if self.config.mode == VpnMode::Socks5 { " through the proxy" } else { "" };
+        let next = match self.client.get(&self.endpoint).send().await {
             Ok(response) if response.status().is_success() => match response.json().await {
                 Ok(egress) => evaluate(&self.config, &egress),
-                Err(e) => {
-                    GuardState::Leaking { reason: format!("could not read egress lookup: {e}") }
-                }
+                Err(e) => GuardState::Unreachable {
+                    reason: format!("could not read egress lookup: {e}"),
+                },
             },
-            Ok(response) => GuardState::Leaking {
+            Ok(response) => GuardState::Unreachable {
                 reason: format!("egress lookup returned HTTP {}", response.status().as_u16()),
             },
             // Unreachable through the proxy means the proxy is down — which is exactly
             // when torrenting must not proceed.
-            Err(e) => GuardState::Leaking {
-                reason: format!("egress lookup failed through the proxy: {e}"),
-            },
+            Err(e) => {
+                GuardState::Unreachable { reason: format!("egress lookup failed{route}: {e}") }
+            }
         };
 
-        if let GuardState::Leaking { reason } = &next {
-            tracing::warn!(%reason, "vpn guard failing");
-        }
+        // Not logged here: this runs on an interval for as long as a tunnel is down, and a line
+        // per check buried everything else. [`GuardLog`] says what changed instead.
+        tracing::debug!(state = ?next, "vpn guard checked");
         self.set(next.clone());
         next
+    }
+}
+
+/// What a run of guard checks is worth saying in the log.
+///
+/// Checks repeat at the verify interval for as long as anistream runs, and a tunnel left down
+/// for a week was thousands of identical warnings. So the log hears when the verdict changes,
+/// and, while it stays failing, a reminder of how long once an hour.
+#[derive(Debug, Default)]
+pub struct GuardLog {
+    /// The verdict last observed, `None` before the first check.
+    passing: Option<bool>,
+    /// While failing: since when, how many checks, and when that was last said.
+    failing: Option<Failing>,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Failing {
+    since: std::time::Instant,
+    checks: u32,
+    said: std::time::Instant,
+}
+
+/// One line [`GuardLog`] decided is worth writing.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum GuardNote {
+    /// Nothing changed.
+    Quiet,
+    /// The first check passed.
+    Passed,
+    /// Checks started failing, for this reason.
+    Failing(String),
+    /// Still failing: for how long, after how many checks.
+    StillFailing { reason: String, minutes: u64, checks: u32 },
+    /// Passing again after failing for this long.
+    Recovered { minutes: u64 },
+}
+
+/// How often a guard that keeps failing is mentioned again.
+const STILL_FAILING_EVERY: Duration = Duration::from_secs(3600);
+
+impl GuardLog {
+    /// A log for checks that follow one already known to have passed — the guard's watcher,
+    /// which takes over from the check that started the session.
+    pub fn after_passing() -> Self {
+        Self { passing: Some(true), failing: None }
+    }
+
+    /// Take one check's verdict and say what, if anything, is worth logging.
+    pub fn observe(&mut self, state: &GuardState, now: std::time::Instant) -> GuardNote {
+        let passing = state.is_protected();
+        let before = self.passing.replace(passing);
+        match (before, passing) {
+            (None, true) => GuardNote::Passed,
+            (Some(true), true) => GuardNote::Quiet,
+            (Some(false), true) => {
+                let since = self.failing.take().map_or(now, |f| f.since);
+                GuardNote::Recovered {
+                    minutes: now.saturating_duration_since(since).as_secs() / 60,
+                }
+            }
+            (None | Some(true), false) => {
+                self.failing = Some(Failing { since: now, checks: 1, said: now });
+                GuardNote::Failing(state.reason().unwrap_or("not verified").to_owned())
+            }
+            (Some(false), false) => {
+                let failing =
+                    self.failing.get_or_insert(Failing { since: now, checks: 0, said: now });
+                failing.checks += 1;
+                if now.saturating_duration_since(failing.said) < STILL_FAILING_EVERY {
+                    return GuardNote::Quiet;
+                }
+                failing.said = now;
+                GuardNote::StillFailing {
+                    reason: state.reason().unwrap_or("not verified").to_owned(),
+                    minutes: now.saturating_duration_since(failing.since).as_secs() / 60,
+                    checks: failing.checks,
+                }
+            }
+        }
     }
 }
 
@@ -566,7 +671,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn an_unreachable_proxy_reads_as_a_leak_not_a_pass() {
+    async fn an_unreachable_proxy_fails_closed_without_being_called_a_leak() {
         // The case that matters most: if the proxy is down, torrenting must not proceed.
         let config = VpnConfig {
             mode: VpnMode::Socks5,
@@ -578,6 +683,89 @@ mod tests {
         let state = guard.verify().await;
         assert!(!state.is_protected(), "a dead proxy must never be treated as protected");
         assert!(guard.permit().is_err());
+        // But nothing left through it, and the badge must not send anyone hunting for a leak.
+        assert!(matches!(state, GuardState::Unreachable { .. }), "{state:?}");
+        assert!(!state.badge().contains("LEAK"), "{}", state.badge());
+        assert!(state.reason().unwrap().contains("through the proxy"));
+    }
+
+    /// Set in the child process [`outside_proxy_mode_the_check_ignores_the_system_proxy`]
+    /// starts, naming the egress endpoint it should check against.
+    const PROXY_PROBE: &str = "ANISTREAM_TEST_PROXY_PROBE";
+
+    #[tokio::test]
+    async fn outside_proxy_mode_the_check_ignores_the_system_proxy() {
+        // librqbit's peers connect directly whatever `HTTPS_PROXY` says, so the check must too:
+        // through a proxy it measured an exit no peer ever saw. The proxy variables can only be
+        // set for a whole process, so the check runs in a child of this test binary.
+        if let Ok(endpoint) = std::env::var(PROXY_PROBE) {
+            let guard =
+                VpnGuard::new(VpnConfig { mode: VpnMode::External, ..Default::default() })
+                    .unwrap();
+            let guard = VpnGuard { endpoint, ..guard };
+            let state = guard.verify().await;
+            assert!(state.is_protected(), "{state:?}");
+            return;
+        }
+
+        use std::io::{Read, Write};
+        // The egress lookup, answering as the real one does, and a proxy that answers nothing.
+        let lookup = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let proxy = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        proxy.set_nonblocking(true).unwrap();
+        let endpoint = format!("http://{}/json", lookup.local_addr().unwrap());
+        let answering = std::thread::spawn(move || {
+            let (mut socket, _) = lookup.accept().unwrap();
+            let mut request = [0_u8; 1024];
+            let _ = socket.read(&mut request);
+            let body = r#"{"ip":"192.0.2.1","asn_org":"Example Transit","country":"Nowhere"}"#;
+            let reply = format!(
+                "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\n\r\n{body}",
+                body.len()
+            );
+            socket.write_all(reply.as_bytes()).unwrap();
+        });
+
+        let proxy_url = format!("http://{}", proxy.local_addr().unwrap());
+        let status = std::process::Command::new(std::env::current_exe().unwrap())
+            .args([
+                "--exact",
+                "vpn::tests::outside_proxy_mode_the_check_ignores_the_system_proxy",
+            ])
+            .env(PROXY_PROBE, &endpoint)
+            .env("HTTPS_PROXY", &proxy_url)
+            .env("HTTP_PROXY", &proxy_url)
+            .env("ALL_PROXY", &proxy_url)
+            .env_remove("NO_PROXY")
+            .status()
+            .unwrap();
+        assert!(proxy.accept().is_err(), "the egress check went through the system proxy");
+        assert!(status.success(), "the direct check did not pass");
+        answering.join().unwrap();
+    }
+
+    #[test]
+    fn the_log_hears_changes_and_an_hourly_reminder_not_every_check() {
+        let start = std::time::Instant::now();
+        let at = |minutes: u64| start + Duration::from_secs(minutes * 60);
+        let down = GuardState::Unreachable { reason: "proxy refused".into() };
+        let up = GuardState::Unprotected;
+        let mut log = GuardLog::default();
+
+        assert_eq!(log.observe(&down, at(0)), GuardNote::Failing("proxy refused".into()));
+        for minute in 1..60 {
+            assert_eq!(log.observe(&down, at(minute)), GuardNote::Quiet, "minute {minute}");
+        }
+        assert_eq!(
+            log.observe(&down, at(60)),
+            GuardNote::StillFailing { reason: "proxy refused".into(), minutes: 60, checks: 61 }
+        );
+        assert_eq!(log.observe(&down, at(61)), GuardNote::Quiet);
+        assert_eq!(log.observe(&up, at(90)), GuardNote::Recovered { minutes: 90 });
+        assert_eq!(log.observe(&up, at(91)), GuardNote::Quiet);
+
+        assert_eq!(GuardLog::default().observe(&up, at(0)), GuardNote::Passed);
+        assert_eq!(GuardLog::after_passing().observe(&up, at(0)), GuardNote::Quiet);
     }
 
     #[tokio::test]
