@@ -6,6 +6,10 @@ rust-version.workspace = true
 license.workspace = true
 description = "Domain types, traits and configuration for anistream"
 
+[lib]
+# No doc example is written as a test, and rustdoc spends seconds per crate finding none.
+doctest = false
+
 [dependencies]
 async-trait.workspace = true
 directories.workspace = true

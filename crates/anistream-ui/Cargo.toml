@@ -6,6 +6,10 @@ rust-version.workspace = true
 license.workspace = true
 description = "Terminal interface for anistream: theme, layout and views"
 
+[lib]
+# No doc example is written as a test, and rustdoc spends seconds per crate finding none.
+doctest = false
+
 [dependencies]
 anistream-core.workspace = true
 crossterm.workspace = true

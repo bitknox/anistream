@@ -6,6 +6,10 @@ rust-version.workspace = true
 license.workspace = true
 description = "HTTP layer: browser-fingerprint emulation, rate limiting and conditional fetches"
 
+[lib]
+# No doc example is written as a test, and rustdoc spends seconds per crate finding none.
+doctest = false
+
 [dependencies]
 anistream-core.workspace = true
 reqwest.workspace = true

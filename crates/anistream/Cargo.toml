@@ -9,6 +9,8 @@ description = "An anime streaming TUI"
 [lib]
 name = "anistream"
 path = "src/lib.rs"
+# No doc example is written as a test, and rustdoc spends seconds per crate finding none.
+doctest = false
 
 [[bin]]
 name = "anistream"
