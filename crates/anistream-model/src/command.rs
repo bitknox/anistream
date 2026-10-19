@@ -9,10 +9,6 @@ use crate::{
     stores::Secret,
 };
 
-/// [`Command`]'s name from before it crossed into the model, kept only while its callers are
-/// renamed.
-pub type Task = Command;
-
 impl Command {
     /// What to call this in the activity row, or `None` for work nobody waits on: writes that
     /// land in the outbox, player commands, and anything that finishes as it is asked.
