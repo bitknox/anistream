@@ -266,11 +266,11 @@ async fn main() -> Result<()> {
     #[cfg(unix)]
     let _ = rlimit::increase_nofile_limit(8192);
 
-    let cli = Cli::parse();
+    let args = Cli::parse();
     let paths = Paths::resolve().context("resolving config paths")?;
     // A store server is a long-running service in someone's terminal or a unit file, so it logs
     // where they are looking rather than to the app's log file.
-    if let Some(command) = cli.command {
+    if let Some(command) = args.command {
         return store_command(command, &paths).await;
     }
     init_logging(&paths);
@@ -286,7 +286,7 @@ async fn main() -> Result<()> {
         config_problem = Some(problem);
         Config::default()
     });
-    if let Some(mode) = &cli.theme {
+    if let Some(mode) = &args.theme {
         config.theme.mode =
             if mode == "immersive" { ThemeMode::Immersive } else { ThemeMode::Adaptive };
     }
@@ -294,48 +294,48 @@ async fn main() -> Result<()> {
     let http = HttpClient::new(&config.network).context("building http client")?;
     let store = Store::open(paths.database()).context("opening the local database")?;
 
-    if cli.update {
+    if args.update {
         return cli::update::self_update(&http).await;
     }
-    if cli.doctor {
-        return doctor(&config, &paths, &store, !cli.no_images).await;
+    if args.doctor {
+        return doctor(&config, &paths, &store, !args.no_images).await;
     }
-    if cli.refresh_data {
+    if args.refresh_data {
         return refresh_data(&store, &http).await;
     }
-    let tracker = cli.tracker.as_deref().unwrap_or("anilist");
-    if cli.login_url {
+    let tracker = args.tracker.as_deref().unwrap_or("anilist");
+    if args.login_url {
         return print_login_url(&config, tracker);
     }
-    if let Some(token) = &cli.login {
+    if let Some(token) = &args.login {
         return login(&config, tracker, token, &http).await;
     }
-    if cli.logout {
+    if args.logout {
         return forget_token(&config, tracker);
     }
-    if cli.sync {
+    if args.sync {
         return sync_once(&config, &store, &http).await;
     }
-    if cli.token_to_file {
+    if args.token_to_file {
         return migrate_token(&config, tracker);
     }
-    if cli.plugins {
+    if args.plugins {
         return list_plugins(&config, &paths).await;
     }
-    if let Some(id) = cli.stream_url {
-        let episode = cli.episode.as_deref().unwrap_or("1");
+    if let Some(id) = args.stream_url {
+        let episode = args.episode.as_deref().unwrap_or("1");
         return stream_url(&config, &http, &store, &paths, id, episode).await;
     }
-    if let Some(id) = cli.play {
+    if let Some(id) = args.play {
         let id = anistream_core::ids::AnilistId::new(id);
         // No `--episode` means the next unwatched, which is almost always the ask.
-        let episode = match &cli.episode {
+        let episode = match &args.episode {
             Some(episode) => episode.clone(),
             None => (store.completed_episode_count(id).unwrap_or(0) + 1).to_string(),
         };
         return play_cli(&config, &http, &store, &paths, id, episode).await;
     }
-    if cli.continue_watching {
+    if args.continue_watching {
         let Some(top) = store.continue_list(1).unwrap_or_default().into_iter().next() else {
             anyhow::bail!("nothing in your history yet — watch something first");
         };
@@ -350,23 +350,23 @@ async fn main() -> Result<()> {
         };
         return play_cli(&config, &http, &store, &paths, top.anilist_id, episode).await;
     }
-    if let Some(query) = &cli.search {
-        return search_cli(&config, &http, &store, query, cli.json).await;
+    if let Some(query) = &args.search {
+        return search_cli(&config, &http, &store, query, args.json).await;
     }
-    if cli.stats {
-        return stats_cli(&store, cli.json);
+    if args.stats {
+        return stats_cli(&store, args.json);
     }
-    if let Some(path) = &cli.export {
+    if let Some(path) = &args.export {
         return export_cli(&store, path);
     }
-    if let Some(path) = &cli.import {
+    if let Some(path) = &args.import {
         return import_cli(&store, path);
     }
-    if cli.random {
-        return random_cli(&store, cli.json);
+    if args.random {
+        return random_cli(&store, args.json);
     }
-    if let Some(size) = cli.preview {
-        let screen = cli.screen.unwrap_or(PreviewScreen::Home);
+    if let Some(size) = args.preview {
+        let screen = args.screen.unwrap_or(PreviewScreen::Home);
         return preview(
             config,
             http,
@@ -374,13 +374,13 @@ async fn main() -> Result<()> {
             &paths,
             size,
             screen,
-            !cli.no_images,
+            !args.no_images,
             config_problem,
         )
         .await;
     }
 
-    run(config, paths, http, store, !cli.no_images, config_problem).await
+    run(config, paths, http, store, !args.no_images, config_problem).await
 }
 
 /// `anistream store …` and `anistream plugin …`.
