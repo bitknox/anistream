@@ -13,7 +13,7 @@ use anistream_core::config::{Config, Paths};
 /// off did nothing until the app was restarted, because `--glsl-shaders` stayed in the
 /// argument list every episode was spawned with. Shader files are written on demand and
 /// skipped when already current, so rebuilding costs a stat per shader.
-pub fn player(config: &Config, paths: &Paths) -> anistream_player::Mpv {
+pub fn player(config: &Config, paths: &Paths, theme: &PlayerTheme) -> anistream_player::Mpv {
     // Upscaling is no longer on the command line: the chain is chosen per file and set over
     // IPC (see `playback`). What is left here is the HDR curve the viewer picked, before the
     // user's own flags so a hand-written one still wins.
@@ -32,7 +32,7 @@ pub fn player(config: &Config, paths: &Paths) -> anistream_player::Mpv {
     anistream_player::Mpv::new(paths.runtime_dir())
         .with_binary(config.playback.mpv_binary.clone())
         .with_ui(config.playback.player_ui, bundle)
-        .with_theme(player_theme())
+        .with_theme(theme.options())
         .with_extra_args(args)
 }
 
@@ -47,24 +47,36 @@ pub fn shader_dir(config: &Config, paths: &Paths) -> Option<std::path::PathBuf> 
     crate::shaders::materialize(&paths.cache_dir)
 }
 
-/// The companion's palette and font: the immersive palette, because a video window is dark
-/// whatever the terminal is.
-pub fn player_theme() -> Vec<(String, String)> {
-    use anistream_ui::theme::{Palette, Role};
-    let palette = Palette::immersive();
-    let hex =
-        |rgb: anistream_ui::theme::Rgb| format!("#{:02X}{:02X}{:02X}", rgb.r, rgb.g, rgb.b);
-    let mut theme: Vec<(String, String)> = [
-        ("text", Role::Text),
-        ("dim", Role::TextDim),
-        ("obi", Role::Obi),
-        ("state", Role::State),
-        ("alert", Role::Alert),
-    ]
-    .into_iter()
-    .map(|(key, role)| (key.to_owned(), hex(palette.get(role))))
-    .collect();
-    theme.push(("ground".into(), hex(palette.ground_ref())));
-    theme.push(("font".into(), "Zen Kaku Gothic New".into()));
-    theme
+/// The colours and font the player's own interface is drawn in.
+///
+/// Handed in by the front end, since the colours are its palette's and a palette is its own
+/// business. Each colour is `#RRGGBB`, as the companion script reads it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlayerTheme {
+    pub text: String,
+    pub dim: String,
+    pub obi: String,
+    pub state: String,
+    pub alert: String,
+    /// What the player's surfaces are painted on.
+    pub ground: String,
+    pub font: String,
+}
+
+impl PlayerTheme {
+    /// The companion's options, as `(key, value)` pairs without their prefix.
+    pub fn options(&self) -> Vec<(String, String)> {
+        [
+            ("text", &self.text),
+            ("dim", &self.dim),
+            ("obi", &self.obi),
+            ("state", &self.state),
+            ("alert", &self.alert),
+            ("ground", &self.ground),
+            ("font", &self.font),
+        ]
+        .into_iter()
+        .map(|(key, value)| (key.to_owned(), value.clone()))
+        .collect()
+    }
 }

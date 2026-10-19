@@ -4,7 +4,7 @@ mod covers;
 
 use anistream::{
     artwork, data, downloads, playback,
-    player::{player, shader_dir},
+    player::{PlayerTheme, player, shader_dir},
     plugin_stores,
     slot::PlayerSlot,
     sources, tracking,
@@ -1829,7 +1829,7 @@ async fn run(
     let slot = PlayerSlot::default();
     // The next episode's streams, found while the current one's ending plays.
     let prefetch = Prefetch::default();
-    let mpv = player(&app.config, &paths);
+    let mpv = player(&app.config, &paths, &player_theme());
     if !mpv.is_available().await {
         // Said once at startup rather than at the moment you press Enter on an episode.
         app.apply(Update::Toast(Notice::alert(format!(
@@ -2691,7 +2691,7 @@ fn dispatch(
                 store,
                 registry,
                 http,
-                &player(config, paths),
+                &player(config, paths, &player_theme()),
                 tracker_ids,
                 extras,
                 slot.clone(),
@@ -2724,7 +2724,7 @@ fn dispatch(
                 store,
                 registry,
                 http,
-                &player(config, paths),
+                &player(config, paths, &player_theme()),
                 tracker_ids,
                 extras,
                 slot.clone(),
@@ -2752,7 +2752,7 @@ fn dispatch(
                 store,
                 registry,
                 http,
-                &player(config, paths),
+                &player(config, paths, &player_theme()),
                 tracker_ids,
                 extras,
                 slot.clone(),
@@ -3031,7 +3031,7 @@ fn dispatch(
                 config.clone(),
                 store.clone(),
                 http.clone(),
-                player(config, paths),
+                player(config, paths, &player_theme()),
                 tx.clone(),
                 slot.clone(),
             );
@@ -3884,7 +3884,7 @@ async fn play_cli(
     // Kept alive for the whole session: dropping the VPN guard would drop its checks.
     let _guard = guard;
 
-    let mpv = player(config, paths);
+    let mpv = player(config, paths, &player_theme());
     if !mpv.is_available().await {
         anyhow::bail!(
             "{} not found — install mpv to play anything",
@@ -4555,6 +4555,23 @@ fn successor(
     }
 }
 
+/// The player's colours and font: the immersive palette, because a video window is dark
+/// whatever the terminal is.
+fn player_theme() -> PlayerTheme {
+    use anistream_ui::theme::{Palette, Rgb, Role};
+    let palette = Palette::immersive();
+    let hex = |rgb: Rgb| format!("#{:02X}{:02X}{:02X}", rgb.r, rgb.g, rgb.b);
+    PlayerTheme {
+        text: hex(palette.get(Role::Text)),
+        dim: hex(palette.get(Role::TextDim)),
+        obi: hex(palette.get(Role::Obi)),
+        state: hex(palette.get(Role::State)),
+        alert: hex(palette.get(Role::Alert)),
+        ground: hex(palette.ground_ref()),
+        font: "Zen Kaku Gothic New".into(),
+    }
+}
+
 /// The metadata source: AniList first, Tenrai when it fails, the cache when both do.
 ///
 /// Built identically at every entry point — the TUI, `--search`, `--play`, previews —
@@ -4938,6 +4955,25 @@ mod tests {
     }
 
     #[test]
+    fn the_player_wears_the_immersive_palette_whatever_the_terminal_is() {
+        // What the companion is handed, which mpv's arguments are spelled from word for word:
+        // `--script-opts-append=anistream-<key>=<value>`, and the font as `--osd-font` too.
+        let theme: Vec<(&str, &str)> = vec![
+            ("text", "#E4E0D6"),
+            ("dim", "#9298B5"),
+            ("obi", "#F2A64B"),
+            ("state", "#7FC7D9"),
+            ("alert", "#E06B54"),
+            ("ground", "#161A2E"),
+            ("font", "Zen Kaku Gothic New"),
+        ];
+        let given = player_theme().options();
+        let given: Vec<(&str, &str)> =
+            given.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+        assert_eq!(given, theme);
+    }
+
+    #[test]
     fn the_player_reflects_the_config_as_it_stands_now() {
         // The bug this encodes: the handle was built once at launch, so turning Anime4K
         // off left `--glsl-shaders` in the arguments of every episode for the rest of the
@@ -4951,13 +4987,13 @@ mod tests {
 
         config.playback.upscaling = anistream_core::config::Upscaling::Sharp;
         config.playback.tone_mapping = "bt.2390".into();
-        let player_now = player(&config, &paths);
+        let player_now = player(&config, &paths, &player_theme());
         let args = player_now.args_for_test();
         assert!(!args.iter().any(|a| a.starts_with("--glsl-shaders")), "{args:?}");
         assert!(args.iter().any(|a| a == "--tone-mapping=bt.2390"), "{args:?}");
 
         config.playback.tone_mapping = "auto".into();
-        let args = player(&config, &paths).args_for_test().to_vec();
+        let args = player(&config, &paths, &player_theme()).args_for_test().to_vec();
         assert!(!args.iter().any(|a| a.starts_with("--tone-mapping")), "auto is mpv's own");
 
         // A chain of the user's own is theirs: no runtime chain may replace it.
