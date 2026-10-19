@@ -13,6 +13,7 @@ use crate::{
         App, Content, Entry, LibrarySegment, PluginChoice, StoreConfirm, StoreLine,
         StorePluginStatus, StoreRow, StoreState, ToastKind,
     },
+    clock::Clock,
     keymap::status_hints,
     layout::{self, Frame},
     nav::{Focus, Overlay, Section, StageView},
@@ -67,7 +68,7 @@ fn set_meter(
 /// Paint a whole frame.
 pub fn render(frame: &mut TFrame<'_>, app: &App) {
     let area = frame.area();
-    let now = std::time::Instant::now();
+    let now = app.clock.now_instant();
     let activity = app.activity(now);
     let geometry = layout::compute(area, app.nav.rail_width());
     let buf = frame.buffer_mut();
@@ -393,7 +394,7 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
                 rows.push(ObiRow::heading(caption).ruled());
             }
             let start = if section == Section::Calendar {
-                calendar_window(entries, app.offset, app.selected, visible)
+                calendar_window(&app.clock, entries, app.offset, app.selected, visible)
             } else {
                 app.offset
             };
@@ -419,13 +420,13 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
             // countdown against the clock now; only a session left open across midnight
             // can mislabel a boundary, and the next reload corrects it.
             let mut current_day: Option<chrono::NaiveDate> = None;
-            let today = chrono::Local::now().date_naive();
+            let today = app.clock.today();
             // The caption's row comes out of the window, not off the end of the list.
             let fits = visible.saturating_sub(rows.len());
             for (i, entry) in entries.iter().enumerate().skip(start).take(fits) {
                 if section == Section::Calendar
                     && let Some(secs) = entry.airing_in
-                    && let Some(day) = air_date(secs)
+                    && let Some(day) = air_date(&app.clock, secs)
                     && current_day != Some(day)
                 {
                     // A blank row before each ruling after the first — the separation is
@@ -436,7 +437,7 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
                     // Yesterday, today and tomorrow are where the calendar's answer
                     // lives, so their rulings carry the state role.
                     let near = (day - today).num_days().abs() <= 1;
-                    rows.push(ObiRow::heading(day_label(day)).ruled().fresh(near));
+                    rows.push(ObiRow::heading(day_label(&app.clock, day)).ruled().fresh(near));
                     current_day = Some(day);
                 }
 
@@ -538,11 +539,17 @@ fn calendar_time(secs: i64) -> String {
 
 /// Rows the calendar needs to show entries `from..=through`: one each, plus a heading where
 /// the day changes and a blank before every heading but the first. Stops counting past `cap`.
-fn calendar_rows(entries: &[Entry], from: usize, through: usize, cap: usize) -> usize {
+fn calendar_rows(
+    clock: &Clock,
+    entries: &[Entry],
+    from: usize,
+    through: usize,
+    cap: usize,
+) -> usize {
     let mut rows = 0;
     let mut day = None;
     for entry in entries.iter().take(through + 1).skip(from) {
-        let this = entry.airing_in.and_then(air_date);
+        let this = entry.airing_in.and_then(|secs| air_date(clock, secs));
         if this.is_some() && this != day {
             rows += if rows == 0 { 1 } else { 2 };
             day = this;
@@ -561,16 +568,22 @@ fn calendar_rows(entries: &[Entry], from: usize, through: usize, cap: usize) -> 
 /// does not count. Its estimate leaves rows blank at the bottom once the window reaches the
 /// last entry — `G` landed on a half-empty screen — so the window reaches back to fill them,
 /// and moves on when headings would push the selection below the last row.
-fn calendar_window(entries: &[Entry], offset: usize, selected: usize, height: usize) -> usize {
+fn calendar_window(
+    clock: &Clock,
+    entries: &[Entry],
+    offset: usize,
+    selected: usize,
+    height: usize,
+) -> usize {
     let Some(last) = entries.len().checked_sub(1) else { return 0 };
     let mut start = offset.min(last);
-    if calendar_rows(entries, start, last, height) < height {
-        while start > 0 && calendar_rows(entries, start - 1, last, height) <= height {
+    if calendar_rows(clock, entries, start, last, height) < height {
+        while start > 0 && calendar_rows(clock, entries, start - 1, last, height) <= height {
             start -= 1;
         }
     }
     let selected = selected.min(last);
-    while start < selected && calendar_rows(entries, start, selected, height) > height {
+    while start < selected && calendar_rows(clock, entries, start, selected, height) > height {
         start += 1;
     }
     start
@@ -578,8 +591,8 @@ fn calendar_window(entries: &[Entry], offset: usize, selected: usize, height: us
 
 /// `today` / `yesterday` / `tomorrow`, then the weekday and date. Rendered as a caps
 /// heading, so lowercase here.
-fn day_label(day: chrono::NaiveDate) -> String {
-    let today = chrono::Local::now().date_naive();
+fn day_label(clock: &Clock, day: chrono::NaiveDate) -> String {
+    let today = clock.today();
     match (day - today).num_days() {
         0 => "today".into(),
         -1 => "yesterday".into(),
@@ -810,7 +823,7 @@ fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
                 area.left() + 16,
                 y,
                 truncate(
-                    &format!("pull failed {}: {error}", pull_time(*at)),
+                    &format!("pull failed {}: {error}", pull_time(&app.clock, *at)),
                     area.right().saturating_sub(area.left() + 17) as usize,
                 ),
                 app.palette.style(Role::Alert),
@@ -1813,7 +1826,7 @@ fn accounts_rows(app: &App) -> Vec<(String, String)> {
             }
             // Last, so a narrow row truncates the reason rather than the fact.
             if let Some((error, at)) = &state.pull_error {
-                detail.push(format!("pull failed {}: {error}", pull_time(*at)));
+                detail.push(format!("pull failed {}: {error}", pull_time(&app.clock, *at)));
             }
             (action.to_string(), detail.join("  ·  "))
         })
@@ -1822,12 +1835,9 @@ fn accounts_rows(app: &App) -> Vec<(String, String)> {
 
 /// When a pull failed, as a local clock time — with the date once it is not today, because
 /// "14:32" from last week reads as an outage still going on.
-fn pull_time(at: i64) -> String {
-    use chrono::TimeZone;
-    match chrono::Local.timestamp_opt(at, 0).single() {
-        Some(when) if when.date_naive() == chrono::Local::now().date_naive() => {
-            when.format("at %H:%M").to_string()
-        }
+fn pull_time(clock: &Clock, at: i64) -> String {
+    match clock.local(at) {
+        Some(when) if when.date_naive() == clock.today() => when.format("at %H:%M").to_string(),
         Some(when) => when.format("on %b %-d at %H:%M").to_string(),
         None => String::new(),
     }
@@ -2689,12 +2699,8 @@ fn hosts_text(hosts: &[String]) -> String {
 }
 
 /// How long ago a moment was, coarsely. Exactness would be noise on a "last seen" column.
-fn ago(at: i64) -> String {
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs() as i64)
-        .unwrap_or(at);
-    let span = now.saturating_sub(at).max(0);
+fn ago(clock: &Clock, at: i64) -> String {
+    let span = clock.now_epoch().saturating_sub(at).max(0);
     match span {
         0..3_600 => "just now".into(),
         3_600..86_400 => "today".into(),
@@ -2704,12 +2710,8 @@ fn ago(at: i64) -> String {
 }
 
 /// How long until a moment, coarsely.
-fn until(at: i64) -> String {
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs() as i64)
-        .unwrap_or(at);
-    let span = at.saturating_sub(now);
+fn until(clock: &Clock, at: i64) -> String {
+    let span = at.saturating_sub(clock.now_epoch());
     match span {
         ..=0 => "expired".into(),
         1..86_400 => "expires today".into(),
@@ -2780,7 +2782,8 @@ fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
             dim,
         );
         line(buf, area.left() + COL_STORE_ROLE, y, member.devices.to_string(), dim);
-        let seen = member.last_seen.map_or_else(|| "never".to_owned(), ago);
+        let seen =
+            member.last_seen.map_or_else(|| "never".to_owned(), |at| ago(&app.clock, at));
         line(
             buf,
             area.left() + COL_STORE_STATE,
@@ -2824,7 +2827,7 @@ fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
                 area.left() + COL_STORE_STATE,
                 y,
                 truncate(
-                    &until(invite.expires_at),
+                    &until(&app.clock, invite.expires_at),
                     area.width.saturating_sub(COL_STORE_STATE + 1) as usize,
                 ),
                 app.palette.style(Role::TextDim),
@@ -2883,7 +2886,7 @@ fn render_meta_sources(buf: &mut Buffer, app: &App, area: Rect, top: u16) {
             &row.state,
             app.palette.style(if row.healthy { Role::State } else { Role::Alert }),
         );
-        if let Some(detail) = meta_detail(row, chrono::Local::now().timestamp())
+        if let Some(detail) = meta_detail(row, &app.clock)
             && COL_PROVIDER_STATE < area.width
         {
             buf.set_string(
@@ -2902,12 +2905,13 @@ fn render_meta_sources(buf: &mut Buffer, app: &App, area: Rect, top: u16) {
 /// heartbeat, so "next try in 39s" stood still for as long as nothing happened, and a clock
 /// time is right whenever it is drawn. Past the deadline the source is not asked until something
 /// needs it, so that is what the row says rather than a time already gone.
-fn meta_detail(row: &crate::app::MetaSourceRow, now: i64) -> Option<String> {
-    use chrono::TimeZone;
+fn meta_detail(row: &crate::app::MetaSourceRow, clock: &Clock) -> Option<String> {
     let Some(at) = row.retry_at else { return row.detail.clone() };
     let cause = row.detail.as_deref().unwrap_or("failing");
-    let when = match chrono::Local.timestamp_opt(at, 0).single() {
-        Some(when) if at > now => format!("skipped until {}", when.format("%H:%M")),
+    let when = match clock.local(at) {
+        Some(when) if at > clock.now_epoch() => {
+            format!("skipped until {}", when.format("%H:%M"))
+        }
         _ => "tried again on the next request".into(),
     };
     Some(format!("{when} — {cause}"))
@@ -3657,7 +3661,7 @@ fn invite_link_rows(app: &App, width: usize) -> Vec<(String, String)> {
             "select it to copy".into()
         },
     ));
-    rows.push((String::new(), format!("works once, {}", until(view.expires_at))));
+    rows.push((String::new(), format!("works once, {}", until(&app.clock, view.expires_at))));
     rows.push((
         String::new(),
         "opening it in a browser shows how to join and does not use it up".into(),
@@ -3994,6 +3998,10 @@ mod tests {
         app
     }
 
+    /// Monday 2026-10-19, 12:00 UTC: when a screen is drawn for a test whose text depends on
+    /// the time it is drawn at.
+    const NOON_MONDAY: i64 = 1_792_411_200;
+
     fn entry(id: u32, title: &str) -> Entry {
         Entry {
             format: Some("TV".into()),
@@ -4033,28 +4041,28 @@ mod tests {
     /// is not redrawn every second, so it read "next try in 39s" for minutes.
     #[test]
     fn a_resting_meta_source_says_until_when_it_is_skipped() {
-        use chrono::TimeZone;
-        let now = chrono::Local::now().timestamp();
+        // Noon UTC, read nine hours east: the retry two minutes on is a clock time there.
+        let mut clock = Clock::fixed(NOON_MONDAY, crate::clock::Zone::hours_east(9).unwrap());
         let mut row = crate::app::MetaSourceRow {
             source: "anilist".into(),
             state: "backing off".into(),
             healthy: false,
             active: false,
             detail: Some("network: timed out".into()),
-            retry_at: Some(now + 120),
+            retry_at: Some(NOON_MONDAY + 120),
         };
-        let clock = chrono::Local.timestamp_opt(now + 120, 0).unwrap().format("%H:%M");
         assert_eq!(
-            meta_detail(&row, now).as_deref(),
-            Some(format!("skipped until {clock} — network: timed out").as_str())
+            meta_detail(&row, &clock).as_deref(),
+            Some("skipped until 21:02 — network: timed out")
         );
         // Once the deadline is behind it, a time already gone would read as stale.
+        clock.advance(std::time::Duration::from_secs(121));
         assert_eq!(
-            meta_detail(&row, now + 121).as_deref(),
+            meta_detail(&row, &clock).as_deref(),
             Some("tried again on the next request — network: timed out")
         );
         row.retry_at = None;
-        assert_eq!(meta_detail(&row, now).as_deref(), Some("network: timed out"));
+        assert_eq!(meta_detail(&row, &clock).as_deref(), Some("network: timed out"));
     }
 
     /// A failed pull used to leave the row saying "connected · pulled 40 titles" from the last
@@ -4062,15 +4070,16 @@ mod tests {
     #[test]
     fn an_accounts_row_says_when_and_why_the_last_pull_failed() {
         let mut app = app_with(Content::Entries(Vec::new()));
-        let at = chrono::Local::now().timestamp() - 60;
+        app.clock = Clock::fixed(NOON_MONDAY, crate::clock::Zone::utc());
+        let at = NOON_MONDAY - 60;
         app.apply(Update::Sync(Box::new(crate::app::SyncState {
             connected: true,
             pull_error: Some(("network: timed out".into(), at)),
             ..crate::app::SyncState::new("anilist")
         })));
         let (_, detail) = &accounts_rows(&app)[0];
-        let clock = pull_time(at);
-        assert!(clock.starts_with("at "), "today's failure reads as a clock time: {clock}");
+        let clock = pull_time(&app.clock, at);
+        assert_eq!(clock, "at 11:59", "today's failure reads as a clock time");
         assert!(
             detail.contains(&format!("pull failed {clock}: network: timed out")),
             "{detail}"
@@ -4078,7 +4087,7 @@ mod tests {
         assert!(!detail.contains("pulled"), "{detail}");
 
         // An older failure carries its date.
-        assert!(pull_time(at - 10 * 86_400).starts_with("on "));
+        assert_eq!(pull_time(&app.clock, at - 10 * 86_400), "on Oct 9 at 11:59");
     }
 
     #[test]
@@ -4088,7 +4097,7 @@ mod tests {
         let mut app = app_with(Content::Entries(Vec::new()));
         app.apply(Update::Sync(Box::new(crate::app::SyncState {
             connected: true,
-            pull_error: Some(("network: timed out".into(), chrono::Local::now().timestamp())),
+            pull_error: Some(("network: timed out".into(), app.clock.now_epoch())),
             ..crate::app::SyncState::new("anilist")
         })));
         app.go_to_section(Section::Accounts);
@@ -4148,10 +4157,9 @@ mod tests {
 
     fn running(app: &mut App, task: &crate::app::Task, for_secs: u64) -> crate::app::JobId {
         let id = app.begin_job(task).expect("a job");
+        let now = app.clock.now_instant();
         let job = app.jobs.iter_mut().find(|j| j.id == id).unwrap();
-        job.started = std::time::Instant::now()
-            .checked_sub(std::time::Duration::from_secs(for_secs))
-            .unwrap();
+        job.started = now.checked_sub(std::time::Duration::from_secs(for_secs)).unwrap();
         id
     }
 
@@ -4186,7 +4194,7 @@ mod tests {
     fn a_hold_up_is_counted_down_in_place_of_the_runtime() {
         let mut app = app_with(Content::Loading);
         let id = running(&mut app, &crate::app::Task::LoadSeasonal, 4);
-        let until = std::time::Instant::now() + std::time::Duration::from_millis(12_400);
+        let until = app.clock.now_instant() + std::time::Duration::from_millis(12_400);
         app.apply(Update::JobNote {
             job: id,
             note: "AniList limit".into(),
@@ -5666,11 +5674,77 @@ mod tests {
         let text = text_of(&render_to_buffer(&app, 120, 30));
         // Labels computed by the same helpers the renderer uses, so the assertion holds
         // whatever the wall clock says. 26 hours apart is always two different days.
-        let first = super::day_label(super::air_date(-1).unwrap()).to_uppercase();
-        let second = super::day_label(super::air_date(26 * 3600).unwrap()).to_uppercase();
+        let first = super::day_label(&app.clock, super::air_date(&app.clock, -1).unwrap())
+            .to_uppercase();
+        let second =
+            super::day_label(&app.clock, super::air_date(&app.clock, 26 * 3600).unwrap())
+                .to_uppercase();
         assert_ne!(first, second);
         assert!(text.contains(&first), "missing the {first} ruling:\n{text}");
         assert!(text.contains(&second), "missing the {second} ruling:\n{text}");
+    }
+
+    /// The calendar drawn on a stopped clock: its rulings and times are fixed text, the same
+    /// whenever and in whatever zone the test runs.
+    fn calendar_at(clock: Clock, entries: Vec<Entry>) -> String {
+        let mut app = app_with(Content::Empty);
+        app.clock = clock;
+        app.go_to_section(Section::Calendar);
+        app.apply(app.content_here(Content::Entries(entries)));
+        text_of(&render_to_buffer(&app, 120, 34))
+    }
+
+    /// A calendar row: `episode` of `title`, airing `secs` from now (negative once aired).
+    fn airing(id: u32, title: &str, episode: u32, secs: i64) -> Entry {
+        Entry { airing_episode: Some(episode), airing_in: Some(secs), ..entry(id, title) }
+    }
+
+    #[test]
+    fn a_stopped_clock_pins_the_calendars_days_and_broadcast_line() {
+        const DAY: i64 = 86_400;
+        // The first upcoming row is the one selected, so its broadcast line is the preview's.
+        let next = Entry {
+            last_aired: Some((3, 2 * DAY)),
+            next_episode: Some(4),
+            next_airing_in: Some(4 * DAY + 20 * 3_600),
+            ..airing(3, "Hoshikuzu no Tabibito", 4, 4 * DAY + 20 * 3_600)
+        };
+        let text = calendar_at(
+            Clock::fixed(NOON_MONDAY, crate::clock::Zone::utc()),
+            vec![
+                airing(1, "Kaze no Tegami", 7, -2 * DAY),
+                airing(2, "Yoru no Toshokan", 2, -3_600),
+                next,
+            ],
+        );
+        for ruling in ["SATURDAY · 17 OCT", "TODAY", "SATURDAY · 24 OCT"] {
+            assert!(text.contains(ruling), "missing the {ruling} ruling:\n{text}");
+        }
+        for time in ["2d ago", "1h ago", "in 4d 20h"] {
+            assert!(text.contains(time), "missing the {time} row:\n{text}");
+        }
+        assert!(text.contains("ep 3 out 2d ago  ·  ep 4 in 4d 20h"), "{text}");
+    }
+
+    /// The day an episode airs on is a local date, so the zone moves it: an hour after 23:30
+    /// UTC is tomorrow in UTC and still today eight hours west.
+    #[test]
+    fn the_calendar_rules_days_in_the_clocks_zone() {
+        let late_monday = NOON_MONDAY + 11 * 3_600 + 1_800;
+        let entries = || {
+            vec![
+                airing(1, "Hoshikuzu no Tabibito", 5, 3_600),
+                airing(2, "Kaze no Tegami", 8, 3 * 86_400 + 3_600),
+            ]
+        };
+        let zone = |hours| crate::clock::Zone::hours_east(hours).unwrap();
+        let utc = calendar_at(Clock::fixed(late_monday, zone(0)), entries());
+        let west = calendar_at(Clock::fixed(late_monday, zone(-8)), entries());
+
+        assert!(utc.contains("TOMORROW") && !utc.contains("TODAY"), "{utc}");
+        assert!(utc.contains("FRIDAY · 23 OCT") && !utc.contains("THURSDAY"), "{utc}");
+        assert!(west.contains("TODAY") && !west.contains("TOMORROW"), "{west}");
+        assert!(west.contains("THURSDAY · 22 OCT") && !west.contains("FRIDAY"), "{west}");
     }
 
     #[test]
