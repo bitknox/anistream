@@ -9,13 +9,10 @@
 //! directory: all of them leave the reserved plate in place. Cover art is decoration, and
 //! the title underneath it is not.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use anistream_net::HttpClient;
-use anistream_ui::{
-    app::Update,
-    image::{cache_is_fresh, downscale},
-};
+use anistream_ui::{app::Update, image::downscale};
 use tokio::sync::mpsc;
 
 /// How long a cached cover stays valid. Art changes rarely; a month avoids re-fetching a
@@ -45,7 +42,7 @@ pub fn spawn_fetch(
     tx: mpsc::UnboundedSender<Update>,
 ) {
     tokio::spawn(async move {
-        let path = cache_dir.join(format!("{}.img", anistream_ui::image::stable_hash(&url)));
+        let path = cache_dir.join(format!("{}.img", anistream_core::hash::stable_hash(&url)));
 
         let fetched = match read_cached(&path).await {
             Some(bytes) => Ok(bytes),
@@ -102,6 +99,20 @@ enum Failure {
     Refused,
 }
 
+/// Whether a cached file is still usable.
+pub fn cache_is_fresh(path: &Path, max_age_secs: u64) -> bool {
+    let Ok(meta) = std::fs::metadata(path) else {
+        return false;
+    };
+    if meta.len() == 0 {
+        return false;
+    }
+    meta.modified()
+        .ok()
+        .and_then(|m| m.elapsed().ok())
+        .is_some_and(|age| age.as_secs() < max_age_secs)
+}
+
 async fn read_cached(path: &PathBuf) -> Option<Vec<u8>> {
     if !cache_is_fresh(path, CACHE_TTL_SECS) {
         return None;
@@ -147,9 +158,21 @@ mod tests {
     #[test]
     fn cache_paths_are_stable_across_runs() {
         // If these drifted, the disk cache would never hit.
-        let a = anistream_ui::image::stable_hash("https://s4.anilist.co/cover/1.jpg");
-        let b = anistream_ui::image::stable_hash("https://s4.anilist.co/cover/1.jpg");
+        let a = anistream_core::hash::stable_hash("https://s4.anilist.co/cover/1.jpg");
+        let b = anistream_core::hash::stable_hash("https://s4.anilist.co/cover/1.jpg");
         assert_eq!(a, b);
+    }
+
+    #[test]
+    fn a_missing_or_empty_cache_file_is_not_fresh() {
+        assert!(!cache_is_fresh(Path::new("/definitely/not/here.img"), 3600));
+
+        let dir = std::env::temp_dir().join("anistream-cache-test");
+        std::fs::create_dir_all(&dir).ok();
+        let empty = dir.join("empty.img");
+        std::fs::write(&empty, b"").ok();
+        assert!(!cache_is_fresh(&empty, 3600), "a zero-byte file is a failed download");
+        std::fs::remove_file(&empty).ok();
     }
 
     #[tokio::test]
@@ -206,7 +229,7 @@ mod tests {
         // Better than a placeholder: the cache only ages while nothing can refresh it.
         let dir = tempfile::tempdir().unwrap();
         let url = "http://127.0.0.1:1/cached.jpg".to_owned();
-        let path = dir.path().join(format!("{}.img", anistream_ui::image::stable_hash(&url)));
+        let path = dir.path().join(format!("{}.img", anistream_core::hash::stable_hash(&url)));
         let mut png = Vec::new();
         image::DynamicImage::ImageRgb8(image::RgbImage::new(4, 6))
             .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)

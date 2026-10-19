@@ -1865,7 +1865,7 @@ async fn fetch_still(
         for pixel in pixels.chunks_exact_mut(4) {
             pixel.swap(0, 2);
         }
-        let name = format!("upnext-{}.bgra", anistream_ui::image::stable_hash(&url));
+        let name = format!("upnext-{}.bgra", anistream_core::hash::stable_hash(&url));
         let path = dir.join(name);
         std::fs::create_dir_all(&dir).ok()?;
         std::fs::write(&path, &pixels).ok()?;

@@ -7,6 +7,7 @@
 
 pub mod config;
 pub mod error;
+pub mod hash;
 pub mod ids;
 pub mod media;
 pub mod settings;

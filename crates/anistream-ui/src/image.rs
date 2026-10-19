@@ -14,7 +14,7 @@
 
 use std::{
     collections::HashMap,
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::{Arc, Mutex},
 };
 
@@ -161,7 +161,7 @@ impl ImageEngine {
 
     /// On-disk path for a cached image.
     pub fn cache_path(&self, url: &str) -> PathBuf {
-        self.cache_dir.join(format!("{}.img", stable_hash(url)))
+        self.cache_dir.join(format!("{}.img", anistream_core::hash::stable_hash(url)))
     }
 }
 
@@ -295,34 +295,6 @@ pub fn downscale(image: image::DynamicImage, max_edge: u32) -> image::DynamicIma
     // `Triangle` is a good quality/speed tradeoff at this scale, and this runs off the UI
     // thread anyway.
     image.resize(max_edge, max_edge, image::imageops::FilterType::Triangle)
-}
-
-/// Stable, filesystem-safe hash of a URL.
-///
-/// Not cryptographic — this only needs to avoid collisions between cover URLs and produce
-/// the same name across runs so the cache survives a restart.
-pub fn stable_hash(input: &str) -> String {
-    // FNV-1a: tiny, stable across releases, and good enough for cache keys.
-    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
-    for byte in input.as_bytes() {
-        hash ^= u64::from(*byte);
-        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
-    }
-    format!("{hash:016x}")
-}
-
-/// Whether a cached file is still usable.
-pub fn cache_is_fresh(path: &Path, max_age_secs: u64) -> bool {
-    let Ok(meta) = std::fs::metadata(path) else {
-        return false;
-    };
-    if meta.len() == 0 {
-        return false;
-    }
-    meta.modified()
-        .ok()
-        .and_then(|m| m.elapsed().ok())
-        .is_some_and(|age| age.as_secs() < max_age_secs)
 }
 
 /// Tracks which images have been requested, so the same cover is fetched once.
@@ -544,16 +516,6 @@ mod tests {
     }
 
     #[test]
-    fn cache_keys_are_stable_and_distinct() {
-        // Stable across runs, or the disk cache is useless.
-        let a = stable_hash("https://s4.anilist.co/cover/154587.jpg");
-        assert_eq!(a, stable_hash("https://s4.anilist.co/cover/154587.jpg"));
-        assert_ne!(a, stable_hash("https://s4.anilist.co/cover/154588.jpg"));
-        assert_eq!(a.len(), 16);
-        assert!(a.chars().all(|c| c.is_ascii_hexdigit()), "must be filename-safe");
-    }
-
-    #[test]
     fn a_url_is_claimed_by_exactly_one_caller() {
         // Scrolling re-renders constantly; without this every frame would re-fetch every
         // visible cover.
@@ -630,18 +592,6 @@ mod tests {
     #[test]
     fn unrequested_urls_have_no_state() {
         assert_eq!(ImageRequests::new().state("never asked"), None);
-    }
-
-    #[test]
-    fn a_missing_or_empty_cache_file_is_not_fresh() {
-        assert!(!cache_is_fresh(Path::new("/definitely/not/here.img"), 3600));
-
-        let dir = std::env::temp_dir().join("anistream-cache-test");
-        std::fs::create_dir_all(&dir).ok();
-        let empty = dir.join("empty.img");
-        std::fs::write(&empty, b"").ok();
-        assert!(!cache_is_fresh(&empty, 3600), "a zero-byte file is a failed download");
-        std::fs::remove_file(&empty).ok();
     }
 
     #[test]
