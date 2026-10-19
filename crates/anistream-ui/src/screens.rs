@@ -8,7 +8,7 @@ use ratatui::{
     Frame as TFrame, buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget,
 };
 
-use anistream_model::wording::{calendar_time, clock};
+use anistream_model::wording::{broadcast_line, calendar_time, clock};
 
 use crate::{
     app::{
@@ -3923,34 +3923,6 @@ fn cover_plate_height(width: u16) -> u16 {
 /// is what stops the hero from crowding out the words that identify it.
 const PREVIEW_TEXT_ROWS: u16 = 17;
 
-/// What most recently aired and what is next.
-///
-/// Latest first, because truncation in a narrow column should cost the countdown rather than the
-/// fact that there is a new episode out. Both halves are absent for a finished show, which is
-/// correct — the line disappears instead of saying something vacuous.
-fn broadcast_line(entry: &Entry) -> String {
-    let mut parts: Vec<String> = Vec::new();
-    if let Some((episode, ago)) = entry.latest_aired() {
-        parts.push(match ago {
-            Some(ago) => format!("ep {episode} out {}", crate::widgets::ago(ago)),
-            // Known to be out only by inference from the next episode's number, so there
-            // is no broadcast time to date it with — absent beats guessed.
-            None => format!("ep {episode} out"),
-        });
-    }
-    // The title's own schedule rather than the row's slot, so a calendar row about an episode
-    // that has just aired still reports when the next one is due instead of counting down to
-    // the one already out. Filtered to a countdown that has time left: AniList hands back a
-    // non-positive `timeUntilAiring` in the moments around a broadcast.
-    if let Some(seconds) = entry.next_airing_in.filter(|s| *s > 0) {
-        parts.push(match entry.next_episode {
-            Some(next) => format!("ep {next} in {}", crate::widgets::countdown(seconds)),
-            None => format!("next in {}", crate::widgets::countdown(seconds)),
-        });
-    }
-    parts.join("  ·  ")
-}
-
 /// One row of plate fill.
 fn plate_row(width: usize) -> String {
     glyph::METER_EMPTY.to_string().repeat(width)
@@ -4130,29 +4102,6 @@ mod tests {
         let text = text_of(&render_to_buffer(&app, 120, 34));
         assert!(text.contains("pull failed at "), "{text}");
         assert!(text.contains("network: timed out"), "{text}");
-    }
-
-    /// An episode that has already aired has no time left to count down to, and the "out" half
-    /// of the line already reports it. Saying "in now" alongside read as a release that never
-    /// arrived.
-    #[test]
-    fn the_broadcast_line_drops_a_countdown_that_has_run_out() {
-        // A calendar row about episode 5, which aired an hour ago. Episode 6 is a week out.
-        let mut e = entry(1, "Frieren");
-        e.last_aired = Some((5, 3_600));
-        e.airing_in = Some(-3_600);
-        e.next_episode = Some(6);
-        e.next_airing_in = Some(604_800);
-
-        let line = broadcast_line(&e);
-        assert!(line.contains("ep 5 out"), "what is out still gets said: {line}");
-        assert!(line.contains("ep 6 in 7d"), "and when the next one is due: {line}");
-        assert!(!line.contains("now"), "the spent slot is not a countdown: {line}");
-
-        // Nothing further scheduled — a finished show says only what is out.
-        e.next_episode = None;
-        e.next_airing_in = None;
-        assert_eq!(broadcast_line(&e), "ep 5 out 1h ago");
     }
 
     /// AniList leaves the length empty while a show airs without an announced one. The card

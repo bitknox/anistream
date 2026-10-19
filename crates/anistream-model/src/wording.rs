@@ -4,6 +4,8 @@
 //! way rather than each writing its own and drifting: the terminal's activity row, the download
 //! queue and the notices the work sends all read from here.
 
+use crate::catalog::Entry;
+
 /// Render a countdown in the largest unit that still reads at a glance.
 ///
 /// Raw minutes are useless past an hour or so — `9698m` tells you nothing, while `6d 17h`
@@ -77,6 +79,34 @@ pub fn calendar_time(secs: i64) -> String {
     if secs <= 0 { ago(-secs) } else { format!("in {}", countdown(secs)) }
 }
 
+/// What most recently aired and what is next.
+///
+/// Latest first, because truncation in a narrow column should cost the countdown rather than the
+/// fact that there is a new episode out. Both halves are absent for a finished show, which is
+/// correct — the line disappears instead of saying something vacuous.
+pub fn broadcast_line(entry: &Entry) -> String {
+    let mut parts: Vec<String> = Vec::new();
+    if let Some((episode, ago)) = entry.latest_aired() {
+        parts.push(match ago {
+            Some(ago) => format!("ep {episode} out {}", crate::wording::ago(ago)),
+            // Known to be out only by inference from the next episode's number, so there
+            // is no broadcast time to date it with — absent beats guessed.
+            None => format!("ep {episode} out"),
+        });
+    }
+    // The title's own schedule rather than the row's slot, so a calendar row about an episode
+    // that has just aired still reports when the next one is due instead of counting down to
+    // the one already out. Filtered to a countdown that has time left: AniList hands back a
+    // non-positive `timeUntilAiring` in the moments around a broadcast.
+    if let Some(seconds) = entry.next_airing_in.filter(|s| *s > 0) {
+        parts.push(match entry.next_episode {
+            Some(next) => format!("ep {next} in {}", countdown(seconds)),
+            None => format!("next in {}", countdown(seconds)),
+        });
+    }
+    parts.join("  ·  ")
+}
+
 /// `7s`, then `1m 05s`: seconds are what a wait is felt in, and minutes only once there are any.
 pub fn clock(span: std::time::Duration) -> String {
     let secs = span.as_secs().max(1);
@@ -86,6 +116,7 @@ pub fn clock(span: std::time::Duration) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use anistream_core::ids::AnilistId;
 
     #[test]
     fn counts_of_one_are_singular() {
@@ -109,5 +140,28 @@ mod tests {
     fn long_waits_read_in_minutes() {
         assert_eq!(clock(std::time::Duration::from_secs(7)), "7s");
         assert_eq!(clock(std::time::Duration::from_secs(65)), "1m 05s");
+    }
+
+    /// An episode that has already aired has no time left to count down to, and the "out" half
+    /// of the line already reports it. Saying "in now" alongside read as a release that never
+    /// arrived.
+    #[test]
+    fn the_broadcast_line_drops_a_countdown_that_has_run_out() {
+        // A calendar row about episode 5, which aired an hour ago. Episode 6 is a week out.
+        let mut e = Entry::new(AnilistId::new(1), "Hoshikuzu no Tabibito");
+        e.last_aired = Some((5, 3_600));
+        e.airing_in = Some(-3_600);
+        e.next_episode = Some(6);
+        e.next_airing_in = Some(604_800);
+
+        let line = broadcast_line(&e);
+        assert!(line.contains("ep 5 out"), "what is out still gets said: {line}");
+        assert!(line.contains("ep 6 in 7d"), "and when the next one is due: {line}");
+        assert!(!line.contains("now"), "the spent slot is not a countdown: {line}");
+
+        // Nothing further scheduled — a finished show says only what is out.
+        e.next_episode = None;
+        e.next_airing_in = None;
+        assert_eq!(broadcast_line(&e), "ep 5 out 1h ago");
     }
 }
