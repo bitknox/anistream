@@ -11,6 +11,7 @@
 //! and the trackers, downloads, plugin stores, and the rules every job keeps. Playback is not
 //! here: it needs mpv, and `tests/binge.rs` covers it.
 
+mod downloads;
 mod lists;
 mod settings;
 mod title;
