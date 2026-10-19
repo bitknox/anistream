@@ -2434,16 +2434,6 @@ impl App {
         self.logs.push(LogRow { kind, text, at: self.pulse, count: 1 });
     }
 
-    /// Reflect a watch into the episode table and the title's progress, without a reload.
-    ///
-    /// Reported from real use: finishing an episode left the table showing the old state, so it
-    /// looked as though nothing had been recorded. It had been — the row was just built once by
-    /// `LoadEpisodes` and never touched again.
-    ///
-    /// Done locally rather than by re-issuing that task, because re-issuing it would walk the
-    /// provider chain over the network to re-learn something we already know: the episode, the
-    /// position and whether it finished all came from this process. A network round trip to display
-    /// local state would also be slower than the eye.
     /// The live value a text setting starts editing from.
     fn current_text_value(&self, id: SettingId) -> String {
         match id {
@@ -2623,6 +2613,16 @@ impl App {
         }
     }
 
+    /// Reflect a watch into the episode table and the title's progress, without a reload.
+    ///
+    /// Reported from real use: finishing an episode left the table showing the old state, so it
+    /// looked as though nothing had been recorded. It had been — the row was just built once by
+    /// `LoadEpisodes` and never touched again.
+    ///
+    /// Done locally rather than by re-issuing that task, because re-issuing it would walk the
+    /// provider chain over the network to re-learn something we already know: the episode, the
+    /// position and whether it finished all came from this process. A network round trip to display
+    /// local state would also be slower than the eye.
     fn reflect_watch(
         &mut self,
         id: Option<AnilistId>,
@@ -3958,12 +3958,6 @@ impl App {
         self.pending.take()
     }
 
-    /// Whether the Library list has focus, so horizontal keys mean "step segment".
-    /// Whether the Settings rows have focus.
-    ///
-    /// Left and Right cycle a value here rather than moving between rail and stage — the same
-    /// trade Library already makes for its status segments. Esc, Tab and the number keys still
-    /// leave, so nothing is trapped.
     /// Whether the download queue has focus.
     fn in_downloads_stage(&self) -> bool {
         self.nav.section() == Section::Downloads
@@ -4012,12 +4006,18 @@ impl App {
         self.sync.iter().filter(|s| s.connected).map(|s| s.tracker.as_str()).collect()
     }
 
+    /// Whether the Settings rows have focus.
+    ///
+    /// Left and Right cycle a value here rather than moving between rail and stage — the same
+    /// trade Library already makes for its status segments. Esc, Tab and the number keys still
+    /// leave, so nothing is trapped.
     fn in_settings_stage(&self) -> bool {
         self.nav.section() == Section::Settings
             && self.nav.focus() == Focus::Stage
             && matches!(self.nav.current(), StageView::Section(Section::Settings))
     }
 
+    /// Whether the Library list has focus, so horizontal keys mean "step segment".
     fn in_library_stage(&self) -> bool {
         self.nav.section() == Section::Library
             && self.nav.focus() == Focus::Stage
@@ -6100,13 +6100,13 @@ pub enum Task {
     },
     /// Something for the live mpv session.
     Player(PlayerCommand),
-    /// Queue an episode for offline download.
     /// Pin a title to a provider result the user picked, then load its episodes.
     FixMatch {
         id: AnilistId,
         provider_id: String,
         key: anistream_core::ids::ProviderKey,
     },
+    /// Queue an episode for offline download.
     DownloadEpisode {
         id: AnilistId,
         episode: String,
