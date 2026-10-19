@@ -3977,8 +3977,9 @@ pub fn visible_rows(area: Rect, section: Section) -> usize {
 
 /// Render into a fresh off-screen buffer.
 ///
-/// Used by the layout tests and by `--example screen_preview`, which is how a composition gets
-/// looked at rather than imagined. Not gated to `cfg(test)` for exactly that reason.
+/// Used by the layout tests and by the screen goldens in `tests/goldens.rs`, which are how a
+/// composition gets looked at rather than imagined. Not gated to `cfg(test)`, because those are
+/// integration tests and see the crate only as a library.
 pub fn render_to_buffer(app: &App, width: u16, height: u16) -> Buffer {
     use ratatui::{Terminal, backend::TestBackend};
     let mut terminal = Terminal::new(TestBackend::new(width, height)).expect("terminal");

@@ -431,7 +431,9 @@ scenarios! {
     episodes_long_filtered,
     now_playing,
     now_playing_paused_skip,
+    eyecatch_starting,
     eyecatch_covering,
+    eyecatch_held,
     eyecatch_still_resolving,
     activity_and_toasts,
     help,
@@ -1202,11 +1204,23 @@ fn job_for_play(s: &Screen) -> JobId {
     job.id
 }
 
+/// Four frames into the sweep: a band too narrow yet to carry its label.
+fn eyecatch_starting(s: &mut Screen) {
+    play_hoshikuzu(s);
+    s.frames(4);
+}
+
 /// Six frames into the sweep: the band two thirds across, carrying its label, Now Playing still
 /// showing through on its right.
 fn eyecatch_covering(s: &mut Screen) {
     play_hoshikuzu(s);
     s.frames(6);
+}
+
+/// The sweep complete and the band holding, labelled, before the wait is long enough to admit.
+fn eyecatch_held(s: &mut Screen) {
+    play_hoshikuzu(s);
+    s.frames(SWEEP_FRAMES);
 }
 
 /// A resolve that is taking a while: the band holds and admits how long, and the activity
