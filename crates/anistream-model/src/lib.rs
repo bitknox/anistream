@@ -23,4 +23,5 @@ pub mod episodes;
 pub mod jobs;
 pub mod notice;
 pub mod playback;
+pub mod sources;
 pub mod wording;
