@@ -314,6 +314,16 @@ impl Harness {
         seen
     }
 
+    /// The app, as the work has left it.
+    pub fn app(&self) -> &App {
+        &self.app
+    }
+
+    /// The app, for a test that sets the stage the way a person would have by now.
+    pub fn app_mut(&mut self) -> &mut App {
+        &mut self.app
+    }
+
     /// The fake AniList: what it was asked, and how it should fail.
     pub fn server(&self) -> &FakeAniList {
         &self.server
@@ -322,6 +332,16 @@ impl Harness {
     /// The local database, for seeding and for checking what a task wrote.
     pub fn store(&self) -> &Store {
         &self.store
+    }
+
+    /// Where the app's files are: all of them under one temporary directory.
+    pub fn paths(&self) -> &Paths {
+        &self.paths
+    }
+
+    /// The live source chain.
+    pub fn registry(&self) -> &ProviderRegistry {
+        &self.registry
     }
 
     fn rows(&self) -> usize {

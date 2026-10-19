@@ -12,6 +12,7 @@
 //! here: it needs mpv, and `tests/binge.rs` covers it.
 
 mod lists;
+mod settings;
 mod title;
 
 use anistream_core::ids::AnilistId;
