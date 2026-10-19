@@ -27,10 +27,15 @@ use std::{fmt::Write as _, path::PathBuf};
 
 use anistream_core::{config::Config, ids::AnilistId};
 use anistream_ui::{
-    Action, App, Clock, Content, Entry, Keymap, Palette, Role, SyncState, Task, Update, Zone,
-    app::{ProviderRow, ResumePoint},
+    Action, App, Clock, Content, Entry, Keymap, LibrarySegment, Palette, Role, SyncState, Task,
+    Update, Zone,
+    app::{
+        DeviceCodePrompt, DownloadRow, MetaSourceRow, ProviderRow, ResumePoint, SeedRow,
+        StorePluginRow, StorePluginStatus, StoreRow, StoreState,
+    },
     screens::{render_to_buffer, visible_rows},
 };
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{
     buffer::{Buffer, Cell},
     layout::Rect,
@@ -105,9 +110,31 @@ impl Screen {
         task
     }
 
+    /// Keys written the way the bindings are: `j`, `G`, `esc`, `enter`, `ctrl+k`.
+    fn press(&mut self, keys: &[&str]) {
+        for spec in keys {
+            self.app.press(key(spec), self.rows());
+            self.draw();
+        }
+    }
+
+    /// Typed into whichever field has the keyboard, a key at a time.
+    fn type_text(&mut self, text: &str) {
+        for ch in text.chars() {
+            self.app.press(KeyEvent::new(KeyCode::Char(ch), KeyModifiers::NONE), self.rows());
+        }
+        self.draw();
+    }
+
     fn apply(&mut self, update: Update) {
         self.app.apply(update);
         self.draw();
+    }
+
+    /// A caption for the list on screen, sent before it as the binary sends one.
+    fn caption(&mut self, text: &str) {
+        let view = self.app.content_view().expect("a list on screen to caption");
+        self.apply(Update::Caption { view, text: text.into() });
     }
 
     /// The answer to the list on screen.
@@ -127,6 +154,26 @@ impl Screen {
         }
         self.draw();
     }
+}
+
+/// One key, written the way the bindings are.
+fn key(spec: &str) -> KeyEvent {
+    let code = match spec {
+        "esc" => KeyCode::Esc,
+        "enter" => KeyCode::Enter,
+        "down" => KeyCode::Down,
+        "up" => KeyCode::Up,
+        "left" => KeyCode::Left,
+        "right" => KeyCode::Right,
+        _ => {
+            if let Some(ch) = spec.strip_prefix("ctrl+") {
+                let ch = ch.chars().next().expect("a key after ctrl+");
+                return KeyEvent::new(KeyCode::Char(ch), KeyModifiers::CONTROL);
+            }
+            KeyCode::Char(spec.chars().next().expect("a key"))
+        }
+    };
+    KeyEvent::new(code, KeyModifiers::NONE)
 }
 
 /// Draw `scenario` afresh at each size and compare the frame it ends on with its golden.
@@ -328,6 +375,14 @@ scenarios! {
     continue_watching,
     continue_loading,
     calendar,
+    seasonal,
+    search_results,
+    library,
+    downloads,
+    providers,
+    accounts,
+    settings,
+    immersive,
 }
 
 /// A golden left behind by a renamed or removed scenario is a file nothing checks, and reads as
@@ -481,7 +536,8 @@ fn tsuki() -> Entry {
     }
 }
 
-/// A list of invented titles, scored, for the long lists.
+/// A list of invented titles, scored, for the long lists. Past the twenty-four names the titles
+/// come round again as second seasons.
 fn catalogue(n: usize) -> Vec<Entry> {
     const TITLES: [&str; 24] = [
         "Hoshikuzu no Tabibito",
@@ -516,6 +572,8 @@ fn catalogue(n: usize) -> Vec<Entry> {
         .enumerate()
         .map(|(i, title)| {
             let n = i as u32;
+            let title =
+                if i < TITLES.len() { (*title).to_owned() } else { format!("{title} II") };
             Entry {
                 format: Some(if n % 5 == 4 { "MOVIE" } else { "TV" }.into()),
                 episodes: Some(if n % 5 == 4 { 1 } else { 12 + n % 3 * 12 }),
@@ -526,7 +584,7 @@ fn catalogue(n: usize) -> Vec<Entry> {
                 ),
                 genres: vec![["Adventure", "Comedy", "Drama", "Mystery"][i % 4].into()],
                 synopsis: format!("{title}: a story told in twelve evenings."),
-                ..Entry::new(id(200 + n), *title)
+                ..Entry::new(id(200 + n), title)
             }
         })
         .collect()
@@ -610,4 +668,241 @@ fn calendar(s: &mut Screen) {
         airing(mori, 7, DAY + 4 * HOUR + 2 * MINUTE + 51),
         airing(hoshikuzu(), 5, 4 * DAY + 20 * HOUR + 13 * MINUTE + 27),
     ]);
+}
+
+/// Seasonal, captioned with its season, the cursor far enough down a list longer than either
+/// screen that the window has scrolled under the caption it holds.
+fn seasonal(s: &mut Screen) {
+    settled_on(s, 3);
+    s.caption("fall 2026");
+    s.list(catalogue(40));
+    s.press(&["j"; 33]);
+}
+
+/// A search with two filters set, run, and the keyboard moved down into its results.
+fn search_results(s: &mut Screen) {
+    settled_on(s, 4);
+    s.type_text("no");
+    s.act(Action::FilterSearch);
+    // Genre to the first, then the year down from next year to this one.
+    s.press(&["right", "down", "right", "right", "esc"]);
+    s.press(&["enter"]);
+    s.caption("first 50 — narrow the search for the rest");
+    s.list(catalogue(24).into_iter().filter(|e| e.title.contains("no")).collect());
+    s.press(&["down", "down"]);
+}
+
+/// The Library on a segment past the first, so the strip's obi is not where the rail's is.
+fn library(s: &mut Screen) {
+    settled_on(s, 5);
+    s.list(vec![]);
+    s.press(&["right", "right", "right"]);
+    assert_eq!(s.app.library_segment, LibrarySegment::Paused);
+    let paused = |entry: Entry| Entry { list_status: Some(LibrarySegment::Paused), ..entry };
+    s.list(vec![paused(kaze()), paused(tsuki()), paused(catalogue(9).swap_remove(8))]);
+    s.press(&["j"]);
+}
+
+/// The download queue in every state a row can be in, the failed one highlighted so its reason
+/// is spelled out, and two watched episodes still seeding underneath.
+fn downloads(s: &mut Screen) {
+    settled_on(s, 6);
+    let row =
+        |n: i64, title: &str, episode: &str, state: &'static str, done: u64, total: u64| {
+            DownloadRow {
+                id: n,
+                anilist_id: id(300 + n as u32),
+                title: title.into(),
+                episode: episode.into(),
+                state,
+                fraction: if total > 0 { done as f64 / total as f64 } else { 0.0 },
+                downloaded: done,
+                total,
+                error: None,
+                path: None,
+            }
+        };
+    s.apply(Update::Downloads(vec![
+        row(1, "Hoshikuzu no Tabibito", "4", "downloading", 512_300_000, 1_380_000_000),
+        row(2, "Hoshikuzu no Tabibito", "5", "queued", 0, 0),
+        row(3, "Kaze no Tegami", "9", "paused", 201_400_000, 1_120_000_000),
+        DownloadRow {
+            error: Some("the swarm went quiet — no peers for 10 minutes".into()),
+            ..row(4, "Yoru no Toshokan", "5", "failed", 88_200_000, 1_240_000_000)
+        },
+        DownloadRow {
+            path: Some("/media/anime/Tsuki to Kujira no Uta/07.mkv".into()),
+            ..row(5, "Tsuki to Kujira no Uta", "7", "complete", 1_310_000_000, 1_310_000_000)
+        },
+    ]));
+    s.apply(Update::Seeding(vec![
+        SeedRow {
+            name: "Tsuki to Kujira no Uta - 06".into(),
+            uploaded_bytes: 734_000_000,
+            ratio: 0.6,
+            goal: 1.0,
+            left_secs: 5 * HOUR as u64 + 17 * 60 + 9,
+        },
+        SeedRow {
+            name: "Kaze no Tegami - 08".into(),
+            uploaded_bytes: 1_402_000_000,
+            ratio: 1.3,
+            goal: 2.0,
+            left_secs: 41 * 60 + 33,
+        },
+    ]));
+    s.press(&["j", "j", "j"]);
+}
+
+/// Providers: a working source, a failing one with its error, plugin stores with an update,
+/// and the metadata ladder resting on its fallback — which puts the alert chip in the header.
+fn providers(s: &mut Screen) {
+    settled_on(s, 7);
+    let plugin = |id: &str, state: &str, latency: Option<u64>, usable: bool| ProviderRow {
+        id: id.into(),
+        kind: "plugin".into(),
+        state: state.into(),
+        latency_ms: latency,
+        last_error: None,
+        usable,
+        held_back: false,
+    };
+    s.apply(Update::Providers(vec![
+        plugin("yamabiko", "ready", Some(182), true),
+        ProviderRow {
+            last_error: Some("search timed out after 8 s".into()),
+            ..plugin("tsubame", "failing", None, false)
+        },
+        plugin("kawasemi", "ready", Some(1_204), true),
+    ]));
+    s.apply(Update::MetaStatus(vec![
+        MetaSourceRow {
+            source: "anilist".into(),
+            state: "resting".into(),
+            healthy: false,
+            active: false,
+            detail: Some("rate limited".into()),
+            retry_at: Some(NOW + 7 * MINUTE + 13),
+        },
+        MetaSourceRow {
+            source: "tenrai".into(),
+            state: "answering".into(),
+            healthy: true,
+            active: true,
+            detail: Some("serving from the mirror".into()),
+            retry_at: None,
+        },
+    ]));
+    s.apply(Update::Stores(two_stores()));
+    s.press(&["j"]);
+}
+
+/// Accounts: a device code waiting to be typed, a tracker signed in with work queued, one
+/// signed out, and one whose token was refused, with the pull that failed this evening.
+fn accounts(s: &mut Screen) {
+    settled_on(s, 8);
+    s.apply(Update::Sync(Box::new(SyncState {
+        storage: Some("0600 file".into()),
+        storage_degraded: true,
+        ..SyncState::new("kitsu")
+    })));
+    s.apply(Update::Sync(Box::new(SyncState {
+        connected: true,
+        user: Some("hotaru_watches".into()),
+        needs_reauth: true,
+        storage: Some("OS keychain".into()),
+        pull_error: Some(("the token was refused".into(), NOW - 2 * HOUR - 13 * MINUTE - 4)),
+        ..SyncState::new("mal")
+    })));
+    s.apply(Update::DeviceCode(Some(DeviceCodePrompt {
+        tracker: "mal".into(),
+        code: "KTQ7-M2WD".into(),
+        url: "https://auth.example/device".into(),
+    })));
+    s.press(&["j", "j"]);
+}
+
+/// Settings scrolled to a row with a note, sub and dub switched for this session only — which
+/// the row marks — under a config file that did not load, which the status line says first.
+fn settings(s: &mut Screen) {
+    settled_on(s, 9);
+    s.app.notice = Some(
+        "config.toml line 12: unknown field `playbak` — using the defaults until it is fixed"
+            .into(),
+    );
+    s.act(Action::ToggleTranslation);
+    s.press(&["j"; 11]);
+}
+
+/// The immersive theme, switched on from Settings: the painted ground under everything.
+fn immersive(s: &mut Screen) {
+    settled_on(s, 9);
+    s.press(&["right"]);
+    s.act(Action::JumpSection(1));
+    s.list(vec![hoshikuzu(), kaze(), yoru()]);
+}
+
+/// Two joined stores: one this machine owns, with an update that adds a host, and one it is a
+/// member of.
+fn two_stores() -> Vec<StoreRow> {
+    let plugin = |id: &str, name: &str, version: &str, hosts: &[&str], status| StorePluginRow {
+        id: id.into(),
+        name: name.into(),
+        version: version.into(),
+        hosts: hosts.iter().map(|h| (*h).to_owned()).collect(),
+        status,
+    };
+    vec![
+        StoreRow {
+            id: "aaaa".into(),
+            name: "Hearth plugins".into(),
+            url: "https://plugins.example".into(),
+            fingerprint: "489f 49ea 0372 41ac".into(),
+            member: "Mirei".into(),
+            owner: true,
+            state: StoreState::Ready,
+            plugins: vec![
+                plugin(
+                    "yamabiko",
+                    "Yamabiko",
+                    "1.4.0",
+                    &["api.yamabiko.example"],
+                    StorePluginStatus::Installed,
+                ),
+                plugin(
+                    "kawasemi",
+                    "Kawasemi",
+                    "2.1.0",
+                    &["kawasemi.example", "img.kawasemi.example"],
+                    StorePluginStatus::Update {
+                        from: "2.0.3".into(),
+                        new_hosts: vec!["img.kawasemi.example".into()],
+                    },
+                ),
+                plugin(
+                    "hotaru",
+                    "Hotaru",
+                    "0.3.0",
+                    &["subs.example"],
+                    StorePluginStatus::Available,
+                ),
+            ],
+        },
+        StoreRow {
+            id: "bbbb".into(),
+            name: "Rin's sources".into(),
+            url: "https://rin.example".into(),
+            fingerprint: "0c41 77de 1a2b 9f3c".into(),
+            member: "Mirei".into(),
+            owner: false,
+            state: StoreState::Ready,
+            plugins: vec![plugin(
+                "tsubame",
+                "Tsubame",
+                "1.0.0",
+                &["tsubame.example"],
+                StorePluginStatus::Available,
+            )],
+        },
+    ]
 }

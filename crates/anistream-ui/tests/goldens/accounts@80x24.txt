@@ -1,0 +1,106 @@
+anistream           torrent ○  plugins ●  ·  anilist ⇅ 2  kitsu ○  mal ✕ sign in
+────────────────────────────────────────────────────────────────────────────────
+  ▸│  ▌ FINISH SIGNING IN TO MAL
+  ▤│
+  ▦│    1. open   https://auth.example/device
+  /│    2. enter  K T Q 7 - M 2 W D
+  ▥│
+  ↓│  ────────────────────────────────────────────────────────────────────────
+  ◇│
+▌ ◎│  TRACKER         STATE             QUEUED    TOKEN
+  ⚙│  ────────────────────────────────────────────────────────────────────────
+   │    ANILIST       ● connected       2         OS keychain
+   │    KITSU         ○ not connected   0         0600 file
+   │  ▌ MAL           ✕ sign in again   0         OS keychain
+   │                  pull failed at 19:24: the token was refused
+   │
+   │    tokens stored in 0600 files — OS keychain unavailable
+   │  ────────────────────────────────────────────────────────────────────────
+   │    ↵ sign in
+   │
+   │
+   │
+────────────────────────── ▌ mal needs signing in again — press 8 for Accounts ─
+plugins · sub · 1080p                                         ↵ sign in   ? keys
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=text mod=BOLD
+r00 c20-30 fg=text-dim
+r00 c31-39 fg=state
+r00 c40-41 fg=text-dim
+r00 c42-42 fg=rule
+r00 c43-44 fg=text-dim
+r00 c45-55 fg=state
+r00 c56-57 fg=text-dim
+r00 c58-64 fg=state
+r00 c65-66 fg=text-dim
+r00 c67-79 fg=alert
+r01 c00-79 fg=rule
+r02 c02-02 fg=text-dim
+r02 c03-03 fg=rule
+r02 c06-06 fg=obi
+r02 c08-31 fg=text mod=BOLD
+r03 c02-02 fg=text-dim
+r03 c03-03 fg=rule
+r04 c02-02 fg=text-dim
+r04 c03-03 fg=rule
+r04 c08-44 fg=text-dim
+r05 c02-02 fg=text-dim
+r05 c03-03 fg=rule
+r05 c08-15 fg=text-dim
+r05 c18-34 fg=obi mod=BOLD
+r06 c02-02 fg=text-dim
+r06 c03-03 fg=rule
+r07 c02-02 fg=text-dim
+r07 c03-03 fg=rule
+r07 c06-77 fg=rule
+r08 c02-02 fg=text-dim
+r08 c03-03 fg=rule
+r09 c00-00 fg=text-dim
+r09 c02-02 fg=text
+r09 c03-03 fg=rule
+r09 c06-12 fg=text-dim
+r09 c22-26 fg=text-dim
+r09 c40-45 fg=text-dim
+r09 c50-54 fg=text-dim
+r10 c02-02 fg=text-dim
+r10 c03-03 fg=rule
+r10 c06-77 fg=rule
+r11 c03-03 fg=rule
+r11 c08-14 fg=text
+r11 c22-32 fg=state
+r11 c40-40 fg=state
+r11 c50-60 fg=text-dim
+r12 c03-03 fg=rule
+r12 c08-12 fg=text
+r12 c22-36 fg=text-dim
+r12 c40-40 fg=text-dim
+r12 c50-58 fg=text-dim
+r13 c03-03 fg=rule
+r13 c06-06 fg=obi
+r13 c08-10 fg=text mod=BOLD
+r13 c22-36 fg=alert
+r13 c40-40 fg=text-dim
+r13 c50-60 fg=text-dim
+r14 c03-03 fg=rule
+r14 c22-64 fg=alert
+r15 c03-03 fg=rule
+r16 c03-03 fg=rule
+r16 c08-60 fg=text-dim
+r17 c03-03 fg=rule
+r17 c06-77 fg=rule
+r18 c03-03 fg=rule
+r18 c08-16 fg=text-dim
+r19 c03-03 fg=rule
+r20 c03-03 fg=rule
+r21 c03-03 fg=rule
+r22 c00-25 fg=rule
+r22 c26-26 fg=text
+r22 c27-27 fg=alert
+r22 c28-78 fg=text
+r22 c79-79 fg=rule
+r23 c00-20 fg=text-dim
+r23 c62-62 fg=text
+r23 c63-73 fg=text-dim
+r23 c74-74 fg=text
+r23 c75-79 fg=text-dim

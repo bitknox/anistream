@@ -1,0 +1,247 @@
+anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▌ ▸  CONTINUE               │  ▌ Hoshikuzu no Tabibito   ep 4 · 57%   ░░░░░░░░░░░░░░░░░
+  ▤  CALENDAR               │    Kaze no Tegami            ep 9 out   ░░░░░░░░░░░░░░░░░
+  ▦  SEASONAL               │    Yoru no Toshokan    ep 6 in 2h 41m   ░░░░░░░░░░░░░░░░░
+  /  SEARCH                 │                                         ░░░░░░░░░░░░░░░░░
+  ▥  LIBRARY                │                                         ░░░░░░░░░░░░░░░░░
+  ↓  DOWNLOADS              │                                         ░░░░░░░░░░░░░░░░░
+  ◇  PROVIDERS              │                                         ░░░░░░░░░░░░░░░░░
+  ◎  ACCOUNTS               │                                         ░░░░░░░░░░░░░░░░░
+  ⚙  SETTINGS               │                                         ░░░░░░░░░░░░░░░░░
+                            │                                         ░░░░░░░░░░░░░░░░░
+                            │                                         ░░░░░░░░░░░░░░░░░
+                            │                                         ░░░░░░░░░░░░░░░░░
+                            │                                         ░░░░░░░░░░░░░░░░░
+                            │
+                            │                                         Hoshikuzu no Tabibito
+                            │                                         The Stardust Traveller
+                            │
+                            │                                         TV  ·  12 EP  ·  2026  ·  84  ·  STUDIO KAWAS…
+                            │                                         Adventure  ·  Fantasy  ·  Slice of Life
+                            │
+                            │                                         ▏ resume ep 4 at 13:32 (57%)
+                            │                                         █████████████▋░░░░░░░░░░
+                            │
+                            │                                         ep 4 out 2d 3h ago  ·  ep 5 in 4d 20h
+                            │
+                            │                                         A lamplighter on a dying comet rides the last
+                            │                                         mail coach between the stars, delivering
+                            │                                         letters to towns that may no longer exist.…
+                            │
+                            │                                         █████░░░░░░░░░░░░░░░  3 / 12
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                                                       ↵ play   e episodes   ? keys
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=text bg=#161a2e mod=BOLD
+r00 c09-83 bg=#161a2e
+r00 c84-94 fg=#9298b5 bg=#161a2e
+r00 c95-103 fg=state bg=#161a2e
+r00 c104-105 fg=#9298b5 bg=#161a2e
+r00 c106-106 fg=#434653 bg=#161a2e
+r00 c107-108 fg=#9298b5 bg=#161a2e
+r00 c109-119 fg=state bg=#161a2e
+r01 c00-119 fg=#434653 bg=#161a2e
+r02 c00-00 fg=#9298b5 bg=#161a2e
+r02 c01-01 bg=#161a2e
+r02 c02-02 fg=text bg=#161a2e
+r02 c03-04 bg=#161a2e
+r02 c05-12 fg=text bg=#161a2e mod=BOLD
+r02 c13-27 bg=#161a2e
+r02 c28-28 fg=#434653 bg=#161a2e
+r02 c29-30 bg=#161a2e
+r02 c31-31 fg=obi bg=#161a2e
+r02 c32-32 bg=#161a2e
+r02 c33-53 fg=text bg=#161a2e mod=BOLD
+r02 c54-56 bg=#161a2e
+r02 c57-66 fg=state bg=#161a2e
+r02 c67-69 bg=#161a2e
+r02 c70-86 fg=#434653 bg=#161a2e
+r02 c87-119 bg=#161a2e
+r03 c00-01 bg=#161a2e
+r03 c02-02 fg=#9298b5 bg=#161a2e
+r03 c03-04 bg=#161a2e
+r03 c05-12 fg=#9298b5 bg=#161a2e
+r03 c13-27 bg=#161a2e
+r03 c28-28 fg=#434653 bg=#161a2e
+r03 c29-32 bg=#161a2e
+r03 c33-46 fg=#9298b5 bg=#161a2e
+r03 c47-58 bg=#161a2e
+r03 c59-66 fg=state bg=#161a2e
+r03 c67-69 bg=#161a2e
+r03 c70-86 fg=#434653 bg=#161a2e
+r03 c87-119 bg=#161a2e
+r04 c00-01 bg=#161a2e
+r04 c02-02 fg=#9298b5 bg=#161a2e
+r04 c03-04 bg=#161a2e
+r04 c05-12 fg=#9298b5 bg=#161a2e
+r04 c13-27 bg=#161a2e
+r04 c28-28 fg=#434653 bg=#161a2e
+r04 c29-32 bg=#161a2e
+r04 c33-48 fg=#9298b5 bg=#161a2e
+r04 c49-52 bg=#161a2e
+r04 c53-66 fg=#9298b5 bg=#161a2e
+r04 c67-69 bg=#161a2e
+r04 c70-86 fg=#434653 bg=#161a2e
+r04 c87-119 bg=#161a2e
+r05 c00-01 bg=#161a2e
+r05 c02-02 fg=#9298b5 bg=#161a2e
+r05 c03-04 bg=#161a2e
+r05 c05-10 fg=#9298b5 bg=#161a2e
+r05 c11-27 bg=#161a2e
+r05 c28-28 fg=#434653 bg=#161a2e
+r05 c29-69 bg=#161a2e
+r05 c70-86 fg=#434653 bg=#161a2e
+r05 c87-119 bg=#161a2e
+r06 c00-01 bg=#161a2e
+r06 c02-02 fg=#9298b5 bg=#161a2e
+r06 c03-04 bg=#161a2e
+r06 c05-11 fg=#9298b5 bg=#161a2e
+r06 c12-27 bg=#161a2e
+r06 c28-28 fg=#434653 bg=#161a2e
+r06 c29-69 bg=#161a2e
+r06 c70-86 fg=#434653 bg=#161a2e
+r06 c87-119 bg=#161a2e
+r07 c00-01 bg=#161a2e
+r07 c02-02 fg=#9298b5 bg=#161a2e
+r07 c03-04 bg=#161a2e
+r07 c05-13 fg=#9298b5 bg=#161a2e
+r07 c14-27 bg=#161a2e
+r07 c28-28 fg=#434653 bg=#161a2e
+r07 c29-69 bg=#161a2e
+r07 c70-86 fg=#434653 bg=#161a2e
+r07 c87-119 bg=#161a2e
+r08 c00-01 bg=#161a2e
+r08 c02-02 fg=#9298b5 bg=#161a2e
+r08 c03-04 bg=#161a2e
+r08 c05-13 fg=#9298b5 bg=#161a2e
+r08 c14-27 bg=#161a2e
+r08 c28-28 fg=#434653 bg=#161a2e
+r08 c29-69 bg=#161a2e
+r08 c70-86 fg=#434653 bg=#161a2e
+r08 c87-119 bg=#161a2e
+r09 c00-01 bg=#161a2e
+r09 c02-02 fg=#9298b5 bg=#161a2e
+r09 c03-04 bg=#161a2e
+r09 c05-12 fg=#9298b5 bg=#161a2e
+r09 c13-27 bg=#161a2e
+r09 c28-28 fg=#434653 bg=#161a2e
+r09 c29-69 bg=#161a2e
+r09 c70-86 fg=#434653 bg=#161a2e
+r09 c87-119 bg=#161a2e
+r10 c00-01 bg=#161a2e
+r10 c02-02 fg=#9298b5 bg=#161a2e
+r10 c03-04 bg=#161a2e
+r10 c05-12 fg=#9298b5 bg=#161a2e
+r10 c13-27 bg=#161a2e
+r10 c28-28 fg=#434653 bg=#161a2e
+r10 c29-69 bg=#161a2e
+r10 c70-86 fg=#434653 bg=#161a2e
+r10 c87-119 bg=#161a2e
+r11 c00-27 bg=#161a2e
+r11 c28-28 fg=#434653 bg=#161a2e
+r11 c29-69 bg=#161a2e
+r11 c70-86 fg=#434653 bg=#161a2e
+r11 c87-119 bg=#161a2e
+r12 c00-27 bg=#161a2e
+r12 c28-28 fg=#434653 bg=#161a2e
+r12 c29-69 bg=#161a2e
+r12 c70-86 fg=#434653 bg=#161a2e
+r12 c87-119 bg=#161a2e
+r13 c00-27 bg=#161a2e
+r13 c28-28 fg=#434653 bg=#161a2e
+r13 c29-69 bg=#161a2e
+r13 c70-86 fg=#434653 bg=#161a2e
+r13 c87-119 bg=#161a2e
+r14 c00-27 bg=#161a2e
+r14 c28-28 fg=#434653 bg=#161a2e
+r14 c29-69 bg=#161a2e
+r14 c70-86 fg=#434653 bg=#161a2e
+r14 c87-119 bg=#161a2e
+r15 c00-27 bg=#161a2e
+r15 c28-28 fg=#434653 bg=#161a2e
+r15 c29-119 bg=#161a2e
+r16 c00-27 bg=#161a2e
+r16 c28-28 fg=#434653 bg=#161a2e
+r16 c29-69 bg=#161a2e
+r16 c70-90 fg=text bg=#161a2e mod=BOLD
+r16 c91-119 bg=#161a2e
+r17 c00-27 bg=#161a2e
+r17 c28-28 fg=#434653 bg=#161a2e
+r17 c29-69 bg=#161a2e
+r17 c70-91 fg=#9298b5 bg=#161a2e
+r17 c92-119 bg=#161a2e
+r18 c00-27 bg=#161a2e
+r18 c28-28 fg=#434653 bg=#161a2e
+r18 c29-119 bg=#161a2e
+r19 c00-27 bg=#161a2e
+r19 c28-28 fg=#434653 bg=#161a2e
+r19 c29-69 bg=#161a2e
+r19 c70-115 fg=#9298b5 bg=#161a2e
+r19 c116-119 bg=#161a2e
+r20 c00-27 bg=#161a2e
+r20 c28-28 fg=#434653 bg=#161a2e
+r20 c29-69 bg=#161a2e
+r20 c70-108 fg=#9298b5 bg=#161a2e
+r20 c109-119 bg=#161a2e
+r21 c00-27 bg=#161a2e
+r21 c28-28 fg=#434653 bg=#161a2e
+r21 c29-119 bg=#161a2e
+r22 c00-27 bg=#161a2e
+r22 c28-28 fg=#434653 bg=#161a2e
+r22 c29-69 bg=#161a2e
+r22 c70-97 fg=obi bg=#161a2e mod=BOLD
+r22 c98-119 bg=#161a2e
+r23 c00-27 bg=#161a2e
+r23 c28-28 fg=#434653 bg=#161a2e
+r23 c29-69 bg=#161a2e
+r23 c70-83 fg=obi bg=#161a2e
+r23 c84-93 fg=#434653 bg=#161a2e
+r23 c94-119 bg=#161a2e
+r24 c00-27 bg=#161a2e
+r24 c28-28 fg=#434653 bg=#161a2e
+r24 c29-119 bg=#161a2e
+r25 c00-27 bg=#161a2e
+r25 c28-28 fg=#434653 bg=#161a2e
+r25 c29-69 bg=#161a2e
+r25 c70-106 fg=state bg=#161a2e
+r25 c107-119 bg=#161a2e
+r26 c00-27 bg=#161a2e
+r26 c28-28 fg=#434653 bg=#161a2e
+r26 c29-119 bg=#161a2e
+r27 c00-27 bg=#161a2e
+r27 c28-28 fg=#434653 bg=#161a2e
+r27 c29-69 bg=#161a2e
+r27 c70-114 fg=#9298b5 bg=#161a2e
+r27 c115-119 bg=#161a2e
+r28 c00-27 bg=#161a2e
+r28 c28-28 fg=#434653 bg=#161a2e
+r28 c29-69 bg=#161a2e
+r28 c70-109 fg=#9298b5 bg=#161a2e
+r28 c110-119 bg=#161a2e
+r29 c00-27 bg=#161a2e
+r29 c28-28 fg=#434653 bg=#161a2e
+r29 c29-69 bg=#161a2e
+r29 c70-112 fg=#9298b5 bg=#161a2e
+r29 c113-119 bg=#161a2e
+r30 c00-27 bg=#161a2e
+r30 c28-28 fg=#434653 bg=#161a2e
+r30 c29-119 bg=#161a2e
+r31 c00-27 bg=#161a2e
+r31 c28-28 fg=#434653 bg=#161a2e
+r31 c29-69 bg=#161a2e
+r31 c70-74 fg=obi bg=#161a2e
+r31 c75-89 fg=#434653 bg=#161a2e
+r31 c90-91 bg=#161a2e
+r31 c92-97 fg=#9298b5 bg=#161a2e
+r31 c98-119 bg=#161a2e
+r32 c00-119 fg=#434653 bg=#161a2e
+r33 c00-20 fg=#9298b5 bg=#161a2e
+r33 c21-91 bg=#161a2e
+r33 c92-92 fg=text bg=#161a2e
+r33 c93-100 fg=#9298b5 bg=#161a2e
+r33 c101-101 fg=text bg=#161a2e
+r33 c102-113 fg=#9298b5 bg=#161a2e
+r33 c114-114 fg=text bg=#161a2e
+r33 c115-119 fg=#9298b5 bg=#161a2e
