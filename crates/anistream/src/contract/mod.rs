@@ -14,6 +14,7 @@
 mod downloads;
 mod lists;
 mod settings;
+mod stores;
 mod title;
 mod watch;
 
