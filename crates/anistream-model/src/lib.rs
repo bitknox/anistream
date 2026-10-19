@@ -19,6 +19,7 @@
 //! - The engine's own state, its services, or how it decides.
 
 pub mod catalog;
+pub mod command;
 pub mod downloads;
 pub mod episodes;
 pub mod jobs;
