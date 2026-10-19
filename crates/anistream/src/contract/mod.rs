@@ -14,6 +14,7 @@
 mod lists;
 mod settings;
 mod title;
+mod watch;
 
 use anistream_core::ids::AnilistId;
 use anistream_ui::app::{Content, JobId, ToastKind, Update};

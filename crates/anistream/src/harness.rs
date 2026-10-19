@@ -103,6 +103,7 @@ pub struct Harness {
     paths: Paths,
     store: Store,
     registry: ProviderRegistry,
+    tokens: TokenStore,
     size: (u16, u16),
     channels: Channels,
     // The handles the event loop holds, held the same way.
@@ -214,6 +215,7 @@ impl Harness {
             paths,
             store,
             registry,
+            tokens,
             size: options.size,
             channels: Channels::default(),
             meta,
@@ -342,6 +344,11 @@ impl Harness {
     /// The live source chain.
     pub fn registry(&self) -> &ProviderRegistry {
         &self.registry
+    }
+
+    /// Where tracker and plugin store tokens are kept: files in the temporary directory.
+    pub fn tokens(&self) -> &TokenStore {
+        &self.tokens
     }
 
     fn rows(&self) -> usize {
