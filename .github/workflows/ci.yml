@@ -55,18 +55,36 @@ jobs:
         with:
           tool: cargo-nextest
 
-      # The real-mpv tests (the player's companion script, whole binges, the stream proxy)
-      # skip without mpv, so CI never ran them. The Linux runner installs it and requires it.
-      - name: Install mpv
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mpv
-
       # nextest builds every test target and runs the binaries in parallel, where `cargo test`
       # runs them one after another; a separate build step only compiled the same code twice.
       - name: Test
         run: cargo nextest run --workspace --profile ci
+
+  # The real-mpv tests (the player's companion script, whole binges, the stream proxy) skip
+  # where mpv is missing, which is every runner above. Here mpv is installed and required, so
+  # a skip fails instead. Ubuntu 26.04 because it packages a current mpv (0.41); 24.04's 0.37
+  # lacks features the companion uses when they are there, such as a scaled overlay (0.38)
+  # and the context menu (0.40), and their tests assume them.
+  mpv:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+      - name: Install mpv
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mpv
+      - run: mpv --version | head -1
+      - name: Test
+        run: >-
+          cargo nextest run --profile ci -p anistream -p anistream-player -p anistream-providers
+          -E 'group(mpv)'
         env:
-          ANISTREAM_REQUIRE_MPV: ${{ matrix.os == 'ubuntu-latest' && '1' || '0' }}
+          ANISTREAM_REQUIRE_MPV: "1"
 
   # Its own job rather than a step after the tests, so it runs beside them instead of adding
   # to them: clippy checks dependencies in a different mode and cannot reuse the test build.
