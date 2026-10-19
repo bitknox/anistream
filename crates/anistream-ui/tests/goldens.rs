@@ -30,8 +30,8 @@ use anistream_ui::{
     Action, App, Clock, Content, Entry, Keymap, LibrarySegment, Palette, Role, SyncState, Task,
     Update, Zone,
     app::{
-        DeviceCodePrompt, DownloadRow, MetaSourceRow, ProviderRow, ResumePoint, SeedRow,
-        StorePluginRow, StorePluginStatus, StoreRow, StoreState,
+        DeviceCodePrompt, DownloadRow, EpisodeRow, MetaSourceRow, ProviderRow, RelatedTitle,
+        ResumePoint, SeedRow, StorePluginRow, StorePluginStatus, StoreRow, StoreState,
     },
     screens::{render_to_buffer, visible_rows},
 };
@@ -144,6 +144,12 @@ impl Screen {
 
     fn content(&mut self, content: Content) {
         let update = self.app.content_here(content);
+        self.apply(update);
+    }
+
+    /// The open title's episode table, as its load answers.
+    fn episodes(&mut self, rows: Vec<EpisodeRow>) {
+        let update = self.app.episodes_here(rows);
         self.apply(update);
     }
 
@@ -383,6 +389,10 @@ scenarios! {
     accounts,
     settings,
     immersive,
+    title,
+    title_not_started,
+    episodes,
+    episodes_long_filtered,
 }
 
 /// A golden left behind by a renamed or removed scenario is a file nothing checks, and reads as
@@ -905,4 +915,151 @@ fn two_stores() -> Vec<StoreRow> {
             )],
         },
     ]
+}
+
+// ── Title and episodes ─────────────────────────────────────────────────────────────────────────
+
+/// Kaze no Tegami's full record, as the detail fetch answers: relations, recommendations and a
+/// trailer ride it, and the synopsis is long enough to be worth expanding.
+fn kaze_detail() -> Entry {
+    let related = |n: u32, title: &str, relation: &str, format: &str| RelatedTitle {
+        id: id(n),
+        title: title.into(),
+        relation: relation.into(),
+        format: Some(format.into()),
+    };
+    Entry {
+        synopsis: "A postwoman in a hill town reads the wind for letters nobody sent. When one \
+                   arrives addressed to her in her own hand, dated ten years from now, she starts \
+                   delivering the future one envelope at a time — and learns that every letter \
+                   she carries changes who will be there to write the next. Adapted from the \
+                   serial in Kumo Monthly, with the town's old station rebuilt shot for shot."
+            .into(),
+        banner_url: Some("https://img.example/banner/kaze.jpg".into()),
+        available_on: vec!["Hikari Stream".into()],
+        trailer_url: Some("https://video.example/kaze-pv".into()),
+        related: vec![
+            related(110, "Kaze no Tegami: Hajimari no Fuukei", "prequel", "OVA"),
+            related(111, "Kaze no Tegami Season 2", "sequel", "TV"),
+        ],
+        recommended: vec![
+            related(103, "Yoru no Toshokan", "", "TV"),
+            related(104, "Tsuki to Kujira no Uta", "", "TV"),
+            related(212, "Kumo no Ue no Gakkou", "", "TV"),
+        ],
+        ..kaze()
+    }
+}
+
+/// From Continue into a title page with its full record: banner plate, the synopsis expanded,
+/// where it streams, and progress with the next episode.
+fn title(s: &mut Screen) {
+    settled_on(s, 1);
+    s.list(vec![hoshikuzu(), kaze(), yoru()]);
+    s.press(&["j", "enter"]);
+    s.apply(Update::Detail(Box::new(kaze_detail())));
+    s.apply(Update::ProviderPreference(None));
+    s.act(Action::ToggleSynopsis);
+}
+
+/// A title nothing has been watched of: where the progress meter would be, the broadcast line.
+fn title_not_started(s: &mut Screen) {
+    settled_on(s, 3);
+    let umibe = Entry {
+        secondary: Some("The Seaside Café".into()),
+        last_aired: Some((2, 6 * DAY + 2 * HOUR + 11 * MINUTE + 5)),
+        next_episode: Some(3),
+        next_airing_in: Some(17 * HOUR + 48 * MINUTE + 31),
+        ..catalogue(7).swap_remove(6)
+    };
+    s.list(vec![umibe]);
+    s.press(&["enter"]);
+}
+
+/// One episode row of a 24-minute show.
+fn episode(number: u32, title: &str) -> EpisodeRow {
+    EpisodeRow {
+        number: number.to_string(),
+        title: Some(title.into()),
+        thumbnail: None,
+        description: None,
+        duration_secs: Some(1_435),
+        watched: 0.0,
+        completed: false,
+        kind: None,
+        skippable: false,
+    }
+}
+
+fn watched(row: EpisodeRow) -> EpisodeRow {
+    EpisodeRow { watched: 1.0, completed: true, ..row }
+}
+
+fn kind(row: EpisodeRow, kind: &'static str) -> EpisodeRow {
+    EpisodeRow { kind: Some(kind), skippable: kind == "filler", ..row }
+}
+
+/// Hoshikuzu no Tabibito's twelve episodes: three watched, the fourth part-way, a mixed and a
+/// filler episode later on, one runtime not yet known, and stills and synopses from the source.
+fn hoshikuzu_episodes() -> Vec<EpisodeRow> {
+    let still = |row: EpisodeRow, about: &str| EpisodeRow {
+        thumbnail: Some(format!("https://img.example/still/hoshikuzu-{}.jpg", row.number)),
+        description: Some(about.into()),
+        ..row
+    };
+    vec![
+        watched(still(episode(1, "The Last Mail Coach"), "The comet's last coach leaves.")),
+        watched(still(episode(2, "A Town Under Glass"), "A letter for a town of glass.")),
+        watched(still(episode(3, "Lamplight, Lamplight"), "The lamps go out one by one.")),
+        EpisodeRow {
+            watched: 0.57,
+            ..still(
+                episode(4, "The Cartographer's Daughter"),
+                "A girl who draws maps of places that are not there yet asks for passage, \
+                 and the coach takes a road nobody has charted.",
+            )
+        },
+        still(episode(5, "Rain on the Rails"), "Rain on a world that has never had rain."),
+        kind(episode(6, "Two Letters, One Name"), "mixed"),
+        kind(episode(7, "The Festival of Small Stars"), "filler"),
+        episode(8, "Where the Road Ends"),
+        episode(9, "Postmarked Yesterday"),
+        episode(10, "The Comet's Wake"),
+        episode(11, "Every Lamp at Once"),
+        EpisodeRow { duration_secs: None, ..episode(12, "The Stardust Traveller") },
+    ]
+}
+
+/// The episode table, opened from the title page: the cursor lands on the first unwatched
+/// episode, and the still panel beside the table carries its synopsis where there is room.
+fn episodes(s: &mut Screen) {
+    settled_on(s, 1);
+    s.list(vec![kaze(), hoshikuzu()]);
+    s.press(&["j", "e"]);
+    s.episodes(hoshikuzu_episodes());
+}
+
+/// A long-running show deep into its run, filler hidden — which the header row says — and the
+/// cursor far enough down that the table has scrolled at both sizes.
+fn episodes_long_filtered(s: &mut Screen) {
+    settled_on(s, 1);
+    let tanuki =
+        Entry { episodes: Some(48), progress: Some((6, 7)), ..catalogue(20).swap_remove(19) };
+    s.list(vec![tanuki]);
+    s.press(&["e"]);
+    let rows = (1..=48)
+        .map(|n| {
+            let row = episode(n, &format!("Station No. {n}"));
+            match n {
+                1..=6 => watched(row),
+                7 => EpisodeRow { watched: 0.21, ..row },
+                20..=24 => kind(row, "filler"),
+                25 => kind(row, "mixed"),
+                _ => kind(row, "canon"),
+            }
+        })
+        .collect();
+    s.episodes(rows);
+    s.press(&["f", "f"]);
+    s.press(&["j"; 25]);
 }
