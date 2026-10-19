@@ -1,0 +1,22 @@
+<!doctype html>
+<!-- The README's upscaling strip: the four eye crops in out/, side by side and labelled.
+     Render it at 1888×420 with a headless Chromium; README.md has the command. -->
+<meta charset="utf-8">
+<style>
+@font-face {
+	font-family: 'Zen Kaku Gothic New';
+	font-weight: 500;
+	src: url('../../website/node_modules/@fontsource/zen-kaku-gothic-new/files/zen-kaku-gothic-new-latin-500-normal.woff2') format('woff2');
+}
+html, body { margin: 0; background: #161a2e; }
+body { padding: 24px; display: flex; gap: 24px; width: max-content; }
+figure { margin: 0; }
+img { display: block; width: 440px; height: 330px; border: 1px solid color-mix(in srgb, #e4e0d6 22%, #161a2e); }
+figcaption { margin-top: 14px; font: 500 24px/1 'Zen Kaku Gothic New', sans-serif; color: #e4e0d6; display: flex; align-items: baseline; gap: 12px; }
+figcaption.default { box-shadow: inset 5px 0 0 #f2a64b; padding-left: 14px; }
+small { font: 19px/1 'SF Mono', Menlo, monospace; color: #9298b5; }
+</style>
+<figure><img src="../../out/strip-off.png"><figcaption>Off <small>480p as it is</small></figcaption></figure>
+<figure><img src="../../out/strip-natural.png"><figcaption class="default">Natural <small>ArtCNN</small></figcaption></figure>
+<figure><img src="../../out/strip-sharp.png"><figcaption>Sharp <small>Anime4K</small></figcaption></figure>
+<figure><img src="../../out/strip-original.png"><figcaption>Original <small>the 1080p release</small></figcaption></figure>

@@ -28,7 +28,7 @@ toast says what aired for shows you watch since you were last here — a digest,
 
 ### Inside the player
 
-![A character's eye from a 720p stream at 1440p, four times: with no upscaling, with Natural (ArtCNN), with Sharp (Anime4K), and the 4K master it was made from](assets/screenshots/player-upscaling-compare.webp)
+![A character's eye from a 480p stream at 1080p, four times: with no upscaling, with Natural (ArtCNN), with Sharp (Anime4K), and the 1080p release it was made from](assets/screenshots/player-upscaling-compare.webp)
 
 | | |
 | --- | --- |
@@ -37,9 +37,9 @@ toast says what aired for shows you watch since you were last here — a digest,
 | ![The show's logo during its opening, with a Skip opening button](assets/screenshots/player-skip.webp) | ![An Up Next card over the ending credits, naming episode 3.2](assets/screenshots/player-up-next.webp) |
 | The opening, from the file's own chapters | Up Next at the ending, in the same window |
 
-<sub>Player frames from こうしす！ #3.1 by [OPAP-JP contributors](https://opap.jp/), and the
-comparison from [Sol Levante](https://opencontent.netflix.com/) by Netflix and Production I.G, both
-licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); see
+<sub>Player frames from こうしす！ #3.1 and the comparison from #3.2, by
+[OPAP-JP contributors](https://opap.jp/), licensed
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); see
 [their notice](assets/screenshots/NOTICE.md).</sub>
 
 Torrent streaming uses librqbit, plays while downloading and is seekable. You supply the indexer.

@@ -217,24 +217,24 @@ const platforms: [string, string, boolean][] = [
 				<p class="lede">
 					mpv plays every episode in anistream’s own interface, with seekbar thumbnails, a skip
 					button while the opening runs, one menu for episodes, sources and tracks, and an Up Next
-					card at the ending. Drag the line to compare a 720p stream shown at 1440p as it is,
-					upscaled, or against the 4K master it was made from.
+					card at the ending. Drag the line to compare a 480p stream shown at 1080p as it is,
+					upscaled, or against the 1080p original it was made from.
 				</p>
 				<div class="player-block">
 					<UpscaleCompare
-						alt="A close-up of a character's eye from a 720p stream, shown at 1440p"
+						alt="A close-up of a character's face from a 480p stream, shown at 1080p"
 						off="/player/compare-off.webp"
 						looks={[
 							{ id: 'natural', label: 'Natural', note: 'ArtCNN', src: '/player/compare-natural.webp' },
 							{ id: 'sharp', label: 'Sharp', note: 'Anime4K', src: '/player/compare-sharp.webp' },
-							{ id: 'original', label: 'Original', note: '4K master', src: '/player/compare-original.webp' },
+							{ id: 'original', label: 'Original', note: '1080p', src: '/player/compare-original.webp' },
 						]}
-						width={1200}
-						height={800}
+						width={720}
+						height={480}
 					>
-						Natural keeps the line work as it was drawn, and on this frame it comes closest to
-						the 4K master. Sharp gives crisper lines and cleans up more. The network is chosen
-						per file, for the source, the display and the battery.
+						Natural keeps the line work as it was drawn, and comes closest to the original. Sharp
+						draws the lines crisper and bolder than they were. The network is chosen per file, for
+						the source, the display and the battery.
 					</UpscaleCompare>
 					<div class="player-shots">
 						<figure>
@@ -259,9 +259,7 @@ const platforms: [string, string, boolean][] = [
 					<p class="player-credit">
 						Player frames from{' '}
 						<a href="https://opap.jp/">こうしす！ #3.1</a>{' '}
-						by OPAP-JP contributors, and the comparison from{' '}
-						<a href="https://opencontent.netflix.com/">Sol Levante</a>{' '}
-						by Netflix and Production I.G, both licensed{' '}
+						and the comparison from #3.2, by OPAP-JP contributors, licensed{' '}
 						<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>.
 					</p>
 				</div>
