@@ -23,16 +23,18 @@
 //! An intended change is re-blessed with `ANISTREAM_BLESS=1 cargo test -p anistream-ui --test
 //! goldens`, in its own commit, and reviewed as the `git diff` of these files.
 
-use std::{fmt::Write as _, path::PathBuf};
+use std::{fmt::Write as _, path::PathBuf, time::Duration};
 
 use anistream_core::{config::Config, ids::AnilistId};
 use anistream_ui::{
     Action, App, Clock, Content, Entry, Keymap, LibrarySegment, Palette, Role, SyncState, Task,
     Update, Zone,
     app::{
-        DeviceCodePrompt, DownloadRow, EpisodeRow, MetaSourceRow, ProviderRow, RelatedTitle,
-        ResumePoint, SeedRow, StorePluginRow, StorePluginStatus, StoreRow, StoreState,
+        DeviceCodePrompt, DownloadRow, EpisodeRow, JobId, MetaSourceRow, ProviderRow,
+        RelatedTitle, ResumePoint, SeedRow, StorePluginRow, StorePluginStatus, StoreRow,
+        StoreState, Toast,
     },
+    eyecatch::{FRAME_MS, QUIET_HOLD_FRAMES, SWEEP_FRAMES},
     screens::{render_to_buffer, visible_rows},
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -151,6 +153,28 @@ impl Screen {
     fn episodes(&mut self, rows: Vec<EpisodeRow>) {
         let update = self.app.episodes_here(rows);
         self.apply(update);
+    }
+
+    /// Start the job the loop would start for `task` as it runs it: the job's clock starts now.
+    fn start(&mut self, task: &Task) -> JobId {
+        let job = self.app.begin_job(task).expect("work someone waits on");
+        self.draw();
+        job
+    }
+
+    /// Time passes on the stopped clock.
+    fn wait(&mut self, by: Duration) {
+        self.app.clock.advance(by);
+        self.draw();
+    }
+
+    /// The animation tick, `n` times, with the clock moved on as far as the frames take.
+    fn frames(&mut self, n: u16) {
+        for _ in 0..n {
+            self.app.tick_animation();
+            self.app.clock.advance(Duration::from_millis(FRAME_MS));
+            self.draw();
+        }
     }
 
     /// The idle tick, `n` times: toasts age, a settled rail step fetches, the pulse moves.
@@ -393,6 +417,11 @@ scenarios! {
     title_not_started,
     episodes,
     episodes_long_filtered,
+    now_playing,
+    now_playing_paused_skip,
+    eyecatch_covering,
+    eyecatch_still_resolving,
+    activity_and_toasts,
 }
 
 /// A golden left behind by a renamed or removed scenario is a file nothing checks, and reads as
@@ -1062,4 +1091,86 @@ fn episodes_long_filtered(s: &mut Screen) {
     s.episodes(rows);
     s.press(&["f", "f"]);
     s.press(&["j"; 25]);
+}
+
+// ── Playback and the status rule ───────────────────────────────────────────────────────────────
+
+/// Enter on episode 4 of Hoshikuzu no Tabibito: the eyecatch starts its sweep over a Now Playing
+/// that has nothing to report yet, and the loop starts the job that finds the stream.
+fn play_hoshikuzu(s: &mut Screen) {
+    settled_on(s, 1);
+    s.list(vec![kaze(), hoshikuzu()]);
+    s.press(&["j", "e"]);
+    s.episodes(hoshikuzu_episodes());
+    s.press(&["enter"]);
+    let play = Task::Play { id: id(101), episode: "4".into() };
+    s.start(&play);
+}
+
+/// Now Playing once mpv reports: resumed where it was left, the stream's provider named, and the
+/// wipe gone.
+fn now_playing(s: &mut Screen) {
+    play_hoshikuzu(s);
+    s.frames(3);
+    s.apply(Update::ActiveProvider("yamabiko".into()));
+    s.apply(Update::Resumed { position: 812.0 });
+    s.apply(Update::Playback { position: 815.4, duration: Some(1_435.0), paused: false });
+    s.apply(Update::JobDone(job_for_play(s)));
+    s.frames(2 * SWEEP_FRAMES);
+    assert!(s.app.eyecatch.is_none(), "the wipe has finished");
+}
+
+/// Paused in the opening at a quicker speed, with the skip offered — the one prompt Now Playing
+/// carries, and the meter dimmed.
+fn now_playing_paused_skip(s: &mut Screen) {
+    play_hoshikuzu(s);
+    s.apply(Update::Playback { position: 61.8, duration: Some(1_435.0), paused: false });
+    s.apply(Update::JobDone(job_for_play(s)));
+    s.frames(2 * SWEEP_FRAMES);
+    s.apply(Update::SkipAvailable { label: "opening", to: 151.3 });
+    s.apply(Update::PlaybackSpeed(1.25));
+    s.press(&[" "]);
+    s.apply(Update::Playback { position: 63.1, duration: Some(1_435.0), paused: true });
+}
+
+/// The play job's id: the only job running when a scenario asks.
+fn job_for_play(s: &Screen) -> JobId {
+    let [job] = s.app.jobs.as_slice() else { panic!("one job running: {:?}", s.app.jobs) };
+    job.id
+}
+
+/// Six frames into the sweep: the band two thirds across, carrying its label, Now Playing still
+/// showing through on its right.
+fn eyecatch_covering(s: &mut Screen) {
+    play_hoshikuzu(s);
+    s.frames(6);
+}
+
+/// A resolve that is taking a while: the band holds and admits how long, and the activity
+/// caption under it names the work.
+fn eyecatch_still_resolving(s: &mut Screen) {
+    play_hoshikuzu(s);
+    s.frames(SWEEP_FRAMES + QUIET_HOLD_FRAMES + 70);
+}
+
+/// The status rule busy at both ends: three jobs running, the newest held up and counting its
+/// wait down, the others their running time; and an alert over an earlier message.
+fn activity_and_toasts(s: &mut Screen) {
+    let check = settled_on(s, 7).expect("Providers checks its sources");
+    s.start(&check);
+    s.wait(Duration::from_millis(58_300));
+    let load = s.act(Action::JumpSection(3)).expect("Seasonal loads");
+    s.start(&load);
+    s.wait(Duration::from_millis(7_400));
+    let sync = s.act(Action::ForceResync).expect("a sync");
+    let job = s.start(&sync);
+    let until = s.app.clock.now_instant() + Duration::from_millis(42_600);
+    s.apply(Update::JobNote {
+        job,
+        note: "AniList asked for a pause".into(),
+        until: Some(until),
+    });
+    s.wait(Duration::from_millis(900));
+    s.apply(Update::Toast(Toast::info("saved upscaling")));
+    s.apply(Update::Toast(Toast::alert("tsubame: search timed out after 8 s")));
 }
