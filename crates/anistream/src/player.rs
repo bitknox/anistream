@@ -4,6 +4,7 @@
 //! the player a playback gets.
 
 use anistream_core::config::{Config, Paths};
+use anistream_model::playback::PlayerTheme;
 
 /// The player, built from the configuration *as it stands now*.
 ///
@@ -45,38 +46,4 @@ pub fn shader_dir(config: &Config, paths: &Paths) -> Option<std::path::PathBuf> 
         return None;
     }
     crate::shaders::materialize(&paths.cache_dir)
-}
-
-/// The colours and font the player's own interface is drawn in.
-///
-/// Handed in by the front end, since the colours are its palette's and a palette is its own
-/// business. Each colour is `#RRGGBB`, as the companion script reads it.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PlayerTheme {
-    pub text: String,
-    pub dim: String,
-    pub obi: String,
-    pub state: String,
-    pub alert: String,
-    /// What the player's surfaces are painted on.
-    pub ground: String,
-    pub font: String,
-}
-
-impl PlayerTheme {
-    /// The companion's options, as `(key, value)` pairs without their prefix.
-    pub fn options(&self) -> Vec<(String, String)> {
-        [
-            ("text", &self.text),
-            ("dim", &self.dim),
-            ("obi", &self.obi),
-            ("state", &self.state),
-            ("alert", &self.alert),
-            ("ground", &self.ground),
-            ("font", &self.font),
-        ]
-        .into_iter()
-        .map(|(key, value)| (key.to_owned(), value.clone()))
-        .collect()
-    }
 }

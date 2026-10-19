@@ -145,11 +145,11 @@ fn duration(path: &str) -> Option<f64> {
 
 /// The player's colours and font, as the interface dresses it: the immersive palette, because a
 /// video window is dark whatever the terminal is.
-fn player_theme() -> anistream::player::PlayerTheme {
+fn player_theme() -> anistream_model::playback::PlayerTheme {
     use anistream_ui::theme::{Palette, Rgb, Role};
     let palette = Palette::immersive();
     let hex = |rgb: Rgb| format!("#{:02X}{:02X}{:02X}", rgb.r, rgb.g, rgb.b);
-    anistream::player::PlayerTheme {
+    anistream_model::playback::PlayerTheme {
         text: hex(palette.get(Role::Text)),
         dim: hex(palette.get(Role::TextDim)),
         obi: hex(palette.get(Role::Obi)),

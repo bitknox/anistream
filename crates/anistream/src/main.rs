@@ -4,7 +4,7 @@ mod covers;
 
 use anistream::{
     artwork, data, downloads, playback,
-    player::{PlayerTheme, player, shader_dir},
+    player::{player, shader_dir},
     plugin_stores,
     slot::PlayerSlot,
     sources, tracking,
@@ -21,6 +21,7 @@ use anistream_model::{
     event::Event,
     jobs::JobId,
     notice::Notice,
+    playback::PlayerTheme,
     sources::only_reorders,
 };
 use anistream_net::HttpClient;

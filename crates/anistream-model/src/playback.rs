@@ -1,5 +1,5 @@
 //! Playback, as the work reports it: what a skip would seek past, how a playback came to an end,
-//! and what a newer one is about to play.
+//! and what a newer one is about to play. Also the theme a front end dresses the player in.
 
 use anistream_core::ids::AnilistId;
 
@@ -39,4 +39,38 @@ pub struct Successor {
     pub title: String,
     pub episode: String,
     pub translation: anistream_core::media::Translation,
+}
+
+/// The colours and font the player's own interface is drawn in.
+///
+/// Handed in by the front end, since the colours are its palette's and a palette is its own
+/// business. Each colour is `#RRGGBB`, as the companion script reads it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlayerTheme {
+    pub text: String,
+    pub dim: String,
+    pub obi: String,
+    pub state: String,
+    pub alert: String,
+    /// What the player's surfaces are painted on.
+    pub ground: String,
+    pub font: String,
+}
+
+impl PlayerTheme {
+    /// The companion's options, as `(key, value)` pairs without their prefix.
+    pub fn options(&self) -> Vec<(String, String)> {
+        [
+            ("text", &self.text),
+            ("dim", &self.dim),
+            ("obi", &self.obi),
+            ("state", &self.state),
+            ("alert", &self.alert),
+            ("ground", &self.ground),
+            ("font", &self.font),
+        ]
+        .into_iter()
+        .map(|(key, value)| (key.to_owned(), value.clone()))
+        .collect()
+    }
 }
