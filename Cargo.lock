@@ -144,6 +144,7 @@ dependencies = [
  "anistream-store",
  "anistream-store-server",
  "anistream-track",
+ "anyhow",
  "async-trait",
  "futures",
  "image",
@@ -154,6 +155,7 @@ dependencies = [
  "thiserror 2.0.19",
  "tokio",
  "tracing",
+ "tracing-subscriber",
  "wreq",
 ]
 
