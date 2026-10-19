@@ -1,0 +1,169 @@
+{
+  "id": 900001,
+  "idMal": 800001,
+  "title": {
+    "romaji": "Hoshikuzu no Tabibito",
+    "english": "Stardust Wayfarer",
+    "native": "星屑の旅人"
+  },
+  "format": "TV",
+  "status": "FINISHED",
+  "description": "A lamplighter with no memory of her home walks the old star roads, relighting the beacons that guide travellers between the towns.<br><br>Each town she saves remembers a little of her, and she, a little less of herself.",
+  "episodes": 12,
+  "duration": 24,
+  "seasonYear": 2024,
+  "averageScore": 82,
+  "genres": [
+    "Adventure",
+    "Drama",
+    "Fantasy"
+  ],
+  "synonyms": [
+    "Hoshitabi"
+  ],
+  "coverImage": {
+    "extraLarge": "https://img.example/cover/900001-xl.jpg",
+    "large": "https://img.example/cover/900001.jpg",
+    "color": "#e4a15d"
+  },
+  "bannerImage": "https://img.example/banner/900001.jpg",
+  "nextAiringEpisode": null,
+  "studios": {
+    "nodes": [
+      {
+        "name": "Kujaku Animation Works"
+      }
+    ]
+  },
+  "externalLinks": [
+    {
+      "site": "Lantern Stream",
+      "url": "https://stream.example/series/hoshikuzu",
+      "type": "STREAMING",
+      "language": "Japanese"
+    },
+    {
+      "site": "Official Site",
+      "url": "https://hoshikuzu.example",
+      "type": "INFO",
+      "language": "Japanese"
+    }
+  ],
+  "streamingEpisodes": [
+    {
+      "title": "Episode 1 - The Lantern Road",
+      "url": "https://stream.example/watch/hoshikuzu-1",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/1.jpg"
+    },
+    {
+      "title": "Episode 2 - A Town Without Night",
+      "url": "https://stream.example/watch/hoshikuzu-2",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/2.jpg"
+    },
+    {
+      "title": "Episode 3 - The Ferryman's Ledger",
+      "url": "https://stream.example/watch/hoshikuzu-3",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/3.jpg"
+    },
+    {
+      "title": "Episode 4 - Embers in the Snow",
+      "url": "https://stream.example/watch/hoshikuzu-4",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/4.jpg"
+    },
+    {
+      "title": "Episode 5 - What the Beacons Remember",
+      "url": "https://stream.example/watch/hoshikuzu-5",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/5.jpg"
+    },
+    {
+      "title": "Episode 6 - The Cartographer's Daughter",
+      "url": "https://stream.example/watch/hoshikuzu-6",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/6.jpg"
+    },
+    {
+      "title": "Episode 7 - Rain over Kiriya Pass",
+      "url": "https://stream.example/watch/hoshikuzu-7",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/7.jpg"
+    },
+    {
+      "title": "Episode 8 - A Letter Never Sent",
+      "url": "https://stream.example/watch/hoshikuzu-8",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/8.jpg"
+    },
+    {
+      "title": "Episode 9 - The Last Lamplighter",
+      "url": "https://stream.example/watch/hoshikuzu-9",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/9.jpg"
+    },
+    {
+      "title": "Episode 10 - Where the Roads Cross",
+      "url": "https://stream.example/watch/hoshikuzu-10",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/10.jpg"
+    },
+    {
+      "title": "Episode 11 - The Sky Archive",
+      "url": "https://stream.example/watch/hoshikuzu-11",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/11.jpg"
+    },
+    {
+      "title": "Episode 12 - Home, by Starlight",
+      "url": "https://stream.example/watch/hoshikuzu-12",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/12.jpg"
+    }
+  ],
+  "trailer": null,
+  "relations": {
+    "edges": [
+      {
+        "relationType": "SEQUEL",
+        "node": {
+          "id": 900004,
+          "title": {
+            "romaji": "Hoshikuzu no Tabibito 2nd Season",
+            "english": "Stardust Wayfarer Season 2",
+            "native": "星屑の旅人 第2期"
+          },
+          "format": "TV"
+        }
+      }
+    ]
+  },
+  "recommendations": {
+    "nodes": [
+      {
+        "mediaRecommendation": {
+          "id": 900005,
+          "title": {
+            "romaji": "Hagane no Niwashi",
+            "english": "The Steel Gardener",
+            "native": "鋼の庭師"
+          },
+          "format": "ONA"
+        }
+      },
+      {
+        "mediaRecommendation": {
+          "id": 900003,
+          "title": {
+            "romaji": "Tsukiakari no Teishajo",
+            "english": "Moonlit Platform",
+            "native": "月明かりの停車場"
+          },
+          "format": "MOVIE"
+        }
+      }
+    ]
+  }
+}
