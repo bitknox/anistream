@@ -366,31 +366,39 @@ end)
 --
 -- In anistream mode the resting state is just the video. uosc's control row and our seek bar
 -- come up when the pointer moves (anywhere, not only near the bottom), the video pauses or a
--- seek lands, and fade out once mpv hides the cursor again. uosc's `flash-elements` shows its
--- row for its `flash_duration`, which uosc-opts.conf sets to mpv's default cursor-hide delay.
+-- seek lands, and fade out together once the cursor has been still for mpv's cursor-hide
+-- delay, wherever it rests, or as soon as it leaves the window.
+--
+-- uosc shows its row only when it is flashed (uosc-opts.conf takes its distance-based showing
+-- away), and each flash lasts its `flash_duration`, kept here at the bar's delay. Every wake
+-- flashes it, so both leave at the same moment. When the pointer leaves the window uosc fades
+-- its row at once, flash or no flash, and the bar follows.
 ---------------------------------------------------------------------------------------------
 
 if config.opts.uosc then
-    local last_flash = -math.huge
+    mp.observe_property("cursor-autohide", "native", function()
+        local ms = math.floor(timeline.hide_delay() * 1000 + 0.5)
+        mp.commandv("change-list", "script-opts", "append", "uosc-flash_duration=" .. ms)
+    end)
     local function wake()
         local covered = menu_view.is_open() or help.is_open() or loading.card_visible()
         if p.idle or app.modal or covered then
             return
         end
         timeline.poke()
-        local now = mp.get_time()
-        if now - last_flash > 0.25 then
-            last_flash = now
-            screen.to_uosc("flash-elements", "controls")
-        end
+        screen.to_uosc("flash-elements", "controls")
     end
     local seen_pointer = false
+    local was_inside = false
     overlay.on_mouse_move(function(mouse)
         -- The first report is where the pointer already was, not a movement.
         if seen_pointer and mouse.inside then
             wake()
+        elseif seen_pointer and was_inside then
+            timeline.rest()
         end
         seen_pointer = true
+        was_inside = mouse.inside
     end)
     -- Compared with the value at start-up rather than "skip the first report": a pause toggled
     -- before the first report arrives would otherwise be taken for the starting state.
