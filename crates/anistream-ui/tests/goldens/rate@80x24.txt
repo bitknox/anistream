@@ -1,0 +1,102 @@
+anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────
+▌ ▸│  ▌ Hoshikuzu no Tabibito                                      ep 4 · 57%
+  ▤│    Kaze no Tegami                                               ep 9 out
+────────────────────────────────────────────────────────────────────────────────
+▌ RATE
+────────────────────────────────────────────────────────────────────────────────
+  10                                                             masterpiece
+  9                                                                    great
+▌ 8                                                                very good
+  7                                                                     good
+  6                                                                     fine
+  5                                                                  average
+  4                                                                     poor
+  3                                                                      bad
+  2                                                                    awful
+  1                                                                appalling
+
+   │
+   │
+   │
+   │
+────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                        ↵ rate   esc cancel
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=rule mod=BOLD
+r00 c09-79 fg=rule
+r01 c00-79 fg=rule
+r02 c00-07 fg=rule
+r02 c08-28 fg=rule mod=BOLD
+r02 c29-79 fg=rule
+r03 c00-79 fg=rule
+r04 c00-79 fg=rule bg=ground
+r05 c00-00 fg=obi bg=ground
+r05 c01-01 fg=rule bg=ground
+r05 c02-05 fg=text bg=ground mod=BOLD
+r05 c06-79 fg=rule bg=ground
+r06 c00-79 fg=rule bg=ground
+r07 c00-01 fg=rule bg=ground
+r07 c02-03 fg=text-dim bg=ground
+r07 c04-64 fg=rule bg=ground
+r07 c65-75 fg=text bg=ground
+r07 c76-79 fg=rule bg=ground
+r08 c00-01 fg=rule bg=ground
+r08 c02-02 fg=text-dim bg=ground
+r08 c03-70 fg=rule bg=ground
+r08 c71-75 fg=text bg=ground
+r08 c76-79 fg=rule bg=ground
+r09 c00-00 fg=obi bg=ground
+r09 c01-01 fg=rule bg=ground
+r09 c02-02 fg=text bg=ground mod=BOLD
+r09 c03-66 fg=rule bg=ground
+r09 c67-75 fg=text bg=ground
+r09 c76-79 fg=rule bg=ground
+r10 c00-01 fg=rule bg=ground
+r10 c02-02 fg=text-dim bg=ground
+r10 c03-71 fg=rule bg=ground
+r10 c72-75 fg=text bg=ground
+r10 c76-79 fg=rule bg=ground
+r11 c00-01 fg=rule bg=ground
+r11 c02-02 fg=text-dim bg=ground
+r11 c03-71 fg=rule bg=ground
+r11 c72-75 fg=text bg=ground
+r11 c76-79 fg=rule bg=ground
+r12 c00-01 fg=rule bg=ground
+r12 c02-02 fg=text-dim bg=ground
+r12 c03-68 fg=rule bg=ground
+r12 c69-75 fg=text bg=ground
+r12 c76-79 fg=rule bg=ground
+r13 c00-01 fg=rule bg=ground
+r13 c02-02 fg=text-dim bg=ground
+r13 c03-71 fg=rule bg=ground
+r13 c72-75 fg=text bg=ground
+r13 c76-79 fg=rule bg=ground
+r14 c00-01 fg=rule bg=ground
+r14 c02-02 fg=text-dim bg=ground
+r14 c03-72 fg=rule bg=ground
+r14 c73-75 fg=text bg=ground
+r14 c76-79 fg=rule bg=ground
+r15 c00-01 fg=rule bg=ground
+r15 c02-02 fg=text-dim bg=ground
+r15 c03-70 fg=rule bg=ground
+r15 c71-75 fg=text bg=ground
+r15 c76-79 fg=rule bg=ground
+r16 c00-01 fg=rule bg=ground
+r16 c02-02 fg=text-dim bg=ground
+r16 c03-66 fg=rule bg=ground
+r16 c67-75 fg=text bg=ground
+r16 c76-79 fg=rule bg=ground
+r17 c00-79 fg=rule bg=ground
+r18 c00-79 fg=rule
+r19 c00-79 fg=rule
+r20 c00-79 fg=rule
+r21 c00-79 fg=rule
+r22 c00-79 fg=rule
+r23 c00-20 fg=text-dim
+r23 c21-60 fg=rule
+r23 c61-61 fg=text
+r23 c62-69 fg=text-dim
+r23 c70-72 fg=text
+r23 c73-79 fg=text-dim

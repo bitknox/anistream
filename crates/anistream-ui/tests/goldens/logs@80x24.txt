@@ -1,0 +1,80 @@
+anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────
+▌ ▸│  ▌ Hoshikuzu no Tabibito                                      ep 4 · 57%
+  ▤│    Kaze no Tegami                                               ep 9 out
+  ▦│    Yoru no Toshokan                                       ep 6 in 2h 41m
+────────────────────────────────────────────────────────────────────────────────
+▌ LOGS
+────────────────────────────────────────────────────────────────────────────────
+  ·  resumed at 13:32
+▌ ·  now using dub for this session
+  ✕  tsubame: search timed out after 8 s
+  ✕  cover unavailable                                                    ×3
+  ·  saved upscaling
+
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+─────────────────────────────────────────────────────── ▌ resumed at 13:32  +2 ─
+plugins · sub · 1080p                                        ↑↓ move   esc close
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=rule mod=BOLD
+r00 c09-79 fg=rule
+r01 c00-79 fg=rule
+r02 c00-07 fg=rule
+r02 c08-28 fg=rule mod=BOLD
+r02 c29-79 fg=rule
+r03 c00-79 fg=rule
+r04 c00-79 fg=rule
+r05 c00-79 fg=rule bg=ground
+r06 c00-00 fg=obi bg=ground
+r06 c01-01 fg=rule bg=ground
+r06 c02-05 fg=text bg=ground mod=BOLD
+r06 c06-79 fg=rule bg=ground
+r07 c00-79 fg=rule bg=ground
+r08 c00-01 fg=rule bg=ground
+r08 c02-20 fg=text-dim bg=ground
+r08 c21-79 fg=rule bg=ground
+r09 c00-00 fg=obi bg=ground
+r09 c01-01 fg=rule bg=ground
+r09 c02-34 fg=text bg=ground mod=BOLD
+r09 c35-79 fg=rule bg=ground
+r10 c00-01 fg=rule bg=ground
+r10 c02-39 fg=text-dim bg=ground
+r10 c40-79 fg=rule bg=ground
+r11 c00-01 fg=rule bg=ground
+r11 c02-21 fg=text-dim bg=ground
+r11 c22-73 fg=rule bg=ground
+r11 c74-75 fg=text bg=ground
+r11 c76-79 fg=rule bg=ground
+r12 c00-01 fg=rule bg=ground
+r12 c02-19 fg=text-dim bg=ground
+r12 c20-79 fg=rule bg=ground
+r13 c00-79 fg=rule bg=ground
+r14 c00-79 fg=rule
+r15 c00-79 fg=rule
+r16 c00-79 fg=rule
+r17 c00-79 fg=rule
+r18 c00-79 fg=rule
+r19 c00-79 fg=rule
+r20 c00-79 fg=rule
+r21 c00-79 fg=rule
+r22 c00-54 fg=rule
+r22 c55-55 fg=text
+r22 c56-56 fg=state
+r22 c57-73 fg=text
+r22 c74-77 fg=text-dim
+r22 c78-78 fg=text
+r22 c79-79 fg=rule
+r23 c00-20 fg=text-dim
+r23 c21-60 fg=rule
+r23 c61-62 fg=text
+r23 c63-70 fg=text-dim
+r23 c71-73 fg=text
+r23 c74-79 fg=text-dim

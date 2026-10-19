@@ -25,10 +25,14 @@
 
 use std::{fmt::Write as _, path::PathBuf, time::Duration};
 
-use anistream_core::{config::Config, ids::AnilistId};
+use anistream_core::{
+    config::Config,
+    ids::{AnilistId, ProviderKey},
+    traits::SourceCandidate,
+};
 use anistream_ui::{
-    Action, App, Clock, Content, Entry, Keymap, LibrarySegment, Palette, Role, SyncState, Task,
-    Update, Zone,
+    Action, App, Clock, ConflictRow, Content, Entry, Keymap, LibrarySegment, MatchCandidate,
+    Overlay, Palette, Role, SyncState, Task, Update, Zone,
     app::{
         DeviceCodePrompt, DownloadRow, EpisodeRow, JobId, MetaSourceRow, ProviderRow,
         RelatedTitle, ResumePoint, SeedRow, StorePluginRow, StorePluginStatus, StoreRow,
@@ -195,6 +199,7 @@ fn key(spec: &str) -> KeyEvent {
         "up" => KeyCode::Up,
         "left" => KeyCode::Left,
         "right" => KeyCode::Right,
+        "backspace" => KeyCode::Backspace,
         _ => {
             if let Some(ch) = spec.strip_prefix("ctrl+") {
                 let ch = ch.chars().next().expect("a key after ctrl+");
@@ -422,6 +427,25 @@ scenarios! {
     eyecatch_covering,
     eyecatch_still_resolving,
     activity_and_toasts,
+    help,
+    help_last_page,
+    command_palette,
+    accounts_overlay,
+    conflicts,
+    list_status,
+    rate,
+    search_filters,
+    logs,
+    disambiguate,
+    sources,
+    source_provider,
+    watch_order,
+    recommendations,
+    download_range,
+    edit_setting,
+    manual_query,
+    kitsu_username,
+    kitsu_password,
 }
 
 /// A golden left behind by a renamed or removed scenario is a file nothing checks, and reads as
@@ -1173,4 +1197,253 @@ fn activity_and_toasts(s: &mut Screen) {
     s.wait(Duration::from_millis(900));
     s.apply(Update::Toast(Toast::info("saved upscaling")));
     s.apply(Update::Toast(Toast::alert("tsubame: search timed out after 8 s")));
+}
+
+// ── Overlays ───────────────────────────────────────────────────────────────────────────────────
+
+/// The key reference over Continue: at 80×24 it pages, and says so.
+fn help(s: &mut Screen) {
+    continue_watching(s);
+    s.press(&["?"]);
+}
+
+/// The key reference's last page.
+fn help_last_page(s: &mut Screen) {
+    help(s);
+    s.press(&["G"]);
+}
+
+/// The palette with a query typed and the highlight moved off the top match.
+fn command_palette(s: &mut Screen) {
+    continue_watching(s);
+    s.press(&[":"]);
+    s.type_text("go to");
+    s.press(&["down", "down"]);
+}
+
+/// Three trackers in three conditions, as the binary reports them at startup and after a pull.
+fn three_trackers(s: &mut Screen) {
+    s.apply(Update::Sync(Box::new(SyncState {
+        tracker: "anilist".into(),
+        connected: true,
+        user: Some("tsubame_reads".into()),
+        storage: Some("OS keychain".into()),
+        outbox: 3,
+        deferred: 1,
+        last: Some("pulled 214 titles".into()),
+        ..SyncState::new("anilist")
+    })));
+    s.apply(Update::Sync(Box::new(SyncState {
+        storage: Some("0600 file".into()),
+        storage_degraded: true,
+        ..SyncState::new("kitsu")
+    })));
+    s.apply(Update::Sync(Box::new(SyncState {
+        connected: true,
+        user: Some("hotaru_watches".into()),
+        needs_reauth: true,
+        pull_error: Some((
+            "the token was refused".into(),
+            NOW - 3 * DAY - 4 * HOUR - 9 * MINUTE,
+        )),
+        ..SyncState::new("mal")
+    })));
+}
+
+/// The Accounts overlay. No key opens it any more — Accounts became a section — so it is
+/// opened the one way left, on the navigation itself, over Continue.
+fn accounts_overlay(s: &mut Screen) {
+    continue_watching(s);
+    three_trackers(s);
+    s.app.nav.open_overlay(Overlay::Accounts);
+    s.press(&["j"]);
+}
+
+/// Disagreements a library pull refused to guess at, announced and then opened.
+fn conflicts(s: &mut Screen) {
+    continue_watching(s);
+    let conflict = |n: u32, title: &str, field: &str, local: &str, remote: &str| ConflictRow {
+        anilist_id: id(n),
+        title: title.into(),
+        field: field.into(),
+        local: local.into(),
+        remote: remote.into(),
+    };
+    s.apply(Update::Conflicts(vec![
+        conflict(101, "Hoshikuzu no Tabibito", "progress", "3", "5"),
+        conflict(102, "Kaze no Tegami", "status", "watching", "paused"),
+        conflict(104, "Tsuki to Kujira no Uta", "score", "9", "8"),
+    ]));
+    s.act(Action::ShowConflicts);
+    s.press(&["j"]);
+}
+
+/// A title page, opened from Continue, with its full record.
+fn on_kaze(s: &mut Screen) {
+    settled_on(s, 1);
+    s.list(vec![hoshikuzu(), kaze(), yoru()]);
+    s.press(&["j", "enter"]);
+    s.apply(Update::Detail(Box::new(kaze_detail())));
+}
+
+/// The list-status picker on a title with progress, so "completed" says what it will do.
+fn list_status(s: &mut Screen) {
+    on_kaze(s);
+    s.press(&["a", "j", "j"]);
+}
+
+/// The rating picker from a Continue row, two steps down.
+fn rate(s: &mut Screen) {
+    continue_watching(s);
+    s.press(&["*", "j", "j"]);
+}
+
+/// Every search filter set, the cursor on the last.
+fn search_filters(s: &mut Screen) {
+    settled_on(s, 4);
+    s.act(Action::FilterSearch);
+    s.press(&["right", "right", "right", "down", "right", "right", "down"]);
+    s.press(&["right", "right", "right", "right", "down", "right", "down", "right"]);
+    s.press(&["down", "right", "right"]);
+}
+
+/// The log, with repeats folded into counts and alerts marked, the highlight one line down.
+fn logs(s: &mut Screen) {
+    continue_watching(s);
+    for toast in [
+        Toast::info("saved upscaling"),
+        Toast::alert("cover unavailable"),
+        Toast::alert("cover unavailable"),
+        Toast::alert("cover unavailable"),
+        Toast::alert("tsubame: search timed out after 8 s"),
+        Toast::info("now using dub for this session"),
+        Toast::info("resumed at 13:32"),
+    ] {
+        s.apply(Update::Toast(toast));
+    }
+    s.act(Action::ShowLogs);
+    s.press(&["j"]);
+}
+
+/// The match ladder could not choose: three candidates, two ruled out and saying why.
+fn disambiguate(s: &mut Screen) {
+    on_kaze(s);
+    let candidate = |title: &str, similarity: f64, rejected| MatchCandidate {
+        title: title.into(),
+        key: ProviderKey::new(title.to_lowercase().replace(' ', "-")),
+        similarity,
+        rejected,
+    };
+    s.apply(Update::MatchChoices {
+        id: id(102),
+        provider_id: "yamabiko".into(),
+        candidates: vec![
+            candidate("Kaze no Tegami", 0.62, None),
+            candidate("Kaze no Tegami (2019)", 0.61, Some("aired 2019, not 2026")),
+            candidate("Kaze no Tegami Recap", 0.44, Some("a special, not the series")),
+        ],
+    });
+}
+
+/// The releases for an episode, from its table: a healthy swarm, a thin one, one about to
+/// fail, and a direct stream with no swarm at all.
+fn sources(s: &mut Screen) {
+    episodes(s);
+    s.press(&["s"]);
+    let release = |title: &str, provider: &str, seeders, size: Option<&str>| SourceCandidate {
+        id: title.to_lowercase(),
+        provider_id: provider.into(),
+        title: title.into(),
+        quality: Some(1080),
+        seeders,
+        size: size.map(Into::into),
+        dual_audio: false,
+        dubbed: false,
+        auto_pick: false,
+    };
+    let candidates = vec![
+        SourceCandidate {
+            auto_pick: true,
+            ..release(
+                "[Kawasemi-Subs] Hoshikuzu no Tabibito - 04 (1080p)",
+                "torrent",
+                Some(212),
+                Some("1.4 GiB"),
+            )
+        },
+        SourceCandidate {
+            dual_audio: true,
+            ..release(
+                "[Tsuki] Hoshikuzu no Tabibito 04 [Dual]",
+                "torrent",
+                Some(14),
+                Some("2.1 GiB"),
+            )
+        },
+        release("[Nagi] Hoshikuzu no Tabibito - 04", "torrent", Some(3), Some("0.9 GiB")),
+        SourceCandidate {
+            dubbed: true,
+            ..release("Hoshikuzu no Tabibito — episode 4 (dub)", "yamabiko", None, None)
+        },
+    ];
+    let update = s.app.sources_here(candidates);
+    s.apply(update);
+    s.press(&["j"]);
+}
+
+/// The source picker on a title pinned to a plugin, which the row in use says.
+fn source_provider(s: &mut Screen) {
+    on_kaze(s);
+    s.apply(Update::ProviderPreference(Some("tsubame".into())));
+    s.act(Action::PickProvider);
+}
+
+/// The watch order around a title: its prequel and sequel.
+fn watch_order(s: &mut Screen) {
+    on_kaze(s);
+    s.act(Action::WatchOrder);
+}
+
+/// What people who liked a title rated highest.
+fn recommendations(s: &mut Screen) {
+    on_kaze(s);
+    s.act(Action::Recommendations);
+    s.press(&["j"]);
+}
+
+/// A range of episodes typed into the download prompt.
+fn download_range(s: &mut Screen) {
+    episodes(s);
+    s.press(&["D"]);
+    s.type_text("5-9");
+}
+
+/// A text setting's editor, its old value erased and a new one half typed.
+fn edit_setting(s: &mut Screen) {
+    settled_on(s, 9);
+    s.press(&["j", "j", "j", "j", "enter"]);
+    s.press(&["backspace", "backspace", "backspace"]);
+    s.type_text("spa,en");
+}
+
+/// "This matched the wrong thing": the manual search prompt with a query typed.
+fn manual_query(s: &mut Screen) {
+    on_kaze(s);
+    s.act(Action::FixMapping);
+    s.type_text("kaze no tegami 2026");
+}
+
+/// Kitsu's sign-in, step one, from its Accounts row.
+fn kitsu_username(s: &mut Screen) {
+    settled_on(s, 8);
+    three_trackers(s);
+    s.press(&["j", "enter"]);
+    s.type_text("hotaru@mail.example");
+}
+
+/// Step two: the password, drawn as one dot a character.
+fn kitsu_password(s: &mut Screen) {
+    kitsu_username(s);
+    s.press(&["enter"]);
+    s.type_text("lanterns");
 }
