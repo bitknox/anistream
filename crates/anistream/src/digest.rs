@@ -9,7 +9,7 @@ use std::collections::HashSet;
 
 use anistream_meta::Meta;
 use anistream_store::Store;
-use anistream_ui::app::{Notice, Update};
+use anistream_ui::app::{Event, Notice};
 use tokio::sync::mpsc;
 
 /// The stored-state key holding when the digest last looked.
@@ -27,7 +27,7 @@ pub fn spawn(
     desktop: bool,
     store: Store,
     meta: Meta,
-    tx: mpsc::UnboundedSender<Update>,
+    tx: mpsc::UnboundedSender<Event>,
 ) {
     if !enabled {
         return;
@@ -86,7 +86,7 @@ pub fn spawn(
         if desktop {
             notify_desktop(&text);
         }
-        let _ = tx.send(Update::Toast(Notice::info(text)));
+        let _ = tx.send(Event::Toast(Notice::info(text)));
     });
 }
 

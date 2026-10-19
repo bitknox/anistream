@@ -15,7 +15,7 @@ use anistream_testkit::{
 };
 use anistream_ui::{
     LibrarySegment, PlayerCommand,
-    app::{ContentFor, SearchFilters, Task, Update},
+    app::{Command, ContentFor, Event, SearchFilters},
 };
 
 use super::{NO_FALLBACK, ends};
@@ -56,71 +56,75 @@ async fn harness(setup: Setup) -> Harness {
     h
 }
 
-fn search(query: &str) -> Task {
-    Task::Search { query: query.into(), filter: SearchFilters::default() }
+fn search(query: &str) -> Command {
+    Command::Search { query: query.into(), filter: SearchFilters::default() }
 }
 
 #[tokio::test]
 async fn a_job_ends_last_on_every_way_out_of_its_work() {
     use Setup::*;
-    let cases: Vec<(&str, Setup, Task)> = vec![
-        ("continue, nothing watched", Plain, Task::LoadContinue),
-        ("continue, listed", History, Task::LoadContinue),
-        ("continue, failed", Failing, Task::LoadContinue),
-        ("seasonal", Plain, Task::LoadSeasonal),
-        ("seasonal, failed", Failing, Task::LoadSeasonal),
-        ("calendar, failed", Failing, Task::LoadCalendar),
-        ("calendar past", Plain, Task::LoadCalendarPast { anchor: FIXTURE_NOW, page: 2 }),
+    let cases: Vec<(&str, Setup, Command)> = vec![
+        ("continue, nothing watched", Plain, Command::LoadContinue),
+        ("continue, listed", History, Command::LoadContinue),
+        ("continue, failed", Failing, Command::LoadContinue),
+        ("seasonal", Plain, Command::LoadSeasonal),
+        ("seasonal, failed", Failing, Command::LoadSeasonal),
+        ("calendar, failed", Failing, Command::LoadCalendar),
+        ("calendar past", Plain, Command::LoadCalendarPast { anchor: FIXTURE_NOW, page: 2 }),
         (
             "calendar past, failed",
             Failing,
-            Task::LoadCalendarPast { anchor: FIXTURE_NOW, page: 2 },
+            Command::LoadCalendarPast { anchor: FIXTURE_NOW, page: 2 },
         ),
         ("search", Plain, search("hoshikuzu")),
         ("browse", Plain, search("")),
         ("search, failed", Failing, search("hoshikuzu")),
-        ("detail", Plain, Task::LoadDetail(FINISHED)),
-        ("detail, unknown", Plain, Task::LoadDetail(MISSING)),
-        ("episodes", Plain, Task::LoadEpisodes(FINISHED)),
-        ("episodes, failed", Failing, Task::LoadEpisodes(FINISHED)),
-        ("episodes, not found", NothingFound, Task::LoadEpisodes(FINISHED)),
-        ("episodes, refused", NoSources, Task::LoadEpisodes(FINISHED)),
-        ("clear match", Plain, Task::ClearMatch { id: FINISHED }),
+        ("detail", Plain, Command::LoadDetail(FINISHED)),
+        ("detail, unknown", Plain, Command::LoadDetail(MISSING)),
+        ("episodes", Plain, Command::LoadEpisodes(FINISHED)),
+        ("episodes, failed", Failing, Command::LoadEpisodes(FINISHED)),
+        ("episodes, not found", NothingFound, Command::LoadEpisodes(FINISHED)),
+        ("episodes, refused", NoSources, Command::LoadEpisodes(FINISHED)),
+        ("clear match", Plain, Command::ClearMatch { id: FINISHED }),
         (
             "fix match",
             Plain,
-            Task::FixMatch {
+            Command::FixMatch {
                 id: FINISHED,
                 provider_id: sources::PROVIDER_ID.into(),
                 key: sources::key(FINISHED),
             },
         ),
-        ("sources", Plain, Task::LoadSources { id: FINISHED, episode: "1".into() }),
+        ("sources", Plain, Command::LoadSources { id: FINISHED, episode: "1".into() }),
         (
             "sources, refused",
             NoSources,
-            Task::LoadSources { id: FINISHED, episode: "1".into() },
+            Command::LoadSources { id: FINISHED, episode: "1".into() },
         ),
-        ("manual search", Plain, Task::ManualSearch { id: FINISHED, query: "tabibito".into() }),
+        (
+            "manual search",
+            Plain,
+            Command::ManualSearch { id: FINISHED, query: "tabibito".into() },
+        ),
         (
             "manual search, nothing",
             NothingFound,
-            Task::ManualSearch { id: FINISHED, query: "tabibito".into() },
+            Command::ManualSearch { id: FINISHED, query: "tabibito".into() },
         ),
-        ("providers", Plain, Task::CheckProviders),
-        ("library, signed out", Plain, Task::LoadLibrary(LibrarySegment::Watching)),
-        ("sync, signed out", Plain, Task::SyncNow),
+        ("providers", Plain, Command::CheckProviders),
+        ("library, signed out", Plain, Command::LoadLibrary(LibrarySegment::Watching)),
+        ("sync, signed out", Plain, Command::SyncNow),
         (
             "download, refused",
             Plain,
-            Task::DownloadEpisode { id: FINISHED, episode: "1".into() },
+            Command::DownloadEpisode { id: FINISHED, episode: "1".into() },
         ),
         (
             "download range, refused",
             Plain,
-            Task::DownloadMany { id: FINISHED, episodes: vec!["1".into()] },
+            Command::DownloadMany { id: FINISHED, episodes: vec!["1".into()] },
         ),
-        ("stores", Plain, Task::LoadStores),
+        ("stores", Plain, Command::LoadStores),
     ];
     for (case, setup, task) in cases {
         let mut h = harness(setup).await;
@@ -139,28 +143,28 @@ async fn work_nobody_waits_on_starts_no_job() {
     let done = seed::download(h.store(), FINISHED, "2", DownloadState::Done);
     let failed = seed::download(h.store(), FINISHED, "3", DownloadState::Failed);
     let tasks = [
-        Task::SetWatched { id: FINISHED, episodes: vec!["1".into()], watched: true },
-        Task::HideFromContinue { id: FINISHED },
-        Task::SetStatus { id: FINISHED, status: LibrarySegment::Watching },
-        Task::SetScore { id: FINISHED, score: 7.0 },
-        Task::ResolveConflict { id: FINISHED, keep_local: true },
-        Task::SetProviderPreference { id: FINISHED, provider: Some("fixture".into()) },
-        Task::SaveSetting {
+        Command::SetWatched { id: FINISHED, episodes: vec!["1".into()], watched: true },
+        Command::HideFromContinue { id: FINISHED },
+        Command::SetStatus { id: FINISHED, status: LibrarySegment::Watching },
+        Command::SetScore { id: FINISHED, score: 7.0 },
+        Command::ResolveConflict { id: FINISHED, keep_local: true },
+        Command::SetProviderPreference { id: FINISHED, provider: Some("fixture".into()) },
+        Command::SaveSetting {
             table: &["playback"],
             key: "auto_next",
             value: SettingValue::Bool(false),
         },
-        Task::LoadDownloads,
-        Task::DownloadPause { id: queued.id },
-        Task::DownloadCancel { id: failed.id },
-        Task::DownloadDelete { id: done.id },
-        Task::DownloadClearCompleted,
+        Command::LoadDownloads,
+        Command::DownloadPause { id: queued.id },
+        Command::DownloadCancel { id: failed.id },
+        Command::DownloadDelete { id: done.id },
+        Command::DownloadClearCompleted,
         // Nothing is playing, so the command goes nowhere.
-        Task::Player(PlayerCommand::TogglePause),
+        Command::Player(PlayerCommand::TogglePause),
         // Found ahead quietly, for a Play of the same episode to pick up.
-        Task::Prefetch { id: FINISHED, episode: "2".into() },
-        Task::Disconnect { tracker: "kitsu".into() },
-        Task::RemovePlugin { plugin: "absent".into() },
+        Command::Prefetch { id: FINISHED, episode: "2".into() },
+        Command::Disconnect { tracker: "kitsu".into() },
+        Command::RemovePlugin { plugin: "absent".into() },
     ];
     for task in tasks {
         let said = format!("{task:?}");
@@ -176,13 +180,13 @@ async fn a_load_held_up_by_the_rate_limit_says_so_on_its_job_first() {
     seed::watched(h.store(), FINISHED, 1, FIXTURE_NOW - 60);
     // A spent budget, held for a second: long enough to be worth a note, short for a test.
     h.server().fail_next(Failure::RateLimited { retry_after_secs: 1 });
-    h.send(Task::LoadContinue);
+    h.send(Command::LoadContinue);
     h.settle().await;
 
-    let job = h.send(Task::LoadContinue);
+    let job = h.send(Command::LoadContinue);
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["JobNote", "Content", "JobDone"]);
-    let Update::JobNote { job: noted, note, wait } = &updates[0] else { unreachable!() };
+    let Event::JobNote { job: noted, note, wait } = &updates[0] else { unreachable!() };
     assert_eq!((Some(*noted), note.as_str()), (job, "AniList limit"));
     assert!(wait.is_some(), "it counts down to when the wait is over");
     ends(&updates, job);
@@ -193,8 +197,8 @@ async fn loads_sent_together_each_end_after_their_own_answer() {
     let mut h = Harness::new().await;
     seed::watched(h.store(), FINISHED, 2, FIXTURE_NOW - 600);
     let sent = [
-        (h.send(Task::LoadContinue), ContentFor::Continue),
-        (h.send(Task::LoadSeasonal), ContentFor::Seasonal),
+        (h.send(Command::LoadContinue), ContentFor::Continue),
+        (h.send(Command::LoadSeasonal), ContentFor::Seasonal),
         (
             h.send(search("hoshikuzu")),
             ContentFor::Search { query: "hoshikuzu".into(), filter: SearchFilters::default() },
@@ -207,11 +211,11 @@ async fn loads_sent_together_each_end_after_their_own_answer() {
     for (job, view) in &sent {
         let answered = updates
             .iter()
-            .position(|u| matches!(u, Update::Content { view: v, .. } if v == view))
+            .position(|u| matches!(u, Event::Content { view: v, .. } if v == view))
             .unwrap_or_else(|| panic!("{view:?} answered: {:?}", names(&updates)));
         let ended = updates
             .iter()
-            .position(|u| matches!(u, Update::JobDone(id) if Some(*id) == *job))
+            .position(|u| matches!(u, Event::JobDone(id) if Some(*id) == *job))
             .expect("the job ended");
         assert!(answered < ended, "{view:?}: {:?}", names(&updates));
     }

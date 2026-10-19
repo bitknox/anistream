@@ -59,7 +59,7 @@ mod tests {
     use anistream_core::config::Config;
     use anistream_ui::{
         Keymap,
-        app::Update,
+        app::Event,
         image::{ImageEngine, RequestState},
         theme,
     };
@@ -85,7 +85,7 @@ mod tests {
         let url = "https://covers.example/1.png".to_owned();
         let mut app = app();
         assert!(app.images.should_fetch(&url), "claimed, as the loop claims what it fetches");
-        app.apply(Update::ArtworkReady { url: url.clone(), bytes: png() });
+        app.apply(Event::ArtworkReady { url: url.clone(), bytes: png() });
         assert!(!app.images.has(&url), "the reducer does not decode on the loop");
 
         let (tx, mut rx) = mpsc::unbounded_channel();

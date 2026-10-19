@@ -13,7 +13,7 @@
 use std::path::{Path, PathBuf};
 
 use anistream_net::HttpClient;
-use anistream_ui::app::Update;
+use anistream_ui::app::Event;
 use tokio::sync::mpsc;
 
 /// How long a cached cover stays valid. Art changes rarely; a month avoids re-fetching a
@@ -28,7 +28,7 @@ pub fn spawn_fetch(
     url: String,
     cache_dir: PathBuf,
     http: HttpClient,
-    tx: mpsc::UnboundedSender<Update>,
+    tx: mpsc::UnboundedSender<Event>,
 ) {
     tokio::spawn(async move {
         let path = cache_dir.join(format!("{}.img", anistream_core::hash::stable_hash(&url)));
@@ -46,12 +46,12 @@ pub fn spawn_fetch(
             },
         };
         let _ = tx.send(match fetched {
-            Ok(bytes) => Update::ArtworkReady { url, bytes },
+            Ok(bytes) => Event::ArtworkReady { url, bytes },
             // Silent, as the module promises. This was a "cover unavailable" toast per cover,
             // which buried the notices that mattered — "showing what was last cached" among
             // them — under a screenful of the same line. The UI marks the URL failed, which
             // is what lets it be tried again.
-            Err(failure) => Update::ImageFailed { url, offline: failure == Failure::Offline },
+            Err(failure) => Event::ImageFailed { url, offline: failure == Failure::Offline },
         });
     });
 }
@@ -147,7 +147,7 @@ mod tests {
     }
 
     /// What one fetch sent back to the UI.
-    async fn fetch_once(url: String, cache: &std::path::Path) -> Update {
+    async fn fetch_once(url: String, cache: &std::path::Path) -> Event {
         let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
         let (tx, mut rx) = mpsc::unbounded_channel();
         spawn_fetch(url, cache.to_path_buf(), http, tx);
@@ -163,7 +163,7 @@ mod tests {
         // on loopback refuses the connection, which is the network failing, not the server.
         let dir = tempfile::tempdir().unwrap();
         match fetch_once("http://127.0.0.1:1/cover.jpg".into(), dir.path()).await {
-            Update::ImageFailed { offline, .. } => assert!(offline),
+            Event::ImageFailed { offline, .. } => assert!(offline),
             other => panic!("expected a quiet failure, got {other:?}"),
         }
     }
@@ -185,7 +185,7 @@ mod tests {
         });
         let dir = tempfile::tempdir().unwrap();
         match fetch_once(url, dir.path()).await {
-            Update::ImageFailed { offline, .. } => assert!(!offline),
+            Event::ImageFailed { offline, .. } => assert!(!offline),
             other => panic!("expected a quiet failure, got {other:?}"),
         }
     }
@@ -206,7 +206,7 @@ mod tests {
         std::fs::File::options().write(true).open(&path).unwrap().set_modified(old).unwrap();
 
         match fetch_once(url, dir.path()).await {
-            Update::ArtworkReady { bytes, .. } => assert_eq!(bytes, png),
+            Event::ArtworkReady { bytes, .. } => assert_eq!(bytes, png),
             other => panic!("expected the stale copy, got {other:?}"),
         }
     }
@@ -233,7 +233,7 @@ mod tests {
         std::fs::write(&file, b"").unwrap();
 
         match fetch_once(url, &file.join("covers")).await {
-            Update::ArtworkReady { bytes, .. } => assert_eq!(bytes, b"cover"),
+            Event::ArtworkReady { bytes, .. } => assert_eq!(bytes, b"cover"),
             other => panic!("expected the cover, got {other:?}"),
         }
     }

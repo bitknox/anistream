@@ -13,7 +13,7 @@ use crate::{
 /// renamed.
 pub type Task = Command;
 
-impl Task {
+impl Command {
     /// What to call this in the activity row, or `None` for work nobody waits on: writes that
     /// land in the outbox, player commands, and anything that finishes as it is asked.
     pub fn activity(&self) -> Option<String> {
@@ -65,7 +65,7 @@ impl Task {
 /// Asynchronous work requested by the reducer.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Command {
-    /// Resolve an episode's streams ahead of playing it, quietly, for a [`Task::Play`] of the
+    /// Resolve an episode's streams ahead of playing it, quietly, for a [`Command::Play`] of the
     /// same episode to pick up.
     Prefetch {
         id: AnilistId,
@@ -155,14 +155,14 @@ pub enum Command {
         episode: String,
     },
     /// Search providers with the user's own words when the automatic match is wrong.
-    /// Results come back as [`Update::MatchChoices`](crate::event::Update::MatchChoices),
+    /// Results come back as [`Event::MatchChoices`](crate::event::Event::MatchChoices),
     /// reusing the Disambiguate flow.
     ManualSearch {
         id: AnilistId,
         query: String,
     },
     /// Forget the pinned match and cached resolution for a title, then re-resolve
-    /// automatically — the undo for [`Task::FixMatch`].
+    /// automatically — the undo for [`Command::FixMatch`].
     ClearMatch {
         id: AnilistId,
     },
@@ -184,7 +184,7 @@ pub enum Command {
         url: String,
     },
     /// Play the exact release the user picked from the Sources overlay. The eyecatch
-    /// covers this the same way it covers [`Task::Play`].
+    /// covers this the same way it covers [`Command::Play`].
     PlaySource {
         id: AnilistId,
         episode: String,
@@ -350,7 +350,7 @@ mod tests {
     fn a_password_never_renders_through_debug() {
         // The task router logs tasks on a routing mistake; this is what keeps that log
         // safe to read.
-        let task = Task::ConnectKitsu {
+        let task = Command::ConnectKitsu {
             username: "nagare".into(),
             password: Secret("hunter2".into()),
         };

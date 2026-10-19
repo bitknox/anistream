@@ -31,8 +31,8 @@ use anistream_core::{
     traits::SourceCandidate,
 };
 use anistream_ui::{
-    Action, App, Clock, ConflictRow, Content, Entry, Keymap, LibrarySegment, MatchCandidate,
-    Overlay, Palette, Role, SyncState, Task, Update, Zone,
+    Action, App, Clock, Command, ConflictRow, Content, Entry, Event, Keymap, LibrarySegment,
+    MatchCandidate, Overlay, Palette, Role, SyncState, Zone,
     app::{
         DeviceCodePrompt, DownloadRow, DownloadState, EpisodeKind, EpisodeRow, InviteLinkView,
         JobId, LocalPluginRow, MetaSourceRow, Notice, ProviderRow, RelatedTitle, ResumePoint,
@@ -111,7 +111,7 @@ impl Screen {
 
     /// An action, as a bound key resolves to it. The work it asks for is not run: what the
     /// work would answer arrives as the fixture updates that follow.
-    fn act(&mut self, action: Action) -> Option<Task> {
+    fn act(&mut self, action: Action) -> Option<Command> {
         let task = self.app.handle(action, self.rows());
         self.draw();
         task
@@ -133,7 +133,7 @@ impl Screen {
         self.draw();
     }
 
-    fn apply(&mut self, update: Update) {
+    fn apply(&mut self, update: Event) {
         self.app.apply(update);
         self.draw();
     }
@@ -141,7 +141,7 @@ impl Screen {
     /// A caption for the list on screen, sent before it as the binary sends one.
     fn caption(&mut self, text: &str) {
         let view = self.app.content_view().expect("a list on screen to caption");
-        self.apply(Update::Caption { view, text: text.into() });
+        self.apply(Event::Caption { view, text: text.into() });
     }
 
     /// The answer to the list on screen.
@@ -167,7 +167,7 @@ impl Screen {
     }
 
     /// Start the job the loop would start for `task` as it runs it: the job's clock starts now.
-    fn start(&mut self, task: &Task) -> JobId {
+    fn start(&mut self, task: &Command) -> JobId {
         let job = self.app.begin_job(task).expect("work someone waits on");
         self.draw();
         job
@@ -693,8 +693,8 @@ fn catalogue(n: usize) -> Vec<Entry> {
 }
 
 /// Two plugins ready and torrents off, as the binary reports them once sources are up.
-fn sources_ready() -> Update {
-    Update::Providers(vec![
+fn sources_ready() -> Event {
+    Event::Providers(vec![
         ProviderRow {
             id: "yamabiko".into(),
             kind: "plugin".into(),
@@ -717,8 +717,8 @@ fn sources_ready() -> Update {
 }
 
 /// AniList signed in as an invented reader, with two changes waiting to go out.
-fn anilist_signed_in() -> Update {
-    Update::Sync(Box::new(SyncState {
+fn anilist_signed_in() -> Event {
+    Event::Sync(Box::new(SyncState {
         tracker: "anilist".into(),
         connected: true,
         user: Some("tsubame_reads".into()),
@@ -730,7 +730,7 @@ fn anilist_signed_in() -> Update {
 }
 
 /// The app as it stands once sources and the tracker have reported, on a section.
-fn settled_on(s: &mut Screen, section: u8) -> Option<Task> {
+fn settled_on(s: &mut Screen, section: u8) -> Option<Command> {
     s.apply(sources_ready());
     s.apply(anilist_signed_in());
     s.act(Action::JumpSection(section))
@@ -824,7 +824,7 @@ fn downloads(s: &mut Screen) {
                 path: None,
             }
         };
-    s.apply(Update::Downloads(vec![
+    s.apply(Event::Downloads(vec![
         row(1, "Hoshikuzu no Tabibito", "4", DownloadState::Active, 512_300_000, 1_380_000_000),
         row(2, "Hoshikuzu no Tabibito", "5", DownloadState::Queued, 0, 0),
         row(3, "Kaze no Tegami", "9", DownloadState::Paused, 201_400_000, 1_120_000_000),
@@ -844,7 +844,7 @@ fn downloads(s: &mut Screen) {
             )
         },
     ]));
-    s.apply(Update::Seeding(vec![
+    s.apply(Event::Seeding(vec![
         SeedRow {
             name: "Tsuki to Kujira no Uta - 06".into(),
             uploaded_bytes: 734_000_000,
@@ -876,7 +876,7 @@ fn providers(s: &mut Screen) {
         usable,
         held_back: false,
     };
-    s.apply(Update::Providers(vec![
+    s.apply(Event::Providers(vec![
         plugin("yamabiko", "ready", Some(182), true),
         ProviderRow {
             last_error: Some("search timed out after 8 s".into()),
@@ -884,7 +884,7 @@ fn providers(s: &mut Screen) {
         },
         plugin("kawasemi", "ready", Some(1_204), true),
     ]));
-    s.apply(Update::MetaStatus(vec![
+    s.apply(Event::MetaStatus(vec![
         MetaSourceRow {
             source: "anilist".into(),
             state: "resting".into(),
@@ -902,7 +902,7 @@ fn providers(s: &mut Screen) {
             retry_at: None,
         },
     ]));
-    s.apply(Update::Stores(two_stores()));
+    s.apply(Event::Stores(two_stores()));
     s.press(&["j"]);
 }
 
@@ -910,12 +910,12 @@ fn providers(s: &mut Screen) {
 /// signed out, and one whose token was refused, with the pull that failed this evening.
 fn accounts(s: &mut Screen) {
     settled_on(s, 8);
-    s.apply(Update::Sync(Box::new(SyncState {
+    s.apply(Event::Sync(Box::new(SyncState {
         storage: Some("0600 file".into()),
         storage_degraded: true,
         ..SyncState::new("kitsu")
     })));
-    s.apply(Update::Sync(Box::new(SyncState {
+    s.apply(Event::Sync(Box::new(SyncState {
         connected: true,
         user: Some("hotaru_watches".into()),
         needs_reauth: true,
@@ -923,7 +923,7 @@ fn accounts(s: &mut Screen) {
         pull_error: Some(("the token was refused".into(), NOW - 2 * HOUR - 13 * MINUTE - 4)),
         ..SyncState::new("mal")
     })));
-    s.apply(Update::DeviceCode(Some(DeviceCodePrompt {
+    s.apply(Event::DeviceCode(Some(DeviceCodePrompt {
         tracker: "mal".into(),
         code: "KTQ7-M2WD".into(),
         url: "https://auth.example/device".into(),
@@ -1056,8 +1056,8 @@ fn title(s: &mut Screen) {
     settled_on(s, 1);
     s.list(vec![hoshikuzu(), kaze(), yoru()]);
     s.press(&["j", "enter"]);
-    s.apply(Update::Detail(Box::new(kaze_detail())));
-    s.apply(Update::ProviderPreference(None));
+    s.apply(Event::Detail(Box::new(kaze_detail())));
+    s.apply(Event::ProviderPreference(None));
     s.act(Action::ToggleSynopsis);
 }
 
@@ -1173,7 +1173,7 @@ fn play_hoshikuzu(s: &mut Screen) {
     s.press(&["j", "e"]);
     s.episodes(hoshikuzu_episodes());
     s.press(&["enter"]);
-    let play = Task::Play { id: id(101), episode: "4".into() };
+    let play = Command::Play { id: id(101), episode: "4".into() };
     s.start(&play);
 }
 
@@ -1182,10 +1182,10 @@ fn play_hoshikuzu(s: &mut Screen) {
 fn now_playing(s: &mut Screen) {
     play_hoshikuzu(s);
     s.frames(3);
-    s.apply(Update::ActiveProvider("yamabiko".into()));
-    s.apply(Update::Resumed { position: 812.0 });
-    s.apply(Update::Playback { position: 815.4, duration: Some(1_435.0), paused: false });
-    s.apply(Update::JobDone(job_for_play(s)));
+    s.apply(Event::ActiveProvider("yamabiko".into()));
+    s.apply(Event::Resumed { position: 812.0 });
+    s.apply(Event::Playback { position: 815.4, duration: Some(1_435.0), paused: false });
+    s.apply(Event::JobDone(job_for_play(s)));
     s.frames(2 * SWEEP_FRAMES);
     assert!(s.app.eyecatch.is_none(), "the wipe has finished");
 }
@@ -1194,13 +1194,13 @@ fn now_playing(s: &mut Screen) {
 /// carries, and the meter dimmed.
 fn now_playing_paused_skip(s: &mut Screen) {
     play_hoshikuzu(s);
-    s.apply(Update::Playback { position: 61.8, duration: Some(1_435.0), paused: false });
-    s.apply(Update::JobDone(job_for_play(s)));
+    s.apply(Event::Playback { position: 61.8, duration: Some(1_435.0), paused: false });
+    s.apply(Event::JobDone(job_for_play(s)));
     s.frames(2 * SWEEP_FRAMES);
-    s.apply(Update::SkipAvailable { kind: SkipKind::Opening, to: 151.3 });
-    s.apply(Update::PlaybackSpeed(1.25));
+    s.apply(Event::SkipAvailable { kind: SkipKind::Opening, to: 151.3 });
+    s.apply(Event::PlaybackSpeed(1.25));
     s.press(&[" "]);
-    s.apply(Update::Playback { position: 63.1, duration: Some(1_435.0), paused: true });
+    s.apply(Event::Playback { position: 63.1, duration: Some(1_435.0), paused: true });
 }
 
 /// The play job's id: the only job running when a scenario asks.
@@ -1246,14 +1246,14 @@ fn activity_and_toasts(s: &mut Screen) {
     s.wait(Duration::from_millis(7_400));
     let sync = s.act(Action::ForceResync).expect("a sync");
     let job = s.start(&sync);
-    s.apply(Update::JobNote {
+    s.apply(Event::JobNote {
         job,
         note: "AniList asked for a pause".into(),
         wait: Some(Duration::from_millis(42_600)),
     });
     s.wait(Duration::from_millis(900));
-    s.apply(Update::Toast(Notice::info("saved upscaling")));
-    s.apply(Update::Toast(Notice::alert("tsubame: search timed out after 8 s")));
+    s.apply(Event::Toast(Notice::info("saved upscaling")));
+    s.apply(Event::Toast(Notice::alert("tsubame: search timed out after 8 s")));
 }
 
 // ── Overlays ───────────────────────────────────────────────────────────────────────────────────
@@ -1280,7 +1280,7 @@ fn command_palette(s: &mut Screen) {
 
 /// Three trackers in three conditions, as the binary reports them at startup and after a pull.
 fn three_trackers(s: &mut Screen) {
-    s.apply(Update::Sync(Box::new(SyncState {
+    s.apply(Event::Sync(Box::new(SyncState {
         tracker: "anilist".into(),
         connected: true,
         user: Some("tsubame_reads".into()),
@@ -1290,12 +1290,12 @@ fn three_trackers(s: &mut Screen) {
         last: Some("pulled 214 titles".into()),
         ..SyncState::new("anilist")
     })));
-    s.apply(Update::Sync(Box::new(SyncState {
+    s.apply(Event::Sync(Box::new(SyncState {
         storage: Some("0600 file".into()),
         storage_degraded: true,
         ..SyncState::new("kitsu")
     })));
-    s.apply(Update::Sync(Box::new(SyncState {
+    s.apply(Event::Sync(Box::new(SyncState {
         connected: true,
         user: Some("hotaru_watches".into()),
         needs_reauth: true,
@@ -1326,7 +1326,7 @@ fn conflicts(s: &mut Screen) {
         local: local.into(),
         remote: remote.into(),
     };
-    s.apply(Update::Conflicts(vec![
+    s.apply(Event::Conflicts(vec![
         conflict(101, "Hoshikuzu no Tabibito", "progress", "3", "5"),
         conflict(102, "Kaze no Tegami", "status", "watching", "paused"),
         conflict(104, "Tsuki to Kujira no Uta", "score", "9", "8"),
@@ -1340,7 +1340,7 @@ fn on_kaze(s: &mut Screen) {
     settled_on(s, 1);
     s.list(vec![hoshikuzu(), kaze(), yoru()]);
     s.press(&["j", "enter"]);
-    s.apply(Update::Detail(Box::new(kaze_detail())));
+    s.apply(Event::Detail(Box::new(kaze_detail())));
 }
 
 /// The list-status picker on a title with progress, so "completed" says what it will do.
@@ -1376,7 +1376,7 @@ fn logs(s: &mut Screen) {
         Notice::info("now using dub for this session"),
         Notice::info("resumed at 13:32"),
     ] {
-        s.apply(Update::Toast(toast));
+        s.apply(Event::Toast(toast));
     }
     s.act(Action::ShowLogs);
     s.press(&["j"]);
@@ -1391,7 +1391,7 @@ fn disambiguate(s: &mut Screen) {
         similarity,
         rejected,
     };
-    s.apply(Update::MatchChoices {
+    s.apply(Event::MatchChoices {
         id: id(102),
         provider_id: "yamabiko".into(),
         candidates: vec![
@@ -1451,7 +1451,7 @@ fn sources(s: &mut Screen) {
 /// The source picker on a title pinned to a plugin, which the row in use says.
 fn source_provider(s: &mut Screen) {
     on_kaze(s);
-    s.apply(Update::ProviderPreference(Some("tsubame".into())));
+    s.apply(Event::ProviderPreference(Some("tsubame".into())));
     s.act(Action::PickProvider);
 }
 
@@ -1511,7 +1511,7 @@ fn kitsu_password(s: &mut Screen) {
 /// unreachable, showing its last list, and one that no longer accepts this device.
 fn on_stores(s: &mut Screen, stores: Vec<StoreRow>) {
     settled_on(s, 7);
-    s.apply(Update::Stores(stores));
+    s.apply(Event::Stores(stores));
     s.press(&["enter"]);
 }
 
@@ -1566,7 +1566,7 @@ fn store_members(s: &mut Screen) {
     let member = |id: &str, name: &str, owner: bool, devices: u32, last_seen, you| {
         StoreMemberRow { id: id.into(), name: name.into(), owner, devices, last_seen, you }
     };
-    s.apply(Update::StoreMembers {
+    s.apply(Event::StoreMembers {
         store: "aaaa".into(),
         members: vec![
             member("1", "Mirei", true, 2, Some(NOW - 12 * MINUTE - 7), true),
@@ -1606,7 +1606,7 @@ fn join_store(s: &mut Screen) {
 fn store_confirm(s: &mut Screen) {
     join_store(s);
     s.press(&["enter"]);
-    s.apply(Update::StorePreview(Ok(StorePreview {
+    s.apply(Event::StorePreview(Ok(StorePreview {
         link: Secret(INVITE.into()),
         name: "Rin's sources".into(),
         url: "https://rin.example".into(),
@@ -1632,7 +1632,7 @@ fn invite_name(s: &mut Screen) {
 /// A fresh invite link, cut into rows the width of the band, copied, and expiring in a week.
 fn invite_link(s: &mut Screen) {
     on_owned_store(s);
-    s.apply(Update::InviteLink(InviteLinkView {
+    s.apply(Event::InviteLink(InviteLinkView {
         store: "aaaa".into(),
         link: Secret(INVITE.into()),
         for_whom: Some("Kai".into()),
@@ -1654,7 +1654,7 @@ fn publish_pick(s: &mut Screen) {
         hosts: vec![format!("{id}.example")],
         published: published.map(Into::into),
     };
-    s.apply(Update::LocalPlugins {
+    s.apply(Event::LocalPlugins {
         store: "aaaa".into(),
         plugins: vec![
             local("shirasagi", "Shirasagi", "0.1.0", None),
@@ -1732,7 +1732,7 @@ fn search_failed(s: &mut Screen) {
 /// The Library with its tracker signed out: a setup state, saying where to sign in.
 fn library_no_account(s: &mut Screen) {
     s.apply(sources_ready());
-    s.apply(Update::Sync(Box::new(SyncState::new("anilist"))));
+    s.apply(Event::Sync(Box::new(SyncState::new("anilist"))));
     s.act(Action::JumpSection(5));
     s.list(vec![]);
 }
@@ -1758,7 +1758,7 @@ fn episodes_no_source(s: &mut Screen) {
     s.list(vec![kaze(), hoshikuzu()]);
     s.press(&["j", "e"]);
     s.episodes(vec![]);
-    s.apply(Update::Toast(Notice::alert("no source could list episodes for this title")));
+    s.apply(Event::Toast(Notice::alert("no source could list episodes for this title")));
 }
 
 /// A source answered and listed nothing.
@@ -1794,7 +1794,7 @@ fn episodes_filtered_out(s: &mut Screen) {
 
 fn downloads_empty(s: &mut Screen) {
     settled_on(s, 6);
-    s.apply(Update::Downloads(vec![]));
+    s.apply(Event::Downloads(vec![]));
 }
 
 /// No source registered, and no store joined: the screen says why and where to get one.

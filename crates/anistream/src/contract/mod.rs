@@ -2,8 +2,8 @@
 //!
 //! Each test sends tasks through [`crate::harness`] and reads what settled, never `dispatch`
 //! itself, so the same tests can hold the engine that replaces it to the same answers. They
-//! assert the order first, as variant names: those stay when `Update` becomes `Event`, while
-//! what the variants carry changes. Then the parts that matter, through the helpers here where
+//! assert the order first, as variant names: those stayed when the enum was renamed, and stay
+//! while what the variants carry changes. Then the parts that matter, through the helpers here where
 //! more than one test reads them. Nothing compares `Debug` output, which would churn at every
 //! change of a field's type.
 //!
@@ -21,7 +21,7 @@ mod title;
 mod watch;
 
 use anistream_core::ids::AnilistId;
-use anistream_ui::app::{Content, JobId, NoticeKind, Update};
+use anistream_ui::app::{Content, Event, JobId, NoticeKind};
 
 use crate::harness::names;
 
@@ -39,8 +39,8 @@ pub const WITH_ANILIST: &str = "[trackers]\n\
     client_secret = \"harness\"\n";
 
 /// The toast an update is, as `info: …` or `alert: …`.
-pub fn toast(update: &Update) -> Option<String> {
-    let Update::Toast(toast) = update else { return None };
+pub fn toast(update: &Event) -> Option<String> {
+    let Event::Toast(toast) = update else { return None };
     let kind = match toast.kind {
         NoticeKind::Info => "info",
         NoticeKind::Alert => "alert",
@@ -49,15 +49,15 @@ pub fn toast(update: &Update) -> Option<String> {
 }
 
 /// Every toast, in order.
-pub fn toasts(updates: &[Update]) -> Vec<String> {
+pub fn toasts(updates: &[Event]) -> Vec<String> {
     updates.iter().filter_map(toast).collect()
 }
 
 /// What the one `Content` among `updates` carries.
 #[track_caller]
-pub fn content(updates: &[Update]) -> &Content {
+pub fn content(updates: &[Event]) -> &Content {
     let mut lists = updates.iter().filter_map(|update| match update {
-        Update::Content { content, .. } => Some(content),
+        Event::Content { content, .. } => Some(content),
         _ => None,
     });
     let first = lists.next().expect("a list was sent");
@@ -85,12 +85,12 @@ pub fn failure(content: &Content) -> &str {
 
 /// That `job` was started, and ended exactly once, after everything its work sent.
 #[track_caller]
-pub fn ends(updates: &[Update], job: Option<JobId>) {
+pub fn ends(updates: &[Event], job: Option<JobId>) {
     let job = job.expect("work someone waits on starts a job");
     let done: Vec<usize> = updates
         .iter()
         .enumerate()
-        .filter(|(_, update)| matches!(update, Update::JobDone(id) if *id == job))
+        .filter(|(_, update)| matches!(update, Event::JobDone(id) if *id == job))
         .map(|(at, _)| at)
         .collect();
     assert_eq!(

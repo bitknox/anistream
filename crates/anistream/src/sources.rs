@@ -318,10 +318,10 @@ pub async fn bring_up_torrent(
     http: HttpClient,
     paths: Paths,
     store: anistream_store::Store,
-    tx: tokio::sync::mpsc::UnboundedSender<anistream_ui::app::Update>,
+    tx: tokio::sync::mpsc::UnboundedSender<anistream_ui::app::Event>,
 ) -> std::result::Result<TorrentUp, String> {
     use anistream_providers::vpn::{GuardLog, GuardNote, GuardState};
-    use anistream_ui::app::Update;
+    use anistream_ui::app::Event;
 
     let (settings, guard) = prepare_torrent(&config)?;
     // Before the wait rather than after it: a cache left full by an earlier run should not stay
@@ -336,13 +336,13 @@ pub async fn bring_up_torrent(
     loop {
         let state = guard.verify().await;
         let leaking = !state.is_protected();
-        if tx.send(Update::Vpn(Some(guard_view(&state)))).is_err() {
+        if tx.send(Event::Vpn(Some(guard_view(&state)))).is_err() {
             return Err("the interface has closed".into());
         }
         match log.observe(&state, std::time::Instant::now()) {
             GuardNote::Failing(reason) => {
                 tracing::warn!(%reason, "vpn guard failing; torrents wait for it");
-                let _ = tx.send(Update::ProviderNote(format!(
+                let _ = tx.send(Event::ProviderNote(format!(
                     "torrents start once the VPN guard passes: {reason}"
                 )));
             }

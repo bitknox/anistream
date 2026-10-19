@@ -9,7 +9,7 @@
 use std::path::{Path, PathBuf};
 
 use anistream_net::HttpClient;
-use anistream_ui::{Notice, Update};
+use anistream_ui::{Event, Notice};
 use anyhow::{Context, Result, bail};
 use sha2::Digest;
 use tokio::sync::mpsc;
@@ -71,7 +71,7 @@ pub fn spawn_check(
     enabled: bool,
     cache_dir: &Path,
     http: &HttpClient,
-    tx: &mpsc::UnboundedSender<Update>,
+    tx: &mpsc::UnboundedSender<Event>,
 ) {
     if !enabled {
         return;
@@ -99,7 +99,7 @@ pub fn spawn_check(
         };
 
         if is_newer(&tag, CURRENT) {
-            let _ = tx.send(Update::Toast(Notice::info(format!(
+            let _ = tx.send(Event::Toast(Notice::info(format!(
                 "{tag} is available — run `anistream --update`"
             ))));
         }

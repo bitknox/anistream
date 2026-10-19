@@ -8,8 +8,8 @@ use std::collections::BTreeMap;
 
 use anistream_core::{config::Config, ids::AnilistId};
 use anistream_ui::{
-    App, Content, Entry, Keymap, Overlay, Palette, Section, StageView, Task,
-    app::{EpisodeRow, Notice, NowPlaying, ResumePoint, SyncState, Update},
+    App, Command, Content, Entry, Keymap, Overlay, Palette, Section, StageView,
+    app::{EpisodeRow, Event, Notice, NowPlaying, ResumePoint, SyncState},
     keymap::status_hints,
     screens::render_to_buffer,
 };
@@ -53,7 +53,7 @@ fn key(spec: &str) -> KeyEvent {
     KeyEvent::new(code, KeyModifiers::NONE)
 }
 
-fn press(app: &mut App, keys: &[&str]) -> Vec<Task> {
+fn press(app: &mut App, keys: &[&str]) -> Vec<Command> {
     keys.iter().filter_map(|k| app.press(key(k), ROWS)).collect()
 }
 
@@ -233,7 +233,7 @@ fn help_and_logs_let_the_going_somewhere_keys_through() {
 fn help_over_a_picker_returns_to_it_with_its_selection() {
     let mut a = app();
     // Ratings live on a tracker, so one is signed in.
-    a.apply(Update::Sync(Box::new(SyncState {
+    a.apply(Event::Sync(Box::new(SyncState {
         tracker: "anilist".into(),
         connected: true,
         ..SyncState::default()
@@ -459,7 +459,7 @@ fn enter_is_named_for_what_it_does() {
     a.go_to_section(Section::Downloads);
     a.nav.focus_stage();
     // The queue's keys are named for the highlighted row, so it needs a finished one here.
-    a.apply(anistream_ui::Update::Downloads(vec![anistream_ui::app::DownloadRow {
+    a.apply(anistream_ui::Event::Downloads(vec![anistream_ui::app::DownloadRow {
         id: 1,
         anilist_id: AnilistId::new(5),
         title: "Title".into(),
@@ -594,7 +594,7 @@ fn a_refused_range_is_cleared_and_the_prompt_stays_open() {
     assert_eq!(a.range_query, "", "the refused range must not stay in the field");
     let tasks = press(&mut a, &["1", "-", "3", "enter"]);
     match tasks.as_slice() {
-        [Task::DownloadMany { episodes, .. }] => assert_eq!(episodes, &["1", "2", "3"]),
+        [Command::DownloadMany { episodes, .. }] => assert_eq!(episodes, &["1", "2", "3"]),
         other => panic!("expected the retry to queue 1-3, got {other:?}"),
     }
 

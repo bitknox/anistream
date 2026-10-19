@@ -264,7 +264,7 @@ impl Content {
     }
 }
 
-/// Which list an [`Update::Content`](crate::event::Update::Content) answers.
+/// Which list an [`Event::Content`](crate::event::Event::Content) answers.
 ///
 /// Requests are not cancelled when the user moves on, and the AniList rate limiter spaces them
 /// unevenly, so the answer for a section just left can land after the switch. Untagged, it was

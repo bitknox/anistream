@@ -11,7 +11,7 @@ use anistream_testkit::{
 };
 use anistream_ui::{
     LibrarySegment,
-    app::{SyncState, Task, Update},
+    app::{Command, Event, SyncState},
 };
 
 use super::{WITH_ANILIST, content, ends, ids, toasts};
@@ -27,17 +27,17 @@ async fn anilist_signed_in() -> Harness {
     .await
 }
 
-fn mark(episodes: &[&str], watched: bool) -> Task {
-    Task::SetWatched {
+fn mark(episodes: &[&str], watched: bool) -> Command {
+    Command::SetWatched {
         id: FINISHED,
         episodes: episodes.iter().map(|e| (*e).to_owned()).collect(),
         watched,
     }
 }
 
-fn state(update: &Update) -> &SyncState {
+fn state(update: &Event) -> &SyncState {
     match update {
-        Update::Sync(state) => state,
+        Event::Sync(state) => state,
         other => panic!("not a tracker's state: {other:?}"),
     }
 }
@@ -87,11 +87,11 @@ async fn unmarking_forgets_history_and_never_walks_progress_back() {
 async fn a_mark_is_in_the_table_the_next_task_loads() {
     let mut h = Harness::new().await;
     h.send(mark(&["1", "2", "3"], true));
-    let job = h.send(Task::LoadEpisodes(FINISHED));
+    let job = h.send(Command::LoadEpisodes(FINISHED));
     let updates = h.settle().await;
 
     assert_eq!(names(&updates), ["Episodes", "JobDone"]);
-    let Update::Episodes { rows, .. } = &updates[0] else { unreachable!() };
+    let Event::Episodes { rows, .. } = &updates[0] else { unreachable!() };
     let done: Vec<&str> =
         rows.iter().filter(|r| r.completed).map(|r| r.number.as_str()).collect();
     assert_eq!(done, ["1", "2", "3"]);
@@ -103,8 +103,8 @@ async fn a_title_taken_off_continue_stays_off_for_the_next_load() {
     let mut h = Harness::new().await;
     seed::watched(h.store(), FINISHED, 2, FIXTURE_NOW - 7_200);
     seed::watched(h.store(), AIRING, 2, FIXTURE_NOW - 600);
-    let hidden = h.send(Task::HideFromContinue { id: AIRING });
-    let job = h.send(Task::LoadContinue);
+    let hidden = h.send(Command::HideFromContinue { id: AIRING });
+    let job = h.send(Command::LoadContinue);
     let updates = h.settle().await;
 
     assert!(hidden.is_none());
@@ -117,7 +117,7 @@ async fn a_title_taken_off_continue_stays_off_for_the_next_load() {
 #[tokio::test]
 async fn a_status_or_a_score_moves_the_badge_of_each_signed_in_tracker() {
     let mut h = anilist_signed_in().await;
-    let job = h.send(Task::SetStatus { id: FINISHED, status: LibrarySegment::Completed });
+    let job = h.send(Command::SetStatus { id: FINISHED, status: LibrarySegment::Completed });
     let updates = h.settle().await;
     assert!(job.is_none());
     assert_eq!(names(&updates), ["Sync"]);
@@ -127,7 +127,7 @@ async fn a_status_or_a_score_moves_the_badge_of_each_signed_in_tracker() {
         ("anilist", 1, Some("queued"))
     );
 
-    h.send(Task::SetScore { id: FINISHED, score: 8.5 });
+    h.send(Command::SetScore { id: FINISHED, score: 8.5 });
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["Sync"]);
     assert_eq!(state(&updates[0]).outbox, 2);
@@ -135,8 +135,8 @@ async fn a_status_or_a_score_moves_the_badge_of_each_signed_in_tracker() {
 
     // Signed out, there is no badge to move and nothing is queued.
     let mut h = Harness::new().await;
-    h.send(Task::SetStatus { id: FINISHED, status: LibrarySegment::Completed });
-    h.send(Task::SetScore { id: FINISHED, score: 8.5 });
+    h.send(Command::SetStatus { id: FINISHED, status: LibrarySegment::Completed });
+    h.send(Command::SetScore { id: FINISHED, score: 8.5 });
     assert_eq!(names(&h.settle().await), Vec::<&str>::new());
     assert_eq!(h.store().outbox_depth(None).unwrap(), 0);
 }
@@ -146,14 +146,14 @@ async fn syncing_now_sends_the_queue_then_pulls_the_library() {
     let mut h = anilist_signed_in().await;
     h.send(mark(&["1", "2"], true));
     h.settle().await;
-    let job = h.send(Task::SyncNow);
+    let job = h.send(Command::SyncNow);
     let updates = h.settle().await;
 
     assert_eq!(names(&updates), ["Sync", "Sync", "Status", "JobDone"]);
     let (sent, pulled) = (state(&updates[0]), state(&updates[1]));
     assert_eq!((sent.tracker.as_str(), sent.last.as_deref()), ("anilist", Some("sent 1")));
     assert_eq!(pulled.last.as_deref(), Some("pulled 3 titles"));
-    assert!(matches!(&updates[2], Update::Status(text) if text.is_empty()));
+    assert!(matches!(&updates[2], Event::Status(text) if text.is_empty()));
     ends(&updates, job);
 
     let pushed = h.server().requests_for(Operation::SaveEntry);
@@ -167,11 +167,11 @@ async fn syncing_now_sends_the_queue_then_pulls_the_library() {
 async fn keeping_your_side_of_a_conflict_queues_it() {
     let mut h = anilist_signed_in().await;
     seed::watched(h.store(), FINISHED, 3, FIXTURE_NOW - 600);
-    h.send(Task::ResolveConflict { id: FINISHED, keep_local: false });
+    h.send(Command::ResolveConflict { id: FINISHED, keep_local: false });
     assert_eq!(names(&h.settle().await), Vec::<&str>::new());
     assert_eq!(h.store().pending_progress("anilist", FINISHED).unwrap(), None, "theirs stands");
 
-    h.send(Task::ResolveConflict { id: FINISHED, keep_local: true });
+    h.send(Command::ResolveConflict { id: FINISHED, keep_local: true });
     assert_eq!(names(&h.settle().await), Vec::<&str>::new());
     assert_eq!(h.store().pending_progress("anilist", FINISHED).unwrap(), Some(3));
 }
@@ -180,7 +180,7 @@ async fn keeping_your_side_of_a_conflict_queues_it() {
 async fn signing_out_says_what_was_kept_then_republishes_every_tracker() {
     let mut h = anilist_signed_in().await;
     h.send(mark(&["1"], true));
-    let job = h.send(Task::Disconnect { tracker: "anilist".into() });
+    let job = h.send(Command::Disconnect { tracker: "anilist".into() });
     let updates = h.settle().await;
 
     assert!(job.is_none());

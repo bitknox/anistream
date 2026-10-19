@@ -26,7 +26,7 @@ use anistream_net::HttpClient;
 use anistream_player::Mpv;
 use anistream_providers::{VpnGuard, torrent::TorrentSession};
 use anistream_store::Store;
-use anistream_ui::app::Update;
+use anistream_ui::app::Event;
 use tokio::sync::mpsc;
 
 /// Big Buck Bunny © Blender Foundation, CC-BY 3.0 — <https://peach.blender.org>.
@@ -121,7 +121,7 @@ async fn main() {
         episodes: Vec::new(),
     };
 
-    let (tx, mut rx) = mpsc::unbounded_channel::<Update>();
+    let (tx, mut rx) = mpsc::unbounded_channel::<Event>();
     let (command_tx, command_rx) = mpsc::unbounded_channel();
 
     // Report what the UI would have rendered, so the IPC path is visible rather than assumed.
@@ -130,7 +130,7 @@ async fn main() {
         let mut last = 0.0_f64;
         while let Some(update) = rx.recv().await {
             match update {
-                Update::Playback { position, duration, paused } => {
+                Event::Playback { position, duration, paused } => {
                     ticks += 1;
                     last = position;
                     if ticks <= 3 || ticks.is_multiple_of(10) {
@@ -141,9 +141,9 @@ async fn main() {
                         );
                     }
                 }
-                Update::Status(s) if !s.is_empty() => println!("  status: {s}"),
-                Update::Toast(t) => println!("  toast: {}", t.text),
-                Update::PlaybackEnded { watched, ending } => {
+                Event::Status(s) if !s.is_empty() => println!("  status: {s}"),
+                Event::Toast(t) => println!("  toast: {}", t.text),
+                Event::PlaybackEnded { watched, ending } => {
                     println!("  ended (watched: {watched}, {ending:?})");
                 }
                 _ => {}

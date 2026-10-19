@@ -3984,7 +3984,7 @@ pub fn render_to_buffer(app: &App, width: u16, height: u16) -> Buffer {
 mod tests {
     use super::*;
     use crate::{
-        app::{GuardView, Update},
+        app::{Event, GuardView},
         keymap::Keymap,
         theme::Palette,
     };
@@ -4017,7 +4017,7 @@ mod tests {
     #[test]
     fn an_accounts_row_says_how_much_of_the_queue_waits_for_a_mapping() {
         let mut app = app_with(Content::Entries(Vec::new()));
-        app.apply(Update::Sync(Box::new(crate::app::SyncState {
+        app.apply(Event::Sync(Box::new(crate::app::SyncState {
             connected: true,
             outbox: 3,
             deferred: 2,
@@ -4026,7 +4026,7 @@ mod tests {
         let (_, detail) = &accounts_rows(&app)[0];
         assert!(detail.contains("3 queued, 2 waiting for an id mapping"), "{detail}");
 
-        app.apply(Update::Sync(Box::new(crate::app::SyncState {
+        app.apply(Event::Sync(Box::new(crate::app::SyncState {
             connected: true,
             outbox: 3,
             ..crate::app::SyncState::new("mal")
@@ -4070,7 +4070,7 @@ mod tests {
         let mut app = app_with(Content::Entries(Vec::new()));
         app.clock = Clock::fixed(NOON_MONDAY, crate::clock::Zone::utc());
         let at = NOON_MONDAY - 60;
-        app.apply(Update::Sync(Box::new(crate::app::SyncState {
+        app.apply(Event::Sync(Box::new(crate::app::SyncState {
             connected: true,
             pull_error: Some(("network: timed out".into(), at)),
             ..crate::app::SyncState::new("anilist")
@@ -4093,7 +4093,7 @@ mod tests {
         // The reason used to reach only a list nothing on the screen drew from, so the row kept
         // saying "connected" while the library had stopped updating.
         let mut app = app_with(Content::Entries(Vec::new()));
-        app.apply(Update::Sync(Box::new(crate::app::SyncState {
+        app.apply(Event::Sync(Box::new(crate::app::SyncState {
             connected: true,
             pull_error: Some(("network: timed out".into(), app.clock.now_epoch())),
             ..crate::app::SyncState::new("anilist")
@@ -4130,7 +4130,7 @@ mod tests {
             .join("\n")
     }
 
-    fn running(app: &mut App, task: &crate::app::Task, for_secs: u64) -> crate::app::JobId {
+    fn running(app: &mut App, task: &crate::app::Command, for_secs: u64) -> crate::app::JobId {
         let id = app.begin_job(task).expect("a job");
         let now = app.clock.now_instant();
         let job = app.jobs.iter_mut().find(|j| j.id == id).unwrap();
@@ -4147,7 +4147,7 @@ mod tests {
 
         running(
             &mut app,
-            &crate::app::Task::LoadSources { id: AnilistId::new(1), episode: "10".into() },
+            &crate::app::Command::LoadSources { id: AnilistId::new(1), episode: "10".into() },
             3,
         );
         let busy: Vec<String> =
@@ -4168,9 +4168,9 @@ mod tests {
     #[test]
     fn a_hold_up_is_counted_down_in_place_of_the_runtime() {
         let mut app = app_with(Content::Loading);
-        let id = running(&mut app, &crate::app::Task::LoadSeasonal, 4);
+        let id = running(&mut app, &crate::app::Command::LoadSeasonal, 4);
         let until = app.clock.now_instant() + std::time::Duration::from_millis(12_400);
-        app.apply(Update::JobNote {
+        app.apply(Event::JobNote {
             job: id,
             note: "AniList limit".into(),
             wait: Some(std::time::Duration::from_millis(12_400)),
@@ -4189,11 +4189,11 @@ mod tests {
     fn jobs_that_do_not_fit_are_counted_rather_than_cut() {
         let mut app = app_with(Content::Loading);
         for _ in 0..3 {
-            running(&mut app, &crate::app::Task::CheckProviders, 2);
+            running(&mut app, &crate::app::Command::CheckProviders, 2);
         }
         running(
             &mut app,
-            &crate::app::Task::LoadSources { id: AnilistId::new(1), episode: "10".into() },
+            &crate::app::Command::LoadSources { id: AnilistId::new(1), episode: "10".into() },
             2,
         );
         let rows: Vec<String> =
@@ -4208,7 +4208,7 @@ mod tests {
     fn the_downloads_screen_says_what_is_still_seeding() {
         let mut app = app_with(Content::Loading);
         app.go_to_section(Section::Downloads);
-        app.apply(Update::Seeding(vec![crate::app::SeedRow {
+        app.apply(Event::Seeding(vec![crate::app::SeedRow {
             name: "Show - 05.mkv".into(),
             uploaded_bytes: 300 * 1024 * 1024,
             ratio: 0.4,
@@ -4590,7 +4590,7 @@ mod tests {
         // mode the whole design avoids.
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Providers);
-        app.apply(Update::Providers(vec![
+        app.apply(Event::Providers(vec![
             provider("torrent", "ready", true, false),
             crate::app::ProviderRow {
                 last_error: Some("cloudflare challenge (403)".into()),
@@ -4610,7 +4610,7 @@ mod tests {
         // and the screen must not conflate them.
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Providers);
-        app.apply(Update::Providers(vec![provider("torrent", "held back", false, true)]));
+        app.apply(Event::Providers(vec![provider("torrent", "held back", false, true)]));
 
         let buf = render_to_buffer(&app, 110, 20);
         let text = text_of(&buf);
@@ -4640,7 +4640,7 @@ mod tests {
         // completely different responses, so the screen must not guess between them.
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Providers);
-        app.apply(Update::ProviderNote(
+        app.apply(Event::ProviderNote(
             "vpn guard: expected one of [Mullvad], but traffic is leaving via Comcast".into(),
         ));
 
@@ -4657,13 +4657,13 @@ mod tests {
         // Discovering a failing guard only when playback refuses would be far worse than
         // a badge that is always visible.
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
-        app.apply(Update::Vpn(Some(GuardView::Protected { exit: "Mullvad · SE".into() })));
+        app.apply(Event::Vpn(Some(GuardView::Protected { exit: "Mullvad · SE".into() })));
 
         let buf = render_to_buffer(&app, 120, 20);
         let text = text_of(&buf);
         assert!(text.contains("Mullvad"), "badge missing from the header");
 
-        app.apply(Update::Vpn(Some(GuardView::Leaking)));
+        app.apply(Event::Vpn(Some(GuardView::Leaking)));
         let leaking = render_to_buffer(&app, 120, 20);
         let leaking_text = text_of(&leaking);
         assert!(leaking_text.contains("LEAK"));
@@ -4679,10 +4679,10 @@ mod tests {
     fn a_guard_that_was_already_leaking_does_not_re_announce() {
         // Repeating the alert on every verification tick would be noise.
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
-        app.apply(Update::Vpn(Some(GuardView::Leaking)));
+        app.apply(Event::Vpn(Some(GuardView::Leaking)));
         let announced = |a: &App| a.logs.iter().map(|l| l.count).sum::<u32>();
         let after_first = announced(&app);
-        app.apply(Update::Vpn(Some(GuardView::Leaking)));
+        app.apply(Event::Vpn(Some(GuardView::Leaking)));
         assert_eq!(announced(&app), after_first, "re-announced an unchanged leak");
     }
 
@@ -4724,7 +4724,7 @@ mod tests {
         let meter_cell = find_cell(&playing, "█").expect("no playhead was drawn");
         assert_eq!(playing[meter_cell].fg, app.palette.color(Role::Obi));
 
-        app.apply(Update::Playback { position: 552.0, duration: Some(1435.0), paused: true });
+        app.apply(Event::Playback { position: 552.0, duration: Some(1435.0), paused: true });
         let paused = render_to_buffer(&app, 100, 26);
         assert_eq!(paused[meter_cell].fg, app.palette.color(Role::TextDim));
         assert!(text_of(&paused).contains("paused"));
@@ -4736,7 +4736,7 @@ mod tests {
         // The status-line hint is always there; the prompt in the block is not.
         assert!(!text_of(&render_to_buffer(&app, 100, 26)).contains("skip opening"));
 
-        app.apply(Update::SkipAvailable { kind: SkipKind::Opening, to: 93.2 });
+        app.apply(Event::SkipAvailable { kind: SkipKind::Opening, to: 93.2 });
         let text = text_of(&render_to_buffer(&app, 100, 26));
         assert!(text.contains("skip opening"), "prompt missing:\n{text}");
         assert!(text.contains("S ⟩"), "the prompt has to name the key:\n{text}");
@@ -4790,7 +4790,7 @@ mod tests {
         // The score is the whole point: two rows at 62% and 61% is a real coin-flip, while
         // 88% against 30% means something else went wrong and the list is worth distrusting.
         let mut app = app_at_episodes();
-        app.apply(Update::MatchChoices {
+        app.apply(Event::MatchChoices {
             id: AnilistId::new(1),
             provider_id: "torrent".into(),
             candidates: vec![
@@ -4909,7 +4909,7 @@ mod tests {
         // Provider health and the VPN badge stay legible through the transition — those are
         // exactly the things you want to see when a stream is slow to resolve.
         let mut app = app_playing();
-        app.apply(Update::Vpn(Some(GuardView::Protected { exit: "Mullvad".into() })));
+        app.apply(Event::Vpn(Some(GuardView::Protected { exit: "Mullvad".into() })));
         app.eyecatch = Some(crate::Eyecatch::new("x"));
         for _ in 0..crate::eyecatch::SWEEP_FRAMES {
             app.tick_animation();
@@ -5109,7 +5109,7 @@ mod tests {
             status,
         };
         let mut app = app_with(Content::Entries(Vec::new()));
-        app.apply(crate::app::Update::Stores(vec![
+        app.apply(crate::app::Event::Stores(vec![
             StoreRow {
                 id: "aaaa".into(),
                 name: "Our plugins, run from a closet in a flat in Malmö".into(),
@@ -5423,8 +5423,8 @@ mod tests {
         // that set a status during the fifteen-minute wait.
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Accounts);
-        app.apply(crate::app::Update::Sync(Box::new(crate::app::SyncState::new("simkl"))));
-        app.apply(crate::app::Update::DeviceCode(Some(crate::app::DeviceCodePrompt {
+        app.apply(crate::app::Event::Sync(Box::new(crate::app::SyncState::new("simkl"))));
+        app.apply(crate::app::Event::DeviceCode(Some(crate::app::DeviceCodePrompt {
             tracker: "simkl".into(),
             code: "FA433".into(),
             url: "https://simkl.com/pin".into(),
@@ -5447,7 +5447,7 @@ mod tests {
         // the one string in the app a user has to transcribe by hand.
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Accounts);
-        app.apply(crate::app::Update::DeviceCode(Some(crate::app::DeviceCodePrompt {
+        app.apply(crate::app::Event::DeviceCode(Some(crate::app::DeviceCodePrompt {
             tracker: "simkl".into(),
             code: "FA433".into(),
             url: "https://simkl.com/pin".into(),
@@ -5468,7 +5468,7 @@ mod tests {
     fn the_prompt_disappears_once_the_flow_ends() {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Accounts);
-        app.apply(crate::app::Update::DeviceCode(Some(crate::app::DeviceCodePrompt {
+        app.apply(crate::app::Event::DeviceCode(Some(crate::app::DeviceCodePrompt {
             tracker: "simkl".into(),
             code: "FA433".into(),
             url: "https://simkl.com/pin".into(),
@@ -5476,7 +5476,7 @@ mod tests {
         assert!(text_of(&render_to_buffer(&app, 110, 20)).contains("F A 4 3 3"));
 
         // A prompt left up after approval asks for a code that no longer does anything.
-        app.apply(crate::app::Update::DeviceCode(None));
+        app.apply(crate::app::Event::DeviceCode(None));
         assert!(!text_of(&render_to_buffer(&app, 110, 20)).contains("F A 4 3 3"));
     }
 
@@ -5495,7 +5495,7 @@ mod tests {
         // download from a stalled one; bytes that stop moving can.
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Downloads);
-        app.apply(crate::app::Update::Downloads(vec![crate::app::DownloadRow {
+        app.apply(crate::app::Event::Downloads(vec![crate::app::DownloadRow {
             id: 1,
             anilist_id: AnilistId::new(1),
             title: "Frieren".into(),
@@ -5519,7 +5519,7 @@ mod tests {
     fn a_failed_download_shows_its_reason_rather_than_just_failing() {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Downloads);
-        app.apply(crate::app::Update::Downloads(vec![crate::app::DownloadRow {
+        app.apply(crate::app::Event::Downloads(vec![crate::app::DownloadRow {
             id: 1,
             anilist_id: AnilistId::new(1),
             title: "Frieren".into(),
@@ -5541,7 +5541,7 @@ mod tests {
         // The rows stopped at the fold while the cursor carried on below it.
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Downloads);
-        app.apply(crate::app::Update::Downloads(
+        app.apply(crate::app::Event::Downloads(
             (1..=40)
                 .map(|n| crate::app::DownloadRow {
                     id: n,
@@ -5900,7 +5900,7 @@ mod tests {
     fn an_empty_episode_table_says_what_is_known() {
         // A source is ready: "no source is configured" was false here.
         let mut app = episodes_open_on(entry(1, "Paper Kite"));
-        app.apply(Update::Providers(vec![provider("someplugin", "ready", true, false)]));
+        app.apply(Event::Providers(vec![provider("someplugin", "ready", true, false)]));
         let text = text_of(&render_to_buffer(&app, 120, 30));
         assert!(text.contains("NO EPISODES LISTED"), "{text}");
         assert!(text.contains("m searches for the right match"), "{text}");
@@ -5913,7 +5913,7 @@ mod tests {
             ..entry(2, "Lantern Season")
         };
         let mut app = episodes_open_on(unaired);
-        app.apply(Update::Providers(vec![provider("someplugin", "ready", true, false)]));
+        app.apply(Event::Providers(vec![provider("someplugin", "ready", true, false)]));
         let text = text_of(&render_to_buffer(&app, 120, 30));
         assert!(text.contains("NOTHING HAS AIRED YET"), "{text}");
         assert!(text.contains("ep 1 in 1d 12h"), "{text}");
@@ -5922,7 +5922,7 @@ mod tests {
     #[test]
     fn the_match_picker_heading_does_not_claim_the_match_was_unsure() {
         let mut app = app_at_episodes();
-        app.apply(Update::MatchChoices {
+        app.apply(Event::MatchChoices {
             id: AnilistId::new(1),
             provider_id: "someplugin".into(),
             candidates: vec![crate::MatchCandidate {
@@ -5942,7 +5942,7 @@ mod tests {
     fn the_header_shows_each_source_as_it_stands() {
         // Torrents off, plugins serving: nothing is failing, and nothing alerts.
         let mut app = app_with(Content::Entries(vec![entry(1, "Paper Kite")]));
-        app.apply(Update::Providers(vec![crate::app::ProviderRow {
+        app.apply(Event::Providers(vec![crate::app::ProviderRow {
             kind: "plugin".into(),
             ..provider("someplugin", "ready", true, false)
         }]));
@@ -5955,7 +5955,7 @@ mod tests {
         assert!((0..120).all(|x| buf[(x, 0)].fg != alert), "nothing in the header alerts");
 
         // A source that is failing does.
-        app.apply(Update::Providers(vec![crate::app::ProviderRow {
+        app.apply(Event::Providers(vec![crate::app::ProviderRow {
             kind: "plugin".into(),
             ..provider("someplugin", "down", false, false)
         }]));
@@ -5967,7 +5967,7 @@ mod tests {
     #[test]
     fn a_signed_out_tracker_is_not_drawn_as_a_separator() {
         let mut app = app_with(Content::Entries(vec![entry(1, "Paper Kite")]));
-        app.apply(Update::Sync(Box::new(crate::app::SyncState::new("kitsu"))));
+        app.apply(Event::Sync(Box::new(crate::app::SyncState::new("kitsu"))));
         let header = lines_of(&app, 120, 30)[0].clone();
         assert!(header.contains("kitsu ○"), "{header}");
         assert!(!header.contains("kitsu ·"), "{header}");
@@ -5998,7 +5998,7 @@ mod tests {
     fn a_seasonal_list_names_its_season_and_says_when_it_stopped_short() {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Seasonal);
-        app.apply(Update::Caption {
+        app.apply(Event::Caption {
             view: crate::app::ContentFor::Seasonal,
             text: "fall 2026 · the 40 most popular".into(),
         });
@@ -6009,7 +6009,7 @@ mod tests {
         assert!(text.contains("FALL 2026 · THE 40 MOST POPULAR"), "{text}");
 
         // A caption belongs to the list it came with.
-        app.apply(Update::Content {
+        app.apply(Event::Content {
             view: crate::app::ContentFor::Continue,
             content: Content::Empty,
         });
@@ -6024,8 +6024,8 @@ mod tests {
         app.search_query = "kite".into();
         app.searched_query = "kite".into();
         let view = app.content_view().unwrap();
-        app.apply(Update::Caption { view: view.clone(), text: "showing the first 30".into() });
-        app.apply(Update::Content { view, content: Content::Entries(vec![entry(1, "Kite")]) });
+        app.apply(Event::Caption { view: view.clone(), text: "showing the first 30".into() });
+        app.apply(Event::Content { view, content: Content::Entries(vec![entry(1, "Kite")]) });
         let lines = lines_of(&app, 120, 30);
         let prompt = lines.iter().find(|l| l.contains("FIND")).unwrap();
         assert!(prompt.contains("showing the first 30"), "{prompt}");
@@ -6117,7 +6117,7 @@ mod tests {
         let long = "An Invented Show With a Title Too Long for the Column";
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Downloads);
-        app.apply(Update::Downloads(vec![
+        app.apply(Event::Downloads(vec![
             download(long, "4", DownloadState::Queued, 0),
             download(long, "3", DownloadState::Paused, 1_468_000_000),
             download(long, "2", DownloadState::Active, 0),
@@ -6161,9 +6161,9 @@ mod tests {
         {
             let mut app = app_with(Content::Empty);
             app.go_to_section(section);
-            app.apply(Update::Downloads(vec![download("Kite", "1", DownloadState::Queued, 0)]));
-            app.apply(Update::Sync(Box::new(crate::app::SyncState::new("kitsu"))));
-            app.apply(Update::Providers(vec![provider("one", "ready", true, false)]));
+            app.apply(Event::Downloads(vec![download("Kite", "1", DownloadState::Queued, 0)]));
+            app.apply(Event::Sync(Box::new(crate::app::SyncState::new("kitsu"))));
+            app.apply(Event::Providers(vec![provider("one", "ready", true, false)]));
             app.nav.focus_rail();
             let buf = render_to_buffer(&app, 120, 30);
             let stage_marks: Vec<(u16, u16)> = (2..28)
@@ -6185,7 +6185,7 @@ mod tests {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Providers);
         app.nav.focus_stage();
-        app.apply(Update::Providers(vec![
+        app.apply(Event::Providers(vec![
             provider("one", "ready", true, false),
             provider("two", "ready", true, false),
         ]));
@@ -6212,7 +6212,7 @@ mod tests {
     fn a_narrow_providers_table_drops_columns_rather_than_halving_words() {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Providers);
-        app.apply(Update::Providers(vec![provider("someplugin", "ready", true, false)]));
+        app.apply(Event::Providers(vec![provider("someplugin", "ready", true, false)]));
         let text = text_of(&render_to_buffer(&app, 40, 15));
         assert!(
             !text.contains("STAT\u{20}")
@@ -6244,7 +6244,7 @@ mod tests {
         assert!(text.contains("trackers.enabled"), "nothing to sign in to yet:\n{text}");
         assert!(!text.contains("run \"accounts\""), "{text}");
 
-        app.apply(Update::Sync(Box::new(crate::app::SyncState::new("kitsu"))));
+        app.apply(Event::Sync(Box::new(crate::app::SyncState::new("kitsu"))));
         let text = text_of(&render_to_buffer(&app, 120, 30));
         assert!(text.contains("press 8 for Accounts to sign in"), "{text}");
     }

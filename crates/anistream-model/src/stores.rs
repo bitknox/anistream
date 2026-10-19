@@ -115,7 +115,7 @@ pub struct LocalPluginRow {
 
 /// A credential in transit.
 ///
-/// Exists for exactly one reason: `Task` derives `Debug` and the task router logs a task
+/// Exists for exactly one reason: `Command` derives `Debug` and the task router logs a task
 /// when routing goes wrong. A plain `String` there would put a password in the log file;
 /// this prints a placeholder instead, everywhere, unconditionally.
 #[derive(Clone, PartialEq, Eq)]

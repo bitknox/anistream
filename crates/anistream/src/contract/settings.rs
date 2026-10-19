@@ -8,7 +8,7 @@
 use anistream_core::settings::SettingValue;
 use anistream_providers::{MockProvider, ProviderRegistry};
 use anistream_testkit::sources;
-use anistream_ui::app::{Task, Update};
+use anistream_ui::app::{Command, Event};
 
 use super::toasts;
 use crate::harness::{Harness, Options, names};
@@ -23,23 +23,23 @@ fn order(entries: &[&str]) -> Vec<String> {
 /// A new source order, as `K` and `J` on Providers make one: in effect at once, then saved.
 fn reorder(h: &mut Harness, to: &[&str]) {
     h.app_mut().config.providers.order = order(to);
-    h.send(Task::SaveSetting {
+    h.send(Command::SaveSetting {
         table: &["providers"],
         key: "order",
         value: SettingValue::List(order(to)),
     });
 }
 
-fn written(update: &Update) -> (&anistream_core::config::Config, Option<(&[&str], &str)>) {
+fn written(update: &Event) -> (&anistream_core::config::Config, Option<(&[&str], &str)>) {
     match update {
-        Update::SettingWritten { on_disk, failed } => (on_disk, *failed),
+        Event::SettingWritten { on_disk, failed } => (on_disk, *failed),
         other => panic!("not a settings write: {other:?}"),
     }
 }
 
-fn provider_ids(update: &Update) -> Vec<String> {
+fn provider_ids(update: &Event) -> Vec<String> {
     match update {
-        Update::Providers(rows) => rows.iter().map(|row| row.id.clone()).collect(),
+        Event::Providers(rows) => rows.iter().map(|row| row.id.clone()).collect(),
         other => panic!("not the provider rows: {other:?}"),
     }
 }
@@ -47,7 +47,7 @@ fn provider_ids(update: &Update) -> Vec<String> {
 #[tokio::test]
 async fn an_ordinary_write_lands_in_the_file_and_is_read_back() {
     let mut h = Harness::new().await;
-    let job = h.send(Task::SaveSetting {
+    let job = h.send(Command::SaveSetting {
         table: &["playback"],
         key: "auto_next",
         value: SettingValue::Bool(false),
@@ -68,7 +68,7 @@ async fn an_ordinary_write_lands_in_the_file_and_is_read_back() {
 #[tokio::test]
 async fn a_setting_with_no_row_is_saved_without_a_word() {
     let mut h = Harness::new().await;
-    h.send(Task::SaveSetting {
+    h.send(Command::SaveSetting {
         table: &["playback"],
         key: "persisted_speed",
         value: SettingValue::Float(1.25),
@@ -83,13 +83,17 @@ async fn a_setting_with_no_row_is_saved_without_a_word() {
 async fn writes_in_a_row_land_in_order_and_each_sees_the_last() {
     let mut h = Harness::new().await;
     for (key, on) in [("auto_next", false), ("skip_opening", false), ("auto_next", true)] {
-        h.send(Task::SaveSetting { table: &["playback"], key, value: SettingValue::Bool(on) });
+        h.send(Command::SaveSetting {
+            table: &["playback"],
+            key,
+            value: SettingValue::Bool(on),
+        });
     }
     let updates = h.settle().await;
 
     let reads: Vec<(bool, bool)> = updates
         .iter()
-        .filter(|update| matches!(update, Update::SettingWritten { .. }))
+        .filter(|update| matches!(update, Event::SettingWritten { .. }))
         .map(|update| {
             let on_disk = written(update).0;
             (on_disk.playback.auto_next, on_disk.playback.skip_opening)
@@ -141,8 +145,8 @@ async fn an_order_that_takes_a_source_away_rebuilds_the_chain() {
             "Providers"
         ]
     );
-    assert!(matches!(&updates[4], Update::Vpn(None)));
-    let Update::ProviderNote(note) = &updates[5] else { unreachable!() };
+    assert!(matches!(&updates[4], Event::Vpn(None)));
+    let Event::ProviderNote(note) = &updates[5] else { unreachable!() };
     assert_eq!(note, "torrents are off — the session was stopped");
     // Rebuilt from the config, which describes no source the fixture one could be.
     assert!(provider_ids(&updates[6]).is_empty());
@@ -153,7 +157,7 @@ async fn an_order_that_takes_a_source_away_rebuilds_the_chain() {
 async fn a_write_the_config_refuses_leaves_the_file_alone_and_alerts() {
     let mut h = Harness::new().await;
     // A source-defining key, refused by validation: no rebuild follows.
-    h.send(Task::SaveSetting {
+    h.send(Command::SaveSetting {
         table: &["providers", "torrent"],
         key: "enabled",
         value: SettingValue::Bool(true),
@@ -174,7 +178,7 @@ async fn a_file_that_does_not_load_is_not_written_over() {
     let mut h =
         Harness::with(Options { config: Some(BROKEN.into()), ..Options::default() }).await;
     assert!(h.app().notice.is_some(), "the app says it is running on the defaults");
-    h.send(Task::SaveSetting {
+    h.send(Command::SaveSetting {
         table: &["playback"],
         key: "auto_next",
         value: SettingValue::Bool(false),

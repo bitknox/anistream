@@ -11,15 +11,17 @@
 #   - `ToastKind` everywhere;
 #   - the type `Toast` named anywhere in the `anistream` crate — library, binary, tests and
 #     examples — which deals in notices only. Not the variant: `Update::Toast` keeps its name,
-#     and so does the name the contract tests list it under.
+#     as `Event::Toast` once rename.sh has run, and so does the name the contract tests list it
+#     under.
 #
 # What is left after a run is what the compiler then names: an import to adjust by hand.
 # Deleted, with the other codemods, once the extraction is done.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 
-git grep -lzE 'Toast::(info|alert)\(|ToastKind' -- 'crates/*.rs' |
-  xargs -0 perl -pi -e 's/\bToast::(info|alert)\(/Notice::$1(/g; s/\bToastKind\b/NoticeKind/g'
+# Nothing left to convert is not a failure: that is what a rerun usually finds.
+{ git grep -lzE 'Toast::(info|alert)\(|ToastKind' -- 'crates/*.rs' || true; } |
+  xargs -0 -r perl -pi -e 's/\bToast::(info|alert)\(/Notice::$1(/g; s/\bToastKind\b/NoticeKind/g'
 
-git grep -lzP '(?<!Update::)(?<!")\bToast\b(?!")' -- 'crates/anistream/*.rs' |
-  xargs -0 perl -pi -e 's/(?<!Update::)(?<!")\bToast\b(?!")/Notice/g'
+{ git grep -lzP '(?<!Update::)(?<!Event::)(?<!")\bToast\b(?!")' -- 'crates/anistream/*.rs' || true; } |
+  xargs -0 -r perl -pi -e 's/(?<!Update::)(?<!Event::)(?<!")\bToast\b(?!")/Notice/g'

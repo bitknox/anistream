@@ -1,7 +1,7 @@
 //! The app with its effects, driven as the event loop drives them, for the contract tests.
 //!
 //! [`dispatch`](crate::dispatch) and the loop's reactions to what it sends back are the layer
-//! that turns a [`Task`] into work and the work's answers into [`Update`]s. Nothing tested it:
+//! that turns a [`Command`] into work and the work's answers into [`Event`]s. Nothing tested it:
 //! the reducer's tests stop at the task it returns, and the end-to-end tests start mpv. The
 //! contract tests pin what each task sends back and in what order, so that moving all of it
 //! into an engine can be shown to change nothing.
@@ -45,7 +45,7 @@ use anistream_track::{
 };
 use anistream_ui::{
     Clock, Zone,
-    app::{App, JobId, Notice, Task, Update},
+    app::{App, Command, Event, JobId, Notice},
     image::ImageEngine,
     keymap::{Action, Keymap},
     screens, theme,
@@ -198,13 +198,13 @@ impl Harness {
             crate::show_config_problem(&mut app, &paths, problem);
         }
         match stores.rows() {
-            Ok(rows) => app.apply(Update::Stores(rows)),
-            Err(e) => app.apply(Update::Toast(Notice::alert(e))),
+            Ok(rows) => app.apply(Event::Stores(rows)),
+            Err(e) => app.apply(Event::Toast(Notice::alert(e))),
         }
         // As `--preview` has them: the rows the plugin load's reorder puts up a moment in.
-        app.apply(Update::Providers(data::provider_rows(&registry)));
+        app.apply(Event::Providers(data::provider_rows(&registry)));
         for state in sync.initial_states() {
-            app.apply(Update::Sync(Box::new(state)));
+            app.apply(Event::Sync(Box::new(state)));
         }
 
         let (arrivals, arrived) = mpsc::unbounded_channel();
@@ -243,18 +243,18 @@ impl Harness {
     /// # Panics
     ///
     /// On a task that would start mpv or open a browser: these tests have neither.
-    pub fn send(&mut self, task: Task) -> Option<JobId> {
+    pub fn send(&mut self, task: Command) -> Option<JobId> {
         assert!(
             !matches!(
                 task,
-                Task::Play { .. }
-                    | Task::PlaySource { .. }
-                    | Task::PlayParty { .. }
-                    | Task::PlayLocal { .. }
-                    | Task::PlayTrailer { .. }
-                    | Task::OpenExternal { .. }
-                    | Task::OpenAdmin { .. }
-                    | Task::Connect { .. }
+                Command::Play { .. }
+                    | Command::PlaySource { .. }
+                    | Command::PlayParty { .. }
+                    | Command::PlayLocal { .. }
+                    | Command::PlayTrailer { .. }
+                    | Command::OpenExternal { .. }
+                    | Command::OpenAdmin { .. }
+                    | Command::Connect { .. }
             ),
             "the harness does not run {task:?}: it would start mpv or open a browser"
         );
@@ -293,7 +293,7 @@ impl Harness {
     /// so the updates end exactly when the last of the work does. A job still open then is a
     /// job that never ended, and fails the test by name. The one piece of work that holds no
     /// sender is a prefetch, which reports nothing, and is not waited for.
-    pub async fn settle(&mut self) -> Vec<Update> {
+    pub async fn settle(&mut self) -> Vec<Event> {
         self.channels.held = None;
         let deadline = tokio::time::Instant::now() + PATIENCE;
         let mut seen = Vec::new();
@@ -394,7 +394,7 @@ impl Harness {
     }
 
     /// `JobGuard::start`, then `dispatch`, exactly as the loop calls them.
-    fn dispatch(&mut self, task: Task) -> Option<JobId> {
+    fn dispatch(&mut self, task: Command) -> Option<JobId> {
         let tx = self.channels.sender();
         let job = JobGuard::start(&mut self.app, &task, &tx);
         let id = job.as_ref().map(|job| job.id);
@@ -418,31 +418,31 @@ impl Harness {
     }
 
     /// One update, as the loop's `rx.recv()` arm handles it.
-    async fn react(&mut self, update: Update, seen: &mut Vec<Update>) {
+    async fn react(&mut self, update: Event, seen: &mut Vec<Event>) {
         // First, the loop hands an invite link to the terminal's clipboard. There is no
         // terminal here, so nothing marks the link copied.
 
         // A finished episode's progress goes to the trackers now, not at the next drain tick.
-        if matches!(update, Update::ProgressQueued) {
+        if matches!(update, Event::ProgressQueued) {
             let (sync, tx) = (self.sync.clone(), self.channels.sender());
             tokio::spawn(async move { tracking::drain_once(&sync, &tx).await });
         }
         if let Some(notice) = self.meta.take_notice() {
-            self.apply(Update::MetaStatus(data::meta_rows(&self.meta)), seen);
-            self.apply(Update::Toast(Notice::info(notice)), seen);
+            self.apply(Event::MetaStatus(data::meta_rows(&self.meta)), seen);
+            self.apply(Event::Toast(Notice::info(notice)), seen);
         }
         if matches!(
             update,
-            Update::SettingsSaved | Update::SourcesChanged | Update::SourcesReordered
+            Event::SettingsSaved | Event::SourcesChanged | Event::SourcesReordered
         ) && let Ok(mut shared) = self.shared_config.write()
         {
             *shared = self.app.config.clone();
         }
-        if matches!(update, Update::SourcesReordered) {
+        if matches!(update, Event::SourcesReordered) {
             sources::arrange(&self.registry, &self.app.config);
-            self.apply(Update::Providers(data::provider_rows(&self.registry)), seen);
+            self.apply(Event::Providers(data::provider_rows(&self.registry)), seen);
         }
-        if matches!(update, Update::SourcesChanged) {
+        if matches!(update, Event::SourcesChanged) {
             assert!(
                 !sources::torrent_wanted(&self.app.config),
                 "the harness has no torrent session or VPN guard to bring up"
@@ -465,11 +465,11 @@ impl Harness {
         self.apply(update, seen);
     }
 
-    fn apply(&mut self, update: Update, seen: &mut Vec<Update>) {
+    fn apply(&mut self, update: Event, seen: &mut Vec<Event>) {
         seen.push(copy(&update));
         match update {
             // Decoded at once rather than on the blocking pool: settling has no frame to keep.
-            Update::ArtworkReady { url, bytes } => {
+            Event::ArtworkReady { url, bytes } => {
                 crate::covers::hand_over(&mut self.app, crate::covers::now(url, &bytes));
             }
             update => self.app.apply(update),
@@ -486,16 +486,16 @@ impl Harness {
 /// sent before the new one existed.
 #[derive(Default)]
 struct Channels {
-    open: VecDeque<mpsc::UnboundedReceiver<Update>>,
-    newest: Option<mpsc::WeakUnboundedSender<Update>>,
+    open: VecDeque<mpsc::UnboundedReceiver<Event>>,
+    newest: Option<mpsc::WeakUnboundedSender<Event>>,
     /// Holds the newest channel open between a [`Harness::send`] and the settle after it,
     /// when nothing else may yet be holding it.
-    held: Option<mpsc::UnboundedSender<Update>>,
+    held: Option<mpsc::UnboundedSender<Event>>,
 }
 
 impl Channels {
     /// A sender to the open channel, or to a new one when it has closed.
-    fn sender(&mut self) -> mpsc::UnboundedSender<Update> {
+    fn sender(&mut self) -> mpsc::UnboundedSender<Event> {
         if let Some(tx) = self.newest.as_ref().and_then(mpsc::WeakUnboundedSender::upgrade) {
             return tx;
         }
@@ -516,173 +516,169 @@ impl Channels {
 ///
 /// Exhaustive on purpose: a new variant does not compile until it has a name here, which is
 /// the moment to decide what the contract says about it.
-pub fn name(update: &Update) -> &'static str {
+pub fn name(update: &Event) -> &'static str {
     match update {
-        Update::JobNote { .. } => "JobNote",
-        Update::JobDone(_) => "JobDone",
-        Update::Content { .. } => "Content",
-        Update::Caption { .. } => "Caption",
-        Update::CalendarWindow { .. } => "CalendarWindow",
-        Update::CalendarBackfill { .. } => "CalendarBackfill",
-        Update::Detail(_) => "Detail",
-        Update::Status(_) => "Status",
-        Update::Toast(_) => "Toast",
-        Update::Providers(_) => "Providers",
-        Update::MetaStatus(_) => "MetaStatus",
-        Update::SettingsSaved => "SettingsSaved",
-        Update::SettingWritten { .. } => "SettingWritten",
-        Update::SourcesChanged => "SourcesChanged",
-        Update::SourcesReordered => "SourcesReordered",
-        Update::ProviderNote(_) => "ProviderNote",
-        Update::ProviderPreference(_) => "ProviderPreference",
-        Update::MatchChoices { .. } => "MatchChoices",
-        Update::Sources { .. } => "Sources",
-        Update::PlaybackVolume(_) => "PlaybackVolume",
-        Update::ActiveProvider(_) => "ActiveProvider",
-        Update::PlayerPlayEpisode { .. } => "PlayerPlayEpisode",
-        Update::PlaybackKept => "PlaybackKept",
-        Update::EpisodeLeft { .. } => "EpisodeLeft",
-        Update::PlayerTranslation(_) => "PlayerTranslation",
-        Update::PlayerUpscaling(_) => "PlayerUpscaling",
-        Update::PlayerNightMode(_) => "PlayerNightMode",
-        Update::PlayerToneMapping(_) => "PlayerToneMapping",
-        Update::PrefetchNext { .. } => "PrefetchNext",
-        Update::Playback { .. } => "Playback",
-        Update::SkipAvailable { .. } => "SkipAvailable",
-        Update::SkipCleared => "SkipCleared",
-        Update::PlaybackSpeed(_) => "PlaybackSpeed",
-        Update::PlaybackEnded { .. } => "PlaybackEnded",
-        Update::Resumed { .. } => "Resumed",
-        Update::Sync(_) => "Sync",
-        Update::ProgressQueued => "ProgressQueued",
-        Update::Conflicts(_) => "Conflicts",
-        Update::Episodes { .. } => "Episodes",
-        Update::Vpn(_) => "Vpn",
-        Update::ArtworkReady { .. } => "ArtworkReady",
-        Update::ImageFailed { .. } => "ImageFailed",
-        Update::Downloads(_) => "Downloads",
-        Update::Seeding(_) => "Seeding",
-        Update::DeviceCode(_) => "DeviceCode",
-        Update::LastAired(_) => "LastAired",
-        Update::Stores(_) => "Stores",
-        Update::StorePreview(_) => "StorePreview",
-        Update::StoreJoined { .. } => "StoreJoined",
-        Update::InviteLink(_) => "InviteLink",
-        Update::StoreMembers { .. } => "StoreMembers",
-        Update::LocalPlugins { .. } => "LocalPlugins",
+        Event::JobNote { .. } => "JobNote",
+        Event::JobDone(_) => "JobDone",
+        Event::Content { .. } => "Content",
+        Event::Caption { .. } => "Caption",
+        Event::CalendarWindow { .. } => "CalendarWindow",
+        Event::CalendarBackfill { .. } => "CalendarBackfill",
+        Event::Detail(_) => "Detail",
+        Event::Status(_) => "Status",
+        Event::Toast(_) => "Toast",
+        Event::Providers(_) => "Providers",
+        Event::MetaStatus(_) => "MetaStatus",
+        Event::SettingsSaved => "SettingsSaved",
+        Event::SettingWritten { .. } => "SettingWritten",
+        Event::SourcesChanged => "SourcesChanged",
+        Event::SourcesReordered => "SourcesReordered",
+        Event::ProviderNote(_) => "ProviderNote",
+        Event::ProviderPreference(_) => "ProviderPreference",
+        Event::MatchChoices { .. } => "MatchChoices",
+        Event::Sources { .. } => "Sources",
+        Event::PlaybackVolume(_) => "PlaybackVolume",
+        Event::ActiveProvider(_) => "ActiveProvider",
+        Event::PlayerPlayEpisode { .. } => "PlayerPlayEpisode",
+        Event::PlaybackKept => "PlaybackKept",
+        Event::EpisodeLeft { .. } => "EpisodeLeft",
+        Event::PlayerTranslation(_) => "PlayerTranslation",
+        Event::PlayerUpscaling(_) => "PlayerUpscaling",
+        Event::PlayerNightMode(_) => "PlayerNightMode",
+        Event::PlayerToneMapping(_) => "PlayerToneMapping",
+        Event::PrefetchNext { .. } => "PrefetchNext",
+        Event::Playback { .. } => "Playback",
+        Event::SkipAvailable { .. } => "SkipAvailable",
+        Event::SkipCleared => "SkipCleared",
+        Event::PlaybackSpeed(_) => "PlaybackSpeed",
+        Event::PlaybackEnded { .. } => "PlaybackEnded",
+        Event::Resumed { .. } => "Resumed",
+        Event::Sync(_) => "Sync",
+        Event::ProgressQueued => "ProgressQueued",
+        Event::Conflicts(_) => "Conflicts",
+        Event::Episodes { .. } => "Episodes",
+        Event::Vpn(_) => "Vpn",
+        Event::ArtworkReady { .. } => "ArtworkReady",
+        Event::ImageFailed { .. } => "ImageFailed",
+        Event::Downloads(_) => "Downloads",
+        Event::Seeding(_) => "Seeding",
+        Event::DeviceCode(_) => "DeviceCode",
+        Event::LastAired(_) => "LastAired",
+        Event::Stores(_) => "Stores",
+        Event::StorePreview(_) => "StorePreview",
+        Event::StoreJoined { .. } => "StoreJoined",
+        Event::InviteLink(_) => "InviteLink",
+        Event::StoreMembers { .. } => "StoreMembers",
+        Event::LocalPlugins { .. } => "LocalPlugins",
     }
 }
 
 /// Every update's [`name`], in order.
-pub fn names(updates: &[Update]) -> Vec<&'static str> {
+pub fn names(updates: &[Event]) -> Vec<&'static str> {
     updates.iter().map(name).collect()
 }
 
 /// An update, twice: one for the app to apply and one for the test to read.
 ///
-/// By hand because `Update` is not `Clone`, though everything it carries is. Exhaustive like
+/// By hand because `Event` is not `Clone`, though everything it carries is. Exhaustive like
 /// [`name`], so the two cannot drift apart.
-fn copy(update: &Update) -> Update {
+fn copy(update: &Event) -> Event {
     match update {
-        Update::JobNote { job, note, wait } => {
-            Update::JobNote { job: *job, note: note.clone(), wait: *wait }
+        Event::JobNote { job, note, wait } => {
+            Event::JobNote { job: *job, note: note.clone(), wait: *wait }
         }
-        Update::JobDone(job) => Update::JobDone(*job),
-        Update::Content { view, content } => {
-            Update::Content { view: view.clone(), content: content.clone() }
+        Event::JobDone(job) => Event::JobDone(*job),
+        Event::Content { view, content } => {
+            Event::Content { view: view.clone(), content: content.clone() }
         }
-        Update::Caption { view, text } => {
-            Update::Caption { view: view.clone(), text: text.clone() }
+        Event::Caption { view, text } => {
+            Event::Caption { view: view.clone(), text: text.clone() }
         }
-        Update::CalendarWindow { anchor, pages, more_past } => {
-            Update::CalendarWindow { anchor: *anchor, pages: *pages, more_past: *more_past }
+        Event::CalendarWindow { anchor, pages, more_past } => {
+            Event::CalendarWindow { anchor: *anchor, pages: *pages, more_past: *more_past }
         }
-        Update::CalendarBackfill { page, entries, more_past } => Update::CalendarBackfill {
+        Event::CalendarBackfill { page, entries, more_past } => Event::CalendarBackfill {
             page: *page,
             entries: entries.clone(),
             more_past: *more_past,
         },
-        Update::Detail(entry) => Update::Detail(entry.clone()),
-        Update::Status(text) => Update::Status(text.clone()),
-        Update::Toast(toast) => Update::Toast(toast.clone()),
-        Update::Providers(rows) => Update::Providers(rows.clone()),
-        Update::MetaStatus(rows) => Update::MetaStatus(rows.clone()),
-        Update::SettingsSaved => Update::SettingsSaved,
-        Update::SettingWritten { on_disk, failed } => {
-            Update::SettingWritten { on_disk: on_disk.clone(), failed: *failed }
+        Event::Detail(entry) => Event::Detail(entry.clone()),
+        Event::Status(text) => Event::Status(text.clone()),
+        Event::Toast(toast) => Event::Toast(toast.clone()),
+        Event::Providers(rows) => Event::Providers(rows.clone()),
+        Event::MetaStatus(rows) => Event::MetaStatus(rows.clone()),
+        Event::SettingsSaved => Event::SettingsSaved,
+        Event::SettingWritten { on_disk, failed } => {
+            Event::SettingWritten { on_disk: on_disk.clone(), failed: *failed }
         }
-        Update::SourcesChanged => Update::SourcesChanged,
-        Update::SourcesReordered => Update::SourcesReordered,
-        Update::ProviderNote(text) => Update::ProviderNote(text.clone()),
-        Update::ProviderPreference(provider) => Update::ProviderPreference(provider.clone()),
-        Update::MatchChoices { id, provider_id, candidates } => Update::MatchChoices {
+        Event::SourcesChanged => Event::SourcesChanged,
+        Event::SourcesReordered => Event::SourcesReordered,
+        Event::ProviderNote(text) => Event::ProviderNote(text.clone()),
+        Event::ProviderPreference(provider) => Event::ProviderPreference(provider.clone()),
+        Event::MatchChoices { id, provider_id, candidates } => Event::MatchChoices {
             id: *id,
             provider_id: provider_id.clone(),
             candidates: candidates.clone(),
         },
-        Update::Sources { id, episode, candidates } => Update::Sources {
+        Event::Sources { id, episode, candidates } => {
+            Event::Sources { id: *id, episode: episode.clone(), candidates: candidates.clone() }
+        }
+        Event::PlaybackVolume(volume) => Event::PlaybackVolume(*volume),
+        Event::ActiveProvider(provider) => Event::ActiveProvider(provider.clone()),
+        Event::PlayerPlayEpisode { episode, title } => {
+            Event::PlayerPlayEpisode { episode: episode.clone(), title: title.clone() }
+        }
+        Event::PlaybackKept => Event::PlaybackKept,
+        Event::EpisodeLeft { id, episode, position, duration, watched } => Event::EpisodeLeft {
             id: *id,
             episode: episode.clone(),
-            candidates: candidates.clone(),
+            position: *position,
+            duration: *duration,
+            watched: *watched,
         },
-        Update::PlaybackVolume(volume) => Update::PlaybackVolume(*volume),
-        Update::ActiveProvider(provider) => Update::ActiveProvider(provider.clone()),
-        Update::PlayerPlayEpisode { episode, title } => {
-            Update::PlayerPlayEpisode { episode: episode.clone(), title: title.clone() }
+        Event::PlayerTranslation(translation) => Event::PlayerTranslation(*translation),
+        Event::PlayerUpscaling(mode) => Event::PlayerUpscaling(mode.clone()),
+        Event::PlayerNightMode(on) => Event::PlayerNightMode(*on),
+        Event::PlayerToneMapping(curve) => Event::PlayerToneMapping(curve.clone()),
+        Event::PrefetchNext { id, episode } => {
+            Event::PrefetchNext { id: *id, episode: episode.clone() }
         }
-        Update::PlaybackKept => Update::PlaybackKept,
-        Update::EpisodeLeft { id, episode, position, duration, watched } => {
-            Update::EpisodeLeft {
-                id: *id,
-                episode: episode.clone(),
-                position: *position,
-                duration: *duration,
-                watched: *watched,
-            }
+        Event::Playback { position, duration, paused } => {
+            Event::Playback { position: *position, duration: *duration, paused: *paused }
         }
-        Update::PlayerTranslation(translation) => Update::PlayerTranslation(*translation),
-        Update::PlayerUpscaling(mode) => Update::PlayerUpscaling(mode.clone()),
-        Update::PlayerNightMode(on) => Update::PlayerNightMode(*on),
-        Update::PlayerToneMapping(curve) => Update::PlayerToneMapping(curve.clone()),
-        Update::PrefetchNext { id, episode } => {
-            Update::PrefetchNext { id: *id, episode: episode.clone() }
+        Event::SkipAvailable { kind, to } => Event::SkipAvailable { kind: *kind, to: *to },
+        Event::SkipCleared => Event::SkipCleared,
+        Event::PlaybackSpeed(speed) => Event::PlaybackSpeed(*speed),
+        Event::PlaybackEnded { watched, ending } => {
+            Event::PlaybackEnded { watched: *watched, ending: ending.clone() }
         }
-        Update::Playback { position, duration, paused } => {
-            Update::Playback { position: *position, duration: *duration, paused: *paused }
+        Event::Resumed { position } => Event::Resumed { position: *position },
+        Event::Sync(state) => Event::Sync(state.clone()),
+        Event::ProgressQueued => Event::ProgressQueued,
+        Event::Conflicts(rows) => Event::Conflicts(rows.clone()),
+        Event::Episodes { id, rows } => Event::Episodes { id: *id, rows: rows.clone() },
+        Event::Vpn(guard) => Event::Vpn(guard.clone()),
+        Event::ArtworkReady { url, bytes } => {
+            Event::ArtworkReady { url: url.clone(), bytes: bytes.clone() }
         }
-        Update::SkipAvailable { kind, to } => Update::SkipAvailable { kind: *kind, to: *to },
-        Update::SkipCleared => Update::SkipCleared,
-        Update::PlaybackSpeed(speed) => Update::PlaybackSpeed(*speed),
-        Update::PlaybackEnded { watched, ending } => {
-            Update::PlaybackEnded { watched: *watched, ending: ending.clone() }
+        Event::ImageFailed { url, offline } => {
+            Event::ImageFailed { url: url.clone(), offline: *offline }
         }
-        Update::Resumed { position } => Update::Resumed { position: *position },
-        Update::Sync(state) => Update::Sync(state.clone()),
-        Update::ProgressQueued => Update::ProgressQueued,
-        Update::Conflicts(rows) => Update::Conflicts(rows.clone()),
-        Update::Episodes { id, rows } => Update::Episodes { id: *id, rows: rows.clone() },
-        Update::Vpn(guard) => Update::Vpn(guard.clone()),
-        Update::ArtworkReady { url, bytes } => {
-            Update::ArtworkReady { url: url.clone(), bytes: bytes.clone() }
-        }
-        Update::ImageFailed { url, offline } => {
-            Update::ImageFailed { url: url.clone(), offline: *offline }
-        }
-        Update::Downloads(rows) => Update::Downloads(rows.clone()),
-        Update::Seeding(rows) => Update::Seeding(rows.clone()),
-        Update::DeviceCode(prompt) => Update::DeviceCode(prompt.clone()),
-        Update::LastAired(rows) => Update::LastAired(rows.clone()),
-        Update::Stores(rows) => Update::Stores(rows.clone()),
-        Update::StorePreview(preview) => Update::StorePreview(preview.clone()),
-        Update::StoreJoined { store } => Update::StoreJoined { store: store.clone() },
-        Update::InviteLink(view) => Update::InviteLink(view.clone()),
-        Update::StoreMembers { store, members, invites } => Update::StoreMembers {
+        Event::Downloads(rows) => Event::Downloads(rows.clone()),
+        Event::Seeding(rows) => Event::Seeding(rows.clone()),
+        Event::DeviceCode(prompt) => Event::DeviceCode(prompt.clone()),
+        Event::LastAired(rows) => Event::LastAired(rows.clone()),
+        Event::Stores(rows) => Event::Stores(rows.clone()),
+        Event::StorePreview(preview) => Event::StorePreview(preview.clone()),
+        Event::StoreJoined { store } => Event::StoreJoined { store: store.clone() },
+        Event::InviteLink(view) => Event::InviteLink(view.clone()),
+        Event::StoreMembers { store, members, invites } => Event::StoreMembers {
             store: store.clone(),
             members: members.clone(),
             invites: invites.clone(),
         },
-        Update::LocalPlugins { store, plugins } => {
-            Update::LocalPlugins { store: store.clone(), plugins: plugins.clone() }
+        Event::LocalPlugins { store, plugins } => {
+            Event::LocalPlugins { store: store.clone(), plugins: plugins.clone() }
         }
     }
 }

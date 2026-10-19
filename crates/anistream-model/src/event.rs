@@ -45,7 +45,7 @@ pub enum Event {
         content: Content,
     },
     /// What a list is, said above it: which season Seasonal is, and that a list stopped at the
-    /// size of one page when there was more. Tagged like [`Update::Content`] and sent before it,
+    /// size of one page when there was more. Tagged like [`Event::Content`] and sent before it,
     /// so a caption never describes a list it did not come with.
     Caption {
         view: ContentFor,

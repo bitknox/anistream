@@ -1702,11 +1702,11 @@ mod tests {
             usable: true,
             held_back: false,
         };
-        app.apply(crate::app::Update::Providers(vec![row("alpha")]));
+        app.apply(crate::app::Event::Providers(vec![row("alpha")]));
         let hints = status_hints(&app);
         assert!(hints.iter().all(|(_, label)| *label != "order"), "{hints:?}");
 
-        app.apply(crate::app::Update::Providers(vec![row("alpha"), row("beta")]));
+        app.apply(crate::app::Event::Providers(vec![row("alpha"), row("beta")]));
         let hints = status_hints(&app);
         assert_eq!(
             hints,

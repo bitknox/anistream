@@ -2,7 +2,7 @@
 //!
 //! State lives here and rendering reads it; nothing in [`crate::screens`] mutates. That
 //! split is what keeps the event loop honest — the UI thread only ever applies already-
-//! computed [`Update`]s, so a slow provider or a large image decode cannot stall a frame.
+//! computed [`Event`]s, so a slow provider or a large image decode cannot stall a frame.
 
 use std::time::{Duration, Instant};
 
@@ -22,10 +22,10 @@ use crate::{
 pub use anistream_model::catalog::{
     Content, ContentFor, Entry, LibrarySegment, RelatedTitle, ResumePoint, SearchFilters,
 };
-pub use anistream_model::command::{PlayerCommand, Task};
+pub use anistream_model::command::{Command, PlayerCommand};
 pub use anistream_model::downloads::{DownloadRow, DownloadState, SeedRow};
 pub use anistream_model::episodes::{EpisodeKind, EpisodeRow};
-pub use anistream_model::event::Update;
+pub use anistream_model::event::Event;
 pub use anistream_model::jobs::JobId;
 pub use anistream_model::notice::{Notice, NoticeKind};
 pub use anistream_model::playback::{Ending, SkipKind, Successor};
@@ -667,7 +667,7 @@ pub struct App {
     /// its setting back to this.
     pub saved_config: Config,
     pub content: Content,
-    /// The caption for the list on screen, with the view it belongs to. See [`Update::Caption`].
+    /// The caption for the list on screen, with the view it belongs to. See [`Event::Caption`].
     pub caption: Option<(ContentFor, String)>,
     /// Selection index within the current content.
     pub selected: usize,
@@ -817,7 +817,7 @@ pub struct App {
     /// [`Self::apply`] has no return channel. The calendar's backfill is the other — it is
     /// triggered by scrolling, which reports no task of its own. The event loop drains this
     /// each iteration.
-    pending: Option<Task>,
+    pending: Option<Command>,
     /// Rows for the Episodes screen — the ones the current filter admits. Everything that
     /// reads or navigates episodes works on this list, which is what keeps the filter from
     /// needing index remapping at every call site.
@@ -1057,21 +1057,21 @@ impl App {
     }
 
     /// Apply an update from a background task.
-    pub fn apply(&mut self, update: Update) {
+    pub fn apply(&mut self, update: Event) {
         // Resolution has finished, one way or the other — let the wipe complete. An alert is
         // as much a result as a first frame is, and holding the band over a failure would
         // leave the user staring at amber.
         // A report from the playback still in the window says nothing about the one being found.
         let ours = self.superseded.is_none();
-        if (matches!(update, Update::Playback { .. } | Update::PlaybackEnded { .. } if ours)
-            || matches!(update, Update::Toast(Notice { kind: NoticeKind::Alert, .. })))
+        if (matches!(update, Event::Playback { .. } | Event::PlaybackEnded { .. } if ours)
+            || matches!(update, Event::Toast(Notice { kind: NoticeKind::Alert, .. })))
             && let Some(eyecatch) = &mut self.eyecatch
         {
             eyecatch.release();
         }
 
         match update {
-            Update::CalendarWindow { anchor, pages, more_past } => {
+            Event::CalendarWindow { anchor, pages, more_past } => {
                 // Paging for a calendar the user has left would let a scroll elsewhere ask for
                 // history nobody is looking at.
                 if self.nav.section() != Section::Calendar {
@@ -1082,7 +1082,7 @@ impl App {
                 self.calendar_more_past = more_past;
                 self.calendar_loading_past = false;
             }
-            Update::CalendarBackfill { page, entries, more_past } => {
+            Event::CalendarBackfill { page, entries, more_past } => {
                 self.calendar_loading_past = false;
                 self.calendar_more_past = more_past;
                 if let Some(page) = page {
@@ -1107,12 +1107,12 @@ impl App {
                     self.offset += added;
                 }
             }
-            Update::Caption { view, text } => {
+            Event::Caption { view, text } => {
                 if self.content_view().as_ref() == Some(&view) {
                     self.caption = (!text.is_empty()).then_some((view, text));
                 }
             }
-            Update::Content { view, content } => {
+            Event::Content { view, content } => {
                 if self.content_view().as_ref() != Some(&view) {
                     return;
                 }
@@ -1164,7 +1164,7 @@ impl App {
             }
             // Every way into a title sets a stand-in `detail` for it before the fetch goes out, so
             // a full record for any other id answers a title the user has already left.
-            Update::Detail(mut entry) => {
+            Event::Detail(mut entry) => {
                 if let Some(detail) = self.detail.as_ref().filter(|d| d.id == entry.id) {
                     // The record does not carry the tracker's status; the row it was opened
                     // from may, and losing it here would make `a` forget what it is on.
@@ -1172,9 +1172,9 @@ impl App {
                     self.detail = Some(*entry);
                 }
             }
-            Update::DeviceCode(prompt) => self.device_code = prompt,
-            Update::Seeding(rows) => self.seeding = rows,
-            Update::Downloads(rows) => {
+            Event::DeviceCode(prompt) => self.device_code = prompt,
+            Event::Seeding(rows) => self.seeding = rows,
+            Event::Downloads(rows) => {
                 self.downloads = rows;
                 // The cursor has to stay in range: a completed row being cleared shortens the list
                 // under it.
@@ -1182,7 +1182,7 @@ impl App {
                     self.selected = self.selected.min(self.downloads.len().saturating_sub(1));
                 }
             }
-            Update::LastAired(rows) => {
+            Event::LastAired(rows) => {
                 // Applied to both the list and any open detail, since the same title can be
                 // on screen twice and a line that appears in one place but not the other
                 // reads as a bug.
@@ -1201,22 +1201,22 @@ impl App {
                     detail.last_aired = Some((*ep, *at));
                 }
             }
-            Update::Status(status) => self.status = status,
-            Update::Toast(notice) => self.push_toast(notice),
+            Event::Status(status) => self.status = status,
+            Event::Toast(notice) => self.push_toast(notice),
             // Decoded off the loop, and back through `artwork_decoded`.
-            Update::ArtworkReady { .. } => {}
-            Update::ImageFailed { url, offline } => self.images.mark_failed(&url, offline),
-            Update::Providers(rows) => {
+            Event::ArtworkReady { .. } => {}
+            Event::ImageFailed { url, offline } => self.images.mark_failed(&url, offline),
+            Event::Providers(rows) => {
                 self.providers = rows;
                 // The cursor stays in range: a removed plugin shortens the table under it.
                 if self.nav.section() == Section::Providers {
                     self.selected = self.selected.min(self.providers.len().saturating_sub(1));
                 }
             }
-            Update::MetaStatus(rows) => self.meta_status = rows,
-            Update::Stores(rows) => self.apply_stores(rows),
-            Update::StorePreview(outcome) => self.apply_store_preview(outcome),
-            Update::StoreJoined { store } => {
+            Event::MetaStatus(rows) => self.meta_status = rows,
+            Event::Stores(rows) => self.apply_stores(rows),
+            Event::StorePreview(outcome) => self.apply_store_preview(outcome),
+            Event::StoreJoined { store } => {
                 // Into the store just joined, but only from the list it was joined from. A join
                 // that finishes after the user has gone elsewhere must not drag them back.
                 if self.nav.current() == &StageView::Stores && self.store(&store).is_some() {
@@ -1224,12 +1224,12 @@ impl App {
                     self.nav.push(StageView::Store(store));
                 }
             }
-            Update::InviteLink(view) => {
+            Event::InviteLink(view) => {
                 self.invite_link = Some(view);
                 self.invite_copied = false;
                 self.nav.open_overlay(Overlay::InviteLink);
             }
-            Update::StoreMembers { store, members, invites } => {
+            Event::StoreMembers { store, members, invites } => {
                 if self.members_for.as_deref() == Some(store.as_str()) {
                     self.store_members = members;
                     self.store_invites = invites;
@@ -1237,7 +1237,7 @@ impl App {
                     self.member_selected = self.member_selected.min(rows.saturating_sub(1));
                 }
             }
-            Update::LocalPlugins { store, plugins } => {
+            Event::LocalPlugins { store, plugins } => {
                 // Only for the store still on screen; a late answer for another is dropped.
                 let here = self.nav.current() == &StageView::Store(store.clone());
                 if self.publish_for.as_deref() != Some(store.as_str()) || !here {
@@ -1255,19 +1255,19 @@ impl App {
             }
             // Both are handled outside the reducer, by the loop that owns the background
             // tasks and the session.
-            Update::SettingsSaved => {}
-            Update::SettingWritten { on_disk, failed } => {
+            Event::SettingsSaved => {}
+            Event::SettingWritten { on_disk, failed } => {
                 self.saved_config = *on_disk;
                 if let Some((table, key)) = failed {
                     self.roll_back_setting(table, key);
                 }
             }
-            Update::SourcesChanged => self.status = "reloading sources…".into(),
+            Event::SourcesChanged => self.status = "reloading sources…".into(),
             // The rows moved when the key was pressed; the run loop sends the chain's own.
-            Update::SourcesReordered => {}
-            Update::ProviderNote(note) => self.provider_note = Some(note),
-            Update::ProviderPreference(choice) => self.provider_preference = choice,
-            Update::Sources { id, episode, candidates } => {
+            Event::SourcesReordered => {}
+            Event::ProviderNote(note) => self.provider_note = Some(note),
+            Event::ProviderPreference(choice) => self.provider_preference = choice,
+            Event::Sources { id, episode, candidates } => {
                 // A stale answer — the user has navigated away since asking, or asked about
                 // another episode — is not a question worth interrupting them with, and offering
                 // one episode's releases under another's context would play the wrong one.
@@ -1283,7 +1283,7 @@ impl App {
                 self.overlay_selected = 0;
                 self.nav.open_overlay(Overlay::Sources);
             }
-            Update::MatchChoices { id, provider_id, candidates } => {
+            Event::MatchChoices { id, provider_id, candidates } => {
                 // An empty set is not a question worth asking; the caller reports it as a
                 // plain failure instead. Nor is one about a title the user has left.
                 if candidates.is_empty() || !self.detail.as_ref().is_some_and(|d| d.id == id) {
@@ -1296,7 +1296,7 @@ impl App {
                 self.nav.open_overlay(Overlay::Disambiguate);
             }
 
-            Update::Playback { position, duration, paused } => {
+            Event::Playback { position, duration, paused } => {
                 // Playback updates arrive about once a second and must never resurrect a
                 // finished session, so they only ever mutate an existing one.
                 if let Some(playing) = self.superseded.as_mut().or(self.playing.as_mut()) {
@@ -1313,17 +1313,17 @@ impl App {
                     self.reflect_watch(id, &episode, position, duration, false);
                 }
             }
-            Update::SkipAvailable { kind, to } => {
+            Event::SkipAvailable { kind, to } => {
                 if let Some(playing) = &mut self.playing {
                     playing.skip = Some((kind, to));
                 }
             }
-            Update::SkipCleared => {
+            Event::SkipCleared => {
                 if let Some(playing) = &mut self.playing {
                     playing.skip = None;
                 }
             }
-            Update::PlaybackSpeed(speed) => {
+            Event::PlaybackSpeed(speed) => {
                 // Remembered in config so the next episode starts at the same speed.
                 self.config.playback.persisted_speed = Some(speed);
                 if let Some(playing) = &mut self.playing {
@@ -1333,15 +1333,15 @@ impl App {
                 // comment tells. Auto-next owns `pending` for a frame at episode end;
                 // losing one save then is fine — the next speed step saves again.
                 if self.config.playback.persist_speed && self.pending.is_none() {
-                    self.pending = Some(Task::SaveSetting {
+                    self.pending = Some(Command::SaveSetting {
                         table: &["playback"],
                         key: "persisted_speed",
                         value: anistream_core::settings::SettingValue::Float(speed),
                     });
                 }
             }
-            Update::ActiveProvider(provider) => self.active_provider = Some(provider),
-            Update::PlayerPlayEpisode { episode, title: episode_title } => {
+            Event::ActiveProvider(provider) => self.active_provider = Some(provider),
+            Event::PlayerPlayEpisode { episode, title: episode_title } => {
                 // By the playing title rather than the open one: the viewer may be browsing
                 // another show in the terminal while the player is the thing they are using.
                 if let Some(playing) = &self.playing
@@ -1350,15 +1350,15 @@ impl App {
                     let title = playing.title.clone();
                     self.raise_now_playing_titled(id, title, &episode);
                     self.name_playing_episode(episode_title);
-                    self.pending = Some(Task::Play { id, episode });
+                    self.pending = Some(Command::Play { id, episode });
                 }
             }
-            Update::PlaybackKept => {
+            Event::PlaybackKept => {
                 if let Some(kept) = self.superseded.take() {
                     self.playing = Some(kept);
                 }
             }
-            Update::EpisodeLeft { id, episode, position, duration, watched } => {
+            Event::EpisodeLeft { id, episode, position, duration, watched } => {
                 // The window has changed hands, so what reports from here on is the successor.
                 if self
                     .superseded
@@ -1369,7 +1369,7 @@ impl App {
                 }
                 self.reflect_watch(Some(id), &episode, position, duration, watched);
             }
-            Update::PlayerTranslation(translation) => {
+            Event::PlayerTranslation(translation) => {
                 self.config.playback.translation = translation;
                 self.push_toast(Notice::info(format!("now using {translation}")));
                 if let Some(playing) = &self.playing
@@ -1379,14 +1379,14 @@ impl App {
                     let episode_title = playing.episode_title.clone();
                     self.raise_now_playing_titled(id, title, &episode);
                     self.name_playing_episode(episode_title);
-                    self.pending = Some(Task::Play { id, episode });
+                    self.pending = Some(Command::Play { id, episode });
                 }
             }
-            Update::PlayerUpscaling(name) => {
+            Event::PlayerUpscaling(name) => {
                 if let Some(mode) = anistream_core::config::Upscaling::from_name(&name) {
                     self.config.playback.upscaling = mode;
                     if self.pending.is_none() {
-                        self.pending = Some(Task::SaveSetting {
+                        self.pending = Some(Command::SaveSetting {
                             table: &["playback"],
                             key: "upscaling",
                             value: anistream_core::settings::SettingValue::Str(name),
@@ -1394,39 +1394,39 @@ impl App {
                     }
                 }
             }
-            Update::PrefetchNext { id, episode } => {
+            Event::PrefetchNext { id, episode } => {
                 // Best effort: an ending that arrives while something else holds the slot simply
                 // plays the next episode the usual way.
                 if self.pending.is_none() {
-                    self.pending = Some(Task::Prefetch { id, episode });
+                    self.pending = Some(Command::Prefetch { id, episode });
                 }
             }
-            Update::PlayerToneMapping(curve) => {
+            Event::PlayerToneMapping(curve) => {
                 self.config.playback.tone_mapping = curve.clone();
                 if self.pending.is_none() {
-                    self.pending = Some(Task::SaveSetting {
+                    self.pending = Some(Command::SaveSetting {
                         table: &["playback"],
                         key: "tone_mapping",
                         value: anistream_core::settings::SettingValue::Str(curve),
                     });
                 }
             }
-            Update::PlayerNightMode(on) => {
+            Event::PlayerNightMode(on) => {
                 self.config.playback.night_mode = on;
                 if self.pending.is_none() {
-                    self.pending = Some(Task::SaveSetting {
+                    self.pending = Some(Command::SaveSetting {
                         table: &["playback"],
                         key: "night_mode",
                         value: anistream_core::settings::SettingValue::Bool(on),
                     });
                 }
             }
-            Update::PlaybackVolume(volume) => {
+            Event::PlaybackVolume(volume) => {
                 // Same contract as speed: remembered in config, written to disk, and never
                 // allowed to fight auto-next for the pending slot.
                 self.config.playback.persisted_volume = Some(volume);
                 if self.config.playback.persist_volume && self.pending.is_none() {
-                    self.pending = Some(Task::SaveSetting {
+                    self.pending = Some(Command::SaveSetting {
                         table: &["playback"],
                         key: "persisted_volume",
                         value: anistream_core::settings::SettingValue::Float(volume),
@@ -1435,13 +1435,13 @@ impl App {
             }
             // The playback still in the window ended while its successor was being found: the
             // successor is what was asked for, so nothing comes down and nothing rolls on.
-            Update::PlaybackEnded { watched, .. } if self.superseded.is_some() => {
+            Event::PlaybackEnded { watched, .. } if self.superseded.is_some() => {
                 if let Some(finished) = self.superseded.take() {
                     let NowPlaying { id, episode, position, duration, .. } = finished;
                     self.reflect_watch(id, &episode, position, duration, watched);
                 }
             }
-            Update::PlaybackEnded { watched, ending } => {
+            Event::PlaybackEnded { watched, ending } => {
                 let finished = self.playing.take();
                 if let Some(playing) = &finished {
                     self.reflect_watch(
@@ -1482,12 +1482,12 @@ impl App {
                     // Under the name it was playing under: whichever title is open now may be
                     // another show entirely.
                     self.raise_now_playing_titled(id, finished.title, &after_filler);
-                    self.pending = Some(Task::Play { id, episode: after_filler });
+                    self.pending = Some(Command::Play { id, episode: after_filler });
                 } else if matches!(ending, Ending::Complete { .. }) {
                     self.push_toast(Notice::info("episode finished"));
                 }
             }
-            Update::Sync(state) => {
+            Event::Sync(state) => {
                 // Re-authorisation is the one sync condition worth interrupting for: until it
                 // is done, everything queues silently and the user would have no idea.
                 let announce = state.needs_reauth
@@ -1504,21 +1504,21 @@ impl App {
                     None => self.sync.push(*state),
                 }
             }
-            Update::JobNote { job, note, wait } => {
+            Event::JobNote { job, note, wait } => {
                 let until = wait.map(|wait| self.clock.now_instant() + wait);
                 if let Some(job) = self.jobs.iter_mut().find(|j| j.id == job) {
                     job.note = Some((note, until));
                 }
             }
-            Update::JobDone(job) => self.jobs.retain(|j| j.id != job),
-            Update::ProgressQueued => {
+            Event::JobDone(job) => self.jobs.retain(|j| j.id != job),
+            Event::ProgressQueued => {
                 // Optimistic, and safe to be: the row is already in SQLite by the time this
                 // arrives, so the count can only be corrected downward by the next drain.
                 for state in &mut self.sync {
                     state.outbox = state.outbox.saturating_add(1);
                 }
             }
-            Update::Conflicts(rows) => {
+            Event::Conflicts(rows) => {
                 let appeared = !rows.is_empty() && self.conflicts.is_empty();
                 self.conflicts = rows;
                 if appeared {
@@ -1530,7 +1530,7 @@ impl App {
                     )));
                 }
             }
-            Update::Resumed { position } => {
+            Event::Resumed { position } => {
                 // Resume happens without asking — mpv is already at the right place by the time
                 // this arrives. Saying so is what keeps it from feeling like a glitch.
                 self.push_toast(Notice::info(format!(
@@ -1541,7 +1541,7 @@ impl App {
                     playing.position = position;
                 }
             }
-            Update::Vpn(guard) => {
+            Event::Vpn(guard) => {
                 // No guard empties the badge rather than removing it.
                 let (badge, leaking) =
                     guard.as_ref().map_or_else(|| (String::new(), false), vpn_badge);
@@ -1553,7 +1553,7 @@ impl App {
                 self.vpn_badge = Some(badge);
                 self.vpn_leaking = leaking;
             }
-            Update::Episodes { id, rows } => {
+            Event::Episodes { id, rows } => {
                 // `detail` is the title the table is a view of; rows for any other belong to a
                 // load the user has since walked away from.
                 if !self.detail.as_ref().is_some_and(|d| d.id == id) {
@@ -1575,7 +1575,7 @@ impl App {
         }
     }
 
-    /// A cover decoded from the bytes an [`Update::ArtworkReady`] brought, or `None` when they
+    /// A cover decoded from the bytes an [`Event::ArtworkReady`] brought, or `None` when they
     /// were not an image — a failure like any other, tried again after the backoff.
     pub fn artwork_decoded(&mut self, url: &str, image: Option<image::DynamicImage>) {
         match image {
@@ -1925,7 +1925,7 @@ impl App {
     /// episode step about to fire. The event loop uses this to know an ended session is a
     /// handoff rather than a return to the terminal.
     pub fn will_play_next(&self) -> bool {
-        matches!(self.pending, Some(Task::Play { .. } | Task::PlaySource { .. }))
+        matches!(self.pending, Some(Command::Play { .. } | Command::PlaySource { .. }))
     }
 
     /// Age toasts by one frame.
@@ -2021,7 +2021,7 @@ impl App {
     ///
     /// Every cursor clamps at its ends — the rail, the lists, the tables — so holding a key
     /// stops somewhere informative rather than cycling.
-    fn move_cursor(&mut self, action: Action, visible_rows: usize) -> Option<Task> {
+    fn move_cursor(&mut self, action: Action, visible_rows: usize) -> Option<Command> {
         let page = visible_rows.max(1) as isize;
         let delta = match action {
             Action::Down => 1,
@@ -2123,14 +2123,15 @@ impl App {
         }
         let Some(anchor) = self.calendar_anchor else { return };
         self.calendar_loading_past = true;
-        self.pending = Some(Task::LoadCalendarPast { anchor, page: self.calendar_pages + 1 });
+        self.pending =
+            Some(Command::LoadCalendarPast { anchor, page: self.calendar_pages + 1 });
     }
 
     /// Handle a keystroke: text into a focused field first, then the binding it resolves to.
     ///
     /// The whole route from key to action in one place, so what a key does in any state can be
     /// tested as a key rather than as the action someone assumed it would become.
-    pub fn press(&mut self, key: KeyEvent, visible_rows: usize) -> Option<Task> {
+    pub fn press(&mut self, key: KeyEvent, visible_rows: usize) -> Option<Command> {
         // Text first: while a field has focus, plain characters are input, not bindings.
         if self.is_typing() {
             match key.code {
@@ -2166,7 +2167,7 @@ impl App {
     }
 
     /// Handle an action. Returns work for the caller to perform asynchronously.
-    pub fn handle(&mut self, action: Action, visible_rows: usize) -> Option<Task> {
+    pub fn handle(&mut self, action: Action, visible_rows: usize) -> Option<Command> {
         // While typing, most single-key bindings must not fire, or "d" would trigger a
         // download instead of entering a letter.
         if self.is_typing() {
@@ -2195,7 +2196,7 @@ impl App {
         overlay: &Overlay,
         action: Action,
         visible_rows: usize,
-    ) -> Option<Task> {
+    ) -> Option<Command> {
         match action {
             Action::Quit => {
                 self.should_quit = true;
@@ -2327,7 +2328,7 @@ impl App {
     /// Separate from [`Self::handle`] so the command palette can run what it picked: opened
     /// from Search's field, the field still has focus once the palette closes, and going back
     /// through the typing gate swallowed nearly every command.
-    fn perform(&mut self, action: Action, visible_rows: usize) -> Option<Task> {
+    fn perform(&mut self, action: Action, visible_rows: usize) -> Option<Command> {
         // The download queue reads Space as pause and `x` as cancel, the keys it borrows from the
         // player. Resolved before the playback table: idle, those keys arrive as the browsing
         // actions — play next, remove from Continue — so a download could never be paused or
@@ -2337,7 +2338,7 @@ impl App {
             match action {
                 Action::PlayNext | Action::PlayPause => {
                     let id = self.downloads.get(self.selected)?.id;
-                    return Some(Task::DownloadPause { id });
+                    return Some(Command::DownloadPause { id });
                 }
                 Action::HideFromContinue | Action::StopPlayback => {
                     let row = self.downloads.get(self.selected)?;
@@ -2350,7 +2351,7 @@ impl App {
                         )));
                         return None;
                     }
-                    return Some(Task::DownloadCancel { id: row.id });
+                    return Some(Command::DownloadCancel { id: row.id });
                 }
                 _ => {}
             }
@@ -2496,7 +2497,7 @@ impl App {
                             row.title.clone(),
                             &row.episode,
                         );
-                        return Some(Task::PlayLocal {
+                        return Some(Command::PlayLocal {
                             id: row.anilist_id,
                             episode: row.episode,
                             title: row.title,
@@ -2514,10 +2515,10 @@ impl App {
             }
             Action::DeleteDownload if self.in_downloads_stage() => {
                 let row = self.downloads.get(self.selected)?;
-                return Some(Task::DownloadDelete { id: row.id });
+                return Some(Command::DownloadDelete { id: row.id });
             }
             Action::ClearCompleted if self.in_downloads_stage() => {
-                return Some(Task::DownloadClearCompleted);
+                return Some(Command::DownloadClearCompleted);
             }
             // From the rail too, like Enter here: the table is the only thing on the screen.
             Action::RaiseSource if self.on_providers() => return self.move_source(-1),
@@ -2562,7 +2563,7 @@ impl App {
                     self.episodes.clear();
                     self.episodes_loading = true;
                     self.nav.push(StageView::Episodes(id));
-                    return Some(Task::LoadEpisodes(id));
+                    return Some(Command::LoadEpisodes(id));
                 }
             }
             Action::ToggleWatched if self.in_episodes() => {
@@ -2578,7 +2579,7 @@ impl App {
                 // Under the unwatched filter a marked row leaves the view at once —
                 // which is the binge-marking flow working, not a glitch.
                 self.apply_episode_filter();
-                return Some(Task::SetWatched { id, episodes: vec![number], watched });
+                return Some(Command::SetWatched { id, episodes: vec![number], watched });
             }
             Action::MarkAllPrevious if self.in_episodes() => {
                 let id = match self.nav.current() {
@@ -2617,7 +2618,7 @@ impl App {
                     "marked {} watched",
                     crate::widgets::plural(marked.len(), "episode")
                 )));
-                return Some(Task::SetWatched { id, episodes: marked, watched: true });
+                return Some(Command::SetWatched { id, episodes: marked, watched: true });
             }
             Action::DownloadRange if self.in_episodes() => {
                 self.range_query.clear();
@@ -2663,7 +2664,7 @@ impl App {
                     self.push_toast(Notice::info("nothing selected"));
                     return None;
                 };
-                return Some(Task::OpenExternal {
+                return Some(Command::OpenExternal {
                     url: format!("https://anilist.co/anime/{}", id.get()),
                 });
             }
@@ -2709,7 +2710,7 @@ impl App {
                     self.push_toast(Notice::info(why));
                     return None;
                 };
-                return Some(Task::PlayTrailer { url, title: entry.title.clone() });
+                return Some(Command::PlayTrailer { url, title: entry.title.clone() });
             }
             Action::Recommendations => {
                 let Some(entry) = self.target() else {
@@ -2781,7 +2782,7 @@ impl App {
                     }
                 };
                 self.source_context = Some((id, episode.clone()));
-                return Some(Task::LoadSources { id, episode });
+                return Some(Command::LoadSources { id, episode });
             }
             Action::PlayParty => {
                 // The same episode Enter would play, but with the room. No Now Playing
@@ -2796,7 +2797,7 @@ impl App {
                         (entry.id, episode)
                     }
                 };
-                return Some(Task::PlayParty { id, episode });
+                return Some(Command::PlayParty { id, episode });
             }
             Action::Download => {
                 // From the episode table it is the highlighted episode; from a title it is the next
@@ -2811,7 +2812,7 @@ impl App {
                         (entry.id, episode)
                     }
                 };
-                return Some(Task::DownloadEpisode { id, episode });
+                return Some(Command::DownloadEpisode { id, episode });
             }
             Action::ToggleSynopsis => self.synopsis_expanded = !self.synopsis_expanded,
             Action::SetListStatus => {
@@ -2883,7 +2884,7 @@ impl App {
                     "{} removed — watching it again brings it back",
                     entry.title
                 )));
-                return Some(Task::HideFromContinue { id: entry.id });
+                return Some(Command::HideFromContinue { id: entry.id });
             }
             Action::ForceResync => {
                 if self.sync.is_empty() {
@@ -2892,30 +2893,30 @@ impl App {
                         "no tracker connected — press {accounts} for Accounts"
                     )));
                 } else {
-                    return Some(Task::SyncNow);
+                    return Some(Command::SyncNow);
                 }
             }
             // On the store screens, refreshing means asking the stores again, not re-checking
             // the provider table they were opened from.
             Action::Refresh if self.in_stores() || self.store_view().is_some() => {
-                return Some(Task::LoadStores);
+                return Some(Command::LoadStores);
             }
             Action::Refresh if self.members_view().is_some() => {
                 let store = self.members_view()?.to_owned();
-                return Some(Task::LoadMembers { store });
+                return Some(Command::LoadMembers { store });
             }
             // A title page and an episode table refresh themselves, not the section's list
             // under them — which is what `r` used to fetch, saying "loading the calendar" over
             // a title page that never changed.
             Action::Refresh if matches!(self.nav.current(), StageView::Title(_)) => {
                 self.images.requests().retry_failed();
-                return self.title_on_screen().map(Task::LoadDetail);
+                return self.title_on_screen().map(Command::LoadDetail);
             }
             Action::Refresh if self.in_episodes() => {
                 // The rows stay on screen until the answer lands, and the answer keeps the
                 // cursor on its episode; the activity row says the table is being asked again.
                 self.images.requests().retry_failed();
-                return self.title_on_screen().map(Task::LoadEpisodes);
+                return self.title_on_screen().map(Command::LoadEpisodes);
             }
             Action::Refresh => {
                 // Asking again means the covers too: one that failed while the network was
@@ -2955,7 +2956,7 @@ impl App {
     /// Returns `None` when the action is not a playback one, so the caller falls through to
     /// normal navigation. `Some(None)` means it was handled with no async work.
     #[allow(clippy::option_option)]
-    fn handle_playback(&mut self, action: Action) -> Option<Option<Task>> {
+    fn handle_playback(&mut self, action: Action) -> Option<Option<Command>> {
         use PlayerCommand as P;
         let command = match action {
             Action::PlayPause => P::TogglePause,
@@ -2991,11 +2992,11 @@ impl App {
             Action::PreviousEpisode => return Some(self.step_episode(-1)),
             _ => return None,
         };
-        Some(Some(Task::Player(command)))
+        Some(Some(Command::Player(command)))
     }
 
     /// Start the episode selected in the timing sheet.
-    fn play_selected_episode(&mut self) -> Option<Task> {
+    fn play_selected_episode(&mut self) -> Option<Command> {
         let id = match self.nav.current() {
             StageView::Episodes(id) => *id,
             _ => return None,
@@ -3007,7 +3008,7 @@ impl App {
     /// Play the first episode local history has not completed.
     ///
     /// Driven off the watch log rather than a tracker, so this works with no account at all.
-    fn play_next_unwatched(&mut self) -> Option<Task> {
+    fn play_next_unwatched(&mut self) -> Option<Command> {
         let Some(entry) = self.target() else {
             self.push_toast(Notice::info("nothing selected"));
             return None;
@@ -3025,9 +3026,9 @@ impl App {
     /// played that show's episode, or nothing. The playback holds the episode list of the title
     /// it plays, so it is also the side that can say there is no next episode instead of
     /// handing the finale's window to a search for one.
-    fn step_episode(&mut self, delta: i64) -> Option<Task> {
+    fn step_episode(&mut self, delta: i64) -> Option<Command> {
         self.playing.as_ref()?;
-        Some(Task::Player(PlayerCommand::Step(delta)))
+        Some(Command::Player(PlayerCommand::Step(delta)))
     }
 
     /// The episode table for a title, when the rows loaded are that title's — what the player's
@@ -3081,9 +3082,9 @@ impl App {
     ///
     /// The order matters: the wipe goes up *before* resolution starts, so the user never sees
     /// a frozen episode table while a provider is being tried.
-    fn begin_playback(&mut self, id: AnilistId, episode: String) -> Task {
+    fn begin_playback(&mut self, id: AnilistId, episode: String) -> Command {
         self.raise_now_playing(id, &episode);
-        Task::Play { id, episode }
+        Command::Play { id, episode }
     }
 
     /// The visual half of starting playback, shared with the Sources pick: eyecatch up,
@@ -3156,7 +3157,7 @@ impl App {
     }
 
     /// Take any work the reducer queued while applying an update.
-    pub fn take_pending(&mut self) -> Option<Task> {
+    pub fn take_pending(&mut self) -> Option<Command> {
         self.pending.take()
     }
 
@@ -3178,16 +3179,16 @@ impl App {
     ///
     /// The same decision the Accounts overlay made, kept in one place so the screen and the overlay
     /// cannot disagree about what Enter does.
-    fn toggle_account(&mut self) -> Option<Task> {
+    fn toggle_account(&mut self) -> Option<Command> {
         let tracker = self.sync.get(self.selected)?.clone();
         self.account_action(tracker)
     }
 
     /// What Enter means for one tracker row: out if in, in if out — and for Kitsu, "in"
     /// is a prompt right here rather than a browser or a trip to the command line.
-    fn account_action(&mut self, tracker: SyncState) -> Option<Task> {
+    fn account_action(&mut self, tracker: SyncState) -> Option<Command> {
         if tracker.connected && !tracker.needs_reauth {
-            return Some(Task::Disconnect { tracker: tracker.tracker });
+            return Some(Command::Disconnect { tracker: tracker.tracker });
         }
         if tracker.tracker == "kitsu" {
             // Cleared on open, not just on submit, so a dismissed attempt never leaves
@@ -3198,7 +3199,7 @@ impl App {
             return None;
         }
         self.status = "opening your browser to sign in…".into();
-        Some(Task::Connect { tracker: tracker.tracker })
+        Some(Command::Connect { tracker: tracker.tracker })
     }
 
     /// The trackers a status or score is queued for: those holding a credential, the same
@@ -3228,7 +3229,7 @@ impl App {
 
     /// Step the Library's segment, and from the first one carry Left on to the rail — the
     /// screen's left edge, where Left goes everywhere else.
-    fn step_segment(&mut self, delta: isize) -> Option<Task> {
+    fn step_segment(&mut self, delta: isize) -> Option<Command> {
         let next = self.library_segment.step(delta);
         if next == self.library_segment {
             if delta < 0 {
@@ -3240,7 +3241,7 @@ impl App {
         self.selected = 0;
         self.offset = 0;
         self.content = Content::Loading;
-        Some(Task::LoadLibrary(self.library_segment))
+        Some(Command::LoadLibrary(self.library_segment))
     }
 
     /// Whether the Search section's own view — the field and its results — is on top.
@@ -3334,7 +3335,7 @@ impl App {
     /// two-rung ladder — Left is off, or the first of its two choices, and Right the other —
     /// because flipping on both arrows meant Left could never arrive anywhere. Enter and Space
     /// still flip it. A row the arrows cannot step at all, typed or read-only, is at both ends.
-    fn step_setting(&mut self, delta: isize) -> Option<Task> {
+    fn step_setting(&mut self, delta: isize) -> Option<Command> {
         let id = *SettingId::ALL.get(self.selected)?;
         let steppable = id.text_edit().is_none()
             && self.setting_rows().get(self.selected).is_some_and(|row| row.editable.is_some());
@@ -3350,7 +3351,7 @@ impl App {
         let task = self.cycle_setting(delta);
         // A ladder already on its last rung: nothing to write, and Left goes on to the rail.
         if before.is_some()
-            && matches!(&task, Some(Task::SaveSetting { value, .. }) if Some(value) == before.as_ref())
+            && matches!(&task, Some(Command::SaveSetting { value, .. }) if Some(value) == before.as_ref())
         {
             if delta < 0 {
                 self.nav.focus_rail();
@@ -3413,7 +3414,7 @@ impl App {
     /// Confirm the selection in whichever overlay is open.
     ///
     /// Overlays own their own selection index so closing one cannot disturb the list behind it.
-    fn confirm_overlay(&mut self, visible_rows: usize) -> Option<Task> {
+    fn confirm_overlay(&mut self, visible_rows: usize) -> Option<Command> {
         match self.nav.overlay() {
             Some(Overlay::CommandPalette) => {
                 let (action, _) = self.palette_matches().get(self.overlay_selected)?.clone();
@@ -3447,7 +3448,7 @@ impl App {
                         entry.list_status = Some(status);
                     }
                 }
-                Some(Task::SetStatus { id, status })
+                Some(Command::SetStatus { id, status })
             }
             Some(Overlay::SearchFilters) => {
                 self.nav.close_overlay();
@@ -3462,7 +3463,7 @@ impl App {
                 // New results start at their top, not at the row the old ones were left on.
                 self.selected = 0;
                 self.offset = 0;
-                Some(Task::Search { query, filter: self.search_filter.clone() })
+                Some(Command::Search { query, filter: self.search_filter.clone() })
             }
             Some(Overlay::Rate) => {
                 let entry = self.target()?;
@@ -3474,7 +3475,7 @@ impl App {
                     "rated {score}/10 — queued for {}",
                     self.signed_in_trackers().join(", ")
                 )));
-                Some(Task::SetScore { id, score })
+                Some(Command::SetScore { id, score })
             }
             Some(Overlay::Conflicts) => {
                 // Enter takes the local value; the remote one is already what the tracker has,
@@ -3486,7 +3487,7 @@ impl App {
                 if self.conflicts.is_empty() {
                     self.nav.close_overlay();
                 }
-                Some(Task::ResolveConflict { id: row.anilist_id, keep_local: true })
+                Some(Command::ResolveConflict { id: row.anilist_id, keep_local: true })
             }
             Some(Overlay::SourceProvider) => {
                 let (provider, _) = self.provider_choices().get(self.overlay_selected)?.clone();
@@ -3497,7 +3498,7 @@ impl App {
                 // overlay has closed, and a row that still showed the old choice would read
                 // as the keystroke having missed.
                 self.provider_preference = provider.clone();
-                Some(Task::SetProviderPreference { id, provider })
+                Some(Command::SetProviderPreference { id, provider })
             }
             Some(Overlay::WatchOrder) => {
                 let related = self.target()?.related.get(self.overlay_selected)?.clone();
@@ -3509,7 +3510,7 @@ impl App {
                 // stale-data rule as episodes: never render one title's data under another.
                 self.detail = Some(Entry::new(related.id, related.title));
                 self.nav.push(StageView::Title(related.id));
-                Some(Task::LoadDetail(related.id))
+                Some(Command::LoadDetail(related.id))
             }
             Some(Overlay::Recommendations) => {
                 let pick = self.target()?.recommended.get(self.overlay_selected)?.clone();
@@ -3520,7 +3521,7 @@ impl App {
                 // under another while the fetch is in flight.
                 self.detail = Some(Entry::new(pick.id, pick.title));
                 self.nav.push(StageView::Title(pick.id));
-                Some(Task::LoadDetail(pick.id))
+                Some(Command::LoadDetail(pick.id))
             }
             Some(Overlay::Sources) => {
                 let candidate = self.sources.get(self.overlay_selected)?.clone();
@@ -3530,7 +3531,7 @@ impl App {
                 self.sources.clear();
                 self.source_context = None;
                 self.raise_now_playing(id, &episode);
-                Some(Task::PlaySource {
+                Some(Command::PlaySource {
                     id,
                     episode,
                     provider_id: candidate.provider_id,
@@ -3546,7 +3547,7 @@ impl App {
                 self.match_context = None;
                 self.episodes_loading = true;
                 self.push_toast(Notice::info(format!("matched to {}", candidate.title)));
-                Some(Task::FixMatch { id, provider_id, key: candidate.key })
+                Some(Command::FixMatch { id, provider_id, key: candidate.key })
             }
             Some(Overlay::Accounts) => {
                 let tracker = self.sync.get(self.overlay_selected)?.clone();
@@ -3559,7 +3560,7 @@ impl App {
                 let store = self.publish_for.clone()?;
                 self.nav.close_overlay();
                 self.overlay_selected = 0;
-                Some(Task::PublishPlugin { store, plugin })
+                Some(Command::PublishPlugin { store, plugin })
             }
             _ => None,
         }
@@ -3851,7 +3852,7 @@ impl App {
     ///
     /// Cycling rather than free entry, because every editable setting here has a small closed set
     /// of sensible values — and a cycler cannot produce a config the app then refuses to load.
-    fn cycle_setting(&mut self, delta: isize) -> Option<Task> {
+    fn cycle_setting(&mut self, delta: isize) -> Option<Command> {
         use anistream_core::config::ThemeMode;
         use anistream_core::media::Translation;
         use anistream_core::settings::SettingValue as V;
@@ -4015,7 +4016,7 @@ impl App {
             }
         };
 
-        Some(Task::SaveSetting { table: edit.table, key: edit.key, value })
+        Some(Command::SaveSetting { table: edit.table, key: edit.key, value })
     }
 
     /// Put a setting whose write failed back to what the file holds.
@@ -4064,7 +4065,7 @@ impl App {
             .collect()
     }
 
-    fn handle_while_typing(&mut self, action: Action, visible_rows: usize) -> Option<Task> {
+    fn handle_while_typing(&mut self, action: Action, visible_rows: usize) -> Option<Command> {
         // Actions bound only to modified or special keys are unambiguous with text, so
         // suppressing them would make Escape and the palette mysteriously stop working
         // mid-search.
@@ -4122,7 +4123,7 @@ impl App {
                 let password = Secret(std::mem::take(&mut self.kitsu_pass));
                 self.kitsu_user.clear();
                 self.nav.close_overlay();
-                return Some(Task::ConnectKitsu { username, password });
+                return Some(Command::ConnectKitsu { username, password });
             }
             Action::Open if self.nav.overlay() == Some(&Overlay::JoinStore) => {
                 // A link that wrapped in a chat window arrives with spaces and line breaks in
@@ -4133,7 +4134,7 @@ impl App {
                     return None;
                 }
                 self.nav.close_overlay();
-                return Some(Task::PreviewStore { link: Secret(link) });
+                return Some(Command::PreviewStore { link: Secret(link) });
             }
             Action::Open if self.nav.overlay() == Some(&Overlay::InviteName) => {
                 let name = self.invite_name.trim().to_owned();
@@ -4143,7 +4144,7 @@ impl App {
                 let store = self.store_view()?.to_owned();
                 self.invite_name.clear();
                 self.nav.close_overlay();
-                return Some(Task::CreateInvite { store, name: Some(name) });
+                return Some(Command::CreateInvite { store, name: Some(name) });
             }
             // Mid-query is exactly when filters are wanted, so ctrl+f cannot wait for the
             // box to lose focus.
@@ -4191,7 +4192,7 @@ impl App {
                 }
                 // No toast here: the write reports itself once it has landed, which is the
                 // moment "saved" is true. Saying it now as well put two confirmations up.
-                return Some(Task::SaveSetting {
+                return Some(Command::SaveSetting {
                     table,
                     key,
                     value: anistream_core::settings::SettingValue::Str(value),
@@ -4232,7 +4233,7 @@ impl App {
                     "queueing {}…",
                     crate::widgets::plural(episodes.len(), "episode")
                 )));
-                return Some(Task::DownloadMany { id, episodes });
+                return Some(Command::DownloadMany { id, episodes });
             }
             // Enter runs the manual search; the results come back as ordinary match
             // choices, so the whole Disambiguate tail is reused unchanged.
@@ -4244,9 +4245,9 @@ impl App {
                 if query.is_empty() {
                     self.episodes.clear();
                     self.episodes_loading = true;
-                    return Some(Task::ClearMatch { id });
+                    return Some(Command::ClearMatch { id });
                 }
-                return Some(Task::ManualSearch { id, query });
+                return Some(Command::ManualSearch { id, query });
             }
             Action::Down if self.nav.overlay() == Some(&Overlay::CommandPalette) => {
                 let last = self.palette_matches().len().saturating_sub(1);
@@ -4272,7 +4273,7 @@ impl App {
                 // New results start at their top, not at the row the old ones were left on.
                 self.selected = 0;
                 self.offset = 0;
-                return Some(Task::Search { query, filter: self.search_filter.clone() });
+                return Some(Command::Search { query, filter: self.search_filter.clone() });
             }
             // Down leaves the query for its results, where the keyboard is a list's again: `j`,
             // `k`, the pages and every title key. Moving the selection from inside the field
@@ -4389,7 +4390,7 @@ impl App {
 
     /// Push the selected title's detail screen — what Enter does on a row with nothing to
     /// resume. Public for `--preview`, which shows a title page from a list whose Enter plays.
-    pub fn open_selected(&mut self) -> Option<Task> {
+    pub fn open_selected(&mut self) -> Option<Command> {
         let Some(entry) = self.selected_entry().cloned() else {
             self.push_toast(Notice::info("nothing selected"));
             return None;
@@ -4397,14 +4398,14 @@ impl App {
         let id = entry.id;
         self.detail = Some(entry);
         self.nav.push(StageView::Title(id));
-        Some(Task::LoadDetail(id))
+        Some(Command::LoadDetail(id))
     }
 
     /// Move the rail selection by `delta`, clamping at the ends.
     ///
     /// Clamps rather than wraps: a wrapping rail means holding ↓ cycles forever with no sense of
     /// where you are, and eight sections is short enough that hitting the end is informative.
-    fn step_section(&mut self, delta: isize) -> Option<Task> {
+    fn step_section(&mut self, delta: isize) -> Option<Command> {
         let current = self.nav.section().index() as isize;
         let last = (Section::ALL.len() - 1) as isize;
         let next = (current + delta).clamp(0, last) as usize;
@@ -4444,7 +4445,7 @@ impl App {
         }
     }
 
-    pub fn go_to_section(&mut self, section: Section) -> Option<Task> {
+    pub fn go_to_section(&mut self, section: Section) -> Option<Command> {
         self.nav.go_to(section);
         self.selected = 0;
         self.offset = 0;
@@ -4457,8 +4458,8 @@ impl App {
     /// Start a [`Job`] for `task`, if it is work the user will wait on.
     ///
     /// Called by whoever runs the task, at the moment it does, so the job's clock starts when
-    /// the work does; the runner ends it with [`Update::JobDone`] when the work stops.
-    pub fn begin_job(&mut self, task: &Task) -> Option<JobId> {
+    /// the work does; the runner ends it with [`Event::JobDone`] when the work stops.
+    pub fn begin_job(&mut self, task: &Command) -> Option<JobId> {
         let label = task.activity()?;
         self.next_job += 1;
         let id = JobId::new(self.next_job);
@@ -4476,7 +4477,7 @@ impl App {
             .collect()
     }
 
-    /// The list the current view shows, if it shows one — what an [`Update::Content`] has to
+    /// The list the current view shows, if it shows one — what an [`Event::Content`] has to
     /// be tagged with to be taken.
     pub fn content_view(&self) -> Option<ContentFor> {
         Some(match self.nav.section() {
@@ -4505,28 +4506,28 @@ impl App {
     /// answering a request the user has since left. Background work tags its answer with what
     /// it was asked for instead. An answer with nothing on screen to take it (no list view, no
     /// open title) is tagged so the reducer drops it, exactly as it would a late one.
-    pub fn content_here(&self, content: Content) -> Update {
+    pub fn content_here(&self, content: Content) -> Event {
         // With no list view on screen the reducer drops every tag, so which one is moot.
         let view = self.content_view().unwrap_or(ContentFor::Continue);
-        Update::Content { view, content }
+        Event::Content { view, content }
     }
 
     /// [`Self::content_here`] for the open title's episode table.
-    pub fn episodes_here(&self, rows: Vec<EpisodeRow>) -> Update {
+    pub fn episodes_here(&self, rows: Vec<EpisodeRow>) -> Event {
         // No title open means the reducer drops the rows whatever id they carry.
         let id = self.detail.as_ref().map_or(AnilistId::new(0), |d| d.id);
-        Update::Episodes { id, rows }
+        Event::Episodes { id, rows }
     }
 
     /// [`Self::content_here`] for the open source picker.
-    pub fn sources_here(&self, candidates: Vec<SourceCandidate>) -> Update {
+    pub fn sources_here(&self, candidates: Vec<SourceCandidate>) -> Event {
         let (id, episode) =
             self.source_context.clone().unwrap_or((AnilistId::new(0), String::new()));
-        Update::Sources { id, episode, candidates }
+        Event::Sources { id, episode, candidates }
     }
 
     /// Work needed to populate the current view.
-    pub fn reload(&mut self) -> Option<Task> {
+    pub fn reload(&mut self) -> Option<Command> {
         // Whatever is fetched next replaces the content, so the calendar's paging describes a
         // list that is about to stop existing. Leaving it set would let a scroll on the new
         // screen ask for page four of a timeline nobody is looking at any more.
@@ -4536,9 +4537,9 @@ impl App {
         self.calendar_loading_past = false;
 
         let task = match self.nav.section() {
-            Section::Home => Task::LoadContinue,
-            Section::Seasonal => Task::LoadSeasonal,
-            Section::Calendar => Task::LoadCalendar,
+            Section::Home => Command::LoadContinue,
+            Section::Seasonal => Command::LoadSeasonal,
+            Section::Calendar => Command::LoadCalendar,
             Section::Search
                 if !self.search_query.trim().is_empty() || !self.search_filter.is_empty() =>
             {
@@ -4546,11 +4547,11 @@ impl App {
                 // with this query and only taken while it is still the one on screen.
                 let query = self.search_query.trim().to_owned();
                 self.searched_query = query.clone();
-                Task::Search { query, filter: self.search_filter.clone() }
+                Command::Search { query, filter: self.search_filter.clone() }
             }
-            Section::Providers => Task::CheckProviders,
-            Section::Downloads => Task::LoadDownloads,
-            Section::Library => Task::LoadLibrary(self.library_segment),
+            Section::Providers => Command::CheckProviders,
+            Section::Downloads => Command::LoadDownloads,
+            Section::Library => Command::LoadLibrary(self.library_segment),
             // Sections with nothing to fetch yet render their own placeholder.
             _ => {
                 self.content = Content::Empty;
@@ -4636,7 +4637,7 @@ impl App {
     ///
     /// The rows move at once and the cursor with its row; the run loop puts the live chain in
     /// the same order once the file has it. At either end nothing moves and nothing is saved.
-    fn move_source(&mut self, step: isize) -> Option<Task> {
+    fn move_source(&mut self, step: isize) -> Option<Command> {
         let id = self.providers.get(self.selected)?.id.clone();
         let order =
             order_with_source_moved(&self.config.providers.order, &self.providers, &id, step)?;
@@ -4647,7 +4648,7 @@ impl App {
         // In effect before it is on disk, as every setting is, so a second press moves on from
         // this one rather than from the order before it.
         self.config.providers.order = order.clone();
-        Some(Task::SaveSetting {
+        Some(Command::SaveSetting {
             table: &["providers"],
             key: "order",
             value: anistream_core::settings::SettingValue::List(order),
@@ -4747,14 +4748,14 @@ impl App {
         }
     }
 
-    fn open_stores(&mut self) -> Option<Task> {
+    fn open_stores(&mut self) -> Option<Command> {
         self.store_selected = 0;
         self.nav.push(StageView::Stores);
-        Some(Task::LoadStores)
+        Some(Command::LoadStores)
     }
 
     /// Enter on the store list: into a store, or the join prompt from the last row.
-    fn open_store_row(&mut self) -> Option<Task> {
+    fn open_store_row(&mut self) -> Option<Command> {
         match self.stores.get(self.store_selected) {
             Some(store) => {
                 let id = store.id.clone();
@@ -4769,7 +4770,7 @@ impl App {
         None
     }
 
-    fn open_store_line(&mut self, id: &str) -> Option<Task> {
+    fn open_store_line(&mut self, id: &str) -> Option<Command> {
         let store = self.store(id)?.clone();
         let line = *self.store_lines(&store).get(self.store_line_selected)?;
         match line {
@@ -4778,7 +4779,9 @@ impl App {
                 self.show_plugin(&store.id, &plugin);
                 None
             }
-            StoreLine::LinkDevice => Some(Task::CreateInvite { store: store.id, name: None }),
+            StoreLine::LinkDevice => {
+                Some(Command::CreateInvite { store: store.id, name: None })
+            }
             StoreLine::Invite => {
                 self.invite_name.clear();
                 self.nav.open_overlay(Overlay::InviteName);
@@ -4790,16 +4793,16 @@ impl App {
                 self.store_invites.clear();
                 self.member_selected = 0;
                 self.nav.push(StageView::StoreMembers(store.id.clone()));
-                Some(Task::LoadMembers { store: store.id })
+                Some(Command::LoadMembers { store: store.id })
             }
             StoreLine::Publish => {
                 self.publish_for = Some(store.id.clone());
                 self.local_plugins.clear();
-                Some(Task::LoadLocalPlugins { store: store.id })
+                Some(Command::LoadLocalPlugins { store: store.id })
             }
             // No status line of its own: the activity row says it is opening, and a toast says
             // how it went. A status set here was never cleared, so it outlived both.
-            StoreLine::Admin => Some(Task::OpenAdmin { store: store.id }),
+            StoreLine::Admin => Some(Command::OpenAdmin { store: store.id }),
             StoreLine::Leave => {
                 self.store_confirm =
                     Some(StoreConfirm::Leave { store: store.id, name: store.name });
@@ -4858,7 +4861,7 @@ impl App {
         choices
     }
 
-    fn confirm_plugin_choice(&mut self) -> Option<Task> {
+    fn confirm_plugin_choice(&mut self) -> Option<Command> {
         let choice = self.plugin_options.get(self.overlay_selected)?.clone();
         self.plugin_options.clear();
         let name = self.plugin_in_action().map(|(_, p)| p.name.clone()).unwrap_or_default();
@@ -4867,9 +4870,9 @@ impl App {
         self.overlay_selected = 0;
         match choice {
             PluginChoice::Install | PluginChoice::Update(_) | PluginChoice::Replace => {
-                Some(Task::InstallPlugin { store, plugin })
+                Some(Command::InstallPlugin { store, plugin })
             }
-            PluginChoice::Remove => Some(Task::RemovePlugin { plugin }),
+            PluginChoice::Remove => Some(Command::RemovePlugin { plugin }),
             PluginChoice::Unpublish => {
                 self.store_confirm = Some(StoreConfirm::Unpublish { store, plugin, name });
                 self.nav.open_overlay(Overlay::StoreConfirm);
@@ -4879,29 +4882,29 @@ impl App {
         }
     }
 
-    fn confirm_store_action(&mut self) -> Option<Task> {
+    fn confirm_store_action(&mut self) -> Option<Command> {
         let confirm = self.store_confirm.take()?;
         self.nav.close_overlay();
         Some(match confirm {
             StoreConfirm::Join(preview) => {
                 self.join_link.clear();
-                Task::JoinStore { link: preview.link }
+                Command::JoinStore { link: preview.link }
             }
-            StoreConfirm::Leave { store, .. } => Task::LeaveStore { store },
+            StoreConfirm::Leave { store, .. } => Command::LeaveStore { store },
             StoreConfirm::RemoveMember { store, member, .. } => {
-                Task::RemoveMember { store, member }
+                Command::RemoveMember { store, member }
             }
             StoreConfirm::CancelInvite { store, invite, .. } => {
-                Task::CancelInvite { store, invite }
+                Command::CancelInvite { store, invite }
             }
             StoreConfirm::Unpublish { store, plugin, .. } => {
-                Task::UnpublishPlugin { store, plugin }
+                Command::UnpublishPlugin { store, plugin }
             }
         })
     }
 
     /// Enter on the members screen: remove a member, or cancel an unused invite.
-    fn open_member_row(&mut self, store: &str) -> Option<Task> {
+    fn open_member_row(&mut self, store: &str) -> Option<Command> {
         let at = self.member_selected;
         if let Some(member) = self.store_members.get(at) {
             if member.you {
@@ -5116,7 +5119,7 @@ mod tests {
         let mut a = app();
         let _ = a.go_to_section(Section::Calendar);
         a.nav.focus_stage();
-        a.apply(Update::CalendarWindow {
+        a.apply(Event::CalendarWindow {
             anchor: CALENDAR_TEST_ANCHOR,
             pages: 3,
             more_past: true,
@@ -5145,7 +5148,7 @@ mod tests {
         a.handle(Action::Up, 20);
         assert_eq!(
             a.take_pending(),
-            Some(Task::LoadCalendarPast { anchor: CALENDAR_TEST_ANCHOR, page: 4 }),
+            Some(Command::LoadCalendarPast { anchor: CALENDAR_TEST_ANCHOR, page: 4 }),
             "nearing the top should reach for the page behind the ones loaded"
         );
 
@@ -5166,7 +5169,7 @@ mod tests {
         let older: Vec<Entry> = (0..50)
             .map(|i| Entry::new(AnilistId::new(900 + i), format!("Older {i}")))
             .collect();
-        a.apply(Update::CalendarBackfill { page: Some(4), entries: older, more_past: true });
+        a.apply(Event::CalendarBackfill { page: Some(4), entries: older, more_past: true });
 
         assert_eq!(a.content.len(), 200, "the older page should have extended the timeline");
         assert_eq!(
@@ -5187,7 +5190,7 @@ mod tests {
         let _ = a.go_to_section(Section::Seasonal);
         a.apply(a.content_here(entries(20)));
 
-        a.apply(Update::CalendarBackfill {
+        a.apply(Event::CalendarBackfill {
             page: Some(4),
             entries: vec![Entry::new(AnilistId::new(999), "Older")],
             more_past: true,
@@ -5207,13 +5210,13 @@ mod tests {
         a.handle(Action::Up, 20);
         assert!(a.take_pending().is_some(), "the scroll should have asked for page four");
 
-        a.apply(Update::CalendarBackfill { page: None, entries: Vec::new(), more_past: true });
+        a.apply(Event::CalendarBackfill { page: None, entries: Vec::new(), more_past: true });
         assert_eq!(a.content.len(), 150, "a failed backfill must not disturb the list");
 
         a.handle(Action::Up, 20);
         assert_eq!(
             a.take_pending(),
-            Some(Task::LoadCalendarPast { anchor: CALENDAR_TEST_ANCHOR, page: 4 }),
+            Some(Command::LoadCalendarPast { anchor: CALENDAR_TEST_ANCHOR, page: 4 }),
             "the page that failed is the page still missing"
         );
     }
@@ -5221,7 +5224,7 @@ mod tests {
     #[test]
     fn the_calendar_stops_asking_once_its_history_runs_out() {
         let mut a = calendar_loaded();
-        a.apply(Update::CalendarBackfill {
+        a.apply(Event::CalendarBackfill {
             page: Some(4),
             entries: Vec::new(),
             more_past: false,
@@ -5256,8 +5259,8 @@ mod tests {
     /// An app with one title selected and its episode table loaded, ready to play.
     /// The end of an episode mpv played to its end, naming the episode the player kept its
     /// window for when it rolls on.
-    fn finished(next: Option<&str>) -> Update {
-        Update::PlaybackEnded {
+    fn finished(next: Option<&str>) -> Event {
+        Event::PlaybackEnded {
             watched: true,
             ending: Ending::Complete { next: next.map(Into::into) },
         }
@@ -5298,7 +5301,7 @@ mod tests {
         let task = a.handle(Action::Open, 20);
         assert_eq!(
             task,
-            Some(Task::Play { id: AnilistId::new(1), episode: "5".into() }),
+            Some(Command::Play { id: AnilistId::new(1), episode: "5".into() }),
             "Enter must play the selected episode"
         );
         assert!(matches!(a.nav.current(), StageView::NowPlaying));
@@ -5332,7 +5335,7 @@ mod tests {
     fn asking_for_sources_opens_the_slate_and_a_pick_plays_it() {
         let mut a = app_at_episodes();
         let task = a.handle(Action::ShowSources, 20).expect("asking must produce a task");
-        assert!(matches!(task, Task::LoadSources { .. }), "got {task:?}");
+        assert!(matches!(task, Command::LoadSources { .. }), "got {task:?}");
 
         a.apply(a.sources_here(vec![
             source("[A] Show - 1 (1080p)", true),
@@ -5344,7 +5347,7 @@ mod tests {
         a.handle(Action::Down, 20);
         let task = a.handle(Action::Open, 20).expect("picking must play");
         match task {
-            Task::PlaySource { provider_id, source_id, .. } => {
+            Command::PlaySource { provider_id, source_id, .. } => {
                 assert_eq!(provider_id, "torrent");
                 assert!(source_id.contains("[B]"), "the pick must be the selected row");
             }
@@ -5371,11 +5374,11 @@ mod tests {
         let mut a = app_at_episodes();
         let task = a.handle(Action::ToggleWatched, 20).expect("toggling must persist");
         assert!(a.episodes[0].completed, "the table answers immediately");
-        assert!(matches!(task, Task::SetWatched { watched: true, .. }), "got {task:?}");
+        assert!(matches!(task, Command::SetWatched { watched: true, .. }), "got {task:?}");
 
         let task = a.handle(Action::ToggleWatched, 20).expect("toggling back must too");
         assert!(!a.episodes[0].completed);
-        assert!(matches!(task, Task::SetWatched { watched: false, .. }), "got {task:?}");
+        assert!(matches!(task, Command::SetWatched { watched: false, .. }), "got {task:?}");
     }
 
     #[test]
@@ -5416,7 +5419,7 @@ mod tests {
 
         let task = a.handle(Action::MarkAllPrevious, 20).expect("marking must persist");
         match task {
-            Task::SetWatched { episodes, watched: true, .. } => {
+            Command::SetWatched { episodes, watched: true, .. } => {
                 assert_eq!(episodes, vec!["1".to_string(), "3".into(), "4".into()]);
             }
             other => panic!("expected SetWatched, got {other:?}"),
@@ -5445,7 +5448,7 @@ mod tests {
         }
         let task = a.handle(Action::Open, 20).expect("enter must save");
         assert!(
-            matches!(task, Task::SaveSetting { key: "subtitle_language", .. }),
+            matches!(task, Command::SaveSetting { key: "subtitle_language", .. }),
             "got {task:?}"
         );
         assert_eq!(a.config.playback.subtitle_language, "spa");
@@ -5464,7 +5467,7 @@ mod tests {
         let task = a.handle(Action::Open, 20).expect("enter must resume");
         assert_eq!(
             task,
-            Task::Play { id: AnilistId::new(5), episode: "8".into() },
+            Command::Play { id: AnilistId::new(5), episode: "8".into() },
             "the section is named Continue; Enter continues"
         );
         assert!(a.playing.is_some());
@@ -5480,7 +5483,7 @@ mod tests {
         }
         let task = a.handle(Action::Open, 20).expect("a range must queue");
         match task {
-            Task::DownloadMany { episodes, .. } => {
+            Command::DownloadMany { episodes, .. } => {
                 assert_eq!(episodes, vec!["9", "10", "11", "12"], "open-ended from 9");
             }
             other => panic!("expected DownloadMany, got {other:?}"),
@@ -5539,14 +5542,14 @@ mod tests {
     fn a_list_status_is_confirmed_as_the_list_it_is_on() {
         let mut a = app();
         // List status lives on a tracker, so one is signed in.
-        a.apply(Update::Sync(Box::new(connected(0))));
+        a.apply(Event::Sync(Box::new(connected(0))));
         a.apply(a.content_here(entries(1)));
         a.handle(Action::SetListStatus, 10);
         a.overlay_selected = 2;
         let task = a.handle(Action::Open, 10);
         assert!(matches!(
             task,
-            Some(Task::SetStatus { status: LibrarySegment::Completed, .. })
+            Some(Command::SetStatus { status: LibrarySegment::Completed, .. })
         ));
         assert!(
             a.toasts
@@ -5584,7 +5587,7 @@ mod tests {
             a.type_char(c);
         }
         let task = a.handle(Action::Open, 10);
-        assert!(matches!(task, Some(Task::SaveSetting { key: "subtitle_language", .. })));
+        assert!(matches!(task, Some(Command::SaveSetting { key: "subtitle_language", .. })));
         assert!(a.toasts.is_empty(), "the save says so when it lands: {:?}", a.toasts);
     }
 
@@ -5618,7 +5621,7 @@ mod tests {
                 ("plugins".into(), SourceState::Pending)
             ]
         );
-        a.apply(Update::Providers(vec![ProviderRow {
+        a.apply(Event::Providers(vec![ProviderRow {
             id: "someplugin".into(),
             kind: "plugin".into(),
             state: "ready".into(),
@@ -5629,7 +5632,7 @@ mod tests {
         }]));
         assert_eq!(a.source_states()[1], ("plugins".into(), SourceState::Ready));
         // What actually served wins once something has played.
-        a.apply(Update::ActiveProvider("someplugin".into()));
+        a.apply(Event::ActiveProvider("someplugin".into()));
         assert_eq!(a.source_label(), "someplugin");
     }
 
@@ -5654,7 +5657,7 @@ mod tests {
         // The `"plugins"` chip speaks for every plugin, named in the order or not.
         let mut a = app();
         a.config.providers.order = strings(&["alpha", "torrent", "plugins"]);
-        a.apply(Update::Providers(vec![source_row("alpha", "plugin")]));
+        a.apply(Event::Providers(vec![source_row("alpha", "plugin")]));
         assert_eq!(
             a.source_states(),
             vec![("torrent".into(), SourceState::Off), ("plugins".into(), SourceState::Ready)]
@@ -5667,7 +5670,7 @@ mod tests {
         a.config.providers.order = strings(&["torrent", "plugins"]);
         a.go_to_section(Section::Providers);
         a.nav.focus_stage();
-        a.apply(Update::Providers(vec![
+        a.apply(Event::Providers(vec![
             source_row("torrent", "torrent"),
             source_row("alpha", "plugin"),
             source_row("beta", "plugin"),
@@ -5675,14 +5678,14 @@ mod tests {
         a
     }
 
-    fn press(a: &mut App, ch: char) -> Option<Task> {
+    fn press(a: &mut App, ch: char) -> Option<Command> {
         a.press(KeyEvent::new(KeyCode::Char(ch), KeyModifiers::NONE), 20)
     }
 
     /// The order a task saves, for a task that must be the order being saved.
-    fn saved_order(task: Option<Task>) -> Vec<String> {
+    fn saved_order(task: Option<Command>) -> Vec<String> {
         match task {
-            Some(Task::SaveSetting {
+            Some(Command::SaveSetting {
                 table: ["providers"],
                 key: "order",
                 value: anistream_core::settings::SettingValue::List(order),
@@ -5753,7 +5756,7 @@ mod tests {
         a.saved_config.providers.order = before.clone();
         press(&mut a, 'J');
         assert_ne!(a.config.providers.order, before);
-        a.apply(Update::SettingWritten {
+        a.apply(Event::SettingWritten {
             on_disk: Box::new(a.saved_config.clone()),
             failed: Some((&["providers"], "order")),
         });
@@ -5765,7 +5768,7 @@ mod tests {
         // Nothing is rebuilt for a reorder, so the status line must not claim a reload.
         let mut a = at_providers();
         let before = a.status.clone();
-        a.apply(Update::SourcesReordered);
+        a.apply(Event::SourcesReordered);
         assert_eq!(a.status, before);
         assert_eq!(row_ids(&a), ["torrent", "alpha", "beta"]);
     }
@@ -5775,7 +5778,7 @@ mod tests {
         let mut a = at_providers();
         a.handle(Action::Bottom, 20);
         assert_eq!(a.selected, 2);
-        a.apply(Update::Providers(vec![source_row("torrent", "torrent")]));
+        a.apply(Event::Providers(vec![source_row("torrent", "torrent")]));
         assert_eq!(a.selected, 0);
     }
 
@@ -5826,7 +5829,7 @@ mod tests {
         }
         let task = a.handle(Action::Open, 20).expect("enter must search");
         match task {
-            Task::ManualSearch { query, .. } => assert_eq!(query, "frieren"),
+            Command::ManualSearch { query, .. } => assert_eq!(query, "frieren"),
             other => panic!("expected ManualSearch, got {other:?}"),
         }
         // The overlay closes; the results return through MatchChoices and reuse the
@@ -5847,7 +5850,7 @@ mod tests {
         // The candidates were being thrown away and reported as "could not match this title",
         // which is a dead end for a question the user can answer at a glance.
         let mut a = app_at_episodes();
-        a.apply(Update::MatchChoices {
+        a.apply(Event::MatchChoices {
             id: AnilistId::new(1),
             provider_id: "torrent".into(),
             candidates: vec![candidate("Frieren S1", 0.62), candidate("Frieren S2", 0.61)],
@@ -5861,7 +5864,7 @@ mod tests {
     #[test]
     fn no_candidates_is_a_failure_rather_than_an_empty_question() {
         let mut a = app_at_episodes();
-        a.apply(Update::MatchChoices {
+        a.apply(Event::MatchChoices {
             id: AnilistId::new(1),
             provider_id: "torrent".into(),
             candidates: Vec::new(),
@@ -5872,7 +5875,7 @@ mod tests {
     #[test]
     fn picking_a_candidate_pins_it_and_reloads() {
         let mut a = app_at_episodes();
-        a.apply(Update::MatchChoices {
+        a.apply(Event::MatchChoices {
             id: AnilistId::new(1),
             provider_id: "torrent".into(),
             candidates: vec![candidate("Frieren S1", 0.62), candidate("Frieren S2", 0.61)],
@@ -5883,7 +5886,7 @@ mod tests {
         let task = a.handle(Action::Open, 20).expect("picking must do something");
         assert_eq!(
             task,
-            Task::FixMatch {
+            Command::FixMatch {
                 id: AnilistId::new(1),
                 provider_id: "torrent".into(),
                 key: anistream_core::ids::ProviderKey::new("Frieren S2"),
@@ -5913,7 +5916,7 @@ mod tests {
         // way to know the stream failed.
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
-        a.apply(Update::Toast(Notice::alert("all providers failed")));
+        a.apply(Event::Toast(Notice::alert("all providers failed")));
         for _ in 0..crate::eyecatch::SWEEP_FRAMES * 3 {
             a.tick_animation();
         }
@@ -5937,7 +5940,7 @@ mod tests {
     fn the_resume_toast_offers_nothing_it_cannot_do() {
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
-        a.apply(Update::Resumed { position: 87.0 });
+        a.apply(Event::Resumed { position: 87.0 });
         let toast = a.toasts.last().expect("a toast");
         assert_eq!(toast.notice.text, "resumed at 1:27");
     }
@@ -5959,12 +5962,12 @@ mod tests {
         a.nav.pop();
         assert_eq!(
             a.handle(Action::NextEpisode, 20),
-            Some(Task::Player(PlayerCommand::Step(1)))
+            Some(Command::Player(PlayerCommand::Step(1)))
         );
         a.detail = a.content.entries().first().cloned();
         assert_eq!(
             a.handle(Action::PreviousEpisode, 20),
-            Some(Task::Player(PlayerCommand::Step(-1)))
+            Some(Command::Player(PlayerCommand::Step(-1)))
         );
     }
 
@@ -5978,17 +5981,17 @@ mod tests {
             episode: "4".into(),
             ..NowPlaying::default()
         });
-        a.apply(Update::PlayerPlayEpisode { episode: "5".into(), title: Some("Fifth".into()) });
+        a.apply(Event::PlayerPlayEpisode { episode: "5".into(), title: Some("Fifth".into()) });
         assert_eq!(
             a.take_pending(),
-            Some(Task::Play { id: AnilistId::new(2), episode: "5".into() })
+            Some(Command::Play { id: AnilistId::new(2), episode: "5".into() })
         );
         let playing = a.playing.as_ref().unwrap();
         assert_eq!(playing.title, "Title 1");
         assert_eq!(playing.episode_title.as_deref(), Some("Fifth"));
 
         // Named by nobody, it is left unnamed rather than given the open show's episode 6.
-        a.apply(Update::PlayerPlayEpisode { episode: "6".into(), title: None });
+        a.apply(Event::PlayerPlayEpisode { episode: "6".into(), title: None });
         assert_eq!(a.playing.as_ref().unwrap().episode_title, None);
     }
 
@@ -6001,30 +6004,30 @@ mod tests {
             episode: "4".into(),
             ..NowPlaying::default()
         });
-        a.apply(Update::Playback { position: 300.0, duration: Some(1440.0), paused: false });
-        a.apply(Update::PlayerPlayEpisode { episode: "9".into(), title: None });
+        a.apply(Event::Playback { position: 300.0, duration: Some(1440.0), paused: false });
+        a.apply(Event::PlayerPlayEpisode { episode: "9".into(), title: None });
         assert_eq!(a.playing.as_ref().unwrap().episode, "9", "staged while it is found");
 
         // Episode 4 keeps the window meanwhile, and its reports are its own.
-        a.apply(Update::Playback { position: 301.0, duration: Some(1440.0), paused: false });
+        a.apply(Event::Playback { position: 301.0, duration: Some(1440.0), paused: false });
         assert_eq!(a.playing.as_ref().unwrap().position, 0.0);
         assert!(a.eyecatch.is_some(), "a report from 4 is not 9 starting");
 
-        a.apply(Update::Toast(Notice::alert("a: timed out")));
-        a.apply(Update::PlaybackKept);
+        a.apply(Event::Toast(Notice::alert("a: timed out")));
+        a.apply(Event::PlaybackKept);
         let playing = a.playing.as_ref().unwrap();
         assert_eq!((playing.episode.as_str(), playing.position), ("4", 301.0));
 
         // Found, the window changes hands and what reports from then on is the successor.
-        a.apply(Update::PlayerPlayEpisode { episode: "5".into(), title: None });
-        a.apply(Update::EpisodeLeft {
+        a.apply(Event::PlayerPlayEpisode { episode: "5".into(), title: None });
+        a.apply(Event::EpisodeLeft {
             id: AnilistId::new(2),
             episode: "4".into(),
             position: 302.0,
             duration: Some(1440.0),
             watched: false,
         });
-        a.apply(Update::Playback { position: 1.0, duration: Some(1420.0), paused: false });
+        a.apply(Event::Playback { position: 1.0, duration: Some(1420.0), paused: false });
         let playing = a.playing.as_ref().unwrap();
         assert_eq!((playing.episode.as_str(), playing.position), ("5", 1.0));
     }
@@ -6055,8 +6058,8 @@ mod tests {
         a.detail.as_mut().unwrap().progress = Some((5, 6));
         a.episode_selected = 7;
         a.handle(Action::Open, 20);
-        a.apply(Update::Playback { position: 600.0, duration: Some(1200.0), paused: false });
-        a.apply(Update::PlaybackEnded { watched: false, ending: Ending::Closed });
+        a.apply(Event::Playback { position: 600.0, duration: Some(1200.0), paused: false });
+        a.apply(Event::PlaybackEnded { watched: false, ending: Ending::Closed });
         let entry = a.detail.as_ref().unwrap();
         assert_eq!(entry.progress, Some((5, 8)));
         assert_eq!(entry.resume.map(|r| r.position), Some(600.0));
@@ -6095,7 +6098,7 @@ mod tests {
 
         // A rewatch of episode 3 moves neither the count nor Continue back into what is done.
         a.take_pending();
-        a.apply(Update::PlaybackEnded { watched: false, ending: Ending::Stopped });
+        a.apply(Event::PlaybackEnded { watched: false, ending: Ending::Stopped });
         a.nav.push(StageView::Episodes(AnilistId::new(1)));
         a.episode_selected = 2;
         a.handle(Action::Open, 20);
@@ -6109,10 +6112,10 @@ mod tests {
         // `playing` from it would leave a phantom player on screen.
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
-        a.apply(Update::PlaybackEnded { watched: false, ending: Ending::Closed });
+        a.apply(Event::PlaybackEnded { watched: false, ending: Ending::Closed });
         assert!(a.playing.is_none());
 
-        a.apply(Update::Playback { position: 100.0, duration: Some(1435.0), paused: false });
+        a.apply(Event::Playback { position: 100.0, duration: Some(1435.0), paused: false });
         assert!(a.playing.is_none(), "a stray tick brought the player back");
     }
 
@@ -6123,7 +6126,7 @@ mod tests {
         a.apply(finished(Some("2")));
         assert_eq!(
             a.take_pending(),
-            Some(Task::Play { id: AnilistId::new(1), episode: "2".into() }),
+            Some(Command::Play { id: AnilistId::new(1), episode: "2".into() }),
             "auto-next did not follow a finished episode"
         );
     }
@@ -6132,7 +6135,7 @@ mod tests {
     fn quitting_partway_does_not_roll_on_to_the_next_episode() {
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
-        a.apply(Update::PlaybackEnded { watched: false, ending: Ending::Closed });
+        a.apply(Event::PlaybackEnded { watched: false, ending: Ending::Closed });
         assert_eq!(a.take_pending(), None);
     }
 
@@ -6144,7 +6147,7 @@ mod tests {
         for ending in [Ending::Closed, Ending::Stopped] {
             let mut a = app_at_episodes();
             a.handle(Action::Open, 20);
-            a.apply(Update::PlaybackEnded { watched: true, ending: ending.clone() });
+            a.apply(Event::PlaybackEnded { watched: true, ending: ending.clone() });
             assert_eq!(a.take_pending(), None, "{ending:?} rolled on");
             assert!(a.episodes[0].completed, "still recorded as watched after {ending:?}");
         }
@@ -6160,7 +6163,7 @@ mod tests {
         a.apply(finished(Some("2")));
         assert_eq!(
             a.take_pending(),
-            Some(Task::Play { id: AnilistId::new(1), episode: "2".into() })
+            Some(Command::Play { id: AnilistId::new(1), episode: "2".into() })
         );
         let playing = a.playing.as_ref().expect("the next episode is staged");
         assert_eq!(playing.title, "Title 0");
@@ -6174,9 +6177,9 @@ mod tests {
         // nothing of episode 1's choice is held here to overrule it.
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
-        a.apply(Update::PlayerPlayEpisode { episode: "2".into(), title: None });
-        assert!(matches!(a.take_pending(), Some(Task::Play { .. })));
-        a.apply(Update::EpisodeLeft {
+        a.apply(Event::PlayerPlayEpisode { episode: "2".into(), title: None });
+        assert!(matches!(a.take_pending(), Some(Command::Play { .. })));
+        a.apply(Event::EpisodeLeft {
             id: AnilistId::new(1),
             episode: "1".into(),
             position: 300.0,
@@ -6186,7 +6189,7 @@ mod tests {
         a.apply(finished(Some("3")));
         assert_eq!(
             a.take_pending(),
-            Some(Task::Play { id: AnilistId::new(1), episode: "3".into() })
+            Some(Command::Play { id: AnilistId::new(1), episode: "3".into() })
         );
     }
 
@@ -6196,7 +6199,7 @@ mod tests {
         a.apply(a.content_here(entries(3)));
         a.selected = 1;
         let task = a.handle(Action::HideFromContinue, 20);
-        assert_eq!(task, Some(Task::HideFromContinue { id: AnilistId::new(2) }));
+        assert_eq!(task, Some(Command::HideFromContinue { id: AnilistId::new(2) }));
         // Gone from the screen before the store is even asked — same contract as
         // marking watched.
         assert_eq!(a.content.len(), 2);
@@ -6264,8 +6267,8 @@ mod tests {
         let mut a = app_at_episodes();
         a.detail.as_mut().unwrap().progress = Some((0, 1));
         a.handle(Action::Open, 20);
-        a.apply(Update::Playback { position: 600.0, duration: Some(1200.0), paused: false });
-        a.apply(Update::PlaybackEnded { watched: false, ending: Ending::Closed });
+        a.apply(Event::Playback { position: 600.0, duration: Some(1200.0), paused: false });
+        a.apply(Event::PlaybackEnded { watched: false, ending: Ending::Closed });
 
         let resume = a.detail.as_ref().unwrap().resume.expect("no resume point");
         assert_eq!(resume.position, 600.0);
@@ -6275,15 +6278,15 @@ mod tests {
     #[test]
     fn an_ending_asks_for_the_next_episode_without_taking_a_busy_slot() {
         let mut a = app();
-        a.apply(Update::PrefetchNext { id: AnilistId::new(3), episode: "6".into() });
+        a.apply(Event::PrefetchNext { id: AnilistId::new(3), episode: "6".into() });
         assert_eq!(
             a.take_pending(),
-            Some(Task::Prefetch { id: AnilistId::new(3), episode: "6".into() })
+            Some(Command::Prefetch { id: AnilistId::new(3), episode: "6".into() })
         );
         // Best effort: a slot already holding work keeps it.
-        a.apply(Update::PlayerNightMode(true));
-        a.apply(Update::PrefetchNext { id: AnilistId::new(3), episode: "6".into() });
-        assert!(matches!(a.take_pending(), Some(Task::SaveSetting { .. })));
+        a.apply(Event::PlayerNightMode(true));
+        a.apply(Event::PrefetchNext { id: AnilistId::new(3), episode: "6".into() });
+        assert!(matches!(a.take_pending(), Some(Command::SaveSetting { .. })));
     }
 
     #[test]
@@ -6322,7 +6325,7 @@ mod tests {
         ] {
             assert_eq!(
                 a.handle(action, 20),
-                Some(Task::Player(expected)),
+                Some(Command::Player(expected)),
                 "{action:?} did not reach the player"
             );
         }
@@ -6336,13 +6339,13 @@ mod tests {
         a.handle(Action::Open, 20);
         assert_eq!(a.handle(Action::SkipOpening, 20), None);
 
-        a.apply(Update::SkipAvailable { kind: SkipKind::Opening, to: 93.2 });
+        a.apply(Event::SkipAvailable { kind: SkipKind::Opening, to: 93.2 });
         assert_eq!(
             a.handle(Action::SkipOpening, 20),
-            Some(Task::Player(PlayerCommand::SeekTo(93.2)))
+            Some(Command::Player(PlayerCommand::SeekTo(93.2)))
         );
 
-        a.apply(Update::SkipCleared);
+        a.apply(Event::SkipCleared);
         assert_eq!(a.handle(Action::SkipOpening, 20), None);
     }
 
@@ -6381,7 +6384,9 @@ mod tests {
         a.apply(finished(Some("2")));
         let task = a.take_pending().expect("auto-next must fire");
         match task {
-            Task::Play { episode, .. } => assert_eq!(episode, "4", "eps 2-3 are pure filler"),
+            Command::Play { episode, .. } => {
+                assert_eq!(episode, "4", "eps 2-3 are pure filler")
+            }
             other => panic!("expected Play, got {other:?}"),
         }
     }
@@ -6390,7 +6395,7 @@ mod tests {
     fn a_remembered_speed_carries_into_the_next_episode() {
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
-        a.apply(Update::PlaybackSpeed(1.25));
+        a.apply(Event::PlaybackSpeed(1.25));
         assert_eq!(a.config.playback.persisted_speed, Some(1.25));
 
         a.apply(finished(Some("2")));
@@ -6461,12 +6466,12 @@ mod tests {
         // The drain runs on an interval; repeating the alert each time would bury everything
         // else in toasts.
         let mut a = app();
-        a.apply(Update::Sync(Box::new(SyncState { needs_reauth: true, ..connected(1) })));
+        a.apply(Event::Sync(Box::new(SyncState { needs_reauth: true, ..connected(1) })));
         // Counted in the log, which counts every announcement: the toast stack folds a repeat
         // into the one already showing, so it cannot tell whether one was made.
         let announced = |a: &App| a.logs.iter().map(|l| l.count).sum::<u32>();
         assert_eq!(announced(&a), 1);
-        a.apply(Update::Sync(Box::new(SyncState { needs_reauth: true, ..connected(1) })));
+        a.apply(Event::Sync(Box::new(SyncState { needs_reauth: true, ..connected(1) })));
         assert_eq!(announced(&a), 1, "re-announced an unchanged auth failure");
     }
 
@@ -6475,7 +6480,7 @@ mod tests {
         // Otherwise the header would grow a new chip on every drain tick.
         let mut a = app();
         for depth in [1, 2, 3] {
-            a.apply(Update::Sync(Box::new(connected(depth))));
+            a.apply(Event::Sync(Box::new(connected(depth))));
         }
         assert_eq!(a.sync.len(), 1);
         assert_eq!(a.sync[0].outbox, 3);
@@ -6486,8 +6491,8 @@ mod tests {
         // The row is already in SQLite by the time this arrives, so counting it optimistically
         // is honest — the next drain can only correct it downward.
         let mut a = app();
-        a.apply(Update::Sync(Box::new(connected(0))));
-        a.apply(Update::ProgressQueued);
+        a.apply(Event::Sync(Box::new(connected(0))));
+        a.apply(Event::ProgressQueued);
         assert_eq!(a.sync[0].outbox, 1);
         assert_eq!(sync_badge(&a.sync[0]), "anilist ⇅ 1");
     }
@@ -6496,14 +6501,14 @@ mod tests {
     fn conflicts_are_announced_when_they_first_appear() {
         // Surfaced rather than resolved — the whole reason the merge refuses to guess.
         let mut a = app();
-        a.apply(Update::Conflicts(vec![conflict("Frieren")]));
+        a.apply(Event::Conflicts(vec![conflict("Frieren")]));
         assert_eq!(a.conflicts.len(), 1);
         assert!(a.toasts.iter().any(|t| t.notice.text.contains("disagreement")));
 
         // A second pull returning the same set must not re-announce.
         let announced = |a: &App| a.logs.iter().map(|l| l.count).sum::<u32>();
         let before = announced(&a);
-        a.apply(Update::Conflicts(vec![conflict("Frieren")]));
+        a.apply(Event::Conflicts(vec![conflict("Frieren")]));
         assert_eq!(announced(&a), before);
     }
 
@@ -6524,7 +6529,7 @@ mod tests {
         a.handle(Action::ShowConflicts, 20);
         assert!(!a.nav.has_overlay());
 
-        a.apply(Update::Conflicts(vec![conflict("Frieren")]));
+        a.apply(Event::Conflicts(vec![conflict("Frieren")]));
         a.handle(Action::ShowConflicts, 20);
         assert_eq!(a.nav.overlay(), Some(&Overlay::Conflicts));
     }
@@ -6532,11 +6537,11 @@ mod tests {
     #[test]
     fn resolving_a_conflict_removes_it_and_closes_when_empty() {
         let mut a = app();
-        a.apply(Update::Conflicts(vec![conflict("Frieren"), conflict("Dandadan")]));
+        a.apply(Event::Conflicts(vec![conflict("Frieren"), conflict("Dandadan")]));
         a.handle(Action::ShowConflicts, 20);
 
         let task = a.handle(Action::Open, 20);
-        assert!(matches!(task, Some(Task::ResolveConflict { keep_local: true, .. })));
+        assert!(matches!(task, Some(Command::ResolveConflict { keep_local: true, .. })));
         assert_eq!(a.conflicts.len(), 1);
         assert!(a.nav.has_overlay(), "one left, so the overlay stays");
 
@@ -6550,7 +6555,7 @@ mod tests {
         // Without this, arrowing through Accounts would scroll the library behind it.
         let mut a = app();
         a.apply(a.content_here(entries(10)));
-        a.apply(Update::Conflicts(vec![conflict("a"), conflict("b"), conflict("c")]));
+        a.apply(Event::Conflicts(vec![conflict("a"), conflict("b"), conflict("c")]));
         a.handle(Action::ShowConflicts, 20);
 
         a.handle(Action::Down, 20);
@@ -6590,8 +6595,8 @@ mod tests {
     fn at_stores(stores: Vec<StoreRow>) -> App {
         let mut a = app();
         a.go_to_section(Section::Providers);
-        assert_eq!(a.handle(Action::Open, 20), Some(Task::LoadStores));
-        a.apply(Update::Stores(stores));
+        assert_eq!(a.handle(Action::Open, 20), Some(Command::LoadStores));
+        a.apply(Event::Stores(stores));
         a
     }
 
@@ -6606,7 +6611,7 @@ mod tests {
         let mut a = app();
         a.go_to_section(Section::Providers);
         a.nav.focus_rail();
-        assert_eq!(a.handle(Action::Open, 20), Some(Task::LoadStores));
+        assert_eq!(a.handle(Action::Open, 20), Some(Command::LoadStores));
         assert_eq!(a.nav.current(), &StageView::Stores);
         assert_eq!(a.nav.focus(), Focus::Stage);
     }
@@ -6623,13 +6628,13 @@ mod tests {
         a.paste("https://plugins.example/join/abc\n  #key");
         assert_eq!(
             a.handle(Action::Open, 20),
-            Some(Task::PreviewStore {
+            Some(Command::PreviewStore {
                 link: Secret("https://plugins.example/join/abc#key".into())
             })
         );
         assert!(!a.nav.has_overlay());
 
-        a.apply(Update::StorePreview(Ok(StorePreview {
+        a.apply(Event::StorePreview(Ok(StorePreview {
             link: Secret("https://plugins.example/join/abc#key".into()),
             name: "Our plugins".into(),
             url: "https://plugins.example".into(),
@@ -6639,15 +6644,15 @@ mod tests {
         assert_eq!(a.nav.overlay(), Some(&Overlay::StoreConfirm));
         assert_eq!(
             a.handle(Action::Open, 20),
-            Some(Task::JoinStore {
+            Some(Command::JoinStore {
                 link: Secret("https://plugins.example/join/abc#key".into())
             })
         );
         assert!(a.join_link.is_empty(), "the spent link is not kept");
 
         // Joined: the new store opens, because the user is still on the list it was joined from.
-        a.apply(Update::Stores(vec![store_row("abc", false, Vec::new())]));
-        a.apply(Update::StoreJoined { store: "abc".into() });
+        a.apply(Event::Stores(vec![store_row("abc", false, Vec::new())]));
+        a.apply(Event::StoreJoined { store: "abc".into() });
         assert_eq!(a.nav.current(), &StageView::Store("abc".into()));
     }
 
@@ -6657,7 +6662,7 @@ mod tests {
         a.handle(Action::Open, 20);
         type_text(&mut a, "https://plugins.example/join/abc");
         a.handle(Action::Open, 20);
-        a.apply(Update::StorePreview(Err("the link is missing the store's key".into())));
+        a.apply(Event::StorePreview(Err("the link is missing the store's key".into())));
         assert_eq!(a.nav.overlay(), Some(&Overlay::JoinStore));
         assert_eq!(a.join_link, "https://plugins.example/join/abc");
         assert!(a.toasts.iter().any(|t| t.notice.text.contains("missing the store's key")));
@@ -6676,8 +6681,8 @@ mod tests {
     fn a_join_that_finishes_elsewhere_does_not_drag_the_user_back() {
         let mut a = at_stores(Vec::new());
         a.go_to_section(Section::Home);
-        a.apply(Update::Stores(vec![store_row("abc", false, Vec::new())]));
-        a.apply(Update::StoreJoined { store: "abc".into() });
+        a.apply(Event::Stores(vec![store_row("abc", false, Vec::new())]));
+        a.apply(Event::StoreJoined { store: "abc".into() });
         assert_eq!(a.nav.current(), &StageView::Section(Section::Home));
     }
 
@@ -6695,7 +6700,7 @@ mod tests {
         assert_eq!(a.plugin_choices(), vec![PluginChoice::Install, PluginChoice::Cancel]);
         assert_eq!(
             a.handle(Action::Open, 20),
-            Some(Task::InstallPlugin { store: "abc".into(), plugin: "example".into() })
+            Some(Command::InstallPlugin { store: "abc".into(), plugin: "example".into() })
         );
         assert!(!a.nav.has_overlay());
     }
@@ -6723,7 +6728,7 @@ mod tests {
         a.handle(Action::Down, 20);
         assert_eq!(
             a.handle(Action::Open, 20),
-            Some(Task::RemovePlugin { plugin: "example".into() })
+            Some(Command::RemovePlugin { plugin: "example".into() })
         );
     }
 
@@ -6766,9 +6771,9 @@ mod tests {
             expires_at: 0,
         };
         let mut a = at_stores(vec![store_row("abc", true, Vec::new())]);
-        a.apply(Update::InviteLink(link("one")));
+        a.apply(Event::InviteLink(link("one")));
         a.invite_copied = true;
-        a.apply(Update::InviteLink(link("two")));
+        a.apply(Event::InviteLink(link("two")));
         assert!(!a.invite_copied);
     }
 
@@ -6796,10 +6801,10 @@ mod tests {
         type_text(&mut a, "Alex");
         assert_eq!(
             a.handle(Action::Open, 20),
-            Some(Task::CreateInvite { store: "abc".into(), name: Some("Alex".into()) })
+            Some(Command::CreateInvite { store: "abc".into(), name: Some("Alex".into()) })
         );
 
-        a.apply(Update::InviteLink(InviteLinkView {
+        a.apply(Event::InviteLink(InviteLinkView {
             store: "abc".into(),
             link: Secret("https://plugins.example/join/x#y".into()),
             for_whom: Some("Alex".into()),
@@ -6818,7 +6823,10 @@ mod tests {
         for _ in 0..4 {
             a.handle(Action::Down, 20);
         }
-        assert_eq!(a.handle(Action::Open, 20), Some(Task::OpenAdmin { store: "abc".into() }));
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Command::OpenAdmin { store: "abc".into() })
+        );
     }
 
     #[test]
@@ -6833,7 +6841,7 @@ mod tests {
         a.handle(Action::Open, 20);
         assert_eq!(
             a.handle(Action::Open, 20),
-            Some(Task::CreateInvite { store: "abc".into(), name: None })
+            Some(Command::CreateInvite { store: "abc".into(), name: None })
         );
     }
 
@@ -6843,7 +6851,10 @@ mod tests {
         a.handle(Action::Open, 20);
         a.handle(Action::Down, 20);
         a.handle(Action::Down, 20);
-        assert_eq!(a.handle(Action::Open, 20), Some(Task::LoadMembers { store: "abc".into() }));
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Command::LoadMembers { store: "abc".into() })
+        );
         assert_eq!(a.nav.current(), &StageView::StoreMembers("abc".into()));
 
         let member = |id: &str, you| StoreMemberRow {
@@ -6854,7 +6865,7 @@ mod tests {
             last_seen: None,
             you,
         };
-        a.apply(Update::StoreMembers {
+        a.apply(Event::StoreMembers {
             store: "abc".into(),
             members: vec![member("me", true), member("alex", false)],
             invites: vec![StoreInviteRow {
@@ -6877,14 +6888,14 @@ mod tests {
         assert_eq!(a.member_selected, 1);
         assert_eq!(
             a.handle(Action::Open, 20),
-            Some(Task::RemoveMember { store: "abc".into(), member: "alex".into() })
+            Some(Command::RemoveMember { store: "abc".into(), member: "alex".into() })
         );
 
         a.handle(Action::Down, 20);
         a.handle(Action::Open, 20);
         assert_eq!(
             a.handle(Action::Open, 20),
-            Some(Task::CancelInvite { store: "abc".into(), invite: "inv".into() })
+            Some(Command::CancelInvite { store: "abc".into(), invite: "inv".into() })
         );
     }
 
@@ -6895,9 +6906,12 @@ mod tests {
         a.handle(Action::Down, 20);
         assert_eq!(a.handle(Action::Open, 20), None);
         assert_eq!(a.nav.overlay(), Some(&Overlay::StoreConfirm));
-        assert_eq!(a.handle(Action::Open, 20), Some(Task::LeaveStore { store: "abc".into() }));
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Command::LeaveStore { store: "abc".into() })
+        );
 
-        a.apply(Update::Stores(Vec::new()));
+        a.apply(Event::Stores(Vec::new()));
         assert_eq!(a.nav.current(), &StageView::Stores);
     }
 
@@ -6910,7 +6924,7 @@ mod tests {
         }
         assert_eq!(
             a.handle(Action::Open, 20),
-            Some(Task::LoadLocalPlugins { store: "abc".into() })
+            Some(Command::LoadLocalPlugins { store: "abc".into() })
         );
         let local = LocalPluginRow {
             id: "example".into(),
@@ -6920,14 +6934,14 @@ mod tests {
             published: None,
         };
         // An answer for another store is not offered here.
-        a.apply(Update::LocalPlugins { store: "other".into(), plugins: vec![local.clone()] });
+        a.apply(Event::LocalPlugins { store: "other".into(), plugins: vec![local.clone()] });
         assert!(!a.nav.has_overlay());
 
-        a.apply(Update::LocalPlugins { store: "abc".into(), plugins: vec![local] });
+        a.apply(Event::LocalPlugins { store: "abc".into(), plugins: vec![local] });
         assert_eq!(a.nav.overlay(), Some(&Overlay::PublishPick));
         assert_eq!(
             a.handle(Action::Open, 20),
-            Some(Task::PublishPlugin { store: "abc".into(), plugin: "example".into() })
+            Some(Command::PublishPlugin { store: "abc".into(), plugin: "example".into() })
         );
     }
 
@@ -6939,7 +6953,7 @@ mod tests {
             a.handle(Action::Down, 20);
         }
         a.handle(Action::Open, 20);
-        a.apply(Update::LocalPlugins { store: "abc".into(), plugins: Vec::new() });
+        a.apply(Event::LocalPlugins { store: "abc".into(), plugins: Vec::new() });
         assert!(!a.nav.has_overlay());
         assert!(a.toasts.iter().any(|t| t.notice.text.contains("no plugins")));
     }
@@ -6961,15 +6975,15 @@ mod tests {
     #[test]
     fn refreshing_a_store_screen_asks_the_stores_again() {
         let mut a = at_stores(vec![store_row("abc", true, Vec::new())]);
-        assert_eq!(a.handle(Action::Refresh, 20), Some(Task::LoadStores));
+        assert_eq!(a.handle(Action::Refresh, 20), Some(Command::LoadStores));
         a.handle(Action::Open, 20);
-        assert_eq!(a.handle(Action::Refresh, 20), Some(Task::LoadStores));
+        assert_eq!(a.handle(Action::Refresh, 20), Some(Command::LoadStores));
         a.handle(Action::Down, 20);
         a.handle(Action::Down, 20);
         a.handle(Action::Open, 20);
         assert_eq!(
             a.handle(Action::Refresh, 20),
-            Some(Task::LoadMembers { store: "abc".into() })
+            Some(Command::LoadMembers { store: "abc".into() })
         );
     }
 
@@ -6988,7 +7002,7 @@ mod tests {
         );
         a.handle(Action::Down, 20);
         // The refresh that opening the screen asked for lands now, with an update waiting.
-        a.apply(Update::Stores(vec![store_row(
+        a.apply(Event::Stores(vec![store_row(
             "abc",
             true,
             vec![store_plugin(
@@ -7016,7 +7030,7 @@ mod tests {
         a.handle(Action::Open, 20);
         let leave = a.store_confirm.clone();
         assert!(matches!(leave, Some(StoreConfirm::Leave { .. })));
-        a.apply(Update::StorePreview(Ok(StorePreview {
+        a.apply(Event::StorePreview(Ok(StorePreview {
             link: Secret("x".into()),
             name: "Other".into(),
             url: "https://other.example".into(),
@@ -7024,7 +7038,10 @@ mod tests {
             already_joined: false,
         })));
         assert_eq!(a.store_confirm, leave);
-        assert_eq!(a.handle(Action::Open, 20), Some(Task::LeaveStore { store: "abc".into() }));
+        assert_eq!(
+            a.handle(Action::Open, 20),
+            Some(Command::LeaveStore { store: "abc".into() })
+        );
     }
 
     #[test]
@@ -7038,7 +7055,7 @@ mod tests {
     #[test]
     fn the_accounts_screen_offers_sign_in_or_sign_out_by_state() {
         let mut a = app();
-        a.apply(Update::Sync(Box::new(SyncState {
+        a.apply(Event::Sync(Box::new(SyncState {
             tracker: "anilist".into(),
             connected: false,
             ..SyncState::default()
@@ -7048,13 +7065,13 @@ mod tests {
         a.nav.focus_stage();
         assert_eq!(
             a.handle(Action::Open, 20),
-            Some(Task::Connect { tracker: "anilist".into() })
+            Some(Command::Connect { tracker: "anilist".into() })
         );
 
-        a.apply(Update::Sync(Box::new(connected(0))));
+        a.apply(Event::Sync(Box::new(connected(0))));
         assert_eq!(
             a.handle(Action::Open, 20),
-            Some(Task::Disconnect { tracker: "anilist".into() })
+            Some(Command::Disconnect { tracker: "anilist".into() })
         );
     }
 
@@ -7062,12 +7079,12 @@ mod tests {
     fn a_tracker_needing_reauth_offers_sign_in_not_sign_out() {
         // It is technically connected but useless, so offering "sign out" would be a dead end.
         let mut a = app();
-        a.apply(Update::Sync(Box::new(SyncState { needs_reauth: true, ..connected(1) })));
+        a.apply(Event::Sync(Box::new(SyncState { needs_reauth: true, ..connected(1) })));
         a.handle(Action::ShowAccounts, 20);
         a.nav.focus_stage();
         assert_eq!(
             a.handle(Action::Open, 20),
-            Some(Task::Connect { tracker: "anilist".into() })
+            Some(Command::Connect { tracker: "anilist".into() })
         );
     }
 
@@ -7082,7 +7099,7 @@ mod tests {
 
         let task = a.handle(Action::Right, 20);
         assert_eq!(a.library_segment, LibrarySegment::Planning);
-        assert_eq!(task, Some(Task::LoadLibrary(LibrarySegment::Planning)));
+        assert_eq!(task, Some(Command::LoadLibrary(LibrarySegment::Planning)));
         assert_eq!(a.selected, 0);
     }
 
@@ -7100,7 +7117,7 @@ mod tests {
     fn setting_a_list_status_preselects_the_current_one() {
         // One keystroke to confirm in the common case, rather than a hunt.
         let mut a = app();
-        a.apply(Update::Sync(Box::new(connected(0))));
+        a.apply(Event::Sync(Box::new(connected(0))));
         a.go_to_section(Section::Library);
         a.library_segment = LibrarySegment::Completed;
         let mut rows = entries(3);
@@ -7116,7 +7133,10 @@ mod tests {
         let task = a.handle(Action::Open, 20);
         assert_eq!(
             task,
-            Some(Task::SetStatus { id: AnilistId::new(1), status: LibrarySegment::Completed })
+            Some(Command::SetStatus {
+                id: AnilistId::new(1),
+                status: LibrarySegment::Completed
+            })
         );
         assert!(!a.nav.has_overlay());
     }
@@ -7124,7 +7144,7 @@ mod tests {
     #[test]
     fn a_status_given_this_session_outlives_a_reload_until_the_tracker_answers() {
         let mut a = app();
-        a.apply(Update::Sync(Box::new(connected(0))));
+        a.apply(Event::Sync(Box::new(connected(0))));
         a.go_to_section(Section::Home);
         a.apply(a.content_here(entries(3)));
         let planning = 1;
@@ -7132,7 +7152,10 @@ mod tests {
         a.handle(Action::Down, 20);
         assert_eq!(
             a.handle(Action::Open, 20),
-            Some(Task::SetStatus { id: AnilistId::new(1), status: LibrarySegment::Planning })
+            Some(Command::SetStatus {
+                id: AnilistId::new(1),
+                status: LibrarySegment::Planning
+            })
         );
 
         // Home again: the rows are rebuilt and carry no status of their own.
@@ -7159,7 +7182,7 @@ mod tests {
     #[test]
     fn rating_a_title_queues_a_score_out_of_ten() {
         let mut a = app();
-        a.apply(Update::Sync(Box::new(connected(0))));
+        a.apply(Event::Sync(Box::new(connected(0))));
         a.apply(a.content_here(entries(3)));
         a.handle(Action::RateTitle, 20);
         assert_eq!(a.nav.overlay(), Some(&Overlay::Rate));
@@ -7168,7 +7191,7 @@ mod tests {
         a.handle(Action::Down, 20);
         a.handle(Action::Down, 20);
         let task = a.handle(Action::Open, 20);
-        assert_eq!(task, Some(Task::SetScore { id: AnilistId::new(1), score: 8.0 }));
+        assert_eq!(task, Some(Command::SetScore { id: AnilistId::new(1), score: 8.0 }));
         assert!(!a.nav.has_overlay());
     }
 
@@ -7188,7 +7211,7 @@ mod tests {
         a.handle(Action::Recommendations, 20);
         assert_eq!(a.nav.overlay(), Some(&Overlay::Recommendations));
         let task = a.handle(Action::Open, 20);
-        assert_eq!(task, Some(Task::LoadDetail(AnilistId::new(99))));
+        assert_eq!(task, Some(Command::LoadDetail(AnilistId::new(99))));
         assert!(matches!(a.nav.current(), StageView::Title(id) if id.get() == 99));
     }
 
@@ -7207,7 +7230,7 @@ mod tests {
         let task = a.handle(Action::PlayTrailer, 20);
         assert_eq!(
             task,
-            Some(Task::PlayTrailer {
+            Some(Command::PlayTrailer {
                 url: "https://www.youtube.com/watch?v=x".into(),
                 title: "Frieren".into(),
             })
@@ -7227,7 +7250,7 @@ mod tests {
     fn enter_on_the_kitsu_row_asks_for_credentials_in_place() {
         // No browser to open and no command line to visit: the prompt is the flow.
         let mut a = app();
-        a.apply(Update::Sync(Box::new(SyncState::new("kitsu"))));
+        a.apply(Event::Sync(Box::new(SyncState::new("kitsu"))));
         a.handle(Action::ShowAccounts, 10);
         a.nav.focus_stage();
 
@@ -7246,7 +7269,7 @@ mod tests {
         let task = a.handle(Action::Open, 10);
         assert_eq!(
             task,
-            Some(Task::ConnectKitsu {
+            Some(Command::ConnectKitsu {
                 username: "nagare".into(),
                 password: Secret("hunter2".into()),
             })
@@ -7260,7 +7283,7 @@ mod tests {
     #[test]
     fn an_empty_submit_stays_in_the_prompt_and_esc_wipes_it() {
         let mut a = app();
-        a.apply(Update::Sync(Box::new(SyncState::new("kitsu"))));
+        a.apply(Event::Sync(Box::new(SyncState::new("kitsu"))));
         a.handle(Action::ShowAccounts, 10);
         a.nav.focus_stage();
         a.handle(Action::Open, 10);
@@ -7295,10 +7318,10 @@ mod tests {
             detail: None,
             retry_at: None,
         };
-        a.apply(Update::MetaStatus(vec![row("anilist", true), row("tenrai", false)]));
+        a.apply(Event::MetaStatus(vec![row("anilist", true), row("tenrai", false)]));
         assert!(!a.meta_degraded(), "anilist serving is the resting state");
 
-        a.apply(Update::MetaStatus(vec![row("anilist", false), row("tenrai", true)]));
+        a.apply(Event::MetaStatus(vec![row("anilist", false), row("tenrai", true)]));
         assert!(a.meta_degraded());
     }
 
@@ -7307,7 +7330,7 @@ mod tests {
         // "marked watching" and "rated 8/10" used to be said for choices that went nowhere.
         // A tracker that is configured but signed out does not count.
         let mut a = app();
-        a.apply(Update::Sync(Box::new(SyncState::new("kitsu"))));
+        a.apply(Event::Sync(Box::new(SyncState::new("kitsu"))));
         a.apply(a.content_here(entries(3)));
 
         for action in [Action::SetListStatus, Action::RateTitle] {
@@ -7322,9 +7345,9 @@ mod tests {
     #[test]
     fn a_status_says_which_trackers_it_was_queued_for() {
         let mut a = app();
-        a.apply(Update::Sync(Box::new(connected(0))));
-        a.apply(Update::Sync(Box::new(SyncState { connected: true, ..SyncState::new("mal") })));
-        a.apply(Update::Sync(Box::new(SyncState::new("kitsu"))));
+        a.apply(Event::Sync(Box::new(connected(0))));
+        a.apply(Event::Sync(Box::new(SyncState { connected: true, ..SyncState::new("mal") })));
+        a.apply(Event::Sync(Box::new(SyncState::new("kitsu"))));
         a.apply(a.content_here(entries(3)));
         a.handle(Action::SetListStatus, 20);
         a.handle(Action::Open, 20);
@@ -7335,7 +7358,7 @@ mod tests {
     #[test]
     fn rating_with_nothing_selected_says_so() {
         let mut a = app();
-        a.apply(Update::Sync(Box::new(connected(0))));
+        a.apply(Event::Sync(Box::new(connected(0))));
         assert_eq!(a.handle(Action::RateTitle, 20), None);
         assert!(!a.nav.has_overlay());
         assert!(a.toasts.iter().any(|t| t.notice.text.contains("nothing selected")));
@@ -7347,8 +7370,8 @@ mod tests {
         assert_eq!(a.handle(Action::ForceResync, 20), None);
         assert!(a.toasts.iter().any(|t| t.notice.text.contains("no tracker")));
 
-        a.apply(Update::Sync(Box::new(connected(0))));
-        assert_eq!(a.handle(Action::ForceResync, 20), Some(Task::SyncNow));
+        a.apply(Event::Sync(Box::new(connected(0))));
+        assert_eq!(a.handle(Action::ForceResync, 20), Some(Command::SyncNow));
     }
 
     #[test]
@@ -7451,7 +7474,7 @@ mod tests {
         let mut a = home_list(8);
         a.handle(Action::Down, 5);
         a.handle(Action::Down, 5);
-        assert_eq!(a.handle(Action::Open, 5), Some(Task::LoadDetail(AnilistId::new(3))));
+        assert_eq!(a.handle(Action::Open, 5), Some(Command::LoadDetail(AnilistId::new(3))));
         for action in [
             Action::Down,
             Action::Down,
@@ -7477,7 +7500,7 @@ mod tests {
         let mut a = home_list(8);
         a.handle(Action::Open, 5);
         a.handle(Action::Down, 5);
-        assert_eq!(a.handle(Action::Open, 5), Some(Task::LoadEpisodes(AnilistId::new(1))));
+        assert_eq!(a.handle(Action::Open, 5), Some(Command::LoadEpisodes(AnilistId::new(1))));
         assert_eq!(a.nav.current(), &StageView::Episodes(AnilistId::new(1)));
     }
 
@@ -7486,9 +7509,12 @@ mod tests {
         // It used to reload the section's list instead, under a page that never changed.
         let mut a = home_list(3);
         a.handle(Action::Open, 5);
-        assert_eq!(a.handle(Action::Refresh, 5), Some(Task::LoadDetail(AnilistId::new(1))));
+        assert_eq!(a.handle(Action::Refresh, 5), Some(Command::LoadDetail(AnilistId::new(1))));
         a.handle(Action::ShowEpisodes, 5);
-        assert_eq!(a.handle(Action::Refresh, 5), Some(Task::LoadEpisodes(AnilistId::new(1))));
+        assert_eq!(
+            a.handle(Action::Refresh, 5),
+            Some(Command::LoadEpisodes(AnilistId::new(1)))
+        );
         assert_eq!(a.content.len(), 3, "the list under them is left alone");
     }
 
@@ -7497,7 +7523,7 @@ mod tests {
         let mut a = app();
         a.handle(Action::JumpSection(4), 5);
         type_text(&mut a, "query");
-        assert!(matches!(a.handle(Action::Open, 5), Some(Task::Search { .. })));
+        assert!(matches!(a.handle(Action::Open, 5), Some(Command::Search { .. })));
         a.apply(a.content_here(entries(3)));
         a.handle(Action::Open, 5);
         assert_eq!(a.nav.current(), &StageView::Title(AnilistId::new(1)));
@@ -7512,14 +7538,14 @@ mod tests {
         // row, so `a`, `*`, `d`, Space and the rest all went to the wrong show.
         let mut a = home_list(5);
         // List status lives on a tracker, so one is signed in.
-        a.apply(Update::Sync(Box::new(connected(0))));
+        a.apply(Event::Sync(Box::new(connected(0))));
         a.handle(Action::Open, 5);
         // The record the title page fetched, with everything that rides that fetch.
         let mut opened = Entry::new(AnilistId::new(1), "Title 0");
         opened.trailer_url = Some("https://video.example/trailer".into());
         opened.related = vec![related(90, "Its sequel")];
         opened.recommended = vec![related(91, "Something like it")];
-        a.apply(Update::Detail(Box::new(opened)));
+        a.apply(Event::Detail(Box::new(opened)));
         a.handle(Action::Back, 5);
         a.handle(Action::Down, 5);
         a.handle(Action::Down, 5);
@@ -7528,28 +7554,28 @@ mod tests {
 
         assert_eq!(
             a.handle(Action::Download, 5),
-            Some(Task::DownloadEpisode { id: row, episode: first() })
+            Some(Command::DownloadEpisode { id: row, episode: first() })
         );
         assert_eq!(
             a.handle(Action::ShowSources, 5),
-            Some(Task::LoadSources { id: row, episode: first() })
+            Some(Command::LoadSources { id: row, episode: first() })
         );
         assert_eq!(
             a.handle(Action::PlayParty, 5),
-            Some(Task::PlayParty { id: row, episode: first() })
+            Some(Command::PlayParty { id: row, episode: first() })
         );
         assert_eq!(
             a.handle(Action::OpenInBrowser, 5),
-            Some(Task::OpenExternal { url: "https://anilist.co/anime/3".into() })
+            Some(Command::OpenExternal { url: "https://anilist.co/anime/3".into() })
         );
 
         a.handle(Action::SetListStatus, 5);
         assert_eq!(
             a.handle(Action::Open, 5),
-            Some(Task::SetStatus { id: row, status: LibrarySegment::Watching })
+            Some(Command::SetStatus { id: row, status: LibrarySegment::Watching })
         );
         a.handle(Action::RateTitle, 5);
-        assert_eq!(a.handle(Action::Open, 5), Some(Task::SetScore { id: row, score: 10.0 }));
+        assert_eq!(a.handle(Action::Open, 5), Some(Command::SetScore { id: row, score: 10.0 }));
 
         // What rides the detail fetch is the opened title's, not this row's.
         assert_eq!(a.handle(Action::PlayTrailer, 5), None);
@@ -7564,11 +7590,11 @@ mod tests {
             assert_eq!(a.nav.overlay(), None, "{action:?}");
         }
 
-        assert_eq!(a.handle(Action::ShowEpisodes, 5), Some(Task::LoadEpisodes(row)));
+        assert_eq!(a.handle(Action::ShowEpisodes, 5), Some(Command::LoadEpisodes(row)));
         a.handle(Action::Back, 5);
         assert_eq!(
             a.handle(Action::PlayNext, 5),
-            Some(Task::Play { id: row, episode: first() })
+            Some(Command::Play { id: row, episode: first() })
         );
         assert_eq!(a.playing.as_ref().map(|p| p.title.as_str()), Some("Title 2"));
     }
@@ -7587,7 +7613,7 @@ mod tests {
         assert_eq!(a.target().map(|e| e.id), Some(AnilistId::new(3)));
         assert_eq!(
             a.handle(Action::OpenInBrowser, 5),
-            Some(Task::OpenExternal { url: "https://anilist.co/anime/3".into() })
+            Some(Command::OpenExternal { url: "https://anilist.co/anime/3".into() })
         );
     }
 
@@ -7599,10 +7625,10 @@ mod tests {
         let mut full = Entry::new(parent, "Title 0");
         full.synopsis = "What the parent is about.".into();
         full.related = vec![related(90, "Its sequel")];
-        a.apply(Update::Detail(Box::new(full.clone())));
+        a.apply(Event::Detail(Box::new(full.clone())));
 
         a.handle(Action::WatchOrder, 5);
-        assert_eq!(a.handle(Action::Open, 5), Some(Task::LoadDetail(AnilistId::new(90))));
+        assert_eq!(a.handle(Action::Open, 5), Some(Command::LoadDetail(AnilistId::new(90))));
         assert_eq!(a.target().map(|e| e.id), Some(AnilistId::new(90)));
 
         a.handle(Action::Back, 5);
@@ -7620,7 +7646,7 @@ mod tests {
         a.handle(Action::WatchOrder, 5);
         a.handle(Action::Open, 5);
         a.handle(Action::ShowEpisodes, 5);
-        a.apply(Update::Episodes {
+        a.apply(Event::Episodes {
             id: AnilistId::new(90),
             rows: vec![EpisodeRow { number: "1".into(), ..a.episodes_all[0].clone() }],
         });
@@ -7701,8 +7727,8 @@ mod tests {
         }
 
         a.handle(Action::JumpSection(8), 5);
-        a.apply(Update::Sync(Box::new(SyncState::new("anilist"))));
-        a.apply(Update::Sync(Box::new(SyncState::new("mal"))));
+        a.apply(Event::Sync(Box::new(SyncState::new("anilist"))));
+        a.apply(Event::Sync(Box::new(SyncState::new("mal"))));
         a.handle(Action::Bottom, 5);
         assert_eq!(a.selected, 1);
         a.handle(Action::PageDown, 5);
@@ -7760,7 +7786,7 @@ mod tests {
         // A result is a list row like any other.
         assert_eq!(
             a.handle(Action::Download, 5),
-            Some(Task::DownloadEpisode { id: AnilistId::new(40), episode: "1".into() })
+            Some(Command::DownloadEpisode { id: AnilistId::new(40), episode: "1".into() })
         );
 
         // Back to typing: Esc, ↑ from the first result, or `/`, which does not ask again.
@@ -7797,14 +7823,14 @@ mod tests {
     fn the_status_picker_opens_on_the_titles_status_not_the_tab_last_viewed() {
         let mut a = home_list(3);
         // List status lives on a tracker, so one is signed in.
-        a.apply(Update::Sync(Box::new(connected(0))));
+        a.apply(Event::Sync(Box::new(connected(0))));
         a.library_segment = LibrarySegment::Dropped;
         a.handle(Action::SetListStatus, 5);
         assert_eq!(a.overlay_selected, 0, "nothing known about it, so the top");
         a.overlay_selected = 3;
         assert_eq!(
             a.handle(Action::Open, 5),
-            Some(Task::SetStatus { id: AnilistId::new(1), status: LibrarySegment::Paused })
+            Some(Command::SetStatus { id: AnilistId::new(1), status: LibrarySegment::Paused })
         );
         a.handle(Action::SetListStatus, 5);
         assert_eq!(a.overlay_selected, 3, "the answer just given");
@@ -7828,14 +7854,17 @@ mod tests {
         };
         let mut a = app();
         a.handle(Action::JumpSection(6), 5);
-        a.apply(Update::Downloads(vec![download(7), download(8)]));
+        a.apply(Event::Downloads(vec![download(7), download(8)]));
         a.handle(Action::Down, 5);
-        assert_eq!(a.handle(Action::PlayNext, 5), Some(Task::DownloadPause { id: 8 }));
-        assert_eq!(a.handle(Action::HideFromContinue, 5), Some(Task::DownloadCancel { id: 8 }));
+        assert_eq!(a.handle(Action::PlayNext, 5), Some(Command::DownloadPause { id: 8 }));
+        assert_eq!(
+            a.handle(Action::HideFromContinue, 5),
+            Some(Command::DownloadCancel { id: 8 })
+        );
 
         a.playing = Some(NowPlaying::default());
-        assert_eq!(a.handle(Action::PlayPause, 5), Some(Task::DownloadPause { id: 8 }));
-        assert_eq!(a.handle(Action::StopPlayback, 5), Some(Task::DownloadCancel { id: 8 }));
+        assert_eq!(a.handle(Action::PlayPause, 5), Some(Command::DownloadPause { id: 8 }));
+        assert_eq!(a.handle(Action::StopPlayback, 5), Some(Command::DownloadCancel { id: 8 }));
     }
 
     #[test]
@@ -7843,7 +7872,7 @@ mod tests {
         // Cancelling a finished row forgot it and left its file behind, unreachable from here.
         let mut a = app();
         a.handle(Action::JumpSection(6), 5);
-        a.apply(Update::Downloads(vec![DownloadRow {
+        a.apply(Event::Downloads(vec![DownloadRow {
             id: 3,
             anilist_id: AnilistId::new(1),
             title: "Title 0".into(),
@@ -7936,7 +7965,7 @@ mod tests {
         a.library_segment = LibrarySegment::Planning;
         assert_eq!(
             a.handle(Action::Left, 5),
-            Some(Task::LoadLibrary(LibrarySegment::Watching))
+            Some(Command::LoadLibrary(LibrarySegment::Watching))
         );
         assert_eq!(a.handle(Action::Left, 5), None);
         assert_eq!(a.nav.focus(), Focus::Rail);
@@ -7948,7 +7977,7 @@ mod tests {
         assert!(a.config.theme.motion);
         assert!(matches!(
             a.handle(Action::Left, 5),
-            Some(Task::SaveSetting {
+            Some(Command::SaveSetting {
                 value: anistream_core::settings::SettingValue::Bool(false),
                 ..
             })
@@ -8022,14 +8051,14 @@ mod tests {
             },
         ]));
 
-        a.apply(Update::Playback { position: 0.0, duration: Some(1440.0), paused: false });
+        a.apply(Event::Playback { position: 0.0, duration: Some(1440.0), paused: false });
         // Nothing is playing yet, so that update is correctly ignored rather than inventing state.
         assert_eq!(a.episodes[0].watched, 0.0);
 
         a.begin_playback(id, "1".into());
 
         // Halfway through, then detached: the row must show where you actually are.
-        a.apply(Update::Playback { position: 720.0, duration: Some(1440.0), paused: false });
+        a.apply(Event::Playback { position: 720.0, duration: Some(1440.0), paused: false });
         assert!((a.episodes[0].watched - 0.5).abs() < 1e-6, "got {}", a.episodes[0].watched);
         assert!(!a.episodes[0].completed, "halfway is not finished");
 
@@ -8077,7 +8106,7 @@ mod tests {
         assert!((a.episodes[0].watched - 1.0).abs() < 1e-6, "and its meter filled");
         assert_eq!(
             a.pending,
-            Some(Task::Play { id, episode: "2".into() }),
+            Some(Command::Play { id, episode: "2".into() }),
             "auto-next follows the episode that just played"
         );
     }
@@ -8094,14 +8123,14 @@ mod tests {
 
         assert_eq!(
             a.handle(Action::ShowEpisodes, 10),
-            Some(Task::LoadEpisodes(AnilistId::new(1))),
+            Some(Command::LoadEpisodes(AnilistId::new(1))),
             "the selected row"
         );
         a.handle(Action::Back, 10);
         a.handle(Action::Down, 10);
         assert_eq!(
             a.handle(Action::ShowEpisodes, 10),
-            Some(Task::LoadEpisodes(AnilistId::new(2))),
+            Some(Command::LoadEpisodes(AnilistId::new(2))),
             "the next row, not the one already seen"
         );
 
@@ -8111,7 +8140,7 @@ mod tests {
         a.nav.push(StageView::Title(AnilistId::new(99)));
         assert_eq!(
             a.handle(Action::ShowEpisodes, 10),
-            Some(Task::LoadEpisodes(AnilistId::new(99))),
+            Some(Command::LoadEpisodes(AnilistId::new(99))),
             "a title screen speaks for itself"
         );
     }
@@ -8148,7 +8177,7 @@ mod tests {
 
         assert!(a.episodes.is_empty(), "the old rows must be gone before the screen appears");
         assert!(a.episodes_loading, "and the wait must be visible as a wait");
-        assert!(matches!(task, Some(Task::LoadEpisodes(_))));
+        assert!(matches!(task, Some(Command::LoadEpisodes(_))));
     }
 
     #[test]
@@ -8181,7 +8210,7 @@ mod tests {
             description: None,
         }]));
         a.begin_playback(id, "1".into());
-        a.apply(Update::Playback { position: 60.0, duration: Some(1440.0), paused: false });
+        a.apply(Event::Playback { position: 60.0, duration: Some(1440.0), paused: false });
         assert!(a.episodes[0].completed, "still finished");
         assert!((a.episodes[0].watched - 1.0).abs() < 1e-6, "progress is monotonic");
     }
@@ -8200,13 +8229,13 @@ mod tests {
         // First Enter runs it.
         assert_eq!(
             a.handle(Action::Open, 10),
-            Some(Task::Search { query: "frieren".into(), filter: SearchFilters::default() })
+            Some(Command::Search { query: "frieren".into(), filter: SearchFilters::default() })
         );
         a.apply(a.content_here(entries(3)));
 
         // Second Enter opens the highlighted result rather than asking again.
         let task = a.handle(Action::Open, 10);
-        assert!(matches!(task, Some(Task::LoadDetail(_))), "got {task:?}");
+        assert!(matches!(task, Some(Command::LoadDetail(_))), "got {task:?}");
         assert!(matches!(a.nav.current(), StageView::Title(_)));
 
         // Editing the query makes it submittable again.
@@ -8214,7 +8243,10 @@ mod tests {
         a.type_char('x');
         assert_eq!(
             a.handle(Action::Open, 10),
-            Some(Task::Search { query: "frierenx".into(), filter: SearchFilters::default() })
+            Some(Command::Search {
+                query: "frierenx".into(),
+                filter: SearchFilters::default()
+            })
         );
     }
 
@@ -8230,7 +8262,7 @@ mod tests {
         assert_eq!(a.search_filter.genre.as_deref(), Some("Action"));
         let task = a.handle(Action::Open, 10);
         match task {
-            Some(Task::Search { query, filter }) => {
+            Some(Command::Search { query, filter }) => {
                 assert_eq!(query, "");
                 assert_eq!(filter.genre.as_deref(), Some("Action"));
             }
@@ -8279,12 +8311,12 @@ mod tests {
     #[test]
     fn accounts_is_a_screen_with_a_cursor_and_enter_acts_on_the_row() {
         let mut a = app();
-        a.apply(Update::Sync(Box::new(SyncState {
+        a.apply(Event::Sync(Box::new(SyncState {
             tracker: "anilist".into(),
             connected: true,
             ..SyncState::new("anilist")
         })));
-        a.apply(Update::Sync(Box::new(SyncState::new("mal"))));
+        a.apply(Event::Sync(Box::new(SyncState::new("mal"))));
 
         a.handle(Action::ShowAccounts, 10);
         assert_eq!(a.nav.section(), Section::Accounts, "accounts is a section, not a modal");
@@ -8294,10 +8326,13 @@ mod tests {
         // A connected tracker signs out; an unconnected one signs in.
         assert_eq!(
             a.handle(Action::Open, 10),
-            Some(Task::Disconnect { tracker: "anilist".into() })
+            Some(Command::Disconnect { tracker: "anilist".into() })
         );
         a.handle(Action::Down, 10);
-        assert_eq!(a.handle(Action::Open, 10), Some(Task::Connect { tracker: "mal".into() }));
+        assert_eq!(
+            a.handle(Action::Open, 10),
+            Some(Command::Connect { tracker: "mal".into() })
+        );
         // Clamped at the last row rather than running off the end.
         for _ in 0..10 {
             a.handle(Action::Down, 10);
@@ -8310,14 +8345,14 @@ mod tests {
         // Clearing the stored token used to be the whole of signing out, so the badge and the
         // account list went on showing a connected account until the next restart.
         let mut a = app();
-        a.apply(Update::Sync(Box::new(SyncState {
+        a.apply(Event::Sync(Box::new(SyncState {
             tracker: "anilist".into(),
             connected: true,
             ..SyncState::new("anilist")
         })));
         assert!(a.sync[0].connected);
 
-        a.apply(Update::Sync(Box::new(SyncState::new("anilist"))));
+        a.apply(Event::Sync(Box::new(SyncState::new("anilist"))));
         assert!(!a.sync[0].connected, "the UI must agree immediately");
         assert_eq!(a.sync.len(), 1, "the tracker is replaced, not duplicated");
     }
@@ -8466,7 +8501,10 @@ mod tests {
         a.selected = SettingId::ALL.iter().position(|id| *id == SettingId::Quality).unwrap();
         let task = a.handle(Action::Right, 10);
         assert_eq!(a.config.playback.quality, 2160);
-        assert!(matches!(task, Some(Task::SaveSetting { value: SettingValue::Int(2160), .. })));
+        assert!(matches!(
+            task,
+            Some(Command::SaveSetting { value: SettingValue::Int(2160), .. })
+        ));
 
         a.selected =
             SettingId::ALL.iter().position(|id| *id == SettingId::CommitThreshold).unwrap();
@@ -8494,13 +8532,13 @@ mod tests {
         // The value changed before the write and nothing undid it, so a refused write — torrents
         // on with no VPN configured — went on showing "on" and the status line the new value.
         let mut a = settings_at(SettingId::Torrents);
-        let Some(Task::SaveSetting { table, key, .. }) = a.handle(Action::Right, 10) else {
+        let Some(Command::SaveSetting { table, key, .. }) = a.handle(Action::Right, 10) else {
             panic!("no write asked for")
         };
         assert!(a.config.providers.torrent.enabled, "the screen answers at once");
         a.status = "saved quality".into();
 
-        a.apply(Update::SettingWritten {
+        a.apply(Event::SettingWritten {
             on_disk: Box::new(Config::default()),
             failed: Some((table, key)),
         });
@@ -8520,7 +8558,7 @@ mod tests {
         a.selected = SettingId::ALL.iter().position(|row| *row == SettingId::Torrents).unwrap();
         a.handle(Action::Right, 10);
 
-        a.apply(Update::SettingWritten {
+        a.apply(Event::SettingWritten {
             on_disk: Box::new(on_disk),
             failed: Some((&["providers", "torrent"], "enabled")),
         });
@@ -8543,11 +8581,11 @@ mod tests {
         let task = a.handle(Action::Right, 10);
         assert!(matches!(
             task,
-            Some(Task::SaveSetting { key: "translation", value: anistream_core::settings::SettingValue::Str(ref v), .. }) if v == "dub"
+            Some(Command::SaveSetting { key: "translation", value: anistream_core::settings::SettingValue::Str(ref v), .. }) if v == "dub"
         ));
         let mut on_disk = Config::default();
         on_disk.playback.translation = anistream_core::media::Translation::Dub;
-        a.apply(Update::SettingWritten { on_disk: Box::new(on_disk), failed: None });
+        a.apply(Event::SettingWritten { on_disk: Box::new(on_disk), failed: None });
         assert_eq!(setting_text(&a, SettingId::Translation), "dub");
     }
 
@@ -8577,7 +8615,7 @@ mod tests {
         assert_eq!(a.config.playback.quality, 2160, "the change must apply immediately");
         assert_eq!(
             task,
-            Some(Task::SaveSetting {
+            Some(Command::SaveSetting {
                 table: &["playback"],
                 key: "quality",
                 value: SettingValue::Int(2160),
@@ -8613,7 +8651,7 @@ mod tests {
         assert_eq!(a.config.providers.torrent.seeding.ratio, 0.0);
         assert_eq!(
             a.handle(Action::Right, 10),
-            Some(Task::SaveSetting {
+            Some(Command::SaveSetting {
                 table: &["providers", "torrent", "seeding"],
                 key: "ratio",
                 value: SettingValue::Float(0.5),
@@ -8624,7 +8662,7 @@ mod tests {
         a.selected = at(SettingId::SeedHours);
         assert_eq!(
             a.handle(Action::Right, 10),
-            Some(Task::SaveSetting {
+            Some(Command::SaveSetting {
                 table: &["providers", "torrent", "seeding"],
                 key: "hours",
                 value: SettingValue::Int(72),
@@ -8656,7 +8694,7 @@ mod tests {
         assert!(a.config.presence.enabled);
         assert_eq!(
             task,
-            Some(Task::SaveSetting {
+            Some(Command::SaveSetting {
                 table: &["presence"],
                 key: "enabled",
                 value: SettingValue::Bool(true),
@@ -8710,7 +8748,7 @@ mod tests {
         a.apply(a.content_here(entries(3)));
         a.nav.focus_stage();
         let task = a.handle(Action::Open, 10);
-        assert_eq!(task, Some(Task::LoadDetail(AnilistId::new(1))));
+        assert_eq!(task, Some(Command::LoadDetail(AnilistId::new(1))));
         assert_eq!(a.nav.current(), &StageView::Title(AnilistId::new(1)));
         // The already-known entry is shown immediately so the screen is never blank while
         // the detail request is in flight.
@@ -8786,36 +8824,38 @@ mod tests {
     #[test]
     fn only_work_someone_waits_on_becomes_a_job() {
         let mut a = app();
-        assert!(a.begin_job(&Task::LoadSeasonal).is_some());
+        assert!(a.begin_job(&Command::LoadSeasonal).is_some());
         assert!(
-            a.begin_job(&Task::LoadSources { id: AnilistId::new(1), episode: "3".into() })
+            a.begin_job(&Command::LoadSources { id: AnilistId::new(1), episode: "3".into() })
                 .is_some()
         );
         // Outbox writes and player commands finish as they are asked; a row for them would only
         // ever flash.
-        assert!(a.begin_job(&Task::SetScore { id: AnilistId::new(1), score: 8.0 }).is_none());
-        assert!(a.begin_job(&Task::Player(PlayerCommand::TogglePause)).is_none());
+        assert!(
+            a.begin_job(&Command::SetScore { id: AnilistId::new(1), score: 8.0 }).is_none()
+        );
+        assert!(a.begin_job(&Command::Player(PlayerCommand::TogglePause)).is_none());
         assert_eq!(a.jobs.len(), 2);
     }
 
     #[test]
     fn a_job_runs_until_its_work_says_it_ended() {
         let mut a = app();
-        let id = a.begin_job(&Task::CheckProviders).unwrap();
-        a.apply(Update::JobNote { job: id, note: "AniList limit".into(), wait: None });
+        let id = a.begin_job(&Command::CheckProviders).unwrap();
+        a.apply(Event::JobNote { job: id, note: "AniList limit".into(), wait: None });
         assert_eq!(a.jobs[0].note.as_ref().map(|(n, _)| n.as_str()), Some("AniList limit"));
 
-        a.apply(Update::JobDone(id));
+        a.apply(Event::JobDone(id));
         assert!(a.jobs.is_empty());
         // A second end, or one for a job long gone, is harmless.
-        a.apply(Update::JobDone(id));
+        a.apply(Event::JobDone(id));
     }
 
     #[test]
     fn work_earns_the_row_only_once_it_has_taken_a_while() {
         let mut a = app();
-        let older = a.begin_job(&Task::LoadCalendar).unwrap();
-        let newer = a.begin_job(&Task::CheckProviders).unwrap();
+        let older = a.begin_job(&Command::LoadCalendar).unwrap();
+        let newer = a.begin_job(&Command::CheckProviders).unwrap();
         assert!(a.activity(a.clock.now_instant()).is_empty(), "quick answers never show");
 
         aged(&mut a, older, Duration::from_secs(5));
@@ -8832,10 +8872,10 @@ mod tests {
         let mut a = app();
         let _ = a.go_to_section(Section::Seasonal);
         let _ = a.go_to_section(Section::Calendar);
-        a.apply(Update::Content { view: ContentFor::Seasonal, content: entries(5) });
+        a.apply(Event::Content { view: ContentFor::Seasonal, content: entries(5) });
         assert!(matches!(a.content, Content::Loading), "the calendar showed seasonal's list");
 
-        a.apply(Update::Content { view: ContentFor::Calendar, content: entries(3) });
+        a.apply(Event::Content { view: ContentFor::Calendar, content: entries(3) });
         assert_eq!(a.content.len(), 3, "the calendar's own answer must still land");
     }
 
@@ -8846,9 +8886,9 @@ mod tests {
         a.nav.focus_stage();
         for query in ["fri", "frieren"] {
             a.search_query = query.into();
-            assert!(matches!(a.handle(Action::Open, 20), Some(Task::Search { .. })));
+            assert!(matches!(a.handle(Action::Open, 20), Some(Command::Search { .. })));
         }
-        let answer = |query: &str, n| Update::Content {
+        let answer = |query: &str, n| Event::Content {
             view: ContentFor::Search { query: query.into(), filter: SearchFilters::default() },
             content: entries(n),
         };
@@ -8866,7 +8906,7 @@ mod tests {
         let mut a = app();
         let _ = a.go_to_section(Section::Library);
         a.library_segment = LibrarySegment::Completed;
-        a.apply(Update::Content {
+        a.apply(Event::Content {
             view: ContentFor::Library(LibrarySegment::Watching),
             content: entries(4),
         });
@@ -8882,10 +8922,10 @@ mod tests {
         a.handle(Action::Back, 20);
         a.handle(Action::Down, 20);
         a.handle(Action::Open, 20); // title 2
-        a.apply(Update::Detail(Box::new(Entry::new(AnilistId::new(1), "Title one, in full"))));
+        a.apply(Event::Detail(Box::new(Entry::new(AnilistId::new(1), "Title one, in full"))));
         assert_eq!(a.detail.as_ref().map(|d| d.id), Some(AnilistId::new(2)));
 
-        a.apply(Update::Detail(Box::new(Entry::new(AnilistId::new(2), "Title two, in full"))));
+        a.apply(Event::Detail(Box::new(Entry::new(AnilistId::new(2), "Title two, in full"))));
         assert_eq!(a.detail.as_ref().map(|d| d.title.as_str()), Some("Title two, in full"));
     }
 
@@ -8909,18 +8949,18 @@ mod tests {
             thumbnail: None,
             description: None,
         };
-        a.apply(Update::Episodes { id: AnilistId::new(1), rows: vec![row("1")] });
+        a.apply(Event::Episodes { id: AnilistId::new(1), rows: vec![row("1")] });
         assert!(a.episodes.is_empty(), "title two's table showed title one's episodes");
         assert!(a.episodes_loading, "title two's own load is still outstanding");
 
-        a.apply(Update::Episodes { id: AnilistId::new(2), rows: vec![row("1"), row("2")] });
+        a.apply(Event::Episodes { id: AnilistId::new(2), rows: vec![row("1"), row("2")] });
         assert_eq!(a.episodes.len(), 2);
     }
 
     #[test]
     fn a_match_question_about_a_title_already_left_is_not_asked() {
         let mut a = app_at_episodes();
-        a.apply(Update::MatchChoices {
+        a.apply(Event::MatchChoices {
             id: AnilistId::new(7),
             provider_id: "torrent".into(),
             candidates: vec![candidate("Something else", 0.6)],
@@ -8933,7 +8973,7 @@ mod tests {
         let mut a = app_at_episodes();
         a.handle(Action::ShowSources, 20);
         let (id, asked) = a.source_context.clone().expect("a pending question");
-        a.apply(Update::Sources {
+        a.apply(Event::Sources {
             id,
             episode: format!("{asked}0"),
             candidates: vec![source("[A] Show - 10 (1080p)", true)],
@@ -8951,9 +8991,9 @@ mod tests {
     #[test]
     fn each_browsable_section_requests_its_own_data() {
         let mut a = app();
-        assert_eq!(a.go_to_section(Section::Home), Some(Task::LoadContinue));
-        assert_eq!(a.go_to_section(Section::Seasonal), Some(Task::LoadSeasonal));
-        assert_eq!(a.go_to_section(Section::Calendar), Some(Task::LoadCalendar));
+        assert_eq!(a.go_to_section(Section::Home), Some(Command::LoadContinue));
+        assert_eq!(a.go_to_section(Section::Seasonal), Some(Command::LoadSeasonal));
+        assert_eq!(a.go_to_section(Section::Calendar), Some(Command::LoadCalendar));
         // Search with no query has nothing to fetch yet.
         assert_eq!(a.go_to_section(Section::Search), None);
         // Sections with no remote data render a placeholder rather than spinning.
@@ -9025,7 +9065,7 @@ mod tests {
         assert_eq!(a.nav.overlay(), Some(&Overlay::WatchOrder));
 
         let task = a.handle(Action::Open, 10).expect("a pick must open the title");
-        assert_eq!(task, Task::LoadDetail(AnilistId::new(9)));
+        assert_eq!(task, Command::LoadDetail(AnilistId::new(9)));
         assert_eq!(a.nav.overlay(), None);
         assert!(
             matches!(a.nav.current(), StageView::Title(id) if *id == AnilistId::new(9)),

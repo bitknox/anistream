@@ -8,15 +8,15 @@ use anistream_core::stream::{Stream, StreamKind};
 use anistream_providers::ProviderRegistry;
 use anistream_store::DownloadState;
 use anistream_testkit::{fixtures::FINISHED, seed, sources};
-use anistream_ui::app::{DownloadRow, Task, Update};
+use anistream_ui::app::{Command, DownloadRow, Event};
 
 use super::{ends, toasts};
 use crate::harness::{Harness, Options, names};
 
 /// Each row as `episode state`.
-fn queue(update: &Update) -> Vec<String> {
+fn queue(update: &Event) -> Vec<String> {
     match update {
-        Update::Downloads(rows) => {
+        Event::Downloads(rows) => {
             let state = |r: &DownloadRow| anistream_ui::screens::download_state_label(r.state);
             rows.iter().map(|r: &DownloadRow| format!("{} {}", r.episode, state(r))).collect()
         }
@@ -43,7 +43,7 @@ async fn opening_downloads_publishes_the_queue_at_once() {
     let mut h = Harness::new().await;
     seed::download(h.store(), FINISHED, "1", DownloadState::Queued);
     seed::download(h.store(), FINISHED, "2", DownloadState::Done);
-    let job = h.send(Task::LoadDownloads);
+    let job = h.send(Command::LoadDownloads);
     let updates = h.settle().await;
 
     assert!(job.is_none(), "read from disk, nothing to wait on");
@@ -56,11 +56,11 @@ async fn pausing_toggles_the_row_and_leaves_finished_ones_alone() {
     let mut h = Harness::new().await;
     let queued = seed::download(h.store(), FINISHED, "1", DownloadState::Queued);
     let done = seed::download(h.store(), FINISHED, "2", DownloadState::Done);
-    h.send(Task::DownloadPause { id: queued.id });
+    h.send(Command::DownloadPause { id: queued.id });
     let paused = h.settle().await;
-    h.send(Task::DownloadPause { id: queued.id });
+    h.send(Command::DownloadPause { id: queued.id });
     let resumed = h.settle().await;
-    h.send(Task::DownloadPause { id: done.id });
+    h.send(Command::DownloadPause { id: done.id });
     let unmoved = h.settle().await;
 
     for updates in [&paused, &resumed, &unmoved] {
@@ -76,7 +76,7 @@ async fn cancelling_takes_the_row_away_then_says_so() {
     let mut h = Harness::new().await;
     let failed = seed::download(h.store(), FINISHED, "1", DownloadState::Failed);
     seed::download(h.store(), FINISHED, "2", DownloadState::Queued);
-    h.send(Task::DownloadCancel { id: failed.id });
+    h.send(Command::DownloadCancel { id: failed.id });
     let updates = h.settle().await;
 
     assert_eq!(names(&updates), ["Downloads", "Toast"]);
@@ -93,7 +93,7 @@ async fn deleting_takes_the_file_with_the_row() {
     std::fs::create_dir_all(&h.paths().data_dir).unwrap();
     std::fs::write(&file, b"not really a video").unwrap();
     h.store().finish_download(done.id, Some(file.to_str().unwrap())).unwrap();
-    h.send(Task::DownloadDelete { id: done.id });
+    h.send(Command::DownloadDelete { id: done.id });
     let updates = h.settle().await;
 
     assert_eq!(names(&updates), ["Downloads", "Toast"]);
@@ -104,7 +104,7 @@ async fn deleting_takes_the_file_with_the_row() {
     // A file already gone is said as such, and the row still goes.
     let done = seed::download(h.store(), FINISHED, "2", DownloadState::Done);
     h.store().finish_download(done.id, Some(file.to_str().unwrap())).unwrap();
-    h.send(Task::DownloadDelete { id: done.id });
+    h.send(Command::DownloadDelete { id: done.id });
     let updates = h.settle().await;
     assert_eq!(toasts(&updates), ["info: download removed — file was already gone"]);
 }
@@ -114,7 +114,7 @@ async fn clearing_finished_downloads_counts_them() {
     let mut h = Harness::new().await;
     seed::download(h.store(), FINISHED, "1", DownloadState::Done);
     seed::download(h.store(), FINISHED, "2", DownloadState::Queued);
-    h.send(Task::DownloadClearCompleted);
+    h.send(Command::DownloadClearCompleted);
     let updates = h.settle().await;
 
     assert_eq!(names(&updates), ["Downloads", "Toast"]);
@@ -126,7 +126,7 @@ async fn clearing_finished_downloads_counts_them() {
 async fn queueing_an_episode_says_what_happened_then_publishes_the_queue() {
     let mut h =
         Harness::with(Options { registry: Some(torrents()), ..Options::default() }).await;
-    let job = h.send(Task::DownloadEpisode { id: FINISHED, episode: "5".into() });
+    let job = h.send(Command::DownloadEpisode { id: FINISHED, episode: "5".into() });
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["Toast", "Status", "Downloads", "JobDone"]);
     assert_eq!(toasts(&updates), ["info: queued Stardust Wayfarer ep 5"]);
@@ -134,7 +134,7 @@ async fn queueing_an_episode_says_what_happened_then_publishes_the_queue() {
     ends(&updates, job);
 
     // Asked again: no second resolve, and no second row.
-    let job = h.send(Task::DownloadEpisode { id: FINISHED, episode: "5".into() });
+    let job = h.send(Command::DownloadEpisode { id: FINISHED, episode: "5".into() });
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["Toast", "Status", "Downloads", "JobDone"]);
     assert_eq!(toasts(&updates), ["info: Stardust Wayfarer ep 5 is already in downloads"]);
@@ -147,12 +147,12 @@ async fn queueing_a_failed_episode_again_retries_it_in_place() {
     let mut h =
         Harness::with(Options { registry: Some(torrents()), ..Options::default() }).await;
     let failed = seed::download(h.store(), FINISHED, "5", DownloadState::Failed);
-    let job = h.send(Task::DownloadEpisode { id: FINISHED, episode: "5".into() });
+    let job = h.send(Command::DownloadEpisode { id: FINISHED, episode: "5".into() });
     let updates = h.settle().await;
 
     assert_eq!(names(&updates), ["Toast", "Status", "Downloads", "JobDone"]);
     assert_eq!(toasts(&updates), ["info: queued Stardust Wayfarer ep 5"]);
-    let Update::Downloads(rows) = &updates[2] else { unreachable!() };
+    let Event::Downloads(rows) = &updates[2] else { unreachable!() };
     assert_eq!(rows.len(), 1, "the same row, not a second one");
     assert_eq!(
         (rows[0].id, rows[0].state, rows[0].error.as_deref()),
@@ -164,7 +164,7 @@ async fn queueing_a_failed_episode_again_retries_it_in_place() {
 #[tokio::test]
 async fn an_episode_that_only_streams_is_refused_in_the_same_shape() {
     let mut h = Harness::new().await;
-    let job = h.send(Task::DownloadEpisode { id: FINISHED, episode: "5".into() });
+    let job = h.send(Command::DownloadEpisode { id: FINISHED, episode: "5".into() });
     let updates = h.settle().await;
 
     assert_eq!(names(&updates), ["Toast", "Status", "Downloads", "JobDone"]);
@@ -178,7 +178,7 @@ async fn a_range_publishes_each_row_as_it_lands_then_sums_up() {
     let mut h =
         Harness::with(Options { registry: Some(torrents()), ..Options::default() }).await;
     seed::download(h.store(), FINISHED, "5", DownloadState::Queued);
-    let job = h.send(Task::DownloadMany {
+    let job = h.send(Command::DownloadMany {
         id: FINISHED,
         episodes: vec!["6".into(), "7".into(), "5".into()],
     });
@@ -193,7 +193,7 @@ async fn a_range_publishes_each_row_as_it_lands_then_sums_up() {
     // Nothing that can be downloaded: no rows, one alert.
     let mut h = Harness::new().await;
     let job =
-        h.send(Task::DownloadMany { id: FINISHED, episodes: vec!["1".into(), "2".into()] });
+        h.send(Command::DownloadMany { id: FINISHED, episodes: vec!["1".into(), "2".into()] });
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["Toast", "JobDone"]);
     assert_eq!(

@@ -20,7 +20,7 @@ use std::{path::PathBuf, sync::Arc, time::Duration};
 use anistream_core::{config::Config, ids::AnilistId, media::Translation};
 use anistream_providers::{ProviderRegistry, torrent::TorrentSession};
 use anistream_store::{Download, DownloadState, Store};
-use anistream_ui::app::{Notice, Update};
+use anistream_ui::app::{Event, Notice};
 use tokio::sync::mpsc;
 
 /// How many torrents fetch at once.
@@ -48,7 +48,7 @@ pub fn spawn(
     store: Store,
     session: Arc<TorrentSession>,
     config: crate::SharedConfig,
-    tx: mpsc::UnboundedSender<Update>,
+    tx: mpsc::UnboundedSender<Event>,
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         let mut running: Vec<Running> = Vec::new();
@@ -83,7 +83,7 @@ async fn poll_running(
     store: &Store,
     session: &TorrentSession,
     config: &Config,
-    tx: &mpsc::UnboundedSender<Update>,
+    tx: &mpsc::UnboundedSender<Event>,
     running: &mut Vec<Running>,
 ) {
     let mut finished = Vec::new();
@@ -195,7 +195,7 @@ async fn poll_running(
                 }
             }
             let merged = finish(store, config, &row, final_path.clone()).await;
-            let _ = tx.send(Update::Toast(Notice::info(match merged {
+            let _ = tx.send(Event::Toast(Notice::info(match merged {
                 Some(note) => format!("downloaded {} ep {} — {note}", row.title, row.episode),
                 None => format!("downloaded {} ep {}", row.title, row.episode),
             })));
@@ -214,7 +214,7 @@ async fn poll_running(
 async fn start_queued(
     store: &Store,
     session: &TorrentSession,
-    tx: &mpsc::UnboundedSender<Update>,
+    tx: &mpsc::UnboundedSender<Event>,
     running: &mut Vec<Running>,
 ) {
     if running.len() >= CONCURRENCY {
@@ -255,7 +255,7 @@ async fn start_queued(
                 let reason = e.to_string();
                 tracing::warn!(row = row.id, %reason, "download could not start");
                 let _ = store.fail_download(row.id, &reason);
-                let _ = tx.send(Update::Toast(Notice::alert(format!(
+                let _ = tx.send(Event::Toast(Notice::alert(format!(
                     "{} ep {}: {reason}",
                     row.title, row.episode
                 ))));
@@ -377,9 +377,9 @@ async fn finish(
     }
 }
 
-fn publish(store: &Store, tx: &mpsc::UnboundedSender<Update>) {
+fn publish(store: &Store, tx: &mpsc::UnboundedSender<Event>) {
     if let Ok(rows) = store.downloads() {
-        let _ = tx.send(Update::Downloads(rows.iter().map(to_row).collect()));
+        let _ = tx.send(Event::Downloads(rows.iter().map(to_row).collect()));
     }
 }
 
@@ -412,7 +412,7 @@ fn row_state(state: DownloadState) -> anistream_ui::app::DownloadState {
 }
 
 /// Publish the queue as it currently stands, for a screen that has just been opened.
-pub fn publish_now(store: &Store, tx: &mpsc::UnboundedSender<Update>) {
+pub fn publish_now(store: &Store, tx: &mpsc::UnboundedSender<Event>) {
     publish(store, tx);
 }
 

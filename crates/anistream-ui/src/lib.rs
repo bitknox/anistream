@@ -18,8 +18,8 @@ pub mod theme;
 pub mod widgets;
 
 pub use app::{
-    App, ConflictRow, Content, Entry, LibrarySegment, MatchCandidate, Notice, NowPlaying,
-    PlayerCommand, SyncState, Task, Toast, Update,
+    App, Command, ConflictRow, Content, Entry, Event, LibrarySegment, MatchCandidate, Notice,
+    NowPlaying, PlayerCommand, SyncState, Toast,
 };
 pub use clock::{Clock, Zone};
 pub use eyecatch::Eyecatch;

@@ -19,7 +19,7 @@ use anistream_core::{
 use anistream_net::HttpClient;
 use anistream_player::Mpv;
 use anistream_store::Store;
-use anistream_ui::app::{Ending, PlayerCommand, Successor, Update};
+use anistream_ui::app::{Ending, Event, PlayerCommand, Successor};
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt},
     sync::mpsc,
@@ -97,7 +97,7 @@ async fn run(
     context: PlaybackContext,
     settings: PlaySettings,
     commands: mpsc::UnboundedReceiver<PlayerCommand>,
-) -> Vec<Update> {
+) -> Vec<Event> {
     let store = Store::open_in_memory().unwrap();
     run_streams(mpv, slot, vec![stream], context, settings, commands, store).await
 }
@@ -111,7 +111,7 @@ async fn run_streams(
     settings: PlaySettings,
     commands: mpsc::UnboundedReceiver<PlayerCommand>,
     store: Store,
-) -> Vec<Update> {
+) -> Vec<Event> {
     let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
     let (tx, mut rx) = mpsc::unbounded_channel();
     tokio::time::timeout(
@@ -137,22 +137,22 @@ async fn run_streams(
     updates
 }
 
-fn spawned(updates: &[Update]) -> bool {
+fn spawned(updates: &[Event]) -> bool {
     windows(updates) > 0
 }
 
 /// How many player windows the playback opened.
-fn windows(updates: &[Update]) -> usize {
+fn windows(updates: &[Event]) -> usize {
     updates
         .iter()
-        .filter(|u| matches!(u, Update::Status(s) if s.starts_with("starting mpv")))
+        .filter(|u| matches!(u, Event::Status(s) if s.starts_with("starting mpv")))
         .count()
 }
 
 /// The tracker's verdict and how the playback ended.
-fn ended(updates: &[Update]) -> Option<(bool, Ending)> {
+fn ended(updates: &[Event]) -> Option<(bool, Ending)> {
     updates.iter().find_map(|u| match u {
-        Update::PlaybackEnded { watched, ending } => Some((*watched, ending.clone())),
+        Event::PlaybackEnded { watched, ending } => Some((*watched, ending.clone())),
         _ => None,
     })
 }
@@ -161,11 +161,11 @@ fn complete(next: Option<&str>) -> Ending {
     Ending::Complete { next: next.map(Into::into) }
 }
 
-fn alerts(updates: &[Update]) -> Vec<String> {
+fn alerts(updates: &[Event]) -> Vec<String> {
     updates
         .iter()
         .filter_map(|u| match u {
-            Update::Toast(toast) if toast.kind == anistream_ui::app::NoticeKind::Alert => {
+            Event::Toast(toast) if toast.kind == anistream_ui::app::NoticeKind::Alert => {
                 Some(toast.text.clone())
             }
             _ => None,
@@ -174,11 +174,11 @@ fn alerts(updates: &[Update]) -> Vec<String> {
 }
 
 /// Episodes asked for by the player: its N/P, Up Next's Play now, the Episodes menu, n/N.
-fn asked_for(updates: &[Update]) -> Vec<String> {
+fn asked_for(updates: &[Event]) -> Vec<String> {
     updates
         .iter()
         .filter_map(|u| match u {
-            Update::PlayerPlayEpisode { episode, .. } => Some(episode.clone()),
+            Event::PlayerPlayEpisode { episode, .. } => Some(episode.clone()),
             _ => None,
         })
         .collect()
@@ -225,10 +225,10 @@ async fn tell_mpv(dir: &std::path::Path, command: serde_json::Value) {
 }
 
 /// Wait until mpv has loaded a file and is far enough in to have reported a position.
-async fn until_playing(updates: &mut mpsc::UnboundedReceiver<Update>) -> Vec<Update> {
+async fn until_playing(updates: &mut mpsc::UnboundedReceiver<Event>) -> Vec<Event> {
     let mut seen = Vec::new();
     while let Some(update) = updates.recv().await {
-        let playing = matches!(update, Update::Playback { .. });
+        let playing = matches!(update, Event::Playback { .. });
         seen.push(update);
         if playing {
             break;
@@ -290,7 +290,7 @@ async fn a_newer_playback_takes_the_window_mid_episode() {
     let first = first.await.unwrap();
     assert_eq!(ended(&first), None, "a handed-over playback must not announce an ending");
     assert!(
-        first.iter().any(|u| matches!(u, Update::EpisodeLeft { .. })),
+        first.iter().any(|u| matches!(u, Event::EpisodeLeft { .. })),
         "where it was left is still reflected"
     );
 
@@ -300,11 +300,11 @@ async fn a_newer_playback_takes_the_window_mid_episode() {
     assert_eq!(ended(&second), Some((true, complete(None))));
 }
 
-fn prefetches(updates: &[Update]) -> Vec<String> {
+fn prefetches(updates: &[Event]) -> Vec<String> {
     updates
         .iter()
         .filter_map(|u| match u {
-            Update::PrefetchNext { episode, .. } => Some(episode.clone()),
+            Event::PrefetchNext { episode, .. } => Some(episode.clone()),
             _ => None,
         })
         .collect()
@@ -372,7 +372,7 @@ fn start(
     settings: PlaySettings,
     commands: mpsc::UnboundedReceiver<PlayerCommand>,
     store: Store,
-) -> (tokio::task::JoinHandle<()>, mpsc::UnboundedReceiver<Update>) {
+) -> (tokio::task::JoinHandle<()>, mpsc::UnboundedReceiver<Event>) {
     let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
     let (tx, rx) = mpsc::unbounded_channel();
     let task = tokio::spawn(playback::play(
@@ -392,9 +392,9 @@ fn start(
 /// Wait for a background playback to end, returning what it sent after `seen`.
 async fn finish(
     task: tokio::task::JoinHandle<()>,
-    mut rx: mpsc::UnboundedReceiver<Update>,
-    mut seen: Vec<Update>,
-) -> Vec<Update> {
+    mut rx: mpsc::UnboundedReceiver<Event>,
+    mut seen: Vec<Event>,
+) -> Vec<Event> {
     tokio::time::timeout(Duration::from_secs(30), task)
         .await
         .expect("playback should end on its own")
@@ -406,10 +406,10 @@ async fn finish(
 }
 
 /// Wait until the playback has handed a file to mpv.
-async fn until_loaded(updates: &mut mpsc::UnboundedReceiver<Update>) -> Vec<Update> {
+async fn until_loaded(updates: &mut mpsc::UnboundedReceiver<Event>) -> Vec<Event> {
     let mut seen = Vec::new();
     while let Some(update) = updates.recv().await {
-        let loaded = matches!(&update, Update::Status(s) if s.starts_with("playing"));
+        let loaded = matches!(&update, Event::Status(s) if s.starts_with("playing"));
         seen.push(update);
         if loaded {
             break;
@@ -432,8 +432,8 @@ async fn silent_stream() -> (Stream, tokio::task::JoinHandle<()>) {
     (Stream { provider_id: "test".into(), ..Stream::new(url, StreamKind::Mp4) }, server)
 }
 
-fn attempts(updates: &[Update]) -> usize {
-    updates.iter().filter(|u| matches!(u, Update::ActiveProvider(_))).count()
+fn attempts(updates: &[Event]) -> usize {
+    updates.iter().filter(|u| matches!(u, Event::ActiveProvider(_))).count()
 }
 
 #[tokio::test(flavor = "multi_thread")]
@@ -588,7 +588,7 @@ async fn nothing_follows_the_finale() {
     assert!(
         updates
             .iter()
-            .any(|u| matches!(u, Update::Toast(t) if t.text.starts_with("no next episode"))),
+            .any(|u| matches!(u, Event::Toast(t) if t.text.starts_with("no next episode"))),
         "the terminal is told there is no next episode"
     );
     assert_eq!(ended(&updates), Some((true, complete(None))), "the finale played to its end");
@@ -691,7 +691,7 @@ async fn night_mode_can_be_turned_back_on_from_the_menu() {
     let saved: Vec<bool> = updates
         .iter()
         .filter_map(|u| match u {
-            Update::PlayerNightMode(on) => Some(*on),
+            Event::PlayerNightMode(on) => Some(*on),
             _ => None,
         })
         .collect();

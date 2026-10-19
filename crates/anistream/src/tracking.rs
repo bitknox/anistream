@@ -2,7 +2,7 @@
 //!
 //! The engine in `anistream-track` is deliberately ignorant of the interface; this is the part
 //! that builds trackers from config, runs the background loops, and turns their reports into
-//! [`Update`]s. Two rules shape it:
+//! [`Event`]s. Two rules shape it:
 //!
 //! - **Sync never blocks anything.** Every loop lives on its own task, and a tracker being down
 //!   produces one badge change rather than a stream of toasts.
@@ -21,7 +21,7 @@ use anistream_store::Store;
 use anistream_track::{AniListTracker, TokenStore, auth, sync};
 use anistream_ui::{
     LibrarySegment,
-    app::{ConflictRow, ContentFor, Notice, SyncState, Update},
+    app::{ConflictRow, ContentFor, Event, Notice, SyncState},
 };
 use tokio::sync::mpsc;
 
@@ -341,12 +341,12 @@ impl anistream_track::kitsu::IdMapping for StoreMapping {
 ///
 /// Titles are remembered as they pass through, which is what later lets a sync conflict name the
 /// show instead of printing a bare id.
-pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -> Update {
+pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -> Event {
     use anistream_ui::app::Content;
 
     // Tagged with its segment: switching tabs while a pull is in flight must not show this one
     // under the next tab's heading.
-    let answer = |content| Update::Content { view: ContentFor::Library(segment), content };
+    let answer = |content| Event::Content { view: ContentFor::Library(segment), content };
 
     let Some(tracker) = sync.trackers.first() else {
         return answer(Content::Entries(Vec::new()));
@@ -393,7 +393,7 @@ pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -
 ///
 /// Both run forever. The drain is cheap when idle — one indexed count against SQLite — so it can
 /// tick often; a pull costs a real request out of thirty a minute, so it does not.
-pub fn spawn_loops(sync: Sync, tx: mpsc::UnboundedSender<Update>) {
+pub fn spawn_loops(sync: Sync, tx: mpsc::UnboundedSender<Event>) {
     if sync.trackers.is_empty() {
         return;
     }
@@ -463,7 +463,7 @@ async fn persist_renewed_tokens(sync: &Sync) {
 }
 
 /// One drain pass across every tracker.
-pub async fn drain_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
+pub async fn drain_once(sync: &Sync, tx: &mpsc::UnboundedSender<Event>) {
     let now = anistream_store::now();
     persist_renewed_tokens(sync).await;
     // Every tracker at once. Each drains only its own outbox rows to its own host, so nothing
@@ -486,7 +486,7 @@ pub async fn drain_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
                 // Silent when nothing happened: a badge that changes on every idle tick is
                 // noise, and there is no news to deliver.
                 if !report.did_nothing() {
-                    let _ = tx.send(Update::Sync(Box::new(sync.state_for(
+                    let _ = tx.send(Event::Sync(Box::new(sync.state_for(
                         tracker.as_ref(),
                         report.needs_reauth,
                         last,
@@ -500,7 +500,7 @@ pub async fn drain_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
 }
 
 /// One library pull across every tracker.
-pub async fn pull_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
+pub async fn pull_once(sync: &Sync, tx: &mpsc::UnboundedSender<Event>) {
     let now = anistream_store::now();
     // The libraries are fetched at once — separate hosts, and a pull can be several pages —
     // but merged one at a time in tracker order. Every merge reads and writes the same local
@@ -520,7 +520,7 @@ pub async fn pull_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
             Ok(report) => {
                 sync.note_pull(tracker.id(), None);
                 let _ = sync.store.set_meta_i64(&pull_key(tracker.id()), now);
-                let _ = tx.send(Update::Sync(Box::new(sync.state_for(
+                let _ = tx.send(Event::Sync(Box::new(sync.state_for(
                     tracker.as_ref(),
                     false,
                     Some(format!(
@@ -547,11 +547,11 @@ pub async fn pull_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
                             remote: c.remote.clone(),
                         })
                         .collect();
-                    let _ = tx.send(Update::Conflicts(rows));
+                    let _ = tx.send(Event::Conflicts(rows));
                 }
             }
             Err(anistream_core::Error::Auth(_)) => {
-                let _ = tx.send(Update::Sync(Box::new(sync.state_for(
+                let _ = tx.send(Event::Sync(Box::new(sync.state_for(
                     tracker.as_ref(),
                     true,
                     Some("sign in again".into()),
@@ -562,7 +562,7 @@ pub async fn pull_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
             Err(e) => {
                 tracing::warn!(tracker = tracker.id(), error = %e, "library pull failed");
                 sync.note_pull(tracker.id(), Some((e.to_string(), now)));
-                let _ = tx.send(Update::Sync(Box::new(sync.state_for(
+                let _ = tx.send(Event::Sync(Box::new(sync.state_for(
                     tracker.as_ref(),
                     false,
                     None,
@@ -577,7 +577,7 @@ pub async fn pull_once(sync: &Sync, tx: &mpsc::UnboundedSender<Update>) {
 /// Opens a browser and waits. Everything here is best-effort and every failure is reported as a
 /// toast rather than propagated — a failed sign-in must leave the app exactly as usable as it
 /// was, because local history never needed an account.
-pub async fn connect(sync: Sync, tracker_id: String, tx: mpsc::UnboundedSender<Update>) {
+pub async fn connect(sync: Sync, tracker_id: String, tx: mpsc::UnboundedSender<Event>) {
     // Simkl and Trakt use the device flow: no redirect URI to register, and it works over SSH.
     if let Some(endpoints) = device_endpoints(&tracker_id) {
         connect_device(sync, tracker_id, endpoints, tx).await;
@@ -591,14 +591,14 @@ pub async fn connect(sync: Sync, tracker_id: String, tx: mpsc::UnboundedSender<U
     // and dispatches `ConnectKitsu`. This is the fallback for any other path that still
     // says `Connect { "kitsu" }`, and it points at the screen that does it right.
     if tracker_id == "kitsu" {
-        let _ = tx.send(Update::Toast(Notice::info(
+        let _ = tx.send(Event::Toast(Notice::info(
             "kitsu signs in from the Accounts screen — enter on its row asks for credentials",
         )));
         return;
     }
     if tracker_id != "anilist" {
         let _ =
-            tx.send(Update::Toast(Notice::alert(format!("{tracker_id}: no sign-in flow yet"))));
+            tx.send(Event::Toast(Notice::alert(format!("{tracker_id}: no sign-in flow yet"))));
         return;
     }
 
@@ -606,7 +606,7 @@ pub async fn connect(sync: Sync, tracker_id: String, tx: mpsc::UnboundedSender<U
     let blank = |field: &Option<String>| field.as_deref().unwrap_or("").trim().is_empty();
     if blank(&auth_config.client_id) || blank(&auth_config.client_secret) {
         // AniList supports only the authorization code grant, so both halves are required.
-        let _ = tx.send(Update::Toast(Notice::alert(
+        let _ = tx.send(Event::Toast(Notice::alert(
             "set trackers.anilist.client_id and client_secret — run: anistream --login-url",
         )));
         return;
@@ -622,7 +622,7 @@ pub async fn connect(sync: Sync, tracker_id: String, tx: mpsc::UnboundedSender<U
     let url = match auth::authorize_url(&client_id, flow, port) {
         Ok(url) => url,
         Err(e) => {
-            let _ = tx.send(Update::Toast(Notice::alert(e.to_string())));
+            let _ = tx.send(Event::Toast(Notice::alert(e.to_string())));
             return;
         }
     };
@@ -633,13 +633,13 @@ pub async fn connect(sync: Sync, tracker_id: String, tx: mpsc::UnboundedSender<U
         .then(|| tokio::spawn(auth::wait_for_code_from(port, "AniList")));
 
     if let Err(e) = open::that_detached(&url) {
-        let _ = tx.send(Update::Toast(Notice::alert(format!("could not open a browser: {e}"))));
+        let _ = tx.send(Event::Toast(Notice::alert(format!("could not open a browser: {e}"))));
         tracing::info!(%url, "open this to sign in");
     }
 
     let Some(listening) = listening else {
         // The paste flow needs a terminal to paste into, which the TUI is currently occupying.
-        let _ = tx.send(Update::Toast(Notice::info(
+        let _ = tx.send(Event::Toast(Notice::info(
             "paste flow: quit and run `anistream --login` instead",
         )));
         return;
@@ -648,11 +648,11 @@ pub async fn connect(sync: Sync, tracker_id: String, tx: mpsc::UnboundedSender<U
     let code = match listening.await {
         Ok(Ok(code)) => code,
         Ok(Err(e)) => {
-            let _ = tx.send(Update::Toast(Notice::alert(format!("sign-in failed: {e}"))));
+            let _ = tx.send(Event::Toast(Notice::alert(format!("sign-in failed: {e}"))));
             return;
         }
         Err(e) => {
-            let _ = tx.send(Update::Toast(Notice::alert(format!("sign-in task failed: {e}"))));
+            let _ = tx.send(Event::Toast(Notice::alert(format!("sign-in task failed: {e}"))));
             return;
         }
     };
@@ -669,8 +669,7 @@ pub async fn connect(sync: Sync, tracker_id: String, tx: mpsc::UnboundedSender<U
     {
         Ok(token) => token,
         Err(e) => {
-            let _ =
-                tx.send(Update::Toast(Notice::alert(format!("token exchange failed: {e}"))));
+            let _ = tx.send(Event::Toast(Notice::alert(format!("token exchange failed: {e}"))));
             return;
         }
     };
@@ -682,7 +681,7 @@ pub async fn connect(sync: Sync, tracker_id: String, tx: mpsc::UnboundedSender<U
                 // Not hidden: someone on a shared machine should know.
                 message.push_str(" — token stored in a 0600 file, no keychain available");
             }
-            let _ = tx.send(Update::Toast(Notice::info(message)));
+            let _ = tx.send(Event::Toast(Notice::info(message)));
             // This used to say "restart to start syncing", which was true and terrible: the token
             // was in the keychain and nothing running could see it. Handing it to the live tracker
             // is the whole fix.
@@ -694,8 +693,8 @@ pub async fn connect(sync: Sync, tracker_id: String, tx: mpsc::UnboundedSender<U
             activate(&sync, &tracker_id, &pair, &tx).await;
         }
         Err(e) => {
-            let _ = tx
-                .send(Update::Toast(Notice::alert(format!("could not store the token: {e}"))));
+            let _ =
+                tx.send(Event::Toast(Notice::alert(format!("could not store the token: {e}"))));
         }
     }
 }
@@ -709,7 +708,7 @@ pub async fn connect_kitsu(
     sync: Sync,
     username: String,
     password: String,
-    tx: mpsc::UnboundedSender<Update>,
+    tx: mpsc::UnboundedSender<Event>,
 ) {
     let pair = match anistream_track::kitsu::login(
         sync.http.plain(),
@@ -721,8 +720,8 @@ pub async fn connect_kitsu(
     {
         Ok(pair) => pair,
         Err(e) => {
-            let _ = tx.send(Update::Toast(Notice::alert(format!("kitsu sign-in failed: {e}"))));
-            let _ = tx.send(Update::Status(String::new()));
+            let _ = tx.send(Event::Toast(Notice::alert(format!("kitsu sign-in failed: {e}"))));
+            let _ = tx.send(Event::Status(String::new()));
             return;
         }
     };
@@ -735,15 +734,15 @@ pub async fn connect_kitsu(
                 // Not hidden: someone on a shared machine should know.
                 message.push_str(" — token stored in a 0600 file, no keychain available");
             }
-            let _ = tx.send(Update::Toast(Notice::info(message)));
+            let _ = tx.send(Event::Toast(Notice::info(message)));
             activate(&sync, "kitsu", &pair, &tx).await;
         }
         Err(e) => {
-            let _ = tx
-                .send(Update::Toast(Notice::alert(format!("could not store the token: {e}"))));
+            let _ =
+                tx.send(Event::Toast(Notice::alert(format!("could not store the token: {e}"))));
         }
     }
-    let _ = tx.send(Update::Status(String::new()));
+    let _ = tx.send(Event::Status(String::new()));
 }
 
 /// Sign in to MyAnimeList from inside the app.
@@ -751,12 +750,12 @@ pub async fn connect_kitsu(
 /// There was no interactive flow at all — the Accounts screen answered "mal: no sign-in flow yet"
 /// while `--login --tracker mal` worked perfectly from the command line. The PKCE machinery already
 /// existed; only this wiring was missing.
-async fn connect_mal(sync: Sync, tx: mpsc::UnboundedSender<Update>) {
+async fn connect_mal(sync: Sync, tx: mpsc::UnboundedSender<Event>) {
     use anistream_track::mal;
 
     let auth = &sync.config.trackers.mal;
     let Some(client_id) = auth.client_id.clone().filter(|id| !id.trim().is_empty()) else {
-        let _ = tx.send(Update::Toast(Notice::alert(
+        let _ = tx.send(Event::Toast(Notice::alert(
             "set trackers.mal.client_id — register an app (type: other) at myanimelist.net/apiconfig",
         )));
         return;
@@ -771,21 +770,21 @@ async fn connect_mal(sync: Sync, tx: mpsc::UnboundedSender<Update>) {
     // Listening starts before the browser opens, or a fast redirect arrives before the socket does.
     let waiting = tokio::spawn(auth::wait_for_code_from(auth.redirect_port, "MyAnimeList"));
     if let Err(e) = open::that_detached(&url) {
-        let _ = tx.send(Update::Toast(Notice::alert(format!("could not open a browser: {e}"))));
+        let _ = tx.send(Event::Toast(Notice::alert(format!("could not open a browser: {e}"))));
         tracing::info!(%url, "open this to sign in");
     }
-    let _ = tx.send(Update::Status("waiting for MyAnimeList to redirect back…".into()));
+    let _ = tx.send(Event::Status("waiting for MyAnimeList to redirect back…".into()));
 
     let code = match waiting.await {
         Ok(Ok(code)) => code,
         Ok(Err(e)) => {
-            let _ = tx.send(Update::Toast(Notice::alert(e.to_string())));
-            let _ = tx.send(Update::Status(String::new()));
+            let _ = tx.send(Event::Toast(Notice::alert(e.to_string())));
+            let _ = tx.send(Event::Status(String::new()));
             return;
         }
         Err(e) => {
-            let _ = tx.send(Update::Toast(Notice::alert(format!("sign-in cancelled: {e}"))));
-            let _ = tx.send(Update::Status(String::new()));
+            let _ = tx.send(Event::Toast(Notice::alert(format!("sign-in cancelled: {e}"))));
+            let _ = tx.send(Event::Status(String::new()));
             return;
         }
     };
@@ -802,34 +801,33 @@ async fn connect_mal(sync: Sync, tx: mpsc::UnboundedSender<Update>) {
     {
         Ok(pair) => pair,
         Err(e) => {
-            let _ =
-                tx.send(Update::Toast(Notice::alert(format!("token exchange failed: {e}"))));
-            let _ = tx.send(Update::Status(String::new()));
+            let _ = tx.send(Event::Toast(Notice::alert(format!("token exchange failed: {e}"))));
+            let _ = tx.send(Event::Status(String::new()));
             return;
         }
     };
 
     match sync.tokens.set_pair("mal", &pair.access, pair.refresh.as_deref(), pair.expires_at) {
         Ok(storage) => {
-            let _ = tx.send(Update::Toast(Notice::info(format!(
+            let _ = tx.send(Event::Toast(Notice::info(format!(
                 "signed in to MyAnimeList — token in the {}",
                 storage.describe()
             ))));
             if pair.refresh.is_none() {
                 // MAL's tokens last 30 days, so no refresh token means sync stops in a month with
                 // nothing but a re-sign-in to fix it. Worth saying at the time.
-                let _ = tx.send(Update::Toast(Notice::alert(
+                let _ = tx.send(Event::Toast(Notice::alert(
                     "no refresh token issued — you will have to sign in again in about a month",
                 )));
             }
             activate(&sync, "mal", &pair, &tx).await;
         }
         Err(e) => {
-            let _ = tx
-                .send(Update::Toast(Notice::alert(format!("could not store the token: {e}"))));
+            let _ =
+                tx.send(Event::Toast(Notice::alert(format!("could not store the token: {e}"))));
         }
     }
-    let _ = tx.send(Update::Status(String::new()));
+    let _ = tx.send(Event::Status(String::new()));
 }
 
 /// Make a sign-in take effect immediately, everywhere.
@@ -843,7 +841,7 @@ async fn activate(
     sync: &Sync,
     tracker_id: &str,
     pair: &anistream_track::TokenPair,
-    tx: &mpsc::UnboundedSender<Update>,
+    tx: &mpsc::UnboundedSender<Event>,
 ) {
     if let Some(tracker) = sync.trackers.iter().find(|t| t.id() == tracker_id) {
         tracker
@@ -857,7 +855,7 @@ async fn activate(
     // Possibly another account: what was sent to the last one says nothing about this one.
     anistream_track::sync::forget_pushed(&sync.store, tracker_id);
     for state in sync.initial_states() {
-        let _ = tx.send(Update::Sync(Box::new(state)));
+        let _ = tx.send(Event::Sync(Box::new(state)));
     }
     // A pull now rather than at the next interval: having just signed in, an empty Library reads as
     // a failed sign-in.
@@ -882,7 +880,7 @@ async fn connect_device(
     sync: Sync,
     tracker_id: String,
     endpoints: anistream_track::DeviceEndpoints,
-    tx: mpsc::UnboundedSender<Update>,
+    tx: mpsc::UnboundedSender<Event>,
 ) {
     let (client_id, client_secret) = match tracker_id.as_str() {
         "simkl" => (sync.config.trackers.simkl.client_id.clone(), None),
@@ -892,7 +890,7 @@ async fn connect_device(
         ),
     };
     let Some(client_id) = client_id.filter(|id| !id.trim().is_empty()) else {
-        let _ = tx.send(Update::Toast(Notice::alert(format!(
+        let _ = tx.send(Event::Toast(Notice::alert(format!(
             "set trackers.{tracker_id}.client_id first"
         ))));
         return;
@@ -903,7 +901,7 @@ async fn connect_device(
     {
         Ok(code) => code,
         Err(e) => {
-            let _ = tx.send(Update::Toast(Notice::alert(format!("{tracker_id}: {e}"))));
+            let _ = tx.send(Event::Toast(Notice::alert(format!("{tracker_id}: {e}"))));
             return;
         }
     };
@@ -912,7 +910,7 @@ async fn connect_device(
     // wrong twice over: it is drawn in the dimmest role in the palette, and any background task
     // setting a status — a rate-limit notice, a finished download — would wipe the one thing the
     // user has to read. Reported as the code never being displayed, which it effectively was not.
-    let _ = tx.send(Update::DeviceCode(Some(anistream_ui::app::DeviceCodePrompt {
+    let _ = tx.send(Event::DeviceCode(Some(anistream_ui::app::DeviceCodePrompt {
         tracker: tracker_id.clone(),
         code: code.user_code.clone(),
         url: code.verification_url.clone(),
@@ -947,32 +945,32 @@ async fn connect_device(
                     format!("signed in to {tracker_id}, but the token was not saved: {e}")
                 }
             };
-            let _ = tx.send(Update::Toast(Notice::info(message)));
+            let _ = tx.send(Event::Toast(Notice::info(message)));
             activate(&sync, &tracker_id, &pair, &tx).await;
         }
         Err(e) => {
-            let _ = tx.send(Update::Toast(Notice::alert(format!("{tracker_id}: {e}"))));
+            let _ = tx.send(Event::Toast(Notice::alert(format!("{tracker_id}: {e}"))));
         }
     }
     // Cleared however the flow ended — approved, refused or expired. A prompt left up after a
     // successful sign-in would be asking for a code that no longer does anything.
-    let _ = tx.send(Update::DeviceCode(None));
-    let _ = tx.send(Update::Status(String::new()));
+    let _ = tx.send(Event::DeviceCode(None));
+    let _ = tx.send(Event::Status(String::new()));
 }
 
 /// Forget a tracker's token.
-pub fn disconnect(sync: &Sync, tracker_id: &str, tx: &mpsc::UnboundedSender<Update>) {
+pub fn disconnect(sync: &Sync, tracker_id: &str, tx: &mpsc::UnboundedSender<Event>) {
     let update = match sync.tokens.clear(tracker_id) {
         // The queue is deliberately left alone. Signing out is not "discard my progress", and
         // signing back in should send what accumulated.
-        Ok(()) => Update::Toast(Notice::info(format!(
+        Ok(()) => Event::Toast(Notice::info(format!(
             "signed out of {tracker_id} — {} kept",
             anistream_ui::widgets::plural(
                 sync.store.outbox_depth(Some(tracker_id)).unwrap_or(0) as usize,
                 "queued change"
             )
         ))),
-        Err(e) => Update::Toast(Notice::alert(format!("could not sign out: {e}"))),
+        Err(e) => Event::Toast(Notice::alert(format!("could not sign out: {e}"))),
     };
     let _ = tx.send(update);
 
@@ -989,7 +987,7 @@ pub fn disconnect(sync: &Sync, tracker_id: &str, tx: &mpsc::UnboundedSender<Upda
         // Rebuilt from what is now true rather than patched, so there is one description of the
         // state and no way for the badge and the list to disagree.
         for state in sync.initial_states() {
-            let _ = tx.send(Update::Sync(Box::new(state)));
+            let _ = tx.send(Event::Sync(Box::new(state)));
         }
     });
 }
@@ -1192,7 +1190,7 @@ mod tests {
         let (tx, mut rx) = mpsc::unbounded_channel();
 
         pull_once(&sync, &tx).await;
-        let Some(Update::Sync(state)) = rx.try_recv().ok() else { panic!("no state sent") };
+        let Some(Event::Sync(state)) = rx.try_recv().ok() else { panic!("no state sent") };
         let (error, _) = state.pull_error.expect("the failure is on the row");
         assert!(error.contains("timed out"), "{error}");
 
@@ -1203,7 +1201,7 @@ mod tests {
 
         flaky.down.store(false, std::sync::atomic::Ordering::Relaxed);
         pull_once(&sync, &tx).await;
-        let Some(Update::Sync(state)) = rx.try_recv().ok() else { panic!("no state sent") };
+        let Some(Event::Sync(state)) = rx.try_recv().ok() else { panic!("no state sent") };
         assert_eq!(state.pull_error, None);
         assert_eq!(state.last.as_deref(), Some("pulled 0 titles"));
     }

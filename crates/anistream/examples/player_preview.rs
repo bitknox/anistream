@@ -26,7 +26,7 @@ use anistream_core::{
 };
 use anistream_net::HttpClient;
 use anistream_store::Store;
-use anistream_ui::app::Update;
+use anistream_ui::app::Event;
 use tokio::sync::mpsc;
 
 #[tokio::main]
@@ -108,9 +108,9 @@ async fn main() -> anyhow::Result<()> {
         let printer = tokio::spawn(async move {
             while let Some(update) = rx.recv().await {
                 match update {
-                    Update::Status(s) if !s.is_empty() => println!("  status: {s}"),
-                    Update::Toast(t) => println!("  toast: {}", t.text),
-                    Update::PlaybackEnded { watched, ending } => {
+                    Event::Status(s) if !s.is_empty() => println!("  status: {s}"),
+                    Event::Toast(t) => println!("  toast: {}", t.text),
+                    Event::PlaybackEnded { watched, ending } => {
                         println!("  ended (watched: {watched}, {ending:?})")
                     }
                     _ => {}

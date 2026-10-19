@@ -19,7 +19,7 @@ use anistream_net::HttpClient;
 use anistream_providers::{ProviderRegistry, vpn::VpnGuard};
 use anistream_store::Store;
 use anistream_ui::{
-    app::{App, Content, ContentFor, EpisodeRow, JobId, Notice, Task, Update},
+    app::{App, Command, Content, ContentFor, EpisodeRow, Event, JobId, Notice},
     keymap::Keymap,
     screens, theme,
 };
@@ -454,24 +454,24 @@ async fn preview(
     let stores = plugin_stores::Stores::new(&config, paths).map_err(|e| anyhow::anyhow!(e))?;
     let mut app = App::with_images(config, palette, keymap, engine);
     if let Some(note) = note {
-        app.apply(Update::ProviderNote(note));
+        app.apply(Event::ProviderNote(note));
     }
     // A failed guard included: the interface puts its verdict on the chip and toasts it, and
     // a preview without it showed a machine whose torrents were fine.
     if let Some(state) = guard.as_ref().map(|(guard, _)| guard.state()).or(held) {
-        app.apply(Update::Vpn(Some(sources::guard_view(&state))));
+        app.apply(Event::Vpn(Some(sources::guard_view(&state))));
     }
     if let Some(problem) = &config_problem {
         show_config_problem(&mut app, paths, problem);
     }
     match stores.rows() {
-        Ok(rows) => app.apply(Update::Stores(rows)),
-        Err(e) => app.apply(Update::Toast(Notice::alert(e))),
+        Ok(rows) => app.apply(Event::Stores(rows)),
+        Err(e) => app.apply(Event::Toast(Notice::alert(e))),
     }
-    app.apply(Update::Providers(data::provider_rows(&registry)));
+    app.apply(Event::Providers(data::provider_rows(&registry)));
     let sync = tracking::Sync::build(&app.config, &store, &http);
     for state in sync.initial_states() {
-        app.apply(Update::Sync(Box::new(state)));
+        app.apply(Event::Sync(Box::new(state)));
     }
 
     let (tx, mut rx) = mpsc::unbounded_channel();
@@ -563,7 +563,7 @@ async fn preview(
 
 /// What `--preview` drives the app with: the same handles the event loop holds.
 struct PreviewRun {
-    tx: mpsc::UnboundedSender<Update>,
+    tx: mpsc::UnboundedSender<Event>,
     rows: usize,
     player_tx: Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
     slot: PlayerSlot,
@@ -590,20 +590,20 @@ impl PreviewRun {
 
     /// Hand a task to the same dispatcher the event loop uses — unless running it would do
     /// something a still frame must not: play, download, sign in, change a setting or a store.
-    fn dispatch(&mut self, app: &mut App, task: Task) {
+    fn dispatch(&mut self, app: &mut App, task: Command) {
         let loads = matches!(
             task,
-            Task::LoadContinue
-                | Task::LoadSeasonal
-                | Task::LoadCalendar
-                | Task::LoadCalendarPast { .. }
-                | Task::Search { .. }
-                | Task::LoadDetail(_)
-                | Task::LoadEpisodes(_)
-                | Task::CheckProviders
-                | Task::LoadLibrary(_)
-                | Task::LoadDownloads
-                | Task::LoadStores
+            Command::LoadContinue
+                | Command::LoadSeasonal
+                | Command::LoadCalendar
+                | Command::LoadCalendarPast { .. }
+                | Command::Search { .. }
+                | Command::LoadDetail(_)
+                | Command::LoadEpisodes(_)
+                | Command::CheckProviders
+                | Command::LoadLibrary(_)
+                | Command::LoadDownloads
+                | Command::LoadStores
         );
         if !loads {
             eprintln!("[preview: not run: {task:?}]");
@@ -630,7 +630,7 @@ impl PreviewRun {
 
     /// Apply updates until the work is done and the screen's covers are in, as the event loop
     /// would over the same moments.
-    async fn settle(&mut self, app: &mut App, rx: &mut mpsc::UnboundedReceiver<Update>) {
+    async fn settle(&mut self, app: &mut App, rx: &mut mpsc::UnboundedReceiver<Event>) {
         let deadline = tokio::time::Instant::now() + Self::PATIENCE;
         loop {
             if let Some(task) = app.take_pending() {
@@ -657,14 +657,14 @@ impl PreviewRun {
                 Ok(Some(update)) => {
                     match update {
                         // Decoded here and now: a still frame has no loop to keep moving.
-                        Update::ArtworkReady { url, bytes } => {
+                        Event::ArtworkReady { url, bytes } => {
                             covers::hand_over(app, covers::now(url, &bytes));
                         }
                         update => app.apply(update),
                     }
                     if let Some(notice) = self.meta.take_notice() {
-                        app.apply(Update::MetaStatus(data::meta_rows(&self.meta)));
-                        app.apply(Update::Toast(Notice::info(notice)));
+                        app.apply(Event::MetaStatus(data::meta_rows(&self.meta)));
+                        app.apply(Event::Toast(Notice::info(notice)));
                     }
                 }
                 Ok(None) => return,
@@ -1722,13 +1722,13 @@ async fn run(
     }
     // Joined stores as they were left, so Providers can count them on the first frame.
     match stores.rows() {
-        Ok(rows) => app.apply(Update::Stores(rows)),
-        Err(e) => app.apply(Update::Toast(Notice::alert(e))),
+        Ok(rows) => app.apply(Event::Stores(rows)),
+        Err(e) => app.apply(Event::Toast(Notice::alert(e))),
     }
 
     // Background work reports through this channel; nothing off the UI thread ever touches
     // `App` directly, which is what keeps a slow request from stalling a frame.
-    let (tx, mut rx) = mpsc::unbounded_channel::<Update>();
+    let (tx, mut rx) = mpsc::unbounded_channel::<Event>();
 
     // The daily update check: one cached request, one quiet toast when a release exists.
     anistream::updates::spawn_check(app.config.updates.check, &paths.cache_dir, &http, &tx);
@@ -1751,13 +1751,13 @@ async fn run(
             if let Ok(outcome) = plugins_loading.await {
                 match outcome {
                     Some(reason) => {
-                        let _ = tx.send(Update::ProviderNote(reason));
+                        let _ = tx.send(Event::ProviderNote(reason));
                     }
                     // Ranked again by the order as it stands now, since the user may have
                     // moved a source while these compiled, and the Providers screen refreshed
                     // so late arrivals actually appear on it.
                     None => {
-                        let _ = tx.send(Update::SourcesReordered);
+                        let _ = tx.send(Event::SourcesReordered);
                     }
                 }
             }
@@ -1770,11 +1770,11 @@ async fn run(
         let (stores, tx) = (stores.clone(), tx.clone());
         tokio::spawn(async move {
             if let Ok(rows) = stores.refresh().await {
-                let _ = tx.send(Update::Stores(rows));
+                let _ = tx.send(Event::Stores(rows));
             }
             let updates = stores.pending_updates();
             if !updates.is_empty() {
-                let _ = tx.send(Update::Toast(Notice::info(format!(
+                let _ = tx.send(Event::Toast(Notice::info(format!(
                     "plugin {} ready: {} — Providers, Enter",
                     if updates.len() == 1 { "update" } else { "updates" },
                     updates.join(", ")
@@ -1787,7 +1787,7 @@ async fn run(
     // to offer a sign-in for, and the outbox accumulates against the id meanwhile.
     let sync = tracking::Sync::build(&app.config, &store, &http);
     for state in sync.initial_states() {
-        app.apply(Update::Sync(Box::new(state)));
+        app.apply(Event::Sync(Box::new(state)));
     }
     tracking::spawn_loops(sync.clone(), tx.clone());
 
@@ -1833,12 +1833,12 @@ async fn run(
     let mpv = player(&app.config, &paths, &player_theme());
     if !mpv.is_available().await {
         // Said once at startup rather than at the moment you press Enter on an episode.
-        app.apply(Update::Toast(Notice::alert(format!(
+        app.apply(Event::Toast(Notice::alert(format!(
             "{} not found — install mpv to play anything",
             app.config.playback.mpv_binary
         ))));
     } else if let Some(note) = mpv.mpv_version().await.and_then(old_mpv_note) {
-        app.apply(Update::Toast(Notice::info(note)));
+        app.apply(Event::Toast(Notice::info(note)));
     }
 
     // Painting on change rather than on every tick: see `Repaint`. `idle_tick` is whether
@@ -1901,14 +1901,14 @@ async fn run(
                 // Handed to the terminal's clipboard on the way in, so the overlay can say
                 // whether it was.
                 let copied = match &update {
-                    Update::InviteLink(view) => {
+                    Event::InviteLink(view) => {
                         copy_to_clipboard(terminal.backend_mut(), &view.link.0)
                     }
                     _ => false,
                 };
                 // A finished episode should reach the tracker now, not at the next drain
                 // tick — up to a minute later, the pushed progress looked simply absent.
-                if matches!(update, Update::ProgressQueued) {
+                if matches!(update, Event::ProgressQueued) {
                     let (sync, tx) = (sync.clone(), tx.clone());
                     tokio::spawn(async move { tracking::drain_once(&sync, &tx).await });
                 }
@@ -1917,8 +1917,8 @@ async fn run(
                 // The status rows ride along so the header chip and the Providers screen
                 // agree with the toast without waiting for a refresh.
                 if let Some(notice) = meta.take_notice() {
-                    app.apply(Update::MetaStatus(anistream::data::meta_rows(&meta)));
-                    app.apply(Update::Toast(Notice::info(notice)));
+                    app.apply(Event::MetaStatus(anistream::data::meta_rows(&meta)));
+                    app.apply(Event::Toast(Notice::info(notice)));
                 }
                 // A source setting changed. Awaited here rather than spawned: this owns the
                 // session and the guard, and two rebuilds racing would leave one of their
@@ -1926,17 +1926,17 @@ async fn run(
                 // comes up behind the interface, as at launch.
                 if matches!(
                     update,
-                    Update::SettingsSaved | Update::SourcesChanged | Update::SourcesReordered
+                    Event::SettingsSaved | Event::SourcesChanged | Event::SourcesReordered
                 ) && let Ok(mut shared) = shared_config.write()
                 {
                     *shared = app.config.clone();
                 }
                 // Only the order changed: the chain as it stands is put in it, with no rebuild.
-                if matches!(update, Update::SourcesReordered) {
+                if matches!(update, Event::SourcesReordered) {
                     sources::arrange(&registry, &app.config);
-                    app.apply(Update::Providers(data::provider_rows(&registry)));
+                    app.apply(Event::Providers(data::provider_rows(&registry)));
                 }
-                if matches!(update, Update::SourcesChanged) {
+                if matches!(update, Event::SourcesChanged) {
                     reload_sources(
                         &registry,
                         &mut torrent_tasks,
@@ -1950,10 +1950,10 @@ async fn run(
                     )
                     .await;
                 }
-                let ended = matches!(update, Update::PlaybackEnded { .. });
+                let ended = matches!(update, Event::PlaybackEnded { .. });
                 match update {
                     // Decoded off the loop; it comes back on the arm below.
-                    Update::ArtworkReady { url, bytes } => covers::spawn(url, bytes, &covers_tx),
+                    Event::ArtworkReady { url, bytes } => covers::spawn(url, bytes, &covers_tx),
                     update => app.apply(update),
                 }
                 if copied {
@@ -2052,7 +2052,7 @@ async fn run(
 async fn keep_datasets_current(
     store: Store,
     http: HttpClient,
-    tx: mpsc::UnboundedSender<Update>,
+    tx: mpsc::UnboundedSender<Event>,
 ) {
     let mut wait = Duration::from_secs(5 * 60);
     let mut said = false;
@@ -2066,14 +2066,14 @@ async fn keep_datasets_current(
         }) else {
             if said {
                 tracing::info!("mapping datasets refreshed after failing");
-                let _ = tx.send(Update::Toast(Notice::info("mapping data refreshed")));
+                let _ = tx.send(Event::Toast(Notice::info("mapping data refreshed")));
             }
             return;
         };
         tracing::warn!(datasets = ?failed, %reason, retry_secs = wait.as_secs(), "mapping refresh failed");
         if !said {
             said = true;
-            let _ = tx.send(Update::Toast(Notice::alert(format!(
+            let _ = tx.send(Event::Toast(Notice::alert(format!(
                 "mapping data could not be refreshed ({}: {}) — trying again in {} min",
                 failed.join(", "),
                 plain_failure(reason),
@@ -2186,7 +2186,7 @@ const EXIT_FLUSH: Duration = Duration::from_secs(2);
 async fn stop_for_exit(
     app: &App,
     player_tx: &Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
-    rx: &mut mpsc::UnboundedReceiver<Update>,
+    rx: &mut mpsc::UnboundedReceiver<Event>,
 ) {
     let under_way = app.playing.as_ref().is_some_and(|playing| playing.duration.is_some());
     let Some(controls) = player_tx.as_ref().filter(|_| under_way) else { return };
@@ -2195,7 +2195,7 @@ async fn stop_for_exit(
     }
     let ended = async {
         while let Some(update) = rx.recv().await {
-            if matches!(update, Update::PlaybackEnded { .. }) {
+            if matches!(update, Event::PlaybackEnded { .. }) {
                 break;
             }
         }
@@ -2212,7 +2212,7 @@ async fn stop_for_exit(
 /// broadcast line a moment later, rather than the whole screen waiting on an annotation.
 async fn publish_list(
     meta: &Meta,
-    tx: &mpsc::UnboundedSender<Update>,
+    tx: &mpsc::UnboundedSender<Event>,
     view: ContentFor,
     entries: Vec<anistream_ui::app::Entry>,
     now: i64,
@@ -2221,13 +2221,13 @@ async fn publish_list(
     // spend rows of a capped response on titles that cannot use them.
     let ids: Vec<anistream_core::ids::AnilistId> =
         entries.iter().filter(|e| e.airing_in.is_some()).map(|e| e.id).collect();
-    let _ = tx.send(Update::Content { view, content: Content::Entries(entries) });
+    let _ = tx.send(Event::Content { view, content: Content::Entries(entries) });
     if ids.is_empty() {
         return;
     }
     match meta.last_aired(&ids).await {
         Ok(rows) => {
-            let _ = tx.send(Update::LastAired(
+            let _ = tx.send(Event::LastAired(
                 rows.into_iter()
                     // Aired rows only. AniList has answered this query with rows whose air
                     // time is still ahead, and naming next week's episode as "out just now"
@@ -2251,34 +2251,34 @@ async fn publish_list(
 /// that thought to, and outlived their work on every other one.
 struct JobGuard {
     id: JobId,
-    tx: mpsc::UnboundedSender<Update>,
+    tx: mpsc::UnboundedSender<Event>,
 }
 
 impl JobGuard {
-    fn start(app: &mut App, task: &Task, tx: &mpsc::UnboundedSender<Update>) -> Option<Self> {
+    fn start(app: &mut App, task: &Command, tx: &mpsc::UnboundedSender<Event>) -> Option<Self> {
         app.begin_job(task).map(|id| Self { id, tx: tx.clone() })
     }
 
     /// Say what the work is held up on, and for how long if that is known.
     fn note(&self, note: impl Into<String>, wait: Option<Duration>) {
-        let _ = self.tx.send(Update::JobNote { job: self.id, note: note.into(), wait });
+        let _ = self.tx.send(Event::JobNote { job: self.id, note: note.into(), wait });
     }
 }
 
 impl Drop for JobGuard {
     fn drop(&mut self) {
-        let _ = self.tx.send(Update::JobDone(self.id));
+        let _ = self.tx.send(Event::JobDone(self.id));
     }
 }
 
 /// Run a task off the UI thread and report the result back through the channel.
 fn spawn(
-    task: Task,
+    task: Command,
     job: Option<JobGuard>,
     meta: &Meta,
     store: &Store,
     registry: &ProviderRegistry,
-    tx: &mpsc::UnboundedSender<Update>,
+    tx: &mpsc::UnboundedSender<Event>,
 ) {
     let meta = meta.clone();
     let store = store.clone();
@@ -2298,7 +2298,7 @@ fn spawn(
                 // No job to note it on. A toast, which goes when it is done: as a status it
                 // stayed, still counting "12s", after the wait was over.
                 None => {
-                    let _ = tx.send(Update::Toast(Notice::info(format!(
+                    let _ = tx.send(Event::Toast(Notice::info(format!(
                         "waiting {}s on the AniList rate limit",
                         wait.as_secs().max(1)
                     ))));
@@ -2306,24 +2306,24 @@ fn spawn(
             }
         }
         let update = match task {
-            Task::LoadContinue => match continue_entries(&meta, &store).await {
+            Command::LoadContinue => match continue_entries(&meta, &store).await {
                 // Nothing in the history at all is a different empty from a history with
                 // nothing left to continue — everything hidden with `x` — and only the first
                 // is "nothing watched yet". `Empty` says it is the first.
                 Ok(entries)
                     if entries.is_empty() && store.stats().is_ok_and(|s| s.titles == 0) =>
                 {
-                    Update::Content { view: ContentFor::Continue, content: Content::Empty }
+                    Event::Content { view: ContentFor::Continue, content: Content::Empty }
                 }
                 Ok(entries) => {
                     publish_list(&meta, &tx, ContentFor::Continue, entries, now_epoch()).await;
                     return;
                 }
                 Err(e) => {
-                    Update::Content { view: ContentFor::Continue, content: Content::Failed(e) }
+                    Event::Content { view: ContentFor::Continue, content: Content::Failed(e) }
                 }
             },
-            Task::LoadSeasonal => {
+            Command::LoadSeasonal => {
                 const PAGE: u32 = 40;
                 let (season, year) = current_season();
                 match meta.seasonal(season, year, &Default::default(), 1, PAGE).await {
@@ -2336,7 +2336,7 @@ fn spawn(
                         } else {
                             season
                         };
-                        let _ = tx.send(Update::Caption { view: ContentFor::Seasonal, text });
+                        let _ = tx.send(Event::Caption { view: ContentFor::Seasonal, text });
                         let entries = page
                             .items
                             .iter()
@@ -2346,46 +2346,46 @@ fn spawn(
                             .await;
                         return;
                     }
-                    Err(e) => Update::Content {
+                    Err(e) => Event::Content {
                         view: ContentFor::Seasonal,
                         content: Content::Failed(e.to_string()),
                     },
                 }
             }
-            Task::LoadCalendar => {
+            Command::LoadCalendar => {
                 let anchor = now_epoch();
                 match calendar_timeline(&meta, &store, anchor).await {
                     Ok(load) => {
                         // Sent before the content, so the reducer knows how to continue the
                         // list at the moment the list exists — a backfill triggered by the
                         // very first keypress has everything it needs.
-                        let _ = tx.send(Update::CalendarWindow {
+                        let _ = tx.send(Event::CalendarWindow {
                             anchor,
                             pages: load.pages,
                             more_past: load.more_past,
                         });
-                        Update::Content {
+                        Event::Content {
                             view: ContentFor::Calendar,
                             content: Content::Entries(load.entries),
                         }
                     }
-                    Err(e) => Update::Content {
+                    Err(e) => Event::Content {
                         view: ContentFor::Calendar,
                         content: Content::Failed(e),
                     },
                 }
             }
-            Task::LoadCalendarPast { anchor, page } => {
+            Command::LoadCalendarPast { anchor, page } => {
                 match calendar_past_page(&meta, &store, anchor, page).await {
                     Ok((entries, more_past)) => {
-                        Update::CalendarBackfill { page: Some(page), entries, more_past }
+                        Event::CalendarBackfill { page: Some(page), entries, more_past }
                     }
                     // Not a toast. The user never asked for this page by name — they scrolled —
                     // and the calendar in front of them is unchanged and still correct. The
                     // reducer clears its in-flight flag so the next scroll tries again.
                     Err(e) => {
                         tracing::warn!(%e, page, "calendar backfill failed");
-                        Update::CalendarBackfill {
+                        Event::CalendarBackfill {
                             page: None,
                             entries: Vec::new(),
                             more_past: true,
@@ -2393,7 +2393,7 @@ fn spawn(
                     }
                 }
             }
-            Task::Search { query, filter } => {
+            Command::Search { query, filter } => {
                 let view = ContentFor::Search { query: query.clone(), filter: filter.clone() };
                 let browse = anistream_meta::anilist::BrowseFilter {
                     genres: filter.genre.iter().cloned().collect(),
@@ -2414,7 +2414,7 @@ fn spawn(
                         } else {
                             String::new()
                         };
-                        let _ = tx.send(Update::Caption { view: view.clone(), text });
+                        let _ = tx.send(Event::Caption { view: view.clone(), text });
                         let entries = page
                             .items
                             .iter()
@@ -2423,126 +2423,124 @@ fn spawn(
                         publish_list(&meta, &tx, view, entries, now_epoch()).await;
                         return;
                     }
-                    Err(e) => Update::Content { view, content: Content::Failed(e.to_string()) },
+                    Err(e) => Event::Content { view, content: Content::Failed(e.to_string()) },
                 }
             }
-            Task::LoadDetail(id) => {
+            Command::LoadDetail(id) => {
                 // Sent before the detail itself, so the picker knows the current choice the
                 // moment the title is on screen rather than only after it is opened once.
-                let _ = tx.send(Update::ProviderPreference(
+                let _ = tx.send(Event::ProviderPreference(
                     store.provider_preference(id).ok().flatten(),
                 ));
                 match meta.media(id).await {
                     Ok(media) => {
-                        Update::Detail(Box::new(data::entry_from(&media, Some(&store))))
+                        Event::Detail(Box::new(data::entry_from(&media, Some(&store))))
                     }
-                    Err(e) => {
-                        Update::Toast(Notice::alert(format!("could not load title: {e}")))
-                    }
+                    Err(e) => Event::Toast(Notice::alert(format!("could not load title: {e}"))),
                 }
             }
-            Task::CheckProviders => {
+            Command::CheckProviders => {
                 registry.check_all(now_epoch()).await;
                 // The metadata ladder rides the same refresh: one screen, one key,
                 // every source's condition.
-                let _ = tx.send(Update::MetaStatus(data::meta_rows(&meta)));
-                Update::Providers(data::provider_rows(&registry))
+                let _ = tx.send(Event::MetaStatus(data::meta_rows(&meta)));
+                Event::Providers(data::provider_rows(&registry))
             }
             // Handled in `dispatch`, which owns the live player's control channel and the
             // tracker set. Reaching here would mean a routing mistake, so it says so.
-            Task::Play { .. }
-            | Task::Prefetch { .. }
-            | Task::PlayParty { .. }
-            | Task::LoadSources { .. }
-            | Task::PlaySource { .. }
-            | Task::ManualSearch { .. }
-            | Task::SetWatched { .. }
-            | Task::HideFromContinue { .. }
-            | Task::OpenExternal { .. }
-            | Task::PlayTrailer { .. }
-            | Task::Player(_)
-            | Task::SyncNow
-            | Task::Connect { .. }
-            | Task::ConnectKitsu { .. }
-            | Task::Disconnect { .. }
-            | Task::SetStatus { .. }
-            | Task::SetScore { .. }
-            | Task::ResolveConflict { .. }
-            | Task::SetProviderPreference { .. }
-            | Task::LoadLibrary(_)
-            | Task::DownloadEpisode { .. }
-            | Task::DownloadMany { .. }
-            | Task::DownloadPause { .. }
-            | Task::DownloadCancel { .. }
-            | Task::DownloadDelete { .. }
-            | Task::DownloadClearCompleted
-            | Task::LoadDownloads
-            | Task::PlayLocal { .. }
-            | Task::SaveSetting { .. }
-            | Task::LoadStores
-            | Task::PreviewStore { .. }
-            | Task::JoinStore { .. }
-            | Task::LeaveStore { .. }
-            | Task::InstallPlugin { .. }
-            | Task::RemovePlugin { .. }
-            | Task::CreateInvite { .. }
-            | Task::LoadMembers { .. }
-            | Task::RemoveMember { .. }
-            | Task::CancelInvite { .. }
-            | Task::LoadLocalPlugins { .. }
-            | Task::PublishPlugin { .. }
-            | Task::UnpublishPlugin { .. }
-            | Task::OpenAdmin { .. } => {
+            Command::Play { .. }
+            | Command::Prefetch { .. }
+            | Command::PlayParty { .. }
+            | Command::LoadSources { .. }
+            | Command::PlaySource { .. }
+            | Command::ManualSearch { .. }
+            | Command::SetWatched { .. }
+            | Command::HideFromContinue { .. }
+            | Command::OpenExternal { .. }
+            | Command::PlayTrailer { .. }
+            | Command::Player(_)
+            | Command::SyncNow
+            | Command::Connect { .. }
+            | Command::ConnectKitsu { .. }
+            | Command::Disconnect { .. }
+            | Command::SetStatus { .. }
+            | Command::SetScore { .. }
+            | Command::ResolveConflict { .. }
+            | Command::SetProviderPreference { .. }
+            | Command::LoadLibrary(_)
+            | Command::DownloadEpisode { .. }
+            | Command::DownloadMany { .. }
+            | Command::DownloadPause { .. }
+            | Command::DownloadCancel { .. }
+            | Command::DownloadDelete { .. }
+            | Command::DownloadClearCompleted
+            | Command::LoadDownloads
+            | Command::PlayLocal { .. }
+            | Command::SaveSetting { .. }
+            | Command::LoadStores
+            | Command::PreviewStore { .. }
+            | Command::JoinStore { .. }
+            | Command::LeaveStore { .. }
+            | Command::InstallPlugin { .. }
+            | Command::RemovePlugin { .. }
+            | Command::CreateInvite { .. }
+            | Command::LoadMembers { .. }
+            | Command::RemoveMember { .. }
+            | Command::CancelInvite { .. }
+            | Command::LoadLocalPlugins { .. }
+            | Command::PublishPlugin { .. }
+            | Command::UnpublishPlugin { .. }
+            | Command::OpenAdmin { .. } => {
                 tracing::error!(?task, "task reached the generic spawner");
                 return;
             }
-            Task::ClearMatch { id } => {
+            Command::ClearMatch { id } => {
                 if let Err(e) = store.clear_title_match(id) {
-                    Update::Toast(Notice::alert(format!("could not reset the match: {e}")))
+                    Event::Toast(Notice::alert(format!("could not reset the match: {e}")))
                 } else {
                     match load_episodes(&meta, &store, &registry, id).await {
-                        Ok(EpisodeLoad::Rows(rows)) => Update::Episodes { id, rows },
+                        Ok(EpisodeLoad::Rows(rows)) => Event::Episodes { id, rows },
                         Ok(EpisodeLoad::Choose { provider_id, candidates }) => {
-                            Update::MatchChoices { id, provider_id, candidates }
+                            Event::MatchChoices { id, provider_id, candidates }
                         }
                         Err(reason) => {
-                            let _ = tx.send(Update::Episodes { id, rows: Vec::new() });
-                            Update::Toast(Notice::alert(reason))
+                            let _ = tx.send(Event::Episodes { id, rows: Vec::new() });
+                            Event::Toast(Notice::alert(reason))
                         }
                     }
                 }
             }
-            Task::FixMatch { id, provider_id, key } => {
+            Command::FixMatch { id, provider_id, key } => {
                 // Remembered as an override, which the ladder consults before anything else —
                 // so the question is asked once, not on every visit.
                 if let Err(e) = store.set_override(id, &provider_id, &key, now_epoch()) {
-                    Update::Toast(Notice::alert(format!("could not save that match: {e}")))
+                    Event::Toast(Notice::alert(format!("could not save that match: {e}")))
                 } else {
                     match load_episodes(&meta, &store, &registry, id).await {
-                        Ok(EpisodeLoad::Rows(rows)) => Update::Episodes { id, rows },
+                        Ok(EpisodeLoad::Rows(rows)) => Event::Episodes { id, rows },
                         // The override *is* the answer, so the ladder cannot come back
                         // undecided; if it somehow does, say so rather than looping.
-                        Ok(EpisodeLoad::Choose { .. }) => Update::Toast(Notice::alert(
+                        Ok(EpisodeLoad::Choose { .. }) => Event::Toast(Notice::alert(
                             "that match did not stick — the source may have changed",
                         )),
                         Err(reason) => {
-                            let _ = tx.send(Update::Episodes { id, rows: Vec::new() });
-                            Update::Toast(Notice::alert(reason))
+                            let _ = tx.send(Event::Episodes { id, rows: Vec::new() });
+                            Event::Toast(Notice::alert(reason))
                         }
                     }
                 }
             }
-            Task::LoadEpisodes(id) => {
+            Command::LoadEpisodes(id) => {
                 match load_episodes(&meta, &store, &registry, id).await {
-                    Ok(EpisodeLoad::Rows(rows)) => Update::Episodes { id, rows },
+                    Ok(EpisodeLoad::Rows(rows)) => Event::Episodes { id, rows },
                     Ok(EpisodeLoad::Choose { provider_id, candidates }) => {
-                        Update::MatchChoices { id, provider_id, candidates }
+                        Event::MatchChoices { id, provider_id, candidates }
                     }
                     Err(reason) => {
                         // The Episodes screen shows its own empty state, so the reason belongs
                         // in a toast rather than replacing the whole view.
-                        let _ = tx.send(Update::Episodes { id, rows: Vec::new() });
-                        Update::Toast(Notice::alert(reason))
+                        let _ = tx.send(Event::Episodes { id, rows: Vec::new() });
+                        Event::Toast(Notice::alert(reason))
                     }
                 }
             }
@@ -2557,7 +2555,7 @@ fn spawn(
 /// channel: replacing that sender is what stops a finished episode's keys steering the next one.
 #[allow(clippy::too_many_arguments)]
 fn dispatch(
-    task: Task,
+    task: Command,
     job: Option<JobGuard>,
     player_tx: &mut Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
     paths: &Paths,
@@ -2570,7 +2568,7 @@ fn dispatch(
     http: &HttpClient,
     sync: &tracking::Sync,
     stores: &plugin_stores::Stores,
-    tx: &mpsc::UnboundedSender<Update>,
+    tx: &mpsc::UnboundedSender<Event>,
 ) {
     let config = &app.config;
     // No player handle is passed in: every playback path builds its own from the config
@@ -2578,48 +2576,48 @@ fn dispatch(
     // session is exactly how a turned-off upscaler kept running.
     match task {
         // Sync work needs the tracker set, which `spawn` deliberately does not carry.
-        Task::SyncNow => {
+        Command::SyncNow => {
             let (sync, tx) = (sync.clone(), tx.clone());
             tokio::spawn(async move {
                 let _job = job;
                 tracking::drain_once(&sync, &tx).await;
                 tracking::pull_once(&sync, &tx).await;
-                let _ = tx.send(Update::Status(String::new()));
+                let _ = tx.send(Event::Status(String::new()));
             });
         }
-        Task::Connect { tracker } => {
+        Command::Connect { tracker } => {
             let (sync, tx) = (sync.clone(), tx.clone());
             tokio::spawn(async move {
                 let _job = job;
                 tracking::connect(sync, tracker, tx).await;
             });
         }
-        Task::ConnectKitsu { username, password } => {
+        Command::ConnectKitsu { username, password } => {
             let (sync, tx) = (sync.clone(), tx.clone());
             tokio::spawn(async move {
                 let _job = job;
                 tracking::connect_kitsu(sync, username, password.0, tx).await;
             });
         }
-        Task::Disconnect { tracker } => tracking::disconnect(sync, &tracker, tx),
-        Task::SetStatus { id, status } => {
+        Command::Disconnect { tracker } => tracking::disconnect(sync, &tracker, tx),
+        Command::SetStatus { id, status } => {
             tracking::set_status(sync, id, status);
             // Queued, not sent — the drain owns the network. Reporting the new depth is what
             // makes the badge move immediately.
             for state in sync.state_after_enqueue() {
-                let _ = tx.send(Update::Sync(Box::new(state)));
+                let _ = tx.send(Event::Sync(Box::new(state)));
             }
         }
-        Task::SetScore { id, score } => {
+        Command::SetScore { id, score } => {
             tracking::set_score(sync, id, score);
             for state in sync.state_after_enqueue() {
-                let _ = tx.send(Update::Sync(Box::new(state)));
+                let _ = tx.send(Event::Sync(Box::new(state)));
             }
         }
-        Task::ResolveConflict { id, keep_local } => {
+        Command::ResolveConflict { id, keep_local } => {
             tracking::resolve_conflict(sync, id, keep_local);
         }
-        Task::SetProviderPreference { id, provider } => {
+        Command::SetProviderPreference { id, provider } => {
             let now = now_epoch();
             let written = match &provider {
                 Some(provider) => store.set_provider_preference(id, provider, now),
@@ -2634,9 +2632,9 @@ fn dispatch(
                 // out loud or the UI would be showing a choice that was never saved.
                 (Err(e), _) => Notice::alert(format!("could not save that choice: {e}")),
             };
-            let _ = tx.send(Update::Toast(toast));
+            let _ = tx.send(Event::Toast(toast));
         }
-        Task::LoadLibrary(segment) => {
+        Command::LoadLibrary(segment) => {
             let (sync, tx, store) = (sync.clone(), tx.clone(), store.clone());
             tokio::spawn(async move {
                 let _job = job;
@@ -2644,7 +2642,7 @@ fn dispatch(
                 let _ = tx.send(update);
             });
         }
-        Task::Prefetch { id, episode } => {
+        Command::Prefetch { id, episode } => {
             let (meta, store, registry, playback, prefetch) = (
                 meta.clone(),
                 store.clone(),
@@ -2668,7 +2666,7 @@ fn dispatch(
                 }
             });
         }
-        Task::Play { id, episode } => {
+        Command::Play { id, episode } => {
             // A fresh channel per playback. The one playing gives up its window only once
             // this one has something to play — see `Handoff`.
             let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
@@ -2702,7 +2700,7 @@ fn dispatch(
                 tx,
             );
         }
-        Task::PlaySource { id, episode, provider_id, source_id } => {
+        Command::PlaySource { id, episode, provider_id, source_id } => {
             // Identical to Play except the stream comes from the exact release the user
             // picked — same fresh channel, same session-replacement semantics. Never from the
             // streams found ahead: the pick names its own release.
@@ -2735,7 +2733,7 @@ fn dispatch(
                 tx,
             );
         }
-        Task::PlayParty { id, episode } => {
+        Command::PlayParty { id, episode } => {
             // Same resolution as Play; the handoff at the end is the only difference.
             let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
             let prefetched = None;
@@ -2763,7 +2761,7 @@ fn dispatch(
                 tx,
             );
         }
-        Task::LoadSources { id, episode } => {
+        Command::LoadSources { id, episode } => {
             let (store, registry, meta, tx) =
                 (store.clone(), registry.clone(), meta.clone(), tx.clone());
             let translation = config.playback.translation;
@@ -2773,13 +2771,13 @@ fn dispatch(
                     match source_slate(&meta, &store, &registry, id, &episode, translation)
                         .await
                     {
-                        Ok(candidates) => Update::Sources { id, episode, candidates },
-                        Err(reason) => Update::Toast(Notice::alert(reason)),
+                        Ok(candidates) => Event::Sources { id, episode, candidates },
+                        Err(reason) => Event::Toast(Notice::alert(reason)),
                     };
                 let _ = tx.send(update);
             });
         }
-        Task::SetWatched { id, episodes, watched } => {
+        Command::SetWatched { id, episodes, watched } => {
             let now = anistream_store::now();
             for episode in &episodes {
                 if watched {
@@ -2808,17 +2806,17 @@ fn dispatch(
             }
         }
 
-        Task::HideFromContinue { id } => {
+        Command::HideFromContinue { id } => {
             // The reducer has already dropped the row from the screen; failing to persist
             // that would resurrect it on the next reload, so the failure is named.
             if let Err(e) = store.hide_from_continue(id) {
-                let _ = tx.send(Update::Toast(Notice::alert(format!(
+                let _ = tx.send(Event::Toast(Notice::alert(format!(
                     "could not remove from continue: {e}"
                 ))));
             }
         }
 
-        Task::PlayTrailer { url, title } => {
+        Command::PlayTrailer { url, title } => {
             let mpv_binary = config.playback.mpv_binary.clone();
             let tx = tx.clone();
             tokio::spawn(async move {
@@ -2834,27 +2832,27 @@ fn dispatch(
                         .stderr(std::process::Stdio::null())
                         .spawn()
                 {
-                    let _ = tx.send(Update::Toast(Notice::info("trailer playing in mpv")));
+                    let _ = tx.send(Event::Toast(Notice::info("trailer playing in mpv")));
                     // Reaped so a closed trailer never lingers as a zombie.
                     let _ = child.wait().await;
                     return;
                 }
                 let update = match open::that_detached(&url) {
-                    Ok(()) => Update::Toast(Notice::info("trailer opened in your browser")),
+                    Ok(()) => Event::Toast(Notice::info("trailer opened in your browser")),
                     Err(e) => {
-                        Update::Toast(Notice::alert(format!("could not open the trailer: {e}")))
+                        Event::Toast(Notice::alert(format!("could not open the trailer: {e}")))
                     }
                 };
                 let _ = tx.send(update);
             });
         }
-        Task::OpenExternal { url } => {
+        Command::OpenExternal { url } => {
             if let Err(e) = open::that_detached(&url) {
-                let _ = tx.send(Update::Toast(Notice::alert(format!("could not open: {e}"))));
+                let _ = tx.send(Event::Toast(Notice::alert(format!("could not open: {e}"))));
             }
         }
 
-        Task::ManualSearch { id, query } => {
+        Command::ManualSearch { id, query } => {
             let (registry, meta, tx) = (registry.clone(), meta.clone(), tx.clone());
             let translation = config.playback.translation;
             tokio::spawn(async move {
@@ -2877,23 +2875,23 @@ fn dispatch(
                                     rejected: scored.rejected,
                                 })
                                 .collect();
-                            Update::MatchChoices { id, provider_id, candidates }
+                            Event::MatchChoices { id, provider_id, candidates }
                         }
-                        Err(e) => Update::Toast(Notice::alert(e.to_string())),
+                        Err(e) => Event::Toast(Notice::alert(e.to_string())),
                     },
-                    _ => Update::Toast(Notice::alert(format!("nothing found for {query:?}"))),
+                    _ => Event::Toast(Notice::alert(format!("nothing found for {query:?}"))),
                 };
                 let _ = tx.send(update);
             });
         }
-        Task::Player(command) => {
+        Command::Player(command) => {
             if let Some(sender) = player_tx.as_ref() {
                 let _ = sender.send(command);
             }
         }
-        Task::LoadDownloads => downloads::publish_now(store, tx),
+        Command::LoadDownloads => downloads::publish_now(store, tx),
 
-        Task::DownloadMany { id, episodes } => {
+        Command::DownloadMany { id, episodes } => {
             let (store, registry, meta, tx) =
                 (store.clone(), registry.clone(), meta.clone(), tx.clone());
             let translation = config.playback.translation;
@@ -2920,11 +2918,11 @@ fn dispatch(
                     }
                 })
                 .await;
-                let _ = tx.send(Update::Toast(outcome.toast()));
+                let _ = tx.send(Event::Toast(outcome.toast()));
             });
         }
 
-        Task::DownloadEpisode { id, episode } => {
+        Command::DownloadEpisode { id, episode } => {
             let (store, registry, meta, tx) =
                 (store.clone(), registry.clone(), meta.clone(), tx.clone());
             let translation = config.playback.translation;
@@ -2942,22 +2940,22 @@ fn dispatch(
                 )
                 .await
                 {
-                    Ok((row, downloads::Queued::New)) => Update::Toast(Notice::info(format!(
+                    Ok((row, downloads::Queued::New)) => Event::Toast(Notice::info(format!(
                         "queued {} ep {}",
                         row.title, row.episode
                     ))),
-                    Ok((row, downloads::Queued::Existing)) => Update::Toast(Notice::info(
+                    Ok((row, downloads::Queued::Existing)) => Event::Toast(Notice::info(
                         format!("{} ep {} is already in downloads", row.title, row.episode),
                     )),
-                    Err(refusal) => Update::Toast(Notice::alert(refusal.to_string())),
+                    Err(refusal) => Event::Toast(Notice::alert(refusal.to_string())),
                 };
                 let _ = tx.send(update);
-                let _ = tx.send(Update::Status(String::new()));
+                let _ = tx.send(Event::Status(String::new()));
                 downloads::publish_now(&store, &tx);
             });
         }
 
-        Task::DownloadPause { id } => {
+        Command::DownloadPause { id } => {
             // Toggled here rather than in the reducer because the authoritative state is the row,
             // and the reducer only has the flattened projection of it.
             if let Ok(Some(row)) =
@@ -2976,15 +2974,15 @@ fn dispatch(
             downloads::publish_now(store, tx);
         }
 
-        Task::DownloadCancel { id } => {
+        Command::DownloadCancel { id } => {
             // The row goes first: the manager notices it is gone on its next poll and drops the
             // torrent. Deleting the torrent from here would race with that loop.
             let _ = store.remove_download(id);
             downloads::publish_now(store, tx);
-            let _ = tx.send(Update::Toast(Notice::info("download cancelled")));
+            let _ = tx.send(Event::Toast(Notice::info("download cancelled")));
         }
 
-        Task::DownloadDelete { id } => {
+        Command::DownloadDelete { id } => {
             // Path first, row second: once the row is gone nothing else knows where the
             // file was. A running download's partial file is cleaned up by the manager's
             // own poll, and deleting here as well is a harmless no-op race.
@@ -3005,16 +3003,16 @@ fn dispatch(
                 None => Notice::info("download removed"),
             };
             downloads::publish_now(store, tx);
-            let _ = tx.send(Update::Toast(note));
+            let _ = tx.send(Event::Toast(note));
         }
 
-        Task::DownloadClearCompleted => {
+        Command::DownloadClearCompleted => {
             let cleared = store.clear_completed_downloads().unwrap_or(0);
             downloads::publish_now(store, tx);
-            let _ = tx.send(Update::Toast(Notice::info(format!("cleared {cleared} finished"))));
+            let _ = tx.send(Event::Toast(Notice::info(format!("cleared {cleared} finished"))));
         }
 
-        Task::PlayLocal { id, episode, title, path } => {
+        Command::PlayLocal { id, episode, title, path } => {
             // No provider walk and no torrent session — the file is on disk — but the full
             // playback session all the same: a downloaded episode records history, resumes,
             // and syncs exactly like a streamed one. It used to go straight to mpv with no
@@ -3092,7 +3090,7 @@ fn dispatch(
         // config, so the screen is correct whatever the disk does, and this keeps file IO out of
         // a pure function. Synchronous on purpose — one small file, and a settings change that
         // silently lost a race with the next one would be worse than a paused frame.
-        Task::SaveSetting { table, key, value } => {
+        Command::SaveSetting { table, key, value } => {
             // Against the file's order, not `config`'s: the reducer has already put the new
             // order in effect there.
             let reordered = (table, key) == (&["providers"][..], "order")
@@ -3102,7 +3100,7 @@ fn dispatch(
             // Read back whatever the write left, so the Settings screen shows the file rather
             // than its own hopes — and can put a refused setting back. A file that does not
             // load is treated the way startup treats it.
-            let _ = tx.send(Update::SettingWritten {
+            let _ = tx.send(Event::SettingWritten {
                 on_disk: Box::new(Config::load(paths).unwrap_or_default()),
                 failed: written.is_err().then_some((table, key)),
             });
@@ -3113,20 +3111,19 @@ fn dispatch(
                     // and it said the file's key — "saved commit_threshold". What has no row
                     // there, the remembered speed and volume, is saved without a word.
                     if let Some(label) = app.setting_label(table, key) {
-                        let _ =
-                            tx.send(Update::Toast(Notice::info(format!("saved · {label}"))));
+                        let _ = tx.send(Event::Toast(Notice::info(format!("saved · {label}"))));
                     }
                     // Republish what the background tasks read, so the next download to
                     // finish honours the value that was just written.
-                    let _ = tx.send(Update::SettingsSaved);
+                    let _ = tx.send(Event::SettingsSaved);
                     // A setting that redefines what sources exist takes effect now rather
                     // than at the next launch. The run loop owns the session and the guard,
                     // so it does the work; this only says that it is needed. An order that
                     // only moves sources is put in effect without a rebuild.
                     if reordered {
-                        let _ = tx.send(Update::SourcesReordered);
+                        let _ = tx.send(Event::SourcesReordered);
                     } else if redefines_sources(table, key) {
-                        let _ = tx.send(Update::SourcesChanged);
+                        let _ = tx.send(Event::SourcesChanged);
                     }
                 }
                 // The guard reaching the UI: enabling torrents with no VPN configured fails
@@ -3138,29 +3135,29 @@ fn dispatch(
                         other => other.to_string(),
                     };
                     let _ =
-                        tx.send(Update::Toast(Notice::alert(format!("not saved: {reason}"))));
+                        tx.send(Event::Toast(Notice::alert(format!("not saved: {reason}"))));
                     // The Providers rows moved when the key was pressed and the chain did not,
                     // so the chain's own rows put them back.
                     if (table, key) == (&["providers"][..], "order") {
-                        let _ = tx.send(Update::Providers(data::provider_rows(registry)));
+                        let _ = tx.send(Event::Providers(data::provider_rows(registry)));
                     }
                 }
             }
         }
-        task @ (Task::LoadStores
-        | Task::PreviewStore { .. }
-        | Task::JoinStore { .. }
-        | Task::LeaveStore { .. }
-        | Task::InstallPlugin { .. }
-        | Task::RemovePlugin { .. }
-        | Task::CreateInvite { .. }
-        | Task::LoadMembers { .. }
-        | Task::RemoveMember { .. }
-        | Task::CancelInvite { .. }
-        | Task::LoadLocalPlugins { .. }
-        | Task::PublishPlugin { .. }
-        | Task::UnpublishPlugin { .. }
-        | Task::OpenAdmin { .. }) => {
+        task @ (Command::LoadStores
+        | Command::PreviewStore { .. }
+        | Command::JoinStore { .. }
+        | Command::LeaveStore { .. }
+        | Command::InstallPlugin { .. }
+        | Command::RemovePlugin { .. }
+        | Command::CreateInvite { .. }
+        | Command::LoadMembers { .. }
+        | Command::RemoveMember { .. }
+        | Command::CancelInvite { .. }
+        | Command::LoadLocalPlugins { .. }
+        | Command::PublishPlugin { .. }
+        | Command::UnpublishPlugin { .. }
+        | Command::OpenAdmin { .. }) => {
             let context = StoreTaskContext {
                 stores: stores.clone(),
                 registry: registry.clone(),
@@ -3185,22 +3182,22 @@ struct StoreTaskContext {
     config: Config,
     http: HttpClient,
     paths: Paths,
-    tx: mpsc::UnboundedSender<Update>,
+    tx: mpsc::UnboundedSender<Event>,
 }
 
 impl StoreTaskContext {
-    fn send(&self, update: Update) {
+    fn send(&self, update: Event) {
         let _ = self.tx.send(update);
     }
 
     fn toast(&self, toast: Notice) {
-        self.send(Update::Toast(toast));
+        self.send(Event::Toast(toast));
     }
 
     /// The store rows as they now stand, from disk.
     fn rows(&self) {
         match self.stores.rows() {
-            Ok(rows) => self.send(Update::Stores(rows)),
+            Ok(rows) => self.send(Event::Stores(rows)),
             Err(e) => self.toast(Notice::alert(e)),
         }
     }
@@ -3208,29 +3205,29 @@ impl StoreTaskContext {
     async fn members(&self, store: &str) {
         match self.stores.members(store).await {
             Ok((members, invites)) => {
-                self.send(Update::StoreMembers { store: store.to_owned(), members, invites });
+                self.send(Event::StoreMembers { store: store.to_owned(), members, invites });
             }
             Err(e) => self.toast(Notice::alert(e)),
         }
     }
 
-    async fn run(&self, task: Task) {
+    async fn run(&self, task: Command) {
         match task {
-            Task::LoadStores => {
+            Command::LoadStores => {
                 // What is on disk answers at once; the network fills in behind it.
                 self.rows();
                 match self.stores.refresh().await {
-                    Ok(rows) => self.send(Update::Stores(rows)),
+                    Ok(rows) => self.send(Event::Stores(rows)),
                     Err(e) => self.toast(Notice::alert(e)),
                 }
             }
-            Task::PreviewStore { link } => {
-                self.send(Update::StorePreview(self.stores.preview(&link.0).await));
+            Command::PreviewStore { link } => {
+                self.send(Event::StorePreview(self.stores.preview(&link.0).await));
             }
-            Task::JoinStore { link } => match self.stores.join(&link.0).await {
+            Command::JoinStore { link } => match self.stores.join(&link.0).await {
                 Ok(joined) => {
                     self.rows();
-                    self.send(Update::StoreJoined { store: joined.id.clone() });
+                    self.send(Event::StoreJoined { store: joined.id.clone() });
                     self.toast(Notice::info(format!(
                         "joined {} as {}",
                         joined.name, joined.member.name
@@ -3238,7 +3235,7 @@ impl StoreTaskContext {
                 }
                 Err(e) => self.toast(Notice::alert(e)),
             },
-            Task::LeaveStore { store } => match self.stores.leave(&store).await {
+            Command::LeaveStore { store } => match self.stores.leave(&store).await {
                 Ok(name) => {
                     self.rows();
                     self.toast(Notice::info(format!(
@@ -3247,7 +3244,7 @@ impl StoreTaskContext {
                 }
                 Err(e) => self.toast(Notice::alert(e)),
             },
-            Task::InstallPlugin { store, plugin } => {
+            Command::InstallPlugin { store, plugin } => {
                 match self.stores.install(&store, &plugin).await {
                     Ok((entry, path)) => {
                         self.rows();
@@ -3261,23 +3258,23 @@ impl StoreTaskContext {
                     }
                 }
             }
-            Task::RemovePlugin { plugin } => match self.stores.remove(&plugin).await {
+            Command::RemovePlugin { plugin } => match self.stores.remove(&plugin).await {
                 Ok(()) => {
                     self.registry.remove(&plugin);
-                    self.send(Update::Providers(data::provider_rows(&self.registry)));
+                    self.send(Event::Providers(data::provider_rows(&self.registry)));
                     self.rows();
                     self.toast(Notice::info(format!("removed {plugin}")));
                 }
                 Err(e) => self.toast(Notice::alert(e)),
             },
-            Task::CreateInvite { store, name } => {
+            Command::CreateInvite { store, name } => {
                 match self.stores.invite(&store, name).await {
-                    Ok(view) => self.send(Update::InviteLink(view)),
+                    Ok(view) => self.send(Event::InviteLink(view)),
                     Err(e) => self.toast(Notice::alert(e)),
                 }
             }
-            Task::LoadMembers { store } => self.members(&store).await,
-            Task::RemoveMember { store, member } => {
+            Command::LoadMembers { store } => self.members(&store).await,
+            Command::RemoveMember { store, member } => {
                 match self.stores.remove_member(&store, &member).await {
                     Ok(()) => {
                         self.toast(Notice::info("removed — their devices stopped working here"))
@@ -3286,7 +3283,7 @@ impl StoreTaskContext {
                 }
                 self.members(&store).await;
             }
-            Task::CancelInvite { store, invite } => {
+            Command::CancelInvite { store, invite } => {
                 match self.stores.cancel_invite(&store, &invite).await {
                     Ok(()) => {
                         self.toast(Notice::info("invite cancelled — the link no longer works"))
@@ -3295,11 +3292,11 @@ impl StoreTaskContext {
                 }
                 self.members(&store).await;
             }
-            Task::LoadLocalPlugins { store } => match self.stores.local_plugins(&store).await {
-                Ok(plugins) => self.send(Update::LocalPlugins { store, plugins }),
+            Command::LoadLocalPlugins { store } => match self.stores.local_plugins(&store).await {
+                Ok(plugins) => self.send(Event::LocalPlugins { store, plugins }),
                 Err(e) => self.toast(Notice::alert(e)),
             },
-            Task::PublishPlugin { store, plugin } => {
+            Command::PublishPlugin { store, plugin } => {
                 match self.stores.publish(&store, &plugin).await {
                     Ok(entry) => {
                         self.rows();
@@ -3311,7 +3308,7 @@ impl StoreTaskContext {
                     Err(e) => self.toast(Notice::alert(format!("{plugin} not published: {e}"))),
                 }
             }
-            Task::UnpublishPlugin { store, plugin } => {
+            Command::UnpublishPlugin { store, plugin } => {
                 match self.stores.unpublish(&store, &plugin).await {
                     Ok(()) => {
                         self.rows();
@@ -3320,7 +3317,7 @@ impl StoreTaskContext {
                     Err(e) => self.toast(Notice::alert(e)),
                 }
             }
-            Task::OpenAdmin { store } => match self.stores.admin_link(&store).await {
+            Command::OpenAdmin { store } => match self.stores.admin_link(&store).await {
                 Ok(link) => match open::that_detached(&link) {
                     Ok(()) => self.toast(Notice::info(
                         "opened the admin page in your browser — the link works once, for ten minutes",
@@ -3360,7 +3357,7 @@ impl StoreTaskContext {
                 // update was swapped in place and keeps it.
                 self.registry.put(provider);
                 sources::arrange(&self.registry, &self.config);
-                self.send(Update::Providers(data::provider_rows(&self.registry)));
+                self.send(Event::Providers(data::provider_rows(&self.registry)));
                 self.toast(Notice::info(format!("installed {name} {version}")));
             }
             Err(e) => self
@@ -3398,7 +3395,7 @@ fn spawn_playback(
     // This episode's streams, found ahead while the previous one's ending played.
     prefetched: Option<Resolved>,
     job: Option<JobGuard>,
-    tx: &mpsc::UnboundedSender<Update>,
+    tx: &mpsc::UnboundedSender<Event>,
 ) {
     let (config, meta, store, registry, http, mpv, tx) = (
         config.clone(),
@@ -3437,23 +3434,23 @@ fn spawn_playback(
             // The episode being watched carries on, and the window with it: only the lookup
             // failed, and closing what was playing over it would punish the viewer for asking.
             Err(reason) if handoff.live() => {
-                let _ = tx.send(Update::Toast(Notice::alert(reason.clone())));
-                let _ = tx.send(Update::PlaybackKept);
+                let _ = tx.send(Event::Toast(Notice::alert(reason.clone())));
+                let _ = tx.send(Event::PlaybackKept);
                 handoff.keep(commands, reason).await;
                 return;
             }
             Err(reason) => {
                 // The failure ladder's first rung: name the failure rather than showing an
                 // empty screen. Releasing the eyecatch is what the alert does for us.
-                let _ = tx.send(Update::Toast(Notice::alert(reason)));
+                let _ = tx.send(Event::Toast(Notice::alert(reason)));
                 // A window left open for this episode would wait for nothing.
                 slot.release();
-                let _ = tx.send(Update::PlaybackEnded {
+                let _ = tx.send(Event::PlaybackEnded {
                     watched: false,
                     ending: anistream_ui::app::Ending::Failed,
                 });
                 // The playback this one took over left its "playing" line up for it to replace.
-                let _ = tx.send(Update::Status(String::new()));
+                let _ = tx.send(Event::Status(String::new()));
                 return;
             }
         };
@@ -3466,7 +3463,7 @@ fn spawn_playback(
         // header is sent from playback itself, per attempt, so failover never credits the
         // stream that just failed.
         if let Some(note) = streams.first().and_then(|s| s.pick_note.clone()) {
-            let _ = tx.send(Update::Toast(Notice::info(note)));
+            let _ = tx.send(Event::Toast(Notice::info(note)));
         }
 
         let settings =
@@ -3487,7 +3484,7 @@ async fn resolve_for_playback(
     pick: Option<(String, String)>,
     playback: &anistream_core::config::PlaybackConfig,
     job: Option<&JobGuard>,
-    tx: &mpsc::UnboundedSender<Update>,
+    tx: &mpsc::UnboundedSender<Event>,
 ) -> std::result::Result<(Vec<anistream_core::stream::Stream>, playback::PlaybackContext), String>
 {
     // The step under way, on the job when there is one; the CLI has no activity row and reads
@@ -3495,7 +3492,7 @@ async fn resolve_for_playback(
     let step = |text: String| match job {
         Some(job) => job.note(text, None),
         None => {
-            let _ = tx.send(Update::Status(text));
+            let _ = tx.send(Event::Status(text));
         }
     };
     if registry.is_empty() {
@@ -3919,9 +3916,9 @@ async fn play_cli(
         let mut watched = false;
         while let Some(update) = rx.recv().await {
             match update {
-                Update::Status(s) if !s.trim().is_empty() => println!("{s}"),
-                Update::Toast(t) => println!("{}", t.text),
-                Update::PlaybackEnded { watched: w, .. } => watched = w,
+                Event::Status(s) if !s.trim().is_empty() => println!("{s}"),
+                Event::Toast(t) => println!("{}", t.text),
+                Event::PlaybackEnded { watched: w, .. } => watched = w,
                 _ => {}
             }
         }
@@ -4014,7 +4011,7 @@ impl TorrentTasks {
         guard: &Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
         store: &Store,
         config: &anistream::SharedConfig,
-        tx: &mpsc::UnboundedSender<Update>,
+        tx: &mpsc::UnboundedSender<Event>,
     ) -> Self {
         let Some((guard, session)) = guard.clone() else {
             // No session means no downloads, which is correct rather than a limitation:
@@ -4026,7 +4023,7 @@ impl TorrentTasks {
             downloads::spawn(store.clone(), session.clone(), Arc::clone(config), tx.clone());
         downloads::publish_now(store, tx);
 
-        let _ = tx.send(Update::Vpn(Some(sources::guard_view(&guard.state()))));
+        let _ = tx.send(Event::Vpn(Some(sources::guard_view(&guard.state()))));
         let watcher = tokio::spawn(vpn_watch(guard, session.clone(), tx.clone()));
         let seeding =
             tokio::spawn(seeding_watch(session.clone(), Arc::clone(config), tx.clone()));
@@ -4057,7 +4054,7 @@ impl TorrentTasks {
         http: &HttpClient,
         paths: &Paths,
         store: &Store,
-        tx: &mpsc::UnboundedSender<Update>,
+        tx: &mpsc::UnboundedSender<Event>,
         arrivals: &mpsc::UnboundedSender<(
             u64,
             std::result::Result<sources::TorrentUp, String>,
@@ -4067,7 +4064,7 @@ impl TorrentTasks {
         if !sources::torrent_wanted(config) {
             return;
         }
-        let _ = tx.send(Update::Vpn(Some(anistream_ui::app::GuardView::Checking)));
+        let _ = tx.send(Event::Vpn(Some(anistream_ui::app::GuardView::Checking)));
         let generation = self.generation;
         let (config, http, paths, store, tx, arrivals) = (
             config.clone(),
@@ -4094,7 +4091,7 @@ impl TorrentTasks {
         registry: &ProviderRegistry,
         store: &Store,
         config: &anistream::SharedConfig,
-        tx: &mpsc::UnboundedSender<Update>,
+        tx: &mpsc::UnboundedSender<Event>,
     ) {
         if generation != self.generation {
             // Superseded. Its session holds no torrents yet, so letting go of it is enough.
@@ -4105,7 +4102,7 @@ impl TorrentTasks {
             Ok(up) => up,
             Err(reason) => {
                 tracing::warn!(%reason, "torrent source not started");
-                let _ = tx.send(Update::ProviderNote(reason));
+                let _ = tx.send(Event::ProviderNote(reason));
                 return;
             }
         };
@@ -4113,11 +4110,11 @@ impl TorrentTasks {
             config.read().map(|c| c.clone()).unwrap_or_else(|e| e.into_inner().clone());
         sources::place(registry, up.provider, &snapshot);
         if let Some(warning) = up.warning {
-            let _ = tx.send(Update::Toast(Notice::info(warning)));
+            let _ = tx.send(Event::Toast(Notice::info(warning)));
         }
         *vpn_guard = Some((up.guard, up.session));
         *self = Self { generation, ..Self::start(vpn_guard, store, config, tx) };
-        let _ = tx.send(Update::Providers(data::provider_rows(registry)));
+        let _ = tx.send(Event::Providers(data::provider_rows(registry)));
         tracing::info!(providers = ?registry.ids(), "torrent source up");
     }
 
@@ -4153,7 +4150,7 @@ impl TorrentTasks {
 async fn seeding_watch(
     session: Arc<anistream_providers::torrent::TorrentSession>,
     config: anistream::SharedConfig,
-    tx: mpsc::UnboundedSender<Update>,
+    tx: mpsc::UnboundedSender<Event>,
 ) {
     let mut ticker = tokio::time::interval(Duration::from_secs(10));
     let mut shown: Option<Vec<anistream_ui::app::SeedRow>> = None;
@@ -4176,7 +4173,7 @@ async fn seeding_watch(
             .collect();
         // Only when it changed: an idle screen should not redraw every ten seconds for nothing.
         if shown.as_ref() != Some(&rows) {
-            if tx.send(Update::Seeding(rows.clone())).is_err() {
+            if tx.send(Event::Seeding(rows.clone())).is_err() {
                 break;
             }
             shown = Some(rows);
@@ -4189,7 +4186,7 @@ async fn seeding_watch(
 async fn vpn_watch(
     guard: VpnGuard,
     session: Arc<anistream_providers::torrent::TorrentSession>,
-    tx: mpsc::UnboundedSender<Update>,
+    tx: mpsc::UnboundedSender<Event>,
 ) {
     let mut ticker = tokio::time::interval(guard.verify_interval());
     // The first tick fires immediately; the guard was already verified at startup.
@@ -4231,7 +4228,7 @@ async fn vpn_watch(
         }
         was_leaking = leaking;
 
-        if tx.send(Update::Vpn(Some(sources::guard_view(&state)))).is_err() {
+        if tx.send(Event::Vpn(Some(sources::guard_view(&state)))).is_err() {
             break;
         }
     }
@@ -4252,7 +4249,7 @@ async fn reload_sources(
     http: &HttpClient,
     paths: &Paths,
     store: &Store,
-    tx: &mpsc::UnboundedSender<Update>,
+    tx: &mpsc::UnboundedSender<Event>,
     arrivals: &mpsc::UnboundedSender<(u64, std::result::Result<sources::TorrentUp, String>)>,
 ) {
     // Old traffic stops before new traffic starts. The other order would leave two
@@ -4274,14 +4271,14 @@ async fn reload_sources(
 
     if !sources::torrent_wanted(&snapshot) {
         // No session: say so, and clear a badge that now describes nothing.
-        let _ = tx.send(Update::Vpn(None));
+        let _ = tx.send(Event::Vpn(None));
     }
-    let _ = tx.send(Update::ProviderNote(if sources::torrent_wanted(&snapshot) {
+    let _ = tx.send(Event::ProviderNote(if sources::torrent_wanted(&snapshot) {
         "sources reloaded — torrents start once the VPN guard passes".into()
     } else {
         "torrents are off — the session was stopped".into()
     }));
-    let _ = tx.send(Update::Providers(data::provider_rows(registry)));
+    let _ = tx.send(Event::Providers(data::provider_rows(registry)));
     tracing::info!(providers = ?registry.ids(), "source chain reloaded");
 }
 
@@ -4887,9 +4884,10 @@ mod tests {
     fn a_job_starts_only_for_work_someone_waits_on() {
         let (tx, _rx) = mpsc::unbounded_channel();
         let mut app = test_app();
-        let score = Task::SetScore { id: anistream_core::ids::AnilistId::new(1), score: 7.0 };
+        let score =
+            Command::SetScore { id: anistream_core::ids::AnilistId::new(1), score: 7.0 };
         assert!(JobGuard::start(&mut app, &score, &tx).is_none());
-        assert!(JobGuard::start(&mut app, &Task::CheckProviders, &tx).is_some());
+        assert!(JobGuard::start(&mut app, &Command::CheckProviders, &tx).is_some());
     }
 
     #[tokio::test]
@@ -4925,7 +4923,7 @@ mod tests {
     async fn a_job_ends_however_its_work_does_even_by_panicking() {
         let (tx, mut rx) = mpsc::unbounded_channel();
         let mut app = test_app();
-        let job = JobGuard::start(&mut app, &Task::CheckProviders, &tx).unwrap();
+        let job = JobGuard::start(&mut app, &Command::CheckProviders, &tx).unwrap();
         let id = job.id;
 
         let work = tokio::spawn(async move {
@@ -4935,8 +4933,8 @@ mod tests {
         });
         assert!(work.await.is_err(), "the task did panic");
 
-        assert!(matches!(rx.recv().await, Some(Update::JobNote { job, .. }) if job == id));
-        assert!(matches!(rx.recv().await, Some(Update::JobDone(job)) if job == id));
+        assert!(matches!(rx.recv().await, Some(Event::JobNote { job, .. }) if job == id));
+        assert!(matches!(rx.recv().await, Some(Event::JobDone(job)) if job == id));
     }
 
     #[test]

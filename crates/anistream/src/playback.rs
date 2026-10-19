@@ -22,7 +22,7 @@ use anistream_player::{
     skip,
 };
 use anistream_store::{Store, WatchEvent};
-use anistream_ui::app::{Ending, Notice, PlayerCommand, Successor, Update};
+use anistream_ui::app::{Ending, Event, Notice, PlayerCommand, Successor};
 use futures::StreamExt;
 use tokio::sync::mpsc;
 
@@ -488,12 +488,12 @@ pub async fn play(
     mpv: Mpv,
     settings: PlaySettings,
     slot: PlayerSlot,
-    tx: mpsc::UnboundedSender<Update>,
+    tx: mpsc::UnboundedSender<Event>,
     mut commands: mpsc::UnboundedReceiver<PlayerCommand>,
 ) {
     let Some(first) = streams.first() else {
         slot.release();
-        let _ = tx.send(Update::PlaybackEnded { watched: false, ending: Ending::Failed });
+        let _ = tx.send(Event::PlaybackEnded { watched: false, ending: Ending::Failed });
         return;
     };
 
@@ -505,13 +505,13 @@ pub async fn play(
         let player = ExternalPlayer::new();
         let request = PlaybackRequest { title: context.title.clone(), ..Default::default() };
         let update = match player.play(first, request).await {
-            Ok(()) => Update::Toast(Notice::info("opened in your browser")),
-            Err(e) => Update::Toast(Notice::alert(format!("could not open: {e}"))),
+            Ok(()) => Event::Toast(Notice::info("opened in your browser")),
+            Err(e) => Event::Toast(Notice::alert(format!("could not open: {e}"))),
         };
         let _ = tx.send(update);
         // Nothing plays here, so Now Playing comes down rather than waiting on a player that
         // was never going to report.
-        let _ = tx.send(Update::PlaybackEnded { watched: false, ending: Ending::Elsewhere });
+        let _ = tx.send(Event::PlaybackEnded { watched: false, ending: Ending::Elsewhere });
         return;
     }
 
@@ -521,7 +521,7 @@ pub async fn play(
     if settings.party {
         slot.release();
         hand_to_syncplay(&settings.syncplay, &first.url, &tx);
-        let _ = tx.send(Update::PlaybackEnded { watched: false, ending: Ending::Elsewhere });
+        let _ = tx.send(Event::PlaybackEnded { watched: false, ending: Ending::Elsewhere });
         return;
     }
 
@@ -624,7 +624,7 @@ pub async fn play(
 
         // Named per attempt — during failover the header would otherwise credit the stream
         // that just failed.
-        let _ = tx.send(Update::ActiveProvider(stream.provider_id.clone()));
+        let _ = tx.send(Event::ActiveProvider(stream.provider_id.clone()));
 
         // A window: the one this playback already has, the one the last episode left open,
         // or a new one.
@@ -633,16 +633,16 @@ pub async fn play(
             run.night_applied = false;
         }
         if player.is_none() {
-            let _ = tx.send(Update::Status("starting mpv…".into()));
+            let _ = tx.send(Event::Status("starting mpv…".into()));
             match mpv.spawn(&request).await {
                 Ok((session, events)) => player = Some(Player::new(session, events)),
                 Err(e) if last => {
-                    let _ = tx.send(Update::Toast(Notice::alert(format!("mpv: {e}"))));
+                    let _ = tx.send(Event::Toast(Notice::alert(format!("mpv: {e}"))));
                     // The player never existed, but the UI has Now Playing up and a control
                     // surface pointed at it. Saying so is what takes them down.
                     let _ = tx
-                        .send(Update::PlaybackEnded { watched: false, ending: Ending::Failed });
-                    let _ = tx.send(Update::Status(String::new()));
+                        .send(Event::PlaybackEnded { watched: false, ending: Ending::Failed });
+                    let _ = tx.send(Event::Status(String::new()));
                     return;
                 }
                 Err(e) => {
@@ -674,12 +674,12 @@ pub async fn play(
         if let Err(e) = current.session.load(&stream, &request).await {
             tracing::warn!(error = %e, "could not hand the stream to mpv");
         }
-        let _ = tx
-            .send(Update::Status(format!("playing {} ep {}", context.title, context.episode)));
+        let _ =
+            tx.send(Event::Status(format!("playing {} ep {}", context.title, context.episode)));
         // mpv is already at the resume point by now — `start` handled it. Saying so is what
         // keeps it from looking like the episode began in the wrong place.
         if let Some(position) = resume_at {
-            let _ = tx.send(Update::Resumed { position });
+            let _ = tx.send(Event::Resumed { position });
         }
 
         let outcome = run.file(current, &stream, &streams, index, &mut commands).await;
@@ -720,7 +720,7 @@ pub async fn play(
                     // fails over — in the same window — unless the viewer stopped it or closed
                     // the window themselves, which is an instruction, not a failure.
                     tracing::warn!(url = %stream.url, ?reported, "no frames; trying the next stream");
-                    let _ = tx.send(Update::Toast(Notice::info(format!(
+                    let _ = tx.send(Event::Toast(Notice::info(format!(
                         "no video from that stream — trying {} of {total}",
                         attempt + 1
                     ))));
@@ -767,7 +767,7 @@ pub async fn play(
                         }
                     };
                     tracing::warn!(%message, url = %stream.url, "playback produced no frames");
-                    let _ = tx.send(Update::Toast(Notice::alert(message)));
+                    let _ = tx.send(Event::Toast(Notice::alert(message)));
                 }
 
                 // Exactly one ending per playback, sent only now that this attempt is known to
@@ -783,9 +783,9 @@ pub async fn play(
                 } else {
                     Ending::Failed
                 };
-                let _ = tx
-                    .send(Update::PlaybackEnded { watched: watched.unwrap_or(false), ending });
-                let _ = tx.send(Update::Status(String::new()));
+                let _ =
+                    tx.send(Event::PlaybackEnded { watched: watched.unwrap_or(false), ending });
+                let _ = tx.send(Event::Status(String::new()));
                 return;
             }
         }
@@ -804,12 +804,12 @@ fn next_untried(tried: &[bool], current: usize) -> usize {
 fn hand_to_syncplay(
     syncplay: &anistream_core::config::SyncplayConfig,
     url: &str,
-    tx: &mpsc::UnboundedSender<Update>,
+    tx: &mpsc::UnboundedSender<Event>,
 ) {
     // Syncplay's no-gui mode refuses to start without a room, so asking first beats
     // spawning a process whose refusal we would have to fish out of its stderr.
     let Some(room) = syncplay.room.clone().filter(|r| !r.trim().is_empty()) else {
-        let _ = tx.send(Update::Toast(Notice::alert(
+        let _ = tx.send(Event::Toast(Notice::alert(
             "syncplay needs a room — set syncplay.room in config.toml",
         )));
         return;
@@ -831,7 +831,7 @@ fn hand_to_syncplay(
     match command.spawn() {
         Ok(mut child) => {
             let _ = tx
-                .send(Update::Toast(Notice::info(format!("handed to syncplay — room {room}"))));
+                .send(Event::Toast(Notice::info(format!("handed to syncplay — room {room}"))));
             // With stdio silenced, a failed start would otherwise be a party that
             // just never happens. Watch the exit instead: quiet on success, a toast
             // naming the failure whenever it dies unhappy.
@@ -840,14 +840,14 @@ fn hand_to_syncplay(
                 if let Ok(status) = child.wait()
                     && !status.success()
                 {
-                    let _ = tx.send(Update::Toast(Notice::alert(format!(
+                    let _ = tx.send(Event::Toast(Notice::alert(format!(
                         "syncplay exited with {status} — check server and room in config.toml"
                     ))));
                 }
             });
         }
         Err(e) => {
-            let _ = tx.send(Update::Toast(Notice::alert(format!(
+            let _ = tx.send(Event::Toast(Notice::alert(format!(
                 "syncplay would not start: {e} — is it installed?"
             ))));
         }
@@ -859,7 +859,7 @@ struct Run<'a> {
     context: &'a PlaybackContext,
     settings: &'a PlaySettings,
     store: &'a Store,
-    tx: &'a mpsc::UnboundedSender<Update>,
+    tx: &'a mpsc::UnboundedSender<Event>,
     skips: Vec<SkipInterval>,
     controls_open: bool,
     /// The viewer cancelled Up Next, so the end of this episode is the end.
@@ -928,7 +928,7 @@ impl Run<'_> {
         if at.is_some_and(|at| position >= at) {
             self.prefetch_sent = true;
             tracing::info!(episode = %next.number, "finding the next episode ahead");
-            let _ = self.tx.send(Update::PrefetchNext {
+            let _ = self.tx.send(Event::PrefetchNext {
                 id: self.context.anilist_id,
                 episode: next.number.clone(),
             });
@@ -1124,7 +1124,7 @@ impl Run<'_> {
                 // Only armed until the first frame arrives, so this cannot fire mid-episode
                 // during a legitimate pause — mpv keeps reporting `time-pos` while paused.
                 _ = tokio::time::sleep(FIRST_FRAME_TIMEOUT), if !ever_played && !warned => {
-                    let _ = tx.send(Update::Toast(Notice::alert(format!(
+                    let _ = tx.send(Event::Toast(Notice::alert(format!(
                         "mpv has not started playing after {}s — press x to stop; the source may have no data, or check `mpv` plays a file on its own",
                         FIRST_FRAME_TIMEOUT.as_secs()
                     ))));
@@ -1182,7 +1182,7 @@ impl Run<'_> {
                         Some(PlayerCommand::Handover(successor)) => {
                             // Flush what was watched before the window changes hands.
                             self.record_actions(&mut tracker, &PlaybackEvent::Ended { complete: false }, stream, &mut committed, &mut ending).await;
-                            let _ = tx.send(Update::EpisodeLeft {
+                            let _ = tx.send(Event::EpisodeLeft {
                                 id: context.anilist_id,
                                 episode: context.episode.clone(),
                                 position: tracker.position(),
@@ -1311,7 +1311,7 @@ impl Run<'_> {
                             false,
                         )
                         .await;
-                        let _ = tx.send(Update::PlayerUpscaling(id.clone()));
+                        let _ = tx.send(Event::PlayerUpscaling(id.clone()));
                     }
                     continue;
                 }
@@ -1326,7 +1326,7 @@ impl Run<'_> {
                     let _ = session
                         .send(companion::state("menus", &self.menus(streams, index)))
                         .await;
-                    let _ = tx.send(Update::PlayerToneMapping(id.clone()));
+                    let _ = tx.send(Event::PlayerToneMapping(id.clone()));
                     continue;
                 }
                 PlaybackEvent::Script(script) => {
@@ -1389,7 +1389,7 @@ impl Run<'_> {
                     if whole != shown_second || duration.is_some() != shown_duration {
                         shown_second = whole;
                         shown_duration = duration.is_some();
-                        let _ = tx.send(Update::Playback {
+                        let _ = tx.send(Event::Playback {
                             position: *position,
                             duration: *duration,
                             paused: tracker.is_paused(),
@@ -1420,11 +1420,11 @@ impl Run<'_> {
                                 .send(companion::skip_offer(kind_id(kind), kind.label(), to))
                                 .await;
                         }
-                        let _ = tx.send(Update::SkipAvailable { kind: offered(kind), to });
+                        let _ = tx.send(Event::SkipAvailable { kind: offered(kind), to });
                     }
                     Action::ClearSkip => {
                         let _ = session.send(companion::skip_clear()).await;
-                        let _ = tx.send(Update::SkipCleared);
+                        let _ = tx.send(Event::SkipCleared);
                     }
                     other => {
                         let watched_secs = tracker.watched_secs();
@@ -1503,7 +1503,7 @@ impl Run<'_> {
             (Some(refusal), _) => {
                 // Said where the key was pressed.
                 if from_terminal {
-                    let _ = self.tx.send(Update::Toast(Notice::info(refusal.to_lowercase())));
+                    let _ = self.tx.send(Event::Toast(Notice::info(refusal.to_lowercase())));
                 } else {
                     let _ = session.notify(refusal).await;
                 }
@@ -1511,7 +1511,7 @@ impl Run<'_> {
             (None, Some(n)) => {
                 let episode = n.to_string();
                 let title = self.episode_title(&episode);
-                let _ = self.tx.send(Update::PlayerPlayEpisode { episode, title });
+                let _ = self.tx.send(Event::PlayerPlayEpisode { episode, title });
             }
             (None, None) => {}
         }
@@ -1544,7 +1544,7 @@ impl Run<'_> {
             }
             ScriptEvent::PlayNext => {
                 if let Some(next) = &self.next {
-                    let _ = tx.send(Update::PlayerPlayEpisode {
+                    let _ = tx.send(Event::PlayerPlayEpisode {
                         episode: next.number.clone(),
                         title: next.title.clone(),
                     });
@@ -1569,7 +1569,7 @@ impl Run<'_> {
             ScriptEvent::Choose(choice) => match choice {
                 Choice::Episode(number) => {
                     if *number != context.episode {
-                        let _ = tx.send(Update::PlayerPlayEpisode {
+                        let _ = tx.send(Event::PlayerPlayEpisode {
                             episode: number.clone(),
                             title: self.episode_title(number),
                         });
@@ -1587,7 +1587,7 @@ impl Run<'_> {
                     let wanted =
                         if value == "dub" { Translation::Dub } else { Translation::Sub };
                     if wanted != context.translation {
-                        let _ = tx.send(Update::PlayerTranslation(wanted));
+                        let _ = tx.send(Event::PlayerTranslation(wanted));
                     }
                 }
                 // Handled where the picture state lives, in `file`.
@@ -1601,7 +1601,7 @@ impl Run<'_> {
                     let _ = session
                         .send(companion::state("menus", &self.menus(streams, index)))
                         .await;
-                    let _ = tx.send(Update::PlayerNightMode(*on));
+                    let _ = tx.send(Event::PlayerNightMode(*on));
                 }
             },
             ScriptEvent::StallSwitch | ScriptEvent::StallWait => {}
@@ -1693,10 +1693,10 @@ impl Run<'_> {
                 }
             }
             Action::RememberSpeed(speed) => {
-                let _ = tx.send(Update::PlaybackSpeed(speed));
+                let _ = tx.send(Event::PlaybackSpeed(speed));
             }
             Action::RememberVolume(volume) => {
-                let _ = tx.send(Update::PlaybackVolume(volume));
+                let _ = tx.send(Event::PlaybackVolume(volume));
             }
             Action::Finished { watched } => {
                 // Recorded, not announced — see `ending`. mpv reports an ending on the way out
@@ -1767,7 +1767,7 @@ impl Run<'_> {
         .await;
 
         if queue_now {
-            let _ = self.tx.send(Update::ProgressQueued);
+            let _ = self.tx.send(Event::ProgressQueued);
         }
     }
 }
