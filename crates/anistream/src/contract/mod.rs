@@ -12,6 +12,7 @@
 //! here: it needs mpv, and `tests/binge.rs` covers it.
 
 mod downloads;
+mod jobs;
 mod lists;
 mod settings;
 mod stores;
