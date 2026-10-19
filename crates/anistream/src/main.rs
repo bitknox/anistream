@@ -1,6 +1,7 @@
 //! anistream — an anime streaming TUI.
 
 mod covers;
+mod tui;
 
 use anistream::{
     artwork, data, downloads, playback,
@@ -1818,8 +1819,8 @@ async fn run(
 
     // Both before the terminal changes state, so there is no moment in which a signal or a
     // panic could leave it raw.
-    anistream::tty::install_panic_hook();
-    let mut signals = anistream::tty::Signals::new().context("listening for signals")?;
+    tui::terminal::install_panic_hook();
+    let mut signals = tui::terminal::Signals::new().context("listening for signals")?;
     let mut terminal = setup_terminal().context("preparing the terminal")?;
 
     if let Some(task) = app.reload() {
@@ -1853,7 +1854,7 @@ async fn run(
 
     // Painting on change rather than on every tick: see `Repaint`. `idle_tick` is whether
     // nothing but the ticker woke this pass, the one case that may skip it.
-    let mut repaint = anistream::tty::Repaint::default();
+    let mut repaint = tui::terminal::Repaint::default();
     let mut idle_tick = false;
     let result = loop {
         let now = std::time::Instant::now();
@@ -1974,7 +1975,7 @@ async fn run(
                 // belongs to the terminal, so ask for focus back rather than leaving it
                 // wherever the window manager dropped it.
                 if ended && !app.will_play_next() && app.playing.is_none() {
-                    anistream::focus::refocus_terminal();
+                    tui::focus::refocus_terminal();
                 }
             }
             Some(decoded) = covers_rx.recv() => covers::hand_over(&mut app, decoded),
@@ -1994,7 +1995,7 @@ async fn run(
             // Q does, so the player is closed rather than orphaned and playing on.
             signal = signals.recv() => {
                 tracing::info!(signal, "shutting down");
-                anistream::tty::exit_on_second_signal();
+                tui::terminal::exit_on_second_signal();
                 if let Some(task) = app.handle(anistream_ui::keymap::Action::Quit, rows) {
                     let job = JobGuard::start(&mut app, &task, &tx);
                     dispatch(
@@ -3741,7 +3742,7 @@ async fn load_episodes(
 }
 
 /// The terminal the interface draws on.
-type Tui = Terminal<anistream::tty::Quiet<CrosstermBackend<io::Stdout>>>;
+type Tui = Terminal<tui::terminal::Quiet<CrosstermBackend<io::Stdout>>>;
 
 fn setup_terminal() -> Result<Tui> {
     enable_raw_mode()?;
@@ -3750,12 +3751,12 @@ fn setup_terminal() -> Result<Tui> {
     // Best effort: the legacy Windows console has no bracketed paste and says so with an error,
     // and a paste arriving as keystrokes is a lesser thing than the app not starting.
     let _ = execute!(stdout, crossterm::event::EnableBracketedPaste);
-    let terminal = Terminal::new(anistream::tty::Quiet::new(CrosstermBackend::new(stdout)))?;
+    let terminal = Terminal::new(tui::terminal::Quiet::new(CrosstermBackend::new(stdout)))?;
     Ok(terminal)
 }
 
 fn restore_terminal(terminal: &mut Tui) -> Result<()> {
-    Ok(anistream::tty::restore(terminal.backend_mut())?)
+    Ok(tui::terminal::restore(terminal.backend_mut())?)
 }
 
 /// Ask the terminal to put `text` on the clipboard (OSC 52). Returns whether the request was
