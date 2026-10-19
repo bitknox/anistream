@@ -90,6 +90,16 @@ jobs:
         uses: ilammy/setup-nasm@v1
       - run: cargo clippy --workspace --all-targets -- -D warnings
 
+  # The engine has to run under front ends that are not a terminal, so the layers beneath the
+  # terminal front end may never depend on a terminal library. Resolving the tree needs no
+  # build, so this is quick.
+  boundaries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install
+      - run: tools/check-boundaries.sh
+
   # The plugin store's admin page is committed as built output, so building the server never
   # needs bun. This rebuilds it from source and fails if the two have drifted apart.
   admin-page:
