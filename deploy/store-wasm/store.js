@@ -103,7 +103,7 @@ function __wbg_get_imports() {
         __wbg__wbg_cb_unref_fffb441def202758: function(arg0) {
             arg0._wbg_cb_unref();
         },
-        __wbg_batch_2d2c3aedc8b314e1: function() { return handleError(function (arg0, arg1) {
+        __wbg_batch_817e26dfa8c74d3e: function() { return handleError(function (arg0, arg1) {
             const ret = arg0.batch(arg1);
             return ret;
         }, arguments); },
@@ -119,11 +119,11 @@ function __wbg_get_imports() {
             const ret = arg0.crypto;
             return ret;
         },
-        __wbg_delete_69890bf7f32061bf: function() { return handleError(function (arg0, arg1, arg2) {
+        __wbg_delete_9a747bc7f5e177c7: function() { return handleError(function (arg0, arg1, arg2) {
             const ret = arg0.delete(getStringFromWasm0(arg1, arg2));
             return ret;
         }, arguments); },
-        __wbg_dialect_f9ecd1a25c3ccc0a: function(arg0, arg1) {
+        __wbg_dialect_ec13529d85da1a49: function(arg0, arg1) {
             const ret = arg1.dialect;
             const ptr1 = passStringToWasm0(ret, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
             const len1 = WASM_VECTOR_LEN;
@@ -137,7 +137,7 @@ function __wbg_get_imports() {
             const ret = arg0[arg1 >>> 0];
             return ret;
         },
-        __wbg_get_5aa839c26770bf66: function() { return handleError(function (arg0, arg1, arg2) {
+        __wbg_get_6c9f46b58038d9c8: function() { return handleError(function (arg0, arg1, arg2) {
             const ret = arg0.get(getStringFromWasm0(arg1, arg2));
             return ret;
         }, arguments); },
@@ -260,11 +260,11 @@ function __wbg_get_imports() {
             const ret = arg0.push(arg1);
             return ret;
         },
-        __wbg_put_9ca1f5488b29f90d: function() { return handleError(function (arg0, arg1, arg2, arg3) {
+        __wbg_put_268889ed81c5e324: function() { return handleError(function (arg0, arg1, arg2, arg3) {
             const ret = arg0.put(getStringFromWasm0(arg1, arg2), arg3);
             return ret;
         }, arguments); },
-        __wbg_query_ab31ff4bd9779b21: function() { return handleError(function (arg0, arg1, arg2, arg3) {
+        __wbg_query_e792107cd0a3628f: function() { return handleError(function (arg0, arg1, arg2, arg3) {
             const ret = arg0.query(getStringFromWasm0(arg1, arg2), arg3);
             return ret;
         }, arguments); },

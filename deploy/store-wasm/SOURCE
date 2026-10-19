@@ -1,5 +1,5 @@
-anistream-store-core v1.0.0 (./crates/anistream-store-core) 
-anistream-store-wasm v1.0.0 (./crates/anistream-store-wasm) 
+anistream-store-core v1.1.0 (./crates/anistream-store-core) 
+anistream-store-wasm v1.1.0 (./crates/anistream-store-wasm) 
 async-trait v0.1.91 (proc-macro) 
 base64 v0.22.1 alloc,default,std
 block-buffer v0.10.4 
