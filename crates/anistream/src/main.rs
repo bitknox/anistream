@@ -21,13 +21,17 @@ use anistream_model::{
     event::Event,
     jobs::JobId,
     notice::Notice,
-    playback::PlayerTheme,
     sources::only_reorders,
 };
 use anistream_net::HttpClient;
 use anistream_providers::{ProviderRegistry, vpn::VpnGuard};
 use anistream_store::Store;
-use anistream_ui::{app::App, keymap::Keymap, screens, theme};
+use anistream_ui::{
+    app::App,
+    keymap::Keymap,
+    screens,
+    theme::{self, player_theme},
+};
 use anyhow::{Context, Result};
 use clap::Parser;
 use crossterm::{
@@ -4545,23 +4549,6 @@ fn successor(
         title,
         episode: episode.to_owned(),
         translation: app.config.playback.translation,
-    }
-}
-
-/// The player's colours and font: the immersive palette, because a video window is dark
-/// whatever the terminal is.
-fn player_theme() -> PlayerTheme {
-    use anistream_ui::theme::{Palette, Rgb, Role};
-    let palette = Palette::immersive();
-    let hex = |rgb: Rgb| format!("#{:02X}{:02X}{:02X}", rgb.r, rgb.g, rgb.b);
-    PlayerTheme {
-        text: hex(palette.get(Role::Text)),
-        dim: hex(palette.get(Role::TextDim)),
-        obi: hex(palette.get(Role::Obi)),
-        state: hex(palette.get(Role::State)),
-        alert: hex(palette.get(Role::Alert)),
-        ground: hex(palette.ground_ref()),
-        font: "Zen Kaku Gothic New".into(),
     }
 }
 

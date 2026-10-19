@@ -13,6 +13,7 @@
 //! is the most recognisable visual signature of the medium.
 
 use anistream_core::config::ThemeMode;
+use anistream_model::playback::PlayerTheme;
 
 use super::color::{Rgb, contrast_from_luminance, mix};
 
@@ -273,6 +274,22 @@ pub fn select(mode: ThemeMode, detected_background: Option<Rgb>) -> Variant {
             // ground is more often readable than dark text on one.
             _ => Variant::Dark,
         },
+    }
+}
+
+/// The player's colours and font, as this interface dresses it: the immersive palette, because a
+/// video window is dark whatever the terminal is.
+pub fn player_theme() -> PlayerTheme {
+    let palette = Palette::immersive();
+    let hex = |rgb: Rgb| format!("#{:02X}{:02X}{:02X}", rgb.r, rgb.g, rgb.b);
+    PlayerTheme {
+        text: hex(palette.get(Role::Text)),
+        dim: hex(palette.get(Role::TextDim)),
+        obi: hex(palette.get(Role::Obi)),
+        state: hex(palette.get(Role::State)),
+        alert: hex(palette.get(Role::Alert)),
+        ground: hex(palette.ground_ref()),
+        font: "Zen Kaku Gothic New".into(),
     }
 }
 

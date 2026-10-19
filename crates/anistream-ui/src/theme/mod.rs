@@ -7,4 +7,4 @@ pub mod palette;
 
 pub use color::{AA_NORMAL, Rgb, contrast_ratio};
 pub use detect::{resolve, resolve_with};
-pub use palette::{Palette, Role, Variant};
+pub use palette::{Palette, Role, Variant, player_theme};

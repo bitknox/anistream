@@ -48,7 +48,7 @@ async fn main() -> anyhow::Result<()> {
     let scratch = tempfile::tempdir()?;
     let paths = Paths { cache_dir: scratch.path().to_path_buf(), ..Paths::resolve()? };
     let config = Config::load(&paths)?;
-    let mpv = anistream::player::player(&config, &paths, &player_theme());
+    let mpv = anistream::player::player(&config, &paths, &anistream_ui::theme::player_theme());
     println!("player scratch dir: {}", mpv.scratch_dir().display());
 
     let store = Store::open_in_memory()?;
@@ -141,21 +141,4 @@ fn duration(path: &str) -> Option<f64> {
         .output()
         .ok()?;
     String::from_utf8_lossy(&output.stdout).trim().parse().ok()
-}
-
-/// The player's colours and font, as the interface dresses it: the immersive palette, because a
-/// video window is dark whatever the terminal is.
-fn player_theme() -> anistream_model::playback::PlayerTheme {
-    use anistream_ui::theme::{Palette, Rgb, Role};
-    let palette = Palette::immersive();
-    let hex = |rgb: Rgb| format!("#{:02X}{:02X}{:02X}", rgb.r, rgb.g, rgb.b);
-    anistream_model::playback::PlayerTheme {
-        text: hex(palette.get(Role::Text)),
-        dim: hex(palette.get(Role::TextDim)),
-        obi: hex(palette.get(Role::Obi)),
-        state: hex(palette.get(Role::State)),
-        alert: hex(palette.get(Role::Alert)),
-        ground: hex(palette.ground_ref()),
-        font: "Zen Kaku Gothic New".into(),
-    }
 }
