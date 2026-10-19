@@ -161,10 +161,10 @@ impl ProviderRegistry {
     /// Before the first source that ranks after it, so a source that arrives late — the torrent
     /// source waits for the VPN guard — still sits where `providers.order` put it rather than
     /// wherever its arrival time would. A source with the same id is replaced.
-    pub fn insert_ranked(
+    pub fn insert_ranked<K: Ord>(
         &self,
         provider: Arc<dyn Provider>,
-        rank: impl Fn(&dyn Provider) -> usize,
+        rank: impl Fn(&dyn Provider) -> K,
     ) {
         let id = provider.manifest().id.clone();
         self.health.register([id.clone()]);
@@ -174,6 +174,17 @@ impl ProviderRegistry {
         let at =
             providers.iter().position(|p| rank(p.as_ref()) > place).unwrap_or(providers.len());
         providers.insert(at, provider);
+    }
+
+    /// Put the whole chain in the order a ranking gives it.
+    ///
+    /// For a source that joined at the end, or an order that changed under a live chain: where a
+    /// source is tried should follow `providers.order`, not when it compiled or was installed.
+    /// Stable, so sources that rank alike keep the places they had, and a source [`Self::put`]
+    /// swapped for a newer build stays where it was.
+    pub fn rank_by<K: Ord>(&self, rank: impl Fn(&dyn Provider) -> K) {
+        let mut providers = self.providers.write().unwrap_or_else(|e| e.into_inner());
+        providers.sort_by_cached_key(|p| rank(p.as_ref()));
     }
 
     /// Take a source out of the chain. Returns whether there was one to take.
@@ -521,6 +532,29 @@ mod tests {
         assert_eq!(r.ids(), ["early", "late", "after"]);
         r.insert_ranked(MockProvider::new("late").arc(), rank);
         assert_eq!(r.ids(), ["early", "late", "after"], "replaced, not doubled");
+    }
+
+    #[test]
+    fn ranking_the_chain_moves_only_what_the_ranking_tells_apart() {
+        // `b` and `c` rank alike, so they keep the order they had between them; `d` outranks
+        // both and moves ahead of them.
+        let rank = |p: &dyn Provider| match p.manifest().id.as_str() {
+            "a" => 0,
+            "d" => 1,
+            _ => 2,
+        };
+        let r = registry(vec![
+            MockProvider::new("c").arc(),
+            MockProvider::new("a").arc(),
+            MockProvider::new("b").arc(),
+            MockProvider::new("d").arc(),
+        ]);
+        r.rank_by(rank);
+        assert_eq!(r.ids(), ["a", "d", "c", "b"]);
+        // An updated source is swapped in place, and ranking again leaves it there.
+        r.put(MockProvider::new("c").with_streams(vec![stream("newer")]).arc());
+        r.rank_by(rank);
+        assert_eq!(r.ids(), ["a", "d", "c", "b"]);
     }
 
     #[test]

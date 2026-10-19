@@ -674,6 +674,45 @@ pub struct ProviderRow {
     pub held_back: bool,
 }
 
+/// `order` with the source `id` moved one place up the chain (`step` below zero) or down it, or
+/// `None` when it is already at that end or has no row.
+///
+/// One place is past the next row on screen. An entry with no row — `"plugins"`, torrents while
+/// they are off, a plugin named but not installed — is stepped over rather than counted, so
+/// every press moves the row the user is looking at. It is kept all the same: the order is the
+/// user's, and only one entry was asked to move.
+///
+/// `"plugins"` is first spelled out as the plugins on screen it stands for, in the order they
+/// are shown, so the ones not moved keep their places around the one that is. It stays right
+/// after them, where a plugin installed later still lands.
+pub fn order_with_source_moved(
+    order: &[String],
+    rows: &[ProviderRow],
+    id: &str,
+    step: isize,
+) -> Option<Vec<String>> {
+    let mut order = order.to_vec();
+    let unnamed: Vec<String> = rows
+        .iter()
+        .filter(|row| row.kind == "plugin" && !order.contains(&row.id))
+        .map(|row| row.id.clone())
+        .collect();
+    // Without `"plugins"` a plugin still on screen ranks last, so that is where it is named.
+    let at = order.iter().position(|entry| entry == "plugins").unwrap_or(order.len());
+    order.splice(at..at, unnamed);
+
+    let from = order.iter().position(|entry| entry == id)?;
+    let shown = |entry: &String| entry != "plugins" && rows.iter().any(|row| row.id == *entry);
+    let to = if step < 0 {
+        order[..from].iter().rposition(shown)?
+    } else {
+        from + 1 + order[from + 1..].iter().position(shown)?
+    };
+    let entry = order.remove(from);
+    order.insert(to, entry);
+    Some(order)
+}
+
 /// How one configured source stands, for the header chip that names it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SourceState {
@@ -1266,6 +1305,9 @@ pub enum Update {
     /// A setting changed what sources should exist. Acted on by the run loop, which owns
     /// the torrent session and the VPN guard; the reducer only needs to not choke on it.
     SourcesChanged,
+    /// The order changed and the sources did not. The run loop puts the live chain in the new
+    /// order without a rebuild, which would restart the torrent session under a playing episode.
+    SourcesReordered,
     /// Why no sources are available, when none are.
     ProviderNote(String),
     /// The source pinned for the title on screen, or `None` for automatic.
@@ -1421,6 +1463,8 @@ enum Rows {
     Downloads,
     Accounts,
     Settings,
+    /// The Providers table, in the order failover walks it.
+    Providers,
     Episodes,
     Stores,
     StoreLines,
@@ -1987,7 +2031,13 @@ impl App {
                 self.images.requests().network_returned();
             }
             Update::ImageFailed { url, offline } => self.images.mark_failed(&url, offline),
-            Update::Providers(rows) => self.providers = rows,
+            Update::Providers(rows) => {
+                self.providers = rows;
+                // The cursor stays in range: a removed plugin shortens the table under it.
+                if self.nav.section() == Section::Providers {
+                    self.selected = self.selected.min(self.providers.len().saturating_sub(1));
+                }
+            }
             Update::MetaStatus(rows) => self.meta_status = rows,
             Update::Stores(rows) => self.apply_stores(rows),
             Update::StorePreview(outcome) => self.apply_store_preview(outcome),
@@ -2037,6 +2087,8 @@ impl App {
                 }
             }
             Update::SourcesChanged => self.status = "reloading sources…".into(),
+            // The rows moved when the key was pressed; the run loop sends the chain's own.
+            Update::SourcesReordered => {}
             Update::ProviderNote(note) => self.provider_note = Some(note),
             Update::ProviderPreference(choice) => self.provider_preference = choice,
             Update::Sources { id, episode, candidates } => {
@@ -2772,8 +2824,8 @@ impl App {
             StageView::Section(Section::Downloads) => Some(Rows::Downloads),
             StageView::Section(Section::Accounts) => Some(Rows::Accounts),
             StageView::Section(Section::Settings) => Some(Rows::Settings),
-            // A status table with nothing to select.
-            StageView::Section(Section::Providers) => None,
+            // The cursor is the row `K` and `J` move up and down the chain.
+            StageView::Section(Section::Providers) => Some(Rows::Providers),
             StageView::Section(_) => Some(Rows::List),
             // A title page is one title, not a list, and Now Playing's keys belong to the
             // player. Moving on either moved the list behind it, so Back landed rows away from
@@ -2835,6 +2887,7 @@ impl App {
             Rows::Downloads => self.downloads.len(),
             Rows::Accounts => self.sync.len(),
             Rows::Settings => SettingId::ALL.len(),
+            Rows::Providers => self.providers.len(),
             Rows::Episodes => self.episodes.len(),
             // The last row is the one that joins another store.
             Rows::Stores => self.stores.len() + 1,
@@ -2849,7 +2902,9 @@ impl App {
             return None;
         }
         let cursor = match rows {
-            Rows::Downloads | Rows::Accounts | Rows::Settings => &mut self.selected,
+            Rows::Downloads | Rows::Accounts | Rows::Settings | Rows::Providers => {
+                &mut self.selected
+            }
             Rows::Episodes => &mut self.episode_selected,
             Rows::Stores => &mut self.store_selected,
             Rows::StoreLines => &mut self.store_line_selected,
@@ -3271,6 +3326,9 @@ impl App {
             Action::ClearCompleted if self.in_downloads_stage() => {
                 return Some(Task::DownloadClearCompleted);
             }
+            // From the rail too, like Enter here: the table is the only thing on the screen.
+            Action::RaiseSource if self.on_providers() => return self.move_source(-1),
+            Action::LowerSource if self.on_providers() => return self.move_source(1),
             // From the rail, Enter means "into this section" rather than "open the title the
             // list happens to be sitting on" — which is what it used to do, opening something
             // the user never selected.
@@ -4586,6 +4644,10 @@ impl App {
     /// `None` for what is stored without a row of its own, the remembered speed and volume:
     /// saved in passing, and not something anyone asked to have confirmed.
     pub fn setting_label(&self, table: &[&str], key: &str) -> Option<&'static str> {
+        // No row on Settings: `K` and `J` on Providers change it.
+        if table == ["providers"] && key == "order" {
+            return Some("source order");
+        }
         self.setting_rows()
             .into_iter()
             .find(|row| row.editable.as_ref().is_some_and(|e| e.table == table && e.key == key))
@@ -4769,6 +4831,12 @@ impl App {
     /// once; when the write was refused — enabling torrents with no VPN, an unwritable file —
     /// the screen and the status line went on showing the value that never landed.
     fn roll_back_setting(&mut self, table: &[&str], key: &str) {
+        // The order has no Settings row. Its rows on Providers come back with the chain's own,
+        // sent with the refusal: the chain was never moved.
+        if table == ["providers"] && key == "order" {
+            self.config.providers.order = self.saved_config.providers.order.clone();
+            return;
+        }
         let rows = self.setting_rows();
         let Some(id) = SettingId::ALL.iter().zip(&rows).find_map(|(id, row)| {
             let edit = row.editable.as_ref()?;
@@ -5369,6 +5437,28 @@ impl App {
     fn on_providers(&self) -> bool {
         self.nav.section() == Section::Providers
             && matches!(self.nav.current(), StageView::Section(Section::Providers))
+    }
+
+    /// `K` or `J` on Providers: the selected source one place up or down the chain, saved.
+    ///
+    /// The rows move at once and the cursor with its row; the run loop puts the live chain in
+    /// the same order once the file has it. At either end nothing moves and nothing is saved.
+    fn move_source(&mut self, step: isize) -> Option<Task> {
+        let id = self.providers.get(self.selected)?.id.clone();
+        let order =
+            order_with_source_moved(&self.config.providers.order, &self.providers, &id, step)?;
+        // Every row is named in the new order, so its place there is its place in the chain.
+        let place = |row: &ProviderRow| order.iter().position(|entry| *entry == row.id);
+        self.providers.sort_by_key(|row| place(row).unwrap_or(order.len()));
+        self.selected = self.providers.iter().position(|row| row.id == id).unwrap_or(0);
+        // In effect before it is on disk, as every setting is, so a second press moves on from
+        // this one rather than from the order before it.
+        self.config.providers.order = order.clone();
+        Some(Task::SaveSetting {
+            table: &["providers"],
+            key: "order",
+            value: anistream_core::settings::SettingValue::List(order),
+        })
     }
 
     fn in_stores(&self) -> bool {
@@ -6706,6 +6796,209 @@ mod tests {
         // What actually served wins once something has played.
         a.apply(Update::ActiveProvider("someplugin".into()));
         assert_eq!(a.source_label(), "someplugin");
+    }
+
+    fn source_row(id: &str, kind: &str) -> ProviderRow {
+        ProviderRow {
+            id: id.into(),
+            kind: kind.into(),
+            state: "ready".into(),
+            latency_ms: None,
+            last_error: None,
+            usable: true,
+            held_back: false,
+        }
+    }
+
+    fn strings(entries: &[&str]) -> Vec<String> {
+        entries.iter().map(|e| (*e).to_owned()).collect()
+    }
+
+    #[test]
+    fn a_named_plugin_adds_no_chip_of_its_own() {
+        // The `"plugins"` chip speaks for every plugin, named in the order or not.
+        let mut a = app();
+        a.config.providers.order = strings(&["alpha", "torrent", "plugins"]);
+        a.apply(Update::Providers(vec![source_row("alpha", "plugin")]));
+        assert_eq!(
+            a.source_states(),
+            vec![("torrent".into(), SourceState::Off), ("plugins".into(), SourceState::Ready)]
+        );
+    }
+
+    #[test]
+    fn moving_a_plugin_names_the_plugins_on_screen_and_keeps_plugins_after_them() {
+        let rows = [
+            source_row("torrent", "torrent"),
+            source_row("alpha", "plugin"),
+            source_row("beta", "plugin"),
+        ];
+        let order = strings(&["torrent", "plugins"]);
+        assert_eq!(
+            order_with_source_moved(&order, &rows, "beta", -1),
+            Some(strings(&["torrent", "beta", "alpha", "plugins"]))
+        );
+        assert_eq!(
+            order_with_source_moved(&order, &rows, "alpha", -1),
+            Some(strings(&["alpha", "torrent", "beta", "plugins"]))
+        );
+        assert_eq!(
+            order_with_source_moved(&order, &rows, "torrent", 1),
+            Some(strings(&["alpha", "torrent", "beta", "plugins"]))
+        );
+    }
+
+    #[test]
+    fn a_move_steps_over_entries_with_no_row_and_keeps_them() {
+        // Torrents are off, so they have no row; `gamma` is named but not installed. Both stay,
+        // and neither costs a press.
+        let rows = [source_row("remote", "remote"), source_row("alpha", "plugin")];
+        let order = strings(&["torrent", "remote", "gamma", "plugins"]);
+        assert_eq!(
+            order_with_source_moved(&order, &rows, "alpha", -1),
+            Some(strings(&["torrent", "alpha", "remote", "gamma", "plugins"]))
+        );
+        // Down past `"plugins"`, which has no row once its plugins are named.
+        let order = strings(&["alpha", "plugins", "remote"]);
+        assert_eq!(
+            order_with_source_moved(&order, &rows, "alpha", 1),
+            Some(strings(&["plugins", "remote", "alpha"]))
+        );
+    }
+
+    #[test]
+    fn a_move_past_either_end_or_of_no_row_changes_nothing() {
+        let rows = [source_row("torrent", "torrent"), source_row("alpha", "plugin")];
+        let order = strings(&["torrent", "plugins", "remote"]);
+        assert_eq!(order_with_source_moved(&order, &rows, "torrent", -1), None);
+        assert_eq!(order_with_source_moved(&order, &rows, "alpha", 1), None);
+        assert_eq!(order_with_source_moved(&order, &rows, "nothing", 1), None);
+    }
+
+    #[test]
+    fn without_plugins_in_the_order_a_plugin_on_screen_is_named_at_the_end() {
+        // A rebuild that dropped `"plugins"` keeps the plugins it had, last in the chain.
+        let rows = [source_row("torrent", "torrent"), source_row("alpha", "plugin")];
+        assert_eq!(
+            order_with_source_moved(&strings(&["torrent"]), &rows, "alpha", -1),
+            Some(strings(&["alpha", "torrent"]))
+        );
+    }
+
+    /// An app on Providers with the stage focused, showing a torrent source and two plugins.
+    fn at_providers() -> App {
+        let mut a = app();
+        a.config.providers.order = strings(&["torrent", "plugins"]);
+        a.go_to_section(Section::Providers);
+        a.nav.focus_stage();
+        a.apply(Update::Providers(vec![
+            source_row("torrent", "torrent"),
+            source_row("alpha", "plugin"),
+            source_row("beta", "plugin"),
+        ]));
+        a
+    }
+
+    fn press(a: &mut App, ch: char) -> Option<Task> {
+        a.press(KeyEvent::new(KeyCode::Char(ch), KeyModifiers::NONE), 20)
+    }
+
+    /// The order a task saves, for a task that must be the order being saved.
+    fn saved_order(task: Option<Task>) -> Vec<String> {
+        match task {
+            Some(Task::SaveSetting {
+                table: ["providers"],
+                key: "order",
+                value: anistream_core::settings::SettingValue::List(order),
+            }) => order,
+            other => panic!("not an order save: {other:?}"),
+        }
+    }
+
+    fn row_ids(a: &App) -> Vec<&str> {
+        a.providers.iter().map(|row| row.id.as_str()).collect()
+    }
+
+    #[test]
+    fn shift_k_and_j_move_the_selected_source_and_save_the_order() {
+        let mut a = at_providers();
+        press(&mut a, 'j');
+        assert_eq!(a.selected, 1, "j moves the cursor, as on every table");
+
+        let order = saved_order(press(&mut a, 'K'));
+        assert_eq!(order, strings(&["alpha", "torrent", "beta", "plugins"]));
+        assert_eq!(row_ids(&a), ["alpha", "torrent", "beta"], "the rows move at once");
+        assert_eq!(a.selected, 0, "the cursor goes with its row");
+        assert_eq!(a.config.providers.order, order, "the next press starts from it");
+
+        // At the top: nothing moves and nothing is saved.
+        assert_eq!(press(&mut a, 'K'), None);
+        assert_eq!(row_ids(&a), ["alpha", "torrent", "beta"]);
+
+        let order = saved_order(press(&mut a, 'J'));
+        assert_eq!(order, strings(&["torrent", "alpha", "beta", "plugins"]));
+        assert_eq!(row_ids(&a), ["torrent", "alpha", "beta"]);
+        assert_eq!(a.selected, 1);
+    }
+
+    #[test]
+    fn the_order_keys_work_while_something_plays() {
+        // The playback table takes neither key, so they still reach the Providers table.
+        let mut a = at_providers();
+        a.playing = Some(NowPlaying::default());
+        let order = saved_order(press(&mut a, 'J'));
+        assert_eq!(order, strings(&["alpha", "torrent", "beta", "plugins"]));
+    }
+
+    #[test]
+    fn the_order_keys_move_nothing_off_the_providers_table() {
+        let mut a = at_providers();
+        a.nav.push(StageView::Stores);
+        assert_eq!(press(&mut a, 'J'), None);
+        assert_eq!(row_ids(&a), ["torrent", "alpha", "beta"]);
+
+        let mut a = app();
+        assert_eq!(a.handle(Action::RaiseSource, 20), None);
+        assert!(
+            a.toasts.iter().any(|t| t.text == "move source up works on the Providers screen"),
+            "{:?}",
+            a.toasts
+        );
+    }
+
+    #[test]
+    fn the_order_is_saved_under_a_name_and_put_back_when_the_write_fails() {
+        let mut a = at_providers();
+        assert_eq!(a.setting_label(&["providers"], "order"), Some("source order"));
+
+        let before = a.config.providers.order.clone();
+        a.saved_config.providers.order = before.clone();
+        press(&mut a, 'J');
+        assert_ne!(a.config.providers.order, before);
+        a.apply(Update::SettingWritten {
+            on_disk: Box::new(a.saved_config.clone()),
+            failed: Some((&["providers"], "order")),
+        });
+        assert_eq!(a.config.providers.order, before);
+    }
+
+    #[test]
+    fn a_new_order_does_not_say_the_sources_are_reloading() {
+        // Nothing is rebuilt for a reorder, so the status line must not claim a reload.
+        let mut a = at_providers();
+        let before = a.status.clone();
+        a.apply(Update::SourcesReordered);
+        assert_eq!(a.status, before);
+        assert_eq!(row_ids(&a), ["torrent", "alpha", "beta"]);
+    }
+
+    #[test]
+    fn a_shorter_providers_table_keeps_the_cursor_on_a_row() {
+        let mut a = at_providers();
+        a.handle(Action::Bottom, 20);
+        assert_eq!(a.selected, 2);
+        a.apply(Update::Providers(vec![source_row("torrent", "torrent")]));
+        assert_eq!(a.selected, 0);
     }
 
     #[test]

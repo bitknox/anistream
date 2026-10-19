@@ -92,7 +92,9 @@ pub fn build_registry_deferred(config: &Config, http: &HttpClient) -> ProviderRe
             // Deliberately *not* loaded here — see `spawn_plugin_load`. Compiling a component
             // costs hundreds of milliseconds and nothing needs a plugin before the first frame.
             "plugins" => {}
-            other => tracing::warn!(provider = other, "unknown provider in config order"),
+            // Anything else may be a plugin's id, which ranks that plugin at this point in the
+            // order — see `rank`. Plugins compile later, so a typo cannot be told from one yet.
+            other => tracing::debug!(provider = other, "order entry left for a plugin"),
         }
     }
     ProviderRegistry::new(providers)
@@ -112,14 +114,36 @@ pub fn place(
     config: &Config,
 ) {
     let order = &config.providers.order;
-    registry.insert_ranked(provider, |p| {
-        // Plugins have ids of their own; the order names them all as one entry.
-        let name = match p.manifest().kind {
-            anistream_core::traits::ProviderKind::Plugin => "plugins",
-            _ => p.manifest().id.as_str(),
-        };
-        order.iter().position(|id| id == name).unwrap_or(order.len())
-    });
+    registry.insert_ranked(provider, |p| rank(p, order));
+}
+
+/// Put the whole chain in the order `providers.order` gives it, for a source that has just
+/// joined it or an order that has just changed. See [`rank`].
+pub fn arrange(registry: &ProviderRegistry, config: &Config) {
+    let order = &config.providers.order;
+    registry.rank_by(|p| rank(p, order));
+}
+
+/// Where a source stands in `order`: at its own entry when the order names it, at `"plugins"`
+/// for a plugin it does not name, and after everything for a source it leaves out.
+///
+/// Then by id, so the plugins left at `"plugins"` run alphabetically. They used to run in the
+/// order their files were read, which no one chose and a reinstall could change. Naming a plugin
+/// only moves it: whether plugins run at all is still `"plugins"`'s to say, see
+/// [`plugins_enabled`].
+pub fn rank(
+    provider: &dyn anistream_core::traits::Provider,
+    order: &[String],
+) -> (usize, String) {
+    let manifest = provider.manifest();
+    let at = |name: &str| order.iter().position(|id| id == name);
+    let place = at(&manifest.id)
+        .or_else(|| match manifest.kind {
+            anistream_core::traits::ProviderKind::Plugin => at("plugins"),
+            _ => None,
+        })
+        .unwrap_or(order.len());
+    (place, manifest.id.clone())
 }
 
 /// Load plugins in the background and add them to a live registry.
@@ -130,8 +154,8 @@ pub fn place(
 /// capability most launches never reach for. wasmtime's compilation cache makes the *second* run
 /// cheap; loading off the critical path makes the first one cheap too.
 ///
-/// Ordering is preserved by appending, so a plugin that finishes compiling mid-session slots in
-/// behind the sources that were already there rather than jumping the queue.
+/// The chain is put in order once they have joined it, so where a plugin is tried is what
+/// `providers.order` says, whenever it finished compiling. See [`rank`].
 pub fn spawn_plugin_load(
     registry: ProviderRegistry,
     config: Config,
@@ -147,6 +171,7 @@ pub fn spawn_plugin_load(
             Ok(loaded) => {
                 let count = loaded.len();
                 registry.extend(loaded);
+                arrange(&registry, &config);
                 tracing::info!(count, elapsed = ?started.elapsed(), "plugins registered");
                 None
             }
@@ -410,7 +435,67 @@ fn random_token() -> String {
 
 #[cfg(test)]
 mod tests {
+    use anistream_core::traits::ProviderKind;
+    use anistream_providers::mock::MockProvider;
+
     use super::*;
+
+    fn order(entries: &[&str]) -> Config {
+        let mut config = Config::default();
+        config.providers.order = entries.iter().map(|e| (*e).to_owned()).collect();
+        config
+    }
+
+    fn plugin(id: &str) -> Arc<dyn anistream_core::traits::Provider> {
+        MockProvider::new(id).kind(ProviderKind::Plugin).arc()
+    }
+
+    fn source(id: &str, kind: ProviderKind) -> Arc<dyn anistream_core::traits::Provider> {
+        MockProvider::new(id).kind(kind).arc()
+    }
+
+    #[test]
+    fn a_named_plugin_ranks_at_its_own_entry_and_the_rest_at_plugins_by_id() {
+        let config = order(&["beta", "torrent", "plugins", "remote"]);
+        let order = &config.providers.order;
+        let ranked = |p: Arc<dyn anistream_core::traits::Provider>| rank(p.as_ref(), order);
+        assert_eq!(ranked(plugin("beta")), (0, "beta".into()));
+        assert_eq!(ranked(source("torrent", ProviderKind::Torrent)), (1, "torrent".into()));
+        assert_eq!(ranked(plugin("gamma")), (2, "gamma".into()));
+        assert_eq!(ranked(plugin("alpha")), (2, "alpha".into()));
+        assert_eq!(ranked(source("remote", ProviderKind::Remote)), (3, "remote".into()));
+        // Left out of the order: last, as before.
+        assert_eq!(ranked(source("other", ProviderKind::Native)), (4, "other".into()));
+    }
+
+    #[test]
+    fn only_a_plugin_falls_back_to_the_plugins_entry() {
+        // A built-in source the order leaves out is not a plugin, whatever the order says
+        // about plugins.
+        let config = order(&["plugins"]);
+        let order = &config.providers.order;
+        assert_eq!(rank(source("remote", ProviderKind::Remote).as_ref(), order).0, 1);
+        assert_eq!(rank(plugin("alpha").as_ref(), order).0, 0);
+    }
+
+    #[test]
+    fn arranging_puts_the_chain_in_the_order_the_config_gives() {
+        // As plugins arrive: in the order their files were read, after the built-in sources.
+        let registry = ProviderRegistry::new(vec![
+            source("torrent", ProviderKind::Torrent),
+            plugin("gamma"),
+            plugin("beta"),
+            plugin("alpha"),
+        ]);
+        arrange(&registry, &order(&["beta", "torrent", "plugins"]));
+        assert_eq!(registry.ids(), ["beta", "torrent", "alpha", "gamma"]);
+
+        // A late source still takes its place in it.
+        let config = order(&["beta", "remote", "torrent", "plugins"]);
+        arrange(&registry, &config);
+        place(&registry, source("remote", ProviderKind::Remote), &config);
+        assert_eq!(registry.ids(), ["beta", "remote", "torrent", "alpha", "gamma"]);
+    }
 
     /// A preview shows the badge and toast the interface would, so the guard's verdict has to
     /// come back with the reason it held the torrent source out.
