@@ -47,7 +47,7 @@ use anistream_ui::{
     Clock, Zone,
     app::{App, JobId, Task, Toast, Update},
     image::ImageEngine,
-    keymap::Keymap,
+    keymap::{Action, Keymap},
     screens, theme,
 };
 use tokio::sync::mpsc;
@@ -262,6 +262,23 @@ impl Harness {
         self.dispatch(task)
     }
 
+    /// Press a key, as the event loop does: the reducer's answer, sent.
+    pub fn press(&mut self, action: Action) -> Option<JobId> {
+        let task = self.app.handle(action, self.rows())?;
+        self.send(task)
+    }
+
+    /// Type into whatever field has the keyboard, a character at a time.
+    pub fn type_text(&mut self, text: &str) {
+        text.chars().for_each(|c| self.app.type_char(c));
+    }
+
+    /// The load the view on screen asks for, as launch and a change of section ask for it.
+    pub fn reload(&mut self) -> Option<JobId> {
+        let task = self.app.reload()?;
+        self.send(task)
+    }
+
     /// Apply what the work sent back until there is none left, and return it in the order
     /// the app applied it.
     ///
@@ -349,6 +366,19 @@ impl Harness {
     /// Where tracker and plugin store tokens are kept: files in the temporary directory.
     pub fn tokens(&self) -> &TokenStore {
         &self.tokens
+    }
+
+    /// The frame as text: one line per row, trailing spaces trimmed, as `--preview` prints it.
+    pub fn screen(&self) -> String {
+        let (width, height) = self.size;
+        let buffer = screens::render_to_buffer(&self.app, width, height);
+        (0..height)
+            .map(|y| {
+                let line: String = (0..width).map(|x| buffer[(x, y)].symbol()).collect();
+                line.trim_end().to_owned()
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 
     fn rows(&self) -> usize {

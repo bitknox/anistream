@@ -1,0 +1,34 @@
+anistream                                                                               torrent ○  plugins ·  ·  kitsu ○
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▌ ▸  CONTINUE               │  ▌ Stardust Wayfarer       ep 4 · 21%   ░░░░░░░░░░░░░░░░░
+  ▤  CALENDAR               │                                         ░░░░░░░░░░░░░░░░░
+  ▦  SEASONAL               │                                         ░░░░░░░░░░░░░░░░░
+  /  SEARCH                 │                                         ░░░░░░░░░░░░░░░░░
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▌ RUN   ep▏
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▌ Episodes                                                                                                         e
+  Download a range of episodes                                                                                     D
+  Next episode                                                                                                     n
+  Previous episode                                                                                                 N
+  Expand synopsis                                                                                                  i
+  Show keys                                                                                                        ?
+  Move up                                                                                                          k
+  Page up                                                                                                     ctrl+u
+  Volume up                                                                                                        0
+  Leave player running                                                                                             q
+  Faster                                                                                                           ]
+  Clear finished downloads                                                                                         c
+
+                            │                                         ▏ resume ep 4 at 5:00 (21%)
+                            │                                         █████░░░░░░░░░░░░░░░░░░░
+                            │
+                            │                                         A lamplighter with no memory of her home walks
+                            │                                         the old star roads, relighting the beacons
+                            │                                         that guide travellers between the towns. Each
+                            │                                         town she saves remembers a little of her, and
+                            │                                         she, a little less of herself.
+                            │
+                            │                                         █████░░░░░░░░░░░░░░░  3 / 12
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                                                        ↑↓ move   ↵ run   esc close

@@ -1,0 +1,34 @@
+anistream                                                                               torrent ○  plugins ·  ·  kitsu ○
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ▸  CONTINUE               │  APPEARANCE  ──────────────────────────────────────────────────────────────────────────
+  ▤  CALENDAR               │  ▌ THEME                       adaptive
+  ▦  SEASONAL               │    MOTION                      on
+  /  SEARCH                 │
+  ▥  LIBRARY                │  PLAYBACK  ────────────────────────────────────────────────────────────────────────────
+  ↓  DOWNLOADS              │    TRANSLATION                 sub
+  ◇  PROVIDERS              │    QUALITY                     1080p
+  ◎  ACCOUNTS               │    SUBTITLES                   eng
+▌ ⚙  SETTINGS               │    COUNTS AS WATCHED AT        85%
+                            │    AUTO-PLAY NEXT              on
+                            │    SKIP OPENING AUTOMATICALLY  on
+                            │    SKIP FILLER AUTOMATICALLY   off
+                            │    MARK OPENING AND ENDING     on
+                            │    START FULLSCREEN            off
+                            │    UPSCALING                   natural · ArtCNN
+                            │    PLAYER INTERFACE            anistream
+                            │    NIGHT MODE                  off
+                            │
+                            │  DOWNLOADS  ───────────────────────────────────────────────────────────────────────────
+                            │    DOWNLOAD FOLDER             kept with the torrent cache
+                            │    MERGE SUBTITLES IN          on
+                            │    KEEP SEEDING                off
+                            │    AFTER EACH DOWNLOAD         none
+                            │
+                            │  SOURCES  ─────────────────────────────────────────────────────────────────────────────
+                            │    TORRENT SOURCE              off
+                            │    VPN MODE                    socks5
+                            │    SEED AFTER WATCHING         off
+                            │
+                            │
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                                                                h/l change   ? keys
