@@ -17,31 +17,9 @@ use crate::{
     theme::{Palette, glyph},
 };
 
-/// Something to tell the user, and whether it is a problem.
-///
-/// What the work sends, with nothing in it about how a screen shows it: how long a notice stays
-/// up is the front end's call, made in the terminal by its `Toast`, from the kind.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Notice {
-    pub kind: NoticeKind,
-    pub text: String,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NoticeKind {
-    Info,
-    Alert,
-}
-
-impl Notice {
-    pub fn info(text: impl Into<String>) -> Self {
-        Self { kind: NoticeKind::Info, text: text.into() }
-    }
-
-    pub fn alert(text: impl Into<String>) -> Self {
-        Self { kind: NoticeKind::Alert, text: text.into() }
-    }
-}
+// Moved to the model, which the work and every front end share. Re-exported from here until
+// every caller names them there.
+pub use anistream_model::notice::{Notice, NoticeKind};
 
 /// A notice on screen, for as long as it stays.
 #[derive(Debug, Clone, PartialEq, Eq)]
