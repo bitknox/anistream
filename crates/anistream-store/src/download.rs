@@ -195,6 +195,23 @@ impl Store {
         })
     }
 
+    /// Date a download's request to `at`, for test fixtures.
+    ///
+    /// The queue lists by request time, which is kept in whole seconds, so rows a fixture adds
+    /// either side of a second boundary swapped places from one run to the next. A fixture
+    /// that dates each row itself lists the same way every time. The app never back-dates a
+    /// request, which is why this is hidden.
+    #[doc(hidden)]
+    pub fn date_download_request(&self, id: i64, at: i64) -> Result<()> {
+        self.with_conn(|c| {
+            c.execute(
+                "UPDATE download SET created_at = ?2 WHERE id = ?1",
+                rusqlite::params![id, at],
+            )?;
+            Ok(())
+        })
+    }
+
     pub fn set_download_state(&self, id: i64, state: DownloadState) -> Result<()> {
         self.with_conn(|c| {
             c.execute(

@@ -97,12 +97,21 @@ pub fn provider_match(
 /// Queued has fetched nothing; active and paused are 40% in; done is whole, at
 /// `downloads/<id>/<episode>.mkv`; failed stopped 10% in with a reason. The title is the
 /// fixture's, so a row reads as it would in the app.
+///
+/// Each row is dated a second before [`fixtures::FIXTURE_NOW`] per row the store has made,
+/// so seeded rows list in the order they were seeded, every run. Dated by the real clock they
+/// listed that way only while seeding stayed within one second, and swapped when it crossed
+/// one. The dates are before the real clock's, so a row the app queues during a test lists
+/// above every seeded one.
 pub fn download(store: &Store, id: AnilistId, episode: &str, state: DownloadState) -> Download {
     let title =
         fixtures::wire(id).map_or_else(|| "Untitled".to_owned(), |_| fixtures::title(id));
     let row = store
         .enqueue_download(id, episode, &title, &magnet(id, episode))
         .expect("seeding a download");
+    store
+        .date_download_request(row.id, fixtures::FIXTURE_NOW - row.id)
+        .expect("dating a seeded download");
     let at = |percent: u64| DOWNLOAD_BYTES * percent / 100;
     let seeded = match state {
         DownloadState::Queued => Ok(()),

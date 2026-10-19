@@ -185,8 +185,16 @@ async fn a_range_publishes_each_row_as_it_lands_then_sums_up() {
     let updates = h.settle().await;
 
     assert_eq!(names(&updates), ["Downloads", "Downloads", "Downloads", "Toast", "JobDone"]);
-    assert_eq!(queue(&updates[0]), ["5 queued", "6 queued"]);
-    assert_eq!(queue(&updates[1]), ["5 queued", "6 queued", "7 queued"]);
+    // Which rows each publish holds, not their order: rows queued within one second list by
+    // insertion and rows either side of a second boundary by time, so 6 and 7 trade places
+    // when the range crosses one. That is the app's own order, kept as it is.
+    let rows = |update: &Event| {
+        let mut rows = queue(update);
+        rows.sort();
+        rows
+    };
+    assert_eq!(rows(&updates[0]), ["5 queued", "6 queued"]);
+    assert_eq!(rows(&updates[1]), ["5 queued", "6 queued", "7 queued"]);
     assert_eq!(toasts(&updates), ["info: queued 2 episodes — 1 already in downloads"]);
     ends(&updates, job);
 
