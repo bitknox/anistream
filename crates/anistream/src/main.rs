@@ -4979,9 +4979,13 @@ mod tests {
         // off left `--glsl-shaders` in the arguments of every episode for the rest of the
         // session. Shaders are now set per file over IPC and never ride the command line,
         // but what does — the HDR curve — must still follow the settings screen.
+        // All three under a temporary directory: filling the rest from `Paths::resolve()`
+        // handed the player the real data directory of whoever ran the tests.
+        let dir = tempfile::tempdir().unwrap();
         let paths = Paths {
-            cache_dir: std::env::temp_dir().join("anistream-player-config-test"),
-            ..Paths::resolve().expect("paths")
+            config_file: dir.path().join("config.toml"),
+            data_dir: dir.path().join("data"),
+            cache_dir: dir.path().join("cache"),
         };
         let mut config = Config::default();
 
@@ -5000,7 +5004,6 @@ mod tests {
         assert!(shader_dir(&config, &paths).is_some());
         config.playback.mpv_args = vec!["--glsl-shaders=~~/mine.glsl".into()];
         assert!(shader_dir(&config, &paths).is_none());
-        let _ = std::fs::remove_dir_all(&paths.cache_dir);
     }
 
     #[test]
