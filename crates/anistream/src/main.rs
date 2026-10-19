@@ -2,6 +2,7 @@
 
 mod covers;
 mod tui;
+mod update;
 
 use anistream::{
     artwork, data, downloads, playback,
@@ -294,7 +295,7 @@ async fn main() -> Result<()> {
     let store = Store::open(paths.database()).context("opening the local database")?;
 
     if cli.update {
-        return anistream::updates::self_update(&http).await;
+        return update::self_update(&http).await;
     }
     if cli.doctor {
         return doctor(&config, &paths, &store, !cli.no_images).await;
