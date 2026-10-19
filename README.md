@@ -343,7 +343,7 @@ protocol.
 
 ## Architecture
 
-Fourteen crates. The app's, volatility increasing left to right:
+Seventeen crates. The app's, volatility increasing left to right:
 
 ```
  AniList        ID mapping        Provider         Player
@@ -359,7 +359,11 @@ Fourteen crates. The app's, volatility increasing left to right:
 
 `anistream-core` (types and traits) · `-net` (HTTP, rate limiting) · `-meta` (AniList, Tenrai failover, ID mapping,
 filler) · `-store` (SQLite) · `-providers` (torrent transport, remote, mock) · `-player` (mpv IPC) ·
-`-track` (AniList, MAL, Kitsu, Simkl, Trakt, sync) · `-plugin` (WASM host) · `-ui` (ratatui) · `anistream` (wiring).
+`-track` (AniList, MAL, Kitsu, Simkl, Trakt, sync) · `-plugin` (WASM host) · `-model` (the protocol
+between the engine and a front end, and its wording) · `-engine` (playback, sources, sync, downloads
+and the background jobs) · `-tui` (the terminal front end, ratatui) · `anistream` (the binary: the
+command line, the terminal's event loop, and the wiring from front end to engine) · `-testkit` (a
+fake AniList and goldens, for tests).
 
 Plugin stores have four of their own: `-store-core` (the protocol, the store's rules and its admin
 page, built natively and to WebAssembly) · `-plugin-store` (the client and the reference server) ·
@@ -367,6 +371,10 @@ page, built natively and to WebAssembly) · `-plugin-store` (the client and the 
 store for Workers and serverless functions). `-store` is the app's own history, and unrelated.
 
 Sources decay, so every volatile piece sits behind a trait and the core never depends on one.
+
+The engine and the model use no terminal library, so a front end that is not a terminal can run
+on them. The terminal front end depends on the model, not the engine, and the binary connects
+the two. `tools/check-boundaries.sh` checks both rules in CI.
 
 ## Development
 

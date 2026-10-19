@@ -1,9 +1,9 @@
 ---
 title: Architecture
-description: Fourteen crates ordered by volatility, and why the core never depends on a source.
+description: Seventeen crates ordered by volatility, and why the core never depends on a source.
 ---
 
-Fourteen crates. The app's layers, volatility increasing left to right:
+Seventeen crates. The app's layers, volatility increasing left to right:
 
 ```
  AniList        ID mapping        Provider         Player
@@ -21,8 +21,25 @@ Fourteen crates. The app's layers, volatility increasing left to right:
 `-meta` (AniList, the metadata failover, ID mapping, filler) · `-store` (SQLite) ·
 `-providers` (torrent, remote, mock) · `-player` (mpv IPC, the companion-script protocol, the
 bundled player files, track selection, aniskip, Discord presence) · `-track` (AniList, MAL, Kitsu,
-Simkl, Trakt, sync) · `-plugin` (WASM host) · `-ui` (ratatui) ·
-`anistream` (wiring, downloads, self-update, HLS mending, choosing the upscaling).
+Simkl, Trakt, sync) · `-plugin` (WASM host).
+
+The rest of the app:
+
+- `anistream-model` is the protocol between the engine and a front end: the commands a front end
+  sends, the events it gets back, the rows they carry, and the wording they are shown in. It
+  depends only on the core and does no I/O.
+- `anistream-engine` does the work behind the screens: playback and the player's setup, sources
+  and plugins, tracker sync, downloads, artwork, plugin stores, HLS mending, choosing the
+  upscaling, and the background jobs, such as the daily update check.
+- `anistream-tui` is the terminal front end: the screens, the keymap and the theme, on ratatui.
+- `anistream` is the binary. It holds the command line, self-update, and the terminal's event
+  loop, which hands the front end's commands to the engine and its events back.
+- `anistream-testkit` is used only by tests: a fake AniList, fixture titles and golden files.
+
+The engine and the model use no terminal library, not even through a dependency, so a front end
+that is not a terminal can run on them. The terminal front end depends on the model and the core,
+never on the engine. `tools/check-boundaries.sh` checks both rules against the resolved
+dependency tree in CI.
 
 Four more crates make up [plugin stores](/docs/plugins/stores/). `anistream-plugin-store` is the
 store client and the reference server. `anistream-store-core` holds the store's protocol, rules,
