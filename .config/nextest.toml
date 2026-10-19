@@ -1,0 +1,9 @@
+# Real-mpv tests each start a player and wait on it with timeouts. Run all at once beside the
+# rest of the suite, a loaded machine misses those timeouts and the test fails for nothing, so
+# they share a small group instead.
+[test-groups]
+mpv = { max-threads = 2 }
+
+[[profile.default.overrides]]
+filter = 'binary(companion) | binary(binge)'
+test-group = 'mpv'

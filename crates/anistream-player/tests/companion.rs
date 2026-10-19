@@ -331,6 +331,12 @@ fn payload(event: &Value) -> Value {
 macro_rules! require_mpv {
     () => {
         if !mpv_available().await {
+            // CI's Linux job installs mpv and sets this, so a missing mpv fails there
+            // instead of passing as a skip.
+            assert!(
+                std::env::var("ANISTREAM_REQUIRE_MPV").as_deref() != Ok("1"),
+                "ANISTREAM_REQUIRE_MPV is set but mpv is not on PATH"
+            );
             eprintln!("skipping: mpv is not on PATH");
             return;
         }

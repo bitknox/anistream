@@ -74,6 +74,12 @@ async fn player() -> Option<(Mpv, tempfile::TempDir)> {
     let mpv =
         Mpv::new(dir.path()).with_extra_args(vec!["--vo=null".into(), "--ao=null".into()]);
     if !mpv.is_available().await {
+        // CI's Linux job installs mpv and sets this, so a missing mpv fails there
+        // instead of passing as a skip.
+        assert!(
+            std::env::var("ANISTREAM_REQUIRE_MPV").as_deref() != Ok("1"),
+            "ANISTREAM_REQUIRE_MPV is set but mpv is not on PATH"
+        );
         eprintln!("skipping: mpv is not on PATH");
         return None;
     }

@@ -55,10 +55,18 @@ jobs:
         with:
           tool: cargo-nextest
 
+      # The real-mpv tests (the player's companion script, whole binges, the stream proxy)
+      # skip without mpv, so CI never ran them. The Linux runner installs it and requires it.
+      - name: Install mpv
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mpv
+
       # nextest builds every test target and runs the binaries in parallel, where `cargo test`
       # runs them one after another; a separate build step only compiled the same code twice.
       - name: Test
         run: cargo nextest run --workspace
+        env:
+          ANISTREAM_REQUIRE_MPV: ${{ matrix.os == 'ubuntu-latest' && '1' || '0' }}
 
   # Its own job rather than a step after the tests, so it runs beside them instead of adding
   # to them: clippy checks dependencies in a different mode and cannot reuse the test build.
