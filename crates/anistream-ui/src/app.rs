@@ -19,6 +19,7 @@ use crate::{
 
 // Moved to the model, which the work and every front end share. Re-exported from here until
 // every caller names them there.
+pub use anistream_model::jobs::JobId;
 pub use anistream_model::notice::{Notice, NoticeKind};
 
 /// A notice on screen, for as long as it stays.
@@ -6003,21 +6004,6 @@ pub struct Secret(pub String);
 impl std::fmt::Debug for Secret {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("Secret(«redacted»)")
-    }
-}
-
-/// Identifies one job, something the user started and is waiting on, so the work that finishes
-/// it can say which.
-///
-/// The terminal lists each one as a `Job` in its activity row.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct JobId(u64);
-
-impl JobId {
-    /// The job numbered `n`. Whoever starts jobs numbers them, once each per run: the interface,
-    /// for now.
-    pub const fn new(n: u64) -> Self {
-        Self(n)
     }
 }
 

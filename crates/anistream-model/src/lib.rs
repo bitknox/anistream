@@ -18,5 +18,6 @@
 //!   frames, no keys. A front end's view state stays in that front end.
 //! - The engine's own state, its services, or how it decides.
 
+pub mod jobs;
 pub mod notice;
 pub mod wording;
