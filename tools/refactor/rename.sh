@@ -22,7 +22,8 @@ cd "$(dirname "$0")/../.."
 
 # Nothing left to rename is not a failure: that is what a rerun usually finds.
 { git grep -lzP '\b(Task|Update)\b' -- 'crates/anistream/*.rs' 'crates/anistream-ui/*.rs' \
-  'crates/anistream-model/*.rs' || true; } |
+  'crates/anistream-model/*.rs' 'crates/anistream-engine/*.rs' 'crates/anistream-tui/*.rs' ||
+  true; } |
   xargs -0 -r perl -pi -e '
     next if /^\s+Update\s*(\{|\(String\),)\s*$/ || /^pub type (Task|Update) = /;
     s/(?<!PluginStatus::)(?<!PluginChoice::)(?<!Self::)\bUpdate\b/Event/g;

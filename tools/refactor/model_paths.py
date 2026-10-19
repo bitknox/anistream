@@ -47,15 +47,19 @@ MODULE = {name: module for module, names in MOVED.items() for name in names.spli
 WORDING = set(MOVED["wording"].split())
 
 
+# The interface's source, under its name on main and under the one it has here.
+INTERFACE = {("crates", "anistream-ui", "src"), ("crates", "anistream-tui", "src")}
+
+
 def old_paths(path: Path):
     """The prefixes a moved name was reached by from this file, each as a tuple of segments.
 
     `widgets` held the wording only, and `app` and the crate root the rest. Inside the interface
     the crate is `crate`, and at its root `app` is a path of its own.
     """
-    inside = path.parts[:3] == ("crates", "anistream-ui", "src")
-    root = ("crate",) if inside else ("anistream_ui",)
-    prefixes = [root + ("app",), root + ("widgets",), root]
+    inside = path.parts[:3] in INTERFACE
+    roots = [("crate",)] if inside else [("anistream_ui",), ("anistream_tui",)]
+    prefixes = [root + module for root in roots for module in [("app",), ("widgets",), ()]]
     if inside and path.name == "lib.rs":
         prefixes.insert(0, ("app",))
     return prefixes
@@ -194,7 +198,8 @@ def main():
     root = Path(__file__).resolve().parents[2]
     files = subprocess.run(
         ["git", "ls-files", "--", "crates/anistream/*.rs", "crates/anistream-ui/*.rs",
-         "crates/anistream-testkit/*.rs"],
+         "crates/anistream-testkit/*.rs", "crates/anistream-engine/*.rs",
+         "crates/anistream-tui/*.rs"],
         cwd=root, check=True, capture_output=True, text=True,
     ).stdout.split()
     for name in files:
@@ -203,7 +208,7 @@ def main():
         before = file.read_text()
         prefixes = old_paths(path)
         text = rewrite_paths(rewrite_uses(before, prefixes), prefixes)
-        if path.parts[:3] == ("crates", "anistream-ui", "src"):
+        if path.parts[:3] in INTERFACE:
             # The interface still names these itself; only the re-export goes.
             text = TRANSITION.sub("\n", text)
             text = re.sub(r"^pub use (anistream_model::)", r"use \1", text, flags=re.M)

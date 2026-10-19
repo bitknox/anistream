@@ -9,10 +9,10 @@
 #   - `Toast::info(` and `Toast::alert(` everywhere, the interface's own calls too, since the
 #     reducer's `push_toast` takes a notice as well;
 #   - `ToastKind` everywhere;
-#   - the type `Toast` named anywhere in the `anistream` crate — library, binary, tests and
-#     examples — which deals in notices only. Not the variant: `Update::Toast` keeps its name,
-#     as `Event::Toast` once rename.sh has run, and so does the name the contract tests list it
-#     under.
+#   - the type `Toast` named anywhere in the `anistream` binary or the engine that was its
+#     library, with their tests and examples, which deal in notices only. Not the variant:
+#     `Update::Toast` keeps its name, as `Event::Toast` once rename.sh has run, and so does the
+#     name the contract tests list it under.
 #
 # What is left after a run is what the compiler then names: an import to adjust by hand.
 # Deleted, with the other codemods, once the extraction is done.
@@ -23,5 +23,6 @@ cd "$(dirname "$0")/../.."
 { git grep -lzE 'Toast::(info|alert)\(|ToastKind' -- 'crates/*.rs' || true; } |
   xargs -0 -r perl -pi -e 's/\bToast::(info|alert)\(/Notice::$1(/g; s/\bToastKind\b/NoticeKind/g'
 
-{ git grep -lzP '(?<!Update::)(?<!Event::)(?<!")\bToast\b(?!")' -- 'crates/anistream/*.rs' || true; } |
+{ git grep -lzP '(?<!Update::)(?<!Event::)(?<!")\bToast\b(?!")' -- 'crates/anistream/*.rs' \
+  'crates/anistream-engine/*.rs' || true; } |
   xargs -0 -r perl -pi -e 's/(?<!Update::)(?<!Event::)(?<!")\bToast\b(?!")/Notice/g'
