@@ -6,6 +6,7 @@
 //! vocabulary that the rest of the UI is assembled from.
 
 pub mod app;
+pub mod clock;
 pub mod eyecatch;
 pub mod image;
 pub mod keymap;
@@ -20,6 +21,7 @@ pub use app::{
     App, ConflictRow, Content, Entry, LibrarySegment, MatchCandidate, NowPlaying,
     PlayerCommand, SyncState, Task, Toast, Update,
 };
+pub use clock::{Clock, Zone};
 pub use eyecatch::Eyecatch;
 pub use keymap::{Action, Binding, Keymap, Scope};
 pub use nav::{Focus, Nav, Overlay, RailWidth, Section, StageView};

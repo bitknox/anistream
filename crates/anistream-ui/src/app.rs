@@ -10,6 +10,7 @@ use anistream_core::{config::Config, ids::AnilistId, traits::SourceCandidate};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::{
+    clock::Clock,
     eyecatch::Eyecatch,
     keymap::{Action, Context, Keymap},
     nav::{Focus, Nav, Overlay, Section, StageView},
@@ -283,10 +284,8 @@ impl SettingId {
 
 /// The local calendar date an offset-from-now lands on. Shared with the renderer, so
 /// where the calendar *opens* and where it *rules* can never disagree.
-pub(crate) fn air_date(secs_from_now: i64) -> Option<chrono::NaiveDate> {
-    use chrono::TimeZone;
-    let epoch = chrono::Local::now().timestamp() + secs_from_now;
-    chrono::Local.timestamp_opt(epoch, 0).single().map(|t| t.date_naive())
+pub(crate) fn air_date(clock: &Clock, secs_from_now: i64) -> Option<chrono::NaiveDate> {
+    clock.date_of(clock.now_epoch() + secs_from_now)
 }
 
 fn upscaling_label(mode: anistream_core::config::Upscaling) -> &'static str {
@@ -1605,6 +1604,9 @@ pub struct App {
     pub help_pages: std::cell::Cell<usize>,
     /// Frame counter for the loading pulse, advanced by the idle tick.
     pub pulse: u64,
+    /// Where the reducer and the renderer read the time and the zone: the system's, unless a
+    /// test stops it so that what a screen shows does not depend on when it was drawn.
+    pub clock: Clock,
     /// Idle ticks left before a pending section change is actually fetched.
     ///
     /// Rail navigation has to feel instant, but it must not spend a request per keystroke: at
@@ -1761,6 +1763,7 @@ impl App {
             help_page: 0,
             help_pages: std::cell::Cell::new(1),
             pulse: 0,
+            clock: Clock::system(),
             downloads: Vec::new(),
             seeding: Vec::new(),
             device_code: None,
@@ -1970,12 +1973,13 @@ impl App {
                     && let Some(next) =
                         entries.iter().position(|e| e.airing_in.is_some_and(|secs| secs > 0))
                 {
-                    let today = chrono::Local::now().date_naive();
+                    let today = self.clock.today();
                     let start_of_today = entries
                         .iter()
                         .position(|e| {
-                            e.airing_in
-                                .is_some_and(|secs| air_date(secs).is_some_and(|d| d >= today))
+                            e.airing_in.is_some_and(|secs| {
+                                air_date(&self.clock, secs).is_some_and(|d| d >= today)
+                            })
                         })
                         .unwrap_or(next);
                     self.selected = next;
@@ -3104,10 +3108,10 @@ impl App {
             // The filters overlay edits in place: the vertical axis picks a row and the
             // horizontal one walks its values, the same grammar as the Settings screen.
             Action::Left if *overlay == Overlay::SearchFilters => {
-                self.search_filter.cycle(self.overlay_selected, false);
+                self.search_filter.cycle(self.overlay_selected, false, &self.clock);
             }
             Action::Right if *overlay == Overlay::SearchFilters => {
-                self.search_filter.cycle(self.overlay_selected, true);
+                self.search_filter.cycle(self.overlay_selected, true, &self.clock);
             }
             _ => {}
         }
@@ -5260,7 +5264,7 @@ impl App {
         let label = task.activity()?;
         self.next_job += 1;
         let id = JobId(self.next_job);
-        self.jobs.push(Job { id, label, started: Instant::now(), note: None });
+        self.jobs.push(Job { id, label, started: self.clock.now_instant(), note: None });
         Some(id)
     }
 
@@ -5850,8 +5854,9 @@ impl SearchFilters {
     }
 
     /// Step a row's value. Forward walks the options and comes back around to "any",
-    /// so both directions reach everything and nothing is a dead end.
-    pub fn cycle(&mut self, row: usize, forward: bool) {
+    /// so both directions reach everything and nothing is a dead end. The year ladder tops out
+    /// at next year by `clock`.
+    pub fn cycle(&mut self, row: usize, forward: bool, clock: &Clock) {
         fn step(current: &mut Option<String>, wires: &[&str], forward: bool) {
             let at = current.as_deref().and_then(|c| wires.iter().position(|w| *w == c));
             let next = match (at, forward) {
@@ -5866,7 +5871,7 @@ impl SearchFilters {
         match row {
             0 => step(&mut self.genre, &Self::GENRES, forward),
             1 => {
-                let latest = chrono::Datelike::year(&chrono::Local::now()).max(0) as u32 + 1;
+                let latest = chrono::Datelike::year(&clock.today()).max(0) as u32 + 1;
                 self.year = match (self.year, forward) {
                     (None, true) => Some(latest),
                     (None, false) => Some(Self::OLDEST_YEAR),
@@ -6748,9 +6753,10 @@ mod tests {
     #[test]
     fn the_format_filter_can_find_short_tv() {
         let mut filter = SearchFilters::default();
-        filter.cycle(3, true);
+        let clock = Clock::system();
+        filter.cycle(3, true, &clock);
         assert_eq!(filter.row_value(3), "tv");
-        filter.cycle(3, true);
+        filter.cycle(3, true, &clock);
         assert_eq!(filter.format.as_deref(), Some("TV_SHORT"), "AniList's name for it");
         assert_eq!(filter.row_value(3), "tv short");
     }
@@ -10001,8 +10007,9 @@ mod tests {
 
     /// Started long enough ago to be shown.
     fn aged(a: &mut App, id: JobId, by: Duration) {
+        let now = a.clock.now_instant();
         let job = a.jobs.iter_mut().find(|j| j.id == id).expect("a running job");
-        job.started = Instant::now().checked_sub(by).expect("a clock that far back");
+        job.started = now.checked_sub(by).expect("a clock that far back");
     }
 
     #[test]
@@ -10038,11 +10045,11 @@ mod tests {
         let mut a = app();
         let older = a.begin_job(&Task::LoadCalendar).unwrap();
         let newer = a.begin_job(&Task::CheckProviders).unwrap();
-        assert!(a.activity(Instant::now()).is_empty(), "quick answers never show");
+        assert!(a.activity(a.clock.now_instant()).is_empty(), "quick answers never show");
 
         aged(&mut a, older, Duration::from_secs(5));
         aged(&mut a, newer, Duration::from_secs(1));
-        let shown: Vec<_> = a.activity(Instant::now()).iter().map(|j| j.id).collect();
+        let shown: Vec<_> = a.activity(a.clock.now_instant()).iter().map(|j| j.id).collect();
         assert_eq!(shown, [newer, older], "the thing just asked for leads");
     }
 
