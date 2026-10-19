@@ -9,7 +9,7 @@ use std::collections::HashSet;
 
 use anistream_meta::Meta;
 use anistream_store::Store;
-use anistream_ui::app::{Toast, Update};
+use anistream_ui::app::{Notice, Update};
 use tokio::sync::mpsc;
 
 /// The stored-state key holding when the digest last looked.
@@ -86,7 +86,7 @@ pub fn spawn(
         if desktop {
             notify_desktop(&text);
         }
-        let _ = tx.send(Update::Toast(Toast::info(text)));
+        let _ = tx.send(Update::Toast(Notice::info(text)));
     });
 }
 

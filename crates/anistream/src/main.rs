@@ -16,7 +16,7 @@ use anistream_net::HttpClient;
 use anistream_providers::{ProviderRegistry, vpn::VpnGuard};
 use anistream_store::Store;
 use anistream_ui::{
-    app::{App, Content, ContentFor, EpisodeRow, JobId, Task, Toast, Update},
+    app::{App, Content, ContentFor, EpisodeRow, JobId, Notice, Task, Update},
     keymap::Keymap,
     screens, theme,
 };
@@ -463,7 +463,7 @@ async fn preview(
     }
     match stores.rows() {
         Ok(rows) => app.apply(Update::Stores(rows)),
-        Err(e) => app.apply(Update::Toast(Toast::alert(e))),
+        Err(e) => app.apply(Update::Toast(Notice::alert(e))),
     }
     app.apply(Update::Providers(data::provider_rows(&registry)));
     let sync = tracking::Sync::build(&app.config, &store, &http);
@@ -655,7 +655,7 @@ impl PreviewRun {
                     app.apply(update);
                     if let Some(notice) = self.meta.take_notice() {
                         app.apply(Update::MetaStatus(data::meta_rows(&self.meta)));
-                        app.apply(Update::Toast(Toast::info(notice)));
+                        app.apply(Update::Toast(Notice::info(notice)));
                     }
                 }
                 Ok(None) => return,
@@ -1702,7 +1702,7 @@ async fn run(
     // before anyone reads it, and a refused rebind otherwise looks like a key that does nothing.
     for problem in keybinding_problems {
         tracing::warn!(%problem, "keybinding not applied");
-        app.push_toast(Toast::alert(format!("keybinding not applied: {problem}")));
+        app.push_toast(Notice::alert(format!("keybinding not applied: {problem}")));
     }
 
     // What the file says, as distinct from what is in effect: `--theme` changes only this
@@ -1714,7 +1714,7 @@ async fn run(
     // Joined stores as they were left, so Providers can count them on the first frame.
     match stores.rows() {
         Ok(rows) => app.apply(Update::Stores(rows)),
-        Err(e) => app.apply(Update::Toast(Toast::alert(e))),
+        Err(e) => app.apply(Update::Toast(Notice::alert(e))),
     }
 
     // Background work reports through this channel; nothing off the UI thread ever touches
@@ -1765,7 +1765,7 @@ async fn run(
             }
             let updates = stores.pending_updates();
             if !updates.is_empty() {
-                let _ = tx.send(Update::Toast(Toast::info(format!(
+                let _ = tx.send(Update::Toast(Notice::info(format!(
                     "plugin {} ready: {} — Providers, Enter",
                     if updates.len() == 1 { "update" } else { "updates" },
                     updates.join(", ")
@@ -1822,12 +1822,12 @@ async fn run(
     let mpv = player(&app.config, &paths);
     if !mpv.is_available().await {
         // Said once at startup rather than at the moment you press Enter on an episode.
-        app.apply(Update::Toast(Toast::alert(format!(
+        app.apply(Update::Toast(Notice::alert(format!(
             "{} not found — install mpv to play anything",
             app.config.playback.mpv_binary
         ))));
     } else if let Some(note) = mpv.mpv_version().await.and_then(old_mpv_note) {
-        app.apply(Update::Toast(Toast::info(note)));
+        app.apply(Update::Toast(Notice::info(note)));
     }
 
     // Painting on change rather than on every tick: see `Repaint`. `idle_tick` is whether
@@ -1904,7 +1904,7 @@ async fn run(
                 // agree with the toast without waiting for a refresh.
                 if let Some(notice) = meta.take_notice() {
                     app.apply(Update::MetaStatus(anistream::data::meta_rows(&meta)));
-                    app.apply(Update::Toast(Toast::info(notice)));
+                    app.apply(Update::Toast(Notice::info(notice)));
                 }
                 // A source setting changed. Awaited here rather than spawned: this owns the
                 // session and the guard, and two rebuilds racing would leave one of their
@@ -2044,14 +2044,14 @@ async fn keep_datasets_current(
         }) else {
             if said {
                 tracing::info!("mapping datasets refreshed after failing");
-                let _ = tx.send(Update::Toast(Toast::info("mapping data refreshed")));
+                let _ = tx.send(Update::Toast(Notice::info("mapping data refreshed")));
             }
             return;
         };
         tracing::warn!(datasets = ?failed, %reason, retry_secs = wait.as_secs(), "mapping refresh failed");
         if !said {
             said = true;
-            let _ = tx.send(Update::Toast(Toast::alert(format!(
+            let _ = tx.send(Update::Toast(Notice::alert(format!(
                 "mapping data could not be refreshed ({}: {}) — trying again in {} min",
                 failed.join(", "),
                 plain_failure(reason),
@@ -2129,7 +2129,7 @@ fn show_config_problem(
 ) {
     app.notice = Some(config_notice(&paths.config_file, problem));
     app.log(
-        anistream_ui::app::ToastKind::Alert,
+        anistream_ui::app::NoticeKind::Alert,
         format!("{}, {problem} — using the defaults", paths.config_file.display()),
     );
 }
@@ -2277,7 +2277,7 @@ fn spawn(
                 // No job to note it on. A toast, which goes when it is done: as a status it
                 // stayed, still counting "12s", after the wait was over.
                 None => {
-                    let _ = tx.send(Update::Toast(Toast::info(format!(
+                    let _ = tx.send(Update::Toast(Notice::info(format!(
                         "waiting {}s on the AniList rate limit",
                         wait.as_secs().max(1)
                     ))));
@@ -2415,7 +2415,9 @@ fn spawn(
                     Ok(media) => {
                         Update::Detail(Box::new(data::entry_from(&media, Some(&store))))
                     }
-                    Err(e) => Update::Toast(Toast::alert(format!("could not load title: {e}"))),
+                    Err(e) => {
+                        Update::Toast(Notice::alert(format!("could not load title: {e}")))
+                    }
                 }
             }
             Task::CheckProviders => {
@@ -2475,7 +2477,7 @@ fn spawn(
             }
             Task::ClearMatch { id } => {
                 if let Err(e) = store.clear_title_match(id) {
-                    Update::Toast(Toast::alert(format!("could not reset the match: {e}")))
+                    Update::Toast(Notice::alert(format!("could not reset the match: {e}")))
                 } else {
                     match load_episodes(&meta, &store, &registry, id).await {
                         Ok(EpisodeLoad::Rows(rows)) => Update::Episodes { id, rows },
@@ -2484,7 +2486,7 @@ fn spawn(
                         }
                         Err(reason) => {
                             let _ = tx.send(Update::Episodes { id, rows: Vec::new() });
-                            Update::Toast(Toast::alert(reason))
+                            Update::Toast(Notice::alert(reason))
                         }
                     }
                 }
@@ -2493,18 +2495,18 @@ fn spawn(
                 // Remembered as an override, which the ladder consults before anything else —
                 // so the question is asked once, not on every visit.
                 if let Err(e) = store.set_override(id, &provider_id, &key, now_epoch()) {
-                    Update::Toast(Toast::alert(format!("could not save that match: {e}")))
+                    Update::Toast(Notice::alert(format!("could not save that match: {e}")))
                 } else {
                     match load_episodes(&meta, &store, &registry, id).await {
                         Ok(EpisodeLoad::Rows(rows)) => Update::Episodes { id, rows },
                         // The override *is* the answer, so the ladder cannot come back
                         // undecided; if it somehow does, say so rather than looping.
-                        Ok(EpisodeLoad::Choose { .. }) => Update::Toast(Toast::alert(
+                        Ok(EpisodeLoad::Choose { .. }) => Update::Toast(Notice::alert(
                             "that match did not stick — the source may have changed",
                         )),
                         Err(reason) => {
                             let _ = tx.send(Update::Episodes { id, rows: Vec::new() });
-                            Update::Toast(Toast::alert(reason))
+                            Update::Toast(Notice::alert(reason))
                         }
                     }
                 }
@@ -2519,7 +2521,7 @@ fn spawn(
                         // The Episodes screen shows its own empty state, so the reason belongs
                         // in a toast rather than replacing the whole view.
                         let _ = tx.send(Update::Episodes { id, rows: Vec::new() });
-                        Update::Toast(Toast::alert(reason))
+                        Update::Toast(Notice::alert(reason))
                     }
                 }
             }
@@ -2604,12 +2606,12 @@ fn dispatch(
             };
             let toast = match (written, &provider) {
                 (Ok(()), Some(provider)) => {
-                    Toast::info(format!("{provider} will be used for this title"))
+                    Notice::info(format!("{provider} will be used for this title"))
                 }
-                (Ok(()), None) => Toast::info("back to automatic source selection"),
+                (Ok(()), None) => Notice::info("back to automatic source selection"),
                 // The overlay has already moved its marker, so a failed write has to be said
                 // out loud or the UI would be showing a choice that was never saved.
-                (Err(e), _) => Toast::alert(format!("could not save that choice: {e}")),
+                (Err(e), _) => Notice::alert(format!("could not save that choice: {e}")),
             };
             let _ = tx.send(Update::Toast(toast));
         }
@@ -2751,7 +2753,7 @@ fn dispatch(
                         .await
                     {
                         Ok(candidates) => Update::Sources { id, episode, candidates },
-                        Err(reason) => Update::Toast(Toast::alert(reason)),
+                        Err(reason) => Update::Toast(Notice::alert(reason)),
                     };
                 let _ = tx.send(update);
             });
@@ -2789,7 +2791,7 @@ fn dispatch(
             // The reducer has already dropped the row from the screen; failing to persist
             // that would resurrect it on the next reload, so the failure is named.
             if let Err(e) = store.hide_from_continue(id) {
-                let _ = tx.send(Update::Toast(Toast::alert(format!(
+                let _ = tx.send(Update::Toast(Notice::alert(format!(
                     "could not remove from continue: {e}"
                 ))));
             }
@@ -2811,15 +2813,15 @@ fn dispatch(
                         .stderr(std::process::Stdio::null())
                         .spawn()
                 {
-                    let _ = tx.send(Update::Toast(Toast::info("trailer playing in mpv")));
+                    let _ = tx.send(Update::Toast(Notice::info("trailer playing in mpv")));
                     // Reaped so a closed trailer never lingers as a zombie.
                     let _ = child.wait().await;
                     return;
                 }
                 let update = match open::that_detached(&url) {
-                    Ok(()) => Update::Toast(Toast::info("trailer opened in your browser")),
+                    Ok(()) => Update::Toast(Notice::info("trailer opened in your browser")),
                     Err(e) => {
-                        Update::Toast(Toast::alert(format!("could not open the trailer: {e}")))
+                        Update::Toast(Notice::alert(format!("could not open the trailer: {e}")))
                     }
                 };
                 let _ = tx.send(update);
@@ -2827,7 +2829,7 @@ fn dispatch(
         }
         Task::OpenExternal { url } => {
             if let Err(e) = open::that_detached(&url) {
-                let _ = tx.send(Update::Toast(Toast::alert(format!("could not open: {e}"))));
+                let _ = tx.send(Update::Toast(Notice::alert(format!("could not open: {e}"))));
             }
         }
 
@@ -2856,9 +2858,9 @@ fn dispatch(
                                 .collect();
                             Update::MatchChoices { id, provider_id, candidates }
                         }
-                        Err(e) => Update::Toast(Toast::alert(e.to_string())),
+                        Err(e) => Update::Toast(Notice::alert(e.to_string())),
                     },
-                    _ => Update::Toast(Toast::alert(format!("nothing found for {query:?}"))),
+                    _ => Update::Toast(Notice::alert(format!("nothing found for {query:?}"))),
                 };
                 let _ = tx.send(update);
             });
@@ -2919,14 +2921,14 @@ fn dispatch(
                 )
                 .await
                 {
-                    Ok((row, downloads::Queued::New)) => Update::Toast(Toast::info(format!(
+                    Ok((row, downloads::Queued::New)) => Update::Toast(Notice::info(format!(
                         "queued {} ep {}",
                         row.title, row.episode
                     ))),
-                    Ok((row, downloads::Queued::Existing)) => Update::Toast(Toast::info(
+                    Ok((row, downloads::Queued::Existing)) => Update::Toast(Notice::info(
                         format!("{} ep {} is already in downloads", row.title, row.episode),
                     )),
-                    Err(refusal) => Update::Toast(Toast::alert(refusal.to_string())),
+                    Err(refusal) => Update::Toast(Notice::alert(refusal.to_string())),
                 };
                 let _ = tx.send(update);
                 let _ = tx.send(Update::Status(String::new()));
@@ -2958,7 +2960,7 @@ fn dispatch(
             // torrent. Deleting the torrent from here would race with that loop.
             let _ = store.remove_download(id);
             downloads::publish_now(store, tx);
-            let _ = tx.send(Update::Toast(Toast::info("download cancelled")));
+            let _ = tx.send(Update::Toast(Notice::info("download cancelled")));
         }
 
         Task::DownloadDelete { id } => {
@@ -2973,13 +2975,13 @@ fn dispatch(
             let _ = store.remove_download(id);
             let note = match path {
                 Some(path) => match std::fs::remove_file(&path) {
-                    Ok(()) => Toast::info("download and file deleted"),
+                    Ok(()) => Notice::info("download and file deleted"),
                     Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                        Toast::info("download removed — file was already gone")
+                        Notice::info("download removed — file was already gone")
                     }
-                    Err(e) => Toast::alert(format!("removed the entry, not the file: {e}")),
+                    Err(e) => Notice::alert(format!("removed the entry, not the file: {e}")),
                 },
-                None => Toast::info("download removed"),
+                None => Notice::info("download removed"),
             };
             downloads::publish_now(store, tx);
             let _ = tx.send(Update::Toast(note));
@@ -2988,7 +2990,7 @@ fn dispatch(
         Task::DownloadClearCompleted => {
             let cleared = store.clear_completed_downloads().unwrap_or(0);
             downloads::publish_now(store, tx);
-            let _ = tx.send(Update::Toast(Toast::info(format!("cleared {cleared} finished"))));
+            let _ = tx.send(Update::Toast(Notice::info(format!("cleared {cleared} finished"))));
         }
 
         Task::PlayLocal { id, episode, title, path } => {
@@ -3090,7 +3092,8 @@ fn dispatch(
                     // and it said the file's key — "saved commit_threshold". What has no row
                     // there, the remembered speed and volume, is saved without a word.
                     if let Some(label) = app.setting_label(table, key) {
-                        let _ = tx.send(Update::Toast(Toast::info(format!("saved · {label}"))));
+                        let _ =
+                            tx.send(Update::Toast(Notice::info(format!("saved · {label}"))));
                     }
                     // Republish what the background tasks read, so the next download to
                     // finish honours the value that was just written.
@@ -3114,7 +3117,7 @@ fn dispatch(
                         other => other.to_string(),
                     };
                     let _ =
-                        tx.send(Update::Toast(Toast::alert(format!("not saved: {reason}"))));
+                        tx.send(Update::Toast(Notice::alert(format!("not saved: {reason}"))));
                     // The Providers rows moved when the key was pressed and the chain did not,
                     // so the chain's own rows put them back.
                     if (table, key) == (&["providers"][..], "order") {
@@ -3169,7 +3172,7 @@ impl StoreTaskContext {
         let _ = self.tx.send(update);
     }
 
-    fn toast(&self, toast: Toast) {
+    fn toast(&self, toast: Notice) {
         self.send(Update::Toast(toast));
     }
 
@@ -3177,7 +3180,7 @@ impl StoreTaskContext {
     fn rows(&self) {
         match self.stores.rows() {
             Ok(rows) => self.send(Update::Stores(rows)),
-            Err(e) => self.toast(Toast::alert(e)),
+            Err(e) => self.toast(Notice::alert(e)),
         }
     }
 
@@ -3186,7 +3189,7 @@ impl StoreTaskContext {
             Ok((members, invites)) => {
                 self.send(Update::StoreMembers { store: store.to_owned(), members, invites });
             }
-            Err(e) => self.toast(Toast::alert(e)),
+            Err(e) => self.toast(Notice::alert(e)),
         }
     }
 
@@ -3197,7 +3200,7 @@ impl StoreTaskContext {
                 self.rows();
                 match self.stores.refresh().await {
                     Ok(rows) => self.send(Update::Stores(rows)),
-                    Err(e) => self.toast(Toast::alert(e)),
+                    Err(e) => self.toast(Notice::alert(e)),
                 }
             }
             Task::PreviewStore { link } => {
@@ -3207,21 +3210,21 @@ impl StoreTaskContext {
                 Ok(joined) => {
                     self.rows();
                     self.send(Update::StoreJoined { store: joined.id.clone() });
-                    self.toast(Toast::info(format!(
+                    self.toast(Notice::info(format!(
                         "joined {} as {}",
                         joined.name, joined.member.name
                     )));
                 }
-                Err(e) => self.toast(Toast::alert(e)),
+                Err(e) => self.toast(Notice::alert(e)),
             },
             Task::LeaveStore { store } => match self.stores.leave(&store).await {
                 Ok(name) => {
                     self.rows();
-                    self.toast(Toast::info(format!(
+                    self.toast(Notice::info(format!(
                         "left {name} — its plugins stay installed"
                     )));
                 }
-                Err(e) => self.toast(Toast::alert(e)),
+                Err(e) => self.toast(Notice::alert(e)),
             },
             Task::InstallPlugin { store, plugin } => {
                 match self.stores.install(&store, &plugin).await {
@@ -3233,7 +3236,7 @@ impl StoreTaskContext {
                         // The install refreshed the list on its way, so the screen catches up
                         // with whatever made it refuse.
                         self.rows();
-                        self.toast(Toast::alert(format!("{plugin} not installed: {e}")));
+                        self.toast(Notice::alert(format!("{plugin} not installed: {e}")));
                     }
                 }
             }
@@ -3242,70 +3245,70 @@ impl StoreTaskContext {
                     self.registry.remove(&plugin);
                     self.send(Update::Providers(data::provider_rows(&self.registry)));
                     self.rows();
-                    self.toast(Toast::info(format!("removed {plugin}")));
+                    self.toast(Notice::info(format!("removed {plugin}")));
                 }
-                Err(e) => self.toast(Toast::alert(e)),
+                Err(e) => self.toast(Notice::alert(e)),
             },
             Task::CreateInvite { store, name } => {
                 match self.stores.invite(&store, name).await {
                     Ok(view) => self.send(Update::InviteLink(view)),
-                    Err(e) => self.toast(Toast::alert(e)),
+                    Err(e) => self.toast(Notice::alert(e)),
                 }
             }
             Task::LoadMembers { store } => self.members(&store).await,
             Task::RemoveMember { store, member } => {
                 match self.stores.remove_member(&store, &member).await {
                     Ok(()) => {
-                        self.toast(Toast::info("removed — their devices stopped working here"))
+                        self.toast(Notice::info("removed — their devices stopped working here"))
                     }
-                    Err(e) => self.toast(Toast::alert(e)),
+                    Err(e) => self.toast(Notice::alert(e)),
                 }
                 self.members(&store).await;
             }
             Task::CancelInvite { store, invite } => {
                 match self.stores.cancel_invite(&store, &invite).await {
                     Ok(()) => {
-                        self.toast(Toast::info("invite cancelled — the link no longer works"))
+                        self.toast(Notice::info("invite cancelled — the link no longer works"))
                     }
-                    Err(e) => self.toast(Toast::alert(e)),
+                    Err(e) => self.toast(Notice::alert(e)),
                 }
                 self.members(&store).await;
             }
             Task::LoadLocalPlugins { store } => match self.stores.local_plugins(&store).await {
                 Ok(plugins) => self.send(Update::LocalPlugins { store, plugins }),
-                Err(e) => self.toast(Toast::alert(e)),
+                Err(e) => self.toast(Notice::alert(e)),
             },
             Task::PublishPlugin { store, plugin } => {
                 match self.stores.publish(&store, &plugin).await {
                     Ok(entry) => {
                         self.rows();
-                        self.toast(Toast::info(format!(
+                        self.toast(Notice::info(format!(
                             "published {} {}",
                             entry.name, entry.version
                         )));
                     }
-                    Err(e) => self.toast(Toast::alert(format!("{plugin} not published: {e}"))),
+                    Err(e) => self.toast(Notice::alert(format!("{plugin} not published: {e}"))),
                 }
             }
             Task::UnpublishPlugin { store, plugin } => {
                 match self.stores.unpublish(&store, &plugin).await {
                     Ok(()) => {
                         self.rows();
-                        self.toast(Toast::info(format!("{plugin} is no longer offered")));
+                        self.toast(Notice::info(format!("{plugin} is no longer offered")));
                     }
-                    Err(e) => self.toast(Toast::alert(e)),
+                    Err(e) => self.toast(Notice::alert(e)),
                 }
             }
             Task::OpenAdmin { store } => match self.stores.admin_link(&store).await {
                 Ok(link) => match open::that_detached(&link) {
-                    Ok(()) => self.toast(Toast::info(
+                    Ok(()) => self.toast(Notice::info(
                         "opened the admin page in your browser — the link works once, for ten minutes",
                     )),
-                    Err(e) => self.toast(Toast::alert(format!(
+                    Err(e) => self.toast(Notice::alert(format!(
                         "could not open a browser ({e}) — on the store's machine, `anistream store admin` prints a link"
                     ))),
                 },
-                Err(e) => self.toast(Toast::alert(e)),
+                Err(e) => self.toast(Notice::alert(e)),
             },
             other => tracing::error!(task = ?other, "not a plugin store task"),
         }
@@ -3314,7 +3317,7 @@ impl StoreTaskContext {
     /// Bring a just-installed plugin into the running chain, so it is usable without a restart.
     async fn load_installed(&self, name: &str, version: &str, path: &std::path::Path) {
         if !sources::plugins_enabled(&self.config) {
-            self.toast(Toast::info(format!(
+            self.toast(Notice::info(format!(
                 "installed {name} {version} — \"plugins\" is off in providers.order, so it is not used"
             )));
             return;
@@ -3327,7 +3330,7 @@ impl StoreTaskContext {
                 if self.registry.get(&id).is_some_and(|existing| {
                     existing.manifest().kind != anistream_core::traits::ProviderKind::Plugin
                 }) {
-                    self.toast(Toast::alert(format!(
+                    self.toast(Notice::alert(format!(
                         "installed {name}, but {id} is a built-in source's name — not loaded"
                     )));
                     return;
@@ -3337,11 +3340,10 @@ impl StoreTaskContext {
                 self.registry.put(provider);
                 sources::arrange(&self.registry, &self.config);
                 self.send(Update::Providers(data::provider_rows(&self.registry)));
-                self.toast(Toast::info(format!("installed {name} {version}")));
+                self.toast(Notice::info(format!("installed {name} {version}")));
             }
-            Err(e) => {
-                self.toast(Toast::alert(format!("installed {name}, but it does not load: {e}")))
-            }
+            Err(e) => self
+                .toast(Notice::alert(format!("installed {name}, but it does not load: {e}"))),
         }
     }
 }
@@ -3414,7 +3416,7 @@ fn spawn_playback(
             // The episode being watched carries on, and the window with it: only the lookup
             // failed, and closing what was playing over it would punish the viewer for asking.
             Err(reason) if handoff.live() => {
-                let _ = tx.send(Update::Toast(Toast::alert(reason.clone())));
+                let _ = tx.send(Update::Toast(Notice::alert(reason.clone())));
                 let _ = tx.send(Update::PlaybackKept);
                 handoff.keep(commands, reason).await;
                 return;
@@ -3422,7 +3424,7 @@ fn spawn_playback(
             Err(reason) => {
                 // The failure ladder's first rung: name the failure rather than showing an
                 // empty screen. Releasing the eyecatch is what the alert does for us.
-                let _ = tx.send(Update::Toast(Toast::alert(reason)));
+                let _ = tx.send(Update::Toast(Notice::alert(reason)));
                 // A window left open for this episode would wait for nothing.
                 slot.release();
                 let _ = tx.send(Update::PlaybackEnded {
@@ -3443,7 +3445,7 @@ fn spawn_playback(
         // header is sent from playback itself, per attempt, so failover never credits the
         // stream that just failed.
         if let Some(note) = streams.first().and_then(|s| s.pick_note.clone()) {
-            let _ = tx.send(Update::Toast(Toast::info(note)));
+            let _ = tx.send(Update::Toast(Notice::info(note)));
         }
 
         let settings =
@@ -4112,7 +4114,7 @@ impl TorrentTasks {
             config.read().map(|c| c.clone()).unwrap_or_else(|e| e.into_inner().clone());
         sources::place(registry, up.provider, &snapshot);
         if let Some(warning) = up.warning {
-            let _ = tx.send(Update::Toast(Toast::info(warning)));
+            let _ = tx.send(Update::Toast(Notice::info(warning)));
         }
         *vpn_guard = Some((up.guard, up.session));
         *self = Self { generation, ..Self::start(vpn_guard, store, config, tx) };

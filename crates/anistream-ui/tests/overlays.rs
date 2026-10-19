@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 use anistream_core::{config::Config, ids::AnilistId};
 use anistream_ui::{
     App, Content, Entry, Keymap, Overlay, Palette, Section, StageView, Task,
-    app::{EpisodeRow, NowPlaying, ResumePoint, SyncState, Toast, Update},
+    app::{EpisodeRow, Notice, NowPlaying, ResumePoint, SyncState, Update},
     keymap::status_hints,
     screens::render_to_buffer,
 };
@@ -388,7 +388,7 @@ fn a_wide_help_keeps_each_key_near_its_label() {
 fn logs_scroll_with_the_highlight() {
     let mut a = app();
     for i in 0..40 {
-        a.push_toast(Toast::info(format!("line {i}")));
+        a.push_toast(Notice::info(format!("line {i}")));
     }
     press(&mut a, &["L"]);
     for _ in 0..30 {
@@ -414,9 +414,9 @@ fn logs_scroll_with_the_highlight() {
 fn identical_log_lines_merge_into_one_with_a_count() {
     let mut a = app();
     for _ in 0..25 {
-        a.push_toast(Toast::alert("cover unavailable"));
+        a.push_toast(Notice::alert("cover unavailable"));
     }
-    a.push_toast(Toast::info("something else"));
+    a.push_toast(Notice::info("something else"));
     assert_eq!(a.logs.len(), 2);
     assert_eq!(a.logs[0].count, 25);
     press(&mut a, &["L"]);
@@ -512,7 +512,7 @@ fn a_palette_command_that_means_nothing_here_says_where_it_works() {
     a.handle(anistream_ui::Action::StopPlayback, ROWS);
     a.handle(anistream_ui::Action::ClearCompleted, ROWS);
     a.handle(anistream_ui::Action::RaiseSource, ROWS);
-    let said: Vec<&str> = a.toasts.iter().map(|t| t.text.as_str()).collect();
+    let said: Vec<&str> = a.toasts.iter().map(|t| t.notice.text.as_str()).collect();
     assert!(said.iter().all(|t| !t.contains("not wired up")), "{said:?}");
     assert!(said.contains(&"stop playback works while something is playing"), "{said:?}");
     assert!(
@@ -546,7 +546,7 @@ fn every_title_command_with_nothing_selected_says_so() {
         a.nav.focus_stage();
         assert_eq!(a.handle(action, ROWS), None, "{action:?}");
         assert!(
-            a.toasts.iter().any(|t| t.text == "nothing selected"),
+            a.toasts.iter().any(|t| t.notice.text == "nothing selected"),
             "{action:?} said {:?}",
             a.toasts
         );
@@ -608,7 +608,7 @@ fn a_refused_range_is_cleared_and_the_prompt_stays_open() {
 fn a_one_episode_range_is_not_plural() {
     let mut a = at_episodes();
     press(&mut a, &["D", "4", "enter"]);
-    assert!(a.toasts.iter().any(|t| t.text == "queueing 1 episode…"), "{:?}", a.toasts);
+    assert!(a.toasts.iter().any(|t| t.notice.text == "queueing 1 episode…"), "{:?}", a.toasts);
 }
 
 #[test]

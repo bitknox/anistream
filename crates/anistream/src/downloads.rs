@@ -20,7 +20,7 @@ use std::{path::PathBuf, sync::Arc, time::Duration};
 use anistream_core::{config::Config, ids::AnilistId, media::Translation};
 use anistream_providers::{ProviderRegistry, torrent::TorrentSession};
 use anistream_store::{Download, DownloadState, Store};
-use anistream_ui::app::{Toast, Update};
+use anistream_ui::app::{Notice, Update};
 use tokio::sync::mpsc;
 
 /// How many torrents fetch at once.
@@ -195,7 +195,7 @@ async fn poll_running(
                 }
             }
             let merged = finish(store, config, &row, final_path.clone()).await;
-            let _ = tx.send(Update::Toast(Toast::info(match merged {
+            let _ = tx.send(Update::Toast(Notice::info(match merged {
                 Some(note) => format!("downloaded {} ep {} — {note}", row.title, row.episode),
                 None => format!("downloaded {} ep {}", row.title, row.episode),
             })));
@@ -255,7 +255,7 @@ async fn start_queued(
                 let reason = e.to_string();
                 tracing::warn!(row = row.id, %reason, "download could not start");
                 let _ = store.fail_download(row.id, &reason);
-                let _ = tx.send(Update::Toast(Toast::alert(format!(
+                let _ = tx.send(Update::Toast(Notice::alert(format!(
                     "{} ep {}: {reason}",
                     row.title, row.episode
                 ))));
@@ -444,7 +444,7 @@ pub struct RangeOutcome {
 
 impl RangeOutcome {
     /// Worded from what happened: what was added, what was there already, and what stopped it.
-    pub fn toast(&self) -> Toast {
+    pub fn toast(&self) -> Notice {
         use anistream_ui::widgets::plural;
         let mut text = match (self.queued, self.existing) {
             (0, 0) => "nothing queued".to_owned(),
@@ -455,10 +455,10 @@ impl RangeOutcome {
             text.push_str(&format!(" — {} already in downloads", self.existing));
         }
         match (&self.failed, self.queued, self.existing) {
-            (None, ..) => Toast::info(text),
-            (Some(reason), 0, 0) => Toast::alert(format!("{text}: {reason}")),
-            (Some(reason), 0, _) => Toast::alert(format!("{text}; {reason}")),
-            (Some(reason), ..) => Toast::alert(format!("{text}, then: {reason}")),
+            (None, ..) => Notice::info(text),
+            (Some(reason), 0, 0) => Notice::alert(format!("{text}: {reason}")),
+            (Some(reason), 0, _) => Notice::alert(format!("{text}; {reason}")),
+            (Some(reason), ..) => Notice::alert(format!("{text}, then: {reason}")),
         }
     }
 }
@@ -614,7 +614,7 @@ mod tests {
             "nothing new queued — 2 already in downloads; \
              this source streams but cannot be downloaded"
         );
-        assert_eq!(toast.kind, anistream_ui::app::ToastKind::Alert);
+        assert_eq!(toast.kind, anistream_ui::app::NoticeKind::Alert);
 
         let mixed = RangeOutcome { queued: 2, existing: 1, failed: None };
         assert_eq!(mixed.toast().text, "queued 2 episodes — 1 already in downloads");

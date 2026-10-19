@@ -17,30 +17,49 @@ use crate::{
     theme::{Palette, glyph},
 };
 
-/// A transient message.
+/// Something to tell the user, and whether it is a problem.
+///
+/// What the work sends, with nothing in it about how a screen shows it: how long a notice stays
+/// up is the front end's call, made by [`Toast`] here from the kind.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Toast {
+pub struct Notice {
+    pub kind: NoticeKind,
     pub text: String,
-    pub kind: ToastKind,
-    /// Frames remaining before it disappears.
-    pub ttl: u16,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ToastKind {
+pub enum NoticeKind {
     Info,
     Alert,
 }
 
-impl Toast {
+impl Notice {
     pub fn info(text: impl Into<String>) -> Self {
-        Self { text: text.into(), kind: ToastKind::Info, ttl: 90 }
+        Self { kind: NoticeKind::Info, text: text.into() }
     }
 
     pub fn alert(text: impl Into<String>) -> Self {
+        Self { kind: NoticeKind::Alert, text: text.into() }
+    }
+}
+
+/// A notice on screen, for as long as it stays.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Toast {
+    pub notice: Notice,
+    /// Frames remaining before it disappears.
+    pub ttl: u16,
+}
+
+impl From<Notice> for Toast {
+    fn from(notice: Notice) -> Self {
         // Failures stay up longer: they carry information the user may need to act on,
         // and provider death is this app's defining failure mode.
-        Self { text: text.into(), kind: ToastKind::Alert, ttl: 180 }
+        let ttl = match notice.kind {
+            NoticeKind::Info => 90,
+            NoticeKind::Alert => 180,
+        };
+        Self { notice, ttl }
     }
 }
 
@@ -399,7 +418,7 @@ pub const LOG_CAPACITY: usize = 200;
 /// sequence is the one that says why.
 #[derive(Debug, Clone, PartialEq)]
 pub struct LogRow {
-    pub kind: ToastKind,
+    pub kind: NoticeKind,
     pub text: String,
     /// Idle ticks at the time it was recorded, so lines can be shown relative to each other
     /// without pulling a wall clock into the UI crate.
@@ -1287,7 +1306,7 @@ pub enum Update {
     },
     Detail(Box<Entry>),
     Status(String),
-    Toast(Toast),
+    Toast(Notice),
     Providers(Vec<ProviderRow>),
     /// The metadata ladder's condition: which rung is serving, and why.
     MetaStatus(Vec<MetaSourceRow>),
@@ -1889,7 +1908,7 @@ impl App {
         // A report from the playback still in the window says nothing about the one being found.
         let ours = self.superseded.is_none();
         if (matches!(update, Update::Playback { .. } | Update::PlaybackEnded { .. } if ours)
-            || matches!(update, Update::Toast(Toast { kind: ToastKind::Alert, .. })))
+            || matches!(update, Update::Toast(Notice { kind: NoticeKind::Alert, .. })))
             && let Some(eyecatch) = &mut self.eyecatch
         {
             eyecatch.release();
@@ -2027,7 +2046,7 @@ impl App {
                 }
             }
             Update::Status(status) => self.status = status,
-            Update::Toast(toast) => self.push_toast(toast),
+            Update::Toast(notice) => self.push_toast(notice),
             Update::Image { url, image } => {
                 self.images.insert(&url, *image);
                 self.images.requests().network_returned();
@@ -2070,7 +2089,7 @@ impl App {
                     return;
                 }
                 if plugins.is_empty() {
-                    self.push_toast(Toast::info(
+                    self.push_toast(Notice::info(
                         "no plugins in the plugin directory to publish — `anistream --plugins` shows where it is",
                     ));
                     return;
@@ -2102,7 +2121,7 @@ impl App {
                 }
                 if candidates.is_empty() {
                     self.source_context = None;
-                    self.push_toast(Toast::info("no selectable sources for this episode"));
+                    self.push_toast(Notice::info("no selectable sources for this episode"));
                     return;
                 }
                 self.sources = candidates;
@@ -2197,7 +2216,7 @@ impl App {
             }
             Update::PlayerTranslation(translation) => {
                 self.config.playback.translation = translation;
-                self.push_toast(Toast::info(format!("now using {translation}")));
+                self.push_toast(Notice::info(format!("now using {translation}")));
                 if let Some(playing) = &self.playing
                     && let Some(id) = playing.id
                 {
@@ -2301,7 +2320,7 @@ impl App {
                     // The filler walk reads this title's episode table, when it is known here.
                     let after_filler = self.next_after_filler(id, next.clone());
                     if after_filler != next {
-                        self.push_toast(Toast::info(format!(
+                        self.push_toast(Notice::info(format!(
                             "skipped filler — ep {after_filler} next"
                         )));
                     }
@@ -2310,7 +2329,7 @@ impl App {
                     self.raise_now_playing_titled(id, finished.title, &after_filler);
                     self.pending = Some(Task::Play { id, episode: after_filler });
                 } else if matches!(ending, Ending::Complete { .. }) {
-                    self.push_toast(Toast::info("episode finished"));
+                    self.push_toast(Notice::info("episode finished"));
                 }
             }
             Update::Sync(state) => {
@@ -2320,7 +2339,7 @@ impl App {
                     && !self.sync.iter().any(|s| s.tracker == state.tracker && s.needs_reauth);
                 if announce {
                     let accounts = self.section_key(Section::Accounts);
-                    self.push_toast(Toast::alert(format!(
+                    self.push_toast(Notice::alert(format!(
                         "{} needs signing in again — press {accounts} for Accounts",
                         state.tracker
                     )));
@@ -2349,7 +2368,7 @@ impl App {
                 if appeared {
                     // Surfaced rather than resolved — the whole point of not guessing.
                     let settle = self.key_for(Action::ShowConflicts);
-                    self.push_toast(Toast::info(format!(
+                    self.push_toast(Notice::info(format!(
                         "{} — {settle} settles them",
                         crate::widgets::plural(self.conflicts.len(), "sync disagreement")
                     )));
@@ -2358,7 +2377,7 @@ impl App {
             Update::Resumed { position } => {
                 // Resume happens without asking — mpv is already at the right place by the time
                 // this arrives. Saying so is what keeps it from feeling like a glitch.
-                self.push_toast(Toast::info(format!(
+                self.push_toast(Notice::info(format!(
                     "resumed at {}",
                     NowPlaying::clock(position)
                 )));
@@ -2370,7 +2389,7 @@ impl App {
                 // A newly-failing guard is worth interrupting for: torrents have just been
                 // paused and the user needs to know why playback stopped.
                 if leaking && !self.vpn_leaking {
-                    self.push_toast(Toast::alert(format!("{badge} — torrents paused")));
+                    self.push_toast(Notice::alert(format!("{badge} — torrents paused")));
                 }
                 self.vpn_badge = Some(badge);
                 self.vpn_leaking = leaking;
@@ -2397,30 +2416,28 @@ impl App {
         }
     }
 
-    pub fn push_toast(&mut self, toast: Toast) {
+    pub fn push_toast(&mut self, notice: Notice) {
         // Every toast is also a log line. A toast lives for a few seconds and the stack is
         // capped at three, so without this the *third* provider failure silently erases the
         // first — and when a source breaks, the earliest error is usually the one that explains
         // the rest. This is the whole reason the Logs overlay exists.
-        self.log(toast.kind, toast.text.clone());
+        self.log(notice.kind, notice.text.clone());
         // The same message again is the same message, kept up longer rather than stacked: five
         // presses of an arrow on Settings are one "saved", not a pile of identical lines. From
         // anywhere in the stack, and brought up to newest: a copy left under another line was
         // counted in the rule's "+N", so one message read as two.
-        if let Some(at) =
-            self.toasts.iter().position(|t| t.text == toast.text && t.kind == toast.kind)
-        {
+        if let Some(at) = self.toasts.iter().position(|t| t.notice == notice) {
             self.toasts.remove(at);
         }
         // Cap the stack so a burst of provider failures cannot cover the screen.
         if self.toasts.len() >= 3 {
             self.toasts.remove(0);
         }
-        self.toasts.push(toast);
+        self.toasts.push(Toast::from(notice));
     }
 
     /// Append to the log ring, newest last.
-    pub fn log(&mut self, kind: ToastKind, text: String) {
+    pub fn log(&mut self, kind: NoticeKind, text: String) {
         // The same line again is a count on the last one, not another line.
         if let Some(last) = self.logs.last_mut()
             && last.kind == kind
@@ -3147,7 +3164,7 @@ impl App {
                     // row and left the file on disk with no way back to it from here.
                     if row.state == "done" {
                         let delete = self.key_for(Action::DeleteDownload);
-                        self.push_toast(Toast::info(format!(
+                        self.push_toast(Notice::info(format!(
                             "already downloaded — {delete} deletes it and its file"
                         )));
                         return None;
@@ -3172,7 +3189,7 @@ impl App {
             && !matches!(self.nav.current(), StageView::NowPlaying)
             && self.target().is_none()
         {
-            self.push_toast(Toast::info("nothing selected"));
+            self.push_toast(Notice::info("nothing selected"));
             return None;
         }
 
@@ -3190,7 +3207,7 @@ impl App {
             }
             Action::ShowConflicts => {
                 if self.conflicts.is_empty() {
-                    self.push_toast(Toast::info("nothing to resolve"));
+                    self.push_toast(Notice::info("nothing to resolve"));
                 } else {
                     self.overlay_selected = 0;
                     self.nav.open_overlay(Overlay::Conflicts);
@@ -3309,9 +3326,9 @@ impl App {
                         // The reason is on the row; surfacing it is more use than a dead keypress.
                         let reason =
                             row.error.clone().unwrap_or_else(|| "no reason recorded".into());
-                        self.push_toast(Toast::alert(reason));
+                        self.push_toast(Notice::alert(reason));
                     }
-                    _ => self.push_toast(Toast::info("not finished yet")),
+                    _ => self.push_toast(Notice::info("not finished yet")),
                 }
             }
             Action::DeleteDownload if self.in_downloads_stage() => {
@@ -3408,14 +3425,14 @@ impl App {
                             format!("everything before ep {} is already watched", row.number)
                         }
                     };
-                    self.push_toast(Toast::info(why));
+                    self.push_toast(Notice::info(why));
                     return None;
                 }
                 for number in &marked {
                     self.mark_episode(id, number, true);
                 }
                 self.apply_episode_filter();
-                self.push_toast(Toast::info(format!(
+                self.push_toast(Notice::info(format!(
                     "marked {} watched",
                     crate::widgets::plural(marked.len(), "episode")
                 )));
@@ -3427,12 +3444,12 @@ impl App {
                 self.nav.open_overlay(Overlay::DownloadRange);
             }
             Action::DownloadRange => {
-                self.push_toast(Toast::info("ranges are queued from the episode table"));
+                self.push_toast(Notice::info("ranges are queued from the episode table"));
             }
             Action::Filter if self.in_episodes() => {
                 self.episode_filter = self.episode_filter.next();
                 self.apply_episode_filter();
-                self.push_toast(Toast::info(format!(
+                self.push_toast(Notice::info(format!(
                     "showing {}",
                     self.episode_filter.label()
                 )));
@@ -3455,14 +3472,14 @@ impl App {
                 return task;
             }
             Action::Filter => {
-                self.push_toast(Toast::info("filters live in search and the episode table"));
+                self.push_toast(Notice::info("filters live in search and the episode table"));
             }
             Action::ToggleWatched | Action::MarkAllPrevious => {
-                self.push_toast(Toast::info("watched marks live in the episode table"));
+                self.push_toast(Notice::info("watched marks live in the episode table"));
             }
             Action::OpenInBrowser => {
                 let Some(id) = self.target().map(|e| e.id) else {
-                    self.push_toast(Toast::info("nothing selected"));
+                    self.push_toast(Notice::info("nothing selected"));
                     return None;
                 };
                 return Some(Task::OpenExternal {
@@ -3480,13 +3497,13 @@ impl App {
                     } else {
                         "nothing selected"
                     };
-                    self.push_toast(Toast::info(hint));
+                    self.push_toast(Notice::info(hint));
                     return None;
                 }
                 if self.providers.is_empty() {
                     // Plugins register a moment after launch, so "none yet" is a real state
                     // rather than a misconfiguration.
-                    self.push_toast(Toast::info("no sources registered yet"));
+                    self.push_toast(Notice::info("no sources registered yet"));
                     return None;
                 }
                 // Start on the current choice, so the overlay opens showing where you are.
@@ -3499,7 +3516,7 @@ impl App {
             }
             Action::PlayTrailer => {
                 let Some(entry) = self.target() else {
-                    self.push_toast(Toast::info("nothing selected"));
+                    self.push_toast(Notice::info("nothing selected"));
                     return None;
                 };
                 let Some(url) = entry.trailer_url.clone() else {
@@ -3508,14 +3525,14 @@ impl App {
                     let why = self
                         .off_the_page("the trailer is found")
                         .unwrap_or_else(|| "no trailer on record for this title".into());
-                    self.push_toast(Toast::info(why));
+                    self.push_toast(Notice::info(why));
                     return None;
                 };
                 return Some(Task::PlayTrailer { url, title: entry.title.clone() });
             }
             Action::Recommendations => {
                 let Some(entry) = self.target() else {
-                    self.push_toast(Toast::info("nothing selected"));
+                    self.push_toast(Notice::info("nothing selected"));
                     return None;
                 };
                 if entry.recommended.is_empty() {
@@ -3524,7 +3541,7 @@ impl App {
                     let why = self
                         .off_the_page("recommendations are listed")
                         .unwrap_or_else(|| "no recommendations known for this title".into());
-                    self.push_toast(Toast::info(why));
+                    self.push_toast(Notice::info(why));
                     return None;
                 }
                 self.overlay_selected = 0;
@@ -3532,7 +3549,7 @@ impl App {
             }
             Action::WatchOrder => {
                 let Some(entry) = self.target() else {
-                    self.push_toast(Toast::info("nothing selected"));
+                    self.push_toast(Notice::info("nothing selected"));
                     return None;
                 };
                 if entry.related.is_empty() {
@@ -3541,7 +3558,7 @@ impl App {
                     let why = self
                         .off_the_page("connected seasons are listed")
                         .unwrap_or_else(|| "no connected seasons known for this title".into());
-                    self.push_toast(Toast::info(why));
+                    self.push_toast(Notice::info(why));
                     return None;
                 }
                 self.overlay_selected = 0;
@@ -3561,7 +3578,7 @@ impl App {
                     } else {
                         "nothing selected to re-match"
                     };
-                    self.push_toast(Toast::info(hint));
+                    self.push_toast(Notice::info(hint));
                     return None;
                 };
                 self.manual_target = Some(id);
@@ -3620,7 +3637,7 @@ impl App {
                 if self.signed_in_trackers().is_empty() {
                     // Nothing keeps a list status but a tracker. Offering the picker anyway
                     // ended in "marked watching" for a choice that went nowhere.
-                    self.push_toast(Toast::info(
+                    self.push_toast(Notice::info(
                         "list status is kept on a tracker, and none is signed in — :accounts",
                     ));
                 } else if let Some(entry) = self.target() {
@@ -3637,12 +3654,12 @@ impl App {
                         .unwrap_or(0);
                     self.nav.open_overlay(Overlay::ListStatus);
                 } else {
-                    self.push_toast(Toast::info("nothing selected"));
+                    self.push_toast(Notice::info("nothing selected"));
                 }
             }
             Action::RateTitle => {
                 if self.signed_in_trackers().is_empty() {
-                    self.push_toast(Toast::info(
+                    self.push_toast(Notice::info(
                         "ratings are kept on a tracker, and none is signed in — :accounts",
                     ));
                 } else if self.target().is_some() {
@@ -3651,7 +3668,7 @@ impl App {
                     self.overlay_selected = 0;
                     self.nav.open_overlay(Overlay::Rate);
                 } else {
-                    self.push_toast(Toast::info("nothing selected"));
+                    self.push_toast(Notice::info("nothing selected"));
                 }
             }
             Action::HideFromContinue => {
@@ -3665,7 +3682,7 @@ impl App {
                 let at_home_list = self.nav.section() == Section::Home
                     && matches!(self.nav.current(), StageView::Section(Section::Home));
                 if !at_home_list {
-                    self.push_toast(Toast::info("removing works on the Continue list"));
+                    self.push_toast(Notice::info("removing works on the Continue list"));
                     return None;
                 }
                 let Content::Entries(entries) = &mut self.content else {
@@ -3681,7 +3698,7 @@ impl App {
                 self.offset = self.offset.min(self.selected);
                 // Say how to undo, because there is no key for it — the way back is the
                 // same thing that put it here.
-                self.push_toast(Toast::info(format!(
+                self.push_toast(Notice::info(format!(
                     "{} removed — watching it again brings it back",
                     entry.title
                 )));
@@ -3690,7 +3707,7 @@ impl App {
             Action::ForceResync => {
                 if self.sync.is_empty() {
                     let accounts = self.section_key(Section::Accounts);
-                    self.push_toast(Toast::info(format!(
+                    self.push_toast(Notice::info(format!(
                         "no tracker connected — press {accounts} for Accounts"
                     )));
                 } else {
@@ -3728,7 +3745,7 @@ impl App {
             Action::ToggleTranslation => {
                 // For this session: the saved choice is the Settings row's to change.
                 self.config.playback.translation = self.config.playback.translation.toggled();
-                self.push_toast(Toast::info(format!(
+                self.push_toast(Notice::info(format!(
                     "now using {} for this session",
                     self.config.playback.translation
                 )));
@@ -3743,7 +3760,7 @@ impl App {
                     Some(first) => first.to_lowercase().chain(chars).collect::<String>(),
                     None => String::new(),
                 };
-                self.push_toast(Toast::info(format!(
+                self.push_toast(Notice::info(format!(
                     "{label} works {}",
                     action.where_it_works()
                 )));
@@ -3773,7 +3790,7 @@ impl App {
             Action::Detach => {
                 // mpv keeps playing; we just stop looking at it. Progress recording continues,
                 // because the session outlives the screen.
-                self.push_toast(Toast::info("detached — mpv is still playing"));
+                self.push_toast(Notice::info("detached — mpv is still playing"));
                 self.nav.pop();
                 return Some(None);
             }
@@ -3784,7 +3801,7 @@ impl App {
                     Some((_, to)) => P::SeekTo(to),
                     // Better to say nothing is offered than to seek somewhere arbitrary.
                     None => {
-                        self.push_toast(Toast::info("no skip here"));
+                        self.push_toast(Notice::info("no skip here"));
                         return Some(None);
                     }
                 }
@@ -3811,7 +3828,7 @@ impl App {
     /// Driven off the watch log rather than a tracker, so this works with no account at all.
     fn play_next_unwatched(&mut self) -> Option<Task> {
         let Some(entry) = self.target() else {
-            self.push_toast(Toast::info("nothing selected"));
+            self.push_toast(Notice::info("nothing selected"));
             return None;
         };
         let id = entry.id;
@@ -4075,7 +4092,7 @@ impl App {
                 // written to the status line it stayed there, over the state it shows, for
                 // the rest of the session.
                 let quit = self.key_for(Action::Quit);
-                self.push_toast(Toast::info(format!("at the top — {quit} quits")));
+                self.push_toast(Notice::info(format!("at the top — {quit} quits")));
             }
             crate::nav::BackOutcome::Popped => {
                 if self.nav.focus() == Focus::Rail {
@@ -4232,7 +4249,7 @@ impl App {
                 let id = entry.id;
                 let status = *LibrarySegment::ALL.get(self.overlay_selected)?;
                 self.nav.close_overlay();
-                self.push_toast(Toast::info(format!(
+                self.push_toast(Notice::info(format!(
                     "now on your {} list — queued for {}",
                     status.label(),
                     self.signed_in_trackers().join(", ")
@@ -4272,7 +4289,7 @@ impl App {
                 // Rows run 10 down to 1, so the row index is the distance from 10.
                 let score = (10 - self.overlay_selected.min(9)) as f32;
                 self.nav.close_overlay();
-                self.push_toast(Toast::info(format!(
+                self.push_toast(Notice::info(format!(
                     "rated {score}/10 — queued for {}",
                     self.signed_in_trackers().join(", ")
                 )));
@@ -4347,7 +4364,7 @@ impl App {
                 self.match_candidates.clear();
                 self.match_context = None;
                 self.episodes_loading = true;
-                self.push_toast(Toast::info(format!("matched to {}", candidate.title)));
+                self.push_toast(Notice::info(format!("matched to {}", candidate.title)));
                 Some(Task::FixMatch { id, provider_id, key: candidate.key })
             }
             Some(Overlay::Accounts) => {
@@ -4663,7 +4680,7 @@ impl App {
         let edit = rows.get(self.selected)?.editable.clone();
         let Some(edit) = edit else {
             let note = rows.get(self.selected).and_then(|r| r.note);
-            self.push_toast(Toast::info(note.unwrap_or("not editable here")));
+            self.push_toast(Notice::info(note.unwrap_or("not editable here")));
             return None;
         };
 
@@ -4812,7 +4829,7 @@ impl App {
             | SettingId::DownloadHook
             | SettingId::SyncplayServer
             | SettingId::SyncplayRoom => {
-                self.push_toast(Toast::info("enter types a value here"));
+                self.push_toast(Notice::info("enter types a value here"));
                 return None;
             }
         };
@@ -4968,7 +4985,7 @@ impl App {
                 if value.is_empty() {
                     // The writer sets keys; it does not delete them. Refusing beats
                     // writing an empty string that half the readers treat as a path.
-                    self.push_toast(Toast::info(
+                    self.push_toast(Notice::info(
                         "left unchanged — delete the line in config.toml to unset",
                     ));
                     return None;
@@ -5010,7 +5027,7 @@ impl App {
                     // Cleared, with the prompt left open for another try. Kept, the retry's
                     // keys were appended to the refused text and refused again.
                     self.range_query.clear();
-                    self.push_toast(Toast::info("ranges look like 4, 1-12 or 7-"));
+                    self.push_toast(Notice::info("ranges look like 4, 1-12 or 7-"));
                     return None;
                 };
                 let episodes: Vec<String> = self
@@ -5026,11 +5043,11 @@ impl App {
                     .collect();
                 if episodes.is_empty() {
                     self.range_query.clear();
-                    self.push_toast(Toast::info("no episodes in that range"));
+                    self.push_toast(Notice::info("no episodes in that range"));
                     return None;
                 }
                 self.nav.close_overlay();
-                self.push_toast(Toast::info(format!(
+                self.push_toast(Notice::info(format!(
                     "queueing {}…",
                     crate::widgets::plural(episodes.len(), "episode")
                 )));
@@ -5193,7 +5210,7 @@ impl App {
     /// resume. Public for `--preview`, which shows a title page from a list whose Enter plays.
     pub fn open_selected(&mut self) -> Option<Task> {
         let Some(entry) = self.selected_entry().cloned() else {
-            self.push_toast(Toast::info("nothing selected"));
+            self.push_toast(Notice::info("nothing selected"));
             return None;
         };
         let id = entry.id;
@@ -5530,14 +5547,16 @@ impl App {
             // took over would be answering a question the user is not looking at — and an open
             // "leave" or "remove" would quietly become a "join" under the same Enter.
             Ok(_) if !self.in_stores() || self.nav.has_overlay() => {
-                self.push_toast(Toast::info("the invite checked out — paste it again to join"));
+                self.push_toast(Notice::info(
+                    "the invite checked out — paste it again to join",
+                ));
             }
             Ok(preview) => {
                 self.store_confirm = Some(StoreConfirm::Join(preview));
                 self.nav.open_overlay(Overlay::StoreConfirm);
             }
             Err(reason) => {
-                self.push_toast(Toast::alert(reason));
+                self.push_toast(Notice::alert(reason));
                 // Back to the prompt with the link still in it, so a link cut short in the
                 // copy can be finished rather than pasted again — when the user is still here.
                 if self.in_stores() && !self.nav.has_overlay() {
@@ -5705,7 +5724,7 @@ impl App {
         let at = self.member_selected;
         if let Some(member) = self.store_members.get(at) {
             if member.you {
-                self.push_toast(Toast::info("that is you — a store always keeps its owner"));
+                self.push_toast(Notice::info("that is you — a store always keeps its owner"));
                 return None;
             }
             self.store_confirm = Some(StoreConfirm::RemoveMember {
@@ -6666,7 +6685,11 @@ mod tests {
         a.handle(Action::DownloadRange, 20);
         a.type_char('4');
         let task = a.handle(Action::Open, 20).expect("one episode is a range too");
-        assert!(a.toasts.iter().any(|t| t.text == "queueing 1 episode…"), "{:?}", a.toasts);
+        assert!(
+            a.toasts.iter().any(|t| t.notice.text == "queueing 1 episode…"),
+            "{:?}",
+            a.toasts
+        );
         assert_eq!(task.activity().as_deref(), Some("queueing 1 episode"));
     }
 
@@ -6674,24 +6697,30 @@ mod tests {
     fn mark_all_previous_says_which_nothing_it_found() {
         let mut a = app_at_episodes();
         a.handle(Action::MarkAllPrevious, 20);
-        assert!(a.toasts.iter().any(|t| t.text == "nothing comes before the first episode"));
+        assert!(
+            a.toasts.iter().any(|t| t.notice.text == "nothing comes before the first episode")
+        );
 
         a.episode_selected = 3;
         a.handle(Action::MarkAllPrevious, 20);
         assert!(
-            a.toasts.iter().any(|t| t.text == "marked 3 episodes watched"),
+            a.toasts.iter().any(|t| t.notice.text == "marked 3 episodes watched"),
             "{:?}",
             a.toasts
         );
         a.handle(Action::MarkAllPrevious, 20);
-        assert!(a.toasts.iter().any(|t| t.text == "everything before ep 4 is already watched"));
+        assert!(
+            a.toasts
+                .iter()
+                .any(|t| t.notice.text == "everything before ep 4 is already watched")
+        );
 
         // An empty table has no episode to be before.
         a.episodes.clear();
         a.episode_selected = 0;
         a.handle(Action::MarkAllPrevious, 20);
         assert!(
-            a.toasts.iter().any(|t| t.text == "no episodes listed to mark"),
+            a.toasts.iter().any(|t| t.notice.text == "no episodes listed to mark"),
             "{:?}",
             a.toasts
         );
@@ -6713,7 +6742,7 @@ mod tests {
         assert!(
             a.toasts
                 .iter()
-                .any(|t| t.text == "now on your completed list — queued for anilist"),
+                .any(|t| t.notice.text == "now on your completed list — queued for anilist"),
             "{:?}",
             a.toasts
         );
@@ -6957,7 +6986,9 @@ mod tests {
         let mut a = app();
         assert_eq!(a.handle(Action::RaiseSource, 20), None);
         assert!(
-            a.toasts.iter().any(|t| t.text == "move source up works on the Providers screen"),
+            a.toasts
+                .iter()
+                .any(|t| t.notice.text == "move source up works on the Providers screen"),
             "{:?}",
             a.toasts
         );
@@ -7006,7 +7037,10 @@ mod tests {
             a.type_char(c);
         }
         assert!(a.handle(Action::Open, 20).is_none(), "a backwards range queues nothing");
-        assert!(a.toasts.iter().any(|t| t.text.contains("1-12")), "the hint names the shape");
+        assert!(
+            a.toasts.iter().any(|t| t.notice.text.contains("1-12")),
+            "the hint names the shape"
+        );
     }
 
     #[test]
@@ -7129,7 +7163,7 @@ mod tests {
         // way to know the stream failed.
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
-        a.apply(Update::Toast(Toast::alert("all providers failed")));
+        a.apply(Update::Toast(Notice::alert("all providers failed")));
         for _ in 0..crate::eyecatch::SWEEP_FRAMES * 3 {
             a.tick_animation();
         }
@@ -7146,7 +7180,7 @@ mod tests {
             a.tick_animation();
         }
         assert!(a.eyecatch.is_none(), "the wipe never ended");
-        assert!(a.toasts.iter().all(|t| t.kind != ToastKind::Alert), "{:?}", a.toasts);
+        assert!(a.toasts.iter().all(|t| t.notice.kind != NoticeKind::Alert), "{:?}", a.toasts);
     }
 
     #[test]
@@ -7155,7 +7189,7 @@ mod tests {
         a.handle(Action::Open, 20);
         a.apply(Update::Resumed { position: 87.0 });
         let toast = a.toasts.last().expect("a toast");
-        assert_eq!(toast.text, "resumed at 1:27");
+        assert_eq!(toast.notice.text, "resumed at 1:27");
     }
 
     #[test]
@@ -7226,7 +7260,7 @@ mod tests {
         assert_eq!(a.playing.as_ref().unwrap().position, 0.0);
         assert!(a.eyecatch.is_some(), "a report from 4 is not 9 starting");
 
-        a.apply(Update::Toast(Toast::alert("a: timed out")));
+        a.apply(Update::Toast(Notice::alert("a: timed out")));
         a.apply(Update::PlaybackKept);
         let playing = a.playing.as_ref().unwrap();
         assert_eq!((playing.episode.as_str(), playing.position), ("4", 301.0));
@@ -7512,7 +7546,7 @@ mod tests {
         a.handle(Action::Open, 20);
         a.apply(finished(None));
         assert_eq!(a.take_pending(), None);
-        assert!(a.toasts.iter().any(|t| t.text == "episode finished"));
+        assert!(a.toasts.iter().any(|t| t.notice.text == "episode finished"));
     }
 
     #[test]
@@ -7714,7 +7748,7 @@ mod tests {
         let mut a = app();
         a.apply(Update::Conflicts(vec![conflict("Frieren")]));
         assert_eq!(a.conflicts.len(), 1);
-        assert!(a.toasts.iter().any(|t| t.text.contains("disagreement")));
+        assert!(a.toasts.iter().any(|t| t.notice.text.contains("disagreement")));
 
         // A second pull returning the same set must not re-announce.
         let announced = |a: &App| a.logs.iter().map(|l| l.count).sum::<u32>();
@@ -7876,7 +7910,7 @@ mod tests {
         a.apply(Update::StorePreview(Err("the link is missing the store's key".into())));
         assert_eq!(a.nav.overlay(), Some(&Overlay::JoinStore));
         assert_eq!(a.join_link, "https://plugins.example/join/abc");
-        assert!(a.toasts.iter().any(|t| t.text.contains("missing the store's key")));
+        assert!(a.toasts.iter().any(|t| t.notice.text.contains("missing the store's key")));
     }
 
     #[test]
@@ -8142,7 +8176,7 @@ mod tests {
         a.handle(Action::Open, 20);
         a.apply(Update::LocalPlugins { store: "abc".into(), plugins: Vec::new() });
         assert!(!a.nav.has_overlay());
-        assert!(a.toasts.iter().any(|t| t.text.contains("no plugins")));
+        assert!(a.toasts.iter().any(|t| t.notice.text.contains("no plugins")));
     }
 
     #[test]
@@ -8417,7 +8451,7 @@ mod tests {
 
         // A list row never opened: the trailer is on the record its page fetches.
         a.handle(Action::PlayTrailer, 20);
-        assert!(a.toasts.iter().any(|t| t.text.contains("from the title's page")));
+        assert!(a.toasts.iter().any(|t| t.notice.text.contains("from the title's page")));
 
         let mut detail = Entry::new(AnilistId::new(1), "Frieren");
         detail.trailer_url = Some("https://www.youtube.com/watch?v=x".into());
@@ -8438,7 +8472,7 @@ mod tests {
         a.apply(a.content_here(entries(1)));
         a.handle(Action::Recommendations, 20);
         assert!(!a.nav.has_overlay());
-        assert!(a.toasts.iter().any(|t| t.text.contains("from the title's page")));
+        assert!(a.toasts.iter().any(|t| t.notice.text.contains("from the title's page")));
     }
 
     #[test]
@@ -8545,7 +8579,7 @@ mod tests {
             a.toasts.clear();
             assert_eq!(a.handle(action, 20), None);
             assert!(!a.nav.has_overlay(), "{action:?} offered a picker that goes nowhere");
-            let said = &a.toasts.last().expect("nothing said").text;
+            let said = &a.toasts.last().expect("nothing said").notice.text;
             assert!(said.contains("none is signed in") && said.contains(":accounts"), "{said}");
         }
     }
@@ -8559,7 +8593,7 @@ mod tests {
         a.apply(a.content_here(entries(3)));
         a.handle(Action::SetListStatus, 20);
         a.handle(Action::Open, 20);
-        let said = &a.toasts.last().unwrap().text;
+        let said = &a.toasts.last().unwrap().notice.text;
         assert!(said.ends_with("queued for anilist, mal"), "{said}");
     }
 
@@ -8569,14 +8603,14 @@ mod tests {
         a.apply(Update::Sync(Box::new(connected(0))));
         assert_eq!(a.handle(Action::RateTitle, 20), None);
         assert!(!a.nav.has_overlay());
-        assert!(a.toasts.iter().any(|t| t.text.contains("nothing selected")));
+        assert!(a.toasts.iter().any(|t| t.notice.text.contains("nothing selected")));
     }
 
     #[test]
     fn a_resync_with_no_tracker_says_so_rather_than_doing_nothing() {
         let mut a = app();
         assert_eq!(a.handle(Action::ForceResync, 20), None);
-        assert!(a.toasts.iter().any(|t| t.text.contains("no tracker")));
+        assert!(a.toasts.iter().any(|t| t.notice.text.contains("no tracker")));
 
         a.apply(Update::Sync(Box::new(connected(0))));
         assert_eq!(a.handle(Action::ForceResync, 20), Some(Task::SyncNow));
@@ -9088,7 +9122,9 @@ mod tests {
         }]));
         assert_eq!(a.handle(Action::HideFromContinue, 5), None);
         assert!(
-            a.toasts.iter().any(|t| t.text == "already downloaded — X deletes it and its file"),
+            a.toasts
+                .iter()
+                .any(|t| t.notice.text == "already downloaded — X deletes it and its file"),
             "{:?}",
             a.toasts
         );
@@ -9115,7 +9151,7 @@ mod tests {
         // A row never opened has no relations, recommendations or trailer to go on, so
         // "none known for this title" there was a guess. `m` and `P` already say where to go.
         let mut a = home_list(3);
-        let last = |a: &App| a.toasts.last().map(|t| t.text.clone()).unwrap_or_default();
+        let last = |a: &App| a.toasts.last().map(|t| t.notice.text.clone()).unwrap_or_default();
         for (action, said) in [
             (Action::WatchOrder, "connected seasons are listed from the title's page"),
             (Action::Recommendations, "recommendations are listed from the title's page"),
@@ -9502,7 +9538,7 @@ mod tests {
         let mut a = app();
         a.handle(Action::Filter, 10);
         assert!(!a.nav.has_overlay());
-        assert!(a.toasts.iter().any(|t| t.text.contains("filters live")));
+        assert!(a.toasts.iter().any(|t| t.notice.text.contains("filters live")));
     }
 
     #[test]
@@ -9640,9 +9676,9 @@ mod tests {
     fn a_toast_already_up_is_refreshed_rather_than_counted_twice() {
         let mut a = app();
         for text in ["saved", "saved", "queued", "saved"] {
-            a.push_toast(Toast::info(text));
+            a.push_toast(Notice::info(text));
         }
-        let up: Vec<&str> = a.toasts.iter().map(|t| t.text.as_str()).collect();
+        let up: Vec<&str> = a.toasts.iter().map(|t| t.notice.text.as_str()).collect();
         assert_eq!(up, ["queued", "saved"], "one of each, the repeat newest");
         // The log keeps every arrival, a run of repeats as one counted line.
         let logged: Vec<(&str, u32)> =
@@ -9656,7 +9692,7 @@ mod tests {
         // fails the *first* error is usually the one that explains the rest.
         let mut a = app();
         for i in 0..5 {
-            a.push_toast(Toast::alert(format!("failure {i}")));
+            a.push_toast(Notice::alert(format!("failure {i}")));
         }
         assert_eq!(a.toasts.len(), 3, "the stack is still capped");
         assert_eq!(a.logs.len(), 5, "but nothing was lost");
@@ -9764,7 +9800,7 @@ mod tests {
         let mut a = app();
         a.handle(Action::ToggleTranslation, 10);
         assert_eq!(setting_text(&a, SettingId::Translation), "sub · dub this session");
-        assert!(a.toasts.last().unwrap().text.contains("for this session"));
+        assert!(a.toasts.last().unwrap().notice.text.contains("for this session"));
 
         // The arrows change the saved value, the one the row leads with.
         let mut a = settings_at(SettingId::Translation);
@@ -9824,7 +9860,7 @@ mod tests {
         assert_eq!(a.handle(Action::Right, 10), None);
         assert_eq!(format!("{:?}", a.config.providers.torrent.vpn.mode), before);
         assert!(
-            a.toasts.iter().any(|t| t.text.contains("config.toml")),
+            a.toasts.iter().any(|t| t.notice.text.contains("config.toml")),
             "a read-only row must explain itself"
         );
     }
@@ -10211,10 +10247,10 @@ mod tests {
     fn toasts_expire_and_never_stack_beyond_three() {
         let mut a = app();
         for i in 0..6 {
-            a.push_toast(Toast::info(format!("message {i}")));
+            a.push_toast(Notice::info(format!("message {i}")));
         }
         assert_eq!(a.toasts.len(), 3, "a burst of failures must not cover the screen");
-        assert!(a.toasts[0].text.contains('3'), "oldest are dropped first");
+        assert!(a.toasts[0].notice.text.contains('3'), "oldest are dropped first");
 
         for _ in 0..200 {
             a.tick_toasts();
@@ -10224,7 +10260,10 @@ mod tests {
 
     #[test]
     fn alerts_stay_up_longer_than_info() {
-        assert!(Toast::alert("provider down").ttl > Toast::info("switched").ttl);
+        assert!(
+            Toast::from(Notice::alert("provider down")).ttl
+                > Toast::from(Notice::info("switched")).ttl
+        );
     }
 
     #[test]
@@ -10233,7 +10272,7 @@ mod tests {
         let mut a = app();
         a.handle(Action::WatchOrder, 10);
         assert_eq!(a.toasts.len(), 1);
-        assert!(a.toasts[0].text.contains("nothing selected"));
+        assert!(a.toasts[0].notice.text.contains("nothing selected"));
     }
 
     #[test]
@@ -10265,7 +10304,7 @@ mod tests {
         let before = a.config.playback.translation;
         a.handle(Action::ToggleTranslation, 10);
         assert_ne!(a.config.playback.translation, before);
-        assert!(a.toasts[0].text.contains("dub"));
+        assert!(a.toasts[0].notice.text.contains("dub"));
     }
 
     #[test]
@@ -10282,7 +10321,11 @@ mod tests {
         a.handle(Action::Back, 10);
         a.handle(Action::Back, 10);
         assert!(!a.should_quit, "back must never quit");
-        assert!(a.toasts.iter().any(|t| t.text == "at the top — Q quits"), "{:?}", a.toasts);
+        assert!(
+            a.toasts.iter().any(|t| t.notice.text == "at the top — Q quits"),
+            "{:?}",
+            a.toasts
+        );
         // Said once and gone: written to the status line, it stood in for the state line there
         // for the rest of the session.
         assert!(a.status.is_empty(), "the status line keeps its state: {:?}", a.status);
@@ -10300,7 +10343,7 @@ mod tests {
         assert!(a.keymap.apply_overrides(&keys).is_empty());
         a.handle(Action::Back, 10);
         assert!(
-            a.toasts.iter().any(|t| t.text == "at the top — ctrl+q quits"),
+            a.toasts.iter().any(|t| t.notice.text == "at the top — ctrl+q quits"),
             "{:?}",
             a.toasts
         );
@@ -10310,11 +10353,11 @@ mod tests {
     fn a_repeated_toast_is_kept_up_rather_than_stacked() {
         let mut a = app();
         for _ in 0..5 {
-            a.push_toast(Toast::info("saved quality"));
+            a.push_toast(Notice::info("saved quality"));
         }
         assert_eq!(a.toasts.len(), 1, "one message, said once");
         assert_eq!(a.logs[0].count, 5, "the log still counts every one");
-        a.push_toast(Toast::info("saved theme"));
+        a.push_toast(Notice::info("saved theme"));
         assert_eq!(a.toasts.len(), 2);
     }
 

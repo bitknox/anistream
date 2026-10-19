@@ -165,7 +165,7 @@ fn alerts(updates: &[Update]) -> Vec<String> {
     updates
         .iter()
         .filter_map(|u| match u {
-            Update::Toast(toast) if toast.kind == anistream_ui::app::ToastKind::Alert => {
+            Update::Toast(toast) if toast.kind == anistream_ui::app::NoticeKind::Alert => {
                 Some(toast.text.clone())
             }
             _ => None,

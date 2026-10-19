@@ -9,7 +9,7 @@
 use std::path::{Path, PathBuf};
 
 use anistream_net::HttpClient;
-use anistream_ui::{Toast, Update};
+use anistream_ui::{Notice, Update};
 use anyhow::{Context, Result, bail};
 use sha2::Digest;
 use tokio::sync::mpsc;
@@ -99,7 +99,7 @@ pub fn spawn_check(
         };
 
         if is_newer(&tag, CURRENT) {
-            let _ = tx.send(Update::Toast(Toast::info(format!(
+            let _ = tx.send(Update::Toast(Notice::info(format!(
                 "{tag} is available — run `anistream --update`"
             ))));
         }

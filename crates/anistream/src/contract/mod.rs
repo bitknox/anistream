@@ -21,7 +21,7 @@ mod title;
 mod watch;
 
 use anistream_core::ids::AnilistId;
-use anistream_ui::app::{Content, JobId, ToastKind, Update};
+use anistream_ui::app::{Content, JobId, NoticeKind, Update};
 
 use crate::harness::names;
 
@@ -42,8 +42,8 @@ pub const WITH_ANILIST: &str = "[trackers]\n\
 pub fn toast(update: &Update) -> Option<String> {
     let Update::Toast(toast) = update else { return None };
     let kind = match toast.kind {
-        ToastKind::Info => "info",
-        ToastKind::Alert => "alert",
+        NoticeKind::Info => "info",
+        NoticeKind::Alert => "alert",
     };
     Some(format!("{kind}: {}", toast.text))
 }

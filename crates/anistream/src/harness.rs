@@ -45,7 +45,7 @@ use anistream_track::{
 };
 use anistream_ui::{
     Clock, Zone,
-    app::{App, JobId, Task, Toast, Update},
+    app::{App, JobId, Notice, Task, Update},
     image::ImageEngine,
     keymap::{Action, Keymap},
     screens, theme,
@@ -191,7 +191,7 @@ impl Harness {
             App::with_images(config.clone(), palette, keymap, ImageEngine::disabled());
         app.clock = Clock::fixed(options.now, zone());
         for problem in problems {
-            app.push_toast(Toast::alert(format!("keybinding not applied: {problem}")));
+            app.push_toast(Notice::alert(format!("keybinding not applied: {problem}")));
         }
         app.saved_config = Config::load(&paths).unwrap_or_default();
         if let Some(problem) = &problem {
@@ -199,7 +199,7 @@ impl Harness {
         }
         match stores.rows() {
             Ok(rows) => app.apply(Update::Stores(rows)),
-            Err(e) => app.apply(Update::Toast(Toast::alert(e))),
+            Err(e) => app.apply(Update::Toast(Notice::alert(e))),
         }
         // As `--preview` has them: the rows the plugin load's reorder puts up a moment in.
         app.apply(Update::Providers(data::provider_rows(&registry)));
@@ -429,7 +429,7 @@ impl Harness {
         }
         if let Some(notice) = self.meta.take_notice() {
             self.apply(Update::MetaStatus(data::meta_rows(&self.meta)), seen);
-            self.apply(Update::Toast(Toast::info(notice)), seen);
+            self.apply(Update::Toast(Notice::info(notice)), seen);
         }
         if matches!(
             update,

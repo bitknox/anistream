@@ -18,7 +18,7 @@ pub mod theme;
 pub mod widgets;
 
 pub use app::{
-    App, ConflictRow, Content, Entry, LibrarySegment, MatchCandidate, NowPlaying,
+    App, ConflictRow, Content, Entry, LibrarySegment, MatchCandidate, Notice, NowPlaying,
     PlayerCommand, SyncState, Task, Toast, Update,
 };
 pub use clock::{Clock, Zone};

@@ -10,8 +10,8 @@ use ratatui::{
 
 use crate::{
     app::{
-        App, Content, Entry, LibrarySegment, PluginChoice, StoreConfirm, StoreLine,
-        StorePluginStatus, StoreRow, StoreState, ToastKind,
+        App, Content, Entry, LibrarySegment, NoticeKind, PluginChoice, StoreConfirm, StoreLine,
+        StorePluginStatus, StoreRow, StoreState,
     },
     clock::Clock,
     keymap::status_hints,
@@ -3074,9 +3074,9 @@ fn render_toasts(buf: &mut Buffer, app: &App, rule: Rect, from: u16) {
     if rule.height == 0 {
         return;
     }
-    let role = match toast.kind {
-        ToastKind::Info => Role::State,
-        ToastKind::Alert => Role::Alert,
+    let role = match toast.notice.kind {
+        NoticeKind::Info => Role::State,
+        NoticeKind::Alert => Role::Alert,
     };
     let more = match app.toasts.len() - 1 {
         0 => String::new(),
@@ -3088,7 +3088,7 @@ fn render_toasts(buf: &mut Buffer, app: &App, rule: Rect, from: u16) {
     if room < 8 {
         return;
     }
-    let text = truncate(&toast.text, room);
+    let text = truncate(&toast.notice.text, room);
     let width = chrome - 1 + text.chars().count() as u16;
     let x = rule.right().saturating_sub(width + 1);
     let y = rule.top();
@@ -3810,8 +3810,8 @@ fn log_rows(app: &App) -> Vec<(String, String)> {
         .map(|row| {
             // The marker carries severity, since this table's styling is driven by selection.
             let marker = match row.kind {
-                crate::app::ToastKind::Alert => glyph::STATE_DOWN,
-                crate::app::ToastKind::Info => glyph::STATE_UNKNOWN,
+                crate::app::NoticeKind::Alert => glyph::STATE_DOWN,
+                crate::app::NoticeKind::Info => glyph::STATE_UNKNOWN,
             };
             // A repeat shows as a count where a key would go, not as more lines.
             let count = if row.count > 1 { format!("×{}", row.count) } else { String::new() };
@@ -4316,11 +4316,11 @@ mod tests {
         let mut app = app_with(Content::Entries(vec![entry(1, "An Invented Show")]));
         app.notice =
             Some("config.toml line 5: unknown field `qualty` — running on defaults".into());
-        app.push_toast(crate::app::Toast::info("saved quality"));
+        app.push_toast(crate::app::Notice::info("saved quality"));
         for _ in 0..500 {
             app.tick_toasts();
         }
-        app.push_toast(crate::app::Toast::alert("a passing problem"));
+        app.push_toast(crate::app::Notice::alert("a passing problem"));
 
         for section in [Section::Home, Section::Settings, Section::Providers] {
             app.go_to_section(section);
@@ -4702,7 +4702,7 @@ mod tests {
 
         // And a newly-failing guard interrupts, because torrents have just been paused.
         assert!(
-            app.toasts.iter().any(|t| t.text.contains("paused")),
+            app.toasts.iter().any(|t| t.notice.text.contains("paused")),
             "a new leak must announce itself"
         );
     }
@@ -5430,7 +5430,7 @@ mod tests {
     #[test]
     fn toasts_appear_and_disappear() {
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
-        app.push_toast(crate::app::Toast::alert("provider unreachable"));
+        app.push_toast(crate::app::Notice::alert("provider unreachable"));
         assert!(text_of(&render_to_buffer(&app, 120, 30)).contains("provider unreachable"));
 
         for _ in 0..300 {
@@ -6022,7 +6022,7 @@ mod tests {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Settings);
         let before = lines_of(&app, 80, 24);
-        app.push_toast(crate::app::Toast::info("saved · counts as watched at"));
+        app.push_toast(crate::app::Notice::info("saved · counts as watched at"));
         let after = lines_of(&app, 80, 24);
         let rule = after.len() - 2;
         assert!(after[rule].contains("saved · counts as watched at"), "{after:#?}");
@@ -6032,7 +6032,7 @@ mod tests {
             }
         }
         // More than one up: the newest, and how many others.
-        app.push_toast(crate::app::Toast::alert("source unreachable"));
+        app.push_toast(crate::app::Notice::alert("source unreachable"));
         let rule_line = lines_of(&app, 80, 24)[rule].clone();
         assert!(rule_line.contains("source unreachable  +1"), "{rule_line}");
     }

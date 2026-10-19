@@ -35,9 +35,9 @@ use anistream_ui::{
     Overlay, Palette, Role, SyncState, Task, Update, Zone,
     app::{
         DeviceCodePrompt, DownloadRow, EpisodeRow, InviteLinkView, JobId, LocalPluginRow,
-        MetaSourceRow, ProviderRow, RelatedTitle, ResumePoint, Secret, SeedRow, StoreInviteRow,
-        StoreMemberRow, StorePluginRow, StorePluginStatus, StorePreview, StoreRow, StoreState,
-        Toast,
+        MetaSourceRow, Notice, ProviderRow, RelatedTitle, ResumePoint, Secret, SeedRow,
+        StoreInviteRow, StoreMemberRow, StorePluginRow, StorePluginStatus, StorePreview,
+        StoreRow, StoreState,
     },
     eyecatch::{FRAME_MS, QUIET_HOLD_FRAMES, SWEEP_FRAMES},
     screens::{render_to_buffer, visible_rows},
@@ -1246,8 +1246,8 @@ fn activity_and_toasts(s: &mut Screen) {
         until: Some(until),
     });
     s.wait(Duration::from_millis(900));
-    s.apply(Update::Toast(Toast::info("saved upscaling")));
-    s.apply(Update::Toast(Toast::alert("tsubame: search timed out after 8 s")));
+    s.apply(Update::Toast(Notice::info("saved upscaling")));
+    s.apply(Update::Toast(Notice::alert("tsubame: search timed out after 8 s")));
 }
 
 // ── Overlays ───────────────────────────────────────────────────────────────────────────────────
@@ -1362,13 +1362,13 @@ fn search_filters(s: &mut Screen) {
 fn logs(s: &mut Screen) {
     continue_watching(s);
     for toast in [
-        Toast::info("saved upscaling"),
-        Toast::alert("cover unavailable"),
-        Toast::alert("cover unavailable"),
-        Toast::alert("cover unavailable"),
-        Toast::alert("tsubame: search timed out after 8 s"),
-        Toast::info("now using dub for this session"),
-        Toast::info("resumed at 13:32"),
+        Notice::info("saved upscaling"),
+        Notice::alert("cover unavailable"),
+        Notice::alert("cover unavailable"),
+        Notice::alert("cover unavailable"),
+        Notice::alert("tsubame: search timed out after 8 s"),
+        Notice::info("now using dub for this session"),
+        Notice::info("resumed at 13:32"),
     ] {
         s.apply(Update::Toast(toast));
     }
@@ -1752,7 +1752,7 @@ fn episodes_no_source(s: &mut Screen) {
     s.list(vec![kaze(), hoshikuzu()]);
     s.press(&["j", "e"]);
     s.episodes(vec![]);
-    s.apply(Update::Toast(Toast::alert("no source could list episodes for this title")));
+    s.apply(Update::Toast(Notice::alert("no source could list episodes for this title")));
 }
 
 /// A source answered and listed nothing.

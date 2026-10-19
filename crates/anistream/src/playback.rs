@@ -22,7 +22,7 @@ use anistream_player::{
     skip,
 };
 use anistream_store::{Store, WatchEvent};
-use anistream_ui::app::{Ending, PlayerCommand, Successor, Toast, Update};
+use anistream_ui::app::{Ending, Notice, PlayerCommand, Successor, Update};
 use futures::StreamExt;
 use tokio::sync::mpsc;
 
@@ -505,8 +505,8 @@ pub async fn play(
         let player = ExternalPlayer::new();
         let request = PlaybackRequest { title: context.title.clone(), ..Default::default() };
         let update = match player.play(first, request).await {
-            Ok(()) => Update::Toast(Toast::info("opened in your browser")),
-            Err(e) => Update::Toast(Toast::alert(format!("could not open: {e}"))),
+            Ok(()) => Update::Toast(Notice::info("opened in your browser")),
+            Err(e) => Update::Toast(Notice::alert(format!("could not open: {e}"))),
         };
         let _ = tx.send(update);
         // Nothing plays here, so Now Playing comes down rather than waiting on a player that
@@ -637,7 +637,7 @@ pub async fn play(
             match mpv.spawn(&request).await {
                 Ok((session, events)) => player = Some(Player::new(session, events)),
                 Err(e) if last => {
-                    let _ = tx.send(Update::Toast(Toast::alert(format!("mpv: {e}"))));
+                    let _ = tx.send(Update::Toast(Notice::alert(format!("mpv: {e}"))));
                     // The player never existed, but the UI has Now Playing up and a control
                     // surface pointed at it. Saying so is what takes them down.
                     let _ = tx
@@ -720,7 +720,7 @@ pub async fn play(
                     // fails over — in the same window — unless the viewer stopped it or closed
                     // the window themselves, which is an instruction, not a failure.
                     tracing::warn!(url = %stream.url, ?reported, "no frames; trying the next stream");
-                    let _ = tx.send(Update::Toast(Toast::info(format!(
+                    let _ = tx.send(Update::Toast(Notice::info(format!(
                         "no video from that stream — trying {} of {total}",
                         attempt + 1
                     ))));
@@ -767,7 +767,7 @@ pub async fn play(
                         }
                     };
                     tracing::warn!(%message, url = %stream.url, "playback produced no frames");
-                    let _ = tx.send(Update::Toast(Toast::alert(message)));
+                    let _ = tx.send(Update::Toast(Notice::alert(message)));
                 }
 
                 // Exactly one ending per playback, sent only now that this attempt is known to
@@ -809,7 +809,7 @@ fn hand_to_syncplay(
     // Syncplay's no-gui mode refuses to start without a room, so asking first beats
     // spawning a process whose refusal we would have to fish out of its stderr.
     let Some(room) = syncplay.room.clone().filter(|r| !r.trim().is_empty()) else {
-        let _ = tx.send(Update::Toast(Toast::alert(
+        let _ = tx.send(Update::Toast(Notice::alert(
             "syncplay needs a room — set syncplay.room in config.toml",
         )));
         return;
@@ -831,7 +831,7 @@ fn hand_to_syncplay(
     match command.spawn() {
         Ok(mut child) => {
             let _ = tx
-                .send(Update::Toast(Toast::info(format!("handed to syncplay — room {room}"))));
+                .send(Update::Toast(Notice::info(format!("handed to syncplay — room {room}"))));
             // With stdio silenced, a failed start would otherwise be a party that
             // just never happens. Watch the exit instead: quiet on success, a toast
             // naming the failure whenever it dies unhappy.
@@ -840,14 +840,14 @@ fn hand_to_syncplay(
                 if let Ok(status) = child.wait()
                     && !status.success()
                 {
-                    let _ = tx.send(Update::Toast(Toast::alert(format!(
+                    let _ = tx.send(Update::Toast(Notice::alert(format!(
                         "syncplay exited with {status} — check server and room in config.toml"
                     ))));
                 }
             });
         }
         Err(e) => {
-            let _ = tx.send(Update::Toast(Toast::alert(format!(
+            let _ = tx.send(Update::Toast(Notice::alert(format!(
                 "syncplay would not start: {e} — is it installed?"
             ))));
         }
@@ -1124,7 +1124,7 @@ impl Run<'_> {
                 // Only armed until the first frame arrives, so this cannot fire mid-episode
                 // during a legitimate pause — mpv keeps reporting `time-pos` while paused.
                 _ = tokio::time::sleep(FIRST_FRAME_TIMEOUT), if !ever_played && !warned => {
-                    let _ = tx.send(Update::Toast(Toast::alert(format!(
+                    let _ = tx.send(Update::Toast(Notice::alert(format!(
                         "mpv has not started playing after {}s — press x to stop; the source may have no data, or check `mpv` plays a file on its own",
                         FIRST_FRAME_TIMEOUT.as_secs()
                     ))));
@@ -1503,7 +1503,7 @@ impl Run<'_> {
             (Some(refusal), _) => {
                 // Said where the key was pressed.
                 if from_terminal {
-                    let _ = self.tx.send(Update::Toast(Toast::info(refusal.to_lowercase())));
+                    let _ = self.tx.send(Update::Toast(Notice::info(refusal.to_lowercase())));
                 } else {
                     let _ = session.notify(refusal).await;
                 }
