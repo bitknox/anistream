@@ -6,7 +6,7 @@
 
 use anistream_meta::anilist::{AiringEntry, Media};
 use anistream_store::Store;
-use anistream_ui::app::{Entry, EpisodeRow, ProviderRow};
+use anistream_ui::app::{Entry, EpisodeKind, EpisodeRow, ProviderRow};
 
 /// Convert a title into the UI's flattened projection.
 pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
@@ -293,7 +293,7 @@ pub fn episode_rows_with_filler(
                 .zip(episode.number.as_number())
                 .and_then(|(list, n)| {
                     let n = n as u32;
-                    list.kind_of(n).map(|kind| (kind.label(), kind.is_skippable()))
+                    list.kind_of(n).map(|kind| (row_kind(kind), kind.is_skippable()))
                 })
                 // The source's own claim, where the index has no answer. Only a positive claim
                 // counts: `Some(false)` is a catalogue asserting canon, which needs no column,
@@ -307,7 +307,8 @@ pub fn episode_rows_with_filler(
                 // is about position in a run and it has none.
                 .or_else(|| {
                     let opener = episode.number.as_number().is_some_and(|n| n <= 1.0);
-                    (!opener && episode.filler == Some(true)).then_some(("filler", true))
+                    (!opener && episode.filler == Some(true))
+                        .then_some((EpisodeKind::Filler, true))
                 });
 
             EpisodeRow {
@@ -324,6 +325,17 @@ pub fn episode_rows_with_filler(
             }
         })
         .collect()
+}
+
+/// The filler index's kind of episode, as the row has it.
+fn row_kind(kind: anistream_meta::filler::EpisodeKind) -> EpisodeKind {
+    use anistream_meta::filler::EpisodeKind as Index;
+    match kind {
+        Index::MangaCanon => EpisodeKind::Canon,
+        Index::MixedCanonFiller => EpisodeKind::Mixed,
+        Index::Filler => EpisodeKind::Filler,
+        Index::AnimeCanon => EpisodeKind::AnimeCanon,
+    }
 }
 
 /// An episode title as it should read, from wherever it was listed.
@@ -355,6 +367,15 @@ mod naming_tests {
         std::collections::BTreeMap::new()
     }
 
+    #[test]
+    fn every_kind_the_filler_index_knows_reads_as_the_index_words_it() {
+        for kind in anistream_meta::filler::EpisodeKind::ALL {
+            let shown = anistream_ui::screens::episode_kind_label(row_kind(kind));
+            assert_eq!(shown, kind.label(), "{kind:?}");
+        }
+        assert_eq!(anistream_ui::screens::episode_kind_label(EpisodeKind::Filler), "filler");
+    }
+
     /// Reported as "episode 1 is always being marked as filler". The catalogue in use claims it
     /// for the opening episode of some shows, which cannot be true of a first episode.
     #[test]
@@ -370,9 +391,13 @@ mod naming_tests {
 
         assert_eq!(rows[0].kind, None, "a series cannot open with filler");
         assert!(!rows[0].skippable, "and must never be skipped past");
-        assert_eq!(rows[1].kind, Some("filler"), "a later claim is still honoured");
+        assert_eq!(rows[1].kind, Some(EpisodeKind::Filler), "a later claim is still honoured");
         assert!(rows[1].skippable);
-        assert_eq!(rows[2].kind, Some("filler"), "an unnumbered episode has no opening to be");
+        assert_eq!(
+            rows[2].kind,
+            Some(EpisodeKind::Filler),
+            "an unnumbered episode has no opening to be"
+        );
     }
 
     #[test]

@@ -1013,18 +1013,31 @@ pub struct EpisodeRow {
     /// How far through this episode the local history says we are.
     pub watched: f64,
     pub completed: bool,
-    /// `filler`, `mixed`, `canon` — from AnimeFillerList, when the show is covered.
+    /// Filler, mixed or canon — from AnimeFillerList, when the show is covered.
     ///
     /// `None` means unknown, which is the common case: most shows have no filler and are not in the
     /// index at all. Rendered only when present, so an uncovered show shows no column rather than a
     /// column of blanks.
-    pub kind: Option<&'static str>,
+    pub kind: Option<EpisodeKind>,
     /// Whether offering to skip this whole episode is reasonable.
     ///
     /// Only pure filler. `mixed` episodes contain filler *and* canon, so skipping one loses story —
     /// the distinction is the whole reason this is a separate field rather than `kind == "filler"`
     /// at every call site.
     pub skippable: bool,
+}
+
+/// What an episode is to the story, by the filler index or the source's own claim.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EpisodeKind {
+    /// Adapted from the source material.
+    Canon,
+    /// Canon with filler padding: labelled, never skipped, since skipping loses story.
+    Mixed,
+    /// Anime-original padding, the one kind worth offering to skip.
+    Filler,
+    /// Anime-original, but canon within the anime's own continuity.
+    AnimeCanon,
 }
 
 impl EpisodeRow {
@@ -7683,7 +7696,7 @@ mod tests {
         for list in [&mut a.episodes, &mut a.episodes_all] {
             for i in [1, 2] {
                 list[i].skippable = true;
-                list[i].kind = Some("filler");
+                list[i].kind = Some(EpisodeKind::Filler);
             }
         }
         a.handle(Action::Open, 20); // plays ep 1

@@ -10,8 +10,9 @@ use ratatui::{
 
 use crate::{
     app::{
-        App, Content, DownloadState, Entry, LibrarySegment, NoticeKind, PluginChoice,
-        StoreConfirm, StoreLine, StorePluginStatus, StoreRow, StoreState, sync_badge,
+        App, Content, DownloadState, Entry, EpisodeKind, LibrarySegment, NoticeKind,
+        PluginChoice, StoreConfirm, StoreLine, StorePluginStatus, StoreRow, StoreState,
+        sync_badge,
     },
     clock::Clock,
     keymap::status_hints,
@@ -1661,8 +1662,18 @@ fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
             // Only skippable filler earns the alert role. `mixed` is labelled but not coloured,
             // because it is information rather than a suggestion — skipping it loses story.
             let role = if episode.skippable { Role::Alert } else { Role::TextDim };
-            buf.set_string(tail_x, y, kind, app.palette.style(role));
+            buf.set_string(tail_x, y, episode_kind_label(kind), app.palette.style(role));
         }
+    }
+}
+
+/// What the episode table calls a kind of episode.
+pub fn episode_kind_label(kind: EpisodeKind) -> &'static str {
+    match kind {
+        EpisodeKind::Canon => "canon",
+        EpisodeKind::Mixed => "mixed",
+        EpisodeKind::Filler => "filler",
+        EpisodeKind::AnimeCanon => "anime canon",
     }
 }
 

@@ -34,9 +34,9 @@ use anistream_ui::{
     Action, App, Clock, ConflictRow, Content, Entry, Keymap, LibrarySegment, MatchCandidate,
     Overlay, Palette, Role, SyncState, Task, Update, Zone,
     app::{
-        DeviceCodePrompt, DownloadRow, DownloadState, EpisodeRow, InviteLinkView, JobId,
-        LocalPluginRow, MetaSourceRow, Notice, ProviderRow, RelatedTitle, ResumePoint, Secret,
-        SeedRow, StoreInviteRow, StoreMemberRow, StorePluginRow, StorePluginStatus,
+        DeviceCodePrompt, DownloadRow, DownloadState, EpisodeKind, EpisodeRow, InviteLinkView,
+        JobId, LocalPluginRow, MetaSourceRow, Notice, ProviderRow, RelatedTitle, ResumePoint,
+        Secret, SeedRow, StoreInviteRow, StoreMemberRow, StorePluginRow, StorePluginStatus,
         StorePreview, StoreRow, StoreState,
     },
     eyecatch::{FRAME_MS, QUIET_HOLD_FRAMES, SWEEP_FRAMES},
@@ -1094,8 +1094,8 @@ fn watched(row: EpisodeRow) -> EpisodeRow {
     EpisodeRow { watched: 1.0, completed: true, ..row }
 }
 
-fn kind(row: EpisodeRow, kind: &'static str) -> EpisodeRow {
-    EpisodeRow { kind: Some(kind), skippable: kind == "filler", ..row }
+fn kind(row: EpisodeRow, kind: EpisodeKind) -> EpisodeRow {
+    EpisodeRow { kind: Some(kind), skippable: kind == EpisodeKind::Filler, ..row }
 }
 
 /// Hoshikuzu no Tabibito's twelve episodes: three watched, the fourth part-way, a mixed and a
@@ -1119,8 +1119,8 @@ fn hoshikuzu_episodes() -> Vec<EpisodeRow> {
             )
         },
         still(episode(5, "Rain on the Rails"), "Rain on a world that has never had rain."),
-        kind(episode(6, "Two Letters, One Name"), "mixed"),
-        kind(episode(7, "The Festival of Small Stars"), "filler"),
+        kind(episode(6, "Two Letters, One Name"), EpisodeKind::Mixed),
+        kind(episode(7, "The Festival of Small Stars"), EpisodeKind::Filler),
         episode(8, "Where the Road Ends"),
         episode(9, "Postmarked Yesterday"),
         episode(10, "The Comet's Wake"),
@@ -1152,9 +1152,9 @@ fn episodes_long_filtered(s: &mut Screen) {
             match n {
                 1..=6 => watched(row),
                 7 => EpisodeRow { watched: 0.21, ..row },
-                20..=24 => kind(row, "filler"),
-                25 => kind(row, "mixed"),
-                _ => kind(row, "canon"),
+                20..=24 => kind(row, EpisodeKind::Filler),
+                25 => kind(row, EpisodeKind::Mixed),
+                _ => kind(row, EpisodeKind::Canon),
             }
         })
         .collect();
