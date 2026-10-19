@@ -1,10 +1,15 @@
-//! Wiring: the parts of the binary that are worth exercising on their own.
+//! The engine: the work behind the front ends, with no terminal in it.
 //!
-//! The binary keeps its terminal setup and event loop; everything that talks to the outside
-//! world on behalf of the UI lives here, so an example or an integration test can drive the
-//! *real* orchestration rather than a copy of it. That distinction matters most for
-//! [`playback`], where the thing being verified — a torrent stream reaching mpv and the
-//! resulting position landing in SQLite — cannot be covered by unit tests at all.
+//! Everything that talks to the outside world on the interface's behalf lives here: playback
+//! and the player, sources and their plugins, sync with the trackers, downloads, artwork, plugin
+//! stores and the background jobs. The terminal front end keeps its terminal setup and event
+//! loop in the binary. No terminal crate is a dependency, not even transitively, so a front end
+//! that is not a terminal can link this; `tools/check-boundaries.sh` holds it to that in CI.
+//!
+//! An example or an integration test drives the *real* orchestration here rather than a copy of
+//! it. That matters most for [`playback`], where the thing being verified — a torrent stream
+//! reaching mpv and the resulting position landing in SQLite — cannot be covered by unit tests
+//! at all.
 
 /// Configuration shared with the long-running background tasks.
 ///

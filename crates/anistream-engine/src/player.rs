@@ -1,6 +1,6 @@
 //! The mpv player as the app builds it, from the configuration as it stands now.
 //!
-//! In the library rather than the binary so the preview example and the tests build exactly
+//! In the engine rather than the binary so the preview example and the tests build exactly
 //! the player a playback gets.
 
 use anistream_core::config::{Config, Paths};

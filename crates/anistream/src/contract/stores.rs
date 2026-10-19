@@ -2,8 +2,8 @@
 //!
 //! A task that changes what is joined or installed sends the rows as they now stand before it
 //! says what happened, so the screen behind the toast is already right. The store is served
-//! in-process from a temporary directory, as `tests/plugin_stores.rs` serves it; no plugin is
-//! built for these, so publishing and installing are seen refusing.
+//! in-process from a temporary directory, as the engine's `tests/plugin_stores.rs` serves it; no
+//! plugin is built for these, so publishing and installing are seen refusing.
 
 use std::sync::Arc;
 

@@ -9,7 +9,7 @@
 //!
 //! Grouped by feature: the lists and loads, a title's page and its sources, settings, watching
 //! and the trackers, downloads, plugin stores, and the rules every job keeps. Playback is not
-//! here: it needs mpv, and `tests/binge.rs` covers it.
+//! here: it needs mpv, and the engine's `tests/binge.rs` covers it.
 
 mod downloads;
 mod jobs;

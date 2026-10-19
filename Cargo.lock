@@ -92,7 +92,6 @@ dependencies = [
  "anistream-track",
  "anistream-ui",
  "anyhow",
- "async-trait",
  "base64",
  "clap",
  "crossterm",
@@ -100,18 +99,15 @@ dependencies = [
  "image",
  "jiff",
  "open",
- "rand 0.10.2",
  "ratatui",
  "rlimit",
  "serde_json",
  "sha2 0.10.9",
  "tempfile",
- "thiserror 2.0.19",
  "tokio",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
- "wreq",
 ]
 
 [[package]]
