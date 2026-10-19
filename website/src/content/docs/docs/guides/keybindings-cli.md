@@ -64,6 +64,12 @@ what it shows is what is actually bound, overrides included.
 | `c` | Clear finished downloads |
 | `X` | Delete a download and its file |
 
+**On the Providers screen**, `Enter` opens the plugin stores, and:
+
+| | |
+|---|---|
+| `K` / `J` | Move the selected source up / down the failover order |
+
 **While something is playing** a separate table takes priority, and it shadows some of the keys
 above — `L` seeks rather than opening the logs:
 

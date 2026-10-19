@@ -16,7 +16,7 @@ the store before using it, shows the store's name and key, and asks you to confi
 
 The store's page lists its plugins. Enter on one shows what it may contact before anything is
 installed. Installed plugins run as part of the `"plugins"` entry in `providers.order`, which is
-there by default.
+there by default; `K` on the Providers screen moves one ahead of the others.
 
 An invite link works once and expires after seven days. To use the same store on another computer,
 choose **link another device** on the store's page for a new link of your own.
