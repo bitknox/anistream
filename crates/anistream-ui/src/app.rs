@@ -1329,8 +1329,6 @@ pub enum Update {
     PlaybackVolume(f64),
     /// Which provider the current stream actually came from.
     ActiveProvider(String),
-    /// A key pressed inside the player window: step to an adjacent episode.
-    PlayerStepEpisode(i64),
     /// The player asked for an episode of what is playing: its Episodes menu, Up Next's
     /// "play now", N/P inside the window, or the terminal's n/N. `title` is the episode's name
     /// from the episode list the playback holds, which is that title's whatever is open here.
@@ -2243,13 +2241,6 @@ impl App {
                         key: "night_mode",
                         value: anistream_core::settings::SettingValue::Bool(on),
                     });
-                }
-            }
-            Update::PlayerStepEpisode(delta) => {
-                // Same path the terminal's n/N keys take; `pending` because `apply` has
-                // no return channel, exactly like auto-next.
-                if let Some(task) = self.step_episode(delta) {
-                    self.pending = Some(task);
                 }
             }
             Update::PlaybackVolume(volume) => {
