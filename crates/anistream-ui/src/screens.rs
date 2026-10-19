@@ -10,8 +10,8 @@ use ratatui::{
 
 use crate::{
     app::{
-        App, Content, Entry, LibrarySegment, NoticeKind, PluginChoice, StoreConfirm, StoreLine,
-        StorePluginStatus, StoreRow, StoreState, sync_badge,
+        App, Content, DownloadState, Entry, LibrarySegment, NoticeKind, PluginChoice,
+        StoreConfirm, StoreLine, StorePluginStatus, StoreRow, StoreState, sync_badge,
     },
     clock::Clock,
     keymap::status_hints,
@@ -965,16 +965,16 @@ fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
 
         // A failure is the one state that gets the alert role: everything else is progress.
         let role = match row.state {
-            "failed" => Role::Alert,
-            "complete" => Role::State,
-            "paused" | "queued" => Role::TextDim,
-            _ => Role::Text,
+            DownloadState::Failed => Role::Alert,
+            DownloadState::Done => Role::State,
+            DownloadState::Paused | DownloadState::Queued => Role::TextDim,
+            DownloadState::Active => Role::Text,
         };
         if state_x < area.right() {
             buf.set_string(
                 state_x,
                 y,
-                truncate(row.state, (meter_x - state_x - 1) as usize),
+                truncate(download_state_label(row.state), (meter_x - state_x - 1) as usize),
                 app.palette.style(role),
             );
         }
@@ -1022,12 +1022,25 @@ fn download_note(app: &App, row: &crate::app::DownloadRow) -> String {
         return format!("  {} / {}", human_bytes(row.downloaded), human_bytes(row.total));
     }
     match row.state {
-        "downloading" => "  waiting for metadata".into(),
+        DownloadState::Active => "  waiting for metadata".into(),
         // Downloads come through the torrent session, so with torrents off a queued row will
         // never start. "waiting for metadata" said so forever.
-        "queued" if !app.config.providers.torrent.enabled => "  torrents are off".into(),
-        "queued" => "  waiting to start".into(),
+        DownloadState::Queued if !app.config.providers.torrent.enabled => {
+            "  torrents are off".into()
+        }
+        DownloadState::Queued => "  waiting to start".into(),
         _ => String::new(),
+    }
+}
+
+/// What a download's row calls the state it is in.
+pub fn download_state_label(state: DownloadState) -> &'static str {
+    match state {
+        DownloadState::Queued => "queued",
+        DownloadState::Active => "downloading",
+        DownloadState::Paused => "paused",
+        DownloadState::Done => "complete",
+        DownloadState::Failed => "failed",
     }
 }
 
@@ -1041,18 +1054,18 @@ fn download_detail(app: &App, row: &crate::app::DownloadRow) -> (String, Role) {
     }
     let text = match row.state {
         // Paused is not resolving anything: it stopped where the bytes say.
-        "paused" if row.total > 0 => format!(
+        DownloadState::Paused if row.total > 0 => format!(
             "paused at {} of {} — it carries on from there",
             human_bytes(row.downloaded),
             human_bytes(row.total)
         ),
-        "paused" => "paused before it started".into(),
-        "queued" if !app.config.providers.torrent.enabled => format!(
+        DownloadState::Paused => "paused before it started".into(),
+        DownloadState::Queued if !app.config.providers.torrent.enabled => format!(
             "downloads need torrents, which are off — press {} for Settings",
             app.section_key(Section::Settings)
         ),
-        "queued" => "queued — it starts when a download slot is free".into(),
-        "downloading" => "waiting for the torrent's metadata".into(),
+        DownloadState::Queued => "queued — it starts when a download slot is free".into(),
+        DownloadState::Active => "waiting for the torrent's metadata".into(),
         _ => String::new(),
     };
     (text, Role::TextDim)
@@ -5538,7 +5551,7 @@ mod tests {
             anilist_id: AnilistId::new(1),
             title: "Frieren".into(),
             episode: "5".into(),
-            state: "downloading",
+            state: DownloadState::Active,
             fraction: 0.5,
             downloaded: 700_000_000,
             total: 1_400_000_000,
@@ -5562,7 +5575,7 @@ mod tests {
             anilist_id: AnilistId::new(1),
             title: "Frieren".into(),
             episode: "5".into(),
-            state: "failed",
+            state: DownloadState::Failed,
             fraction: 0.0,
             downloaded: 0,
             total: 0,
@@ -5586,7 +5599,7 @@ mod tests {
                     anilist_id: AnilistId::new(1),
                     title: "Invented Show".into(),
                     episode: n.to_string(),
-                    state: "queued",
+                    state: DownloadState::Queued,
                     fraction: 0.0,
                     downloaded: 0,
                     total: 0,
@@ -6144,7 +6157,7 @@ mod tests {
     fn download(
         title: &str,
         episode: &str,
-        state: &'static str,
+        state: DownloadState,
         of: u64,
     ) -> crate::app::DownloadRow {
         crate::app::DownloadRow {
@@ -6167,9 +6180,9 @@ mod tests {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Downloads);
         app.apply(Update::Downloads(vec![
-            download(long, "4", "queued", 0),
-            download(long, "3", "paused", 1_468_000_000),
-            download(long, "2", "downloading", 0),
+            download(long, "4", DownloadState::Queued, 0),
+            download(long, "3", DownloadState::Paused, 1_468_000_000),
+            download(long, "2", DownloadState::Active, 0),
         ]));
         let lines = lines_of(&app, 80, 24);
         let text = lines.join("\n");
@@ -6210,7 +6223,7 @@ mod tests {
         {
             let mut app = app_with(Content::Empty);
             app.go_to_section(section);
-            app.apply(Update::Downloads(vec![download("Kite", "1", "queued", 0)]));
+            app.apply(Update::Downloads(vec![download("Kite", "1", DownloadState::Queued, 0)]));
             app.apply(Update::Sync(Box::new(crate::app::SyncState::new("kitsu"))));
             app.apply(Update::Providers(vec![provider("one", "ready", true, false)]));
             app.nav.focus_rail();

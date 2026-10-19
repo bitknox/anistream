@@ -52,17 +52,6 @@ impl DownloadState {
     pub const fn is_running(self) -> bool {
         matches!(self, Self::Queued | Self::Active)
     }
-
-    /// The label the Downloads screen shows.
-    pub const fn label(self) -> &'static str {
-        match self {
-            Self::Queued => "queued",
-            Self::Active => "downloading",
-            Self::Paused => "paused",
-            Self::Done => "complete",
-            Self::Failed => "failed",
-        }
-    }
 }
 
 /// One row of the queue.

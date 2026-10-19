@@ -390,12 +390,24 @@ pub fn to_row(download: &Download) -> anistream_ui::app::DownloadRow {
         anilist_id: download.anilist_id,
         title: download.title.clone(),
         episode: download.episode.clone(),
-        state: download.state.label(),
+        state: row_state(download.state),
         fraction: download.fraction(),
         downloaded: download.downloaded,
         total: download.total,
         error: download.error.clone(),
         path: download.path.clone(),
+    }
+}
+
+/// The queue's state for a download, as its row has it.
+fn row_state(state: DownloadState) -> anistream_ui::app::DownloadState {
+    use anistream_ui::app::DownloadState as Row;
+    match state {
+        DownloadState::Queued => Row::Queued,
+        DownloadState::Active => Row::Active,
+        DownloadState::Paused => Row::Paused,
+        DownloadState::Done => Row::Done,
+        DownloadState::Failed => Row::Failed,
     }
 }
 

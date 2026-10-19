@@ -17,7 +17,8 @@ use crate::harness::{Harness, Options, names};
 fn queue(update: &Update) -> Vec<String> {
     match update {
         Update::Downloads(rows) => {
-            rows.iter().map(|r: &DownloadRow| format!("{} {}", r.episode, r.state)).collect()
+            let state = |r: &DownloadRow| anistream_ui::screens::download_state_label(r.state);
+            rows.iter().map(|r: &DownloadRow| format!("{} {}", r.episode, state(r))).collect()
         }
         other => panic!("not the queue: {other:?}"),
     }
@@ -155,7 +156,7 @@ async fn queueing_a_failed_episode_again_retries_it_in_place() {
     assert_eq!(rows.len(), 1, "the same row, not a second one");
     assert_eq!(
         (rows[0].id, rows[0].state, rows[0].error.as_deref()),
-        (failed.id, "queued", None)
+        (failed.id, anistream_ui::app::DownloadState::Queued, None)
     );
     ends(&updates, job);
 }

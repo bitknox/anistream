@@ -34,10 +34,10 @@ use anistream_ui::{
     Action, App, Clock, ConflictRow, Content, Entry, Keymap, LibrarySegment, MatchCandidate,
     Overlay, Palette, Role, SyncState, Task, Update, Zone,
     app::{
-        DeviceCodePrompt, DownloadRow, EpisodeRow, InviteLinkView, JobId, LocalPluginRow,
-        MetaSourceRow, Notice, ProviderRow, RelatedTitle, ResumePoint, Secret, SeedRow,
-        StoreInviteRow, StoreMemberRow, StorePluginRow, StorePluginStatus, StorePreview,
-        StoreRow, StoreState,
+        DeviceCodePrompt, DownloadRow, DownloadState, EpisodeRow, InviteLinkView, JobId,
+        LocalPluginRow, MetaSourceRow, Notice, ProviderRow, RelatedTitle, ResumePoint, Secret,
+        SeedRow, StoreInviteRow, StoreMemberRow, StorePluginRow, StorePluginStatus,
+        StorePreview, StoreRow, StoreState,
     },
     eyecatch::{FRAME_MS, QUIET_HOLD_FRAMES, SWEEP_FRAMES},
     screens::{render_to_buffer, visible_rows},
@@ -810,7 +810,7 @@ fn library(s: &mut Screen) {
 fn downloads(s: &mut Screen) {
     settled_on(s, 6);
     let row =
-        |n: i64, title: &str, episode: &str, state: &'static str, done: u64, total: u64| {
+        |n: i64, title: &str, episode: &str, state: DownloadState, done: u64, total: u64| {
             DownloadRow {
                 id: n,
                 anilist_id: id(300 + n as u32),
@@ -825,16 +825,23 @@ fn downloads(s: &mut Screen) {
             }
         };
     s.apply(Update::Downloads(vec![
-        row(1, "Hoshikuzu no Tabibito", "4", "downloading", 512_300_000, 1_380_000_000),
-        row(2, "Hoshikuzu no Tabibito", "5", "queued", 0, 0),
-        row(3, "Kaze no Tegami", "9", "paused", 201_400_000, 1_120_000_000),
+        row(1, "Hoshikuzu no Tabibito", "4", DownloadState::Active, 512_300_000, 1_380_000_000),
+        row(2, "Hoshikuzu no Tabibito", "5", DownloadState::Queued, 0, 0),
+        row(3, "Kaze no Tegami", "9", DownloadState::Paused, 201_400_000, 1_120_000_000),
         DownloadRow {
             error: Some("the swarm went quiet — no peers for 10 minutes".into()),
-            ..row(4, "Yoru no Toshokan", "5", "failed", 88_200_000, 1_240_000_000)
+            ..row(4, "Yoru no Toshokan", "5", DownloadState::Failed, 88_200_000, 1_240_000_000)
         },
         DownloadRow {
             path: Some("/media/anime/Tsuki to Kujira no Uta/07.mkv".into()),
-            ..row(5, "Tsuki to Kujira no Uta", "7", "complete", 1_310_000_000, 1_310_000_000)
+            ..row(
+                5,
+                "Tsuki to Kujira no Uta",
+                "7",
+                DownloadState::Done,
+                1_310_000_000,
+                1_310_000_000,
+            )
         },
     ]));
     s.apply(Update::Seeding(vec![

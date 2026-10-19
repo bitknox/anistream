@@ -1154,6 +1154,7 @@ pub fn status_hints(app: &crate::app::App) -> Vec<(String, &'static str)> {
         // player's pause and stop while something plays — so they are named by whichever table
         // the keys are read from now, and only where the row can take them.
         V::Section(Section::Downloads) => {
+            use crate::app::DownloadState;
             let playing = app.playing.is_some();
             let (pause, cancel) = if playing {
                 (Action::PlayPause, Action::StopPlayback)
@@ -1162,13 +1163,15 @@ pub fn status_hints(app: &crate::app::App) -> Vec<(String, &'static str)> {
             };
             let clear = (Action::ClearCompleted, Action::ClearCompleted.hint());
             match app.downloads.get(app.selected).map(|row| row.state) {
-                Some("complete") => vec![
+                Some(DownloadState::Done) => vec![
                     clear,
                     (Action::DeleteDownload, Action::DeleteDownload.hint()),
                     (Action::Open, "play"),
                 ],
-                Some("failed") => vec![clear, (cancel, "cancel")],
-                Some("paused") => vec![clear, (cancel, "cancel"), (pause, "resume")],
+                Some(DownloadState::Failed) => vec![clear, (cancel, "cancel")],
+                Some(DownloadState::Paused) => {
+                    vec![clear, (cancel, "cancel"), (pause, "resume")]
+                }
                 Some(_) => vec![clear, (cancel, "cancel"), (pause, "pause")],
                 None => Vec::new(),
             }

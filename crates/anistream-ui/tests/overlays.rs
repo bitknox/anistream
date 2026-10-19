@@ -464,7 +464,7 @@ fn enter_is_named_for_what_it_does() {
         anilist_id: AnilistId::new(5),
         title: "Title".into(),
         episode: "1".into(),
-        state: "complete",
+        state: anistream_ui::app::DownloadState::Done,
         fraction: 1.0,
         downloaded: 2,
         total: 2,

@@ -664,7 +664,7 @@ pub struct DownloadRow {
     pub anilist_id: AnilistId,
     pub title: String,
     pub episode: String,
-    pub state: &'static str,
+    pub state: DownloadState,
     pub fraction: f64,
     pub downloaded: u64,
     pub total: u64,
@@ -673,6 +673,17 @@ pub struct DownloadRow {
     pub error: Option<String>,
     /// Where the file is, once it exists — so a finished download can be played.
     pub path: Option<String>,
+}
+
+/// Where a download is in its life, as its row has it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DownloadState {
+    /// Accepted, not started: the queue is bounded, so this lasts.
+    Queued,
+    Active,
+    Paused,
+    Done,
+    Failed,
 }
 
 /// One provider, as the Providers screen shows it.
@@ -2615,7 +2626,7 @@ impl App {
         let active = self
             .downloads
             .iter()
-            .filter(|d| matches!(d.state, "downloading" | "queued"))
+            .filter(|d| matches!(d.state, DownloadState::Active | DownloadState::Queued))
             .count() as u32;
         if active > 0 {
             counts.push((Section::Downloads, active));
@@ -3211,7 +3222,7 @@ impl App {
                     let row = self.downloads.get(self.selected)?;
                     // A finished download has nothing left to cancel. Cancelling it forgot the
                     // row and left the file on disk with no way back to it from here.
-                    if row.state == "complete" {
+                    if row.state == DownloadState::Done {
                         let delete = self.key_for(Action::DeleteDownload);
                         self.push_toast(Notice::info(format!(
                             "already downloaded — {delete} deletes it and its file"
@@ -3357,7 +3368,7 @@ impl App {
             Action::Open if self.in_downloads_stage() => {
                 let row = self.downloads.get(self.selected)?.clone();
                 match (&row.path, row.state) {
-                    (Some(path), "complete") => {
+                    (Some(path), DownloadState::Done) => {
                         // First-class playback: same staging, history and sync as a stream.
                         self.raise_now_playing_titled(
                             row.anilist_id,
@@ -3371,7 +3382,7 @@ impl App {
                             path: path.clone(),
                         });
                     }
-                    (_, "failed") => {
+                    (_, DownloadState::Failed) => {
                         // The reason is on the row; surfacing it is more use than a dead keypress.
                         let reason =
                             row.error.clone().unwrap_or_else(|| "no reason recorded".into());
@@ -9133,7 +9144,7 @@ mod tests {
             anilist_id: AnilistId::new(1),
             title: "Title 0".into(),
             episode: id.to_string(),
-            state: "downloading",
+            state: DownloadState::Active,
             fraction: 0.5,
             downloaded: 1,
             total: 2,
@@ -9162,7 +9173,7 @@ mod tests {
             anilist_id: AnilistId::new(1),
             title: "Title 0".into(),
             episode: "1".into(),
-            state: "complete",
+            state: DownloadState::Done,
             fraction: 1.0,
             downloaded: 2,
             total: 2,
