@@ -5,11 +5,13 @@
 //! is exactly where pause and cancel used to go missing.
 
 use anistream_core::{config::Config, ids::AnilistId};
-use anistream_ui::{
-    App, Command, Content, Entry, Event, Focus, Keymap, Palette, Section, StageView,
-    app::{DownloadRow, DownloadState},
-    keymap::status_hints,
+use anistream_model::{
+    catalog::{Content, Entry},
+    command::Command,
+    downloads::{DownloadRow, DownloadState},
+    event::Event,
 };
+use anistream_ui::{App, Focus, Keymap, Palette, Section, StageView, keymap::status_hints};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 /// Rows the stage shows; what the event loop passes as `visible_rows`.
@@ -127,7 +129,7 @@ fn settings_g_and_ctrl_d_reach_its_own_last_row() {
 fn title_keys_on_accounts_reach_no_title() {
     let mut a = home(5);
     press(&mut a, &["8"]);
-    a.apply(Event::Sync(Box::new(anistream_ui::SyncState::new("anilist"))));
+    a.apply(Event::Sync(Box::new(anistream_model::sync::SyncState::new("anilist"))));
     for k in ["a", "*", "e", " ", "d", "s", "o", "w"] {
         assert!(press(&mut a, &[k]).is_empty(), "{k} made work");
         assert!(!a.nav.has_overlay(), "{k} opened an overlay");

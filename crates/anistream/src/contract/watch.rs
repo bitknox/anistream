@@ -4,14 +4,13 @@
 //! Kitsu is on by default with no account behind it, and a queue for nobody would grow a badge
 //! nobody can clear. The queue goes out when the drain runs, never from the task itself.
 
+use anistream_model::{
+    catalog::LibrarySegment, command::Command, event::Event, sync::SyncState,
+};
 use anistream_testkit::{
     Operation,
     fixtures::{AIRING, FINISHED, FIXTURE_NOW},
     seed,
-};
-use anistream_ui::{
-    LibrarySegment,
-    app::{Command, Event, SyncState},
 };
 
 use super::{WITH_ANILIST, content, ends, ids, toasts};

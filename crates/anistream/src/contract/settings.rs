@@ -6,9 +6,9 @@
 //! `SourcesReordered` or `SourcesChanged` when it touched the chain.
 
 use anistream_core::settings::SettingValue;
+use anistream_model::{command::Command, event::Event};
 use anistream_providers::{MockProvider, ProviderRegistry};
 use anistream_testkit::sources;
-use anistream_ui::app::{Command, Event};
 
 use super::toasts;
 use crate::harness::{Harness, Options, names};

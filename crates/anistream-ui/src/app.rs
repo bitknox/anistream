@@ -7,6 +7,22 @@
 use std::time::{Duration, Instant};
 
 use anistream_core::{config::Config, ids::AnilistId, traits::SourceCandidate};
+use anistream_model::{
+    catalog::{Content, ContentFor, Entry, LibrarySegment, ResumePoint, SearchFilters},
+    command::{Command, PlayerCommand},
+    downloads::{DownloadRow, DownloadState, SeedRow},
+    episodes::EpisodeRow,
+    event::Event,
+    jobs::JobId,
+    notice::{Notice, NoticeKind},
+    playback::{Ending, SkipKind},
+    sources::{GuardView, MatchCandidate, MetaSourceRow, ProviderRow, order_with_source_moved},
+    stores::{
+        InviteLinkView, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
+        StorePluginStatus, StorePreview, StoreRow, StoreState,
+    },
+    sync::{ConflictRow, DeviceCodePrompt, SyncState},
+};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::{
@@ -16,27 +32,6 @@ use crate::{
     nav::{Focus, Nav, Overlay, Section, StageView},
     theme::{Palette, glyph},
 };
-
-// Moved to the model, which the work and every front end share. Re-exported from here until
-// every caller names them there.
-pub use anistream_model::catalog::{
-    Content, ContentFor, Entry, LibrarySegment, RelatedTitle, ResumePoint, SearchFilters,
-};
-pub use anistream_model::command::{Command, PlayerCommand};
-pub use anistream_model::downloads::{DownloadRow, DownloadState, SeedRow};
-pub use anistream_model::episodes::{EpisodeKind, EpisodeRow};
-pub use anistream_model::event::Event;
-pub use anistream_model::jobs::JobId;
-pub use anistream_model::notice::{Notice, NoticeKind};
-pub use anistream_model::playback::{Ending, SkipKind, Successor};
-pub use anistream_model::sources::{
-    GuardView, MatchCandidate, MetaSourceRow, ProviderRow, order_with_source_moved,
-};
-pub use anistream_model::stores::{
-    InviteLinkView, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
-    StorePluginStatus, StorePreview, StoreRow, StoreState,
-};
-pub use anistream_model::sync::{ConflictRow, DeviceCodePrompt, SyncState};
 
 /// A notice on screen, for as long as it stays.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -363,7 +358,7 @@ fn session_marked(saved: String, current: String) -> String {
 fn upload_label(kib: u32) -> String {
     match kib {
         0 => "unlimited".into(),
-        k => format!("{}/s", crate::widgets::human_bytes(u64::from(k) * 1024)),
+        k => format!("{}/s", anistream_model::wording::human_bytes(u64::from(k) * 1024)),
     }
 }
 
@@ -1526,7 +1521,10 @@ impl App {
                     let settle = self.key_for(Action::ShowConflicts);
                     self.push_toast(Notice::info(format!(
                         "{} — {settle} settles them",
-                        crate::widgets::plural(self.conflicts.len(), "sync disagreement")
+                        anistream_model::wording::plural(
+                            self.conflicts.len(),
+                            "sync disagreement"
+                        )
                     )));
                 }
             }
@@ -2616,7 +2614,7 @@ impl App {
                 self.apply_episode_filter();
                 self.push_toast(Notice::info(format!(
                     "marked {} watched",
-                    crate::widgets::plural(marked.len(), "episode")
+                    anistream_model::wording::plural(marked.len(), "episode")
                 )));
                 return Some(Command::SetWatched { id, episodes: marked, watched: true });
             }
@@ -4231,7 +4229,7 @@ impl App {
                 self.nav.close_overlay();
                 self.push_toast(Notice::info(format!(
                     "queueing {}…",
-                    crate::widgets::plural(episodes.len(), "episode")
+                    anistream_model::wording::plural(episodes.len(), "episode")
                 )));
                 return Some(Command::DownloadMany { id, episodes });
             }
@@ -5097,6 +5095,7 @@ pub const ACTIVITY_DELAY: Duration = Duration::from_millis(600);
 #[cfg(test)]
 mod tests {
     use super::*;
+    use anistream_model::{catalog::RelatedTitle, episodes::EpisodeKind};
 
     fn app() -> App {
         App::new(Config::default(), Palette::dark(), Keymap::new())

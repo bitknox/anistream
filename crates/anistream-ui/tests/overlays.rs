@@ -7,10 +7,16 @@
 use std::collections::BTreeMap;
 
 use anistream_core::{config::Config, ids::AnilistId};
+use anistream_model::{
+    catalog::{Content, Entry, ResumePoint},
+    command::Command,
+    episodes::EpisodeRow,
+    event::Event,
+    notice::Notice,
+    sync::SyncState,
+};
 use anistream_ui::{
-    App, Command, Content, Entry, Keymap, Overlay, Palette, Section, StageView,
-    app::{EpisodeRow, Event, Notice, NowPlaying, ResumePoint, SyncState},
-    keymap::status_hints,
+    App, Keymap, Overlay, Palette, Section, StageView, app::NowPlaying, keymap::status_hints,
     screens::render_to_buffer,
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -459,18 +465,20 @@ fn enter_is_named_for_what_it_does() {
     a.go_to_section(Section::Downloads);
     a.nav.focus_stage();
     // The queue's keys are named for the highlighted row, so it needs a finished one here.
-    a.apply(anistream_ui::Event::Downloads(vec![anistream_ui::app::DownloadRow {
-        id: 1,
-        anilist_id: AnilistId::new(5),
-        title: "Title".into(),
-        episode: "1".into(),
-        state: anistream_ui::app::DownloadState::Done,
-        fraction: 1.0,
-        downloaded: 2,
-        total: 2,
-        error: None,
-        path: Some("/downloads/title-1.mkv".into()),
-    }]));
+    a.apply(anistream_model::event::Event::Downloads(vec![
+        anistream_model::downloads::DownloadRow {
+            id: 1,
+            anilist_id: AnilistId::new(5),
+            title: "Title".into(),
+            episode: "1".into(),
+            state: anistream_model::downloads::DownloadState::Done,
+            fraction: 1.0,
+            downloaded: 2,
+            total: 2,
+            error: None,
+            path: Some("/downloads/title-1.mkv".into()),
+        },
+    ]));
     assert_eq!(hint(&a, "↵"), Some("play"));
     assert_eq!(hint(&a, "c"), Some("clear finished"));
     assert_eq!(hint(&a, "X"), Some("delete"));

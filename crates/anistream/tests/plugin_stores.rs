@@ -18,9 +18,9 @@ use std::{
 
 use anistream::plugin_stores::{Stores, WasmInspector};
 use anistream_core::config::{Config, Paths};
+use anistream_model::stores::{StorePluginStatus, StoreState};
 use anistream_plugin_store::server::{self, Server, Storage};
 use anistream_track::secret::TokenStore;
-use anistream_ui::app::{StorePluginStatus, StoreState};
 
 const ID: &str = "example-rust";
 

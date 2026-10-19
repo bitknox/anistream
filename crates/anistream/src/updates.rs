@@ -9,7 +9,7 @@
 use std::path::{Path, PathBuf};
 
 use anistream_net::HttpClient;
-use anistream_ui::{Event, Notice};
+use anistream_model::{event::Event, notice::Notice};
 use anyhow::{Context, Result, bail};
 use sha2::Digest;
 use tokio::sync::mpsc;

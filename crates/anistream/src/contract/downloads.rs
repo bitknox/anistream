@@ -5,10 +5,10 @@
 //! torrent, which only the download manager beside a live session would.
 
 use anistream_core::stream::{Stream, StreamKind};
+use anistream_model::{command::Command, downloads::DownloadRow, event::Event};
 use anistream_providers::ProviderRegistry;
 use anistream_store::DownloadState;
 use anistream_testkit::{fixtures::FINISHED, seed, sources};
-use anistream_ui::app::{Command, DownloadRow, Event};
 
 use super::{ends, toasts};
 use crate::harness::{Harness, Options, names};
@@ -156,7 +156,7 @@ async fn queueing_a_failed_episode_again_retries_it_in_place() {
     assert_eq!(rows.len(), 1, "the same row, not a second one");
     assert_eq!(
         (rows[0].id, rows[0].state, rows[0].error.as_deref()),
-        (failed.id, anistream_ui::app::DownloadState::Queued, None)
+        (failed.id, anistream_model::downloads::DownloadState::Queued, None)
     );
     ends(&updates, job);
 }

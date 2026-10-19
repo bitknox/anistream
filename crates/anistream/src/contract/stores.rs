@@ -7,8 +7,12 @@
 
 use std::sync::Arc;
 
+use anistream_model::{
+    command::Command,
+    event::Event,
+    stores::{Secret, StoreState},
+};
 use anistream_plugin_store::server::{self, Server, Storage};
-use anistream_ui::app::{Command, Event, Secret, StoreState};
 
 use super::{ends, toasts};
 use crate::harness::{Harness, names};

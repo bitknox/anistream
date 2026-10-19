@@ -8,8 +8,8 @@
 use std::collections::HashSet;
 
 use anistream_meta::Meta;
+use anistream_model::{event::Event, notice::Notice};
 use anistream_store::Store;
-use anistream_ui::app::{Event, Notice};
 use tokio::sync::mpsc;
 
 /// The stored-state key holding when the digest last looked.

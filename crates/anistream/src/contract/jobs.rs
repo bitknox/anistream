@@ -6,16 +6,17 @@
 //! open, so every test here and in the other groups holds the second half of the rule.
 
 use anistream_core::settings::SettingValue;
+use anistream_model::{
+    catalog::{ContentFor, LibrarySegment, SearchFilters},
+    command::{Command, PlayerCommand},
+    event::Event,
+};
 use anistream_providers::ProviderRegistry;
 use anistream_store::DownloadState;
 use anistream_testkit::{
     Failure,
     fixtures::{FINISHED, FIXTURE_NOW, MISSING},
     seed, sources,
-};
-use anistream_ui::{
-    LibrarySegment, PlayerCommand,
-    app::{Command, ContentFor, Event, SearchFilters},
 };
 
 use super::{NO_FALLBACK, ends};

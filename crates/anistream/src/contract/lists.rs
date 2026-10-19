@@ -4,14 +4,15 @@
 //! is the contract: a caption sent before it, the calendar's window before it, the broadcast
 //! dates after it, and a metadata notice just ahead of whichever update it arrived with.
 
+use anistream_model::{
+    catalog::{Content, ContentFor, LibrarySegment, SearchFilters},
+    command::Command,
+    event::Event,
+};
 use anistream_testkit::{
     Failure, Operation,
     fixtures::{AIRING, AIRING_NO_MAL, FINISHED, FIXTURE_NOW, MOVIE, SEASONAL, SEQUEL},
     seed,
-};
-use anistream_ui::{
-    LibrarySegment,
-    app::{Command, Content, ContentFor, Event, SearchFilters},
 };
 
 use super::{NO_FALLBACK, WITH_ANILIST, content, ends, failure, ids, toasts};

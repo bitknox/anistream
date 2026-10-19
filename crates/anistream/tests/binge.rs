@@ -16,10 +16,14 @@ use anistream_core::{
     media::Translation,
     stream::{Stream, StreamKind},
 };
+use anistream_model::{
+    command::PlayerCommand,
+    event::Event,
+    playback::{Ending, Successor},
+};
 use anistream_net::HttpClient;
 use anistream_player::Mpv;
 use anistream_store::Store;
-use anistream_ui::app::{Ending, Event, PlayerCommand, Successor};
 use tokio::{
     io::{AsyncBufReadExt, AsyncWriteExt},
     sync::mpsc,
@@ -165,7 +169,7 @@ fn alerts(updates: &[Event]) -> Vec<String> {
     updates
         .iter()
         .filter_map(|u| match u {
-            Event::Toast(toast) if toast.kind == anistream_ui::app::NoticeKind::Alert => {
+            Event::Toast(toast) if toast.kind == anistream_model::notice::NoticeKind::Alert => {
                 Some(toast.text.clone())
             }
             _ => None,
@@ -331,8 +335,8 @@ async fn the_next_episode_is_asked_for_near_the_end_when_it_will_roll_on() {
     slot.release();
 }
 
-fn row(number: &str) -> anistream_ui::app::EpisodeRow {
-    anistream_ui::app::EpisodeRow {
+fn row(number: &str) -> anistream_model::episodes::EpisodeRow {
+    anistream_model::episodes::EpisodeRow {
         number: number.into(),
         title: Some(format!("Title {number}")),
         thumbnail: None,

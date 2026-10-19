@@ -14,15 +14,19 @@ use std::{io, sync::Arc, time::Duration};
 
 use anistream_core::config::{Config, Paths, ThemeMode};
 use anistream_meta::{Meta, Tenrai, anilist::AniList, dataset};
-use anistream_model::sources::only_reorders;
+use anistream_model::{
+    catalog::{Content, ContentFor},
+    command::Command,
+    episodes::EpisodeRow,
+    event::Event,
+    jobs::JobId,
+    notice::Notice,
+    sources::only_reorders,
+};
 use anistream_net::HttpClient;
 use anistream_providers::{ProviderRegistry, vpn::VpnGuard};
 use anistream_store::Store;
-use anistream_ui::{
-    app::{App, Command, Content, ContentFor, EpisodeRow, Event, JobId, Notice},
-    keymap::Keymap,
-    screens, theme,
-};
+use anistream_ui::{app::App, keymap::Keymap, screens, theme};
 use anyhow::{Context, Result};
 use clap::Parser;
 use crossterm::{
@@ -565,7 +569,7 @@ async fn preview(
 struct PreviewRun {
     tx: mpsc::UnboundedSender<Event>,
     rows: usize,
-    player_tx: Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+    player_tx: Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
     slot: PlayerSlot,
     prefetch: Prefetch,
     meta: Meta,
@@ -1825,7 +1829,8 @@ async fn run(
 
     // The live player's control channel. Replaced on each new playback, so a stale sender from
     // a finished episode can never steer the current one.
-    let mut player_tx: Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>> = None;
+    let mut player_tx: Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>> =
+        None;
     // The player window kept between episodes, claimed by whichever playback comes next.
     let slot = PlayerSlot::default();
     // The next episode's streams, found while the current one's ending plays.
@@ -2151,7 +2156,7 @@ fn show_config_problem(
 ) {
     app.notice = Some(config_notice(&paths.config_file, problem));
     app.log(
-        anistream_ui::app::NoticeKind::Alert,
+        anistream_model::notice::NoticeKind::Alert,
         format!("{}, {problem} — using the defaults", paths.config_file.display()),
     );
 }
@@ -2185,12 +2190,12 @@ const EXIT_FLUSH: Duration = Duration::from_secs(2);
 /// the exit.
 async fn stop_for_exit(
     app: &App,
-    player_tx: &Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+    player_tx: &Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
     rx: &mut mpsc::UnboundedReceiver<Event>,
 ) {
     let under_way = app.playing.as_ref().is_some_and(|playing| playing.duration.is_some());
     let Some(controls) = player_tx.as_ref().filter(|_| under_way) else { return };
-    if controls.send(anistream_ui::PlayerCommand::Stop).is_err() {
+    if controls.send(anistream_model::command::PlayerCommand::Stop).is_err() {
         return;
     }
     let ended = async {
@@ -2214,7 +2219,7 @@ async fn publish_list(
     meta: &Meta,
     tx: &mpsc::UnboundedSender<Event>,
     view: ContentFor,
-    entries: Vec<anistream_ui::app::Entry>,
+    entries: Vec<anistream_model::catalog::Entry>,
     now: i64,
 ) {
     // Releasing titles only. A finished show has no broadcast to report, and including it would
@@ -2557,7 +2562,7 @@ fn spawn(
 fn dispatch(
     task: Command,
     job: Option<JobGuard>,
-    player_tx: &mut Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+    player_tx: &mut Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
     paths: &Paths,
     app: &App,
     slot: &PlayerSlot,
@@ -2868,7 +2873,7 @@ fn dispatch(
                             let target = media.match_target();
                             let candidates = anistream_meta::title::rank(&target, &hits)
                                 .into_iter()
-                                .map(|scored| anistream_ui::MatchCandidate {
+                                .map(|scored| anistream_model::sources::MatchCandidate {
                                     title: scored.hit.title.clone(),
                                     key: scored.hit.key.clone(),
                                     similarity: scored.score,
@@ -3379,7 +3384,7 @@ fn spawn_playback(
     pick: Option<(String, String)>,
     // Hand the resolved stream to a Syncplay party instead of a private session.
     party: bool,
-    commands: mpsc::UnboundedReceiver<anistream_ui::PlayerCommand>,
+    commands: mpsc::UnboundedReceiver<anistream_model::command::PlayerCommand>,
     handoff: Handoff,
     config: &Config,
     meta: &Meta,
@@ -3447,7 +3452,7 @@ fn spawn_playback(
                 slot.release();
                 let _ = tx.send(Event::PlaybackEnded {
                     watched: false,
-                    ending: anistream_ui::app::Ending::Failed,
+                    ending: anistream_model::playback::Ending::Failed,
                 });
                 // The playback this one took over left its "playing" line up for it to replace.
                 let _ = tx.send(Event::Status(String::new()));
@@ -3664,7 +3669,7 @@ enum EpisodeLoad {
     /// The ladder found candidates but could not choose. The user decides.
     Choose {
         provider_id: String,
-        candidates: Vec<anistream_ui::MatchCandidate>,
+        candidates: Vec<anistream_model::sources::MatchCandidate>,
     },
 }
 
@@ -3709,7 +3714,7 @@ async fn load_episodes(
                 provider_id,
                 candidates: candidates
                     .iter()
-                    .map(|candidate| anistream_ui::MatchCandidate {
+                    .map(|candidate| anistream_model::sources::MatchCandidate {
                         title: candidate.hit.title.clone(),
                         key: candidate.hit.key.clone(),
                         similarity: candidate.score,
@@ -4064,7 +4069,7 @@ impl TorrentTasks {
         if !sources::torrent_wanted(config) {
             return;
         }
-        let _ = tx.send(Event::Vpn(Some(anistream_ui::app::GuardView::Checking)));
+        let _ = tx.send(Event::Vpn(Some(anistream_model::sources::GuardView::Checking)));
         let generation = self.generation;
         let (config, http, paths, store, tx, arrivals) = (
             config.clone(),
@@ -4153,17 +4158,17 @@ async fn seeding_watch(
     tx: mpsc::UnboundedSender<Event>,
 ) {
     let mut ticker = tokio::time::interval(Duration::from_secs(10));
-    let mut shown: Option<Vec<anistream_ui::app::SeedRow>> = None;
+    let mut shown: Option<Vec<anistream_model::downloads::SeedRow>> = None;
     loop {
         ticker.tick().await;
         let goal =
             config.read().map(|c| c.providers.torrent.seeding.clone()).unwrap_or_default();
         session.configure_seeding(&goal).await;
-        let rows: Vec<anistream_ui::app::SeedRow> = session
+        let rows: Vec<anistream_model::downloads::SeedRow> = session
             .reap_seeding()
             .await
             .into_iter()
-            .map(|seed| anistream_ui::app::SeedRow {
+            .map(|seed| anistream_model::downloads::SeedRow {
                 name: seed.name,
                 uploaded_bytes: seed.uploaded_bytes,
                 ratio: seed.ratio,
@@ -4413,7 +4418,7 @@ fn fill_episodes(
     meta: &Meta,
     store: &Store,
     registry: &ProviderRegistry,
-    controls: &Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+    controls: &Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
 ) {
     let Some(controls) = controls.clone() else { return };
     let (meta, store, registry, episode) =
@@ -4422,7 +4427,8 @@ fn fill_episodes(
         match load_episodes(&meta, &store, &registry, id).await {
             Ok(EpisodeLoad::Rows(rows)) if !rows.is_empty() => {
                 let next = following(&rows, &episode);
-                let _ = controls.send(anistream_ui::PlayerCommand::Episodes { rows, next });
+                let _ = controls
+                    .send(anistream_model::command::PlayerCommand::Episodes { rows, next });
             }
             Ok(_) => {}
             Err(reason) => tracing::debug!(%reason, "no episode list for the player"),
@@ -4441,9 +4447,9 @@ fn following(rows: &[EpisodeRow], episode: &str) -> Option<String> {
 /// The old playback, once told, parks its window rather than closing it, and the new one claims
 /// it — which is how pressing N inside the player stays in the same window.
 fn take_controls(
-    player_tx: &mut Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
-    successor: anistream_ui::app::Successor,
-) -> (mpsc::UnboundedReceiver<anistream_ui::PlayerCommand>, Handoff) {
+    player_tx: &mut Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
+    successor: anistream_model::playback::Successor,
+) -> (mpsc::UnboundedReceiver<anistream_model::command::PlayerCommand>, Handoff) {
     let previous = player_tx.take();
     let (ptx, prx) = mpsc::unbounded_channel();
     *player_tx = Some(ptx);
@@ -4458,8 +4464,8 @@ const HANDOVER_WAIT: Duration = Duration::from_secs(10);
 /// play. Handing over at once closed the window on the episode being watched whenever the new
 /// one's lookup then failed, and a timeout was enough for that.
 struct Handoff {
-    previous: Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
-    successor: anistream_ui::app::Successor,
+    previous: Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
+    successor: anistream_model::playback::Successor,
 }
 
 impl Handoff {
@@ -4471,7 +4477,8 @@ impl Handoff {
     /// Ask for the window without waiting: nothing can fail between here and playing.
     fn now(self) {
         if let Some(previous) = self.previous {
-            let _ = previous.send(anistream_ui::PlayerCommand::Handover(self.successor));
+            let _ = previous
+                .send(anistream_model::command::PlayerCommand::Handover(self.successor));
         }
     }
 
@@ -4479,7 +4486,10 @@ impl Handoff {
     /// empty and opens a second window beside it.
     async fn complete(self) {
         let Some(previous) = self.previous else { return };
-        if previous.send(anistream_ui::PlayerCommand::Handover(self.successor)).is_ok() {
+        if previous
+            .send(anistream_model::command::PlayerCommand::Handover(self.successor))
+            .is_ok()
+        {
             let _ = tokio::time::timeout(HANDOVER_WAIT, previous.closed()).await;
         }
     }
@@ -4489,10 +4499,10 @@ impl Handoff {
     /// the old playback ends. A later playback's handover reaches it the same way.
     async fn keep(
         self,
-        mut controls: mpsc::UnboundedReceiver<anistream_ui::PlayerCommand>,
+        mut controls: mpsc::UnboundedReceiver<anistream_model::command::PlayerCommand>,
         reason: String,
     ) {
-        use anistream_ui::PlayerCommand;
+        use anistream_model::command::PlayerCommand;
         let Some(previous) = self.previous else { return };
         let _ = previous.send(PlayerCommand::Alert(reason));
         loop {
@@ -4519,7 +4529,7 @@ fn successor(
     app: &App,
     id: anistream_core::ids::AnilistId,
     episode: &str,
-) -> anistream_ui::app::Successor {
+) -> anistream_model::playback::Successor {
     // Now Playing is staged for the new playback before it is dispatched, so its title is the
     // one the terminal shows; a watch party stages nothing, and the open title is the one.
     let title = app
@@ -4529,7 +4539,7 @@ fn successor(
         .map(|playing| playing.title.clone())
         .or_else(|| app.detail.as_ref().filter(|e| e.id == id).map(|e| e.title.clone()))
         .unwrap_or_default();
-    anistream_ui::app::Successor {
+    anistream_model::playback::Successor {
         id,
         title,
         episode: episode.to_owned(),
@@ -4623,7 +4633,7 @@ fn dirs_config_mpv() -> Option<std::path::PathBuf> {
 async fn continue_entries(
     meta: &Meta,
     store: &Store,
-) -> std::result::Result<Vec<anistream_ui::app::Entry>, String> {
+) -> std::result::Result<Vec<anistream_model::catalog::Entry>, String> {
     let continuing = store.continue_list(CONTINUE_ROWS).unwrap_or_default();
     let ids: Vec<anistream_core::ids::AnilistId> =
         continuing.iter().map(|p| p.anilist_id).collect();
@@ -4638,7 +4648,7 @@ async fn continue_entries(
 
 /// The calendar's first load: the timeline, plus what the backfill needs to continue it.
 struct CalendarLoad {
-    entries: Vec<anistream_ui::app::Entry>,
+    entries: Vec<anistream_model::catalog::Entry>,
     /// Pages of past actually fetched, so the backfill knows which page is next.
     pages: u32,
     /// Whether AniList reported broadcasts older than the ones loaded.
@@ -4710,7 +4720,7 @@ async fn calendar_past_page(
     store: &Store,
     anchor: i64,
     page: u32,
-) -> std::result::Result<(Vec<anistream_ui::app::Entry>, bool), String> {
+) -> std::result::Result<(Vec<anistream_model::catalog::Entry>, bool), String> {
     let page = meta
         .airing_between_sorted(
             anchor - CALENDAR_MAX_PAST,
@@ -4739,8 +4749,8 @@ async fn calendar_past(
     store: &Store,
     anchor: i64,
     pages: u32,
-) -> std::result::Result<(Vec<anistream_ui::app::Entry>, u32, bool), String> {
-    let mut blocks: Vec<Vec<anistream_ui::app::Entry>> = Vec::new();
+) -> std::result::Result<(Vec<anistream_model::catalog::Entry>, u32, bool), String> {
+    let mut blocks: Vec<Vec<anistream_model::catalog::Entry>> = Vec::new();
     let mut loaded = 0;
     let mut more = false;
     let mut failure = None;
@@ -4782,8 +4792,8 @@ async fn calendar_future(
     meta: &Meta,
     store: &Store,
     anchor: i64,
-) -> std::result::Result<Vec<anistream_ui::app::Entry>, String> {
-    let mut entries: Vec<anistream_ui::app::Entry> = Vec::new();
+) -> std::result::Result<Vec<anistream_model::catalog::Entry>, String> {
+    let mut entries: Vec<anistream_model::catalog::Entry> = Vec::new();
     let mut failure = None;
 
     for page in 1..=CALENDAR_FUTURE_PAGES {
@@ -4892,10 +4902,10 @@ mod tests {
 
     #[tokio::test]
     async fn a_lookup_that_fails_leaves_the_controls_with_the_episode_playing() {
-        use anistream_ui::PlayerCommand;
+        use anistream_model::command::PlayerCommand;
         let (previous, mut playing) = mpsc::unbounded_channel();
         let mut player_tx = Some(previous);
-        let successor = anistream_ui::app::Successor {
+        let successor = anistream_model::playback::Successor {
             id: anistream_core::ids::AnilistId::new(1),
             title: "A Show".into(),
             episode: "5".into(),

@@ -18,9 +18,9 @@
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use anistream_core::{config::Config, ids::AnilistId, media::Translation};
+use anistream_model::{event::Event, notice::Notice};
 use anistream_providers::{ProviderRegistry, torrent::TorrentSession};
 use anistream_store::{Download, DownloadState, Store};
-use anistream_ui::app::{Event, Notice};
 use tokio::sync::mpsc;
 
 /// How many torrents fetch at once.
@@ -384,8 +384,8 @@ fn publish(store: &Store, tx: &mpsc::UnboundedSender<Event>) {
 }
 
 /// Flatten a stored download for the screen.
-pub fn to_row(download: &Download) -> anistream_ui::app::DownloadRow {
-    anistream_ui::app::DownloadRow {
+pub fn to_row(download: &Download) -> anistream_model::downloads::DownloadRow {
+    anistream_model::downloads::DownloadRow {
         id: download.id,
         anilist_id: download.anilist_id,
         title: download.title.clone(),
@@ -400,8 +400,8 @@ pub fn to_row(download: &Download) -> anistream_ui::app::DownloadRow {
 }
 
 /// The queue's state for a download, as its row has it.
-fn row_state(state: DownloadState) -> anistream_ui::app::DownloadState {
-    use anistream_ui::app::DownloadState as Row;
+fn row_state(state: DownloadState) -> anistream_model::downloads::DownloadState {
+    use anistream_model::downloads::DownloadState as Row;
     match state {
         DownloadState::Queued => Row::Queued,
         DownloadState::Active => Row::Active,
@@ -457,7 +457,7 @@ pub struct RangeOutcome {
 impl RangeOutcome {
     /// Worded from what happened: what was added, what was there already, and what stopped it.
     pub fn toast(&self) -> Notice {
-        use anistream_ui::widgets::plural;
+        use anistream_model::wording::plural;
         let mut text = match (self.queued, self.existing) {
             (0, 0) => "nothing queued".to_owned(),
             (0, _) => "nothing new queued".to_owned(),
@@ -626,7 +626,7 @@ mod tests {
             "nothing new queued — 2 already in downloads; \
              this source streams but cannot be downloaded"
         );
-        assert_eq!(toast.kind, anistream_ui::app::NoticeKind::Alert);
+        assert_eq!(toast.kind, anistream_model::notice::NoticeKind::Alert);
 
         let mixed = RangeOutcome { queued: 2, existing: 1, failed: None };
         assert_eq!(mixed.toast().text, "queued 2 episodes — 1 already in downloads");

@@ -15,6 +15,12 @@ use anistream_core::{
     stream::{Stream, StreamKind},
     traits::PlaybackRequest,
 };
+use anistream_model::{
+    command::PlayerCommand,
+    event::Event,
+    notice::Notice,
+    playback::{Ending, Successor},
+};
 use anistream_net::HttpClient;
 use anistream_player::{
     Action, Choice, ExternalPlayer, Mpv, MpvSession, PlaybackEvent, PlaybackTracker,
@@ -22,7 +28,6 @@ use anistream_player::{
     skip,
 };
 use anistream_store::{Store, WatchEvent};
-use anistream_ui::app::{Ending, Event, Notice, PlayerCommand, Successor};
 use futures::StreamExt;
 use tokio::sync::mpsc;
 
@@ -942,7 +947,7 @@ impl Run<'_> {
     /// next episode was learned here and has one.
     fn learn_episodes(
         &mut self,
-        rows: Vec<anistream_ui::app::EpisodeRow>,
+        rows: Vec<anistream_model::episodes::EpisodeRow>,
         next: Option<String>,
     ) -> Option<String> {
         if self.episodes.is_empty() {
@@ -1880,10 +1885,10 @@ async fn fetch_still(
 ///
 /// Public for the binary's test that holds the player's words for a skip to the interface's,
 /// since only the binary sees both.
-pub const fn offered(kind: SkipKind) -> anistream_ui::app::SkipKind {
+pub const fn offered(kind: SkipKind) -> anistream_model::playback::SkipKind {
     match kind {
-        SkipKind::Opening => anistream_ui::app::SkipKind::Opening,
-        SkipKind::Ending => anistream_ui::app::SkipKind::Ending,
+        SkipKind::Opening => anistream_model::playback::SkipKind::Opening,
+        SkipKind::Ending => anistream_model::playback::SkipKind::Ending,
     }
 }
 

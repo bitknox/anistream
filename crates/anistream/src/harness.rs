@@ -35,6 +35,7 @@ use std::{
 use anistream::{artwork, data, plugin_stores, slot::PlayerSlot, sources, tracking};
 use anistream_core::config::{Config, NetworkConfig, Paths};
 use anistream_meta::Meta;
+use anistream_model::{command::Command, event::Event, jobs::JobId, notice::Notice};
 use anistream_net::HttpClient;
 use anistream_providers::{ProviderRegistry, vpn::VpnGuard};
 use anistream_store::Store;
@@ -45,7 +46,7 @@ use anistream_track::{
 };
 use anistream_ui::{
     Clock, Zone,
-    app::{App, Command, Event, JobId, Notice},
+    app::App,
     image::ImageEngine,
     keymap::{Action, Keymap},
     screens, theme,
@@ -113,7 +114,7 @@ pub struct Harness {
     stores: plugin_stores::Stores,
     slot: PlayerSlot,
     prefetch: Prefetch,
-    player_tx: Option<mpsc::UnboundedSender<anistream_ui::PlayerCommand>>,
+    player_tx: Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
     shared_config: anistream::SharedConfig,
     torrent_tasks: TorrentTasks,
     vpn_guard: Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,

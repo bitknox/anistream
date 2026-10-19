@@ -17,12 +17,14 @@ use anistream_core::{
     traits::{TrackOp, Tracker},
 };
 use anistream_meta::anilist::AniList;
+use anistream_model::{
+    catalog::{ContentFor, LibrarySegment},
+    event::Event,
+    notice::Notice,
+    sync::{ConflictRow, SyncState},
+};
 use anistream_store::Store;
 use anistream_track::{AniListTracker, TokenStore, auth, sync};
-use anistream_ui::{
-    LibrarySegment,
-    app::{ConflictRow, ContentFor, Event, Notice, SyncState},
-};
 use tokio::sync::mpsc;
 
 /// Everything the sync loops need.
@@ -342,7 +344,7 @@ impl anistream_track::kitsu::IdMapping for StoreMapping {
 /// Titles are remembered as they pass through, which is what later lets a sync conflict name the
 /// show instead of printing a bare id.
 pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -> Event {
-    use anistream_ui::app::Content;
+    use anistream_model::catalog::Content;
 
     // Tagged with its segment: switching tabs while a pull is in flight must not show this one
     // under the next tab's heading.
@@ -525,7 +527,7 @@ pub async fn pull_once(sync: &Sync, tx: &mpsc::UnboundedSender<Event>) {
                     false,
                     Some(format!(
                         "pulled {}",
-                        anistream_ui::widgets::plural(report.seen as usize, "title")
+                        anistream_model::wording::plural(report.seen as usize, "title")
                     )),
                 ))));
 
@@ -910,7 +912,7 @@ async fn connect_device(
     // wrong twice over: it is drawn in the dimmest role in the palette, and any background task
     // setting a status — a rate-limit notice, a finished download — would wipe the one thing the
     // user has to read. Reported as the code never being displayed, which it effectively was not.
-    let _ = tx.send(Event::DeviceCode(Some(anistream_ui::app::DeviceCodePrompt {
+    let _ = tx.send(Event::DeviceCode(Some(anistream_model::sync::DeviceCodePrompt {
         tracker: tracker_id.clone(),
         code: code.user_code.clone(),
         url: code.verification_url.clone(),
@@ -965,7 +967,7 @@ pub fn disconnect(sync: &Sync, tracker_id: &str, tx: &mpsc::UnboundedSender<Even
         // signing back in should send what accumulated.
         Ok(()) => Event::Toast(Notice::info(format!(
             "signed out of {tracker_id} — {} kept",
-            anistream_ui::widgets::plural(
+            anistream_model::wording::plural(
                 sync.store.outbox_depth(Some(tracker_id)).unwrap_or(0) as usize,
                 "queued change"
             )

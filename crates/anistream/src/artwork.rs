@@ -12,8 +12,8 @@
 
 use std::path::{Path, PathBuf};
 
+use anistream_model::event::Event;
 use anistream_net::HttpClient;
-use anistream_ui::app::Event;
 use tokio::sync::mpsc;
 
 /// How long a cached cover stays valid. Art changes rarely; a month avoids re-fetching a

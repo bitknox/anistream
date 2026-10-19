@@ -12,6 +12,10 @@ use std::{
 };
 
 use anistream_core::config::{Config, Paths};
+use anistream_model::stores::{
+    InviteLinkView, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
+    StorePluginStatus, StorePreview, StoreRow, StoreState,
+};
 use anistream_plugin_store::{
     ClientError, Inspector, Invite, Joined, LocalState, PluginInfo, PluginStatus, StoreClient,
     crypto::{self, PublicKey},
@@ -21,10 +25,6 @@ use anistream_plugin_store::{
     protocol::{Index, IndexEntry, InviteKind, InviteRequest, RESERVED_IDS, Role, host_set},
 };
 use anistream_track::secret::TokenStore;
-use anistream_ui::app::{
-    InviteLinkView, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
-    StorePluginStatus, StorePreview, StoreRow, StoreState,
-};
 
 pub use anistream_store_server::WasmInspector;
 

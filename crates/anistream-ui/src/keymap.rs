@@ -1154,7 +1154,7 @@ pub fn status_hints(app: &crate::app::App) -> Vec<(String, &'static str)> {
         // player's pause and stop while something plays — so they are named by whichever table
         // the keys are read from now, and only where the row can take them.
         V::Section(Section::Downloads) => {
-            use crate::app::DownloadState;
+            use anistream_model::downloads::DownloadState;
             let playing = app.playing.is_some();
             let (pause, cancel) = if playing {
                 (Action::PlayPause, Action::StopPlayback)
@@ -1693,7 +1693,7 @@ mod tests {
         );
         app.go_to_section(Section::Providers);
         app.nav.focus_stage();
-        let row = |id: &str| crate::app::ProviderRow {
+        let row = |id: &str| anistream_model::sources::ProviderRow {
             id: id.into(),
             kind: "plugin".into(),
             state: "ready".into(),
@@ -1702,11 +1702,11 @@ mod tests {
             usable: true,
             held_back: false,
         };
-        app.apply(crate::app::Event::Providers(vec![row("alpha")]));
+        app.apply(anistream_model::event::Event::Providers(vec![row("alpha")]));
         let hints = status_hints(&app);
         assert!(hints.iter().all(|(_, label)| *label != "order"), "{hints:?}");
 
-        app.apply(crate::app::Event::Providers(vec![row("alpha"), row("beta")]));
+        app.apply(anistream_model::event::Event::Providers(vec![row("alpha"), row("beta")]));
         let hints = status_hints(&app);
         assert_eq!(
             hints,

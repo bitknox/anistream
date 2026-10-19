@@ -4,18 +4,21 @@
 //! a render can never change behaviour, and screens can be exercised against a `TestBackend`
 //! without a running event loop.
 
+use anistream_model::{
+    catalog::{Content, Entry, LibrarySegment},
+    downloads::DownloadState,
+    episodes::EpisodeKind,
+    notice::NoticeKind,
+    playback::SkipKind,
+    stores::{StorePluginStatus, StoreRow, StoreState},
+    wording::{broadcast_line, calendar_time, clock, human_bytes},
+};
 use ratatui::{
     Frame as TFrame, buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget,
 };
 
-use anistream_model::wording::{broadcast_line, calendar_time, clock};
-
 use crate::{
-    app::{
-        App, Content, DownloadState, Entry, EpisodeKind, LibrarySegment, NoticeKind,
-        PluginChoice, SkipKind, StoreConfirm, StoreLine, StorePluginStatus, StoreRow,
-        StoreState, sync_badge,
-    },
+    app::{App, PluginChoice, StoreConfirm, StoreLine, sync_badge},
     clock::Clock,
     keymap::status_hints,
     layout::{self, Frame},
@@ -24,10 +27,7 @@ use crate::{
         Palette, Role,
         glyph::{self, OBI},
     },
-    widgets::{
-        Divider, Hairline, Header, ObiList, ObiRow, Rail, StatusLine, human_bytes, truncate,
-        wrap,
-    },
+    widgets::{Divider, Hairline, Header, ObiList, ObiRow, Rail, StatusLine, truncate, wrap},
 };
 
 /// Write a line, or nothing at all if it would land outside the buffer.
@@ -477,9 +477,12 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
                     (Some(_), s, Some(secs)) if s != Section::Calendar && secs > 0 => {
                         let label = match entry.next_episode {
                             Some(ep) => {
-                                format!("ep {ep} in {}", crate::widgets::countdown(secs))
+                                format!(
+                                    "ep {ep} in {}",
+                                    anistream_model::wording::countdown(secs)
+                                )
                             }
-                            None => format!("in {}", crate::widgets::countdown(secs)),
+                            None => format!("in {}", anistream_model::wording::countdown(secs)),
                         };
                         Some((label, false))
                     }
@@ -1005,7 +1008,7 @@ fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
 ///
 /// The byte counts matter as much as the fraction: "62%" of an unknown size says less than
 /// "1.2 GB / 1.9 GB", and a stalled download is obvious from bytes that stop moving.
-fn download_note(app: &App, row: &crate::app::DownloadRow) -> String {
+fn download_note(app: &App, row: &anistream_model::downloads::DownloadRow) -> String {
     if row.total > 0 {
         return format!("  {} / {}", human_bytes(row.downloaded), human_bytes(row.total));
     }
@@ -1033,7 +1036,7 @@ pub fn download_state_label(state: DownloadState) -> &'static str {
 }
 
 /// The line under the queue for the selected download.
-fn download_detail(app: &App, row: &crate::app::DownloadRow) -> (String, Role) {
+fn download_detail(app: &App, row: &anistream_model::downloads::DownloadRow) -> (String, Role) {
     if let Some(error) = &row.error {
         return (error.clone(), Role::Alert);
     }
@@ -1701,7 +1704,7 @@ fn empty_episodes(app: &App) -> (&'static str, String) {
         let episode = detail.next_episode.unwrap_or(1);
         return (
             "nothing has aired yet",
-            format!("ep {episode} in {}", crate::widgets::countdown(secs)),
+            format!("ep {episode} in {}", anistream_model::wording::countdown(secs)),
         );
     }
     (
@@ -2926,7 +2929,7 @@ fn render_meta_sources(buf: &mut Buffer, app: &App, area: Rect, top: u16) {
 /// heartbeat, so "next try in 39s" stood still for as long as nothing happened, and a clock
 /// time is right whenever it is drawn. Past the deadline the source is not asked until something
 /// needs it, so that is what the row says rather than a time already gone.
-fn meta_detail(row: &crate::app::MetaSourceRow, clock: &Clock) -> Option<String> {
+fn meta_detail(row: &anistream_model::sources::MetaSourceRow, clock: &Clock) -> Option<String> {
     let Some(at) = row.retry_at else { return row.detail.clone() };
     let cause = row.detail.as_deref().unwrap_or("failing");
     let when = match clock.local(at) {
@@ -3831,8 +3834,8 @@ fn log_rows(app: &App) -> Vec<(String, String)> {
         .map(|row| {
             // The marker carries severity, since this table's styling is driven by selection.
             let marker = match row.kind {
-                crate::app::NoticeKind::Alert => glyph::STATE_DOWN,
-                crate::app::NoticeKind::Info => glyph::STATE_UNKNOWN,
+                anistream_model::notice::NoticeKind::Alert => glyph::STATE_DOWN,
+                anistream_model::notice::NoticeKind::Info => glyph::STATE_UNKNOWN,
             };
             // A repeat shows as a count where a key would go, not as more lines.
             let count = if row.count > 1 { format!("×{}", row.count) } else { String::new() };
@@ -3983,12 +3986,9 @@ pub fn render_to_buffer(app: &App, width: u16, height: u16) -> Buffer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        app::{Event, GuardView},
-        keymap::Keymap,
-        theme::Palette,
-    };
+    use crate::{keymap::Keymap, theme::Palette};
     use anistream_core::{config::Config, ids::AnilistId};
+    use anistream_model::{event::Event, sources::GuardView};
 
     fn app_with(content: Content) -> App {
         let mut app = App::new(Config::default(), Palette::dark(), Keymap::new());
@@ -4017,19 +4017,19 @@ mod tests {
     #[test]
     fn an_accounts_row_says_how_much_of_the_queue_waits_for_a_mapping() {
         let mut app = app_with(Content::Entries(Vec::new()));
-        app.apply(Event::Sync(Box::new(crate::app::SyncState {
+        app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState {
             connected: true,
             outbox: 3,
             deferred: 2,
-            ..crate::app::SyncState::new("mal")
+            ..anistream_model::sync::SyncState::new("mal")
         })));
         let (_, detail) = &accounts_rows(&app)[0];
         assert!(detail.contains("3 queued, 2 waiting for an id mapping"), "{detail}");
 
-        app.apply(Event::Sync(Box::new(crate::app::SyncState {
+        app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState {
             connected: true,
             outbox: 3,
-            ..crate::app::SyncState::new("mal")
+            ..anistream_model::sync::SyncState::new("mal")
         })));
         let (_, detail) = &accounts_rows(&app)[0];
         assert!(detail.contains("3 queued") && !detail.contains("mapping"), "{detail}");
@@ -4041,7 +4041,7 @@ mod tests {
     fn a_resting_meta_source_says_until_when_it_is_skipped() {
         // Noon UTC, read nine hours east: the retry two minutes on is a clock time there.
         let mut clock = Clock::fixed(NOON_MONDAY, crate::clock::Zone::hours_east(9).unwrap());
-        let mut row = crate::app::MetaSourceRow {
+        let mut row = anistream_model::sources::MetaSourceRow {
             source: "anilist".into(),
             state: "backing off".into(),
             healthy: false,
@@ -4070,10 +4070,10 @@ mod tests {
         let mut app = app_with(Content::Entries(Vec::new()));
         app.clock = Clock::fixed(NOON_MONDAY, crate::clock::Zone::utc());
         let at = NOON_MONDAY - 60;
-        app.apply(Event::Sync(Box::new(crate::app::SyncState {
+        app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState {
             connected: true,
             pull_error: Some(("network: timed out".into(), at)),
-            ..crate::app::SyncState::new("anilist")
+            ..anistream_model::sync::SyncState::new("anilist")
         })));
         let (_, detail) = &accounts_rows(&app)[0];
         let clock = pull_time(&app.clock, at);
@@ -4093,10 +4093,10 @@ mod tests {
         // The reason used to reach only a list nothing on the screen drew from, so the row kept
         // saying "connected" while the library had stopped updating.
         let mut app = app_with(Content::Entries(Vec::new()));
-        app.apply(Event::Sync(Box::new(crate::app::SyncState {
+        app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState {
             connected: true,
             pull_error: Some(("network: timed out".into(), app.clock.now_epoch())),
-            ..crate::app::SyncState::new("anilist")
+            ..anistream_model::sync::SyncState::new("anilist")
         })));
         app.go_to_section(Section::Accounts);
         let text = text_of(&render_to_buffer(&app, 120, 34));
@@ -4130,7 +4130,11 @@ mod tests {
             .join("\n")
     }
 
-    fn running(app: &mut App, task: &crate::app::Command, for_secs: u64) -> crate::app::JobId {
+    fn running(
+        app: &mut App,
+        task: &anistream_model::command::Command,
+        for_secs: u64,
+    ) -> anistream_model::jobs::JobId {
         let id = app.begin_job(task).expect("a job");
         let now = app.clock.now_instant();
         let job = app.jobs.iter_mut().find(|j| j.id == id).unwrap();
@@ -4147,7 +4151,10 @@ mod tests {
 
         running(
             &mut app,
-            &crate::app::Command::LoadSources { id: AnilistId::new(1), episode: "10".into() },
+            &anistream_model::command::Command::LoadSources {
+                id: AnilistId::new(1),
+                episode: "10".into(),
+            },
             3,
         );
         let busy: Vec<String> =
@@ -4168,7 +4175,7 @@ mod tests {
     #[test]
     fn a_hold_up_is_counted_down_in_place_of_the_runtime() {
         let mut app = app_with(Content::Loading);
-        let id = running(&mut app, &crate::app::Command::LoadSeasonal, 4);
+        let id = running(&mut app, &anistream_model::command::Command::LoadSeasonal, 4);
         let until = app.clock.now_instant() + std::time::Duration::from_millis(12_400);
         app.apply(Event::JobNote {
             job: id,
@@ -4189,11 +4196,14 @@ mod tests {
     fn jobs_that_do_not_fit_are_counted_rather_than_cut() {
         let mut app = app_with(Content::Loading);
         for _ in 0..3 {
-            running(&mut app, &crate::app::Command::CheckProviders, 2);
+            running(&mut app, &anistream_model::command::Command::CheckProviders, 2);
         }
         running(
             &mut app,
-            &crate::app::Command::LoadSources { id: AnilistId::new(1), episode: "10".into() },
+            &anistream_model::command::Command::LoadSources {
+                id: AnilistId::new(1),
+                episode: "10".into(),
+            },
             2,
         );
         let rows: Vec<String> =
@@ -4208,7 +4218,7 @@ mod tests {
     fn the_downloads_screen_says_what_is_still_seeding() {
         let mut app = app_with(Content::Loading);
         app.go_to_section(Section::Downloads);
-        app.apply(Event::Seeding(vec![crate::app::SeedRow {
+        app.apply(Event::Seeding(vec![anistream_model::downloads::SeedRow {
             name: "Show - 05.mkv".into(),
             uploaded_bytes: 300 * 1024 * 1024,
             ratio: 0.4,
@@ -4284,11 +4294,11 @@ mod tests {
         let mut app = app_with(Content::Entries(vec![entry(1, "An Invented Show")]));
         app.notice =
             Some("config.toml line 5: unknown field `qualty` — running on defaults".into());
-        app.push_toast(crate::app::Notice::info("saved quality"));
+        app.push_toast(anistream_model::notice::Notice::info("saved quality"));
         for _ in 0..500 {
             app.tick_toasts();
         }
-        app.push_toast(crate::app::Notice::alert("a passing problem"));
+        app.push_toast(anistream_model::notice::Notice::alert("a passing problem"));
 
         for section in [Section::Home, Section::Settings, Section::Providers] {
             app.go_to_section(section);
@@ -4510,8 +4520,8 @@ mod tests {
         title: &str,
         watched: f64,
         completed: bool,
-    ) -> crate::app::EpisodeRow {
-        crate::app::EpisodeRow {
+    ) -> anistream_model::episodes::EpisodeRow {
+        anistream_model::episodes::EpisodeRow {
             number: number.into(),
             title: Some(title.into()),
             duration_secs: Some(1440),
@@ -4572,8 +4582,13 @@ mod tests {
         assert!(geometry.stage.width >= 100);
     }
 
-    fn provider(id: &str, state: &str, usable: bool, held: bool) -> crate::app::ProviderRow {
-        crate::app::ProviderRow {
+    fn provider(
+        id: &str,
+        state: &str,
+        usable: bool,
+        held: bool,
+    ) -> anistream_model::sources::ProviderRow {
+        anistream_model::sources::ProviderRow {
             id: id.into(),
             kind: "native".into(),
             state: state.into(),
@@ -4592,7 +4607,7 @@ mod tests {
         app.go_to_section(Section::Providers);
         app.apply(Event::Providers(vec![
             provider("torrent", "ready", true, false),
-            crate::app::ProviderRow {
+            anistream_model::sources::ProviderRow {
                 last_error: Some("cloudflare challenge (403)".into()),
                 ..provider("webprov", "down", false, false)
             },
@@ -4794,13 +4809,13 @@ mod tests {
             id: AnilistId::new(1),
             provider_id: "torrent".into(),
             candidates: vec![
-                crate::MatchCandidate {
+                anistream_model::sources::MatchCandidate {
                     title: "Frieren S1".into(),
                     key: anistream_core::ids::ProviderKey::new("a"),
                     similarity: 0.62,
                     rejected: None,
                 },
-                crate::MatchCandidate {
+                anistream_model::sources::MatchCandidate {
                     title: "Frieren S2".into(),
                     key: anistream_core::ids::ProviderKey::new("b"),
                     similarity: 0.61,
@@ -5097,7 +5112,7 @@ mod tests {
 
     /// An app holding one store in every state worth drawing.
     fn app_with_stores() -> App {
-        use crate::app::{
+        use anistream_model::stores::{
             InviteLinkView, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow,
             StorePluginRow, StorePreview,
         };
@@ -5109,7 +5124,7 @@ mod tests {
             status,
         };
         let mut app = app_with(Content::Entries(Vec::new()));
-        app.apply(crate::app::Event::Stores(vec![
+        app.apply(anistream_model::event::Event::Stores(vec![
             StoreRow {
                 id: "aaaa".into(),
                 name: "Our plugins, run from a closet in a flat in Malmö".into(),
@@ -5398,7 +5413,7 @@ mod tests {
     #[test]
     fn toasts_appear_and_disappear() {
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
-        app.push_toast(crate::app::Notice::alert("provider unreachable"));
+        app.push_toast(anistream_model::notice::Notice::alert("provider unreachable"));
         assert!(text_of(&render_to_buffer(&app, 120, 30)).contains("provider unreachable"));
 
         for _ in 0..300 {
@@ -5423,12 +5438,16 @@ mod tests {
         // that set a status during the fifteen-minute wait.
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Accounts);
-        app.apply(crate::app::Event::Sync(Box::new(crate::app::SyncState::new("simkl"))));
-        app.apply(crate::app::Event::DeviceCode(Some(crate::app::DeviceCodePrompt {
-            tracker: "simkl".into(),
-            code: "FA433".into(),
-            url: "https://simkl.com/pin".into(),
-        })));
+        app.apply(anistream_model::event::Event::Sync(Box::new(
+            anistream_model::sync::SyncState::new("simkl"),
+        )));
+        app.apply(anistream_model::event::Event::DeviceCode(Some(
+            anistream_model::sync::DeviceCodePrompt {
+                tracker: "simkl".into(),
+                code: "FA433".into(),
+                url: "https://simkl.com/pin".into(),
+            },
+        )));
 
         let buf = render_to_buffer(&app, 110, 20);
         let text = text_of(&buf);
@@ -5447,11 +5466,13 @@ mod tests {
         // the one string in the app a user has to transcribe by hand.
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Accounts);
-        app.apply(crate::app::Event::DeviceCode(Some(crate::app::DeviceCodePrompt {
-            tracker: "simkl".into(),
-            code: "FA433".into(),
-            url: "https://simkl.com/pin".into(),
-        })));
+        app.apply(anistream_model::event::Event::DeviceCode(Some(
+            anistream_model::sync::DeviceCodePrompt {
+                tracker: "simkl".into(),
+                code: "FA433".into(),
+                url: "https://simkl.com/pin".into(),
+            },
+        )));
         let buf = render_to_buffer(&app, 110, 20);
 
         let obi = app.palette.style(Role::Obi).fg;
@@ -5468,15 +5489,17 @@ mod tests {
     fn the_prompt_disappears_once_the_flow_ends() {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Accounts);
-        app.apply(crate::app::Event::DeviceCode(Some(crate::app::DeviceCodePrompt {
-            tracker: "simkl".into(),
-            code: "FA433".into(),
-            url: "https://simkl.com/pin".into(),
-        })));
+        app.apply(anistream_model::event::Event::DeviceCode(Some(
+            anistream_model::sync::DeviceCodePrompt {
+                tracker: "simkl".into(),
+                code: "FA433".into(),
+                url: "https://simkl.com/pin".into(),
+            },
+        )));
         assert!(text_of(&render_to_buffer(&app, 110, 20)).contains("F A 4 3 3"));
 
         // A prompt left up after approval asks for a code that no longer does anything.
-        app.apply(crate::app::Event::DeviceCode(None));
+        app.apply(anistream_model::event::Event::DeviceCode(None));
         assert!(!text_of(&render_to_buffer(&app, 110, 20)).contains("F A 4 3 3"));
     }
 
@@ -5495,18 +5518,20 @@ mod tests {
         // download from a stalled one; bytes that stop moving can.
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Downloads);
-        app.apply(crate::app::Event::Downloads(vec![crate::app::DownloadRow {
-            id: 1,
-            anilist_id: AnilistId::new(1),
-            title: "Frieren".into(),
-            episode: "5".into(),
-            state: DownloadState::Active,
-            fraction: 0.5,
-            downloaded: 700_000_000,
-            total: 1_400_000_000,
-            error: None,
-            path: Some("/downloads/Frieren - 05.mkv".into()),
-        }]));
+        app.apply(anistream_model::event::Event::Downloads(vec![
+            anistream_model::downloads::DownloadRow {
+                id: 1,
+                anilist_id: AnilistId::new(1),
+                title: "Frieren".into(),
+                episode: "5".into(),
+                state: DownloadState::Active,
+                fraction: 0.5,
+                downloaded: 700_000_000,
+                total: 1_400_000_000,
+                error: None,
+                path: Some("/downloads/Frieren - 05.mkv".into()),
+            },
+        ]));
         let text = text_of(&render_to_buffer(&app, 120, 30));
         assert!(text.contains("Frieren  ep 5"), "got {text:?}");
         assert!(text.contains("downloading"));
@@ -5519,18 +5544,20 @@ mod tests {
     fn a_failed_download_shows_its_reason_rather_than_just_failing() {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Downloads);
-        app.apply(crate::app::Event::Downloads(vec![crate::app::DownloadRow {
-            id: 1,
-            anilist_id: AnilistId::new(1),
-            title: "Frieren".into(),
-            episode: "5".into(),
-            state: DownloadState::Failed,
-            fraction: 0.0,
-            downloaded: 0,
-            total: 0,
-            error: Some("no peers after 60s".into()),
-            path: None,
-        }]));
+        app.apply(anistream_model::event::Event::Downloads(vec![
+            anistream_model::downloads::DownloadRow {
+                id: 1,
+                anilist_id: AnilistId::new(1),
+                title: "Frieren".into(),
+                episode: "5".into(),
+                state: DownloadState::Failed,
+                fraction: 0.0,
+                downloaded: 0,
+                total: 0,
+                error: Some("no peers after 60s".into()),
+                path: None,
+            },
+        ]));
         let text = text_of(&render_to_buffer(&app, 120, 30));
         assert!(text.contains("failed"));
         assert!(text.contains("no peers after 60s"), "the reason must survive the toast");
@@ -5541,9 +5568,9 @@ mod tests {
         // The rows stopped at the fold while the cursor carried on below it.
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Downloads);
-        app.apply(crate::app::Event::Downloads(
+        app.apply(anistream_model::event::Event::Downloads(
             (1..=40)
-                .map(|n| crate::app::DownloadRow {
+                .map(|n| anistream_model::downloads::DownloadRow {
                     id: n,
                     anilist_id: AnilistId::new(1),
                     title: "Invented Show".into(),
@@ -5925,7 +5952,7 @@ mod tests {
         app.apply(Event::MatchChoices {
             id: AnilistId::new(1),
             provider_id: "someplugin".into(),
-            candidates: vec![crate::MatchCandidate {
+            candidates: vec![anistream_model::sources::MatchCandidate {
                 title: "Exactly This".into(),
                 key: anistream_core::ids::ProviderKey::new("a"),
                 similarity: 1.0,
@@ -5942,7 +5969,7 @@ mod tests {
     fn the_header_shows_each_source_as_it_stands() {
         // Torrents off, plugins serving: nothing is failing, and nothing alerts.
         let mut app = app_with(Content::Entries(vec![entry(1, "Paper Kite")]));
-        app.apply(Event::Providers(vec![crate::app::ProviderRow {
+        app.apply(Event::Providers(vec![anistream_model::sources::ProviderRow {
             kind: "plugin".into(),
             ..provider("someplugin", "ready", true, false)
         }]));
@@ -5955,7 +5982,7 @@ mod tests {
         assert!((0..120).all(|x| buf[(x, 0)].fg != alert), "nothing in the header alerts");
 
         // A source that is failing does.
-        app.apply(Event::Providers(vec![crate::app::ProviderRow {
+        app.apply(Event::Providers(vec![anistream_model::sources::ProviderRow {
             kind: "plugin".into(),
             ..provider("someplugin", "down", false, false)
         }]));
@@ -5967,7 +5994,7 @@ mod tests {
     #[test]
     fn a_signed_out_tracker_is_not_drawn_as_a_separator() {
         let mut app = app_with(Content::Entries(vec![entry(1, "Paper Kite")]));
-        app.apply(Event::Sync(Box::new(crate::app::SyncState::new("kitsu"))));
+        app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState::new("kitsu"))));
         let header = lines_of(&app, 120, 30)[0].clone();
         assert!(header.contains("kitsu ○"), "{header}");
         assert!(!header.contains("kitsu ·"), "{header}");
@@ -5979,7 +6006,7 @@ mod tests {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Settings);
         let before = lines_of(&app, 80, 24);
-        app.push_toast(crate::app::Notice::info("saved · counts as watched at"));
+        app.push_toast(anistream_model::notice::Notice::info("saved · counts as watched at"));
         let after = lines_of(&app, 80, 24);
         let rule = after.len() - 2;
         assert!(after[rule].contains("saved · counts as watched at"), "{after:#?}");
@@ -5989,7 +6016,7 @@ mod tests {
             }
         }
         // More than one up: the newest, and how many others.
-        app.push_toast(crate::app::Notice::alert("source unreachable"));
+        app.push_toast(anistream_model::notice::Notice::alert("source unreachable"));
         let rule_line = lines_of(&app, 80, 24)[rule].clone();
         assert!(rule_line.contains("source unreachable  +1"), "{rule_line}");
     }
@@ -5999,7 +6026,7 @@ mod tests {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Seasonal);
         app.apply(Event::Caption {
-            view: crate::app::ContentFor::Seasonal,
+            view: anistream_model::catalog::ContentFor::Seasonal,
             text: "fall 2026 · the 40 most popular".into(),
         });
         app.apply(
@@ -6010,7 +6037,7 @@ mod tests {
 
         // A caption belongs to the list it came with.
         app.apply(Event::Content {
-            view: crate::app::ContentFor::Continue,
+            view: anistream_model::catalog::ContentFor::Continue,
             content: Content::Empty,
         });
         app.go_to_section(Section::Home);
@@ -6097,8 +6124,8 @@ mod tests {
         episode: &str,
         state: DownloadState,
         of: u64,
-    ) -> crate::app::DownloadRow {
-        crate::app::DownloadRow {
+    ) -> anistream_model::downloads::DownloadRow {
+        anistream_model::downloads::DownloadRow {
             id: i64::from(episode.parse::<u8>().unwrap_or(0)),
             anilist_id: AnilistId::new(1),
             title: title.into(),
@@ -6162,7 +6189,7 @@ mod tests {
             let mut app = app_with(Content::Empty);
             app.go_to_section(section);
             app.apply(Event::Downloads(vec![download("Kite", "1", DownloadState::Queued, 0)]));
-            app.apply(Event::Sync(Box::new(crate::app::SyncState::new("kitsu"))));
+            app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState::new("kitsu"))));
             app.apply(Event::Providers(vec![provider("one", "ready", true, false)]));
             app.nav.focus_rail();
             let buf = render_to_buffer(&app, 120, 30);
@@ -6244,7 +6271,7 @@ mod tests {
         assert!(text.contains("trackers.enabled"), "nothing to sign in to yet:\n{text}");
         assert!(!text.contains("run \"accounts\""), "{text}");
 
-        app.apply(Event::Sync(Box::new(crate::app::SyncState::new("kitsu"))));
+        app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState::new("kitsu"))));
         let text = text_of(&render_to_buffer(&app, 120, 30));
         assert!(text.contains("press 8 for Accounts to sign in"), "{text}");
     }

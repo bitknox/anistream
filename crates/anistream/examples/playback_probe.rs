@@ -22,11 +22,11 @@ use anistream_core::{
     media::Translation,
     stream::{Stream, StreamKind},
 };
+use anistream_model::event::Event;
 use anistream_net::HttpClient;
 use anistream_player::Mpv;
 use anistream_providers::{VpnGuard, torrent::TorrentSession};
 use anistream_store::Store;
-use anistream_ui::app::Event;
 use tokio::sync::mpsc;
 
 /// Big Buck Bunny © Blender Foundation, CC-BY 3.0 — <https://peach.blender.org>.
@@ -199,13 +199,13 @@ async fn main() {
 
     // Exercise the control path the Now Playing screen uses, then stop.
     println!("  → seek +30s");
-    let _ = command_tx.send(anistream_ui::PlayerCommand::Seek(30.0));
+    let _ = command_tx.send(anistream_model::command::PlayerCommand::Seek(30.0));
     tokio::time::sleep(Duration::from_secs(4)).await;
     println!("  → pause");
-    let _ = command_tx.send(anistream_ui::PlayerCommand::TogglePause);
+    let _ = command_tx.send(anistream_model::command::PlayerCommand::TogglePause);
     tokio::time::sleep(Duration::from_secs(2)).await;
     println!("  → stop");
-    let _ = command_tx.send(anistream_ui::PlayerCommand::Stop);
+    let _ = command_tx.send(anistream_model::command::PlayerCommand::Stop);
 
     let _ = tokio::time::timeout(Duration::from_secs(15), playing).await;
     drop(command_tx);

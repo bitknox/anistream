@@ -57,9 +57,9 @@ pub fn hand_over(app: &mut App, decoded: Decoded) {
 #[cfg(test)]
 mod tests {
     use anistream_core::config::Config;
+    use anistream_model::event::Event;
     use anistream_ui::{
         Keymap,
-        app::Event,
         image::{ImageEngine, RequestState},
         theme,
     };

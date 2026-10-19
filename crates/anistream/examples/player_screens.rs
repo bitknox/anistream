@@ -30,9 +30,9 @@ use anistream_core::{
     media::Translation,
     stream::{Stream, StreamKind},
 };
+use anistream_model::event::Event;
 use anistream_net::HttpClient;
 use anistream_store::Store;
-use anistream_ui::app::Event;
 use tokio::sync::mpsc;
 
 struct Scenario {

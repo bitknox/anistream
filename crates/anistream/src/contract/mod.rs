@@ -21,7 +21,7 @@ mod title;
 mod watch;
 
 use anistream_core::ids::AnilistId;
-use anistream_ui::app::{Content, Event, JobId, NoticeKind};
+use anistream_model::{catalog::Content, event::Event, jobs::JobId, notice::NoticeKind};
 
 use crate::harness::names;
 

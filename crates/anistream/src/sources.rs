@@ -318,10 +318,10 @@ pub async fn bring_up_torrent(
     http: HttpClient,
     paths: Paths,
     store: anistream_store::Store,
-    tx: tokio::sync::mpsc::UnboundedSender<anistream_ui::app::Event>,
+    tx: tokio::sync::mpsc::UnboundedSender<anistream_model::event::Event>,
 ) -> std::result::Result<TorrentUp, String> {
+    use anistream_model::event::Event;
     use anistream_providers::vpn::{GuardLog, GuardNote, GuardState};
-    use anistream_ui::app::Event;
 
     let (settings, guard) = prepare_torrent(&config)?;
     // Before the wait rather than after it: a cache left full by an earlier run should not stay
@@ -371,8 +371,8 @@ pub async fn bring_up_torrent(
 
 /// The guard's verdict as the interface is told it: what the guard found, without its reasons,
 /// which are for the log and the Providers note.
-pub fn guard_view(state: &GuardState) -> anistream_ui::app::GuardView {
-    use anistream_ui::app::GuardView;
+pub fn guard_view(state: &GuardState) -> anistream_model::sources::GuardView {
+    use anistream_model::sources::GuardView;
     match state {
         GuardState::Unverified => GuardView::Checking,
         GuardState::Protected { egress } => GuardView::Protected { exit: egress.describe() },

@@ -5,8 +5,12 @@
 //! knows both vocabularies.
 
 use anistream_meta::anilist::{AiringEntry, Media};
+use anistream_model::{
+    catalog::Entry,
+    episodes::{EpisodeKind, EpisodeRow},
+    sources::ProviderRow,
+};
 use anistream_store::Store;
-use anistream_ui::app::{Entry, EpisodeKind, EpisodeRow, ProviderRow};
 
 /// Convert a title into the UI's flattened projection.
 pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
@@ -30,7 +34,7 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
             .into_iter()
             .find(|e| e.episode == episode)
             .and_then(|e| e.duration_secs);
-        Some(anistream_ui::app::ResumePoint {
+        Some(anistream_model::catalog::ResumePoint {
             position,
             fraction: duration.filter(|d| *d > 0.0).map(|d| (position / d).clamp(0.0, 1.0)),
         })
@@ -66,7 +70,7 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
         related: media
             .watch_order()
             .into_iter()
-            .map(|r| anistream_ui::app::RelatedTitle {
+            .map(|r| anistream_model::catalog::RelatedTitle {
                 id: r.id,
                 title: r.title.display().to_owned(),
                 relation: r.relation_type.map_or_else(String::new, |t| t.to_lowercase()),
@@ -77,7 +81,7 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
         recommended: media
             .recommended()
             .into_iter()
-            .map(|node| anistream_ui::app::RelatedTitle {
+            .map(|node| anistream_model::catalog::RelatedTitle {
                 id: node.id,
                 title: node.title.display().to_owned(),
                 // Not a relation — the empty string is what RECOMMENDED rows show there.
@@ -156,10 +160,10 @@ fn format_label(format: anistream_core::media::MediaFormat) -> Option<String> {
 }
 
 /// The metadata ladder's rungs, in the UI's terms.
-pub fn meta_rows(meta: &anistream_meta::Meta) -> Vec<anistream_ui::app::MetaSourceRow> {
+pub fn meta_rows(meta: &anistream_meta::Meta) -> Vec<anistream_model::sources::MetaSourceRow> {
     meta.health()
         .into_iter()
-        .map(|h| anistream_ui::app::MetaSourceRow {
+        .map(|h| anistream_model::sources::MetaSourceRow {
             source: h.source.to_owned(),
             state: h.state.to_owned(),
             healthy: h.healthy,

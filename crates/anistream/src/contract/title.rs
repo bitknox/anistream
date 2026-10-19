@@ -5,13 +5,13 @@
 //! does, so the screen leaves its loading state whatever happened.
 
 use anistream_core::{media::SearchHit, traits::SourceCandidate};
+use anistream_model::{command::Command, event::Event};
 use anistream_providers::{MockProvider, ProviderRegistry};
 use anistream_store::ResolutionRung;
 use anistream_testkit::{
     fixtures::{FINISHED, FIXTURE_NOW, MISSING},
     seed, sources,
 };
-use anistream_ui::app::{Command, Event};
 
 use super::{ends, toasts};
 use crate::harness::{Harness, Options, names};

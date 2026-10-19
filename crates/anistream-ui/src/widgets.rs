@@ -21,10 +21,6 @@ use crate::{
     },
 };
 
-// Moved to the model, where every front end can say a count or a size the same way. Re-exported
-// from here until every caller names them there.
-pub use anistream_model::wording::{ago, countdown, human_bytes, plural};
-
 /// A horizontal hairline.
 pub struct Hairline<'a> {
     palette: &'a Palette,

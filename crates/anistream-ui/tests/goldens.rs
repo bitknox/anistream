@@ -30,15 +30,24 @@ use anistream_core::{
     ids::{AnilistId, ProviderKey},
     traits::SourceCandidate,
 };
-use anistream_ui::{
-    Action, App, Clock, Command, ConflictRow, Content, Entry, Event, Keymap, LibrarySegment,
-    MatchCandidate, Overlay, Palette, Role, SyncState, Zone,
-    app::{
-        DeviceCodePrompt, DownloadRow, DownloadState, EpisodeKind, EpisodeRow, InviteLinkView,
-        JobId, LocalPluginRow, MetaSourceRow, Notice, ProviderRow, RelatedTitle, ResumePoint,
-        Secret, SeedRow, SkipKind, StoreInviteRow, StoreMemberRow, StorePluginRow,
+use anistream_model::{
+    catalog::{Content, Entry, LibrarySegment, RelatedTitle, ResumePoint},
+    command::Command,
+    downloads::{DownloadRow, DownloadState, SeedRow},
+    episodes::{EpisodeKind, EpisodeRow},
+    event::Event,
+    jobs::JobId,
+    notice::Notice,
+    playback::SkipKind,
+    sources::{MatchCandidate, MetaSourceRow, ProviderRow},
+    stores::{
+        InviteLinkView, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
         StorePluginStatus, StorePreview, StoreRow, StoreState,
     },
+    sync::{ConflictRow, DeviceCodePrompt, SyncState},
+};
+use anistream_ui::{
+    Action, App, Clock, Keymap, Overlay, Palette, Role, Zone,
     eyecatch::{FRAME_MS, QUIET_HOLD_FRAMES, SWEEP_FRAMES},
     screens::{render_to_buffer, visible_rows},
 };
