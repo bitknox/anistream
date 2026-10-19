@@ -1246,11 +1246,10 @@ fn activity_and_toasts(s: &mut Screen) {
     s.wait(Duration::from_millis(7_400));
     let sync = s.act(Action::ForceResync).expect("a sync");
     let job = s.start(&sync);
-    let until = s.app.clock.now_instant() + Duration::from_millis(42_600);
     s.apply(Update::JobNote {
         job,
         note: "AniList asked for a pause".into(),
-        until: Some(until),
+        wait: Some(Duration::from_millis(42_600)),
     });
     s.wait(Duration::from_millis(900));
     s.apply(Update::Toast(Notice::info("saved upscaling")));

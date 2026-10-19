@@ -1332,11 +1332,14 @@ pub enum ContentFor {
 /// guarantees the render loop is never blocked on I/O.
 #[derive(Debug)]
 pub enum Update {
-    /// What a running [`Job`] is held up on, and until when.
+    /// What a running job is held up on, and for how long from now, when that is known.
+    ///
+    /// A span rather than a moment: a moment is read off a clock, and the one that counts the
+    /// wait down is the front end's.
     JobNote {
         job: JobId,
         note: String,
-        until: Option<Instant>,
+        wait: Option<Duration>,
     },
     /// The work carrying this job has ended, whether it succeeded or not.
     JobDone(JobId),
@@ -2414,7 +2417,8 @@ impl App {
                     None => self.sync.push(*state),
                 }
             }
-            Update::JobNote { job, note, until } => {
+            Update::JobNote { job, note, wait } => {
+                let until = wait.map(|wait| self.clock.now_instant() + wait);
                 if let Some(job) = self.jobs.iter_mut().find(|j| j.id == job) {
                     job.note = Some((note, until));
                 }
@@ -10147,7 +10151,7 @@ mod tests {
     fn a_job_runs_until_its_work_says_it_ended() {
         let mut a = app();
         let id = a.begin_job(&Task::CheckProviders).unwrap();
-        a.apply(Update::JobNote { job: id, note: "AniList limit".into(), until: None });
+        a.apply(Update::JobNote { job: id, note: "AniList limit".into(), wait: None });
         assert_eq!(a.jobs[0].note.as_ref().map(|(n, _)| n.as_str()), Some("AniList limit"));
 
         a.apply(Update::JobDone(id));

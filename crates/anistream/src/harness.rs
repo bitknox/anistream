@@ -584,8 +584,8 @@ pub fn names(updates: &[Update]) -> Vec<&'static str> {
 /// [`name`], so the two cannot drift apart.
 fn copy(update: &Update) -> Update {
     match update {
-        Update::JobNote { job, note, until } => {
-            Update::JobNote { job: *job, note: note.clone(), until: *until }
+        Update::JobNote { job, note, wait } => {
+            Update::JobNote { job: *job, note: note.clone(), wait: *wait }
         }
         Update::JobDone(job) => Update::JobDone(*job),
         Update::Content { view, content } => {

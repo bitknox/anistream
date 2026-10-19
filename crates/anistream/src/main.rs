@@ -2252,9 +2252,9 @@ impl JobGuard {
         app.begin_job(task).map(|id| Self { id, tx: tx.clone() })
     }
 
-    /// Say what the work is held up on, and until when if that is known.
-    fn note(&self, note: impl Into<String>, until: Option<std::time::Instant>) {
-        let _ = self.tx.send(Update::JobNote { job: self.id, note: note.into(), until });
+    /// Say what the work is held up on, and for how long if that is known.
+    fn note(&self, note: impl Into<String>, wait: Option<Duration>) {
+        let _ = self.tx.send(Update::JobNote { job: self.id, note: note.into(), wait });
     }
 }
 
@@ -2286,9 +2286,8 @@ fn spawn(
         if let Some(wait) = meta.rate_limit_wait().await
             && wait.as_millis() > 400
         {
-            let until = std::time::Instant::now() + wait;
             match &job {
-                Some(job) => job.note("AniList limit", Some(until)),
+                Some(job) => job.note("AniList limit", Some(wait)),
                 // No job to note it on. A toast, which goes when it is done: as a status it
                 // stayed, still counting "12s", after the wait was over.
                 None => {

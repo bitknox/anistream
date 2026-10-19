@@ -4237,7 +4237,7 @@ mod tests {
         app.apply(Update::JobNote {
             job: id,
             note: "AniList limit".into(),
-            until: Some(until),
+            wait: Some(std::time::Duration::from_millis(12_400)),
         });
         let text = text_of(&render_to_buffer(&app, 120, 30));
         assert!(text.contains("loading this season · AniList limit, 12s"), "{text}");
