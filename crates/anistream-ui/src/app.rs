@@ -3211,7 +3211,7 @@ impl App {
                     let row = self.downloads.get(self.selected)?;
                     // A finished download has nothing left to cancel. Cancelling it forgot the
                     // row and left the file on disk with no way back to it from here.
-                    if row.state == "done" {
+                    if row.state == "complete" {
                         let delete = self.key_for(Action::DeleteDownload);
                         self.push_toast(Notice::info(format!(
                             "already downloaded — {delete} deletes it and its file"
@@ -9162,7 +9162,7 @@ mod tests {
             anilist_id: AnilistId::new(1),
             title: "Title 0".into(),
             episode: "1".into(),
-            state: "done",
+            state: "complete",
             fraction: 1.0,
             downloaded: 2,
             total: 2,
