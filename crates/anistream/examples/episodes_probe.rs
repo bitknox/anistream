@@ -35,11 +35,11 @@ async fn main() {
 
     println!("── registry ───────────────────────────────────────────");
     let (registry, guard, note, _) =
-        anistream::sources::build_registry(&config, &http, &paths, &store).await;
+        anistream_engine::sources::build_registry(&config, &http, &paths, &store).await;
     // The app loads plugins off the critical path, so `build_registry` returns without them.
     // A probe that skipped this step would print an empty registry — the loudest failure it
     // knows how to report — for anyone whose only source is a plugin.
-    let plugin_note = anistream::sources::spawn_plugin_load(
+    let plugin_note = anistream_engine::sources::spawn_plugin_load(
         registry.clone(),
         config.clone(),
         http.clone(),

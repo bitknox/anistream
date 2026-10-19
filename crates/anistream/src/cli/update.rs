@@ -7,7 +7,7 @@
 
 use std::path::{Path, PathBuf};
 
-use anistream::updates::{CURRENT, REPO, is_newer, latest_tag};
+use anistream_engine::updates::{CURRENT, REPO, is_newer, latest_tag};
 use anistream_net::HttpClient;
 use anyhow::{Context, Result, bail};
 use sha2::Digest;

@@ -16,8 +16,8 @@ use std::{
     sync::Arc,
 };
 
-use anistream::plugin_stores::{Stores, WasmInspector};
 use anistream_core::config::{Config, Paths};
+use anistream_engine::plugin_stores::{Stores, WasmInspector};
 use anistream_model::stores::{StorePluginStatus, StoreState};
 use anistream_plugin_store::server::{self, Server, Storage};
 use anistream_track::secret::TokenStore;

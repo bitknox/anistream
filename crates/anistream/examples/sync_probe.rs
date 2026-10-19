@@ -65,7 +65,8 @@ async fn main() {
         println!("  expires in     {} days", (exp - anistream_store::now()) / 86_400);
     }
 
-    let sync = anistream::tracking::Sync::with_tokens(&config, &store, &http, tokens.clone());
+    let sync =
+        anistream_engine::tracking::Sync::with_tokens(&config, &store, &http, tokens.clone());
     let Some(tracker) = sync.trackers.first() else {
         println!("  ✕ anilist is not in trackers.enabled");
         return;

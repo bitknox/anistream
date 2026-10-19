@@ -32,8 +32,8 @@ use std::{
     time::Duration,
 };
 
-use anistream::{artwork, data, plugin_stores, slot::PlayerSlot, sources, tracking};
 use anistream_core::config::{Config, NetworkConfig, Paths};
+use anistream_engine::{artwork, data, plugin_stores, slot::PlayerSlot, sources, tracking};
 use anistream_meta::Meta;
 use anistream_model::{command::Command, event::Event, jobs::JobId, notice::Notice};
 use anistream_net::HttpClient;
@@ -115,7 +115,7 @@ pub struct Harness {
     slot: PlayerSlot,
     prefetch: Prefetch,
     player_tx: Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
-    shared_config: anistream::SharedConfig,
+    shared_config: anistream_engine::SharedConfig,
     torrent_tasks: TorrentTasks,
     vpn_guard: Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
     arrivals: mpsc::UnboundedSender<(u64, Result<sources::TorrentUp, String>)>,

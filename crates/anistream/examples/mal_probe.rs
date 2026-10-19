@@ -45,7 +45,7 @@ async fn main() {
     println!("  and back       {back:?}");
     assert_eq!(back, Some(SUBJECT), "the mapping is not symmetric");
 
-    let sync = anistream::tracking::Sync::build(&config, &store, &http);
+    let sync = anistream_engine::tracking::Sync::build(&config, &store, &http);
     let Some(mal) = sync.trackers.iter().find(|t| t.id() == "mal") else {
         println!("  ✕ mal is not in trackers.enabled");
         return;

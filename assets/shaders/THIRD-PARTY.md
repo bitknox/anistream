@@ -2,7 +2,7 @@
 
 Every file in this directory is someone else's work, vendored unmodified (apart from the
 line endings noted below) and embedded into the anistream binary by
-`crates/anistream/src/shaders.rs`. At runtime they are written, with these licence files,
+`crates/anistream-engine/src/shaders.rs`. At runtime they are written, with these licence files,
 to `<cache>/shaders/<digest>/` and handed to mpv as `glsl-shaders`.
 
 The licences are not all the same. Read the table before redistributing.
@@ -88,7 +88,7 @@ natural output; Ani4K v2 targets modern HD anime, from Blu-ray to heavily compre
 releases, upscaled to 2K or 4K. The author's sample mpv auto-profile assigns 720p and
 1080p to Ani4K v2 and 480/540/576 to AniSD. Ani4K v2 is not shipped: it only just held real
 time on a 720p source on an M4 Pro, and ArtCNN C4F16 looked nearly the same at a fraction of
-the cost (see `crates/anistream/src/shaders.rs`). The `i2`/`i4` suffixes are the author's
+the cost (see `crates/anistream-engine/src/shaders.rs`). The `i2`/`i4` suffixes are the author's
 training-iteration tags; neither the releases nor the wiki define them further, and only
 one of each is published. The `_CMP` compute variants were not taken: on this Mac (`gpu-next` over MoltenVK) they
 cost about the same as the fragment versions, and the author notes they may only work

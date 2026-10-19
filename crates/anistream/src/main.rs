@@ -4,7 +4,7 @@ mod cli;
 mod covers;
 mod tui;
 
-use anistream::{
+use anistream_engine::{
     artwork, data, downloads, playback,
     player::{player, shader_dir},
     plugin_stores,
@@ -1686,7 +1686,7 @@ async fn run(
     // Old logs, stale covers and the player's leftovers, off the critical path.
     {
         let paths = paths.clone();
-        tokio::task::spawn_blocking(move || anistream::prune::sweep_at_launch(&paths));
+        tokio::task::spawn_blocking(move || anistream_engine::prune::sweep_at_launch(&paths));
     }
     // With torrents off nothing else would ever prune what an earlier run streamed. With them
     // on, the session prunes on its way up, before it writes anything.
@@ -1695,7 +1695,13 @@ async fn run(
             (paths.cache_dir.join("torrents"), config.providers.torrent.cache_limit_bytes());
         let store = store.clone();
         tokio::spawn(async move {
-            anistream::prune::sweep_torrent_cache(dir, limit, &store, Default::default()).await;
+            anistream_engine::prune::sweep_torrent_cache(
+                dir,
+                limit,
+                &store,
+                Default::default(),
+            )
+            .await;
         });
     }
 
@@ -1742,11 +1748,16 @@ async fn run(
     let (tx, mut rx) = mpsc::unbounded_channel::<Event>();
 
     // The daily update check: one cached request, one quiet toast when a release exists.
-    anistream::updates::spawn_check(app.config.updates.check, &paths.cache_dir, &http, &tx);
+    anistream_engine::updates::spawn_check(
+        app.config.updates.check,
+        &paths.cache_dir,
+        &http,
+        &tx,
+    );
 
     // The airing digest: what aired for shows you watch since the last launch. Same
     // philosophy as the update check — one line, only when there is something to say.
-    anistream::digest::spawn(
+    anistream_engine::digest::spawn(
         app.config.notifications.airing_digest,
         app.config.notifications.desktop,
         store.clone(),
@@ -1811,7 +1822,7 @@ async fn run(
     // leaving either behind would mean traffic outliving the source it belongs to.
     // The copy the background tasks read. Kept in step with the app's own copy whenever a
     // setting is written, so "saved" and "in effect" are the same moment.
-    let shared_config: anistream::SharedConfig =
+    let shared_config: anistream_engine::SharedConfig =
         Arc::new(std::sync::RwLock::new(app.config.clone()));
     // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
     let (arrivals_tx, mut arrivals) = mpsc::unbounded_channel();
@@ -1929,7 +1940,7 @@ async fn run(
                 // The status rows ride along so the header chip and the Providers screen
                 // agree with the toast without waiting for a refresh.
                 if let Some(notice) = meta.take_notice() {
-                    app.apply(Event::MetaStatus(anistream::data::meta_rows(&meta)));
+                    app.apply(Event::MetaStatus(anistream_engine::data::meta_rows(&meta)));
                     app.apply(Event::Toast(Notice::info(notice)));
                 }
                 // A source setting changed. Awaited here rather than spawned: this owns the
@@ -4022,7 +4033,7 @@ impl TorrentTasks {
     fn start(
         guard: &Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
         store: &Store,
-        config: &anistream::SharedConfig,
+        config: &anistream_engine::SharedConfig,
         tx: &mpsc::UnboundedSender<Event>,
     ) -> Self {
         let Some((guard, session)) = guard.clone() else {
@@ -4039,7 +4050,7 @@ impl TorrentTasks {
         let watcher = tokio::spawn(vpn_watch(guard, session.clone(), tx.clone()));
         let seeding =
             tokio::spawn(seeding_watch(session.clone(), Arc::clone(config), tx.clone()));
-        let cache = tokio::spawn(anistream::prune::torrent_cache_watch(
+        let cache = tokio::spawn(anistream_engine::prune::torrent_cache_watch(
             session.clone(),
             store.clone(),
             Arc::clone(config),
@@ -4102,7 +4113,7 @@ impl TorrentTasks {
         vpn_guard: &mut Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
         registry: &ProviderRegistry,
         store: &Store,
-        config: &anistream::SharedConfig,
+        config: &anistream_engine::SharedConfig,
         tx: &mpsc::UnboundedSender<Event>,
     ) {
         if generation != self.generation {
@@ -4161,7 +4172,7 @@ impl TorrentTasks {
 /// rebuild of the source (which would tear down the episode playing).
 async fn seeding_watch(
     session: Arc<anistream_providers::torrent::TorrentSession>,
-    config: anistream::SharedConfig,
+    config: anistream_engine::SharedConfig,
     tx: mpsc::UnboundedSender<Event>,
 ) {
     let mut ticker = tokio::time::interval(Duration::from_secs(10));
@@ -4257,7 +4268,7 @@ async fn reload_sources(
     registry: &ProviderRegistry,
     torrent_tasks: &mut TorrentTasks,
     vpn_guard: &mut Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
-    config: &anistream::SharedConfig,
+    config: &anistream_engine::SharedConfig,
     http: &HttpClient,
     paths: &Paths,
     store: &Store,

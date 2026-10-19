@@ -3,7 +3,7 @@
 //! This is the one thing no unit test can establish — that a stream pulled from peers through
 //! a SOCKS5 proxy actually decodes in mpv, and that the position mpv reports over JSON IPC
 //! lands in the local history as a row you can resume from. It drives
-//! [`anistream::playback::play`], the same function the TUI calls, rather than a copy of it.
+//! [`anistream_engine::playback::play`], the same function the TUI calls, rather than a copy of it.
 //!
 //! Uses **Big Buck Bunny**, the Blender Foundation's open movie, licensed CC-BY 3.0 and
 //! distributed by its rights holder for exactly this kind of testing.
@@ -105,7 +105,7 @@ async fn main() {
         provider_id: "torrent".into(),
         ..Stream::new(active.url(), StreamKind::TorrentHttp)
     };
-    let context = anistream::playback::PlaybackContext {
+    let context = anistream_engine::playback::PlaybackContext {
         anilist_id: PROBE_ID,
         // No MAL id: this proves a title the mapping layer cannot resolve simply has no skip
         // data, rather than failing.
@@ -157,7 +157,7 @@ async fn main() {
 
     let store_for_play = store.clone();
     let playing = tokio::spawn(async move {
-        let settings = anistream::playback::PlaySettings {
+        let settings = anistream_engine::playback::PlaySettings {
             threshold: config.playback.commit_threshold,
             auto_skip: config.playback.skip_opening,
             mark_chapters: config.playback.mark_chapters,
@@ -181,14 +181,14 @@ async fn main() {
             syncplay: Default::default(),
             party: false,
         };
-        anistream::playback::play(
+        anistream_engine::playback::play(
             vec![stream],
             context,
             store_for_play,
             http,
             mpv,
             settings,
-            anistream::slot::PlayerSlot::default(),
+            anistream_engine::slot::PlayerSlot::default(),
             tx,
             command_rx,
         )

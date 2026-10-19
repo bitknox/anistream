@@ -33,7 +33,7 @@ impl StoreServer {
                 .await
                 .unwrap();
         let invite = store.fresh_owner_invite(&base, server::now()).await.unwrap().unwrap();
-        let inspector = anistream::plugin_stores::WasmInspector::new(
+        let inspector = anistream_engine::plugin_stores::WasmInspector::new(
             anistream_plugin::Limits::default(),
             None,
         )

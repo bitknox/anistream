@@ -20,15 +20,15 @@
 
 use std::time::Duration;
 
-use anistream::{
-    playback::{self, EpisodeEntry, NextEpisode, PlaySettings, PlaybackContext},
-    slot::PlayerSlot,
-};
 use anistream_core::{
     config::{Config, Paths},
     ids::AnilistId,
     media::Translation,
     stream::{Stream, StreamKind},
+};
+use anistream_engine::{
+    playback::{self, EpisodeEntry, NextEpisode, PlaySettings, PlaybackContext},
+    slot::PlayerSlot,
 };
 use anistream_model::event::Event;
 use anistream_net::HttpClient;
@@ -99,7 +99,8 @@ async fn main() -> anyhow::Result<()> {
     let scratch = tempfile::tempdir()?;
     let paths = Paths { cache_dir: scratch.path().to_path_buf(), ..Paths::resolve()? };
     let config = Config::load(&paths)?;
-    let mpv = anistream::player::player(&config, &paths, &anistream_ui::theme::player_theme());
+    let mpv =
+        anistream_engine::player::player(&config, &paths, &anistream_ui::theme::player_theme());
     println!("player scratch dir: {}", mpv.scratch_dir().display());
 
     let store = Store::open_in_memory()?;
@@ -148,7 +149,7 @@ async fn main() -> anyhow::Result<()> {
         night_mode: false,
         remember_tracks: false,
         look: config.playback.upscaling.into(),
-        shader_dir: anistream::player::shader_dir(&config, &paths),
+        shader_dir: anistream_engine::player::shader_dir(&config, &paths),
         tone_mapping: config.playback.tone_mapping.clone(),
         tracker_ids: Vec::new(),
         presence: Default::default(),

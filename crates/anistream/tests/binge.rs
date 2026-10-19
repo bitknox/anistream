@@ -7,14 +7,14 @@
 
 use std::time::Duration;
 
-use anistream::{
-    playback::{self, NextEpisode, PlaySettings, PlaybackContext},
-    slot::PlayerSlot,
-};
 use anistream_core::{
     ids::AnilistId,
     media::Translation,
     stream::{Stream, StreamKind},
+};
+use anistream_engine::{
+    playback::{self, NextEpisode, PlaySettings, PlaybackContext},
+    slot::PlayerSlot,
 };
 use anistream_model::{
     command::PlayerCommand,
