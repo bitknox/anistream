@@ -1305,6 +1305,9 @@ pub enum Update {
     /// A setting changed what sources should exist. Acted on by the run loop, which owns
     /// the torrent session and the VPN guard; the reducer only needs to not choke on it.
     SourcesChanged,
+    /// The order changed and the sources did not. The run loop puts the live chain in the new
+    /// order without a rebuild, which would restart the torrent session under a playing episode.
+    SourcesReordered,
     /// Why no sources are available, when none are.
     ProviderNote(String),
     /// The source pinned for the title on screen, or `None` for automatic.
@@ -2084,6 +2087,8 @@ impl App {
                 }
             }
             Update::SourcesChanged => self.status = "reloading sources…".into(),
+            // The rows moved when the key was pressed; the run loop sends the chain's own.
+            Update::SourcesReordered => {}
             Update::ProviderNote(note) => self.provider_note = Some(note),
             Update::ProviderPreference(choice) => self.provider_preference = choice,
             Update::Sources { id, episode, candidates } => {
@@ -5436,8 +5441,8 @@ impl App {
 
     /// `K` or `J` on Providers: the selected source one place up or down the chain, saved.
     ///
-    /// The rows move at once and the cursor with its row; the live chain follows once the file
-    /// has the order. At either end nothing moves and nothing is saved.
+    /// The rows move at once and the cursor with its row; the run loop puts the live chain in
+    /// the same order once the file has it. At either end nothing moves and nothing is saved.
     fn move_source(&mut self, step: isize) -> Option<Task> {
         let id = self.providers.get(self.selected)?.id.clone();
         let order =
@@ -6975,6 +6980,16 @@ mod tests {
             failed: Some((&["providers"], "order")),
         });
         assert_eq!(a.config.providers.order, before);
+    }
+
+    #[test]
+    fn a_new_order_does_not_say_the_sources_are_reloading() {
+        // Nothing is rebuilt for a reorder, so the status line must not claim a reload.
+        let mut a = at_providers();
+        let before = a.status.clone();
+        a.apply(Update::SourcesReordered);
+        assert_eq!(a.status, before);
+        assert_eq!(row_ids(&a), ["torrent", "alpha", "beta"]);
     }
 
     #[test]

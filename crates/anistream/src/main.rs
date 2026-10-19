@@ -1911,10 +1911,17 @@ async fn run(
                 // session and the guard, and two rebuilds racing would leave one of their
                 // sessions running with nothing holding it. Quick: the new torrent source
                 // comes up behind the interface, as at launch.
-                if matches!(update, Update::SettingsSaved | Update::SourcesChanged)
-                    && let Ok(mut shared) = shared_config.write()
+                if matches!(
+                    update,
+                    Update::SettingsSaved | Update::SourcesChanged | Update::SourcesReordered
+                ) && let Ok(mut shared) = shared_config.write()
                 {
                     *shared = app.config.clone();
+                }
+                // Only the order changed: the chain as it stands is put in it, with no rebuild.
+                if matches!(update, Update::SourcesReordered) {
+                    sources::arrange(&registry, &app.config);
+                    app.apply(Update::Providers(data::provider_rows(&registry)));
                 }
                 if matches!(update, Update::SourcesChanged) {
                     reload_sources(
@@ -3064,6 +3071,11 @@ fn dispatch(
         // a pure function. Synchronous on purpose — one small file, and a settings change that
         // silently lost a race with the next one would be worse than a paused frame.
         Task::SaveSetting { table, key, value } => {
+            // Against the file's order, not `config`'s: the reducer has already put the new
+            // order in effect there.
+            let reordered = (table, key) == (&["providers"][..], "order")
+                && matches!(&value, anistream_core::settings::SettingValue::List(order)
+                    if only_reorders(&app.saved_config.providers.order, order));
             let written = anistream_core::settings::write_key(paths, table, key, value);
             // Read back whatever the write left, so the Settings screen shows the file rather
             // than its own hopes — and can put a refused setting back. A file that does not
@@ -3086,8 +3098,11 @@ fn dispatch(
                     let _ = tx.send(Update::SettingsSaved);
                     // A setting that redefines what sources exist takes effect now rather
                     // than at the next launch. The run loop owns the session and the guard,
-                    // so it does the work; this only says that it is needed.
-                    if redefines_sources(table, key) {
+                    // so it does the work; this only says that it is needed. An order that
+                    // only moves sources is put in effect without a rebuild.
+                    if reordered {
+                        let _ = tx.send(Update::SourcesReordered);
+                    } else if redefines_sources(table, key) {
                         let _ = tx.send(Update::SourcesChanged);
                     }
                 }
@@ -3899,6 +3914,22 @@ async fn play_cli(
 /// progress out of the watch log.
 fn signed_in_tracker_ids(sync: &tracking::Sync) -> Vec<String> {
     sync.trackers.iter().filter(|t| t.is_authenticated()).map(|t| t.id().to_owned()).collect()
+}
+
+/// Whether a new `providers.order` only moves sources, rather than adding or taking one away.
+///
+/// The built-in entries say which sources exist; a plugin's id in the order only ranks it. So the
+/// same built-ins in any order need no rebuild, and a rebuild would restart the torrent session
+/// and cut off whatever it is playing.
+fn only_reorders(before: &[String], after: &[String]) -> bool {
+    let built_in = |order: &[String]| -> std::collections::BTreeSet<String> {
+        order
+            .iter()
+            .filter(|id| matches!(id.as_str(), "torrent" | "remote" | "plugins"))
+            .cloned()
+            .collect()
+    };
+    built_in(before) == built_in(after)
 }
 
 /// Whether writing this key changes which sources exist, and so needs the chain rebuilt.
@@ -5096,6 +5127,24 @@ mod tests {
         assert!(!redefines_sources(&["playback"], "quality"));
         assert!(!redefines_sources(&["downloads"], "directory"));
         assert!(!redefines_sources(&["theme"], "mode"));
+    }
+
+    #[test]
+    fn an_order_with_the_same_sources_is_put_in_effect_without_a_rebuild() {
+        let order =
+            |entries: &[&str]| entries.iter().map(|e| (*e).to_owned()).collect::<Vec<_>>();
+        // Moved, or with a plugin named: the same sources, so the session can stay up.
+        assert!(only_reorders(
+            &order(&["torrent", "plugins"]),
+            &order(&["plugins", "torrent"])
+        ));
+        assert!(only_reorders(
+            &order(&["torrent", "plugins"]),
+            &order(&["alpha", "plugins", "torrent", "beta"])
+        ));
+        // A built-in source added or taken away is a rebuild.
+        assert!(!only_reorders(&order(&["torrent", "plugins"]), &order(&["plugins"])));
+        assert!(!only_reorders(&order(&["plugins"]), &order(&["plugins", "remote"])));
     }
 
     #[test]
