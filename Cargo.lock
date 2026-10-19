@@ -86,6 +86,7 @@ dependencies = [
  "anistream-providers",
  "anistream-store",
  "anistream-store-server",
+ "anistream-testkit",
  "anistream-track",
  "anistream-ui",
  "anyhow",

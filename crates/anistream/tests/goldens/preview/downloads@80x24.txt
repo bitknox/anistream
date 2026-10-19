@@ -1,0 +1,24 @@
+anistream                                       torrent ○  plugins ·  ·  kitsu ○
+────────────────────────────────────────────────────────────────────────────────
+  ▸│  TITLE                       STATE         PROGRESS
+  ▤│  ────────────────────────────────────────────────────────────────────────
+  ▦│  ▌ Stardust Wayfarer  ep 4   complete      ████████████  367 MB / 367 MB
+  /│    Stardust Wayfarer  ep 5   downloading   ████▊░░░░░░░  147 MB / 367 MB
+  ▥│    Stardust Wayfarer  ep 6   queued        ░░░░░░░░░░░░  torrents are off
+▌2↓│    Stardust Wayfarer  ep 7   failed        █▎░░░░░░░░░░  37 MB / 367 MB
+  ◇│
+  ◎│
+  ⚙│
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │  ────────────────────────────────────────────────────────────────────────
+   │    downloads/900001/04.mkv
+────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p              c clear finished   X delete   ↵ play   ? keys

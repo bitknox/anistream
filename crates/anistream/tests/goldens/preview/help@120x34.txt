@@ -1,0 +1,34 @@
+anistream                                                                               torrent ○  plugins ·  ·  kitsu ○
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▌ ▸  CONTINUE               │  ▌ Stardust Wayfarer       ep 4 · 21%   ░░░░░░░░░░░░░░░░░
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▌ KEYS
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  GLOBAL                                 Play next unwatched         space  DOWNLOADS
+    Show keys                       ?    Set list status                 a    Clear finished downloads        c
+    Run a command          : / ctrl+k    Rate this title                 *    Delete download and its file    X
+    Quit                   Q / ctrl+c    Expand synopsis                 i  PROVIDERS
+    Back                      q / esc    Remove from continue watching   x    Move source up                  K
+    Toggle rail width             tab    Search filters             ctrl+f    Move source down                J
+    Refresh this view               r  TITLE                                NOW PLAYING
+    Force a full resync             R    Episodes                        e    Play / pause                space
+    Switch sub / dub                t    Sources                         s    Back 5s                         ←
+    Go to section                 1–9    Source for this title           P    Forward 5s                      →
+    Search                          /    Fix this match                  m    Back 30s                        H
+    Recent messages                 L    Download                        d    Forward 30s                     L
+  MOVEMENT                               Watch order                     w    Next episode                    n
+    Move up                     k / ↑    Recommendations                 b    Previous episode                N
+    Move down                   j / ↓    Play the trailer                v    Skip opening                    S
+    Move left                   h / ←    Open on AniList                 o    Slower                          [
+    Move right                  l / →    Play in a Syncplay party        y    Faster                          ]
+    Jump to top                     g  EPISODES                               Volume down                     9
+    Jump to bottom                  G    Download a range of episodes    D    Volume up                       0
+    Page up                    ctrl+u    Toggle watched                  u    Fullscreen                      F
+    Page down                  ctrl+d    Mark all previous watched       M    Leave player running            q
+  LISTS AND GRIDS                        Filter                          f    Stop playback                   x
+    Open                            ↵
+
+                            │
+                            │                                         █████░░░░░░░░░░░░░░░  3 / 12
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                                                                          esc close

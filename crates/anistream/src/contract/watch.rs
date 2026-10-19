@@ -1,0 +1,194 @@
+//! Watching by hand, and the trackers: what is written, what is queued, and for whom.
+//!
+//! Marks, statuses and scores are written inline and queued for signed-in trackers only —
+//! Kitsu is on by default with no account behind it, and a queue for nobody would grow a badge
+//! nobody can clear. The queue goes out when the drain runs, never from the task itself.
+
+use anistream_testkit::{
+    Operation,
+    fixtures::{AIRING, FINISHED, FIXTURE_NOW},
+    seed,
+};
+use anistream_ui::{
+    LibrarySegment,
+    app::{SyncState, Task, Update},
+};
+
+use super::{WITH_ANILIST, content, ends, ids, toasts};
+use crate::harness::{Harness, Options, names};
+
+/// AniList and Kitsu on, and only AniList signed in.
+async fn anilist_signed_in() -> Harness {
+    Harness::with(Options {
+        config: Some(WITH_ANILIST.into()),
+        signed_in: vec!["anilist"],
+        ..Options::default()
+    })
+    .await
+}
+
+fn mark(episodes: &[&str], watched: bool) -> Task {
+    Task::SetWatched {
+        id: FINISHED,
+        episodes: episodes.iter().map(|e| (*e).to_owned()).collect(),
+        watched,
+    }
+}
+
+fn state(update: &Update) -> &SyncState {
+    match update {
+        Update::Sync(state) => state,
+        other => panic!("not a tracker's state: {other:?}"),
+    }
+}
+
+fn completed(h: &Harness) -> Vec<String> {
+    let mut done = h.store().completed_episodes(FINISHED).unwrap();
+    done.sort();
+    done
+}
+
+#[tokio::test]
+async fn marking_watched_queues_progress_for_signed_in_trackers_only() {
+    let mut h = anilist_signed_in().await;
+    let job = h.send(mark(&["1", "2"], true));
+    let updates = h.settle().await;
+
+    assert!(job.is_none(), "written as it is asked");
+    assert_eq!(names(&updates), Vec::<&str>::new(), "the reducer already flipped the rows");
+    assert_eq!(completed(&h), ["1", "2"]);
+    assert_eq!(h.store().pending_progress("anilist", FINISHED).unwrap(), Some(2));
+    assert_eq!(h.store().outbox_depth(Some("kitsu")).unwrap(), 0, "no account to queue for");
+}
+
+#[tokio::test]
+async fn marking_watched_signed_out_records_history_and_queues_nothing() {
+    let mut h = Harness::new().await;
+    h.send(mark(&["1", "2"], true));
+    assert_eq!(names(&h.settle().await), Vec::<&str>::new());
+
+    assert_eq!(completed(&h), ["1", "2"]);
+    assert_eq!(h.store().outbox_depth(None).unwrap(), 0);
+}
+
+#[tokio::test]
+async fn unmarking_forgets_history_and_never_walks_progress_back() {
+    let mut h = anilist_signed_in().await;
+    h.send(mark(&["1", "2", "3"], true));
+    h.send(mark(&["3"], false));
+    assert_eq!(names(&h.settle().await), Vec::<&str>::new());
+
+    assert_eq!(completed(&h), ["1", "2"]);
+    assert_eq!(h.store().pending_progress("anilist", FINISHED).unwrap(), Some(3));
+    assert_eq!(h.store().outbox_depth(Some("anilist")).unwrap(), 1, "one row, coalesced");
+}
+
+#[tokio::test]
+async fn a_mark_is_in_the_table_the_next_task_loads() {
+    let mut h = Harness::new().await;
+    h.send(mark(&["1", "2", "3"], true));
+    let job = h.send(Task::LoadEpisodes(FINISHED));
+    let updates = h.settle().await;
+
+    assert_eq!(names(&updates), ["Episodes", "JobDone"]);
+    let Update::Episodes { rows, .. } = &updates[0] else { unreachable!() };
+    let done: Vec<&str> =
+        rows.iter().filter(|r| r.completed).map(|r| r.number.as_str()).collect();
+    assert_eq!(done, ["1", "2", "3"]);
+    ends(&updates, job);
+}
+
+#[tokio::test]
+async fn a_title_taken_off_continue_stays_off_for_the_next_load() {
+    let mut h = Harness::new().await;
+    seed::watched(h.store(), FINISHED, 2, FIXTURE_NOW - 7_200);
+    seed::watched(h.store(), AIRING, 2, FIXTURE_NOW - 600);
+    let hidden = h.send(Task::HideFromContinue { id: AIRING });
+    let job = h.send(Task::LoadContinue);
+    let updates = h.settle().await;
+
+    assert!(hidden.is_none());
+    // Nothing from the hiding itself, and no broadcast dates for the one airing title left out.
+    assert_eq!(names(&updates), ["Content", "JobDone"]);
+    assert_eq!(ids(content(&updates)), [FINISHED]);
+    ends(&updates, job);
+}
+
+#[tokio::test]
+async fn a_status_or_a_score_moves_the_badge_of_each_signed_in_tracker() {
+    let mut h = anilist_signed_in().await;
+    let job = h.send(Task::SetStatus { id: FINISHED, status: LibrarySegment::Completed });
+    let updates = h.settle().await;
+    assert!(job.is_none());
+    assert_eq!(names(&updates), ["Sync"]);
+    let badge = state(&updates[0]);
+    assert_eq!(
+        (badge.tracker.as_str(), badge.outbox, badge.last.as_deref()),
+        ("anilist", 1, Some("queued"))
+    );
+
+    h.send(Task::SetScore { id: FINISHED, score: 8.5 });
+    let updates = h.settle().await;
+    assert_eq!(names(&updates), ["Sync"]);
+    assert_eq!(state(&updates[0]).outbox, 2);
+    assert_eq!(h.store().outbox_depth(Some("kitsu")).unwrap(), 0);
+
+    // Signed out, there is no badge to move and nothing is queued.
+    let mut h = Harness::new().await;
+    h.send(Task::SetStatus { id: FINISHED, status: LibrarySegment::Completed });
+    h.send(Task::SetScore { id: FINISHED, score: 8.5 });
+    assert_eq!(names(&h.settle().await), Vec::<&str>::new());
+    assert_eq!(h.store().outbox_depth(None).unwrap(), 0);
+}
+
+#[tokio::test]
+async fn syncing_now_sends_the_queue_then_pulls_the_library() {
+    let mut h = anilist_signed_in().await;
+    h.send(mark(&["1", "2"], true));
+    h.settle().await;
+    let job = h.send(Task::SyncNow);
+    let updates = h.settle().await;
+
+    assert_eq!(names(&updates), ["Sync", "Sync", "Status", "JobDone"]);
+    let (sent, pulled) = (state(&updates[0]), state(&updates[1]));
+    assert_eq!((sent.tracker.as_str(), sent.last.as_deref()), ("anilist", Some("sent 1")));
+    assert_eq!(pulled.last.as_deref(), Some("pulled 3 titles"));
+    assert!(matches!(&updates[2], Update::Status(text) if text.is_empty()));
+    ends(&updates, job);
+
+    let pushed = h.server().requests_for(Operation::SaveEntry);
+    assert_eq!(pushed.len(), 1);
+    assert_eq!(pushed[0].variables["mediaId"], FINISHED.get());
+    assert_eq!(pushed[0].variables["progress"], 2);
+    assert_eq!(h.store().outbox_depth(Some("anilist")).unwrap(), 0);
+}
+
+#[tokio::test]
+async fn keeping_your_side_of_a_conflict_queues_it() {
+    let mut h = anilist_signed_in().await;
+    seed::watched(h.store(), FINISHED, 3, FIXTURE_NOW - 600);
+    h.send(Task::ResolveConflict { id: FINISHED, keep_local: false });
+    assert_eq!(names(&h.settle().await), Vec::<&str>::new());
+    assert_eq!(h.store().pending_progress("anilist", FINISHED).unwrap(), None, "theirs stands");
+
+    h.send(Task::ResolveConflict { id: FINISHED, keep_local: true });
+    assert_eq!(names(&h.settle().await), Vec::<&str>::new());
+    assert_eq!(h.store().pending_progress("anilist", FINISHED).unwrap(), Some(3));
+}
+
+#[tokio::test]
+async fn signing_out_says_what_was_kept_then_republishes_every_tracker() {
+    let mut h = anilist_signed_in().await;
+    h.send(mark(&["1"], true));
+    let job = h.send(Task::Disconnect { tracker: "anilist".into() });
+    let updates = h.settle().await;
+
+    assert!(job.is_none());
+    assert_eq!(names(&updates), ["Toast", "Sync", "Sync"]);
+    assert_eq!(toasts(&updates), ["info: signed out of anilist — 1 queued change kept"]);
+    let states: Vec<(&str, bool)> =
+        updates[1..].iter().map(state).map(|s| (s.tracker.as_str(), s.connected)).collect();
+    assert_eq!(states, [("anilist", false), ("kitsu", false)]);
+    assert!(!h.tokens().has("anilist"), "the token is gone");
+    assert_eq!(h.store().outbox_depth(Some("anilist")).unwrap(), 1, "the queue is kept");
+}

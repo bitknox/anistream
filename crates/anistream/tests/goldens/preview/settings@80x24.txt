@@ -1,0 +1,24 @@
+anistream                                       torrent ○  plugins ·  ·  kitsu ○
+────────────────────────────────────────────────────────────────────────────────
+  ▸│  APPEARANCE  ───────────────────────────────────────────────────────────
+  ▤│  ▌ THEME                       adaptive
+  ▦│    MOTION                      on
+  /│
+  ▥│  PLAYBACK  ─────────────────────────────────────────────────────────────
+  ↓│    TRANSLATION                 sub
+  ◇│    QUALITY                     1080p
+  ◎│    SUBTITLES                   eng
+▌ ⚙│    COUNTS AS WATCHED AT        85%
+   │    AUTO-PLAY NEXT              on
+   │    SKIP OPENING AUTOMATICALLY  on
+   │    SKIP FILLER AUTOMATICALLY   off
+   │    MARK OPENING AND ENDING     on
+   │    START FULLSCREEN            off
+   │    UPSCALING                   natural · ArtCNN
+   │    PLAYER INTERFACE            anistream
+   │    NIGHT MODE                  off
+   │
+   │
+   │
+────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                        h/l change   ? keys
