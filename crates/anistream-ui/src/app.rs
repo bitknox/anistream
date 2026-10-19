@@ -5377,7 +5377,7 @@ impl App {
     pub fn begin_job(&mut self, task: &Task) -> Option<JobId> {
         let label = task.activity()?;
         self.next_job += 1;
-        let id = JobId(self.next_job);
+        let id = JobId::new(self.next_job);
         self.jobs.push(Job { id, label, started: self.clock.now_instant(), note: None });
         Some(id)
     }
@@ -6034,6 +6034,14 @@ impl std::fmt::Debug for Secret {
 /// The terminal lists each one as a `Job` in its activity row.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct JobId(u64);
+
+impl JobId {
+    /// The job numbered `n`. Whoever starts jobs numbers them, once each per run: the interface,
+    /// for now.
+    pub const fn new(n: u64) -> Self {
+        Self(n)
+    }
+}
 
 /// Something the user started and is waiting on, shown in the activity row until it ends.
 ///
