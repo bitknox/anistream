@@ -151,7 +151,8 @@ pub enum Task {
         episode: String,
     },
     /// Search providers with the user's own words when the automatic match is wrong.
-    /// Results come back as [`Update::MatchChoices`], reusing the Disambiguate flow.
+    /// Results come back as [`Update::MatchChoices`](crate::event::Update::MatchChoices),
+    /// reusing the Disambiguate flow.
     ManualSearch {
         id: AnilistId,
         query: String,
