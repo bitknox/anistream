@@ -1876,7 +1876,6 @@ async fn fetch_still(
     .flatten()
 }
 
-/// The skip kind as the companion names it.
 /// A skip as the interface is told it.
 const fn offered(kind: SkipKind) -> anistream_ui::app::SkipKind {
     match kind {
@@ -1885,6 +1884,7 @@ const fn offered(kind: SkipKind) -> anistream_ui::app::SkipKind {
     }
 }
 
+/// The skip kind as the companion names it.
 const fn kind_id(kind: SkipKind) -> &'static str {
     kind.label()
 }
