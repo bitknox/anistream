@@ -453,28 +453,6 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    fn a_verdict_reads_on_the_badge_as_the_guard_words_it() {
-        // Every verdict a check can reach. Not yet checked is said before any check runs, and
-        // does not alert: nothing runs until it passes.
-        let egress = anistream_providers::vpn::Egress {
-            asn_org: Some("Tunnel Example AB".into()),
-            country: Some("Sweden".into()),
-            ..Default::default()
-        };
-        for state in [
-            GuardState::Protected { egress: Box::new(egress) },
-            GuardState::Leaking { reason: "egress is the home network".into() },
-            GuardState::Unreachable { reason: "the proxy did not answer".into() },
-            GuardState::Unprotected,
-        ] {
-            let badge = anistream_ui::app::vpn_badge(&guard_view(&state));
-            assert_eq!(badge, (state.badge(), !state.is_protected()), "{state:?}");
-        }
-        let checking = anistream_ui::app::vpn_badge(&guard_view(&GuardState::Unverified));
-        assert_eq!(checking, (GuardState::Unverified.badge(), false));
-    }
-
     fn order(entries: &[&str]) -> Config {
         let mut config = Config::default();
         config.providers.order = entries.iter().map(|e| (*e).to_owned()).collect();

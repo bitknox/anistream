@@ -1877,7 +1877,10 @@ async fn fetch_still(
 }
 
 /// A skip as the interface is told it.
-const fn offered(kind: SkipKind) -> anistream_ui::app::SkipKind {
+///
+/// Public for the binary's test that holds the player's words for a skip to the interface's,
+/// since only the binary sees both.
+pub const fn offered(kind: SkipKind) -> anistream_ui::app::SkipKind {
     match kind {
         SkipKind::Opening => anistream_ui::app::SkipKind::Opening,
         SkipKind::Ending => anistream_ui::app::SkipKind::Ending,
@@ -2089,13 +2092,6 @@ async fn apply_command(session: &MpvSession, command: PlayerCommand) {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn a_skip_offered_in_the_terminal_reads_as_the_player_words_it() {
-        for kind in [SkipKind::Opening, SkipKind::Ending] {
-            assert_eq!(anistream_ui::screens::skip_label(offered(kind)), kind.label());
-        }
-    }
 
     #[test]
     fn a_cue_with_a_blank_line_keeps_its_paragraphs_and_the_cues_after_it() {

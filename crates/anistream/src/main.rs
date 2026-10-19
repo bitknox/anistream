@@ -5240,4 +5240,58 @@ mod tests {
             assert_eq!(derived_year as u16, year, "for epoch {epoch}");
         }
     }
+
+    // The work's words held to the interface's. Only the binary sees both sides, so these live
+    // here rather than beside the work they check.
+
+    #[test]
+    fn a_verdict_reads_on_the_badge_as_the_guard_words_it() {
+        use anistream_providers::vpn::GuardState;
+
+        // Every verdict a check can reach. Not yet checked is said before any check runs, and
+        // does not alert: nothing runs until it passes.
+        let egress = anistream_providers::vpn::Egress {
+            asn_org: Some("Tunnel Example AB".into()),
+            country: Some("Sweden".into()),
+            ..Default::default()
+        };
+        for state in [
+            GuardState::Protected { egress: Box::new(egress) },
+            GuardState::Leaking { reason: "egress is the home network".into() },
+            GuardState::Unreachable { reason: "the proxy did not answer".into() },
+            GuardState::Unprotected,
+        ] {
+            let badge = anistream_ui::app::vpn_badge(&sources::guard_view(&state));
+            assert_eq!(badge, (state.badge(), !state.is_protected()), "{state:?}");
+        }
+        let checking =
+            anistream_ui::app::vpn_badge(&sources::guard_view(&GuardState::Unverified));
+        assert_eq!(checking, (GuardState::Unverified.badge(), false));
+    }
+
+    #[test]
+    fn every_kind_the_filler_index_knows_reads_as_the_index_words_it() {
+        for kind in anistream_meta::filler::EpisodeKind::ALL {
+            let shown = anistream_ui::screens::episode_kind_label(data::row_kind(kind));
+            assert_eq!(shown, kind.label(), "{kind:?}");
+        }
+        assert_eq!(
+            anistream_ui::screens::episode_kind_label(
+                anistream_model::episodes::EpisodeKind::Filler
+            ),
+            "filler"
+        );
+    }
+
+    #[test]
+    fn a_skip_offered_in_the_terminal_reads_as_the_player_words_it() {
+        use anistream_player::SkipKind;
+
+        for kind in [SkipKind::Opening, SkipKind::Ending] {
+            assert_eq!(
+                anistream_ui::screens::skip_label(playback::offered(kind)),
+                kind.label()
+            );
+        }
+    }
 }

@@ -328,7 +328,10 @@ pub fn episode_rows_with_filler(
 }
 
 /// The filler index's kind of episode, as the row has it.
-fn row_kind(kind: anistream_meta::filler::EpisodeKind) -> EpisodeKind {
+///
+/// Public for the binary's test that holds the index's words for each kind to the interface's,
+/// since only the binary sees both.
+pub fn row_kind(kind: anistream_meta::filler::EpisodeKind) -> EpisodeKind {
     use anistream_meta::filler::EpisodeKind as Index;
     match kind {
         Index::MangaCanon => EpisodeKind::Canon,
@@ -365,15 +368,6 @@ mod naming_tests {
 
     fn none() -> std::collections::BTreeMap<u32, String> {
         std::collections::BTreeMap::new()
-    }
-
-    #[test]
-    fn every_kind_the_filler_index_knows_reads_as_the_index_words_it() {
-        for kind in anistream_meta::filler::EpisodeKind::ALL {
-            let shown = anistream_ui::screens::episode_kind_label(row_kind(kind));
-            assert_eq!(shown, kind.label(), "{kind:?}");
-        }
-        assert_eq!(anistream_ui::screens::episode_kind_label(EpisodeKind::Filler), "filler");
     }
 
     /// Reported as "episode 1 is always being marked as filler". The catalogue in use claims it
