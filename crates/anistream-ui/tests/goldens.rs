@@ -535,7 +535,7 @@ fn a_golden_records_text_and_every_styled_run() {
     assert!(legend().starts_with("colours text=#e4e0d6 text-dim=#a8aec9 "), "{}", legend());
 }
 
-/// A changed golden fails with the lines that changed, and the way to accept them.
+/// A changed golden fails with the lines that changed, between the lines around them.
 #[test]
 fn a_changed_screen_fails_with_its_diff() {
     let saved = "a\nb\nc\nd\ne\n";
@@ -563,11 +563,10 @@ fn hoshikuzu() -> Entry {
         year: Some(2026),
         score: Some(84),
         studio: Some("Studio Kawasemi".into()),
-        synopsis:
-            "A lamplighter on a dying comet rides the last mail coach between the stars, \
-                   delivering letters to towns that may no longer exist. Each stop is a world, \
-                   and each letter a reason to keep the lamps lit one more night."
-                .into(),
+        synopsis: "A lamplighter on a dying comet rides the last mail coach between the \
+                   stars, delivering letters to towns that may no longer exist. Each stop is a \
+                   world, and each letter a reason to keep the lamps lit one more night."
+            .into(),
         cover_url: Some("https://img.example/cover/hoshikuzu.jpg".into()),
         banner_url: Some("https://img.example/banner/hoshikuzu.jpg".into()),
         genres: vec!["Adventure".into(), "Fantasy".into(), "Slice of Life".into()],
@@ -630,10 +629,9 @@ fn tsuki() -> Entry {
         year: Some(2025),
         score: Some(91),
         studio: Some("Kumo Pictures".into()),
-        synopsis:
-            "Every hundred years a whale crosses the moon, and a girl in a lighthouse is \
-                   the only one who hears it sing."
-                .into(),
+        synopsis: "Every hundred years a whale crosses the moon, and a girl in a \
+                   lighthouse is the only one who hears it sing."
+            .into(),
         genres: vec!["Drama".into(), "Fantasy".into()],
         progress: Some((7, 8)),
         ..Entry::new(id(104), "Tsuki to Kujira no Uta")
