@@ -17,3 +17,5 @@
 //! - Anything about a terminal: no ratatui or crossterm, no glyphs, no lifetimes counted in
 //!   frames, no keys. A front end's view state stays in that front end.
 //! - The engine's own state, its services, or how it decides.
+
+pub mod wording;

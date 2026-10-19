@@ -8,6 +8,8 @@ use ratatui::{
     Frame as TFrame, buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget,
 };
 
+use anistream_model::wording::{calendar_time, clock};
+
 use crate::{
     app::{
         App, Content, DownloadState, Entry, EpisodeKind, LibrarySegment, NoticeKind,
@@ -247,12 +249,6 @@ fn job_text(job: &crate::app::Job, now: std::time::Instant) -> (String, Option<S
     let ran = now.saturating_duration_since(job.started);
     let detail = held.or_else(|| (ran.as_secs() >= 1).then(|| clock(ran)));
     (job.label.clone(), detail)
-}
-
-/// `7s`, then `1m 05s`: seconds are what a wait is felt in, and minutes only once there are any.
-fn clock(span: std::time::Duration) -> String {
-    let secs = span.as_secs().max(1);
-    if secs < 60 { format!("{secs}s") } else { format!("{}m {:02}s", secs / 60, secs % 60) }
 }
 
 fn render_status(buf: &mut Buffer, app: &App, geometry: &Frame) {
@@ -530,15 +526,6 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
 }
 
 use crate::app::air_date;
-
-/// A calendar row's time: `in 4d 20h` ahead, `3h ago` once aired.
-fn calendar_time(secs: i64) -> String {
-    if secs <= 0 {
-        crate::widgets::ago(-secs)
-    } else {
-        format!("in {}", crate::widgets::countdown(secs))
-    }
-}
 
 /// Rows the calendar needs to show entries `from..=through`: one each, plus a heading where
 /// the day changes and a blank before every heading but the first. Stops counting past `cap`.
@@ -4289,12 +4276,6 @@ mod tests {
     }
 
     #[test]
-    fn long_waits_read_in_minutes() {
-        assert_eq!(clock(std::time::Duration::from_secs(7)), "7s");
-        assert_eq!(clock(std::time::Duration::from_secs(65)), "1m 05s");
-    }
-
-    #[test]
     fn a_full_frame_renders_the_chrome_and_content() {
         let app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
         let buf = render_to_buffer(&app, 120, 30);
@@ -5660,17 +5641,6 @@ mod tests {
         assert!(text.contains("TYPE TO SEARCH"), "got {text:?}");
         assert!(!text.contains("Invented Show"), "the previous list was drawn under Search");
         assert!(!text.contains("NO MATCHES"));
-    }
-
-    #[test]
-    fn sizes_read_at_human_scale() {
-        // Two digits of real information, never a third of noise.
-        assert_eq!(human_bytes(0), "0 B");
-        assert_eq!(human_bytes(999), "999 B");
-        assert_eq!(human_bytes(1_400_000_000), "1.4 GB");
-        assert_eq!(human_bytes(14_000_000_000), "14 GB");
-        assert_eq!(human_bytes(700_000_000), "700 MB");
-        assert_eq!(human_bytes(9_400_000), "9.4 MB");
     }
 
     #[test]

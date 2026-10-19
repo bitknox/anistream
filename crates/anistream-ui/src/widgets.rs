@@ -21,6 +21,10 @@ use crate::{
     },
 };
 
+// Moved to the model, where every front end can say a count or a size the same way. Re-exported
+// from here until every caller names them there.
+pub use anistream_model::wording::{ago, countdown, human_bytes, plural};
+
 /// A horizontal hairline.
 pub struct Hairline<'a> {
     palette: &'a Palette,
@@ -491,79 +495,11 @@ impl Widget for StatusLine<'_> {
     }
 }
 
-/// Render a countdown in the largest unit that still reads at a glance.
-///
-/// Raw minutes are useless past an hour or so — `9698m` tells you nothing, while `6d 17h`
-/// is immediately legible. Seasonal shows are often days away, so this matters on every
-/// list, not just the calendar.
-pub fn countdown(seconds: i64) -> String {
-    if seconds <= 0 {
-        return "now".into();
-    }
-    let minutes = seconds / 60;
-    let hours = minutes / 60;
-    let days = hours / 24;
-
-    if days >= 1 {
-        let rem_hours = hours % 24;
-        if rem_hours > 0 && days < 7 {
-            format!("{days}d {rem_hours}h")
-        } else {
-            format!("{days}d")
-        }
-    } else if hours >= 1 {
-        let rem_minutes = minutes % 60;
-        if rem_minutes > 0 { format!("{hours}h {rem_minutes}m") } else { format!("{hours}h") }
-    } else {
-        format!("{minutes}m")
-    }
-}
-
-/// How long ago something happened: `2d ago`, or `just now` under a minute.
-///
-/// Separate from [`countdown`] because that renders `now` at zero, and "out now ago" is not a
-/// thing anyone says.
-pub fn ago(seconds: i64) -> String {
-    if seconds < 60 { "just now".into() } else { format!("{} ago", countdown(seconds)) }
-}
-
 /// A metadata line in caps, interpunct-separated: `TV  ·  28 EP  ·  91`.
 pub fn meta_line(parts: &[&str]) -> String {
     let parts: Vec<String> =
         parts.iter().filter(|p| !p.is_empty()).map(|p| glyph::eyebrow(p)).collect();
     parts.join("  ·  ")
-}
-
-/// A count and its noun, singular when the count is one: `1 episode`, `3 episodes`.
-///
-/// One helper rather than a `format!` at each call site, because each call site was written
-/// for the plural and "queued 1 episodes" is what the first count of one printed.
-pub fn plural(count: usize, noun: &str) -> String {
-    if count == 1 { format!("1 {noun}") } else { format!("{count} {noun}s") }
-}
-
-/// Bytes at human scale, two significant figures.
-///
-/// Its own function because a download's size is the number the screen is most often read for, and
-/// `1288490188 bytes` communicates nothing at a glance. Decimal units, as every size and rate on
-/// screen is: a `kB` that meant 1024 in one place and 1000 in another would make two screens
-/// disagree about the same file.
-pub fn human_bytes(bytes: u64) -> String {
-    const UNITS: [(&str, u64); 4] =
-        [("GB", 1_000_000_000), ("MB", 1_000_000), ("kB", 1_000), ("B", 1)];
-    for (unit, scale) in UNITS {
-        if bytes >= scale {
-            let value = bytes as f64 / scale as f64;
-            // One decimal below ten, none above: `9.4 GB` and `140 MB` are both two digits of real
-            // information, and `140.3 MB` is one of them plus noise.
-            return if value < 10.0 && scale > 1 {
-                format!("{value:.1} {unit}")
-            } else {
-                format!("{} {unit}", value.round() as u64)
-            };
-        }
-    }
-    "0 B".into()
 }
 
 /// Truncate to a cell budget with an ellipsis, counting characters rather than bytes.
@@ -913,13 +849,6 @@ mod tests {
         assert_eq!(lines.len(), 1);
         assert_eq!(lines[0].matches('…').count(), 1, "got {:?}", lines[0]);
         assert!(lines[0].chars().count() <= 8);
-    }
-
-    #[test]
-    fn counts_of_one_are_singular() {
-        assert_eq!(plural(1, "episode"), "1 episode");
-        assert_eq!(plural(0, "episode"), "0 episodes");
-        assert_eq!(plural(6, "title"), "6 titles");
     }
 
     #[test]
