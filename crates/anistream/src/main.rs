@@ -15,7 +15,7 @@ use cli::{
     store::store_command,
     sync::sync_once,
 };
-use services::build_meta;
+use services::{Services, build_meta};
 
 use anistream_engine::{
     artwork, data, downloads, playback,
@@ -673,7 +673,6 @@ async fn run(
     config_problem: Option<anistream_core::config::ConfigProblem>,
 ) -> Result<()> {
     let palette = theme::resolve(config.theme.mode);
-    let meta = build_meta(&config, &http, &store);
 
     let mut keymap = Keymap::new();
     let keybinding_problems = keymap.apply_overrides(&config.keys);
@@ -720,7 +719,8 @@ async fn run(
         http.clone(),
         paths.clone(),
     );
-    let stores = plugin_stores::Stores::new(&config, &paths).map_err(|e| anyhow::anyhow!(e))?;
+    // What every task is lent, built around that chain.
+    let services = Services::build(&config, paths, http, store, registry)?;
     let mut app = App::with_images(config, palette, keymap, engine);
     // Said inside the app too: the warning above scrolls away behind the alternate screen
     // before anyone reads it, and a refused rebind otherwise looks like a key that does nothing.
@@ -731,12 +731,12 @@ async fn run(
 
     // What the file says, as distinct from what is in effect: `--theme` changes only this
     // session, and the Settings screen has to be able to tell the two apart.
-    app.saved_config = Config::load(&paths).unwrap_or_default();
+    app.saved_config = Config::load(&services.paths).unwrap_or_default();
     if let Some(problem) = &config_problem {
-        show_config_problem(&mut app, &paths, problem);
+        show_config_problem(&mut app, &services.paths, problem);
     }
     // Joined stores as they were left, so Providers can count them on the first frame.
-    match stores.rows() {
+    match services.stores.rows() {
         Ok(rows) => app.apply(Event::Stores(rows)),
         Err(e) => app.apply(Event::Toast(Notice::alert(e))),
     }
@@ -748,8 +748,8 @@ async fn run(
     // The daily update check: one cached request, one quiet toast when a release exists.
     anistream_engine::updates::spawn_check(
         app.config.updates.check,
-        &paths.cache_dir,
-        &http,
+        &services.paths.cache_dir,
+        &services.http,
         &tx,
     );
 
@@ -758,8 +758,8 @@ async fn run(
     anistream_engine::digest::spawn(
         app.config.notifications.airing_digest,
         app.config.notifications.desktop,
-        store.clone(),
-        meta.clone(),
+        services.store.clone(),
+        services.meta.clone(),
         tx.clone(),
     );
 
@@ -787,7 +787,7 @@ async fn run(
     // Each joined store asked for its current list, once, in the background. Updates are said
     // once at launch, the way a new release is, and never installed without being asked.
     if !app.stores.is_empty() {
-        let (stores, tx) = (stores.clone(), tx.clone());
+        let (stores, tx) = (services.stores.clone(), tx.clone());
         tokio::spawn(async move {
             if let Ok(rows) = stores.refresh().await {
                 let _ = tx.send(Event::Stores(rows));
@@ -803,16 +803,17 @@ async fn run(
         });
     }
 
-    // Trackers are built whether or not they hold a token: the Accounts overlay needs something
-    // to offer a sign-in for, and the outbox accumulates against the id meanwhile.
-    let sync = tracking::Sync::build(&app.config, &store, &http);
-    for state in sync.initial_states() {
+    for state in services.sync.initial_states() {
         app.apply(Event::Sync(Box::new(state)));
     }
-    tracking::spawn_loops(sync.clone(), tx.clone());
+    tracking::spawn_loops(services.sync.clone(), tx.clone());
 
     // Keep the mapping datasets current without ever blocking startup.
-    tokio::spawn(keep_datasets_current(store.clone(), http.clone(), tx.clone()));
+    tokio::spawn(keep_datasets_current(
+        services.store.clone(),
+        services.http.clone(),
+        tx.clone(),
+    ));
 
     // The torrent stack's live parts, held so a settings change can tear them down and
     // stand them back up without a restart. Both are replaced together: the download
@@ -825,7 +826,14 @@ async fn run(
     // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
     let (arrivals_tx, mut arrivals) = mpsc::unbounded_channel();
     let mut torrent_tasks = TorrentTasks::default();
-    torrent_tasks.bring_up(&app.config, &http, &paths, &store, &tx, &arrivals_tx);
+    torrent_tasks.bring_up(
+        &app.config,
+        &services.http,
+        &services.paths,
+        &services.store,
+        &tx,
+        &arrivals_tx,
+    );
 
     // Both before the terminal changes state, so there is no moment in which a signal or a
     // panic could leave it raw.
@@ -835,7 +843,7 @@ async fn run(
 
     if let Some(task) = app.reload() {
         let job = JobGuard::start(&mut app, &task, &tx);
-        spawn(task, job, &meta, &store, &registry, &tx);
+        spawn(task, job, &services.meta, &services.store, &services.registry, &tx);
     }
 
     let mut events = EventStream::new();
@@ -847,11 +855,7 @@ async fn run(
     // a finished episode can never steer the current one.
     let mut player_tx: Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>> =
         None;
-    // The player window kept between episodes, claimed by whichever playback comes next.
-    let slot = PlayerSlot::default();
-    // The next episode's streams, found while the current one's ending plays.
-    let prefetch = Prefetch::default();
-    let mpv = player(&app.config, &paths, &player_theme());
+    let mpv = player(&app.config, &services.paths, &player_theme());
     if !mpv.is_available().await {
         // Said once at startup rather than at the moment you press Enter on an episode.
         app.apply(Event::Toast(Notice::alert(format!(
@@ -892,7 +896,12 @@ async fn run(
         // Prefetch only what is on screen plus a short lookahead. `visible_artwork` claims
         // each URL, so a re-render cannot re-request one already in flight.
         for url in app.visible_artwork(rows) {
-            artwork::spawn_fetch(url, paths.image_cache(), http.clone(), tx.clone());
+            artwork::spawn_fetch(
+                url,
+                services.paths.image_cache(),
+                services.http.clone(),
+                tx.clone(),
+            );
         }
 
         // Auto-next is queued by the reducer rather than returned, because an episode ending
@@ -903,16 +912,16 @@ async fn run(
                 task,
                 job,
                 &mut player_tx,
-                &paths,
+                &services.paths,
                 &app,
-                &slot,
-                &prefetch,
-                &meta,
-                &store,
-                &registry,
-                &http,
-                &sync,
-                &stores,
+                &services.slot,
+                &services.prefetch,
+                &services.meta,
+                &services.store,
+                &services.registry,
+                &services.http,
+                &services.sync,
+                &services.stores,
                 &tx,
             );
         }
@@ -930,15 +939,17 @@ async fn run(
                 // A finished episode should reach the tracker now, not at the next drain
                 // tick — up to a minute later, the pushed progress looked simply absent.
                 if matches!(update, Event::ProgressQueued) {
-                    let (sync, tx) = (sync.clone(), tx.clone());
+                    let (sync, tx) = (services.sync.clone(), tx.clone());
                     tokio::spawn(async move { tracking::drain_once(&sync, &tx).await });
                 }
                 // Say when the metadata ladder moved, once per transition, in both
                 // directions — silently recovering would leave the last thing said untrue.
                 // The status rows ride along so the header chip and the Providers screen
                 // agree with the toast without waiting for a refresh.
-                if let Some(notice) = meta.take_notice() {
-                    app.apply(Event::MetaStatus(anistream_engine::data::meta_rows(&meta)));
+                if let Some(notice) = services.meta.take_notice() {
+                    app.apply(Event::MetaStatus(anistream_engine::data::meta_rows(
+                        &services.meta,
+                    )));
                     app.apply(Event::Toast(Notice::info(notice)));
                 }
                 // A source setting changed. Awaited here rather than spawned: this owns the
@@ -954,18 +965,18 @@ async fn run(
                 }
                 // Only the order changed: the chain as it stands is put in it, with no rebuild.
                 if matches!(update, Event::SourcesReordered) {
-                    sources::arrange(&registry, &app.config);
-                    app.apply(Event::Providers(data::provider_rows(&registry)));
+                    sources::arrange(&services.registry, &app.config);
+                    app.apply(Event::Providers(data::provider_rows(&services.registry)));
                 }
                 if matches!(update, Event::SourcesChanged) {
                     reload_sources(
-                        &registry,
+                        &services.registry,
                         &mut torrent_tasks,
                         &mut vpn_guard,
                         &shared_config,
-                        &http,
-                        &paths,
-                        &store,
+                        &services.http,
+                        &services.paths,
+                        &services.store,
                         &tx,
                         &arrivals_tx,
                     )
@@ -995,8 +1006,8 @@ async fn run(
                     generation,
                     outcome,
                     &mut vpn_guard,
-                    &registry,
-                    &store,
+                    &services.registry,
+                    &services.store,
                     &shared_config,
                     &tx,
                 );
@@ -1009,8 +1020,20 @@ async fn run(
                 if let Some(task) = app.handle(anistream_tui::keymap::Action::Quit, rows) {
                     let job = JobGuard::start(&mut app, &task, &tx);
                     dispatch(
-                        task, job, &mut player_tx, &paths, &app, &slot, &prefetch, &meta, &store,
-                        &registry, &http, &sync, &stores, &tx,
+                        task,
+                        job,
+                        &mut player_tx,
+                        &services.paths,
+                        &app,
+                        &services.slot,
+                        &services.prefetch,
+                        &services.meta,
+                        &services.store,
+                        &services.registry,
+                        &services.http,
+                        &services.sync,
+                        &services.stores,
+                        &tx,
                     );
                 }
                 // Whatever an open overlay made of the key, a signal is not a request to close it.
@@ -1035,8 +1058,20 @@ async fn run(
                         if let Some(task) = app.press(key, rows) {
                             let job = JobGuard::start(&mut app, &task, &tx);
                             dispatch(
-                                task, job, &mut player_tx, &paths, &app, &slot, &prefetch, &meta, &store,
-                                &registry, &http, &sync, &stores, &tx,
+                                task,
+                                job,
+                                &mut player_tx,
+                                &services.paths,
+                                &app,
+                                &services.slot,
+                                &services.prefetch,
+                                &services.meta,
+                                &services.store,
+                                &services.registry,
+                                &services.http,
+                                &services.sync,
+                                &services.stores,
+                                &tx,
                             );
                         }
                     }
