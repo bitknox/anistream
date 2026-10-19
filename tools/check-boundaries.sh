@@ -35,15 +35,22 @@ status=0
 for rule in "${rules[@]}"; do
   crate="${rule%%|*}"
   pattern="${rule#*|}"
-  # A crate the workspace does not have yet is not a failure: the rules are written for the
-  # layers the workspace is moving to.
-  grep -qx "$crate" <<<"$members" || continue
-  found="$(cargo tree --quiet --color never -p "$crate" -e normal --target all --prefix none |
-    sed 's/ (\*)$//' | grep -E "$pattern" | sort -u || true)"
+  # A rule for a crate the workspace does not have checks nothing, and after a rename would pass
+  # for good, so it fails.
+  if ! grep -qx "$crate" <<<"$members"; then
+    echo "no workspace crate is called $crate; a rule names it" >&2
+    status=1
+    continue
+  fi
+  tree="$(cargo tree --quiet --color never -p "$crate" -e normal --target all --prefix none |
+    sed 's/ (\*)$//' | sort -u)"
+  found="$(grep -E "$pattern" <<<"$tree" || true)"
   if [[ -n "$found" ]]; then
     echo "$crate must not depend on:" >&2
     sed 's/^/  /' <<<"$found" >&2
     status=1
+  else
+    echo "$crate: clean, $(wc -l <<<"$tree" | tr -d ' ') packages in its tree"
   fi
 done
 exit $status
