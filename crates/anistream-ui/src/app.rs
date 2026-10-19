@@ -20,7 +20,7 @@ use crate::{
 /// Something to tell the user, and whether it is a problem.
 ///
 /// What the work sends, with nothing in it about how a screen shows it: how long a notice stays
-/// up is the front end's call, made by [`Toast`] here from the kind.
+/// up is the front end's call, made in the terminal by its `Toast`, from the kind.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Notice {
     pub kind: NoticeKind,
@@ -760,7 +760,7 @@ pub enum SourceState {
 /// The VPN guard's verdict, for the badge beside the torrent source.
 ///
 /// What the guard found and nothing about how it is shown: the badge's words, its marks and
-/// when it alerts are the front end's. See [`vpn_badge`].
+/// when it alerts are the front end's, as the terminal's `vpn_badge` has them.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GuardView {
     /// Not answered yet. Nothing runs until it passes, so nothing can have leaked.
@@ -1326,8 +1326,8 @@ pub enum ContentFor {
 
 /// A computed change, applied on the UI thread.
 ///
-/// Async work never touches [`App`] directly; it sends one of these instead. That is what
-/// guarantees the render loop is never blocked on I/O.
+/// Async work never touches the interface's `App` directly; it sends one of these instead. That
+/// is what guarantees the render loop is never blocked on I/O.
 #[derive(Debug)]
 pub enum Update {
     /// What a running job is held up on, and for how long from now, when that is known.
@@ -1487,8 +1487,8 @@ pub enum Update {
     ///
     /// Bytes rather than pixels: what a cover becomes on screen is the front end's to decide.
     /// The reducer leaves them alone. Decoding takes long enough to stutter a frame, so whoever
-    /// runs the app decodes them off its loop and hands the image over with
-    /// [`App::artwork_decoded`].
+    /// runs the app decodes them off its loop and hands the image over, in the terminal with
+    /// `App::artwork_decoded`.
     ArtworkReady {
         url: String,
         bytes: Vec<u8>,
@@ -6028,7 +6028,10 @@ impl std::fmt::Debug for Secret {
     }
 }
 
-/// Identifies one [`Job`], so the work that finishes it can say which.
+/// Identifies one job, something the user started and is waiting on, so the work that finishes
+/// it can say which.
+///
+/// The terminal lists each one as a `Job` in its activity row.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct JobId(u64);
 
