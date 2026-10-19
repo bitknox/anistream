@@ -1,0 +1,121 @@
+anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  NOW PLAYING                                   mpv ●  ·  yamabiko
+  ────────────────────────────────────────────────────────────────
+
+         ▀▀▄
+       ▄▄▀▀▄▄
+     ▄▀▀▀▀▀▀▀▀▄
+    ▄▀▀▀▀▀▀▀▀▀▀▀
+    ▀▀▀▀▀▀▀▀▀▀▀▀
+  ▄▄▀▀▀▀▀▀▀▀▀▀▀
+  ▀▀▀▀▀▀▀▀▀▀▀▀▄▄▄
+   ▀ ▀▀▀▀▀    ▀▀▀▀
+
+
+  Hoshikuzu no Tabibito                                     ep 004
+  The Cartographer's Daughter
+
+  ███████████████████████████▎░░░░░░░░░░░░░░░░░░░░   13:35 / 23:55
+
+                                                             ×1.00
+
+
+
+
+
+
+
+
+
+
+
+─────────────────────────────────────────────────────────────────────────────────────────────────── ▌ resumed at 13:32 ─
+yamabiko · sub · 1080p                                                          space pause   S skip   q detach   ? keys
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=text mod=BOLD
+r00 c84-94 fg=text-dim
+r00 c95-103 fg=state
+r00 c104-105 fg=text-dim
+r00 c106-106 fg=rule
+r00 c107-108 fg=text-dim
+r00 c109-119 fg=state
+r01 c00-119 fg=rule
+r02 c02-12 fg=text mod=BOLD
+r02 c48-65 fg=text-dim
+r03 c02-65 fg=rule
+r05 c09-09 fg=#c6bea9
+r05 c10-10 fg=#e8e2d4 bg=#e8e2d4
+r05 c11-11 fg=#c6bea9
+r06 c07-07 fg=#c6bea9
+r06 c08-08 fg=#e8e2d4
+r06 c09-09 fg=#c6bea9 bg=#e8e2d4
+r06 c10-10 fg=#e8e2d4 bg=#e8e2d4
+r06 c11-11 fg=#e8e2d4
+r06 c12-12 fg=#c6bea9
+r07 c05-05 fg=#c6bea9
+r07 c06-06 fg=#c6bea9 bg=#e8e2d4
+r07 c07-12 fg=#e8e2d4 bg=#e8e2d4
+r07 c13-13 fg=#c6bea9 bg=#e8e2d4
+r07 c14-14 fg=#c6bea9
+r08 c04-04 fg=#c6bea9
+r08 c05-05 fg=#e8e2d4 bg=#e8e2d4
+r08 c06-09 fg=#e8e2d4 bg=#efcfac
+r08 c10-10 fg=#e8e2d4 bg=#c6bea9
+r08 c11-14 fg=#e8e2d4 bg=#e8e2d4
+r08 c15-15 fg=#c6bea9 bg=#c6bea9
+r09 c04-04 fg=#e8e2d4 bg=#e8e2d4
+r09 c05-05 fg=#efcfac bg=#efcfac
+r09 c06-06 fg=#efcfac bg=#232842
+r09 c07-10 fg=#efcfac bg=#efcfac
+r09 c11-11 fg=#c6bea9 bg=#c6bea9
+r09 c12-14 fg=#e8e2d4 bg=#e8e2d4
+r09 c15-15 fg=#c6bea9 bg=#c6bea9
+r10 c02-03 fg=#dff5fb
+r10 c04-04 fg=#c6bea9
+r10 c05-05 fg=#efcfac bg=#d0a883
+r10 c06-08 fg=#efcfac bg=#efcfac
+r10 c09-09 fg=#efcfac bg=#d0a883
+r10 c10-10 fg=#d0a883 bg=#c6bea9
+r10 c11-11 fg=#c6bea9 bg=#e8e2d4
+r10 c12-12 fg=#e8e2d4 bg=#e8e2d4
+r10 c13-13 fg=#e8e2d4 bg=#c6bea9
+r10 c14-14 fg=#c6bea9
+r11 c02-02 fg=#dff5fb bg=#dff5fb
+r11 c03-03 fg=state bg=state
+r11 c04-04 fg=state bg=#c57c2c
+r11 c05-10 fg=obi bg=obi
+r11 c11-11 fg=#e8e2d4 bg=#c57c2c
+r11 c12-12 fg=#e8e2d4
+r11 c13-13 fg=#c6bea9
+r11 c14-14 fg=#c57c2c
+r11 c15-16 fg=obi
+r12 c03-03 fg=#dff5fb
+r12 c05-05 fg=#c57c2c
+r12 c06-08 fg=obi
+r12 c09-09 fg=#c57c2c
+r12 c14-14 fg=#c57c2c
+r12 c15-16 fg=obi
+r12 c17-17 fg=#c57c2c
+r15 c02-22 fg=text mod=BOLD
+r15 c60-65 fg=text-dim
+r16 c02-28 fg=text-dim
+r18 c02-29 fg=obi
+r18 c30-49 fg=rule
+r18 c53-65 fg=text-dim
+r20 c61-65 fg=text-dim
+r32 c00-98 fg=rule
+r32 c99-99 fg=text
+r32 c100-100 fg=state
+r32 c101-118 fg=text
+r32 c119-119 fg=rule
+r33 c00-21 fg=text-dim
+r33 c80-84 fg=text
+r33 c85-93 fg=text-dim
+r33 c94-94 fg=text
+r33 c95-102 fg=text-dim
+r33 c103-103 fg=text
+r33 c104-113 fg=text-dim
+r33 c114-114 fg=text
+r33 c115-119 fg=text-dim

@@ -1,0 +1,68 @@
+anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────
+▌ ▸│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+  ▤│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+  ▦│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+  /│  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+────────────────────────────────────────────────────────────────────────────────
+▌ RECOMMENDED   if you liked Kaze no Tegami — enter opens
+────────────────────────────────────────────────────────────────────────────────
+  Yoru no Toshokan  ·  TV
+▌ Tsuki to Kujira no Uta  ·  TV
+  Kumo no Ue no Gakkou  ·  TV
+
+   │  available on  Hikari Stream
+   │
+   │  A postwoman in a hill town reads the wind for letters nobody sent. When
+   │  one arrives addressed to her in her own hand, dated ten years from now,
+   │  she starts delivering the future one envelope at a time — and learns…
+   │
+   │  Drama  ·  Romance
+   │
+   │  █████░░░░░░░░░░░░░░░  6 / 24   ep 7 next
+────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                        ↵ open   esc cancel
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=rule mod=BOLD
+r00 c09-79 fg=rule
+r01 c00-79 fg=rule
+r02 c00-79 fg=rule
+r03 c00-79 fg=rule
+r04 c00-79 fg=rule
+r05 c00-79 fg=rule
+r06 c00-79 fg=rule bg=ground
+r07 c00-00 fg=obi bg=ground
+r07 c01-01 fg=rule bg=ground
+r07 c02-56 fg=text bg=ground mod=BOLD
+r07 c57-79 fg=rule bg=ground
+r08 c00-05 fg=rule bg=ground
+r08 c06-19 fg=rule bg=ground mod=BOLD
+r08 c20-79 fg=rule bg=ground
+r09 c00-01 fg=rule bg=ground
+r09 c02-24 fg=text-dim bg=ground
+r09 c25-79 fg=rule bg=ground
+r10 c00-00 fg=obi bg=ground
+r10 c01-01 fg=rule bg=ground
+r10 c02-30 fg=text bg=ground mod=BOLD
+r10 c31-79 fg=rule bg=ground
+r11 c00-01 fg=rule bg=ground
+r11 c02-28 fg=text-dim bg=ground
+r11 c29-79 fg=rule bg=ground
+r12 c00-79 fg=rule bg=ground
+r13 c00-79 fg=rule
+r14 c00-79 fg=rule
+r15 c00-79 fg=rule
+r16 c00-79 fg=rule
+r17 c00-79 fg=rule
+r18 c00-79 fg=rule
+r19 c00-79 fg=rule
+r20 c00-79 fg=rule
+r21 c00-79 fg=rule
+r22 c00-79 fg=rule
+r23 c00-20 fg=text-dim
+r23 c21-60 fg=rule
+r23 c61-61 fg=text
+r23 c62-69 fg=text-dim
+r23 c70-72 fg=text
+r23 c73-79 fg=text-dim

@@ -1,0 +1,154 @@
+anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                             Hoshikuzu no Tabibito  ·  ep 4
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                                           space pause   S skip   q detach   ? keys
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=text mod=BOLD
+r00 c84-94 fg=text-dim
+r00 c95-103 fg=state
+r00 c104-105 fg=text-dim
+r00 c106-106 fg=rule
+r00 c107-108 fg=text-dim
+r00 c109-119 fg=state
+r01 c00-119 fg=rule
+r02 c00-01 bg=obi
+r02 c02-12 fg=text bg=obi mod=BOLD
+r02 c13-48 bg=obi
+r02 c49-65 fg=text-dim bg=obi
+r02 c66-119 bg=obi
+r03 c00-01 bg=obi
+r03 c02-65 fg=rule bg=obi
+r03 c66-119 bg=obi
+r04 c00-119 bg=obi
+r05 c00-08 bg=obi
+r05 c09-09 fg=#c6bea9 bg=obi
+r05 c10-10 fg=#e8e2d4 bg=obi
+r05 c11-11 fg=#c6bea9 bg=obi
+r05 c12-119 bg=obi
+r06 c00-06 bg=obi
+r06 c07-07 fg=#c6bea9 bg=obi
+r06 c08-08 fg=#e8e2d4 bg=obi
+r06 c09-09 fg=#c6bea9 bg=obi
+r06 c10-11 fg=#e8e2d4 bg=obi
+r06 c12-12 fg=#c6bea9 bg=obi
+r06 c13-119 bg=obi
+r07 c00-04 bg=obi
+r07 c05-06 fg=#c6bea9 bg=obi
+r07 c07-12 fg=#e8e2d4 bg=obi
+r07 c13-14 fg=#c6bea9 bg=obi
+r07 c15-119 bg=obi
+r08 c00-03 bg=obi
+r08 c04-04 fg=#c6bea9 bg=obi
+r08 c05-14 fg=#e8e2d4 bg=obi
+r08 c15-15 fg=#c6bea9 bg=obi
+r08 c16-119 bg=obi
+r09 c00-03 bg=obi
+r09 c04-04 fg=#e8e2d4 bg=obi
+r09 c05-10 fg=#efcfac bg=obi
+r09 c11-11 fg=#c6bea9 bg=obi
+r09 c12-14 fg=#e8e2d4 bg=obi
+r09 c15-15 fg=#c6bea9 bg=obi
+r09 c16-119 bg=obi
+r10 c00-01 bg=obi
+r10 c02-03 fg=#dff5fb bg=obi
+r10 c04-04 fg=#c6bea9 bg=obi
+r10 c05-09 fg=#efcfac bg=obi
+r10 c10-10 fg=#d0a883 bg=obi
+r10 c11-11 fg=#c6bea9 bg=obi
+r10 c12-13 fg=#e8e2d4 bg=obi
+r10 c14-14 fg=#c6bea9 bg=obi
+r10 c15-119 bg=obi
+r11 c00-01 bg=obi
+r11 c02-02 fg=#dff5fb bg=obi
+r11 c03-04 fg=state bg=obi
+r11 c05-10 fg=obi bg=obi
+r11 c11-12 fg=#e8e2d4 bg=obi
+r11 c13-13 fg=#c6bea9 bg=obi
+r11 c14-14 fg=#c57c2c bg=obi
+r11 c15-16 fg=obi bg=obi
+r11 c17-119 bg=obi
+r12 c00-02 bg=obi
+r12 c03-03 fg=#dff5fb bg=obi
+r12 c04-04 bg=obi
+r12 c05-05 fg=#c57c2c bg=obi
+r12 c06-08 fg=obi bg=obi
+r12 c09-09 fg=#c57c2c bg=obi
+r12 c10-13 bg=obi
+r12 c14-14 fg=#c57c2c bg=obi
+r12 c15-16 fg=obi bg=obi
+r12 c17-17 fg=#c57c2c bg=obi
+r12 c18-119 bg=obi
+r13 c00-119 bg=obi
+r14 c00-119 bg=obi
+r15 c00-01 bg=obi
+r15 c02-22 fg=text bg=obi mod=BOLD
+r15 c23-59 bg=obi
+r15 c60-65 fg=text-dim bg=obi
+r15 c66-119 bg=obi
+r16 c00-01 bg=obi
+r16 c02-28 fg=text-dim bg=obi
+r16 c29-119 bg=obi
+r17 c00-44 bg=obi
+r17 c45-74 fg=#161a2e bg=obi mod=BOLD
+r17 c75-119 bg=obi
+r18 c00-01 bg=obi
+r18 c02-49 fg=rule bg=obi
+r18 c50-52 bg=obi
+r18 c53-65 fg=text-dim bg=obi
+r18 c66-119 bg=obi
+r19 c00-119 bg=obi
+r20 c00-60 bg=obi
+r20 c61-65 fg=text-dim bg=obi
+r20 c66-119 bg=obi
+r21 c00-119 bg=obi
+r22 c00-119 bg=obi
+r23 c00-119 bg=obi
+r24 c00-119 bg=obi
+r25 c00-119 bg=obi
+r26 c00-119 bg=obi
+r27 c00-119 bg=obi
+r28 c00-119 bg=obi
+r29 c00-119 bg=obi
+r30 c00-119 bg=obi
+r31 c00-119 bg=obi
+r32 c00-119 fg=rule
+r33 c00-20 fg=text-dim
+r33 c80-84 fg=text
+r33 c85-93 fg=text-dim
+r33 c94-94 fg=text
+r33 c95-102 fg=text-dim
+r33 c103-103 fg=text
+r33 c104-113 fg=text-dim
+r33 c114-114 fg=text
+r33 c115-119 fg=text-dim

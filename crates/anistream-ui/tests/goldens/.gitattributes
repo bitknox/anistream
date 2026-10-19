@@ -1,0 +1,3 @@
+# A golden is compared byte for byte, so it must check out with the line endings it was written
+# with. A Windows checkout converting to CRLF would fail every one of them.
+*.txt text eol=lf
