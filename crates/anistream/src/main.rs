@@ -4,7 +4,10 @@ mod cli;
 mod covers;
 mod tui;
 
-use cli::plugins::{PluginCommand, list_plugins};
+use cli::{
+    plugins::{PluginCommand, list_plugins},
+    store::store_command,
+};
 
 use anistream_engine::{
     artwork, data, downloads, playback,
@@ -377,40 +380,6 @@ async fn main() -> Result<()> {
     }
 
     run(config, paths, http, store, !args.no_images, config_problem).await
-}
-
-/// `anistream store …` and `anistream plugin …`.
-async fn store_command(command: Subcommand, paths: &Paths) -> Result<()> {
-    use tracing_subscriber::{EnvFilter, fmt};
-    // A server's log is its record of who joined and what was published. A one-off command has
-    // nothing to say beyond its answer.
-    let serving =
-        matches!(command, Subcommand::Store(anistream_store_server::StoreCommand::Serve(_)));
-    let level = if serving { "info" } else { "warn" };
-    let _ = fmt()
-        .with_writer(io::stderr)
-        .with_env_filter(
-            EnvFilter::try_from_env("ANISTREAM_LOG").unwrap_or_else(|_| EnvFilter::new(level)),
-        )
-        .try_init();
-    let cache = paths.cache_dir.join("wasm");
-    let outcome = match command {
-        Subcommand::Store(command) => anistream_store_server::run(command, Some(&cache)).await,
-        Subcommand::Plugin(PluginCommand::Stamp(args)) => {
-            anistream_store_server::stamp(&args, Some(&cache)).await.map(|info| {
-                println!("stamped {} {}", info.id, info.version);
-                println!(
-                    "  may contact   {}",
-                    if info.allowed_hosts.is_empty() {
-                        "nothing".into()
-                    } else {
-                        info.allowed_hosts.join(", ")
-                    }
-                );
-            })
-        }
-    };
-    outcome.map_err(|e| anyhow::anyhow!(e))
 }
 
 /// Render one frame with live data and print it as text.
