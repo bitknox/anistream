@@ -5,6 +5,7 @@ use anistream_core::ids::AnilistId;
 
 /// One row of the download queue, flattened for the screen.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct DownloadRow {
     pub id: i64,
     /// The series this file belongs to — what lets a downloaded episode carry the same
@@ -25,6 +26,7 @@ pub struct DownloadRow {
 
 /// Where a download is in its life, as its row has it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum DownloadState {
     /// Accepted, not started: the queue is bounded, so this lasts.
     Queued,
@@ -36,6 +38,7 @@ pub enum DownloadState {
 
 /// A watched episode still seeding, as the Downloads screen lists it.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct SeedRow {
     pub name: String,
     pub uploaded_bytes: u64,

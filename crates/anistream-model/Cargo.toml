@@ -13,10 +13,19 @@ publish = false
 # No doc example is written as a test, and rustdoc spends seconds per crate finding none.
 doctest = false
 
-# Plain data and the rules over it, so the core's vocabulary and nothing else. No runtime, no
-# I/O and no terminal library: tools/check-boundaries.sh holds the last of those in CI.
+# Plain data and the rules over it, so the core's vocabulary, and UniFFI's derives for the bindings
+# only. No runtime, no I/O and no terminal library: tools/check-boundaries.sh holds the last of
+# those in CI.
 [dependencies]
 anistream-core.workspace = true
+uniffi = { workspace = true, optional = true }
+
+[features]
+# The model's types as UniFFI records and enums, for a native front end's bindings. Off by default,
+# and built in CI only to report what still keeps the types from crossing: tuples, tuple structs,
+# borrowed strings, a Result in a field, and the core's own types. It becomes a gate once those
+# are reshaped.
+ffi = ["dep:uniffi"]
 
 [lints]
 workspace = true

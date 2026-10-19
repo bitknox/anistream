@@ -23,6 +23,7 @@ use crate::{
 /// Async work never touches the interface's `App` directly; it sends one of these instead. That
 /// is what guarantees the render loop is never blocked on I/O.
 #[derive(Debug)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum Event {
     /// What a running job is held up on, and for how long from now, when that is known.
     ///

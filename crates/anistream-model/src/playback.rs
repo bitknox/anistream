@@ -5,6 +5,7 @@ use anistream_core::ids::AnilistId;
 
 /// What a skip would seek past.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum SkipKind {
     Opening,
     Ending,
@@ -15,6 +16,7 @@ pub enum SkipKind {
 /// More than `watched` can say: an episode closed past the commit threshold counts as watched,
 /// and rolling on from it would open a new window on someone who just closed one.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum Ending {
     /// mpv played the file to its end. `next` is the episode the player kept its window open
     /// for — set only when the episode rolls on, which the playback decides: auto-next on, Up
@@ -34,6 +36,7 @@ pub enum Ending {
 
 /// What a newer playback is about to play, as the window it takes over announces it.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct Successor {
     pub id: AnilistId,
     pub title: String,
@@ -46,6 +49,7 @@ pub struct Successor {
 /// Handed in by the front end, since the colours are its palette's and a palette is its own
 /// business. Each colour is `#RRGGBB`, as the companion script reads it.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct PlayerTheme {
     pub text: String,
     pub dim: String,

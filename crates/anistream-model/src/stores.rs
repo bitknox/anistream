@@ -6,6 +6,7 @@
 /// Flattened by the binary from the store client's own state, so this crate knows nothing about
 /// the protocol — the same arrangement as [`ProviderRow`](crate::sources::ProviderRow).
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct StoreRow {
     pub id: String,
     pub name: String,
@@ -29,6 +30,7 @@ impl StoreRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum StoreState {
     Ready,
     /// The last refresh failed. The plugins listed are the last list that was verified.
@@ -38,6 +40,7 @@ pub enum StoreState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct StorePluginRow {
     pub id: String,
     pub name: String,
@@ -48,6 +51,7 @@ pub struct StorePluginRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum StorePluginStatus {
     Available,
     Installed,
@@ -64,6 +68,7 @@ pub enum StorePluginStatus {
 
 /// A store about to be joined, for the confirmation.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct StorePreview {
     pub link: Secret,
     pub name: String,
@@ -74,6 +79,7 @@ pub struct StorePreview {
 
 /// A freshly made invite link.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct InviteLinkView {
     pub store: String,
     pub link: Secret,
@@ -84,6 +90,7 @@ pub struct InviteLinkView {
 
 /// One member of a store, for its owner.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct StoreMemberRow {
     pub id: String,
     pub name: String,
@@ -95,6 +102,7 @@ pub struct StoreMemberRow {
 
 /// An invite nobody has used yet.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct StoreInviteRow {
     pub id: String,
     pub name: String,
@@ -104,6 +112,7 @@ pub struct StoreInviteRow {
 
 /// A plugin in the local plugin directory that an owner could publish.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct LocalPluginRow {
     pub id: String,
     pub name: String,
@@ -119,6 +128,7 @@ pub struct LocalPluginRow {
 /// when routing goes wrong. A plain `String` there would put a password in the log file;
 /// this prints a placeholder instead, everywhere, unconditionally.
 #[derive(Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct Secret(pub String);
 
 impl std::fmt::Debug for Secret {

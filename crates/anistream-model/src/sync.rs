@@ -5,6 +5,7 @@ use anistream_core::ids::AnilistId;
 
 /// A device code the user must enter elsewhere to finish signing in.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct DeviceCodePrompt {
     pub tracker: String,
     /// The short code to type. The only thing on screen that has to be transcribed by hand, so it
@@ -15,6 +16,7 @@ pub struct DeviceCodePrompt {
 
 /// Sync state for one tracker, as the Accounts overlay and the status badge show it.
 #[derive(Debug, Clone, PartialEq, Default)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct SyncState {
     pub tracker: String,
     pub connected: bool,
@@ -62,6 +64,7 @@ impl SyncState {
 
 /// One unresolved divergence, for the Conflicts overlay.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct ConflictRow {
     pub anilist_id: AnilistId,
     pub title: String,

@@ -8,6 +8,7 @@ use anistream_core::ids::AnilistId;
 /// A flattened projection rather than the full `Media`, so rendering does not depend on the
 /// metadata crate and can be exercised without one.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct Entry {
     pub id: AnilistId,
     pub title: String,
@@ -73,6 +74,7 @@ pub struct Entry {
 
 /// One step of a title's watch order.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct RelatedTitle {
     pub id: AnilistId,
     pub title: String,
@@ -83,6 +85,7 @@ pub struct RelatedTitle {
 
 /// Where an unfinished episode was left.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct ResumePoint {
     /// Seconds into the episode.
     pub position: f64,
@@ -187,6 +190,7 @@ impl Entry {
 /// These are the tracker's own statuses rather than something local, because the Library screen
 /// *is* a view of the tracker's list — the local equivalent is the `CONTINUE` rail on Home.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum LibrarySegment {
     #[default]
     Watching,
@@ -235,6 +239,7 @@ impl LibrarySegment {
 
 /// What the stage is currently showing.
 #[derive(Debug, Clone, Default, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum Content {
     #[default]
     Empty,
@@ -271,6 +276,7 @@ impl Content {
 /// shown under the new section's heading until that section's own answer replaced it. The reducer
 /// takes a list only while the view it was fetched for is still the one on screen.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum ContentFor {
     Continue,
     Seasonal,
@@ -290,6 +296,7 @@ pub enum ContentFor {
 /// when a row is drawn. `None` reads as "any" and is omitted from the query entirely,
 /// because AniList treats an explicit null differently from a missing argument.
 #[derive(Debug, Clone, Default, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct SearchFilters {
     pub genre: Option<String>,
     pub year: Option<u32>,

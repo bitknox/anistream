@@ -2,6 +2,7 @@
 
 /// One row of the timing-sheet episode table.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct EpisodeRow {
     pub number: String,
     pub title: Option<String>,
@@ -35,6 +36,7 @@ pub struct EpisodeRow {
 
 /// What an episode is to the story, by the filler index or the source's own claim.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum EpisodeKind {
     /// Adapted from the source material.
     Canon,

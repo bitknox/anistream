@@ -124,6 +124,22 @@ jobs:
       - run: rustup toolchain install
       - run: tools/check-boundaries.sh
 
+  # The model's types as UniFFI would hand them to a native front end. Report-only for now: the
+  # build fails on what still keeps them from crossing a foreign-function boundary (tuples,
+  # borrowed strings, tuple structs, a Result in a field, the core's types without a conversion),
+  # and its log is the list of what has to be reshaped. Turns blocking in P6 of the engine
+  # extraction, when that is done, by dropping continue-on-error.
+  ffi:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: cargo build -p anistream-model --features ffi
+
   # The plugin store's admin page is committed as built output, so building the server never
   # needs bun. This rebuilds it from source and fails if the two have drifted apart.
   admin-page:

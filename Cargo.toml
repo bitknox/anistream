@@ -79,6 +79,13 @@ terminal-colorsaurus = "1.0"
 # --- matching / parsing ---
 nucleo = "0.5"
 
+# --- foreign function interface ---
+# The bindings native front ends are generated with. Pinned exactly: the bindings and the library's
+# scaffolding have to come from the same release, and the generated Swift and Kotlin check the
+# library's contract version and checksums when they load it. Without its defaults, which only
+# the bindings generator needs.
+uniffi = { version = "=0.32.2", default-features = false }
+
 # --- platform ---
 directories = "6"
 clap = { version = "4", features = ["derive", "env"] }

@@ -6,12 +6,14 @@
 /// What the work sends, with nothing in it about how a screen shows it: how long a notice stays
 /// up is the front end's call, made in the terminal by its `Toast`, from the kind.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct Notice {
     pub kind: NoticeKind,
     pub text: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum NoticeKind {
     Info,
     Alert,

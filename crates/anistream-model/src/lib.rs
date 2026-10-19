@@ -17,6 +17,9 @@
 //! - Anything about a terminal: no ratatui or crossterm, no glyphs, no lifetimes counted in
 //!   frames, no keys. A front end's view state stays in that front end.
 //! - The engine's own state, its services, or how it decides.
+//!
+//! The `ffi` feature derives UniFFI records and enums on the types, for a native front end's
+//! bindings. Not every type can cross yet, so CI builds it to report what cannot, without failing.
 
 pub mod catalog;
 pub mod command;
@@ -30,3 +33,9 @@ pub mod sources;
 pub mod stores;
 pub mod sync;
 pub mod wording;
+
+// What the types' UniFFI derives register with, under the `ffi` feature only. It compiles under the
+// workspace's `unsafe_code = "forbid"`: the lint is not reported inside another crate's macros,
+// and every unsafe block and exported symbol here comes out of UniFFI's.
+#[cfg(feature = "ffi")]
+uniffi::setup_scaffolding!();

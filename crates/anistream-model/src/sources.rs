@@ -6,6 +6,7 @@
 /// A flattened snapshot rather than the live tracker, so the UI crate stays independent of
 /// the provider implementations.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct ProviderRow {
     pub id: String,
     pub kind: String,
@@ -78,6 +79,7 @@ pub fn only_reorders(before: &[String], after: &[String]) -> bool {
 /// What the guard found and nothing about how it is shown: the badge's words, its marks and
 /// when it alerts are the front end's, as the terminal's `vpn_badge` has them.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum GuardView {
     /// Not answered yet. Nothing runs until it passes, so nothing can have leaked.
     Checking,
@@ -94,6 +96,7 @@ pub enum GuardView {
 
 /// One rung of the metadata ladder, as the Providers screen shows it.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct MetaSourceRow {
     pub source: String,
     pub state: String,
@@ -113,6 +116,7 @@ pub struct MetaSourceRow {
 /// and 0.61 is a genuinely close call, one at 0.88 against one at 0.30 means something else
 /// went wrong and the list is worth distrusting.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct MatchCandidate {
     /// The provider's own name for this result.
     pub title: String,

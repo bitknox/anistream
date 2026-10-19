@@ -60,6 +60,7 @@ impl Command {
 
 /// Asynchronous work requested by the reducer.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum Command {
     /// Resolve an episode's streams ahead of playing it, quietly, for a [`Command::Play`] of the
     /// same episode to pick up.
@@ -301,6 +302,7 @@ pub enum Command {
 /// Kept as data rather than a call into the player so the reducer stays pure and testable —
 /// the binary routes these to the live session.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum PlayerCommand {
     TogglePause,
     /// Seek by a relative number of seconds; negative goes back.
