@@ -1420,13 +1420,18 @@ pub enum Update {
         badge: String,
         leaking: bool,
     },
-    /// A decoded cover or banner, ready to be turned into a render protocol.
-    Image {
+    /// A cover or banner as it was fetched or read from the cache, not yet decoded.
+    ///
+    /// Bytes rather than pixels: what a cover becomes on screen is the front end's to decide.
+    /// The reducer leaves them alone. Decoding takes long enough to stutter a frame, so whoever
+    /// runs the app decodes them off its loop and hands the image over with
+    /// [`App::artwork_decoded`].
+    ArtworkReady {
         url: String,
-        image: Box<image::DynamicImage>,
+        bytes: Vec<u8>,
     },
-    /// A cover could not be fetched or decoded. Silent: the plate stays, and the URL is tried
-    /// again later. `offline` means the server was not reached at all.
+    /// A cover could not be fetched. Silent: the plate stays, and the URL is tried again
+    /// later. `offline` means the server was not reached at all.
     ImageFailed {
         url: String,
         offline: bool,
@@ -2047,10 +2052,8 @@ impl App {
             }
             Update::Status(status) => self.status = status,
             Update::Toast(notice) => self.push_toast(notice),
-            Update::Image { url, image } => {
-                self.images.insert(&url, *image);
-                self.images.requests().network_returned();
-            }
+            // Decoded off the loop, and back through `artwork_decoded`.
+            Update::ArtworkReady { .. } => {}
             Update::ImageFailed { url, offline } => self.images.mark_failed(&url, offline),
             Update::Providers(rows) => {
                 self.providers = rows;
@@ -2413,6 +2416,18 @@ impl App {
                     self.episode_selected = first;
                 }
             }
+        }
+    }
+
+    /// A cover decoded from the bytes an [`Update::ArtworkReady`] brought, or `None` when they
+    /// were not an image — a failure like any other, tried again after the backoff.
+    pub fn artwork_decoded(&mut self, url: &str, image: Option<image::DynamicImage>) {
+        match image {
+            Some(image) => {
+                self.images.insert(url, image);
+                self.images.requests().network_returned();
+            }
+            None => self.images.mark_failed(url, false),
         }
     }
 

@@ -467,7 +467,13 @@ impl Harness {
 
     fn apply(&mut self, update: Update, seen: &mut Vec<Update>) {
         seen.push(copy(&update));
-        self.app.apply(update);
+        match update {
+            // Decoded at once rather than on the blocking pool: settling has no frame to keep.
+            Update::ArtworkReady { url, bytes } => {
+                crate::covers::hand_over(&mut self.app, crate::covers::now(url, &bytes));
+            }
+            update => self.app.apply(update),
+        }
     }
 }
 
@@ -552,7 +558,7 @@ pub fn name(update: &Update) -> &'static str {
         Update::Conflicts(_) => "Conflicts",
         Update::Episodes { .. } => "Episodes",
         Update::Vpn { .. } => "Vpn",
-        Update::Image { .. } => "Image",
+        Update::ArtworkReady { .. } => "ArtworkReady",
         Update::ImageFailed { .. } => "ImageFailed",
         Update::Downloads(_) => "Downloads",
         Update::Seeding(_) => "Seeding",
@@ -658,8 +664,8 @@ fn copy(update: &Update) -> Update {
         Update::Vpn { badge, leaking } => {
             Update::Vpn { badge: badge.clone(), leaking: *leaking }
         }
-        Update::Image { url, image } => {
-            Update::Image { url: url.clone(), image: image.clone() }
+        Update::ArtworkReady { url, bytes } => {
+            Update::ArtworkReady { url: url.clone(), bytes: bytes.clone() }
         }
         Update::ImageFailed { url, offline } => {
             Update::ImageFailed { url: url.clone(), offline: *offline }

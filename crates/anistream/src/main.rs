@@ -1,5 +1,7 @@
 //! anistream — an anime streaming TUI.
 
+mod covers;
+
 use anistream::{
     artwork, data, downloads, playback,
     player::{player, shader_dir},
@@ -652,7 +654,13 @@ impl PreviewRun {
                 wait.min(deadline.saturating_duration_since(tokio::time::Instant::now()));
             match tokio::time::timeout(wait, rx.recv()).await {
                 Ok(Some(update)) => {
-                    app.apply(update);
+                    match update {
+                        // Decoded here and now: a still frame has no loop to keep moving.
+                        Update::ArtworkReady { url, bytes } => {
+                            covers::hand_over(app, covers::now(url, &bytes));
+                        }
+                        update => app.apply(update),
+                    }
                     if let Some(notice) = self.meta.take_notice() {
                         app.apply(Update::MetaStatus(data::meta_rows(&self.meta)));
                         app.apply(Update::Toast(Notice::info(notice)));
@@ -1811,6 +1819,8 @@ async fn run(
 
     let mut events = EventStream::new();
     let mut ticker = tokio::time::interval(Duration::from_millis(100));
+    // Covers come back from the blocking pool on this, decoded, to be handed to the app.
+    let (covers_tx, mut covers_rx) = mpsc::unbounded_channel();
 
     // The live player's control channel. Replaced on each new playback, so a stale sender from
     // a finished episode can never steer the current one.
@@ -1937,7 +1947,11 @@ async fn run(
                     .await;
                 }
                 let ended = matches!(update, Update::PlaybackEnded { .. });
-                app.apply(update);
+                match update {
+                    // Decoded off the loop; it comes back on the arm below.
+                    Update::ArtworkReady { url, bytes } => covers::spawn(url, bytes, &covers_tx),
+                    update => app.apply(update),
+                }
                 // mpv's window is gone; unless the reducer queued the next episode — in
                 // which case another window is about to open — the viewer's next keypress
                 // belongs to the terminal, so ask for focus back rather than leaving it
@@ -1946,6 +1960,7 @@ async fn run(
                     anistream::focus::refocus_terminal();
                 }
             }
+            Some(decoded) = covers_rx.recv() => covers::hand_over(&mut app, decoded),
             // The torrent source is up, or will not come up; only the latest bring-up counts.
             Some((generation, outcome)) = arrivals.recv() => {
                 torrent_tasks.arrived(

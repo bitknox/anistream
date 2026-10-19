@@ -1,40 +1,29 @@
-//! Fetching and decoding cover art.
+//! Fetching cover art.
 //!
-//! Runs entirely off the UI thread. Decoding a cover takes long enough that doing it inline
-//! would visibly stutter scrolling, and a banner arrives at nearly two megapixels — so both
-//! the download and the decode happen in a task, and only a finished image reaches the
-//! event loop.
+//! Runs entirely off the UI thread, and stops at the bytes. What a cover becomes on screen is
+//! the front end's to decide — a terminal decodes and shrinks it, another front end may hand
+//! the bytes to its own image view — so the fetch sends them as they came, and decoding is
+//! the front end's work, done off its own loop.
 //!
-//! Every failure here is silent and local. A dead CDN, a corrupt JPEG, an unwritable cache
-//! directory: all of them leave the reserved plate in place. Cover art is decoration, and
-//! the title underneath it is not.
+//! Every failure here is silent and local. A dead CDN, an unwritable cache directory: both
+//! leave the reserved plate in place, or in the second case the cover itself, since a cache
+//! that cannot be written is no reason not to show what was just downloaded. Cover art is
+//! decoration, and the title underneath it is not.
 
 use std::path::{Path, PathBuf};
 
 use anistream_net::HttpClient;
-use anistream_ui::{app::Update, image::downscale};
+use anistream_ui::app::Update;
 use tokio::sync::mpsc;
 
 /// How long a cached cover stays valid. Art changes rarely; a month avoids re-fetching a
 /// library's worth of images while still letting a replaced cover through eventually.
 pub const CACHE_TTL_SECS: u64 = 30 * 24 * 3_600;
 
-/// Longest edge kept in memory.
-///
-/// Even a full-width banner occupies only a few hundred terminal pixels, so holding the
-/// original would cost far more than the rendered result can use — multiplied by every
-/// cover on screen.
-const MAX_EDGE: u32 = 900;
+// A cache that never expires would pin a replaced cover forever.
+const _: () = assert!(CACHE_TTL_SECS > 0);
 
-// Compile-time sanity on the two tuning constants above. A source banner arrives around
-// 1900px wide, so holding the original would dwarf anything a terminal can display; and a
-// cache that never expires would pin a replaced cover forever.
-const _: () = {
-    assert!(MAX_EDGE < 1900);
-    assert!(CACHE_TTL_SECS > 0);
-};
-
-/// Fetch, cache and decode one image, then hand it to the UI.
+/// Fetch one image, from the cache when it is fresh there, and hand its bytes to the UI.
 pub fn spawn_fetch(
     url: String,
     cache_dir: PathBuf,
@@ -56,37 +45,14 @@ pub fn spawn_fetch(
                 Err(failure) => Err(failure),
             },
         };
-        let bytes = match fetched {
-            Ok(bytes) => bytes,
+        let _ = tx.send(match fetched {
+            Ok(bytes) => Update::ArtworkReady { url, bytes },
             // Silent, as the module promises. This was a "cover unavailable" toast per cover,
             // which buried the notices that mattered — "showing what was last cached" among
             // them — under a screenful of the same line. The UI marks the URL failed, which
             // is what lets it be tried again.
-            Err(failure) => {
-                let _ =
-                    tx.send(Update::ImageFailed { url, offline: failure == Failure::Offline });
-                return;
-            }
-        };
-
-        // Decoding is CPU-bound, so it goes to the blocking pool rather than occupying an
-        // async worker that other requests need.
-        let decoded = tokio::task::spawn_blocking(move || {
-            image::load_from_memory(&bytes).ok().map(|img| downscale(img, MAX_EDGE))
-        })
-        .await
-        .ok()
-        .flatten();
-
-        match decoded {
-            Some(image) => {
-                let _ = tx.send(Update::Image { url, image: Box::new(image) });
-            }
-            None => {
-                tracing::debug!(%url, "could not decode artwork");
-                let _ = tx.send(Update::ImageFailed { url, offline: false });
-            }
-        }
+            Err(failure) => Update::ImageFailed { url, offline: failure == Failure::Offline },
+        });
     });
 }
 
@@ -240,8 +206,35 @@ mod tests {
         std::fs::File::options().write(true).open(&path).unwrap().set_modified(old).unwrap();
 
         match fetch_once(url, dir.path()).await {
-            Update::Image { .. } => {}
+            Update::ArtworkReady { bytes, .. } => assert_eq!(bytes, png),
             other => panic!("expected the stale copy, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn a_cover_that_cannot_be_cached_is_shown_all_the_same() {
+        // The bytes were downloaded fine; a cache directory that cannot be made — here, one
+        // under a plain file — only means fetching them again next time.
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+        let url = format!("http://{}/cover.jpg", listener.local_addr().unwrap());
+        tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut request = [0_u8; 2048];
+            let _ = socket.read(&mut request).await;
+            let _ = socket
+                .write_all(
+                    b"HTTP/1.1 200 OK\r\ncontent-length: 5\r\nconnection: close\r\n\r\ncover",
+                )
+                .await;
+        });
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("not-a-directory");
+        std::fs::write(&file, b"").unwrap();
+
+        match fetch_once(url, &file.join("covers")).await {
+            Update::ArtworkReady { bytes, .. } => assert_eq!(bytes, b"cover"),
+            other => panic!("expected the cover, got {other:?}"),
         }
     }
 
