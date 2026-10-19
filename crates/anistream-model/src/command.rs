@@ -9,6 +9,10 @@ use crate::{
     stores::Secret,
 };
 
+/// [`Command`]'s name from before it crossed into the model, kept only while its callers are
+/// renamed.
+pub type Task = Command;
+
 impl Task {
     /// What to call this in the activity row, or `None` for work nobody waits on: writes that
     /// land in the outbox, player commands, and anything that finishes as it is asked.
@@ -60,7 +64,7 @@ impl Task {
 
 /// Asynchronous work requested by the reducer.
 #[derive(Debug, Clone, PartialEq)]
-pub enum Task {
+pub enum Command {
     /// Resolve an episode's streams ahead of playing it, quietly, for a [`Task::Play`] of the
     /// same episode to pick up.
     Prefetch {

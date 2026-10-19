@@ -18,12 +18,16 @@ use crate::{
     sync::{ConflictRow, DeviceCodePrompt, SyncState},
 };
 
+/// [`Event`]'s name from before it crossed into the model, kept only while its callers are
+/// renamed.
+pub type Update = Event;
+
 /// A computed change, applied on the UI thread.
 ///
 /// Async work never touches the interface's `App` directly; it sends one of these instead. That
 /// is what guarantees the render loop is never blocked on I/O.
 #[derive(Debug)]
-pub enum Update {
+pub enum Event {
     /// What a running job is held up on, and for how long from now, when that is known.
     ///
     /// A span rather than a moment: a moment is read off a clock, and the one that counts the
