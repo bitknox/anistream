@@ -15,7 +15,7 @@ use cli::{
     store::store_command,
     sync::sync_once,
 };
-use services::{Services, build_meta};
+use services::Services;
 
 use anistream_engine::{
     artwork, data, downloads, playback,
@@ -413,7 +413,6 @@ async fn preview(
     use ratatui::{Terminal, backend::TestBackend};
 
     let palette = theme::resolve_with(config.theme.mode, None);
-    let meta = build_meta(&config, &http, &store);
     let mut keymap = Keymap::new();
     for problem in keymap.apply_overrides(&config.keys) {
         eprintln!("[keybinding: {problem}]");
@@ -435,7 +434,7 @@ async fn preview(
     if let Ok(Some(reason)) = plugins.await {
         note = Some(reason);
     }
-    let stores = plugin_stores::Stores::new(&config, paths).map_err(|e| anyhow::anyhow!(e))?;
+    let services = Services::build(&config, paths.clone(), http, store, registry)?;
     let mut app = App::with_images(config, palette, keymap, engine);
     if let Some(note) = note {
         app.apply(Event::ProviderNote(note));
@@ -448,13 +447,12 @@ async fn preview(
     if let Some(problem) = &config_problem {
         show_config_problem(&mut app, paths, problem);
     }
-    match stores.rows() {
+    match services.stores.rows() {
         Ok(rows) => app.apply(Event::Stores(rows)),
         Err(e) => app.apply(Event::Toast(Notice::alert(e))),
     }
-    app.apply(Event::Providers(data::provider_rows(&registry)));
-    let sync = tracking::Sync::build(&app.config, &store, &http);
-    for state in sync.initial_states() {
+    app.apply(Event::Providers(data::provider_rows(&services.registry)));
+    for state in services.sync.initial_states() {
         app.apply(Event::Sync(Box::new(state)));
     }
 
@@ -466,15 +464,7 @@ async fn preview(
             app.nav.section(),
         ),
         player_tx: None,
-        slot: PlayerSlot::default(),
-        prefetch: Prefetch::default(),
-        meta,
-        store,
-        registry,
-        http,
-        sync,
-        stores,
-        paths: paths.clone(),
+        services,
     };
 
     // Launch: Home loads.
@@ -550,15 +540,7 @@ struct PreviewRun {
     tx: mpsc::UnboundedSender<Event>,
     rows: usize,
     player_tx: Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
-    slot: PlayerSlot,
-    prefetch: Prefetch,
-    meta: Meta,
-    store: Store,
-    registry: ProviderRegistry,
-    http: HttpClient,
-    sync: tracking::Sync,
-    stores: plugin_stores::Stores,
-    paths: Paths,
+    services: Services,
 }
 
 impl PreviewRun {
@@ -598,16 +580,16 @@ impl PreviewRun {
             task,
             job,
             &mut self.player_tx,
-            &self.paths,
+            &self.services.paths,
             app,
-            &self.slot,
-            &self.prefetch,
-            &self.meta,
-            &self.store,
-            &self.registry,
-            &self.http,
-            &self.sync,
-            &self.stores,
+            &self.services.slot,
+            &self.services.prefetch,
+            &self.services.meta,
+            &self.services.store,
+            &self.services.registry,
+            &self.services.http,
+            &self.services.sync,
+            &self.services.stores,
             &self.tx,
         );
     }
@@ -624,8 +606,8 @@ impl PreviewRun {
             for url in app.visible_artwork(self.rows) {
                 artwork::spawn_fetch(
                     url,
-                    self.paths.image_cache(),
-                    self.http.clone(),
+                    self.services.paths.image_cache(),
+                    self.services.http.clone(),
                     self.tx.clone(),
                 );
                 fetching = true;
@@ -646,8 +628,8 @@ impl PreviewRun {
                         }
                         update => app.apply(update),
                     }
-                    if let Some(notice) = self.meta.take_notice() {
-                        app.apply(Event::MetaStatus(data::meta_rows(&self.meta)));
+                    if let Some(notice) = self.services.meta.take_notice() {
+                        app.apply(Event::MetaStatus(data::meta_rows(&self.services.meta)));
                         app.apply(Event::Toast(Notice::info(notice)));
                     }
                 }
