@@ -18,6 +18,7 @@ repository = "https://github.com/bitknox/anistream"
 anistream-core = { path = "crates/anistream-core" }
 anistream-net = { path = "crates/anistream-net" }
 anistream-meta = { path = "crates/anistream-meta" }
+anistream-model = { path = "crates/anistream-model" }
 anistream-player = { path = "crates/anistream-player" }
 anistream-plugin = { path = "crates/anistream-plugin", default-features = false }
 anistream-plugin-store = { path = "crates/anistream-plugin-store" }

@@ -1,0 +1,22 @@
+[package]
+name = "anistream-model"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "What anistream's engine and its front ends say to each other: commands, events, the rows they carry and their words"
+# Shared by the workspace's own crates only. Its shape follows the engine, and is not a promise to
+# anyone building against it.
+publish = false
+
+[lib]
+# No doc example is written as a test, and rustdoc spends seconds per crate finding none.
+doctest = false
+
+# Plain data and the rules over it, so the core's vocabulary and nothing else. No runtime, no
+# I/O and no terminal library: tools/check-boundaries.sh holds the last of those in CI.
+[dependencies]
+anistream-core.workspace = true
+
+[lints]
+workspace = true

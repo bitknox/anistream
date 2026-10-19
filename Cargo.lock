@@ -144,6 +144,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "anistream-model"
+version = "1.1.0"
+dependencies = [
+ "anistream-core",
+]
+
+[[package]]
 name = "anistream-net"
 version = "1.1.0"
 dependencies = [
@@ -333,6 +340,7 @@ name = "anistream-ui"
 version = "1.1.0"
 dependencies = [
  "anistream-core",
+ "anistream-model",
  "chrono",
  "crossterm",
  "image",
