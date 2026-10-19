@@ -22,4 +22,5 @@ pub mod catalog;
 pub mod episodes;
 pub mod jobs;
 pub mod notice;
+pub mod playback;
 pub mod wording;
