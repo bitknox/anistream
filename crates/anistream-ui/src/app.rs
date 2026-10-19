@@ -30,6 +30,10 @@ pub use anistream_model::playback::{Ending, SkipKind, Successor};
 pub use anistream_model::sources::{
     GuardView, MatchCandidate, MetaSourceRow, ProviderRow, order_with_source_moved,
 };
+pub use anistream_model::stores::{
+    InviteLinkView, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
+    StorePluginStatus, StorePreview, StoreRow, StoreState,
+};
 pub use anistream_model::sync::{ConflictRow, DeviceCodePrompt, SyncState};
 
 /// A notice on screen, for as long as it stays.
@@ -484,77 +488,6 @@ pub fn vpn_badge(guard: &GuardView) -> (String, bool) {
     }
 }
 
-/// A plugin store this machine has joined, as the store screens show it.
-///
-/// Flattened by the binary from the store client's own state, so this crate knows nothing about
-/// the protocol — the same arrangement as [`ProviderRow`].
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StoreRow {
-    pub id: String,
-    pub name: String,
-    pub url: String,
-    /// The store key's fingerprint, in groups of four.
-    pub fingerprint: String,
-    /// Who this machine joined as.
-    pub member: String,
-    pub owner: bool,
-    pub state: StoreState,
-    pub plugins: Vec<StorePluginRow>,
-}
-
-impl StoreRow {
-    pub fn updates(&self) -> usize {
-        self.plugins
-            .iter()
-            .filter(|p| matches!(p.status, StorePluginStatus::Update { .. }))
-            .count()
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum StoreState {
-    Ready,
-    /// The last refresh failed. The plugins listed are the last list that was verified.
-    Offline(String),
-    /// The store no longer accepts this device.
-    Revoked,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StorePluginRow {
-    pub id: String,
-    pub name: String,
-    pub version: String,
-    /// What the plugin may contact. Shown before anything is installed.
-    pub hosts: Vec<String>,
-    pub status: StorePluginStatus,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum StorePluginStatus {
-    Available,
-    Installed,
-    /// A newer version is offered, and these are the hosts it adds.
-    Update {
-        from: String,
-        new_hosts: Vec<String>,
-    },
-    /// A file with this id is in the plugin directory and did not come from a store.
-    AddedByHand,
-    /// Installed from another store, which keeps it updated.
-    OtherStore(String),
-}
-
-/// A store about to be joined, for the confirmation.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StorePreview {
-    pub link: Secret,
-    pub name: String,
-    pub url: String,
-    pub fingerprint: String,
-    pub already_joined: bool,
-}
-
 /// A store action waiting for a yes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StoreConfirm {
@@ -563,47 +496,6 @@ pub enum StoreConfirm {
     RemoveMember { store: String, member: String, name: String, devices: u32 },
     CancelInvite { store: String, invite: String, name: String },
     Unpublish { store: String, plugin: String, name: String },
-}
-
-/// A freshly made invite link.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct InviteLinkView {
-    pub store: String,
-    pub link: Secret,
-    /// Who it is for. `None` is another device of your own.
-    pub for_whom: Option<String>,
-    pub expires_at: i64,
-}
-
-/// One member of a store, for its owner.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StoreMemberRow {
-    pub id: String,
-    pub name: String,
-    pub owner: bool,
-    pub devices: u32,
-    pub last_seen: Option<i64>,
-    pub you: bool,
-}
-
-/// An invite nobody has used yet.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StoreInviteRow {
-    pub id: String,
-    pub name: String,
-    pub device: bool,
-    pub expires_at: i64,
-}
-
-/// A plugin in the local plugin directory that an owner could publish.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LocalPluginRow {
-    pub id: String,
-    pub name: String,
-    pub version: String,
-    pub hosts: Vec<String>,
-    /// The version the store already offers, if it offers one.
-    pub published: Option<String>,
 }
 
 /// One line of a store's screen: a plugin, or something to do.
@@ -5388,20 +5280,6 @@ pub fn cycle_search_filter(
         3 => step(&mut filter.format, &SEARCH_FORMATS.map(|(wire, _)| wire), forward),
         4 => step(&mut filter.status, &SEARCH_STATUSES.map(|(wire, _)| wire), forward),
         _ => step(&mut filter.sort, &SEARCH_SORTS.map(|(wire, _)| wire), forward),
-    }
-}
-
-/// A credential in transit.
-///
-/// Exists for exactly one reason: `Task` derives `Debug` and the task router logs a task
-/// when routing goes wrong. A plain `String` there would put a password in the log file;
-/// this prints a placeholder instead, everywhere, unconditionally.
-#[derive(Clone, PartialEq, Eq)]
-pub struct Secret(pub String);
-
-impl std::fmt::Debug for Secret {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("Secret(«redacted»)")
     }
 }
 
