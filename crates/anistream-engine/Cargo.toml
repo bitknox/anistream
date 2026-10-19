@@ -1,0 +1,45 @@
+[package]
+name = "anistream-engine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "The work behind anistream's front ends: playback, sources, sync, downloads and background jobs"
+publish = false
+
+[lib]
+# No doc example is written as a test, and rustdoc spends seconds per crate finding none.
+doctest = false
+
+# No terminal crate, not even transitively, and not the terminal front end: the engine runs under
+# front ends that are not a terminal. tools/check-boundaries.sh holds it to that in CI.
+[dependencies]
+anistream-core.workspace = true
+anistream-meta.workspace = true
+anistream-model.workspace = true
+anistream-net.workspace = true
+anistream-player.workspace = true
+anistream-plugin = { workspace = true, features = ["fetch"] }
+anistream-plugin-store.workspace = true
+anistream-store-server.workspace = true
+anistream-providers.workspace = true
+anistream-store.workspace = true
+anistream-track.workspace = true
+open.workspace = true
+async-trait.workspace = true
+thiserror.workspace = true
+futures.workspace = true
+image.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+# Random tokens for the mending proxy's loopback path.
+rand = "0.10"
+# Named by the mending proxy, whose upstream requests go through `HttpClient::emulated`.
+wreq.workspace = true
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true
