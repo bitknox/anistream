@@ -5684,6 +5684,69 @@ mod tests {
         assert!(text.contains(&second), "missing the {second} ruling:\n{text}");
     }
 
+    /// The calendar drawn on a stopped clock: its rulings and times are fixed text, the same
+    /// whenever and in whatever zone the test runs.
+    fn calendar_at(clock: Clock, entries: Vec<Entry>) -> String {
+        let mut app = app_with(Content::Empty);
+        app.clock = clock;
+        app.go_to_section(Section::Calendar);
+        app.apply(app.content_here(Content::Entries(entries)));
+        text_of(&render_to_buffer(&app, 120, 34))
+    }
+
+    /// A calendar row: `episode` of `title`, airing `secs` from now (negative once aired).
+    fn airing(id: u32, title: &str, episode: u32, secs: i64) -> Entry {
+        Entry { airing_episode: Some(episode), airing_in: Some(secs), ..entry(id, title) }
+    }
+
+    #[test]
+    fn a_stopped_clock_pins_the_calendars_days_and_broadcast_line() {
+        const DAY: i64 = 86_400;
+        // The first upcoming row is the one selected, so its broadcast line is the preview's.
+        let next = Entry {
+            last_aired: Some((3, 2 * DAY)),
+            next_episode: Some(4),
+            next_airing_in: Some(4 * DAY + 20 * 3_600),
+            ..airing(3, "Hoshikuzu no Tabibito", 4, 4 * DAY + 20 * 3_600)
+        };
+        let text = calendar_at(
+            Clock::fixed(NOON_MONDAY, crate::clock::Zone::utc()),
+            vec![
+                airing(1, "Kaze no Tegami", 7, -2 * DAY),
+                airing(2, "Yoru no Toshokan", 2, -3_600),
+                next,
+            ],
+        );
+        for ruling in ["SATURDAY · 17 OCT", "TODAY", "SATURDAY · 24 OCT"] {
+            assert!(text.contains(ruling), "missing the {ruling} ruling:\n{text}");
+        }
+        for time in ["2d ago", "1h ago", "in 4d 20h"] {
+            assert!(text.contains(time), "missing the {time} row:\n{text}");
+        }
+        assert!(text.contains("ep 3 out 2d ago  ·  ep 4 in 4d 20h"), "{text}");
+    }
+
+    /// The day an episode airs on is a local date, so the zone moves it: an hour after 23:30
+    /// UTC is tomorrow in UTC and still today eight hours west.
+    #[test]
+    fn the_calendar_rules_days_in_the_clocks_zone() {
+        let late_monday = NOON_MONDAY + 11 * 3_600 + 1_800;
+        let entries = || {
+            vec![
+                airing(1, "Hoshikuzu no Tabibito", 5, 3_600),
+                airing(2, "Kaze no Tegami", 8, 3 * 86_400 + 3_600),
+            ]
+        };
+        let zone = |hours| crate::clock::Zone::hours_east(hours).unwrap();
+        let utc = calendar_at(Clock::fixed(late_monday, zone(0)), entries());
+        let west = calendar_at(Clock::fixed(late_monday, zone(-8)), entries());
+
+        assert!(utc.contains("TOMORROW") && !utc.contains("TODAY"), "{utc}");
+        assert!(utc.contains("FRIDAY · 23 OCT") && !utc.contains("THURSDAY"), "{utc}");
+        assert!(west.contains("TODAY") && !west.contains("TOMORROW"), "{west}");
+        assert!(west.contains("THURSDAY · 22 OCT") && !west.contains("FRIDAY"), "{west}");
+    }
+
     #[test]
     fn a_tracked_show_with_an_aired_episode_says_so() {
         let mut e = entry(1, "Frieren");
