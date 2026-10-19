@@ -20,7 +20,10 @@ use anistream_net::HttpClient;
 use anistream_player::Mpv;
 use anistream_store::Store;
 use anistream_ui::app::{Ending, PlayerCommand, Successor, Update};
-use tokio::{io::AsyncWriteExt, sync::mpsc};
+use tokio::{
+    io::{AsyncBufReadExt, AsyncWriteExt},
+    sync::mpsc,
+};
 
 fn clip(seconds: u32) -> Stream {
     Stream {
@@ -198,10 +201,27 @@ async fn tell_mpv(dir: &std::path::Path, command: serde_json::Value) {
         .filter_map(|entry| entry.ok().map(|e| e.path()))
         .find(|path| path.extension().is_some_and(|ext| ext == "sock"))
         .expect("the player's socket");
-    let mut stream = anistream_player::ipc::connect(&socket).await.unwrap();
-    let line = format!("{}\n", serde_json::json!({ "command": command }));
-    stream.write_all(line.as_bytes()).await.unwrap();
-    stream.flush().await.unwrap();
+    let stream = anistream_player::ipc::connect(&socket).await.unwrap();
+    let (reader, mut writer) = tokio::io::split(stream);
+    let line = format!("{}\n", serde_json::json!({ "command": command, "request_id": 1 }));
+    writer.write_all(line.as_bytes()).await.unwrap();
+    writer.flush().await.unwrap();
+    // Held open until mpv answers. Hanging up straight after the write sometimes lost the
+    // command: a `cancel-next` sent seconds before the end never reached the playback. A
+    // `quit` closes the socket instead of answering, which is just as conclusive.
+    let mut lines = tokio::io::BufReader::new(reader).lines();
+    let answered = async {
+        while let Ok(Some(line)) = lines.next_line().await {
+            if serde_json::from_str::<serde_json::Value>(&line)
+                .is_ok_and(|reply| reply["request_id"] == 1)
+            {
+                return;
+            }
+        }
+    };
+    tokio::time::timeout(Duration::from_secs(5), answered)
+        .await
+        .expect("mpv neither answered the command nor closed the socket");
 }
 
 /// Wait until mpv has loaded a file and is far enough in to have reported a position.
