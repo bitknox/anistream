@@ -1,8 +1,8 @@
-//! Bridging AniList responses into the shapes the UI renders.
+//! Bridging AniList responses into the rows a front end renders.
 //!
-//! Kept out of `anistream-tui` deliberately: the UI depends only on `anistream-core`, so it
-//! can be built and tested without a metadata backend. This module is the only place that
-//! knows both vocabularies.
+//! In the engine, not in a front end: front ends depend on `anistream-model` and
+//! `anistream-core` only, so they build and test without a metadata backend. This module is
+//! the only place that knows both vocabularies.
 
 use anistream_meta::anilist::{AiringEntry, Media};
 use anistream_model::{
