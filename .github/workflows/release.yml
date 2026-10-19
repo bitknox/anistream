@@ -56,10 +56,9 @@ jobs:
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
 
-      # The toolchain comes from rust-toolchain.toml.
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: ${{ matrix.target }}
+      # The toolchain rust-toolchain.toml pins, with the target added to it: the Intel macOS
+      # build is cross-compiled, so its target is not the runner's own.
+      - run: rustup toolchain install && rustup target add ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@v2
         with:
