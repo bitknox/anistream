@@ -26,7 +26,7 @@ use anistream_ui::{
 use anyhow::{Context, Result};
 use clap::Parser;
 use crossterm::{
-    event::{Event, EventStream, KeyEventKind},
+    event::{Event as TermEvent, EventStream, KeyEventKind},
     execute,
     terminal::{EnterAlternateScreen, enable_raw_mode},
 };
@@ -193,7 +193,7 @@ struct Cli {
     plugins: bool,
 
     #[command(subcommand)]
-    command: Option<Command>,
+    command: Option<Subcommand>,
 }
 
 /// The screens `--preview` can render.
@@ -232,7 +232,7 @@ fn parse_size(text: &str) -> std::result::Result<(u16, u16), String> {
 }
 
 #[derive(clap::Subcommand, Debug)]
-enum Command {
+enum Subcommand {
     /// Run a plugin store, or look after one from the command line.
     #[command(subcommand)]
     Store(anistream_store_server::StoreCommand),
@@ -373,12 +373,12 @@ async fn main() -> Result<()> {
 }
 
 /// `anistream store …` and `anistream plugin …`.
-async fn store_command(command: Command, paths: &Paths) -> Result<()> {
+async fn store_command(command: Subcommand, paths: &Paths) -> Result<()> {
     use tracing_subscriber::{EnvFilter, fmt};
     // A server's log is its record of who joined and what was published. A one-off command has
     // nothing to say beyond its answer.
     let serving =
-        matches!(command, Command::Store(anistream_store_server::StoreCommand::Serve(_)));
+        matches!(command, Subcommand::Store(anistream_store_server::StoreCommand::Serve(_)));
     let level = if serving { "info" } else { "warn" };
     let _ = fmt()
         .with_writer(io::stderr)
@@ -388,8 +388,8 @@ async fn store_command(command: Command, paths: &Paths) -> Result<()> {
         .try_init();
     let cache = paths.cache_dir.join("wasm");
     let outcome = match command {
-        Command::Store(command) => anistream_store_server::run(command, Some(&cache)).await,
-        Command::Plugin(PluginCommand::Stamp(args)) => {
+        Subcommand::Store(command) => anistream_store_server::run(command, Some(&cache)).await,
+        Subcommand::Plugin(PluginCommand::Stamp(args)) => {
             anistream_store_server::stamp(&args, Some(&cache)).await.map(|info| {
                 println!("stamped {} {}", info.id, info.version);
                 println!(
@@ -2010,7 +2010,7 @@ async fn run(
             }
             maybe_event = events.next() => {
                 match maybe_event {
-                    Some(Ok(Event::Key(key))) if key.kind == KeyEventKind::Press => {
+                    Some(Ok(TermEvent::Key(key))) if key.kind == KeyEventKind::Press => {
                         if let Some(task) = app.press(key, rows) {
                             let job = JobGuard::start(&mut app, &task, &tx);
                             dispatch(
@@ -2021,11 +2021,11 @@ async fn run(
                     }
                     // Arrives whole with bracketed paste on, so a pasted link cannot fire
                     // bindings on its way into a field.
-                    Some(Ok(Event::Paste(text))) => app.paste(&text),
+                    Some(Ok(TermEvent::Paste(text))) => app.paste(&text),
                     // The next frame redraws at the new size on its own; the list's window does
                     // not follow by itself, and a shorter terminal would otherwise leave the
                     // highlighted row below the bottom edge.
-                    Some(Ok(Event::Resize(width, height))) => {
+                    Some(Ok(TermEvent::Resize(width, height))) => {
                         let area = ratatui::layout::Rect::new(0, 0, width, height);
                         app.fit_to(screens::visible_rows(area, app.nav.section()));
                     }
