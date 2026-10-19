@@ -304,6 +304,7 @@ dependencies = [
  "anistream-providers",
  "anistream-store",
  "serde_json",
+ "tempfile",
  "tokio",
 ]
 

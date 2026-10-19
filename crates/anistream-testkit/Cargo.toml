@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "Test kit: a fake AniList, fixture titles and store seeding"
+description = "Test kit: a fake AniList, fixture titles, store seeding and golden files"
 # Only ever a dev-dependency. It stands in for a network service, which nothing outside a test
 # should be able to build against by accident.
 publish = false
@@ -26,6 +26,8 @@ tokio.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
+# Scratch directories for the golden helper's own tests.
+tempfile = "3"
 
 [lints]
 workspace = true

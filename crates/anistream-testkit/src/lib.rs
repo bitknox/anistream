@@ -7,12 +7,14 @@
 //! - [`MetaKit`]: a real [`Meta`] wired to the fake and to an in-memory [`Store`].
 //! - [`seed`]: history, progress, mappings and downloads written into a store.
 //! - [`sources`]: a provider registry that knows the fixture titles' episodes and streams.
+//! - [`assert_golden`]: compare text against a committed file, or rewrite it on request.
 //!
 //! Development-only by construction: `publish = false`, used only as a dev-dependency, and
 //! built below the TUI and the app crate so that both can test against it.
 
 pub mod anilist;
 pub mod fixtures;
+pub mod golden;
 pub mod seed;
 pub mod sources;
 
@@ -22,6 +24,7 @@ use anistream_net::HttpClient;
 use anistream_store::Store;
 
 pub use anilist::{Failure, FakeAniList, Operation, Request};
+pub use golden::{BLESS_VAR, assert_golden, check_golden};
 
 /// The AniList budget a test client gets, per minute.
 ///
