@@ -259,6 +259,8 @@ end
 ---------------------------------------------------------------------------------------------
 
 function M.draw(ctx, _, _, w, h)
+    -- The bar is part of the control row, so it draws at uosc's scale (screen.lua).
+    ctx = ctx:at_scale(screen.row_scale())
     local s = ctx.s
     local g = screen.timeline_geometry(s, w, h)
     geometry = g
