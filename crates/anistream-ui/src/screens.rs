@@ -319,7 +319,7 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
         );
         // Active filters are shown where they act, or a filtered search would read as
         // AniList having quietly lost titles the user knows exist.
-        let summary = app.search_filter.summary();
+        let summary = crate::app::search_filter_summary(&app.search_filter);
         let mut used = prompt.chars().count() as u16;
         if !summary.is_empty() {
             let at = used + 3;
@@ -1903,11 +1903,11 @@ fn status_rows(app: &App) -> Vec<(String, String)> {
 }
 
 fn search_filter_rows(app: &App) -> Vec<(String, String)> {
-    use crate::app::SearchFilters;
-    SearchFilters::ROWS
+    use crate::app::{SEARCH_FILTER_ROWS, search_filter_value};
+    SEARCH_FILTER_ROWS
         .iter()
         .enumerate()
-        .map(|(row, name)| (app.search_filter.row_value(row), glyph::eyebrow(name)))
+        .map(|(row, name)| (search_filter_value(&app.search_filter, row), glyph::eyebrow(name)))
         .collect()
 }
 

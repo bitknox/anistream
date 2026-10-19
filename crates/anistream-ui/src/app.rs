@@ -3212,10 +3212,20 @@ impl App {
             // The filters overlay edits in place: the vertical axis picks a row and the
             // horizontal one walks its values, the same grammar as the Settings screen.
             Action::Left if *overlay == Overlay::SearchFilters => {
-                self.search_filter.cycle(self.overlay_selected, false, &self.clock);
+                cycle_search_filter(
+                    &mut self.search_filter,
+                    self.overlay_selected,
+                    false,
+                    &self.clock,
+                );
             }
             Action::Right if *overlay == Overlay::SearchFilters => {
-                self.search_filter.cycle(self.overlay_selected, true, &self.clock);
+                cycle_search_filter(
+                    &mut self.search_filter,
+                    self.overlay_selected,
+                    true,
+                    &self.clock,
+                );
             }
             _ => {}
         }
@@ -4476,7 +4486,7 @@ impl App {
         match self.nav.overlay() {
             Some(Overlay::ListStatus) => LibrarySegment::ALL.len(),
             Some(Overlay::Rate) => 10,
-            Some(Overlay::SearchFilters) => SearchFilters::ROWS.len(),
+            Some(Overlay::SearchFilters) => SEARCH_FILTER_ROWS.len(),
             Some(Overlay::Conflicts) => self.conflicts.len(),
             Some(Overlay::Accounts) => self.sync.len(),
             // The palette was missing from this list, which meant the arrows scrolled the list
@@ -5862,55 +5872,6 @@ pub struct SearchFilters {
 }
 
 impl SearchFilters {
-    /// Row labels, in overlay order. The cycling and display functions index against this.
-    pub const ROWS: [&'static str; 6] = ["genre", "year", "season", "format", "status", "sort"];
-
-    /// AniList's fixed genre set. Genres are strings on the wire, but the set is closed —
-    /// typing one would invite misses on casing that a cycle cannot produce.
-    const GENRES: [&'static str; 18] = [
-        "Action",
-        "Adventure",
-        "Comedy",
-        "Drama",
-        "Ecchi",
-        "Fantasy",
-        "Horror",
-        "Mahou Shoujo",
-        "Mecha",
-        "Music",
-        "Mystery",
-        "Psychological",
-        "Romance",
-        "Sci-Fi",
-        "Slice of Life",
-        "Sports",
-        "Supernatural",
-        "Thriller",
-    ];
-    const SEASONS: [(&'static str, &'static str); 4] =
-        [("WINTER", "winter"), ("SPRING", "spring"), ("SUMMER", "summer"), ("FALL", "fall")];
-    const FORMATS: [(&'static str, &'static str); 7] = [
-        ("TV", "tv"),
-        // Short-form TV — a few minutes an episode — is its own format on AniList, so a
-        // filter without it had no way to find one.
-        ("TV_SHORT", "tv short"),
-        ("MOVIE", "movie"),
-        ("OVA", "ova"),
-        ("ONA", "ona"),
-        ("SPECIAL", "special"),
-        ("MUSIC", "music"),
-    ];
-    const STATUSES: [(&'static str, &'static str); 3] =
-        [("RELEASING", "airing"), ("FINISHED", "finished"), ("NOT_YET_RELEASED", "upcoming")];
-    const SORTS: [(&'static str, &'static str); 4] = [
-        ("POPULARITY_DESC", "popularity"),
-        ("SCORE_DESC", "score"),
-        ("TRENDING_DESC", "trending"),
-        ("START_DATE_DESC", "newest"),
-    ];
-    /// Older than any TV anime that streams anywhere; the year cycle stops here.
-    const OLDEST_YEAR: u32 = 1970;
-
     pub fn is_empty(&self) -> bool {
         self.genre.is_none()
             && self.year.is_none()
@@ -5919,77 +5880,137 @@ impl SearchFilters {
             && self.status.is_none()
             && self.sort.is_none()
     }
+}
 
-    /// What a row currently shows: the display form, or "any" when unset.
-    pub fn row_value(&self, row: usize) -> String {
-        let shown = |set: &[(&str, &str)], value: &Option<String>| {
-            value.as_deref().and_then(|v| {
-                set.iter().find(|(wire, _)| *wire == v).map(|(_, word)| (*word).to_string())
-            })
-        };
-        match row {
-            // A genre is a name, and keeps the casing it has everywhere else it is shown.
-            0 => self.genre.clone(),
-            1 => self.year.map(|y| y.to_string()),
-            2 => shown(&Self::SEASONS, &self.season),
-            3 => shown(&Self::FORMATS, &self.format),
-            4 => shown(&Self::STATUSES, &self.status),
-            5 => return shown(&Self::SORTS, &self.sort).unwrap_or_else(|| "relevance".into()),
-            _ => None,
-        }
-        .unwrap_or_else(|| "any".into())
+/// The FILTERS overlay's row labels, in order: one for each of [`SearchFilters`]' fields. The
+/// cycling and display functions index against this.
+///
+/// The overlay's rather than the filters' own: which rows there are, the words a value is shown in
+/// and the ladder each one steps through are how this screen offers a search. The filters it sends
+/// hold wire values only.
+pub const SEARCH_FILTER_ROWS: [&str; 6] =
+    ["genre", "year", "season", "format", "status", "sort"];
+
+/// AniList's fixed genre set. Genres are strings on the wire, but the set is closed —
+/// typing one would invite misses on casing that a cycle cannot produce.
+const SEARCH_GENRES: [&str; 18] = [
+    "Action",
+    "Adventure",
+    "Comedy",
+    "Drama",
+    "Ecchi",
+    "Fantasy",
+    "Horror",
+    "Mahou Shoujo",
+    "Mecha",
+    "Music",
+    "Mystery",
+    "Psychological",
+    "Romance",
+    "Sci-Fi",
+    "Slice of Life",
+    "Sports",
+    "Supernatural",
+    "Thriller",
+];
+const SEARCH_SEASONS: [(&str, &str); 4] =
+    [("WINTER", "winter"), ("SPRING", "spring"), ("SUMMER", "summer"), ("FALL", "fall")];
+const SEARCH_FORMATS: [(&str, &str); 7] = [
+    ("TV", "tv"),
+    // Short-form TV — a few minutes an episode — is its own format on AniList, so a
+    // filter without it had no way to find one.
+    ("TV_SHORT", "tv short"),
+    ("MOVIE", "movie"),
+    ("OVA", "ova"),
+    ("ONA", "ona"),
+    ("SPECIAL", "special"),
+    ("MUSIC", "music"),
+];
+const SEARCH_STATUSES: [(&str, &str); 3] =
+    [("RELEASING", "airing"), ("FINISHED", "finished"), ("NOT_YET_RELEASED", "upcoming")];
+const SEARCH_SORTS: [(&str, &str); 4] = [
+    ("POPULARITY_DESC", "popularity"),
+    ("SCORE_DESC", "score"),
+    ("TRENDING_DESC", "trending"),
+    ("START_DATE_DESC", "newest"),
+];
+/// Older than any TV anime that streams anywhere; the year cycle stops here.
+const OLDEST_SEARCH_YEAR: u32 = 1970;
+
+/// What a filter row currently shows: the display form, or "any" when unset.
+pub fn search_filter_value(filter: &SearchFilters, row: usize) -> String {
+    let shown = |set: &[(&str, &str)], value: &Option<String>| {
+        value.as_deref().and_then(|v| {
+            set.iter().find(|(wire, _)| *wire == v).map(|(_, word)| (*word).to_string())
+        })
+    };
+    match row {
+        // A genre is a name, and keeps the casing it has everywhere else it is shown.
+        0 => filter.genre.clone(),
+        1 => filter.year.map(|y| y.to_string()),
+        2 => shown(&SEARCH_SEASONS, &filter.season),
+        3 => shown(&SEARCH_FORMATS, &filter.format),
+        4 => shown(&SEARCH_STATUSES, &filter.status),
+        5 => return shown(&SEARCH_SORTS, &filter.sort).unwrap_or_else(|| "relevance".into()),
+        _ => None,
     }
+    .unwrap_or_else(|| "any".into())
+}
 
-    /// The set values joined for the search prompt line, empty when nothing is.
-    pub fn summary(&self) -> String {
-        (0..Self::ROWS.len())
-            .filter(|row| {
-                // "relevance" is the resting state of sort, not a choice worth announcing.
-                match row {
-                    0 => self.genre.is_some(),
-                    1 => self.year.is_some(),
-                    2 => self.season.is_some(),
-                    3 => self.format.is_some(),
-                    4 => self.status.is_some(),
-                    _ => self.sort.is_some(),
-                }
-            })
-            .map(|row| self.row_value(row))
-            .collect::<Vec<_>>()
-            .join(" · ")
-    }
-
-    /// Step a row's value. Forward walks the options and comes back around to "any",
-    /// so both directions reach everything and nothing is a dead end. The year ladder tops out
-    /// at next year by `clock`.
-    pub fn cycle(&mut self, row: usize, forward: bool, clock: &Clock) {
-        fn step(current: &mut Option<String>, wires: &[&str], forward: bool) {
-            let at = current.as_deref().and_then(|c| wires.iter().position(|w| *w == c));
-            let next = match (at, forward) {
-                (None, true) => Some(0),
-                (None, false) => Some(wires.len() - 1),
-                (Some(i), true) => (i + 1 < wires.len()).then_some(i + 1),
-                (Some(0), false) => None,
-                (Some(i), false) => Some(i - 1),
-            };
-            *current = next.map(|i| wires[i].to_owned());
-        }
-        match row {
-            0 => step(&mut self.genre, &Self::GENRES, forward),
-            1 => {
-                let latest = chrono::Datelike::year(&clock.today()).max(0) as u32 + 1;
-                self.year = match (self.year, forward) {
-                    (None, true) => Some(latest),
-                    (None, false) => Some(Self::OLDEST_YEAR),
-                    (Some(y), true) => (y > Self::OLDEST_YEAR).then(|| y - 1),
-                    (Some(y), false) => (y < latest).then(|| y + 1),
-                };
+/// The set filter values joined for the search prompt line, empty when nothing is.
+pub fn search_filter_summary(filter: &SearchFilters) -> String {
+    (0..SEARCH_FILTER_ROWS.len())
+        .filter(|row| {
+            // "relevance" is the resting state of sort, not a choice worth announcing.
+            match row {
+                0 => filter.genre.is_some(),
+                1 => filter.year.is_some(),
+                2 => filter.season.is_some(),
+                3 => filter.format.is_some(),
+                4 => filter.status.is_some(),
+                _ => filter.sort.is_some(),
             }
-            2 => step(&mut self.season, &Self::SEASONS.map(|(wire, _)| wire), forward),
-            3 => step(&mut self.format, &Self::FORMATS.map(|(wire, _)| wire), forward),
-            4 => step(&mut self.status, &Self::STATUSES.map(|(wire, _)| wire), forward),
-            _ => step(&mut self.sort, &Self::SORTS.map(|(wire, _)| wire), forward),
+        })
+        .map(|row| search_filter_value(filter, row))
+        .collect::<Vec<_>>()
+        .join(" · ")
+}
+
+/// Step a filter row's value. Forward walks the options and comes back around to "any",
+/// so both directions reach everything and nothing is a dead end. The year ladder tops out
+/// at next year by `clock`.
+pub fn cycle_search_filter(
+    filter: &mut SearchFilters,
+    row: usize,
+    forward: bool,
+    clock: &Clock,
+) {
+    fn step(current: &mut Option<String>, wires: &[&str], forward: bool) {
+        let at = current.as_deref().and_then(|c| wires.iter().position(|w| *w == c));
+        let next = match (at, forward) {
+            (None, true) => Some(0),
+            (None, false) => Some(wires.len() - 1),
+            (Some(i), true) => (i + 1 < wires.len()).then_some(i + 1),
+            (Some(0), false) => None,
+            (Some(i), false) => Some(i - 1),
+        };
+        *current = next.map(|i| wires[i].to_owned());
+    }
+    match row {
+        0 => step(&mut filter.genre, &SEARCH_GENRES, forward),
+        1 => {
+            let latest = chrono::Datelike::year(&clock.today()).max(0) as u32 + 1;
+            filter.year = match (filter.year, forward) {
+                (None, true) => Some(latest),
+                (None, false) => Some(OLDEST_SEARCH_YEAR),
+                (Some(y), true) => (y > OLDEST_SEARCH_YEAR).then(|| y - 1),
+                (Some(y), false) => (y < latest).then(|| y + 1),
+            };
         }
+        2 => step(&mut filter.season, &SEARCH_SEASONS.map(|(wire, _)| wire), forward),
+        3 => step(&mut filter.format, &SEARCH_FORMATS.map(|(wire, _)| wire), forward),
+        4 => step(&mut filter.status, &SEARCH_STATUSES.map(|(wire, _)| wire), forward),
+        _ => step(&mut filter.sort, &SEARCH_SORTS.map(|(wire, _)| wire), forward),
     }
 }
 
@@ -6870,18 +6891,18 @@ mod tests {
     fn the_format_filter_can_find_short_tv() {
         let mut filter = SearchFilters::default();
         let clock = Clock::system();
-        filter.cycle(3, true, &clock);
-        assert_eq!(filter.row_value(3), "tv");
-        filter.cycle(3, true, &clock);
+        cycle_search_filter(&mut filter, 3, true, &clock);
+        assert_eq!(search_filter_value(&filter, 3), "tv");
+        cycle_search_filter(&mut filter, 3, true, &clock);
         assert_eq!(filter.format.as_deref(), Some("TV_SHORT"), "AniList's name for it");
-        assert_eq!(filter.row_value(3), "tv short");
+        assert_eq!(search_filter_value(&filter, 3), "tv short");
     }
 
     #[test]
     fn a_genre_filter_keeps_the_genre_s_own_casing() {
         let filter =
             SearchFilters { genre: Some("Slice of Life".into()), ..Default::default() };
-        assert_eq!(filter.row_value(0), "Slice of Life");
+        assert_eq!(search_filter_value(&filter, 0), "Slice of Life");
     }
 
     #[test]
