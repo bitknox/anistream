@@ -87,8 +87,8 @@ jobs:
       - run: mpv --version | head -1
       - name: Test
         run: >-
-          cargo nextest run --profile ci -p anistream -p anistream-player -p anistream-providers
-          -E 'group(mpv)'
+          cargo nextest run --profile ci -p anistream -p anistream-engine -p anistream-player
+          -p anistream-providers -E 'group(mpv)'
         env:
           ANISTREAM_REQUIRE_MPV: "1"
 
