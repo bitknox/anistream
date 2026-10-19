@@ -5,6 +5,7 @@
 //! is how "a held-back provider is never contacted" is actually proven rather than assumed.
 
 use std::{
+    collections::HashMap,
     sync::{
         Arc,
         atomic::{AtomicUsize, Ordering},
@@ -26,6 +27,10 @@ pub struct MockProvider {
     hits: Vec<SearchHit>,
     episodes: Vec<Episode>,
     streams: Vec<Stream>,
+    /// Answers for one key, in place of the shared lists above. A key names one title, so a
+    /// mock standing in for a catalogue of several has to tell them apart by it.
+    episodes_for: HashMap<ProviderKey, Vec<Episode>>,
+    streams_for: HashMap<ProviderKey, Vec<Stream>>,
     sources: Vec<SourceCandidate>,
     error: Option<ProviderError>,
     unavailable: Option<String>,
@@ -48,6 +53,8 @@ impl MockProvider {
             hits: Vec::new(),
             episodes: Vec::new(),
             streams: Vec::new(),
+            episodes_for: HashMap::new(),
+            streams_for: HashMap::new(),
             sources: Vec::new(),
             error: None,
             unavailable: None,
@@ -68,6 +75,27 @@ impl MockProvider {
 
     pub fn with_streams(mut self, streams: Vec<Stream>) -> Self {
         self.streams = streams;
+        self
+    }
+
+    /// Answer `episodes` for this key with these; every other key keeps the shared list.
+    pub fn with_episodes_for(
+        mut self,
+        key: impl Into<ProviderKey>,
+        episodes: Vec<Episode>,
+    ) -> Self {
+        self.episodes_for.insert(key.into(), episodes);
+        self
+    }
+
+    /// Answer `resolve` for this key with these, whatever the episode; every other key keeps
+    /// the shared list.
+    pub fn with_streams_for(
+        mut self,
+        key: impl Into<ProviderKey>,
+        streams: Vec<Stream>,
+    ) -> Self {
+        self.streams_for.insert(key.into(), streams);
         self
     }
 
@@ -136,21 +164,21 @@ impl Provider for MockProvider {
 
     async fn episodes(
         &self,
-        _key: &ProviderKey,
+        key: &ProviderKey,
         _translation: Translation,
     ) -> Result<Vec<Episode>, ProviderError> {
         self.record().await?;
-        Ok(self.episodes.clone())
+        Ok(self.episodes_for.get(key).unwrap_or(&self.episodes).clone())
     }
 
     async fn resolve(
         &self,
-        _key: &ProviderKey,
+        key: &ProviderKey,
         _episode: &str,
         _translation: Translation,
     ) -> Result<Vec<Stream>, ProviderError> {
         self.record().await?;
-        Ok(self.streams.clone())
+        Ok(self.streams_for.get(key).unwrap_or(&self.streams).clone())
     }
 
     async fn sources(
@@ -184,6 +212,25 @@ mod tests {
         let streams = p.resolve(&ProviderKey::new("k"), "1", Translation::Sub).await.unwrap();
         assert_eq!(streams.len(), 1);
         assert_eq!(calls.load(Ordering::SeqCst), 1);
+    }
+
+    #[tokio::test]
+    async fn answers_named_for_a_key_are_that_keys_alone() {
+        let p = MockProvider::new("m")
+            .with_episodes(vec![Episode::new(1)])
+            .with_episodes_for("two", vec![Episode::new(1), Episode::new(2)])
+            .with_streams_for(
+                "two",
+                vec![Stream::new("y", anistream_core::stream::StreamKind::Hls)],
+            );
+
+        let two = ProviderKey::new("two");
+        assert_eq!(p.episodes(&two, Translation::Sub).await.unwrap().len(), 2);
+        assert_eq!(p.resolve(&two, "2", Translation::Sub).await.unwrap()[0].url, "y");
+
+        let other = ProviderKey::new("other");
+        assert_eq!(p.episodes(&other, Translation::Sub).await.unwrap().len(), 1, "shared list");
+        assert!(p.resolve(&other, "1", Translation::Sub).await.unwrap().is_empty());
     }
 
     #[tokio::test]
