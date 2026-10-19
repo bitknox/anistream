@@ -57,6 +57,22 @@ pub fn order_with_source_moved(
     Some(order)
 }
 
+/// Whether a new `providers.order` only moves sources, rather than adding or taking one away.
+///
+/// The built-in entries say which sources exist; a plugin's id in the order only ranks it. So the
+/// same built-ins in any order need no rebuild, and a rebuild would restart the torrent session
+/// and cut off whatever it is playing.
+pub fn only_reorders(before: &[String], after: &[String]) -> bool {
+    let built_in = |order: &[String]| -> std::collections::BTreeSet<String> {
+        order
+            .iter()
+            .filter(|id| matches!(id.as_str(), "torrent" | "remote" | "plugins"))
+            .cloned()
+            .collect()
+    };
+    built_in(before) == built_in(after)
+}
+
 /// The VPN guard's verdict, for the badge beside the torrent source.
 ///
 /// What the guard found and nothing about how it is shown: the badge's words, its marks and
@@ -185,5 +201,23 @@ mod tests {
             order_with_source_moved(&strings(&["torrent"]), &rows, "alpha", -1),
             Some(strings(&["alpha", "torrent"]))
         );
+    }
+
+    #[test]
+    fn an_order_with_the_same_sources_is_put_in_effect_without_a_rebuild() {
+        let order =
+            |entries: &[&str]| entries.iter().map(|e| (*e).to_owned()).collect::<Vec<_>>();
+        // Moved, or with a plugin named: the same sources, so the session can stay up.
+        assert!(only_reorders(
+            &order(&["torrent", "plugins"]),
+            &order(&["plugins", "torrent"])
+        ));
+        assert!(only_reorders(
+            &order(&["torrent", "plugins"]),
+            &order(&["alpha", "plugins", "torrent", "beta"])
+        ));
+        // A built-in source added or taken away is a rebuild.
+        assert!(!only_reorders(&order(&["torrent", "plugins"]), &order(&["plugins"])));
+        assert!(!only_reorders(&order(&["plugins"]), &order(&["plugins", "remote"])));
     }
 }

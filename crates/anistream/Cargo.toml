@@ -19,6 +19,7 @@ path = "src/main.rs"
 [dependencies]
 anistream-core.workspace = true
 anistream-meta.workspace = true
+anistream-model.workspace = true
 anistream-net.workspace = true
 anistream-player.workspace = true
 anistream-plugin = { workspace = true, features = ["fetch"] }

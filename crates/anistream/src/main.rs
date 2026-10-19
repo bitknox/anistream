@@ -14,6 +14,7 @@ use std::{io, sync::Arc, time::Duration};
 
 use anistream_core::config::{Config, Paths, ThemeMode};
 use anistream_meta::{Meta, Tenrai, anilist::AniList, dataset};
+use anistream_model::sources::only_reorders;
 use anistream_net::HttpClient;
 use anistream_providers::{ProviderRegistry, vpn::VpnGuard};
 use anistream_store::Store;
@@ -3974,22 +3975,6 @@ fn signed_in_tracker_ids(sync: &tracking::Sync) -> Vec<String> {
     sync.trackers.iter().filter(|t| t.is_authenticated()).map(|t| t.id().to_owned()).collect()
 }
 
-/// Whether a new `providers.order` only moves sources, rather than adding or taking one away.
-///
-/// The built-in entries say which sources exist; a plugin's id in the order only ranks it. So the
-/// same built-ins in any order need no rebuild, and a rebuild would restart the torrent session
-/// and cut off whatever it is playing.
-fn only_reorders(before: &[String], after: &[String]) -> bool {
-    let built_in = |order: &[String]| -> std::collections::BTreeSet<String> {
-        order
-            .iter()
-            .filter(|id| matches!(id.as_str(), "torrent" | "remote" | "plugins"))
-            .cloned()
-            .collect()
-    };
-    built_in(before) == built_in(after)
-}
-
 /// Whether writing this key changes which sources exist, and so needs the chain rebuilt.
 ///
 /// Listed rather than inferred: a rebuild tears down a live torrent session, which is far
@@ -5223,24 +5208,6 @@ mod tests {
         assert!(!redefines_sources(&["playback"], "quality"));
         assert!(!redefines_sources(&["downloads"], "directory"));
         assert!(!redefines_sources(&["theme"], "mode"));
-    }
-
-    #[test]
-    fn an_order_with_the_same_sources_is_put_in_effect_without_a_rebuild() {
-        let order =
-            |entries: &[&str]| entries.iter().map(|e| (*e).to_owned()).collect::<Vec<_>>();
-        // Moved, or with a plugin named: the same sources, so the session can stay up.
-        assert!(only_reorders(
-            &order(&["torrent", "plugins"]),
-            &order(&["plugins", "torrent"])
-        ));
-        assert!(only_reorders(
-            &order(&["torrent", "plugins"]),
-            &order(&["alpha", "plugins", "torrent", "beta"])
-        ));
-        // A built-in source added or taken away is a rebuild.
-        assert!(!only_reorders(&order(&["torrent", "plugins"]), &order(&["plugins"])));
-        assert!(!only_reorders(&order(&["plugins"]), &order(&["plugins", "remote"])));
     }
 
     #[test]
