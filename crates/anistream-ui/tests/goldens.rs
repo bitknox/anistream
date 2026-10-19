@@ -462,6 +462,29 @@ scenarios! {
     invite_name,
     invite_link,
     publish_pick,
+    continue_empty,
+    continue_all_hidden,
+    continue_failed,
+    calendar_empty,
+    search_empty,
+    search_unsent,
+    search_loading,
+    search_no_matches,
+    search_failed,
+    library_no_account,
+    library_failed,
+    episodes_loading,
+    episodes_no_source,
+    episodes_none_listed,
+    episodes_not_aired,
+    episodes_filtered_out,
+    downloads_empty,
+    providers_none,
+    accounts_none,
+    stores_none_joined,
+    store_empty,
+    members_loading,
+    logs_empty,
 }
 
 /// A golden left behind by a renamed or removed scenario is a file nothing checks, and reads as
@@ -1622,4 +1645,173 @@ fn publish_pick(s: &mut Screen) {
         ],
     });
     s.press(&["j", "j"]);
+}
+
+// ── Empty, failed and loading ──────────────────────────────────────────────────────────────────
+//
+// Continue, Calendar and Seasonal draw these through one path, so each state is held once on
+// the screen whose words differ: loading and failing on Continue, "nothing here yet" on the
+// calendar. Search and the Library draw them under chrome of their own, so they are held there
+// too.
+
+/// Nothing watched yet: the mark above the message where there is room, and the ways on.
+fn continue_empty(s: &mut Screen) {
+    settled_on(s, 1);
+    s.content(Content::Empty);
+}
+
+/// History, all of it hidden from Continue — not the same as nothing watched.
+fn continue_all_hidden(s: &mut Screen) {
+    settled_on(s, 1);
+    s.list(vec![]);
+}
+
+/// The list could not load, and says why, wrapped.
+fn continue_failed(s: &mut Screen) {
+    settled_on(s, 1);
+    s.content(Content::Failed(
+        "AniList did not answer within 20 s — the request will be tried again on the next \
+         refresh, and the library on disk is untouched"
+            .into(),
+    ));
+}
+
+fn calendar_empty(s: &mut Screen) {
+    settled_on(s, 2);
+    s.list(vec![]);
+}
+
+/// Search as it opens: the field, waiting.
+fn search_empty(s: &mut Screen) {
+    settled_on(s, 4);
+}
+
+/// A query typed and not yet run.
+fn search_unsent(s: &mut Screen) {
+    settled_on(s, 4);
+    s.type_text("hoshikuzu");
+}
+
+/// The search running: the skeleton under the query it answers.
+fn search_loading(s: &mut Screen) {
+    search_unsent(s);
+    s.press(&["enter"]);
+    s.idle(3);
+}
+
+fn search_no_matches(s: &mut Screen) {
+    search_unsent(s);
+    s.press(&["enter"]);
+    s.list(vec![]);
+}
+
+fn search_failed(s: &mut Screen) {
+    search_unsent(s);
+    s.press(&["enter"]);
+    s.content(Content::Failed("AniList answered 500 Internal Server Error".into()));
+}
+
+/// The Library with its tracker signed out: a setup state, saying where to sign in.
+fn library_no_account(s: &mut Screen) {
+    s.apply(sources_ready());
+    s.apply(Update::Sync(Box::new(SyncState::new("anilist"))));
+    s.act(Action::JumpSection(5));
+    s.list(vec![]);
+}
+
+/// A failed pull, under the segment strip.
+fn library_failed(s: &mut Screen) {
+    settled_on(s, 5);
+    s.content(Content::Failed("the token was refused — sign in again from Accounts".into()));
+}
+
+/// The episode table waiting on its provider: the skeleton, not the last title's rows.
+fn episodes_loading(s: &mut Screen) {
+    settled_on(s, 1);
+    s.list(vec![kaze(), hoshikuzu()]);
+    s.press(&["j", "e"]);
+    s.idle(5);
+}
+
+/// No source is ready to list episodes from, and an alert says the load failed.
+fn episodes_no_source(s: &mut Screen) {
+    s.apply(anilist_signed_in());
+    s.act(Action::JumpSection(1));
+    s.list(vec![kaze(), hoshikuzu()]);
+    s.press(&["j", "e"]);
+    s.episodes(vec![]);
+    s.apply(Update::Toast(Toast::alert("no source could list episodes for this title")));
+}
+
+/// A source answered and listed nothing.
+fn episodes_none_listed(s: &mut Screen) {
+    settled_on(s, 1);
+    s.list(vec![kaze(), hoshikuzu()]);
+    s.press(&["j", "e"]);
+    s.episodes(vec![]);
+}
+
+/// A title that has not started airing: the table says when it will.
+fn episodes_not_aired(s: &mut Screen) {
+    settled_on(s, 3);
+    let upcoming = Entry {
+        next_episode: Some(1),
+        next_airing_in: Some(3 * DAY + 7 * HOUR + 22 * MINUTE + 9),
+        ..catalogue(9).swap_remove(8)
+    };
+    s.list(vec![upcoming]);
+    s.press(&["e"]);
+    s.episodes(vec![]);
+}
+
+/// The unwatched filter over a season watched to the end: nothing matches, and it says how to
+/// get the rows back.
+fn episodes_filtered_out(s: &mut Screen) {
+    settled_on(s, 1);
+    s.list(vec![tsuki()]);
+    s.press(&["e"]);
+    s.episodes((1..=12).map(|n| watched(episode(n, &format!("Verse {n}")))).collect());
+    s.press(&["f"]);
+}
+
+fn downloads_empty(s: &mut Screen) {
+    settled_on(s, 6);
+    s.apply(Update::Downloads(vec![]));
+}
+
+/// No source registered, and no store joined: the screen says why and where to get one.
+fn providers_none(s: &mut Screen) {
+    s.apply(anilist_signed_in());
+    s.act(Action::JumpSection(7));
+}
+
+/// No tracker enabled in the config at all.
+fn accounts_none(s: &mut Screen) {
+    s.apply(sources_ready());
+    s.act(Action::JumpSection(8));
+}
+
+/// The store list once it has loaded and holds nothing.
+fn stores_none_joined(s: &mut Screen) {
+    on_stores(s, vec![]);
+}
+
+/// A store this machine owns that offers nothing yet.
+fn store_empty(s: &mut Screen) {
+    let mut stores = two_stores();
+    stores[0].plugins.clear();
+    on_stores(s, stores);
+    s.press(&["enter"]);
+}
+
+/// A store's members asked for and not yet answered.
+fn members_loading(s: &mut Screen) {
+    on_owned_store(s);
+    s.press(&["j"; 5]);
+    s.press(&["enter"]);
+}
+
+fn logs_empty(s: &mut Screen) {
+    continue_watching(s);
+    s.act(Action::ShowLogs);
 }
