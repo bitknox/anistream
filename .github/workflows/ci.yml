@@ -60,6 +60,12 @@ jobs:
       - name: Test
         run: cargo nextest run --workspace --profile ci
 
+      # After the tests, so listing them reuses their build. On macOS only: tests gated to one
+      # OS make the count differ by OS, and macOS is where the app is developed.
+      - name: Test count
+        if: matrix.os == 'macos-latest'
+        run: tools/check-test-count.sh
+
   # The real-mpv tests (the player's companion script, whole binges, the stream proxy) skip
   # where mpv is missing, which is every runner above. Here mpv is installed and required, so
   # a skip fails instead. Ubuntu 26.04 because it packages a current mpv (0.41); 24.04's 0.37
