@@ -29,6 +29,7 @@ pub use anistream_model::playback::{Ending, SkipKind, Successor};
 pub use anistream_model::sources::{
     GuardView, MatchCandidate, MetaSourceRow, ProviderRow, order_with_source_moved,
 };
+pub use anistream_model::sync::{ConflictRow, DeviceCodePrompt, SyncState};
 
 /// A notice on screen, for as long as it stays.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -453,16 +454,6 @@ impl EpisodeFilter {
     }
 }
 
-/// A device code the user must enter elsewhere to finish signing in.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DeviceCodePrompt {
-    pub tracker: String,
-    /// The short code to type. The only thing on screen that has to be transcribed by hand, so it
-    /// gets the brightest treatment the palette has rather than the dimmest.
-    pub code: String,
-    pub url: String,
-}
-
 /// One row of the download queue, flattened for the screen.
 #[derive(Debug, Clone, PartialEq)]
 pub struct DownloadRow {
@@ -762,53 +753,6 @@ impl NowPlaying {
     }
 }
 
-/// Sync state for one tracker, as the Accounts overlay and the status badge show it.
-#[derive(Debug, Clone, PartialEq, Default)]
-pub struct SyncState {
-    pub tracker: String,
-    pub connected: bool,
-    /// Which account, once known.
-    pub user: Option<String>,
-    /// Where the token lives, and whether that is the degraded option.
-    pub storage: Option<String>,
-    pub storage_degraded: bool,
-    /// Queued operations waiting to go out.
-    pub outbox: u32,
-    /// How many of those wait for an id mapping: titles this tracker cannot be told about
-    /// until the mapping datasets name them.
-    pub deferred: u32,
-    /// The tracker rejected our credentials; nothing but re-authorising helps.
-    pub needs_reauth: bool,
-    /// Most recent sync outcome, in words.
-    pub last: Option<String>,
-    /// Why the last library pull failed, and when (epoch seconds). Cleared by the next pull
-    /// that succeeds, so a row never goes on saying "pulled" over an outage.
-    pub pull_error: Option<(String, i64)>,
-}
-
-impl SyncState {
-    /// A tracker that is configured but signed out.
-    pub fn new(tracker: impl Into<String>) -> Self {
-        Self {
-            tracker: tracker.into(),
-            connected: false,
-            user: None,
-            storage: None,
-            storage_degraded: false,
-            outbox: 0,
-            deferred: 0,
-            needs_reauth: false,
-            last: None,
-            pull_error: None,
-        }
-    }
-
-    /// Whether the badge should use the alert role.
-    pub fn is_alerting(&self) -> bool {
-        self.needs_reauth
-    }
-}
-
 /// A tracker's status-line badge.
 ///
 /// The queue depth is the number worth showing: it is the answer to "did my progress
@@ -826,16 +770,6 @@ pub fn sync_badge(state: &SyncState) -> String {
         0 => format!("{} {}", state.tracker, glyph::SYNC),
         n => format!("{} {} {n}", state.tracker, glyph::SYNC),
     }
-}
-
-/// One unresolved divergence, for the Conflicts overlay.
-#[derive(Debug, Clone, PartialEq)]
-pub struct ConflictRow {
-    pub anilist_id: AnilistId,
-    pub title: String,
-    pub field: String,
-    pub local: String,
-    pub remote: String,
 }
 
 /// A computed change, applied on the UI thread.
