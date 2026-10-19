@@ -2193,13 +2193,18 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
     Hairline::new(&app.palette).render(Rect { y: head + 1, height: 1, ..area }, buf);
 
     let mut y = head + 2;
-    for provider in &app.providers {
+    for (i, provider) in app.providers.iter().enumerate() {
         if y >= area.bottom() {
             break;
         }
-        // No obi here: it marks the selected row everywhere else, and this table has no
-        // cursor. Whether a source will be used is the state column's job, and the weight of
-        // its name, which drops for one that will not.
+        // The obi marks the row `K` and `J` move, as it marks the selected row everywhere.
+        // Whether a source will be used is the state column's job, and the weight of its name,
+        // which drops for one that will not.
+        let selected = i == app.selected;
+        if selected {
+            mark_selected(buf, app, area.left(), y, app.nav.focus() == Focus::Stage);
+        }
+        let name = app.palette.style(if provider.usable { Role::Text } else { Role::TextDim });
         table_cell(
             buf,
             area,
@@ -2207,7 +2212,7 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
             COL_PROVIDER_KIND - COL_PROVIDER - 1,
             y,
             &provider.id,
-            app.palette.style(if provider.usable { Role::Text } else { Role::TextDim }),
+            if selected { name.add_modifier(Modifier::BOLD) } else { name },
         );
         if shows(COL_PROVIDER_KIND, "kind") {
             table_cell(
@@ -5395,7 +5400,7 @@ mod tests {
         // Forty-odd bindings do not fit one column; clipping would hide whole categories.
         let mut app = app_with(Content::Entries(vec![]));
         app.nav.open_overlay(Overlay::Help);
-        let text = text_of(&render_to_buffer(&app, 140, 30));
+        let text = text_of(&render_to_buffer(&app, 140, 32));
         assert!(text.contains("Show keys"), "first scope missing");
         assert!(text.contains("Stop playback"), "last scope missing — the list was clipped");
     }
@@ -6119,11 +6124,14 @@ mod tests {
 
     #[test]
     fn the_selection_mark_dims_with_the_rail_rather_than_vanishing() {
-        for section in [Section::Downloads, Section::Settings, Section::Accounts] {
+        for section in
+            [Section::Downloads, Section::Settings, Section::Accounts, Section::Providers]
+        {
             let mut app = app_with(Content::Empty);
             app.go_to_section(section);
             app.apply(Update::Downloads(vec![download("Kite", "1", "queued", 0)]));
             app.apply(Update::Sync(Box::new(crate::app::SyncState::new("kitsu"))));
+            app.apply(Update::Providers(vec![provider("one", "ready", true, false)]));
             app.nav.focus_rail();
             let buf = render_to_buffer(&app, 120, 30);
             let stage_marks: Vec<(u16, u16)> = (2..28)
@@ -6140,17 +6148,32 @@ mod tests {
     }
 
     #[test]
-    fn providers_rows_carry_no_selection_mark() {
+    fn the_providers_table_marks_only_the_row_the_order_keys_move() {
+        // One row, the selected one, and the mark goes with it when `J` moves it down the chain.
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Providers);
+        app.nav.focus_stage();
         app.apply(Update::Providers(vec![
             provider("one", "ready", true, false),
             provider("two", "ready", true, false),
         ]));
+        let marked = |app: &App| -> Vec<String> {
+            lines_of(app, 120, 30)
+                .into_iter()
+                .filter(|l| l.contains("▌ one") || l.contains("▌ two"))
+                .collect()
+        };
+        let lines = marked(&app);
+        assert!(lines.len() == 1 && lines[0].contains("▌ one"), "{lines:#?}");
+
+        app.config.providers.order = vec!["one".into(), "two".into()];
+        app.handle(crate::keymap::Action::LowerSource, 20);
+        let lines = marked(&app);
+        assert!(lines.len() == 1 && lines[0].contains("▌ one"), "{lines:#?}");
         let lines = lines_of(&app, 120, 30);
-        let marked =
-            lines.iter().filter(|l| l.contains("▌ one") || l.contains("▌ two")).count();
-        assert_eq!(marked, 0, "{lines:#?}");
+        let two = lines.iter().position(|l| l.contains(" two ")).unwrap();
+        let one = lines.iter().position(|l| l.contains("▌ one")).unwrap();
+        assert!(two < one, "{lines:#?}");
     }
 
     #[test]

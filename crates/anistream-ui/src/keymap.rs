@@ -79,6 +79,13 @@ pub enum Action {
     /// which for a finished download keeps the file and would otherwise orphan it.
     DeleteDownload,
 
+    // Providers. Both save `providers.order`, so they change the order failover walks from then
+    // on, not just how the table looks.
+    /// Try the selected source before the one above it.
+    RaiseSource,
+    /// Try the selected source after the one below it.
+    LowerSource,
+
     // Episodes
     /// Queue a typed range of episodes for download: `4`, `1-12`, `7-`.
     DownloadRange,
@@ -164,6 +171,8 @@ impl Action {
         Self::OpenInBrowser,
         Self::ClearCompleted,
         Self::DeleteDownload,
+        Self::RaiseSource,
+        Self::LowerSource,
         Self::DownloadRange,
         Self::PlayParty,
         Self::ToggleWatched,
@@ -238,6 +247,8 @@ impl Action {
             Self::OpenInBrowser => "Open on AniList",
             Self::ClearCompleted => "Clear finished downloads",
             Self::DeleteDownload => "Delete download and its file",
+            Self::RaiseSource => "Move source up",
+            Self::LowerSource => "Move source down",
             Self::DownloadRange => "Download a range of episodes",
             Self::PlayParty => "Play in a Syncplay party",
             Self::ToggleWatched => "Toggle watched",
@@ -284,6 +295,8 @@ impl Action {
             Self::ToggleWatched => "watched",
             Self::ClearCompleted => "clear finished",
             Self::DeleteDownload => "delete",
+            Self::RaiseSource => "move up",
+            Self::LowerSource => "move down",
             other => other.label(),
         }
     }
@@ -340,6 +353,8 @@ impl Action {
 
             Self::ClearCompleted | Self::DeleteDownload => Scope::Downloads,
 
+            Self::RaiseSource | Self::LowerSource => Scope::Providers,
+
             _ => Scope::Playback,
         }
     }
@@ -385,6 +400,7 @@ impl Action {
         match self.scope() {
             Scope::Playback => "while something is playing",
             Scope::Downloads => "on the Downloads screen",
+            Scope::Providers => "on the Providers screen",
             Scope::Episodes => "in the episode table",
             _ => "on another screen",
         }
@@ -422,17 +438,19 @@ pub enum Scope {
     Title,
     Episodes,
     Downloads,
+    Providers,
     Playback,
 }
 
 impl Scope {
-    pub const ALL: [Self; 7] = [
+    pub const ALL: [Self; 8] = [
         Self::Global,
         Self::Movement,
         Self::Lists,
         Self::Title,
         Self::Episodes,
         Self::Downloads,
+        Self::Providers,
         Self::Playback,
     ];
 
@@ -444,6 +462,7 @@ impl Scope {
             Self::Title => "TITLE",
             Self::Episodes => "EPISODES",
             Self::Downloads => "DOWNLOADS",
+            Self::Providers => "PROVIDERS",
             Self::Playback => "NOW PLAYING",
         }
     }
@@ -660,6 +679,10 @@ impl Keymap {
             // `X` deletes the file too — the destructive twin earns the shifted key.
             bind(Binding::plain(Char('c')), A::ClearCompleted);
             bind(Binding::plain(Char('X')), A::DeleteDownload);
+            // Providers. The shifted twins of the movement keys move the row rather than the
+            // cursor: `K` takes the selected source up the order, `J` down.
+            bind(Binding::plain(Char('K')), A::RaiseSource);
+            bind(Binding::plain(Char('J')), A::LowerSource);
             for n in 1..=9u8 {
                 bind(
                     Binding::plain(Char(char::from_digit(u32::from(n), 10).unwrap_or('1'))),
@@ -1150,9 +1173,20 @@ pub fn status_hints(app: &crate::app::App) -> Vec<(String, &'static str)> {
                 None => Vec::new(),
             }
         }
-        // Enter on Providers leads to the plugin stores; the table itself opens nothing.
+        // Enter on Providers leads to the plugin stores; the table itself opens nothing. The
+        // order keys are one hint, the way Settings names its pair, offered once there are two
+        // sources to order, and first so a narrow line drops them before the way into the stores.
         V::Section(Section::Providers) => {
-            vec![(Action::Refresh, Action::Refresh.hint()), (Action::Open, "stores")]
+            let mut hints: Vec<(String, &'static str)> = Vec::new();
+            if app.providers.len() > 1
+                && let (Some(up), Some(down)) =
+                    (key(Action::RaiseSource), key(Action::LowerSource))
+            {
+                hints.push((format!("{up}/{down}"), "order"));
+            }
+            hints.extend(key(Action::Refresh).map(|k| (k, Action::Refresh.hint())));
+            hints.extend(key(Action::Open).map(|k| (k, "stores")));
+            return with_help(keymap, hints);
         }
         // Enter signs the highlighted tracker in or out, so it is named for which.
         V::Section(Section::Accounts) => match app.sync.get(app.selected) {
@@ -1258,6 +1292,8 @@ mod tests {
             ('G', Action::Bottom),
             ('g', Action::Top),
             ('s', Action::ShowSources),
+            ('K', Action::RaiseSource),
+            ('J', Action::LowerSource),
         ] {
             assert_eq!(
                 keymap.action_for(key(ch), Context::Browsing),
@@ -1265,6 +1301,35 @@ mod tests {
                 "for {ch:?}"
             );
         }
+    }
+
+    #[test]
+    fn the_order_keys_are_not_taken_while_something_plays() {
+        // The player's table shadows browsing keys; `K` and `J` must reach Providers anyway.
+        let keymap = Keymap::new();
+        assert_eq!(keymap.action_for(key('K'), Context::Playing), Some(Action::RaiseSource));
+        assert_eq!(keymap.action_for(key('J'), Context::Playing), Some(Action::LowerSource));
+    }
+
+    #[test]
+    fn the_order_keys_have_a_providers_heading_and_palette_entries() {
+        let keymap = Keymap::new();
+        let providers = keymap
+            .help()
+            .into_iter()
+            .find(|(s, _)| *s == Scope::Providers)
+            .map(|(_, rows)| rows)
+            .expect("a PROVIDERS group");
+        assert_eq!(Scope::Providers.heading(), "PROVIDERS");
+        assert_eq!(
+            providers,
+            [("K".to_string(), "Move source up"), ("J".to_string(), "Move source down")]
+        );
+        let entries = keymap.palette_entries("move source", Context::Browsing);
+        assert!(entries.contains(&(Action::RaiseSource, "K".into())), "{entries:?}");
+        assert!(entries.contains(&(Action::LowerSource, "J".into())), "{entries:?}");
+        assert_eq!(Action::LowerSource.config_key(), "lower_source");
+        assert_eq!(Action::RaiseSource.where_it_works(), "on the Providers screen");
     }
 
     #[test]
@@ -1614,6 +1679,45 @@ mod tests {
             app.nav.push(view.clone());
             check(&app, &format!("{view:?}"));
         }
+    }
+
+    #[test]
+    fn providers_offers_the_order_keys_as_one_hint_once_there_is_something_to_order() {
+        let mut app = crate::app::App::new(
+            anistream_core::config::Config::default(),
+            crate::theme::Palette::dark(),
+            Keymap::new(),
+        );
+        app.go_to_section(Section::Providers);
+        app.nav.focus_stage();
+        let row = |id: &str| crate::app::ProviderRow {
+            id: id.into(),
+            kind: "plugin".into(),
+            state: "ready".into(),
+            latency_ms: None,
+            last_error: None,
+            usable: true,
+            held_back: false,
+        };
+        app.apply(crate::app::Update::Providers(vec![row("alpha")]));
+        let hints = status_hints(&app);
+        assert!(hints.iter().all(|(_, label)| *label != "order"), "{hints:?}");
+
+        app.apply(crate::app::Update::Providers(vec![row("alpha"), row("beta")]));
+        let hints = status_hints(&app);
+        assert_eq!(
+            hints,
+            [
+                ("K/J".to_string(), "order"),
+                ("r".to_string(), "refresh"),
+                ("↵".to_string(), "stores"),
+                ("?".to_string(), "keys"),
+            ]
+        );
+
+        // Named by the live table, so a rebind shows.
+        app.keymap.apply_overrides(&BTreeMap::from([("raise_source".into(), "U".into())]));
+        assert_eq!(status_hints(&app)[0], ("U/J".to_string(), "order"));
     }
 
     #[test]

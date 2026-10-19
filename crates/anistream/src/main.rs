@@ -3101,6 +3101,11 @@ fn dispatch(
                     };
                     let _ =
                         tx.send(Update::Toast(Toast::alert(format!("not saved: {reason}"))));
+                    // The Providers rows moved when the key was pressed and the chain did not,
+                    // so the chain's own rows put them back.
+                    if (table, key) == (&["providers"][..], "order") {
+                        let _ = tx.send(Update::Providers(data::provider_rows(registry)));
+                    }
                 }
             }
         }
