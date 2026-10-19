@@ -60,6 +60,8 @@ rand = "0.10"
 wreq.workspace = true
 
 [dev-dependencies]
+# The fake AniList, fixtures and goldens the dispatch contract tests stand the app up with.
+anistream-testkit.workspace = true
 serde_json.workspace = true
 tempfile = "3"
 

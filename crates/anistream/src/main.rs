@@ -4853,6 +4853,11 @@ fn current_season() -> (anistream_meta::anilist::Season, u16) {
 }
 
 #[cfg(test)]
+mod contract;
+#[cfg(test)]
+mod harness;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
