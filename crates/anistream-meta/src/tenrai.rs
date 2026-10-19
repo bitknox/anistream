@@ -86,11 +86,28 @@ pub struct Tenrai {
     http: HttpClient,
     limiter: RateLimiter,
     store: Store,
+    /// The base every path is joined to: [`API`], unless a test pointed it elsewhere.
+    api: String,
 }
 
 impl Tenrai {
     pub fn new(http: HttpClient, store: Store) -> Self {
-        Self { http, limiter: RateLimiter::per_minute_burst(PER_MINUTE, PER_SECOND), store }
+        Self {
+            http,
+            limiter: RateLimiter::per_minute_burst(PER_MINUTE, PER_SECOND),
+            store,
+            api: API.to_owned(),
+        }
+    }
+
+    /// Join every path to `base` instead of Tenrai's: a stand-in server on loopback.
+    ///
+    /// For tests and probes only, like `AniList::with_endpoint`, and hidden for the same
+    /// reason. `base` takes the place of the service's whole base URL, version path and all.
+    #[doc(hidden)]
+    pub fn with_endpoint(mut self, base: impl Into<String>) -> Self {
+        self.api = base.into();
+        self
     }
 
     async fn get(&self, path: &str) -> Result<serde_json::Value> {
@@ -114,7 +131,7 @@ impl Tenrai {
         let response = self
             .http
             .plain()
-            .get(format!("{API}{path}"))
+            .get(format!("{}{path}", self.api))
             .send()
             .await
             .map_err(|e| TenraiError::Network(e.to_string()))?;
@@ -440,6 +457,14 @@ mod tests {
             }},
             "trailer": {"youtube_id": "ZEkwCGJ3o7M"}
         })
+    }
+
+    #[test]
+    fn requests_go_to_tenrai_unless_a_test_says_otherwise() {
+        let client = tenrai(Store::open_in_memory().unwrap());
+        assert_eq!(client.api, API);
+        let pointed = client.with_endpoint("http://127.0.0.1:9/v1");
+        assert_eq!(pointed.api, "http://127.0.0.1:9/v1");
     }
 
     #[test]
