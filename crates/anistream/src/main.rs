@@ -1738,18 +1738,17 @@ async fn run(
     // must not be silent — the Providers screen is where a missing source gets explained.
     {
         let tx = tx.clone();
-        let providers_tx = tx.clone();
-        let registry = registry.clone();
         tokio::spawn(async move {
             if let Ok(outcome) = plugins_loading.await {
                 match outcome {
                     Some(reason) => {
                         let _ = tx.send(Update::ProviderNote(reason));
                     }
-                    // Refresh the Providers screen so late arrivals actually appear on it.
+                    // Ranked again by the order as it stands now, since the user may have
+                    // moved a source while these compiled, and the Providers screen refreshed
+                    // so late arrivals actually appear on it.
                     None => {
-                        let _ = providers_tx
-                            .send(Update::Providers(data::provider_rows(&registry)));
+                        let _ = tx.send(Update::SourcesReordered);
                     }
                 }
             }

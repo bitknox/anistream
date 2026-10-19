@@ -73,6 +73,10 @@ order is saved to `providers.order` and takes effect at once, without restarting
 session. Moving a plugin names the plugins on the screen in the order, with `"plugins"` after
 them for any you install later.
 
+Each source is matched to the title on its own, and asked in order. A source that cannot find
+the title or the episode, or fails, hands over to the next. A source that finds several possible
+matches and cannot choose asks you which is right, once, before the next is tried.
+
 The order is a default, not a rule: `P` on a title pins one source for that title, and `s` on an
 episode picks an exact release. Pinned sources do not fail over.
 
