@@ -64,7 +64,7 @@ jobs:
       # nextest builds every test target and runs the binaries in parallel, where `cargo test`
       # runs them one after another; a separate build step only compiled the same code twice.
       - name: Test
-        run: cargo nextest run --workspace
+        run: cargo nextest run --workspace --profile ci
         env:
           ANISTREAM_REQUIRE_MPV: ${{ matrix.os == 'ubuntu-latest' && '1' || '0' }}
 
