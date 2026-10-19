@@ -27,7 +27,7 @@ use anistream_core::{
 use anistream_meta::title::{CONFIDENCE_FLOOR, MatchTarget, rank};
 use anistream_store::{ResolutionRung, Store};
 
-use crate::registry::ProviderRegistry;
+use crate::registry::{Attempt, ProviderRegistry};
 
 /// A candidate offered to the user when the ladder cannot decide.
 #[derive(Debug, Clone, PartialEq)]
@@ -81,6 +81,9 @@ impl Resolution {
 }
 
 /// Resolve a title against the first usable provider.
+///
+/// One provider's key, for the callers that work with one source. To ask the whole chain for
+/// something about a title, use [`first_answer`], which matches every source on its own.
 ///
 /// `now` is passed in rather than read from the clock so the caller controls time and the
 /// behaviour stays testable.
@@ -157,6 +160,84 @@ pub async fn resolve(
     // Rung 5. Below the floor, stop and ask rather than guess — being wrong here means
     // silently playing the wrong show, which is worse than one extra keystroke.
     Resolution::Ambiguous { provider_id, candidates }
+}
+
+/// What the first source that could answer for a title said.
+#[derive(Debug)]
+pub enum Answer<T> {
+    /// A source matched the title, under its own key, and answered.
+    Answered { provider_id: String, key: ProviderKey, value: T },
+    /// A source found the title's candidates but could not choose between them. A question for
+    /// the user, asked before any source further down the order is tried.
+    Ambiguous { provider_id: String, candidates: Vec<Candidate> },
+    /// No source answered. What each one said, in order, and whether any of them matched the
+    /// title at all — a title no source has is a different answer from an episode none has.
+    Unanswered { reasons: Vec<String>, matched: bool },
+}
+
+impl<T> Answer<T> {
+    /// Why nothing came back, for a toast. Empty for an answer.
+    pub fn explain(&self) -> String {
+        match self {
+            Self::Answered { .. } => String::new(),
+            Self::Ambiguous { provider_id, candidates } => {
+                format!("{} possible matches on {provider_id}", candidates.len())
+            }
+            Self::Unanswered { reasons, .. } if reasons.is_empty() => {
+                "no providers available".into()
+            }
+            Self::Unanswered { reasons, .. } => reasons.join(", "),
+        }
+    }
+}
+
+/// Ask each usable source in turn about a title, each under its own key, until one answers.
+///
+/// A key is only meaningful to the source that issued it, so every source is matched on its own
+/// — from its remembered match or by searching it — before it is asked, and asked alone. Sources
+/// keep their own catalogues, so one that cannot match the title, or has no such episode, says
+/// nothing about the next, and the walk moves on, as it does past a source that fails. A source
+/// that finds candidates but cannot choose stops it instead: the user is asked, the answer is
+/// remembered as an override, and the order stays the user's rather than skipping ahead to
+/// whichever source happened to be sure.
+pub async fn first_answer<T, F, Fut>(
+    store: &Store,
+    registry: &ProviderRegistry,
+    anilist_id: AnilistId,
+    target: &MatchTarget,
+    translation: Translation,
+    now: i64,
+    ask: F,
+) -> Answer<T>
+where
+    F: Fn(ProviderRegistry, ProviderKey) -> Fut,
+    Fut: std::future::Future<Output = Attempt<T>>,
+{
+    let mut reasons = Vec::new();
+    let mut matched = false;
+    for provider_id in registry.usable_ids() {
+        let Some(source) = registry.pinned(&provider_id) else { continue };
+        match resolve(store, &source, anilist_id, target, translation, now).await {
+            Resolution::Resolved { key, .. } => {
+                matched = true;
+                let attempt = ask(source, key.clone()).await;
+                let summary = attempt.summary();
+                match attempt.value {
+                    Some(value) => return Answer::Answered { provider_id, key, value },
+                    None => reasons.push(summary),
+                }
+            }
+            Resolution::Ambiguous { provider_id, candidates } => {
+                return Answer::Ambiguous { provider_id, candidates };
+            }
+            // Named once: a reason that already names its source keeps its own wording.
+            Resolution::NotFound { reason } if reason.starts_with(&provider_id) => {
+                reasons.push(reason);
+            }
+            Resolution::NotFound { reason } => reasons.push(format!("{provider_id}: {reason}")),
+        }
+    }
+    Answer::Unanswered { reasons, matched }
 }
 
 /// Record a user's choice from the disambiguation overlay.
@@ -423,5 +504,130 @@ mod tests {
             1,
             "the second call should have been served from cache"
         );
+    }
+
+    /// An invented title, for the tests that walk several sources.
+    fn wanderer() -> MatchTarget {
+        MatchTarget {
+            titles: vec!["Hoshikuzu no Tabibito".into()],
+            episode_count: Some(12),
+            year: Some(2024),
+            format: Some(MediaFormat::Tv),
+        }
+    }
+
+    fn wanderer_hit(key: &str) -> SearchHit {
+        SearchHit {
+            episode_count: Some(12),
+            year: Some(2024),
+            format: Some(MediaFormat::Tv),
+            ..SearchHit::new(ProviderKey::new(key), "Hoshikuzu no Tabibito")
+        }
+    }
+
+    const WANDERER: AnilistId = AnilistId::new(900_001);
+
+    async fn ask_for_streams(
+        store: &Store,
+        registry: &ProviderRegistry,
+    ) -> Answer<Vec<anistream_core::stream::Stream>> {
+        first_answer(
+            store,
+            registry,
+            WANDERER,
+            &wanderer(),
+            Translation::Sub,
+            0,
+            |source, key| async move { source.resolve(&key, "1", Translation::Sub, 0).await },
+        )
+        .await
+    }
+
+    fn stream(url: &str) -> anistream_core::stream::Stream {
+        anistream_core::stream::Stream::new(url, anistream_core::stream::StreamKind::Hls)
+    }
+
+    #[tokio::test]
+    async fn a_source_without_the_title_hands_over_to_the_next() {
+        let store = Store::open_in_memory().unwrap();
+        let registry = ProviderRegistry::new(vec![
+            MockProvider::new("alpha").with_hits(vec![]).arc(),
+            MockProvider::new("beta")
+                .with_hits(vec![wanderer_hit("beta-1")])
+                .with_streams(vec![stream("https://beta.example/1.m3u8")])
+                .arc(),
+        ]);
+
+        match ask_for_streams(&store, &registry).await {
+            Answer::Answered { provider_id, key, .. } => {
+                assert_eq!(provider_id, "beta");
+                assert_eq!(key.as_str(), "beta-1", "each source is asked under its own key");
+            }
+            other => panic!("expected beta to answer, got {other:?}"),
+        }
+        // Matched where it was found, so the next play goes straight there.
+        let cached = store.lookup_mapping(WANDERER, "beta").unwrap().unwrap();
+        assert_eq!(cached.provider_key.as_str(), "beta-1");
+        assert!(store.lookup_mapping(WANDERER, "alpha").unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn a_source_without_the_episode_hands_over_to_the_next() {
+        let store = Store::open_in_memory().unwrap();
+        let registry = ProviderRegistry::new(vec![
+            MockProvider::new("alpha").with_hits(vec![wanderer_hit("alpha-1")]).arc(),
+            MockProvider::new("beta")
+                .with_hits(vec![wanderer_hit("beta-1")])
+                .with_streams(vec![stream("https://beta.example/1.m3u8")])
+                .arc(),
+        ]);
+        let answer = ask_for_streams(&store, &registry).await;
+        assert!(
+            matches!(&answer, Answer::Answered { provider_id, .. } if provider_id == "beta")
+        );
+
+        // Matched and not played: the episode is what is missing, not the title.
+        let registry = ProviderRegistry::new(vec![
+            MockProvider::new("alpha").with_hits(vec![wanderer_hit("alpha-1")]).arc(),
+        ]);
+        let answer = ask_for_streams(&store, &registry).await;
+        assert!(matches!(answer, Answer::Unanswered { matched: true, .. }));
+    }
+
+    #[tokio::test]
+    async fn a_source_that_cannot_choose_asks_before_the_next_is_tried() {
+        let store = Store::open_in_memory().unwrap();
+        let beta = MockProvider::new("beta").with_hits(vec![wanderer_hit("beta-1")]);
+        let beta_calls = beta.call_count();
+        let unsure = SearchHit {
+            episode_count: None,
+            year: None,
+            format: None,
+            ..SearchHit::new(ProviderKey::new("alpha-x"), "Tabibito")
+        };
+        let registry = ProviderRegistry::new(vec![
+            MockProvider::new("alpha").with_hits(vec![unsure]).arc(),
+            beta.arc(),
+        ]);
+
+        let answer = ask_for_streams(&store, &registry).await;
+        assert!(
+            matches!(&answer, Answer::Ambiguous { provider_id, .. } if provider_id == "alpha")
+        );
+        assert_eq!(beta_calls.load(std::sync::atomic::Ordering::SeqCst), 0);
+    }
+
+    #[tokio::test]
+    async fn when_no_source_answers_each_says_why() {
+        let store = Store::open_in_memory().unwrap();
+        let registry = ProviderRegistry::new(vec![
+            MockProvider::new("alpha").with_hits(vec![]).arc(),
+            MockProvider::new("beta")
+                .failing(ProviderError::Blocked("operation timed out".into()))
+                .arc(),
+        ]);
+        let answer = ask_for_streams(&store, &registry).await;
+        assert_eq!(answer.explain(), "alpha found no matches, beta: timed out");
+        assert!(matches!(answer, Answer::Unanswered { matched: false, .. }));
     }
 }

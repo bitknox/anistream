@@ -58,6 +58,25 @@ content and none of the entries are on until you configure them:
 Plugins compile in the background and are cached, so they never hold up the first frame. An
 installed plugin is only used while `"plugins"` is in the order; drop it if you use none.
 
+The order can also name a plugin by its id, which puts that plugin at its own place in it:
+
+```toml
+[providers]
+order = ["alpha", "torrent", "plugins"]    # alpha first, then torrents, then the other plugins
+```
+
+The plugins the order does not name are tried at `"plugins"`, in alphabetical order of their ids.
+Naming a plugin only moves it: plugins are still used only while `"plugins"` is in the order.
+
+On the **Providers** screen, `K` moves the selected source up the order and `J` moves it down. The
+order is saved to `providers.order` and takes effect at once, without restarting the torrent
+session. Moving a plugin names the plugins on the screen in the order, with `"plugins"` after
+them for any you install later.
+
+Each source is matched to the title on its own, and asked in order. A source that cannot find
+the title or the episode, or fails, hands over to the next. A source that finds several possible
+matches and cannot choose asks you which is right, once, before the next is tried.
+
 The order is a default, not a rule: `P` on a title pins one source for that title, and `s` on an
 episode picks an exact release. Pinned sources do not fail over.
 

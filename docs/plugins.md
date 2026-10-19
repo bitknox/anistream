@@ -52,14 +52,16 @@ whose URL has no extension, `download-source` on a stream.
 
 Errors map one-for-one onto the registry's failover rules:
 
-| Return         | Meaning                                      | Failover?                  |
-| -------------- | -------------------------------------------- | -------------------------- |
-| `not-found`    | Works, no such title or episode              | **No**, this is an answer  |
-| `blocked(msg)` | Bot protection, rate limit, geo-block, ban   | Yes                        |
-| `parse(msg)`   | Response arrived, did not look like expected | Yes                        |
-| `other(msg)`   | Anything else                                | Yes                        |
+| Return         | Meaning                                      | Failover?                   |
+| -------------- | -------------------------------------------- | --------------------------- |
+| `not-found`    | Works, no such title or episode              | Yes, not counted as a fault |
+| `blocked(msg)` | Bot protection, rate limit, geo-block, ban   | Yes                         |
+| `parse(msg)`   | Response arrived, did not look like expected | Yes                         |
+| `other(msg)`   | Anything else                                | Yes                         |
 
-Do not flatten `not-found` into `other`. That makes every missing episode walk the whole chain.
+Do not flatten `not-found` into `other`. A missing title is an answer, and reported as one: the
+Providers screen and the failure message would otherwise show a fault where the source only lacks
+the title.
 
 ## Rust
 

@@ -511,24 +511,30 @@ pub async fn enqueue(
     let media = meta.media(anilist_id).await.map_err(|e| Refusal::Title(e.to_string()))?;
     let title = media.title.display();
     let now = anistream_store::now();
-    let resolution = anistream_providers::resolve(
+    let answer = anistream_providers::first_answer(
         store,
         registry,
         anilist_id,
         &media.match_target(),
         translation,
         now,
+        |source, key| async move { source.resolve(&key, episode, translation, now).await },
     )
     .await;
-    let key = resolution.key().cloned().ok_or_else(|| {
-        Refusal::Title(format!("could not match this title: {}", resolution.explain()))
-    })?;
-
-    let attempt = registry.resolve(&key, episode, translation, now).await;
-    // Summarised before the value is taken: the summary names which providers failed, and that is
+    // Explained before the value is taken: the reasons name which providers failed, and that is
     // the useful half of the message when nothing came back.
-    let summary = attempt.summary();
-    let streams = attempt.value.unwrap_or_default();
+    let summary = answer.explain();
+    let streams = match answer {
+        anistream_providers::Answer::Answered { value, .. } => value,
+        anistream_providers::Answer::Ambiguous { .. } => {
+            return Err(Refusal::Title(format!("could not match this title: {summary}")));
+        }
+        // No source has the title: every episode of it would be refused the same way.
+        anistream_providers::Answer::Unanswered { matched: false, .. } => {
+            return Err(Refusal::Title(format!("could not match this title: {summary}")));
+        }
+        anistream_providers::Answer::Unanswered { .. } => Vec::new(),
+    };
     // Only a torrent can be downloaded. An HLS stream would need remuxing a live playlist, and a
     // deep link is somebody else's player — saying so is better than a mystery failure.
     let magnet = streams

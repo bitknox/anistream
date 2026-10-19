@@ -100,9 +100,10 @@ pub enum ProviderError {
 }
 
 impl ProviderError {
-    /// Whether the registry should try the next provider.
+    /// Whether this is a fault that the next provider might not have.
     ///
-    /// `NotFound` deliberately returns `false`: the source answered correctly.
+    /// `NotFound` is not one: the source answered correctly. The registry moves on past it all
+    /// the same, because each source keeps its own catalogue.
     pub const fn should_failover(&self) -> bool {
         matches!(self, Self::Blocked(_) | Self::Parse(_) | Self::Transport(_) | Self::Other(_))
     }

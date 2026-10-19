@@ -511,6 +511,7 @@ fn a_palette_command_that_means_nothing_here_says_where_it_works() {
     a.apply(a.content_here(entries(2)));
     a.handle(anistream_ui::Action::StopPlayback, ROWS);
     a.handle(anistream_ui::Action::ClearCompleted, ROWS);
+    a.handle(anistream_ui::Action::RaiseSource, ROWS);
     let said: Vec<&str> = a.toasts.iter().map(|t| t.text.as_str()).collect();
     assert!(said.iter().all(|t| !t.contains("not wired up")), "{said:?}");
     assert!(said.contains(&"stop playback works while something is playing"), "{said:?}");
@@ -518,6 +519,7 @@ fn a_palette_command_that_means_nothing_here_says_where_it_works() {
         said.contains(&"clear finished downloads works on the Downloads screen"),
         "{said:?}"
     );
+    assert!(said.contains(&"move source up works on the Providers screen"), "{said:?}");
 }
 
 #[test]
