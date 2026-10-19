@@ -1,0 +1,73 @@
+anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────
+  ▸│  HEARTH PLUGINS                                                    owner
+  ▤│  https://plugins.example  ·  key 489f 49ea 0372 41ac
+  ▦│
+────────────────────────────────────────────────────────────────────────────────
+▌ INVITE LINK   for Kai
+────────────────────────────────────────────────────────────────────────────────
+  https://plugins.example/join/k3Vb9TqLwX2mPz8RfYc4Hn#Qe7Ga1Ud5Js0Lo6Wi2Ty9
+  Rb3Np8
+
+  copied to the clipboard where the terminal allows it — or select it to c…
+  works once, expires in 6 days
+  opening it in a browser shows how to join and does not use it up
+  enter closes
+
+   │    leave this store
+   │
+   │
+   │
+   │  ────────────────────────────────────────────────────────────────────────
+   │    may contact  api.yamabiko.example
+────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                                    ↵ close
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=rule mod=BOLD
+r00 c09-79 fg=rule
+r01 c00-79 fg=rule
+r02 c00-05 fg=rule
+r02 c06-19 fg=rule mod=BOLD
+r02 c20-79 fg=rule
+r03 c00-79 fg=rule
+r04 c00-79 fg=rule
+r05 c00-79 fg=rule bg=ground
+r06 c00-00 fg=obi bg=ground
+r06 c01-01 fg=rule bg=ground
+r06 c02-22 fg=text bg=ground mod=BOLD
+r06 c23-79 fg=rule bg=ground
+r07 c00-07 fg=rule bg=ground
+r07 c08-15 fg=rule bg=ground mod=BOLD
+r07 c16-79 fg=rule bg=ground
+r08 c00-01 fg=rule bg=ground
+r08 c02-74 fg=text bg=ground mod=BOLD
+r08 c75-79 fg=rule bg=ground
+r09 c00-01 fg=rule bg=ground
+r09 c02-07 fg=text bg=ground mod=BOLD
+r09 c08-79 fg=rule bg=ground
+r10 c00-79 fg=rule bg=ground
+r11 c00-01 fg=rule bg=ground
+r11 c02-74 fg=text-dim bg=ground
+r11 c75-79 fg=rule bg=ground
+r12 c00-01 fg=rule bg=ground
+r12 c02-30 fg=text-dim bg=ground
+r12 c31-79 fg=rule bg=ground
+r13 c00-01 fg=rule bg=ground
+r13 c02-65 fg=text-dim bg=ground
+r13 c66-79 fg=rule bg=ground
+r14 c00-01 fg=rule bg=ground
+r14 c02-13 fg=text-dim bg=ground
+r14 c14-79 fg=rule bg=ground
+r15 c00-79 fg=rule bg=ground
+r16 c00-79 fg=rule
+r17 c00-79 fg=rule
+r18 c00-79 fg=rule
+r19 c00-79 fg=rule
+r20 c00-79 fg=rule
+r21 c00-79 fg=rule
+r22 c00-79 fg=rule
+r23 c00-20 fg=text-dim
+r23 c21-72 fg=rule
+r23 c73-73 fg=text
+r23 c74-79 fg=text-dim

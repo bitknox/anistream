@@ -34,9 +34,10 @@ use anistream_ui::{
     Action, App, Clock, ConflictRow, Content, Entry, Keymap, LibrarySegment, MatchCandidate,
     Overlay, Palette, Role, SyncState, Task, Update, Zone,
     app::{
-        DeviceCodePrompt, DownloadRow, EpisodeRow, JobId, MetaSourceRow, ProviderRow,
-        RelatedTitle, ResumePoint, SeedRow, StorePluginRow, StorePluginStatus, StoreRow,
-        StoreState, Toast,
+        DeviceCodePrompt, DownloadRow, EpisodeRow, InviteLinkView, JobId, LocalPluginRow,
+        MetaSourceRow, ProviderRow, RelatedTitle, ResumePoint, Secret, SeedRow, StoreInviteRow,
+        StoreMemberRow, StorePluginRow, StorePluginStatus, StorePreview, StoreRow, StoreState,
+        Toast,
     },
     eyecatch::{FRAME_MS, QUIET_HOLD_FRAMES, SWEEP_FRAMES},
     screens::{render_to_buffer, visible_rows},
@@ -151,6 +152,12 @@ impl Screen {
     fn content(&mut self, content: Content) {
         let update = self.app.content_here(content);
         self.apply(update);
+    }
+
+    /// Pasted into whichever field has the keyboard, arriving whole as bracketed paste does.
+    fn paste(&mut self, text: &str) {
+        self.app.paste(text);
+        self.draw();
     }
 
     /// The open title's episode table, as its load answers.
@@ -446,6 +453,15 @@ scenarios! {
     manual_query,
     kitsu_username,
     kitsu_password,
+    plugin_stores,
+    plugin_store,
+    store_members,
+    join_store,
+    store_confirm,
+    plugin_action,
+    invite_name,
+    invite_link,
+    publish_pick,
 }
 
 /// A golden left behind by a renamed or removed scenario is a file nothing checks, and reads as
@@ -1446,4 +1462,164 @@ fn kitsu_password(s: &mut Screen) {
     kitsu_username(s);
     s.press(&["enter"]);
     s.type_text("lanterns");
+}
+
+// ── Plugin stores ──────────────────────────────────────────────────────────────────────────────
+
+/// The store list, reached from Providers: the two joined stores and two in trouble — one
+/// unreachable, showing its last list, and one that no longer accepts this device.
+fn on_stores(s: &mut Screen, stores: Vec<StoreRow>) {
+    settled_on(s, 7);
+    s.apply(Update::Stores(stores));
+    s.press(&["enter"]);
+}
+
+fn four_stores() -> Vec<StoreRow> {
+    let mut stores = two_stores();
+    stores.push(StoreRow {
+        id: "cccc".into(),
+        name: "Kumo club".into(),
+        url: "https://kumo.example".into(),
+        fingerprint: "77c2 0e19 b4d5 a610".into(),
+        member: "Mirei".into(),
+        owner: false,
+        state: StoreState::Offline("no answer after 10 s".into()),
+        plugins: Vec::new(),
+    });
+    stores.push(StoreRow {
+        id: "dddd".into(),
+        name: "Old lab".into(),
+        url: "https://lab.example".into(),
+        fingerprint: "9a03 51fe 66b0 c2d4".into(),
+        member: "Mirei".into(),
+        owner: false,
+        state: StoreState::Revoked,
+        plugins: Vec::new(),
+    });
+    stores
+}
+
+/// The stores this machine has joined, the offline one highlighted so its reason shows.
+fn plugin_stores(s: &mut Screen) {
+    on_stores(s, four_stores());
+    s.press(&["j", "j"]);
+}
+
+/// Into the store this machine owns, on the plugin whose update adds a host — which the footer
+/// warns about in the alert role.
+fn on_owned_store(s: &mut Screen) {
+    on_stores(s, two_stores());
+    s.press(&["enter"]);
+}
+
+fn plugin_store(s: &mut Screen) {
+    on_owned_store(s);
+    s.press(&["j"]);
+}
+
+/// Who has joined the owned store and which invites are still open, the cursor on a member.
+fn store_members(s: &mut Screen) {
+    on_owned_store(s);
+    s.press(&["j"; 5]);
+    s.press(&["enter"]);
+    let member = |id: &str, name: &str, owner: bool, devices: u32, last_seen, you| {
+        StoreMemberRow { id: id.into(), name: name.into(), owner, devices, last_seen, you }
+    };
+    s.apply(Update::StoreMembers {
+        store: "aaaa".into(),
+        members: vec![
+            member("1", "Mirei", true, 2, Some(NOW - 12 * MINUTE - 7), true),
+            member("2", "Rin", false, 1, Some(NOW - 9 * DAY - 3 * HOUR - 41), false),
+            member("3", "Sora", false, 3, None, false),
+        ],
+        invites: vec![
+            StoreInviteRow {
+                id: "4".into(),
+                name: "Kai".into(),
+                device: false,
+                expires_at: NOW + DAY + 5 * HOUR + 13,
+            },
+            StoreInviteRow {
+                id: "5".into(),
+                name: "Mirei".into(),
+                device: true,
+                expires_at: NOW + 3 * HOUR + 19 * MINUTE,
+            },
+        ],
+    });
+    s.press(&["j"]);
+}
+
+const INVITE: &str =
+    "https://plugins.example/join/k3Vb9TqLwX2mPz8RfYc4Hn#Qe7Ga1Ud5Js0Lo6Wi2Ty9Rb3Np8";
+
+/// The join prompt from the store list's last row, with an invite link pasted in — longer than
+/// the band, so its end is what shows.
+fn join_store(s: &mut Screen) {
+    on_stores(s, two_stores());
+    s.press(&["G", "enter"]);
+    s.paste(INVITE);
+}
+
+/// What the pasted link leads to, waiting for a yes.
+fn store_confirm(s: &mut Screen) {
+    join_store(s);
+    s.press(&["enter"]);
+    s.apply(Update::StorePreview(Ok(StorePreview {
+        link: Secret(INVITE.into()),
+        name: "Rin's sources".into(),
+        url: "https://rin.example".into(),
+        fingerprint: "0c41 77de 1a2b 9f3c".into(),
+        already_joined: true,
+    })));
+}
+
+/// The plugin overlay for an update that adds a host: the facts first, then the choices.
+fn plugin_action(s: &mut Screen) {
+    plugin_store(s);
+    s.press(&["enter", "j"]);
+}
+
+/// Who an invite is for, half typed.
+fn invite_name(s: &mut Screen) {
+    on_owned_store(s);
+    s.press(&["j"; 4]);
+    s.press(&["enter"]);
+    s.type_text("Kai Nakam");
+}
+
+/// A fresh invite link, cut into rows the width of the band, copied, and expiring in a week.
+fn invite_link(s: &mut Screen) {
+    on_owned_store(s);
+    s.apply(Update::InviteLink(InviteLinkView {
+        store: "aaaa".into(),
+        link: Secret(INVITE.into()),
+        for_whom: Some("Kai".into()),
+        expires_at: NOW + 6 * DAY + 23 * HOUR + 58 * MINUTE,
+        copied: true,
+    }));
+}
+
+/// The local plugins an owner could publish: one new, one already up, one replacing an older
+/// version.
+fn publish_pick(s: &mut Screen) {
+    on_owned_store(s);
+    s.press(&["j"; 6]);
+    s.press(&["enter"]);
+    let local = |id: &str, name: &str, version: &str, published: Option<&str>| LocalPluginRow {
+        id: id.into(),
+        name: name.into(),
+        version: version.into(),
+        hosts: vec![format!("{id}.example")],
+        published: published.map(Into::into),
+    };
+    s.apply(Update::LocalPlugins {
+        store: "aaaa".into(),
+        plugins: vec![
+            local("shirasagi", "Shirasagi", "0.1.0", None),
+            local("yamabiko", "Yamabiko", "1.4.0", Some("1.4.0")),
+            local("kawasemi", "Kawasemi", "2.2.0", Some("2.1.0")),
+        ],
+    });
+    s.press(&["j", "j"]);
 }
