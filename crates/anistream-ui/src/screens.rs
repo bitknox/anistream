@@ -11,7 +11,7 @@ use ratatui::{
 use crate::{
     app::{
         App, Content, Entry, LibrarySegment, NoticeKind, PluginChoice, StoreConfirm, StoreLine,
-        StorePluginStatus, StoreRow, StoreState,
+        StorePluginStatus, StoreRow, StoreState, sync_badge,
     },
     clock::Clock,
     keymap::status_hints,
@@ -151,8 +151,10 @@ fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
         chips.push(("·".into(), Role::Rule));
     }
     for state in &app.sync {
-        chips
-            .push((state.badge(), if state.is_alerting() { Role::Alert } else { Role::State }));
+        chips.push((
+            sync_badge(state),
+            if state.is_alerting() { Role::Alert } else { Role::State },
+        ));
     }
 
     Header::new(&app.palette, "anistream").chips(&chips).render(geometry.header, buf);

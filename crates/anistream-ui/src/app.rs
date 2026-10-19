@@ -1209,28 +1209,28 @@ impl SyncState {
         }
     }
 
-    /// The status-line badge.
-    ///
-    /// The queue depth is the number worth showing: it is the answer to "did my progress
-    /// actually go anywhere?", which is the only sync question anyone asks.
-    pub fn badge(&self) -> String {
-        if self.needs_reauth {
-            return format!("{} {} sign in", self.tracker, glyph::STATE_DOWN);
-        }
-        // Hollow, not the interpunct: the header puts `·` between its groups of chips, and a
-        // signed-out `kitsu ·` read as a separator with a word in front of it.
-        if !self.connected {
-            return format!("{} {}", self.tracker, glyph::STATE_OFF);
-        }
-        match self.outbox {
-            0 => format!("{} {}", self.tracker, glyph::SYNC),
-            n => format!("{} {} {n}", self.tracker, glyph::SYNC),
-        }
-    }
-
     /// Whether the badge should use the alert role.
     pub fn is_alerting(&self) -> bool {
         self.needs_reauth
+    }
+}
+
+/// A tracker's status-line badge.
+///
+/// The queue depth is the number worth showing: it is the answer to "did my progress
+/// actually go anywhere?", which is the only sync question anyone asks.
+pub fn sync_badge(state: &SyncState) -> String {
+    if state.needs_reauth {
+        return format!("{} {} sign in", state.tracker, glyph::STATE_DOWN);
+    }
+    // Hollow, not the interpunct: the header puts `·` between its groups of chips, and a
+    // signed-out `kitsu ·` read as a separator with a word in front of it.
+    if !state.connected {
+        return format!("{} {}", state.tracker, glyph::STATE_OFF);
+    }
+    match state.outbox {
+        0 => format!("{} {}", state.tracker, glyph::SYNC),
+        n => format!("{} {} {n}", state.tracker, glyph::SYNC),
     }
 }
 
@@ -7735,15 +7735,15 @@ mod tests {
     fn the_sync_badge_carries_the_queue_depth() {
         // "Did my progress actually go anywhere?" is the only sync question anyone asks, and
         // the depth is the answer.
-        assert_eq!(connected(0).badge(), "anilist ⇅");
-        assert_eq!(connected(3).badge(), "anilist ⇅ 3");
+        assert_eq!(sync_badge(&connected(0)), "anilist ⇅");
+        assert_eq!(sync_badge(&connected(3)), "anilist ⇅ 3");
         assert!(!connected(3).is_alerting());
     }
 
     #[test]
     fn a_rejected_token_reads_as_something_to_act_on() {
         let state = SyncState { needs_reauth: true, ..connected(2) };
-        assert_eq!(state.badge(), "anilist ✕ sign in");
+        assert_eq!(sync_badge(&state), "anilist ✕ sign in");
         assert!(state.is_alerting(), "re-auth must use the alert role");
     }
 
@@ -7751,7 +7751,7 @@ mod tests {
     fn a_tracker_with_no_account_is_quiet_rather_than_alarming() {
         // Watching with no account is a supported way to use this, not a fault.
         let state = SyncState { tracker: "anilist".into(), ..SyncState::default() };
-        assert_eq!(state.badge(), "anilist ○");
+        assert_eq!(sync_badge(&state), "anilist ○");
         assert!(!state.is_alerting());
     }
 
@@ -7788,7 +7788,7 @@ mod tests {
         a.apply(Update::Sync(Box::new(connected(0))));
         a.apply(Update::ProgressQueued);
         assert_eq!(a.sync[0].outbox, 1);
-        assert_eq!(a.sync[0].badge(), "anilist ⇅ 1");
+        assert_eq!(sync_badge(&a.sync[0]), "anilist ⇅ 1");
     }
 
     #[test]
