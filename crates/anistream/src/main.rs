@@ -2,6 +2,7 @@
 
 mod cli;
 mod covers;
+mod services;
 mod tui;
 
 use cli::{
@@ -14,6 +15,7 @@ use cli::{
     store::store_command,
     sync::sync_once,
 };
+use services::build_meta;
 
 use anistream_engine::{
     artwork, data, downloads, playback,
@@ -26,7 +28,7 @@ use anistream_engine::{
 use std::{io, sync::Arc, time::Duration};
 
 use anistream_core::config::{Config, Paths, ThemeMode};
-use anistream_meta::{Meta, Tenrai, anilist::AniList, dataset};
+use anistream_meta::{Meta, dataset};
 use anistream_model::{
     catalog::{Content, ContentFor},
     command::Command,
@@ -3340,16 +3342,6 @@ fn successor(
         episode: episode.to_owned(),
         translation: app.config.playback.translation,
     }
-}
-
-/// The metadata source: AniList first, Tenrai when it fails, the cache when both do.
-///
-/// Built identically at every entry point — the TUI, `--search`, `--play`, previews —
-/// so "anistream said X" never depends on which door was used to ask.
-fn build_meta(config: &Config, http: &HttpClient, store: &Store) -> Meta {
-    let anilist = AniList::new(http.clone(), config.network.anilist_rate_limit);
-    let tenrai = config.meta.fallback.then(|| Tenrai::new(http.clone(), store.clone()));
-    Meta::new(anilist, tenrai, store.clone())
 }
 
 /// Whether any of these executables is reachable on `PATH`.

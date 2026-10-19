@@ -16,7 +16,7 @@ use anyhow::{Context, Result};
 use tokio::sync::mpsc;
 
 use crate::{
-    build_meta, now_epoch, play_settings, resolve_for_playback, signed_in_tracker_ids,
+    now_epoch, play_settings, resolve_for_playback, services::build_meta, signed_in_tracker_ids,
 };
 
 /// Resolve one episode and print the URL, keeping the stream server alive.
