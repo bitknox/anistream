@@ -1,8 +1,8 @@
 //! Why "play" does nothing: the episode-listing chain, stage by stage.
 //!
 //! ```text
-//! cargo run -p anistream --example episodes_probe            # a default title
-//! cargo run -p anistream --example episodes_probe -- 154587  # any AniList id
+//! cargo run -p anistream-engine --example episodes_probe            # a default title
+//! cargo run -p anistream-engine --example episodes_probe -- 154587  # any AniList id
 //! ```
 //!
 //! Reported from real use: pressing play produced neither playback nor an error. Every stage

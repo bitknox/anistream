@@ -9,7 +9,7 @@
 //! distributed by its rights holder for exactly this kind of testing.
 //!
 //! ```text
-//! cargo run -p anistream --example playback_probe -- [seconds]
+//! cargo run -p anistream-engine --example playback_probe -- [seconds]
 //! ```
 //!
 //! Plays for `seconds` (default 25) with no video window, then reports what was recorded.

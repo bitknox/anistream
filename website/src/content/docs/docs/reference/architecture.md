@@ -63,20 +63,20 @@ cargo run -p anistream-plugin --example plugin_bench --release        # what a p
 There are also live probes. They need real services and are not part of `cargo test`:
 
 ```sh
-cargo run -p anistream-providers --example stream_probe    # torrent path through the VPN
-cargo run -p anistream --example playback_probe            # torrent → mpv → history
-cargo run -p anistream --example sync_probe -- --write     # AniList push, then undo
-cargo run -p anistream --example mal_probe -- --write      # MAL push, then undo
-cargo run -p anistream --example simkl_probe -- --write    # Simkl push, then undo
-cargo run -p anistream --example kitsu_probe -- --write    # Kitsu push, then undo
-cargo run -p anistream --example mend_probe -- <url>       # disguised HLS → mpv
-cargo run -p anistream-providers --example torrent_probe   # an indexer, end to end
-cargo run -p anistream-providers --example halt_probe      # the guard pausing torrents
-cargo run -p anistream-meta --example filler_probe         # filler parsing
-cargo run -p anistream-meta --example episode_meta_probe   # episode titles, stills, numbering
-cargo run -p anistream-meta --example anilist_probe        # the AniList client
-cargo run -p anistream-meta --example dataset_probe        # ID-mapping datasets
-cargo run -p anistream --example meta_probe                # the metadata failover
-cargo run -p anistream --example episodes_probe            # every stage from title to stream
-cargo run -p anistream --example continue_probe            # resume vs. sync thresholds
+cargo run -p anistream-providers --example stream_probe          # torrent path through the VPN
+cargo run -p anistream-engine --example playback_probe           # torrent → mpv → history
+cargo run -p anistream-engine --example sync_probe -- --write    # AniList push, then undo
+cargo run -p anistream-engine --example mal_probe -- --write     # MAL push, then undo
+cargo run -p anistream-engine --example simkl_probe -- --write   # Simkl push, then undo
+cargo run -p anistream-engine --example kitsu_probe -- --write   # Kitsu push, then undo
+cargo run -p anistream-engine --example mend_probe -- <url>      # disguised HLS → mpv
+cargo run -p anistream-providers --example torrent_probe         # an indexer, end to end
+cargo run -p anistream-providers --example halt_probe            # the guard pausing torrents
+cargo run -p anistream-meta --example filler_probe               # filler parsing
+cargo run -p anistream-meta --example episode_meta_probe         # episode titles, stills, numbering
+cargo run -p anistream-meta --example anilist_probe              # the AniList client
+cargo run -p anistream-meta --example dataset_probe              # ID-mapping datasets
+cargo run -p anistream-engine --example meta_probe               # the metadata failover
+cargo run -p anistream-engine --example episodes_probe           # every stage from title to stream
+cargo run -p anistream-engine --example continue_probe           # resume vs. sync thresholds
 ```

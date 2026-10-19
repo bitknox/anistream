@@ -5,8 +5,8 @@
 //! pushed episode is genuinely visible on the account afterwards.
 //!
 //! ```text
-//! cargo run -p anistream --example sync_probe            # read-only
-//! cargo run -p anistream --example sync_probe -- --write  # also pushes, then undoes it
+//! cargo run -p anistream-engine --example sync_probe            # read-only
+//! cargo run -p anistream-engine --example sync_probe -- --write  # also pushes, then undoes it
 //! ```
 //!
 //! `--write` changes one entry on the real account and puts it back, reading AniList afterwards

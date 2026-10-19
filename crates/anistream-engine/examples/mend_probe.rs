@@ -6,7 +6,7 @@
 //! question only the source can answer.
 //!
 //! ```sh
-//! cargo run -p anistream --example mend_probe -- <master.m3u8 url> [referer]
+//! cargo run -p anistream-engine --example mend_probe -- <master.m3u8 url> [referer]
 //! ```
 //!
 //! `--vo=null` means nothing is displayed; the line to look for is mpv's own

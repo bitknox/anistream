@@ -1,7 +1,7 @@
 //! End-to-end validation of the metadata failover.
 //!
 //! ```text
-//! cargo run -p anistream --example meta_probe
+//! cargo run -p anistream-engine --example meta_probe
 //! ```
 //!
 //! Three things unit tests cannot cover: whether Tenrai actually answers and its rows

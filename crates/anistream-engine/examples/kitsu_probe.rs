@@ -1,8 +1,8 @@
 //! End-to-end validation of the Kitsu tracker.
 //!
 //! ```text
-//! cargo run -p anistream --example kitsu_probe            # read-only
-//! cargo run -p anistream --example kitsu_probe -- --write  # pushes, then removes it
+//! cargo run -p anistream-engine --example kitsu_probe            # read-only
+//! cargo run -p anistream-engine --example kitsu_probe -- --write  # pushes, then removes it
 //! ```
 //!
 //! Three things unit tests cannot cover, in the order they can fail: whether **the ID

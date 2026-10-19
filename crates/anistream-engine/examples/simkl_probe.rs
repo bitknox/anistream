@@ -1,8 +1,8 @@
 //! End-to-end validation of the Simkl tracker.
 //!
 //! ```text
-//! cargo run -p anistream --example simkl_probe            # read-only
-//! cargo run -p anistream --example simkl_probe -- --write # marks one episode, then removes it
+//! cargo run -p anistream-engine --example simkl_probe            # read-only
+//! cargo run -p anistream-engine --example simkl_probe -- --write # marks one episode, then removes it
 //! ```
 //!
 //! What unit tests cannot cover: whether the PIN-flow token actually authorises the API, and whether

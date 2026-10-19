@@ -1,7 +1,7 @@
 //! Does "continue where you left off" survive quitting an episode halfway?
 //!
 //! ```text
-//! cargo run -p anistream --example continue_probe
+//! cargo run -p anistream-engine --example continue_probe
 //! ```
 //!
 //! Reported from real use: quitting an episode at ~50% left no visible trace, because the CONTINUE

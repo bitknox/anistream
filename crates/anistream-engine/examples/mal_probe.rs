@@ -1,8 +1,8 @@
 //! End-to-end validation of the MyAnimeList tracker.
 //!
 //! ```text
-//! cargo run -p anistream --example mal_probe            # read-only
-//! cargo run -p anistream --example mal_probe -- --write  # pushes, then undoes it
+//! cargo run -p anistream-engine --example mal_probe            # read-only
+//! cargo run -p anistream-engine --example mal_probe -- --write  # pushes, then undoes it
 //! ```
 //!
 //! What unit tests cannot cover: whether the PKCE token actually authorises the API, and whether
