@@ -141,7 +141,7 @@ async fn an_order_that_takes_a_source_away_rebuilds_the_chain() {
             "Providers"
         ]
     );
-    assert!(matches!(&updates[4], Update::Vpn { badge, leaking: false } if badge.is_empty()));
+    assert!(matches!(&updates[4], Update::Vpn(None)));
     let Update::ProviderNote(note) = &updates[5] else { unreachable!() };
     assert_eq!(note, "torrents are off — the session was stopped");
     // Rebuilt from the config, which describes no source the fixture one could be.

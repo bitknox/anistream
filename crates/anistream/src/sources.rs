@@ -336,7 +336,7 @@ pub async fn bring_up_torrent(
     loop {
         let state = guard.verify().await;
         let leaking = !state.is_protected();
-        if tx.send(Update::Vpn { badge: state.badge(), leaking }).is_err() {
+        if tx.send(Update::Vpn(Some(guard_view(&state)))).is_err() {
             return Err("the interface has closed".into());
         }
         match log.observe(&state, std::time::Instant::now()) {
@@ -367,6 +367,19 @@ pub async fn bring_up_torrent(
     }
 
     start_torrent_session(&config, &http, &paths, settings, guard).await
+}
+
+/// The guard's verdict as the interface is told it: what the guard found, without its reasons,
+/// which are for the log and the Providers note.
+pub fn guard_view(state: &GuardState) -> anistream_ui::app::GuardView {
+    use anistream_ui::app::GuardView;
+    match state {
+        GuardState::Unverified => GuardView::Checking,
+        GuardState::Protected { egress } => GuardView::Protected { exit: egress.describe() },
+        GuardState::Leaking { .. } => GuardView::Leaking,
+        GuardState::Unreachable { .. } => GuardView::Unreachable,
+        GuardState::Unprotected => GuardView::Unprotected,
+    }
 }
 
 /// Bring the stream cache within its limit before a session exists, so nothing a session is
@@ -439,6 +452,28 @@ mod tests {
     use anistream_providers::mock::MockProvider;
 
     use super::*;
+
+    #[test]
+    fn a_verdict_reads_on_the_badge_as_the_guard_words_it() {
+        // Every verdict a check can reach. Not yet checked is said before any check runs, and
+        // does not alert: nothing runs until it passes.
+        let egress = anistream_providers::vpn::Egress {
+            asn_org: Some("Tunnel Example AB".into()),
+            country: Some("Sweden".into()),
+            ..Default::default()
+        };
+        for state in [
+            GuardState::Protected { egress: Box::new(egress) },
+            GuardState::Leaking { reason: "egress is the home network".into() },
+            GuardState::Unreachable { reason: "the proxy did not answer".into() },
+            GuardState::Unprotected,
+        ] {
+            let badge = anistream_ui::app::vpn_badge(&guard_view(&state));
+            assert_eq!(badge, (state.badge(), !state.is_protected()), "{state:?}");
+        }
+        let checking = anistream_ui::app::vpn_badge(&guard_view(&GuardState::Unverified));
+        assert_eq!(checking, (GuardState::Unverified.badge(), false));
+    }
 
     fn order(entries: &[&str]) -> Config {
         let mut config = Config::default();

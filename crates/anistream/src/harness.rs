@@ -557,7 +557,7 @@ pub fn name(update: &Update) -> &'static str {
         Update::ProgressQueued => "ProgressQueued",
         Update::Conflicts(_) => "Conflicts",
         Update::Episodes { .. } => "Episodes",
-        Update::Vpn { .. } => "Vpn",
+        Update::Vpn(_) => "Vpn",
         Update::ArtworkReady { .. } => "ArtworkReady",
         Update::ImageFailed { .. } => "ImageFailed",
         Update::Downloads(_) => "Downloads",
@@ -661,9 +661,7 @@ fn copy(update: &Update) -> Update {
         Update::ProgressQueued => Update::ProgressQueued,
         Update::Conflicts(rows) => Update::Conflicts(rows.clone()),
         Update::Episodes { id, rows } => Update::Episodes { id: *id, rows: rows.clone() },
-        Update::Vpn { badge, leaking } => {
-            Update::Vpn { badge: badge.clone(), leaking: *leaking }
-        }
+        Update::Vpn(guard) => Update::Vpn(guard.clone()),
         Update::ArtworkReady { url, bytes } => {
             Update::ArtworkReady { url: url.clone(), bytes: bytes.clone() }
         }

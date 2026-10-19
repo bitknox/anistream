@@ -458,7 +458,7 @@ async fn preview(
     // A failed guard included: the interface puts its verdict on the chip and toasts it, and
     // a preview without it showed a machine whose torrents were fine.
     if let Some(state) = guard.as_ref().map(|(guard, _)| guard.state()).or(held) {
-        app.apply(Update::Vpn { badge: state.badge(), leaking: !state.is_protected() });
+        app.apply(Update::Vpn(Some(sources::guard_view(&state))));
     }
     if let Some(problem) = &config_problem {
         show_config_problem(&mut app, paths, problem);
@@ -4036,10 +4036,7 @@ impl TorrentTasks {
             downloads::spawn(store.clone(), session.clone(), Arc::clone(config), tx.clone());
         downloads::publish_now(store, tx);
 
-        let _ = tx.send(Update::Vpn {
-            badge: guard.state().badge(),
-            leaking: !guard.state().is_protected(),
-        });
+        let _ = tx.send(Update::Vpn(Some(sources::guard_view(&guard.state()))));
         let watcher = tokio::spawn(vpn_watch(guard, session.clone(), tx.clone()));
         let seeding =
             tokio::spawn(seeding_watch(session.clone(), Arc::clone(config), tx.clone()));
@@ -4080,10 +4077,7 @@ impl TorrentTasks {
         if !sources::torrent_wanted(config) {
             return;
         }
-        let _ = tx.send(Update::Vpn {
-            badge: anistream_providers::vpn::GuardState::Unverified.badge(),
-            leaking: false,
-        });
+        let _ = tx.send(Update::Vpn(Some(anistream_ui::app::GuardView::Checking)));
         let generation = self.generation;
         let (config, http, paths, store, tx, arrivals) = (
             config.clone(),
@@ -4247,7 +4241,7 @@ async fn vpn_watch(
         }
         was_leaking = leaking;
 
-        if tx.send(Update::Vpn { badge: state.badge(), leaking }).is_err() {
+        if tx.send(Update::Vpn(Some(sources::guard_view(&state)))).is_err() {
             break;
         }
     }
@@ -4290,7 +4284,7 @@ async fn reload_sources(
 
     if !sources::torrent_wanted(&snapshot) {
         // No session: say so, and clear a badge that now describes nothing.
-        let _ = tx.send(Update::Vpn { badge: String::new(), leaking: false });
+        let _ = tx.send(Update::Vpn(None));
     }
     let _ = tx.send(Update::ProviderNote(if sources::torrent_wanted(&snapshot) {
         "sources reloaded — torrents start once the VPN guard passes".into()

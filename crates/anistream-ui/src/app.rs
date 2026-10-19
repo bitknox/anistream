@@ -746,6 +746,39 @@ pub enum SourceState {
     Pending,
 }
 
+/// The VPN guard's verdict, for the badge beside the torrent source.
+///
+/// What the guard found and nothing about how it is shown: the badge's words, its marks and
+/// when it alerts are the front end's. See [`vpn_badge`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum GuardView {
+    /// Not answered yet. Nothing runs until it passes, so nothing can have leaked.
+    Checking,
+    /// Traffic leaves where it should, through the network `exit` names.
+    Protected { exit: String },
+    /// Traffic was seen leaving where it should not. Torrents are halted.
+    Leaking,
+    /// The check could not be made: the proxy is down, or the lookup did not answer. Failing
+    /// all the same, and told apart from a leak.
+    Unreachable,
+    /// The configuration accepts an unprotected connection.
+    Unprotected,
+}
+
+/// The header's `vpn` chip for a guard's verdict, and whether it alerts.
+///
+/// A guard still checking does not: it is not yet failing anyone. Nor does one the
+/// configuration runs unprotected, which is a choice rather than a fault.
+pub fn vpn_badge(guard: &GuardView) -> (String, bool) {
+    match guard {
+        GuardView::Checking => (format!("vpn {}  checking", glyph::STATE_UNKNOWN), false),
+        GuardView::Protected { exit } => (format!("vpn {}  {exit}", glyph::STATE_READY), false),
+        GuardView::Leaking => (format!("vpn {}  LEAK", glyph::STATE_DOWN), true),
+        GuardView::Unreachable => (format!("vpn {}  unreachable", glyph::STATE_DOWN), true),
+        GuardView::Unprotected => (format!("vpn {}  unprotected", glyph::STATE_DOWN), false),
+    }
+}
+
 /// One rung of the metadata ladder, as the Providers screen shows it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MetaSourceRow {
@@ -1415,11 +1448,9 @@ pub enum Update {
         id: AnilistId,
         rows: Vec<EpisodeRow>,
     },
-    /// VPN state changed. `leaking` drives the alert colouring.
-    Vpn {
-        badge: String,
-        leaking: bool,
-    },
+    /// The VPN guard's verdict changed, or `None`: there is no guard any more, because
+    /// torrents were switched off.
+    Vpn(Option<GuardView>),
     /// A cover or banner as it was fetched or read from the cache, not yet decoded.
     ///
     /// Bytes rather than pixels: what a cover becomes on screen is the front end's to decide.
@@ -2388,7 +2419,10 @@ impl App {
                     playing.position = position;
                 }
             }
-            Update::Vpn { badge, leaking } => {
+            Update::Vpn(guard) => {
+                // No guard empties the badge rather than removing it.
+                let (badge, leaking) =
+                    guard.as_ref().map_or_else(|| (String::new(), false), vpn_badge);
                 // A newly-failing guard is worth interrupting for: torrents have just been
                 // paused and the user needs to know why playback stopped.
                 if leaking && !self.vpn_leaking {

@@ -3990,7 +3990,11 @@ pub fn render_to_buffer(app: &App, width: u16, height: u16) -> Buffer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{app::Update, keymap::Keymap, theme::Palette};
+    use crate::{
+        app::{GuardView, Update},
+        keymap::Keymap,
+        theme::Palette,
+    };
     use anistream_core::{config::Config, ids::AnilistId};
 
     fn app_with(content: Content) -> App {
@@ -4689,13 +4693,13 @@ mod tests {
         // Discovering a failing guard only when playback refuses would be far worse than
         // a badge that is always visible.
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
-        app.apply(Update::Vpn { badge: "vpn ●  Mullvad · SE".into(), leaking: false });
+        app.apply(Update::Vpn(Some(GuardView::Protected { exit: "Mullvad · SE".into() })));
 
         let buf = render_to_buffer(&app, 120, 20);
         let text = text_of(&buf);
         assert!(text.contains("Mullvad"), "badge missing from the header");
 
-        app.apply(Update::Vpn { badge: "vpn ✕  LEAK".into(), leaking: true });
+        app.apply(Update::Vpn(Some(GuardView::Leaking)));
         let leaking = render_to_buffer(&app, 120, 20);
         let leaking_text = text_of(&leaking);
         assert!(leaking_text.contains("LEAK"));
@@ -4711,10 +4715,10 @@ mod tests {
     fn a_guard_that_was_already_leaking_does_not_re_announce() {
         // Repeating the alert on every verification tick would be noise.
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
-        app.apply(Update::Vpn { badge: "vpn ✕  LEAK".into(), leaking: true });
+        app.apply(Update::Vpn(Some(GuardView::Leaking)));
         let announced = |a: &App| a.logs.iter().map(|l| l.count).sum::<u32>();
         let after_first = announced(&app);
-        app.apply(Update::Vpn { badge: "vpn ✕  LEAK".into(), leaking: true });
+        app.apply(Update::Vpn(Some(GuardView::Leaking)));
         assert_eq!(announced(&app), after_first, "re-announced an unchanged leak");
     }
 
@@ -4941,14 +4945,14 @@ mod tests {
         // Provider health and the VPN badge stay legible through the transition — those are
         // exactly the things you want to see when a stream is slow to resolve.
         let mut app = app_playing();
-        app.apply(Update::Vpn { badge: "vpn ● Mullvad".into(), leaking: false });
+        app.apply(Update::Vpn(Some(GuardView::Protected { exit: "Mullvad".into() })));
         app.eyecatch = Some(crate::Eyecatch::new("x"));
         for _ in 0..crate::eyecatch::SWEEP_FRAMES {
             app.tick_animation();
         }
         let text = text_of(&render_to_buffer(&app, 100, 26));
         assert!(text.contains("anistream"), "the header was covered");
-        assert!(text.contains("vpn ● Mullvad"), "the VPN badge was covered:\n{text}");
+        assert!(text.contains("vpn ●  Mullvad"), "the VPN badge was covered:\n{text}");
     }
 
     #[test]
