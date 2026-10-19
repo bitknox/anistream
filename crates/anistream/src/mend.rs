@@ -1927,6 +1927,7 @@ mod tests {
 
         // Rest on a loaded position, the way thumbfast does: keyframe, then exact.
         std::fs::remove_file(&thumb).ok();
+        let rested = Instant::now();
         ipc.command(serde_json::json!(["seek", 10.0, "absolute+keyframes"])).await;
         tokio::time::sleep(Duration::from_millis(100)).await;
         ipc.command(serde_json::json!(["seek", 10.0, "absolute+exact"])).await;
@@ -1936,8 +1937,18 @@ mod tests {
              asked {} times)",
             origin.segments_asked()
         );
-        let position = ipc.command(serde_json::json!(["get_property", "time-pos"])).await;
-        let position = position["data"].as_f64().unwrap_or(f64::NAN);
+        // The first picture can be the keyframe seek's, from the keyframe at 8s; the exact
+        // seek lands a moment later. Reading the position once raced it on a loaded runner, so
+        // it is read until it lands, within the same bound.
+        let mut position = f64::NAN;
+        while rested.elapsed() < Duration::from_secs(3) {
+            let reply = ipc.command(serde_json::json!(["get_property", "time-pos"])).await;
+            position = reply["data"].as_f64().unwrap_or(f64::NAN);
+            if (8.5..=10.5).contains(&position) {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
         assert!((8.5..=10.5).contains(&position), "drew {position}s for a rest at 10s");
 
         ipc.command(serde_json::json!(["quit"])).await;
