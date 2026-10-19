@@ -420,7 +420,7 @@ impl Harness {
     /// One update, as the loop's `rx.recv()` arm handles it.
     async fn react(&mut self, update: Update, seen: &mut Vec<Update>) {
         // First, the loop hands an invite link to the terminal's clipboard. There is no
-        // terminal here, so the link arrives as sent: not yet copied.
+        // terminal here, so nothing marks the link copied.
 
         // A finished episode's progress goes to the trackers now, not at the next drain tick.
         if matches!(update, Update::ProgressQueued) {

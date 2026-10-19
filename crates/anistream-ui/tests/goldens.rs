@@ -1637,8 +1637,8 @@ fn invite_link(s: &mut Screen) {
         link: Secret(INVITE.into()),
         for_whom: Some("Kai".into()),
         expires_at: NOW + 6 * DAY + 23 * HOUR + 58 * MINUTE,
-        copied: true,
     }));
+    s.app.invite_copied = true;
 }
 
 /// The local plugins an owner could publish: one new, one already up, one replacing an older

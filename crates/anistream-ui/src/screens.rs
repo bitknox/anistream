@@ -3689,7 +3689,7 @@ fn invite_link_rows(app: &App, width: usize) -> Vec<(String, String)> {
     rows.push((String::new(), String::new()));
     rows.push((
         String::new(),
-        if view.copied {
+        if app.invite_copied {
             "copied to the clipboard where the terminal allows it — or select it to copy".into()
         } else {
             "select it to copy".into()
@@ -5256,8 +5256,8 @@ mod tests {
             )),
             for_whom: Some("Alex".into()),
             expires_at: i64::MAX / 2,
-            copied: true,
         });
+        app.invite_copied = true;
         app.store_confirm = Some(crate::app::StoreConfirm::Join(StorePreview {
             link: Secret("https://plugins.example/join/x#y".into()),
             name: "Our plugins".into(),

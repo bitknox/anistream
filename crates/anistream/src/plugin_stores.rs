@@ -449,7 +449,6 @@ impl Stores {
             link: Secret(link.link()),
             for_whom: name,
             expires_at: created.expires_at,
-            copied: false,
         })
     }
 

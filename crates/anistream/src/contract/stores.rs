@@ -141,7 +141,7 @@ async fn an_owner_invites_someone_lists_them_and_takes_their_access_away() {
     assert_eq!(names(&updates), ["InviteLink", "JobDone"]);
     let Update::InviteLink(view) = &updates[0] else { unreachable!() };
     assert_eq!((view.store.as_str(), view.for_whom.as_deref()), (id.as_str(), Some("Alex")));
-    assert!(!view.copied, "no terminal here to copy it to");
+    assert!(!owner.app().invite_copied, "no terminal here to copy it to");
     ends(&updates, job);
 
     // Joined on another machine.

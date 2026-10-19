@@ -1896,12 +1896,15 @@ async fn run(
         }
 
         tokio::select! {
-            Some(mut update) = rx.recv() => {
+            Some(update) = rx.recv() => {
                 // Handed to the terminal's clipboard on the way in, so the overlay can say
                 // whether it was.
-                if let Update::InviteLink(view) = &mut update {
-                    view.copied = copy_to_clipboard(terminal.backend_mut(), &view.link.0);
-                }
+                let copied = match &update {
+                    Update::InviteLink(view) => {
+                        copy_to_clipboard(terminal.backend_mut(), &view.link.0)
+                    }
+                    _ => false,
+                };
                 // A finished episode should reach the tracker now, not at the next drain
                 // tick — up to a minute later, the pushed progress looked simply absent.
                 if matches!(update, Update::ProgressQueued) {
@@ -1951,6 +1954,9 @@ async fn run(
                     // Decoded off the loop; it comes back on the arm below.
                     Update::ArtworkReady { url, bytes } => covers::spawn(url, bytes, &covers_tx),
                     update => app.apply(update),
+                }
+                if copied {
+                    app.invite_copied = true;
                 }
                 // mpv's window is gone; unless the reducer queued the next episode — in
                 // which case another window is about to open — the viewer's next keypress

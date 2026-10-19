@@ -893,8 +893,6 @@ pub struct InviteLinkView {
     /// Who it is for. `None` is another device of your own.
     pub for_whom: Option<String>,
     pub expires_at: i64,
-    /// Whether it was handed to the terminal's clipboard.
-    pub copied: bool,
 }
 
 /// One member of a store, for its owner.
@@ -1794,6 +1792,9 @@ pub struct App {
     pub store_confirm: Option<StoreConfirm>,
     /// The invite link overlay's link.
     pub invite_link: Option<InviteLinkView>,
+    /// Whether that link went to the terminal's clipboard: set by whoever runs the app, once
+    /// a copy has gone through. Every new link starts uncopied.
+    pub invite_copied: bool,
     /// The plugin the plugin overlay is about: store id, plugin id.
     pub plugin_action: Option<(String, String)>,
     /// What that overlay offers, fixed when it opened. A store list arriving while it is open
@@ -1905,6 +1906,7 @@ impl App {
             invite_name: String::new(),
             store_confirm: None,
             invite_link: None,
+            invite_copied: false,
             plugin_action: None,
             plugin_options: Vec::new(),
             local_plugins: Vec::new(),
@@ -2140,6 +2142,7 @@ impl App {
             }
             Update::InviteLink(view) => {
                 self.invite_link = Some(view);
+                self.invite_copied = false;
                 self.nav.open_overlay(Overlay::InviteLink);
             }
             Update::StoreMembers { store, members, invites } => {
@@ -8091,6 +8094,22 @@ mod tests {
     }
 
     #[test]
+    fn a_new_invite_link_starts_uncopied() {
+        // Copied is said of the link on screen; the next one has not been anywhere yet.
+        let link = |n: &str| InviteLinkView {
+            store: "abc".into(),
+            link: Secret(format!("https://plugins.example/join/{n}#k")),
+            for_whom: None,
+            expires_at: 0,
+        };
+        let mut a = at_stores(vec![store_row("abc", true, Vec::new())]);
+        a.apply(Update::InviteLink(link("one")));
+        a.invite_copied = true;
+        a.apply(Update::InviteLink(link("two")));
+        assert!(!a.invite_copied);
+    }
+
+    #[test]
     fn an_owner_invites_someone_by_name() {
         let mut a = at_stores(vec![store_row("abc", true, Vec::new())]);
         a.handle(Action::Open, 20);
@@ -8122,7 +8141,6 @@ mod tests {
             link: Secret("https://plugins.example/join/x#y".into()),
             for_whom: Some("Alex".into()),
             expires_at: 0,
-            copied: true,
         }));
         assert_eq!(a.nav.overlay(), Some(&Overlay::InviteLink));
         a.handle(Action::Open, 20);
