@@ -17,7 +17,7 @@ use crate::harness::{Harness, Options, names};
 fn queue(update: &Event) -> Vec<String> {
     match update {
         Event::Downloads(rows) => {
-            let state = |r: &DownloadRow| anistream_ui::screens::download_state_label(r.state);
+            let state = |r: &DownloadRow| anistream_tui::screens::download_state_label(r.state);
             rows.iter().map(|r: &DownloadRow| format!("{} {}", r.episode, state(r))).collect()
         }
         other => panic!("not the queue: {other:?}"),

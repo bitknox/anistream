@@ -44,7 +44,7 @@ use anistream_track::{
     AniListTracker,
     secret::{Backend, TokenStore},
 };
-use anistream_ui::{
+use anistream_tui::{
     Clock, Zone,
     app::App,
     image::ImageEngine,

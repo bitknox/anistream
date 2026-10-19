@@ -15,7 +15,7 @@ use anistream_model::{
     notice::Notice,
     sync::SyncState,
 };
-use anistream_ui::{
+use anistream_tui::{
     App, Keymap, Overlay, Palette, Section, StageView, app::NowPlaying, keymap::status_hints,
     screens::render_to_buffer,
 };
@@ -196,9 +196,9 @@ fn ctrl_c_quits_from_every_overlay_and_prompt() {
 fn arrows_in_a_text_prompt_do_not_move_the_list_behind_it() {
     let mut a = at_settings();
     // Subtitles is a text setting: Enter opens its editor.
-    a.selected = anistream_ui::app::SettingId::ALL
+    a.selected = anistream_tui::app::SettingId::ALL
         .iter()
-        .position(|s| *s == anistream_ui::app::SettingId::Subtitles)
+        .position(|s| *s == anistream_tui::app::SettingId::Subtitles)
         .unwrap();
     let row = a.selected;
     press(&mut a, &["enter"]);
@@ -517,9 +517,9 @@ fn a_narrow_status_line_keeps_the_way_to_help() {
 fn a_palette_command_that_means_nothing_here_says_where_it_works() {
     let mut a = app();
     a.apply(a.content_here(entries(2)));
-    a.handle(anistream_ui::Action::StopPlayback, ROWS);
-    a.handle(anistream_ui::Action::ClearCompleted, ROWS);
-    a.handle(anistream_ui::Action::RaiseSource, ROWS);
+    a.handle(anistream_tui::Action::StopPlayback, ROWS);
+    a.handle(anistream_tui::Action::ClearCompleted, ROWS);
+    a.handle(anistream_tui::Action::RaiseSource, ROWS);
     let said: Vec<&str> = a.toasts.iter().map(|t| t.notice.text.as_str()).collect();
     assert!(said.iter().all(|t| !t.contains("not wired up")), "{said:?}");
     assert!(said.contains(&"stop playback works while something is playing"), "{said:?}");
@@ -532,7 +532,7 @@ fn a_palette_command_that_means_nothing_here_says_where_it_works() {
 
 #[test]
 fn every_title_command_with_nothing_selected_says_so() {
-    use anistream_ui::Action as A;
+    use anistream_tui::Action as A;
     for action in [
         A::ShowEpisodes,
         A::ShowSources,
@@ -639,7 +639,7 @@ fn an_overlay_keeps_its_hints_legible_above_the_scrim() {
     let x = status.find("esc").map(|byte| status[..byte].chars().count()).unwrap() as u16;
     assert_ne!(
         buf[(x, status_y)].fg,
-        a.palette.color(anistream_ui::Role::Rule),
+        a.palette.color(anistream_tui::Role::Rule),
         "the overlay's hints were dimmed with what is behind it"
     );
     // And the first frame already knows the table pages at this size.

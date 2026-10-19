@@ -48,8 +48,11 @@ async fn main() -> anyhow::Result<()> {
     let scratch = tempfile::tempdir()?;
     let paths = Paths { cache_dir: scratch.path().to_path_buf(), ..Paths::resolve()? };
     let config = Config::load(&paths)?;
-    let mpv =
-        anistream_engine::player::player(&config, &paths, &anistream_ui::theme::player_theme());
+    let mpv = anistream_engine::player::player(
+        &config,
+        &paths,
+        &anistream_tui::theme::player_theme(),
+    );
     println!("player scratch dir: {}", mpv.scratch_dir().display());
 
     let store = Store::open_in_memory()?;

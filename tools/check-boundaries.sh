@@ -12,7 +12,7 @@ shopt -s inherit_errexit
 
 cd "$(dirname "$0")/.."
 
-terminal='^(ratatui|ratatui-image|crossterm|terminal-colorsaurus|anistream-ui|anistream-tui) '
+terminal='^(ratatui|ratatui-image|crossterm|terminal-colorsaurus|anistream-tui) '
 
 # crate  forbidden-pattern
 rules=(

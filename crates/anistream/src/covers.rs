@@ -9,7 +9,7 @@
 //! A cover that does not decode is a failed cover like any other: silent, its plate kept, and
 //! tried again after the backoff.
 
-use anistream_ui::{App, image::downscale};
+use anistream_tui::{App, image::downscale};
 use tokio::sync::mpsc;
 
 /// Longest edge kept in memory.
@@ -58,7 +58,7 @@ pub fn hand_over(app: &mut App, decoded: Decoded) {
 mod tests {
     use anistream_core::config::Config;
     use anistream_model::event::Event;
-    use anistream_ui::{
+    use anistream_tui::{
         Keymap,
         image::{ImageEngine, RequestState},
         theme,

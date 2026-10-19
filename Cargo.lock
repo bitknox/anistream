@@ -90,7 +90,7 @@ dependencies = [
  "anistream-store-server",
  "anistream-testkit",
  "anistream-track",
- "anistream-ui",
+ "anistream-tui",
  "anyhow",
  "base64",
  "clap",
@@ -365,7 +365,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "anistream-ui"
+name = "anistream-tui"
 version = "1.1.0"
 dependencies = [
  "anistream-core",

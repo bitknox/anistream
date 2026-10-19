@@ -373,7 +373,7 @@ Sources decay, so every volatile piece sits behind a trait and the core never de
 ```sh
 cargo test --workspace        # no network
 cargo clippy --workspace --all-targets
-cargo test -p anistream-ui --test goldens    # every screen against its saved golden
+cargo test -p anistream-tui --test goldens    # every screen against its saved golden
 ```
 
 The website and docs are in `website/` (Astro + Starlight): `cd website && bun run dev`.

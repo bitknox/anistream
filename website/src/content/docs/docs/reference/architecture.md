@@ -54,8 +54,8 @@ at offset zero and passes through byte-for-byte, and nothing is decrypted. See
 ```sh
 cargo test --workspace        # no network
 cargo clippy --workspace --all-targets
-cargo test -p anistream-ui --test goldens              # every screen against its saved golden
-cargo run -p anistream-ui --example palette_report     # the palette's contrast margins
+cargo test -p anistream-tui --test goldens              # every screen against its saved golden
+cargo run -p anistream-tui --example palette_report     # the palette's contrast margins
 cargo run -p anistream --example player_preview -- path/to/video.mp4   # the player, no source
 cargo run -p anistream-plugin --example plugin_bench --release        # what a plugin call costs
 ```

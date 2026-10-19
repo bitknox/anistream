@@ -20,7 +20,7 @@
 //! roles are written by role name, and the legend line says which colour each name stands for, so
 //! a palette change shows once per file and a role change shows on the run it touches.
 //!
-//! An intended change is re-blessed with `ANISTREAM_BLESS=1 cargo test -p anistream-ui --test
+//! An intended change is re-blessed with `ANISTREAM_BLESS=1 cargo test -p anistream-tui --test
 //! goldens`, in its own commit, and reviewed as the `git diff` of these files.
 
 use std::{fmt::Write as _, path::PathBuf, time::Duration};
@@ -46,7 +46,7 @@ use anistream_model::{
     },
     sync::{ConflictRow, DeviceCodePrompt, SyncState},
 };
-use anistream_ui::{
+use anistream_tui::{
     Action, App, Clock, Keymap, Overlay, Palette, Role, Zone,
     eyecatch::{FRAME_MS, QUIET_HOLD_FRAMES, SWEEP_FRAMES},
     screens::{render_to_buffer, visible_rows},
@@ -257,7 +257,7 @@ fn compare(name: &str, buffer: &Buffer) -> Result<(), String> {
         std::fs::write(&path, &actual).expect("write a golden");
         return Ok(());
     }
-    let hint = "ANISTREAM_BLESS=1 cargo test -p anistream-ui --test goldens";
+    let hint = "ANISTREAM_BLESS=1 cargo test -p anistream-tui --test goldens";
     Err(match saved {
         None => format!("no golden {file} yet; it would be:\n{actual}\nwrite it with {hint}"),
         Some(saved) => format!(

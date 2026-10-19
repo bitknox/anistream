@@ -1,9 +1,9 @@
 //! Print the palette's measured contrast figures.
 //!
-//! Run with `cargo run -p anistream-ui --example palette_report`. Useful when tuning a
+//! Run with `cargo run -p anistream-tui --example palette_report`. Useful when tuning a
 //! colour: the test suite only tells you pass or fail, this shows the margin.
 
-use anistream_ui::theme::{
+use anistream_tui::theme::{
     color::{AA_NORMAL, Rgb},
     palette::{Palette, Role, Variant},
 };

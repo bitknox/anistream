@@ -1,6 +1,6 @@
 //! Bridging AniList responses into the shapes the UI renders.
 //!
-//! Kept out of `anistream-ui` deliberately: the UI depends only on `anistream-core`, so it
+//! Kept out of `anistream-tui` deliberately: the UI depends only on `anistream-core`, so it
 //! can be built and tested without a metadata backend. This module is the only place that
 //! knows both vocabularies.
 

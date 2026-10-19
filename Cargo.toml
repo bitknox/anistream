@@ -30,7 +30,7 @@ anistream-providers = { path = "crates/anistream-providers" }
 anistream-store = { path = "crates/anistream-store" }
 anistream-track = { path = "crates/anistream-track" }
 anistream-testkit = { path = "crates/anistream-testkit" }
-anistream-ui = { path = "crates/anistream-tui" }
+anistream-tui = { path = "crates/anistream-tui" }
 
 # --- async ---
 tokio = { version = "1.53", features = ["rt-multi-thread", "macros", "sync", "time", "fs", "process", "net", "io-util", "signal"] }

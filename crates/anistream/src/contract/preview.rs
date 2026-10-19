@@ -20,7 +20,7 @@ use anistream_testkit::{
     fixtures::{FINISHED, FIXTURE_NOW},
     seed,
 };
-use anistream_ui::keymap::Action;
+use anistream_tui::keymap::Action;
 
 use crate::harness::{Harness, Options};
 

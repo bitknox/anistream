@@ -11,7 +11,7 @@ use anistream_model::{
     downloads::{DownloadRow, DownloadState},
     event::Event,
 };
-use anistream_ui::{App, Focus, Keymap, Palette, Section, StageView, keymap::status_hints};
+use anistream_tui::{App, Focus, Keymap, Palette, Section, StageView, keymap::status_hints};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 /// Rows the stage shows; what the event loop passes as `visible_rows`.

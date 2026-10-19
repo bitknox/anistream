@@ -28,7 +28,7 @@ use anistream_model::{
 use anistream_net::HttpClient;
 use anistream_providers::{ProviderRegistry, vpn::VpnGuard};
 use anistream_store::Store;
-use anistream_ui::{
+use anistream_tui::{
     app::App,
     keymap::Keymap,
     screens,
@@ -436,7 +436,7 @@ async fn preview(
     images: bool,
     config_problem: Option<anistream_core::config::ConfigProblem>,
 ) -> Result<()> {
-    use anistream_ui::keymap::Action;
+    use anistream_tui::keymap::Action;
     use ratatui::{Terminal, backend::TestBackend};
 
     let palette = theme::resolve_with(config.theme.mode, None);
@@ -446,7 +446,7 @@ async fn preview(
         eprintln!("[keybinding: {problem}]");
     }
     let engine =
-        anistream_ui::image::ImageEngine::detect(images).with_cache_dir(paths.image_cache());
+        anistream_tui::image::ImageEngine::detect(images).with_cache_dir(paths.image_cache());
     let graphics = engine.graphics();
 
     // The sources a running app has a moment after launch: the torrent source once its guard
@@ -593,7 +593,7 @@ impl PreviewRun {
     const PATIENCE: Duration = Duration::from_secs(30);
 
     /// Press a key, as the event loop does.
-    async fn press(&mut self, app: &mut App, action: anistream_ui::keymap::Action) {
+    async fn press(&mut self, app: &mut App, action: anistream_tui::keymap::Action) {
         if let Some(task) = app.handle(action, self.rows) {
             self.dispatch(app, task);
         }
@@ -693,7 +693,7 @@ impl PreviewRun {
 
 /// Report the environment, without starting the UI.
 async fn doctor(config: &Config, paths: &Paths, store: &Store, images: bool) -> Result<()> {
-    let engine = anistream_ui::image::ImageEngine::detect(images);
+    let engine = anistream_tui::image::ImageEngine::detect(images);
     let background = theme::detect::detect_background();
     let palette = theme::resolve_with(config.theme.mode, background);
 
@@ -1706,7 +1706,7 @@ async fn run(
     }
 
     let engine =
-        anistream_ui::image::ImageEngine::detect(images).with_cache_dir(paths.image_cache());
+        anistream_tui::image::ImageEngine::detect(images).with_cache_dir(paths.image_cache());
     tracing::info!(graphics = ?engine.graphics(), "image engine ready");
     // Without the torrent source, which comes up behind the interface once the VPN guard
     // passes: see `TorrentTasks::bring_up`. Mutable: a settings change can stand the torrent
@@ -2008,7 +2008,7 @@ async fn run(
             signal = signals.recv() => {
                 tracing::info!(signal, "shutting down");
                 tui::terminal::exit_on_second_signal();
-                if let Some(task) = app.handle(anistream_ui::keymap::Action::Quit, rows) {
+                if let Some(task) = app.handle(anistream_tui::keymap::Action::Quit, rows) {
                     let job = JobGuard::start(&mut app, &task, &tx);
                     dispatch(
                         task, job, &mut player_tx, &paths, &app, &slot, &prefetch, &meta, &store,
@@ -2026,7 +2026,7 @@ async fn run(
             }
             // The eyecatch is the only thing in this app that animates, so the fast tick only
             // exists while one is running rather than burning a frame budget all the time.
-            _ = tokio::time::sleep(Duration::from_millis(anistream_ui::eyecatch::FRAME_MS)),
+            _ = tokio::time::sleep(Duration::from_millis(anistream_tui::eyecatch::FRAME_MS)),
                 if app.is_animating() =>
             {
                 app.tick_animation();
@@ -2109,13 +2109,13 @@ async fn keep_datasets_current(
 }
 
 /// What the terminal's graphics support amounts to, in words.
-fn describe_graphics(graphics: anistream_ui::image::Graphics) -> &'static str {
+fn describe_graphics(graphics: anistream_tui::image::Graphics) -> &'static str {
     match graphics {
-        anistream_ui::image::Graphics::Native => "a graphics protocol, so covers are pictures",
-        anistream_ui::image::Graphics::Halfblocks => {
+        anistream_tui::image::Graphics::Native => "a graphics protocol, so covers are pictures",
+        anistream_tui::image::Graphics::Halfblocks => {
             "no graphics protocol, so covers are drawn in half blocks"
         }
-        anistream_ui::image::Graphics::Disabled => "off (--no-images)",
+        anistream_tui::image::Graphics::Disabled => "off (--no-images)",
     }
 }
 
@@ -2266,7 +2266,7 @@ async fn publish_list(
     }
 }
 
-/// Ends its [`Job`](anistream_ui::app::Job) when dropped.
+/// Ends its [`Job`](anistream_tui::app::Job) when dropped.
 ///
 /// Moved into the future that does the work, so the job ends exactly when that future does —
 /// on success, on an early return, on a panic — with no path having to remember to say so.
@@ -5270,22 +5270,22 @@ mod tests {
             GuardState::Unreachable { reason: "the proxy did not answer".into() },
             GuardState::Unprotected,
         ] {
-            let badge = anistream_ui::app::vpn_badge(&sources::guard_view(&state));
+            let badge = anistream_tui::app::vpn_badge(&sources::guard_view(&state));
             assert_eq!(badge, (state.badge(), !state.is_protected()), "{state:?}");
         }
         let checking =
-            anistream_ui::app::vpn_badge(&sources::guard_view(&GuardState::Unverified));
+            anistream_tui::app::vpn_badge(&sources::guard_view(&GuardState::Unverified));
         assert_eq!(checking, (GuardState::Unverified.badge(), false));
     }
 
     #[test]
     fn every_kind_the_filler_index_knows_reads_as_the_index_words_it() {
         for kind in anistream_meta::filler::EpisodeKind::ALL {
-            let shown = anistream_ui::screens::episode_kind_label(data::row_kind(kind));
+            let shown = anistream_tui::screens::episode_kind_label(data::row_kind(kind));
             assert_eq!(shown, kind.label(), "{kind:?}");
         }
         assert_eq!(
-            anistream_ui::screens::episode_kind_label(
+            anistream_tui::screens::episode_kind_label(
                 anistream_model::episodes::EpisodeKind::Filler
             ),
             "filler"
@@ -5298,7 +5298,7 @@ mod tests {
 
         for kind in [SkipKind::Opening, SkipKind::Ending] {
             assert_eq!(
-                anistream_ui::screens::skip_label(playback::offered(kind)),
+                anistream_tui::screens::skip_label(playback::offered(kind)),
                 kind.label()
             );
         }
