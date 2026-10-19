@@ -1,0 +1,44 @@
+{
+  "id": 900006,
+  "idMal": null,
+  "title": {
+    "romaji": "Natsukaze Relay",
+    "english": "Summer Wind Relay",
+    "native": "夏風リレー"
+  },
+  "format": "TV",
+  "status": "RELEASING",
+  "description": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+  "episodes": 12,
+  "duration": 24,
+  "seasonYear": 2026,
+  "averageScore": null,
+  "genres": [
+    "Comedy",
+    "Sports"
+  ],
+  "synonyms": [],
+  "coverImage": {
+    "extraLarge": "https://img.example/cover/900006-xl.jpg",
+    "large": "https://img.example/cover/900006.jpg",
+    "color": null
+  },
+  "bannerImage": null,
+  "nextAiringEpisode": {
+    "episode": 9,
+    "airingAt": 1792515630,
+    "timeUntilAiring": 536400
+  },
+  "studios": {
+    "nodes": []
+  },
+  "externalLinks": [],
+  "streamingEpisodes": [],
+  "trailer": null,
+  "relations": {
+    "edges": []
+  },
+  "recommendations": {
+    "nodes": []
+  }
+}

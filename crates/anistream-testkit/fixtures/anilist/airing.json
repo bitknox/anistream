@@ -1,0 +1,42 @@
+[
+  {
+    "mediaId": 900002,
+    "episode": 3,
+    "airingAt": 1790349330
+  },
+  {
+    "mediaId": 900002,
+    "episode": 4,
+    "airingAt": 1790954130
+  },
+  {
+    "mediaId": 900006,
+    "episode": 7,
+    "airingAt": 1791306030
+  },
+  {
+    "mediaId": 900002,
+    "episode": 5,
+    "airingAt": 1791558930
+  },
+  {
+    "mediaId": 900006,
+    "episode": 8,
+    "airingAt": 1791910830
+  },
+  {
+    "mediaId": 900002,
+    "episode": 6,
+    "airingAt": 1792163730
+  },
+  {
+    "mediaId": 900006,
+    "episode": 9,
+    "airingAt": 1792515630
+  },
+  {
+    "mediaId": 900002,
+    "episode": 7,
+    "airingAt": 1792768530
+  }
+]

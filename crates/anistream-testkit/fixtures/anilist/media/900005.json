@@ -1,0 +1,44 @@
+{
+  "id": 900005,
+  "idMal": 800005,
+  "title": {
+    "romaji": "Hagane no Niwashi",
+    "english": "The Steel Gardener",
+    "native": "鋼の庭師"
+  },
+  "format": "ONA",
+  "status": "FINISHED",
+  "description": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
+  "episodes": 10,
+  "duration": 18,
+  "seasonYear": 2023,
+  "averageScore": 71,
+  "genres": [
+    "Sci-Fi",
+    "Slice of Life"
+  ],
+  "synonyms": [],
+  "coverImage": {
+    "extraLarge": "https://img.example/cover/900005-xl.jpg",
+    "large": "https://img.example/cover/900005.jpg",
+    "color": "#7ac47f"
+  },
+  "bannerImage": null,
+  "nextAiringEpisode": null,
+  "studios": {
+    "nodes": [
+      {
+        "name": "Studio Mokusei"
+      }
+    ]
+  },
+  "externalLinks": [],
+  "streamingEpisodes": [],
+  "trailer": null,
+  "relations": {
+    "edges": []
+  },
+  "recommendations": {
+    "nodes": []
+  }
+}

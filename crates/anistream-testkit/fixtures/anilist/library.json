@@ -1,0 +1,32 @@
+{
+  "viewer": {
+    "id": 5150,
+    "name": "fixture-viewer"
+  },
+  "entries": [
+    {
+      "id": 70001,
+      "mediaId": 900001,
+      "status": "COMPLETED",
+      "progress": 12,
+      "score": 8.5,
+      "updatedAt": 1789387230
+    },
+    {
+      "id": 70002,
+      "mediaId": 900002,
+      "status": "CURRENT",
+      "progress": 3,
+      "score": 0,
+      "updatedAt": 1791806430
+    },
+    {
+      "id": 70003,
+      "mediaId": 900003,
+      "status": "PLANNING",
+      "progress": 0,
+      "score": 0,
+      "updatedAt": 1791720030
+    }
+  ]
+}
