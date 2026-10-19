@@ -36,8 +36,8 @@ use anistream_ui::{
     app::{
         DeviceCodePrompt, DownloadRow, DownloadState, EpisodeKind, EpisodeRow, InviteLinkView,
         JobId, LocalPluginRow, MetaSourceRow, Notice, ProviderRow, RelatedTitle, ResumePoint,
-        Secret, SeedRow, StoreInviteRow, StoreMemberRow, StorePluginRow, StorePluginStatus,
-        StorePreview, StoreRow, StoreState,
+        Secret, SeedRow, SkipKind, StoreInviteRow, StoreMemberRow, StorePluginRow,
+        StorePluginStatus, StorePreview, StoreRow, StoreState,
     },
     eyecatch::{FRAME_MS, QUIET_HOLD_FRAMES, SWEEP_FRAMES},
     screens::{render_to_buffer, visible_rows},
@@ -1197,7 +1197,7 @@ fn now_playing_paused_skip(s: &mut Screen) {
     s.apply(Update::Playback { position: 61.8, duration: Some(1_435.0), paused: false });
     s.apply(Update::JobDone(job_for_play(s)));
     s.frames(2 * SWEEP_FRAMES);
-    s.apply(Update::SkipAvailable { label: "opening", to: 151.3 });
+    s.apply(Update::SkipAvailable { kind: SkipKind::Opening, to: 151.3 });
     s.apply(Update::PlaybackSpeed(1.25));
     s.press(&[" "]);
     s.apply(Update::Playback { position: 63.1, duration: Some(1_435.0), paused: true });

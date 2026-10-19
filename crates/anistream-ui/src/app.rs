@@ -1081,8 +1081,8 @@ pub struct NowPlaying {
     pub duration: Option<f64>,
     pub paused: bool,
     pub speed: f64,
-    /// Set while a skip is offered: the label and where it would seek to.
-    pub skip: Option<(&'static str, f64)>,
+    /// Set while a skip is offered: past what, and where it would seek to.
+    pub skip: Option<(SkipKind, f64)>,
 }
 
 impl NowPlaying {
@@ -1117,6 +1117,13 @@ impl NowPlaying {
     pub fn total(&self) -> String {
         self.duration.map_or_else(|| "--:--".into(), Self::clock)
     }
+}
+
+/// What a skip would seek past.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SkipKind {
+    Opening,
+    Ending,
 }
 
 /// How a playback came to an end.
@@ -1443,9 +1450,9 @@ pub enum Update {
         duration: Option<f64>,
         paused: bool,
     },
-    /// A skip is available at the current position.
+    /// A skip is available at the current position: past what, and where it would seek to.
     SkipAvailable {
-        label: &'static str,
+        kind: SkipKind,
         to: f64,
     },
     SkipCleared,
@@ -2216,9 +2223,9 @@ impl App {
                     self.reflect_watch(id, &episode, position, duration, false);
                 }
             }
-            Update::SkipAvailable { label, to } => {
+            Update::SkipAvailable { kind, to } => {
                 if let Some(playing) = &mut self.playing {
-                    playing.skip = Some((label, to));
+                    playing.skip = Some((kind, to));
                 }
             }
             Update::SkipCleared => {
@@ -7659,7 +7666,7 @@ mod tests {
         a.handle(Action::Open, 20);
         assert_eq!(a.handle(Action::SkipOpening, 20), None);
 
-        a.apply(Update::SkipAvailable { label: "opening", to: 93.2 });
+        a.apply(Update::SkipAvailable { kind: SkipKind::Opening, to: 93.2 });
         assert_eq!(
             a.handle(Action::SkipOpening, 20),
             Some(Task::Player(PlayerCommand::SeekTo(93.2)))

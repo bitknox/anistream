@@ -11,8 +11,8 @@ use ratatui::{
 use crate::{
     app::{
         App, Content, DownloadState, Entry, EpisodeKind, LibrarySegment, NoticeKind,
-        PluginChoice, StoreConfirm, StoreLine, StorePluginStatus, StoreRow, StoreState,
-        sync_badge,
+        PluginChoice, SkipKind, StoreConfirm, StoreLine, StorePluginStatus, StoreRow,
+        StoreState, sync_badge,
     },
     clock::Clock,
     keymap::status_hints,
@@ -1667,6 +1667,14 @@ fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
     }
 }
 
+/// What the skip prompt calls the part it would seek past.
+pub fn skip_label(kind: SkipKind) -> &'static str {
+    match kind {
+        SkipKind::Opening => "opening",
+        SkipKind::Ending => "ending",
+    }
+}
+
 /// What the episode table calls a kind of episode.
 pub fn episode_kind_label(kind: EpisodeKind) -> &'static str {
     match kind {
@@ -2053,7 +2061,7 @@ fn render_now_playing(buf: &mut Buffer, app: &App, area: Rect) {
 
     // The skip prompt is the only transient element, and it earns the obi colour because it is
     // the one thing here you are being asked to act on.
-    if let Some((label, _)) = playing.skip {
+    if let Some((kind, _)) = playing.skip {
         let key = app
             .keymap
             .keys_for(crate::keymap::Action::SkipOpening)
@@ -2063,7 +2071,7 @@ fn render_now_playing(buf: &mut Buffer, app: &App, area: Rect) {
         buf.set_string(
             body.left(),
             y,
-            format!("⟨ skip {label} — {key} ⟩"),
+            format!("⟨ skip {} — {key} ⟩", skip_label(kind)),
             app.palette.style(Role::Obi),
         );
     }
@@ -4798,7 +4806,7 @@ mod tests {
         // The status-line hint is always there; the prompt in the block is not.
         assert!(!text_of(&render_to_buffer(&app, 100, 26)).contains("skip opening"));
 
-        app.apply(Update::SkipAvailable { label: "opening", to: 93.2 });
+        app.apply(Update::SkipAvailable { kind: SkipKind::Opening, to: 93.2 });
         let text = text_of(&render_to_buffer(&app, 100, 26));
         assert!(text.contains("skip opening"), "prompt missing:\n{text}");
         assert!(text.contains("S ⟩"), "the prompt has to name the key:\n{text}");

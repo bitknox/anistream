@@ -650,7 +650,7 @@ fn copy(update: &Update) -> Update {
         Update::Playback { position, duration, paused } => {
             Update::Playback { position: *position, duration: *duration, paused: *paused }
         }
-        Update::SkipAvailable { label, to } => Update::SkipAvailable { label, to: *to },
+        Update::SkipAvailable { kind, to } => Update::SkipAvailable { kind: *kind, to: *to },
         Update::SkipCleared => Update::SkipCleared,
         Update::PlaybackSpeed(speed) => Update::PlaybackSpeed(*speed),
         Update::PlaybackEnded { watched, ending } => {
