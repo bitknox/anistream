@@ -262,13 +262,15 @@ jobs:
 
           # mpv and ffmpeg are runtime dependencies anistream shells out to, so declare them
           # rather than vendor them — bundling mpv would pull GPL obligations onto an MIT binary.
+          # libc6 is the floor the binary was linked against, so apt refuses an older system
+          # rather than installing something that cannot start.
           cat > "$root/DEBIAN/control" <<EOF
           Package: anistream
           Version: ${version}
           Section: video
           Priority: optional
           Architecture: amd64
-          Depends: mpv, ffmpeg
+          Depends: libc6 (>= ${{ matrix.glibc }}), mpv, ffmpeg
           Maintainer: anistream <noreply@anistream.tv>
           Homepage: https://anistream.tv
           Description: An anime streaming TUI
