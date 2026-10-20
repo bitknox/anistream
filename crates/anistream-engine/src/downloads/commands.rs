@@ -18,7 +18,7 @@ pub fn download_episode(
     tx: &Outbox,
 ) {
     let Services { meta, store, registry, .. } = services;
-    let EngineState { config, .. } = engine;
+    let config = engine.config.effective();
     let (store, registry, meta, tx) =
         (store.clone(), registry.clone(), meta.clone(), tx.clone());
     let translation = config.playback.translation;
@@ -55,7 +55,7 @@ pub fn download_many(
     tx: &Outbox,
 ) {
     let Services { meta, store, registry, .. } = services;
-    let EngineState { config, .. } = engine;
+    let config = engine.config.effective();
     let (store, registry, meta, tx) =
         (store.clone(), registry.clone(), meta.clone(), tx.clone());
     let translation = config.playback.translation;

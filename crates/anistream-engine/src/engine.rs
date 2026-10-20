@@ -186,7 +186,7 @@ impl Engine {
         // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
         let (arrivals_tx, arrivals) = mpsc::unbounded_channel();
         // The engine side's own state, on the config the app was launched with.
-        let mut state = EngineState::new(config, arrivals_tx);
+        let mut state = EngineState::new(config, &services.paths, arrivals_tx);
         let mut launch = VecDeque::new();
 
         // Joined stores as they were left, so Providers can count them on the first frame.
@@ -213,7 +213,7 @@ impl Engine {
         if background {
             // The daily update check: one cached request, one quiet toast when a release exists.
             updates::spawn_check(
-                state.config.updates.check,
+                state.config.effective().updates.check,
                 &services.paths.cache_dir,
                 &services.http,
                 &inbox.sender(),
@@ -221,8 +221,8 @@ impl Engine {
             // The airing digest: what aired for shows you watch since the last launch. Same
             // philosophy as the update check — one line, only when there is something to say.
             digest::spawn(
-                state.config.notifications.airing_digest,
-                state.config.notifications.desktop,
+                state.config.effective().notifications.airing_digest,
+                state.config.effective().notifications.desktop,
                 services.store.clone(),
                 services.meta.clone(),
                 services.host.clone(),
@@ -257,13 +257,14 @@ impl Engine {
         if own_chain {
             let tx = inbox.sender();
             let EngineState { config, torrent_tasks, arrivals, .. } = &mut state;
-            torrent_tasks.bring_up(config, &services, &tx, arrivals);
+            torrent_tasks.bring_up(config.effective(), &services, &tx, arrivals);
         }
 
         // The player is checked last, as launch always has, and not waited for.
         let checking = background.then(|| {
-            let mpv = player(&state.config, &services.paths, &services.player_theme);
-            let binary = state.config.playback.mpv_binary.clone();
+            let config = state.config.effective();
+            let mpv = player(config, &services.paths, &services.player_theme);
+            let binary = config.playback.mpv_binary.clone();
             tokio::spawn(async move { launch_notice(&mpv, &binary).await.map(Event::Toast) })
         });
 

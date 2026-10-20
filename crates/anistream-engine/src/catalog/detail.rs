@@ -30,7 +30,7 @@ pub fn play_trailer(
     services: &Services,
     tx: &Outbox,
 ) {
-    let EngineState { config, .. } = engine;
+    let config = engine.config.effective();
     let mpv_binary = config.playback.mpv_binary.clone();
     let (host, tx) = (services.host.clone(), tx.clone());
     tokio::spawn(async move {

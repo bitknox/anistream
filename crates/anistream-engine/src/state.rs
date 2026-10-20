@@ -11,7 +11,7 @@
 
 use std::sync::{Arc, RwLock};
 
-use anistream_core::config::Config;
+use anistream_core::config::{Config, Paths};
 use anistream_model::{
     command::PlayerCommand,
     playback::{EpisodeEntry, NextEpisode},
@@ -21,6 +21,7 @@ use tokio::sync::mpsc;
 
 use crate::{
     SharedConfig,
+    config::ConfigState,
     sources::{TorrentUp, torrent::TorrentTasks},
 };
 
@@ -29,15 +30,11 @@ pub type Arrivals = mpsc::UnboundedSender<(u64, Result<TorrentUp, String>)>;
 
 /// The effect layer's own state: what commands read and leave for the commands after them.
 pub struct EngineState {
-    /// The config in effect, as the front end last said with `UseConfig`. What the work runs
-    /// on, and what each playback builds its player from, so a setting changed on screen
-    /// reaches the next one.
-    ///
-    /// Temporary, a copy of the interface's own, until P4 makes the engine the config's owner.
-    pub config: Config,
-    /// The config as the file holds it, from the same `UseConfig`: what a new source order is
-    /// checked against, to tell a reorder from a change of which sources there are.
-    pub saved_config: Config,
+    /// The config: the one in effect, which the work runs on and each playback builds its
+    /// player from, so a setting changed on screen reaches the next one; and the file's, which
+    /// a new source order is checked against, to tell a reorder from a change of which sources
+    /// there are. What the front end last said with `UseConfig`, until the engine owns it.
+    pub config: ConfigState,
     /// What the front end said the next play needs, with `PlayHints`, until that play takes it.
     ///
     /// Temporary, until P4 gives the engine its own record of the titles opened.
@@ -60,14 +57,13 @@ pub struct EngineState {
 }
 
 impl EngineState {
-    /// The engine side as it starts: on the config the app was launched with, as the file's
-    /// too, as the interface starts, until the front end's first `UseConfig` says otherwise.
-    /// No torrent stack yet, and `arrivals` for it to report on when one is brought up.
-    pub fn new(config: Config, arrivals: Arrivals) -> Self {
+    /// The engine side as it starts: on the config the app was launched with, and the file as
+    /// it is at `paths`. No torrent stack yet, and `arrivals` for it to report on when one is
+    /// brought up.
+    pub fn new(config: Config, paths: &Paths, arrivals: Arrivals) -> Self {
         Self {
             shared_config: Arc::new(RwLock::new(config.clone())),
-            saved_config: config.clone(),
-            config,
+            config: ConfigState::new(config, paths),
             hints: None,
             player_tx: None,
             torrent_tasks: TorrentTasks::default(),

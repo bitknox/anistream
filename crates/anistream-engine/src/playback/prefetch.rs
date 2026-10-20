@@ -81,7 +81,7 @@ impl Prefetch {
 /// take.
 pub fn prefetch(id: AnilistId, episode: String, engine: &EngineState, services: &Services) {
     let Services { meta, store, registry, prefetch, .. } = services;
-    let EngineState { config, .. } = engine;
+    let config = engine.config.effective();
     let (meta, store, registry, playback, prefetch) = (
         meta.clone(),
         store.clone(),

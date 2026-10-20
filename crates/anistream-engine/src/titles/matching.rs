@@ -69,7 +69,7 @@ pub fn manual_search(
     tx: &Outbox,
 ) {
     let Services { meta, registry, .. } = services;
-    let EngineState { config, .. } = engine;
+    let config = engine.config.effective();
     let (registry, meta, tx) = (registry.clone(), meta.clone(), tx.clone());
     let translation = config.playback.translation;
     tokio::spawn(async move {

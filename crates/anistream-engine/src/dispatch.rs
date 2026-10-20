@@ -319,13 +319,13 @@ pub(crate) async fn handle_internal(
 ) -> Vec<Event> {
     let mut said = meta_notice(&services.meta);
     if let Ok(mut shared) = engine.shared_config.write() {
-        *shared = engine.config.clone();
+        *shared = engine.config.effective().clone();
     }
     match message {
         Internal::SettingsSaved => {}
         // Only the order changed: the chain as it stands is put in it, with no rebuild.
         Internal::SourcesReordered => {
-            sources::arrange(&services.registry, &engine.config);
+            sources::arrange(&services.registry, engine.config.effective());
             said.push(Event::Providers(data::provider_rows(&services.registry)));
         }
         // Awaited rather than spawned: this owns the session and the guard, and two

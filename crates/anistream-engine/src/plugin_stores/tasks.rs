@@ -244,7 +244,7 @@ pub fn store_task<W, F>(
     let context = StoreTaskContext {
         stores: services.stores.clone(),
         registry: services.registry.clone(),
-        config: engine.config.clone(),
+        config: engine.config.effective().clone(),
         http: services.http.clone(),
         paths: services.paths.clone(),
         host: services.host.clone(),

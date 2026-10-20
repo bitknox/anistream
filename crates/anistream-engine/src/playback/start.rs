@@ -53,6 +53,7 @@ pub fn play(
 ) {
     let Services { paths, sync, prefetch, player_theme, .. } = services;
     let EngineState { config, hints, player_tx, .. } = engine;
+    let config = config.effective();
     let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
     // A fresh channel per playback. The one playing gives up its window only once
     // this one has something to play — see `Handoff`.
@@ -98,6 +99,7 @@ pub fn play_source(
 ) {
     let Services { paths, sync, player_theme, .. } = services;
     let EngineState { config, hints, player_tx, .. } = engine;
+    let config = config.effective();
     // Identical to Play except the stream comes from the exact release the user
     // picked — same fresh channel, same session-replacement semantics. Never from the
     // streams found ahead: the pick names its own release.
@@ -139,6 +141,7 @@ pub fn play_party(
 ) {
     let Services { paths, sync, player_theme, .. } = services;
     let EngineState { config, hints, player_tx, .. } = engine;
+    let config = config.effective();
     // Same resolution as Play; the handoff at the end is the only difference.
     let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
     let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
@@ -178,6 +181,7 @@ pub fn play_local(
 ) {
     let Services { paths, http, store, sync, slot, player_theme, .. } = services;
     let EngineState { config, hints, player_tx, .. } = engine;
+    let config = config.effective();
     // No provider walk and no torrent session — the file is on disk — but the full
     // playback session all the same: a downloaded episode records history, resumes,
     // and syncs exactly like a streamed one. It used to go straight to mpv with no

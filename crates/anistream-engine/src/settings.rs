@@ -16,9 +16,7 @@ use crate::{
 /// The config in effect and the file's, as the front end last said. Kept current by the front
 /// end, which changes its own in place, until P4.
 pub fn take_config(now: Box<Config>, saved: Box<Config>, engine: &mut EngineState) {
-    let EngineState { config, saved_config, .. } = engine;
-    *config = *now;
-    *saved_config = *saved;
+    engine.config.take(*now, *saved);
 }
 
 /// Write a setting to the file, and say how that went.
@@ -31,23 +29,20 @@ pub fn save_setting(
     table: &'static [&'static str],
     key: &'static str,
     value: anistream_core::settings::SettingValue,
-    engine: &EngineState,
+    engine: &mut EngineState,
     services: &Services,
     tx: &Outbox,
 ) {
     let Services { paths, registry, .. } = services;
-    let EngineState { saved_config, .. } = engine;
-    // Against the file's order, not `config`'s: the reducer has already put the new
-    // order in effect there.
+    // Against the file's order, not the one in effect: the new order is in effect already.
     let reordered = (table, key) == (&["providers"][..], "order")
         && matches!(&value, anistream_core::settings::SettingValue::List(order)
-            if only_reorders(&saved_config.providers.order, order));
-    let written = anistream_core::settings::write_key(paths, table, key, value);
-    // Read back whatever the write left, so the Settings screen shows the file rather
-    // than its own hopes — and can put a refused setting back. A file that does not
-    // load is treated the way startup treats it.
+            if only_reorders(&engine.config.saved().providers.order, order));
+    let written = engine.config.write(paths, table, key, value);
+    // What the file holds after the write, so the Settings screen shows the file rather
+    // than its own hopes — and can put a refused setting back.
     let _ = tx.send(Event::SettingWritten {
-        on_disk: Box::new(Config::load(paths).unwrap_or_default()),
+        on_disk: Box::new(engine.config.saved().clone()),
         failed: written.is_err().then_some((table, key)),
     });
     match written {
@@ -110,7 +105,7 @@ pub fn remember(
     tx: impl FnOnce() -> Outbox,
 ) {
     use anistream_core::settings::SettingValue as V;
-    let playback = &mut engine.config.playback;
+    let playback = &mut engine.config.effective_mut().playback;
     let (key, value) = match event {
         Event::PlaybackSpeed(speed) => {
             playback.persisted_speed = Some(*speed);
