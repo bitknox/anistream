@@ -605,7 +605,7 @@ mod tests {
             anilist_id: AnilistId::new(154_587),
             mal_id: Some(52_991),
             episode: "12".into(),
-            title: "Frieren".into(),
+            title: "Hoshikuzu".into(),
             translation: Translation::Sub,
             resume_at: Some(600.0),
             runtime_secs: Some(1_440),
