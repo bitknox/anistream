@@ -410,7 +410,7 @@ impl Harness {
     fn use_config(&mut self) {
         if let Some(config) = self.seam.moved(&self.app) {
             let tx = self.channels.sender();
-            crate::dispatch(config, None, &mut self.engine, &self.app, &self.services, &tx);
+            crate::dispatch(config, None, &mut self.engine, &self.services, &tx);
         }
     }
 

@@ -16,7 +16,7 @@ use cli::{
     store::store_command,
     sync::sync_once,
 };
-use engine_state::EngineState;
+use engine_state::{EngineState, PlayHints};
 use services::Services;
 
 use anistream_engine::{
@@ -1046,13 +1046,13 @@ fn use_config(
     tx: &mpsc::UnboundedSender<Event>,
 ) {
     if let Some(config) = seam.moved(app) {
-        dispatch(config, None, engine, app, services, tx);
+        dispatch(config, None, engine, services, tx);
     }
 }
 
 /// Send a command to the engine side as the interface sends one: the config ahead of it when
-/// it moved, then the command, its job started as it is dispatched. Returns the job, for work
-/// someone waits on.
+/// it moved, and a play's hints ahead of a play, then the command, its job started as it is
+/// dispatched. Returns the job, for work someone waits on.
 fn command(
     app: &mut App,
     seam: &mut ConfigSeam,
@@ -1062,9 +1062,12 @@ fn command(
     tx: &mpsc::UnboundedSender<Event>,
 ) -> Option<JobId> {
     use_config(app, seam, engine, services, tx);
+    if let Some(hints) = play_hints(app, &task) {
+        dispatch(hints, None, engine, services, tx);
+    }
     let job = JobGuard::start(app, &task, tx);
     let id = job.as_ref().map(|job| job.id);
-    dispatch(task, job, engine, app, services, tx);
+    dispatch(task, job, engine, services, tx);
     id
 }
 
@@ -1480,7 +1483,8 @@ fn spawn(
             | Command::UnpublishPlugin { .. }
             | Command::OpenAdmin { .. }
             | Command::FetchArtwork { .. }
-            | Command::UseConfig { .. } => {
+            | Command::UseConfig { .. }
+            | Command::PlayHints { .. } => {
                 tracing::error!(?task, "task reached the generic spawner");
                 return;
             }
@@ -1547,13 +1551,12 @@ fn dispatch(
     task: Command,
     job: Option<JobGuard>,
     engine: &mut EngineState,
-    app: &App,
     services: &Services,
     tx: &mpsc::UnboundedSender<Event>,
 ) {
     let Services { paths, http, store, meta, registry, sync, stores, slot, prefetch } =
         services;
-    let EngineState { config, saved_config, player_tx } = engine;
+    let EngineState { config, saved_config, hints, player_tx } = engine;
     // No player handle is passed in: every playback path builds its own from the config
     // above, which is the live one the Settings screen edits, as the front end last said. A
     // handle held across the session is exactly how a turned-off upscaler kept running.
@@ -1562,6 +1565,10 @@ fn dispatch(
         Command::UseConfig { config: now, saved } => {
             *config = *now;
             *saved_config = *saved;
+        }
+        // For the play that follows, from the episode table the front end holds, until P4.
+        Command::PlayHints { title, next, episodes } => {
+            *hints = Some(PlayHints { title, next, episodes });
         }
         // Sync work needs the tracker set, which `spawn` deliberately does not move into
         // its task.
@@ -1656,14 +1663,16 @@ fn dispatch(
             });
         }
         Command::Play { id, episode } => {
+            let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
             // A fresh channel per playback. The one playing gives up its window only once
             // this one has something to play — see `Handoff`.
-            let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
+            let (prx, handoff) =
+                take_controls(player_tx, successor(id, &episode, title, config));
             let prefetched = prefetch.take(id, &episode, config.playback.translation);
             // Tracker ids rather than trackers: playback only needs to know which queues to
             // append to, and passing the set would couple the player to the sync layer.
             let tracker_ids = signed_in_tracker_ids(sync);
-            let extras = episode_extras(app, id, &episode);
+            let extras = (next, episodes);
             if extras.1.is_empty() {
                 fill_episodes(id, &episode, services, player_tx);
             }
@@ -1689,10 +1698,12 @@ fn dispatch(
             // Identical to Play except the stream comes from the exact release the user
             // picked — same fresh channel, same session-replacement semantics. Never from the
             // streams found ahead: the pick names its own release.
-            let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
+            let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
+            let (prx, handoff) =
+                take_controls(player_tx, successor(id, &episode, title, config));
             let prefetched = None;
             let tracker_ids = signed_in_tracker_ids(sync);
-            let extras = episode_extras(app, id, &episode);
+            let extras = (next, episodes);
             if extras.1.is_empty() {
                 fill_episodes(id, &episode, services, player_tx);
             }
@@ -1716,10 +1727,12 @@ fn dispatch(
         }
         Command::PlayParty { id, episode } => {
             // Same resolution as Play; the handoff at the end is the only difference.
-            let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
+            let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
+            let (prx, handoff) =
+                take_controls(player_tx, successor(id, &episode, title, config));
             let prefetched = None;
             let tracker_ids = signed_in_tracker_ids(sync);
-            let extras = episode_extras(app, id, &episode);
+            let extras = (next, episodes);
             spawn_playback(
                 id,
                 episode,
@@ -1995,10 +2008,11 @@ fn dispatch(
             // and syncs exactly like a streamed one. It used to go straight to mpv with no
             // context, which made downloads second-class in every way that matters.
             // Nothing to look up, so nothing can fail before it plays.
-            let (prx, handoff) = take_controls(player_tx, successor(app, id, &episode));
+            let PlayHints { title: named, next, episodes } = hints.take().unwrap_or_default();
+            let (prx, handoff) =
+                take_controls(player_tx, successor(id, &episode, named, config));
             handoff.now();
             let tracker_ids = signed_in_tracker_ids(sync);
-            let (next, episodes) = episode_extras(app, id, &episode);
             if episodes.is_empty() {
                 fill_episodes(id, &episode, services, player_tx);
             }
@@ -3145,6 +3159,36 @@ fn play_settings(
     }
 }
 
+/// What a play needs of what the interface shows, sent ahead of it as `PlayHints`: the name the
+/// window it takes over announces it by, and what the player's Up Next card and Episodes menu
+/// show. `None` for anything that does not play.
+///
+/// The front end's half of the seam, since the episode table and Now Playing are the `App`'s.
+/// Temporary, like `PlayHints`: P4 has the engine answer it from its own record of the titles.
+fn play_hints(app: &App, task: &Command) -> Option<Command> {
+    let (Command::Play { id, episode }
+    | Command::PlaySource { id, episode, .. }
+    | Command::PlayParty { id, episode }
+    | Command::PlayLocal { id, episode, .. }) = task
+    else {
+        return None;
+    };
+    let (next, episodes) = episode_extras(app, *id, episode);
+    Some(Command::PlayHints { title: successor_title(app, *id), next, episodes })
+}
+
+/// The name a new playback of `id` goes by on screen, for the window it takes over to say.
+fn successor_title(app: &App, id: anistream_core::ids::AnilistId) -> String {
+    // Now Playing is staged for the new playback before it is dispatched, so its title is the
+    // one the terminal shows; a watch party stages nothing, and the open title is the one.
+    app.playing
+        .as_ref()
+        .filter(|playing| playing.id == Some(id))
+        .map(|playing| playing.title.clone())
+        .or_else(|| app.detail.as_ref().filter(|e| e.id == id).map(|e| e.title.clone()))
+        .unwrap_or_default()
+}
+
 /// What the player's Up Next card and Episodes menu need from the episode table.
 fn episode_extras(
     app: &App,
@@ -3357,26 +3401,19 @@ impl Handoff {
     }
 }
 
-/// What a new playback is about to play, as the window it takes over says while it is found.
+/// What a new playback is about to play, as the window it takes over says while it is found:
+/// named as the front end said ahead of the play, in the translation in effect.
 fn successor(
-    app: &App,
     id: anistream_core::ids::AnilistId,
     episode: &str,
+    title: String,
+    config: &Config,
 ) -> anistream_model::playback::Successor {
-    // Now Playing is staged for the new playback before it is dispatched, so its title is the
-    // one the terminal shows; a watch party stages nothing, and the open title is the one.
-    let title = app
-        .playing
-        .as_ref()
-        .filter(|playing| playing.id == Some(id))
-        .map(|playing| playing.title.clone())
-        .or_else(|| app.detail.as_ref().filter(|e| e.id == id).map(|e| e.title.clone()))
-        .unwrap_or_default();
     anistream_model::playback::Successor {
         id,
         title,
         episode: episode.to_owned(),
-        translation: app.config.playback.translation,
+        translation: config.playback.translation,
     }
 }
 
@@ -3701,6 +3738,51 @@ mod tests {
         // A write read back, or one put back, moves only the file's half.
         app.saved_config.playback.auto_next = false;
         assert!(seam.moved(&app).is_some());
+    }
+
+    #[test]
+    fn a_play_is_sent_with_what_the_screen_knows_of_its_title() {
+        use anistream_core::ids::AnilistId;
+        let id = AnilistId::new(7);
+        let mut app = test_app();
+        let play = Command::Play { id, episode: "2".into() };
+        // Nothing of it on screen: nothing to announce, and a list the playback loads itself.
+        let nothing =
+            Command::PlayHints { title: String::new(), next: None, episodes: Vec::new() };
+        assert_eq!(play_hints(&app, &play), Some(nothing));
+        assert_eq!(play_hints(&app, &Command::LoadEpisodes(id)), None, "only a play has hints");
+
+        // The title open, as opening it from a list leaves it.
+        app.detail = Some(anistream_model::catalog::Entry::new(id, "Hoshikuzu no Tabibito"));
+        let row = |n: &str| EpisodeRow {
+            number: n.into(),
+            title: Some(format!("Part {n}")),
+            thumbnail: None,
+            description: None,
+            duration_secs: None,
+            watched: 0.0,
+            completed: n == "1",
+            kind: None,
+            skippable: false,
+        };
+        app.apply(Event::Episodes { id, rows: vec![row("1"), row("2"), row("3")] });
+        let local = Command::PlayLocal {
+            id,
+            episode: "2".into(),
+            title: "Hoshikuzu no Tabibito".into(),
+            path: "/downloads/2.mp4".into(),
+        };
+        for task in [play, local] {
+            let Some(Command::PlayHints { title, next, episodes }) = play_hints(&app, &task)
+            else {
+                panic!("{task:?} has hints");
+            };
+            assert_eq!(title, "Hoshikuzu no Tabibito");
+            assert_eq!(next.map(|n| n.number).as_deref(), Some("3"));
+            let listed: Vec<(&str, bool)> =
+                episodes.iter().map(|e| (e.number.as_str(), e.watched)).collect();
+            assert_eq!(listed, [("1", true), ("2", false), ("3", false)]);
+        }
     }
 
     #[test]
