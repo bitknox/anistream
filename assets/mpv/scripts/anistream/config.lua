@@ -22,6 +22,9 @@ M.opts = {
     -- The host's process id, and how often (seconds) to check it is still running. See host.lua.
     host_pid = 0,
     host_check = 5,
+    -- Whether overlay-add may scale the Up Next still, where mpv can (0.38). Off, the script
+    -- resamples it as it must on older players; tests turn it off to run that on any mpv.
+    scaled_still = true,
 }
 mp_options.read_options(M.opts, "anistream")
 

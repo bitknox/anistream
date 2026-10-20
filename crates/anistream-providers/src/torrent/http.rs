@@ -1393,6 +1393,12 @@ mod tests {
             .await;
         match encoded {
             Err(_) => {
+                // CI's mpv job installs mpv and sets this, so a missing mpv fails there
+                // instead of passing as a skip.
+                assert!(
+                    std::env::var("ANISTREAM_REQUIRE_MPV").as_deref() != Ok("1"),
+                    "ANISTREAM_REQUIRE_MPV is set but mpv is not on PATH"
+                );
                 eprintln!("skipping: mpv is not on PATH");
                 return;
             }
@@ -1432,6 +1438,10 @@ mod tests {
             .spawn()
             .unwrap();
         let mut ipc = Ipc::connect(&ipc_path).await;
+        // As thumbfast's child does once it is up: mpv before 0.40 applies its encoding profile
+        // after the command line, which turns keep-open off, and the first seek to meet an end
+        // of file then ended the file and left the child idle.
+        ipc.command(serde_json::json!(["set_property", "keep-open", "always"])).await;
         assert!(
             drawn_within(&thumb, frame, std::time::Duration::from_secs(5)).await,
             "no first thumbnail"

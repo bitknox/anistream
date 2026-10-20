@@ -1844,6 +1844,12 @@ mod tests {
             .await;
         match encoded {
             Err(_) => {
+                // CI's mpv job installs mpv and sets this, so a missing mpv fails there
+                // instead of passing as a skip.
+                assert!(
+                    std::env::var("ANISTREAM_REQUIRE_MPV").as_deref() != Ok("1"),
+                    "ANISTREAM_REQUIRE_MPV is set but mpv is not on PATH"
+                );
                 eprintln!("skipping: mpv is not on PATH");
                 return;
             }
@@ -1891,6 +1897,10 @@ mod tests {
             .spawn()
             .unwrap();
         let mut ipc = Ipc::connect(&ipc_path).await;
+        // As thumbfast's child does once it is up: mpv before 0.40 applies its encoding profile
+        // after the command line, which turns keep-open off, and the first seek to meet an end
+        // of file then ended the file and left the child idle.
+        ipc.command(serde_json::json!(["set_property", "keep-open", "always"])).await;
         let drawn = |wait: Duration| {
             let thumb = thumb.clone();
             async move {
@@ -1921,6 +1931,7 @@ mod tests {
 
         // Rest on a loaded position, the way thumbfast does: keyframe, then exact.
         std::fs::remove_file(&thumb).ok();
+        let rested = Instant::now();
         ipc.command(serde_json::json!(["seek", 10.0, "absolute+keyframes"])).await;
         tokio::time::sleep(Duration::from_millis(100)).await;
         ipc.command(serde_json::json!(["seek", 10.0, "absolute+exact"])).await;
@@ -1930,8 +1941,18 @@ mod tests {
              asked {} times)",
             origin.segments_asked()
         );
-        let position = ipc.command(serde_json::json!(["get_property", "time-pos"])).await;
-        let position = position["data"].as_f64().unwrap_or(f64::NAN);
+        // The first picture can be the keyframe seek's, from the keyframe at 8s; the exact
+        // seek lands a moment later. Reading the position once raced it on a loaded runner, so
+        // it is read until it lands, within the same bound.
+        let mut position = f64::NAN;
+        while rested.elapsed() < Duration::from_secs(3) {
+            let reply = ipc.command(serde_json::json!(["get_property", "time-pos"])).await;
+            position = reply["data"].as_f64().unwrap_or(f64::NAN);
+            if (8.5..=10.5).contains(&position) {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
         assert!((8.5..=10.5).contains(&position), "drew {position}s for a rest at 10s");
 
         ipc.command(serde_json::json!(["quit"])).await;

@@ -20,7 +20,10 @@ use anistream_net::HttpClient;
 use anistream_player::Mpv;
 use anistream_store::Store;
 use anistream_ui::app::{Ending, PlayerCommand, Successor, Update};
-use tokio::{io::AsyncWriteExt, sync::mpsc};
+use tokio::{
+    io::{AsyncBufReadExt, AsyncWriteExt},
+    sync::mpsc,
+};
 
 fn clip(seconds: u32) -> Stream {
     Stream {
@@ -74,6 +77,12 @@ async fn player() -> Option<(Mpv, tempfile::TempDir)> {
     let mpv =
         Mpv::new(dir.path()).with_extra_args(vec!["--vo=null".into(), "--ao=null".into()]);
     if !mpv.is_available().await {
+        // CI's mpv job installs mpv and sets this, so a missing mpv fails there
+        // instead of passing as a skip.
+        assert!(
+            std::env::var("ANISTREAM_REQUIRE_MPV").as_deref() != Ok("1"),
+            "ANISTREAM_REQUIRE_MPV is set but mpv is not on PATH"
+        );
         eprintln!("skipping: mpv is not on PATH");
         return None;
     }
@@ -192,10 +201,27 @@ async fn tell_mpv(dir: &std::path::Path, command: serde_json::Value) {
         .filter_map(|entry| entry.ok().map(|e| e.path()))
         .find(|path| path.extension().is_some_and(|ext| ext == "sock"))
         .expect("the player's socket");
-    let mut stream = anistream_player::ipc::connect(&socket).await.unwrap();
-    let line = format!("{}\n", serde_json::json!({ "command": command }));
-    stream.write_all(line.as_bytes()).await.unwrap();
-    stream.flush().await.unwrap();
+    let stream = anistream_player::ipc::connect(&socket).await.unwrap();
+    let (reader, mut writer) = tokio::io::split(stream);
+    let line = format!("{}\n", serde_json::json!({ "command": command, "request_id": 1 }));
+    writer.write_all(line.as_bytes()).await.unwrap();
+    writer.flush().await.unwrap();
+    // Held open until mpv answers. Hanging up straight after the write sometimes lost the
+    // command: a `cancel-next` sent seconds before the end never reached the playback. A
+    // `quit` closes the socket instead of answering, which is just as conclusive.
+    let mut lines = tokio::io::BufReader::new(reader).lines();
+    let answered = async {
+        while let Ok(Some(line)) = lines.next_line().await {
+            if serde_json::from_str::<serde_json::Value>(&line)
+                .is_ok_and(|reply| reply["request_id"] == 1)
+            {
+                return;
+            }
+        }
+    };
+    tokio::time::timeout(Duration::from_secs(5), answered)
+        .await
+        .expect("mpv neither answered the command nor closed the socket");
 }
 
 /// Wait until mpv has loaded a file and is far enough in to have reported a position.
@@ -208,6 +234,34 @@ async fn until_playing(updates: &mut mpsc::UnboundedReceiver<Update>) -> Vec<Upd
             break;
         }
     }
+    seen
+}
+
+/// Wait until the playback reports a position past `threshold` by the tracker's own rule: a
+/// known duration, and the playhead at least that far through it.
+///
+/// A resume point is only reached once mpv lands there, and on a generated clip it decodes its
+/// way from the start to do so: 0.75 s for 180 s on CI. mpv 0.37 reports no position on the
+/// way and the tracker learns the duration only on landing, so a fixed half second was not
+/// enough there; 0.41 reports the decoding as it goes, against a duration that grows with it.
+async fn until_watched(
+    updates: &mut mpsc::UnboundedReceiver<Update>,
+    threshold: f64,
+) -> Vec<Update> {
+    let mut seen = Vec::new();
+    let past = async {
+        while let Some(update) = updates.recv().await {
+            let past = matches!(update, Update::Playback { position, duration: Some(d), .. }
+                if d > 0.0 && position / d >= threshold);
+            seen.push(update);
+            if past {
+                return;
+            }
+        }
+    };
+    tokio::time::timeout(Duration::from_secs(10), past)
+        .await
+        .expect("the playback never got past the threshold");
     seen
 }
 
@@ -422,8 +476,7 @@ async fn closing_the_window_after_the_threshold_does_not_roll_on() {
     let store = Store::open_in_memory().unwrap();
     let (task, mut rx) =
         start(&mpv, &slot, vec![clip(200)], near_end, settings(true), commands, store);
-    let seen = until_playing(&mut rx).await;
-    tokio::time::sleep(Duration::from_millis(500)).await;
+    let seen = until_watched(&mut rx, settings(true).threshold).await;
     tell_mpv(dir.path(), serde_json::json!(["quit"])).await;
     let updates = finish(task, rx, seen).await;
 

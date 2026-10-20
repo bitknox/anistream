@@ -60,6 +60,37 @@ jobs:
       - name: Test
         run: cargo nextest run --workspace
 
+  # The real-mpv tests (the companion script, whole binges, the seek-bar thumbnailers) skip
+  # where mpv is missing, which is every runner above. Here apt installs mpv and the tests
+  # require it, so a skip fails instead. At both ends of what distributions ship: Ubuntu 24.04's
+  # 0.37 is the oldest that runs the companion (0.36 is its floor) and lacks what later players
+  # added, such as a scaled overlay (0.38) and the context menu (0.40); 26.04's 0.41 has them.
+  mpv:
+    name: mpv (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04]
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+      - name: Install mpv
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mpv
+      - run: mpv --version | head -1
+      - name: Test
+        run: >-
+          cargo nextest run --profile ci -p anistream -p anistream-player -p anistream-providers
+          -E 'group(mpv)'
+        env:
+          ANISTREAM_REQUIRE_MPV: "1"
+
   # Its own job rather than a step after the tests, so it runs beside them instead of adding
   # to them: clippy checks dependencies in a different mode and cannot reuse the test build.
   # Still on every OS, because the Windows named-pipe and macOS paths only exist there.

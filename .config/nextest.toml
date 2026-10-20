@@ -1,0 +1,21 @@
+# Real-mpv tests each start a player and wait on it with timeouts. Run all at once beside the
+# rest of the suite, a loaded machine misses those timeouts and the test fails for nothing, so
+# they share a small group instead.
+[test-groups]
+mpv = { max-threads = 2 }
+
+[[profile.default.overrides]]
+filter = '''
+binary(companion) | binary(binge)
+| test(=mpv::tests::a_detected_mpv_also_reports_its_version)
+| test(=bundle::tests::uosc_and_thumbfast_load_in_mpv_without_lua_errors)
+| test(=bundle::tests::thumbfast_opens_the_host_url_and_inherits_the_http_identity)
+| test(=bundle::tests::thumbfasts_child_keeps_its_file_open_past_an_end)
+| test(=mend::tests::a_flooded_thumbnailer_draws_where_the_pointer_rests)
+| test(=torrent::http::tests::a_thumbnail_child_keeps_working_through_seeks_into_missing_pieces)
+'''
+test-group = 'mpv'
+
+# CI runs every test rather than stopping at the first failure, so one run shows all of them.
+[profile.ci]
+fail-fast = false

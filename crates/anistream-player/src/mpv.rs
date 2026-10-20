@@ -812,6 +812,12 @@ mod tests {
         // rather than on the code. The negative path is covered hermetically below.
         let mpv = Mpv::new(std::env::temp_dir());
         if !mpv.is_available().await {
+            // CI's mpv job installs mpv and sets this, so a missing mpv fails there
+            // instead of passing as a skip.
+            assert!(
+                std::env::var("ANISTREAM_REQUIRE_MPV").as_deref() != Ok("1"),
+                "ANISTREAM_REQUIRE_MPV is set but mpv is not on PATH"
+            );
             eprintln!("skipping: mpv is not on PATH");
             return;
         }
