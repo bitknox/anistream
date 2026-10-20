@@ -841,6 +841,27 @@ impl TorrentSession {
         self.active.lock().unwrap_or_else(|e| e.into_inner()).clear();
     }
 
+    /// Stand the session down as the app quits.
+    ///
+    /// Each torrent is paused through the session, which records how far it got, so the next
+    /// launch picks up there instead of checking pieces it already had. Then the session stops
+    /// its tasks and their peer connections. Without this, quitting dropped everything mid
+    /// transfer and kept no record. librqbit's own stop ends with a fixed one-second wait for
+    /// its tasks to wind down, so a caller that cannot spare that bounds it; the pausing and
+    /// the cancelling come first and are what count.
+    pub async fn close(&self) {
+        self.stop();
+        let handles = self.session.with_torrents(|torrents| {
+            torrents.map(|(_, handle)| handle.clone()).collect::<Vec<_>>()
+        });
+        for handle in handles {
+            if let Err(e) = self.session.pause(&handle).await {
+                tracing::debug!(error = %e, "could not pause a torrent as the app quit");
+            }
+        }
+        self.session.stop().await;
+    }
+
     /// Halt all torrent traffic because the guard started leaking.
     ///
     /// This is the part that makes `on_leak` mean something. Dropping the stream server

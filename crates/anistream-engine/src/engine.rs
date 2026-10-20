@@ -54,6 +54,10 @@ use crate::{
 /// How long the exit waits for a playback to record where it was left.
 const EXIT_FLUSH: Duration = Duration::from_secs(2);
 
+/// How long the exit gives the torrent session to stand down. librqbit's stop ends in a fixed
+/// one-second wait after the work that matters, so this is what a quit with torrents costs.
+const TORRENT_CLOSE: Duration = Duration::from_secs(1);
+
 /// The engine, as a front end holds it: where its commands go.
 ///
 /// Dropping it, or [`Self::shutdown`], ends the actor. What the actor had started runs on until
@@ -315,8 +319,9 @@ impl Engine {
     /// whose wait would only delay the exit. The front end says so for now, since what is on
     /// screen is its own until P4 gives the engine its own record of the playback.
     ///
-    /// Nothing else stops here. The torrent session seeds on until the runtime ends, as it
-    /// always has: stopping it in order is P3f's, in its own commit.
+    /// Then the torrent session, if there is one, is stood down in order: each torrent paused
+    /// so the next launch knows how far it got, then its tasks and connections stopped. That
+    /// is bounded at a second, and with torrents off there is nothing to wait for.
     pub async fn shutdown(self, playing: bool) {
         let (done, stopped) = oneshot::channel();
         if self.commands.send(Message::Shutdown { playing, done }).is_ok() {
@@ -622,9 +627,24 @@ impl Actor {
         let _ = self.out.send(Out::Event(event));
     }
 
+    /// Everything the app does on its way out: the playback's last record, then the torrents.
+    async fn stop(&mut self, playing: bool) {
+        self.flush_playback(playing).await;
+        self.close_torrents().await;
+    }
+
+    /// Stand the torrent session down within [`TORRENT_CLOSE`], then let the guard go.
+    async fn close_torrents(&mut self) {
+        let closing = self.state.torrent_tasks.close();
+        if tokio::time::timeout(TORRENT_CLOSE, closing).await.is_err() {
+            tracing::debug!("the torrent session was still winding down as the app quit");
+        }
+        self.state.vpn_guard = None;
+    }
+
     /// Stop what is playing, if it is under way, and wait briefly for it to record where it
     /// ended: everything the inbox holds meanwhile is let go, unread, as the app quits.
-    async fn stop(&mut self, playing: bool) {
+    async fn flush_playback(&mut self, playing: bool) {
         let Some(controls) = self.state.player_tx.as_ref().filter(|_| playing) else { return };
         if controls.send(PlayerCommand::Stop).is_err() {
             return;
@@ -639,7 +659,6 @@ impl Actor {
         if tokio::time::timeout(EXIT_FLUSH, ended).await.is_err() {
             tracing::warn!("the player did not stop in time; its last position may be lost");
         }
-        // P3f stands the torrent session down here, once the playback has had its moment.
     }
 }
 

@@ -166,6 +166,26 @@ impl TorrentTasks {
             task.abort();
         }
     }
+
+    /// Stand everything down as the app quits: the watchers first, so none of them reacts to
+    /// the session going, then the session, closed in order so it keeps how far each torrent
+    /// got. Not [`Self::stop`], whose halt is the guard's answer to a leak and says so in the
+    /// log.
+    pub(crate) async fn close(&mut self) {
+        if let Some(waiting) = self.bring_up.take() {
+            waiting.abort();
+        }
+        for task in
+            [self.downloads.take(), self.watcher.take(), self.seeding.take(), self.cache.take()]
+                .into_iter()
+                .flatten()
+        {
+            task.abort();
+        }
+        if let Some(session) = self.session.take() {
+            session.close().await;
+        }
+    }
 }
 
 /// Keep the session's seeding in line with the settings, retire watched episodes that have
