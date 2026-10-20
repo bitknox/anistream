@@ -6281,6 +6281,26 @@ mod tests {
         assert!(a.toasts.iter().any(|t| t.notice.text.contains("no plugins")));
     }
 
+    /// The store screens each keep a cursor of their own: stepping back out of a store finds the
+    /// store list where it was, and a store's page opens at its top.
+    #[test]
+    fn stepping_back_out_of_a_store_finds_the_store_list_where_it_was() {
+        let mut a = at_stores(vec![
+            store_row("a", false, Vec::new()),
+            store_row("b", false, Vec::new()),
+        ]);
+        a.handle(Action::Down, 20);
+        a.handle(Action::Open, 20);
+        assert_eq!(a.nav.current(), &StageView::Store("b".into()));
+        a.handle(Action::Down, 20);
+        assert_eq!(a.store_line_cursor(), 1);
+        a.handle(Action::Back, 20);
+        assert_eq!(a.nav.current(), &StageView::Stores);
+        assert_eq!(a.store_cursor(), 1, "the store list is where it was left");
+        a.handle(Action::Open, 20);
+        assert_eq!(a.store_line_cursor(), 0, "a store's page opens at its top");
+    }
+
     #[test]
     fn the_store_cursor_stops_at_the_join_row() {
         let mut a = at_stores(vec![

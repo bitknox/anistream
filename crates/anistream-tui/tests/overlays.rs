@@ -649,3 +649,25 @@ fn an_overlay_keeps_its_hints_legible_above_the_scrim() {
     // And the first frame already knows the table pages at this size.
     assert!(status.contains("↑↓ page"), "{status:?}");
 }
+
+/// The overlays have one cursor between them, apart from the screens'. Every list overlay sets
+/// it as it opens, but the command palette opens with it where the overlay before left it —
+/// Logs, or the palette itself last time — until a letter is typed, which puts it at the top.
+#[test]
+fn the_palette_opens_on_the_row_the_overlay_before_it_was_left_on() {
+    let mut a = app();
+    for i in 0..10 {
+        a.push_toast(Notice::info(format!("line {i}")));
+    }
+    press(&mut a, &["L", "j", "j", "j"]);
+    assert_eq!(a.overlay_cursor(), 3);
+    press(&mut a, &[":"]);
+    assert_eq!(a.nav.overlay(), Some(&Overlay::CommandPalette));
+    assert_eq!(a.overlay_cursor(), 3, "opened where Logs was left");
+    press(&mut a, &["e"]);
+    assert_eq!(a.overlay_cursor(), 0, "a letter typed starts the matches at the top");
+
+    press(&mut a, &["backspace", "down", "down", "esc", ":"]);
+    assert_eq!(a.overlay_cursor(), 2, "and where it was itself left");
+    assert_eq!(a.cursor(), 0, "none of it moved the list behind");
+}
