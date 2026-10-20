@@ -5641,7 +5641,7 @@ mod tests {
         // scroll into view rather than living below the fold.
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Settings);
-        app.selected = crate::app::SettingKey::ROWS.len() - 1;
+        app.selected = anistream_model::settings::SettingKey::ROWS.len() - 1;
         let text = text_of(&render_to_buffer(&app, 120, 12));
         assert!(text.contains("TOKEN STORAGE"), "the last row must be visible:\n{text}");
     }
@@ -6253,9 +6253,9 @@ mod tests {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Settings);
         app.nav.focus_stage();
-        let night = crate::app::SettingKey::ROWS
+        let night = anistream_model::settings::SettingKey::ROWS
             .iter()
-            .position(|id| *id == crate::app::SettingKey::NightMode)
+            .position(|id| *id == anistream_model::settings::SettingKey::NightMode)
             .unwrap();
         app.selected = night;
         let text = text_of(&render_to_buffer(&app, 120, 34));
