@@ -1781,27 +1781,6 @@ mod tests {
         }));
     }
 
-    /// Diagnosis only: the child's log, printed when the test fails.
-    #[cfg(unix)]
-    struct DiagDump(std::path::PathBuf, Instant);
-
-    #[cfg(unix)]
-    impl Drop for DiagDump {
-        fn drop(&mut self) {
-            if std::thread::panicking() || std::env::var_os("DIAG_ALWAYS").is_some() {
-                let log = std::fs::read_to_string(&self.0).unwrap_or_default();
-                let lines: Vec<&str> = log.lines().collect();
-                let from = lines.len().saturating_sub(700);
-                eprintln!(
-                    "diag: failed after {:?}; child log, {} lines, from {from}:\n{}",
-                    self.1.elapsed(),
-                    lines.len(),
-                    lines[from..].join("\n")
-                );
-            }
-        }
-    }
-
     /// mpv's JSON IPC, enough to drive a thumbnailer.
     #[cfg(unix)]
     struct Ipc {
@@ -1903,8 +1882,6 @@ mod tests {
         let ipc_path = dir.path().join("ipc");
         let thumb = dir.path().join("thumb.bgra");
         let frame = 320 * 180 * 4;
-        let log = dir.path().join("child.log");
-        let _dump = DiagDump(log.clone(), Instant::now());
         let mut child = tokio::process::Command::new("mpv")
             .args(["--no-config", "--msg-level=all=no", "--idle", "--pause"])
             .args(["--keep-open=always", "--really-quiet", "--no-terminal"])
@@ -1913,8 +1890,6 @@ mod tests {
             .args(["--demuxer-max-bytes=128KiB", "--vd-lavc-fast", "--hwdec=no"])
             .args(["--vf=scale=320:-2,format=bgra", "--ovc=rawvideo", "--of=image2"])
             .args(["--ofopts=update=1", "--demuxer-lavf-o-append=http_multiple=0"])
-            .arg(format!("--log-file={}", log.display()))
-            .arg("--msg-level=all=v,ffmpeg=debug")
             .arg(format!("--o={}", thumb.display()))
             .arg(format!("--input-ipc-server={}", ipc_path.display()))
             .args(["--", server.thumbnail_url()])
@@ -1953,10 +1928,6 @@ mod tests {
             tokio::time::sleep(Duration::from_millis(15)).await;
         }
         assert!(origin.segments_asked() > 4, "the flood never reached the host");
-        eprintln!(
-            "diag: flood done after {step} seeks, host asked {}",
-            origin.segments_asked()
-        );
 
         // Rest on a loaded position, the way thumbfast does: keyframe, then exact.
         std::fs::remove_file(&thumb).ok();
@@ -1964,7 +1935,6 @@ mod tests {
         ipc.command(serde_json::json!(["seek", 10.0, "absolute+keyframes"])).await;
         tokio::time::sleep(Duration::from_millis(100)).await;
         ipc.command(serde_json::json!(["seek", 10.0, "absolute+exact"])).await;
-        eprintln!("diag: rest seeks sent at {:?}", rested.elapsed());
         assert!(
             drawn(Duration::from_secs(3)).await,
             "the thumbnailer drew nothing where the pointer rested ({segments} segments, host \

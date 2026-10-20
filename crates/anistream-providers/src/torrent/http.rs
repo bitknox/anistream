@@ -1312,27 +1312,6 @@ mod tests {
         }
     }
 
-    /// Diagnosis only: the child's log, printed when the test fails.
-    #[cfg(unix)]
-    struct DiagDump(std::path::PathBuf, std::time::Instant);
-
-    #[cfg(unix)]
-    impl Drop for DiagDump {
-        fn drop(&mut self) {
-            if std::thread::panicking() || std::env::var_os("DIAG_ALWAYS").is_some() {
-                let log = std::fs::read_to_string(&self.0).unwrap_or_default();
-                let lines: Vec<&str> = log.lines().collect();
-                let from = lines.len().saturating_sub(700);
-                eprintln!(
-                    "diag: failed after {:?}; child log, {} lines, from {from}:\n{}",
-                    self.1.elapsed(),
-                    lines.len(),
-                    lines[from..].join("\n")
-                );
-            }
-        }
-    }
-
     /// mpv's JSON IPC, just enough to drive a thumbnail child.
     #[cfg(unix)]
     struct Ipc {
@@ -1443,8 +1422,6 @@ mod tests {
         let ipc_path = dir.join("ipc");
         let thumb = dir.join("thumb.bgra");
         let frame = 320 * 180 * 4;
-        let log = dir.join("child.log");
-        let _dump = DiagDump(log.clone(), std::time::Instant::now());
         // thumbfast's own arguments, less the ones that only matter inside a real player.
         let mut child = tokio::process::Command::new("mpv")
             .args(["--no-config", "--msg-level=all=no", "--idle", "--pause"])
@@ -1454,8 +1431,6 @@ mod tests {
             .args(["--demuxer-max-bytes=128KiB", "--vd-lavc-fast", "--hwdec=no"])
             .args(["--vf=scale=320:-2,format=bgra", "--ovc=rawvideo", "--of=image2"])
             .arg("--ofopts=update=1")
-            .arg(format!("--log-file={}", log.display()))
-            .arg("--msg-level=all=v,ffmpeg=debug")
             .arg(format!("--o={}", thumb.display()))
             .arg(format!("--input-ipc-server={}", ipc_path.display()))
             .args(["--", server.thumbnail_url().unwrap()])
@@ -1482,7 +1457,6 @@ mod tests {
             (2.0, true),
         ] {
             std::fs::remove_file(&thumb).ok();
-            eprintln!("diag: seek to {target} at {:?}", _dump.1.elapsed());
             ipc.command(serde_json::json!(["seek", target, "absolute+keyframes"])).await;
             if on_hand {
                 assert!(
@@ -1508,7 +1482,6 @@ mod tests {
         ipc.command(serde_json::json!(["quit"])).await;
         let _ = tokio::time::timeout(std::time::Duration::from_secs(5), child.wait()).await;
         drop(server);
-        drop(_dump);
         std::fs::remove_dir_all(&dir).ok();
     }
 
