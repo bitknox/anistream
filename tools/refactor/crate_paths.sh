@@ -14,7 +14,7 @@
 #     as the plugin host's WIT bindings, `self::anistream::provider`, which live elsewhere anyway;
 #   - the paths of the modules that went into a directory of the engine's after the split, such
 #     as `anistream::mend::` to `anistream_engine::playback::mend::` and, in the engine,
-#     `crate::mend::` to `crate::playback::mend::`.
+#     `crate::mend::` to `crate::playback::mend::`, and `prune` and `digest` into `background`.
 #
 # In every tracked text file, manifests, workflows and docs included, it rewrites
 #
@@ -39,6 +39,7 @@ text_files() {
 
 # The engine's modules that went into a directory after the split, by that directory.
 export PLAYBACK='mend|picture|player|power|remux|shaders|slot'
+export BACKGROUND='digest|prune'
 
 # Nothing left to rename is not a failure: that is what a rerun usually finds.
 { git grep -lzE '(^|[^[:alnum:]_:])anistream::' -- 'crates/anistream/*.rs' \
@@ -49,11 +50,15 @@ export PLAYBACK='mend|picture|player|power|remux|shaders|slot'
     s/(?<![\w:])anistream::focus::/${root}tui::focus::/g;
     s/(?<![\w:])anistream::updates::self_update\b/${root}cli::update::self_update/g;
     s/(?<![\w:])anistream::($ENV{PLAYBACK})::/anistream::playback::$1::/g;
+    s/(?<![\w:])anistream::($ENV{BACKGROUND})::/anistream::background::$1::/g;
     s/(?<![\w:])anistream::/anistream_engine::/g;
   '
-{ git grep -lzE "(^|[^[:alnum:]_:])crate::($PLAYBACK)::" -- 'crates/anistream-engine/*.rs' ||
-  true; } |
-  xargs -0 -r perl -pi -e 's/(?<![\w:])crate::($ENV{PLAYBACK})::/crate::playback::$1::/g'
+{ git grep -lzE "(^|[^[:alnum:]_:])crate::($PLAYBACK|$BACKGROUND)::" -- \
+  'crates/anistream-engine/*.rs' || true; } |
+  xargs -0 -r perl -pi -e '
+    s/(?<![\w:])crate::($ENV{PLAYBACK})::/crate::playback::$1::/g;
+    s/(?<![\w:])crate::($ENV{BACKGROUND})::/crate::background::$1::/g;
+  '
 
 # The files that moved, as `old new` pairs: the engine's modules and the binary's own.
 moves="$(
@@ -62,6 +67,13 @@ moves="$(
   echo "crates/anistream/src/playback.rs crates/anistream-engine/src/playback/session.rs"
   for module in ${PLAYBACK//|/ }; do
     echo "crates/anistream/src/$module.rs crates/anistream-engine/src/playback/$module.rs"
+  done
+  for module in ${BACKGROUND//|/ }; do
+    echo "crates/anistream/src/$module.rs crates/anistream-engine/src/background/$module.rs"
+  done
+  # Modules that kept their paths and became a directory's mod.rs.
+  for module in downloads plugin_stores sources tracking; do
+    echo "crates/anistream/src/$module.rs crates/anistream-engine/src/$module/mod.rs"
   done
   echo "crates/anistream/src/tty.rs crates/anistream/src/tui/terminal.rs"
   echo "crates/anistream/src/focus.rs crates/anistream/src/tui/focus.rs"

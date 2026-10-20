@@ -661,7 +661,9 @@ async fn run(
     // Old logs, stale covers and the player's leftovers, off the critical path.
     {
         let paths = paths.clone();
-        tokio::task::spawn_blocking(move || anistream_engine::prune::sweep_at_launch(&paths));
+        tokio::task::spawn_blocking(move || {
+            anistream_engine::background::prune::sweep_at_launch(&paths)
+        });
     }
     // With torrents off nothing else would ever prune what an earlier run streamed. With them
     // on, the session prunes on its way up, before it writes anything.
@@ -670,7 +672,7 @@ async fn run(
             (paths.cache_dir.join("torrents"), config.providers.torrent.cache_limit_bytes());
         let store = store.clone();
         tokio::spawn(async move {
-            anistream_engine::prune::sweep_torrent_cache(
+            anistream_engine::background::prune::sweep_torrent_cache(
                 dir,
                 limit,
                 &store,
@@ -747,7 +749,7 @@ async fn run(
 
     // The airing digest: what aired for shows you watch since the last launch. Same
     // philosophy as the update check — one line, only when there is something to say.
-    anistream_engine::digest::spawn(
+    anistream_engine::background::digest::spawn(
         engine.config.notifications.airing_digest,
         engine.config.notifications.desktop,
         services.store.clone(),
@@ -2934,7 +2936,7 @@ impl TorrentTasks {
         let watcher = tokio::spawn(vpn_watch(guard, session.clone(), tx.clone()));
         let seeding =
             tokio::spawn(seeding_watch(session.clone(), Arc::clone(config), tx.clone()));
-        let cache = tokio::spawn(anistream_engine::prune::torrent_cache_watch(
+        let cache = tokio::spawn(anistream_engine::background::prune::torrent_cache_watch(
             session.clone(),
             store.clone(),
             Arc::clone(config),

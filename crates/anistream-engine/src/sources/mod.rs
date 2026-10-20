@@ -388,7 +388,7 @@ pub fn guard_view(state: &GuardState) -> anistream_model::sources::GuardView {
 async fn sweep_before_session(config: &Config, paths: &Paths, store: &anistream_store::Store) {
     let dir = paths.cache_dir.join("torrents");
     let limit = config.providers.torrent.cache_limit_bytes();
-    crate::prune::sweep_torrent_cache(dir, limit, store, Default::default()).await;
+    crate::background::prune::sweep_torrent_cache(dir, limit, store, Default::default()).await;
 }
 
 /// Start the torrent session and its provider behind a guard that has just passed.

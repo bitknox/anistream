@@ -30,6 +30,3 @@ pub mod plugin_stores;
 pub mod sources;
 pub mod tracking;
 pub mod updates;
-
-// Named here as they were until their callers follow them into `background`.
-pub use background::{digest, prune};
