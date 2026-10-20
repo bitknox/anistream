@@ -110,7 +110,7 @@ impl App {
         self.settings.sources.order.clone_from(&order);
         Some(Command::SetSetting {
             key: SettingKey::SourceOrder,
-            value: anistream_core::settings::SettingValue::List(order),
+            value: anistream_core::settings::SettingValue::Strings(order),
         })
     }
 }
@@ -202,7 +202,7 @@ mod tests {
         match task {
             Some(Command::SetSetting {
                 key: SettingKey::SourceOrder,
-                value: SettingValue::List(order),
+                value: SettingValue::Strings(order),
             }) => order,
             other => panic!("not an order save: {other:?}"),
         }

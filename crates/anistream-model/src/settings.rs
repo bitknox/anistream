@@ -577,7 +577,7 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
         }
         (SettingKey::SyncplayRoom, V::Str(room)) => config.syncplay.room = Some(room.clone()),
         (SettingKey::UpdateCheck, V::Bool(on)) => config.updates.check = *on,
-        (SettingKey::SourceOrder, V::List(order)) => {
+        (SettingKey::SourceOrder, V::Strings(order)) => {
             config.providers.order.clone_from(order);
         }
         _ => return false,
@@ -860,7 +860,7 @@ mod tests {
 
         assert!(put(&mut config, SettingKey::Upscaling, &SettingValue::Str("sharp".into())));
         assert_eq!(config.playback.upscaling, anistream_core::config::Upscaling::Sharp);
-        let order = SettingValue::List(vec!["plugins".into()]);
+        let order = SettingValue::Strings(vec!["plugins".into()]);
         assert!(put(&mut config, SettingKey::SourceOrder, &order));
         assert_eq!(config.providers.order, ["plugins"]);
     }

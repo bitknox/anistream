@@ -27,7 +27,10 @@ pub enum SettingValue {
     Float(f64),
     Bool(bool),
     /// Written as a TOML array of strings: `providers.order`, reordered from the Providers screen.
-    List(Vec<String>),
+    ///
+    /// Not `List`: the Kotlin bindings nest each variant as a class inside `SettingValue`, where
+    /// `List` would name the variant itself rather than Kotlin's list of the strings it carries.
+    Strings(Vec<String>),
 }
 
 impl SettingValue {
@@ -37,7 +40,7 @@ impl SettingValue {
             Self::Int(i) => toml_edit::Value::from(i),
             Self::Float(f) => toml_edit::Value::from(f),
             Self::Bool(b) => toml_edit::Value::from(b),
-            Self::List(items) => toml_edit::Value::Array(items.into_iter().collect()),
+            Self::Strings(items) => toml_edit::Value::Array(items.into_iter().collect()),
         }
     }
 }
@@ -290,7 +293,8 @@ mod tests {
         .unwrap();
 
         let order = ["alpha", "plugins", "torrent"].map(String::from).to_vec();
-        write_key(&paths, &["providers"], "order", SettingValue::List(order.clone())).unwrap();
+        write_key(&paths, &["providers"], "order", SettingValue::Strings(order.clone()))
+            .unwrap();
 
         let config = crate::config::Config::load(&paths).unwrap();
         assert_eq!(config.providers.order, order);
