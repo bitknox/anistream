@@ -36,7 +36,7 @@ use crate::{
     outbox::Outbox,
     playback::{
         PlaybackContext,
-        picture::{self, Governor, HdrKind},
+        picture::{self, HdrKind},
         power,
         shaders::{self, Look},
         slot::{Player, PlayerSlot},
@@ -46,12 +46,15 @@ use crate::{
 mod presence;
 mod skips;
 mod subtitles;
+mod upscaling;
 
 pub use skips::{fetch_skips, offered};
+pub use upscaling::PictureState;
 
 use presence::Rpc;
 use skips::{kind_id, skip_target};
 use subtitles::{localise_subtitles, sanitise};
+use upscaling::read_source;
 
 /// How long mpv may go without reporting a position before we say something.
 ///
@@ -1310,41 +1313,6 @@ impl Run<'_> {
 }
 
 impl Run<'_> {
-    /// Choose the upscaling chain for the file as it now stands, and set it if it changed.
-    ///
-    /// `announce` is for changes the viewer did not ask for — the governor easing, the battery
-    /// — which get a short note on the video; a pick from the menu speaks for itself.
-    async fn apply_picture(
-        &self,
-        picture: &mut PictureState,
-        session: &MpvSession,
-        source: Option<&shaders::Source>,
-        streams: &[Stream],
-        index: usize,
-        announce: bool,
-    ) {
-        let (Some(source), Some(dir)) = (source, &self.settings.shader_dir) else { return };
-        let budget =
-            shaders::Budget { on_battery: picture.on_battery, eased: picture.governor.eased() };
-        let chain = shaders::choose(self.look, source, picture.display, budget);
-        let paths = shaders::paths(&chain, dir);
-        if paths != picture.applied && session.set_shaders(&paths).await.is_ok() {
-            tracing::info!(label = chain.label, ?budget, "upscaling chain");
-            picture.applied = paths;
-            if announce {
-                let _ = session.notify(format!("Upscaling eased · {}", chain.label)).await;
-            }
-        }
-        let media = companion::Media {
-            hdr: source.hdr.map(HdrKind::badge),
-            upscaler: chain.upscaler.map(str::to_owned),
-        };
-        let _ = session.send(companion::state("media", &media)).await;
-        let _ = session.send(companion::state("menus", &self.menus(streams, index))).await;
-    }
-}
-
-impl Run<'_> {
     /// Carry out what the track policy decided.
     async fn apply_track(&self, action: TrackAction, session: &MpvSession) {
         if let TrackAction::Remember(memory) = action {
@@ -1498,49 +1466,6 @@ const PREFETCH_LEAD: f64 = 90.0;
 
 /// How often the battery is asked about during playback.
 const BATTERY_POLL: Duration = Duration::from_secs(60);
-
-/// What the window is doing to the picture.
-///
-/// Kept with the player rather than the episode, like the track policy: a GPU that could not
-/// keep up on episode 3 will not on episode 4 either, so the governor's steps carry over, and
-/// mpv keeps the chain from one file to the next, so what is applied is the window's.
-pub struct PictureState {
-    governor: Governor,
-    /// The chain mpv is running, as absolute paths; compared before every write.
-    applied: Vec<String>,
-    display: Option<shaders::Display>,
-    on_battery: bool,
-    battery_checked: Option<tokio::time::Instant>,
-    /// The governor's clock: monotonic, so a pause or a seek cannot move it.
-    clock: std::time::Instant,
-}
-
-impl Default for PictureState {
-    fn default() -> Self {
-        Self {
-            governor: Governor::new(Governor::DEFAULT_CAP),
-            applied: Vec::new(),
-            display: None,
-            on_battery: false,
-            battery_checked: None,
-            clock: std::time::Instant::now(),
-        }
-    }
-}
-
-/// The picture's size and kind, from `video-params` — `dw`/`dh`, the size after aspect
-/// correction, which is what is actually shown.
-fn read_source(
-    params: &serde_json::Value,
-    track: Option<&serde_json::Value>,
-) -> Option<shaders::Source> {
-    let dimension = |key: &str| params.get(key)?.as_u64().and_then(|v| u32::try_from(v).ok());
-    Some(shaders::Source {
-        width: dimension("dw")?,
-        height: dimension("dh")?,
-        hdr: picture::classify(params, track),
-    })
-}
 
 /// The size the Up Next still is written at: 16:9, large enough to stay sharp when the card is
 /// drawn at HiDPI scale, small enough to write in a few milliseconds.
