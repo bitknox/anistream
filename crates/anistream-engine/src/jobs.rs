@@ -1,11 +1,11 @@
-//! Jobs: the work someone waits on, numbered on the engine side, announced as it starts, and
-//! ended however it ends.
+//! Jobs: the work someone waits on, numbered as it is sent, announced as it starts, and ended
+//! however it ends.
 
 use std::time::Duration;
 
-use anistream_model::{command::Command, event::Event, jobs::JobId};
+use anistream_model::{event::Event, jobs::JobId};
 
-use crate::{outbox::Outbox, state::EngineState};
+use crate::outbox::Outbox;
 
 /// A job, started for work someone waits on, which ends when this is dropped.
 ///
@@ -19,22 +19,10 @@ pub struct JobGuard {
 }
 
 impl JobGuard {
-    /// A job for `task`, numbered on the engine side and announced with `JobStarted`, or `None`
-    /// for work nobody waits on.
-    ///
-    /// Announced on the channel the work answers on, before the work can send anything, so the
-    /// job's notes and its end always find it in the front end.
-    ///
-    /// Public until P3e, where `Engine::send` starts the job and returns its number.
-    pub fn start(engine: &mut EngineState, task: &Command, tx: &Outbox) -> Option<Self> {
-        let activity = task.activity()?;
-        Some(Self::announce(engine.number_job(), activity, tx))
-    }
-
-    /// Job `id`, numbered already, announced with `JobStarted` on the channel the work answers
-    /// on, before the work can send anything, so the job's notes and its end always find it in
-    /// the front end.
-    pub fn announce(id: JobId, activity: String, tx: &Outbox) -> Self {
+    /// Job `id`, numbered as its command was sent, announced with `JobStarted` on the channel
+    /// the work answers on, before the work can send anything, so the job's notes and its end
+    /// always find it in the front end. Only the engine starts jobs: see `Engine::send`.
+    pub(crate) fn announce(id: JobId, activity: String, tx: &Outbox) -> Self {
         let _ = tx.send(Event::JobStarted { job: id, activity });
         Self { id, tx: tx.clone() }
     }
@@ -54,34 +42,29 @@ impl Drop for JobGuard {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anistream_core::config::Config;
     use tokio::sync::mpsc;
 
     #[test]
-    fn a_job_starts_only_for_work_someone_waits_on() {
+    fn a_job_is_announced_by_its_number_before_it_is_handed_over() {
         let (tx, mut rx) = mpsc::unbounded_channel();
         let tx = Outbox::from(tx);
-        let mut engine = EngineState::new(Config::default(), mpsc::unbounded_channel().0);
-        let score =
-            Command::SetScore { id: anistream_core::ids::AnilistId::new(1), score: 7.0 };
-        assert!(JobGuard::start(&mut engine, &score, &tx).is_none());
-        assert!(rx.try_recv().is_err(), "nothing announced for work nobody waits on");
-
-        let first = JobGuard::start(&mut engine, &Command::CheckProviders, &tx).unwrap();
-        let second = JobGuard::start(&mut engine, &Command::LoadSeasonal, &tx).unwrap();
-        assert_ne!(first.id, second.id, "numbered once each");
+        let job = JobGuard::announce(JobId::new(7), "checking providers".into(), &tx);
+        assert_eq!(job.id, JobId::new(7));
         assert!(matches!(
             rx.try_recv(),
-            Ok(Event::JobStarted { job, activity }) if job == first.id && activity == "checking providers"
+            Ok(Event::JobStarted { job, activity })
+                if job == JobId::new(7) && activity == "checking providers"
         ));
+        assert!(rx.try_recv().is_err(), "said once, and nothing ended yet");
+        drop(job);
+        assert!(matches!(rx.try_recv(), Ok(Event::JobDone(job)) if job == JobId::new(7)));
     }
 
     #[tokio::test]
     async fn a_job_ends_however_its_work_does_even_by_panicking() {
         let (tx, mut rx) = mpsc::unbounded_channel();
         let tx = Outbox::from(tx);
-        let mut engine = EngineState::new(Config::default(), mpsc::unbounded_channel().0);
-        let job = JobGuard::start(&mut engine, &Command::CheckProviders, &tx).unwrap();
+        let job = JobGuard::announce(JobId::new(1), "checking providers".into(), &tx);
         let id = job.id;
 
         let work = tokio::spawn(async move {

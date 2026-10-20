@@ -6,10 +6,9 @@
 //! it and before everything sent after. Two channels could not promise that, and a second one
 //! read only while the first was empty could wait behind a busy one for as long as it stayed busy.
 //!
-//! The work only ever holds an [`Outbox`], whichever way it is read. The engine side reads an
-//! [`Outbox::inbox`] and passes the events on; a reader with no engine side to tell anything,
-//! the command line or a test, hands the work a plain event channel, made an `Outbox` with
-//! `From`.
+//! The work only ever holds an [`Outbox`], whichever way it is read. The engine's actor reads
+//! an inbox and passes the events on; a reader with no engine side to tell anything, the
+//! command line or a test, hands the work a plain event channel, made an `Outbox` with `From`.
 
 use anistream_model::event::Event;
 use tokio::sync::mpsc::{self, error::SendError};
@@ -35,7 +34,7 @@ pub enum Internal {
 
 /// One item of the engine side's inbox, in the order it was sent.
 #[derive(Debug)]
-pub enum Envelope {
+pub(crate) enum Envelope {
     /// For the front end, once the engine side has done its part with it.
     Event(Event),
     /// For the engine side alone.
@@ -57,10 +56,7 @@ enum Route {
 
 impl Outbox {
     /// An inbox for the engine side to read, and the outbox the work writes to it through.
-    ///
-    /// Public until P3e, whose actor reads the one inbox the loop, the preview and the harness
-    /// each read now.
-    pub fn inbox() -> (Self, mpsc::UnboundedReceiver<Envelope>) {
+    pub(crate) fn inbox() -> (Self, mpsc::UnboundedReceiver<Envelope>) {
         let (tx, rx) = mpsc::unbounded_channel();
         (Self(Route::Inbox(tx)), rx)
     }
@@ -84,7 +80,7 @@ impl Outbox {
     ///
     /// Refused, with the message back, when nobody reads any more, and by an outbox that
     /// carries events only: whoever reads that one has no engine side to tell.
-    pub fn internal(&self, message: Internal) -> Result<(), SendError<Internal>> {
+    pub(crate) fn internal(&self, message: Internal) -> Result<(), SendError<Internal>> {
         match &self.0 {
             Route::Inbox(tx) => {
                 tx.send(Envelope::Internal(message)).map_err(|SendError(sent)| {
@@ -99,7 +95,7 @@ impl Outbox {
     }
 
     /// A handle that does not keep the channel open, as `UnboundedSender::downgrade`.
-    pub fn downgrade(&self) -> WeakOutbox {
+    pub(crate) fn downgrade(&self) -> WeakOutbox {
         WeakOutbox(match &self.0 {
             Route::Inbox(tx) => WeakRoute::Inbox(tx.downgrade()),
             Route::Events(tx) => WeakRoute::Events(tx.downgrade()),
@@ -117,7 +113,7 @@ impl From<mpsc::UnboundedSender<Event>> for Outbox {
 
 /// An [`Outbox`] that does not keep its channel open.
 #[derive(Debug, Clone)]
-pub struct WeakOutbox(WeakRoute);
+pub(crate) struct WeakOutbox(WeakRoute);
 
 #[derive(Debug, Clone)]
 enum WeakRoute {
@@ -127,7 +123,7 @@ enum WeakRoute {
 
 impl WeakOutbox {
     /// The outbox again, while anything else still holds it open.
-    pub fn upgrade(&self) -> Option<Outbox> {
+    pub(crate) fn upgrade(&self) -> Option<Outbox> {
         Some(Outbox(match &self.0 {
             WeakRoute::Inbox(tx) => Route::Inbox(tx.upgrade()?),
             WeakRoute::Events(tx) => Route::Events(tx.upgrade()?),

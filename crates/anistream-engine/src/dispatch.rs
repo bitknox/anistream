@@ -1,10 +1,9 @@
 //! Routing: each command to whatever carries it out, what the engine side does on the way of an
 //! event, and the work it leaves itself.
 //!
-//! The front end drives these itself for now, from its loop, its preview and the contract-test
-//! harness: [`dispatch`] for each command, [`receive`] for each event on its way to it, and
-//! [`handle_internal`] for each message the engine side left itself. P3e's actor takes them
-//! over, behind `Engine::send` and the engine's event stream, and they stop being public.
+//! The engine's actor drives these, behind `Engine::send` and the engine's event stream:
+//! [`dispatch`] for each command, [`receive`] for each event on its way to the front end, and
+//! [`handle_internal`] for each message the engine side left itself. No front end calls them.
 
 use anistream_meta::Meta;
 use anistream_model::{command::Command, event::Event, notice::Notice};
@@ -102,8 +101,8 @@ where
 /// the live player's control channel, and replacing that sender is what stops a finished
 /// episode's keys steering the next one.
 ///
-/// Public until P3e, whose actor runs it for each command `Engine::send` hands over.
-pub fn dispatch(
+/// The actor runs it for each command `Engine::send` hands over, one at a time.
+pub(crate) fn dispatch(
     task: Command,
     job: Option<JobGuard>,
     engine: &mut EngineState,
@@ -281,8 +280,12 @@ pub fn dispatch(
 /// minute later, the pushed progress looked simply absent. And the metadata ladder's notice, when
 /// it moved. `tx` is asked for only when there is work to answer on it.
 ///
-/// Public until P3e, whose actor does this with every event before passing it on.
-pub fn receive(update: &Event, services: &Services, tx: impl FnOnce() -> Outbox) -> Vec<Event> {
+/// The actor does this with every event before passing it on.
+pub(crate) fn receive(
+    update: &Event,
+    services: &Services,
+    tx: impl FnOnce() -> Outbox,
+) -> Vec<Event> {
     if matches!(update, Event::ProgressQueued) {
         let (sync, tx) = (services.sync.clone(), tx());
         tokio::spawn(async move { tracking::drain_once(&sync, &tx).await });
@@ -294,8 +297,8 @@ pub fn receive(update: &Event, services: &Services, tx: impl FnOnce() -> Outbox)
 /// silently recovering would leave the last thing said untrue. The status rows ride along, so
 /// the header chip and the Providers screen agree with the toast without waiting for a refresh.
 ///
-/// Public until P3e, whose actor says it with the events it passes on.
-pub fn meta_notice(meta: &Meta) -> Vec<Event> {
+/// The actor says it with the events it passes on.
+pub(crate) fn meta_notice(meta: &Meta) -> Vec<Event> {
     let Some(notice) = meta.take_notice() else { return Vec::new() };
     vec![Event::MetaStatus(data::meta_rows(meta)), Event::Toast(Notice::info(notice))]
 }
@@ -307,8 +310,8 @@ pub fn meta_notice(meta: &Meta) -> Vec<Event> {
 /// The metadata ladder's notice comes first, as on the way of an event. Then the copy of the
 /// config the background tasks read is brought up to the one in effect, whatever the message.
 ///
-/// Public until P3e, whose actor reads its own inbox and does this with each message there.
-pub async fn handle_internal(
+/// The actor does this with each message in its inbox, in the message's place.
+pub(crate) async fn handle_internal(
     message: Internal,
     engine: &mut EngineState,
     services: &Services,

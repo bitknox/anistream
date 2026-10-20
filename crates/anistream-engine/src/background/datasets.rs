@@ -16,9 +16,7 @@ use crate::{now_epoch, outbox::Outbox};
 /// A failure is said once, in words; the retries back off from five minutes to an hour; and
 /// the recovery is said too, so the last thing on screen stays true. A refresh only fetches what
 /// is due, so a retry asks again for exactly the datasets that failed.
-///
-/// Public until P3e, whose `Engine::start` starts it where the loop's launch does now.
-pub async fn keep_datasets_current(store: Store, http: HttpClient, tx: Outbox) {
+pub(crate) async fn keep_datasets_current(store: Store, http: HttpClient, tx: Outbox) {
     let mut wait = Duration::from_secs(5 * 60);
     let mut said = false;
     loop {

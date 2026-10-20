@@ -7,6 +7,11 @@
 //! The terminal front end keeps its terminal setup and event loop in the binary. No terminal crate is a dependency, not even transitively, so a front end
 //! that is not a terminal can link this; `tools/check-boundaries.sh` holds it to that in CI.
 //!
+//! A front end drives it through an [`engine::Engine`]: started from [`options::EngineOptions`]
+//! and the [`host::Host`] it runs on, sent commands, and read through its
+//! [`engine::EventStream`]. Only the command line reaches past it, to [`services`] and the work's
+//! own functions, for the one thing it does before it exits.
+//!
 //! An example or an integration test drives the *real* orchestration here rather than a copy of
 //! it. That matters most for [`playback`], where the thing being verified — a torrent stream
 //! reaching mpv and the resulting position landing in SQLite — cannot be covered by unit tests
@@ -25,7 +30,7 @@ pub mod artwork;
 pub mod background;
 pub mod catalog;
 pub mod data;
-pub mod dispatch;
+pub(crate) mod dispatch;
 pub mod downloads;
 pub mod engine;
 pub mod error;
@@ -38,7 +43,7 @@ pub mod plugin_stores;
 pub mod services;
 pub mod settings;
 pub mod sources;
-pub mod state;
+pub(crate) mod state;
 pub mod titles;
 pub mod tracking;
 pub mod updates;
