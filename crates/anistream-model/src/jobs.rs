@@ -13,8 +13,8 @@
 pub struct JobId(u64);
 
 impl JobId {
-    /// The job numbered `n`. Whoever starts jobs numbers them, once each per run: the interface,
-    /// for now.
+    /// The job numbered `n`. Whoever starts jobs numbers them, once each per run: the side that
+    /// runs the work, which announces each with `Event::JobStarted`.
     pub const fn new(n: u64) -> Self {
         Self(n)
     }

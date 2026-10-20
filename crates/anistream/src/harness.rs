@@ -27,7 +27,7 @@
 //! asks for torrents is refused, and so are the tasks that would start a player or open a page.
 
 use std::{
-    collections::VecDeque,
+    collections::{HashSet, VecDeque},
     sync::{Arc, RwLock},
     time::Duration,
 };
@@ -110,6 +110,7 @@ pub struct Harness {
     services: Services,
     engine: EngineState,
     seam: ConfigSeam,
+    jobs: Jobs,
     shared_config: anistream_engine::SharedConfig,
     torrent_tasks: TorrentTasks,
     vpn_guard: Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
@@ -207,6 +208,7 @@ impl Harness {
         Self {
             engine: EngineState::new(config.clone()),
             seam: ConfigSeam::default(),
+            jobs: Jobs::default(),
             shared_config: Arc::new(RwLock::new(config)),
             app,
             server,
@@ -235,7 +237,7 @@ impl Harness {
     }
 
     /// Run a task as the event loop runs one: its job started, then dispatched. Returns the
-    /// job, for work someone waits on.
+    /// job, as the engine side numbered it, for work someone waits on.
     ///
     /// Nothing is applied until [`Self::settle`]. Tasks sent one after another without a
     /// settle between them are dispatched one after another, as keys pressed in quick
@@ -283,6 +285,10 @@ impl Harness {
     /// Apply what the work sent back until there is none left, and return it in the order
     /// the app applied it.
     ///
+    /// All but `JobStarted`, which every job opens with: the jobs are held to it here instead.
+    /// Each job a command started has to be announced, in the order they were started and by
+    /// the number its send returned, before anything else is said about it, and ended once.
+    ///
     /// The event loop's reactions included, each where the loop has it: a metadata notice as
     /// the status rows and a toast just before the update it arrived with, the chain put in a
     /// new order before `SourcesReordered`, the sources rebuilt before `SourcesChanged`, a
@@ -326,6 +332,12 @@ impl Harness {
             self.app.jobs.is_empty(),
             "the work ended and these jobs did not: {:?}, having seen {:?}",
             self.job_labels(),
+            names(&seen)
+        );
+        assert!(
+            self.jobs.started.is_empty(),
+            "jobs started and never announced: {:?}, having seen {:?}",
+            self.jobs.started,
             names(&seen)
         );
         seen
@@ -395,14 +407,16 @@ impl Harness {
     /// command, its job started.
     fn dispatch(&mut self, task: Command) -> Option<JobId> {
         let tx = self.channels.sender();
-        crate::command(
-            &mut self.app,
+        let job = crate::command(
+            &self.app,
             &mut self.seam,
             task,
             &mut self.engine,
             &self.services,
             &tx,
-        )
+        );
+        self.jobs.started.extend(job);
+        job
     }
 
     /// `use_config`, as the loop calls it before its reactions. A channel is opened only to say
@@ -460,13 +474,54 @@ impl Harness {
     }
 
     fn apply(&mut self, update: Event, seen: &mut Vec<Event>) {
-        seen.push(copy(&update));
+        self.jobs.check(&update, seen);
+        if !matches!(update, Event::JobStarted { .. }) {
+            seen.push(copy(&update));
+        }
         match update {
             // Decoded at once rather than on the blocking pool: settling has no frame to keep.
             Event::ArtworkReady { url, bytes } => {
                 crate::covers::hand_over(&mut self.app, crate::covers::now(url, &bytes));
             }
             update => self.app.apply(update),
+        }
+    }
+}
+
+/// The jobs the harness's commands started, held to what the work says of them.
+#[derive(Default)]
+struct Jobs {
+    /// Numbered by a command, and not yet announced: in the order the commands were sent.
+    started: VecDeque<JobId>,
+    /// Announced, and not yet ended.
+    running: HashSet<JobId>,
+}
+
+impl Jobs {
+    fn check(&mut self, update: &Event, seen: &[Event]) {
+        match update {
+            Event::JobStarted { job, .. } => {
+                let expected = self.started.pop_front();
+                assert_eq!(
+                    expected,
+                    Some(*job),
+                    "a job announced out of turn, or by another number than its send returned, \
+                     having seen {:?}",
+                    names(seen)
+                );
+                self.running.insert(*job);
+            }
+            Event::JobNote { job, .. } => assert!(
+                self.running.contains(job),
+                "a note for {job:?}, which is not running, having seen {:?}",
+                names(seen)
+            ),
+            Event::JobDone(job) => assert!(
+                self.running.remove(job),
+                "{job:?} ended without being announced, or twice, having seen {:?}",
+                names(seen)
+            ),
+            _ => {}
         }
     }
 }

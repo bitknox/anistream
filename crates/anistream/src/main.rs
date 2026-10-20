@@ -807,7 +807,7 @@ async fn run(
     let mut terminal = setup_terminal().context("preparing the terminal")?;
 
     if let Some(task) = app.reload() {
-        let job = JobGuard::start(&mut app, &task, &tx);
+        let job = JobGuard::start(&mut engine, &task, &tx);
         spawn(task, job, &services, &tx);
     }
 
@@ -858,13 +858,13 @@ async fn run(
         // each URL, so a re-render cannot re-request one already in flight.
         for url in app.visible_artwork(rows) {
             let task = Command::FetchArtwork { url };
-            command(&mut app, &mut seam, task, &mut engine, &services, &tx);
+            command(&app, &mut seam, task, &mut engine, &services, &tx);
         }
 
         // Auto-next is queued by the reducer rather than returned, because an episode ending
         // arrives as an update rather than a keystroke.
         if let Some(task) = app.take_pending() {
-            command(&mut app, &mut seam, task, &mut engine, &services, &tx);
+            command(&app, &mut seam, task, &mut engine, &services, &tx);
         }
         // Whatever moved the config since: a setting put back, say. The reactions below read
         // the engine side's copy.
@@ -958,7 +958,7 @@ async fn run(
                 tracing::info!(signal, "shutting down");
                 tui::terminal::exit_on_second_signal();
                 if let Some(task) = app.handle(anistream_tui::keymap::Action::Quit, rows) {
-                    command(&mut app, &mut seam, task, &mut engine, &services, &tx);
+                    command(&app, &mut seam, task, &mut engine, &services, &tx);
                 }
                 // Whatever an open overlay made of the key, a signal is not a request to close it.
                 app.should_quit = true;
@@ -980,7 +980,7 @@ async fn run(
                 match maybe_event {
                     Some(Ok(TermEvent::Key(key))) if key.kind == KeyEventKind::Press => {
                         if let Some(task) = app.press(key, rows) {
-                            command(&mut app, &mut seam, task, &mut engine, &services, &tx);
+                            command(&app, &mut seam, task, &mut engine, &services, &tx);
                         }
                     }
                     // Arrives whole with bracketed paste on, so a pasted link cannot fire
@@ -1054,7 +1054,7 @@ fn use_config(
 /// it moved, and a play's hints ahead of a play, then the command, its job started as it is
 /// dispatched. Returns the job, for work someone waits on.
 fn command(
-    app: &mut App,
+    app: &App,
     seam: &mut ConfigSeam,
     task: Command,
     engine: &mut EngineState,
@@ -1065,7 +1065,7 @@ fn command(
     if let Some(hints) = play_hints(app, &task) {
         dispatch(hints, None, engine, services, tx);
     }
-    let job = JobGuard::start(app, &task, tx);
+    let job = JobGuard::start(engine, &task, tx);
     let id = job.as_ref().map(|job| job.id);
     dispatch(task, job, engine, services, tx);
     id
@@ -1236,7 +1236,7 @@ async fn publish_list(
     }
 }
 
-/// Ends its [`Job`](anistream_tui::app::Job) when dropped.
+/// A job, started for work someone waits on, which ends when this is dropped.
 ///
 /// Moved into the future that does the work, so the job ends exactly when that future does —
 /// on success, on an early return, on a panic — with no path having to remember to say so.
@@ -1248,8 +1248,20 @@ struct JobGuard {
 }
 
 impl JobGuard {
-    fn start(app: &mut App, task: &Command, tx: &mpsc::UnboundedSender<Event>) -> Option<Self> {
-        app.begin_job(task).map(|id| Self { id, tx: tx.clone() })
+    /// A job for `task`, numbered on the engine side and announced with `JobStarted`, or `None`
+    /// for work nobody waits on.
+    ///
+    /// Announced on the channel the work answers on, before the work can send anything, so the
+    /// job's notes and its end always find it in the front end.
+    fn start(
+        engine: &mut EngineState,
+        task: &Command,
+        tx: &mpsc::UnboundedSender<Event>,
+    ) -> Option<Self> {
+        let activity = task.activity()?;
+        let id = engine.number_job();
+        let _ = tx.send(Event::JobStarted { job: id, activity });
+        Some(Self { id, tx: tx.clone() })
     }
 
     /// Say what the work is held up on, and for how long if that is known.
@@ -1556,7 +1568,7 @@ fn dispatch(
 ) {
     let Services { paths, http, store, meta, registry, sync, stores, slot, prefetch } =
         services;
-    let EngineState { config, saved_config, hints, player_tx } = engine;
+    let EngineState { config, saved_config, hints, player_tx, .. } = engine;
     // No player handle is passed in: every playback path builds its own from the config
     // above, which is the live one the Settings screen edits, as the front end last said. A
     // handle held across the session is exactly how a turned-off upscaler kept running.
@@ -3787,12 +3799,20 @@ mod tests {
 
     #[test]
     fn a_job_starts_only_for_work_someone_waits_on() {
-        let (tx, _rx) = mpsc::unbounded_channel();
-        let mut app = test_app();
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        let mut engine = EngineState::new(Config::default());
         let score =
             Command::SetScore { id: anistream_core::ids::AnilistId::new(1), score: 7.0 };
-        assert!(JobGuard::start(&mut app, &score, &tx).is_none());
-        assert!(JobGuard::start(&mut app, &Command::CheckProviders, &tx).is_some());
+        assert!(JobGuard::start(&mut engine, &score, &tx).is_none());
+        assert!(rx.try_recv().is_err(), "nothing announced for work nobody waits on");
+
+        let first = JobGuard::start(&mut engine, &Command::CheckProviders, &tx).unwrap();
+        let second = JobGuard::start(&mut engine, &Command::LoadSeasonal, &tx).unwrap();
+        assert_ne!(first.id, second.id, "numbered once each");
+        assert!(matches!(
+            rx.try_recv(),
+            Ok(Event::JobStarted { job, activity }) if job == first.id && activity == "checking providers"
+        ));
     }
 
     #[tokio::test]
@@ -3827,8 +3847,8 @@ mod tests {
     #[tokio::test]
     async fn a_job_ends_however_its_work_does_even_by_panicking() {
         let (tx, mut rx) = mpsc::unbounded_channel();
-        let mut app = test_app();
-        let job = JobGuard::start(&mut app, &Command::CheckProviders, &tx).unwrap();
+        let mut engine = EngineState::new(Config::default());
+        let job = JobGuard::start(&mut engine, &Command::CheckProviders, &tx).unwrap();
         let id = job.id;
 
         let work = tokio::spawn(async move {
@@ -3838,6 +3858,7 @@ mod tests {
         });
         assert!(work.await.is_err(), "the task did panic");
 
+        assert!(matches!(rx.recv().await, Some(Event::JobStarted { job, .. }) if job == id));
         assert!(matches!(rx.recv().await, Some(Event::JobNote { job, .. }) if job == id));
         assert!(matches!(rx.recv().await, Some(Event::JobDone(job)) if job == id));
     }
