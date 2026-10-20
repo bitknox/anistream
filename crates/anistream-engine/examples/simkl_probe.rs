@@ -63,7 +63,7 @@ async fn main() {
     }
     assert_eq!(back, Some(SUBJECT), "the bridge is not symmetric");
 
-    let sync = anistream_engine::tracking::Sync::build(&config, &store, &http);
+    let sync = anistream_engine::tracking::Sync::build(&config, &paths, &store, &http);
     let Some(simkl) = sync.trackers.iter().find(|t| t.id() == "simkl") else {
         println!("  ✕ simkl is not in trackers.enabled");
         return;

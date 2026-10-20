@@ -98,7 +98,7 @@ async fn main() {
     assert!(linkage.is_some(), "include=anime no longer carries resource linkage");
     assert!(next.starts_with(API), "pagination left the api host");
 
-    let sync = anistream_engine::tracking::Sync::build(&config, &store, &http);
+    let sync = anistream_engine::tracking::Sync::build(&config, &paths, &store, &http);
     let Some(kitsu) = sync.trackers.iter().find(|t| t.id() == "kitsu") else {
         println!();
         println!("  ● wire shape holds. Add \"kitsu\" to trackers.enabled to probe further.");

@@ -97,21 +97,22 @@ fn lift_reauth_hold(tracker: &str) {
 /// single-use and short-lived, so keeping one would be storing something already spent.
 pub async fn login(
     config: &Config,
+    paths: &Paths,
     tracker: &str,
     given: &str,
     http: &HttpClient,
 ) -> Result<()> {
     if tracker == "mal" {
-        return login_mal(config, http).await;
+        return login_mal(config, paths, http).await;
     }
     if tracker == "kitsu" {
-        return login_kitsu(config, http).await;
+        return login_kitsu(config, paths, http).await;
     }
     // Simkl and Trakt sign in with a device code, which is a *better* fit for a CLI than the
     // loopback flow: nothing to register, and it works over SSH where opening a browser on the
     // wrong machine does not.
     if let Some(endpoints) = device_endpoints_for(tracker) {
-        return login_device(config, tracker, endpoints, http).await;
+        return login_device(config, paths, tracker, endpoints, http).await;
     }
     if tracker != "anilist" {
         anyhow::bail!("no sign-in flow for {tracker:?} yet");
@@ -186,7 +187,7 @@ pub async fn login(
     )
     .await?;
 
-    let store = tracking::token_store(config);
+    let store = tracking::token_store(config, paths);
     lift_reauth_hold(tracker);
     let storage = store.set(tracker, &token)?;
     println!("● signed in — token stored in the {}", storage.describe());
@@ -215,6 +216,7 @@ fn device_endpoints_for(tracker: &str) -> Option<anistream_track::DeviceEndpoint
 /// Sign in with the OAuth device flow, from the command line.
 async fn login_device(
     config: &Config,
+    paths: &Paths,
     tracker: &str,
     endpoints: anistream_track::DeviceEndpoints,
     http: &HttpClient,
@@ -269,7 +271,7 @@ async fn login_device(
     .await
     .with_context(|| format!("{tracker} sign-in"))?;
 
-    let tokens = tracking::token_store(config);
+    let tokens = tracking::token_store(config, paths);
     lift_reauth_hold(tracker);
     let storage = tokens
         .set_pair(tracker, &pair.access, pair.refresh.as_deref(), pair.expires_at)
@@ -289,7 +291,7 @@ async fn login_device(
 /// is shared: PKCE instead of a secret, a form-encoded exchange instead of JSON, and a token pair
 /// with an expiry instead of a bare year-long token. Forcing them into one function would mean a
 /// parameter for every difference.
-async fn login_mal(config: &Config, http: &HttpClient) -> Result<()> {
+async fn login_mal(config: &Config, paths: &Paths, http: &HttpClient) -> Result<()> {
     use anistream_track::mal;
 
     let auth = &config.trackers.mal;
@@ -343,7 +345,7 @@ async fn login_mal(config: &Config, http: &HttpClient) -> Result<()> {
     )
     .await?;
 
-    let store = tracking::token_store(config);
+    let store = tracking::token_store(config, paths);
     lift_reauth_hold("mal");
     let storage =
         store.set_pair("mal", &pair.access, pair.refresh.as_deref(), pair.expires_at)?;
@@ -368,7 +370,7 @@ async fn login_mal(config: &Config, http: &HttpClient) -> Result<()> {
 /// The one tracker with no app to register: Kitsu's token endpoint accepts the password
 /// grant bare. The password's only journey is stdin → the token exchange — it is never
 /// written anywhere, and what lands in the keychain is the usual access/refresh pair.
-async fn login_kitsu(config: &Config, http: &HttpClient) -> Result<()> {
+async fn login_kitsu(config: &Config, paths: &Paths, http: &HttpClient) -> Result<()> {
     println!("Kitsu signs in with your account credentials — no app registration exists.");
     println!("The password is exchanged for a token and dropped; only the token is stored.");
     println!();
@@ -391,7 +393,7 @@ async fn login_kitsu(config: &Config, http: &HttpClient) -> Result<()> {
     )
     .await?;
 
-    let store = tracking::token_store(config);
+    let store = tracking::token_store(config, paths);
     lift_reauth_hold("kitsu");
     let storage =
         store.set_pair("kitsu", &pair.access, pair.refresh.as_deref(), pair.expires_at)?;
@@ -450,11 +452,11 @@ fn read_line(prompt: &str) -> Result<String> {
 }
 
 /// Move a token from the keychain to a `0600` file.
-pub fn migrate_token(config: &Config, tracker: &str) -> Result<()> {
-    let store = tracking::token_store(config);
+pub fn migrate_token(config: &Config, paths: &Paths, tracker: &str) -> Result<()> {
+    let store = tracking::token_store(config, paths);
     match store.migrate_to_file(tracker) {
         Ok(_) => {
-            println!("● moved the {tracker} token to {}", tracking::token_dir().display());
+            println!("● moved the {tracker} token to {}", tracking::token_dir(paths).display());
             println!("  it is a 0600 file, readable only by you (and root)");
             if config.trackers.token_storage != "file" {
                 // Otherwise the next run would go back to the keychain, find nothing, and look
@@ -477,8 +479,8 @@ pub fn migrate_token(config: &Config, tracker: &str) -> Result<()> {
     }
 }
 
-pub fn forget_token(config: &Config, tracker: &str) -> Result<()> {
-    tracking::token_store(config).clear(tracker)?;
+pub fn forget_token(config: &Config, paths: &Paths, tracker: &str) -> Result<()> {
+    tracking::token_store(config, paths).clear(tracker)?;
     println!("forgot the {tracker} token");
     let _ = config;
     Ok(())

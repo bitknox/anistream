@@ -14,7 +14,7 @@ pub mod commands;
 use std::sync::Arc;
 
 use anistream_core::{
-    config::Config,
+    config::{Config, Paths},
     ids::AnilistId,
     traits::{TrackOp, Tracker},
 };
@@ -70,8 +70,13 @@ impl Sync {
     /// is signed in — Kitsu is enabled by default, so "enabled" no longer implies intent —
     /// and watching now and signing in later still syncs, because the first pull derives
     /// progress from the watch log and reconciles it outward.
-    pub fn build(config: &Config, store: &Store, http: &anistream_net::HttpClient) -> Self {
-        Self::with_tokens(config, store, http, token_store(config))
+    pub fn build(
+        config: &Config,
+        paths: &Paths,
+        store: &Store,
+        http: &anistream_net::HttpClient,
+    ) -> Self {
+        Self::with_tokens(config, store, http, token_store(config, paths))
     }
 
     /// Build against an existing token store.
@@ -1064,16 +1069,16 @@ fn pull_key(tracker_id: &str) -> String {
 /// One place, so every entry point — the app, `--login`, `--sync`, the probes — agrees about where
 /// tokens live. Disagreeing would mean signing in through one path and being unauthenticated
 /// through another.
-pub fn token_store(config: &Config) -> TokenStore {
+pub fn token_store(config: &Config, paths: &Paths) -> TokenStore {
     let backend = anistream_track::secret::Backend::from_env_or(&config.trackers.token_storage);
-    TokenStore::with_backend(token_dir(), backend)
+    TokenStore::with_backend(token_dir(paths), backend)
 }
 
-/// Where the `0600` token file lives when the file backend is in use.
-pub fn token_dir() -> std::path::PathBuf {
-    anistream_core::config::Paths::resolve()
-        .map(|p| p.data_dir.join("tokens"))
-        .unwrap_or_else(|_| std::path::PathBuf::from("."))
+/// Where the `0600` token file lives when the file backend is in use: under the data directory
+/// the engine was given, rather than one it looks up for itself, so a front end with a
+/// directory of its own, and a test with a temporary one, keep their tokens there.
+pub fn token_dir(paths: &Paths) -> std::path::PathBuf {
+    paths.data_dir.join("tokens")
 }
 
 #[cfg(test)]
@@ -1091,6 +1096,15 @@ mod tests {
         assert_eq!(segment_to_status(LibrarySegment::Dropped), W::Dropped);
     }
 
+    /// Paths under `dir`, so no tracker a test builds looks for its token where the user's are.
+    fn paths_in(dir: &std::path::Path) -> Paths {
+        Paths {
+            config_file: dir.join("config.toml"),
+            data_dir: dir.join("data"),
+            cache_dir: dir.join("cache"),
+        }
+    }
+
     #[test]
     fn a_tracker_with_no_token_is_still_built() {
         // So the Accounts overlay can offer a sign-in, and so the outbox accumulates in the
@@ -1100,8 +1114,9 @@ mod tests {
         config.trackers.anilist.client_id = Some("12345".into());
         let store = Store::open_in_memory().unwrap();
         let http = anistream_net::HttpClient::new(&config.network).unwrap();
+        let dir = tempfile::tempdir().unwrap();
 
-        let sync = Sync::build(&config, &store, &http);
+        let sync = Sync::build(&config, &paths_in(dir.path()), &store, &http);
         assert_eq!(sync.trackers.len(), 1);
         assert_eq!(sync.trackers[0].id(), "anilist");
     }
@@ -1130,7 +1145,8 @@ mod tests {
         config.trackers.enabled.clear();
         let store = Store::open_in_memory().unwrap();
         let http = anistream_net::HttpClient::new(&config.network).unwrap();
-        assert!(Sync::build(&config, &store, &http).trackers.is_empty());
+        let dir = tempfile::tempdir().unwrap();
+        assert!(Sync::build(&config, &paths_in(dir.path()), &store, &http).trackers.is_empty());
     }
 
     #[test]
@@ -1186,8 +1202,11 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         let http = anistream_net::HttpClient::new(&config.network).unwrap();
         let flaky = Arc::new(Flaky { down: true.into() });
-        let sync =
-            Sync { trackers: vec![flaky.clone()], ..Sync::build(&config, &store, &http) };
+        let dir = tempfile::tempdir().unwrap();
+        let sync = Sync {
+            trackers: vec![flaky.clone()],
+            ..Sync::build(&config, &paths_in(dir.path()), &store, &http)
+        };
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         let tx = Outbox::from(tx);
 
@@ -1242,7 +1261,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let sync = Sync {
             tokens: TokenStore::new(dir.path()).file_only(),
-            ..Sync::build(&config, &store, &http)
+            ..Sync::build(&config, &paths_in(dir.path()), &store, &http)
         };
 
         store

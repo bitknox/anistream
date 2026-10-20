@@ -1,15 +1,20 @@
 //! `anistream --sync`: the outbox drained and the library pulled once, with what each
 //! tracker made of it.
 
-use anistream_core::config::Config;
+use anistream_core::config::{Config, Paths};
 use anistream_engine::tracking;
 use anistream_net::HttpClient;
 use anistream_store::Store;
 use anyhow::Result;
 
 /// Drain and pull once, reporting what happened.
-pub async fn sync_once(config: &Config, store: &Store, http: &HttpClient) -> Result<()> {
-    let sync = tracking::Sync::build(config, store, http);
+pub async fn sync_once(
+    config: &Config,
+    paths: &Paths,
+    store: &Store,
+    http: &HttpClient,
+) -> Result<()> {
+    let sync = tracking::Sync::build(config, paths, store, http);
     if sync.trackers.is_empty() {
         println!("no tracker enabled — set trackers.enabled in your config");
         return Ok(());

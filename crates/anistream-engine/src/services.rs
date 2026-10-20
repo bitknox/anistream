@@ -75,7 +75,7 @@ impl Services {
         let stores = plugin_stores::Stores::new(config, &paths)?;
         // Trackers are built whether or not they hold a token: the Accounts overlay needs
         // something to offer a sign-in for, and the outbox accumulates against the id meanwhile.
-        let sync = tracking::Sync::build(config, &store, &http);
+        let sync = tracking::Sync::build(config, &paths, &store, &http);
         Ok(Self {
             paths,
             http,

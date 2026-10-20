@@ -281,16 +281,16 @@ async fn main() -> Result<()> {
         return print_login_url(&config, tracker);
     }
     if let Some(token) = &args.login {
-        return login(&config, tracker, token, &http).await;
+        return login(&config, &paths, tracker, token, &http).await;
     }
     if args.logout {
-        return forget_token(&config, tracker);
+        return forget_token(&config, &paths, tracker);
     }
     if args.sync {
-        return sync_once(&config, &store, &http).await;
+        return sync_once(&config, &paths, &store, &http).await;
     }
     if args.token_to_file {
-        return migrate_token(&config, tracker);
+        return migrate_token(&config, &paths, tracker);
     }
     if args.plugins {
         return list_plugins(&config, &paths).await;

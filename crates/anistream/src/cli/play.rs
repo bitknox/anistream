@@ -175,7 +175,7 @@ pub async fn play_cli(
     // sender must outlive the session: a closed channel reads as controls torn down.
     let (_ptx, prx) = mpsc::unbounded_channel();
     // The same queue set the TUI uses: signed-in trackers, not merely enabled ones.
-    let sync = tracking::Sync::build(config, store, http);
+    let sync = tracking::Sync::build(config, paths, store, http);
     let tracker_ids = signed_in_tracker_ids(&sync);
     let settings = playback::PlaySettings {
         shader_dir: shader_dir(config, paths),
