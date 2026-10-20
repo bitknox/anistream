@@ -1,0 +1,57 @@
+---
+// Starlight's footer (edit link, last updated, previous and next), then the legal line and the
+// licence on every docs page.
+import EditLink from '@astrojs/starlight/components/EditLink.astro';
+import LastUpdated from '@astrojs/starlight/components/LastUpdated.astro';
+import Pagination from '@astrojs/starlight/components/Pagination.astro';
+---
+
+<footer class="ani-docs-footer">
+	<div class="meta">
+		<EditLink />
+		<LastUpdated />
+	</div>
+	<Pagination />
+	<div class="legal">
+		<p>anistream ships no sources of its own and hosts no content. Every source is external.</p>
+		<p>anistream is open source under the MIT licence.</p>
+	</div>
+</footer>
+
+<style>
+	.ani-docs-footer {
+		display: flex;
+		flex-direction: column;
+		margin-top: 56px;
+	}
+
+	.meta:empty {
+		display: none;
+	}
+
+	.legal {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		margin-top: 32px;
+		padding-bottom: 48px;
+		font-size: 13px;
+		line-height: 18px;
+		color: var(--ani-dim);
+	}
+
+	.legal p {
+		margin: 0;
+	}
+
+	@media (max-width: 49.99em) {
+		.ani-docs-footer {
+			margin-top: 44px;
+		}
+
+		.legal {
+			margin-top: 24px;
+			padding-bottom: 40px;
+		}
+	}
+</style>

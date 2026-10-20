@@ -9,8 +9,13 @@ export default defineConfig({
 		starlight({
 			title: 'anistream',
 			description: 'An anime streaming TUI. Real image rendering, mpv for playback, pluggable everything.',
+			logo: { src: './src/assets/logo.svg', alt: '', replacesTitle: false },
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/bitknox/anistream' }],
 			customCss: ['./src/styles/theme.css'],
+			components: {
+				PageTitle: './src/components/starlight/PageTitle.astro',
+				Footer: './src/components/starlight/Footer.astro',
+			},
 			head: [
 				{
 					tag: 'meta',

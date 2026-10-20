@@ -1,63 +1,121 @@
 /* ───────────────────────────────────────────────────────────────────────────
-   Obi & Silk — anistream's design system, ported from
-   crates/anistream-tui/src/theme/palette.rs. Single source of truth for both
-   the landing page and the Starlight docs.
+   Obi & Silk: anistream's design system, as the native apps have it. The palette is
+   crates/anistream-tui/src/theme/palette.rs; the surfaces, rules, type roles and motion
+   are the apps'. One file for both the landing page and the Starlight docs.
    ─────────────────────────────────────────────────────────────────────────── */
 
-@import '@fontsource/zen-kaku-gothic-new/400.css';
 @import '@fontsource/zen-kaku-gothic-new/500.css';
 @import '@fontsource/zen-kaku-gothic-new/700.css';
 
 :root {
-	/* Brand tokens — dark (immersive dusk indigo, 藍) */
+	/* Dark: dusk indigo, 藍 */
 	--ani-ground: #161a2e;
 	--ani-text: #e4e0d6; /* 絹 silk */
-	--ani-dim: #9298b5; /* 霞 haze */
-	--ani-obi: #f2a64b; /* 琥珀 amber — the one saturated accent */
-	--ani-state: #7fc7d9; /* 水 water */
-	--ani-alert: #e06b54; /* 朱 vermilion */
-	/* Hairlines are derived, never picked: 22% toward text from the ground */
-	--ani-rule: color-mix(in srgb, var(--ani-text) 22%, var(--ani-ground));
-	--ani-rule-faint: color-mix(in srgb, var(--ani-text) 12%, var(--ani-ground));
-	--ani-raised: color-mix(in srgb, var(--ani-text) 6%, var(--ani-ground));
+	--ani-dim: #9298b5; /* 霞 haze, secondary text only */
+	--ani-obi: #f2a64b; /* 琥珀 amber: text, the current item, focus, the logo */
+	--ani-state: #7fc7d9; /* 水 water: states */
+	--ani-alert: #e06b54; /* 朱 vermilion: danger */
+	--ani-rule: #434653;
+	--ani-rule-faint: #2f3242;
+	--ani-raised: #222638;
+	--ani-raised-selected: #343a57;
+	--ani-well: #10131f;
+	--ani-obi-fill: #f2a64b;
+	--ani-obi-fill-hover: #f5b467;
+	--ani-on-obi: #161a2e;
+	--ani-select: rgb(242 166 75 / 0.14);
+	--ani-over-art: rgb(22 26 46 / 0.72);
+	--ani-over-art-edge: rgb(228 224 214 / 0.12);
 
 	--ani-font-display: 'Zen Kaku Gothic New', 'Hiragino Kaku Gothic ProN', sans-serif;
+	--ani-font-ui: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, Roboto,
+		sans-serif;
 	--ani-font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+	--ani-r-chip: 4px;
+	--ani-r-row: 8px;
+	--ani-r-box: 12px;
+	--ani-r-banner: 16px;
+
+	/* The apps' no-bounce spring, and its durations: SwiftUI's 0.2 and 0.3 times 1.2 */
+	--ani-spring: linear(
+		0,
+		0.055 5%,
+		0.175 10%,
+		0.312 15%,
+		0.445 20%,
+		0.562 25%,
+		0.66 30%,
+		0.803 40%,
+		0.89 50%,
+		0.94 60%,
+		0.968 70%,
+		0.983 80%,
+		1
+	);
+	--ani-quick: 240ms;
+	--ani-standard: 360ms;
+	--ani-fade-in: 200ms ease-out;
+	--ani-fade-out: 300ms ease-in;
 }
 
 [data-theme='light'] {
-	/* Brand tokens — light (silk paper ground) */
+	/* Light: silk paper */
 	--ani-ground: #f0ede4;
 	--ani-text: #1e2033;
 	--ani-dim: #4f546e;
 	--ani-obi: #7a4309;
 	--ani-state: #1f5d6e;
 	--ani-alert: #94301f;
+	--ani-rule: #c2c0bd;
+	--ani-rule-faint: #d7d4cf;
+	--ani-raised: #e3e1d9;
+	--ani-raised-selected: #d9d5c9;
+	--ani-well: #e9e6de;
+	--ani-on-obi: #1e2033;
+	--ani-select: #f0ddc2;
 }
 
-/* ── Starlight overrides ──────────────────────────────────────────────────
-   Dark mode: --sl-color-white is the text end, --sl-color-black the ground. */
+@media (prefers-reduced-motion: reduce) {
+	:root {
+		--ani-quick: 0ms;
+		--ani-standard: 0ms;
+		--ani-fade-in: 0ms;
+		--ani-fade-out: 0ms;
+	}
+}
+
+/* Safari 26 and later tint their toolbar from the root's background when no fixed element
+   crosses the top of the page. */
+html {
+	background: var(--ani-ground);
+}
+
+/* ── Starlight's palette ───────────────────────────────────────────────────
+   Dark: --sl-color-white is the text end of the ramp, --sl-color-black the ground. */
 :root {
-	--sl-color-accent-low: color-mix(in srgb, #f2a64b 22%, #161a2e);
+	--sl-color-accent-low: #352e32;
 	--sl-color-accent: #f2a64b;
 	--sl-color-accent-high: #f7c88f;
 	--sl-color-white: #e4e0d6;
-	--sl-color-gray-1: #ddd9ce;
-	--sl-color-gray-2: #b4b9ce;
+	--sl-color-gray-1: #e4e0d6;
+	--sl-color-gray-2: #e4e0d6;
 	--sl-color-gray-3: #9298b5;
-	--sl-color-gray-4: #6a7090;
-	--sl-color-gray-5: #343a57;
-	--sl-color-gray-6: #1f2440;
+	--sl-color-gray-4: #434653;
+	--sl-color-gray-5: #2f3242;
+	--sl-color-gray-6: #222638;
 	--sl-color-black: #161a2e;
 
+	--sl-color-text-accent: var(--ani-obi);
+	--sl-color-text-invert: #161a2e;
 	--sl-color-bg-nav: var(--sl-color-black);
 	--sl-color-bg-sidebar: var(--sl-color-black);
-	--sl-color-text-accent: var(--ani-obi);
-	--sl-color-hairline: var(--ani-rule);
+	--sl-color-bg-inline-code: var(--ani-raised);
+	--sl-color-hairline: var(--ani-rule-faint);
 	--sl-color-hairline-light: var(--ani-rule-faint);
 	--sl-color-hairline-shade: var(--ani-rule-faint);
+	--sl-color-backdrop-overlay: var(--ani-over-art);
 
-	/* Asides: water for notes, amber for caution, vermilion for danger */
 	--sl-color-blue: #7fc7d9;
 	--sl-color-blue-low: color-mix(in srgb, #7fc7d9 14%, var(--ani-ground));
 	--sl-color-blue-high: #a8dbe8;
@@ -68,27 +126,49 @@
 	--sl-color-red-low: color-mix(in srgb, #e06b54 14%, var(--ani-ground));
 	--sl-color-red-high: #eb9a8a;
 
-	--sl-font: var(--ani-font-display);
+	--sl-shadow-sm: none;
+	--sl-shadow-md: none;
+	--sl-shadow-lg: none;
+
+	--sl-font: var(--ani-font-ui);
 	--sl-font-mono: var(--ani-font-mono);
+	--sl-line-height: 1.625;
+	--sl-line-height-headings: 1.2;
+	--sl-text-h1: 2rem;
+	--sl-text-h2: 1.375rem;
+	--sl-text-h3: 1.125rem;
+	--sl-text-h4: 1rem;
 }
 
-/* Light mode: Starlight inverts the ramp — the full scale must be redefined
-   or light mode is unreadable. --sl-color-white is now the TEXT end. */
+@media (min-width: 50em) {
+	:root {
+		--sl-text-h1: 2.5rem;
+		--sl-text-h2: 1.5rem;
+		--sl-text-h3: 1.1875rem;
+		--sl-text-h4: 1rem;
+	}
+}
+
+/* Light: Starlight inverts the ramp, so the whole scale is written out. --sl-color-white is
+   the text end here too. */
 :root[data-theme='light'] {
-	--sl-color-accent-low: #f0dfc4;
+	--sl-color-accent-low: #f0ddc2;
 	--sl-color-accent: #7a4309;
 	--sl-color-accent-high: #5e3407;
 	--sl-color-white: #1e2033;
-	--sl-color-gray-1: #2a2e45;
-	--sl-color-gray-2: #4f546e;
-	--sl-color-gray-3: #6e7288;
-	--sl-color-gray-4: #9c9fb0;
-	--sl-color-gray-5: #d9d5c9;
-	--sl-color-gray-6: #e8e4d9;
-	--sl-color-gray-7: #ece9df;
+	--sl-color-gray-1: #1e2033;
+	--sl-color-gray-2: #1e2033;
+	--sl-color-gray-3: #4f546e;
+	--sl-color-gray-4: #c2c0bd;
+	--sl-color-gray-5: #d7d4cf;
+	--sl-color-gray-6: #e3e1d9;
+	--sl-color-gray-7: #e8e5dd;
 	--sl-color-black: #f0ede4;
 
 	--sl-color-text-accent: var(--ani-obi);
+	--sl-color-text-invert: #f0ede4;
+	--sl-color-bg-nav: var(--sl-color-black);
+	--sl-color-bg-sidebar: var(--sl-color-black);
 	--sl-color-blue: #1f5d6e;
 	--sl-color-blue-low: #dce8e4;
 	--sl-color-blue-high: #174754;
@@ -100,50 +180,769 @@
 	--sl-color-red-high: #732517;
 }
 
-/* ── Obi & Silk refinements for the docs ────────────────────────────────── */
-
-/* Lowercase wordmark in the docs header, like the app's header widget */
-.site-title {
-	font-weight: 500;
-	letter-spacing: 0.02em;
+/* ── Focus, everywhere ─────────────────────────────────────────────────── */
+:focus-visible {
+	outline: 2px solid var(--ani-obi);
+	outline-offset: 2px;
 }
 
-/* The obi: current page in the sidebar gets the app's one-cell focus bar,
-   not a filled pill. */
+/* ── Header ────────────────────────────────────────────────────────────── */
+.site-title {
+	gap: 8px;
+	font-family: var(--ani-font-display);
+	font-size: 1.25rem;
+	font-weight: 500;
+	letter-spacing: 0.02em;
+	color: var(--ani-text);
+}
+
+.site-title img {
+	width: 20px;
+	height: 20px;
+}
+
+button[data-open-modal] {
+	color: var(--ani-text);
+}
+
+@media (min-width: 50rem) {
+	button[data-open-modal] {
+		height: 36px;
+		max-width: 22rem;
+		gap: 8px;
+		padding-inline: 12px 8px;
+		border: 1px solid var(--ani-rule-faint);
+		border-radius: 18px;
+		background-color: var(--ani-raised);
+		color: var(--ani-dim);
+		font-size: 14px;
+		transition:
+			border-color var(--ani-quick) var(--ani-spring),
+			color var(--ani-quick) var(--ani-spring);
+	}
+
+	button[data-open-modal]:hover {
+		border-color: var(--ani-rule);
+		color: var(--ani-text);
+	}
+
+	button[data-open-modal] svg {
+		width: 15px;
+		height: 15px;
+	}
+
+	button[data-open-modal] > kbd {
+		height: 20px;
+		align-items: center;
+		padding-inline: 6px;
+		border: 1px solid var(--ani-rule-faint);
+		border-radius: 5px;
+		background: transparent;
+		color: var(--ani-dim);
+		font-size: 12px;
+	}
+}
+
+.social-icons a {
+	color: var(--ani-text);
+}
+
+.social-icons a:hover {
+	color: var(--ani-text);
+	opacity: 0.8;
+}
+
+.social-icons::after {
+	height: 20px;
+	border-inline-end-color: var(--ani-rule-faint);
+}
+
+starlight-theme-select label {
+	color: var(--ani-text);
+}
+
+starlight-theme-select .label-icon,
+starlight-theme-select .caret {
+	color: var(--ani-dim);
+}
+
+starlight-theme-select .caret {
+	font-size: 0.875rem;
+}
+
+/* On phones, search and the menu are 44 icon buttons with no fill. */
+@media (max-width: 49.99em) {
+	.site-title {
+		font-size: 1.125rem;
+	}
+
+	.site-title img {
+		width: 18px;
+		height: 18px;
+	}
+
+	button[data-open-modal] {
+		width: 44px;
+		height: 44px;
+		justify-content: center;
+	}
+
+	starlight-menu-button button,
+	:root[data-theme='light'] starlight-menu-button button,
+	starlight-menu-button[aria-expanded='true'] button,
+	:root[data-theme='light'] starlight-menu-button[aria-expanded='true'] button {
+		top: calc((var(--sl-nav-height) - 44px) / 2);
+		inset-inline-end: 6px;
+		width: 44px;
+		height: 44px;
+		padding: 12px;
+		background-color: transparent;
+		color: var(--ani-text);
+	}
+}
+
+/* ── Sidebar ───────────────────────────────────────────────────────────── */
+.sidebar-content {
+	padding: 20px 16px 32px;
+}
+
+.sidebar-content ul {
+	--sl-sidebar-item-padding-inline: 12px;
+}
+
+.sidebar-content .top-level > li + li {
+	margin-top: 16px;
+}
+
+.sidebar-content ul ul {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+.sidebar-content ul ul li {
+	margin-inline-start: 0;
+	padding-inline-start: 0;
+	border-inline-start: 0;
+}
+
+.sidebar-content summary {
+	height: 32px;
+	padding: 0 12px;
+}
+
+.sidebar-content summary .large {
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 16px;
+	color: var(--ani-dim);
+}
+
+.sidebar-content summary .caret {
+	width: 14px;
+	height: 14px;
+	color: var(--ani-dim);
+	transition: transform var(--ani-standard) var(--ani-spring);
+}
+
+.sidebar-content a {
+	display: flex;
+	align-items: center;
+	min-height: 32px;
+	padding: 0 12px;
+	border-radius: var(--ani-r-row);
+	font-size: 15px;
+	font-weight: 400;
+	line-height: 20px;
+	color: var(--ani-text);
+	transition: background-color var(--ani-quick) var(--ani-spring);
+}
+
+.sidebar-content a.large {
+	font-size: 15px;
+	font-weight: 400;
+	color: var(--ani-text);
+}
+
+.sidebar-content a:hover,
+.sidebar-content a:focus {
+	background-color: var(--ani-raised);
+	color: var(--ani-text);
+}
+
 .sidebar-content a[aria-current='page'],
 .sidebar-content a[aria-current='page']:hover,
 .sidebar-content a[aria-current='page']:focus {
-	background: transparent;
-	color: var(--sl-color-text-accent);
-	border-inline-start: 3px solid var(--ani-obi);
-	border-radius: 0;
+	background-color: var(--ani-select);
+	color: var(--ani-obi);
 	font-weight: 500;
 }
 
-/* Borderless: structure from hairlines, not boxes */
-.sl-markdown-content h1,
-.sl-markdown-content h2,
-.sl-markdown-content h3 {
+@media (max-width: 49.99em) {
+	.sidebar-content {
+		padding: 8px 16px 0;
+	}
+
+	.sidebar-content a,
+	.sidebar-content a.large {
+		min-height: 44px;
+		font-size: 16px;
+	}
+}
+
+/* ── Table of contents ─────────────────────────────────────────────────── */
+.right-sidebar {
+	border-inline-start: 0;
+}
+
+.right-sidebar-panel {
+	padding: 40px 24px 0;
+}
+
+.right-sidebar-panel h2 {
+	margin-bottom: 10px;
+	font-size: 11px;
 	font-weight: 500;
-	letter-spacing: 0.01em;
+	line-height: 14px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--ani-dim);
+}
+
+starlight-toc a {
+	display: flex;
+	align-items: center;
+	min-height: 28px;
+	padding-block: 4px;
+	padding-inline: calc(12px * var(--depth)) 0;
+	font-size: 14px;
+	line-height: 20px;
+	color: var(--ani-dim);
+}
+
+starlight-toc a:hover {
+	color: var(--ani-text);
+}
+
+starlight-toc a[aria-current='true'] {
+	color: var(--ani-obi);
+	font-weight: 500;
+}
+
+/* The phone's table of contents: a 48 row over a faint rule. Open, it lists the headings on
+   the ground and dims the page under them. */
+mobile-starlight-toc nav {
+	border-top: 0;
+}
+
+mobile-starlight-toc summary {
+	height: 48px;
+	padding: 0 16px;
+	border-bottom: 1px solid var(--ani-rule-faint);
+	font-size: 14px;
+}
+
+mobile-starlight-toc .toggle {
+	gap: 8px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	font-weight: 600;
+	color: var(--ani-text);
+}
+
+mobile-starlight-toc details[open] .toggle,
+mobile-starlight-toc details .toggle:hover {
+	color: var(--ani-text);
+}
+
+mobile-starlight-toc .caret {
+	color: var(--ani-dim);
+	transform: rotate(90deg);
+}
+
+mobile-starlight-toc details[open] .caret {
+	transform: rotate(-90deg);
+}
+
+mobile-starlight-toc .display-current {
+	margin-inline-start: auto;
+	color: var(--ani-dim);
+}
+
+mobile-starlight-toc .dropdown {
+	border: 0;
+	border-bottom: 1px solid var(--ani-rule-faint);
+	padding: 4px 0 8px;
+	background-color: var(--ani-ground);
+}
+
+mobile-starlight-toc details[open]::after {
+	content: '';
+	position: fixed;
+	inset: calc(var(--sl-nav-height) + var(--sl-mobile-toc-height)) 0 0;
+	z-index: -1;
+	background: var(--ani-over-art);
+	pointer-events: none;
+}
+
+mobile-starlight-toc .isMobile a {
+	min-height: 44px;
+	align-items: center;
+	padding: 0 16px;
+	border-top: 0;
+	font-size: 15px;
+	color: var(--ani-text);
+}
+
+mobile-starlight-toc .isMobile a[aria-current='true'],
+mobile-starlight-toc .isMobile a[aria-current='true']:hover,
+mobile-starlight-toc .isMobile a[aria-current='true']:focus {
+	color: var(--ani-obi);
+	font-weight: 500;
+}
+
+mobile-starlight-toc .isMobile a[aria-current='true']::after {
+	display: none;
+}
+
+/* ── Page title and lede ───────────────────────────────────────────────── */
+.content-panel + .content-panel {
+	padding-top: 8px;
+	border-top: 0;
+}
+
+h1#_top {
+	margin-top: 1rem;
+	font-family: var(--ani-font-display);
+	font-weight: 700;
+	line-height: 1.2;
+	color: var(--ani-text);
+}
+
+.ani-lede {
+	margin-top: 8px;
+	font-size: 17px;
+	line-height: 26px;
+	color: var(--ani-dim);
+}
+
+@media (min-width: 50em) {
+	.ani-lede {
+		font-size: 18px;
+		line-height: 28px;
+	}
+}
+
+/* ── Prose ─────────────────────────────────────────────────────────────── */
+.sl-markdown-content {
+	color: var(--ani-text);
+}
+
+.sl-markdown-content :is(h2, h3, h4) {
+	font-family: var(--ani-font-ui);
+	font-weight: 600;
+	color: var(--ani-text);
+}
+
+.sl-markdown-content h2 {
+	line-height: 1.333;
+}
+
+.sl-markdown-content :is(h3, h4) {
+	line-height: 1.375;
+}
+
+.sl-markdown-content a:not(:where(.not-content *)) {
+	color: var(--ani-text);
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-decoration-color: var(--ani-rule);
+	text-underline-offset: 3px;
+	transition: text-decoration-color var(--ani-quick) var(--ani-spring);
+}
+
+.sl-markdown-content a:hover:not(:where(.not-content *)) {
+	color: var(--ani-text);
+	text-decoration-color: var(--ani-text);
+}
+
+.sl-markdown-content strong {
+	font-weight: 600;
+	color: var(--ani-text);
 }
 
 .sl-markdown-content code:not(pre code) {
-	border-radius: 0;
-	border: 1px solid var(--ani-rule-faint);
-	background: var(--ani-raised);
+	padding: 1px 5px;
+	border: 0;
+	border-radius: var(--ani-r-chip);
+	background-color: var(--ani-raised);
+	font-size: 0.875em;
+	color: var(--ani-text);
 }
 
-.sl-markdown-content pre {
-	border-radius: 0 !important;
-	border: 1px solid var(--ani-rule-faint) !important;
+.sl-markdown-content .starlight-aside code:not(pre code) {
+	background-color: var(--ani-raised-selected);
 }
 
+@media (max-width: 49.99em) {
+	.sl-markdown-content code:not(pre code) {
+		overflow-wrap: anywhere;
+	}
+}
+
+.sl-markdown-content :is(ul, ol):not(:where(.not-content *)) {
+	padding-inline-start: 1.3rem;
+}
+
+.sl-markdown-content li + li:not(:where(.not-content *)) {
+	margin-top: 8px;
+}
+
+.sl-markdown-content li::marker {
+	color: var(--ani-dim);
+}
+
+/* ── Asides: raised, no border and no side bar; the kind is the icon's colour ── */
 .sl-markdown-content .starlight-aside {
-	border-radius: 0;
-	border-inline-start-width: 3px;
+	padding: 16px 20px;
+	border: 0;
+	border-radius: var(--ani-r-box);
+	background-color: var(--ani-raised);
+	color: var(--ani-text);
+	font-size: 15px;
+	line-height: 24px;
 }
 
-.sl-markdown-content table code {
+.starlight-aside--note,
+.starlight-aside--tip {
+	--ani-aside-mark: var(--ani-state);
+}
+
+.starlight-aside--caution {
+	--ani-aside-mark: var(--ani-obi);
+}
+
+.starlight-aside--danger {
+	--ani-aside-mark: var(--ani-alert);
+}
+
+.starlight-aside--note {
+	--ani-aside-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='8' cy='8' r='6.25'/%3E%3Cpath d='M8 7.25V11.25'/%3E%3Ccircle cx='8' cy='4.9' r='0.4' fill='%23000'/%3E%3C/svg%3E");
+}
+
+.starlight-aside--tip {
+	--ani-aside-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 11.5H10.5M6.25 14H9.75'/%3E%3Cpath d='M8 1.75C5.4 1.75 3.75 3.6 3.75 5.9C3.75 7.5 4.6 8.4 5.4 9.2C5.8 9.6 6 10.1 6 10.6V11.5H10V10.6C10 10.1 10.2 9.6 10.6 9.2C11.4 8.4 12.25 7.5 12.25 5.9C12.25 3.6 10.6 1.75 8 1.75Z'/%3E%3C/svg%3E");
+}
+
+.starlight-aside--caution {
+	--ani-aside-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2L14.5 13.5H1.5Z'/%3E%3Cpath d='M8 6.5V9.75'/%3E%3Ccircle cx='8' cy='11.6' r='0.4' fill='%23000'/%3E%3C/svg%3E");
+}
+
+.starlight-aside--danger {
+	--ani-aside-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5.5 1.75H10.5L14.25 5.5V10.5L10.5 14.25H5.5L1.75 10.5V5.5Z'/%3E%3Cpath d='M8 5V8.75'/%3E%3Ccircle cx='8' cy='11' r='0.4' fill='%23000'/%3E%3C/svg%3E");
+}
+
+.sl-markdown-content .starlight-aside__title {
+	gap: 10px;
+	font-size: 15px;
+	font-weight: 600;
+	line-height: 22px;
+	color: var(--ani-text);
+}
+
+.sl-markdown-content .starlight-aside__title::before {
+	content: '';
+	flex-shrink: 0;
+	width: 16px;
+	height: 16px;
+	background-color: var(--ani-aside-mark);
+	-webkit-mask: var(--ani-aside-icon) center / 16px 16px no-repeat;
+	mask: var(--ani-aside-icon) center / 16px 16px no-repeat;
+}
+
+.sl-markdown-content .starlight-aside__icon {
+	display: none;
+}
+
+.sl-markdown-content .starlight-aside__content a {
+	color: var(--ani-text);
+}
+
+.sl-markdown-content .starlight-aside__title + .starlight-aside__content {
+	margin-top: 8px;
+}
+
+.sl-markdown-content .starlight-aside__content > * + * {
+	margin-top: 10px;
+}
+
+.sl-markdown-content .starlight-aside li + li {
+	margin-top: 6px;
+}
+
+/* ── Tabs: a segmented capsule ─────────────────────────────────────────── */
+starlight-tabs .tablist-wrapper {
+	margin-bottom: 12px;
+}
+
+starlight-tabs [role='tablist'] {
+	display: inline-flex;
+	gap: 0;
+	height: 36px;
+	padding: 2px;
+	border: 0;
+	border-radius: 18px;
+	background-color: var(--ani-raised);
+}
+
+starlight-tabs .tab {
+	margin-bottom: 0;
+}
+
+starlight-tabs .tab > [role='tab'] {
+	display: flex;
+	align-items: center;
+	height: 32px;
+	padding: 0 14px;
+	border-radius: 16px;
+	box-shadow: none;
+	font-size: 14px;
+	font-weight: 400;
+	line-height: 1;
+	color: var(--ani-dim);
+	transition:
+		background-color var(--ani-quick) var(--ani-spring),
+		color var(--ani-quick) var(--ani-spring);
+}
+
+starlight-tabs .tab [role='tab'][aria-selected='true'] {
+	background-color: var(--ani-raised-selected);
+	font-weight: 600;
+	color: var(--ani-text);
+}
+
+/* ── Tables: dense rows between faint rules ────────────────────────────── */
+.sl-markdown-content table:not(:where(.not-content *)) {
+	border-collapse: collapse;
+	font-size: 15px;
+	line-height: 22px;
+}
+
+.sl-markdown-content :is(th, td):not(:where(.not-content *)) {
+	padding: 10px 16px 10px 0;
+	border-bottom: 1px solid var(--ani-rule-faint);
+}
+
+.sl-markdown-content th:not(:where(.not-content *)) {
+	padding-block: 7px;
+	font-size: 11px;
+	font-weight: 500;
+	line-height: 14px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--ani-dim);
+	vertical-align: bottom;
+}
+
+.sl-markdown-content thead:not(:has(th:not(:empty))) {
+	display: none;
+}
+
+.sl-markdown-content thead:not(:has(th:not(:empty))) + tbody tr:first-child > td {
+	border-top: 1px solid var(--ani-rule-faint);
+}
+
+.sl-markdown-content table code:not(pre code) {
+	padding: 0;
+	background: transparent;
 	white-space: nowrap;
+}
+
+/* Below 50em a two-column table stacks each row, the label above the value. */
+@media (max-width: 49.99em) {
+	.sl-markdown-content table:has(tr > :nth-child(2):last-child) {
+		display: block;
+		overflow: visible;
+	}
+
+	.sl-markdown-content table:has(tr > :nth-child(2):last-child) :is(tbody, tr, td) {
+		display: block;
+	}
+
+	.sl-markdown-content table:has(tr > :nth-child(2):last-child) tr {
+		padding: 10px 0;
+		border-top: 1px solid var(--ani-rule-faint);
+	}
+
+	.sl-markdown-content table:has(tr > :nth-child(2):last-child) tbody tr:last-child {
+		border-bottom: 1px solid var(--ani-rule-faint);
+	}
+
+	.sl-markdown-content table:has(tr > :nth-child(2):last-child) td,
+	.sl-markdown-content table:has(tr > :nth-child(2):last-child) tr:first-child > td {
+		padding: 0;
+		border: 0;
+	}
+
+	.sl-markdown-content table:has(tr > :nth-child(2):last-child) td:first-child {
+		font-size: 14px;
+		font-weight: 600;
+		line-height: 20px;
+	}
+
+	.sl-markdown-content table:has(tr > :nth-child(2):last-child) td:last-child {
+		margin-top: 2px;
+		font-size: 15px;
+		line-height: 22px;
+	}
+
+	.sl-markdown-content table:has(tr > :nth-child(2):last-child) code:not(pre code) {
+		white-space: normal;
+		overflow-wrap: anywhere;
+	}
+}
+
+/* ── Code blocks: the copy button sits on the well, haze, silk on hover ─── */
+.expressive-code .copy {
+	inset-block-start: 6px;
+	inset-inline-end: 6px;
+}
+
+.expressive-code .frame .copy button,
+.expressive-code .frame:hover .copy button:not(:hover) {
+	width: 32px;
+	height: 32px;
+	border-radius: var(--ani-r-row);
+	opacity: 1;
+}
+
+.expressive-code .copy button::after {
+	margin: 8.5px;
+	transition: background-color var(--ani-quick) var(--ani-spring);
+}
+
+.expressive-code .copy button:hover::after {
+	background-color: var(--ani-text);
+}
+
+/* ── Link cards ────────────────────────────────────────────────────────── */
+.sl-link-card {
+	border: 0;
+	border-radius: var(--ani-r-box);
+	background-color: var(--ani-raised);
+	box-shadow: none;
+}
+
+/* ── Pagination ────────────────────────────────────────────────────────── */
+.pagination-links {
+	gap: 24px;
+	border-top: 1px solid var(--ani-rule-faint);
+}
+
+.pagination-links a {
+	gap: 6px;
+	padding: 14px 0;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	font-size: 13px;
+	line-height: 18px;
+	color: var(--ani-dim);
+}
+
+.pagination-links a:hover {
+	border: 0;
+	color: var(--ani-dim);
+}
+
+.pagination-links a:hover .link-title {
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-decoration-color: var(--ani-rule);
+	text-underline-offset: 3px;
+}
+
+.pagination-links a svg {
+	display: none;
+}
+
+.pagination-links .link-title {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	margin-top: 2px;
+	font-size: 17px;
+	font-weight: 600;
+	line-height: 24px;
+	color: var(--ani-text);
+}
+
+.pagination-links [rel='prev'] .link-title::before,
+.pagination-links [rel='next'] .link-title::after {
+	content: '';
+	width: 14px;
+	height: 14px;
+	background-color: var(--ani-dim);
+	-webkit-mask: var(--ani-chevron) center / 14px 14px no-repeat;
+	mask: var(--ani-chevron) center / 14px 14px no-repeat;
+}
+
+.pagination-links [rel='prev'] {
+	--ani-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 3.5L5.5 8L10 12.5'/%3E%3C/svg%3E");
+}
+
+.pagination-links [rel='next'] {
+	--ani-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3.5L10.5 8L6 12.5'/%3E%3C/svg%3E");
+}
+
+.pagination-links:not(:has(a)) {
+	display: none;
+}
+
+@media (max-width: 49.99em) {
+	.pagination-links {
+		gap: 0;
+	}
+
+	.pagination-links a + a {
+		border-top: 1px solid var(--ani-rule-faint);
+	}
+}
+
+/* ── Search dialog ─────────────────────────────────────────────────────── */
+site-search dialog {
+	border: 1px solid var(--ani-rule-faint);
+	background-color: var(--ani-ground);
+	box-shadow: none;
+}
+
+site-search dialog::backdrop {
+	-webkit-backdrop-filter: none;
+	backdrop-filter: none;
+}
+
+@media (min-width: 50rem) {
+	site-search dialog {
+		border-radius: var(--ani-r-box);
+	}
+}
+
+site-search dialog[open],
+site-search dialog[open]::backdrop {
+	animation: ani-fade-in var(--ani-fade-in);
+}
+
+@keyframes ani-fade-in {
+	from {
+		opacity: 0;
+	}
+}
+
+#starlight__search {
+	--pagefind-ui-primary: var(--ani-text);
+	--pagefind-ui-text: var(--ani-text);
+	--pagefind-ui-background: var(--ani-raised);
+	--pagefind-ui-border: var(--ani-rule-faint);
+	--pagefind-ui-tag: var(--ani-raised-selected);
 }

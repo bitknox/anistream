@@ -1,0 +1,10 @@
+---
+// The page title, then the page's one-line description from its frontmatter as a lede, so every
+// docs page opens with its summary.
+import Default from '@astrojs/starlight/components/PageTitle.astro';
+
+const { description } = Astro.locals.starlightRoute.entry.data;
+---
+
+<Default />
+{description && <p class="ani-lede">{description}</p>}
