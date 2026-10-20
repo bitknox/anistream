@@ -41,7 +41,15 @@ struct Shader {
 
 macro_rules! shader {
     ($name:literal) => {
-        Shader { name: $name, body: include_str!(concat!("../../../assets/shaders/", $name)) }
+        Shader {
+            name: $name,
+            // Found from the crate's root rather than from this file, so the file can move.
+            body: include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../../assets/shaders/",
+                $name
+            )),
+        }
     };
 }
 
