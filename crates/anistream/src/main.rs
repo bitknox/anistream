@@ -402,9 +402,10 @@ mod tests {
             self,
             player::{player, shader_dir},
         },
-        settings::{SETTING_LABELS, setting_label},
+        settings::setting_label,
         sources,
     };
+    use anistream_model::settings::SettingKey;
     use anistream_tui::{
         app::App,
         keymap::Keymap,
@@ -600,8 +601,10 @@ mod tests {
             assert_eq!(named, app.setting_label(table, key), "{table:?}.{key}");
         }
         // And nothing named that the interface does not write.
-        for (table, key, _) in SETTING_LABELS {
-            assert!(written.contains(&(*table, *key)), "{table:?}.{key} has no row");
+        for setting in SettingKey::ROWS.into_iter().chain([SettingKey::SourceOrder]) {
+            if let Some((table, key)) = setting.path() {
+                assert!(written.contains(&(table, key)), "{table:?}.{key} has no row");
+            }
         }
         // Saved in passing, from the player.
         for key in ["persisted_speed", "persisted_volume"] {

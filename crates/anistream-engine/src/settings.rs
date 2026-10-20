@@ -2,7 +2,9 @@
 //! named as the Settings screen names it, with the work the write leaves the engine side.
 
 use anistream_core::config::Config;
-use anistream_model::{event::Event, notice::Notice, sources::only_reorders};
+use anistream_model::{
+    event::Event, notice::Notice, settings::SettingKey, sources::only_reorders,
+};
 
 use crate::{
     data,
@@ -95,47 +97,11 @@ pub fn save_setting(
 /// `None` for what is stored without a row of its own, the remembered speed and volume: saved
 /// in passing, and not something anyone asked to have confirmed.
 ///
-/// A table of its own, so the engine side can name a setting without asking the interface,
-/// and held to the Settings screen's own rows by a test in the binary, the one place that sees
-/// both.
-/// P4 moves the settings' ids and labels into the model, and this reads them from there.
+/// Read off the setting's own key, which names it for every front end: the engine had a table
+/// of its own, held to the Settings screen's rows by a test.
 pub fn setting_label(table: &[&str], key: &str) -> Option<&'static str> {
-    SETTING_LABELS.iter().find(|(t, k, _)| *t == table && *k == key).map(|(_, _, label)| *label)
+    SettingKey::at(table, key).map(SettingKey::label)
 }
-
-/// Every setting the interface writes, by table and key, with the name its row goes by.
-pub const SETTING_LABELS: &[(&[&str], &str, &str)] = &[
-    // No row on Settings: `K` and `J` on Providers change it.
-    (&["providers"], "order", "source order"),
-    (&["theme"], "mode", "theme"),
-    (&["theme"], "motion", "motion"),
-    (&["playback"], "translation", "translation"),
-    (&["playback"], "quality", "quality"),
-    (&["playback"], "subtitle_language", "subtitles"),
-    (&["playback"], "commit_threshold", "counts as watched at"),
-    (&["playback"], "auto_next", "auto-play next"),
-    (&["playback"], "skip_opening", "skip opening automatically"),
-    (&["playback"], "skip_filler", "skip filler automatically"),
-    (&["playback"], "mark_chapters", "mark opening and ending"),
-    (&["playback"], "fullscreen", "start fullscreen"),
-    (&["playback"], "upscaling", "upscaling"),
-    (&["playback"], "player_ui", "player interface"),
-    (&["playback"], "night_mode", "night mode"),
-    (&["downloads"], "directory", "download folder"),
-    (&["downloads"], "merge_subtitles", "merge subtitles in"),
-    (&["downloads"], "keep_seeding", "keep seeding"),
-    (&["downloads"], "on_complete", "after each download"),
-    (&["providers", "torrent"], "enabled", "torrent source"),
-    (&["providers", "torrent", "seeding"], "ratio", "seed after watching"),
-    (&["providers", "torrent", "seeding"], "hours", "seed for at most"),
-    (&["providers", "torrent", "seeding"], "upload_limit_kib", "upload limit"),
-    (&["presence"], "enabled", "discord presence"),
-    (&["presence"], "show_title", "presence shows the title"),
-    (&["syncplay"], "enabled", "syncplay parties"),
-    (&["syncplay"], "server", "syncplay server"),
-    (&["syncplay"], "room", "syncplay room"),
-    (&["updates"], "check", "check for updates"),
-];
 
 /// Whether writing this key changes which sources exist, and so needs the chain rebuilt.
 ///

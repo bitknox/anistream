@@ -9,7 +9,8 @@ use anistream_core::config::Config;
 /// An enum rather than positional indices: the cycling logic and the renderer both key off this,
 /// so inserting a row cannot make the screen edit the setting below the one it is showing. And
 /// rather than the file's table and key, which are where it is written and nothing more.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum SettingKey {
     Theme,
     Motion,
@@ -268,5 +269,31 @@ impl SettingKey {
             Self::TokenStorage => "token storage",
             Self::SourceOrder => "source order",
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_setting_written_is_found_again_where_the_file_keeps_it() {
+        // So a write named by the file's table and key names one setting, and only one.
+        for setting in SettingKey::ROWS.into_iter().chain([SettingKey::SourceOrder]) {
+            if let Some((table, key)) = setting.path() {
+                assert_eq!(SettingKey::at(table, key), Some(setting), "{table:?}.{key}");
+            }
+        }
+        // Shown and never written from here: the file's to change.
+        assert_eq!(SettingKey::VpnMode.path(), None);
+        assert_eq!(SettingKey::TokenStorage.path(), None);
+        // What the player remembers in passing is no setting of the screen's.
+        for key in ["persisted_speed", "persisted_volume", "tone_mapping"] {
+            assert_eq!(SettingKey::at(&["playback"], key), None, "{key}");
+        }
+        // Every row once, and the order, which has none.
+        let rows: std::collections::HashSet<_> = SettingKey::ROWS.into_iter().collect();
+        assert_eq!(rows.len(), SettingKey::ROWS.len());
+        assert!(!SettingKey::ROWS.contains(&SettingKey::SourceOrder));
     }
 }
