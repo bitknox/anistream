@@ -443,7 +443,8 @@ async fn preview(
     if let Ok(Some(reason)) = plugins.await {
         note = Some(reason);
     }
-    let services = Services::build(&config, paths.clone(), http, store, registry)?;
+    let services =
+        Services::build(&config, paths.clone(), http, store, registry, player_theme())?;
     // Nothing in a still frame brings a torrent source up, so nothing reports on this.
     let state = EngineState::new(config.clone(), mpsc::unbounded_channel().0);
     let mut app = App::with_images(config, palette, keymap, engine);
@@ -703,7 +704,7 @@ async fn run(
         paths.clone(),
     );
     // What every task is lent, built around that chain.
-    let services = Services::build(&config, paths, http, store, registry)?;
+    let services = Services::build(&config, paths, http, store, registry, player_theme())?;
     // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
     let (arrivals_tx, mut arrivals) = mpsc::unbounded_channel();
     // The effect layer's own state, on the config the app was launched with.
@@ -1975,7 +1976,7 @@ fn play(
     services: &Services,
     tx: &Outbox,
 ) {
-    let Services { paths, sync, prefetch, .. } = services;
+    let Services { paths, sync, prefetch, player_theme, .. } = services;
     let EngineState { config, hints, player_tx, .. } = engine;
     let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
     // A fresh channel per playback. The one playing gives up its window only once
@@ -1998,7 +1999,7 @@ fn play(
         handoff,
         config,
         services,
-        &player(config, paths, &player_theme()),
+        &player(config, paths, player_theme),
         tracker_ids,
         extras,
         shader_dir(config, paths),
@@ -2020,7 +2021,7 @@ fn play_source(
     services: &Services,
     tx: &Outbox,
 ) {
-    let Services { paths, sync, .. } = services;
+    let Services { paths, sync, player_theme, .. } = services;
     let EngineState { config, hints, player_tx, .. } = engine;
     // Identical to Play except the stream comes from the exact release the user
     // picked — same fresh channel, same session-replacement semantics. Never from the
@@ -2042,7 +2043,7 @@ fn play_source(
         handoff,
         config,
         services,
-        &player(config, paths, &player_theme()),
+        &player(config, paths, player_theme),
         tracker_ids,
         extras,
         shader_dir(config, paths),
@@ -2061,7 +2062,7 @@ fn play_party(
     services: &Services,
     tx: &Outbox,
 ) {
-    let Services { paths, sync, .. } = services;
+    let Services { paths, sync, player_theme, .. } = services;
     let EngineState { config, hints, player_tx, .. } = engine;
     // Same resolution as Play; the handoff at the end is the only difference.
     let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
@@ -2078,7 +2079,7 @@ fn play_party(
         handoff,
         config,
         services,
-        &player(config, paths, &player_theme()),
+        &player(config, paths, player_theme),
         tracker_ids,
         extras,
         shader_dir(config, paths),
@@ -2100,7 +2101,7 @@ fn play_local(
     services: &Services,
     tx: &Outbox,
 ) {
-    let Services { paths, http, store, sync, slot, .. } = services;
+    let Services { paths, http, store, sync, slot, player_theme, .. } = services;
     let EngineState { config, hints, player_tx, .. } = engine;
     // No provider walk and no torrent session — the file is on disk — but the full
     // playback session all the same: a downloaded episode records history, resumes,
@@ -2119,7 +2120,7 @@ fn play_local(
         config.clone(),
         store.clone(),
         http.clone(),
-        player(config, paths, &player_theme()),
+        player(config, paths, player_theme),
         tx.clone(),
         slot.clone(),
     );

@@ -228,6 +228,7 @@ impl Harness {
                 stores,
                 slot: PlayerSlot::default(),
                 prefetch: Prefetch::default(),
+                player_theme: theme::player_theme(),
             },
             _arrived: arrived,
             _root: root,
