@@ -2127,6 +2127,45 @@ impl App {
         self.nav.open_overlay(Overlay::DownloadRange);
     }
 
+    /// Enter on a range of episodes: those of them that exist, queued for download.
+    fn submit_range(&mut self) -> Option<Command> {
+        let id = match self.nav.current() {
+            StageView::Episodes(id) => *id,
+            _ => return None,
+        };
+        // Resolved against episodes that actually exist, from the unfiltered
+        // list — a filter narrows the view, not what can be fetched.
+        let Some((from, to)) = parse_episode_range(self.text(Field::Range)) else {
+            // Cleared, with the prompt left open for another try. Kept, the retry's
+            // keys were appended to the refused text and refused again.
+            self.field_mut(Field::Range).clear();
+            self.push_toast(Notice::info("ranges look like 4, 1-12 or 7-"));
+            return None;
+        };
+        let episodes: Vec<String> = self
+            .episodes_all
+            .iter()
+            .filter(|row| {
+                row.number
+                    .trim()
+                    .parse::<u32>()
+                    .is_ok_and(|n| n >= from && to.is_none_or(|t| n <= t))
+            })
+            .map(|row| row.number.clone())
+            .collect();
+        if episodes.is_empty() {
+            self.field_mut(Field::Range).clear();
+            self.push_toast(Notice::info("no episodes in that range"));
+            return None;
+        }
+        self.nav.close_overlay();
+        self.push_toast(Notice::info(format!(
+            "queueing {}…",
+            anistream_model::wording::plural(episodes.len(), "episode")
+        )));
+        Some(Command::DownloadMany { id, episodes })
+    }
+
     /// The episode table's next filter, said as it is applied.
     fn cycle_episode_filter(&mut self) {
         self.episode_filter = self.episode_filter.next();
@@ -2157,6 +2196,20 @@ impl App {
         self.cursors.overlay.selected = 0;
         self.nav.open_overlay(Overlay::ManualQuery);
         None
+    }
+
+    /// Enter on a search by hand: the search, or with nothing typed the pin forgotten.
+    fn submit_manual_query(&mut self) -> Option<Command> {
+        let query = self.text(Field::ManualQuery).trim().to_owned();
+        let id = self.manual_target?;
+        self.nav.close_overlay();
+        // Empty enter is the undo: forget the pin, let the ladder decide again.
+        if query.is_empty() {
+            self.episodes.clear();
+            self.episodes_loading = true;
+            return Some(Command::ClearMatch { id });
+        }
+        Some(Command::ManualSearch { id, query })
     }
 
     /// The candidate picked, pinned as the title's match.
@@ -2557,6 +2610,30 @@ impl App {
         Some(Command::Connect { tracker: tracker.tracker })
     }
 
+    /// Enter on the Kitsu sign-in's username: on to its password.
+    fn submit_kitsu_user(&mut self) -> Option<Command> {
+        if self.text(Field::KitsuUser).trim().is_empty() {
+            return None;
+        }
+        self.nav.close_overlay();
+        self.nav.open_overlay(Overlay::KitsuPassword);
+        None
+    }
+
+    /// Enter on the Kitsu sign-in's password: the sign-in, sent.
+    fn submit_kitsu_password(&mut self) -> Option<Command> {
+        if self.text(Field::KitsuPassword).is_empty() {
+            return None;
+        }
+        // Taken, not cloned: the buffer must not hold a live password after the
+        // exchange is dispatched.
+        let username = self.text(Field::KitsuUser).trim().to_owned();
+        let password = Secret(self.field_mut(Field::KitsuPassword).take());
+        self.field_mut(Field::KitsuUser).clear();
+        self.nav.close_overlay();
+        Some(Command::ConnectKitsu { username, password })
+    }
+
     /// Enter on the Accounts overlay: the highlighted tracker signed in or out.
     fn confirm_account(&mut self) -> Option<Command> {
         let tracker = self.sync.get(self.cursors.overlay.selected)?.clone();
@@ -2722,6 +2799,27 @@ impl App {
         // empty means there is nothing to ask yet, and that is not an error.
         if query.is_empty() && self.search_filter.is_empty() {
             return None;
+        }
+        self.searched_query = query.clone();
+        self.content = Content::Loading;
+        // New results start at their top, not at the row the old ones were left on.
+        self.cursors.search = Cursor::default();
+        Some(Command::Search { query, filter: self.search_filter.clone() })
+    }
+
+    /// Enter in Search's field: the search, or the highlighted result once the results are for
+    /// the query as typed.
+    fn submit_search(&mut self) -> Option<Command> {
+        let query = self.text(Field::Search).trim().to_owned();
+        if query.is_empty() {
+            return None;
+        }
+        // Enter submitted the search *every* time, so a result could be highlighted and
+        // never opened — the key just re-ran the same query. It submits only while there is
+        // something new to ask; once the results on screen are for this query, Enter does
+        // what Enter does everywhere else in the app and opens the selection.
+        if self.search_opens_on_enter() {
+            return self.open_selected();
         }
         self.searched_query = query.clone();
         self.content = Content::Loading;
@@ -3118,6 +3216,28 @@ impl App {
         self.cycle_setting(1)
     }
 
+    /// Enter in a text setting's editor: the value typed, written.
+    fn submit_setting(&mut self) -> Option<Command> {
+        let id = self.edit_target.take()?;
+        if !id.typed() {
+            return None;
+        }
+        let value = self.text(Field::Setting).trim().to_owned();
+        self.nav.close_overlay();
+        if value.is_empty() {
+            // The writer sets keys; it does not delete them. Refusing beats
+            // writing an empty string that half the readers treat as a path.
+            self.push_toast(Notice::info(
+                "left unchanged — delete the line in config.toml to unset",
+            ));
+            return None;
+        }
+        // No toast here: the write reports itself once it has landed, which is the
+        // moment "saved" is true. Saying it now as well put two confirmations up.
+        let value = anistream_core::settings::SettingValue::Str(value);
+        Some(Command::SetSetting { key: id, value })
+    }
+
     /// Sub or dub for this session: the other one.
     fn toggle_translation(&mut self) -> Option<Command> {
         // For this session: the saved choice is the Settings row's to change.
@@ -3347,6 +3467,12 @@ impl App {
         self.perform(action, visible_rows)
     }
 
+    /// Down in the palette, stopping at its last match.
+    fn palette_down(&mut self) {
+        let last = self.palette_matches().len().saturating_sub(1);
+        self.cursors.overlay.selected = (self.cursors.overlay.selected + 1).min(last);
+    }
+
     fn handle_while_typing(&mut self, action: Action, visible_rows: usize) -> Option<Command> {
         // Actions bound only to modified or special keys are unambiguous with text, so
         // suppressing them would make Escape and the palette mysteriously stop working
@@ -3361,79 +3487,27 @@ impl App {
             return None;
         }
         match action {
-            Action::Back => {
-                let credentials_open = matches!(
-                    self.nav.overlay(),
-                    Some(Overlay::KitsuUsername | Overlay::KitsuPassword)
-                );
-                if !self.nav.close_overlay() {
-                    // Nothing to dismiss — leave the field rather than trapping the user
-                    // in it.
-                    self.nav.focus_rail();
-                }
-                if credentials_open {
-                    // A dismissed sign-in leaves nothing behind to resurface later.
-                    self.field_mut(Field::KitsuUser).clear();
-                    self.field_mut(Field::KitsuPassword).clear();
-                }
-                // An invite link is a one-time credential; a dismissed prompt forgets it.
-                self.field_mut(Field::JoinLink).clear();
-                self.field_mut(Field::InviteName).clear();
-            }
-            Action::CommandPalette => {
-                self.field_mut(Field::Palette).clear();
-                self.nav.open_overlay(Overlay::CommandPalette);
-            }
+            Action::Back => self.dismiss_field(),
+            Action::CommandPalette => self.open_palette(),
             Action::Help => self.open_help(),
             Action::Quit => self.should_quit = true,
             // The two sign-in steps. Enter with nothing typed stays put — an empty
             // submit is a slip of the finger, not an answer.
             Action::Open if self.nav.overlay() == Some(&Overlay::KitsuUsername) => {
-                if self.text(Field::KitsuUser).trim().is_empty() {
-                    return None;
-                }
-                self.nav.close_overlay();
-                self.nav.open_overlay(Overlay::KitsuPassword);
+                return self.submit_kitsu_user();
             }
             Action::Open if self.nav.overlay() == Some(&Overlay::KitsuPassword) => {
-                if self.text(Field::KitsuPassword).is_empty() {
-                    return None;
-                }
-                // Taken, not cloned: the buffer must not hold a live password after the
-                // exchange is dispatched.
-                let username = self.text(Field::KitsuUser).trim().to_owned();
-                let password = Secret(self.field_mut(Field::KitsuPassword).take());
-                self.field_mut(Field::KitsuUser).clear();
-                self.nav.close_overlay();
-                return Some(Command::ConnectKitsu { username, password });
+                return self.submit_kitsu_password();
             }
             Action::Open if self.nav.overlay() == Some(&Overlay::JoinStore) => {
-                // A link that wrapped in a chat window arrives with spaces and line breaks in
-                // it, and a URL has no place for either.
-                let link: String =
-                    self.text(Field::JoinLink).chars().filter(|c| !c.is_whitespace()).collect();
-                if link.is_empty() {
-                    return None;
-                }
-                self.nav.close_overlay();
-                return Some(Command::PreviewStore { link: Secret(link) });
+                return self.submit_join_link();
             }
             Action::Open if self.nav.overlay() == Some(&Overlay::InviteName) => {
-                let name = self.text(Field::InviteName).trim().to_owned();
-                if name.is_empty() {
-                    return None;
-                }
-                let store = self.store_view()?.to_owned();
-                self.field_mut(Field::InviteName).clear();
-                self.nav.close_overlay();
-                return Some(Command::CreateInvite { store, name: Some(name) });
+                return self.submit_invite_name();
             }
             // Mid-query is exactly when filters are wanted, so ctrl+f cannot wait for the
             // box to lose focus.
-            Action::FilterSearch => {
-                self.cursors.overlay.selected = 0;
-                self.nav.open_overlay(Overlay::SearchFilters);
-            }
+            Action::FilterSearch => self.open_search_filters(),
             // The palette takes text, so it reaches this path rather than the overlay block in
             // `handle`. It used to close on Enter without running anything, and move the list
             // *behind* it on the arrows — so the one mechanism meant to make every action
@@ -3442,100 +3516,24 @@ impl App {
                 return self.confirm_overlay(visible_rows);
             }
             Action::Open if self.nav.overlay() == Some(&Overlay::EditSetting) => {
-                let id = self.edit_target.take()?;
-                if !id.typed() {
-                    return None;
-                }
-                let value = self.text(Field::Setting).trim().to_owned();
-                self.nav.close_overlay();
-                if value.is_empty() {
-                    // The writer sets keys; it does not delete them. Refusing beats
-                    // writing an empty string that half the readers treat as a path.
-                    self.push_toast(Notice::info(
-                        "left unchanged — delete the line in config.toml to unset",
-                    ));
-                    return None;
-                }
-                // No toast here: the write reports itself once it has landed, which is the
-                // moment "saved" is true. Saying it now as well put two confirmations up.
-                let value = anistream_core::settings::SettingValue::Str(value);
-                return Some(Command::SetSetting { key: id, value });
+                return self.submit_setting();
             }
             Action::Open if self.nav.overlay() == Some(&Overlay::DownloadRange) => {
-                let id = match self.nav.current() {
-                    StageView::Episodes(id) => *id,
-                    _ => return None,
-                };
-                // Resolved against episodes that actually exist, from the unfiltered
-                // list — a filter narrows the view, not what can be fetched.
-                let Some((from, to)) = parse_episode_range(self.text(Field::Range)) else {
-                    // Cleared, with the prompt left open for another try. Kept, the retry's
-                    // keys were appended to the refused text and refused again.
-                    self.field_mut(Field::Range).clear();
-                    self.push_toast(Notice::info("ranges look like 4, 1-12 or 7-"));
-                    return None;
-                };
-                let episodes: Vec<String> = self
-                    .episodes_all
-                    .iter()
-                    .filter(|row| {
-                        row.number
-                            .trim()
-                            .parse::<u32>()
-                            .is_ok_and(|n| n >= from && to.is_none_or(|t| n <= t))
-                    })
-                    .map(|row| row.number.clone())
-                    .collect();
-                if episodes.is_empty() {
-                    self.field_mut(Field::Range).clear();
-                    self.push_toast(Notice::info("no episodes in that range"));
-                    return None;
-                }
-                self.nav.close_overlay();
-                self.push_toast(Notice::info(format!(
-                    "queueing {}…",
-                    anistream_model::wording::plural(episodes.len(), "episode")
-                )));
-                return Some(Command::DownloadMany { id, episodes });
+                return self.submit_range();
             }
             // Enter runs the manual search; the results come back as ordinary match
             // choices, so the whole Disambiguate tail is reused unchanged.
             Action::Open if self.nav.overlay() == Some(&Overlay::ManualQuery) => {
-                let query = self.text(Field::ManualQuery).trim().to_owned();
-                let id = self.manual_target?;
-                self.nav.close_overlay();
-                // Empty enter is the undo: forget the pin, let the ladder decide again.
-                if query.is_empty() {
-                    self.episodes.clear();
-                    self.episodes_loading = true;
-                    return Some(Command::ClearMatch { id });
-                }
-                return Some(Command::ManualSearch { id, query });
+                return self.submit_manual_query();
             }
             Action::Down if self.nav.overlay() == Some(&Overlay::CommandPalette) => {
-                let last = self.palette_matches().len().saturating_sub(1);
-                self.cursors.overlay.selected = (self.cursors.overlay.selected + 1).min(last);
+                self.palette_down()
             }
             Action::Up if self.nav.overlay() == Some(&Overlay::CommandPalette) => {
                 self.cursors.overlay.selected = self.cursors.overlay.selected.saturating_sub(1);
             }
             Action::Open if self.nav.section() == Section::Search => {
-                let query = self.text(Field::Search).trim().to_owned();
-                if query.is_empty() {
-                    return None;
-                }
-                // Enter submitted the search *every* time, so a result could be highlighted and
-                // never opened — the key just re-ran the same query. It submits only while there is
-                // something new to ask; once the results on screen are for this query, Enter does
-                // what Enter does everywhere else in the app and opens the selection.
-                if self.search_opens_on_enter() {
-                    return self.open_selected();
-                }
-                self.searched_query = query.clone();
-                self.content = Content::Loading;
-                // New results start at their top, not at the row the old ones were left on.
-                self.cursors.search = Cursor::default();
-                return Some(Command::Search { query, filter: self.search_filter.clone() });
+                return self.submit_search();
             }
             // Down leaves the query for its results, where the keyboard is a list's again: `j`,
             // `k`, the pages and every title key. Moving the selection from inside the field
@@ -3677,6 +3675,26 @@ impl App {
         if field == Field::Palette {
             self.cursors.overlay.selected = 0;
         }
+    }
+
+    /// Esc in a field: the prompt dismissed, or the field left where there is none, and nothing
+    /// typed into a sign-in or an invite kept.
+    fn dismiss_field(&mut self) {
+        let credentials_open =
+            matches!(self.nav.overlay(), Some(Overlay::KitsuUsername | Overlay::KitsuPassword));
+        if !self.nav.close_overlay() {
+            // Nothing to dismiss — leave the field rather than trapping the user
+            // in it.
+            self.nav.focus_rail();
+        }
+        if credentials_open {
+            // A dismissed sign-in leaves nothing behind to resurface later.
+            self.field_mut(Field::KitsuUser).clear();
+            self.field_mut(Field::KitsuPassword).clear();
+        }
+        // An invite link is a one-time credential; a dismissed prompt forgets it.
+        self.field_mut(Field::JoinLink).clear();
+        self.field_mut(Field::InviteName).clear();
     }
 
     /// Push the selected title's detail screen — what Enter does on a row with nothing to
@@ -4329,6 +4347,31 @@ impl App {
             }
         }
         None
+    }
+
+    /// Enter on a pasted invite link: the store it names, checked before anything is joined.
+    fn submit_join_link(&mut self) -> Option<Command> {
+        // A link that wrapped in a chat window arrives with spaces and line breaks in
+        // it, and a URL has no place for either.
+        let link: String =
+            self.text(Field::JoinLink).chars().filter(|c| !c.is_whitespace()).collect();
+        if link.is_empty() {
+            return None;
+        }
+        self.nav.close_overlay();
+        Some(Command::PreviewStore { link: Secret(link) })
+    }
+
+    /// Enter on an invite's name: the invite, made for the store on screen.
+    fn submit_invite_name(&mut self) -> Option<Command> {
+        let name = self.text(Field::InviteName).trim().to_owned();
+        if name.is_empty() {
+            return None;
+        }
+        let store = self.store_view()?.to_owned();
+        self.field_mut(Field::InviteName).clear();
+        self.nav.close_overlay();
+        Some(Command::CreateInvite { store, name: Some(name) })
     }
 
     fn open_store_line(&mut self, id: &str) -> Option<Command> {
