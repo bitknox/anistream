@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, engine-p6b]
+    branches: [main]
   pull_request:
 
 # A newer push to the same pull request makes the running checks moot. Pushes to main are left
