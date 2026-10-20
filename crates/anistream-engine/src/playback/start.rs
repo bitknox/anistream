@@ -11,6 +11,8 @@ use anistream_model::{
 };
 use tokio::sync::mpsc;
 
+#[cfg(feature = "testing")]
+use crate::cache::PlayKind;
 use crate::{
     jobs::JobGuard,
     outbox::Outbox,
@@ -52,9 +54,16 @@ pub fn play(
     tx: &Outbox,
 ) {
     let Services { paths, sync, prefetch, player_theme, .. } = services;
-    let EngineState { config, hints, player_tx, .. } = engine;
+    let played = engine.next_playback(id, &episode);
+    #[cfg(feature = "testing")]
+    let ours = engine.cache.hints(id, &episode, skip_filler(engine), PlayKind::Staged);
+    let EngineState { config, hints, player_tx, cache, .. } = engine;
     let config = config.effective();
-    let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
+    let sent = hints.take();
+    #[cfg(feature = "testing")]
+    cross_check(sent.as_ref(), &ours);
+    let PlayHints { title, next, episodes } = sent.unwrap_or_default();
+    cache.announce(id, title.clone());
     // A fresh channel per playback. The one playing gives up its window only once
     // this one has something to play — see `Handoff`.
     let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
@@ -81,7 +90,7 @@ pub fn play(
         shader_dir(config, paths),
         prefetched,
         job,
-        tx,
+        &tx.for_playback(played),
     );
 }
 
@@ -98,12 +107,19 @@ pub fn play_source(
     tx: &Outbox,
 ) {
     let Services { paths, sync, player_theme, .. } = services;
-    let EngineState { config, hints, player_tx, .. } = engine;
+    let played = engine.next_playback(id, &episode);
+    #[cfg(feature = "testing")]
+    let ours = engine.cache.hints(id, &episode, skip_filler(engine), PlayKind::Staged);
+    let EngineState { config, hints, player_tx, cache, .. } = engine;
     let config = config.effective();
     // Identical to Play except the stream comes from the exact release the user
     // picked — same fresh channel, same session-replacement semantics. Never from the
     // streams found ahead: the pick names its own release.
-    let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
+    let sent = hints.take();
+    #[cfg(feature = "testing")]
+    cross_check(sent.as_ref(), &ours);
+    let PlayHints { title, next, episodes } = sent.unwrap_or_default();
+    cache.announce(id, title.clone());
     let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
     let prefetched = None;
     let tracker_ids = signed_in_tracker_ids(sync);
@@ -126,7 +142,7 @@ pub fn play_source(
         shader_dir(config, paths),
         prefetched,
         job,
-        tx,
+        &tx.for_playback(played),
     );
 }
 
@@ -140,10 +156,16 @@ pub fn play_party(
     tx: &Outbox,
 ) {
     let Services { paths, sync, player_theme, .. } = services;
+    let played = engine.next_playback(id, &episode);
+    #[cfg(feature = "testing")]
+    let ours = engine.cache.hints(id, &episode, skip_filler(engine), PlayKind::Party);
     let EngineState { config, hints, player_tx, .. } = engine;
     let config = config.effective();
     // Same resolution as Play; the handoff at the end is the only difference.
-    let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
+    let sent = hints.take();
+    #[cfg(feature = "testing")]
+    cross_check(sent.as_ref(), &ours);
+    let PlayHints { title, next, episodes } = sent.unwrap_or_default();
     let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
     let prefetched = None;
     let tracker_ids = signed_in_tracker_ids(sync);
@@ -163,7 +185,7 @@ pub fn play_party(
         shader_dir(config, paths),
         prefetched,
         job,
-        tx,
+        &tx.for_playback(played),
     );
 }
 
@@ -180,14 +202,25 @@ pub fn play_local(
     tx: &Outbox,
 ) {
     let Services { paths, http, store, sync, slot, player_theme, .. } = services;
-    let EngineState { config, hints, player_tx, .. } = engine;
+    let played = engine.next_playback(id, &episode);
+    // Named by the download it plays: the Downloads screen says what its rows are called.
+    #[cfg(feature = "testing")]
+    let ours = crate::cache::PlayHints {
+        title: title.clone(),
+        ..engine.cache.hints(id, &episode, skip_filler(engine), PlayKind::Staged)
+    };
+    let EngineState { config, hints, player_tx, cache, .. } = engine;
     let config = config.effective();
     // No provider walk and no torrent session — the file is on disk — but the full
     // playback session all the same: a downloaded episode records history, resumes,
     // and syncs exactly like a streamed one. It used to go straight to mpv with no
     // context, which made downloads second-class in every way that matters.
     // Nothing to look up, so nothing can fail before it plays.
-    let PlayHints { title: named, next, episodes } = hints.take().unwrap_or_default();
+    let sent = hints.take();
+    #[cfg(feature = "testing")]
+    cross_check(sent.as_ref(), &ours);
+    let PlayHints { title: named, next, episodes } = sent.unwrap_or_default();
+    cache.announce(id, named.clone());
     let (prx, handoff) = take_controls(player_tx, successor(id, &episode, named, config));
     handoff.now();
     let tracker_ids = signed_in_tracker_ids(sync);
@@ -200,7 +233,7 @@ pub fn play_local(
         store.clone(),
         http.clone(),
         player(config, paths, player_theme),
-        tx.clone(),
+        tx.for_playback(played),
         slot.clone(),
     );
     tokio::spawn(async move {
@@ -235,6 +268,25 @@ pub fn play_local(
         };
         playback::play(vec![stream], context, store, http, mpv, settings, slot, tx, prx).await;
     });
+}
+
+/// Whether auto-next steps over filler, as the config in effect says.
+#[cfg(feature = "testing")]
+fn skip_filler(engine: &EngineState) -> bool {
+    engine.config.effective().playback.skip_filler
+}
+
+/// Cross-check, while the front end still sends what a play needs: the engine's record answers
+/// the play as the front end did. Under the test feature only, where a disagreement stops the
+/// engine and so fails the test that played. Temporary, with `PlayHints`.
+#[cfg(feature = "testing")]
+fn cross_check(sent: Option<&PlayHints>, ours: &crate::cache::PlayHints) {
+    let Some(sent) = sent else { return };
+    assert_eq!(
+        (&sent.title, &sent.next, &sent.episodes),
+        (&ours.title, &ours.next, &ours.episodes),
+        "the engine's record answers a play otherwise than the front end did"
+    );
 }
 
 /// Steer whatever is playing, through the controls of the playback started last.

@@ -42,7 +42,7 @@ use crate::{
     host::Host,
     jobs::JobGuard,
     options::EngineOptions,
-    outbox::{Envelope, Internal, Outbox, WeakOutbox},
+    outbox::{Envelope, Internal, Outbox, Played, WeakOutbox},
     playback::player::{launch_notice, player},
     plugin_stores,
     services::Services,
@@ -82,6 +82,12 @@ enum Message {
     /// An event, as the work would send it: see [`Engine::inject`].
     #[cfg(feature = "testing")]
     Inject(Event),
+    /// An event, as a playback would send it: see [`Engine::inject_from`].
+    #[cfg(feature = "testing")]
+    InjectFrom(Played, Event),
+    /// The engine's record of the titles, as it stands: see [`Engine::title_cache`].
+    #[cfg(feature = "testing")]
+    TitleCache(oneshot::Sender<crate::cache::TitleCache>),
 }
 
 impl Engine {
@@ -284,6 +290,8 @@ impl Engine {
             routed: 0,
             #[cfg(feature = "testing")]
             trace,
+            #[cfg(feature = "testing")]
+            injected: Default::default(),
         };
         tokio::spawn(actor.run());
 
@@ -350,6 +358,32 @@ impl Engine {
     pub fn inject(&self, event: Event) {
         self.sent.fetch_add(1, Ordering::Relaxed);
         let _ = self.commands.send(Message::Inject(event));
+    }
+
+    /// [`Self::inject`], as a playback of `episode` of `id` would send it, named with that
+    /// playback: `playback` numbers it, from a million up so that no playback the engine
+    /// starts is mistaken for it. The first event under a number starts it.
+    #[cfg(feature = "testing")]
+    pub fn inject_from(
+        &self,
+        playback: u64,
+        id: anistream_core::ids::AnilistId,
+        episode: &str,
+        event: Event,
+    ) {
+        self.sent.fetch_add(1, Ordering::Relaxed);
+        let played = Played { serial: playback, id, episode: episode.to_owned() };
+        let _ = self.commands.send(Message::InjectFrom(played, event));
+    }
+
+    /// The engine's record of the titles, as it stands when the engine reads the request:
+    /// after every command sent before it is routed. For a test that has settled, everything
+    /// they led to is in it.
+    #[cfg(feature = "testing")]
+    pub async fn title_cache(&self) -> crate::cache::TitleCache {
+        let (tx, rx) = oneshot::channel();
+        let _ = self.commands.send(Message::TitleCache(tx));
+        rx.await.expect("the engine answers while it runs")
     }
 }
 
@@ -545,6 +579,9 @@ struct Actor {
     /// Whether to say what only a test wants to hear: see [`Traced`].
     #[cfg(feature = "testing")]
     trace: bool,
+    /// The playbacks a test has spoken for, by number: see [`Engine::inject_from`].
+    #[cfg(feature = "testing")]
+    injected: std::collections::HashSet<u64>,
 }
 
 impl Actor {
@@ -574,6 +611,18 @@ impl Actor {
                     Some(Message::Inject(event)) => {
                         let _ = self.inbox.sender().send(event);
                         self.routed += 1;
+                    }
+                    #[cfg(feature = "testing")]
+                    Some(Message::InjectFrom(played, event)) => {
+                        if self.injected.insert(played.serial) {
+                            self.state.cache.started(&played);
+                        }
+                        let _ = self.inbox.sender().for_playback(played).send(event);
+                        self.routed += 1;
+                    }
+                    #[cfg(feature = "testing")]
+                    Some(Message::TitleCache(answer)) => {
+                        let _ = answer.send(self.state.cache.clone());
                     }
                     // Every handle on the engine has gone.
                     None => return,
@@ -612,17 +661,8 @@ impl Actor {
     /// One item of the inbox, in its place.
     async fn act_on(&mut self, envelope: Envelope) {
         match envelope {
-            Envelope::Event(event) => {
-                // The engine side's part, and what it has to say ahead of the event.
-                let Self { services, inbox, .. } = self;
-                let said = receive(&event, services, || inbox.sender());
-                said.into_iter().for_each(|said| self.pass_on(said));
-                // What the player changed of the config, kept and saved, with what the save
-                // has to say coming after the event, in its place in the inbox.
-                let Self { services, inbox, state, .. } = self;
-                settings::remember(&event, state, services, || inbox.sender());
-                self.pass_on(event);
-            }
+            Envelope::Event(event) => self.forward(event, None),
+            Envelope::Played(played, event) => self.forward(event, Some(played)),
             // What the engine side left itself to do, after everything sent before it and
             // before anything sent after.
             Envelope::Internal(message) => {
@@ -635,6 +675,21 @@ impl Actor {
                 }
             }
         }
+    }
+
+    /// An event on its way to the front end, from the playback `played` when one said it: the
+    /// engine side's part in it, and what it has to say ahead of it.
+    fn forward(&mut self, event: Event, played: Option<Played>) {
+        let Self { services, inbox, .. } = self;
+        let said = receive(&event, services, || inbox.sender());
+        said.into_iter().for_each(|said| self.pass_on(said));
+        // What it says of a title, taken into the record.
+        self.state.cache.observe(&event, played.as_ref());
+        // What the player changed of the config, kept and saved, with what the save has to say
+        // coming after the event, in its place in the inbox.
+        let Self { services, inbox, state, .. } = self;
+        settings::remember(&event, state, services, || inbox.sender());
+        self.pass_on(event);
     }
 
     /// The torrent source is up, or will not come up; only the latest bring-up counts.
@@ -679,7 +734,11 @@ impl Actor {
         }
         let ended = async {
             while let Some(envelope) = self.inbox.recv().await {
-                if matches!(envelope, Envelope::Event(Event::PlaybackEnded { .. })) {
+                if matches!(
+                    envelope,
+                    Envelope::Event(Event::PlaybackEnded { .. })
+                        | Envelope::Played(_, Event::PlaybackEnded { .. })
+                ) {
                     break;
                 }
             }

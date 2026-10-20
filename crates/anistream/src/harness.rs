@@ -37,6 +37,7 @@ use std::{
 
 use anistream_core::config::{Config, NetworkConfig, Paths};
 use anistream_engine::{
+    cache::PlayKind,
     engine::{Engine, EventStream, Traced},
     host::Host,
     options::{EngineOptions, Parts},
@@ -44,7 +45,14 @@ use anistream_engine::{
     plugin_stores, sources, tracking,
 };
 use anistream_meta::Meta;
-use anistream_model::{command::Command, event::Event, jobs::JobId, notice::Notice};
+use anistream_model::{
+    command::Command,
+    episodes::EpisodeRow,
+    event::Event,
+    jobs::JobId,
+    notice::Notice,
+    playback::{EpisodeEntry, NextEpisode},
+};
 use anistream_net::HttpClient;
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
@@ -352,13 +360,91 @@ impl Harness {
             self.jobs.started,
             names(&seen)
         );
+        self.cross_check(&seen).await;
         seen
+    }
+
+    /// Cross-check, while the App still works out a title's progress and what a play needs on
+    /// its own: the engine's record of the titles, as it stands once everything is applied,
+    /// says the same of every title the App shows. Each entry's progress and resume point; the
+    /// App's episode table, row by row, watched and finished; and for every episode in it, the
+    /// Up Next card and the Episodes menu a play would take. A table the App does not hold
+    /// because no title was open for it, as when a test loads one without opening the title,
+    /// is not the App's to say anything of. Temporary: it goes with the App's own rules.
+    async fn cross_check(&self, seen: &[Event]) {
+        let cache = self.engine.title_cache().await;
+        let app = &self.app;
+        for entry in app.detail.iter().chain(app.content.entries()) {
+            let standing = cache.standing(entry.id).map(|s| (s.progress, s.resume));
+            assert_eq!(
+                standing,
+                Some((entry.progress, entry.resume)),
+                "the engine's record of {:?} is not the App's, having seen {:?}",
+                entry.id,
+                names(seen)
+            );
+        }
+        let watch_state = |rows: &[EpisodeRow]| {
+            rows.iter().map(|r| (r.number.clone(), r.watched, r.completed)).collect::<Vec<_>>()
+        };
+        let open = app.detail.as_ref().map(|d| d.id);
+        let held = cache.table().map(|(id, _)| id);
+        let playing = app.playing.as_ref().and_then(|p| p.id);
+        for id in [open, held, playing].into_iter().flatten() {
+            let shown = app.episode_rows_for(id);
+            let ours = cache.standing(id).map_or(&[][..], |s| s.rows);
+            if shown.is_empty() && open != Some(id) {
+                continue;
+            }
+            assert_eq!(
+                watch_state(ours),
+                watch_state(shown),
+                "the engine's table for {id:?} is not the App's, having seen {:?}",
+                names(seen)
+            );
+            for row in shown {
+                let hints =
+                    cache.hints(id, &row.number, app.settings.skip_filler, PlayKind::Staged);
+                let next = app.next_up(id, &row.number).map(|next| NextEpisode {
+                    number: next.number.clone(),
+                    title: next.title.clone(),
+                    thumbnail: next.thumbnail.clone(),
+                });
+                let episodes: Vec<EpisodeEntry> = shown
+                    .iter()
+                    .map(|row| EpisodeEntry {
+                        number: row.number.clone(),
+                        title: row.title.clone(),
+                        watched: row.completed,
+                        filler: row.skippable,
+                    })
+                    .collect();
+                assert_eq!(
+                    (hints.next, hints.episodes),
+                    (next, episodes),
+                    "a play of {id:?} ep {} takes otherwise from the engine than from the App",
+                    row.number
+                );
+            }
+        }
     }
 
     /// Hand the engine what a playback says, as its player would: these tests have none. The
     /// engine does its part with it in its turn and passes it on, for the next settle to apply.
     pub fn player_says(&mut self, event: Event) {
         self.engine.inject(event);
+    }
+
+    /// [`Self::player_says`], as the playback of `episode` of `id` would say it: named with
+    /// that playback, which `playback` numbers, from a million up. Its first word starts it.
+    pub fn playback_says(
+        &mut self,
+        playback: u64,
+        id: anistream_core::ids::AnilistId,
+        episode: &str,
+        event: Event,
+    ) {
+        self.engine.inject_from(playback, id, episode, event);
     }
 
     /// [`Self::settle`], with everything the engine says before it next falls idle applied in

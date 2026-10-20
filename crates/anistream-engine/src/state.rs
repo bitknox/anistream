@@ -11,7 +11,10 @@
 
 use std::sync::{Arc, RwLock};
 
-use anistream_core::config::{Config, Paths};
+use anistream_core::{
+    config::{Config, Paths},
+    ids::AnilistId,
+};
 use anistream_model::{
     command::PlayerCommand,
     playback::{EpisodeEntry, NextEpisode},
@@ -21,7 +24,9 @@ use tokio::sync::mpsc;
 
 use crate::{
     SharedConfig,
+    cache::TitleCache,
     config::ConfigState,
+    outbox::Played,
     sources::{TorrentUp, torrent::TorrentTasks},
 };
 
@@ -54,6 +59,11 @@ pub struct EngineState {
     pub vpn_guard: Option<(VpnGuard, Arc<TorrentSession>)>,
     /// Where the torrent source reports in once it is up. The actor holds the other end.
     pub arrivals: Arrivals,
+    /// Playbacks started so far: what the next one is numbered after, so that what each says
+    /// is told apart from what another of the same episode says.
+    pub playbacks: u64,
+    /// The engine's record of the titles the front end shows: see [`TitleCache`].
+    pub cache: TitleCache,
 }
 
 impl EngineState {
@@ -74,7 +84,17 @@ impl EngineState {
             torrent_tasks: TorrentTasks::default(),
             vpn_guard: None,
             arrivals,
+            playbacks: 0,
+            cache: TitleCache::default(),
         }
+    }
+
+    /// The next playback, of `episode` of `id`, numbered, and the record told it is starting.
+    pub(crate) fn next_playback(&mut self, id: AnilistId, episode: &str) -> Played {
+        self.playbacks += 1;
+        let played = Played { serial: self.playbacks, id, episode: episode.to_owned() };
+        self.cache.started(&played);
+        played
     }
 }
 

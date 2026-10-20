@@ -137,7 +137,7 @@ pub(crate) fn dispatch(
             spawn(job, services, tx, move |lent| list_episodes(lent, id))
         }
         Command::SetWatched { id, episodes, watched } => {
-            set_watched(id, episodes, watched, services)
+            set_watched(id, &episodes, watched, engine, services)
         }
         Command::ClearMatch { id } => {
             spawn(job, services, tx, move |lent| clear_match(lent, id))

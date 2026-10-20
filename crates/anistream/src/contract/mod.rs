@@ -15,6 +15,7 @@ mod downloads;
 mod jobs;
 mod lists;
 mod preview;
+mod progress;
 mod settings;
 mod stores;
 mod title;

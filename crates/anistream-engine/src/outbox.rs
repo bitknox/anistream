@@ -10,6 +10,7 @@
 //! an inbox and passes the events on; a reader with no engine side to tell anything, the
 //! command line or a test, hands the work a plain event channel, made an `Outbox` with `From`.
 
+use anistream_core::ids::AnilistId;
 use anistream_model::event::Event;
 use tokio::sync::mpsc::{self, error::SendError};
 
@@ -37,8 +38,23 @@ pub enum Internal {
 pub(crate) enum Envelope {
     /// For the front end, once the engine side has done its part with it.
     Event(Event),
+    /// For the front end too, from a playback, named with the playback that said it.
+    Played(Played, Event),
     /// For the engine side alone.
     Internal(Internal),
+}
+
+/// The playback an event came from: the title and episode it plays, and its number, so two
+/// playbacks of one episode are told apart.
+///
+/// The events a playback says name none of it — a tick of the playhead, the ending — and the
+/// window can be playing one episode while the next is found. Named where they are said, the
+/// engine side knows whose they are without guessing from what was started last.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Played {
+    pub serial: u64,
+    pub id: AnilistId,
+    pub episode: String,
 }
 
 /// What the work tells what happened through: [`Self::send`] an event, as on the event channel
@@ -50,6 +66,8 @@ pub struct Outbox(Route);
 enum Route {
     /// The engine side's inbox: events and messages, in one order.
     Inbox(mpsc::UnboundedSender<Envelope>),
+    /// The engine side's inbox, for one playback: its events go in named with it.
+    Played(mpsc::UnboundedSender<Envelope>, Played),
     /// Events only, read by whoever made the channel.
     Events(mpsc::UnboundedSender<Event>),
 }
@@ -59,6 +77,16 @@ impl Outbox {
     pub(crate) fn inbox() -> (Self, mpsc::UnboundedReceiver<Envelope>) {
         let (tx, rx) = mpsc::unbounded_channel();
         (Self(Route::Inbox(tx)), rx)
+    }
+
+    /// The same outbox for one playback to answer on: what it says reaches the engine side
+    /// named with it, in its place among everything else. Events only, as they were, for a
+    /// reader with no engine side to tell.
+    pub(crate) fn for_playback(&self, played: Played) -> Self {
+        match &self.0 {
+            Route::Inbox(tx) | Route::Played(tx, _) => Self(Route::Played(tx.clone(), played)),
+            Route::Events(_) => self.clone(),
+        }
     }
 
     /// Say what happened. As `UnboundedSender::send`: the event comes back when nobody reads
@@ -73,6 +101,14 @@ impl Outbox {
                 let Envelope::Event(event) = sent else { unreachable!("an event was sent") };
                 SendError(event)
             }),
+            Route::Played(tx, played) => {
+                tx.send(Envelope::Played(played.clone(), event)).map_err(|SendError(sent)| {
+                    let Envelope::Played(_, event) = sent else {
+                        unreachable!("a playback's event was sent")
+                    };
+                    SendError(event)
+                })
+            }
         }
     }
 
@@ -82,7 +118,7 @@ impl Outbox {
     /// carries events only: whoever reads that one has no engine side to tell.
     pub(crate) fn internal(&self, message: Internal) -> Result<(), SendError<Internal>> {
         match &self.0 {
-            Route::Inbox(tx) => {
+            Route::Inbox(tx) | Route::Played(tx, _) => {
                 tx.send(Envelope::Internal(message)).map_err(|SendError(sent)| {
                     let Envelope::Internal(message) = sent else {
                         unreachable!("a message was sent")
@@ -98,6 +134,7 @@ impl Outbox {
     pub(crate) fn downgrade(&self) -> WeakOutbox {
         WeakOutbox(match &self.0 {
             Route::Inbox(tx) => WeakRoute::Inbox(tx.downgrade()),
+            Route::Played(tx, played) => WeakRoute::Played(tx.downgrade(), played.clone()),
             Route::Events(tx) => WeakRoute::Events(tx.downgrade()),
         })
     }
@@ -118,6 +155,7 @@ pub(crate) struct WeakOutbox(WeakRoute);
 #[derive(Debug, Clone)]
 enum WeakRoute {
     Inbox(mpsc::WeakUnboundedSender<Envelope>),
+    Played(mpsc::WeakUnboundedSender<Envelope>, Played),
     Events(mpsc::WeakUnboundedSender<Event>),
 }
 
@@ -126,6 +164,7 @@ impl WeakOutbox {
     pub(crate) fn upgrade(&self) -> Option<Outbox> {
         Some(Outbox(match &self.0 {
             WeakRoute::Inbox(tx) => Route::Inbox(tx.upgrade()?),
+            WeakRoute::Played(tx, played) => Route::Played(tx.upgrade()?, played.clone()),
             WeakRoute::Events(tx) => Route::Events(tx.upgrade()?),
         }))
     }
@@ -152,6 +191,27 @@ mod tests {
             })
             .collect();
         assert_eq!(order, ["skip cleared", "saved", "kept", "reordered"]);
+    }
+
+    #[test]
+    fn a_playback_s_events_come_named_with_it_and_in_their_place() {
+        let (outbox, mut inbox) = Outbox::inbox();
+        let played = Played { serial: 3, id: AnilistId::new(7), episode: "2".into() };
+        let playing = outbox.for_playback(played.clone());
+        outbox.send(Event::SkipCleared).unwrap();
+        playing.send(Event::PlaybackKept).unwrap();
+        playing.internal(Internal::SettingsSaved).unwrap();
+        assert!(matches!(inbox.try_recv(), Ok(Envelope::Event(Event::SkipCleared))));
+        assert!(matches!(
+            inbox.try_recv(),
+            Ok(Envelope::Played(from, Event::PlaybackKept)) if from == played
+        ));
+        assert!(matches!(inbox.try_recv(), Ok(Envelope::Internal(Internal::SettingsSaved))));
+
+        // A reader of events alone hears the playback as it always did.
+        let (tx, mut rx) = mpsc::unbounded_channel();
+        Outbox::from(tx).for_playback(played).send(Event::SkipCleared).unwrap();
+        assert!(matches!(rx.try_recv(), Ok(Event::SkipCleared)));
     }
 
     #[test]
