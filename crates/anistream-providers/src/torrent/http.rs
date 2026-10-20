@@ -1313,8 +1313,10 @@ mod tests {
     }
 
     /// Diagnosis only: the child's log, printed when the test fails.
+    #[cfg(unix)]
     struct DiagDump(std::path::PathBuf, std::time::Instant);
 
+    #[cfg(unix)]
     impl Drop for DiagDump {
         fn drop(&mut self) {
             if std::thread::panicking() || std::env::var_os("DIAG_ALWAYS").is_some() {
