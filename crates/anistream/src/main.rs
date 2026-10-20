@@ -37,13 +37,15 @@ use anistream_core::{
 };
 use anistream_meta::{Meta, dataset};
 use anistream_model::{
-    catalog::{Content, ContentFor, SearchFilters},
-    command::Command,
+    catalog::{Content, ContentFor, LibrarySegment, SearchFilters},
+    command::{Command, PlayerCommand},
     episodes::EpisodeRow,
     event::Event,
     jobs::JobId,
     notice::Notice,
+    playback::{EpisodeEntry, NextEpisode},
     sources::only_reorders,
+    stores::Secret,
 };
 use anistream_net::HttpClient;
 use anistream_providers::{ProviderRegistry, vpn::VpnGuard};
@@ -1580,10 +1582,13 @@ async fn handle_internal(
     said
 }
 
-/// Route a task to whoever performs it.
+/// Route a command to whatever carries it out.
 ///
-/// Playback is handled here rather than in [`spawn`] because it owns the live player's control
-/// channel: replacing that sender is what stops a finished episode's keys steering the next one.
+/// One arm for every command, and each names what runs it, so a command added to the
+/// protocol does not build until it is routed. What asks AniList or the sources and answers
+/// once runs through [`spawn`], behind the AniList limit. Playback runs on its own: it owns
+/// the live player's control channel, and replacing that sender is what stops a finished
+/// episode's keys steering the next one.
 fn dispatch(
     task: Command,
     job: Option<JobGuard>,
@@ -1591,592 +1596,109 @@ fn dispatch(
     services: &Services,
     tx: &Outbox,
 ) {
-    let Services { paths, http, store, meta, registry, sync, stores, slot, prefetch } =
-        services;
-    let EngineState { config, saved_config, hints, player_tx, .. } = engine;
-    // No player handle is passed in: every playback path builds its own from the config
-    // above, which is the live one the Settings screen edits, as the front end last said. A
-    // handle held across the session is exactly how a turned-off upscaler kept running.
     match task {
-        // Kept current by the front end, which changes its own in place, until P4.
-        Command::UseConfig { config: now, saved } => {
-            *config = *now;
-            *saved_config = *saved;
-        }
-        // For the play that follows, from the episode table the front end holds, until P4.
+        // What the front end keeps the engine side told of, until P4.
+        Command::UseConfig { config, saved } => take_config(config, saved, engine),
         Command::PlayHints { title, next, episodes } => {
-            *hints = Some(PlayHints { title, next, episodes });
+            keep_hints(title, next, episodes, engine)
         }
-        // Sync work needs the tracker set, which `spawn` deliberately does not move into
-        // its task.
-        Command::SyncNow => {
-            let (sync, tx) = (sync.clone(), tx.clone());
-            tokio::spawn(async move {
-                let _job = job;
-                tracking::drain_once(&sync, &tx).await;
-                tracking::pull_once(&sync, &tx).await;
-                let _ = tx.send(Event::Status(String::new()));
-            });
+
+        // The lists, the calendar, search and a title's page.
+        Command::LoadContinue => spawn(job, services, tx, load_continue),
+        Command::LoadSeasonal => spawn(job, services, tx, load_seasonal),
+        Command::HideFromContinue { id } => hide_from_continue(id, services, tx),
+        Command::LoadCalendar => spawn(job, services, tx, load_calendar),
+        Command::LoadCalendarPast { anchor, page } => {
+            spawn(job, services, tx, move |lent| load_calendar_past(lent, anchor, page))
         }
-        Command::Connect { tracker } => {
-            let (sync, tx) = (sync.clone(), tx.clone());
-            tokio::spawn(async move {
-                let _job = job;
-                tracking::connect(sync, tracker, tx).await;
-            });
+        Command::Search { query, filter } => {
+            spawn(job, services, tx, move |lent| search(lent, query, filter))
         }
-        Command::ConnectKitsu { username, password } => {
-            let (sync, tx) = (sync.clone(), tx.clone());
-            tokio::spawn(async move {
-                let _job = job;
-                tracking::connect_kitsu(sync, username, password.0, tx).await;
-            });
-        }
-        Command::Disconnect { tracker } => tracking::disconnect(sync, &tracker, tx),
-        Command::SetStatus { id, status } => {
-            tracking::set_status(sync, id, status);
-            // Queued, not sent — the drain owns the network. Reporting the new depth is what
-            // makes the badge move immediately.
-            for state in sync.state_after_enqueue() {
-                let _ = tx.send(Event::Sync(Box::new(state)));
-            }
-        }
-        Command::SetScore { id, score } => {
-            tracking::set_score(sync, id, score);
-            for state in sync.state_after_enqueue() {
-                let _ = tx.send(Event::Sync(Box::new(state)));
-            }
-        }
-        Command::ResolveConflict { id, keep_local } => {
-            tracking::resolve_conflict(sync, id, keep_local);
-        }
-        Command::SetProviderPreference { id, provider } => {
-            let now = now_epoch();
-            let written = match &provider {
-                Some(provider) => store.set_provider_preference(id, provider, now),
-                None => store.clear_provider_preference(id),
-            };
-            let toast = match (written, &provider) {
-                (Ok(()), Some(provider)) => {
-                    Notice::info(format!("{provider} will be used for this title"))
-                }
-                (Ok(()), None) => Notice::info("back to automatic source selection"),
-                // The overlay has already moved its marker, so a failed write has to be said
-                // out loud or the UI would be showing a choice that was never saved.
-                (Err(e), _) => Notice::alert(format!("could not save that choice: {e}")),
-            };
-            let _ = tx.send(Event::Toast(toast));
-        }
-        Command::LoadLibrary(segment) => {
-            let (sync, tx, store) = (sync.clone(), tx.clone(), store.clone());
-            tokio::spawn(async move {
-                let _job = job;
-                let update = tracking::load_library(&sync, &store, segment).await;
-                let _ = tx.send(update);
-            });
-        }
-        Command::Prefetch { id, episode } => {
-            let (meta, store, registry, playback, prefetch) = (
-                meta.clone(),
-                store.clone(),
-                registry.clone(),
-                config.playback.clone(),
-                prefetch.clone(),
-            );
-            tokio::spawn(async move {
-                // Quiet: the steps of a search nobody is waiting on must not take the status
-                // line from the episode playing. Nothing reads this channel.
-                let quiet = Outbox::from(mpsc::unbounded_channel().0);
-                let found = resolve_for_playback(
-                    &meta, &store, &registry, id, &episode, None, &playback, None, &quiet,
-                )
-                .await;
-                match found {
-                    Ok(resolved) => prefetch.keep(id, &episode, playback.translation, resolved),
-                    Err(reason) => {
-                        tracing::info!(%reason, "could not find the next episode ahead")
-                    }
-                }
-            });
-        }
-        Command::Play { id, episode } => {
-            let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
-            // A fresh channel per playback. The one playing gives up its window only once
-            // this one has something to play — see `Handoff`.
-            let (prx, handoff) =
-                take_controls(player_tx, successor(id, &episode, title, config));
-            let prefetched = prefetch.take(id, &episode, config.playback.translation);
-            // Tracker ids rather than trackers: playback only needs to know which queues to
-            // append to, and passing the set would couple the player to the sync layer.
-            let tracker_ids = signed_in_tracker_ids(sync);
-            let extras = (next, episodes);
-            if extras.1.is_empty() {
-                fill_episodes(id, &episode, services, player_tx);
-            }
-            spawn_playback(
-                id,
-                episode,
-                None,
-                config.syncplay.enabled,
-                prx,
-                handoff,
-                config,
-                services,
-                &player(config, paths, &player_theme()),
-                tracker_ids,
-                extras,
-                shader_dir(config, paths),
-                prefetched,
-                job,
-                tx,
-            );
-        }
-        Command::PlaySource { id, episode, provider_id, source_id } => {
-            // Identical to Play except the stream comes from the exact release the user
-            // picked — same fresh channel, same session-replacement semantics. Never from the
-            // streams found ahead: the pick names its own release.
-            let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
-            let (prx, handoff) =
-                take_controls(player_tx, successor(id, &episode, title, config));
-            let prefetched = None;
-            let tracker_ids = signed_in_tracker_ids(sync);
-            let extras = (next, episodes);
-            if extras.1.is_empty() {
-                fill_episodes(id, &episode, services, player_tx);
-            }
-            spawn_playback(
-                id,
-                episode,
-                Some((provider_id, source_id)),
-                config.syncplay.enabled,
-                prx,
-                handoff,
-                config,
-                services,
-                &player(config, paths, &player_theme()),
-                tracker_ids,
-                extras,
-                shader_dir(config, paths),
-                prefetched,
-                job,
-                tx,
-            );
-        }
-        Command::PlayParty { id, episode } => {
-            // Same resolution as Play; the handoff at the end is the only difference.
-            let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
-            let (prx, handoff) =
-                take_controls(player_tx, successor(id, &episode, title, config));
-            let prefetched = None;
-            let tracker_ids = signed_in_tracker_ids(sync);
-            let extras = (next, episodes);
-            spawn_playback(
-                id,
-                episode,
-                None,
-                true,
-                prx,
-                handoff,
-                config,
-                services,
-                &player(config, paths, &player_theme()),
-                tracker_ids,
-                extras,
-                shader_dir(config, paths),
-                prefetched,
-                job,
-                tx,
-            );
-        }
-        Command::LoadSources { id, episode } => {
-            let (store, registry, meta, tx) =
-                (store.clone(), registry.clone(), meta.clone(), tx.clone());
-            let translation = config.playback.translation;
-            tokio::spawn(async move {
-                let _job = job;
-                let update =
-                    match source_slate(&meta, &store, &registry, id, &episode, translation)
-                        .await
-                    {
-                        Ok(candidates) => Event::Sources { id, episode, candidates },
-                        Err(reason) => Event::Toast(Notice::alert(reason)),
-                    };
-                let _ = tx.send(update);
-            });
+        Command::LoadDetail(id) => spawn(job, services, tx, move |lent| load_detail(lent, id)),
+        Command::PlayTrailer { url, title } => play_trailer(url, title, job, engine, tx),
+        Command::OpenExternal { url } => open_external(url, tx),
+
+        // A title's episodes, and the source match they come from.
+        Command::LoadEpisodes(id) => {
+            spawn(job, services, tx, move |lent| list_episodes(lent, id))
         }
         Command::SetWatched { id, episodes, watched } => {
-            let now = anistream_store::now();
-            for episode in &episodes {
-                if watched {
-                    let mut event = anistream_store::WatchEvent::new(id, episode.clone(), 0.0);
-                    event.completed = true;
-                    let _ = store.record_event(&event);
-                } else {
-                    let _ = store.forget_episode(id, episode);
-                }
-            }
-            // Project to trackers only when marking: progress there is monotonic, so an
-            // unmark keeps the remote high-water mark and only local history forgets.
-            if watched {
-                let reached = store.tracker_progress(id).unwrap_or(0);
-                if reached > 0 {
-                    let op = anistream_core::traits::TrackOp::SetProgress {
-                        anilist_id: id,
-                        episode: reached,
-                    };
-                    // Signed-in trackers only, like a finished episode: the default Kitsu
-                    // entry has no account behind it until someone signs in.
-                    for tracker in sync.trackers.iter().filter(|t| t.is_authenticated()) {
-                        let _ = store.enqueue(tracker.id(), &op, now);
-                    }
-                }
-            }
+            set_watched(id, episodes, watched, services)
         }
-
-        Command::HideFromContinue { id } => {
-            // The reducer has already dropped the row from the screen; failing to persist
-            // that would resurrect it on the next reload, so the failure is named.
-            if let Err(e) = store.hide_from_continue(id) {
-                let _ = tx.send(Event::Toast(Notice::alert(format!(
-                    "could not remove from continue: {e}"
-                ))));
-            }
+        Command::ClearMatch { id } => {
+            spawn(job, services, tx, move |lent| clear_match(lent, id))
         }
-
-        Command::PlayTrailer { url, title } => {
-            let mpv_binary = config.playback.mpv_binary.clone();
-            let tx = tx.clone();
-            tokio::spawn(async move {
-                let _job = job;
-                // mpv streams YouTube through yt-dlp, and without it the window opens and
-                // dies with nothing to say. Checked up front so the failure mode is a
-                // browser tab rather than a mystery.
-                if in_path(&["yt-dlp", "youtube-dl"])
-                    && let Ok(mut child) = tokio::process::Command::new(&mpv_binary)
-                        .arg(format!("--force-media-title={title} — trailer"))
-                        .arg(&url)
-                        .stdout(std::process::Stdio::null())
-                        .stderr(std::process::Stdio::null())
-                        .spawn()
-                {
-                    let _ = tx.send(Event::Toast(Notice::info("trailer playing in mpv")));
-                    // Reaped so a closed trailer never lingers as a zombie.
-                    let _ = child.wait().await;
-                    return;
-                }
-                let update = match open::that_detached(&url) {
-                    Ok(()) => Event::Toast(Notice::info("trailer opened in your browser")),
-                    Err(e) => {
-                        Event::Toast(Notice::alert(format!("could not open the trailer: {e}")))
-                    }
-                };
-                let _ = tx.send(update);
-            });
+        Command::FixMatch { id, provider_id, key } => {
+            spawn(job, services, tx, move |lent| fix_match(lent, id, provider_id, key))
         }
-        Command::OpenExternal { url } => {
-            if let Err(e) = open::that_detached(&url) {
-                let _ = tx.send(Event::Toast(Notice::alert(format!("could not open: {e}"))));
-            }
-        }
-
         Command::ManualSearch { id, query } => {
-            let (registry, meta, tx) = (registry.clone(), meta.clone(), tx.clone());
-            let translation = config.playback.translation;
-            tokio::spawn(async move {
-                let _job = job;
-                let now = now_epoch();
-                let attempt = registry.search(&query, translation, now).await;
-                let provider_id = attempt.provider.clone().unwrap_or_default();
-                let update = match attempt.value {
-                    Some(hits) if !hits.is_empty() => match meta.media(id).await {
-                        // Ranked against the real title so the percentages mean the same
-                        // thing they mean when the ladder asks on its own.
-                        Ok(media) => {
-                            let target = media.match_target();
-                            let candidates = anistream_meta::title::rank(&target, &hits)
-                                .into_iter()
-                                .map(|scored| anistream_model::sources::MatchCandidate {
-                                    title: scored.hit.title.clone(),
-                                    key: scored.hit.key.clone(),
-                                    similarity: scored.score,
-                                    rejected: scored.rejected,
-                                })
-                                .collect();
-                            Event::MatchChoices { id, provider_id, candidates }
-                        }
-                        Err(e) => Event::Toast(Notice::alert(e.to_string())),
-                    },
-                    _ => Event::Toast(Notice::alert(format!("nothing found for {query:?}"))),
-                };
-                let _ = tx.send(update);
-            });
+            manual_search(id, query, job, engine, services, tx)
         }
-        Command::Player(command) => {
-            if let Some(sender) = player_tx.as_ref() {
-                let _ = sender.send(command);
-            }
-        }
-        Command::LoadDownloads => downloads::publish_now(store, tx),
-
-        Command::DownloadMany { id, episodes } => {
-            let (store, registry, meta, tx) =
-                (store.clone(), registry.clone(), meta.clone(), tx.clone());
-            let translation = config.playback.translation;
-            tokio::spawn(async move {
-                let _job = job;
-                // Sequential enqueues, not parallel: each one is only a resolve + a queue
-                // row, and the download manager's own concurrency cap paces the fetches.
-                let outcome = downloads::enqueue_each(&episodes, |episode| {
-                    let (store, registry, meta, tx) = (&store, &registry, &meta, &tx);
-                    async move {
-                        let (_, queued) = downloads::enqueue(
-                            store,
-                            registry,
-                            meta,
-                            id,
-                            &episode,
-                            translation,
-                        )
-                        .await?;
-                        // Each row as it lands, so the Downloads screen fills while the rest
-                        // resolve rather than saying nothing is queued until the end.
-                        downloads::publish_now(store, tx);
-                        Ok(queued)
-                    }
-                })
-                .await;
-                let _ = tx.send(Event::Toast(outcome.toast()));
-            });
+        Command::SetProviderPreference { id, provider } => {
+            set_provider_preference(id, provider, services, tx)
         }
 
-        Command::DownloadEpisode { id, episode } => {
-            let (store, registry, meta, tx) =
-                (store.clone(), registry.clone(), meta.clone(), tx.clone());
-            let translation = config.playback.translation;
-            tokio::spawn(async move {
-                let _job = job;
-                // Resolving needs the provider chain, so this is a task rather than inline — the
-                // same walk playback does, which is the point: a download is "play it, to disk".
-                let update = match downloads::enqueue(
-                    &store,
-                    &registry,
-                    &meta,
-                    id,
-                    &episode,
-                    translation,
-                )
-                .await
-                {
-                    Ok((row, downloads::Queued::New)) => Event::Toast(Notice::info(format!(
-                        "queued {} ep {}",
-                        row.title, row.episode
-                    ))),
-                    Ok((row, downloads::Queued::Existing)) => Event::Toast(Notice::info(
-                        format!("{} ep {} is already in downloads", row.title, row.episode),
-                    )),
-                    Err(refusal) => Event::Toast(Notice::alert(refusal.to_string())),
-                };
-                let _ = tx.send(update);
-                let _ = tx.send(Event::Status(String::new()));
-                downloads::publish_now(&store, &tx);
-            });
+        // Playback.
+        Command::Prefetch { id, episode } => prefetch(id, episode, engine, services),
+        Command::Play { id, episode } => play(id, episode, job, engine, services, tx),
+        Command::PlaySource { id, episode, provider_id, source_id } => {
+            play_source(id, episode, provider_id, source_id, job, engine, services, tx)
         }
-
-        Command::DownloadPause { id } => {
-            // Toggled here rather than in the reducer because the authoritative state is the row,
-            // and the reducer only has the flattened projection of it.
-            if let Ok(Some(row)) =
-                store.downloads().map(|all| all.into_iter().find(|d| d.id == id))
-            {
-                let next = match row.state {
-                    anistream_store::DownloadState::Paused => {
-                        anistream_store::DownloadState::Queued
-                    }
-                    anistream_store::DownloadState::Done
-                    | anistream_store::DownloadState::Failed => row.state,
-                    _ => anistream_store::DownloadState::Paused,
-                };
-                let _ = store.set_download_state(id, next);
-            }
-            downloads::publish_now(store, tx);
+        Command::PlayParty { id, episode } => {
+            play_party(id, episode, job, engine, services, tx)
         }
-
-        Command::DownloadCancel { id } => {
-            // The row goes first: the manager notices it is gone on its next poll and drops the
-            // torrent. Deleting the torrent from here would race with that loop.
-            let _ = store.remove_download(id);
-            downloads::publish_now(store, tx);
-            let _ = tx.send(Event::Toast(Notice::info("download cancelled")));
-        }
-
-        Command::DownloadDelete { id } => {
-            // Path first, row second: once the row is gone nothing else knows where the
-            // file was. A running download's partial file is cleaned up by the manager's
-            // own poll, and deleting here as well is a harmless no-op race.
-            let path = store
-                .downloads()
-                .ok()
-                .and_then(|all| all.into_iter().find(|d| d.id == id))
-                .and_then(|d| d.path);
-            let _ = store.remove_download(id);
-            let note = match path {
-                Some(path) => match std::fs::remove_file(&path) {
-                    Ok(()) => Notice::info("download and file deleted"),
-                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-                        Notice::info("download removed — file was already gone")
-                    }
-                    Err(e) => Notice::alert(format!("removed the entry, not the file: {e}")),
-                },
-                None => Notice::info("download removed"),
-            };
-            downloads::publish_now(store, tx);
-            let _ = tx.send(Event::Toast(note));
-        }
-
-        Command::DownloadClearCompleted => {
-            let cleared = store.clear_completed_downloads().unwrap_or(0);
-            downloads::publish_now(store, tx);
-            let _ = tx.send(Event::Toast(Notice::info(format!("cleared {cleared} finished"))));
-        }
-
         Command::PlayLocal { id, episode, title, path } => {
-            // No provider walk and no torrent session — the file is on disk — but the full
-            // playback session all the same: a downloaded episode records history, resumes,
-            // and syncs exactly like a streamed one. It used to go straight to mpv with no
-            // context, which made downloads second-class in every way that matters.
-            // Nothing to look up, so nothing can fail before it plays.
-            let PlayHints { title: named, next, episodes } = hints.take().unwrap_or_default();
-            let (prx, handoff) =
-                take_controls(player_tx, successor(id, &episode, named, config));
-            handoff.now();
-            let tracker_ids = signed_in_tracker_ids(sync);
-            if episodes.is_empty() {
-                fill_episodes(id, &episode, services, player_tx);
-            }
-            let shaders = shader_dir(config, paths);
-            let (config, store, http, mpv, tx, slot) = (
-                config.clone(),
-                store.clone(),
-                http.clone(),
-                player(config, paths, &player_theme()),
-                tx.clone(),
-                slot.clone(),
-            );
-            tokio::spawn(async move {
-                let _job = job;
-                let playback = config.playback.clone();
-                let stream = anistream_core::stream::Stream::new(
-                    path,
-                    anistream_core::stream::StreamKind::Mp4,
-                );
-                // Best-effort, exactly as the streaming path treats them.
-                let resume_at = store
-                    .resume_position(id, &episode)
-                    .inspect_err(
-                        |e| tracing::warn!(error = %e, "could not read resume position"),
-                    )
-                    .unwrap_or(None);
-                let mal_id = store.mapping_for(id).ok().flatten().and_then(|m| m.mal_id);
-                let context = playback::PlaybackContext {
-                    anilist_id: id,
-                    mal_id,
-                    episode,
-                    title,
-                    translation: playback.translation,
-                    resume_at,
-                    // A local file's real length is knowable, but the hint only serves
-                    // the aniskip fallback and a lie would filter its answers.
-                    runtime_secs: None,
-                    speed: playback.persist_speed.then_some(playback.persisted_speed).flatten(),
-                    volume: playback
-                        .persist_volume
-                        .then_some(playback.persisted_volume)
-                        .flatten(),
-                    next,
-                    episodes,
-                };
-                let settings = playback::PlaySettings {
-                    shader_dir: shaders,
-                    ..play_settings(&config, tracker_ids, config.syncplay.enabled)
-                };
-                playback::play(
-                    vec![stream],
-                    context,
-                    store,
-                    http,
-                    mpv,
-                    settings,
-                    slot,
-                    tx,
-                    prx,
-                )
-                .await;
-            });
+            play_local(id, episode, title, path, job, engine, services, tx)
+        }
+        Command::LoadSources { id, episode } => {
+            load_sources(id, episode, job, engine, services, tx)
+        }
+        Command::Player(command) => control_player(command, engine),
+
+        // The sources.
+        Command::CheckProviders => spawn(job, services, tx, check_providers),
+
+        // The trackers.
+        Command::SyncNow => sync_now(job, services, tx),
+        Command::Connect { tracker } => connect(tracker, job, services, tx),
+        Command::ConnectKitsu { username, password } => {
+            connect_kitsu(username, password, job, services, tx)
+        }
+        Command::Disconnect { tracker } => tracking::disconnect(&services.sync, &tracker, tx),
+        Command::SetStatus { id, status } => set_status(id, status, services, tx),
+        Command::SetScore { id, score } => set_score(id, score, services, tx),
+        Command::ResolveConflict { id, keep_local } => {
+            tracking::resolve_conflict(&services.sync, id, keep_local)
+        }
+        Command::LoadLibrary(segment) => load_library(segment, job, services, tx),
+
+        // Downloads.
+        Command::LoadDownloads => downloads::publish_now(&services.store, tx),
+        Command::DownloadEpisode { id, episode } => {
+            download_episode(id, episode, job, engine, services, tx)
+        }
+        Command::DownloadMany { id, episodes } => {
+            download_many(id, episodes, job, engine, services, tx)
+        }
+        Command::DownloadPause { id } => download_pause(id, services, tx),
+        Command::DownloadCancel { id } => download_cancel(id, services, tx),
+        Command::DownloadDelete { id } => download_delete(id, services, tx),
+        Command::DownloadClearCompleted => download_clear_completed(services, tx),
+
+        // Settings.
+        Command::SaveSetting { table, key, value } => {
+            save_setting(table, key, value, engine, services, tx)
         }
 
-        // Written here rather than in the reducer: the reducer has already changed the in-memory
-        // config, so the screen is correct whatever the disk does, and this keeps file IO out of
-        // a pure function. Synchronous on purpose — one small file, and a settings change that
-        // silently lost a race with the next one would be worse than a paused frame.
-        Command::SaveSetting { table, key, value } => {
-            // Against the file's order, not `config`'s: the reducer has already put the new
-            // order in effect there.
-            let reordered = (table, key) == (&["providers"][..], "order")
-                && matches!(&value, anistream_core::settings::SettingValue::List(order)
-                    if only_reorders(&saved_config.providers.order, order));
-            let written = anistream_core::settings::write_key(paths, table, key, value);
-            // Read back whatever the write left, so the Settings screen shows the file rather
-            // than its own hopes — and can put a refused setting back. A file that does not
-            // load is treated the way startup treats it.
-            let _ = tx.send(Event::SettingWritten {
-                on_disk: Box::new(Config::load(paths).unwrap_or_default()),
-                failed: written.is_err().then_some((table, key)),
-            });
-            match written {
-                Ok(()) => {
-                    // A toast, named as the Settings screen names it. As a status it stayed
-                    // in the status line for the rest of the session, over the state it shows,
-                    // and it said the file's key — "saved commit_threshold". What has no row
-                    // there, the remembered speed and volume, is saved without a word.
-                    if let Some(label) = setting_label(table, key) {
-                        let _ = tx.send(Event::Toast(Notice::info(format!("saved · {label}"))));
-                    }
-                    // Republish what the background tasks read, so the next download to
-                    // finish honours the value that was just written.
-                    let _ = tx.internal(Internal::SettingsSaved);
-                    // A setting that redefines what sources exist takes effect now rather
-                    // than at the next launch. The engine side's loop owns the session and
-                    // the guard, so it does the work, once what was said above is in; this
-                    // only says that it is needed. An order that only moves sources is put in
-                    // effect without a rebuild.
-                    if reordered {
-                        let _ = tx.internal(Internal::SourcesReordered);
-                    } else if redefines_sources(table, key) {
-                        let _ = tx.internal(Internal::SourcesChanged);
-                    }
-                }
-                // The guard reaching the UI: enabling torrents with no VPN configured fails
-                // validation here, so no arrow key can write a config that would leak. And a
-                // file that did not load at launch is refused by name and line.
-                Err(e) => {
-                    let reason = match e {
-                        anistream_core::Error::Config(reason) => reason,
-                        other => other.to_string(),
-                    };
-                    let _ =
-                        tx.send(Event::Toast(Notice::alert(format!("not saved: {reason}"))));
-                    // The Providers rows moved when the key was pressed and the chain did not,
-                    // so the chain's own rows put them back.
-                    if (table, key) == (&["providers"][..], "order") {
-                        let _ = tx.send(Event::Providers(data::provider_rows(registry)));
-                    }
-                }
-            }
-        }
         // Off the loop, with no job: covers report back on their own.
-        Command::FetchArtwork { url } => {
-            artwork::spawn_fetch(url, paths.image_cache(), http.clone(), tx.clone());
-        }
+        Command::FetchArtwork { url } => artwork::spawn_fetch(
+            url,
+            services.paths.image_cache(),
+            services.http.clone(),
+            tx.clone(),
+        ),
+
+        // The plugin stores.
         task @ (Command::LoadStores
         | Command::PreviewStore { .. }
         | Command::JoinStore { .. }
@@ -2192,11 +1714,11 @@ fn dispatch(
         | Command::UnpublishPlugin { .. }
         | Command::OpenAdmin { .. }) => {
             let context = StoreTaskContext {
-                stores: stores.clone(),
-                registry: registry.clone(),
-                config: config.clone(),
-                http: http.clone(),
-                paths: paths.clone(),
+                stores: services.stores.clone(),
+                registry: services.registry.clone(),
+                config: engine.config.clone(),
+                http: services.http.clone(),
+                paths: services.paths.clone(),
                 tx: tx.clone(),
             };
             tokio::spawn(async move {
@@ -2204,25 +1726,718 @@ fn dispatch(
                 context.run(task).await;
             });
         }
-        Command::LoadContinue => spawn(job, services, tx, load_continue),
-        Command::LoadSeasonal => spawn(job, services, tx, load_seasonal),
-        Command::LoadCalendar => spawn(job, services, tx, load_calendar),
-        Command::LoadCalendarPast { anchor, page } => {
-            spawn(job, services, tx, move |lent| load_calendar_past(lent, anchor, page))
+    }
+}
+
+/// The config in effect and the file's, as the front end last said. Kept current by the front
+/// end, which changes its own in place, until P4.
+fn take_config(now: Box<Config>, saved: Box<Config>, engine: &mut EngineState) {
+    let EngineState { config, saved_config, .. } = engine;
+    *config = *now;
+    *saved_config = *saved;
+}
+
+/// What the front end said the next play needs, for that play to take: from the episode table
+/// the front end holds, until P4.
+fn keep_hints(
+    title: String,
+    next: Option<NextEpisode>,
+    episodes: Vec<EpisodeEntry>,
+    engine: &mut EngineState,
+) {
+    let EngineState { hints, .. } = engine;
+    *hints = Some(PlayHints { title, next, episodes });
+}
+
+/// Take a title off the CONTINUE rail for good.
+fn hide_from_continue(id: AnilistId, services: &Services, tx: &Outbox) {
+    let Services { store, .. } = services;
+    // The reducer has already dropped the row from the screen; failing to persist
+    // that would resurrect it on the next reload, so the failure is named.
+    if let Err(e) = store.hide_from_continue(id) {
+        let _ = tx
+            .send(Event::Toast(Notice::alert(format!("could not remove from continue: {e}"))));
+    }
+}
+
+/// Play a title's trailer in mpv, or open it in the browser when mpv cannot stream it.
+fn play_trailer(
+    url: String,
+    title: String,
+    job: Option<JobGuard>,
+    engine: &EngineState,
+    tx: &Outbox,
+) {
+    let EngineState { config, .. } = engine;
+    let mpv_binary = config.playback.mpv_binary.clone();
+    let tx = tx.clone();
+    tokio::spawn(async move {
+        let _job = job;
+        // mpv streams YouTube through yt-dlp, and without it the window opens and
+        // dies with nothing to say. Checked up front so the failure mode is a
+        // browser tab rather than a mystery.
+        if in_path(&["yt-dlp", "youtube-dl"])
+            && let Ok(mut child) = tokio::process::Command::new(&mpv_binary)
+                .arg(format!("--force-media-title={title} — trailer"))
+                .arg(&url)
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .spawn()
+        {
+            let _ = tx.send(Event::Toast(Notice::info("trailer playing in mpv")));
+            // Reaped so a closed trailer never lingers as a zombie.
+            let _ = child.wait().await;
+            return;
         }
-        Command::Search { query, filter } => {
-            spawn(job, services, tx, move |lent| search(lent, query, filter))
+        let update = match open::that_detached(&url) {
+            Ok(()) => Event::Toast(Notice::info("trailer opened in your browser")),
+            Err(e) => Event::Toast(Notice::alert(format!("could not open the trailer: {e}"))),
+        };
+        let _ = tx.send(update);
+    });
+}
+
+/// Open a link in the browser.
+fn open_external(url: String, tx: &Outbox) {
+    if let Err(e) = open::that_detached(&url) {
+        let _ = tx.send(Event::Toast(Notice::alert(format!("could not open: {e}"))));
+    }
+}
+
+/// Mark episodes watched, or forget that they were: in local history, and on the signed-in
+/// trackers when marking.
+fn set_watched(id: AnilistId, episodes: Vec<String>, watched: bool, services: &Services) {
+    let Services { store, sync, .. } = services;
+    let now = anistream_store::now();
+    for episode in &episodes {
+        if watched {
+            let mut event = anistream_store::WatchEvent::new(id, episode.clone(), 0.0);
+            event.completed = true;
+            let _ = store.record_event(&event);
+        } else {
+            let _ = store.forget_episode(id, episode);
         }
-        Command::LoadDetail(id) => spawn(job, services, tx, move |lent| load_detail(lent, id)),
-        Command::CheckProviders => spawn(job, services, tx, check_providers),
-        Command::ClearMatch { id } => {
-            spawn(job, services, tx, move |lent| clear_match(lent, id))
+    }
+    // Project to trackers only when marking: progress there is monotonic, so an
+    // unmark keeps the remote high-water mark and only local history forgets.
+    if watched {
+        let reached = store.tracker_progress(id).unwrap_or(0);
+        if reached > 0 {
+            let op = anistream_core::traits::TrackOp::SetProgress {
+                anilist_id: id,
+                episode: reached,
+            };
+            // Signed-in trackers only, like a finished episode: the default Kitsu
+            // entry has no account behind it until someone signs in.
+            for tracker in sync.trackers.iter().filter(|t| t.is_authenticated()) {
+                let _ = store.enqueue(tracker.id(), &op, now);
+            }
         }
-        Command::FixMatch { id, provider_id, key } => {
-            spawn(job, services, tx, move |lent| fix_match(lent, id, provider_id, key))
+    }
+}
+
+/// Search the sources for a title as the user typed it, for a match the ladder could not make.
+fn manual_search(
+    id: AnilistId,
+    query: String,
+    job: Option<JobGuard>,
+    engine: &EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { meta, registry, .. } = services;
+    let EngineState { config, .. } = engine;
+    let (registry, meta, tx) = (registry.clone(), meta.clone(), tx.clone());
+    let translation = config.playback.translation;
+    tokio::spawn(async move {
+        let _job = job;
+        let now = now_epoch();
+        let attempt = registry.search(&query, translation, now).await;
+        let provider_id = attempt.provider.clone().unwrap_or_default();
+        let update = match attempt.value {
+            Some(hits) if !hits.is_empty() => match meta.media(id).await {
+                // Ranked against the real title so the percentages mean the same
+                // thing they mean when the ladder asks on its own.
+                Ok(media) => {
+                    let target = media.match_target();
+                    let candidates = anistream_meta::title::rank(&target, &hits)
+                        .into_iter()
+                        .map(|scored| anistream_model::sources::MatchCandidate {
+                            title: scored.hit.title.clone(),
+                            key: scored.hit.key.clone(),
+                            similarity: scored.score,
+                            rejected: scored.rejected,
+                        })
+                        .collect();
+                    Event::MatchChoices { id, provider_id, candidates }
+                }
+                Err(e) => Event::Toast(Notice::alert(e.to_string())),
+            },
+            _ => Event::Toast(Notice::alert(format!("nothing found for {query:?}"))),
+        };
+        let _ = tx.send(update);
+    });
+}
+
+/// Use this source for this title from now on, or go back to choosing one automatically.
+fn set_provider_preference(
+    id: AnilistId,
+    provider: Option<String>,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { store, .. } = services;
+    let now = now_epoch();
+    let written = match &provider {
+        Some(provider) => store.set_provider_preference(id, provider, now),
+        None => store.clear_provider_preference(id),
+    };
+    let toast = match (written, &provider) {
+        (Ok(()), Some(provider)) => {
+            Notice::info(format!("{provider} will be used for this title"))
         }
-        Command::LoadEpisodes(id) => {
-            spawn(job, services, tx, move |lent| list_episodes(lent, id))
+        (Ok(()), None) => Notice::info("back to automatic source selection"),
+        // The overlay has already moved its marker, so a failed write has to be said
+        // out loud or the UI would be showing a choice that was never saved.
+        (Err(e), _) => Notice::alert(format!("could not save that choice: {e}")),
+    };
+    let _ = tx.send(Event::Toast(toast));
+}
+
+/// Find the next episode's streams while this one's ending plays, for the play that follows to
+/// take.
+fn prefetch(id: AnilistId, episode: String, engine: &EngineState, services: &Services) {
+    let Services { meta, store, registry, prefetch, .. } = services;
+    let EngineState { config, .. } = engine;
+    let (meta, store, registry, playback, prefetch) = (
+        meta.clone(),
+        store.clone(),
+        registry.clone(),
+        config.playback.clone(),
+        prefetch.clone(),
+    );
+    tokio::spawn(async move {
+        // Quiet: the steps of a search nobody is waiting on must not take the status
+        // line from the episode playing. Nothing reads this channel.
+        let quiet = Outbox::from(mpsc::unbounded_channel().0);
+        let found = resolve_for_playback(
+            &meta, &store, &registry, id, &episode, None, &playback, None, &quiet,
+        )
+        .await;
+        match found {
+            Ok(resolved) => prefetch.keep(id, &episode, playback.translation, resolved),
+            Err(reason) => {
+                tracing::info!(%reason, "could not find the next episode ahead")
+            }
+        }
+    });
+}
+
+/// Play an episode from whichever source the resolution ladder chooses.
+///
+/// No player handle is kept across the session: every play builds its own from the config in
+/// effect, which is the live one the Settings screen edits, as the front end last said. A
+/// handle held across the session is exactly how a turned-off upscaler kept running.
+fn play(
+    id: AnilistId,
+    episode: String,
+    job: Option<JobGuard>,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { paths, sync, prefetch, .. } = services;
+    let EngineState { config, hints, player_tx, .. } = engine;
+    let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
+    // A fresh channel per playback. The one playing gives up its window only once
+    // this one has something to play — see `Handoff`.
+    let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
+    let prefetched = prefetch.take(id, &episode, config.playback.translation);
+    // Tracker ids rather than trackers: playback only needs to know which queues to
+    // append to, and passing the set would couple the player to the sync layer.
+    let tracker_ids = signed_in_tracker_ids(sync);
+    let extras = (next, episodes);
+    if extras.1.is_empty() {
+        fill_episodes(id, &episode, services, player_tx);
+    }
+    spawn_playback(
+        id,
+        episode,
+        None,
+        config.syncplay.enabled,
+        prx,
+        handoff,
+        config,
+        services,
+        &player(config, paths, &player_theme()),
+        tracker_ids,
+        extras,
+        shader_dir(config, paths),
+        prefetched,
+        job,
+        tx,
+    );
+}
+
+/// Play the release the user picked in the Sources overlay.
+#[allow(clippy::too_many_arguments)]
+fn play_source(
+    id: AnilistId,
+    episode: String,
+    provider_id: String,
+    source_id: String,
+    job: Option<JobGuard>,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { paths, sync, .. } = services;
+    let EngineState { config, hints, player_tx, .. } = engine;
+    // Identical to Play except the stream comes from the exact release the user
+    // picked — same fresh channel, same session-replacement semantics. Never from the
+    // streams found ahead: the pick names its own release.
+    let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
+    let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
+    let prefetched = None;
+    let tracker_ids = signed_in_tracker_ids(sync);
+    let extras = (next, episodes);
+    if extras.1.is_empty() {
+        fill_episodes(id, &episode, services, player_tx);
+    }
+    spawn_playback(
+        id,
+        episode,
+        Some((provider_id, source_id)),
+        config.syncplay.enabled,
+        prx,
+        handoff,
+        config,
+        services,
+        &player(config, paths, &player_theme()),
+        tracker_ids,
+        extras,
+        shader_dir(config, paths),
+        prefetched,
+        job,
+        tx,
+    );
+}
+
+/// Play an episode for a Syncplay party rather than in a session of its own.
+fn play_party(
+    id: AnilistId,
+    episode: String,
+    job: Option<JobGuard>,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { paths, sync, .. } = services;
+    let EngineState { config, hints, player_tx, .. } = engine;
+    // Same resolution as Play; the handoff at the end is the only difference.
+    let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
+    let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
+    let prefetched = None;
+    let tracker_ids = signed_in_tracker_ids(sync);
+    let extras = (next, episodes);
+    spawn_playback(
+        id,
+        episode,
+        None,
+        true,
+        prx,
+        handoff,
+        config,
+        services,
+        &player(config, paths, &player_theme()),
+        tracker_ids,
+        extras,
+        shader_dir(config, paths),
+        prefetched,
+        job,
+        tx,
+    );
+}
+
+/// Play a downloaded episode from disk, in the full playback session all the same.
+#[allow(clippy::too_many_arguments)]
+fn play_local(
+    id: AnilistId,
+    episode: String,
+    title: String,
+    path: String,
+    job: Option<JobGuard>,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { paths, http, store, sync, slot, .. } = services;
+    let EngineState { config, hints, player_tx, .. } = engine;
+    // No provider walk and no torrent session — the file is on disk — but the full
+    // playback session all the same: a downloaded episode records history, resumes,
+    // and syncs exactly like a streamed one. It used to go straight to mpv with no
+    // context, which made downloads second-class in every way that matters.
+    // Nothing to look up, so nothing can fail before it plays.
+    let PlayHints { title: named, next, episodes } = hints.take().unwrap_or_default();
+    let (prx, handoff) = take_controls(player_tx, successor(id, &episode, named, config));
+    handoff.now();
+    let tracker_ids = signed_in_tracker_ids(sync);
+    if episodes.is_empty() {
+        fill_episodes(id, &episode, services, player_tx);
+    }
+    let shaders = shader_dir(config, paths);
+    let (config, store, http, mpv, tx, slot) = (
+        config.clone(),
+        store.clone(),
+        http.clone(),
+        player(config, paths, &player_theme()),
+        tx.clone(),
+        slot.clone(),
+    );
+    tokio::spawn(async move {
+        let _job = job;
+        let playback = config.playback.clone();
+        let stream =
+            anistream_core::stream::Stream::new(path, anistream_core::stream::StreamKind::Mp4);
+        // Best-effort, exactly as the streaming path treats them.
+        let resume_at = store
+            .resume_position(id, &episode)
+            .inspect_err(|e| tracing::warn!(error = %e, "could not read resume position"))
+            .unwrap_or(None);
+        let mal_id = store.mapping_for(id).ok().flatten().and_then(|m| m.mal_id);
+        let context = playback::PlaybackContext {
+            anilist_id: id,
+            mal_id,
+            episode,
+            title,
+            translation: playback.translation,
+            resume_at,
+            // A local file's real length is knowable, but the hint only serves
+            // the aniskip fallback and a lie would filter its answers.
+            runtime_secs: None,
+            speed: playback.persist_speed.then_some(playback.persisted_speed).flatten(),
+            volume: playback.persist_volume.then_some(playback.persisted_volume).flatten(),
+            next,
+            episodes,
+        };
+        let settings = playback::PlaySettings {
+            shader_dir: shaders,
+            ..play_settings(&config, tracker_ids, config.syncplay.enabled)
+        };
+        playback::play(vec![stream], context, store, http, mpv, settings, slot, tx, prx).await;
+    });
+}
+
+/// The releases an episode can be played from, for the Sources overlay.
+fn load_sources(
+    id: AnilistId,
+    episode: String,
+    job: Option<JobGuard>,
+    engine: &EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { meta, store, registry, .. } = services;
+    let EngineState { config, .. } = engine;
+    let (store, registry, meta, tx) =
+        (store.clone(), registry.clone(), meta.clone(), tx.clone());
+    let translation = config.playback.translation;
+    tokio::spawn(async move {
+        let _job = job;
+        let update =
+            match source_slate(&meta, &store, &registry, id, &episode, translation).await {
+                Ok(candidates) => Event::Sources { id, episode, candidates },
+                Err(reason) => Event::Toast(Notice::alert(reason)),
+            };
+        let _ = tx.send(update);
+    });
+}
+
+/// Steer whatever is playing, through the controls of the playback started last.
+fn control_player(command: PlayerCommand, engine: &EngineState) {
+    let EngineState { player_tx, .. } = engine;
+    if let Some(sender) = player_tx.as_ref() {
+        let _ = sender.send(command);
+    }
+}
+
+/// Push what is queued to the trackers and pull their lists, now rather than at the next tick.
+///
+/// Not through [`spawn`]: sync work needs the tracker set, which `spawn` deliberately does not
+/// move into its task.
+fn sync_now(job: Option<JobGuard>, services: &Services, tx: &Outbox) {
+    let Services { sync, .. } = services;
+    let (sync, tx) = (sync.clone(), tx.clone());
+    tokio::spawn(async move {
+        let _job = job;
+        tracking::drain_once(&sync, &tx).await;
+        tracking::pull_once(&sync, &tx).await;
+        let _ = tx.send(Event::Status(String::new()));
+    });
+}
+
+/// Sign in to a tracker, off the UI thread: it opens a browser and waits.
+fn connect(tracker: String, job: Option<JobGuard>, services: &Services, tx: &Outbox) {
+    let Services { sync, .. } = services;
+    let (sync, tx) = (sync.clone(), tx.clone());
+    tokio::spawn(async move {
+        let _job = job;
+        tracking::connect(sync, tracker, tx).await;
+    });
+}
+
+/// Sign in to Kitsu with a username and password.
+fn connect_kitsu(
+    username: String,
+    password: Secret,
+    job: Option<JobGuard>,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { sync, .. } = services;
+    let (sync, tx) = (sync.clone(), tx.clone());
+    tokio::spawn(async move {
+        let _job = job;
+        tracking::connect_kitsu(sync, username, password.0, tx).await;
+    });
+}
+
+/// Move a title to another of the trackers' lists, queued for the drain.
+fn set_status(id: AnilistId, status: LibrarySegment, services: &Services, tx: &Outbox) {
+    let Services { sync, .. } = services;
+    tracking::set_status(sync, id, status);
+    // Queued, not sent — the drain owns the network. Reporting the new depth is what
+    // makes the badge move immediately.
+    for state in sync.state_after_enqueue() {
+        let _ = tx.send(Event::Sync(Box::new(state)));
+    }
+}
+
+/// Score a title on the trackers, queued for the drain.
+fn set_score(id: AnilistId, score: f32, services: &Services, tx: &Outbox) {
+    let Services { sync, .. } = services;
+    tracking::set_score(sync, id, score);
+    for state in sync.state_after_enqueue() {
+        let _ = tx.send(Event::Sync(Box::new(state)));
+    }
+}
+
+/// One of the trackers' lists, as the Library screen shows it.
+fn load_library(
+    segment: LibrarySegment,
+    job: Option<JobGuard>,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { store, sync, .. } = services;
+    let (sync, tx, store) = (sync.clone(), tx.clone(), store.clone());
+    tokio::spawn(async move {
+        let _job = job;
+        let update = tracking::load_library(&sync, &store, segment).await;
+        let _ = tx.send(update);
+    });
+}
+
+/// Queue one episode for download.
+fn download_episode(
+    id: AnilistId,
+    episode: String,
+    job: Option<JobGuard>,
+    engine: &EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { meta, store, registry, .. } = services;
+    let EngineState { config, .. } = engine;
+    let (store, registry, meta, tx) =
+        (store.clone(), registry.clone(), meta.clone(), tx.clone());
+    let translation = config.playback.translation;
+    tokio::spawn(async move {
+        let _job = job;
+        // Resolving needs the provider chain, so this is a task rather than inline — the
+        // same walk playback does, which is the point: a download is "play it, to disk".
+        let update =
+            match downloads::enqueue(&store, &registry, &meta, id, &episode, translation).await
+            {
+                Ok((row, downloads::Queued::New)) => Event::Toast(Notice::info(format!(
+                    "queued {} ep {}",
+                    row.title, row.episode
+                ))),
+                Ok((row, downloads::Queued::Existing)) => Event::Toast(Notice::info(format!(
+                    "{} ep {} is already in downloads",
+                    row.title, row.episode
+                ))),
+                Err(refusal) => Event::Toast(Notice::alert(refusal.to_string())),
+            };
+        let _ = tx.send(update);
+        let _ = tx.send(Event::Status(String::new()));
+        downloads::publish_now(&store, &tx);
+    });
+}
+
+/// Queue several episodes for download, one after another.
+fn download_many(
+    id: AnilistId,
+    episodes: Vec<String>,
+    job: Option<JobGuard>,
+    engine: &EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { meta, store, registry, .. } = services;
+    let EngineState { config, .. } = engine;
+    let (store, registry, meta, tx) =
+        (store.clone(), registry.clone(), meta.clone(), tx.clone());
+    let translation = config.playback.translation;
+    tokio::spawn(async move {
+        let _job = job;
+        // Sequential enqueues, not parallel: each one is only a resolve + a queue
+        // row, and the download manager's own concurrency cap paces the fetches.
+        let outcome = downloads::enqueue_each(&episodes, |episode| {
+            let (store, registry, meta, tx) = (&store, &registry, &meta, &tx);
+            async move {
+                let (_, queued) =
+                    downloads::enqueue(store, registry, meta, id, &episode, translation)
+                        .await?;
+                // Each row as it lands, so the Downloads screen fills while the rest
+                // resolve rather than saying nothing is queued until the end.
+                downloads::publish_now(store, tx);
+                Ok(queued)
+            }
+        })
+        .await;
+        let _ = tx.send(Event::Toast(outcome.toast()));
+    });
+}
+
+/// Pause a download, or carry on with one that was paused.
+fn download_pause(id: i64, services: &Services, tx: &Outbox) {
+    let Services { store, .. } = services;
+    // Toggled here rather than in the reducer because the authoritative state is the row,
+    // and the reducer only has the flattened projection of it.
+    if let Ok(Some(row)) = store.downloads().map(|all| all.into_iter().find(|d| d.id == id)) {
+        let next = match row.state {
+            anistream_store::DownloadState::Paused => anistream_store::DownloadState::Queued,
+            anistream_store::DownloadState::Done | anistream_store::DownloadState::Failed => {
+                row.state
+            }
+            _ => anistream_store::DownloadState::Paused,
+        };
+        let _ = store.set_download_state(id, next);
+    }
+    downloads::publish_now(store, tx);
+}
+
+/// Cancel a download.
+fn download_cancel(id: i64, services: &Services, tx: &Outbox) {
+    let Services { store, .. } = services;
+    // The row goes first: the manager notices it is gone on its next poll and drops the
+    // torrent. Deleting the torrent from here would race with that loop.
+    let _ = store.remove_download(id);
+    downloads::publish_now(store, tx);
+    let _ = tx.send(Event::Toast(Notice::info("download cancelled")));
+}
+
+/// Delete a download and its file.
+fn download_delete(id: i64, services: &Services, tx: &Outbox) {
+    let Services { store, .. } = services;
+    // Path first, row second: once the row is gone nothing else knows where the
+    // file was. A running download's partial file is cleaned up by the manager's
+    // own poll, and deleting here as well is a harmless no-op race.
+    let path = store
+        .downloads()
+        .ok()
+        .and_then(|all| all.into_iter().find(|d| d.id == id))
+        .and_then(|d| d.path);
+    let _ = store.remove_download(id);
+    let note = match path {
+        Some(path) => match std::fs::remove_file(&path) {
+            Ok(()) => Notice::info("download and file deleted"),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                Notice::info("download removed — file was already gone")
+            }
+            Err(e) => Notice::alert(format!("removed the entry, not the file: {e}")),
+        },
+        None => Notice::info("download removed"),
+    };
+    downloads::publish_now(store, tx);
+    let _ = tx.send(Event::Toast(note));
+}
+
+/// Clear the finished downloads from the list.
+fn download_clear_completed(services: &Services, tx: &Outbox) {
+    let Services { store, .. } = services;
+    let cleared = store.clear_completed_downloads().unwrap_or(0);
+    downloads::publish_now(store, tx);
+    let _ = tx.send(Event::Toast(Notice::info(format!("cleared {cleared} finished"))));
+}
+
+/// Write a setting to the file, and say how that went.
+///
+/// Written here rather than in the reducer: the reducer has already changed the in-memory
+/// config, so the screen is correct whatever the disk does, and this keeps file IO out of a
+/// pure function. Synchronous on purpose — one small file, and a settings change that silently
+/// lost a race with the next one would be worse than a paused frame.
+fn save_setting(
+    table: &'static [&'static str],
+    key: &'static str,
+    value: anistream_core::settings::SettingValue,
+    engine: &EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { paths, registry, .. } = services;
+    let EngineState { saved_config, .. } = engine;
+    // Against the file's order, not `config`'s: the reducer has already put the new
+    // order in effect there.
+    let reordered = (table, key) == (&["providers"][..], "order")
+        && matches!(&value, anistream_core::settings::SettingValue::List(order)
+            if only_reorders(&saved_config.providers.order, order));
+    let written = anistream_core::settings::write_key(paths, table, key, value);
+    // Read back whatever the write left, so the Settings screen shows the file rather
+    // than its own hopes — and can put a refused setting back. A file that does not
+    // load is treated the way startup treats it.
+    let _ = tx.send(Event::SettingWritten {
+        on_disk: Box::new(Config::load(paths).unwrap_or_default()),
+        failed: written.is_err().then_some((table, key)),
+    });
+    match written {
+        Ok(()) => {
+            // A toast, named as the Settings screen names it. As a status it stayed
+            // in the status line for the rest of the session, over the state it shows,
+            // and it said the file's key — "saved commit_threshold". What has no row
+            // there, the remembered speed and volume, is saved without a word.
+            if let Some(label) = setting_label(table, key) {
+                let _ = tx.send(Event::Toast(Notice::info(format!("saved · {label}"))));
+            }
+            // Republish what the background tasks read, so the next download to
+            // finish honours the value that was just written.
+            let _ = tx.internal(Internal::SettingsSaved);
+            // A setting that redefines what sources exist takes effect now rather
+            // than at the next launch. The engine side's loop owns the session and
+            // the guard, so it does the work, once what was said above is in; this
+            // only says that it is needed. An order that only moves sources is put in
+            // effect without a rebuild.
+            if reordered {
+                let _ = tx.internal(Internal::SourcesReordered);
+            } else if redefines_sources(table, key) {
+                let _ = tx.internal(Internal::SourcesChanged);
+            }
+        }
+        // The guard reaching the UI: enabling torrents with no VPN configured fails
+        // validation here, so no arrow key can write a config that would leak. And a
+        // file that did not load at launch is refused by name and line.
+        Err(e) => {
+            let reason = match e {
+                anistream_core::Error::Config(reason) => reason,
+                other => other.to_string(),
+            };
+            let _ = tx.send(Event::Toast(Notice::alert(format!("not saved: {reason}"))));
+            // The Providers rows moved when the key was pressed and the chain did not,
+            // so the chain's own rows put them back.
+            if (table, key) == (&["providers"][..], "order") {
+                let _ = tx.send(Event::Providers(data::provider_rows(registry)));
+            }
         }
     }
 }
