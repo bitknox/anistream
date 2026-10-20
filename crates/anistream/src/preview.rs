@@ -4,15 +4,12 @@ use std::{sync::Arc, time::Duration};
 
 use anistream_core::config::{Config, Paths};
 use anistream_engine::{
-    data,
-    dispatch::{handle_internal, meta_notice},
+    engine::{Engine, EventStream},
     host::DesktopHost,
-    outbox::{Envelope, Outbox},
-    services::Services,
+    options::EngineOptions,
     sources,
-    state::EngineState,
 };
-use anistream_model::{command::Command, event::Event, notice::Notice};
+use anistream_model::{command::Command, event::Event};
 use anistream_net::HttpClient;
 use anistream_store::Store;
 use anistream_tui::{
@@ -22,13 +19,12 @@ use anistream_tui::{
     theme::{self, player_theme},
 };
 use anyhow::Result;
-use tokio::sync::mpsc;
 
 use crate::{
     PreviewScreen, covers, describe_graphics,
     tui::{
         run::show_config_problem,
-        seams::{ConfigSeam, command, route},
+        seams::{ConfigSeam, command},
     },
 };
 
@@ -36,7 +32,7 @@ use crate::{
 ///
 /// Reached the way a person reaches the screen in the running app: the same startup state —
 /// sources with plugins loaded, sync and store rows — then the same keys, whose tasks are
-/// dispatched exactly as the event loop dispatches them and whose updates are applied until
+/// sent to the engine exactly as the event loop sends them and whose updates are applied until
 /// nothing is outstanding. Assembling each screen by hand instead drifted from the live one:
 /// the title preview pressed Enter on a resumable row and rendered Now Playing, the episode
 /// table never left LOADING, and Library and Providers showed state the app never had.
@@ -59,9 +55,9 @@ pub async fn preview(
     for problem in keymap.apply_overrides(&config.keys) {
         eprintln!("[keybinding: {problem}]");
     }
-    let engine =
+    let image_engine =
         anistream_tui::image::ImageEngine::detect(images).with_cache_dir(paths.image_cache());
-    let graphics = engine.graphics();
+    let graphics = image_engine.graphics();
 
     // The sources a running app has a moment after launch: the torrent source once its guard
     // has answered, and the plugins once compiled.
@@ -76,13 +72,7 @@ pub async fn preview(
     if let Ok(Some(reason)) = plugins.await {
         note = Some(reason);
     }
-    let host = Arc::new(DesktopHost);
-    let services =
-        Services::build(&config, paths.clone(), http, store, registry, player_theme(), host)
-            .map_err(anyhow::Error::msg)?;
-    // Nothing in a still frame brings a torrent source up, so nothing reports on this.
-    let state = EngineState::new(config.clone(), mpsc::unbounded_channel().0);
-    let mut app = App::with_images(config, palette, keymap, engine);
+    let mut app = App::with_images(config.clone(), palette, keymap, image_engine);
     if let Some(note) = note {
         app.apply(Event::ProviderNote(note));
     }
@@ -94,32 +84,32 @@ pub async fn preview(
     if let Some(problem) = &config_problem {
         show_config_problem(&mut app, paths, problem);
     }
-    match services.stores.rows() {
-        Ok(rows) => app.apply(Event::Stores(rows)),
-        Err(e) => app.apply(Event::Toast(Notice::alert(e))),
-    }
-    app.apply(Event::Providers(data::provider_rows(&services.registry)));
-    for state in services.sync.initial_states() {
-        app.apply(Event::Sync(Box::new(state)));
+    // The engine on that chain, whole, and with none of its own work beside what it is sent:
+    // nothing in a still frame brings a torrent source up, and nothing it does not draw runs.
+    let mut options = EngineOptions::new(paths.clone(), config, http, store, player_theme());
+    options.sources = Some(registry);
+    options.background = false;
+    let (engine, mut events) = Engine::start(options, Arc::new(DesktopHost)).await?;
+    // What launch says: the stores, the chain's rows and the trackers' states.
+    for update in events.launch().await {
+        app.apply(update);
     }
 
-    let (tx, mut rx) = Outbox::inbox();
     let mut run = PreviewRun {
-        tx,
         rows: screens::visible_rows(
             ratatui::layout::Rect::new(0, 0, width, height),
             app.nav.section(),
         ),
-        engine: state,
+        engine,
+        events,
         seam: ConfigSeam::default(),
-        services,
     };
 
     // Launch: Home loads.
     if let Some(task) = app.reload() {
         run.dispatch(&mut app, task);
     }
-    run.settle(&mut app, &mut rx).await;
+    run.settle(&mut app).await;
 
     let section = |n: u8| Action::JumpSection(n);
     let keys: Vec<Action> = match screen {
@@ -152,7 +142,7 @@ pub async fn preview(
         PreviewScreen::Title | PreviewScreen::Episodes => {
             if let Some(task) = app.open_selected() {
                 run.dispatch(&mut app, task);
-                run.settle(&mut app, &mut rx).await;
+                run.settle(&mut app).await;
             } else {
                 eprintln!("[title: nothing on Home to open — watch something first]");
             }
@@ -164,7 +154,7 @@ pub async fn preview(
         _ => {}
     }
     // Whatever the last keys started.
-    run.settle(&mut app, &mut rx).await;
+    run.settle(&mut app).await;
     eprintln!(
         "[graphics: {}, {} image(s) loaded]",
         describe_graphics(graphics),
@@ -183,13 +173,12 @@ pub async fn preview(
     Ok(())
 }
 
-/// What `--preview` drives the app with: the same handles the event loop holds.
+/// What `--preview` drives the app with: the engine, as the event loop holds it.
 struct PreviewRun {
-    tx: Outbox,
     rows: usize,
-    engine: EngineState,
+    engine: Engine,
+    events: EventStream,
     seam: ConfigSeam,
-    services: Services,
 }
 
 impl PreviewRun {
@@ -203,7 +192,7 @@ impl PreviewRun {
         }
     }
 
-    /// Hand a task to the same dispatcher the event loop uses — unless running it would do
+    /// Send a task to the engine as the event loop sends one — unless running it would do
     /// something a still frame must not: play, download, sign in, change a setting or a store.
     fn dispatch(&mut self, app: &mut App, task: Command) {
         let loads = matches!(
@@ -226,13 +215,13 @@ impl PreviewRun {
             eprintln!("[preview: not run: {task:?}]");
             return;
         }
-        let Self { seam, engine, services, tx, .. } = self;
-        command(app, seam, task, &mut |c| route(c, engine, services, tx));
+        let Self { seam, engine, .. } = self;
+        command(app, seam, task, &mut |c| engine.send(c));
     }
 
     /// Apply updates until the work is done and the screen's covers are in, as the event loop
     /// would over the same moments.
-    async fn settle(&mut self, app: &mut App, rx: &mut mpsc::UnboundedReceiver<Envelope>) {
+    async fn settle(&mut self, app: &mut App) {
         let deadline = tokio::time::Instant::now() + Self::PATIENCE;
         loop {
             if let Some(task) = app.take_pending() {
@@ -250,27 +239,14 @@ impl PreviewRun {
             let wait = if app.jobs.is_empty() { quiet } else { Self::PATIENCE };
             let wait =
                 wait.min(deadline.saturating_duration_since(tokio::time::Instant::now()));
-            match tokio::time::timeout(wait, rx.recv()).await {
-                // A still frame writes no setting, so nothing leaves itself work; were it to,
-                // it would be done here, in its place, as the loop does it.
-                Ok(Some(Envelope::Internal(message))) => {
-                    let said =
-                        handle_internal(message, &mut self.engine, &self.services, &self.tx)
-                            .await;
-                    said.into_iter().for_each(|said| app.apply(said));
-                }
-                Ok(Some(Envelope::Event(update))) => {
-                    match update {
-                        // Decoded here and now: a still frame has no loop to keep moving.
-                        Event::ArtworkReady { url, bytes } => {
-                            covers::hand_over(app, covers::now(url, &bytes));
-                        }
-                        update => app.apply(update),
+            match tokio::time::timeout(wait, self.events.recv()).await {
+                Ok(Some(update)) => match update {
+                    // Decoded here and now: a still frame has no loop to keep moving.
+                    Event::ArtworkReady { url, bytes } => {
+                        covers::hand_over(app, covers::now(url, &bytes));
                     }
-                    meta_notice(&self.services.meta)
-                        .into_iter()
-                        .for_each(|said| app.apply(said));
-                }
+                    update => app.apply(update),
+                },
                 Ok(None) => return,
                 Err(_) if app.jobs.is_empty() => return,
                 Err(_) => {
