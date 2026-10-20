@@ -361,6 +361,40 @@ impl Harness {
         seen
     }
 
+    /// Hand the engine what a playback says, as its player would: these tests have none. The
+    /// engine does its part with it in its turn and passes it on, for the next settle to apply.
+    pub fn player_says(&mut self, event: Event) {
+        self.engine.inject(event);
+    }
+
+    /// [`Self::settle`], with everything the engine says before it next falls idle applied in
+    /// one batch, before the loop's own work: as a front end applies what
+    /// `EventStream::next_events` hands it, rather than one event a pass as the terminal's loop
+    /// takes them. Then settled as usual, for whatever the batch led to; the trace is that
+    /// settle's.
+    pub async fn settle_in_one_batch(&mut self) -> Vec<Event> {
+        let deadline = tokio::time::Instant::now() + PATIENCE;
+        let mut batch = Vec::new();
+        while self.idle != self.engine.sent() {
+            let wait = deadline.saturating_duration_since(tokio::time::Instant::now());
+            match tokio::time::timeout(wait, self.events.next_traced()).await {
+                Ok(Some(Traced::Event(update))) => batch.push(update),
+                Ok(Some(Traced::Handled(message))) => self.handled(message),
+                Ok(Some(Traced::Idle { routed })) => self.idle = routed,
+                Ok(None) => panic!("the engine stopped, having seen {:?}", names(&batch)),
+                Err(_) => {
+                    panic!("still waiting after {PATIENCE:?}, having seen {:?}", names(&batch))
+                }
+            }
+        }
+        let mut seen = Vec::new();
+        for update in batch {
+            self.apply(update, &mut seen);
+        }
+        seen.extend(self.settle().await);
+        seen
+    }
+
     /// What the last [`Self::settle`] went through, by name and in order: every event it
     /// returned, and between them each message the engine side left itself and kept, where
     /// the engine handles it. So `SettingsSaved` and `SourcesReordered` are in it, though no

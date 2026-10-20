@@ -46,6 +46,7 @@ use crate::{
     playback::player::{launch_notice, player},
     plugin_stores,
     services::Services,
+    settings,
     sources::{self, TorrentUp},
     state::EngineState,
     tracking, updates,
@@ -78,6 +79,9 @@ enum Message {
     Command { job: Option<(JobId, String)>, command: Command },
     /// The app is quitting: see [`Engine::shutdown`].
     Shutdown { playing: bool, done: oneshot::Sender<()> },
+    /// An event, as the work would send it: see [`Engine::inject`].
+    #[cfg(feature = "testing")]
+    Inject(Event),
 }
 
 impl Engine {
@@ -334,6 +338,15 @@ impl Engine {
     pub fn sent(&self) -> u64 {
         self.sent.load(Ordering::Relaxed)
     }
+
+    /// Hand the engine an event as its work would send it, after everything sent before: what a
+    /// playback says, for a test that has no player. Counted as a command, so the engine falls
+    /// idle only once it has done its part with the event and passed it on.
+    #[cfg(feature = "testing")]
+    pub fn inject(&self, event: Event) {
+        self.sent.fetch_add(1, Ordering::Relaxed);
+        let _ = self.commands.send(Message::Inject(event));
+    }
 }
 
 /// Say whatever the background plugin load concluded, once. A plugin that failed to load must
@@ -553,6 +566,11 @@ impl Actor {
                         let _ = done.send(());
                         return;
                     }
+                    #[cfg(feature = "testing")]
+                    Some(Message::Inject(event)) => {
+                        let _ = self.inbox.sender().send(event);
+                        self.routed += 1;
+                    }
                     // Every handle on the engine has gone.
                     None => return,
                 },
@@ -595,6 +613,10 @@ impl Actor {
                 let Self { services, inbox, .. } = self;
                 let said = receive(&event, services, || inbox.sender());
                 said.into_iter().for_each(|said| self.pass_on(said));
+                // What the player changed of the config, kept and saved, with what the save
+                // has to say coming after the event, in its place in the inbox.
+                let Self { services, inbox, state, .. } = self;
+                settings::remember(&event, state, services, || inbox.sender());
                 self.pass_on(event);
             }
             // What the engine side left itself to do, after everything sent before it and

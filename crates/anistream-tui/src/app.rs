@@ -1032,21 +1032,15 @@ impl App {
                     playing.skip = None;
                 }
             }
+            // What the player changes of the config on its own is the engine's to keep and to
+            // save, as it passes: see `anistream_engine::settings::remember`. Kept here too, for
+            // as long as the interface holds a config of its own. Saved from here, they waited
+            // in `pending`, and a save that found the slot taken was skipped.
             Event::PlaybackSpeed(speed) => {
                 // Remembered in config so the next episode starts at the same speed.
                 self.config.playback.persisted_speed = Some(speed);
                 if let Some(playing) = &mut self.playing {
                     playing.speed = speed;
-                }
-                // And written to disk, or "survives a restart" would be a lie the doc
-                // comment tells. Auto-next owns `pending` for a frame at episode end;
-                // losing one save then is fine — the next speed step saves again.
-                if self.config.playback.persist_speed && self.pending.is_none() {
-                    self.pending = Some(Command::SaveSetting {
-                        table: &["playback"],
-                        key: "persisted_speed",
-                        value: anistream_core::settings::SettingValue::Float(speed),
-                    });
                 }
             }
             Event::ActiveProvider(provider) => self.active_provider = Some(provider),
@@ -1094,13 +1088,6 @@ impl App {
             Event::PlayerUpscaling(name) => {
                 if let Some(mode) = anistream_core::config::Upscaling::from_name(&name) {
                     self.config.playback.upscaling = mode;
-                    if self.pending.is_none() {
-                        self.pending = Some(Command::SaveSetting {
-                            table: &["playback"],
-                            key: "upscaling",
-                            value: anistream_core::settings::SettingValue::Str(name),
-                        });
-                    }
                 }
             }
             Event::PrefetchNext { id, episode } => {
@@ -1110,37 +1097,11 @@ impl App {
                     self.pending = Some(Command::Prefetch { id, episode });
                 }
             }
-            Event::PlayerToneMapping(curve) => {
-                self.config.playback.tone_mapping = curve.clone();
-                if self.pending.is_none() {
-                    self.pending = Some(Command::SaveSetting {
-                        table: &["playback"],
-                        key: "tone_mapping",
-                        value: anistream_core::settings::SettingValue::Str(curve),
-                    });
-                }
-            }
-            Event::PlayerNightMode(on) => {
-                self.config.playback.night_mode = on;
-                if self.pending.is_none() {
-                    self.pending = Some(Command::SaveSetting {
-                        table: &["playback"],
-                        key: "night_mode",
-                        value: anistream_core::settings::SettingValue::Bool(on),
-                    });
-                }
-            }
+            Event::PlayerToneMapping(curve) => self.config.playback.tone_mapping = curve,
+            Event::PlayerNightMode(on) => self.config.playback.night_mode = on,
+            // Same contract as speed: remembered in config for the next episode.
             Event::PlaybackVolume(volume) => {
-                // Same contract as speed: remembered in config, written to disk, and never
-                // allowed to fight auto-next for the pending slot.
-                self.config.playback.persisted_volume = Some(volume);
-                if self.config.playback.persist_volume && self.pending.is_none() {
-                    self.pending = Some(Command::SaveSetting {
-                        table: &["playback"],
-                        key: "persisted_volume",
-                        value: anistream_core::settings::SettingValue::Float(volume),
-                    });
-                }
+                self.config.playback.persisted_volume = Some(volume)
             }
             // The playback still in the window ended while its successor was being found: the
             // successor is what was asked for, so nothing comes down and nothing rolls on.
@@ -5643,10 +5604,40 @@ mod tests {
             a.take_pending(),
             Some(Command::Prefetch { id: AnilistId::new(3), episode: "6".into() })
         );
-        // Best effort: a slot already holding work keeps it.
-        a.apply(Event::PlayerNightMode(true));
+        // Best effort: a slot already holding work keeps it — an episode picked in the player,
+        // here. A choice of night mode there used to hold it too; the engine saves that now.
+        a.playing = Some(NowPlaying {
+            id: Some(AnilistId::new(3)),
+            title: "Hoshikuzu no Tabibito".into(),
+            episode: "5".into(),
+            ..NowPlaying::default()
+        });
+        a.apply(Event::PlayerPlayEpisode { episode: "7".into(), title: None });
         a.apply(Event::PrefetchNext { id: AnilistId::new(3), episode: "6".into() });
-        assert!(matches!(a.take_pending(), Some(Command::SaveSetting { .. })));
+        assert!(matches!(a.take_pending(), Some(Command::Play { .. })));
+    }
+
+    #[test]
+    fn a_choice_made_in_the_player_takes_no_slot_and_waits_behind_none() {
+        // The engine keeps and saves what the player changes, as it passes. Queued here, each
+        // save waited in the one slot, and one that found it taken was skipped.
+        let mut a = app();
+        let prefetch = Command::Prefetch { id: AnilistId::new(3), episode: "6".into() };
+        a.apply(Event::PrefetchNext { id: AnilistId::new(3), episode: "6".into() });
+        for choice in [
+            Event::PlayerNightMode(true),
+            Event::PlayerUpscaling("sharp".into()),
+            Event::PlayerToneMapping("bt.2390".into()),
+            Event::PlaybackVolume(80.0),
+            Event::PlaybackSpeed(1.5),
+        ] {
+            a.apply(choice);
+        }
+        assert_eq!(a.take_pending(), Some(prefetch), "the ending's work keeps the slot");
+        assert_eq!(a.take_pending(), None, "and no save waits behind it");
+        // In effect here as well, for as long as the interface keeps a config of its own.
+        assert!(a.config.playback.night_mode);
+        assert_eq!(a.config.playback.upscaling, anistream_core::config::Upscaling::Sharp);
     }
 
     #[test]

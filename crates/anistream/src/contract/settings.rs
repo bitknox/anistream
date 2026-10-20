@@ -5,7 +5,7 @@
 //! write can put its row back. Only a write that landed is followed by `SettingsSaved`, and by
 //! `SourcesReordered` or `SourcesChanged` when it touched the chain.
 
-use anistream_core::settings::SettingValue;
+use anistream_core::{ids::AnilistId, settings::SettingValue};
 use anistream_model::{command::Command, event::Event};
 use anistream_providers::{MockProvider, ProviderRegistry};
 use anistream_testkit::sources;
@@ -77,6 +77,46 @@ async fn a_setting_with_no_row_is_saved_without_a_word() {
 
     assert_eq!(h.trace(), ["SettingWritten", "SettingsSaved"]);
     assert_eq!(written(&updates[0]).0.playback.persisted_speed, Some(1.25));
+}
+
+#[tokio::test]
+async fn a_speed_the_player_remembers_is_saved_without_a_word() {
+    let mut h = Harness::new().await;
+    h.player_says(Event::PlaybackSpeed(1.25));
+    h.settle().await;
+
+    assert_eq!(h.trace(), ["PlaybackSpeed", "SettingWritten", "SettingsSaved"]);
+    let file = std::fs::read_to_string(&h.paths().config_file).unwrap();
+    assert_eq!(file, "[playback]\npersisted_speed = 1.25\n");
+}
+
+#[tokio::test]
+async fn a_speed_is_not_saved_when_the_config_says_not_to_remember_it() {
+    let config = "[playback]\npersist_speed = false\n";
+    let mut h =
+        Harness::with(Options { config: Some(config.into()), ..Options::default() }).await;
+    h.player_says(Event::PlaybackSpeed(1.25));
+    h.settle().await;
+
+    assert_eq!(h.trace(), ["PlaybackSpeed"]);
+    assert_eq!(std::fs::read_to_string(&h.paths().config_file).unwrap(), config);
+}
+
+#[tokio::test]
+async fn a_choice_made_in_the_player_is_saved_however_the_front_end_reads_its_events() {
+    // An episode reaches its ending and asks for the next one's streams, and the viewer turns
+    // night mode on in the player's menu: two events, which a front end reading its events in
+    // batches applies together. The interface saved night mode by queueing the write in its one
+    // slot for work, which the ending's prefetch had just taken, so the save was skipped and the
+    // next launch came back without night mode. The engine saves it as it passes.
+    let mut h = Harness::new().await;
+    h.player_says(Event::PrefetchNext { id: AnilistId::new(7), episode: "2".into() });
+    h.player_says(Event::PlayerNightMode(true));
+    let updates = h.settle_in_one_batch().await;
+
+    let file = std::fs::read_to_string(&h.paths().config_file).unwrap_or_default();
+    assert_eq!(file, "[playback]\nnight_mode = true\n", "night mode was not saved");
+    assert_eq!(toasts(&updates), ["info: saved · night mode"]);
 }
 
 #[tokio::test]

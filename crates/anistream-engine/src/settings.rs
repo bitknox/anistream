@@ -91,6 +91,59 @@ pub fn save_setting(
     }
 }
 
+/// What the player changed of the config on its own, from its menus or its keys, kept in effect
+/// for the next playback and saved as any setting is, as the event that says so passes on its
+/// way to the front end. `tx` is asked for only when there is a save to report.
+///
+/// The speed and the volume are remembered whatever the config says, and saved only when it
+/// asks for them to be: `persist_speed`, `persist_volume`.
+///
+/// The interface used to do this as the event reached it, by queueing the save in its one slot
+/// for work, which an ending's prefetch, auto-next and an episode picked in the player fill too.
+/// A save that found the slot taken was skipped without a word, and the next launch came back
+/// without the change. Here nothing can take its place: the write is made in line, in its turn,
+/// whatever the front end does with its events.
+pub fn remember(
+    event: &Event,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: impl FnOnce() -> Outbox,
+) {
+    use anistream_core::settings::SettingValue as V;
+    let playback = &mut engine.config.playback;
+    let (key, value) = match event {
+        Event::PlaybackSpeed(speed) => {
+            playback.persisted_speed = Some(*speed);
+            if !playback.persist_speed {
+                return;
+            }
+            ("persisted_speed", V::Float(*speed))
+        }
+        Event::PlaybackVolume(volume) => {
+            playback.persisted_volume = Some(*volume);
+            if !playback.persist_volume {
+                return;
+            }
+            ("persisted_volume", V::Float(*volume))
+        }
+        Event::PlayerUpscaling(name) => {
+            let Some(mode) = anistream_core::config::Upscaling::from_name(name) else { return };
+            playback.upscaling = mode;
+            ("upscaling", V::Str(name.clone()))
+        }
+        Event::PlayerToneMapping(curve) => {
+            playback.tone_mapping.clone_from(curve);
+            ("tone_mapping", V::Str(curve.clone()))
+        }
+        Event::PlayerNightMode(on) => {
+            playback.night_mode = *on;
+            ("night_mode", V::Bool(*on))
+        }
+        _ => return,
+    };
+    save_setting(&["playback"], key, value, engine, services, &tx());
+}
+
 /// The name the Settings screen gives the setting stored at `table`.`key`, for saying it was
 /// saved. The config key (`commit_threshold`) is the file's vocabulary, not the screen's.
 ///
