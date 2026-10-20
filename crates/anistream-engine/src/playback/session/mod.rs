@@ -960,7 +960,9 @@ impl Run<'_> {
             .await;
         self.night_applied = self.night;
     }
+}
 
+impl Run<'_> {
     /// Play one file to its end, feeding the tracker and answering the viewer.
     async fn file(
         &mut self,
@@ -1399,7 +1401,9 @@ impl Run<'_> {
         let _ = session.send(companion::skip_clear()).await;
         outcome
     }
+}
 
+impl Run<'_> {
     /// Step to an adjacent episode: N/P in the player, n/N in the terminal.
     ///
     /// The next playback's arrival is what ends this one — the task runner hands this window
@@ -1533,7 +1537,9 @@ impl Run<'_> {
         }
         None
     }
+}
 
+impl Run<'_> {
     /// Choose the upscaling chain for the file as it now stands, and set it if it changed.
     ///
     /// `announce` is for changes the viewer did not ask for — the governor easing, the battery
@@ -1566,7 +1572,9 @@ impl Run<'_> {
         let _ = session.send(companion::state("media", &media)).await;
         let _ = session.send(companion::state("menus", &self.menus(streams, index))).await;
     }
+}
 
+impl Run<'_> {
     /// Carry out what the track policy decided.
     async fn apply_track(&self, action: TrackAction, session: &MpvSession) {
         if let TrackAction::Remember(memory) = action {
