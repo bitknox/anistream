@@ -321,16 +321,25 @@ pub enum ContentFor {
 /// Wire values rather than display values — what AniList's enums expect, lowercased only
 /// when a row is drawn. `None` reads as "any" and is omitted from the query entirely,
 /// because AniList treats an explicit null differently from a missing argument.
+///
+/// Each filter defaults to "any" in the bindings too, so a native front end writes
+/// `SearchFilters()` for none and names only the ones it sets.
 #[derive(Debug, Clone, Default, PartialEq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct SearchFilters {
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub genre: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub year: Option<u32>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub season: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub format: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub status: Option<String>,
     /// `None` is relevance — AniList's `SEARCH_MATCH` — which is only meaningful with a
     /// search term, so the executor substitutes popularity for a filter-only browse.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub sort: Option<String>,
 }
 

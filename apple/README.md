@@ -5,10 +5,11 @@ A Swift package over anistream's engine. It holds the Swift bindings that
 engine in as a static library, so a Swift program can start the same engine the terminal app runs,
 send it commands and read its events.
 
-For now it backs one test, which proves the pipeline end to end: the Rust library, the generated
-bindings, the package, a Swift test and a macOS CI job. The test starts the engine on the test
-kit's fake AniList, searches it and checks the titles that come back. A SwiftUI front end is to
-drive the engine the same way later.
+For now it backs the package's tests, which prove the pipeline end to end: the Rust library, the
+generated bindings, the package, the Swift tests and a macOS CI job. They start the engine on the
+test kit's fake AniList, send it the model's own commands (a search, the Continue row, a title's
+page) and check the events that come back. A SwiftUI front end is to drive the engine the same way
+later.
 
 ## Building and testing
 
@@ -23,8 +24,9 @@ The script:
    fixture source) and the `cli` feature (the `uniffi-bindgen` binary);
 2. generates the bindings in library mode, from the built library:
    `uniffi-bindgen generate --library libanistream_ffi.dylib --language swift`;
-3. copies the Swift file into `Sources/AnistreamKit/`, and the C header and module map into
-   `Sources/anistream_ffiFFI/`;
+3. copies the Swift files into `Sources/AnistreamKit/`, and the C headers into
+   `Sources/AnistreamFFI/`, with one `module.modulemap` there that declares every crate's C
+   module (see below);
 4. links the static library into `.rust/`, where `Package.swift` looks for it;
 5. runs `swift test`.
 
@@ -44,35 +46,58 @@ does `swift test` with Xcode, until the Rust interface changes.
 
 ## What is generated
 
-The Swift file, the header and the module map are generated on every run, and are not committed.
-The generated Swift checks, when it loads the library, that both came from the same interface, so
-the bindings are only right next to the library they were generated from. That library has to be
-built anyway before anything can link, so committed copies would add a check that they are
-current without saving a build.
+UniFFI generates one set of bindings per crate with UniFFI types in it, in library mode, from the
+one built library that links them all:
 
-## The narrow surface
+| Crate             | Swift                   | C header               | C module             |
+| ----------------- | ----------------------- | ---------------------- | -------------------- |
+| `anistream-core`  | `anistream_core.swift`  | `anistream_coreFFI.h`  | `anistream_coreFFI`  |
+| `anistream-model` | `anistream_model.swift` | `anistream_modelFFI.h` | `anistream_modelFFI` |
+| `anistream-ffi`   | `anistream_ffi.swift`   | `anistream_ffiFFI.h`   | `anistream_ffiFFI`   |
 
-The model's own commands, events and rows cannot cross the FFI yet: they hold tuples, borrowed
-strings, `Result` fields and the core's newtypes. So `anistream-ffi` has small types of its own and
-maps them to and from the model's:
+The Swift files are compiled into the one `AnistreamKit` module: the generated code of one crate
+names another's types unqualified, as if they were its own. Each file imports its own C module, so
+`Sources/AnistreamFFI/module.modulemap` declares all three, made by joining the module map UniFFI
+writes for each; SwiftPM reads a system library's module map by that name only. A crate that gains
+UniFFI types needs no change here, since build.sh copies whatever was generated.
 
-- `FfiCommand`: `search(query:)` and `loadContinue`;
-- `FfiEvent`: `content(view:content:)` with the titles of a list, `notice(text:alert:)`,
-  `jobDone(job:)`, and `other(name:)` for every event that does not cross yet, by its name in the
-  model;
-- `FfiTitle`: a title's AniList id, its title and its secondary title.
+All of it is generated on every run, and none of it is committed. The generated Swift checks, when
+it loads the library, that both came from the same interface, so the bindings are only right next
+to the library they were generated from. That library has to be built anyway before anything can
+link, so committed copies would add a check that they are current without saving a build.
 
-Each of these stands for one of the model's types and means what it means. P6 of the engine
-extraction makes the model's types fit to cross, and widens these to the whole protocol: what starts
-crossing becomes a new variant, and the variants here stay as they are.
+## The protocol
+
+The whole protocol crosses as it is: what Swift sends is the model's own `Command`, and what it
+reads back are the model's own `Event`s, with every row they carry. A command or event added to the
+model reaches Swift with no change to `anistream-ffi`. So the Swift reads as the Rust does:
+
+```swift
+let job = engine.send(command: .search(query: "hoshikuzu", filter: SearchFilters()))
+for event in await engine.nextEvents() {
+    switch event {
+    case .content(view: _, content: .entries(let entries)): print(entries.map(\.title))
+    case .jobDone(let done) where done == job: print("searched")
+    default: break
+    }
+}
+```
+
+- The ids are type aliases for the integer they wrap: `AnilistId` is `UInt32` and `JobId` is
+  `UInt64`. `ProviderKey` and `Secret` are `String`. A secret is kept out of Rust's logs; keeping it
+  out of the app's is the app's to do.
+- Records are structs and enums are enums, `Equatable` and `Hashable` both. Rust's enum variants
+  are Swift's lower-camel-case cases, with a variant's unnamed field unlabelled, as in
+  `.loadDetail(900_001)` and `.jobDone(job)`.
+- `SearchFilters()` is no filter at all: each one defaults to `nil`, meaning any.
 
 The engine object is `FfiEngine`:
 
 - `FfiEngine.start(dirs:host:)` stands it up on the app's directories, as the terminal app does;
   `startTesting(dirs:host:)` exists only in a `testing` build;
-- `send(command:)` puts a command on a channel and returns its job number, so the main thread can
-  call it;
-- `nextEvents()` is `async`, and returns the events there are once there is at least one, or an
+- `send(command:)` puts a `Command` on a channel and returns the `JobId` of the work it starts,
+  when that is work someone waits on, so the main thread can call it;
+- `nextEvents()` is `async`, and returns the `Event`s there are once there is at least one, or an
   empty array once the engine has stopped;
 - `shutdown()` stops the engine and its runtime, and blocks until the engine has wound down.
 

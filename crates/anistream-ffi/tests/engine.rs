@@ -9,8 +9,12 @@ use std::{
     time::Duration,
 };
 
-use anistream_ffi::{
-    FfiCommand, FfiContent, FfiDirs, FfiEngine, FfiEvent, FfiHost, FfiTitle, FfiView,
+use anistream_core::ids::AnilistId;
+use anistream_ffi::{FfiDirs, FfiEngine, FfiHost};
+use anistream_model::{
+    catalog::{ContentFor, ContentList, Entry, SearchFilters},
+    command::Command,
+    event::Event,
 };
 
 /// How long a test waits for what it is waiting on before failing. Everything is on loopback,
@@ -43,8 +47,8 @@ fn started() -> (Arc<FfiEngine>, tempfile::TempDir) {
 /// Swift or Kotlin.
 fn read_until(
     engine: &Arc<FfiEngine>,
-    until: impl Fn(&FfiEvent) -> bool + Send + 'static,
-) -> Vec<FfiEvent> {
+    until: impl Fn(&Event) -> bool + Send + 'static,
+) -> Vec<Event> {
     let engine = Arc::clone(engine);
     let (tx, rx) = mpsc::channel();
     thread::spawn(move || {
@@ -69,44 +73,44 @@ fn read_until(
 }
 
 /// The titles of the first list for a search for `query` among `events`.
-fn search_titles(events: &[FfiEvent], query: &str) -> Option<Vec<FfiTitle>> {
+fn search_titles<'a>(events: &'a [Event], query: &str) -> Option<&'a [Entry]> {
     events.iter().find_map(|event| match event {
-        FfiEvent::Content {
-            view: FfiView::Search { query: q },
-            content: FfiContent::Titles { titles },
-        } if q == query => Some(titles.clone()),
+        Event::Content {
+            view: ContentFor::Search { query: q, .. },
+            content: ContentList::Entries(entries),
+        } if q == query => Some(entries.as_slice()),
         _ => None,
     })
+}
+
+/// Whether `event` ends `job`.
+fn ends(job: anistream_model::jobs::JobId) -> impl Fn(&Event) -> bool + Send + 'static {
+    move |event| matches!(event, Event::JobDone(done) if *done == job)
 }
 
 #[test]
 fn a_search_comes_back_with_the_fixture_titles() {
     let (engine, _root) = started();
-    let job = engine
-        .send(FfiCommand::Search { query: "hoshikuzu".into() })
-        .expect("a search is work someone waits on");
+    let search =
+        Command::Search { query: "hoshikuzu".into(), filter: SearchFilters::default() };
+    let job = engine.send(search).expect("a search is work someone waits on");
 
     // The job ends after everything its work said, the list among it.
-    let read = read_until(&engine, move |event| *event == FfiEvent::JobDone { job });
-    let titles = search_titles(&read, "hoshikuzu").expect("the search's titles");
+    let read = read_until(&engine, ends(job));
+    let titles: Vec<_> = search_titles(&read, "hoshikuzu")
+        .expect("the search's titles")
+        .iter()
+        .map(|entry| (entry.id.get(), entry.title.as_str(), entry.secondary.as_deref()))
+        .collect();
     assert_eq!(
         titles,
         [
-            FfiTitle {
-                id: 900_001,
-                title: "Stardust Wayfarer".into(),
-                secondary: Some("Hoshikuzu no Tabibito".into()),
-            },
-            FfiTitle {
-                id: 900_004,
-                title: "Stardust Wayfarer Season 2".into(),
-                secondary: Some("Hoshikuzu no Tabibito 2nd Season".into()),
-            },
+            (900_001, "Stardust Wayfarer", Some("Hoshikuzu no Tabibito")),
+            (900_004, "Stardust Wayfarer Season 2", Some("Hoshikuzu no Tabibito 2nd Season")),
         ]
     );
-    // What launch said came first, the settings ahead of everything, and what has no variant
-    // yet crossed by its name.
-    assert_eq!(read.first(), Some(&FfiEvent::Other { name: "Settings".into() }), "{read:?}");
+    // What launch said came first, the settings ahead of everything.
+    assert!(matches!(read.first(), Some(Event::Settings(_))), "{read:?}");
     engine.shutdown();
 }
 
@@ -114,20 +118,42 @@ fn a_search_comes_back_with_the_fixture_titles() {
 fn commands_can_be_sent_from_any_thread() {
     let (engine, _root) = started();
     let sender = Arc::clone(&engine);
-    let job = thread::spawn(move || sender.send(FfiCommand::LoadContinue))
+    let job = thread::spawn(move || sender.send(Command::LoadContinue))
         .join()
         .expect("the sending thread")
         .expect("loading Continue is a job");
 
-    let read = read_until(&engine, move |event| *event == FfiEvent::JobDone { job });
+    let read = read_until(&engine, ends(job));
     // Nothing has been watched in a new database.
     assert!(
-        read.contains(&FfiEvent::Content {
-            view: FfiView::Continue,
-            content: FfiContent::Empty
-        }),
+        read.iter().any(|event| matches!(
+            event,
+            Event::Content { view: ContentFor::Continue, content: ContentList::Empty }
+        )),
         "{read:?}"
     );
+    engine.shutdown();
+}
+
+#[test]
+fn a_title_comes_back_whole_with_the_source_pinned_for_it_ahead() {
+    let (engine, _root) = started();
+    let job = engine
+        .send(Command::LoadDetail(AnilistId::new(900_001)))
+        .expect("loading a title is a job");
+
+    let read = read_until(&engine, ends(job));
+    let asked: Vec<_> = read
+        .iter()
+        .skip_while(
+            |event| !matches!(event, Event::JobStarted { job: started, .. } if *started == job),
+        )
+        .collect();
+    // Nothing pinned in a new database, said ahead of the page so it never shows the wrong one.
+    assert!(matches!(asked[1], Event::ProviderPreference(None)), "{asked:?}");
+    let Event::Detail(entry) = asked[2] else { panic!("the page: {asked:?}") };
+    assert_eq!((entry.id.get(), entry.title.as_str()), (900_001, "Stardust Wayfarer"));
+    assert!(!entry.related.is_empty(), "the detail-only fields came with it");
     engine.shutdown();
 }
 
@@ -148,7 +174,7 @@ fn shutdown_returns_and_ends_the_stream() {
         batches += 1;
         assert!(batches < 100, "the stream ends once the engine has stopped");
     }
-    assert_eq!(engine.send(FfiCommand::LoadContinue), None);
+    assert_eq!(engine.send(Command::LoadContinue), None);
     // A second shutdown has nothing left to stop.
     engine.shutdown();
 }

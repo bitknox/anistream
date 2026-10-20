@@ -42,11 +42,23 @@ mkdir -p "$generated"
 "$built/uniffi-bindgen" generate --library "$built/libanistream_ffi.dylib" \
   --language swift --out-dir "$generated"
 
-mkdir -p "$package/Sources/AnistreamKit" "$package/Sources/anistream_ffiFFI"
-cp "$generated/anistream_ffi.swift" "$package/Sources/AnistreamKit/"
-cp "$generated/anistream_ffiFFI.h" "$package/Sources/anistream_ffiFFI/"
-# SwiftPM reads a system library's module map by this name only.
-cp "$generated/anistream_ffiFFI.modulemap" "$package/Sources/anistream_ffiFFI/module.modulemap"
+# One set per crate with UniFFI types in it: `anistream_core`, `anistream_model` and
+# `anistream_ffi`, each a Swift file, a C header and a module map for the header. The Swift files
+# make one Swift module, since the generated code of one crate uses another's types unqualified,
+# and the headers one system library, whose module map declares each crate's C module. Both are
+# filled afresh, so a crate that stops having UniFFI types leaves nothing behind.
+swift="$package/Sources/AnistreamKit"
+ffi="$package/Sources/AnistreamFFI"
+rm -rf "$swift" "$ffi"
+mkdir -p "$swift" "$ffi"
+cp "$generated"/*.swift "$swift/"
+cp "$generated"/*.h "$ffi/"
+# SwiftPM reads a system library's module map by this name only. Each generated map declares one
+# module, and a map may declare several, so this one is all of them.
+for map in "$generated"/*.modulemap; do
+  cat "$map"
+  echo
+done >"$ffi/module.modulemap"
 
 # Linked by Package.swift from here, where the static library is alone: beside it in the target
 # directory, the linker would take the dynamic one.

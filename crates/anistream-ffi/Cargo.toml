@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-description = "The engine as a native front end holds it, through UniFFI: Swift and Kotlin bindings over a narrow surface"
+description = "The engine as a native front end holds it, through UniFFI: Swift and Kotlin bindings over its whole protocol"
 # Linked into a native app, never published: its shape follows the engine's.
 publish = false
 
@@ -35,7 +35,9 @@ cli = ["uniffi/cli"]
 [dependencies]
 anistream-core.workspace = true
 anistream-engine.workspace = true
-anistream-model.workspace = true
+# The commands and events themselves cross, with every row they carry: the model's `ffi` feature
+# derives their conversions, and turns on the core's for the core types among them.
+anistream-model = { workspace = true, features = ["ffi"] }
 anistream-net.workspace = true
 anistream-store.workspace = true
 thiserror.workspace = true

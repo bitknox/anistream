@@ -15,14 +15,14 @@ use anistream_engine::{
     host::Host,
     options::EngineOptions,
 };
-use anistream_model::{jobs::JobId, playback::PlayerTheme};
+use anistream_model::{command::Command, event::Event, jobs::JobId, playback::PlayerTheme};
 use anistream_net::HttpClient;
 use anistream_store::Store;
 use tokio::runtime::{Handle, Runtime};
 
 use crate::{
     host::{Adapter, FfiHost},
-    protocol::{FfiCommand, FfiDirs, FfiError, FfiEvent},
+    start::{FfiDirs, FfiError},
 };
 
 /// The engine, started from a native app: where its commands go and where its events are read.
@@ -66,12 +66,13 @@ impl FfiEngine {
     }
 
     /// Hand the engine a command, and say which job it starts, for work someone waits on: the
-    /// number a [`FfiEvent::JobDone`] names when the work ends.
+    /// job an [`Event::JobStarted`] announces and an [`Event::JobDone`] names when the work ends.
+    /// `None` for work nobody waits on, such as a write or a player control.
     ///
     /// Only puts the command on a channel, so any thread may call this, the main thread among
     /// them. `None` too once the engine has stopped.
-    pub fn send(&self, command: FfiCommand) -> Option<u64> {
-        lock(&self.engine).as_ref()?.send(command.into()).map(JobId::get)
+    pub fn send(&self, command: Command) -> Option<JobId> {
+        lock(&self.engine).as_ref()?.send(command)
     }
 
     /// The events there are, waiting for at least one: a batch for the front end to apply in
@@ -80,12 +81,9 @@ impl FfiEngine {
     ///
     /// Empty once the engine has stopped, which ends a loop over it. Cancel-safe: a task that
     /// stops waiting loses nothing, and the next call has what it would have had.
-    pub async fn next_events(&self) -> Vec<FfiEvent> {
+    pub async fn next_events(&self) -> Vec<Event> {
         let events = Arc::clone(&self.events);
-        let read = async move {
-            let mut events = events.lock().await;
-            events.next_events().await.into_iter().map(FfiEvent::from).collect()
-        };
+        let read = async move { events.lock().await.next_events().await };
         InRuntime { handle: self.handle.clone(), future: Box::pin(read) }.await
     }
 
