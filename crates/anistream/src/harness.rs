@@ -431,13 +431,10 @@ impl Harness {
             );
             let tx = self.channels.sender();
             crate::reload_sources(
-                &self.services.registry,
+                &self.services,
                 &mut self.torrent_tasks,
                 &mut self.vpn_guard,
                 &self.shared_config,
-                &self.services.http,
-                &self.services.paths,
-                &self.services.store,
                 &tx,
                 &self.arrivals,
             )

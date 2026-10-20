@@ -791,14 +791,7 @@ async fn run(
     // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
     let (arrivals_tx, mut arrivals) = mpsc::unbounded_channel();
     let mut torrent_tasks = TorrentTasks::default();
-    torrent_tasks.bring_up(
-        &app.config,
-        &services.http,
-        &services.paths,
-        &services.store,
-        &tx,
-        &arrivals_tx,
-    );
+    torrent_tasks.bring_up(&app.config, &services, &tx, &arrivals_tx);
 
     // Both before the terminal changes state, so there is no moment in which a signal or a
     // panic could leave it raw.
@@ -920,13 +913,10 @@ async fn run(
                 }
                 if matches!(update, Event::SourcesChanged) {
                     reload_sources(
-                        &services.registry,
+                        &services,
                         &mut torrent_tasks,
                         &mut vpn_guard,
                         &shared_config,
-                        &services.http,
-                        &services.paths,
-                        &services.store,
                         &tx,
                         &arrivals_tx,
                     )
@@ -956,8 +946,7 @@ async fn run(
                     generation,
                     outcome,
                     &mut vpn_guard,
-                    &services.registry,
-                    &services.store,
+                    &services,
                     &shared_config,
                     &tx,
                 );
@@ -2785,9 +2774,7 @@ impl TorrentTasks {
     fn bring_up(
         &mut self,
         config: &Config,
-        http: &HttpClient,
-        paths: &Paths,
-        store: &Store,
+        services: &Services,
         tx: &mpsc::UnboundedSender<Event>,
         arrivals: &mpsc::UnboundedSender<(
             u64,
@@ -2802,9 +2789,9 @@ impl TorrentTasks {
         let generation = self.generation;
         let (config, http, paths, store, tx, arrivals) = (
             config.clone(),
-            http.clone(),
-            paths.clone(),
-            store.clone(),
+            services.http.clone(),
+            services.paths.clone(),
+            services.store.clone(),
             tx.clone(),
             arrivals.clone(),
         );
@@ -2816,14 +2803,12 @@ impl TorrentTasks {
 
     /// A bring-up finished: put the source in the chain and start what runs beside it, or say
     /// why it will not come up.
-    #[allow(clippy::too_many_arguments)]
     fn arrived(
         &mut self,
         generation: u64,
         outcome: std::result::Result<sources::TorrentUp, String>,
         vpn_guard: &mut Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
-        registry: &ProviderRegistry,
-        store: &Store,
+        services: &Services,
         config: &anistream_engine::SharedConfig,
         tx: &mpsc::UnboundedSender<Event>,
     ) {
@@ -2840,6 +2825,7 @@ impl TorrentTasks {
                 return;
             }
         };
+        let registry = &services.registry;
         let snapshot =
             config.read().map(|c| c.clone()).unwrap_or_else(|e| e.into_inner().clone());
         sources::place(registry, up.provider, &snapshot);
@@ -2847,7 +2833,7 @@ impl TorrentTasks {
             let _ = tx.send(Event::Toast(Notice::info(warning)));
         }
         *vpn_guard = Some((up.guard, up.session));
-        *self = Self { generation, ..Self::start(vpn_guard, store, config, tx) };
+        *self = Self { generation, ..Self::start(vpn_guard, &services.store, config, tx) };
         let _ = tx.send(Event::Providers(data::provider_rows(registry)));
         tracing::info!(providers = ?registry.ids(), "torrent source up");
     }
@@ -2974,15 +2960,11 @@ async fn vpn_watch(
 /// so every holder of a registry clone sees the change, and the plugins that compiled in
 /// the background are carried across — they are not described by config and a rebuild
 /// that forgot them would silently drop sources the user installed.
-#[allow(clippy::too_many_arguments)]
 async fn reload_sources(
-    registry: &ProviderRegistry,
+    services: &Services,
     torrent_tasks: &mut TorrentTasks,
     vpn_guard: &mut Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
     config: &anistream_engine::SharedConfig,
-    http: &HttpClient,
-    paths: &Paths,
-    store: &Store,
     tx: &mpsc::UnboundedSender<Event>,
     arrivals: &mpsc::UnboundedSender<(u64, std::result::Result<sources::TorrentUp, String>)>,
 ) {
@@ -2990,10 +2972,11 @@ async fn reload_sources(
     // sessions briefly alive, and one of them is the one being switched off.
     torrent_tasks.stop().await;
     *vpn_guard = None;
+    let registry = &services.registry;
 
     let plugins = registry.of_kind(anistream_core::traits::ProviderKind::Plugin);
     let snapshot = config.read().map(|c| c.clone()).unwrap_or_else(|e| e.into_inner().clone());
-    let rebuilt = sources::build_registry_deferred(&snapshot, http);
+    let rebuilt = sources::build_registry_deferred(&snapshot, &services.http);
     let mut providers = rebuilt.all();
     providers.extend(plugins);
     registry.replace(providers);
@@ -3001,7 +2984,7 @@ async fn reload_sources(
     // ahead of one of those goes back in front of it.
     sources::arrange(registry, &snapshot);
 
-    torrent_tasks.bring_up(&snapshot, http, paths, store, tx, arrivals);
+    torrent_tasks.bring_up(&snapshot, services, tx, arrivals);
 
     if !sources::torrent_wanted(&snapshot) {
         // No session: say so, and clear a badge that now describes nothing.
