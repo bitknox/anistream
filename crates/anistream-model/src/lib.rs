@@ -29,6 +29,7 @@ pub mod event;
 pub mod jobs;
 pub mod notice;
 pub mod playback;
+pub mod progress;
 pub mod settings;
 pub mod sources;
 pub mod stores;
