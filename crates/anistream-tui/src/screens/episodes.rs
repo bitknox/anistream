@@ -370,8 +370,8 @@ const MIN_EPISODE_TABLE_WIDTH: u16 = 64;
 /// Width in cells for a 16:9 still of a given height.
 ///
 /// Stills are widescreen where covers are portrait, so this is the same cell-aspect correction
-/// as [`cover_plate_width`] applied to a different ratio — without it the reserved space is the
-/// wrong shape and the real image will not fill it.
+/// as [`cover_plate_width`](super::lists::cover_plate_width) applied to a different ratio —
+/// without it the reserved space is the wrong shape and the real image will not fill it.
 fn still_plate_width(height: u16) -> u16 {
     ((f32::from(height) * (16.0 / 9.0) * 2.0).round() as u16).max(6)
 }
