@@ -5869,7 +5869,13 @@ mod tests {
                 ..entry(i + 1, &format!("Weekly {i}"))
             })
             .collect();
-        let mut app = calendar_with(rows);
+        // Six in the morning, so the eighty rows, an hour to fourteen hours out, all fall on one
+        // day. On the real clock they crossed midnight from late morning on, and the heading
+        // that brought made this fail by the time of day it ran.
+        let mut app = app_with(Content::Empty);
+        app.clock = Clock::fixed(NOON_MONDAY - 6 * 3_600, crate::clock::Zone::utc());
+        app.go_to_section(Section::Calendar);
+        app.apply(app.content_here(Content::Entries(rows)));
         app.nav.focus_stage();
         let visible = visible_rows(Rect::new(0, 0, 120, 30), Section::Calendar);
         app.handle(crate::keymap::Action::Bottom, visible);
