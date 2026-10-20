@@ -453,7 +453,10 @@ fn read_line(prompt: &str) -> Result<String> {
 
 /// Move a token from the keychain to a `0600` file.
 pub fn migrate_token(config: &Config, paths: &Paths, tracker: &str) -> Result<()> {
-    let store = tracking::token_store(config, paths);
+    // The desktop's own store, whichever backend is configured: the move reads the keychain
+    // regardless, and writes where the file backend reads.
+    let backend = anistream_track::secret::Backend::from_env_or(&config.trackers.token_storage);
+    let store = anistream_track::secret::LocalSecrets::new(tracking::token_dir(paths), backend);
     match store.migrate_to_file(tracker) {
         Ok(_) => {
             println!("● moved the {tracker} token to {}", tracking::token_dir(paths).display());

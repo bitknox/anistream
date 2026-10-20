@@ -1082,6 +1082,8 @@ pub fn token_dir(paths: &Paths) -> std::path::PathBuf {
 
 #[cfg(test)]
 mod tests {
+    use anistream_track::secret::Backend;
+
     use super::*;
 
     #[test]
@@ -1095,13 +1097,10 @@ mod tests {
         assert_eq!(segment_to_status(LibrarySegment::Dropped), W::Dropped);
     }
 
-    /// Paths under `dir`, so no tracker a test builds looks for its token where the user's are.
-    fn paths_in(dir: &std::path::Path) -> Paths {
-        Paths {
-            config_file: dir.join("config.toml"),
-            data_dir: dir.join("data"),
-            cache_dir: dir.join("cache"),
-        }
+    /// Tokens in files under `dir`, so no tracker a test builds looks for its token where the
+    /// user's are, in their keychain least of all.
+    fn files_in(dir: &std::path::Path) -> TokenStore {
+        TokenStore::with_backend(dir, Backend::File)
     }
 
     #[test]
@@ -1115,7 +1114,7 @@ mod tests {
         let http = anistream_net::HttpClient::new(&config.network).unwrap();
         let dir = tempfile::tempdir().unwrap();
 
-        let sync = Sync::build(&config, &paths_in(dir.path()), &store, &http);
+        let sync = Sync::with_tokens(&config, &store, &http, files_in(dir.path()));
         assert_eq!(sync.trackers.len(), 1);
         assert_eq!(sync.trackers[0].id(), "anilist");
     }
@@ -1130,7 +1129,7 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         let http = anistream_net::HttpClient::new(&config.network).unwrap();
         let dir = tempfile::tempdir().unwrap();
-        let tokens = TokenStore::new(dir.path()).file_only();
+        let tokens = files_in(dir.path());
         let sync = Sync::with_tokens(&config, &store, &http, tokens);
         assert_eq!(sync.trackers.len(), 1);
         assert_eq!(sync.trackers[0].id(), "kitsu");
@@ -1145,7 +1144,9 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         let http = anistream_net::HttpClient::new(&config.network).unwrap();
         let dir = tempfile::tempdir().unwrap();
-        assert!(Sync::build(&config, &paths_in(dir.path()), &store, &http).trackers.is_empty());
+        assert!(
+            Sync::with_tokens(&config, &store, &http, files_in(dir.path())).trackers.is_empty()
+        );
     }
 
     #[test]
@@ -1157,7 +1158,7 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         let http = anistream_net::HttpClient::new(&config.network).unwrap();
         let dir = tempfile::tempdir().unwrap();
-        let tokens = TokenStore::new(dir.path()).file_only();
+        let tokens = files_in(dir.path());
         let sync = Sync::with_tokens(&config, &store, &http, tokens);
 
         set_status(&sync, AnilistId::new(1), LibrarySegment::Completed);
@@ -1204,7 +1205,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let sync = Sync {
             trackers: vec![flaky.clone()],
-            ..Sync::build(&config, &paths_in(dir.path()), &store, &http)
+            ..Sync::with_tokens(&config, &store, &http, files_in(dir.path()))
         };
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         let tx = Outbox::from(tx);
@@ -1233,7 +1234,7 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         let http = anistream_net::HttpClient::new(&config.network).unwrap();
         let dir = tempfile::tempdir().unwrap();
-        let tokens = TokenStore::new(dir.path()).file_only();
+        let tokens = files_in(dir.path());
         let sync = Sync::with_tokens(&config, &store, &http, tokens);
         assert!(sync.state_after_enqueue().is_empty(), "signed-out kitsu is not queued for");
 
@@ -1248,7 +1249,7 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         let http = anistream_net::HttpClient::new(&config.network).unwrap();
         let dir = tempfile::tempdir().unwrap();
-        let tokens = TokenStore::new(dir.path()).file_only();
+        let tokens = files_in(dir.path());
         let sync = Sync::with_tokens(&config, &store, &http, tokens);
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
@@ -1277,10 +1278,7 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         let http = anistream_net::HttpClient::new(&config.network).unwrap();
         let dir = tempfile::tempdir().unwrap();
-        let sync = Sync {
-            tokens: TokenStore::new(dir.path()).file_only(),
-            ..Sync::build(&config, &paths_in(dir.path()), &store, &http)
-        };
+        let sync = Sync::with_tokens(&config, &store, &http, files_in(dir.path()));
 
         store
             .enqueue(

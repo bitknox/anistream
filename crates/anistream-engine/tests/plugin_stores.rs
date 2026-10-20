@@ -20,7 +20,7 @@ use anistream_core::config::{Config, Paths};
 use anistream_engine::plugin_stores::{Stores, WasmInspector};
 use anistream_model::stores::{StorePluginStatus, StoreState};
 use anistream_plugin_store::server::{self, Server, Storage};
-use anistream_track::secret::TokenStore;
+use anistream_track::secret::{Backend, TokenStore};
 
 const ID: &str = "example-rust";
 
@@ -51,7 +51,7 @@ fn machine(root: &Path) -> Paths {
 
 fn stores(root: &Path) -> (Paths, Stores) {
     let paths = machine(root);
-    let tokens = TokenStore::new(root.join("tokens")).file_only();
+    let tokens = TokenStore::with_backend(root.join("tokens"), Backend::File);
     let stores = Stores::with_tokens(&Config::default(), &paths, tokens).unwrap();
     (paths, stores)
 }

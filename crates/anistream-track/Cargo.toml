@@ -15,12 +15,6 @@ anistream-core.workspace = true
 anistream-meta.workspace = true
 anistream-store.workspace = true
 async-trait.workspace = true
-# The OS credential store, with a 0600 file as the fallback. A token is a long-lived bearer
-# credential for someone's account, so plain text in the config is not acceptable.
-# Default `v1` feature set: macOS Keychain, Windows credential manager, and Secret Service
-# over zbus rather than the C library — so a Linux build needs no libdbus development package.
-# Machines with no D-Bus session fall through to the 0600 file.
-keyring = "4.1"
 rand = "0.10"
 # The plain client, for the token exchange. AniList has no bot protection, so fingerprint
 # emulation would only add handshake cost.
@@ -30,6 +24,17 @@ serde_json.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+
+# The OS credential store, with a 0600 file as the fallback. A token is a long-lived bearer
+# credential for someone's account, so plain text in the config is not acceptable.
+# Default `v1` feature set: macOS Keychain, Windows credential manager, and Secret Service
+# over zbus rather than the C library — so a Linux build needs no libdbus development package.
+# Machines with no D-Bus session fall through to the 0600 file.
+#
+# Not on a phone. Its `v1` set does not build for iOS, and a phone's keychain is the app's to
+# reach: a front end there offers it through its host, as `secret::SecretStore`.
+[target.'cfg(not(any(target_os = "ios", target_os = "android")))'.dependencies]
+keyring = "4.1"
 
 [dev-dependencies]
 tempfile = "3"
