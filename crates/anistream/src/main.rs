@@ -708,10 +708,17 @@ async fn run(
         show_config_problem(&mut app, &services.paths, problem);
     }
     // Joined stores as they were left, so Providers can count them on the first frame.
-    match services.stores.rows() {
-        Ok(rows) => app.apply(Event::Stores(rows)),
-        Err(e) => app.apply(Event::Toast(Notice::alert(e))),
-    }
+    let joined = match services.stores.rows() {
+        Ok(rows) => {
+            let joined = !rows.is_empty();
+            app.apply(Event::Stores(rows));
+            joined
+        }
+        Err(e) => {
+            app.apply(Event::Toast(Notice::alert(e)));
+            false
+        }
+    };
 
     // Background work reports through this channel; nothing off the UI thread ever touches
     // `App` directly, which is what keeps a slow request from stalling a frame.
@@ -761,8 +768,9 @@ async fn run(
     }
 
     // Each joined store asked for its current list, once, in the background. Updates are said
-    // once at launch, the way a new release is, and never installed without being asked.
-    if !app.stores.is_empty() {
+    // once at launch, the way a new release is, and never installed without being asked. Asked
+    // of the rows read above, which the interface was given whole.
+    if joined {
         let (stores, tx) = (services.stores.clone(), tx.clone());
         tokio::spawn(async move {
             if let Ok(rows) = stores.refresh().await {
