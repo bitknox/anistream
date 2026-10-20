@@ -14,7 +14,6 @@
 use std::sync::{Arc, RwLock};
 
 use anistream_core::config::Config;
-use anistream_engine::{SharedConfig, sources::TorrentUp};
 use anistream_model::{
     command::PlayerCommand,
     jobs::JobId,
@@ -23,7 +22,10 @@ use anistream_model::{
 use anistream_providers::{torrent::TorrentSession, vpn::VpnGuard};
 use tokio::sync::mpsc;
 
-use anistream_engine::sources::torrent::TorrentTasks;
+use crate::{
+    SharedConfig,
+    sources::{TorrentUp, torrent::TorrentTasks},
+};
 
 /// Where a bring-up of the torrent source reports in, tagged with the bring-up it answers.
 pub type Arrivals = mpsc::UnboundedSender<(u64, Result<TorrentUp, String>)>;

@@ -29,6 +29,7 @@ pub mod playback;
 pub mod plugin_stores;
 pub mod services;
 pub mod sources;
+pub mod state;
 pub mod tracking;
 pub mod updates;
 

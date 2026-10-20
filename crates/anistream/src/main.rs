@@ -2,7 +2,6 @@
 
 mod cli;
 mod covers;
-mod engine_state;
 mod tui;
 
 use cli::{
@@ -15,7 +14,6 @@ use cli::{
     store::store_command,
     sync::sync_once,
 };
-use engine_state::{EngineState, PlayHints};
 
 use anistream_engine::{
     artwork, data, downloads, now_epoch,
@@ -28,6 +26,7 @@ use anistream_engine::{
     plugin_stores,
     services::Services,
     sources::{self, torrent::reload_sources},
+    state::{EngineState, PlayHints},
     tracking,
 };
 
