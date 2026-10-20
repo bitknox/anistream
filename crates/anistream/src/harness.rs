@@ -53,7 +53,7 @@ use anistream_tui::{
 };
 use tokio::sync::mpsc;
 
-use crate::{JobGuard, Prefetch, TorrentTasks};
+use crate::{JobGuard, Prefetch, TorrentTasks, services::Services};
 
 /// How long [`Harness::settle`] waits for work to finish before failing the test.
 ///
@@ -101,19 +101,11 @@ impl Default for Options {
 pub struct Harness {
     app: App,
     server: FakeAniList,
-    paths: Paths,
-    store: Store,
-    registry: ProviderRegistry,
     tokens: TokenStore,
     size: (u16, u16),
     channels: Channels,
     // The handles the event loop holds, held the same way.
-    meta: Meta,
-    http: HttpClient,
-    sync: tracking::Sync,
-    stores: plugin_stores::Stores,
-    slot: PlayerSlot,
-    prefetch: Prefetch,
+    services: Services,
     player_tx: Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
     shared_config: anistream_engine::SharedConfig,
     torrent_tasks: TorrentTasks,
@@ -213,18 +205,22 @@ impl Harness {
             shared_config: Arc::new(RwLock::new(config)),
             app,
             server,
-            paths,
-            store,
-            registry,
             tokens,
             size: options.size,
             channels: Channels::default(),
-            meta,
-            http,
-            sync,
-            stores,
-            slot: PlayerSlot::default(),
-            prefetch: Prefetch::default(),
+            // Assembled from the parts above rather than built: `Services::build` would point
+            // the metadata source at AniList itself, and keep tokens wherever the user's are.
+            services: Services {
+                paths,
+                http,
+                store,
+                meta,
+                registry,
+                sync,
+                stores,
+                slot: PlayerSlot::default(),
+                prefetch: Prefetch::default(),
+            },
             player_tx: None,
             torrent_tasks: TorrentTasks::default(),
             vpn_guard: None,
@@ -306,8 +302,8 @@ impl Harness {
             for url in self.app.visible_artwork(self.rows()) {
                 artwork::spawn_fetch(
                     url,
-                    self.paths.image_cache(),
-                    self.http.clone(),
+                    self.services.paths.image_cache(),
+                    self.services.http.clone(),
                     self.channels.sender(),
                 );
             }
@@ -351,17 +347,17 @@ impl Harness {
 
     /// The local database, for seeding and for checking what a task wrote.
     pub fn store(&self) -> &Store {
-        &self.store
+        &self.services.store
     }
 
     /// Where the app's files are: all of them under one temporary directory.
     pub fn paths(&self) -> &Paths {
-        &self.paths
+        &self.services.paths
     }
 
     /// The live source chain.
     pub fn registry(&self) -> &ProviderRegistry {
-        &self.registry
+        &self.services.registry
     }
 
     /// Where tracker and plugin store tokens are kept: files in the temporary directory.
@@ -403,16 +399,16 @@ impl Harness {
             task,
             job,
             &mut self.player_tx,
-            &self.paths,
+            &self.services.paths,
             &self.app,
-            &self.slot,
-            &self.prefetch,
-            &self.meta,
-            &self.store,
-            &self.registry,
-            &self.http,
-            &self.sync,
-            &self.stores,
+            &self.services.slot,
+            &self.services.prefetch,
+            &self.services.meta,
+            &self.services.store,
+            &self.services.registry,
+            &self.services.http,
+            &self.services.sync,
+            &self.services.stores,
             &tx,
         );
         id
@@ -425,11 +421,11 @@ impl Harness {
 
         // A finished episode's progress goes to the trackers now, not at the next drain tick.
         if matches!(update, Event::ProgressQueued) {
-            let (sync, tx) = (self.sync.clone(), self.channels.sender());
+            let (sync, tx) = (self.services.sync.clone(), self.channels.sender());
             tokio::spawn(async move { tracking::drain_once(&sync, &tx).await });
         }
-        if let Some(notice) = self.meta.take_notice() {
-            self.apply(Event::MetaStatus(data::meta_rows(&self.meta)), seen);
+        if let Some(notice) = self.services.meta.take_notice() {
+            self.apply(Event::MetaStatus(data::meta_rows(&self.services.meta)), seen);
             self.apply(Event::Toast(Notice::info(notice)), seen);
         }
         if matches!(
@@ -440,8 +436,8 @@ impl Harness {
             *shared = self.app.config.clone();
         }
         if matches!(update, Event::SourcesReordered) {
-            sources::arrange(&self.registry, &self.app.config);
-            self.apply(Event::Providers(data::provider_rows(&self.registry)), seen);
+            sources::arrange(&self.services.registry, &self.app.config);
+            self.apply(Event::Providers(data::provider_rows(&self.services.registry)), seen);
         }
         if matches!(update, Event::SourcesChanged) {
             assert!(
@@ -450,13 +446,13 @@ impl Harness {
             );
             let tx = self.channels.sender();
             crate::reload_sources(
-                &self.registry,
+                &self.services.registry,
                 &mut self.torrent_tasks,
                 &mut self.vpn_guard,
                 &self.shared_config,
-                &self.http,
-                &self.paths,
-                &self.store,
+                &self.services.http,
+                &self.services.paths,
+                &self.services.store,
                 &tx,
                 &self.arrivals,
             )
