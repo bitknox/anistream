@@ -22,7 +22,8 @@ use crate::{
 ///
 /// Not here: the front end's own state, the channel its events go back on, and what belongs to
 /// one playback or one task, such as the live player's controls and a job. Nor the torrent
-/// session and its guard, which the loop stands down and back up as the settings change.
+/// session and its guard, which the engine side's state holds, to stand them down and back up as
+/// the settings change.
 pub struct Services {
     /// Where the config, the database and the caches are.
     pub paths: Paths,

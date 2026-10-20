@@ -96,7 +96,8 @@ pub fn save_setting(
 /// in passing, and not something anyone asked to have confirmed.
 ///
 /// A table of its own, so the engine side can name a setting without asking the interface,
-/// and held to the Settings screen's own rows by a test here, the one place that sees both.
+/// and held to the Settings screen's own rows by a test in the binary, the one place that sees
+/// both.
 /// P4 moves the settings' ids and labels into the model, and this reads them from there.
 pub fn setting_label(table: &[&str], key: &str) -> Option<&'static str> {
     SETTING_LABELS.iter().find(|(t, k, _)| *t == table && *k == key).map(|(_, _, label)| *label)

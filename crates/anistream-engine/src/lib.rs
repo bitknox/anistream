@@ -1,9 +1,10 @@
 //! The engine: the work behind the front ends, with no terminal in it.
 //!
-//! Everything that talks to the outside world on the interface's behalf lives here: playback
-//! and the player, sources and their plugins, sync with the trackers, downloads, artwork, plugin
-//! stores and the background jobs. The terminal front end keeps its terminal setup and event
-//! loop in the binary. No terminal crate is a dependency, not even transitively, so a front end
+//! Everything that talks to the outside world on the interface's behalf lives here, and the
+//! routing that hands each command to it: the lists, the calendar, search and a title's page, a
+//! title's episodes and their source match, playback and the player, sources and their plugins,
+//! sync with the trackers, downloads, artwork, plugin stores, settings and the background jobs.
+//! The terminal front end keeps its terminal setup and event loop in the binary. No terminal crate is a dependency, not even transitively, so a front end
 //! that is not a terminal can link this; `tools/check-boundaries.sh` holds it to that in CI.
 //!
 //! An example or an integration test drives the *real* orchestration here rather than a copy of
@@ -38,6 +39,8 @@ pub mod titles;
 pub mod tracking;
 pub mod updates;
 
+/// Now, in seconds since the Unix epoch, by the system clock: what the work dates and ages
+/// things by.
 pub fn now_epoch() -> i64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
