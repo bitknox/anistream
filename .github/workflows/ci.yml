@@ -84,6 +84,9 @@ jobs:
       - name: Install mpv
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mpv
       - run: mpv --version | head -1
+      - name: Diagnosis (to be dropped)
+        run: python3 -I .github/diag/probe.py; mpv -v --version | grep -i "lua\|ffmpeg version"
+        continue-on-error: true
       - name: Test
         run: >-
           cargo nextest run --profile ci -p anistream -p anistream-player -p anistream-providers
