@@ -9,6 +9,8 @@
 //! - **Signing in is the only interactive part**, and it opens a browser, so it runs off the UI
 //!   thread like everything else.
 
+pub mod commands;
+
 use std::sync::Arc;
 
 use anistream_core::{
