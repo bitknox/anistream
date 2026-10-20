@@ -23,7 +23,7 @@ use anistream_model::{
 use anistream_providers::{torrent::TorrentSession, vpn::VpnGuard};
 use tokio::sync::mpsc;
 
-use crate::TorrentTasks;
+use anistream_engine::sources::torrent::TorrentTasks;
 
 /// Where a bring-up of the torrent source reports in, tagged with the bring-up it answers.
 pub type Arrivals = mpsc::UnboundedSender<(u64, Result<TorrentUp, String>)>;
