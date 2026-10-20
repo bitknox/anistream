@@ -74,6 +74,99 @@ pub fn only_reorders(before: &[String], after: &[String]) -> bool {
     built_in(before) == built_in(after)
 }
 
+/// The sources the config sets up, as far as the header's chips and the source label read them.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ConfiguredSources {
+    /// The order failover walks them in.
+    pub order: Vec<String>,
+    /// Those switched off by name.
+    pub disabled: Vec<String>,
+    /// Whether the torrent source is switched on.
+    pub torrent: bool,
+    /// Whether a remote source is set up.
+    pub remote: bool,
+}
+
+impl ConfiguredSources {
+    pub fn of(providers: &anistream_core::config::ProvidersConfig) -> Self {
+        Self {
+            order: providers.order.clone(),
+            disabled: providers.disabled.clone(),
+            torrent: providers.torrent.enabled,
+            remote: providers.remote_url.is_some(),
+        }
+    }
+}
+
+/// One configured source, and how it stands: a header chip.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SourceChip {
+    pub id: String,
+    pub state: SourceState,
+}
+
+/// Each configured source, in the order failover walks them, and how it stands.
+///
+/// The header's chips. Read from the registered providers' `rows` rather than the config alone:
+/// a configured source can be ready, failing, held back by the VPN guard, still loading, or off
+/// on purpose — and only the last is something the config can say by itself. `explained` is
+/// whether the sources came with a note on why there are none, which is how a torrent source
+/// the guard refused to start is told from one still coming up.
+pub fn source_states(
+    configured: &ConfiguredSources,
+    rows: &[ProviderRow],
+    explained: bool,
+) -> Vec<SourceChip> {
+    let of_kind = |kind: &str| -> SourceState {
+        let rows: Vec<&ProviderRow> = rows.iter().filter(|p| p.kind == kind).collect();
+        if rows.iter().any(|p| p.usable) {
+            SourceState::Ready
+        } else if rows.iter().any(|p| p.held_back) {
+            SourceState::HeldBack
+        } else if rows.is_empty() {
+            SourceState::Pending
+        } else {
+            SourceState::Failing
+        }
+    };
+    configured
+        .order
+        .iter()
+        .filter(|id| !configured.disabled.contains(id))
+        .filter_map(|id| {
+            let state = match id.as_str() {
+                "torrent" if !configured.torrent => SourceState::Off,
+                // Configured but not registered: the guard refused to start it, and the
+                // Providers screen carries the reason.
+                "torrent" => match of_kind("torrent") {
+                    SourceState::Pending if explained => SourceState::Failing,
+                    state => state,
+                },
+                "plugins" => of_kind("plugin"),
+                "remote" if !configured.remote => return None,
+                "remote" => of_kind("remote"),
+                _ => return None,
+            };
+            Some(SourceChip { id: id.clone(), state })
+        })
+        .collect()
+}
+
+/// How one configured source stands, for the header chip that names it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceState {
+    /// At least one of its providers will be tried.
+    Ready,
+    /// Switched off in config. Said quietly: off is a choice, not a fault.
+    Off,
+    /// Working, but withheld by local policy — the VPN guard.
+    HeldBack,
+    /// Registered and not answering, or refused at startup.
+    Failing,
+    /// Nothing registered yet: plugins are still compiling, or there are none.
+    Pending,
+}
+
 /// The VPN guard's verdict, for the badge beside the torrent source.
 ///
 /// What the guard found and nothing about how it is shown: the badge's words, its marks and
