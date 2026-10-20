@@ -11,14 +11,17 @@
 #   - `anistream::tty::`, `anistream::focus::` and `anistream::updates::self_update` to the
 #     binary's own modules, `crate::`-rooted outside main.rs;
 #   - every other `anistream::` path to `anistream_engine::`. Not one that follows `::`, such
-#     as the plugin host's WIT bindings, `self::anistream::provider`, which live elsewhere anyway.
+#     as the plugin host's WIT bindings, `self::anistream::provider`, which live elsewhere anyway;
+#   - the paths of the modules that went into a directory of the engine's after the split, such
+#     as `anistream::mend::` to `anistream_engine::playback::mend::` and, in the engine,
+#     `crate::mend::` to `crate::playback::mend::`.
 #
 # In every tracked text file, manifests, workflows and docs included, it rewrites
 #
 #   - `anistream_ui` to `anistream_tui` and `anistream-ui` to `anistream-tui`, which also moves
 #     `crates/anistream-ui/` paths and `-p anistream-ui`;
 #   - the paths of the files that moved out of crates/anistream, such as
-#     `crates/anistream/src/mend.rs` in the docs;
+#     `crates/anistream/src/mend.rs` in the docs, to wherever in the engine they are now;
 #   - `-p anistream --example <name>` for the examples that moved into the engine.
 #
 # Rerunnable, and meant to be: run it at each merge of main, after notice.sh, rename.sh and
@@ -34,6 +37,9 @@ text_files() {
   git grep -lzIF -e "$1" -- . ':!Cargo.lock' ':!tools/refactor/' ':!crates/*/tests/goldens/' || true
 }
 
+# The engine's modules that went into a directory after the split, by that directory.
+export PLAYBACK='mend|picture|player|power|remux|shaders|slot'
+
 # Nothing left to rename is not a failure: that is what a rerun usually finds.
 { git grep -lzE '(^|[^[:alnum:]_:])anistream::' -- 'crates/anistream/*.rs' \
   'crates/anistream-engine/*.rs' || true; } |
@@ -42,13 +48,21 @@ text_files() {
     s/(?<![\w:])anistream::tty::/${root}tui::terminal::/g;
     s/(?<![\w:])anistream::focus::/${root}tui::focus::/g;
     s/(?<![\w:])anistream::updates::self_update\b/${root}cli::update::self_update/g;
+    s/(?<![\w:])anistream::($ENV{PLAYBACK})::/anistream::playback::$1::/g;
     s/(?<![\w:])anistream::/anistream_engine::/g;
   '
+{ git grep -lzE "(^|[^[:alnum:]_:])crate::($PLAYBACK)::" -- 'crates/anistream-engine/*.rs' ||
+  true; } |
+  xargs -0 -r perl -pi -e 's/(?<![\w:])crate::($ENV{PLAYBACK})::/crate::playback::$1::/g'
 
 # The files that moved, as `old new` pairs: the engine's modules and the binary's own.
 moves="$(
   git ls-files -- 'crates/anistream-engine/src/*.rs' |
     sed 's|^crates/anistream-engine/src/\(.*\)$|crates/anistream/src/\1 &|'
+  echo "crates/anistream/src/playback.rs crates/anistream-engine/src/playback/session.rs"
+  for module in ${PLAYBACK//|/ }; do
+    echo "crates/anistream/src/$module.rs crates/anistream-engine/src/playback/$module.rs"
+  done
   echo "crates/anistream/src/tty.rs crates/anistream/src/tui/terminal.rs"
   echo "crates/anistream/src/focus.rs crates/anistream/src/tui/focus.rs"
 )"

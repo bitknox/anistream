@@ -31,6 +31,3 @@ pub mod prune;
 pub mod sources;
 pub mod tracking;
 pub mod updates;
-
-// Named here as they were until their callers follow them into `playback`.
-pub use playback::{mend, picture, player, power, remux, shaders, slot};

@@ -64,7 +64,7 @@ The mender is worth knowing about because it sits on the default playback path: 
 loopback proxy that looks for where the media actually starts in each segment, since some hosts
 serve video behind an image header that mpv reads literally and refuses. A healthy segment matches
 at offset zero and passes through byte-for-byte, and nothing is decrypted. See
-`crates/anistream-engine/src/mend.rs`.
+`crates/anistream-engine/src/playback/mend.rs`.
 
 ## Development
 

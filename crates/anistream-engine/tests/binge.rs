@@ -12,9 +12,8 @@ use anistream_core::{
     media::Translation,
     stream::{Stream, StreamKind},
 };
-use anistream_engine::{
-    playback::{self, NextEpisode, PlaySettings, PlaybackContext},
-    slot::PlayerSlot,
+use anistream_engine::playback::{
+    self, NextEpisode, PlaySettings, PlaybackContext, slot::PlayerSlot,
 };
 use anistream_model::{
     command::PlayerCommand,

@@ -20,7 +20,7 @@ pub fn player(config: &Config, paths: &Paths, theme: &PlayerTheme) -> anistream_
     // user's own flags so a hand-written one still wins.
     let mut args = Vec::new();
     let curve = &config.playback.tone_mapping;
-    if !curve.is_empty() && curve != crate::picture::DEFAULT_TONE_MAPPING {
+    if !curve.is_empty() && curve != crate::playback::picture::DEFAULT_TONE_MAPPING {
         args.push(format!("--tone-mapping={curve}"));
     }
     args.extend(config.playback.mpv_args.clone());
@@ -45,5 +45,5 @@ pub fn shader_dir(config: &Config, paths: &Paths) -> Option<std::path::PathBuf> 
     if own_chain {
         return None;
     }
-    crate::shaders::materialize(&paths.cache_dir)
+    crate::playback::shaders::materialize(&paths.cache_dir)
 }

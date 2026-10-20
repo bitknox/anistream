@@ -12,7 +12,7 @@
 //!
 //! [`choose`] is pure: source, display, look and budget in, a [`Chain`] out. The host sets
 //! it at runtime as mpv's `glsl-shaders` (one native array over IPC) whenever a file loads
-//! or `video-params` change, and again when the [`crate::picture::Governor`] eases, so a
+//! or `video-params` change, and again when the [`super::picture::Governor`] eases, so a
 //! chain can change mid-episode without a respawn.
 //!
 //! Every shader is vendored into the binary and written to a content-addressed cache
@@ -29,7 +29,7 @@ use std::sync::OnceLock;
 use anistream_core::config::Upscaling;
 use serde_json::{Value, json};
 
-use crate::picture::HdrKind;
+use crate::playback::picture::HdrKind;
 
 // --- The files ---------------------------------------------------------------------------
 
@@ -172,7 +172,7 @@ pub fn menu(current: Look) -> Value {
 // --- The chooser -------------------------------------------------------------------------
 
 /// The video as mpv will scale it: `video-params/dw` × `dh` (aspect-corrected), plus what
-/// [`crate::picture::classify`] made of it.
+/// [`super::picture::classify`] made of it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Source {
     pub width: u32,
@@ -192,9 +192,9 @@ pub struct Display {
 /// What the machine can spend.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct Budget {
-    /// [`crate::power::on_battery`] said yes: start one step lighter.
+    /// [`super::power::on_battery`] said yes: start one step lighter.
     pub on_battery: bool,
-    /// Steps the governor has taken this episode ([`crate::picture::Governor::eased`]).
+    /// Steps the governor has taken this episode ([`super::picture::Governor::eased`]).
     pub eased: u8,
 }
 

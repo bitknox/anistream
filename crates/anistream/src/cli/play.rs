@@ -3,9 +3,11 @@
 
 use anistream_core::config::{Config, Paths};
 use anistream_engine::{
-    playback,
-    player::{player, shader_dir},
-    slot::PlayerSlot,
+    playback::{
+        self,
+        player::{player, shader_dir},
+        slot::PlayerSlot,
+    },
     sources, tracking,
 };
 use anistream_model::event::Event;

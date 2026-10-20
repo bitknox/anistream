@@ -364,11 +364,11 @@ async fn finish(
         return None;
     }
     let path = path?;
-    match crate::remux::merge_sidecar_subtitles(&path).await {
-        Ok(crate::remux::Merge::Merged { tracks, .. }) => {
+    match crate::playback::remux::merge_sidecar_subtitles(&path).await {
+        Ok(crate::playback::remux::Merge::Merged { tracks, .. }) => {
             Some(format!("{tracks} subtitle track(s) merged in"))
         }
-        Ok(crate::remux::Merge::NothingToDo) => None,
+        Ok(crate::playback::remux::Merge::NothingToDo) => None,
         Err(e) => {
             // Never fatal. The video is downloaded and playable; a failed remux costs you an
             // external subtitle file, which mpv will pick up beside the video anyway.

@@ -32,7 +32,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let http = anistream_net::HttpClient::new(&NetworkConfig::default())?;
-    let server = anistream_engine::mend::serve(http, &url, headers, "probe").await?;
+    let server = anistream_engine::playback::mend::serve(http, &url, headers, "probe").await?;
     println!("mended url  {}", server.url());
 
     let output = tokio::process::Command::new("mpv")

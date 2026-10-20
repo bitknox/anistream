@@ -36,10 +36,12 @@ use tokio::sync::mpsc;
 
 use crate::{
     outbox::Outbox,
-    picture::{self, Governor, HdrKind},
-    power,
-    shaders::{self, Look},
-    slot::{Player, PlayerSlot},
+    playback::{
+        picture::{self, Governor, HdrKind},
+        power,
+        shaders::{self, Look},
+        slot::{Player, PlayerSlot},
+    },
 };
 /// How long mpv may go without reporting a position before we say something.
 ///
@@ -583,7 +585,7 @@ pub async fn play(
         // that checking is worth a loopback hop, and a healthy stream passes through
         // byte-for-byte. Held for the whole attempt — dropping it would kill the proxy mid
         // playback — and replaced on the next, so a stream that failed leaves nothing behind.
-        let mut menders = crate::mend::Menders::default();
+        let mut menders = crate::playback::mend::Menders::default();
         if stream.kind == StreamKind::Hls {
             let original = stream.url.clone();
             stream.url = menders

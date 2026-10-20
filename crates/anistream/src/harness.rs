@@ -36,9 +36,8 @@ use anistream_core::config::{Config, NetworkConfig, Paths};
 use anistream_engine::{
     data,
     outbox::{Envelope, Internal, Outbox, WeakOutbox},
-    plugin_stores,
-    slot::PlayerSlot,
-    sources, tracking,
+    playback::slot::PlayerSlot,
+    plugin_stores, sources, tracking,
 };
 use anistream_meta::Meta;
 use anistream_model::{command::Command, event::Event, jobs::JobId, notice::Notice};

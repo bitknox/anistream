@@ -22,8 +22,10 @@ use services::Services;
 use anistream_engine::{
     artwork, data, downloads,
     outbox::{Envelope, Internal, Outbox},
-    playback,
-    player::{player, shader_dir},
+    playback::{
+        self,
+        player::{player, shader_dir},
+    },
     plugin_stores, sources, tracking,
 };
 

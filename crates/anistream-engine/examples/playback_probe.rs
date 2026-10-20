@@ -188,7 +188,7 @@ async fn main() {
             http,
             mpv,
             settings,
-            anistream_engine::slot::PlayerSlot::default(),
+            anistream_engine::playback::slot::PlayerSlot::default(),
             tx.into(),
             command_rx,
         )

@@ -26,9 +26,8 @@ use anistream_core::{
     media::Translation,
     stream::{Stream, StreamKind},
 };
-use anistream_engine::{
-    playback::{self, EpisodeEntry, NextEpisode, PlaySettings, PlaybackContext},
-    slot::PlayerSlot,
+use anistream_engine::playback::{
+    self, EpisodeEntry, NextEpisode, PlaySettings, PlaybackContext, slot::PlayerSlot,
 };
 use anistream_model::event::Event;
 use anistream_net::HttpClient;
@@ -99,7 +98,7 @@ async fn main() -> anyhow::Result<()> {
     let scratch = tempfile::tempdir()?;
     let paths = Paths { cache_dir: scratch.path().to_path_buf(), ..Paths::resolve()? };
     let config = Config::load(&paths)?;
-    let mpv = anistream_engine::player::player(
+    let mpv = anistream_engine::playback::player::player(
         &config,
         &paths,
         &anistream_tui::theme::player_theme(),
@@ -152,7 +151,7 @@ async fn main() -> anyhow::Result<()> {
         night_mode: false,
         remember_tracks: false,
         look: config.playback.upscaling.into(),
-        shader_dir: anistream_engine::player::shader_dir(&config, &paths),
+        shader_dir: anistream_engine::playback::player::shader_dir(&config, &paths),
         tone_mapping: config.playback.tone_mapping.clone(),
         tracker_ids: Vec::new(),
         presence: Default::default(),

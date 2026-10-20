@@ -219,7 +219,7 @@ impl Governor {
     pub const GRACE: f64 = 3.0;
     /// A sample gap longer than this is a discontinuity, not playback.
     pub const MAX_GAP: f64 = 5.0;
-    /// Two steps: full → light → chroma only (see [`crate::shaders::choose`]). Below that
+    /// Two steps: full → light → chroma only (see [`super::shaders::choose`]). Below that
     /// the shaders are no longer what is dropping frames.
     pub const DEFAULT_CAP: u8 = 2;
 

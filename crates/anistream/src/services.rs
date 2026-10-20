@@ -1,7 +1,7 @@
 //! The handles every effect shares, and how they are built.
 
 use anistream_core::config::{Config, Paths};
-use anistream_engine::{plugin_stores, slot::PlayerSlot, tracking};
+use anistream_engine::{playback::slot::PlayerSlot, plugin_stores, tracking};
 use anistream_meta::{Meta, Tenrai, anilist::AniList};
 use anistream_net::HttpClient;
 use anistream_providers::ProviderRegistry;
