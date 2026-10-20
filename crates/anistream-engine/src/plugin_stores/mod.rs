@@ -4,6 +4,8 @@
 //! the layer that knows about this machine: where the state file and plugin directory are, which
 //! credential store tokens go in, and how the store screens want their rows.
 
+pub mod tasks;
+
 use std::{
     collections::HashMap,
     path::{Path, PathBuf},
