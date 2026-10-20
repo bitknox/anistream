@@ -1231,6 +1231,34 @@ impl App {
                     self.episode_selected = first;
                 }
             }
+            Event::Progress { id, progress, resume, episodes } => {
+                // Every entry of the title on screen says it alike: its page and its rows in the
+                // list under it. Only this title's: several shows on Home can share a
+                // next-episode number.
+                for entry in self.detail.iter_mut().chain(match &mut self.content {
+                    Content::Entries(entries) => entries.iter_mut(),
+                    _ => [].iter_mut(),
+                }) {
+                    if entry.id == id {
+                        entry.progress = progress.map(|p| (p.done, p.next));
+                        entry.resume = resume;
+                    }
+                }
+                // The table, row by row, when it is this title's: while detached the viewer can
+                // be looking at another show entirely, whose rows must not take this one's.
+                // In place, so the cursor and the filter's view stay as they are.
+                if self.episodes_for == Some(id) {
+                    for list in [&mut self.episodes, &mut self.episodes_all] {
+                        for row in list.iter_mut() {
+                            if let Some(said) = episodes.iter().find(|e| e.number == row.number)
+                            {
+                                row.watched = said.watched;
+                                row.completed = said.completed;
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 

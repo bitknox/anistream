@@ -679,12 +679,19 @@ impl Actor {
 
     /// An event on its way to the front end, from the playback `played` when one said it: the
     /// engine side's part in it, and what it has to say ahead of it.
+    ///
+    /// A title the event moves on — a tick of the playhead, an ending, a window handed over —
+    /// is said whole just before it, so that whatever the event brings up, the screen a
+    /// finished episode drops back to among them, shows the title as it now stands.
     fn forward(&mut self, event: Event, played: Option<Played>) {
         let Self { services, inbox, .. } = self;
         let said = receive(&event, services, || inbox.sender());
         said.into_iter().for_each(|said| self.pass_on(said));
-        // What it says of a title, taken into the record.
-        self.state.cache.observe(&event, played.as_ref());
+        // What it says of a title, taken into the record, and what that moved.
+        let moved = self.state.cache.observe(&event, played.as_ref());
+        if let Some(progress) = moved.and_then(|id| self.state.cache.progress(id)) {
+            self.pass_on(progress);
+        }
         // What the player changed of the config, kept and saved, with what the save has to say
         // coming after the event, in its place in the inbox.
         let Self { services, inbox, state, .. } = self;

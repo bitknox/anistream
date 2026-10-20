@@ -6,7 +6,9 @@ use anistream_model::{episodes::EpisodeRow, event::Event, notice::Notice};
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 
-use crate::{data, dispatch::Lent, now_epoch, services::Services, state::EngineState};
+use crate::{
+    data, dispatch::Lent, now_epoch, outbox::Outbox, services::Services, state::EngineState,
+};
 
 /// What loading a title's episodes produced.
 pub enum EpisodeLoad {
@@ -100,13 +102,15 @@ pub async fn list_episodes(lent: Lent, id: AnilistId) {
 }
 
 /// Mark episodes watched, or forget that they were: in local history, and on the signed-in
-/// trackers when marking. Then the record of the titles is moved on by what the store now holds.
+/// trackers when marking. Then the record of the titles is moved on by what the store now
+/// holds, and the title said whole, as the answer to the mark.
 pub fn set_watched(
     id: AnilistId,
     episodes: &[String],
     watched: bool,
     engine: &mut EngineState,
     services: &Services,
+    tx: &Outbox,
 ) {
     let Services { store, sync, .. } = services;
     let now = anistream_store::now();
@@ -140,5 +144,8 @@ pub fn set_watched(
     let held = store.completed_episodes(id).ok();
     let held =
         |episode: &str| held.as_ref().map_or(watched, |held| held.iter().any(|e| e == episode));
-    engine.cache.marked(id, episodes, watched, held);
+    let marked = engine.cache.marked(id, episodes, watched, held);
+    if let Some(progress) = marked.and_then(|id| engine.cache.progress(id)) {
+        let _ = tx.send(progress);
+    }
 }

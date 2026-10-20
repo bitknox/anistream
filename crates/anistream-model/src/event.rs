@@ -5,12 +5,13 @@ use std::time::Duration;
 use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 
 use crate::{
-    catalog::{Content, ContentFor, Entry},
+    catalog::{Content, ContentFor, Entry, ResumePoint},
     downloads::{DownloadRow, SeedRow},
     episodes::EpisodeRow,
     jobs::JobId,
     notice::Notice,
     playback::{Ending, SkipKind},
+    progress::{EpisodeProgress, TitleProgress},
     settings::SettingsView,
     sources::{GuardView, MatchCandidate, MetaSourceRow, ProviderRow},
     stores::{
@@ -174,6 +175,21 @@ pub enum Event {
     Episodes {
         id: AnilistId,
         rows: Vec<EpisodeRow>,
+    },
+    /// Where a title stands now, whole, after something moved it: a mark, the playhead of an
+    /// episode playing, or how one ended. Sent ahead of the event that moved it, when an event
+    /// did, so that whatever that event brings up shows the title as it now stands.
+    ///
+    /// `progress` and `resume` are what every entry of the title says, on its page and in any
+    /// list; `episodes` is each episode's watched state, from the episode table loaded last when
+    /// it is this title's, and otherwise empty. A table is only ever loaded with
+    /// [`Event::Episodes`]: this says how far through it the viewer is, never which episodes
+    /// there are.
+    Progress {
+        id: AnilistId,
+        progress: Option<TitleProgress>,
+        resume: Option<ResumePoint>,
+        episodes: Vec<EpisodeProgress>,
     },
     /// The VPN guard's verdict changed, or `None`: there is no guard any more, because
     /// torrents were switched off.

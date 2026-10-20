@@ -164,8 +164,9 @@ pub enum Command {
     ClearMatch {
         id: AnilistId,
     },
-    /// Persist a manual watched/unwatched change. The reducer flips the rows first, so
-    /// the table answers immediately; this writes history and queues the tracker push.
+    /// Mark episodes watched or not: written to history, with the tracker push queued when
+    /// marking, then answered with [`Event::Progress`](crate::event::Event::Progress) for the
+    /// title, as the store then holds it, when the engine knows the title.
     SetWatched {
         id: AnilistId,
         episodes: Vec<String>,

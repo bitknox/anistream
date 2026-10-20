@@ -1,10 +1,12 @@
-//! A title's progress, after a mark and as a playback goes: what the table, the title and
-//! Continue show once it is done.
+//! A title's progress, after a mark and as a playback goes: what the engine says of it, and
+//! what the table, the title and Continue show once it is done.
 //!
 //! Marked on the table, an episode is written and the title moves on with it: its count, the
-//! episode Continue offers, and the row. A playback moves the row's meter and the resume point
-//! as it plays, and the count and Continue by how it ended. Only the title and the episode
-//! the playback is of, whatever else is on screen; and nothing after it has ended.
+//! episode Continue offers, and the row. The engine answers a mark with `Progress`, the title
+//! whole. A playback moves the row's meter and the resume point as it plays, and the count and
+//! Continue by how it ended, each said with `Progress` just ahead of the event that moved it.
+//! Only the title and the episode the playback is of, whatever else is on screen; and nothing
+//! after it has ended.
 
 use anistream_core::ids::AnilistId;
 use anistream_engine::cache::PlayKind;
@@ -117,8 +119,9 @@ async fn a_mark_on_the_table_moves_the_row_the_title_and_continue() {
     let mut h = at_the_table().await;
     assert_eq!(standing(&h, FINISHED), (Some((3, 4)), Some(300.0)));
 
+    // Written, then answered with where the title now stands.
     h.press(Action::ToggleWatched);
-    assert_eq!(names(&h.settle().await), Vec::<&str>::new());
+    assert_eq!(names(&h.settle().await), ["Progress"]);
     assert_eq!(finished(&h), ["1", "2", "3", "4"]);
     assert_eq!(meter(&h, "4"), 1.0, "a marked episode reads as finished");
     assert_eq!(standing(&h, FINISHED), (Some((4, 5)), None), "Continue moves past it");
@@ -126,7 +129,7 @@ async fn a_mark_on_the_table_moves_the_row_the_title_and_continue() {
     // Marked again, it is not watched after all: Continue goes back to it, with nothing to
     // resume, since the store forgot where it was left too.
     h.press(Action::ToggleWatched);
-    assert_eq!(names(&h.settle().await), Vec::<&str>::new());
+    assert_eq!(names(&h.settle().await), ["Progress"]);
     assert_eq!(finished(&h), ["1", "2", "3"]);
     assert_eq!(meter(&h, "4"), 0.0);
     assert_eq!(standing(&h, FINISHED), (Some((3, 4)), None));
@@ -137,7 +140,7 @@ async fn a_mark_on_the_table_moves_the_row_the_title_and_continue() {
     }
     assert_eq!(cursor(&h), "7");
     h.press(Action::MarkAllPrevious);
-    assert_eq!(names(&h.settle().await), Vec::<&str>::new());
+    assert_eq!(names(&h.settle().await), ["Progress"]);
     assert_eq!(finished(&h), ["1", "2", "3", "4", "5", "6"]);
     assert_eq!(standing(&h, FINISHED), (Some((6, 7)), None));
     let mut held = h.store().completed_episodes(FINISHED).unwrap();
@@ -151,14 +154,16 @@ async fn a_playback_moves_the_table_and_continue_as_it_plays_and_as_it_ends() {
     stage(&mut h, "4");
     h.playback_says(PLAYBACK, FINISHED, "4", Event::Resumed { position: 300.0 });
     at(&mut h, 720.0);
-    assert_eq!(names(&h.settle().await), ["Resumed", "Playback"]);
+    // Where the title stands is said ahead of each tick that moves it.
+    assert_eq!(names(&h.settle().await), ["Resumed", "Progress", "Playback"]);
     assert_eq!(meter(&h, "4"), 0.5, "the row follows the playhead while detached");
     assert_eq!(standing(&h, FINISHED), (Some((3, 4)), Some(720.0)), "and so does Continue");
 
     at(&mut h, 1_300.0);
     let ended = Event::PlaybackEnded { watched: true, ending: Ending::Closed };
     h.playback_says(PLAYBACK, FINISHED, "4", ended);
-    assert_eq!(names(&h.settle().await), ["Playback", "PlaybackEnded"]);
+    // And ahead of the ending, so the screen it drops back to shows the episode finished.
+    assert_eq!(names(&h.settle().await), ["Progress", "Playback", "Progress", "PlaybackEnded"]);
     assert_eq!(finished(&h), ["1", "2", "3", "4"]);
     assert_eq!(meter(&h, "4"), 1.0, "finished reads as finished, whatever the last tick said");
     assert_eq!(standing(&h, FINISHED), (Some((4, 5)), None));
@@ -186,7 +191,7 @@ async fn a_window_handed_over_mid_episode_leaves_its_watch_where_it_was() {
         watched: false,
     };
     h.playback_says(PLAYBACK, FINISHED, "4", left);
-    assert_eq!(names(&h.settle().await), ["EpisodeLeft"]);
+    assert_eq!(names(&h.settle().await), ["Progress", "EpisodeLeft"]);
     assert!((meter(&h, "4") - 600.0 / runtime_secs(FINISHED)).abs() < 1e-9);
     assert_eq!(standing(&h, FINISHED), (Some((3, 4)), Some(600.0)));
     let resume = entries(&h, FINISHED)[0].resume.expect("a resume point");
@@ -207,7 +212,7 @@ async fn a_watch_from_home_moves_only_the_row_it_is_of() {
     at(&mut h, 900.0);
     let ended = Event::PlaybackEnded { watched: true, ending: Ending::Stopped };
     h.playback_says(PLAYBACK, FINISHED, "4", ended);
-    assert_eq!(names(&h.settle().await), ["Playback", "PlaybackEnded"]);
+    assert_eq!(names(&h.settle().await), ["Progress", "Playback", "Progress", "PlaybackEnded"]);
     assert_eq!(standing(&h, FINISHED), (Some((4, 5)), None));
     assert_eq!(standing(&h, SEQUEL), (Some((2, 3)), None), "another show took the watch");
 }
@@ -237,7 +242,8 @@ async fn an_ending_that_rolls_on_plays_the_next_episode_under_the_name_it_played
 
     // Episode 5 is staged and asked for, and the lookup finds nothing to play.
     let looked_up = ["JobNote", "JobNote", "Toast", "PlaybackEnded", "Status", "JobDone"];
-    assert_eq!(names(&updates), [&["Playback", "PlaybackEnded"][..], &looked_up].concat());
+    let finished_4 = ["Progress", "Playback", "Progress", "PlaybackEnded"];
+    assert_eq!(names(&updates), [&finished_4[..], &looked_up].concat());
     assert_eq!(finished(&h), ["1", "2", "3", "4"]);
     assert_eq!(standing(&h, FINISHED), (Some((4, 5)), None));
     assert!(h.app().playing.is_none(), "nothing is left staged");
@@ -258,7 +264,8 @@ async fn an_episode_picked_in_the_player_is_asked_for_by_the_title_playing() {
 
     // Asked for, as the player asked, and looked up; there is nothing to play it from.
     let looked_up = ["JobNote", "JobNote", "Toast", "PlaybackEnded", "Status", "JobDone"];
-    assert_eq!(names(&updates), [&["Playback", "PlayerPlayEpisode"][..], &looked_up].concat());
+    let picked = ["Progress", "Playback", "PlayerPlayEpisode"];
+    assert_eq!(names(&updates), [&picked[..], &looked_up].concat());
     assert!(
         toasts(&updates).iter().any(|toast| toast.starts_with("alert: ")),
         "the lookup says why: {:?}",

@@ -24,7 +24,7 @@ use anistream_model::{
     episodes::EpisodeRow,
     event::Event,
     playback::{EpisodeEntry, NextEpisode},
-    progress::{self, Watch},
+    progress::{self, EpisodeProgress, TitleProgress, Watch},
 };
 
 use crate::outbox::Played;
@@ -93,7 +93,8 @@ struct Playhead {
 
 impl TitleCache {
     /// Take in what an event says of a title, and move the record on by it. Returns the title
-    /// whose progress it moved, which the front end is then told whole, ahead of the event.
+    /// whose progress it moved, when it moved, which the front end is then told whole, ahead of
+    /// the event: see [`Self::progress`].
     ///
     /// `played` is the playback the event came from, when a playback said it.
     pub(crate) fn observe(
@@ -182,7 +183,10 @@ impl TitleCache {
     /// Episodes marked watched or not, once written: `held` says whether the store holds an
     /// episode watched now. A mark the store holds is reflected as the terminal reflected it, a
     /// finished watch with no position; an unmark it holds, by the unmark's rule. One the store
-    /// did not take is not shown as taken. Returns the title, when the record knows it.
+    /// did not take is not shown as taken.
+    ///
+    /// Returns the title whenever the record knows it, moved or not: a mark is answered, so a
+    /// front end that waits for the answer before it draws again is never left waiting.
     pub fn marked(
         &mut self,
         id: AnilistId,
@@ -190,7 +194,6 @@ impl TitleCache {
         watched: bool,
         held: impl Fn(&str) -> bool,
     ) -> Option<AnilistId> {
-        let mut moved = false;
         for episode in episodes.iter().filter(|episode| held(episode) == watched) {
             if watched {
                 let watch = Watch {
@@ -199,12 +202,12 @@ impl TitleCache {
                     duration: None,
                     completed: true,
                 };
-                moved |= self.watch(id, &watch).is_some();
+                self.watch(id, &watch);
             } else {
-                moved |= self.unmark(id, episode);
+                self.unmark(id, episode);
             }
         }
-        moved.then_some(id)
+        self.titles.contains_key(&id).then_some(id)
     }
 
     /// What a play of `episode` of `id` takes from the record. Not a playback of one's own
@@ -258,16 +261,27 @@ impl TitleCache {
         self.announced = Some((id, title));
     }
 
-    /// Where a title stands, as the front end is told it: episodes done and the one Continue
-    /// offers, where Continue resumes it, and its episodes' watched state when its table is the
-    /// one loaded last.
-    pub fn standing(&self, id: AnilistId) -> Option<Standing<'_>> {
-        let title = self.titles.get(&id);
-        let rows = self.rows(id);
-        (title.is_some() || rows.is_some()).then(|| Standing {
-            progress: title.and_then(|title| title.progress),
-            resume: title.and_then(|title| title.resume),
-            rows: rows.unwrap_or_default(),
+    /// Where a title stands, whole, as the front end is told it: episodes done and the one
+    /// Continue offers, where Continue resumes it, and its episodes' watched state when its
+    /// table is the one loaded last. `None` for a title the record does not know, of which it
+    /// has nothing to say.
+    pub fn progress(&self, id: AnilistId) -> Option<Event> {
+        let title = self.titles.get(&id)?;
+        let episodes = self
+            .rows(id)
+            .unwrap_or_default()
+            .iter()
+            .map(|row| EpisodeProgress {
+                number: row.number.clone(),
+                watched: row.watched,
+                completed: row.completed,
+            })
+            .collect();
+        Some(Event::Progress {
+            id,
+            progress: title.progress.map(|(done, next)| TitleProgress { done, next }),
+            resume: title.resume,
+            episodes,
         })
     }
 
@@ -287,32 +301,38 @@ impl TitleCache {
     }
 
     /// A watch on a title: its entry first, read against its table as the table stood, then the
-    /// table. Returns the title when the record holds either.
+    /// table. Returns the title when that moved it.
     fn watch(&mut self, id: AnilistId, watch: &Watch) -> Option<AnilistId> {
         let touched = self.touch();
         let rows = self.table.as_mut().filter(|(table, _)| *table == id).map(|(_, rows)| rows);
-        let title = self.titles.get_mut(&id);
-        if title.is_none() && rows.is_none() {
-            return None;
-        }
-        if let Some(title) = title {
+        let row_state = |rows: &Option<&mut Vec<EpisodeRow>>| {
+            let row = rows.as_ref()?.iter().find(|row| row.number == watch.episode)?;
+            Some((row.watched, row.completed))
+        };
+        let row_before = row_state(&rows);
+        let mut moved = false;
+        if let Some(title) = self.titles.get_mut(&id) {
             title.touched = touched;
+            let before = (title.progress, title.resume);
             title.with_entry(id, |entry| {
                 progress::watch_entry(entry, rows.as_deref().map(Vec::as_slice), watch)
             });
+            moved |= before != (title.progress, title.resume);
         }
-        if let Some(rows) = rows {
+        let mut rows = rows;
+        if let Some(rows) = rows.as_deref_mut() {
             progress::watch_row(rows, watch);
         }
-        Some(id)
+        moved |= row_before != row_state(&rows);
+        moved.then_some(id)
     }
 
     /// An episode marked not watched: its row emptied, and when it had been watched, the
-    /// title's count and Continue put back by the unmark's rule. Whether the record held it.
-    fn unmark(&mut self, id: AnilistId, episode: &str) -> bool {
+    /// title's count and Continue put back by the unmark's rule.
+    fn unmark(&mut self, id: AnilistId, episode: &str) {
         let touched = self.touch();
         let Some((_, rows)) = self.table.as_mut().filter(|(table, _)| *table == id) else {
-            return self.titles.contains_key(&id);
+            return;
         };
         let was_done = rows.iter().any(|row| row.number == episode && row.completed);
         progress::mark_row(rows, episode, false);
@@ -320,7 +340,6 @@ impl TitleCache {
             title.touched = touched;
             title.with_entry(id, |entry| progress::unmark_entry(entry, rows, episode));
         }
-        true
     }
 
     /// Hold what a detail fetch or a list row says of a title, in place of what was held.
@@ -354,11 +373,17 @@ impl TitleCache {
         self.clock
     }
 
-    /// Past the bound, let the titles touched least recently go.
+    /// Past the bound, let the titles touched least recently go: never the one whose table is
+    /// held, which is the one being watched from.
     fn let_go(&mut self) {
+        let held = self.table.as_ref().map(|(id, _)| *id);
         while self.titles.len() > TITLES {
-            let Some(oldest) =
-                self.titles.iter().min_by_key(|(_, t)| t.touched).map(|(id, _)| *id)
+            let Some(oldest) = self
+                .titles
+                .iter()
+                .filter(|(id, _)| Some(**id) != held)
+                .min_by_key(|(_, t)| t.touched)
+                .map(|(id, _)| *id)
             else {
                 return;
             };
@@ -375,15 +400,6 @@ impl Title {
         work(&mut entry);
         (self.progress, self.resume) = (entry.progress, entry.resume);
     }
-}
-
-/// Where a title stands, as [`TitleCache::standing`] says it.
-#[derive(Debug, Clone, PartialEq)]
-pub struct Standing<'a> {
-    pub progress: Option<(u32, u32)>,
-    pub resume: Option<ResumePoint>,
-    /// Its table's rows, when its table is the one loaded last; otherwise none.
-    pub rows: &'a [EpisodeRow],
 }
 
 #[cfg(test)]
@@ -534,8 +550,10 @@ mod tests {
             cache.hints(sequel, "1", false, PlayKind::Staged).title,
             "Hoshikuzu no Tabibito II"
         );
-        let standing = cache.standing(sequel).expect("named");
-        assert_eq!((standing.progress, standing.resume), (None, None));
+        let Some(Event::Progress { progress, resume, .. }) = cache.progress(sequel) else {
+            panic!("named")
+        };
+        assert_eq!((progress, resume), (None, None));
     }
 
     #[test]
@@ -547,7 +565,7 @@ mod tests {
             (2..=TITLES as u32 + 1).map(|n| Entry::new(AnilistId::new(n), format!("t{n}")));
         listed(&mut cache, many.collect());
         assert_eq!(cache.titles.len(), TITLES);
-        assert!(cache.standing(first).is_none(), "the oldest went");
-        assert!(cache.standing(AnilistId::new(2)).is_some());
+        assert!(cache.progress(first).is_none(), "the oldest went");
+        assert!(cache.progress(AnilistId::new(2)).is_some());
     }
 }

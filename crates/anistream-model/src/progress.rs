@@ -8,6 +8,25 @@ use crate::{
     episodes::EpisodeRow,
 };
 
+/// How far through a title the viewer is: how many episodes are done, and the one Continue
+/// offers next.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct TitleProgress {
+    pub done: u32,
+    pub next: u32,
+}
+
+/// How far through one episode the viewer is, as its row in the episode table shows it.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct EpisodeProgress {
+    pub number: String,
+    /// The meter: how far through it, from nought to one.
+    pub watched: f64,
+    pub completed: bool,
+}
+
 /// A playback's word on one episode: how far it got, of how long, and whether it counts as
 /// watched. Every reflection of a watch is worked out from this, and a mark is one too: a
 /// finished watch with no position.

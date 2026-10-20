@@ -366,7 +366,12 @@ impl Harness {
         let cache = self.engine.title_cache().await;
         let app = &self.app;
         for entry in app.detail.iter().chain(app.content.entries()) {
-            let standing = cache.standing(entry.id).map(|s| (s.progress, s.resume));
+            let standing = match cache.progress(entry.id) {
+                Some(Event::Progress { progress, resume, .. }) => {
+                    Some((progress.map(|p| (p.done, p.next)), resume))
+                }
+                _ => None,
+            };
             assert_eq!(
                 standing,
                 Some((entry.progress, entry.resume)),
@@ -383,7 +388,7 @@ impl Harness {
         let playing = app.playing.as_ref().and_then(|p| p.id);
         for id in [open, held, playing].into_iter().flatten() {
             let shown = app.episode_rows_for(id);
-            let ours = cache.standing(id).map_or(&[][..], |s| s.rows);
+            let ours = cache.table().filter(|(table, _)| *table == id).map_or(&[][..], |t| t.1);
             if shown.is_empty() && open != Some(id) {
                 continue;
             }
@@ -663,6 +668,7 @@ pub fn name(update: &Event) -> &'static str {
         Event::ProgressQueued => "ProgressQueued",
         Event::Conflicts(_) => "Conflicts",
         Event::Episodes { .. } => "Episodes",
+        Event::Progress { .. } => "Progress",
         Event::Vpn(_) => "Vpn",
         Event::ArtworkReady { .. } => "ArtworkReady",
         Event::ImageFailed { .. } => "ImageFailed",
@@ -762,6 +768,12 @@ fn copy(update: &Event) -> Event {
         Event::ProgressQueued => Event::ProgressQueued,
         Event::Conflicts(rows) => Event::Conflicts(rows.clone()),
         Event::Episodes { id, rows } => Event::Episodes { id: *id, rows: rows.clone() },
+        Event::Progress { id, progress, resume, episodes } => Event::Progress {
+            id: *id,
+            progress: *progress,
+            resume: *resume,
+            episodes: episodes.clone(),
+        },
         Event::Vpn(guard) => Event::Vpn(guard.clone()),
         Event::ArtworkReady { url, bytes } => {
             Event::ArtworkReady { url: url.clone(), bytes: bytes.clone() }
