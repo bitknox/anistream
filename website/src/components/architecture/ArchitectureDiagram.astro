@@ -1,0 +1,144 @@
+---
+// One architecture drawing in a figure: the wide layout where the column is 720 or wider, the
+// narrow one below that, at their own sizes so the text never shrinks. Colours and fonts come
+// from the site's tokens, so the drawing follows the theme.
+import { CAPTIONS, renderDiagram, sitePaint, type DiagramKind } from './diagrams';
+
+interface Props {
+	kind: DiagramKind;
+}
+
+const { kind } = Astro.props;
+const wide = renderDiagram(kind, 'wide', sitePaint);
+const narrow = renderDiagram(kind, 'narrow', sitePaint);
+---
+
+<figure class="ani-arch not-content">
+	<div class="ani-arch-art">
+		<Fragment set:html={wide} />
+		<Fragment set:html={narrow} />
+	</div>
+	<figcaption>{CAPTIONS[kind]}</figcaption>
+</figure>
+
+<style is:global>
+	.ani-arch {
+		container-type: inline-size;
+		margin: 32px 0;
+	}
+
+	.ani-arch-art {
+		overflow-x: auto;
+	}
+
+	.ani-arch svg {
+		display: block;
+		max-width: none;
+		height: auto;
+	}
+
+	.ani-arch .ani-arch-wide {
+		display: none;
+	}
+
+	@container (min-width: 720px) {
+		.ani-arch .ani-arch-wide {
+			display: block;
+		}
+
+		.ani-arch .ani-arch-narrow {
+			display: none;
+		}
+	}
+
+	.ani-arch figcaption {
+		max-width: 720px;
+		margin-top: 16px;
+		font-size: 14px;
+		line-height: 20px;
+		color: var(--ani-dim);
+	}
+
+	.ani-arch .ad-node {
+		fill: var(--ani-raised);
+		stroke: var(--ani-rule);
+		stroke-width: 1;
+	}
+
+	.ani-arch .ad-node-dashed {
+		fill: none;
+		stroke: var(--ani-rule);
+		stroke-width: 1;
+		stroke-dasharray: 4 3;
+	}
+
+	.ani-arch .ad-chip {
+		fill: var(--ani-ground);
+		stroke: var(--ani-rule);
+		stroke-width: 1;
+	}
+
+	.ani-arch .ad-edge {
+		fill: none;
+		stroke: var(--ani-dim);
+		stroke-width: 1.25;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.ani-arch .ad-em {
+		fill: none;
+		stroke: var(--ani-obi);
+		stroke-width: 1.5;
+		stroke-dasharray: 4 3;
+	}
+
+	.ani-arch .ad-dot {
+		fill: var(--ani-dim);
+	}
+
+	.ani-arch .ad-t {
+		font-family: var(--ani-font-ui);
+		font-size: 13px;
+		fill: var(--ani-text);
+	}
+
+	.ani-arch :is(.ad-name, .ad-crate, .ad-chip-text) {
+		font-family: var(--ani-font-mono);
+	}
+
+	.ani-arch .ad-name {
+		font-weight: 600;
+	}
+
+	.ani-arch .ad-label {
+		font-size: 14px;
+		font-weight: 600;
+	}
+
+	.ani-arch :is(.ad-sub, .ad-crate, .ad-edge-text, .ad-num, .ad-caps) {
+		fill: var(--ani-dim);
+	}
+
+	.ani-arch :is(.ad-caps, .ad-caps-em) {
+		font-size: 12px;
+		font-weight: 500;
+		letter-spacing: 0.06em;
+	}
+
+	.ani-arch :is(.ad-caps-em, .ad-em-text) {
+		fill: var(--ani-obi);
+	}
+
+	.ani-arch :is(.ad-crate, .ad-chip-text, .ad-edge-text, .ad-em-text) {
+		font-size: 12px;
+	}
+
+	.ani-arch .ad-em-text {
+		font-weight: 500;
+	}
+
+	.ani-arch .ad-num {
+		font-weight: 600;
+	}
+</style>

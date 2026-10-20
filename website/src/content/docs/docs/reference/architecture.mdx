@@ -1,29 +1,38 @@
 ---
 title: Architecture
-description: Eighteen crates ordered by volatility, and why the core never depends on a source.
+description: Eighteen crates, layered so the core depends on no source and the terminal front end never reaches the engine.
 ---
 
-Eighteen crates. The app's layers, volatility increasing left to right:
+import ArchitectureDiagram from '../../../../components/architecture/ArchitectureDiagram.astro';
 
-```
- AniList        ID mapping        Provider         Player
- (stable)  ──►  (stable glue) ──► (volatile)  ──►  (stable)
-                     │                                │
-                     │                                ▼
-                     │                    History (SQLite, local)
-                     └──────────────────►  source of truth, offline
-                      ids for every tracker           │
-                                                      ▼
-                                            Trackers (pluggable)
-```
+anistream is eighteen crates. A title moves through them from stable to volatile and back:
+metadata and the ID mapping are stable, the providers that find a stream are the volatile part,
+and the player, the history and the trackers are stable again.
 
-`anistream-core` (types and traits) · `-net` (HTTP, fingerprint emulation, rate limiting) ·
-`-meta` (AniList, the metadata failover, ID mapping, filler) · `-store` (SQLite) ·
+<ArchitectureDiagram kind="flow" />
+
+`anistream-core` (types and traits) · `-net` (HTTP, with a client that matches a browser's TLS
+handshake for hosts that answer differently by client, and rate limiting) · `-meta` (AniList, the
+metadata failover, ID mapping, filler) · `-store` (SQLite: the history and the sync outbox) ·
 `-providers` (torrent, remote, mock) · `-player` (mpv IPC, the companion-script protocol, the
 bundled player files, track selection, aniskip, Discord presence) · `-track` (AniList, MAL, Kitsu,
 Simkl, Trakt, sync) · `-plugin` (WASM host).
 
-The rest of the app:
+Sources change and disappear, so every volatile piece sits behind a trait and the core depends on
+none of them.
+
+Local history is the source of truth, and sync is a projection of it. The SQLite history works
+with no account and no network, and trackers consume it through a durable outbox instead of being
+consulted for it.
+
+The metadata, mapping, player, tracker and plugin layers use documented public APIs. Only the
+provider layer *chooses* an external content source, it is off by default, and every source is a
+config edit away from being removed. Two playback-side paths then fetch from whatever host a
+provider named, sidecar subtitles and the HLS mender below, and both are source-agnostic.
+
+## Layers
+
+<ArchitectureDiagram kind="crates" />
 
 - `anistream-model` is the protocol between the engine and a front end: the commands a front end
   sends, the events it gets back, the rows they carry, and the wording they are shown in. It
@@ -35,9 +44,9 @@ The rest of the app:
 - `anistream` is the binary. It holds the command line, self-update, and the terminal's event
   loop, which hands the front end's commands to the engine and its events back.
 - `anistream-ffi` is the engine for native front ends: SwiftUI on macOS and iOS, Jetpack Compose
-  on Android. It hands them the model's own commands and events through UniFFI, and takes
-  links, notifications and the OS's secret store from the app. The Swift package that wraps it
-  is in `apple/`.
+  on Android, both in development. It hands them the model's own commands and events through
+  UniFFI, and takes links, notifications and the OS's secret store from the app. The Swift package
+  that wraps it is in `apple/`.
 - `anistream-testkit` is used only by tests: a fake AniList, fixture titles and golden files.
 
 The engine and the model use no terminal library, not even through a dependency, so a front end
@@ -54,23 +63,12 @@ the `anistream store …` commands and the standalone `anistream-store` binary.
 `anistream-store-wasm` is the store for Cloudflare Workers and Vercel or Netlify functions.
 Despite its name, `anistream-store` is the local SQLite history and has nothing to do with them.
 
-Sources decay, so every volatile piece sits behind a trait and the core never depends on one.
+## The HLS mender
 
-Two consequences of the layering:
-
-- **Local is the source of truth; sync is a projection of it.** The SQLite history works with no
-  account and no network, and trackers consume it through a durable outbox instead of being
-  consulted for it.
-- **The metadata, mapping, player, tracker and plugin layers use documented public APIs.** Only
-  the provider layer *chooses* an external content source, it is off by default, and every source
-  is a config edit away from being removed. Two playback-side paths then fetch from whatever host
-  a provider named, sidecar subtitles and the HLS mender below, and both are source-agnostic.
-
-The mender is worth knowing about because it sits on the default playback path: HLS goes through a
-loopback proxy that looks for where the media actually starts in each segment, since some hosts
-serve video behind an image header that mpv reads literally and refuses. A healthy segment matches
-at offset zero and passes through byte-for-byte, and nothing is decrypted. See
-`crates/anistream-engine/src/playback/mend.rs`.
+The mender sits on the default playback path: HLS goes through a loopback proxy that looks for
+where the media starts in each segment, since some hosts serve video behind an image header that
+mpv reads literally and refuses. A healthy segment matches at offset zero and passes through
+byte-for-byte, and nothing is decrypted. See `crates/anistream-engine/src/playback/mend/`.
 
 ## Development
 
@@ -92,7 +90,7 @@ cargo run -p anistream-engine --example sync_probe -- --write    # AniList push,
 cargo run -p anistream-engine --example mal_probe -- --write     # MAL push, then undo
 cargo run -p anistream-engine --example simkl_probe -- --write   # Simkl push, then undo
 cargo run -p anistream-engine --example kitsu_probe -- --write   # Kitsu push, then undo
-cargo run -p anistream-engine --example mend_probe -- <url>      # disguised HLS → mpv
+cargo run -p anistream-engine --example mend_probe -- <url>      # HLS behind an image header → mpv
 cargo run -p anistream-providers --example torrent_probe         # an indexer, end to end
 cargo run -p anistream-providers --example halt_probe            # the guard pausing torrents
 cargo run -p anistream-meta --example filler_probe               # filler parsing
