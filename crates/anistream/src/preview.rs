@@ -6,7 +6,7 @@ use anistream_core::config::{Config, Paths};
 use anistream_engine::{
     engine::{Engine, EventStream},
     host::DesktopHost,
-    options::EngineOptions,
+    options::{Background, EngineOptions},
     sources,
 };
 use anistream_model::{command::Command, event::Event};
@@ -87,7 +87,7 @@ pub async fn preview(
         EngineOptions::new(paths.clone(), config.clone(), http, store, player_theme());
     options.saved = Some(config);
     options.sources = Some(registry);
-    options.background = false;
+    options.background = Background::none();
     let (engine, mut events) = Engine::start(options, host).await?;
     // What launch says: the stores, the chain's rows and the trackers' states.
     for update in events.launch().await {

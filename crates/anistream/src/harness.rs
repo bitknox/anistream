@@ -41,7 +41,7 @@ use anistream_engine::{
     cache::TitleCache,
     engine::{Engine, EventStream, Traced},
     host::Host,
-    options::{EngineOptions, Parts},
+    options::{Background, EngineOptions, Parts},
     outbox::Internal,
     plugin_stores, sources, tracking,
 };
@@ -239,7 +239,7 @@ impl Harness {
         );
         start.saved = Some(saved);
         start.sources = Some(registry.clone());
-        start.background = false;
+        start.background = Background::none();
         start.parts = Some(Parts { meta, sync, stores });
         let (engine, mut events) = Engine::start(start, host).await.expect("the engine starts");
         // What launch says, applied as the loop applies it before its first frame: the stores,

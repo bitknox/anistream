@@ -144,7 +144,7 @@ impl Engine {
             parts,
         } = options;
 
-        if background {
+        if background.prune {
             // Old logs, stale covers and the player's leftovers, off the critical path.
             {
                 let paths = paths.clone();
@@ -239,7 +239,7 @@ impl Engine {
         // engine side's messages to itself ride it too, each in its place among the events.
         let mut inbox = Inbox::default();
 
-        if background {
+        if background.update_check {
             // The daily update check: one cached request, one quiet toast when a release exists.
             updates::spawn_check(
                 state.config.effective().updates.check,
@@ -247,6 +247,8 @@ impl Engine {
                 &services.http,
                 &inbox.sender(),
             );
+        }
+        if background.digest {
             // The airing digest: what aired for shows you watch since the last launch. Same
             // philosophy as the update check — one line, only when there is something to say.
             digest::spawn(
@@ -261,15 +263,17 @@ impl Engine {
         if let Some(loading) = plugins_loading {
             say_plugin_load(loading, inbox.sender());
         }
-        if background && joined {
+        if background.store_refresh && joined {
             refresh_joined(services.stores.clone(), inbox.sender());
         }
 
         for tracker in services.sync.initial_states() {
             launch.push_back(Event::Sync(Box::new(tracker)));
         }
-        if background {
+        if background.sync_loops {
             tracking::spawn_loops(services.sync.clone(), inbox.sender());
+        }
+        if background.datasets {
             // Keep the mapping datasets current without ever blocking startup.
             tokio::spawn(keep_datasets_current(
                 services.store.clone(),
@@ -290,7 +294,7 @@ impl Engine {
         }
 
         // The player is checked last, as launch always has, and not waited for.
-        let checking = background.then(|| {
+        let checking = background.player_check.then(|| {
             let config = state.config.effective();
             let mpv = player(config, &services.paths, &services.player_theme);
             let binary = config.playback.mpv_binary.clone();
@@ -938,7 +942,7 @@ mod tests {
         };
         let mut options = EngineOptions::new(paths, config, http, store, theme);
         options.sources = Some(ProviderRegistry::new(Vec::new()));
-        options.background = false;
+        options.background = crate::options::Background::none();
         Engine::start(options, host).await.unwrap()
     }
 

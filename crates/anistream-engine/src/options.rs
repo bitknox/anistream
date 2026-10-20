@@ -35,14 +35,10 @@ pub struct EngineOptions {
     /// so that the first frame waits for neither. A chain given whole is final: nothing joins
     /// it, and its rows are said at launch.
     pub sources: Option<ProviderRegistry>,
-    /// Whether the engine does its own work beside the commands: the sweeps of old files, the
-    /// update check, the airing digest, the trackers' sync loops, the joined stores asked for
-    /// their lists, the mapping datasets kept current, and the check of the player said at
-    /// launch.
-    ///
-    /// Off for a still frame and for a test, which must reach no further than they are sent.
-    /// P6 splits it for the platforms where some of it has no meaning.
-    pub background: bool,
+    /// The work the engine does on its own beside the commands, each piece on its own switch:
+    /// all of it for the app's launch, none for a still frame or a test, which must reach no
+    /// further than they are sent. See [`Background`].
+    pub background: Background,
     /// Parts a test stands the engine up with instead of the ones it builds.
     #[cfg(feature = "testing")]
     pub parts: Option<Parts>,
@@ -66,9 +62,66 @@ impl EngineOptions {
             store,
             player_theme,
             sources: None,
-            background: true,
+            background: Background::default(),
             #[cfg(feature = "testing")]
             parts: None,
+        }
+    }
+}
+
+/// The work the engine does on its own beside the commands, each piece on its own switch.
+///
+/// [`Default`] is the desktop app's launch, with everything on. A still frame and a test turn
+/// it all off with [`Self::none`]. A phone keeps what it has a use for: the system there may
+/// run some of it on its own schedule, or not let it run at all while the app is in the
+/// background.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Background {
+    /// Sweep old logs, stale covers and the player's leftovers at launch, and the torrent cache
+    /// when torrents are off, since nothing else would.
+    pub prune: bool,
+    /// Ask once a day whether there is a new release, and say so when there is.
+    pub update_check: bool,
+    /// Say what aired since the last launch for the shows being watched: a notice, and on the
+    /// desktop too when the settings ask for it.
+    pub digest: bool,
+    /// Keep the mapping datasets current, which the trackers match titles by.
+    pub datasets: bool,
+    /// Push what is queued to the trackers, and pull their lists, on a timer.
+    pub sync_loops: bool,
+    /// Ask each joined plugin store for its list once at launch, and say what can be updated.
+    pub store_refresh: bool,
+    /// Check that mpv is there to play, and new enough to wear anistream's interface, and say
+    /// so at launch. Only with the `desktop` feature: without it there is no player to check.
+    pub player_check: bool,
+}
+
+impl Background {
+    /// None of it: a still frame's, and a test's.
+    pub const fn none() -> Self {
+        Self {
+            prune: false,
+            update_check: false,
+            digest: false,
+            datasets: false,
+            sync_loops: false,
+            store_refresh: false,
+            player_check: false,
+        }
+    }
+}
+
+impl Default for Background {
+    /// All of it, as the app launches.
+    fn default() -> Self {
+        Self {
+            prune: true,
+            update_check: true,
+            digest: true,
+            datasets: true,
+            sync_loops: true,
+            store_refresh: true,
+            player_check: true,
         }
     }
 }
@@ -89,4 +142,38 @@ pub struct Parts {
     pub sync: crate::tracking::Sync,
     /// The plugin stores, built with the test's token store.
     pub stores: crate::plugin_stores::Stores,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_default_is_the_apps_launch_and_none_is_nothing_at_all() {
+        // The terminal app starts on the default, so a switch defaulting to off would quietly
+        // stop something it has always done at launch.
+        let on = Background::default();
+        let all = [
+            on.prune,
+            on.update_check,
+            on.digest,
+            on.datasets,
+            on.sync_loops,
+            on.store_refresh,
+            on.player_check,
+        ];
+        assert!(all.iter().all(|on| *on), "{on:?}");
+        assert_eq!(
+            Background::none(),
+            Background {
+                prune: false,
+                update_check: false,
+                digest: false,
+                datasets: false,
+                sync_loops: false,
+                store_refresh: false,
+                player_check: false,
+            }
+        );
+    }
 }
