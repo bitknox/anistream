@@ -3,7 +3,7 @@
 //! failed states, and the cover plates and metadata line the title page shares.
 
 use anistream_model::{
-    catalog::{Content, Entry, LibrarySegment},
+    catalog::{ContentList, Entry, LibrarySegment},
     progress::TitleProgress,
     wording::{broadcast_line, calendar_time},
 };
@@ -70,8 +70,8 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
     }
 
     match &app.content {
-        Content::Loading => render_loading(buf, app, list_area),
-        Content::Failed(reason) => {
+        ContentList::Loading => render_loading(buf, app, list_area),
+        ContentList::Failed(reason) => {
             // Never an empty list with no explanation — and never a panic on the way to
             // saying so, which would replace the explanation with a crash.
             line(
@@ -93,11 +93,11 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
         }
         // Two shades of empty, kept apart: nothing asked for yet, versus asked and found nothing.
         // Collapsing them would lose the only thing that tells a user which situation they are in.
-        Content::Empty => render_empty(buf, app, area, y, empty_state(app, section, false)),
-        Content::Entries(entries) if entries.is_empty() => {
+        ContentList::Empty => render_empty(buf, app, area, y, empty_state(app, section, false)),
+        ContentList::Entries(entries) if entries.is_empty() => {
             render_empty(buf, app, area, y, empty_state(app, section, true))
         }
-        Content::Entries(entries) => {
+        ContentList::Entries(entries) => {
             // Split the stage: list on the left, a preview of the focused title on the
             // right. The key visual is the hero, so it gets the larger share.
             let (list_col, preview_col) = if area.width >= 76 {
@@ -750,7 +750,7 @@ mod tests {
         e.episodes = None;
         e.next_episode = Some(3);
         e.progress = Some(TitleProgress { done: 2, next: 3 });
-        let app = app_with(Content::Entries(vec![e.clone()]));
+        let app = app_with(ContentList::Entries(vec![e.clone()]));
         let area = Rect::new(0, 0, 60, 24);
         let mut buf = Buffer::empty(area);
         render_preview(&mut buf, &app, area, &e);
@@ -762,7 +762,7 @@ mod tests {
     #[test]
     fn a_failure_is_shown_with_its_reason_never_as_a_blank_screen() {
         // The single most important rendering rule in the app.
-        let mut app = app_with(Content::Failed("all providers unreachable".into()));
+        let mut app = app_with(ContentList::Failed("all providers unreachable".into()));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("COULD NOT LOAD"));
         assert!(text.contains("all providers unreachable"));
@@ -770,7 +770,7 @@ mod tests {
 
     #[test]
     fn loading_says_so_rather_than_looking_empty() {
-        let mut app = app_with(Content::Loading);
+        let mut app = app_with(ContentList::Loading);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(
             text.contains("LOADING"),
@@ -782,12 +782,12 @@ mod tests {
 
     #[test]
     fn an_empty_result_set_is_distinguished_from_a_failure() {
-        let mut app = app_with(Content::Entries(vec![]));
+        let mut app = app_with(ContentList::Entries(vec![]));
         app.go_to_section(Section::Search);
         app.set_text(Field::Search, "zzzz".into());
         // Run, as Enter runs it: the answer is for the query in the field.
         app.searched_query = "zzzz".into();
-        app.apply(app.content_here(Content::Entries(vec![])));
+        app.apply(app.content_here(ContentList::Entries(vec![])));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("NO MATCHES"), "got {text:?}");
         assert!(!text.contains("COULD NOT"));
@@ -797,7 +797,7 @@ mod tests {
     fn an_empty_screen_says_what_to_do_next_rather_than_substituting_content() {
         // Home used to fill an empty continue list with the current season, which made the section
         // labelled CONTINUE a discovery screen — and left a half-finished episode nowhere to appear.
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("NOTHING WATCHED YET"), "got {text:?}");
         assert!(text.contains("this season"), "an empty screen needs a way out: {text:?}");
@@ -806,20 +806,20 @@ mod tests {
     #[test]
     fn a_search_that_found_nothing_reads_differently_from_one_not_yet_typed() {
         // The two shades of empty. Collapsing them loses the only signal that says which you are in.
-        let mut untouched = app_with(Content::Empty);
+        let mut untouched = app_with(ContentList::Empty);
         untouched.go_to_section(Section::Search);
-        untouched.apply(untouched.content_here(Content::Empty));
+        untouched.apply(untouched.content_here(ContentList::Empty));
         assert!(text_of(&render_to_buffer(&mut untouched, 120, 30)).contains("TYPE TO SEARCH"));
 
-        let mut searched = app_with(Content::Empty);
+        let mut searched = app_with(ContentList::Empty);
         searched.go_to_section(Section::Search);
-        searched.apply(searched.content_here(Content::Entries(vec![])));
+        searched.apply(searched.content_here(ContentList::Entries(vec![])));
         assert!(text_of(&render_to_buffer(&mut searched, 120, 30)).contains("NO MATCHES"));
     }
 
     #[test]
     fn a_typed_query_not_yet_run_says_enter_runs_it() {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Search);
         for ch in "invented".chars() {
             app.type_char(ch);
@@ -831,7 +831,7 @@ mod tests {
 
     #[test]
     fn the_search_screen_shows_a_prompt_and_the_typed_query() {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Search);
         app.type_char('f');
         app.type_char('r');
@@ -844,9 +844,9 @@ mod tests {
     fn the_librarys_selection_stays_inside_the_rows_it_draws() {
         // Paged as if the list had the whole stage, while three rows go to the segment strip,
         // so the last few steps of every page moved the highlight below the fold.
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Library);
-        app.apply(app.content_here(Content::Entries(
+        app.apply(app.content_here(ContentList::Entries(
             (1..=40).map(|n| entry(n, &format!("Invented Show {n}"))).collect(),
         )));
         // Narrow enough that the preview pane, which repeats the title, is not drawn.
@@ -861,7 +861,7 @@ mod tests {
 
     #[test]
     fn search_with_nothing_typed_shows_its_empty_state_not_the_last_list() {
-        let mut app = app_with(Content::Entries(vec![entry(1, "Invented Show")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Invented Show")]));
         app.handle(crate::keymap::Action::JumpSection(4), 20);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("TYPE TO SEARCH"), "got {text:?}");
@@ -871,13 +871,13 @@ mod tests {
 
     #[test]
     fn the_calendar_is_ruled_by_day() {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Calendar);
         let mut aired = entry(1, "Aired Recently");
         aired.airing_in = Some(-1);
         let mut upcoming = entry(2, "Airs Later");
         upcoming.airing_in = Some(26 * 3600);
-        app.apply(app.content_here(Content::Entries(vec![aired, upcoming])));
+        app.apply(app.content_here(ContentList::Entries(vec![aired, upcoming])));
 
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         // Labels computed by the same helpers the renderer uses, so the assertion holds
@@ -895,10 +895,10 @@ mod tests {
     /// The calendar drawn on a stopped clock: its rulings and times are fixed text, the same
     /// whenever and in whatever zone the test runs.
     fn calendar_at(clock: Clock, entries: Vec<Entry>) -> String {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.clock = clock;
         app.go_to_section(Section::Calendar);
-        app.apply(app.content_here(Content::Entries(entries)));
+        app.apply(app.content_here(ContentList::Entries(entries)));
         text_of(&render_to_buffer(&mut app, 120, 34))
     }
 
@@ -960,7 +960,7 @@ mod tests {
         let mut e = entry(1, "Frieren");
         e.progress = Some(TitleProgress { done: 7, next: 8 });
         e.last_aired = Some(Aired { episode: 8, ago: 3600 });
-        let mut app = app_with(Content::Entries(vec![e]));
+        let mut app = app_with(ContentList::Entries(vec![e]));
         // Too narrow for the preview, whose broadcast line would answer for the row.
         let text = text_of(&render_to_buffer(&mut app, 70, 30));
         assert!(text.contains("ep 8 out"), "being behind is the fact worth stating:\n{text}");
@@ -975,7 +975,7 @@ mod tests {
         e.last_aired = Some(Aired { episode: 8, ago: 3600 });
         e.airing_in = Some(2 * 24 * 3600 + 3600);
         e.next_episode = Some(9);
-        let mut app = app_with(Content::Entries(vec![e]));
+        let mut app = app_with(ContentList::Entries(vec![e]));
         // Too narrow for the preview, whose broadcast line would answer for the row.
         let text = text_of(&render_to_buffer(&mut app, 70, 30));
         assert!(!text.contains("ep 8 out"), "already watched — not news:\n{text}");
@@ -992,7 +992,7 @@ mod tests {
         e.last_aired = Some(Aired { episode: 7, ago: 7 * 24 * 3600 });
         e.next_episode = Some(9);
         e.airing_in = Some(7 * 24 * 3600);
-        let mut app = app_with(Content::Entries(vec![e]));
+        let mut app = app_with(ContentList::Entries(vec![e]));
         // Too narrow for the preview, whose broadcast line would answer for the row.
         let text = text_of(&render_to_buffer(&mut app, 70, 30));
         assert!(text.contains("ep 8 out"), "the launch went unannounced:\n{text}");
@@ -1007,7 +1007,7 @@ mod tests {
         let mut e = entry(1, "Chainsmoker Cat");
         e.progress = Some(TitleProgress { done: 0, next: 1 });
         e.last_aired = Some(Aired { episode: 4, ago: 3600 });
-        let mut app = app_with(Content::Entries(vec![e]));
+        let mut app = app_with(ContentList::Entries(vec![e]));
         // Too narrow for the preview, whose broadcast line would answer for the row.
         let text = text_of(&render_to_buffer(&mut app, 70, 30));
         assert!(text.contains("ep 4 out"), "got:\n{text}");
@@ -1016,7 +1016,7 @@ mod tests {
     #[test]
     fn a_narrow_terminal_drops_the_preview_before_the_list() {
         // Content survives, chrome and secondary panes go first.
-        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
         let narrow = text_of(&render_to_buffer(&mut app, 62, 20));
         assert!(narrow.contains("Frieren"), "the list must survive");
 
@@ -1027,9 +1027,9 @@ mod tests {
     }
 
     fn calendar_with(rows: Vec<Entry>) -> App {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Calendar);
-        app.apply(app.content_here(Content::Entries(rows)));
+        app.apply(app.content_here(ContentList::Entries(rows)));
         app
     }
 
@@ -1090,10 +1090,10 @@ mod tests {
         // Six in the morning, so the eighty rows, an hour to fourteen hours out, all fall on one
         // day. On the real clock they crossed midnight from late morning on, and the heading
         // that brought made this fail by the time of day it ran.
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.clock = Clock::fixed(NOON_MONDAY - 6 * 3_600, crate::clock::Zone::utc());
         app.go_to_section(Section::Calendar);
-        app.apply(app.content_here(Content::Entries(rows)));
+        app.apply(app.content_here(ContentList::Entries(rows)));
         app.nav.focus_stage();
         let visible = visible_rows(Rect::new(0, 0, 120, 30), Section::Calendar);
         app.handle(crate::keymap::Action::Bottom, visible);
@@ -1119,11 +1119,11 @@ mod tests {
                 ..entry(i + 1, &format!("Weekly {i}"))
             })
             .collect();
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.clock =
             Clock::fixed(NOON_MONDAY - 1_740, crate::clock::Zone::hours_east(2).unwrap());
         app.go_to_section(Section::Calendar);
-        app.apply(app.content_here(Content::Entries(rows)));
+        app.apply(app.content_here(ContentList::Entries(rows)));
         app.nav.focus_stage();
         let visible = visible_rows(Rect::new(0, 0, 120, 30), Section::Calendar);
         app.handle(crate::keymap::Action::Bottom, visible);
@@ -1145,13 +1145,13 @@ mod tests {
 
     #[test]
     fn an_empty_continue_list_names_keys_as_keys() {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("NOTHING WATCHED YET"), "{text}");
         assert!(text.contains("press 3 for this season"), "{text}");
 
         // A rebind is what the sentence says.
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         let mut keys = std::collections::BTreeMap::new();
         keys.insert("jump_section_3".to_string(), "S".to_string());
         assert!(app.keymap.apply_overrides(&keys).is_empty());
@@ -1162,7 +1162,7 @@ mod tests {
     /// History that is all hidden is not "nothing watched yet".
     #[test]
     fn continue_with_everything_hidden_says_so() {
-        let mut app = app_with(Content::Entries(vec![Entry {
+        let mut app = app_with(ContentList::Entries(vec![Entry {
             progress: Some(TitleProgress { done: 2, next: 3 }),
             ..entry(1, "Paper Kite")
         }]));
@@ -1175,14 +1175,14 @@ mod tests {
 
     #[test]
     fn a_seasonal_list_names_its_season_and_says_when_it_stopped_short() {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Seasonal);
         app.apply(Event::Caption {
             view: anistream_model::catalog::ContentFor::Seasonal,
             text: "fall 2026 · the 40 most popular".into(),
         });
         app.apply(
-            app.content_here(Content::Entries((1..60).map(|i| entry(i, "Show")).collect())),
+            app.content_here(ContentList::Entries((1..60).map(|i| entry(i, "Show")).collect())),
         );
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("FALL 2026 · THE 40 MOST POPULAR"), "{text}");
@@ -1190,7 +1190,7 @@ mod tests {
         // A caption belongs to the list it came with.
         app.apply(Event::Content {
             view: anistream_model::catalog::ContentFor::Continue,
-            content: Content::Empty,
+            content: ContentList::Empty,
         });
         app.go_to_section(Section::Home);
         assert!(app.list_caption().is_none());
@@ -1198,13 +1198,16 @@ mod tests {
 
     #[test]
     fn a_capped_search_says_so_beside_the_prompt() {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Search);
         app.set_text(Field::Search, "kite".into());
         app.searched_query = "kite".into();
         let view = app.content_view().unwrap();
         app.apply(Event::Caption { view: view.clone(), text: "showing the first 30".into() });
-        app.apply(Event::Content { view, content: Content::Entries(vec![entry(1, "Kite")]) });
+        app.apply(Event::Content {
+            view,
+            content: ContentList::Entries(vec![entry(1, "Kite")]),
+        });
         let lines = lines_of(&mut app, 120, 30);
         let prompt = lines.iter().find(|l| l.contains("FIND")).unwrap();
         assert!(prompt.contains("showing the first 30"), "{prompt}");
@@ -1220,7 +1223,7 @@ mod tests {
             airing_in: Some(4 * 86_400 + 20 * 3600),
             ..entry(1, "Kite")
         };
-        let mut app = app_with(Content::Entries(vec![e]));
+        let mut app = app_with(ContentList::Entries(vec![e]));
         let preview = text_of(&render_to_buffer(&mut app, 120, 34));
         assert!(preview.contains("ep 3 out 2d ago  ·  ep 4 in 4d 20h"), "{preview}");
         app.nav.focus_stage();
@@ -1234,7 +1237,7 @@ mod tests {
     fn progress_on_a_row_reads_as_a_count() {
         let e =
             Entry { progress: Some(TitleProgress { done: 5, next: 6 }), ..entry(1, "Kite") };
-        let mut app = app_with(Content::Entries(vec![e]));
+        let mut app = app_with(ContentList::Entries(vec![e]));
         let text = text_of(&render_to_buffer(&mut app, 70, 30));
         assert!(text.contains("5 / 28"), "{text}");
         assert!(!text.contains("▏5"), "{text}");
@@ -1242,7 +1245,7 @@ mod tests {
 
     #[test]
     fn the_library_points_at_the_same_next_step_as_accounts() {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Library);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("trackers.enabled"), "nothing to sign in to yet:\n{text}");

@@ -5,7 +5,7 @@ use std::time::Duration;
 use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 
 use crate::{
-    catalog::{Content, ContentFor, Entry, ResumePoint, TitleAired},
+    catalog::{ContentFor, ContentList, Entry, ResumePoint, TitleAired},
     downloads::{DownloadRow, SeedRow},
     episodes::EpisodeRow,
     jobs::JobId,
@@ -49,7 +49,7 @@ pub enum Event {
     /// A list, tagged with the view that asked for it. See [`ContentFor`].
     Content {
         view: ContentFor,
-        content: Content,
+        content: ContentList,
     },
     /// What a list is, said above it: which season Seasonal is, and that a list stopped at the
     /// size of one page when there was more. Tagged like [`Event::Content`] and sent before it,

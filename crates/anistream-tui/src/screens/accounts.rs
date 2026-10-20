@@ -313,7 +313,7 @@ pub(super) fn conflict_rows(app: &App) -> Vec<(String, String)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anistream_model::{catalog::Content, event::Event};
+    use anistream_model::{catalog::ContentList, event::Event};
 
     use crate::{
         nav::Section,
@@ -326,7 +326,7 @@ mod tests {
     /// Ops held for an id mapping are still queued, and the row says why they have not gone.
     #[test]
     fn an_accounts_row_says_how_much_of_the_queue_waits_for_a_mapping() {
-        let mut app = app_with(Content::Entries(Vec::new()));
+        let mut app = app_with(ContentList::Entries(Vec::new()));
         app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState {
             connected: true,
             outbox: 3,
@@ -349,7 +349,7 @@ mod tests {
     /// success, for as long as the outage lasted.
     #[test]
     fn an_accounts_row_says_when_and_why_the_last_pull_failed() {
-        let mut app = app_with(Content::Entries(Vec::new()));
+        let mut app = app_with(ContentList::Entries(Vec::new()));
         app.clock = Clock::fixed(NOON_MONDAY, crate::clock::Zone::utc());
         let at = NOON_MONDAY - 60;
         app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState {
@@ -374,7 +374,7 @@ mod tests {
     fn the_accounts_screen_shows_a_failed_pull_under_its_tracker() {
         // The reason used to reach only a list nothing on the screen drew from, so the row kept
         // saying "connected" while the library had stopped updating.
-        let mut app = app_with(Content::Entries(Vec::new()));
+        let mut app = app_with(ContentList::Entries(Vec::new()));
         app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState {
             connected: true,
             pull_error: Some(PullError {
@@ -394,7 +394,7 @@ mod tests {
         // Reported from real use: "the pin is obviously never displayed to me". It was being sent to
         // the status line — the dimmest role in the palette, and overwritten by any background task
         // that set a status during the fifteen-minute wait.
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Accounts);
         app.apply(anistream_model::event::Event::Sync(Box::new(
             anistream_model::sync::SyncState::new("simkl"),
@@ -422,7 +422,7 @@ mod tests {
     fn the_device_code_uses_the_accent_role_not_the_dim_one() {
         // The specific defect: it was rendered in `TextDim`, the least visible role there is, for
         // the one string in the app a user has to transcribe by hand.
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Accounts);
         app.apply(anistream_model::event::Event::DeviceCode(Some(
             anistream_model::sync::DeviceCodePrompt {
@@ -445,7 +445,7 @@ mod tests {
 
     #[test]
     fn the_prompt_disappears_once_the_flow_ends() {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Accounts);
         app.apply(anistream_model::event::Event::DeviceCode(Some(
             anistream_model::sync::DeviceCodePrompt {

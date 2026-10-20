@@ -2,7 +2,7 @@
 //! time, Search with its filters, the Library's segments, and the Continue list.
 
 use anistream_model::{
-    catalog::{Content, ContentFor, Entry, SearchFilters, TitleAired},
+    catalog::{ContentFor, ContentList, Entry, SearchFilters, TitleAired},
     command::Command,
     event::Event,
     notice::Notice,
@@ -99,12 +99,12 @@ impl App {
         // list is on screen now.
         if !entries.is_empty()
             && self.nav.section() == Section::Calendar
-            && let Content::Entries(existing) = &mut self.content
+            && let ContentList::Entries(existing) = &mut self.content
         {
             let added = entries.len();
             let mut merged = entries;
             merged.append(existing);
-            self.content = Content::Entries(merged);
+            self.content = ContentList::Entries(merged);
             // The whole point of the exercise: the rows arrive *above* the viewport, so
             // both the selection and the scroll position shift by exactly what was
             // inserted and nothing moves under the user. Without this the screen would
@@ -133,7 +133,7 @@ impl App {
         }
         self.library_segment = next;
         self.cursors.library = Cursor::default();
-        self.content = Content::Loading;
+        self.content = ContentList::Loading;
         Some(Command::LoadLibrary(self.library_segment))
     }
 
@@ -177,7 +177,7 @@ impl App {
             return None;
         }
         self.searched_query = query.clone();
-        self.content = Content::Loading;
+        self.content = ContentList::Loading;
         // New results start at their top, not at the row the old ones were left on.
         self.cursors.search = Cursor::default();
         Some(Command::Search { query, filter: self.search_filter.clone() })
@@ -198,7 +198,7 @@ impl App {
             return self.open_selected();
         }
         self.searched_query = query.clone();
-        self.content = Content::Loading;
+        self.content = ContentList::Loading;
         // New results start at their top, not at the row the old ones were left on.
         self.cursors.search = Cursor::default();
         Some(Command::Search { query, filter: self.search_filter.clone() })
@@ -234,7 +234,7 @@ impl App {
             self.push_toast(Notice::info("removing works on the Continue list"));
             return None;
         }
-        let Content::Entries(entries) = &mut self.content else {
+        let ContentList::Entries(entries) = &mut self.content else {
             return None;
         };
         if entries.is_empty() {
@@ -299,7 +299,8 @@ impl App {
         // Loading only where a list is about to be asked for. A section with no list of its
         // own — or Search with nothing typed — would otherwise pulse forever, since the fetch
         // that ends the pulse never goes out.
-        self.content = if self.fetches_list() { Content::Loading } else { Content::Empty };
+        self.content =
+            if self.fetches_list() { ContentList::Loading } else { ContentList::Empty };
         self.reload_countdown = Some(RELOAD_IDLE_TICKS);
         None
     }
@@ -364,7 +365,7 @@ impl App {
     }
 
     /// A list for a view, taken only while that view is on screen: see [`Self::content_view`].
-    pub(super) fn apply_content(&mut self, view: ContentFor, content: Content) {
+    pub(super) fn apply_content(&mut self, view: ContentFor, content: ContentList) {
         if self.content_view().as_ref() != Some(&view) {
             return;
         }
@@ -395,7 +396,7 @@ impl App {
         // happen. Capped so a very broadcast-heavy day cannot push the selection below
         // a short terminal's fold.
         if self.nav.section() == Section::Calendar
-            && let Content::Entries(entries) = &self.content
+            && let ContentList::Entries(entries) = &self.content
             && let Some(next) =
                 entries.iter().position(|e| e.airing_in.is_some_and(|secs| secs > 0))
         {
@@ -420,7 +421,7 @@ impl App {
         // Applied to both the list and any open detail, since the same title can be
         // on screen twice and a line that appears in one place but not the other
         // reads as a bug.
-        if let Content::Entries(entries) = &mut self.content {
+        if let ContentList::Entries(entries) = &mut self.content {
             for entry in entries.iter_mut() {
                 if let Some(row) = rows.iter().find(|row| row.id == entry.id) {
                     entry.last_aired = Some(row.aired);
@@ -441,7 +442,7 @@ impl App {
     /// answering a request the user has since left. Background work tags its answer with what
     /// it was asked for instead. An answer with nothing on screen to take it (no list view, no
     /// open title) is tagged so the reducer drops it, exactly as it would a late one.
-    pub fn content_here(&self, content: Content) -> Event {
+    pub fn content_here(&self, content: ContentList) -> Event {
         // With no list view on screen the reducer drops every tag, so which one is moot.
         let view = self.content_view().unwrap_or(ContentFor::Continue);
         Event::Content { view, content }
@@ -476,14 +477,15 @@ impl App {
             Section::Library => Command::LoadLibrary(self.library_segment),
             // Sections with nothing to fetch yet render their own placeholder.
             _ => {
-                self.content = Content::Empty;
+                self.content = ContentList::Empty;
                 return None;
             }
         };
         // `content` is the section's list, so a section without one — or a search with nothing
         // typed — empties it rather than leaving the last section's rows to be drawn, scrolled
         // and acted on under its heading.
-        self.content = if self.fetches_list() { Content::Loading } else { Content::Empty };
+        self.content =
+            if self.fetches_list() { ContentList::Loading } else { ContentList::Empty };
         Some(task)
     }
 
@@ -828,7 +830,7 @@ mod tests {
         let mut e = Entry::new(AnilistId::new(5), "Frieren");
         e.progress = Some(TitleProgress { done: 7, next: 8 });
         e.resume = Some(ResumePoint { position: 600.0, fraction: Some(0.5) });
-        a.apply(a.content_here(Content::Entries(vec![e])));
+        a.apply(a.content_here(ContentList::Entries(vec![e])));
         a.nav.focus_stage();
 
         let task = a.handle(Action::Open, 20).expect("enter must resume");
@@ -924,7 +926,7 @@ mod tests {
         // that never ended, because the fetch that would end it never went out.
         let mut a = home_list(5);
         assert_eq!(a.handle(Action::JumpSection(4), 5), None);
-        assert_eq!(a.content, Content::Empty);
+        assert_eq!(a.content, ContentList::Empty);
         assert!(a.target().is_none());
 
         let mut a = home_list(5);
@@ -937,7 +939,7 @@ mod tests {
         for _ in 0..=RELOAD_IDLE_TICKS {
             a.tick_pending_reload();
         }
-        assert_eq!(a.content, Content::Empty);
+        assert_eq!(a.content, ContentList::Empty);
         assert!(a.take_commands().is_empty());
     }
 
@@ -1108,7 +1110,10 @@ mod tests {
         let _ = a.go_to_section(Section::Seasonal);
         let _ = a.go_to_section(Section::Calendar);
         a.apply(Event::Content { view: ContentFor::Seasonal, content: entries(5) });
-        assert!(matches!(a.content, Content::Loading), "the calendar showed seasonal's list");
+        assert!(
+            matches!(a.content, ContentList::Loading),
+            "the calendar showed seasonal's list"
+        );
 
         a.apply(Event::Content { view: ContentFor::Calendar, content: entries(3) });
         assert_eq!(a.content.len(), 3, "the calendar's own answer must still land");
@@ -1167,14 +1172,14 @@ mod tests {
         let mut a = app();
         a.apply(a.content_here(entries(3)));
         a.go_to_section(Section::Home);
-        assert_eq!(a.content, Content::Loading);
+        assert_eq!(a.content, ContentList::Loading);
     }
 
     #[test]
     fn a_failure_is_content_rather_than_an_empty_list() {
         let mut a = app();
-        a.apply(a.content_here(Content::Failed("anilist unreachable".into())));
-        assert!(matches!(a.content, Content::Failed(_)));
+        a.apply(a.content_here(ContentList::Failed("anilist unreachable".into())));
+        assert!(matches!(a.content, ContentList::Failed(_)));
         assert!(a.content.is_empty());
     }
 }

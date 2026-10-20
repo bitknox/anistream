@@ -3,7 +3,7 @@
 
 use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 use anistream_model::{
-    catalog::{Content, ResumePoint},
+    catalog::{ContentList, ResumePoint},
     command::Command,
     episodes::EpisodeRow,
     event::Event,
@@ -174,7 +174,7 @@ impl App {
         // list under it. Only this title's: several shows on Home can share a
         // next-episode number.
         for entry in self.detail.iter_mut().chain(match &mut self.content {
-            Content::Entries(entries) => entries.iter_mut(),
+            ContentList::Entries(entries) => entries.iter_mut(),
             _ => [].iter_mut(),
         }) {
             if entry.id == id {
@@ -645,7 +645,7 @@ mod tests {
         let at = |a: &App, row: usize| {
             (a.detail.as_ref().and_then(|d| d.progress), a.content.entries()[row].progress)
         };
-        if let Content::Entries(rows) = &mut a.content {
+        if let ContentList::Entries(rows) = &mut a.content {
             rows[1].progress = Some(TitleProgress { done: 2, next: 3 });
         }
         a.apply(Event::Progress {

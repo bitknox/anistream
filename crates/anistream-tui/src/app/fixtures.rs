@@ -4,7 +4,7 @@
 
 pub(super) use anistream_core::{config::Config, ids::AnilistId, settings::SettingValue};
 pub(super) use anistream_model::{
-    catalog::{Content, Entry, LibrarySegment, RelatedTitle, ResumePoint},
+    catalog::{ContentList, Entry, LibrarySegment, RelatedTitle, ResumePoint},
     command::{Command, PlayerCommand},
     episodes::EpisodeRow,
     event::Event,
@@ -84,8 +84,8 @@ impl Owner {
     }
 }
 
-pub(super) fn entries(n: usize) -> Content {
-    Content::Entries(
+pub(super) fn entries(n: usize) -> ContentList {
+    ContentList::Entries(
         (0..n)
             .map(|i| Entry::new(AnilistId::new(i as u32 + 1), format!("Title {i}")))
             .collect(),

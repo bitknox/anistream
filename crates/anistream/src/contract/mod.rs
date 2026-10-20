@@ -25,7 +25,7 @@ mod title;
 mod watch;
 
 use anistream_core::ids::AnilistId;
-use anistream_model::{catalog::Content, event::Event, jobs::JobId, notice::NoticeKind};
+use anistream_model::{catalog::ContentList, event::Event, jobs::JobId, notice::NoticeKind};
 
 use crate::harness::names;
 
@@ -59,7 +59,7 @@ pub fn toasts(updates: &[Event]) -> Vec<String> {
 
 /// What the one `Content` among `updates` carries.
 #[track_caller]
-pub fn content(updates: &[Event]) -> &Content {
+pub fn content(updates: &[Event]) -> &ContentList {
     let mut lists = updates.iter().filter_map(|update| match update {
         Event::Content { content, .. } => Some(content),
         _ => None,
@@ -71,18 +71,18 @@ pub fn content(updates: &[Event]) -> &Content {
 
 /// The titles a list holds, in its order.
 #[track_caller]
-pub fn ids(content: &Content) -> Vec<AnilistId> {
+pub fn ids(content: &ContentList) -> Vec<AnilistId> {
     match content {
-        Content::Entries(entries) => entries.iter().map(|entry| entry.id).collect(),
+        ContentList::Entries(entries) => entries.iter().map(|entry| entry.id).collect(),
         other => panic!("not a list of titles: {other:?}"),
     }
 }
 
 /// The reason a list failed with.
 #[track_caller]
-pub fn failure(content: &Content) -> &str {
+pub fn failure(content: &ContentList) -> &str {
     match content {
-        Content::Failed(reason) => reason,
+        ContentList::Failed(reason) => reason,
         other => panic!("not a failure: {other:?}"),
     }
 }

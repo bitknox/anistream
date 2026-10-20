@@ -31,7 +31,7 @@ use anistream_core::{
     traits::SourceCandidate,
 };
 use anistream_model::{
-    catalog::{Aired, Content, Entry, LibrarySegment, RelatedTitle, ResumePoint},
+    catalog::{Aired, ContentList, Entry, LibrarySegment, RelatedTitle, ResumePoint},
     command::Command,
     downloads::{DownloadRow, DownloadState, SeedRow},
     episodes::{EpisodeKind, EpisodeRow},
@@ -164,10 +164,10 @@ impl Screen {
 
     /// The answer to the list on screen.
     fn list(&mut self, entries: Vec<Entry>) {
-        self.content(Content::Entries(entries));
+        self.content(ContentList::Entries(entries));
     }
 
-    fn content(&mut self, content: Content) {
+    fn content(&mut self, content: ContentList) {
         let update = self.app.content_here(content);
         self.apply(update);
     }
@@ -1707,7 +1707,7 @@ fn publish_pick(s: &mut Screen) {
 /// Nothing watched yet: the mark above the message where there is room, and the ways on.
 fn continue_empty(s: &mut Screen) {
     settled_on(s, 1);
-    s.content(Content::Empty);
+    s.content(ContentList::Empty);
 }
 
 /// History, all of it hidden from Continue — not the same as nothing watched.
@@ -1719,7 +1719,7 @@ fn continue_all_hidden(s: &mut Screen) {
 /// The list could not load, and says why, wrapped.
 fn continue_failed(s: &mut Screen) {
     settled_on(s, 1);
-    s.content(Content::Failed(
+    s.content(ContentList::Failed(
         "AniList did not answer within 20 s — the request will be tried again on the next \
          refresh, and the library on disk is untouched"
             .into(),
@@ -1758,7 +1758,7 @@ fn search_no_matches(s: &mut Screen) {
 fn search_failed(s: &mut Screen) {
     search_unsent(s);
     s.press(&["enter"]);
-    s.content(Content::Failed("AniList answered 500 Internal Server Error".into()));
+    s.content(ContentList::Failed("AniList answered 500 Internal Server Error".into()));
 }
 
 /// The Library with its tracker signed out: a setup state, saying where to sign in.
@@ -1772,7 +1772,9 @@ fn library_no_account(s: &mut Screen) {
 /// A failed pull, under the segment strip.
 fn library_failed(s: &mut Screen) {
     settled_on(s, 5);
-    s.content(Content::Failed("the token was refused — sign in again from Accounts".into()));
+    s.content(ContentList::Failed(
+        "the token was refused — sign in again from Accounts".into(),
+    ));
 }
 
 /// The episode table waiting on its provider: the skeleton, not the last title's rows.

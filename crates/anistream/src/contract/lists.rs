@@ -5,7 +5,7 @@
 //! dates after it, and a metadata notice just ahead of whichever update it arrived with.
 
 use anistream_model::{
-    catalog::{Content, ContentFor, LibrarySegment, SearchFilters},
+    catalog::{ContentFor, ContentList, LibrarySegment, SearchFilters},
     command::Command,
     event::Event,
 };
@@ -35,7 +35,7 @@ async fn continue_with_no_history_is_empty_rather_than_an_empty_list() {
     assert_eq!(names(&updates), ["Content", "JobDone"]);
     assert!(matches!(
         &updates[0],
-        Event::Content { view: ContentFor::Continue, content: Content::Empty }
+        Event::Content { view: ContentFor::Continue, content: ContentList::Empty }
     ));
     ends(&updates, job);
     assert!(h.server().requests().is_empty(), "nothing to look up");
@@ -51,7 +51,7 @@ async fn continue_with_everything_hidden_is_an_empty_list() {
     let updates = h.settle().await;
 
     assert_eq!(names(&updates), ["Content", "JobDone"]);
-    assert_eq!(content(&updates), &Content::Entries(Vec::new()));
+    assert_eq!(content(&updates), &ContentList::Entries(Vec::new()));
     ends(&updates, job);
     assert!(h.server().requests().is_empty(), "nothing to look up");
 }
@@ -141,7 +141,11 @@ async fn a_metadata_notice_comes_just_before_the_update_it_arrived_with() {
     let Event::MetaStatus(rows) = &down[0] else { unreachable!() };
     let serving: Vec<_> = rows.iter().filter(|r| r.active).map(|r| r.source.as_str()).collect();
     assert_eq!(serving, ["tenrai"]);
-    assert_eq!(content(&down), &Content::Entries(Vec::new()), "the empty fallback answered");
+    assert_eq!(
+        content(&down),
+        &ContentList::Entries(Vec::new()),
+        "the empty fallback answered"
+    );
     ends(&down, job);
 
     let job = h.send(Command::LoadSeasonal);
@@ -170,7 +174,7 @@ async fn the_calendar_sends_its_window_before_its_entries() {
     };
     assert!((before..=anistream_store::now()).contains(anchor));
     assert_eq!((*pages, *more_past), (1, false), "one page held the past");
-    let Content::Entries(entries) = content(&updates) else { panic!("{updates:?}") };
+    let ContentList::Entries(entries) = content(&updates) else { panic!("{updates:?}") };
     assert!(!entries.is_empty());
     assert!(entries.iter().all(|e| e.airing_episode.is_some()), "every row is a broadcast");
     let times: Vec<i64> = entries.iter().filter_map(|e| e.airing_in).collect();
@@ -270,7 +274,7 @@ async fn the_library_signed_out_is_an_empty_list_for_every_segment() {
         assert_eq!(names(&updates), ["Content", "JobDone"], "{segment:?}");
         assert!(matches!(
             &updates[0],
-            Event::Content { view: ContentFor::Library(s), content: Content::Entries(rows) }
+            Event::Content { view: ContentFor::Library(s), content: ContentList::Entries(rows) }
                 if *s == segment && rows.is_empty()
         ));
         ends(&updates, job);
@@ -299,7 +303,7 @@ async fn the_library_signed_in_lists_each_segment_from_the_tracker() {
         let Event::Content { view, .. } = &updates[0] else { unreachable!() };
         assert_eq!(view, &ContentFor::Library(segment));
         assert_eq!(ids(content(&updates)), expected, "{segment:?}");
-        let Content::Entries(rows) = content(&updates) else { unreachable!() };
+        let ContentList::Entries(rows) = content(&updates) else { unreachable!() };
         assert!(rows.iter().all(|row| row.list_status == Some(segment)));
         ends(&updates, job);
     }

@@ -260,9 +260,13 @@ impl LibrarySegment {
 }
 
 /// What the stage is currently showing.
+///
+/// Not named for the event that carries it: no variant is named after the type it carries. In
+/// the Kotlin bindings a variant is a class nested in its enum's, and hides any type of its name
+/// spelled bare there.
 #[derive(Debug, Clone, Default, PartialEq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
-pub enum Content {
+pub enum ContentList {
     #[default]
     Empty,
     Loading,
@@ -274,7 +278,7 @@ pub enum Content {
     Failed(String),
 }
 
-impl Content {
+impl ContentList {
     pub fn entries(&self) -> &[Entry] {
         match self {
             Self::Entries(e) => e,

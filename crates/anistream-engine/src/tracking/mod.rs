@@ -353,26 +353,26 @@ impl anistream_track::kitsu::IdMapping for StoreMapping {
 /// Titles are remembered as they pass through, which is what later lets a sync conflict name the
 /// show instead of printing a bare id.
 pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -> Event {
-    use anistream_model::catalog::Content;
+    use anistream_model::catalog::ContentList;
 
     // Tagged with its segment: switching tabs while a pull is in flight must not show this one
     // under the next tab's heading.
     let answer = |content| Event::Content { view: ContentFor::Library(segment), content };
 
     let Some(tracker) = sync.trackers.first() else {
-        return answer(Content::Entries(Vec::new()));
+        return answer(ContentList::Entries(Vec::new()));
     };
     if !tracker.is_authenticated() {
         // Not a failure. The Library screen renders its own "no account" state, which explains
         // that history works regardless.
-        return answer(Content::Entries(Vec::new()));
+        return answer(ContentList::Entries(Vec::new()));
     }
 
     // The concrete handle, kept alongside the trait object rather than reached by downcasting:
     // the trait returns only the syncable projection, but this screen needs covers and titles
     // too, and fetching those per title would cost a request each against thirty a minute.
     let Some(anilist) = sync.anilist.as_ref() else {
-        return answer(Content::Entries(Vec::new()));
+        return answer(ContentList::Entries(Vec::new()));
     };
 
     match anilist.library().await {
@@ -394,12 +394,12 @@ pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -
                 row.list_status = Some(segment);
                 rows.push(row);
             }
-            answer(Content::Entries(rows))
+            answer(ContentList::Entries(rows))
         }
         Err(anistream_core::Error::Auth(_)) => {
-            answer(Content::Failed("sign in again on the Accounts screen".into()))
+            answer(ContentList::Failed("sign in again on the Accounts screen".into()))
         }
-        Err(e) => answer(Content::Failed(e.to_string())),
+        Err(e) => answer(ContentList::Failed(e.to_string())),
     }
 }
 

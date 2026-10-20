@@ -14,7 +14,7 @@
 
 use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 use anistream_model::{
-    catalog::{Content, ContentFor, Entry, LibrarySegment, SearchFilters},
+    catalog::{ContentFor, ContentList, Entry, LibrarySegment, SearchFilters},
     command::Command,
     downloads::{DownloadRow, SeedRow},
     episodes::EpisodeRow,
@@ -78,7 +78,7 @@ pub struct App {
     /// config decides. The engine owns the config, and the interface keeps no copy: a change is
     /// asked for, and shows once the engine says it is in effect.
     pub settings: SettingsView,
-    pub content: Content,
+    pub content: ContentList,
     /// The caption for the list on screen, with the view it belongs to. See [`Event::Caption`].
     pub caption: Option<(ContentFor, String)>,
     /// Where each view's highlight is, and the window of each list that keeps one.
@@ -303,7 +303,7 @@ impl App {
             palette,
             keymap,
             settings,
-            content: Content::Loading,
+            content: ContentList::Loading,
             caption: None,
             cursors: Cursors::default(),
             texts: Default::default(),

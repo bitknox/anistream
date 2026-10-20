@@ -298,7 +298,7 @@ fn meta_detail(row: &anistream_model::sources::MetaSourceRow, clock: &Clock) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anistream_model::{catalog::Content, event::Event};
+    use anistream_model::{catalog::ContentList, event::Event};
 
     use crate::{
         nav::Section,
@@ -340,7 +340,7 @@ mod tests {
     fn the_providers_screen_names_what_broke_and_why() {
         // This screen exists because sources die; an unexplained empty list is the failure
         // mode the whole design avoids.
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Providers);
         app.apply(Event::Providers(vec![
             provider("torrent", "ready", true, false),
@@ -360,7 +360,7 @@ mod tests {
     fn a_held_back_provider_is_visually_distinct_from_a_broken_one() {
         // Local policy withholding a working source is not the same as the source failing,
         // and the screen must not conflate them.
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Providers);
         app.apply(Event::Providers(vec![provider("torrent", "held back", false, true)]));
 
@@ -379,7 +379,7 @@ mod tests {
 
     #[test]
     fn an_empty_provider_list_says_how_to_fix_it() {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Providers);
         let text = text_of(&render_to_buffer(&mut app, 110, 20));
         assert!(text.contains("no sources available"));
@@ -390,7 +390,7 @@ mod tests {
     fn a_failing_guard_is_reported_instead_of_the_generic_advice() {
         // "You configured nothing" and "your VPN guard failed verification" call for
         // completely different responses, so the screen must not guess between them.
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Providers);
         app.apply(Event::ProviderNote(
             "vpn guard: expected one of [Mullvad], but traffic is leaving via Comcast".into(),
@@ -407,7 +407,7 @@ mod tests {
     #[test]
     fn the_providers_table_marks_only_the_row_the_order_keys_move() {
         // One row, the selected one, and the mark goes with it when `J` moves it down the chain.
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Providers);
         app.nav.focus_stage();
         app.apply(Event::Providers(vec![
@@ -435,7 +435,7 @@ mod tests {
 
     #[test]
     fn a_narrow_providers_table_drops_columns_rather_than_halving_words() {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Providers);
         app.apply(Event::Providers(vec![provider("someplugin", "ready", true, false)]));
         let text = text_of(&render_to_buffer(&mut app, 40, 15));

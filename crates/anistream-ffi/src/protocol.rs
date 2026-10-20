@@ -8,7 +8,7 @@
 use std::fmt::{self, Write};
 
 use anistream_model::{
-    catalog::{Content, ContentFor, Entry, SearchFilters},
+    catalog::{ContentFor, ContentList, Entry, SearchFilters},
     command::Command,
     event::Event,
     notice::NoticeKind,
@@ -123,15 +123,15 @@ pub enum FfiContent {
     Failed { reason: String },
 }
 
-impl From<Content> for FfiContent {
-    fn from(content: Content) -> Self {
+impl From<ContentList> for FfiContent {
+    fn from(content: ContentList) -> Self {
         match content {
-            Content::Empty => Self::Empty,
-            Content::Loading => Self::Loading,
-            Content::Entries(entries) => {
+            ContentList::Empty => Self::Empty,
+            ContentList::Loading => Self::Loading,
+            ContentList::Entries(entries) => {
                 Self::Titles { titles: entries.into_iter().map(FfiTitle::from).collect() }
             }
-            Content::Failed(reason) => Self::Failed { reason },
+            ContentList::Failed(reason) => Self::Failed { reason },
         }
     }
 }
@@ -228,7 +228,7 @@ mod tests {
                 query: "hoshikuzu".into(),
                 filter: SearchFilters::default(),
             },
-            content: Content::Entries(vec![entry]),
+            content: ContentList::Entries(vec![entry]),
         };
         assert_eq!(
             FfiEvent::from(event),
@@ -249,7 +249,7 @@ mod tests {
     fn a_list_that_failed_says_why() {
         let event = Event::Content {
             view: ContentFor::Continue,
-            content: Content::Failed("no disk".into()),
+            content: ContentList::Failed("no disk".into()),
         };
         assert_eq!(
             FfiEvent::from(event),

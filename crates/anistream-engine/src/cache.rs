@@ -20,7 +20,7 @@ use std::collections::HashMap;
 
 use anistream_core::ids::AnilistId;
 use anistream_model::{
-    catalog::{Content, Entry, ResumePoint},
+    catalog::{ContentList, Entry, ResumePoint},
     episodes::EpisodeRow,
     event::Event,
     playback::{EpisodeEntry, NextEpisode},
@@ -113,7 +113,7 @@ impl TitleCache {
                 }
                 None
             }
-            Event::Content { content: Content::Entries(entries), .. }
+            Event::Content { content: ContentList::Entries(entries), .. }
             | Event::CalendarBackfill { entries, .. } => {
                 entries.iter().for_each(|entry| self.know(entry));
                 None
@@ -438,7 +438,7 @@ mod tests {
     }
 
     fn listed(cache: &mut TitleCache, entries: Vec<Entry>) {
-        let content = Content::Entries(entries);
+        let content = ContentList::Entries(entries);
         cache.observe(&Event::Content { view: ContentFor::Continue, content }, None);
     }
 
