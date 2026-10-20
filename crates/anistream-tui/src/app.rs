@@ -385,6 +385,87 @@ pub enum Field {
     InviteName,
 }
 
+impl Field {
+    pub const ALL: [Self; 9] = [
+        Self::Search,
+        Self::Palette,
+        Self::ManualQuery,
+        Self::Range,
+        Self::Setting,
+        Self::KitsuUser,
+        Self::KitsuPassword,
+        Self::JoinLink,
+        Self::InviteName,
+    ];
+
+    /// Whether `ch` goes into this field as it stands: a field that takes only some of what
+    /// can be typed says so by not taking the rest.
+    fn takes(self, field: &TextField, ch: char) -> bool {
+        match self {
+            // A range is digits and one dash; letting anything else in would make the parse
+            // failure the user's puzzle instead of the input's boundary.
+            Self::Range => ch.is_ascii_digit() || ch == '-',
+            // The server takes up to 64; stopping here says so before it is refused.
+            Self::InviteName => field.len() < 64,
+            _ => true,
+        }
+    }
+
+    /// Whether the field is drawn one dot to a character rather than as typed. The screen can
+    /// be shared, streamed or screenshotted, and a password never shows in it.
+    pub const fn masked(self) -> bool {
+        matches!(self, Self::KitsuPassword)
+    }
+}
+
+/// A line of text typed at the keyboard.
+///
+/// Typed at its end and taken back from its end, which is all any field here does: there is no
+/// caret to move, so the end is where the next character goes and where the screen draws one.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct TextField {
+    text: String,
+}
+
+impl TextField {
+    pub fn as_str(&self) -> &str {
+        &self.text
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.text.is_empty()
+    }
+
+    /// How many characters it holds: what a masked field draws, a dot for each.
+    pub fn len(&self) -> usize {
+        self.text.chars().count()
+    }
+
+    /// A character typed, onto the end.
+    pub fn insert(&mut self, ch: char) {
+        self.text.push(ch);
+    }
+
+    /// Backspace: the last character off, if there is one.
+    pub fn backspace(&mut self) {
+        self.text.pop();
+    }
+
+    pub fn clear(&mut self) {
+        self.text.clear();
+    }
+
+    /// Hold `text` instead, as if it had been typed: a prompt opened on a value to edit.
+    pub fn set(&mut self, text: String) {
+        self.text = text;
+    }
+
+    /// What it holds, leaving it empty: for a value that must not stay behind once it is used.
+    pub fn take(&mut self) -> String {
+        std::mem::take(&mut self.text)
+    }
+}
+
 /// Where a view's highlight is, and the first row its window shows.
 ///
 /// The window is kept only where it should not follow the highlight on every move: the sections'
@@ -505,7 +586,11 @@ pub struct App {
     pub caption: Option<(ContentFor, String)>,
     /// Where each view's highlight is, and the window of each list that keeps one.
     pub cursors: Cursors,
-    pub search_query: String,
+    /// Every text field's line: Search's query and each prompt's. See [`Field`].
+    ///
+    /// The Kitsu sign-in's two are cleared on every open and dismiss, and the password is
+    /// taken, not copied, when the exchange is dispatched.
+    texts: [TextField; Field::ALL.len()],
     /// The query the results on screen belong to.
     ///
     /// Lets Enter mean "run this" while the query is new and "open this" once it is not, which is
@@ -520,11 +605,6 @@ pub struct App {
     /// the results while it had focus. ↓ moves from the field into the results, where they are
     /// a list like any other; ↑ from the first row, `/` and Esc go back to typing.
     pub search_in_results: bool,
-    pub palette_query: String,
-    /// The Kitsu sign-in prompts' buffers. The password is taken, not copied, when the
-    /// exchange is dispatched, and both are cleared on every open and dismiss.
-    pub kitsu_user: String,
-    pub kitsu_pass: String,
     /// The title the Title or Episodes view on top is showing, or was last showing.
     ///
     /// It outlives that view on purpose — playback reads the loaded title's episode table after
@@ -678,14 +758,8 @@ pub struct App {
     pub sources: Vec<SourceCandidate>,
     /// Which title and episode the pending source list is for.
     pub source_context: Option<(AnilistId, String)>,
-    /// What is being typed into the manual-match overlay.
-    pub manual_query: String,
     /// Which title a manual search would re-match.
     pub manual_target: Option<AnilistId>,
-    /// What is being typed into the download-range overlay: `4`, `1-12`, `7-`.
-    pub range_query: String,
-    /// What is being typed into the setting editor.
-    pub edit_value: String,
     /// Which text-valued setting the editor is writing.
     pub edit_target: Option<SettingKey>,
     /// Joined plugin stores.
@@ -696,10 +770,6 @@ pub struct App {
     pub members_for: Option<String>,
     pub store_members: Vec<StoreMemberRow>,
     pub store_invites: Vec<StoreInviteRow>,
-    /// What is being typed into the join prompt: an invite link.
-    pub join_link: String,
-    /// What is being typed into the invite prompt: who it is for.
-    pub invite_name: String,
     /// The store action the confirm overlay is asking about.
     pub store_confirm: Option<StoreConfirm>,
     /// The invite link overlay's link.
@@ -739,13 +809,10 @@ impl App {
             content: Content::Loading,
             caption: None,
             cursors: Cursors::default(),
-            search_query: String::new(),
+            texts: Default::default(),
             searched_query: String::new(),
             search_filter: SearchFilters::default(),
             search_in_results: false,
-            palette_query: String::new(),
-            kitsu_user: String::new(),
-            kitsu_pass: String::new(),
             detail: None,
             title_trail: Vec::new(),
             status: String::new(),
@@ -800,18 +867,13 @@ impl App {
             match_context: None,
             sources: Vec::new(),
             source_context: None,
-            manual_query: String::new(),
             manual_target: None,
-            range_query: String::new(),
-            edit_value: String::new(),
             edit_target: None,
             stores: Vec::new(),
             stores_loaded: false,
             members_for: None,
             store_members: Vec::new(),
             store_invites: Vec::new(),
-            join_link: String::new(),
-            invite_name: String::new(),
             store_confirm: None,
             invite_link: None,
             invite_copied: false,
@@ -1932,7 +1994,7 @@ impl App {
                 }
             }
             Action::CommandPalette => {
-                self.palette_query.clear();
+                self.field_mut(Field::Palette).clear();
                 self.nav.open_overlay(Overlay::CommandPalette);
             }
             // Out of the search results is back into the query they answered, one step short
@@ -1997,8 +2059,9 @@ impl App {
                 if let Some(row) = self.settings.rows.get(self.cursors.settings.selected)
                     && let SettingChange::Typed { text } = &row.change
                 {
-                    self.edit_target = Some(row.key);
-                    self.edit_value = text.clone();
+                    let (key, text) = (row.key, text.clone());
+                    self.edit_target = Some(key);
+                    self.field_mut(Field::Setting).set(text);
                     self.nav.open_overlay(Overlay::EditSetting);
                     return None;
                 }
@@ -2151,7 +2214,7 @@ impl App {
                 return Some(Command::SetWatched { id, episodes: marked, watched: true });
             }
             Action::DownloadRange if self.in_episodes() => {
-                self.range_query.clear();
+                self.field_mut(Field::Range).clear();
                 self.cursors.overlay.selected = 0;
                 self.nav.open_overlay(Overlay::DownloadRange);
             }
@@ -2294,7 +2357,7 @@ impl App {
                     return None;
                 };
                 self.manual_target = Some(id);
-                self.manual_query.clear();
+                self.field_mut(Field::ManualQuery).clear();
                 self.cursors.overlay.selected = 0;
                 self.nav.open_overlay(Overlay::ManualQuery);
             }
@@ -2721,8 +2784,8 @@ impl App {
         if tracker.tracker == "kitsu" {
             // Cleared on open, not just on submit, so a dismissed attempt never leaves
             // half a password waiting in the next prompt.
-            self.kitsu_user.clear();
-            self.kitsu_pass.clear();
+            self.field_mut(Field::KitsuUser).clear();
+            self.field_mut(Field::KitsuPassword).clear();
             self.nav.open_overlay(Overlay::KitsuUsername);
             return None;
         }
@@ -2898,7 +2961,7 @@ impl App {
                 // Close first, then run: several palette actions open an overlay of their own,
                 // and leaving the palette on the stack would bury them.
                 self.nav.close_overlay();
-                self.palette_query.clear();
+                self.field_mut(Field::Palette).clear();
                 self.cursors.overlay.selected = 0;
                 self.perform(action, visible_rows)
             }
@@ -2929,7 +2992,7 @@ impl App {
             }
             Some(Overlay::SearchFilters) => {
                 self.nav.close_overlay();
-                let query = self.search_query.trim().to_owned();
+                let query = self.text(Field::Search).trim().to_owned();
                 // A filter with no query is a browse, which is a legitimate search. Both
                 // empty means there is nothing to ask yet, and that is not an error.
                 if query.is_empty() && self.search_filter.is_empty() {
@@ -3227,7 +3290,7 @@ impl App {
         // The keys the screen will read once the palette is closed, not the palette's own.
         let context = if self.playing.is_some() { Context::Playing } else { Context::Browsing };
         self.keymap
-            .palette_entries(&self.palette_query, context)
+            .palette_entries(self.text(Field::Palette), context)
             .into_iter()
             .take(PALETTE_ROWS)
             .collect()
@@ -3259,15 +3322,15 @@ impl App {
                 }
                 if credentials_open {
                     // A dismissed sign-in leaves nothing behind to resurface later.
-                    self.kitsu_user.clear();
-                    self.kitsu_pass.clear();
+                    self.field_mut(Field::KitsuUser).clear();
+                    self.field_mut(Field::KitsuPassword).clear();
                 }
                 // An invite link is a one-time credential; a dismissed prompt forgets it.
-                self.join_link.clear();
-                self.invite_name.clear();
+                self.field_mut(Field::JoinLink).clear();
+                self.field_mut(Field::InviteName).clear();
             }
             Action::CommandPalette => {
-                self.palette_query.clear();
+                self.field_mut(Field::Palette).clear();
                 self.nav.open_overlay(Overlay::CommandPalette);
             }
             Action::Help => self.open_help(),
@@ -3275,21 +3338,21 @@ impl App {
             // The two sign-in steps. Enter with nothing typed stays put — an empty
             // submit is a slip of the finger, not an answer.
             Action::Open if self.nav.overlay() == Some(&Overlay::KitsuUsername) => {
-                if self.kitsu_user.trim().is_empty() {
+                if self.text(Field::KitsuUser).trim().is_empty() {
                     return None;
                 }
                 self.nav.close_overlay();
                 self.nav.open_overlay(Overlay::KitsuPassword);
             }
             Action::Open if self.nav.overlay() == Some(&Overlay::KitsuPassword) => {
-                if self.kitsu_pass.is_empty() {
+                if self.text(Field::KitsuPassword).is_empty() {
                     return None;
                 }
                 // Taken, not cloned: the buffer must not hold a live password after the
                 // exchange is dispatched.
-                let username = self.kitsu_user.trim().to_owned();
-                let password = Secret(std::mem::take(&mut self.kitsu_pass));
-                self.kitsu_user.clear();
+                let username = self.text(Field::KitsuUser).trim().to_owned();
+                let password = Secret(self.field_mut(Field::KitsuPassword).take());
+                self.field_mut(Field::KitsuUser).clear();
                 self.nav.close_overlay();
                 return Some(Command::ConnectKitsu { username, password });
             }
@@ -3297,7 +3360,7 @@ impl App {
                 // A link that wrapped in a chat window arrives with spaces and line breaks in
                 // it, and a URL has no place for either.
                 let link: String =
-                    self.join_link.chars().filter(|c| !c.is_whitespace()).collect();
+                    self.text(Field::JoinLink).chars().filter(|c| !c.is_whitespace()).collect();
                 if link.is_empty() {
                     return None;
                 }
@@ -3305,12 +3368,12 @@ impl App {
                 return Some(Command::PreviewStore { link: Secret(link) });
             }
             Action::Open if self.nav.overlay() == Some(&Overlay::InviteName) => {
-                let name = self.invite_name.trim().to_owned();
+                let name = self.text(Field::InviteName).trim().to_owned();
                 if name.is_empty() {
                     return None;
                 }
                 let store = self.store_view()?.to_owned();
-                self.invite_name.clear();
+                self.field_mut(Field::InviteName).clear();
                 self.nav.close_overlay();
                 return Some(Command::CreateInvite { store, name: Some(name) });
             }
@@ -3332,7 +3395,7 @@ impl App {
                 if !id.typed() {
                     return None;
                 }
-                let value = self.edit_value.trim().to_owned();
+                let value = self.text(Field::Setting).trim().to_owned();
                 self.nav.close_overlay();
                 if value.is_empty() {
                     // The writer sets keys; it does not delete them. Refusing beats
@@ -3354,10 +3417,10 @@ impl App {
                 };
                 // Resolved against episodes that actually exist, from the unfiltered
                 // list — a filter narrows the view, not what can be fetched.
-                let Some((from, to)) = parse_episode_range(&self.range_query) else {
+                let Some((from, to)) = parse_episode_range(self.text(Field::Range)) else {
                     // Cleared, with the prompt left open for another try. Kept, the retry's
                     // keys were appended to the refused text and refused again.
-                    self.range_query.clear();
+                    self.field_mut(Field::Range).clear();
                     self.push_toast(Notice::info("ranges look like 4, 1-12 or 7-"));
                     return None;
                 };
@@ -3373,7 +3436,7 @@ impl App {
                     .map(|row| row.number.clone())
                     .collect();
                 if episodes.is_empty() {
-                    self.range_query.clear();
+                    self.field_mut(Field::Range).clear();
                     self.push_toast(Notice::info("no episodes in that range"));
                     return None;
                 }
@@ -3387,7 +3450,7 @@ impl App {
             // Enter runs the manual search; the results come back as ordinary match
             // choices, so the whole Disambiguate tail is reused unchanged.
             Action::Open if self.nav.overlay() == Some(&Overlay::ManualQuery) => {
-                let query = self.manual_query.trim().to_owned();
+                let query = self.text(Field::ManualQuery).trim().to_owned();
                 let id = self.manual_target?;
                 self.nav.close_overlay();
                 // Empty enter is the undo: forget the pin, let the ladder decide again.
@@ -3406,7 +3469,7 @@ impl App {
                 self.cursors.overlay.selected = self.cursors.overlay.selected.saturating_sub(1);
             }
             Action::Open if self.nav.section() == Section::Search => {
-                let query = self.search_query.trim().to_owned();
+                let query = self.text(Field::Search).trim().to_owned();
                 if query.is_empty() {
                     return None;
                 }
@@ -3457,7 +3520,7 @@ impl App {
     /// Whether Enter in Search's field opens the highlighted result rather than searching:
     /// the results on screen are already for the query as typed.
     pub fn search_opens_on_enter(&self) -> bool {
-        let query = self.search_query.trim();
+        let query = self.text(Field::Search).trim();
         !query.is_empty() && query == self.searched_query && !self.content.is_empty()
     }
 
@@ -3480,59 +3543,44 @@ impl App {
                 && matches!(self.nav.current(), StageView::Section(_)))
     }
 
+    /// The field the keyboard types into now: the prompt on top, or else Search's own field.
+    ///
+    /// The prompt first and the section after, whatever has focus, as typing has always gone:
+    /// the preview and the tests type into Search's field without focusing it, and the keys
+    /// only type at all while [`Self::is_typing`] says so.
+    pub fn focused_field(&self) -> Option<Field> {
+        Some(match self.nav.overlay() {
+            Some(Overlay::CommandPalette) => Field::Palette,
+            Some(Overlay::ManualQuery) => Field::ManualQuery,
+            Some(Overlay::DownloadRange) => Field::Range,
+            Some(Overlay::EditSetting) => Field::Setting,
+            Some(Overlay::KitsuUsername) => Field::KitsuUser,
+            Some(Overlay::KitsuPassword) => Field::KitsuPassword,
+            Some(Overlay::JoinStore) => Field::JoinLink,
+            Some(Overlay::InviteName) => Field::InviteName,
+            _ if self.nav.section() == Section::Search => Field::Search,
+            _ => return None,
+        })
+    }
+
     /// Feed a character to whichever text field is active.
     pub fn type_char(&mut self, ch: char) {
-        if self.nav.overlay() == Some(&Overlay::CommandPalette) {
-            self.palette_query.push(ch);
+        let Some(field) = self.focused_field() else { return };
+        if field.takes(self.field(field), ch) {
+            self.field_mut(field).insert(ch);
+        }
+        if field == Field::Palette {
             // Filtering reorders the matches, so the old index would point at an unrelated
             // action — and the top hit is what a fuzzy filter is for.
             self.cursors.overlay.selected = 0;
-        } else if self.nav.overlay() == Some(&Overlay::ManualQuery) {
-            self.manual_query.push(ch);
-        } else if self.nav.overlay() == Some(&Overlay::DownloadRange) {
-            // A range is digits and one dash; letting anything else in would make the
-            // parse failure the user's puzzle instead of the input's boundary.
-            if ch.is_ascii_digit() || ch == '-' {
-                self.range_query.push(ch);
-            }
-        } else if self.nav.overlay() == Some(&Overlay::EditSetting) {
-            self.edit_value.push(ch);
-        } else if self.nav.overlay() == Some(&Overlay::KitsuUsername) {
-            self.kitsu_user.push(ch);
-        } else if self.nav.overlay() == Some(&Overlay::KitsuPassword) {
-            self.kitsu_pass.push(ch);
-        } else if self.nav.overlay() == Some(&Overlay::JoinStore) {
-            self.join_link.push(ch);
-        } else if self.nav.overlay() == Some(&Overlay::InviteName) {
-            // The server takes up to 64; stopping here says so before it is refused.
-            if self.invite_name.chars().count() < 64 {
-                self.invite_name.push(ch);
-            }
-        } else if self.nav.section() == Section::Search {
-            self.search_query.push(ch);
         }
     }
 
     pub fn backspace(&mut self) {
-        if self.nav.overlay() == Some(&Overlay::CommandPalette) {
-            self.palette_query.pop();
+        let Some(field) = self.focused_field() else { return };
+        self.field_mut(field).backspace();
+        if field == Field::Palette {
             self.cursors.overlay.selected = 0;
-        } else if self.nav.overlay() == Some(&Overlay::ManualQuery) {
-            self.manual_query.pop();
-        } else if self.nav.overlay() == Some(&Overlay::DownloadRange) {
-            self.range_query.pop();
-        } else if self.nav.overlay() == Some(&Overlay::EditSetting) {
-            self.edit_value.pop();
-        } else if self.nav.overlay() == Some(&Overlay::KitsuUsername) {
-            self.kitsu_user.pop();
-        } else if self.nav.overlay() == Some(&Overlay::KitsuPassword) {
-            self.kitsu_pass.pop();
-        } else if self.nav.overlay() == Some(&Overlay::JoinStore) {
-            self.join_link.pop();
-        } else if self.nav.overlay() == Some(&Overlay::InviteName) {
-            self.invite_name.pop();
-        } else if self.nav.section() == Section::Search {
-            self.search_query.pop();
         }
     }
 
@@ -3700,11 +3748,12 @@ impl App {
             Section::Seasonal => Command::LoadSeasonal,
             Section::Calendar => Command::LoadCalendar,
             Section::Search
-                if !self.search_query.trim().is_empty() || !self.search_filter.is_empty() =>
+                if !self.text(Field::Search).trim().is_empty()
+                    || !self.search_filter.is_empty() =>
             {
                 // Recorded as submitted, the same as Enter does, because the answer is tagged
                 // with this query and only taken while it is still the one on screen.
-                let query = self.search_query.trim().to_owned();
+                let query = self.text(Field::Search).trim().to_owned();
                 self.searched_query = query.clone();
                 Command::Search { query, filter: self.search_filter.clone() }
             }
@@ -3729,7 +3778,7 @@ impl App {
         match self.nav.section() {
             Section::Home | Section::Seasonal | Section::Calendar | Section::Library => true,
             Section::Search => {
-                !self.search_query.trim().is_empty() || !self.search_filter.is_empty()
+                !self.text(Field::Search).trim().is_empty() || !self.search_filter.is_empty()
             }
             _ => false,
         }
@@ -3825,32 +3874,21 @@ impl App {
 
     /// What `field` holds.
     pub fn text(&self, field: Field) -> &str {
-        match field {
-            Field::Search => &self.search_query,
-            Field::Palette => &self.palette_query,
-            Field::ManualQuery => &self.manual_query,
-            Field::Range => &self.range_query,
-            Field::Setting => &self.edit_value,
-            Field::KitsuUser => &self.kitsu_user,
-            Field::KitsuPassword => &self.kitsu_pass,
-            Field::JoinLink => &self.join_link,
-            Field::InviteName => &self.invite_name,
-        }
+        self.field(field).as_str()
     }
 
     /// `field` holding `text`, as if it had been typed.
     pub fn set_text(&mut self, field: Field, text: String) {
-        *match field {
-            Field::Search => &mut self.search_query,
-            Field::Palette => &mut self.palette_query,
-            Field::ManualQuery => &mut self.manual_query,
-            Field::Range => &mut self.range_query,
-            Field::Setting => &mut self.edit_value,
-            Field::KitsuUser => &mut self.kitsu_user,
-            Field::KitsuPassword => &mut self.kitsu_pass,
-            Field::JoinLink => &mut self.join_link,
-            Field::InviteName => &mut self.invite_name,
-        } = text;
+        self.field_mut(field).set(text);
+    }
+
+    /// The line `field` is.
+    pub fn field(&self, field: Field) -> &TextField {
+        &self.texts[field as usize]
+    }
+
+    fn field_mut(&mut self, field: Field) -> &mut TextField {
+        &mut self.texts[field as usize]
     }
 }
 
@@ -4045,7 +4083,7 @@ impl App {
                 self.nav.push(StageView::Store(id));
             }
             None => {
-                self.join_link.clear();
+                self.field_mut(Field::JoinLink).clear();
                 self.nav.open_overlay(Overlay::JoinStore);
             }
         }
@@ -4065,7 +4103,7 @@ impl App {
                 Some(Command::CreateInvite { store: store.id, name: None })
             }
             StoreLine::Invite => {
-                self.invite_name.clear();
+                self.field_mut(Field::InviteName).clear();
                 self.nav.open_overlay(Overlay::InviteName);
                 None
             }
@@ -4169,7 +4207,7 @@ impl App {
         self.nav.close_overlay();
         Some(match confirm {
             StoreConfirm::Join(preview) => {
-                self.join_link.clear();
+                self.field_mut(Field::JoinLink).clear();
                 Command::JoinStore { link: preview.link }
             }
             StoreConfirm::Leave { store, .. } => Command::LeaveStore { store },
@@ -8212,6 +8250,33 @@ mod tests {
         a.backspace();
         a.backspace();
         assert_eq!(a.text(Field::Search), "", "must not underflow");
+    }
+
+    /// Each field takes what it always took and only that: a range its digits and dashes, an
+    /// invite name up to the server's 64 characters, counted as characters, and the rest
+    /// whatever is typed. Backspace takes the last one back, in the field on top.
+    #[test]
+    fn each_field_takes_what_it_always_took() {
+        let mut a = app();
+        a.nav.open_overlay(Overlay::DownloadRange);
+        "1a-b2 ".chars().for_each(|c| a.type_char(c));
+        assert_eq!(a.text(Field::Range), "1-2");
+        a.nav.close_overlay();
+
+        a.nav.open_overlay(Overlay::InviteName);
+        "é".repeat(70).chars().for_each(|c| a.type_char(c));
+        assert_eq!(a.text(Field::InviteName), "é".repeat(64));
+        a.nav.close_overlay();
+
+        a.nav.open_overlay(Overlay::ManualQuery);
+        "a b-?".chars().for_each(|c| a.type_char(c));
+        assert_eq!(a.text(Field::ManualQuery), "a b-?");
+        for _ in 0..7 {
+            a.backspace();
+        }
+        assert_eq!(a.text(Field::ManualQuery), "");
+        assert_eq!(a.text(Field::Range), "1-2", "the fields not on top are left alone");
+        assert_eq!(a.text(Field::InviteName).chars().count(), 64);
     }
 
     #[test]

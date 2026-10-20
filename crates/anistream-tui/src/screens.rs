@@ -19,7 +19,7 @@ use ratatui::{
 };
 
 use crate::{
-    app::{App, FrameReport, PluginChoice, StoreConfirm, StoreLine, sync_badge},
+    app::{App, Field, FrameReport, PluginChoice, StoreConfirm, StoreLine, sync_badge},
     clock::Clock,
     keymap::status_hints_paged,
     layout::{self, Frame},
@@ -313,7 +313,8 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
     if section == Section::Search {
         let cursor =
             if app.is_typing() { String::from(glyph::OBI_THIN) } else { String::new() };
-        let prompt = format!("{} {}{cursor}", glyph::eyebrow("find"), app.search_query);
+        let prompt =
+            format!("{} {}{cursor}", glyph::eyebrow("find"), field_text(app, Field::Search));
         buf.set_string(
             area.left(),
             y,
@@ -1162,7 +1163,7 @@ fn empty_state(app: &App, section: Section, searched: bool) -> (&'static str, Op
     };
     // A query typed and not yet run. "Type to search" over it told someone who had typed to
     // start typing, and an earlier "no matches" answers a query no longer in the field.
-    let typed = app.search_query.trim();
+    let typed = app.text(Field::Search).trim();
     let unsent = !typed.is_empty() && typed != app.searched_query;
     match section {
         Section::Search if unsent => ("↵ to search", None),
@@ -3494,29 +3495,49 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) -> 
     buf[(band.left(), title_y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
     let heading = match overlay {
         Overlay::CommandPalette => {
-            format!("{}   {}▏", glyph::eyebrow(overlay.title()), app.palette_query)
+            format!(
+                "{}   {}▏",
+                glyph::eyebrow(overlay.title()),
+                field_text(app, Field::Palette)
+            )
         }
         Overlay::ManualQuery => {
-            format!("{}   {}▏", glyph::eyebrow(overlay.title()), app.manual_query)
+            format!(
+                "{}   {}▏",
+                glyph::eyebrow(overlay.title()),
+                field_text(app, Field::ManualQuery)
+            )
         }
         Overlay::DownloadRange => {
-            format!("{}   {}▏", glyph::eyebrow(overlay.title()), app.range_query)
+            format!("{}   {}▏", glyph::eyebrow(overlay.title()), field_text(app, Field::Range))
         }
         Overlay::EditSetting => {
-            format!("{}   {}▏", glyph::eyebrow(overlay.title()), app.edit_value)
+            format!(
+                "{}   {}▏",
+                glyph::eyebrow(overlay.title()),
+                field_text(app, Field::Setting)
+            )
         }
         Overlay::KitsuUsername => {
-            format!("{}   {}▏", glyph::eyebrow(overlay.title()), app.kitsu_user)
+            format!(
+                "{}   {}▏",
+                glyph::eyebrow(overlay.title()),
+                field_text(app, Field::KitsuUser)
+            )
         }
         // A link is longer than the band, and the end is where the cursor is, so the end is
         // what shows.
         Overlay::JoinStore => {
             let title = glyph::eyebrow(overlay.title());
             let room = (band.width as usize).saturating_sub(title.chars().count() + 8);
-            format!("{title}   {}▏", tail(&app.join_link, room))
+            format!("{title}   {}▏", tail(&field_text(app, Field::JoinLink), room))
         }
         Overlay::InviteName => {
-            format!("{}   {}▏", glyph::eyebrow(overlay.title()), app.invite_name)
+            format!(
+                "{}   {}▏",
+                glyph::eyebrow(overlay.title()),
+                field_text(app, Field::InviteName)
+            )
         }
         Overlay::StoreConfirm => store_confirm_heading(app),
         Overlay::PluginAction => match app.plugin_in_action() {
@@ -3542,7 +3563,7 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) -> 
         Overlay::KitsuPassword => format!(
             "{}   {}▏",
             glyph::eyebrow(overlay.title()),
-            "•".repeat(app.kitsu_pass.chars().count())
+            field_text(app, Field::KitsuPassword)
         ),
         // Say what is being asked, or a bare "WHICH ONE" over a list of near-identical release
         // names is a riddle rather than a question. Not why: the same list answers a search
@@ -3659,6 +3680,12 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) -> 
         }
     }
     report
+}
+
+/// What a text field shows: what was typed, or a dot for each character of a masked one.
+fn field_text(app: &App, field: Field) -> String {
+    let line = app.field(field);
+    if field.masked() { "•".repeat(line.len()) } else { line.as_str().to_owned() }
 }
 
 /// The last `room` characters of `text`, with an ellipsis when that is not all of it.
