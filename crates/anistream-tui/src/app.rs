@@ -359,6 +359,32 @@ enum Rows {
     Members,
 }
 
+/// A line the keyboard types into: a prompt's, or Search's own field.
+///
+/// Named by what it holds rather than where it is kept, so what reads one, a test setting the
+/// stage among them, does not change when the buffers do.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Field {
+    /// Search's query.
+    Search,
+    /// What narrows the command palette.
+    Palette,
+    /// What a manual match searches for.
+    ManualQuery,
+    /// The episodes a download range asks for: `4`, `1-12`, `7-`.
+    Range,
+    /// The value a text setting is being given.
+    Setting,
+    /// Who signs in to Kitsu.
+    KitsuUser,
+    /// Their password, drawn masked.
+    KitsuPassword,
+    /// An invite link being pasted.
+    JoinLink,
+    /// Who an invite is for.
+    InviteName,
+}
+
 /// A title page left for one of its relations or recommendations.
 ///
 /// Opening a related title replaces `detail` and, once its episodes are asked for, the episode
@@ -3624,6 +3650,99 @@ impl App {
     }
 }
 
+/// Where each cursor is and what each field holds, asked by what they are rather than by where
+/// they are kept: the tests set the stage and check it through these, so the state behind them
+/// can move without the tests moving with it.
+impl App {
+    /// The highlighted row of the section's own view: its list, or its table on Downloads,
+    /// Providers, Accounts and Settings. A view pushed over the section leaves it where it was.
+    pub fn cursor(&self) -> usize {
+        self.selected
+    }
+
+    pub fn set_cursor(&mut self, row: usize) {
+        self.selected = row;
+    }
+
+    /// The first row the section's list shows.
+    pub fn offset(&self) -> usize {
+        self.offset
+    }
+
+    pub fn set_offset(&mut self, row: usize) {
+        self.offset = row;
+    }
+
+    /// The highlighted row of the episode table.
+    pub fn episode_cursor(&self) -> usize {
+        self.episode_selected
+    }
+
+    pub fn set_episode_cursor(&mut self, row: usize) {
+        self.episode_selected = row;
+    }
+
+    /// The highlighted row of the list overlay on top: one cursor for every overlay, which
+    /// each one that lists something sets as it opens.
+    pub fn overlay_cursor(&self) -> usize {
+        self.overlay_selected
+    }
+
+    pub fn set_overlay_cursor(&mut self, row: usize) {
+        self.overlay_selected = row;
+    }
+
+    /// The highlighted row of the store list; one past the last store is the join row.
+    pub fn store_cursor(&self) -> usize {
+        self.store_selected
+    }
+
+    /// The highlighted line of a store's page.
+    pub fn store_line_cursor(&self) -> usize {
+        self.store_line_selected
+    }
+
+    /// The highlighted row of a store's members, its unused invites after them.
+    pub fn member_cursor(&self) -> usize {
+        self.member_selected
+    }
+
+    /// The page of the key reference showing.
+    pub fn help_page(&self) -> usize {
+        self.help_page
+    }
+
+    /// What `field` holds.
+    pub fn text(&self, field: Field) -> &str {
+        match field {
+            Field::Search => &self.search_query,
+            Field::Palette => &self.palette_query,
+            Field::ManualQuery => &self.manual_query,
+            Field::Range => &self.range_query,
+            Field::Setting => &self.edit_value,
+            Field::KitsuUser => &self.kitsu_user,
+            Field::KitsuPassword => &self.kitsu_pass,
+            Field::JoinLink => &self.join_link,
+            Field::InviteName => &self.invite_name,
+        }
+    }
+
+    /// `field` holding `text`, as if it had been typed.
+    pub fn set_text(&mut self, field: Field, text: String) {
+        *match field {
+            Field::Search => &mut self.search_query,
+            Field::Palette => &mut self.palette_query,
+            Field::ManualQuery => &mut self.manual_query,
+            Field::Range => &mut self.range_query,
+            Field::Setting => &mut self.edit_value,
+            Field::KitsuUser => &mut self.kitsu_user,
+            Field::KitsuPassword => &mut self.kitsu_pass,
+            Field::JoinLink => &mut self.join_link,
+            Field::InviteName => &mut self.invite_name,
+        } = text;
+    }
+}
+
 impl App {
     /// Artwork the current view will render, so the caller can prefetch it.
     ///
@@ -4304,8 +4423,8 @@ mod tests {
         let mut a = calendar_loaded();
 
         // Deep in the list there is nothing to do — every row above is already loaded.
-        a.selected = 80;
-        a.offset = 61;
+        a.set_cursor(80);
+        a.set_offset(61);
         a.handle(Action::Up, 20);
         assert_eq!(
             a.take_pending(),
@@ -4315,7 +4434,7 @@ mod tests {
 
         // Within a screenful of the top, the page behind is asked for — early enough that
         // there are still rows left to scroll through while it arrives.
-        a.selected = CALENDAR_BACKFILL_MARGIN + 1;
+        a.set_cursor(CALENDAR_BACKFILL_MARGIN + 1);
         a.handle(Action::Up, 20);
         assert_eq!(
             a.take_pending(),
@@ -4334,8 +4453,8 @@ mod tests {
     #[test]
     fn backfilled_broadcasts_land_above_the_viewport_without_moving_it() {
         let mut a = calendar_loaded();
-        a.selected = 8;
-        a.offset = 4;
+        a.set_cursor(8);
+        a.set_offset(4);
 
         let older: Vec<Entry> = (0..50)
             .map(|i| Entry::new(AnilistId::new(900 + i), format!("Older {i}")))
@@ -4350,9 +4469,9 @@ mod tests {
         );
         // The whole point. Rows arrived above the viewport, so the row under the cursor and
         // its position on screen are both exactly where the user left them.
-        assert_eq!(a.selected, 58, "the selection must still be on the same broadcast");
-        assert_eq!(a.offset, 54, "and that broadcast must still be in the same place");
-        assert_eq!(a.content.entries()[a.selected].title, "Title 8");
+        assert_eq!(a.cursor(), 58, "the selection must still be on the same broadcast");
+        assert_eq!(a.offset(), 54, "and that broadcast must still be in the same place");
+        assert_eq!(a.content.entries()[a.cursor()].title, "Title 8");
     }
 
     #[test]
@@ -4377,7 +4496,7 @@ mod tests {
     #[test]
     fn a_failed_backfill_leaves_its_page_to_be_tried_again() {
         let mut a = calendar_loaded();
-        a.selected = CALENDAR_BACKFILL_MARGIN + 1;
+        a.set_cursor(CALENDAR_BACKFILL_MARGIN + 1);
         a.handle(Action::Up, 20);
         assert!(a.take_pending().is_some(), "the scroll should have asked for page four");
 
@@ -4401,7 +4520,7 @@ mod tests {
             more_past: false,
         });
 
-        a.selected = 2;
+        a.set_cursor(2);
         a.handle(Action::Up, 20);
         assert_eq!(
             a.take_pending(),
@@ -4418,7 +4537,7 @@ mod tests {
         a.nav.focus_stage();
         a.apply(a.content_here(entries(150)));
 
-        a.selected = 2;
+        a.set_cursor(2);
         a.handle(Action::Up, 20);
         assert_eq!(
             a.take_pending(),
@@ -4479,7 +4598,7 @@ mod tests {
         // Enter opens a title everywhere else, so this is the one place it has to mean
         // something different — the table *is* the list of things to play.
         let mut a = app_at_episodes();
-        a.episode_selected = 4;
+        a.set_episode_cursor(4);
         let task = a.handle(Action::Open, 20);
         assert_eq!(
             task,
@@ -4604,7 +4723,7 @@ mod tests {
     #[test]
     fn marking_previous_marks_only_the_unwatched_before_the_cursor() {
         let mut a = app_at_episodes();
-        a.episode_selected = 4;
+        a.set_episode_cursor(4);
         // Already done — must not be re-marked. Both lists, since the visible one is
         // re-derived from the full one whenever marks change.
         a.episodes[1].completed = true;
@@ -4675,12 +4794,13 @@ mod tests {
         let mut a = app();
         a.go_to_section(Section::Settings);
         a.nav.focus_stage();
-        a.selected =
-            SettingKey::ROWS.iter().position(|s| *s == SettingKey::Subtitles).expect("row");
+        a.set_cursor(
+            SettingKey::ROWS.iter().position(|s| *s == SettingKey::Subtitles).expect("row"),
+        );
 
         a.handle(Action::Open, 20);
         assert_eq!(a.nav.overlay(), Some(&Overlay::EditSetting));
-        assert_eq!(a.edit_value, "eng", "prefilled with the live value");
+        assert_eq!(a.text(Field::Setting), "eng", "prefilled with the live value");
 
         for _ in 0..3 {
             a.backspace();
@@ -4760,7 +4880,7 @@ mod tests {
             a.toasts.iter().any(|t| t.notice.text == "nothing comes before the first episode")
         );
 
-        a.episode_selected = 3;
+        a.set_episode_cursor(3);
         let task = a.handle(Action::MarkAllPrevious, 20);
         answer_mark(&mut a, task);
         assert!(
@@ -4777,7 +4897,7 @@ mod tests {
 
         // An empty table has no episode to be before.
         a.episodes.clear();
-        a.episode_selected = 0;
+        a.set_episode_cursor(0);
         a.handle(Action::MarkAllPrevious, 20);
         assert!(
             a.toasts.iter().any(|t| t.notice.text == "no episodes listed to mark"),
@@ -4793,7 +4913,7 @@ mod tests {
         a.apply(Event::Sync(Box::new(connected(0))));
         a.apply(a.content_here(entries(1)));
         a.handle(Action::SetListStatus, 10);
-        a.overlay_selected = 2;
+        a.set_overlay_cursor(2);
         let task = a.handle(Action::Open, 10);
         assert!(matches!(
             task,
@@ -4829,8 +4949,9 @@ mod tests {
         let mut a = app();
         let _ = a.go_to_section(Section::Settings);
         a.nav.focus_stage();
-        a.selected =
-            SettingKey::ROWS.iter().position(|id| *id == SettingKey::Subtitles).unwrap();
+        a.set_cursor(
+            SettingKey::ROWS.iter().position(|id| *id == SettingKey::Subtitles).unwrap(),
+        );
         a.handle(Action::Open, 10);
         for c in "ger".chars() {
             a.type_char(c);
@@ -4954,12 +5075,12 @@ mod tests {
     fn shift_k_and_j_move_the_selected_source_and_save_the_order() {
         let mut a = at_providers();
         press(&mut a, 'j');
-        assert_eq!(a.selected, 1, "j moves the cursor, as on every table");
+        assert_eq!(a.cursor(), 1, "j moves the cursor, as on every table");
 
         let order = saved_order(press(&mut a, 'K'));
         assert_eq!(order, strings(&["alpha", "torrent", "beta", "plugins"]));
         assert_eq!(row_ids(&a), ["alpha", "torrent", "beta"], "the rows move at once");
-        assert_eq!(a.selected, 0, "the cursor goes with its row");
+        assert_eq!(a.cursor(), 0, "the cursor goes with its row");
         assert_eq!(a.settings.sources.order, order, "the next press starts from it");
 
         // At the top: nothing moves and nothing is saved.
@@ -4969,7 +5090,7 @@ mod tests {
         let order = saved_order(press(&mut a, 'J'));
         assert_eq!(order, strings(&["torrent", "alpha", "beta", "plugins"]));
         assert_eq!(row_ids(&a), ["torrent", "alpha", "beta"]);
-        assert_eq!(a.selected, 1);
+        assert_eq!(a.cursor(), 1);
     }
 
     #[test]
@@ -5033,9 +5154,9 @@ mod tests {
     fn a_shorter_providers_table_keeps_the_cursor_on_a_row() {
         let mut a = at_providers();
         a.handle(Action::Bottom, 20);
-        assert_eq!(a.selected, 2);
+        assert_eq!(a.cursor(), 2);
         a.apply(Event::Providers(vec![source_row("torrent", "torrent")]));
-        assert_eq!(a.selected, 0);
+        assert_eq!(a.cursor(), 0);
     }
 
     #[test]
@@ -5386,7 +5507,7 @@ mod tests {
     fn x_on_home_dismisses_the_selected_title_from_continue() {
         let mut a = app();
         a.apply(a.content_here(entries(3)));
-        a.selected = 1;
+        a.set_cursor(1);
         let task = a.handle(Action::HideFromContinue, 20);
         assert_eq!(task, Some(Command::HideFromContinue { id: AnilistId::new(2) }));
         // Gone from the screen before the store is even asked.
@@ -5451,7 +5572,7 @@ mod tests {
         // episode, and nothing is searched for. Guessing "the number after" here searched for
         // an episode the list said did not exist, after the finale.
         let mut a = app_at_episodes();
-        a.episode_selected = 11;
+        a.set_episode_cursor(11);
         a.handle(Action::Open, 20);
         a.apply(finished(None));
         assert_eq!(a.take_pending(), None);
@@ -5538,7 +5659,7 @@ mod tests {
         assert_eq!(a.playing.as_ref().map(|p| p.speed), Some(1.25));
         // ...and here, when Enter asks for one.
         a.apply(Event::playback_ended(false, Ending::Stopped));
-        a.episode_selected = 2;
+        a.set_episode_cursor(2);
         a.handle(Action::Open, 20);
         assert_eq!(
             a.playing.as_ref().map(|p| (p.episode.as_str(), p.speed)),
@@ -5702,12 +5823,12 @@ mod tests {
 
         a.handle(Action::Down, 20);
         a.handle(Action::Down, 20);
-        assert_eq!(a.overlay_selected, 2);
-        assert_eq!(a.selected, 0, "the list behind the overlay moved");
+        assert_eq!(a.overlay_cursor(), 2);
+        assert_eq!(a.cursor(), 0, "the list behind the overlay moved");
 
         // And it cannot run off the end.
         a.handle(Action::Down, 20);
-        assert_eq!(a.overlay_selected, 2);
+        assert_eq!(a.overlay_cursor(), 2);
     }
 
     fn store_row(id: &str, owner: bool, plugins: Vec<StorePluginRow>) -> StoreRow {
@@ -5790,7 +5911,7 @@ mod tests {
                 link: Secret("https://plugins.example/join/abc#key".into())
             })
         );
-        assert!(a.join_link.is_empty(), "the spent link is not kept");
+        assert!(a.text(Field::JoinLink).is_empty(), "the spent link is not kept");
 
         // Joined: the new store opens, because the user is still on the list it was joined from.
         a.apply(Event::Stores(vec![store_row("abc", false, Vec::new())]));
@@ -5806,7 +5927,7 @@ mod tests {
         a.handle(Action::Open, 20);
         a.apply(Event::StorePreview(Err("the link is missing the store's key".into())));
         assert_eq!(a.nav.overlay(), Some(&Overlay::JoinStore));
-        assert_eq!(a.join_link, "https://plugins.example/join/abc");
+        assert_eq!(a.text(Field::JoinLink), "https://plugins.example/join/abc");
         assert!(a.toasts.iter().any(|t| t.notice.text.contains("missing the store's key")));
     }
 
@@ -5816,7 +5937,7 @@ mod tests {
         a.handle(Action::Open, 20);
         type_text(&mut a, "https://plugins.example/join/abc#key");
         a.handle(Action::Back, 20);
-        assert!(a.join_link.is_empty());
+        assert!(a.text(Field::JoinLink).is_empty());
     }
 
     #[test]
@@ -6027,7 +6148,7 @@ mod tests {
         assert_eq!(a.nav.overlay(), Some(&Overlay::StoreConfirm));
         // A stray key must not move the cursor off the person being removed.
         a.handle(Action::Down, 20);
-        assert_eq!(a.member_selected, 1);
+        assert_eq!(a.member_cursor(), 1);
         assert_eq!(
             a.handle(Action::Open, 20),
             Some(Command::RemoveMember { store: "abc".into(), member: "alex".into() })
@@ -6109,7 +6230,7 @@ mod tests {
         for _ in 0..5 {
             a.handle(Action::Down, 20);
         }
-        assert_eq!(a.store_selected, 2, "one past the stores is the join row");
+        assert_eq!(a.store_cursor(), 2, "one past the stores is the join row");
         a.handle(Action::Open, 20);
         assert_eq!(a.nav.overlay(), Some(&Overlay::JoinStore));
     }
@@ -6190,7 +6311,7 @@ mod tests {
     fn a_paste_outside_a_text_field_does_nothing() {
         let mut a = at_stores(Vec::new());
         a.paste("dddd");
-        assert!(a.join_link.is_empty());
+        assert!(a.text(Field::JoinLink).is_empty());
         assert!(a.toasts.is_empty(), "no stray bindings fired");
     }
 
@@ -6236,13 +6357,13 @@ mod tests {
         let mut a = app();
         a.go_to_section(Section::Library);
         a.apply(a.content_here(entries(10)));
-        a.selected = 7;
+        a.set_cursor(7);
         a.nav.focus_stage();
 
         let task = a.handle(Action::Right, 20);
         assert_eq!(a.library_segment, LibrarySegment::Planning);
         assert_eq!(task, Some(Command::LoadLibrary(LibrarySegment::Planning)));
-        assert_eq!(a.selected, 0);
+        assert_eq!(a.cursor(), 0);
     }
 
     #[test]
@@ -6270,7 +6391,7 @@ mod tests {
         a.apply(a.content_here(rows));
         a.handle(Action::SetListStatus, 20);
         assert_eq!(a.nav.overlay(), Some(&Overlay::ListStatus));
-        assert_eq!(a.overlay_selected, 2);
+        assert_eq!(a.overlay_cursor(), 2);
 
         let task = a.handle(Action::Open, 20);
         assert_eq!(
@@ -6304,7 +6425,7 @@ mod tests {
         a.go_to_section(Section::Home);
         a.apply(a.content_here(entries(3)));
         a.handle(Action::SetListStatus, 20);
-        assert_eq!(a.overlay_selected, planning, "the status given before the reload");
+        assert_eq!(a.overlay_cursor(), planning, "the status given before the reload");
         a.handle(Action::Back, 20);
 
         // A pull that lists the title is the tracker's answer, and wins.
@@ -6318,7 +6439,7 @@ mod tests {
         a.go_to_section(Section::Home);
         a.apply(a.content_here(entries(3)));
         a.handle(Action::SetListStatus, 20);
-        assert_eq!(a.overlay_selected, 0, "nothing given since the pull, so nothing known");
+        assert_eq!(a.overlay_cursor(), 0, "nothing given since the pull, so nothing known");
     }
 
     #[test]
@@ -6418,8 +6539,8 @@ mod tests {
         );
         assert!(!a.nav.has_overlay());
         // Dispatched means gone: neither half of the credential stays in the app state.
-        assert!(a.kitsu_user.is_empty());
-        assert!(a.kitsu_pass.is_empty());
+        assert!(a.text(Field::KitsuUser).is_empty());
+        assert!(a.text(Field::KitsuPassword).is_empty());
     }
 
     #[test]
@@ -6443,8 +6564,11 @@ mod tests {
         }
         a.handle(Action::Back, 10);
         assert!(!a.nav.has_overlay());
-        assert!(a.kitsu_pass.is_empty(), "a dismissed sign-in must leave nothing behind");
-        assert!(a.kitsu_user.is_empty());
+        assert!(
+            a.text(Field::KitsuPassword).is_empty(),
+            "a dismissed sign-in must leave nothing behind"
+        );
+        assert!(a.text(Field::KitsuUser).is_empty());
     }
 
     #[test]
@@ -6526,12 +6650,12 @@ mod tests {
         for _ in 0..10 {
             a.handle(Action::Down, 10);
         }
-        assert_eq!(a.selected, 2, "clamped at the last item");
+        assert_eq!(a.cursor(), 2, "clamped at the last item");
 
         for _ in 0..10 {
             a.handle(Action::Up, 10);
         }
-        assert_eq!(a.selected, 0, "clamped at the first");
+        assert_eq!(a.cursor(), 0, "clamped at the first");
     }
 
     #[test]
@@ -6540,7 +6664,7 @@ mod tests {
         a.apply(a.content_here(Content::Entries(vec![])));
         a.handle(Action::Down, 10);
         a.handle(Action::Bottom, 10);
-        assert_eq!(a.selected, 0);
+        assert_eq!(a.cursor(), 0);
     }
 
     #[test]
@@ -6551,10 +6675,10 @@ mod tests {
         a.apply(a.content_here(entries(50)));
         a.nav.focus_stage();
         a.handle(Action::Bottom, 10);
-        assert_eq!(a.selected, 49);
+        assert_eq!(a.cursor(), 49);
 
         a.apply(a.content_here(entries(3)));
-        assert!(a.selected < 3, "selection {} out of range", a.selected);
+        assert!(a.cursor() < 3, "selection {} out of range", a.cursor());
         assert!(a.selected_entry().is_some());
     }
 
@@ -6564,8 +6688,8 @@ mod tests {
         a.apply(a.content_here(entries(50)));
         a.handle(Action::Bottom, 10);
         a.apply(a.content_here(Content::Entries(vec![])));
-        assert_eq!(a.selected, 0);
-        assert_eq!(a.offset, 0);
+        assert_eq!(a.cursor(), 0);
+        assert_eq!(a.offset(), 0);
         assert!(a.selected_entry().is_none());
     }
 
@@ -6578,13 +6702,13 @@ mod tests {
         for _ in 0..25 {
             a.handle(Action::Down, rows);
         }
-        assert_eq!(a.selected, 25);
-        assert!(a.selected >= a.offset, "selection scrolled off the top");
+        assert_eq!(a.cursor(), 25);
+        assert!(a.cursor() >= a.offset(), "selection scrolled off the top");
         assert!(
-            a.selected < a.offset + rows,
+            a.cursor() < a.offset() + rows,
             "selection {} outside viewport starting {}",
-            a.selected,
-            a.offset
+            a.cursor(),
+            a.offset()
         );
     }
 
@@ -6629,7 +6753,7 @@ mod tests {
         ] {
             assert_eq!(a.handle(action, 5), None, "{action:?}");
         }
-        assert_eq!((a.selected, a.offset), (2, 0), "the hidden list moved");
+        assert_eq!((a.cursor(), a.offset()), (2, 0), "the hidden list moved");
         assert_eq!(a.target().map(|e| e.id), Some(AnilistId::new(3)));
 
         a.handle(Action::Back, 5);
@@ -6784,7 +6908,7 @@ mod tests {
         if let Some(detail) = a.detail.as_mut() {
             detail.related = vec![related(90, "Its sequel")];
         }
-        a.episode_selected = 4;
+        a.set_episode_cursor(4);
         a.handle(Action::WatchOrder, 5);
         a.handle(Action::Open, 5);
         a.handle(Action::ShowEpisodes, 5);
@@ -6800,7 +6924,7 @@ mod tests {
         assert_eq!(a.nav.current(), &StageView::Episodes(AnilistId::new(1)));
         assert_eq!(a.target().map(|e| e.id), Some(AnilistId::new(1)));
         assert_eq!(a.episodes.len(), 12, "the parent's table, not the child's");
-        assert_eq!(a.episodes[a.episode_selected].number, "5", "and where it was left");
+        assert_eq!(a.episodes[a.episode_cursor()].number, "5", "and where it was left");
     }
 
     #[test]
@@ -6808,14 +6932,14 @@ mod tests {
         // ↑ and ↓ did; `g`, `G` and the pages moved the list behind the table instead.
         let mut a = app_at_episodes();
         a.handle(Action::Bottom, 5);
-        assert_eq!(a.episode_selected, 11);
+        assert_eq!(a.episode_cursor(), 11);
         a.handle(Action::Top, 5);
-        assert_eq!(a.episode_selected, 0);
+        assert_eq!(a.episode_cursor(), 0);
         a.handle(Action::PageDown, 5);
-        assert_eq!(a.episode_selected, 5);
+        assert_eq!(a.episode_cursor(), 5);
         a.handle(Action::PageUp, 5);
-        assert_eq!(a.episode_selected, 0);
-        assert_eq!((a.selected, a.offset), (0, 0), "the list under the table stays put");
+        assert_eq!(a.episode_cursor(), 0);
+        assert_eq!((a.cursor(), a.offset()), (0, 0), "the list under the table stays put");
     }
 
     #[test]
@@ -6825,9 +6949,9 @@ mod tests {
             set_watched(&mut a, n, true);
         }
         a.apply_episode_filter();
-        let under = |a: &App| a.episodes[a.episode_selected].number.clone();
+        let under = |a: &App| a.episodes[a.episode_cursor()].number.clone();
 
-        a.episode_selected = 4;
+        a.set_episode_cursor(4);
         a.handle(Action::Filter, 5);
         assert_eq!(a.episode_filter, EpisodeFilter::Unwatched);
         assert_eq!(under(&a), "5", "the cursor kept its row index, not its episode");
@@ -6837,7 +6961,7 @@ mod tests {
         assert_eq!(under(&a), "5");
 
         // An episode the filter hides hands the cursor to the next one it keeps.
-        a.episode_selected = 1;
+        a.set_episode_cursor(1);
         a.handle(Action::Filter, 5);
         assert_eq!(under(&a), "4");
     }
@@ -6849,10 +6973,10 @@ mod tests {
         let mut a = home_list(5);
         a.handle(Action::JumpSection(9), 5);
         a.handle(Action::Bottom, 5);
-        assert_eq!(a.selected, SettingKey::ROWS.len() - 1);
+        assert_eq!(a.cursor(), SettingKey::ROWS.len() - 1);
         a.handle(Action::Top, 5);
         a.handle(Action::PageDown, 5);
-        assert_eq!(a.selected, 5);
+        assert_eq!(a.cursor(), 5);
         let title_keys = [
             Action::SetListStatus,
             Action::RateTitle,
@@ -6872,9 +6996,9 @@ mod tests {
         a.apply(Event::Sync(Box::new(SyncState::new("anilist"))));
         a.apply(Event::Sync(Box::new(SyncState::new("mal"))));
         a.handle(Action::Bottom, 5);
-        assert_eq!(a.selected, 1);
+        assert_eq!(a.cursor(), 1);
         a.handle(Action::PageDown, 5);
-        assert_eq!(a.selected, 1, "past the last tracker");
+        assert_eq!(a.cursor(), 1, "past the last tracker");
         for action in title_keys.into_iter().chain([Action::PlayNext]) {
             assert_eq!(a.handle(action, 5), None, "{action:?}");
             assert_eq!(a.nav.overlay(), None, "{action:?}");
@@ -6916,15 +7040,15 @@ mod tests {
 
         a.handle(Action::Down, 5);
         assert!(!a.is_typing(), "the results have the keyboard");
-        assert_eq!(a.selected, 0);
+        assert_eq!(a.cursor(), 0);
         for _ in 0..12 {
             a.handle(Action::Down, 5);
         }
-        assert_eq!(a.selected, 12);
-        assert!(a.offset > 0 && a.selected < a.offset + 5, "the window follows");
+        assert_eq!(a.cursor(), 12);
+        assert!(a.offset() > 0 && a.cursor() < a.offset() + 5, "the window follows");
         a.handle(Action::Bottom, 5);
         a.handle(Action::Down, 5);
-        assert_eq!(a.selected, 39, "bounded at the last result");
+        assert_eq!(a.cursor(), 39, "bounded at the last result");
         // A result is a list row like any other.
         assert_eq!(
             a.handle(Action::Download, 5),
@@ -6950,15 +7074,19 @@ mod tests {
         for _ in 0..30 {
             a.handle(Action::Down, 40);
         }
-        assert_eq!((a.selected, a.offset), (30, 0));
+        assert_eq!((a.cursor(), a.offset()), (30, 0));
         a.fit_to(10);
-        assert!(a.selected >= a.offset && a.selected < a.offset + 10, "offset {}", a.offset);
+        assert!(
+            a.cursor() >= a.offset() && a.cursor() < a.offset() + 10,
+            "offset {}",
+            a.offset()
+        );
 
         // And a taller one shows more of the list rather than empty rows under its end.
         a.handle(Action::Bottom, 10);
-        assert_eq!(a.offset, 40);
+        assert_eq!(a.offset(), 40);
         a.fit_to(30);
-        assert_eq!(a.offset, 20);
+        assert_eq!(a.offset(), 20);
     }
 
     #[test]
@@ -6968,14 +7096,14 @@ mod tests {
         a.apply(Event::Sync(Box::new(connected(0))));
         a.library_segment = LibrarySegment::Dropped;
         a.handle(Action::SetListStatus, 5);
-        assert_eq!(a.overlay_selected, 0, "nothing known about it, so the top");
-        a.overlay_selected = 3;
+        assert_eq!(a.overlay_cursor(), 0, "nothing known about it, so the top");
+        a.set_overlay_cursor(3);
         assert_eq!(
             a.handle(Action::Open, 5),
             Some(Command::SetStatus { id: AnilistId::new(1), status: LibrarySegment::Paused })
         );
         a.handle(Action::SetListStatus, 5);
-        assert_eq!(a.overlay_selected, 3, "the answer just given");
+        assert_eq!(a.overlay_cursor(), 3, "the answer just given");
     }
 
     #[test]
@@ -7095,7 +7223,7 @@ mod tests {
         assert_eq!(a.nav.current(), &StageView::Section(Section::Home));
         assert_eq!(a.nav.focus(), Focus::Stage);
         a.handle(Action::Down, 5);
-        assert_eq!((a.nav.section(), a.selected), (Section::Home, 1));
+        assert_eq!((a.nav.section(), a.cursor()), (Section::Home, 1));
         a.handle(Action::Left, 5);
         assert_eq!(a.nav.focus(), Focus::Rail);
     }
@@ -7113,7 +7241,7 @@ mod tests {
         assert_eq!(a.nav.focus(), Focus::Rail);
 
         a.handle(Action::JumpSection(9), 5);
-        a.selected = setting_row(SettingKey::Motion);
+        a.set_cursor(setting_row(SettingKey::Motion));
         let mut owner = Owner::new(Config::default());
         owner.effective.theme.motion = true;
         owner.tell(&mut a);
@@ -7139,7 +7267,7 @@ mod tests {
             (SettingKey::Subtitles, |_| {}),
         ] {
             a.nav.focus_stage();
-            a.selected = setting_row(row);
+            a.set_cursor(setting_row(row));
             prepare(&mut owner);
             owner.tell(&mut a);
             assert_eq!(a.handle(Action::Left, 5), None, "{row:?}");
@@ -7196,7 +7324,7 @@ mod tests {
             },
         ]));
 
-        a.episode_selected = 1;
+        a.set_episode_cursor(1);
         a.begin_playback(id, "1".into());
         a.nav.pop();
 
@@ -7213,7 +7341,7 @@ mod tests {
         assert!(a.episodes[0].completed, "a finished episode must show as finished");
         assert!((a.episodes[0].watched - 1.0).abs() < 1e-6);
         assert_eq!(a.episodes[1].watched, 0.0, "only the episode watched should change");
-        assert_eq!(a.episode_selected, 1, "and the cursor stays put");
+        assert_eq!(a.episode_cursor(), 1, "and the cursor stays put");
 
         // Another title's word never lands on this table.
         let other = AnilistId::new(3);
@@ -7437,7 +7565,7 @@ mod tests {
         assert!(a.is_typing());
         a.handle(Action::FilterSearch, 10);
         assert_eq!(a.nav.overlay(), Some(&Overlay::SearchFilters));
-        assert_eq!(a.search_query, "mecha", "the query survives opening the overlay");
+        assert_eq!(a.text(Field::Search), "mecha", "the query survives opening the overlay");
     }
 
     #[test]
@@ -7477,7 +7605,7 @@ mod tests {
         for _ in 0..10 {
             a.handle(Action::Down, 10);
         }
-        assert_eq!(a.selected, 1);
+        assert_eq!(a.cursor(), 1);
     }
 
     #[test]
@@ -7545,14 +7673,14 @@ mod tests {
 
         let first = a.palette_matches().first().cloned().expect("some actions match");
         a.handle(Action::Down, 10);
-        assert_eq!(a.overlay_selected, 1, "down moves within the palette");
+        assert_eq!(a.overlay_cursor(), 1, "down moves within the palette");
         a.handle(Action::Up, 10);
-        assert_eq!(a.overlay_selected, 0);
+        assert_eq!(a.overlay_cursor(), 0);
 
         // Typing resets the cursor, since filtering reorders the matches under it.
         a.handle(Action::Down, 10);
         a.type_char('s');
-        assert_eq!(a.overlay_selected, 0, "a filtered list must not keep a stale index");
+        assert_eq!(a.overlay_cursor(), 0, "a filtered list must not keep a stale index");
 
         a.backspace();
         a.handle(Action::Open, 10);
@@ -7561,7 +7689,10 @@ mod tests {
             Some(&Overlay::CommandPalette),
             "Enter must dismiss the palette"
         );
-        assert!(a.palette_query.is_empty(), "the query must not persist into the next open");
+        assert!(
+            a.text(Field::Palette).is_empty(),
+            "the query must not persist into the next open"
+        );
         // Whatever ran, it was the row under the cursor rather than nothing at all.
         assert_ne!(first.0, Action::CommandPalette, "sanity: the fixture is a real action");
     }
@@ -7570,14 +7701,15 @@ mod tests {
     fn the_palette_actually_performs_the_selected_action() {
         let mut a = app();
         a.handle(Action::CommandPalette, 10);
-        a.palette_query = "keys".into();
+        a.set_text(Field::Palette, "keys".into());
         let matched = a.palette_matches();
         assert!(
             matched.iter().any(|(action, _)| *action == Action::Help),
             "expected the help action to match 'keys', got {matched:?}"
         );
-        a.overlay_selected =
-            matched.iter().position(|(action, _)| *action == Action::Help).unwrap();
+        a.set_overlay_cursor(
+            matched.iter().position(|(action, _)| *action == Action::Help).unwrap(),
+        );
         a.handle(Action::Open, 10);
         assert_eq!(a.nav.overlay(), Some(&Overlay::Help), "the chosen action must run");
     }
@@ -7622,15 +7754,18 @@ mod tests {
         a.go_to_section(Section::Settings);
         a.nav.focus_stage();
 
-        a.selected = SettingKey::ROWS.iter().position(|id| *id == SettingKey::Quality).unwrap();
+        a.set_cursor(
+            SettingKey::ROWS.iter().position(|id| *id == SettingKey::Quality).unwrap(),
+        );
         let task = a.handle(Action::Right, 10);
         assert_eq!(task, Some(Command::StepSetting { key: SettingKey::Quality, delta: 1 }));
         owner.answer(&mut a, task);
         assert_eq!(a.settings.quality, 2160);
         assert_eq!(owner.saved.playback.quality, 2160, "the step written is up the ladder");
 
-        a.selected =
-            SettingKey::ROWS.iter().position(|id| *id == SettingKey::CommitThreshold).unwrap();
+        a.set_cursor(
+            SettingKey::ROWS.iter().position(|id| *id == SettingKey::CommitThreshold).unwrap(),
+        );
         assert_eq!(a.handle(Action::Right, 10), None, "→ never lowers it");
         assert_eq!(setting_text(&a, SettingKey::CommitThreshold), "97%");
         let task = a.handle(Action::Left, 10);
@@ -7648,7 +7783,7 @@ mod tests {
         let mut a = app();
         a.go_to_section(Section::Settings);
         a.nav.focus_stage();
-        a.selected = SettingKey::ROWS.iter().position(|row| *row == id).unwrap();
+        a.set_cursor(SettingKey::ROWS.iter().position(|row| *row == id).unwrap());
         a
     }
 
@@ -7675,8 +7810,9 @@ mod tests {
         let mut owner = Owner::new(Config::default());
         let task = a.handle(Action::Right, 10);
         owner.answer(&mut a, task);
-        a.selected =
-            SettingKey::ROWS.iter().position(|row| *row == SettingKey::Torrents).unwrap();
+        a.set_cursor(
+            SettingKey::ROWS.iter().position(|row| *row == SettingKey::Torrents).unwrap(),
+        );
         let task = a.handle(Action::Right, 10);
 
         owner.refuse(&mut a, task);
@@ -7730,7 +7866,7 @@ mod tests {
         // Quality steps up the ladder and clamps, rather than wrapping round to 480p.
         let quality_row =
             SettingKey::ROWS.iter().position(|id| *id == SettingKey::Quality).unwrap();
-        a.selected = quality_row;
+        a.set_cursor(quality_row);
         assert_eq!(a.settings.quality, 1080);
         let task = a.handle(Action::Right, 10);
         assert_eq!(task, Some(Command::StepSetting { key: SettingKey::Quality, delta: 1 }));
@@ -7745,7 +7881,7 @@ mod tests {
         // And the rows that cannot be edited here say so instead of silently ignoring the key.
         let vpn_row =
             SettingKey::ROWS.iter().position(|id| *id == SettingKey::VpnMode).unwrap();
-        a.selected = vpn_row;
+        a.set_cursor(vpn_row);
         let before = setting_text(&a, SettingKey::VpnMode);
         assert_eq!(a.handle(Action::Right, 10), None);
         assert_eq!(setting_text(&a, SettingKey::VpnMode), before);
@@ -7764,7 +7900,7 @@ mod tests {
         let at = |id| SettingKey::ROWS.iter().position(|row| *row == id).unwrap();
 
         // Off by default; one step right turns it on, at a modest ratio.
-        a.selected = at(SettingKey::SeedRatio);
+        a.set_cursor(at(SettingKey::SeedRatio));
         assert_eq!(setting_text(&a, SettingKey::SeedRatio), "off");
         let task = a.handle(Action::Right, 10);
         assert_eq!(task, Some(Command::StepSetting { key: SettingKey::SeedRatio, delta: 1 }));
@@ -7772,24 +7908,24 @@ mod tests {
         assert_eq!(owner.saved.providers.torrent.seeding.ratio, 0.5);
         assert!(owner.effective.providers.torrent.seeding.enabled());
 
-        a.selected = at(SettingKey::SeedHours);
+        a.set_cursor(at(SettingKey::SeedHours));
         let task = a.handle(Action::Right, 10);
         assert_eq!(task, Some(Command::StepSetting { key: SettingKey::SeedHours, delta: 1 }));
         owner.answer(&mut a, task);
         assert_eq!(owner.saved.providers.torrent.seeding.hours, 72);
 
-        a.selected = at(SettingKey::UploadLimit);
+        a.set_cursor(at(SettingKey::UploadLimit));
         let rows = a.setting_rows();
-        assert_eq!(rows[a.selected].value, "unlimited");
+        assert_eq!(rows[a.cursor()].value, "unlimited");
         let task = a.handle(Action::Right, 10);
         owner.answer(&mut a, task);
         // 256 KiB/s in the file, said in the decimal units every other size uses.
-        assert_eq!(a.setting_rows()[a.selected].value, "262 kB/s");
+        assert_eq!(a.setting_rows()[a.cursor()].value, "262 kB/s");
         for _ in 0..3 {
             let task = a.handle(Action::Right, 10);
             owner.answer(&mut a, task);
         }
-        assert_eq!(a.setting_rows()[a.selected].value, "2.1 MB/s");
+        assert_eq!(a.setting_rows()[a.cursor()].value, "2.1 MB/s");
     }
 
     #[test]
@@ -7798,8 +7934,9 @@ mod tests {
         let mut owner = Owner::new(Config::default());
         a.go_to_section(Section::Settings);
         a.nav.focus_stage();
-        a.selected =
-            SettingKey::ROWS.iter().position(|id| *id == SettingKey::Presence).unwrap();
+        a.set_cursor(
+            SettingKey::ROWS.iter().position(|id| *id == SettingKey::Presence).unwrap(),
+        );
 
         assert_eq!(
             setting_text(&a, SettingKey::Presence),
@@ -7849,11 +7986,11 @@ mod tests {
         for _ in 0..3 {
             a.handle(Action::Down, 10);
         }
-        assert_eq!(a.selected, 3);
+        assert_eq!(a.cursor(), 3);
         for _ in 0..50 {
             a.handle(Action::Down, 10);
         }
-        assert_eq!(a.selected, SettingKey::ROWS.len() - 1, "clamped at the last row");
+        assert_eq!(a.cursor(), SettingKey::ROWS.len() - 1, "clamped at the last row");
     }
 
     #[test]
@@ -7881,7 +8018,7 @@ mod tests {
 
         a.type_char('f');
         a.type_char('r');
-        assert_eq!(a.search_query, "fr");
+        assert_eq!(a.text(Field::Search), "fr");
     }
 
     #[test]
@@ -7890,8 +8027,8 @@ mod tests {
         a.go_to_section(Section::Search);
         a.handle(Action::CommandPalette, 10);
         a.type_char('s');
-        assert_eq!(a.palette_query, "s");
-        assert!(a.search_query.is_empty(), "text went to the wrong field");
+        assert_eq!(a.text(Field::Palette), "s");
+        assert!(a.text(Field::Search).is_empty(), "text went to the wrong field");
     }
 
     #[test]
@@ -7909,10 +8046,10 @@ mod tests {
         a.type_char('a');
         a.type_char('b');
         a.backspace();
-        assert_eq!(a.search_query, "a");
+        assert_eq!(a.text(Field::Search), "a");
         a.backspace();
         a.backspace();
-        assert_eq!(a.search_query, "", "must not underflow");
+        assert_eq!(a.text(Field::Search), "", "must not underflow");
     }
 
     #[test]
@@ -7923,7 +8060,7 @@ mod tests {
         a.handle(Action::Open, 5);
 
         a.go_to_section(Section::Seasonal);
-        assert_eq!(a.selected, 0);
+        assert_eq!(a.cursor(), 0);
         assert!(a.detail.is_none(), "stale detail from another section");
         assert_eq!(a.nav.depth(), 1);
     }
@@ -8015,7 +8152,7 @@ mod tests {
         let _ = a.go_to_section(Section::Search);
         a.nav.focus_stage();
         for query in ["fri", "frieren"] {
-            a.search_query = query.into();
+            a.set_text(Field::Search, query.into());
             assert!(matches!(a.handle(Action::Open, 20), Some(Command::Search { .. })));
         }
         let answer = |query: &str, n| Event::Content {

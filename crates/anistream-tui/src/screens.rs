@@ -3995,6 +3995,7 @@ pub fn render_to_buffer(app: &App, width: u16, height: u16) -> Buffer {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::app::Field;
     use crate::{keymap::Keymap, theme::Palette};
     use anistream_core::ids::AnilistId;
     use anistream_model::{event::Event, settings::SettingsView, sources::GuardView};
@@ -4349,7 +4350,7 @@ mod tests {
     fn an_empty_result_set_is_distinguished_from_a_failure() {
         let mut app = app_with(Content::Entries(vec![]));
         app.go_to_section(Section::Search);
-        app.search_query = "zzzz".into();
+        app.set_text(Field::Search, "zzzz".into());
         // Run, as Enter runs it: the answer is for the query in the field.
         app.searched_query = "zzzz".into();
         app.apply(app.content_here(Content::Entries(vec![])));
@@ -4447,7 +4448,7 @@ mod tests {
     fn the_command_palette_shows_the_query_and_filters() {
         let mut app = app_with(Content::Entries(vec![]));
         app.nav.open_overlay(Overlay::CommandPalette);
-        app.palette_query = "episode".into();
+        app.set_text(Field::Palette, "episode".into());
         let text = text_of(&render_to_buffer(&app, 120, 40));
         assert!(text.contains("RUN"));
         assert!(text.contains("episode"), "query should be visible");
@@ -5229,8 +5230,8 @@ mod tests {
             published: Some("1.4.0".into()),
         }];
         app.publish_for = Some("aaaa".into());
-        app.join_link = "https://plugins.example/join/".repeat(4);
-        app.invite_name = "Alex".into();
+        app.set_text(Field::JoinLink, "https://plugins.example/join/".repeat(4));
+        app.set_text(Field::InviteName, "Alex".into());
         app
     }
 
@@ -5382,7 +5383,7 @@ mod tests {
         // Splitting a picker into columns would scatter the best match away from the top.
         let mut app = app_with(Content::Entries(vec![]));
         app.nav.open_overlay(Overlay::CommandPalette);
-        app.palette_query = "episode".into();
+        app.set_text(Field::Palette, "episode".into());
         let text = text_of(&render_to_buffer(&app, 160, 24));
 
         let rows: Vec<&str> =
@@ -5594,7 +5595,7 @@ mod tests {
                 .collect(),
         ));
         app.handle(crate::keymap::Action::Bottom, 20);
-        assert_eq!(app.selected, 39);
+        assert_eq!(app.cursor(), 39);
         let text = text_of(&render_to_buffer(&app, 120, 30));
         assert!(text.contains("Invented Show  ep 40"), "got {text:?}");
     }
@@ -5650,7 +5651,7 @@ mod tests {
         // scroll into view rather than living below the fold.
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Settings);
-        app.selected = anistream_model::settings::SettingKey::ROWS.len() - 1;
+        app.set_cursor(anistream_model::settings::SettingKey::ROWS.len() - 1);
         let text = text_of(&render_to_buffer(&app, 120, 12));
         assert!(text.contains("TOKEN STORAGE"), "the last row must be visible:\n{text}");
     }
@@ -6099,7 +6100,7 @@ mod tests {
     fn a_capped_search_says_so_beside_the_prompt() {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Search);
-        app.search_query = "kite".into();
+        app.set_text(Field::Search, "kite".into());
         app.searched_query = "kite".into();
         let view = app.content_view().unwrap();
         app.apply(Event::Caption { view: view.clone(), text: "showing the first 30".into() });
@@ -6308,7 +6309,7 @@ mod tests {
             .iter()
             .position(|id| *id == anistream_model::settings::SettingKey::NightMode)
             .unwrap();
-        app.selected = night;
+        app.set_cursor(night);
         let text = text_of(&render_to_buffer(&app, 120, 34));
         assert!(text.contains("evens out quiet dialogue"), "{text}");
         assert!(text.contains("NIGHT MODE"), "the row itself is still in view:\n{text}");

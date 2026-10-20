@@ -12,6 +12,7 @@ use anistream_model::{
     downloads::{DownloadRow, DownloadState},
     event::Event,
 };
+use anistream_tui::app::Field;
 use anistream_tui::{App, Focus, Keymap, Palette, Section, StageView, keymap::status_hints};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -112,7 +113,7 @@ fn h_then_j_on_a_title_page_keeps_the_section() {
     press(&mut a, &["enter", "h", "j"]);
     assert_eq!(a.nav.section(), Section::Home);
     assert_eq!(a.nav.current(), &StageView::Section(Section::Home));
-    assert_eq!(a.selected, 1);
+    assert_eq!(a.cursor(), 1);
 }
 
 #[test]
@@ -121,9 +122,9 @@ fn settings_g_and_ctrl_d_reach_its_own_last_row() {
     let mut a = home(5);
     press(&mut a, &["9", "G"]);
     let last = a.setting_rows().len() - 1;
-    assert_eq!(a.selected, last);
+    assert_eq!(a.cursor(), last);
     press(&mut a, &["g", "ctrl+d", "ctrl+d", "ctrl+d"]);
-    assert_eq!(a.selected, last);
+    assert_eq!(a.cursor(), last);
 }
 
 #[test]
@@ -151,15 +152,15 @@ fn every_number_key_lands_the_same_way() {
 fn down_moves_from_the_search_field_into_its_results() {
     let mut a = app();
     press(&mut a, &["4", "q", "u", "e", "r", "y"]);
-    assert_eq!(a.search_query, "query", "letters are typed in the field");
+    assert_eq!(a.text(Field::Search), "query", "letters are typed in the field");
     assert!(matches!(press(&mut a, &["enter"]).as_slice(), [Command::Search { .. }]));
     a.apply(a.content_here(entries(30)));
     assert_eq!(hint(&a, "↓"), Some("results"));
 
     press(&mut a, &["down", "j", "j", "G"]);
-    assert_eq!(a.search_query, "query", "j and G were typed into the query");
-    assert_eq!(a.selected, 29);
-    assert!(a.selected < a.offset + ROWS, "the last result is off screen");
+    assert_eq!(a.text(Field::Search), "query", "j and G were typed into the query");
+    assert_eq!(a.cursor(), 29);
+    assert!(a.cursor() < a.offset() + ROWS, "the last result is off screen");
     press(&mut a, &["esc"]);
     assert!(a.is_typing(), "Esc from the results returns to the field");
 }
