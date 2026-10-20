@@ -55,7 +55,8 @@ impl Paths {
 }
 
 /// Root configuration.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+// Comparable, so a front end holding a copy can tell when its copy has moved and pass it on.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
     pub theme: ThemeConfig,
@@ -166,7 +167,7 @@ impl Config {
 }
 
 /// Offline downloads.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct DownloadsConfig {
     /// Where finished files go. `None` leaves them where the torrent session wrote them,
@@ -218,7 +219,7 @@ pub struct DownloadsConfig {
 pub const DEFAULT_PRESENCE_CLIENT_ID: &str = "1531267760959783025";
 
 /// Discord rich presence.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct PresenceConfig {
     /// Off by default, and that is the only defensible default: this is the one feature that
@@ -314,7 +315,7 @@ pub enum PlayerUi {
 /// A handoff, not a session: Syncplay owns the player it launches, so progress is not
 /// recorded while a party is on — a shared watch is not private history. Turn it on for
 /// the evening, off after. Syncplay's own config decides which player it drives.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct SyncplayConfig {
     /// Hand playback to Syncplay instead of a private mpv session.
@@ -347,7 +348,7 @@ impl Default for SyncplayConfig {
 ///
 /// A digest, never a stream of pings — one line on launch, and only when there is
 /// something to say. The tool must not get in the way of the person using it.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct NotificationsConfig {
     /// Say on launch how many new episodes aired for shows you watch.
@@ -364,7 +365,7 @@ impl Default for NotificationsConfig {
 }
 
 /// The metadata failover.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct MetaConfig {
     /// Fall back to Tenrai — MyAnimeList's mirror — when AniList cannot answer, before
@@ -379,7 +380,7 @@ impl Default for MetaConfig {
 }
 
 /// The update check.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct UpdatesConfig {
     /// Ask GitHub for the newest release once a day and say so when one exists.
@@ -396,7 +397,7 @@ impl Default for UpdatesConfig {
 }
 
 /// Visual configuration. See the "Obi & Silk" direction in the plan.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct ThemeConfig {
     pub mode: ThemeMode,
@@ -427,7 +428,7 @@ pub enum ThemeMode {
     Immersive,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct PlaybackConfig {
     pub translation: Translation,
@@ -526,7 +527,7 @@ impl Default for PlaybackConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct ProvidersConfig {
     /// Resolution order. Earlier entries are tried first; failover walks the list.
@@ -559,7 +560,7 @@ impl Default for ProvidersConfig {
 /// Exposed because a plugin doing something unusual — decrypting a large payload, say — might
 /// legitimately need more room, and the alternative would be recompiling. They are ceilings, not
 /// grants: raising them cannot give a plugin a capability, only more of one it already has.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct PluginsConfig {
     /// Linear-memory ceiling per plugin, in mebibytes.
@@ -589,7 +590,7 @@ impl Default for PluginsConfig {
 ///
 /// Disabled by default. Torrent traffic exposes your IP to every peer in the swarm, so
 /// this stays off until a VPN mode has been chosen deliberately.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct TorrentConfig {
     pub enabled: bool,
@@ -740,7 +741,7 @@ impl TorrentConfig {
 /// librqbit offers a SOCKS5 proxy but **no** bind-to-interface option, so real interface
 /// binding has to happen outside the process. This config covers what we can enforce and
 /// the docs are explicit about the rest, rather than implying a guarantee we cannot make.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct VpnConfig {
     pub mode: VpnMode,
@@ -815,7 +816,7 @@ pub enum LeakAction {
     Stop,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct TrackersConfig {
     /// Tracker ids to sync with, e.g. `["anilist"]`.
@@ -868,7 +869,7 @@ impl Default for TrackersConfig {
 /// <https://anilist.co/settings/developer>; the secret is theirs, in their own config, on their
 /// own machine. anistream never embeds one, because a secret inside an open-source binary is
 /// not a secret.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct AniListAuthConfig {
     pub client_id: Option<String>,
@@ -904,7 +905,7 @@ impl Default for AniListAuthConfig {
 /// accepts a request carrying just `client_id` and `code_verifier`, so an app registered as type
 /// `other` is a public client and PKCE stands in for the secret. AniList refuses the same shape —
 /// see [`AniListAuthConfig`] — which is why the two trackers have different config.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct MalAuthConfig {
     pub client_id: Option<String>,
@@ -918,7 +919,7 @@ pub struct MalAuthConfig {
 /// One shape for Simkl and Trakt because there is genuinely nothing to differentiate: no redirect
 /// URI to register, no port to match. Just the application's id, and a secret where the service
 /// insists on one.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct DeviceAuthConfig {
     pub client_id: Option<String>,
@@ -1000,7 +1001,7 @@ impl TrackersConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct NetworkConfig {
     /// Browser fingerprint to emulate for Cloudflare-fronted providers. Exposed as
