@@ -5,6 +5,9 @@
 //! without a running event loop. What only a frame can find out — how an overlay laid out at
 //! this size — it reports, as a [`FrameReport`] for whatever drew it to hand back to the App.
 
+#[cfg(test)]
+mod fixtures;
+
 use anistream_model::{
     catalog::{Content, Entry, LibrarySegment},
     downloads::DownloadState,
@@ -4036,32 +4039,13 @@ pub fn render_to_buffer(app: &mut App, width: u16, height: u16) -> Buffer {
 mod tests {
     use super::*;
     use crate::app::Field;
-    use crate::{keymap::Keymap, theme::Palette};
+    use crate::screens::fixtures::{
+        NOON_MONDAY, app_with, display_width, download, entry, episode, find_cell, lines_of,
+        provider, text_of,
+    };
+    use crate::theme::Palette;
     use anistream_core::ids::AnilistId;
-    use anistream_model::{event::Event, settings::SettingsView, sources::GuardView};
-
-    fn app_with(content: Content) -> App {
-        let mut app = App::new(SettingsView::default(), Palette::dark(), Keymap::new());
-        app.apply(app.content_here(content));
-        app
-    }
-
-    /// Monday 2026-10-19, 12:00 UTC: when a screen is drawn for a test whose text depends on
-    /// the time it is drawn at.
-    const NOON_MONDAY: i64 = 1_792_411_200;
-
-    fn entry(id: u32, title: &str) -> Entry {
-        Entry {
-            format: Some("TV".into()),
-            episodes: Some(28),
-            year: Some(2023),
-            score: Some(91),
-            synopsis: "An elf mage outlives her companions and sets out to understand \
-                       what they meant to her."
-                .into(),
-            ..Entry::new(AnilistId::new(id), title)
-        }
-    }
+    use anistream_model::{event::Event, sources::GuardView};
 
     /// Ops held for an id mapping are still queued, and the row says why they have not gone.
     #[test]
@@ -4169,15 +4153,6 @@ mod tests {
         let text = text_of(&buf);
         assert!(text.contains("2 / 2 aired"), "card was:\n{text}");
         assert!(!text.contains("/ 0"), "card was:\n{text}");
-    }
-
-    fn text_of(buf: &Buffer) -> String {
-        (0..buf.area.height)
-            .map(|y| {
-                (0..buf.area.width).map(|x| buf[(x, y)].symbol().to_owned()).collect::<String>()
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
     }
 
     fn running(
@@ -4589,25 +4564,6 @@ mod tests {
         );
     }
 
-    fn episode(
-        number: &str,
-        title: &str,
-        watched: f64,
-        completed: bool,
-    ) -> anistream_model::episodes::EpisodeRow {
-        anistream_model::episodes::EpisodeRow {
-            number: number.into(),
-            title: Some(title.into()),
-            duration_secs: Some(1440),
-            watched,
-            completed,
-            kind: None,
-            skippable: false,
-            thumbnail: None,
-            description: None,
-        }
-    }
-
     #[test]
     fn the_episode_table_reads_as_a_timing_sheet() {
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
@@ -4654,23 +4610,6 @@ mod tests {
         let geometry = layout::compute(Rect::new(0, 0, 110, 20), app.nav.rail_width());
         assert!(geometry.rail.width <= 3);
         assert!(geometry.stage.width >= 100);
-    }
-
-    fn provider(
-        id: &str,
-        state: &str,
-        usable: bool,
-        held: bool,
-    ) -> anistream_model::sources::ProviderRow {
-        anistream_model::sources::ProviderRow {
-            id: id.into(),
-            kind: "native".into(),
-            state: state.into(),
-            latency_ms: Some(310),
-            last_error: None,
-            usable,
-            held_back: held,
-        }
     }
 
     #[test]
@@ -5028,47 +4967,11 @@ mod tests {
         }
     }
 
-    /// The first cell whose symbol is `needle`.
-    fn find_cell(buf: &Buffer, needle: &str) -> Option<(u16, u16)> {
-        let area = buf.area;
-        (area.top()..area.bottom())
-            .flat_map(|y| (area.left()..area.right()).map(move |x| (x, y)))
-            .find(|&pos| buf[pos].symbol() == needle)
-    }
-
     fn rgb_of(color: ratatui::style::Color) -> crate::theme::color::Rgb {
         match color {
             ratatui::style::Color::Rgb(r, g, b) => crate::theme::color::Rgb::new(r, g, b),
             other => panic!("expected a truecolor value, got {other:?}"),
         }
-    }
-
-    /// Display columns, counting a wide CJK glyph as two.
-    ///
-    /// Not `str::len` (bytes) and not `chars().count()` — the box-drawing and CJK glyphs this design
-    /// uses are multi-byte, and some are double-width. Measuring either of the wrong ways produced a
-    /// "widest = 600 in an 80-column terminal" reading while the layout was in fact correct.
-    fn display_width(line: &str) -> usize {
-        line.chars()
-            .map(|c| {
-                // The ranges this app can actually emit: CJK, Hiragana/Katakana, and full-width
-                // forms. The obi and hairline glyphs are all single-width.
-                match c as u32 {
-                    0x1100..=0x115F
-                    | 0x2E80..=0x303E
-                    | 0x3041..=0x33FF
-                    | 0x3400..=0x4DBF
-                    | 0x4E00..=0x9FFF
-                    | 0xA000..=0xA4CF
-                    | 0xAC00..=0xD7A3
-                    | 0xF900..=0xFAFF
-                    | 0xFE30..=0xFE6F
-                    | 0xFF00..=0xFF60
-                    | 0xFFE0..=0xFFE6 => 2,
-                    _ => 1,
-                }
-            })
-            .sum()
     }
 
     #[test]
@@ -5881,11 +5784,6 @@ mod tests {
 
     // ---- Wording and display consistency ----
 
-    /// The rows of a rendered frame, for assertions about one line.
-    fn lines_of(app: &mut App, width: u16, height: u16) -> Vec<String> {
-        text_of(&render_to_buffer(app, width, height)).lines().map(str::to_owned).collect()
-    }
-
     fn calendar_with(rows: Vec<Entry>) -> App {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Calendar);
@@ -6235,26 +6133,6 @@ mod tests {
         let text = text_of(&render_to_buffer(&mut app, 40, 7));
         assert!(text.contains("needs a larger terminal"), "{text}");
         assert!(!text.contains("arrives in"), "{text}");
-    }
-
-    fn download(
-        title: &str,
-        episode: &str,
-        state: DownloadState,
-        of: u64,
-    ) -> anistream_model::downloads::DownloadRow {
-        anistream_model::downloads::DownloadRow {
-            id: i64::from(episode.parse::<u8>().unwrap_or(0)),
-            anilist_id: AnilistId::new(1),
-            title: title.into(),
-            episode: episode.into(),
-            state,
-            fraction: if of > 0 { 0.5 } else { 0.0 },
-            downloaded: of / 2,
-            total: of,
-            error: None,
-            path: None,
-        }
     }
 
     #[test]
