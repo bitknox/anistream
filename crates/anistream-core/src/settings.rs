@@ -20,6 +20,7 @@ use crate::config::Paths;
 /// A small closed set rather than `toml_edit::Value`, so the crate's public surface does not
 /// depend on which TOML library is underneath.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum SettingValue {
     Str(String),
     Int(i64),

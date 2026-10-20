@@ -417,6 +417,7 @@ impl Default for ThemeConfig {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 #[serde(rename_all = "lowercase")]
 pub enum ThemeMode {
     /// Inherit the terminal's background and set foreground colours only, so anistream

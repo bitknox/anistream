@@ -70,6 +70,7 @@ pub struct ProviderManifest {
 /// session, no stream negotiation — so a candidate carries an opaque `id` the same
 /// provider can turn into streams later via [`Provider::resolve_source`].
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct SourceCandidate {
     /// Opaque identifier, meaningful only to the provider that produced it.
     pub id: String,

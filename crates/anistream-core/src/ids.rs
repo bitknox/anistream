@@ -44,6 +44,11 @@ macro_rules! numeric_id {
                 Self(raw)
             }
         }
+
+        // The number itself on the far side of an FFI, under the type's name: Swift and Kotlin
+        // see a type alias for the integer, so the bindings still say which id a value is.
+        #[cfg(feature = "ffi")]
+        uniffi::custom_newtype!($name, u32);
     };
 }
 
@@ -103,6 +108,10 @@ impl From<String> for ProviderKey {
         Self(key)
     }
 }
+
+// The string itself on the far side of an FFI, under the type's name, as the numeric ids are.
+#[cfg(feature = "ffi")]
+uniffi::custom_newtype!(ProviderKey, String);
 
 #[cfg(test)]
 mod tests {
