@@ -10,7 +10,9 @@ pub mod mend;
 pub mod picture;
 pub mod player;
 pub mod power;
+pub mod prefetch;
 pub mod remux;
+pub mod resolve;
 pub mod shaders;
 pub mod slot;
 

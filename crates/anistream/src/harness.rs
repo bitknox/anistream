@@ -36,7 +36,7 @@ use anistream_core::config::{Config, NetworkConfig, Paths};
 use anistream_engine::{
     data,
     outbox::{Envelope, Internal, Outbox, WeakOutbox},
-    playback::slot::PlayerSlot,
+    playback::{prefetch::Prefetch, slot::PlayerSlot},
     plugin_stores, sources, tracking,
 };
 use anistream_meta::Meta;
@@ -59,8 +59,8 @@ use anistream_tui::{
 use tokio::sync::mpsc;
 
 use crate::{
-    ConfigSeam, Prefetch, command, covers, dispatch, engine_state::EngineState,
-    handle_internal, receive, services::Services, show_config_problem,
+    ConfigSeam, command, covers, dispatch, engine_state::EngineState, handle_internal, receive,
+    services::Services, show_config_problem,
 };
 
 /// How long [`Harness::settle`] waits for work to finish before failing the test.

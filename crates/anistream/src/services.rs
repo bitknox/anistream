@@ -1,15 +1,16 @@
 //! The handles every effect shares, and how they are built.
 
 use anistream_core::config::{Config, Paths};
-use anistream_engine::{playback::slot::PlayerSlot, plugin_stores, tracking};
+use anistream_engine::{
+    playback::{prefetch::Prefetch, slot::PlayerSlot},
+    plugin_stores, tracking,
+};
 use anistream_meta::{Meta, Tenrai, anilist::AniList};
 use anistream_model::playback::PlayerTheme;
 use anistream_net::HttpClient;
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 use anyhow::Result;
-
-use crate::Prefetch;
 
 /// The handles every effect shares, which the command line uses too.
 ///
