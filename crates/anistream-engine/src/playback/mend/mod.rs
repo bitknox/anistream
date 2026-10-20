@@ -480,7 +480,9 @@ impl Upstream {
             encode_path(url)
         )
     }
+}
 
+impl Upstream {
     fn cached(&self, url: &str) -> Option<Arc<Fetched>> {
         lock(&self.cache).get(url)
     }
@@ -525,9 +527,13 @@ impl Upstream {
         let cell = self.begin(url);
         self.lead(url, cell, fetch(self, url)).await
     }
+}
 
+impl Upstream {
     /// Fetch for the thumbnailer, by [`Class::Thumbnail`]'s rules. `Err` is a refusal, to be
     /// answered at once.
+    ///
+    /// [`Class::Thumbnail`]: crate::playback::mend::Class::Thumbnail
     async fn for_thumbnail(&self, url: &str) -> Result<Arc<Fetched>, String> {
         if self.refused_successor(url) {
             return Err(self.refuse(url, "the segment after a refused one"));
