@@ -63,7 +63,10 @@ use anistream_tui::{
 };
 use tokio::sync::mpsc;
 
-use crate::{ConfigSeam, command, covers, show_config_problem};
+use crate::{
+    covers, show_config_problem,
+    tui::seams::{ConfigSeam, command},
+};
 
 /// How long [`Harness::settle`] waits for work to finish before failing the test.
 ///
