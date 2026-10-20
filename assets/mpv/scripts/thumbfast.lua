@@ -11,12 +11,13 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 ]]
 
 -- anistream: modified copy of po5/thumbfast at 0f711de3138c9bd6718209d819ac54022c23ded2.
--- Every change is marked `-- anistream:`: a helper above client_script, four blocks in
--- spawn(), one observer at the end of the file, a timer that hides a frame which never
--- arrives and one that asks for it again. The thumbnailer opens
+-- Every change is marked `-- anistream:`: a helper and one command in client_script, four
+-- blocks in spawn(), one observer at the end of the file, a timer that hides a frame which
+-- never arrives and one that asks for it again. The thumbnailer opens
 -- user-data/anistream/thumbnail-url instead of `path` when the host sets one, inherits the
--- parent's user-agent, referrer and http-header-fields, reads HLS one segment at a time, and
--- starts exactly where the first thumbnail was asked for.
+-- parent's user-agent, referrer and http-header-fields, reads HLS one segment at a time,
+-- starts exactly where the first thumbnail was asked for, and keeps its file open past an end
+-- of file on mpv before 0.40.
 -- Provenance and licence: assets/THIRD-PARTY.md in the anistream repository.
 
 local options = {
@@ -205,12 +206,20 @@ local function anistream_thumbnail_url()
     return nil
 end
 
+-- anistream: the child sets keep-open again once it is up (the `set` below). mpv before 0.40
+-- applies the built-in `encoding` profile a second time after the command line, and it turns
+-- `--keep-open=always` back to `no` (mpv 5b946ac, in 0.40, stopped that). The first seek that
+-- met the end of the file then ended it, and the child sat idle, every later seek a no-op. A
+-- host thumbnail URL ends the file on purpose wherever it has nothing yet (a torrent piece not
+-- downloaded, an HLS segment refused), so there the seek bar's thumbnails stopped at the first
+-- hover over a part not loaded. The command can only run after the profile: the core thread
+-- applies it during start-up, before it carries out anything a client sends.
 local client_script = [=[
 #!/usr/bin/env bash
 MPV_IPC_FD=0; MPV_IPC_PATH="%s"
 trap "kill 0" EXIT
 while [[ $# -ne 0 ]]; do case $1 in --mpv-ipc-fd=*) MPV_IPC_FD=${1/--mpv-ipc-fd=/} ;; esac; shift; done
-if echo "print-text thumbfast" >&"$MPV_IPC_FD"; then echo -n > "$MPV_IPC_PATH"; tail -f "$MPV_IPC_PATH" >&"$MPV_IPC_FD" & while read -r -u "$MPV_IPC_FD" 2>/dev/null; do :; done; fi
+if echo "print-text thumbfast" >&"$MPV_IPC_FD"; then echo "set keep-open always" >&"$MPV_IPC_FD"; echo -n > "$MPV_IPC_PATH"; tail -f "$MPV_IPC_PATH" >&"$MPV_IPC_FD" & while read -r -u "$MPV_IPC_FD" 2>/dev/null; do :; done; fi
 ]=]
 
 local function get_os()

@@ -27,6 +27,8 @@ release workflow like the `.deb`.
 - `macos/Info.plist` — bundle metadata; the version is substituted at package time
 - `macos/launcher.sh` — the bundle's entry point
 - `windows/anistream.nsi` — NSIS installer: per-user, no UAC prompt
+- `linux/glibc-floor.sh` — fails the release when the Linux binary needs a newer glibc than it
+  promises, and names the symbols that need it
 
 Icons come from `assets/icon/`, generated from the mascot by `tools/icons/generate.ts`. Regenerate
 with `bun tools/icons/generate.ts`, then `iconutil -c icns assets/icon/anistream.iconset` on macOS.
@@ -43,6 +45,22 @@ makensis -DVERSION=0.1.0 -DSOURCE=<dir with anistream.exe, anistream.ico, LICENS
 
 macOS and Linux are assembled inline in `.github/workflows/release.yml`, since both are a handful
 of `install` calls followed by `pkgbuild` or `dpkg-deb`.
+
+## glibc on Linux
+
+A binary linked on the runner needs the runner's glibc, 2.39 on Ubuntu 24.04, and will not start
+on anything older. So the Linux build links against glibc 2.28's symbols instead, with
+`cargo zigbuild --target x86_64-unknown-linux-gnu.2.28`, and the `.tar.gz`, the `.deb` and the
+AppImage all run on Debian 10, Ubuntu 20.04, RHEL 8 and later. The release workflow then reads the
+finished binary with `linux/glibc-floor.sh` and starts it in Debian 10, AlmaLinux 8, Ubuntu 20.04,
+Debian 11 and Ubuntu 22.04 containers before packaging it.
+
+The floor is `glibc` on the Linux entry of the workflow's matrix. The `.deb`'s `libc6` dependency
+follows it. To check a binary by hand:
+
+```sh
+packaging/linux/glibc-floor.sh target/x86_64-unknown-linux-gnu/release/anistream 2.28
+```
 
 ## Not signed
 

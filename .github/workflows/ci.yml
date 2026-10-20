@@ -66,13 +66,18 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: tools/check-test-count.sh
 
-  # The real-mpv tests (the player's companion script, whole binges, the stream proxy) skip
-  # where mpv is missing, which is every runner above. Here mpv is installed and required, so
-  # a skip fails instead. Ubuntu 26.04 because it packages a current mpv (0.41); 24.04's 0.37
-  # lacks features the companion uses when they are there, such as a scaled overlay (0.38)
-  # and the context menu (0.40), and their tests assume them.
+  # The real-mpv tests (the companion script, whole binges, the seek-bar thumbnailers) skip
+  # where mpv is missing, which is every runner above. Here apt installs mpv and the tests
+  # require it, so a skip fails instead. At both ends of what distributions ship: Ubuntu 24.04's
+  # 0.37 is the oldest that runs the companion (0.36 is its floor) and lacks what later players
+  # added, such as a scaled overlay (0.38) and the context menu (0.40); 26.04's 0.41 has them.
   mpv:
-    runs-on: ubuntu-26.04
+    name: mpv (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-26.04]
     steps:
       - uses: actions/checkout@v5
       - run: rustup toolchain install
@@ -85,6 +90,10 @@ jobs:
       - name: Install mpv
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mpv
       - run: mpv --version | head -1
+      # A test that moves module leaves the group by its old path, and this job would stop
+      # running it without failing: the group's size is held to what it records.
+      - name: Group size
+        run: tools/check-mpv-group.sh
       - name: Test
         run: >-
           cargo nextest run --profile ci -p anistream -p anistream-engine -p anistream-player

@@ -71,6 +71,8 @@ and no build step:
 | Debian, Ubuntu | `anistream-<version>-amd64.deb`, or the `.tar.gz` |
 | Other Linux | The `.AppImage`: `chmod +x`, then run it from a terminal |
 
+The Linux builds need glibc 2.28 or newer: Debian 10, Ubuntu 20.04, RHEL 8 or later.
+
 The installers put `anistream` on your `PATH` and add a launcher. The archives hold the binary,
 this README, the licence and a `third-party` folder of notices. Every asset has a `.sha256` beside
 it. The builds are not code-signed yet. The first time, macOS wants **Open Anyway** in System
