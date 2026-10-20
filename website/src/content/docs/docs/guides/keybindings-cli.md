@@ -1,15 +1,15 @@
 ---
-title: Keybindings & CLI
-description: Vim-first keys with arrows always aliased, and a command line that composes with jq.
+title: Keys and command line
+description: Vim-style keys with the arrow keys aliased, how to rebind them, and every command-line option.
 ---
 
 ## Keybindings
 
-Vim-first, arrows always aliased, and every binding overridable under `[keys]` in
-`config.toml`. Press `?` in the app — the help overlay is generated from the resolved keymap, so
-what it shows is what is actually bound, overrides included.
+Keys follow Vim, the arrow keys work too, and every binding can be changed under `[keys]` in
+`config.toml`. Press `?` for the help overlay. It is generated from the resolved keymap, so it
+shows what is bound, overrides included.
 
-**Navigate**
+### Navigate
 
 | | |
 |---|---|
@@ -20,7 +20,7 @@ what it shows is what is actually bound, overrides included.
 | `Tab` | Toggle rail width |
 | `Esc` / `q` | Back |
 
-**Act**
+### Act
 
 | | |
 |---|---|
@@ -46,7 +46,7 @@ what it shows is what is actually bound, overrides included.
 | `y` | Play in a Syncplay party |
 | `r` / `R` | Refresh · resync |
 
-**Global**
+### Global
 
 | | |
 |---|---|
@@ -71,7 +71,7 @@ what it shows is what is actually bound, overrides included.
 | `K` / `J` | Move the selected source up / down the failover order |
 
 **While something is playing** a separate table takes priority, and it shadows some of the keys
-above — `L` seeks rather than opening the logs:
+above: `L` seeks instead of opening the logs.
 
 | | |
 |---|---|
@@ -86,10 +86,8 @@ above — `L` seeks rather than opening the logs:
 
 Keys inside the player window itself are listed in [The player](/docs/guides/player/#keys-inside-the-player).
 
-Overrides:
-
-Names are the snake_case form of the action — `?` shows every action, and an unrecognised name is
-refused at startup rather than ignored.
+To override a key, use the snake_case name of its action. `?` shows every action, and an
+unrecognised name is refused at startup.
 
 ```toml
 [keys]
@@ -100,13 +98,13 @@ refused at startup rather than ignored.
 
 None of these start the interface, and one runs at a time: two together are refused. Most answer
 and exit; `--continue` and `--play` play without it, and `--stream-url` and `store serve` keep
-running until you stop them. `--search`, `--stats` and `--random` also take `--json`, composable
-with `jq` and friends. An option given without the command it belongs to, such as `--json` or
+running until you stop them. `--search`, `--stats` and `--random` also take `--json`, for scripts
+and `jq`. An option given without the command it belongs to, such as `--json` or
 `--episode` on its own, is refused too.
 
 | | |
 |---|---|
-| `--doctor` | Terminal support, **mpv and its config**, datasets, configured indexer, VPN guard, kill-switch state |
+| `--doctor` | Terminal support, mpv and its config, datasets, configured indexer, VPN guard, kill-switch state |
 | `--search <query>` | Search AniList |
 | `--continue` | Resume the most recent episode, or start the next one, with no interface |
 | `--play <id> [--episode N]` | Play one title; without `--episode` it takes the next unwatched |

@@ -8,7 +8,8 @@ export default defineConfig({
 	integrations: [
 		starlight({
 			title: 'anistream',
-			description: 'An anime streaming TUI. Real image rendering, mpv for playback, pluggable everything.',
+			description:
+				'An open-source anime client for browsing, watching, tracking and syncing, with sources as plugins. anistream hosts no content.',
 			logo: { src: './src/assets/logo.svg', alt: '', replacesTitle: false },
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/bitknox/anistream' }],
 			customCss: ['./src/styles/theme.css'],
@@ -48,10 +49,10 @@ export default defineConfig({
 					label: 'Guides',
 					items: [
 						{ label: 'Configuration', link: 'docs/guides/configuration' },
-						{ label: 'Keybindings & CLI', link: 'docs/guides/keybindings-cli' },
+						{ label: 'Keys and command line', link: 'docs/guides/keybindings-cli' },
 						{ label: 'The player', link: 'docs/guides/player' },
-						{ label: 'Torrents & the VPN guard', link: 'docs/guides/torrents-vpn' },
-						{ label: 'Trackers & sync', link: 'docs/guides/trackers-sync' },
+						{ label: 'Torrents and the VPN guard', link: 'docs/guides/torrents-vpn' },
+						{ label: 'Trackers and sync', link: 'docs/guides/trackers-sync' },
 						{ label: 'Troubleshooting', link: 'docs/guides/troubleshooting' },
 					],
 				},
@@ -61,7 +62,7 @@ export default defineConfig({
 						{ label: 'Plugin stores', link: 'docs/plugins/stores' },
 						{ label: 'Running a store', link: 'docs/plugins/running-a-store' },
 						{ label: 'Writing a provider plugin', link: 'docs/plugins/authoring' },
-						{ label: 'Sandbox & guarantees', link: 'docs/plugins/sandbox' },
+						{ label: 'The plugin sandbox', link: 'docs/plugins/sandbox' },
 					],
 				},
 				{

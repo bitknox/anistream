@@ -1,6 +1,6 @@
 ---
 title: Writing a provider plugin
-description: A provider plugin is a WebAssembly component, a parser and not a networking stack.
+description: 'Provider plugins are WebAssembly components in any WASI 0.2 language: the interface, the error rules, building and publishing.'
 ---
 
 A provider plugin is a WebAssembly component: search terms in, episodes and stream URLs out.
@@ -11,8 +11,8 @@ and failover. Any WASI 0.2 language works; reference implementations in Rust and
 `plugins/`.
 
 :::note
-The sandbox has no sockets. The host lends you `fetch`, and your plugin is a parser.
-[Sandbox & guarantees](/docs/plugins/sandbox/) covers what is enforced.
+The sandbox has no sockets. The host makes requests for the plugin through `fetch`, so a plugin
+only parses. [The plugin sandbox](/docs/plugins/sandbox/) covers what is enforced.
 :::
 
 ## The interface
@@ -44,15 +44,15 @@ interface provider {                      // what you must export
 
 - `fetch-many`: several requests concurrently, results in request order. Same allowlist and
   fetch budget, per request. Return *all* your streams from `resolve`: playback falls over to
-  the next stream when one produces no frames, so ordering is a hint, not a verdict.
-- `sources`: the selectable releases for the Sources overlay, best-first. An empty list means
-  "nothing to choose between", which is an answer and not a failure.
+  the next stream when one produces no frames, so the order only sets which stream is tried first.
+- `sources`: the selectable releases for the Sources overlay, best-first. An empty list means there is
+  nothing to choose between, and it is not an error.
 - `resolve-source`: one candidate's id back into streams. Never fall back to the automatic pick.
 - `aes-decrypt`: AES-CBC. The key length selects 128, 192 or 256.
 - `config-get`: reads `[providers.plugins.settings.<your-id>]` from the user's config.toml.
   Every key is optional, so work with all of them unset.
 
-Record fields are documented in the WIT. Easy to miss: `synonyms`/`format` on a search hit (title
+Record fields are documented in the WIT. These are easy to miss: `synonyms`/`format` on a search hit (title
 matching), `description`/`thumbnail`/`air-date`/`filler` on an episode, `format` on a subtitle
 whose URL has no extension, `download-source` on a stream.
 

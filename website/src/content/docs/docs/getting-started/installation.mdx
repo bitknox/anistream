@@ -9,7 +9,7 @@ Every release on the [releases page](https://github.com/bitknox/anistream/releas
 build several ways:
 
 - An installer: `.pkg` on macOS, `setup.exe` on Windows, `.deb` on Debian and Ubuntu. Each one
-  puts `anistream` on your `PATH` *and* adds a launcher, so you can type it or click it. The
+  puts `anistream` on your `PATH` and adds a launcher, so you can type it or click it. The
   launcher opens your terminal, since that is where anistream lives.
 - An AppImage for every other Linux distro. `chmod +x` it and run it from a terminal. Nothing is
   installed. Like the `.deb` and the `.tar.gz`, it needs glibc 2.28 or newer: Debian 10, Ubuntu
@@ -22,19 +22,19 @@ Everything ships with a `.sha256` worth checking first.
 :::caution[Not code-signed]
 The releases are not signed, so the first open takes one extra step:
 
-- **macOS installer.** Opening the `.pkg` says Apple could not verify it. Choose **Done**, then go
-  to **System Settings → Privacy & Security**, find the line about anistream near the bottom and
+- On macOS, opening the `.pkg` says Apple could not verify it. Choose **Done**, go to
+  **System Settings → Privacy & Security**, find the line about anistream near the bottom and
   choose **Open Anyway**.
-- **macOS archive.** A binary downloaded with a browser is refused the first time it runs. Clear
-  the download flag once with `xattr -d com.apple.quarantine anistream`.
-- **Windows.** SmartScreen shows "Windows protected your PC". Choose **More info**, then **Run
-  anyway**.
+- On macOS, a binary from an archive downloaded with a browser is refused the first time it runs.
+  Clear the download flag once with `xattr -d com.apple.quarantine anistream`.
+- On Windows, SmartScreen shows “Windows protected your PC”. Choose **More info**, then
+  **Run anyway**.
 
 Updates through `anistream --update` are not downloaded by a browser and open without these
 steps.
 :::
 
-**mpv and ffmpeg are not bundled.** anistream drives mpv for playback and shells out to ffmpeg when
+mpv and ffmpeg are not bundled. anistream drives mpv for playback and shells out to ffmpeg when
 muxing subtitles into a completed download. The `.deb` declares both as dependencies. On macOS and
 Windows, install them yourself, as in Prerequisites below.
 
@@ -165,7 +165,7 @@ incremental after that. The binary ends up at `target/release/anistream` if you 
 </Tabs>
 
 Plugins always sit beside `config.toml`, whatever that path is. `anistream --plugins` prints the
-directory it is actually reading. Logs roll daily, at `info` unless `ANISTREAM_LOG` says otherwise.
+directory in use. Logs roll daily, at `info` unless `ANISTREAM_LOG` says otherwise.
 
 The player's controls, fonts and scripts and the upscaling shaders ship inside the binary, and
 anistream writes them into the cache directory when it needs them. `anistream --doctor` prints
@@ -175,7 +175,7 @@ are, which `trackers.token_storage` decides.
 No config file is required. One is only written when you change something in the Settings screen,
 and those writes are format-preserving, so comments you add by hand survive.
 
-:::note
+:::note[Running from cargo]
 Running from `cargo` rather than an installed binary has one consequence for tracker and store
 tokens: macOS keys keychain access on the binary, and every rebuild produces a new one. See
 [token storage](/docs/guides/trackers-sync/#token-storage).

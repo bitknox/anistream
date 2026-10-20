@@ -61,8 +61,8 @@ The store's page in anistream has what an owner needs day to day: **invite someo
 **members**, where you can remove someone's access, and **publish a plugin** from your plugin
 directory. Choose a plugin you published to stop offering it.
 
-**open the admin page** opens the store in your browser, already signed in. It has the same and
-a little more room: rename people, make someone an owner, revoke one lost device without removing
+Choose **open the admin page** to open the store in your browser, already signed in. It has the
+same controls and a few more: rename people, make someone an owner, revoke one lost device without removing
 its owner, and publish by dropping `.wasm` files onto the page. A sign-in link works once, for ten
 minutes, and a session lasts twelve hours.
 

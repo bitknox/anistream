@@ -1,6 +1,6 @@
 ---
 title: Requirements
-description: What anistream needs installed, and which terminals show it at its best.
+description: mpv and ffmpeg for a prebuilt install, Rust and cmake to build, and a terminal with a graphics protocol for cover art.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -12,11 +12,12 @@ packages.
 The Linux builds need glibc 2.28 or newer, which Debian 10, Ubuntu 20.04, RHEL 8 and every later
 release have. They do not run on musl distros such as Alpine.
 
-- **mpv** does all playback, over JSON IPC. anistream brings its own controls, thumbnails and
-  shaders, so a stock mpv is enough. The [player interface](/docs/guides/player/), with the skip
-  button, Up Next, menus and thumbnails, needs mpv 0.36 or newer. Older versions play with mpv's
-  own controls; Ubuntu 24.04 ships 0.37 and Debian 12 ships 0.35.
-- **ffmpeg** is used for remuxing and subtitle handling on downloads.
+mpv does all playback, over JSON IPC. anistream brings its own controls, thumbnails and shaders,
+so a stock mpv is enough. The [player interface](/docs/guides/player/), with the skip button, Up
+Next, menus and thumbnails, needs mpv 0.36 or newer. Older versions play with mpv's own controls;
+Ubuntu 24.04 ships 0.37 and Debian 12 ships 0.35.
+
+ffmpeg remuxes downloads and handles their subtitles.
 
 ## Building from source
 
@@ -58,24 +59,15 @@ assembles its own crypto primitives. See
 </TabItem>
 </Tabs>
 
-- **cmake** builds BoringSSL for the browser-fingerprint HTTP stack.
-- **Rust 1.97.1** is pinned by `rust-toolchain.toml`, so `rustup` picks it up automatically inside
-  the repo.
-
-Optional:
-
-- `rustup target add wasm32-wasip2`, only if you want to build
-  [plugins](/docs/plugins/authoring/).
+cmake builds BoringSSL for the browser-fingerprint HTTP stack. Rust 1.97.1 is pinned by
+`rust-toolchain.toml`, so `rustup` picks it up inside the repo. To build
+[plugins](/docs/plugins/authoring/), also run `rustup target add wasm32-wasip2`.
 
 ## Terminal
 
-Use a terminal with a real graphics protocol if you can: **Ghostty, Kitty, iTerm2, WezTerm**. Cover
-art renders as actual images over the Kitty, Sixel or iTerm2 protocols. Elsewhere it falls back to
-Unicode halfblocks. On Windows, WezTerm is one of them.
+Cover art looks best in a terminal with a graphics protocol, such as Ghostty, Kitty, iTerm2 or
+WezTerm. It renders as images over the Kitty, Sixel or iTerm2 protocols, and falls back to Unicode
+halfblocks elsewhere. On Windows, WezTerm is one of them.
 
-```sh
-anistream --doctor
-```
-
-reports what your terminal supports, which mpv you have and which config it reads, and, once the
-torrent source is enabled, the state of the VPN guard and your VPN's kill switch.
+`anistream --doctor` reports what your terminal supports, which mpv you have and which config it
+reads, and, once the torrent source is on, the state of the VPN guard and your VPN's kill switch.
