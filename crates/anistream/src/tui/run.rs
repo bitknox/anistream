@@ -6,9 +6,8 @@ use std::{io, sync::Arc, time::Duration};
 use anistream_core::config::{Config, Paths};
 use anistream_engine::{
     background::datasets::keep_datasets_current,
-    dispatch::{dispatch, handle_internal, receive},
+    dispatch::{handle_internal, receive},
     host::DesktopHost,
-    jobs::JobGuard,
     outbox::{Envelope, Internal, Outbox},
     playback::player::{launch_notice, player},
     services::Services,
@@ -40,7 +39,7 @@ use crate::{
     tui::{
         self,
         clipboard::copy_to_clipboard,
-        seams::{ConfigSeam, command, use_config},
+        seams::{ConfigSeam, command, route, use_config},
     },
 };
 
@@ -141,7 +140,7 @@ pub async fn run(
 
     // The engine side told the interface's config, the file's included, before it reads it.
     let mut seam = ConfigSeam::default();
-    use_config(&app, &mut seam, &mut engine, &services, &tx);
+    use_config(&app, &mut seam, &mut |c| route(c, &mut engine, &services, &tx));
 
     // The daily update check: one cached request, one quiet toast when a release exists.
     anistream_engine::updates::spawn_check(
@@ -228,8 +227,7 @@ pub async fn run(
     let mut terminal = setup_terminal().context("preparing the terminal")?;
 
     if let Some(task) = app.reload() {
-        let job = JobGuard::start(&mut engine, &task, &tx);
-        dispatch(task, job, &mut engine, &services, &tx);
+        route(task, &mut engine, &services, &tx);
     }
 
     let mut events = EventStream::new();
@@ -273,17 +271,17 @@ pub async fn run(
         // each URL, so a re-render cannot re-request one already in flight.
         for url in app.visible_artwork(rows) {
             let task = Command::FetchArtwork { url };
-            command(&app, &mut seam, task, &mut engine, &services, &tx);
+            command(&app, &mut seam, task, &mut |c| route(c, &mut engine, &services, &tx));
         }
 
         // Auto-next is queued by the reducer rather than returned, because an episode ending
         // arrives as an update rather than a keystroke.
         if let Some(task) = app.take_pending() {
-            command(&app, &mut seam, task, &mut engine, &services, &tx);
+            command(&app, &mut seam, task, &mut |c| route(c, &mut engine, &services, &tx));
         }
         // Whatever moved the config since: a setting put back, say. The reactions below read
         // the engine side's copy.
-        use_config(&app, &mut seam, &mut engine, &services, &tx);
+        use_config(&app, &mut seam, &mut |c| route(c, &mut engine, &services, &tx));
 
         tokio::select! {
             Some(envelope) = rx.recv() => {
@@ -345,7 +343,9 @@ pub async fn run(
                 tracing::info!(signal, "shutting down");
                 tui::terminal::exit_on_second_signal();
                 if let Some(task) = app.handle(anistream_tui::keymap::Action::Quit, rows) {
-                    command(&app, &mut seam, task, &mut engine, &services, &tx);
+                    command(&app, &mut seam, task, &mut |c| {
+                        route(c, &mut engine, &services, &tx)
+                    });
                 }
                 // Whatever an open overlay made of the key, a signal is not a request to close it.
                 app.should_quit = true;
@@ -367,7 +367,9 @@ pub async fn run(
                 match maybe_event {
                     Some(Ok(TermEvent::Key(key))) if key.kind == KeyEventKind::Press => {
                         if let Some(task) = app.press(key, rows) {
-                            command(&app, &mut seam, task, &mut engine, &services, &tx);
+                            command(&app, &mut seam, task, &mut |c| {
+                                route(c, &mut engine, &services, &tx)
+                            });
                         }
                     }
                     // Arrives whole with bracketed paste on, so a pasted link cannot fire

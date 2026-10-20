@@ -69,7 +69,7 @@ use crate::{
     covers,
     tui::{
         run::show_config_problem,
-        seams::{ConfigSeam, command},
+        seams::{ConfigSeam, command, route},
     },
 };
 
@@ -432,8 +432,8 @@ impl Harness {
     /// command, its job started.
     fn dispatch(&mut self, task: Command) -> Option<JobId> {
         let tx = self.channels.sender();
-        let job =
-            command(&self.app, &mut self.seam, task, &mut self.engine, &self.services, &tx);
+        let Self { app, seam, engine, services, .. } = self;
+        let job = command(app, seam, task, &mut |c| route(c, engine, services, &tx));
         self.jobs.started.extend(job);
         job
     }

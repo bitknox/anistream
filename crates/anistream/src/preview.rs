@@ -28,7 +28,7 @@ use crate::{
     PreviewScreen, covers, describe_graphics,
     tui::{
         run::show_config_problem,
-        seams::{ConfigSeam, command},
+        seams::{ConfigSeam, command, route},
     },
 };
 
@@ -226,7 +226,8 @@ impl PreviewRun {
             eprintln!("[preview: not run: {task:?}]");
             return;
         }
-        command(app, &mut self.seam, task, &mut self.engine, &self.services, &self.tx);
+        let Self { seam, engine, services, tx, .. } = self;
+        command(app, seam, task, &mut |c| route(c, engine, services, tx));
     }
 
     /// Apply updates until the work is done and the screen's covers are in, as the event loop

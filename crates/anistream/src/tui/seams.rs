@@ -46,30 +46,37 @@ impl ConfigSeam {
 pub fn use_config(
     app: &App,
     seam: &mut ConfigSeam,
-    engine: &mut EngineState,
-    services: &Services,
-    tx: &Outbox,
+    send: &mut impl FnMut(Command) -> Option<JobId>,
 ) {
     if let Some(config) = seam.moved(app) {
-        dispatch(config, None, engine, services, tx);
+        send(config);
     }
 }
 
-/// Send a command to the engine side as the interface sends one: the config ahead of it when
-/// it moved, and a play's hints ahead of a play, then the command, its job started as it is
-/// dispatched. Returns the job, for work someone waits on.
+/// Send a command to the engine side as the interface sends one, through `send`: the config
+/// ahead of it when it moved, and a play's hints ahead of a play, then the command. Returns the
+/// job, for work someone waits on.
 pub fn command(
     app: &App,
     seam: &mut ConfigSeam,
+    task: Command,
+    send: &mut impl FnMut(Command) -> Option<JobId>,
+) -> Option<JobId> {
+    use_config(app, seam, send);
+    if let Some(hints) = play_hints(app, &task) {
+        send(hints);
+    }
+    send(task)
+}
+
+/// Route a command on the engine side, its job started as it is dispatched: what the seams
+/// send through until the front end holds an `Engine` to send it to.
+pub fn route(
     task: Command,
     engine: &mut EngineState,
     services: &Services,
     tx: &Outbox,
 ) -> Option<JobId> {
-    use_config(app, seam, engine, services, tx);
-    if let Some(hints) = play_hints(app, &task) {
-        dispatch(hints, None, engine, services, tx);
-    }
     let job = JobGuard::start(engine, &task, tx);
     let id = job.as_ref().map(|job| job.id);
     dispatch(task, job, engine, services, tx);
