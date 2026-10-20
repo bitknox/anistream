@@ -1,5 +1,5 @@
-# TEMPORARY, for engine-p6b only: what the engine's C dependencies make of the phone targets,
-# before the mobile jobs are written into ci.yml. Removed before the branch's last commit.
+# TEMPORARY, for engine-p6b only: the mobile jobs tried out before they go into ci.yml.
+# Removed before the branch's last commit.
 name: Mobile probe
 
 on:
@@ -21,16 +21,25 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - run: rustup toolchain install && rustup target add aarch64-apple-ios
-      - run: xcodebuild -version && xcrun --sdk iphoneos --show-sdk-path && cmake --version
-      - run: cargo build -p anistream-engine --target aarch64-apple-ios --keep-going
+      - name: The engine
+        run: cargo build -p anistream-engine --no-default-features --target aarch64-apple-ios
+      - name: The FFI library
+        run: cargo build -p anistream-ffi --no-default-features --target aarch64-apple-ios
+      - run: ls -la target/aarch64-apple-ios/debug/ | grep -i anistream_ffi
 
   android:
     runs-on: ubuntu-latest
+    env:
+      BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android: --target=aarch64-linux-android24
     steps:
       - uses: actions/checkout@v5
       - run: rustup toolchain install && rustup target add aarch64-linux-android
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-ndk
-      - run: echo "$ANDROID_NDK_LATEST_HOME" && ls "$ANDROID_NDK_LATEST_HOME" && cmake --version
-      - run: ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME" cargo ndk -t arm64-v8a build -p anistream-engine --keep-going
+      - run: echo "NDK_HOME=$ANDROID_NDK_HOME NDK_ROOT=$ANDROID_NDK_ROOT" && cargo ndk --version
+      - name: The engine
+        run: cargo ndk --target arm64-v8a --platform 24 build -p anistream-engine --no-default-features
+      - name: The FFI library
+        run: cargo ndk --target arm64-v8a --platform 24 build -p anistream-ffi --no-default-features
+      - run: ls -la target/aarch64-linux-android/debug/ | grep -i anistream_ffi
