@@ -16,7 +16,7 @@ use anistream_model::{
     jobs::JobId,
     notice::{Notice, NoticeHint, NoticeKind},
     playback::{Ending, SkipKind},
-    progress::{Watch, after_filler, mark_row, next_up, unmark_entry, watch_entry, watch_row},
+    progress::{Watch, after_filler, mark_row, unmark_entry, watch_entry, watch_row},
     settings::{SettingChange, SettingKey, SettingsView},
     sources::{
         GuardView, MatchCandidate, MetaSourceRow, ProviderRow, SourceChip, SourceState,
@@ -2551,15 +2551,6 @@ impl App {
         // at there, not about which episodes exist. Asked by the rows' own title rather than
         // `detail`, which moves to a newly opened title before that title's rows arrive.
         if self.episodes_for == Some(id) { &self.episodes_all } else { &[] }
-    }
-
-    /// The episode that follows `episode` of `id`, honouring the filler setting, when the
-    /// episode table can vouch that it exists.
-    ///
-    /// `None` when the table is not this title's or has no such row: the player then shows no
-    /// Up Next card and closes at the end, which is right for a finale and harmless otherwise.
-    pub fn next_up(&self, id: AnilistId, episode: &str) -> Option<&EpisodeRow> {
-        next_up(self.episode_rows_for(id), episode, self.settings.skip_filler)
     }
 
     /// Where auto-next actually lands, honouring `playback.skip_filler`, by this title's
@@ -5280,7 +5271,6 @@ mod tests {
         let mut a = app_at_episodes();
         a.detail = a.content.entries().get(1).cloned();
         assert!(a.episode_rows_for(AnilistId::new(2)).is_empty());
-        assert!(a.next_up(AnilistId::new(2), "1").is_none());
         assert_eq!(a.episode_rows_for(AnilistId::new(1)).len(), 12, "still Title 0's");
         a.begin_playback(AnilistId::new(2), "1".into());
         assert_eq!(a.playing.as_ref().unwrap().episode_title, None);
@@ -5570,16 +5560,6 @@ mod tests {
         a.apply(finished(None));
         assert_eq!(a.take_pending(), None);
         assert!(a.toasts.iter().any(|t| t.notice.text == "episode finished"));
-    }
-
-    #[test]
-    fn a_non_numeric_episode_has_no_next() {
-        // "OVA" and "Special" are real labels with no successor; guessing one would start
-        // playing something unrelated.
-        let a = app_at_episodes();
-        assert!(a.next_up(AnilistId::new(1), "OVA").is_none());
-        assert_eq!(a.next_up(AnilistId::new(1), "11").map(|r| r.number.as_str()), Some("12"));
-        assert!(a.next_up(AnilistId::new(1), "12").is_none(), "the table ends at 12");
     }
 
     #[test]

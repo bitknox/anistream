@@ -20,10 +20,7 @@ use anistream_tui::{
 };
 use anyhow::Result;
 
-use crate::{
-    PreviewScreen, covers, describe_graphics,
-    tui::{run::show_config_problem, seams::command},
-};
+use crate::{PreviewScreen, covers, describe_graphics, tui::run::show_config_problem};
 
 /// Render one frame with live data and print it as text.
 ///
@@ -107,7 +104,7 @@ pub async fn preview(
 
     // Launch: Home loads.
     if let Some(task) = app.reload() {
-        run.dispatch(&mut app, task);
+        run.dispatch(task);
     }
     run.settle(&mut app).await?;
 
@@ -141,7 +138,7 @@ pub async fn preview(
         }
         PreviewScreen::Title | PreviewScreen::Episodes => {
             if let Some(task) = app.open_selected() {
-                run.dispatch(&mut app, task);
+                run.dispatch(task);
                 run.settle(&mut app).await?;
             } else {
                 eprintln!("[title: nothing on Home to open — watch something first]");
@@ -187,13 +184,13 @@ impl PreviewRun {
     /// Press a key, as the event loop does.
     async fn press(&mut self, app: &mut App, action: anistream_tui::keymap::Action) {
         if let Some(task) = app.handle(action, self.rows) {
-            self.dispatch(app, task);
+            self.dispatch(task);
         }
     }
 
     /// Send a task to the engine as the event loop sends one — unless running it would do
     /// something a still frame must not: play, download, sign in, change a setting or a store.
-    fn dispatch(&mut self, app: &mut App, task: Command) {
+    fn dispatch(&self, task: Command) {
         let loads = matches!(
             task,
             Command::LoadContinue
@@ -214,7 +211,7 @@ impl PreviewRun {
             eprintln!("[preview: not run: {task:?}]");
             return;
         }
-        command(app, task, &self.engine);
+        self.engine.send(task);
     }
 
     /// Apply updates until the work is done and the screen's covers are in, as the event loop
@@ -223,11 +220,11 @@ impl PreviewRun {
         let deadline = tokio::time::Instant::now() + Self::PATIENCE;
         loop {
             if let Some(task) = app.take_pending() {
-                self.dispatch(app, task);
+                self.dispatch(task);
             }
             let mut fetching = false;
             for url in app.visible_artwork(self.rows) {
-                self.dispatch(app, Command::FetchArtwork { url });
+                self.dispatch(Command::FetchArtwork { url });
                 fetching = true;
             }
             // Quiet for this long with no work outstanding means done. Longer while covers are

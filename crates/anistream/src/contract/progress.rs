@@ -7,6 +7,7 @@
 //! the playback is of, whatever else is on screen; and nothing after it has ended.
 
 use anistream_core::ids::AnilistId;
+use anistream_engine::cache::PlayKind;
 use anistream_model::{
     catalog::{Entry, ResumePoint},
     event::Event,
@@ -280,6 +281,9 @@ async fn the_next_episode_steps_over_filler_on_a_table_that_marks_it() {
     h.press(Action::ShowEpisodes);
     h.settle().await;
     let filler = sources::FILLER_EPISODE.to_string();
-    let next = h.app().next_up(SEQUEL, "6").map(|row| row.number.clone());
-    assert_eq!(next.as_deref(), Some("8"), "episode {filler} is stepped over");
+    let play = h.title_cache().await.hints(SEQUEL, "6", true, PlayKind::Staged);
+    assert_eq!(play.next.map(|n| n.number).as_deref(), Some("8"), "{filler} is stepped over");
+    // Shown in the Episodes menu as what it is.
+    let marked: Vec<_> = play.episodes.iter().filter(|e| e.filler).map(|e| &e.number).collect();
+    assert_eq!(marked, [&filler]);
 }

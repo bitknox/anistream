@@ -5,7 +5,7 @@ use anistream_core::ids::AnilistId;
 use crate::{
     catalog::{LibrarySegment, SearchFilters},
     episodes::EpisodeRow,
-    playback::{EpisodeEntry, NextEpisode, Successor},
+    playback::Successor,
     settings::SettingKey,
     stores::Secret,
 };
@@ -318,22 +318,6 @@ pub enum Command {
     /// URL, so a redraw never fetches what is already on its way.
     FetchArtwork {
         url: String,
-    },
-    /// What the front end knows of a title that playing it needs. Sent immediately ahead of
-    /// each [`Command::Play`], [`Command::PlaySource`], [`Command::PlayParty`] and
-    /// [`Command::PlayLocal`], which each take the last one sent.
-    ///
-    /// `title` is the name the window being handed over announces the new playback by: the
-    /// title on Now Playing or on screen, or empty when neither is this one. `next` and
-    /// `episodes` are what the player's Up Next card and Episodes menu show, from the episode
-    /// table when it is this title's; with no episodes, the playback loads the list itself.
-    ///
-    /// Temporary, while the episode table lives in the front end. P4 gives the engine its own
-    /// record of the titles opened, which answers all three, and this goes.
-    PlayHints {
-        title: String,
-        next: Option<NextEpisode>,
-        episodes: Vec<EpisodeEntry>,
     },
 }
 

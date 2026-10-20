@@ -385,3 +385,169 @@ pub struct Standing<'a> {
     /// Its table's rows, when its table is the one loaded last; otherwise none.
     pub rows: &'a [EpisodeRow],
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anistream_model::catalog::ContentFor;
+
+    fn row(number: &str) -> EpisodeRow {
+        EpisodeRow {
+            number: number.into(),
+            title: Some(format!("Part {number}")),
+            thumbnail: None,
+            description: None,
+            duration_secs: Some(1_440),
+            watched: 0.0,
+            completed: false,
+            kind: None,
+            skippable: false,
+        }
+    }
+
+    fn rows(numbers: std::ops::RangeInclusive<u32>) -> Vec<EpisodeRow> {
+        numbers.map(|n| row(&n.to_string())).collect()
+    }
+
+    fn listed(cache: &mut TitleCache, entries: Vec<Entry>) {
+        let content = Content::Entries(entries);
+        cache.observe(&Event::Content { view: ContentFor::Continue, content }, None);
+    }
+
+    /// Moved from the binary's seams, which worked this out from the screen: a play takes what
+    /// the record knows of its title.
+    #[test]
+    fn a_play_takes_what_the_record_knows_of_its_title() {
+        let id = AnilistId::new(7);
+        let mut cache = TitleCache::default();
+        // Nothing known of it: staged as just playing, a party with no name, and a list the
+        // playback loads itself.
+        let nothing = cache.hints(id, "2", false, PlayKind::Staged);
+        assert_eq!(nothing, PlayHints { title: "playing".into(), ..PlayHints::default() });
+        assert_eq!(cache.hints(id, "2", false, PlayKind::Party), PlayHints::default());
+
+        // The title open, as opening it from a list leaves it, and its table loaded.
+        cache.observe(&Event::Detail(Box::new(Entry::new(id, "Hoshikuzu no Tabibito"))), None);
+        let mut table = rows(1..=3);
+        table[0].completed = true;
+        cache.observe(&Event::Episodes { id, rows: table }, None);
+        for kind in [PlayKind::Staged, PlayKind::Party] {
+            let PlayHints { title, next, episodes } = cache.hints(id, "2", false, kind);
+            assert_eq!(title, "Hoshikuzu no Tabibito");
+            assert_eq!(next.map(|n| n.number).as_deref(), Some("3"));
+            let listed: Vec<(&str, bool)> =
+                episodes.iter().map(|e| (e.number.as_str(), e.watched)).collect();
+            assert_eq!(listed, [("1", true), ("2", false), ("3", false)]);
+        }
+
+        // A download goes by the name its row has, and so does the episode after it.
+        cache.announce(id, "Hoshikuzu (downloaded)".into());
+        assert_eq!(
+            cache.hints(id, "3", false, PlayKind::Staged).title,
+            "Hoshikuzu (downloaded)"
+        );
+    }
+
+    /// Moved from the App's `another_titles_rows_never_speak_for_the_one_opened_after_them`:
+    /// the table loaded last is one title's, and never answers for another.
+    #[test]
+    fn another_titles_table_never_answers_for_the_one_played() {
+        let mut cache = TitleCache::default();
+        listed(
+            &mut cache,
+            vec![
+                Entry::new(AnilistId::new(1), "Title 0"),
+                Entry::new(AnilistId::new(2), "Title 1"),
+            ],
+        );
+        cache.observe(&Event::Episodes { id: AnilistId::new(1), rows: rows(1..=12) }, None);
+        let other = cache.hints(AnilistId::new(2), "1", false, PlayKind::Staged);
+        assert_eq!((other.next, other.episodes.len()), (None, 0));
+        assert_eq!(other.title, "Title 1");
+        let own = cache.hints(AnilistId::new(1), "1", false, PlayKind::Staged);
+        assert_eq!(own.episodes.len(), 12, "still Title 0's");
+    }
+
+    #[test]
+    fn a_table_loaded_since_replaces_the_one_before() {
+        // As the terminal holds one: a title whose table was replaced plays as one with none,
+        // its episodes loaded behind the playback.
+        let mut cache = TitleCache::default();
+        cache.observe(&Event::Episodes { id: AnilistId::new(1), rows: rows(1..=12) }, None);
+        cache.observe(&Event::Episodes { id: AnilistId::new(2), rows: rows(1..=3) }, None);
+        assert!(
+            cache.hints(AnilistId::new(1), "1", false, PlayKind::Staged).episodes.is_empty()
+        );
+        assert_eq!(
+            cache.table().map(|(id, rows)| (id, rows.len())),
+            Some((AnilistId::new(2), 3))
+        );
+    }
+
+    #[test]
+    fn the_episode_after_one_that_followed_another_goes_by_its_name() {
+        // Rolled on to, picked in the player, or restarted in the other translation: the name
+        // the playback before went by, whatever the title is called in a list since.
+        let id = AnilistId::new(3);
+        let mut cache = TitleCache::default();
+        listed(&mut cache, vec![Entry::new(id, "Kaze no Tayori")]);
+        cache.announce(id, "Kaze no Tayori".into());
+        listed(&mut cache, vec![Entry::new(id, "Kaze no Tayori (renamed)")]);
+        assert_eq!(cache.hints(id, "2", false, PlayKind::Staged).title, "Kaze no Tayori");
+        // Another title is named by the record, not by what played last.
+        let other = AnilistId::new(4);
+        listed(&mut cache, vec![Entry::new(other, "Hoshikuzu no Tabibito")]);
+        assert_eq!(
+            cache.hints(other, "1", false, PlayKind::Staged).title,
+            "Hoshikuzu no Tabibito"
+        );
+    }
+
+    #[test]
+    fn up_next_steps_over_filler_only_when_asked() {
+        let id = AnilistId::new(5);
+        let mut cache = TitleCache::default();
+        let mut table = rows(1..=6);
+        for filler in [2, 3] {
+            table[filler].skippable = true;
+        }
+        cache.observe(&Event::Episodes { id, rows: table }, None);
+        let next = |skip| cache.hints(id, "2", skip, PlayKind::Staged).next.map(|n| n.number);
+        assert_eq!(next(false).as_deref(), Some("3"));
+        assert_eq!(next(true).as_deref(), Some("5"), "3 and 4 are filler");
+    }
+
+    #[test]
+    fn a_relation_shows_by_the_name_its_page_lists_it_under() {
+        use anistream_model::catalog::RelatedTitle;
+        let (parent, sequel) = (AnilistId::new(8), AnilistId::new(9));
+        let mut page = Entry::new(parent, "Hoshikuzu no Tabibito");
+        page.related = vec![RelatedTitle {
+            id: sequel,
+            title: "Hoshikuzu no Tabibito II".into(),
+            relation: "sequel".into(),
+            format: None,
+        }];
+        let mut cache = TitleCache::default();
+        cache.observe(&Event::Detail(Box::new(page)), None);
+        assert_eq!(
+            cache.hints(sequel, "1", false, PlayKind::Staged).title,
+            "Hoshikuzu no Tabibito II"
+        );
+        let standing = cache.standing(sequel).expect("named");
+        assert_eq!((standing.progress, standing.resume), (None, None));
+    }
+
+    #[test]
+    fn the_record_lets_the_titles_touched_least_recently_go() {
+        let mut cache = TitleCache::default();
+        let first = AnilistId::new(1);
+        listed(&mut cache, vec![Entry::new(first, "the first")]);
+        let many =
+            (2..=TITLES as u32 + 1).map(|n| Entry::new(AnilistId::new(n), format!("t{n}")));
+        listed(&mut cache, many.collect());
+        assert_eq!(cache.titles.len(), TITLES);
+        assert!(cache.standing(first).is_none(), "the oldest went");
+        assert!(cache.standing(AnilistId::new(2)).is_some());
+    }
+}

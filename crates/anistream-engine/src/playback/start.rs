@@ -3,17 +3,12 @@
 
 use anistream_core::{config::Config, ids::AnilistId};
 use anistream_model::{
-    command::PlayerCommand,
-    episodes::EpisodeRow,
-    event::Event,
-    notice::Notice,
-    playback::{EpisodeEntry, NextEpisode},
+    command::PlayerCommand, episodes::EpisodeRow, event::Event, notice::Notice,
 };
 use tokio::sync::mpsc;
 
-#[cfg(feature = "testing")]
-use crate::cache::PlayKind;
 use crate::{
+    cache::{PlayHints, PlayKind},
     jobs::JobGuard,
     outbox::Outbox,
     playback::{
@@ -23,21 +18,29 @@ use crate::{
         resolve::{Resolved, resolve_for_playback},
     },
     services::Services,
-    state::{EngineState, PlayHints},
+    state::EngineState,
     titles::episodes::{EpisodeLoad, load_episodes},
     tracking::commands::signed_in_tracker_ids,
 };
 
-/// What the front end said the next play needs, for that play to take: from the episode table
-/// the front end holds, until P4.
-pub fn keep_hints(
-    title: String,
-    next: Option<NextEpisode>,
-    episodes: Vec<EpisodeEntry>,
+/// What a play of `episode` of `id` takes from the engine's record of the titles: the name the
+/// window being handed over announces it by, and what the player's Up Next card and Episodes
+/// menu show. See [`TitleCache::hints`]. A staged play's name is remembered for the episode
+/// that follows it, which goes by the same name.
+///
+/// [`TitleCache::hints`]: crate::cache::TitleCache::hints
+fn hints_for(
+    id: AnilistId,
+    episode: &str,
+    kind: PlayKind,
     engine: &mut EngineState,
-) {
-    let EngineState { hints, .. } = engine;
-    *hints = Some(PlayHints { title, next, episodes });
+) -> PlayHints {
+    let skip_filler = engine.config.effective().playback.skip_filler;
+    let hints = engine.cache.hints(id, episode, skip_filler, kind);
+    if kind == PlayKind::Staged {
+        engine.cache.announce(id, hints.title.clone());
+    }
+    hints
 }
 
 /// Play an episode from whichever source the resolution ladder chooses.
@@ -55,15 +58,9 @@ pub fn play(
 ) {
     let Services { paths, sync, prefetch, player_theme, .. } = services;
     let played = engine.next_playback(id, &episode);
-    #[cfg(feature = "testing")]
-    let ours = engine.cache.hints(id, &episode, skip_filler(engine), PlayKind::Staged);
-    let EngineState { config, hints, player_tx, cache, .. } = engine;
+    let PlayHints { title, next, episodes } = hints_for(id, &episode, PlayKind::Staged, engine);
+    let EngineState { config, player_tx, .. } = engine;
     let config = config.effective();
-    let sent = hints.take();
-    #[cfg(feature = "testing")]
-    cross_check(sent.as_ref(), &ours);
-    let PlayHints { title, next, episodes } = sent.unwrap_or_default();
-    cache.announce(id, title.clone());
     // A fresh channel per playback. The one playing gives up its window only once
     // this one has something to play — see `Handoff`.
     let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
@@ -108,18 +105,12 @@ pub fn play_source(
 ) {
     let Services { paths, sync, player_theme, .. } = services;
     let played = engine.next_playback(id, &episode);
-    #[cfg(feature = "testing")]
-    let ours = engine.cache.hints(id, &episode, skip_filler(engine), PlayKind::Staged);
-    let EngineState { config, hints, player_tx, cache, .. } = engine;
+    let PlayHints { title, next, episodes } = hints_for(id, &episode, PlayKind::Staged, engine);
+    let EngineState { config, player_tx, .. } = engine;
     let config = config.effective();
     // Identical to Play except the stream comes from the exact release the user
     // picked — same fresh channel, same session-replacement semantics. Never from the
     // streams found ahead: the pick names its own release.
-    let sent = hints.take();
-    #[cfg(feature = "testing")]
-    cross_check(sent.as_ref(), &ours);
-    let PlayHints { title, next, episodes } = sent.unwrap_or_default();
-    cache.announce(id, title.clone());
     let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
     let prefetched = None;
     let tracker_ids = signed_in_tracker_ids(sync);
@@ -157,15 +148,10 @@ pub fn play_party(
 ) {
     let Services { paths, sync, player_theme, .. } = services;
     let played = engine.next_playback(id, &episode);
-    #[cfg(feature = "testing")]
-    let ours = engine.cache.hints(id, &episode, skip_filler(engine), PlayKind::Party);
-    let EngineState { config, hints, player_tx, .. } = engine;
+    let PlayHints { title, next, episodes } = hints_for(id, &episode, PlayKind::Party, engine);
+    let EngineState { config, player_tx, .. } = engine;
     let config = config.effective();
     // Same resolution as Play; the handoff at the end is the only difference.
-    let sent = hints.take();
-    #[cfg(feature = "testing")]
-    cross_check(sent.as_ref(), &ours);
-    let PlayHints { title, next, episodes } = sent.unwrap_or_default();
     let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
     let prefetched = None;
     let tracker_ids = signed_in_tracker_ids(sync);
@@ -203,25 +189,20 @@ pub fn play_local(
 ) {
     let Services { paths, http, store, sync, slot, player_theme, .. } = services;
     let played = engine.next_playback(id, &episode);
+    let skip_filler = engine.config.effective().playback.skip_filler;
+    let PlayHints { next, episodes, .. } =
+        engine.cache.hints(id, &episode, skip_filler, PlayKind::Staged);
     // Named by the download it plays: the Downloads screen says what its rows are called.
-    #[cfg(feature = "testing")]
-    let ours = crate::cache::PlayHints {
-        title: title.clone(),
-        ..engine.cache.hints(id, &episode, skip_filler(engine), PlayKind::Staged)
-    };
-    let EngineState { config, hints, player_tx, cache, .. } = engine;
+    engine.cache.announce(id, title.clone());
+    let EngineState { config, player_tx, .. } = engine;
     let config = config.effective();
     // No provider walk and no torrent session — the file is on disk — but the full
     // playback session all the same: a downloaded episode records history, resumes,
     // and syncs exactly like a streamed one. It used to go straight to mpv with no
     // context, which made downloads second-class in every way that matters.
     // Nothing to look up, so nothing can fail before it plays.
-    let sent = hints.take();
-    #[cfg(feature = "testing")]
-    cross_check(sent.as_ref(), &ours);
-    let PlayHints { title: named, next, episodes } = sent.unwrap_or_default();
-    cache.announce(id, named.clone());
-    let (prx, handoff) = take_controls(player_tx, successor(id, &episode, named, config));
+    let (prx, handoff) =
+        take_controls(player_tx, successor(id, &episode, title.clone(), config));
     handoff.now();
     let tracker_ids = signed_in_tracker_ids(sync);
     if episodes.is_empty() {
@@ -270,25 +251,6 @@ pub fn play_local(
     });
 }
 
-/// Whether auto-next steps over filler, as the config in effect says.
-#[cfg(feature = "testing")]
-fn skip_filler(engine: &EngineState) -> bool {
-    engine.config.effective().playback.skip_filler
-}
-
-/// Cross-check, while the front end still sends what a play needs: the engine's record answers
-/// the play as the front end did. Under the test feature only, where a disagreement stops the
-/// engine and so fails the test that played. Temporary, with `PlayHints`.
-#[cfg(feature = "testing")]
-fn cross_check(sent: Option<&PlayHints>, ours: &crate::cache::PlayHints) {
-    let Some(sent) = sent else { return };
-    assert_eq!(
-        (&sent.title, &sent.next, &sent.episodes),
-        (&ours.title, &ours.next, &ours.episodes),
-        "the engine's record answers a play otherwise than the front end did"
-    );
-}
-
 /// Steer whatever is playing, through the controls of the playback started last.
 pub fn control_player(command: PlayerCommand, engine: &EngineState) {
     let EngineState { player_tx, .. } = engine;
@@ -316,7 +278,8 @@ fn spawn_playback(
     services: &Services,
     mpv: &anistream_player::Mpv,
     tracker_ids: Vec<String>,
-    // What the player's Up Next card and Episodes menu show, read from the episode table.
+    // What the player's Up Next card and Episodes menu show, from the engine's record of the
+    // titles.
     extras: (Option<playback::NextEpisode>, Vec<playback::EpisodeEntry>),
     shader_dir: Option<std::path::PathBuf>,
     // This episode's streams, found ahead while the previous one's ending played.

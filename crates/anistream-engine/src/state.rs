@@ -2,9 +2,9 @@
 //!
 //! The interface's `App` held some of it, and the loop the rest, and `dispatch` read the config
 //! and the episode table off the `App`. This is the engine side's half: the config, which it
-//! owns, what it was told the next play needs, the live player's controls, and the torrent stack
-//! the settings stand down and back up. The engine's actor owns it, beside the `Services`, and
-//! nothing here reads the interface.
+//! owns, its record of the titles the front end shows, the live player's controls, and the
+//! torrent stack the settings stand down and back up. The engine's actor owns it, beside the
+//! `Services`, and nothing here reads the interface.
 //!
 //! Not here: the receiving ends of the channels the actor reads, and the count the jobs are
 //! numbered by, which `Engine::send` keeps so that it can say a job's number at once.
@@ -15,10 +15,7 @@ use anistream_core::{
     config::{Config, Paths},
     ids::AnilistId,
 };
-use anistream_model::{
-    command::PlayerCommand,
-    playback::{EpisodeEntry, NextEpisode},
-};
+use anistream_model::command::PlayerCommand;
 use anistream_providers::{torrent::TorrentSession, vpn::VpnGuard};
 use tokio::sync::mpsc;
 
@@ -40,10 +37,6 @@ pub struct EngineState {
     /// a new source order is checked against, to tell a reorder from a change of which sources
     /// there are. The engine's own: front ends ask it for changes.
     pub config: ConfigState,
-    /// What the front end said the next play needs, with `PlayHints`, until that play takes it.
-    ///
-    /// Temporary, until P4 gives the engine its own record of the titles opened.
-    pub hints: Option<PlayHints>,
     /// The live player's control channel. Replaced on each new playback, so a stale sender
     /// from a finished episode can never steer the current one.
     pub player_tx: Option<mpsc::UnboundedSender<PlayerCommand>>,
@@ -79,7 +72,6 @@ impl EngineState {
         Self {
             shared_config: Arc::new(RwLock::new(config.clone())),
             config: ConfigState::new(config, saved, paths),
-            hints: None,
             player_tx: None,
             torrent_tasks: TorrentTasks::default(),
             vpn_guard: None,
@@ -96,16 +88,4 @@ impl EngineState {
         self.cache.started(&played);
         played
     }
-}
-
-/// What a play takes from the `PlayHints` sent ahead of it. Nothing, when none was: no title to
-/// announce, and an episode list the playback loads for itself.
-#[derive(Debug, Default)]
-pub struct PlayHints {
-    /// The name the window being handed over announces the new playback by.
-    pub title: String,
-    /// The episode after this one, for the Up Next card.
-    pub next: Option<NextEpisode>,
-    /// The title's episodes, for the player's Episodes menu.
-    pub episodes: Vec<EpisodeEntry>,
 }

@@ -89,7 +89,7 @@ impl Handoff {
 }
 
 /// What a new playback is about to play, as the window it takes over says while it is found:
-/// named as the front end said ahead of the play, in the translation in effect.
+/// named as the engine's record of the titles has it, in the translation in effect.
 pub fn successor(
     id: anistream_core::ids::AnilistId,
     episode: &str,

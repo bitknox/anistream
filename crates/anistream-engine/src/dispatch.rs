@@ -31,7 +31,7 @@ use crate::{
     playback::{
         prefetch::prefetch,
         resolve::load_sources,
-        start::{control_player, keep_hints, play, play_local, play_party, play_source},
+        start::{control_player, play, play_local, play_party, play_source},
     },
     plugin_stores::tasks::{StoreTaskContext, store_task},
     services::Services,
@@ -110,11 +110,6 @@ pub(crate) fn dispatch(
     tx: &Outbox,
 ) {
     match task {
-        // What the front end tells the engine side of a title, until P4b.
-        Command::PlayHints { title, next, episodes } => {
-            keep_hints(title, next, episodes, engine)
-        }
-
         // The lists, the calendar, search and a title's page.
         Command::LoadContinue => spawn(job, services, tx, load_continue),
         Command::LoadSeasonal => spawn(job, services, tx, load_seasonal),

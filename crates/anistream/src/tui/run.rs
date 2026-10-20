@@ -26,7 +26,7 @@ use tokio::sync::mpsc;
 
 use crate::{
     covers,
-    tui::{self, clipboard::copy_to_clipboard, seams::command},
+    tui::{self, clipboard::copy_to_clipboard},
 };
 
 pub async fn run(
@@ -128,14 +128,13 @@ pub async fn run(
         // Prefetch only what is on screen plus a short lookahead. `visible_artwork` claims
         // each URL, so a re-render cannot re-request one already in flight.
         for url in app.visible_artwork(rows) {
-            let task = Command::FetchArtwork { url };
-            command(&app, task, &engine);
+            engine.send(Command::FetchArtwork { url });
         }
 
         // Auto-next is queued by the reducer rather than returned, because an episode ending
         // arrives as an update rather than a keystroke.
         if let Some(task) = app.take_pending() {
-            command(&app, task, &engine);
+            engine.send(task);
         }
 
         tokio::select! {
@@ -180,7 +179,7 @@ pub async fn run(
                 tracing::info!(signal, "shutting down");
                 tui::terminal::exit_on_second_signal();
                 if let Some(task) = app.handle(anistream_tui::keymap::Action::Quit, rows) {
-                    command(&app, task, &engine);
+                    engine.send(task);
                 }
                 // Whatever an open overlay made of the key, a signal is not a request to close it.
                 app.should_quit = true;
@@ -202,7 +201,7 @@ pub async fn run(
                 match maybe_event {
                     Some(Ok(TermEvent::Key(key))) if key.kind == KeyEventKind::Press => {
                         if let Some(task) = app.press(key, rows) {
-                            command(&app, task, &engine);
+                            engine.send(task);
                         }
                     }
                     // Arrives whole with bracketed paste on, so a pasted link cannot fire

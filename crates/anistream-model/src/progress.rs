@@ -184,3 +184,34 @@ pub fn next_up<'a>(
     let next = after_filler(rows, next, skip_filler);
     rows.iter().find(|r| r.number == next)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rows(last: u32) -> Vec<EpisodeRow> {
+        (1..=last)
+            .map(|n| EpisodeRow {
+                number: n.to_string(),
+                title: Some(format!("Episode {n}")),
+                thumbnail: None,
+                description: None,
+                duration_secs: Some(1435),
+                watched: 0.0,
+                completed: false,
+                kind: None,
+                skippable: false,
+            })
+            .collect()
+    }
+
+    /// Moved from the App, whose table it asked: "OVA" and "Special" are real labels with no
+    /// successor, and guessing one would start playing something unrelated.
+    #[test]
+    fn a_non_numeric_episode_has_no_next() {
+        let rows = rows(12);
+        assert!(next_up(&rows, "OVA", false).is_none());
+        assert_eq!(next_up(&rows, "11", false).map(|r| r.number.as_str()), Some("12"));
+        assert!(next_up(&rows, "12", false).is_none(), "the table ends at 12");
+    }
+}
