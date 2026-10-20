@@ -1,0 +1,438 @@
+//! Starting a playback: the plays a front end asks for, each with a fresh control channel and the
+//! window handed over, the stream found behind the eyecatch, and the settings it runs under.
+
+use anistream_core::{config::Config, ids::AnilistId};
+use anistream_model::{
+    command::PlayerCommand,
+    episodes::EpisodeRow,
+    event::Event,
+    notice::Notice,
+    playback::{EpisodeEntry, NextEpisode},
+};
+use tokio::sync::mpsc;
+
+use crate::{
+    jobs::JobGuard,
+    outbox::Outbox,
+    playback::{
+        self,
+        handoff::{Handoff, successor, take_controls},
+        player::{player, shader_dir},
+        resolve::{Resolved, resolve_for_playback},
+    },
+    services::Services,
+    state::{EngineState, PlayHints},
+    titles::episodes::{EpisodeLoad, load_episodes},
+    tracking::commands::signed_in_tracker_ids,
+};
+
+/// What the front end said the next play needs, for that play to take: from the episode table
+/// the front end holds, until P4.
+pub fn keep_hints(
+    title: String,
+    next: Option<NextEpisode>,
+    episodes: Vec<EpisodeEntry>,
+    engine: &mut EngineState,
+) {
+    let EngineState { hints, .. } = engine;
+    *hints = Some(PlayHints { title, next, episodes });
+}
+
+/// Play an episode from whichever source the resolution ladder chooses.
+///
+/// No player handle is kept across the session: every play builds its own from the config in
+/// effect, which is the live one the Settings screen edits, as the front end last said. A
+/// handle held across the session is exactly how a turned-off upscaler kept running.
+pub fn play(
+    id: AnilistId,
+    episode: String,
+    job: Option<JobGuard>,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { paths, sync, prefetch, player_theme, .. } = services;
+    let EngineState { config, hints, player_tx, .. } = engine;
+    let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
+    // A fresh channel per playback. The one playing gives up its window only once
+    // this one has something to play — see `Handoff`.
+    let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
+    let prefetched = prefetch.take(id, &episode, config.playback.translation);
+    // Tracker ids rather than trackers: playback only needs to know which queues to
+    // append to, and passing the set would couple the player to the sync layer.
+    let tracker_ids = signed_in_tracker_ids(sync);
+    let extras = (next, episodes);
+    if extras.1.is_empty() {
+        fill_episodes(id, &episode, services, player_tx);
+    }
+    spawn_playback(
+        id,
+        episode,
+        None,
+        config.syncplay.enabled,
+        prx,
+        handoff,
+        config,
+        services,
+        &player(config, paths, player_theme),
+        tracker_ids,
+        extras,
+        shader_dir(config, paths),
+        prefetched,
+        job,
+        tx,
+    );
+}
+
+/// Play the release the user picked in the Sources overlay.
+#[allow(clippy::too_many_arguments)]
+pub fn play_source(
+    id: AnilistId,
+    episode: String,
+    provider_id: String,
+    source_id: String,
+    job: Option<JobGuard>,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { paths, sync, player_theme, .. } = services;
+    let EngineState { config, hints, player_tx, .. } = engine;
+    // Identical to Play except the stream comes from the exact release the user
+    // picked — same fresh channel, same session-replacement semantics. Never from the
+    // streams found ahead: the pick names its own release.
+    let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
+    let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
+    let prefetched = None;
+    let tracker_ids = signed_in_tracker_ids(sync);
+    let extras = (next, episodes);
+    if extras.1.is_empty() {
+        fill_episodes(id, &episode, services, player_tx);
+    }
+    spawn_playback(
+        id,
+        episode,
+        Some((provider_id, source_id)),
+        config.syncplay.enabled,
+        prx,
+        handoff,
+        config,
+        services,
+        &player(config, paths, player_theme),
+        tracker_ids,
+        extras,
+        shader_dir(config, paths),
+        prefetched,
+        job,
+        tx,
+    );
+}
+
+/// Play an episode for a Syncplay party rather than in a session of its own.
+pub fn play_party(
+    id: AnilistId,
+    episode: String,
+    job: Option<JobGuard>,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { paths, sync, player_theme, .. } = services;
+    let EngineState { config, hints, player_tx, .. } = engine;
+    // Same resolution as Play; the handoff at the end is the only difference.
+    let PlayHints { title, next, episodes } = hints.take().unwrap_or_default();
+    let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
+    let prefetched = None;
+    let tracker_ids = signed_in_tracker_ids(sync);
+    let extras = (next, episodes);
+    spawn_playback(
+        id,
+        episode,
+        None,
+        true,
+        prx,
+        handoff,
+        config,
+        services,
+        &player(config, paths, player_theme),
+        tracker_ids,
+        extras,
+        shader_dir(config, paths),
+        prefetched,
+        job,
+        tx,
+    );
+}
+
+/// Play a downloaded episode from disk, in the full playback session all the same.
+#[allow(clippy::too_many_arguments)]
+pub fn play_local(
+    id: AnilistId,
+    episode: String,
+    title: String,
+    path: String,
+    job: Option<JobGuard>,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { paths, http, store, sync, slot, player_theme, .. } = services;
+    let EngineState { config, hints, player_tx, .. } = engine;
+    // No provider walk and no torrent session — the file is on disk — but the full
+    // playback session all the same: a downloaded episode records history, resumes,
+    // and syncs exactly like a streamed one. It used to go straight to mpv with no
+    // context, which made downloads second-class in every way that matters.
+    // Nothing to look up, so nothing can fail before it plays.
+    let PlayHints { title: named, next, episodes } = hints.take().unwrap_or_default();
+    let (prx, handoff) = take_controls(player_tx, successor(id, &episode, named, config));
+    handoff.now();
+    let tracker_ids = signed_in_tracker_ids(sync);
+    if episodes.is_empty() {
+        fill_episodes(id, &episode, services, player_tx);
+    }
+    let shaders = shader_dir(config, paths);
+    let (config, store, http, mpv, tx, slot) = (
+        config.clone(),
+        store.clone(),
+        http.clone(),
+        player(config, paths, player_theme),
+        tx.clone(),
+        slot.clone(),
+    );
+    tokio::spawn(async move {
+        let _job = job;
+        let playback = config.playback.clone();
+        let stream =
+            anistream_core::stream::Stream::new(path, anistream_core::stream::StreamKind::Mp4);
+        // Best-effort, exactly as the streaming path treats them.
+        let resume_at = store
+            .resume_position(id, &episode)
+            .inspect_err(|e| tracing::warn!(error = %e, "could not read resume position"))
+            .unwrap_or(None);
+        let mal_id = store.mapping_for(id).ok().flatten().and_then(|m| m.mal_id);
+        let context = playback::PlaybackContext {
+            anilist_id: id,
+            mal_id,
+            episode,
+            title,
+            translation: playback.translation,
+            resume_at,
+            // A local file's real length is knowable, but the hint only serves
+            // the aniskip fallback and a lie would filter its answers.
+            runtime_secs: None,
+            speed: playback.persist_speed.then_some(playback.persisted_speed).flatten(),
+            volume: playback.persist_volume.then_some(playback.persisted_volume).flatten(),
+            next,
+            episodes,
+        };
+        let settings = playback::PlaySettings {
+            shader_dir: shaders,
+            ..play_settings(&config, tracker_ids, config.syncplay.enabled)
+        };
+        playback::play(vec![stream], context, store, http, mpv, settings, slot, tx, prx).await;
+    });
+}
+
+/// Steer whatever is playing, through the controls of the playback started last.
+pub fn control_player(command: PlayerCommand, engine: &EngineState) {
+    let EngineState { player_tx, .. } = engine;
+    if let Some(sender) = player_tx.as_ref() {
+        let _ = sender.send(command);
+    }
+}
+
+/// Resolve a stream and start playing it.
+///
+/// Everything slow happens inside the spawned task, behind the eyecatch: matching the title,
+/// walking the provider chain, and reading back where you left off.
+#[allow(clippy::too_many_arguments)]
+fn spawn_playback(
+    id: anistream_core::ids::AnilistId,
+    episode: String,
+    // `(provider_id, source_id)` when the user picked an exact release in the Sources
+    // overlay; `None` lets the resolution ladder choose.
+    pick: Option<(String, String)>,
+    // Hand the resolved stream to a Syncplay party instead of a private session.
+    party: bool,
+    commands: mpsc::UnboundedReceiver<anistream_model::command::PlayerCommand>,
+    handoff: Handoff,
+    config: &Config,
+    services: &Services,
+    mpv: &anistream_player::Mpv,
+    tracker_ids: Vec<String>,
+    // What the player's Up Next card and Episodes menu show, read from the episode table.
+    extras: (Option<playback::NextEpisode>, Vec<playback::EpisodeEntry>),
+    shader_dir: Option<std::path::PathBuf>,
+    // This episode's streams, found ahead while the previous one's ending played.
+    prefetched: Option<Resolved>,
+    job: Option<JobGuard>,
+    tx: &Outbox,
+) {
+    let (config, meta, store, registry, http, mpv, slot, tx) = (
+        config.clone(),
+        services.meta.clone(),
+        services.store.clone(),
+        services.registry.clone(),
+        services.http.clone(),
+        mpv.clone(),
+        services.slot.clone(),
+        tx.clone(),
+    );
+
+    tokio::spawn(async move {
+        let playback = config.playback.clone();
+        let resolved = match prefetched {
+            Some(found) => {
+                tracing::info!(episode = %episode, "playing from the streams found ahead");
+                Ok(found)
+            }
+            None => {
+                resolve_for_playback(
+                    &meta,
+                    &store,
+                    &registry,
+                    id,
+                    &episode,
+                    pick,
+                    &playback,
+                    job.as_ref(),
+                    &tx,
+                )
+                .await
+            }
+        };
+        let context = match resolved {
+            Ok(pair) => pair,
+            // The episode being watched carries on, and the window with it: only the lookup
+            // failed, and closing what was playing over it would punish the viewer for asking.
+            Err(reason) if handoff.live() => {
+                let _ = tx.send(Event::Toast(Notice::alert(reason.clone())));
+                let _ = tx.send(Event::PlaybackKept);
+                handoff.keep(commands, reason).await;
+                return;
+            }
+            Err(reason) => {
+                // The failure ladder's first rung: name the failure rather than showing an
+                // empty screen. Releasing the eyecatch is what the alert does for us.
+                let _ = tx.send(Event::Toast(Notice::alert(reason)));
+                // A window left open for this episode would wait for nothing.
+                slot.release();
+                let _ = tx.send(Event::PlaybackEnded {
+                    watched: false,
+                    ending: anistream_model::playback::Ending::Failed,
+                });
+                // The playback this one took over left its "playing" line up for it to replace.
+                let _ = tx.send(Event::Status(String::new()));
+                return;
+            }
+        };
+        let (streams, mut context) = context;
+        (context.next, context.episodes) = extras;
+        // Resolved: from here the wait is mpv opening, which Now Playing shows itself, and the
+        // session lasts the episode — far too long to hold a "starting" job open for.
+        drop(job);
+        // Say why this release, so an automatic pick is never a mystery. The active-provider
+        // header is sent from playback itself, per attempt, so failover never credits the
+        // stream that just failed.
+        if let Some(note) = streams.first().and_then(|s| s.pick_note.clone()) {
+            let _ = tx.send(Event::Toast(Notice::info(note)));
+        }
+
+        let settings =
+            playback::PlaySettings { shader_dir, ..play_settings(&config, tracker_ids, party) };
+        handoff.complete().await;
+        playback::play(streams, context, store, http, mpv, settings, slot, tx, commands).await;
+    });
+}
+
+/// What one playback runs under, from the config as it stands now.
+pub fn play_settings(
+    config: &Config,
+    tracker_ids: Vec<String>,
+    party: bool,
+) -> playback::PlaySettings {
+    let playback = &config.playback;
+    playback::PlaySettings {
+        threshold: playback.commit_threshold,
+        auto_skip: playback.skip_opening,
+        mark_chapters: playback.mark_chapters,
+        fullscreen: playback.fullscreen,
+        subtitle_language: Some(playback.subtitle_language.clone()),
+        auto_next: playback.auto_next,
+        night_mode: playback.night_mode,
+        remember_tracks: playback.persist_speed,
+        look: playback.upscaling.into(),
+        // Filled in by the caller, which knows where the cache is.
+        shader_dir: None,
+        tone_mapping: playback.tone_mapping.clone(),
+        tracker_ids,
+        presence: config.presence.clone(),
+        syncplay: config.syncplay.clone(),
+        party,
+    }
+}
+
+/// Load a title's episode list for a playback the episode table on screen could not describe.
+///
+/// The table belongs to whichever title is open, so a playback started from Home or Continue
+/// had no episode list: the player's Episodes menu was empty and, with no next episode known,
+/// there was no Up Next card, no fetching ahead and no keeping the window for the binge.
+/// Loaded in the background after playback starts, never in front of it, and handed to the
+/// playback through its controls.
+fn fill_episodes(
+    id: anistream_core::ids::AnilistId,
+    episode: &str,
+    services: &Services,
+    controls: &Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
+) {
+    let Some(controls) = controls.clone() else { return };
+    let (meta, store, registry, episode) = (
+        services.meta.clone(),
+        services.store.clone(),
+        services.registry.clone(),
+        episode.to_owned(),
+    );
+    tokio::spawn(async move {
+        match load_episodes(&meta, &store, &registry, id).await {
+            Ok(EpisodeLoad::Rows(rows)) if !rows.is_empty() => {
+                let next = following(&rows, &episode);
+                let _ = controls
+                    .send(anistream_model::command::PlayerCommand::Episodes { rows, next });
+            }
+            Ok(_) => {}
+            Err(reason) => tracing::debug!(%reason, "no episode list for the player"),
+        }
+    });
+}
+
+/// The episode after `episode` in a list, when the list has it.
+fn following(rows: &[EpisodeRow], episode: &str) -> Option<String> {
+    let next = episode.trim().parse::<u32>().ok()?.checked_add(1)?.to_string();
+    rows.iter().any(|row| row.number == next).then_some(next)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_following_episode_is_only_offered_when_the_list_has_it() {
+        let rows: Vec<EpisodeRow> = ["1", "2", "3"]
+            .into_iter()
+            .map(|n| EpisodeRow {
+                number: n.into(),
+                title: None,
+                thumbnail: None,
+                description: None,
+                duration_secs: None,
+                watched: 0.0,
+                completed: false,
+                kind: None,
+                skippable: false,
+            })
+            .collect();
+        assert_eq!(following(&rows, "1").as_deref(), Some("2"));
+        assert_eq!(following(&rows, "3"), None, "a finale has no next");
+        assert_eq!(following(&rows, "OVA"), None);
+    }
+}
