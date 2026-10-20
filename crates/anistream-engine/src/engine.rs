@@ -27,7 +27,7 @@ use anistream_model::{
     command::{Command, PlayerCommand},
     event::Event,
     jobs::JobId,
-    notice::Notice,
+    notice::{Notice, NoticeHint},
 };
 use tokio::{
     sync::{mpsc, oneshot},
@@ -365,12 +365,14 @@ fn refresh_joined(stores: plugin_stores::Stores, tx: Outbox) {
             let _ = tx.send(Event::Stores(rows));
         }
         let updates = stores.pending_updates();
+        // Where to install them is the front end's to say: the terminal's Providers, Enter.
         if !updates.is_empty() {
-            let _ = tx.send(Event::Toast(Notice::info(format!(
-                "plugin {} ready: {} — Providers, Enter",
+            let notice = Notice::info(format!(
+                "plugin {} ready: {}",
                 if updates.len() == 1 { "update" } else { "updates" },
                 updates.join(", ")
-            ))));
+            ));
+            let _ = tx.send(Event::Toast(notice.with_hint(NoticeHint::OpenStores)));
         }
     });
 }

@@ -22,7 +22,7 @@ use anistream_meta::anilist::AniList;
 use anistream_model::{
     catalog::{ContentFor, LibrarySegment},
     event::Event,
-    notice::Notice,
+    notice::{Notice, NoticeHint},
     sync::{ConflictRow, SyncState},
 };
 use anistream_store::Store;
@@ -601,9 +601,8 @@ pub async fn connect(sync: Sync, host: Arc<dyn Host>, tracker_id: String, tx: Ou
     // and dispatches `ConnectKitsu`. This is the fallback for any other path that still
     // says `Connect { "kitsu" }`, and it points at the screen that does it right.
     if tracker_id == "kitsu" {
-        let _ = tx.send(Event::Toast(Notice::info(
-            "kitsu signs in from the Accounts screen — enter on its row asks for credentials",
-        )));
+        let notice = Notice::info("kitsu signs in from the Accounts screen");
+        let _ = tx.send(Event::Toast(notice.with_hint(NoticeHint::KitsuCredentials)));
         return;
     }
     if tracker_id != "anilist" {
@@ -1240,6 +1239,25 @@ mod tests {
 
         let none = Sync { trackers: Vec::new(), ..sync };
         assert!(none.state_after_enqueue().is_empty());
+    }
+
+    #[tokio::test]
+    async fn kitsu_asked_to_sign_in_the_browser_way_points_at_its_row_without_naming_a_key() {
+        // The key that asks for credentials is the front end's to say, as a hint.
+        let config = Config::default();
+        let store = Store::open_in_memory().unwrap();
+        let http = anistream_net::HttpClient::new(&config.network).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let tokens = TokenStore::new(dir.path()).file_only();
+        let sync = Sync::with_tokens(&config, &store, &http, tokens);
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+
+        connect(sync, Arc::new(crate::host::DesktopHost), "kitsu".into(), Outbox::from(tx))
+            .await;
+        let Ok(Event::Toast(notice)) = rx.try_recv() else { panic!("no notice") };
+        assert_eq!(notice.text, "kitsu signs in from the Accounts screen");
+        assert_eq!(notice.hint, Some(NoticeHint::KitsuCredentials));
+        assert!(rx.try_recv().is_err(), "and nothing else: no browser, no state");
     }
 
     #[test]

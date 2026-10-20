@@ -18,7 +18,7 @@ use anistream_core::{
 use anistream_model::{
     command::PlayerCommand,
     event::Event,
-    notice::Notice,
+    notice::{Notice, NoticeHint},
     playback::{Ending, Successor},
 };
 // What the episode table says of the episodes around this one: the front end sends them ahead
@@ -1107,13 +1107,15 @@ impl Run<'_> {
                 // Only armed until the first frame arrives, so this cannot fire mid-episode
                 // during a legitimate pause — mpv keeps reporting `time-pos` while paused.
                 _ = tokio::time::sleep(FIRST_FRAME_TIMEOUT), if !ever_played && !warned => {
-                    let _ = tx.send(Event::Toast(Notice::alert(format!(
-                        "mpv has not started playing after {}s — press x to stop; the source may have no data, or check `mpv` plays a file on its own",
+                    // How to stop it is the front end's to say: the terminal's `x`.
+                    let notice = Notice::alert(format!(
+                        "mpv has not started playing after {}s — the source may have no data, or check `mpv` plays a file on its own",
                         FIRST_FRAME_TIMEOUT.as_secs()
-                    ))));
+                    ));
+                    let _ = tx.send(Event::Toast(notice.with_hint(NoticeHint::StopPlayback)));
                     // Deliberately not a stop. mpv may still be buffering a slow torrent, and
                     // killing it would turn a wait into a failure; the user now knows and can
-                    // press `x`.
+                    // stop it.
                     warned = true;
                     continue;
                 }
