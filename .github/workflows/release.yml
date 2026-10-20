@@ -381,7 +381,7 @@ jobs:
             click it. The launcher opens your terminal, because anistream lives in one.
 
             **AppImage** — for every other Linux distro: `chmod +x` it and run it from a
-            terminal. Nothing is installed.
+            terminal. Nothing is installed. Every Linux build needs glibc 2.28 or newer.
 
             **Archives** — the `.tar.gz` and `.zip` are just the binary, for putting on `PATH`
             yourself.
