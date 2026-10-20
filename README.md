@@ -43,11 +43,12 @@ licensed [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); see
 [their notice](assets/screenshots/NOTICE.md).</sub>
 
 Torrent streaming uses librqbit, plays while downloading and is seekable. You supply the indexer.
-It sits behind a fail-closed VPN guard and is unreachable without one. There is a downloads screen
+It sits behind the VPN guard, which pauses every torrent when its check fails, and stays off
+until you choose a VPN mode. There is a downloads screen
 for what you have pulled down, and completed files get their subtitles muxed in.
 
-Sources are pluggable three ways: the torrent transport, a self-hosted Consumet-shaped API through
-the `remote` provider, and sandboxed WASM plugins in any WASI 0.2 language. `P` pins a source for
+Sources are pluggable three ways: the torrent transport, a JSON API you host yourself through the
+`remote` provider, and sandboxed WASM plugins in any WASI 0.2 language. `P` pins a source for
 one title, and the Sources overlay picks an exact release of an episode.
 
 Tracker sync covers AniList, MyAnimeList, Kitsu, Simkl and Trakt through an outbox that survives
@@ -202,10 +203,11 @@ The guard routes the session through your VPN's SOCKS5 proxy and forces DHT off.
 egress through the proxy before any session starts, re-checks on an interval, and pauses every
 torrent if a check fails.
 
-This is application-level containment, not kernel-enforced. Add your VPN's kill switch for a real
-guarantee (`mullvad lockdown-mode set on`; `anistream --doctor` reports whether it is on). An
-in-tunnel proxy address like Mullvad's `10.64.0.1` is only reachable through the tunnel, so a
-dropped tunnel fails closed instead of leaking.
+This is application-level containment, not kernel-enforced. Your VPN or proxy is what protects
+you, so turn on its kill switch as well (`mullvad lockdown-mode set on`; `anistream --doctor`
+reports whether it is on). An in-tunnel proxy address like Mullvad's `10.64.0.1` is only
+reachable through the tunnel, so a dropped tunnel makes the proxy unreachable instead of quietly
+leaking.
 
 ### Trackers
 
@@ -345,39 +347,55 @@ protocol.
 
 ## Architecture
 
-Eighteen crates. The app's, volatility increasing left to right:
+anistream is eighteen crates. A title moves through them from stable to volatile and back:
+metadata and the ID mapping are stable, the providers that find a stream are the volatile part,
+and the player, the history and the trackers are stable again.
 
-```
- AniList        ID mapping        Provider         Player
- (stable)  ──►  (stable glue) ──► (volatile)  ──►  (stable)
-                     │                                │
-                     │                                ▼
-                     │                    History (SQLite, local)
-                     └──────────────────►  source of truth, offline
-                      ids for every tracker           │
-                                                      ▼
-                                            Trackers (pluggable)
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/architecture/flow-dark.svg">
+  <img alt="The data flow. Metadata comes from AniList, then Tenrai, then the cache. The ID mapping gives the title an id for each source and tracker. The providers, the one volatile layer, find a stream through the torrent transport, a self-hosted API or plugins, in order. mpv plays it. Progress goes into the history, a SQLite database on your disk and the source of truth. Changes wait in the outbox, a queue per tracker, and go to AniList, MyAnimeList, Kitsu, Simkl and Trakt under the ids the ID mapping gives each tracker." src="assets/architecture/flow-light.svg">
+</picture>
 
-`anistream-core` (types and traits) · `-net` (HTTP, rate limiting) · `-meta` (AniList, Tenrai failover, ID mapping,
-filler) · `-store` (SQLite) · `-providers` (torrent transport, remote, mock) · `-player` (mpv IPC) ·
-`-track` (AniList, MAL, Kitsu, Simkl, Trakt, sync) · `-plugin` (WASM host) · `-model` (the protocol
-between the engine and a front end, and its wording) · `-engine` (playback, sources, sync, downloads
-and the background jobs) · `-tui` (the terminal front end, ratatui) · `anistream` (the binary: the
-command line, the terminal's event loop, and the wiring from front end to engine) · `-ffi` (the
-engine for native front ends, through UniFFI; the Swift package is in `apple/`) · `-testkit` (a
-fake AniList and goldens, for tests).
+`anistream-core` (types and traits) · `-net` (HTTP, with a client that matches a browser's TLS
+handshake for hosts that answer differently by client, and rate limiting) · `-meta` (AniList, the
+metadata failover, ID mapping, filler) · `-store` (SQLite: the history and the sync outbox) ·
+`-providers` (torrent, remote, mock) · `-player` (mpv IPC, the companion-script protocol, the
+bundled player files, track selection, aniskip, Discord presence) · `-track` (AniList, MAL, Kitsu,
+Simkl, Trakt, sync) · `-plugin` (WASM host).
 
-Plugin stores have four of their own: `-store-core` (the protocol, the store's rules and its admin
-page, built natively and to WebAssembly) · `-plugin-store` (the client and the reference server) ·
-`-store-server` (`anistream store …` and the standalone `anistream-store`) · `-store-wasm` (the
-store for Workers and serverless functions). `-store` is the app's own history, and unrelated.
+Sources change and disappear, so every volatile piece sits behind a trait and the core depends on
+none of them. Local history is the source of truth, and sync is a projection of it: the SQLite
+history works with no account and no network, and trackers consume it through a durable outbox
+instead of being consulted for it.
 
-Sources decay, so every volatile piece sits behind a trait and the core never depends on one.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/architecture/crates-dark.svg">
+  <img alt="How the crates are layered. anistream-core depends on no other crate, and the lower crates, net, store, meta, providers, track, player and plugin, sit on it. anistream-model depends on the core only. anistream-engine depends on the model and the lower crates, and its desktop feature holds mpv, watch parties, the browser sign-in and notifications. anistream-tui depends on the model and the core, never on the engine. The anistream binary uses both the terminal front end and the engine, and anistream-ffi carries the engine to native SwiftUI and Compose apps, which are in development. Under the drawing, the three rules tools/check-boundaries.sh checks in CI." src="assets/architecture/crates-light.svg">
+</picture>
 
-The engine and the model use no terminal library, so a front end that is not a terminal can run
-on them. The terminal front end depends on the model, not the engine, and the binary connects
-the two. `tools/check-boundaries.sh` checks both rules in CI.
+`-model` (the protocol between the engine and a front end, and its wording) · `-engine` (playback,
+sources and plugins, sync, downloads, plugin stores and the background jobs) · `-tui` (the
+terminal front end, on ratatui) · `anistream` (the binary: the command line, self-update and the
+terminal's event loop, which hands the front end's commands to the engine and its events back) ·
+`-ffi` (the engine for native front ends, SwiftUI and Compose, both in development, through
+UniFFI; the Swift package is in `apple/`) · `-testkit` (a fake AniList, fixture titles and golden
+files, for tests).
+
+The engine and the model use no terminal library, not even through a dependency, so a front end
+that is not a terminal can run on them. The terminal front end depends on the model and the core,
+never on the engine. The engine's `desktop` feature holds what only a computer can do: mpv, watch
+parties, the browser sign-in redirect and desktop notifications. A phone build leaves it out.
+`tools/check-boundaries.sh` checks all three rules against the resolved dependency tree in CI, the
+last for iOS and Android.
+
+Plugin stores have four crates of their own: `-store-core` (the protocol, the store's rules and its
+admin page, built natively and to WebAssembly) · `-plugin-store` (the client and the reference
+server) · `-store-server` (`anistream store …` and the standalone `anistream-store`) ·
+`-store-wasm` (the store for Workers and serverless functions). Despite its name, `-store` is the
+app's own history and has nothing to do with them.
+
+The drawings are generated from `website/src/components/architecture/diagrams.ts`, the same
+source as the docs page; `cd website && bun run diagrams` writes them again.
 
 ## Development
 
@@ -401,7 +419,7 @@ cargo run -p anistream-engine --example mal_probe -- --write     # MAL push, the
 cargo run -p anistream-engine --example kitsu_probe -- --write   # Kitsu push, then undo; no args = public wire check
 cargo run -p anistream-engine --example meta_probe               # Tenrai translation and the cache write-through
 cargo run -p anistream-engine --example simkl_probe -- --write   # Simkl push, then undo
-cargo run -p anistream-engine --example mend_probe -- <url>      # disguised HLS → mpv
+cargo run -p anistream-engine --example mend_probe -- <url>      # HLS behind an image header → mpv
 cargo run -p anistream --example player_preview -- <video>       # the player UI as a two-episode binge
 cargo run -p anistream-meta --example filler_probe               # filler parsing
 cargo run -p anistream-meta --example episode_meta_probe         # episode titles, stills, numbering
