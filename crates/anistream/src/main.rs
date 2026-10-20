@@ -20,9 +20,7 @@ use services::Services;
 use anistream_engine::{
     artwork, data, downloads, playback,
     player::{player, shader_dir},
-    plugin_stores,
-    slot::PlayerSlot,
-    sources, tracking,
+    plugin_stores, sources, tracking,
 };
 
 use std::{io, sync::Arc, time::Duration};
@@ -1610,7 +1608,7 @@ fn dispatch(
             let tracker_ids = signed_in_tracker_ids(sync);
             let extras = episode_extras(app, id, &episode);
             if extras.1.is_empty() {
-                fill_episodes(id, &episode, meta, store, registry, player_tx);
+                fill_episodes(id, &episode, services, player_tx);
             }
             spawn_playback(
                 id,
@@ -1620,14 +1618,10 @@ fn dispatch(
                 prx,
                 handoff,
                 config,
-                meta,
-                store,
-                registry,
-                http,
+                services,
                 &player(config, paths, &player_theme()),
                 tracker_ids,
                 extras,
-                slot.clone(),
                 shader_dir(config, paths),
                 prefetched,
                 job,
@@ -1643,7 +1637,7 @@ fn dispatch(
             let tracker_ids = signed_in_tracker_ids(sync);
             let extras = episode_extras(app, id, &episode);
             if extras.1.is_empty() {
-                fill_episodes(id, &episode, meta, store, registry, player_tx);
+                fill_episodes(id, &episode, services, player_tx);
             }
             spawn_playback(
                 id,
@@ -1653,14 +1647,10 @@ fn dispatch(
                 prx,
                 handoff,
                 config,
-                meta,
-                store,
-                registry,
-                http,
+                services,
                 &player(config, paths, &player_theme()),
                 tracker_ids,
                 extras,
-                slot.clone(),
                 shader_dir(config, paths),
                 prefetched,
                 job,
@@ -1681,14 +1671,10 @@ fn dispatch(
                 prx,
                 handoff,
                 config,
-                meta,
-                store,
-                registry,
-                http,
+                services,
                 &player(config, paths, &player_theme()),
                 tracker_ids,
                 extras,
-                slot.clone(),
                 shader_dir(config, paths),
                 prefetched,
                 job,
@@ -1957,7 +1943,7 @@ fn dispatch(
             let tracker_ids = signed_in_tracker_ids(sync);
             let (next, episodes) = episode_extras(app, id, &episode);
             if episodes.is_empty() {
-                fill_episodes(id, &episode, meta, store, registry, player_tx);
+                fill_episodes(id, &episode, services, player_tx);
             }
             let shaders = shader_dir(config, paths);
             let (config, store, http, mpv, tx, slot) = (
@@ -2316,28 +2302,25 @@ fn spawn_playback(
     commands: mpsc::UnboundedReceiver<anistream_model::command::PlayerCommand>,
     handoff: Handoff,
     config: &Config,
-    meta: &Meta,
-    store: &Store,
-    registry: &ProviderRegistry,
-    http: &HttpClient,
+    services: &Services,
     mpv: &anistream_player::Mpv,
     tracker_ids: Vec<String>,
     // What the player's Up Next card and Episodes menu show, read from the episode table.
     extras: (Option<playback::NextEpisode>, Vec<playback::EpisodeEntry>),
-    slot: PlayerSlot,
     shader_dir: Option<std::path::PathBuf>,
     // This episode's streams, found ahead while the previous one's ending played.
     prefetched: Option<Resolved>,
     job: Option<JobGuard>,
     tx: &mpsc::UnboundedSender<Event>,
 ) {
-    let (config, meta, store, registry, http, mpv, tx) = (
+    let (config, meta, store, registry, http, mpv, slot, tx) = (
         config.clone(),
-        meta.clone(),
-        store.clone(),
-        registry.clone(),
-        http.clone(),
+        services.meta.clone(),
+        services.store.clone(),
+        services.registry.clone(),
+        services.http.clone(),
         mpv.clone(),
+        services.slot.clone(),
         tx.clone(),
     );
 
@@ -3161,14 +3144,16 @@ impl Prefetch {
 fn fill_episodes(
     id: anistream_core::ids::AnilistId,
     episode: &str,
-    meta: &Meta,
-    store: &Store,
-    registry: &ProviderRegistry,
+    services: &Services,
     controls: &Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
 ) {
     let Some(controls) = controls.clone() else { return };
-    let (meta, store, registry, episode) =
-        (meta.clone(), store.clone(), registry.clone(), episode.to_owned());
+    let (meta, store, registry, episode) = (
+        services.meta.clone(),
+        services.store.clone(),
+        services.registry.clone(),
+        episode.to_owned(),
+    );
     tokio::spawn(async move {
         match load_episodes(&meta, &store, &registry, id).await {
             Ok(EpisodeLoad::Rows(rows)) if !rows.is_empty() => {
