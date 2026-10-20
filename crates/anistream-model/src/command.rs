@@ -65,6 +65,12 @@ impl Command {
 pub enum Command {
     /// Resolve an episode's streams ahead of playing it, quietly, for a [`Command::Play`] of the
     /// same episode to pick up.
+    ///
+    /// The next episode the playing one rolls on to is found ahead by the engine itself, when
+    /// the playback says its ending has begun ([`Event::PrefetchNext`]): a front end never has
+    /// to ask for that one.
+    ///
+    /// [`Event::PrefetchNext`]: crate::event::Event::PrefetchNext
     Prefetch {
         id: AnilistId,
         episode: String,
