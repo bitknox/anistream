@@ -16,7 +16,7 @@ async fn main() {
     let client = AniList::new(http, 30);
 
     println!("── search ─────────────────────────────────────────────");
-    match client.search("frieren", 1, 3).await {
+    match client.search("summer", 1, 3).await {
         Ok(page) => {
             for m in &page.items {
                 println!(

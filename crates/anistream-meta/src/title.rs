@@ -4,7 +4,7 @@
 //! identification path rather than a fallback — torrent releases and site catalogues
 //! are keyed by title text, not by any id that appears in a mapping dataset.
 //!
-//! Matching on titles alone is not enough, though. `"Frieren"` matches the TV series, the
+//! Matching on titles alone is not enough, though. `"Hoshikuzu"` matches the TV series, the
 //! recap special and a music video equally well, so a title score is only ever a candidate
 //! filter. The *gates* — episode count, year, and format — are what turn a plausible match
 //! into a confident one, and they are the reason this module scores rather than just
@@ -21,8 +21,8 @@ use anistream_core::media::{MediaFormat, SearchHit};
 pub fn normalise(title: &str) -> String {
     let lowered = title.to_lowercase();
 
-    // Apostrophes are *removed* rather than turned into separators, so "Journey's End"
-    // stays "journeys end" instead of splitting into "journey s end" and losing the word.
+    // Apostrophes are *removed* rather than turned into separators, so "Wayfarer's Road"
+    // stays "wayfarers road" instead of splitting into "wayfarer s road" and losing the word.
     let mut out = String::with_capacity(lowered.len());
     for ch in lowered.chars() {
         match ch {
@@ -41,7 +41,7 @@ pub fn normalise(title: &str) -> String {
 ///
 /// Distinguishing an explicit season marker from a bare number is the whole point. `"II"`
 /// and `"2nd"` *mean* season two, but a bare trailing `2` does not necessarily — titles
-/// like `86`, `Steins;Gate 0` and `Gundam 00` carry numbers as part of the name, and
+/// like `73`, `Kagerou;Gate 0` and `Orbital Garden 00` carry numbers as part of the name, and
 /// treating those as season markers would merge genuinely different works.
 #[derive(Debug, Clone, PartialEq)]
 enum Token {
@@ -131,8 +131,8 @@ fn render(tokens: &[Token]) -> String {
 /// Similarity of two titles, in `0.0..=1.0`.
 ///
 /// Token-set based rather than edit-distance: catalogues reorder and pad titles far more
-/// often than they misspell them, so `"Frieren Beyond Journeys End"` against
-/// `"Sousou no Frieren"` should be judged on shared vocabulary, not character shuffling.
+/// often than they misspell them, so `"Hoshikuzu Wayfarers Long Road"` against
+/// `"Hoshikuzu no Tabibito"` should be judged on shared vocabulary, not character shuffling.
 pub fn similarity(a: &str, b: &str) -> f64 {
     let na = normalise(a);
     let nb = normalise(b);
@@ -284,46 +284,47 @@ mod tests {
     #[test]
     fn season_vocabulary_collapses_to_one_form() {
         // The single most common real-world match failure: a sequel labelled five ways.
-        let forms = ["Dandadan 2nd Season", "Dandadan Season 2", "Dandadan S2", "Dandadan II"];
+        let forms =
+            ["Tsukiakari 2nd Season", "Tsukiakari Season 2", "Tsukiakari S2", "Tsukiakari II"];
         let expected = normalise(forms[0]);
         for f in forms {
             assert_eq!(normalise(f), expected, "{f:?} should normalise like the others");
         }
-        assert_eq!(expected, "dandadan season 2");
+        assert_eq!(expected, "tsukiakari season 2");
     }
 
     #[test]
     fn season_one_is_implicit() {
         // Catalogues disagree about whether the first season carries a marker at all.
-        assert_eq!(normalise("Frieren"), normalise("Frieren Season 1"));
-        assert_eq!(normalise("Frieren"), normalise("Frieren 1st Season"));
+        assert_eq!(normalise("Hoshikuzu"), normalise("Hoshikuzu Season 1"));
+        assert_eq!(normalise("Hoshikuzu"), normalise("Hoshikuzu 1st Season"));
     }
 
     #[test]
     fn normalisation_folds_punctuation_case_and_articles() {
         assert_eq!(
-            normalise("Frieren: Beyond Journey's End"),
-            normalise("frieren beyond journeys end")
+            normalise("Hoshikuzu: Wayfarer's Long Road"),
+            normalise("hoshikuzu wayfarers long road")
         );
-        assert_eq!(normalise("The Apothecary Diaries"), normalise("Apothecary Diaries"));
+        assert_eq!(normalise("The Lamplighter Diaries"), normalise("Lamplighter Diaries"));
     }
 
     #[test]
     fn different_seasons_do_not_normalise_together() {
-        assert_ne!(normalise("Dandadan Season 2"), normalise("Dandadan Season 3"));
-        assert_ne!(normalise("Dandadan Season 2"), normalise("Dandadan"));
+        assert_ne!(normalise("Tsukiakari Season 2"), normalise("Tsukiakari Season 3"));
+        assert_ne!(normalise("Tsukiakari Season 2"), normalise("Tsukiakari"));
     }
 
     #[test]
     fn identical_titles_score_one_and_unrelated_score_zero() {
-        assert_eq!(similarity("Frieren", "frieren"), 1.0);
-        assert_eq!(similarity("Frieren", "Dandadan"), 0.0);
-        assert_eq!(similarity("", "Frieren"), 0.0);
+        assert_eq!(similarity("Hoshikuzu", "hoshikuzu"), 1.0);
+        assert_eq!(similarity("Hoshikuzu", "Tsukiakari"), 0.0);
+        assert_eq!(similarity("", "Hoshikuzu"), 0.0);
     }
 
     #[test]
     fn partial_title_overlap_scores_in_between() {
-        let s = similarity("Sousou no Frieren", "Frieren Beyond Journeys End");
+        let s = similarity("Hoshikuzu no Tabibito", "Hoshikuzu Wayfarers Long Road");
         assert!(s > 0.0 && s < 1.0, "expected partial overlap, got {s}");
     }
 
@@ -331,11 +332,11 @@ mod tests {
     fn an_ova_is_rejected_for_a_tv_target() {
         // The gate that matters most: without it, the OVA often outranks the series.
         let target = MatchTarget {
-            titles: vec!["Frieren".into()],
+            titles: vec!["Hoshikuzu".into()],
             format: Some(MediaFormat::Tv),
             ..Default::default()
         };
-        let candidates = vec![SearchHit { format: Some(MediaFormat::Ova), ..hit("Frieren") }];
+        let candidates = vec![SearchHit { format: Some(MediaFormat::Ova), ..hit("Hoshikuzu") }];
         let ranked = rank(&target, &candidates);
         assert_eq!(ranked[0].rejected, Some("different format"));
         assert!(!ranked[0].is_confident());
@@ -344,11 +345,11 @@ mod tests {
     #[test]
     fn a_candidate_with_far_more_episodes_is_rejected() {
         let target = MatchTarget {
-            titles: vec!["Frieren".into()],
+            titles: vec!["Hoshikuzu".into()],
             episode_count: Some(28),
             ..Default::default()
         };
-        let candidates = vec![SearchHit { episode_count: Some(1000), ..hit("Frieren") }];
+        let candidates = vec![SearchHit { episode_count: Some(1000), ..hit("Hoshikuzu") }];
         assert_eq!(rank(&target, &candidates)[0].rejected, Some("too many episodes"));
     }
 
@@ -357,12 +358,12 @@ mod tests {
         // Only a surplus is disqualifying — a partial upload of an airing show is normal
         // and must not be rejected, or nothing currently broadcasting would ever match.
         let target = MatchTarget {
-            titles: vec!["Dandadan Season 2".into()],
+            titles: vec!["Tsukiakari Season 2".into()],
             episode_count: Some(12),
             ..Default::default()
         };
         let candidates =
-            vec![SearchHit { episode_count: Some(4), ..hit("Dandadan 2nd Season") }];
+            vec![SearchHit { episode_count: Some(4), ..hit("Tsukiakari 2nd Season") }];
         let ranked = rank(&target, &candidates);
         assert!(ranked[0].rejected.is_none());
         assert!(ranked[0].is_confident(), "scored only {}", ranked[0].score);
@@ -372,28 +373,28 @@ mod tests {
     fn a_wrong_year_is_rejected_but_one_year_of_slack_is_allowed() {
         // Broadcast vs release year differ by one constantly across catalogues.
         let target = MatchTarget {
-            titles: vec!["Frieren".into()],
+            titles: vec!["Hoshikuzu".into()],
             year: Some(2023),
             ..Default::default()
         };
-        let off_by_one = vec![SearchHit { year: Some(2024), ..hit("Frieren") }];
+        let off_by_one = vec![SearchHit { year: Some(2024), ..hit("Hoshikuzu") }];
         assert!(rank(&target, &off_by_one)[0].rejected.is_none());
 
-        let way_off = vec![SearchHit { year: Some(2010), ..hit("Frieren") }];
+        let way_off = vec![SearchHit { year: Some(2010), ..hit("Hoshikuzu") }];
         assert_eq!(rank(&target, &way_off)[0].rejected, Some("year mismatch"));
     }
 
     #[test]
     fn metadata_agreement_breaks_ties_between_similar_titles() {
         let target = MatchTarget {
-            titles: vec!["Frieren".into()],
+            titles: vec!["Hoshikuzu".into()],
             episode_count: Some(28),
             year: Some(2023),
             ..Default::default()
         };
         let candidates = vec![
-            SearchHit { episode_count: Some(13), year: Some(2023), ..hit("Frieren") },
-            SearchHit { episode_count: Some(28), year: Some(2023), ..hit("Frieren") },
+            SearchHit { episode_count: Some(13), year: Some(2023), ..hit("Hoshikuzu") },
+            SearchHit { episode_count: Some(28), year: Some(2023), ..hit("Hoshikuzu") },
         ];
         let ranked = rank(&target, &candidates);
         assert_eq!(
@@ -407,13 +408,13 @@ mod tests {
     fn rejected_candidates_are_ranked_last_but_kept_with_a_reason() {
         // The disambiguation overlay needs to explain why the obvious answer lost.
         let target = MatchTarget {
-            titles: vec!["Frieren".into()],
+            titles: vec!["Hoshikuzu".into()],
             format: Some(MediaFormat::Tv),
             ..Default::default()
         };
         let candidates = vec![
-            SearchHit { format: Some(MediaFormat::Ova), ..hit("Frieren") },
-            SearchHit { format: Some(MediaFormat::Tv), ..hit("Frieren") },
+            SearchHit { format: Some(MediaFormat::Ova), ..hit("Hoshikuzu") },
+            SearchHit { format: Some(MediaFormat::Tv), ..hit("Hoshikuzu") },
         ];
         let ranked = rank(&target, &candidates);
         assert!(ranked[0].rejected.is_none(), "accepted candidate must sort first");
@@ -426,12 +427,12 @@ mod tests {
         // AniList gives us romaji + english + synonyms; using all of them is what makes
         // a romaji-only provider catalogue reachable from an english query.
         let target = MatchTarget {
-            titles: vec!["Frieren Beyond Journeys End".into()],
+            titles: vec!["Hoshikuzu Wayfarers Long Road".into()],
             ..Default::default()
         };
         let candidates = vec![SearchHit {
-            synonyms: vec!["Frieren Beyond Journeys End".into()],
-            ..hit("Sousou no Frieren")
+            synonyms: vec!["Hoshikuzu Wayfarers Long Road".into()],
+            ..hit("Hoshikuzu no Tabibito")
         }];
         let ranked = rank(&target, &candidates);
         assert!(ranked[0].is_confident(), "scored only {}", ranked[0].score);
@@ -439,7 +440,7 @@ mod tests {
         // Without the synonym the primary title alone would not have matched confidently,
         // which is the point: AniList's synonym list is what bridges an english query to a
         // romaji-only catalogue.
-        let without = vec![hit("Sousou no Frieren")];
+        let without = vec![hit("Hoshikuzu no Tabibito")];
         assert!(
             rank(&target, &without)[0].score < ranked[0].score,
             "the synonym must be what lifted the match"
@@ -450,7 +451,7 @@ mod tests {
     fn corroborated_matches_outscore_title_only_ones() {
         // The score has to reflect *how much* evidence there is, not just title text.
         let target = MatchTarget {
-            titles: vec!["Frieren".into()],
+            titles: vec!["Hoshikuzu".into()],
             episode_count: Some(28),
             year: Some(2023),
             format: Some(MediaFormat::Tv),
@@ -459,9 +460,9 @@ mod tests {
             episode_count: Some(28),
             year: Some(2023),
             format: Some(MediaFormat::Tv),
-            ..hit("Frieren")
+            ..hit("Hoshikuzu")
         }];
-        let title_only = vec![hit("Frieren")];
+        let title_only = vec![hit("Hoshikuzu")];
 
         let full = rank(&target, &corroborated)[0].score;
         let bare = rank(&target, &title_only)[0].score;
@@ -477,7 +478,7 @@ mod tests {
         // The reason ordinals and bare numbers are classified separately: these titles
         // carry digits as part of the name, and folding them into a season marker would
         // merge genuinely different works.
-        for title in ["86", "Steins Gate 0", "Mobile Suit Gundam 00"] {
+        for title in ["73", "Kagerou Gate 0", "Orbital Garden 00"] {
             let n = normalise(title);
             assert!(
                 !n.contains("season"),
@@ -485,13 +486,13 @@ mod tests {
             );
         }
         // But an explicit marker still works.
-        assert_eq!(normalise("86 Season 2"), "86 season 2");
-        assert!(normalise("Steins Gate 0").starts_with("steins gate 0"));
+        assert_eq!(normalise("73 Season 2"), "73 season 2");
+        assert!(normalise("Kagerou Gate 0").starts_with("kagerou gate 0"));
     }
 
     #[test]
     fn no_candidates_yields_no_ranking_rather_than_a_panic() {
-        let target = MatchTarget { titles: vec!["Frieren".into()], ..Default::default() };
+        let target = MatchTarget { titles: vec!["Hoshikuzu".into()], ..Default::default() };
         assert!(rank(&target, &[]).is_empty());
     }
 }

@@ -46,10 +46,11 @@ async fn main() {
 
     println!();
     println!("── merged coverage ────────────────────────────────────");
-    let frieren = AnilistId::new(154_587);
-    match store.mapping_for(frieren).unwrap() {
+    // A stable, real id that both corpora carry.
+    let subject = AnilistId::new(154_587);
+    match store.mapping_for(subject).unwrap() {
         Some(m) => {
-            println!("  Frieren (anilist {})", m.anilist_id);
+            println!("  anilist {}", m.anilist_id);
             println!("    mal_id         {:?}   \u{2190} aniskip needs this", m.mal_id);
             println!("    kitsu_id       {:?}", m.kitsu_id);
             println!("    anidb_id       {:?}", m.anidb_id);
@@ -57,7 +58,7 @@ async fn main() {
             println!("    tmdb_id        {:?}", m.tmdb_id);
             println!("    episode_offset {:?}", m.episode_offset);
         }
-        None => println!("  Frieren not present — merge produced nothing"),
+        None => println!("  anilist {subject} not present — merge produced nothing"),
     }
 
     // A title that only exists in one corpus proves the merge is a union, not a

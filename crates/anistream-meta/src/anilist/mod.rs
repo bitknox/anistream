@@ -691,7 +691,7 @@ mod tests {
     fn a_media_page_decodes_and_reports_pagination() {
         let payload = serde_json::json!({
             "pageInfo": {"hasNextPage": true},
-            "media": [{"id": 154587, "title": {"romaji": "Sousou no Frieren"}}]
+            "media": [{"id": 154587, "title": {"romaji": "Hoshikuzu no Tabibito"}}]
         });
         let page = decode_media_page(&payload).unwrap();
         assert_eq!(page.items.len(), 1);

@@ -10,9 +10,13 @@ async fn main() {
         anistream_net::HttpClient::new(&anistream_core::config::NetworkConfig::default())
             .expect("http client");
     let anilist = AniList::new(http, 60);
-    for (id, name) in
-        [(154_587u32, "Frieren"), (21u32, "One Piece"), (176_301u32, "Dandadan S2")]
-    {
+    // Stable, real ids, one per listing shape: a finished season, a long runner numbered
+    // absolutely, and a sequel the services number across the franchise.
+    for (id, name) in [
+        (154_587u32, "a finished season"),
+        (21u32, "a long runner"),
+        (176_301u32, "a sequel numbered across the franchise"),
+    ] {
         let id = anistream_core::ids::AnilistId::new(id);
         match anilist.media(id).await {
             Ok(media) => {

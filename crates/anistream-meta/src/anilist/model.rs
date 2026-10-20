@@ -402,16 +402,16 @@ impl Media {
 
     /// How far the streaming listings are numbered ahead of *this* entry's episode one.
     ///
-    /// Services number a sequel season continuously across the franchise — Dandadan's second
-    /// season is listed as episodes 25–48 — while a release, and therefore a provider, calls
-    /// its first episode one. Left uncorrected the two never line up and a sequel gets no
+    /// Services number a sequel season continuously across the franchise — a second season of
+    /// twenty-four is listed as episodes 25–48 — while a release, and therefore a provider,
+    /// calls its first episode one. Left uncorrected the two never line up and a sequel gets no
     /// titles at all, which is exactly how this was found.
     ///
     /// Applied only when the evidence is unambiguous: the entry knows how many episodes it
     /// has, the listings form a contiguous run of exactly that many, and that run starts past
-    /// episode one. A long-running series numbered absolutely — One Piece, whose listings are
-    /// a moving window and whose length AniList leaves unknown — matches none of that, so its
-    /// already-correct numbers are left alone.
+    /// episode one. A long-running series numbered absolutely — one past its thousandth
+    /// episode, whose listings are a moving window and whose length AniList leaves unknown —
+    /// matches none of that, so its already-correct numbers are left alone.
     fn listing_offset(&self) -> u32 {
         let mut numbers: Vec<u32> = self
             .streaming_episodes
@@ -504,7 +504,10 @@ mod title_tests {
     #[test]
     fn the_numbering_prefix_is_stripped_from_an_episode_title() {
         // The shapes actually seen in the listings.
-        assert_eq!(listing("Episode 12 - A Real Hero").episode_title(), Some("A Real Hero"));
+        assert_eq!(
+            listing("Episode 12 - The Sky Archive").episode_title(),
+            Some("The Sky Archive")
+        );
         assert_eq!(listing("Episode 1 – Pilot").episode_title(), Some("Pilot"));
         assert_eq!(listing("Episode 7: The Village").episode_title(), Some("The Village"));
     }
@@ -537,7 +540,7 @@ mod title_tests {
 
     #[test]
     fn a_sequel_numbered_across_the_franchise_is_realigned_to_its_own_episode_one() {
-        // Dandadan's second season is listed as 25–48; a release calls its first episode one.
+        // A second season of 24 is listed as 25–48; a release calls its first episode one.
         // Uncorrected the two never meet and the season gets no titles at all.
         let media = media_with(Some(24), &(25..=48).collect::<Vec<_>>());
         let titles = media.episode_titles();
@@ -556,7 +559,7 @@ mod title_tests {
 
     #[test]
     fn an_absolutely_numbered_long_runner_keeps_its_numbers() {
-        // One Piece: the listings are a moving window into a series whose length AniList
+        // A long runner: the listings are a moving window into a series whose length AniList
         // leaves unknown. Shifting those to start at one would corrupt correct data.
         let media = media_with(None, &(62..=130).collect::<Vec<_>>());
         assert_eq!(media.episode_titles().keys().next(), Some(&62));
@@ -575,7 +578,10 @@ mod title_tests {
 
     #[test]
     fn a_title_with_no_numbering_at_all_is_left_alone() {
-        assert_eq!(listing("Frieren the Slayer").episode_title(), Some("Frieren the Slayer"));
+        assert_eq!(
+            listing("Where the Roads Cross").episode_title(),
+            Some("Where the Roads Cross")
+        );
     }
 }
 
@@ -583,24 +589,24 @@ mod title_tests {
 mod tests {
     use super::*;
 
-    fn frieren() -> Media {
+    fn hoshikuzu() -> Media {
         // Shaped from a real graphql.anilist.co response captured during planning.
         serde_json::from_value(serde_json::json!({
             "id": 154587,
             "idMal": 52991,
             "title": {
-                "romaji": "Sousou no Frieren",
-                "english": "Frieren: Beyond Journey's End",
-                "native": "葬送のフリーレン"
+                "romaji": "Hoshikuzu no Tabibito",
+                "english": "Stardust Wayfarer",
+                "native": "星屑の旅人"
             },
             "format": "TV",
             "status": "FINISHED",
-            "description": "<p>The mage Frieren...</p><br><i>(Source: Crunchyroll)</i>",
+            "description": "<p>The lamplighter walks on...</p><br><i>(Source: Hikari Stream)</i>",
             "episodes": 28,
             "seasonYear": 2023,
             "averageScore": 91,
             "genres": ["Adventure", "Drama", "Fantasy"],
-            "synonyms": ["Frieren at the Funeral"],
+            "synonyms": ["Hoshitabi"],
             "coverImage": {
                 "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx154587.jpg",
                 "large": "https://s4.anilist.co/small.jpg"
@@ -608,13 +614,13 @@ mod tests {
             "bannerImage": "https://s4.anilist.co/banner/154587.jpg",
             "nextAiringEpisode": null,
             "externalLinks": [
-                {"site": "Crunchyroll", "url": "https://www.crunchyroll.com/series/GG5H5XQX4", "type": "STREAMING"},
-                {"site": "Netflix", "url": "https://www.netflix.com/title/81726714", "type": "STREAMING"},
-                {"site": "Official Site", "url": "https://frieren-anime.jp/", "type": "INFO"}
+                {"site": "Hikari Stream", "url": "https://hikari.example/series/GG5H5XQX4", "type": "STREAMING"},
+                {"site": "Lantern Stream", "url": "https://stream.example/title/81726714", "type": "STREAMING"},
+                {"site": "Official Site", "url": "https://hoshikuzu.example/", "type": "INFO"}
             ],
             "streamingEpisodes": [
-                {"title": "Episode 1 - The Journey's End", "url": "https://www.crunchyroll.com/watch/G2XU04E88", "site": "Crunchyroll"},
-                {"title": "Episode 2 - It Didn't Have to Be Magic", "url": "https://www.crunchyroll.com/watch/G8WUNGZ48", "site": "Crunchyroll"}
+                {"title": "Episode 1 - The Lantern Road", "url": "https://hikari.example/watch/G2XU04E88", "site": "Hikari Stream"},
+                {"title": "Episode 2 - A Town Without Night", "url": "https://hikari.example/watch/G8WUNGZ48", "site": "Hikari Stream"}
             ]
         }))
         .unwrap()
@@ -622,7 +628,7 @@ mod tests {
 
     #[test]
     fn a_real_anilist_payload_deserialises() {
-        let m = frieren();
+        let m = hoshikuzu();
         assert_eq!(m.id, AnilistId::new(154_587));
         assert_eq!(m.id_mal, Some(52_991));
         assert_eq!(m.episodes, Some(28));
@@ -697,7 +703,7 @@ mod tests {
     fn a_media_survives_the_cache_round_trip() {
         // The media cache stores serialized Media; a lossy round trip would mean the
         // fallback path silently shows different data than the fresh one did.
-        let m = frieren();
+        let m = hoshikuzu();
         let json = serde_json::to_string(&m).expect("serialize");
         let back: Media = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(back, m);
@@ -717,11 +723,11 @@ mod tests {
     #[test]
     fn html_is_stripped_from_descriptions() {
         // Left in, this renders as literal tag soup in the synopsis panel.
-        let text = frieren().plain_description();
+        let text = hoshikuzu().plain_description();
         assert!(!text.contains('<'), "got: {text}");
         assert!(!text.contains("&amp;"));
-        assert!(text.starts_with("The mage Frieren"));
-        assert!(text.contains("(Source: Crunchyroll)"));
+        assert!(text.starts_with("The lamplighter"));
+        assert!(text.contains("(Source: Hikari Stream)"));
     }
 
     #[test]
@@ -736,37 +742,37 @@ mod tests {
 
     #[test]
     fn display_title_prefers_english_with_romaji_as_subheading() {
-        let m = frieren();
-        assert_eq!(m.title.display(), "Frieren: Beyond Journey's End");
-        assert_eq!(m.title.secondary(), Some("Sousou no Frieren"));
+        let m = hoshikuzu();
+        assert_eq!(m.title.display(), "Stardust Wayfarer");
+        assert_eq!(m.title.secondary(), Some("Hoshikuzu no Tabibito"));
     }
 
     #[test]
     fn search_titles_include_romaji_english_native_and_synonyms() {
         // Feeding all of them to a provider is what bridges an english query to a
         // romaji-only catalogue.
-        let titles = frieren().search_titles();
-        assert!(titles.contains(&"Sousou no Frieren".to_string()));
-        assert!(titles.contains(&"Frieren: Beyond Journey's End".to_string()));
-        assert!(titles.contains(&"Frieren at the Funeral".to_string()));
-        assert_eq!(titles[0], "Sousou no Frieren", "romaji first — release groups use it");
+        let titles = hoshikuzu().search_titles();
+        assert!(titles.contains(&"Hoshikuzu no Tabibito".to_string()));
+        assert!(titles.contains(&"Stardust Wayfarer".to_string()));
+        assert!(titles.contains(&"Hoshitabi".to_string()));
+        assert_eq!(titles[0], "Hoshikuzu no Tabibito", "romaji first — release groups use it");
     }
 
     #[test]
     fn duplicate_titles_are_not_repeated() {
         let m: Media = serde_json::from_value(serde_json::json!({
             "id": 1,
-            "title": {"romaji": "Bocchi", "english": "Bocchi"},
-            "synonyms": ["Bocchi"]
+            "title": {"romaji": "Tomoshibi", "english": "Tomoshibi"},
+            "synonyms": ["Tomoshibi"]
         }))
         .unwrap();
-        assert_eq!(m.search_titles(), vec!["Bocchi"]);
+        assert_eq!(m.search_titles(), vec!["Tomoshibi"]);
         assert_eq!(m.title.secondary(), None, "no subheading when both forms match");
     }
 
     #[test]
     fn streaming_links_are_separated_from_informational_ones() {
-        let media = frieren();
+        let media = hoshikuzu();
         let services = media.streaming_services();
         assert_eq!(services.len(), 2);
         assert!(services.iter().all(|s| s.site != "Official Site"));
@@ -775,18 +781,18 @@ mod tests {
     #[test]
     fn per_episode_deep_links_resolve_by_number() {
         // This is the licensed path: no auth, straight from AniList.
-        let m = frieren();
+        let m = hoshikuzu();
         assert_eq!(
             m.episode_link(1).and_then(|e| e.url.as_deref()),
-            Some("https://www.crunchyroll.com/watch/G2XU04E88")
+            Some("https://hikari.example/watch/G2XU04E88")
         );
-        assert_eq!(m.episode_link(2).unwrap().site.as_deref(), Some("Crunchyroll"));
+        assert_eq!(m.episode_link(2).unwrap().site.as_deref(), Some("Hikari Stream"));
         assert!(m.episode_link(99).is_none());
     }
 
     #[test]
     fn match_target_carries_the_gates_the_ladder_needs() {
-        let t = frieren().match_target();
+        let t = hoshikuzu().match_target();
         assert_eq!(t.episode_count, Some(28));
         assert_eq!(t.year, Some(2023));
         assert_eq!(t.format, Some(MediaFormat::Tv));
@@ -795,7 +801,7 @@ mod tests {
 
     #[test]
     fn cover_image_prefers_the_largest_available() {
-        let m = frieren();
+        let m = hoshikuzu();
         assert!(m.cover_image.best().unwrap().contains("bx154587"));
         let small = CoverImage { extra_large: None, large: Some("l.jpg".into()), color: None };
         assert_eq!(small.best(), Some("l.jpg"));
