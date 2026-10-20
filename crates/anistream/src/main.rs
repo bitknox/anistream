@@ -38,6 +38,10 @@ use anistream_engine::{
     services::Services,
     sources::{self, torrent::reload_sources},
     state::{EngineState, PlayHints},
+    titles::{
+        episodes::{EpisodeLoad, list_episodes, load_episodes, set_watched},
+        matching::{clear_match, fix_match, manual_search, set_provider_preference},
+    },
     tracking,
 };
 
@@ -45,7 +49,7 @@ use std::{io, time::Duration};
 
 use anistream_core::{
     config::{Config, Paths, ThemeMode},
-    ids::{AnilistId, ProviderKey},
+    ids::AnilistId,
 };
 use anistream_meta::{Meta, dataset};
 use anistream_model::{
@@ -1213,70 +1217,6 @@ async fn check_providers(lent: Lent) {
     let _ = tx.send(update);
 }
 
-/// Forget the source match a title was given, and list its episodes as the ladder matches
-/// them now.
-async fn clear_match(lent: Lent, id: AnilistId) {
-    let Lent { meta, store, registry, tx, .. } = lent;
-    let update = if let Err(e) = store.clear_title_match(id) {
-        Event::Toast(Notice::alert(format!("could not reset the match: {e}")))
-    } else {
-        match load_episodes(&meta, &store, &registry, id).await {
-            Ok(EpisodeLoad::Rows(rows)) => Event::Episodes { id, rows },
-            Ok(EpisodeLoad::Choose { provider_id, candidates }) => {
-                Event::MatchChoices { id, provider_id, candidates }
-            }
-            Err(reason) => {
-                let _ = tx.send(Event::Episodes { id, rows: Vec::new() });
-                Event::Toast(Notice::alert(reason))
-            }
-        }
-    };
-    let _ = tx.send(update);
-}
-
-/// Keep the match the user chose for a title, and list its episodes from it.
-async fn fix_match(lent: Lent, id: AnilistId, provider_id: String, key: ProviderKey) {
-    let Lent { meta, store, registry, tx, .. } = lent;
-    // Remembered as an override, which the ladder consults before anything else —
-    // so the question is asked once, not on every visit.
-    let update = if let Err(e) = store.set_override(id, &provider_id, &key, now_epoch()) {
-        Event::Toast(Notice::alert(format!("could not save that match: {e}")))
-    } else {
-        match load_episodes(&meta, &store, &registry, id).await {
-            Ok(EpisodeLoad::Rows(rows)) => Event::Episodes { id, rows },
-            // The override *is* the answer, so the ladder cannot come back
-            // undecided; if it somehow does, say so rather than looping.
-            Ok(EpisodeLoad::Choose { .. }) => Event::Toast(Notice::alert(
-                "that match did not stick — the source may have changed",
-            )),
-            Err(reason) => {
-                let _ = tx.send(Event::Episodes { id, rows: Vec::new() });
-                Event::Toast(Notice::alert(reason))
-            }
-        }
-    };
-    let _ = tx.send(update);
-}
-
-/// A title's episodes, from the source playback would use, or the candidates to choose
-/// between when the ladder could not choose.
-async fn list_episodes(lent: Lent, id: AnilistId) {
-    let Lent { meta, store, registry, tx, .. } = lent;
-    let update = match load_episodes(&meta, &store, &registry, id).await {
-        Ok(EpisodeLoad::Rows(rows)) => Event::Episodes { id, rows },
-        Ok(EpisodeLoad::Choose { provider_id, candidates }) => {
-            Event::MatchChoices { id, provider_id, candidates }
-        }
-        Err(reason) => {
-            // The Episodes screen shows its own empty state, so the reason belongs
-            // in a toast rather than replacing the whole view.
-            let _ = tx.send(Event::Episodes { id, rows: Vec::new() });
-            Event::Toast(Notice::alert(reason))
-        }
-    };
-    let _ = tx.send(update);
-}
-
 /// The engine side's part in an event on its way to the front end, and what it has to say
 /// ahead of the event, for the front end to apply first.
 ///
@@ -1536,106 +1476,6 @@ fn keep_hints(
 ) {
     let EngineState { hints, .. } = engine;
     *hints = Some(PlayHints { title, next, episodes });
-}
-
-/// Mark episodes watched, or forget that they were: in local history, and on the signed-in
-/// trackers when marking.
-fn set_watched(id: AnilistId, episodes: Vec<String>, watched: bool, services: &Services) {
-    let Services { store, sync, .. } = services;
-    let now = anistream_store::now();
-    for episode in &episodes {
-        if watched {
-            let mut event = anistream_store::WatchEvent::new(id, episode.clone(), 0.0);
-            event.completed = true;
-            let _ = store.record_event(&event);
-        } else {
-            let _ = store.forget_episode(id, episode);
-        }
-    }
-    // Project to trackers only when marking: progress there is monotonic, so an
-    // unmark keeps the remote high-water mark and only local history forgets.
-    if watched {
-        let reached = store.tracker_progress(id).unwrap_or(0);
-        if reached > 0 {
-            let op = anistream_core::traits::TrackOp::SetProgress {
-                anilist_id: id,
-                episode: reached,
-            };
-            // Signed-in trackers only, like a finished episode: the default Kitsu
-            // entry has no account behind it until someone signs in.
-            for tracker in sync.trackers.iter().filter(|t| t.is_authenticated()) {
-                let _ = store.enqueue(tracker.id(), &op, now);
-            }
-        }
-    }
-}
-
-/// Search the sources for a title as the user typed it, for a match the ladder could not make.
-fn manual_search(
-    id: AnilistId,
-    query: String,
-    job: Option<JobGuard>,
-    engine: &EngineState,
-    services: &Services,
-    tx: &Outbox,
-) {
-    let Services { meta, registry, .. } = services;
-    let EngineState { config, .. } = engine;
-    let (registry, meta, tx) = (registry.clone(), meta.clone(), tx.clone());
-    let translation = config.playback.translation;
-    tokio::spawn(async move {
-        let _job = job;
-        let now = now_epoch();
-        let attempt = registry.search(&query, translation, now).await;
-        let provider_id = attempt.provider.clone().unwrap_or_default();
-        let update = match attempt.value {
-            Some(hits) if !hits.is_empty() => match meta.media(id).await {
-                // Ranked against the real title so the percentages mean the same
-                // thing they mean when the ladder asks on its own.
-                Ok(media) => {
-                    let target = media.match_target();
-                    let candidates = anistream_meta::title::rank(&target, &hits)
-                        .into_iter()
-                        .map(|scored| anistream_model::sources::MatchCandidate {
-                            title: scored.hit.title.clone(),
-                            key: scored.hit.key.clone(),
-                            similarity: scored.score,
-                            rejected: scored.rejected,
-                        })
-                        .collect();
-                    Event::MatchChoices { id, provider_id, candidates }
-                }
-                Err(e) => Event::Toast(Notice::alert(e.to_string())),
-            },
-            _ => Event::Toast(Notice::alert(format!("nothing found for {query:?}"))),
-        };
-        let _ = tx.send(update);
-    });
-}
-
-/// Use this source for this title from now on, or go back to choosing one automatically.
-fn set_provider_preference(
-    id: AnilistId,
-    provider: Option<String>,
-    services: &Services,
-    tx: &Outbox,
-) {
-    let Services { store, .. } = services;
-    let now = now_epoch();
-    let written = match &provider {
-        Some(provider) => store.set_provider_preference(id, provider, now),
-        None => store.clear_provider_preference(id),
-    };
-    let toast = match (written, &provider) {
-        (Ok(()), Some(provider)) => {
-            Notice::info(format!("{provider} will be used for this title"))
-        }
-        (Ok(()), None) => Notice::info("back to automatic source selection"),
-        // The overlay has already moved its marker, so a failed write has to be said
-        // out loud or the UI would be showing a choice that was never saved.
-        (Err(e), _) => Notice::alert(format!("could not save that choice: {e}")),
-    };
-    let _ = tx.send(Event::Toast(toast));
 }
 
 /// Find the next episode's streams while this one's ending plays, for the play that follows to
@@ -2704,78 +2544,6 @@ async fn source_slate(
         return Err(format!("could not match this title: {}", reasons.join(", ")));
     }
     Ok(slate)
-}
-
-/// What loading a title's episodes produced.
-enum EpisodeLoad {
-    Rows(Vec<EpisodeRow>),
-    /// The ladder found candidates but could not choose. The user decides.
-    Choose {
-        provider_id: String,
-        candidates: Vec<anistream_model::sources::MatchCandidate>,
-    },
-}
-
-/// Resolve a title to a provider and list its episodes.
-async fn load_episodes(
-    meta: &Meta,
-    store: &Store,
-    registry: &ProviderRegistry,
-    id: anistream_core::ids::AnilistId,
-) -> std::result::Result<EpisodeLoad, String> {
-    if registry.is_empty() {
-        return Err("no sources configured".into());
-    }
-    let media = meta.media(id).await.map_err(|e| e.to_string())?;
-    let target = media.match_target();
-    let now = now_epoch();
-
-    // From the source playback would use: the one pinned for this title, or else the first in
-    // the order that has it, so the table's numbering is the one Enter plays.
-    let pinned = store.provider_preference(id).ok().flatten().and_then(|p| registry.pinned(&p));
-    let registry = pinned.as_ref().unwrap_or(registry);
-    let answer = anistream_providers::first_answer(
-        store,
-        registry,
-        id,
-        &target,
-        anistream_core::media::Translation::Sub,
-        now,
-        |source, key| async move {
-            source.episodes(&key, anistream_core::media::Translation::Sub, now).await
-        },
-    )
-    .await;
-
-    let mut episodes = match answer {
-        anistream_providers::Answer::Answered { value, .. } => value,
-        // Candidates exist, none confidently enough to pick. That is a question, not a
-        // failure: the user can see which of these is their show, and the answer is
-        // remembered as an override so it is asked once.
-        anistream_providers::Answer::Ambiguous { provider_id, candidates } => {
-            return Ok(EpisodeLoad::Choose {
-                provider_id,
-                candidates: candidates
-                    .iter()
-                    .map(|candidate| anistream_model::sources::MatchCandidate {
-                        title: candidate.hit.title.clone(),
-                        key: candidate.hit.key.clone(),
-                        similarity: candidate.score,
-                        rejected: candidate.rejected,
-                    })
-                    .collect(),
-            });
-        }
-        anistream_providers::Answer::Unanswered { .. } => {
-            return Err(format!("could not list episodes: {}", answer.explain()));
-        }
-    };
-
-    // A torrent source knows an episode exists but not what it is called. The metadata we
-    // already fetched above does, so name them before they reach the table.
-    data::name_episodes(&mut episodes, &media.episode_titles(), &media.episode_thumbnails());
-
-    Ok(EpisodeLoad::Rows(data::episode_rows(&episodes, store, id)))
 }
 
 /// The terminal the interface draws on.

@@ -33,6 +33,7 @@ pub mod plugin_stores;
 pub mod services;
 pub mod sources;
 pub mod state;
+pub mod titles;
 pub mod tracking;
 pub mod updates;
 
