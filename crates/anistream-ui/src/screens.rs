@@ -5805,9 +5805,18 @@ mod tests {
     /// headings the end of the list did not have.
     #[test]
     fn the_end_of_the_calendar_fills_the_screen() {
+        // Every row tomorrow, from a minute past midnight. Counted from an hour out, the
+        // eighty rows crossed midnight from late morning on, and the heading that brought
+        // made this fail by the time of day it ran.
+        let now = chrono::Local::now();
+        let midnight = (now.date_naive() + chrono::Days::new(1))
+            .and_hms_opt(0, 0, 0)
+            .and_then(|t| t.and_local_timezone(chrono::Local).earliest())
+            .expect("a local midnight");
+        let after_midnight = (midnight - now).num_seconds() + 60;
         let rows: Vec<Entry> = (0..80u32)
             .map(|i| Entry {
-                airing_in: Some(3_600 + i64::from(i) * 600),
+                airing_in: Some(after_midnight + i64::from(i) * 600),
                 airing_episode: Some(i + 1),
                 ..entry(i + 1, &format!("Weekly {i}"))
             })
