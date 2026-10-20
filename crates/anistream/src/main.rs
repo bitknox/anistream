@@ -2,6 +2,7 @@
 
 mod cli;
 mod covers;
+mod engine_state;
 mod services;
 mod tui;
 
@@ -15,6 +16,7 @@ use cli::{
     store::store_command,
     sync::sync_once,
 };
+use engine_state::EngineState;
 use services::Services;
 
 use anistream_engine::{
@@ -433,6 +435,7 @@ async fn preview(
         note = Some(reason);
     }
     let services = Services::build(&config, paths.clone(), http, store, registry)?;
+    let state = EngineState::new(config.clone());
     let mut app = App::with_images(config, palette, keymap, engine);
     if let Some(note) = note {
         app.apply(Event::ProviderNote(note));
@@ -461,7 +464,8 @@ async fn preview(
             ratatui::layout::Rect::new(0, 0, width, height),
             app.nav.section(),
         ),
-        player_tx: None,
+        engine: state,
+        seam: ConfigSeam::default(),
         services,
     };
 
@@ -537,7 +541,8 @@ async fn preview(
 struct PreviewRun {
     tx: mpsc::UnboundedSender<Event>,
     rows: usize,
-    player_tx: Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
+    engine: EngineState,
+    seam: ConfigSeam,
     services: Services,
 }
 
@@ -575,8 +580,7 @@ impl PreviewRun {
             eprintln!("[preview: not run: {task:?}]");
             return;
         }
-        let job = JobGuard::start(app, &task, &self.tx);
-        dispatch(task, job, &mut self.player_tx, app, &self.services, &self.tx);
+        command(app, &mut self.seam, task, &mut self.engine, &self.services, &self.tx);
     }
 
     /// Apply updates until the work is done and the screen's covers are in, as the event loop
@@ -664,9 +668,9 @@ async fn run(
         });
     }
 
-    let engine =
+    let image_engine =
         anistream_tui::image::ImageEngine::detect(images).with_cache_dir(paths.image_cache());
-    tracing::info!(graphics = ?engine.graphics(), "image engine ready");
+    tracing::info!(graphics = ?image_engine.graphics(), "image engine ready");
     // Without the torrent source, which comes up behind the interface once the VPN guard
     // passes: see `TorrentTasks::bring_up`. Mutable: a settings change can stand the torrent
     // stack down and back up, which replaces the guard along with the session it protects.
@@ -683,7 +687,9 @@ async fn run(
     );
     // What every task is lent, built around that chain.
     let services = Services::build(&config, paths, http, store, registry)?;
-    let mut app = App::with_images(config, palette, keymap, engine);
+    // The effect layer's own state, on the config the app was launched with.
+    let mut engine = EngineState::new(config.clone());
+    let mut app = App::with_images(config, palette, keymap, image_engine);
     // Said inside the app too: the warning above scrolls away behind the alternate screen
     // before anyone reads it, and a refused rebind otherwise looks like a key that does nothing.
     for problem in keybinding_problems {
@@ -707,9 +713,13 @@ async fn run(
     // `App` directly, which is what keeps a slow request from stalling a frame.
     let (tx, mut rx) = mpsc::unbounded_channel::<Event>();
 
+    // The engine side told the interface's config, the file's included, before it reads it.
+    let mut seam = ConfigSeam::default();
+    use_config(&app, &mut seam, &mut engine, &services, &tx);
+
     // The daily update check: one cached request, one quiet toast when a release exists.
     anistream_engine::updates::spawn_check(
-        app.config.updates.check,
+        engine.config.updates.check,
         &services.paths.cache_dir,
         &services.http,
         &tx,
@@ -718,8 +728,8 @@ async fn run(
     // The airing digest: what aired for shows you watch since the last launch. Same
     // philosophy as the update check — one line, only when there is something to say.
     anistream_engine::digest::spawn(
-        app.config.notifications.airing_digest,
-        app.config.notifications.desktop,
+        engine.config.notifications.airing_digest,
+        engine.config.notifications.desktop,
         services.store.clone(),
         services.meta.clone(),
         tx.clone(),
@@ -781,14 +791,14 @@ async fn run(
     // stand them back up without a restart. Both are replaced together: the download
     // manager and the guard's watcher are the two things holding a session alive, and
     // leaving either behind would mean traffic outliving the source it belongs to.
-    // The copy the background tasks read. Kept in step with the app's own copy whenever a
+    // The copy the background tasks read. Kept in step with the engine side's own whenever a
     // setting is written, so "saved" and "in effect" are the same moment.
     let shared_config: anistream_engine::SharedConfig =
-        Arc::new(std::sync::RwLock::new(app.config.clone()));
+        Arc::new(std::sync::RwLock::new(engine.config.clone()));
     // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
     let (arrivals_tx, mut arrivals) = mpsc::unbounded_channel();
     let mut torrent_tasks = TorrentTasks::default();
-    torrent_tasks.bring_up(&app.config, &services, &tx, &arrivals_tx);
+    torrent_tasks.bring_up(&engine.config, &services, &tx, &arrivals_tx);
 
     // Both before the terminal changes state, so there is no moment in which a signal or a
     // panic could leave it raw.
@@ -806,16 +816,12 @@ async fn run(
     // Covers come back from the blocking pool on this, decoded, to be handed to the app.
     let (covers_tx, mut covers_rx) = mpsc::unbounded_channel();
 
-    // The live player's control channel. Replaced on each new playback, so a stale sender from
-    // a finished episode can never steer the current one.
-    let mut player_tx: Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>> =
-        None;
-    let mpv = player(&app.config, &services.paths, &player_theme());
+    let mpv = player(&engine.config, &services.paths, &player_theme());
     if !mpv.is_available().await {
         // Said once at startup rather than at the moment you press Enter on an episode.
         app.apply(Event::Toast(Notice::alert(format!(
             "{} not found — install mpv to play anything",
-            app.config.playback.mpv_binary
+            engine.config.playback.mpv_binary
         ))));
     } else if let Some(note) = mpv.mpv_version().await.and_then(old_mpv_note) {
         app.apply(Event::Toast(Notice::info(note)));
@@ -851,15 +857,18 @@ async fn run(
         // Prefetch only what is on screen plus a short lookahead. `visible_artwork` claims
         // each URL, so a re-render cannot re-request one already in flight.
         for url in app.visible_artwork(rows) {
-            dispatch(Command::FetchArtwork { url }, None, &mut player_tx, &app, &services, &tx);
+            let task = Command::FetchArtwork { url };
+            command(&mut app, &mut seam, task, &mut engine, &services, &tx);
         }
 
         // Auto-next is queued by the reducer rather than returned, because an episode ending
         // arrives as an update rather than a keystroke.
         if let Some(task) = app.take_pending() {
-            let job = JobGuard::start(&mut app, &task, &tx);
-            dispatch(task, job, &mut player_tx, &app, &services, &tx);
+            command(&mut app, &mut seam, task, &mut engine, &services, &tx);
         }
+        // Whatever moved the config since: a setting put back, say. The reactions below read
+        // the engine side's copy.
+        use_config(&app, &mut seam, &mut engine, &services, &tx);
 
         tokio::select! {
             Some(update) = rx.recv() => {
@@ -896,11 +905,11 @@ async fn run(
                     Event::SettingsSaved | Event::SourcesChanged | Event::SourcesReordered
                 ) && let Ok(mut shared) = shared_config.write()
                 {
-                    *shared = app.config.clone();
+                    *shared = engine.config.clone();
                 }
                 // Only the order changed: the chain as it stands is put in it, with no rebuild.
                 if matches!(update, Event::SourcesReordered) {
-                    sources::arrange(&services.registry, &app.config);
+                    sources::arrange(&services.registry, &engine.config);
                     app.apply(Event::Providers(data::provider_rows(&services.registry)));
                 }
                 if matches!(update, Event::SourcesChanged) {
@@ -949,8 +958,7 @@ async fn run(
                 tracing::info!(signal, "shutting down");
                 tui::terminal::exit_on_second_signal();
                 if let Some(task) = app.handle(anistream_tui::keymap::Action::Quit, rows) {
-                    let job = JobGuard::start(&mut app, &task, &tx);
-                    dispatch(task, job, &mut player_tx, &app, &services, &tx);
+                    command(&mut app, &mut seam, task, &mut engine, &services, &tx);
                 }
                 // Whatever an open overlay made of the key, a signal is not a request to close it.
                 app.should_quit = true;
@@ -972,8 +980,7 @@ async fn run(
                 match maybe_event {
                     Some(Ok(TermEvent::Key(key))) if key.kind == KeyEventKind::Press => {
                         if let Some(task) = app.press(key, rows) {
-                            let job = JobGuard::start(&mut app, &task, &tx);
-                            dispatch(task, job, &mut player_tx, &app, &services, &tx);
+                            command(&mut app, &mut seam, task, &mut engine, &services, &tx);
                         }
                     }
                     // Arrives whole with bracketed paste on, so a pasted link cannot fire
@@ -994,9 +1001,71 @@ async fn run(
         }
     };
 
-    stop_for_exit(&app, &player_tx, &mut rx).await;
+    stop_for_exit(&app, &engine.player_tx, &mut rx).await;
     restore_terminal(&mut terminal)?;
     result
+}
+
+/// What the engine side was last told of the interface's config.
+///
+/// The interface changes its config in place, from a keypress or from the player, and the
+/// engine side works from a copy. This keeps the copy current: compared on every pass, sent as
+/// `UseConfig` when either half moved. Temporary, like `UseConfig`: P4 makes the engine the
+/// config's owner, and both go.
+#[derive(Default)]
+struct ConfigSeam(Option<(Config, Config)>);
+
+impl ConfigSeam {
+    /// `UseConfig`, when the config in effect or the saved one has moved since the engine side
+    /// was last told, and the first time it is asked.
+    fn moved(&mut self, app: &App) -> Option<Command> {
+        if let Some((config, saved)) = &self.0
+            && *config == app.config
+            && *saved == app.saved_config
+        {
+            return None;
+        }
+        self.0 = Some((app.config.clone(), app.saved_config.clone()));
+        Some(Command::UseConfig {
+            config: Box::new(app.config.clone()),
+            saved: Box::new(app.saved_config.clone()),
+        })
+    }
+}
+
+/// Tell the engine side the interface's config, when it moved since the engine side was told.
+///
+/// Before the first command, before every command after it, and before the loop's reactions,
+/// which read it too. So the work reads the config the screen shows at the moment it reads it,
+/// as it read `app.config` itself before.
+fn use_config(
+    app: &App,
+    seam: &mut ConfigSeam,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &mpsc::UnboundedSender<Event>,
+) {
+    if let Some(config) = seam.moved(app) {
+        dispatch(config, None, engine, app, services, tx);
+    }
+}
+
+/// Send a command to the engine side as the interface sends one: the config ahead of it when
+/// it moved, then the command, its job started as it is dispatched. Returns the job, for work
+/// someone waits on.
+fn command(
+    app: &mut App,
+    seam: &mut ConfigSeam,
+    task: Command,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &mpsc::UnboundedSender<Event>,
+) -> Option<JobId> {
+    use_config(app, seam, engine, services, tx);
+    let job = JobGuard::start(app, &task, tx);
+    let id = job.as_ref().map(|job| job.id);
+    dispatch(task, job, engine, app, services, tx);
+    id
 }
 
 /// Refresh the mapping datasets, and keep trying in the background until a refresh succeeds.
@@ -1410,7 +1479,8 @@ fn spawn(
             | Command::PublishPlugin { .. }
             | Command::UnpublishPlugin { .. }
             | Command::OpenAdmin { .. }
-            | Command::FetchArtwork { .. } => {
+            | Command::FetchArtwork { .. }
+            | Command::UseConfig { .. } => {
                 tracing::error!(?task, "task reached the generic spawner");
                 return;
             }
@@ -1476,18 +1546,23 @@ fn spawn(
 fn dispatch(
     task: Command,
     job: Option<JobGuard>,
-    player_tx: &mut Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
+    engine: &mut EngineState,
     app: &App,
     services: &Services,
     tx: &mpsc::UnboundedSender<Event>,
 ) {
     let Services { paths, http, store, meta, registry, sync, stores, slot, prefetch } =
         services;
-    let config = &app.config;
+    let EngineState { config, saved_config, player_tx } = engine;
     // No player handle is passed in: every playback path builds its own from the config
-    // above, which is the live one the Settings screen edits. A handle held across the
-    // session is exactly how a turned-off upscaler kept running.
+    // above, which is the live one the Settings screen edits, as the front end last said. A
+    // handle held across the session is exactly how a turned-off upscaler kept running.
     match task {
+        // Kept current by the front end, which changes its own in place, until P4.
+        Command::UseConfig { config: now, saved } => {
+            *config = *now;
+            *saved_config = *saved;
+        }
         // Sync work needs the tracker set, which `spawn` deliberately does not move into
         // its task.
         Command::SyncNow => {
@@ -1997,7 +2072,7 @@ fn dispatch(
             // order in effect there.
             let reordered = (table, key) == (&["providers"][..], "order")
                 && matches!(&value, anistream_core::settings::SettingValue::List(order)
-                    if only_reorders(&app.saved_config.providers.order, order));
+                    if only_reorders(&saved_config.providers.order, order));
             let written = anistream_core::settings::write_key(paths, table, key, value);
             // Read back whatever the write left, so the Settings screen shows the file rather
             // than its own hopes — and can put a refused setting back. A file that does not
@@ -3607,6 +3682,25 @@ mod tests {
 
     fn test_app() -> App {
         App::new(Config::default(), theme::Palette::dark(), Keymap::new())
+    }
+
+    #[test]
+    fn the_engine_side_hears_of_a_config_change_before_the_next_command() {
+        let mut app = test_app();
+        let mut seam = ConfigSeam::default();
+        assert!(matches!(seam.moved(&app), Some(Command::UseConfig { .. })), "said at once");
+        assert_eq!(seam.moved(&app), None, "and not again while nothing moves");
+
+        app.config.playback.auto_next = false;
+        let Some(Command::UseConfig { config, saved }) = seam.moved(&app) else {
+            panic!("a change in effect is said");
+        };
+        assert!(!config.playback.auto_next);
+        assert!(saved.playback.auto_next, "the file is told apart from what is in effect");
+
+        // A write read back, or one put back, moves only the file's half.
+        app.saved_config.playback.auto_next = false;
+        assert!(seam.moved(&app).is_some());
     }
 
     #[test]

@@ -305,6 +305,16 @@ pub enum Command {
     FetchArtwork {
         url: String,
     },
+    /// The config as the front end has it: `config` in effect, `saved` as the file holds it.
+    /// Sent ahead of the first command, and again ahead of whatever follows a change to either,
+    /// so the work reads the config the screen shows.
+    ///
+    /// Temporary, while the front end owns the config and changes it in place. P4 gives the
+    /// engine the config to own, front ends ask it for a change instead, and this goes.
+    UseConfig {
+        config: Box<anistream_core::config::Config>,
+        saved: Box<anistream_core::config::Config>,
+    },
 }
 
 /// A control sent to whatever is currently playing.

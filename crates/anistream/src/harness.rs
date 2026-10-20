@@ -53,7 +53,9 @@ use anistream_tui::{
 };
 use tokio::sync::mpsc;
 
-use crate::{JobGuard, Prefetch, TorrentTasks, services::Services};
+use crate::{
+    ConfigSeam, Prefetch, TorrentTasks, engine_state::EngineState, services::Services,
+};
 
 /// How long [`Harness::settle`] waits for work to finish before failing the test.
 ///
@@ -106,7 +108,8 @@ pub struct Harness {
     channels: Channels,
     // The handles the event loop holds, held the same way.
     services: Services,
-    player_tx: Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
+    engine: EngineState,
+    seam: ConfigSeam,
     shared_config: anistream_engine::SharedConfig,
     torrent_tasks: TorrentTasks,
     vpn_guard: Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
@@ -202,6 +205,8 @@ impl Harness {
 
         let (arrivals, arrived) = mpsc::unbounded_channel();
         Self {
+            engine: EngineState::new(config.clone()),
+            seam: ConfigSeam::default(),
             shared_config: Arc::new(RwLock::new(config)),
             app,
             server,
@@ -221,7 +226,6 @@ impl Harness {
                 slot: PlayerSlot::default(),
                 prefetch: Prefetch::default(),
             },
-            player_tx: None,
             torrent_tasks: TorrentTasks::default(),
             vpn_guard: None,
             arrivals,
@@ -302,6 +306,8 @@ impl Harness {
             for url in self.app.visible_artwork(self.rows()) {
                 self.dispatch(Command::FetchArtwork { url });
             }
+            // And whatever moved the config since, before the reactions read it.
+            self.use_config();
             let Some(updates) = self.channels.open.front_mut() else { break };
             let wait = deadline.saturating_duration_since(tokio::time::Instant::now());
             match tokio::time::timeout(wait, updates.recv()).await {
@@ -385,13 +391,27 @@ impl Harness {
         self.app.jobs.iter().map(|job| job.label.clone()).collect()
     }
 
-    /// `JobGuard::start`, then `dispatch`, exactly as the loop calls them.
+    /// A command sent as the loop sends one: the config ahead of it when it moved, then the
+    /// command, its job started.
     fn dispatch(&mut self, task: Command) -> Option<JobId> {
         let tx = self.channels.sender();
-        let job = JobGuard::start(&mut self.app, &task, &tx);
-        let id = job.as_ref().map(|job| job.id);
-        crate::dispatch(task, job, &mut self.player_tx, &self.app, &self.services, &tx);
-        id
+        crate::command(
+            &mut self.app,
+            &mut self.seam,
+            task,
+            &mut self.engine,
+            &self.services,
+            &tx,
+        )
+    }
+
+    /// `use_config`, as the loop calls it before its reactions. A channel is opened only to say
+    /// something: one opened on every pass would keep the settle from ever ending.
+    fn use_config(&mut self) {
+        if let Some(config) = self.seam.moved(&self.app) {
+            let tx = self.channels.sender();
+            crate::dispatch(config, None, &mut self.engine, &self.app, &self.services, &tx);
+        }
     }
 
     /// One update, as the loop's `rx.recv()` arm handles it.
@@ -413,15 +433,15 @@ impl Harness {
             Event::SettingsSaved | Event::SourcesChanged | Event::SourcesReordered
         ) && let Ok(mut shared) = self.shared_config.write()
         {
-            *shared = self.app.config.clone();
+            *shared = self.engine.config.clone();
         }
         if matches!(update, Event::SourcesReordered) {
-            sources::arrange(&self.services.registry, &self.app.config);
+            sources::arrange(&self.services.registry, &self.engine.config);
             self.apply(Event::Providers(data::provider_rows(&self.services.registry)), seen);
         }
         if matches!(update, Event::SourcesChanged) {
             assert!(
-                !sources::torrent_wanted(&self.app.config),
+                !sources::torrent_wanted(&self.engine.config),
                 "the harness has no torrent session or VPN guard to bring up"
             );
             let tx = self.channels.sender();
