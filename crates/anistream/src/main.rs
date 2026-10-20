@@ -2012,7 +2012,7 @@ fn dispatch(
                     // in the status line for the rest of the session, over the state it shows,
                     // and it said the file's key — "saved commit_threshold". What has no row
                     // there, the remembered speed and volume, is saved without a word.
-                    if let Some(label) = app.setting_label(table, key) {
+                    if let Some(label) = setting_label(table, key) {
                         let _ = tx.send(Event::Toast(Notice::info(format!("saved · {label}"))));
                     }
                     // Republish what the background tasks read, so the next download to
@@ -2691,6 +2691,53 @@ fn init_logging(paths: &Paths) {
 fn signed_in_tracker_ids(sync: &tracking::Sync) -> Vec<String> {
     sync.trackers.iter().filter(|t| t.is_authenticated()).map(|t| t.id().to_owned()).collect()
 }
+
+/// The name the Settings screen gives the setting stored at `table`.`key`, for saying it was
+/// saved. The config key (`commit_threshold`) is the file's vocabulary, not the screen's.
+///
+/// `None` for what is stored without a row of its own, the remembered speed and volume: saved
+/// in passing, and not something anyone asked to have confirmed.
+///
+/// A table of its own, so the engine side can name a setting without asking the interface,
+/// and held to the Settings screen's own rows by a test here, the one place that sees both.
+/// P4 moves the settings' ids and labels into the model, and this reads them from there.
+fn setting_label(table: &[&str], key: &str) -> Option<&'static str> {
+    SETTING_LABELS.iter().find(|(t, k, _)| *t == table && *k == key).map(|(_, _, label)| *label)
+}
+
+/// Every setting the interface writes, by table and key, with the name its row goes by.
+const SETTING_LABELS: &[(&[&str], &str, &str)] = &[
+    // No row on Settings: `K` and `J` on Providers change it.
+    (&["providers"], "order", "source order"),
+    (&["theme"], "mode", "theme"),
+    (&["theme"], "motion", "motion"),
+    (&["playback"], "translation", "translation"),
+    (&["playback"], "quality", "quality"),
+    (&["playback"], "subtitle_language", "subtitles"),
+    (&["playback"], "commit_threshold", "counts as watched at"),
+    (&["playback"], "auto_next", "auto-play next"),
+    (&["playback"], "skip_opening", "skip opening automatically"),
+    (&["playback"], "skip_filler", "skip filler automatically"),
+    (&["playback"], "mark_chapters", "mark opening and ending"),
+    (&["playback"], "fullscreen", "start fullscreen"),
+    (&["playback"], "upscaling", "upscaling"),
+    (&["playback"], "player_ui", "player interface"),
+    (&["playback"], "night_mode", "night mode"),
+    (&["downloads"], "directory", "download folder"),
+    (&["downloads"], "merge_subtitles", "merge subtitles in"),
+    (&["downloads"], "keep_seeding", "keep seeding"),
+    (&["downloads"], "on_complete", "after each download"),
+    (&["providers", "torrent"], "enabled", "torrent source"),
+    (&["providers", "torrent", "seeding"], "ratio", "seed after watching"),
+    (&["providers", "torrent", "seeding"], "hours", "seed for at most"),
+    (&["providers", "torrent", "seeding"], "upload_limit_kib", "upload limit"),
+    (&["presence"], "enabled", "discord presence"),
+    (&["presence"], "show_title", "presence shows the title"),
+    (&["syncplay"], "enabled", "syncplay parties"),
+    (&["syncplay"], "server", "syncplay server"),
+    (&["syncplay"], "room", "syncplay room"),
+    (&["updates"], "check", "check for updates"),
+];
 
 /// Whether writing this key changes which sources exist, and so needs the chain rebuilt.
 ///
@@ -3917,6 +3964,31 @@ mod tests {
             ),
             "filler"
         );
+    }
+
+    #[test]
+    fn a_saved_setting_is_named_as_the_settings_screen_names_it() {
+        let app = test_app();
+        // Every row that writes, and the order, which Providers writes.
+        let mut written: Vec<(&[&str], &str)> = app
+            .setting_rows()
+            .iter()
+            .filter_map(|row| row.editable.as_ref().map(|edit| (edit.table, edit.key)))
+            .collect();
+        written.push((&["providers"], "order"));
+        for (table, key) in &written {
+            let named = setting_label(table, key);
+            assert!(named.is_some(), "{table:?}.{key} is saved without a word");
+            assert_eq!(named, app.setting_label(table, key), "{table:?}.{key}");
+        }
+        // And nothing named that the interface does not write.
+        for (table, key, _) in SETTING_LABELS {
+            assert!(written.contains(&(*table, *key)), "{table:?}.{key} has no row");
+        }
+        // Saved in passing, from the player.
+        for key in ["persisted_speed", "persisted_volume"] {
+            assert_eq!(setting_label(&["playback"], key), None, "{key}");
+        }
     }
 
     #[test]
