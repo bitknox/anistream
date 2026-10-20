@@ -65,7 +65,8 @@ pub async fn run(
     let mut options =
         EngineOptions::new(paths.clone(), config.clone(), http, store, player_theme());
     options.saved = Some(saved.clone());
-    let (engine, mut from_engine) = Engine::start(options, Arc::new(DesktopHost)).await?;
+    let host = Arc::new(DesktopHost::new(&config, &paths));
+    let (engine, mut from_engine) = Engine::start(options, host).await?;
 
     // The settings as the engine starts on them, which it says again at launch.
     let settings = anistream_model::settings::view(&config, &saved);

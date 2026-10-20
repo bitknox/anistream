@@ -8,6 +8,7 @@ use anistream_model::playback::PlayerTheme;
 use anistream_net::HttpClient;
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
+use anistream_track::TokenStore;
 
 use crate::{
     host::Host,
@@ -72,10 +73,14 @@ impl Services {
         host: Arc<dyn Host>,
     ) -> Result<Self, String> {
         let meta = build_meta(config, &http, &store);
-        let stores = plugin_stores::Stores::new(config, &paths)?;
+        // Tokens wherever the host keeps them: see `host`. One store for the plugin stores and
+        // the trackers alike, so a token is read from the keychain once.
+        let secrets = host.secrets().unwrap_or_else(|| crate::host::file_secrets(&paths));
+        let tokens = TokenStore::over(secrets);
+        let stores = plugin_stores::Stores::with_tokens(config, &paths, tokens.clone())?;
         // Trackers are built whether or not they hold a token: the Accounts overlay needs
         // something to offer a sign-in for, and the outbox accumulates against the id meanwhile.
-        let sync = tracking::Sync::build(config, &paths, &store, &http);
+        let sync = tracking::Sync::with_tokens(config, &store, &http, tokens);
         Ok(Self {
             paths,
             http,

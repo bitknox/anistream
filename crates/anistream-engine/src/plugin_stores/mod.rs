@@ -54,12 +54,8 @@ pub fn state_path(paths: &Paths) -> PathBuf {
 }
 
 impl Stores {
-    /// Stores as the app uses them, with tokens wherever tracker tokens go.
-    pub fn new(config: &Config, paths: &Paths) -> Result<Self, String> {
-        Self::with_tokens(config, paths, crate::tracking::token_store(config, paths))
-    }
-
-    /// Stores with tokens kept in `tokens`, so a test can keep them out of the real keychain.
+    /// Stores with tokens kept in `tokens`: the engine's, wherever its host keeps them, or a
+    /// test's, out of the real keychain.
     pub fn with_tokens(
         config: &Config,
         paths: &Paths,

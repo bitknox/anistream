@@ -909,18 +909,22 @@ mod tests {
     use anistream_net::HttpClient;
     use anistream_providers::ProviderRegistry;
 
-    use crate::host::DesktopHost;
+    use crate::host::{QuietHost, SecretError, SecretStore, Storage};
 
     /// An engine on the defaults, in `dir`, with no sources, doing nothing it is not asked to,
     /// and keeping its tokens in files there rather than in the keychain.
     async fn quiet_engine(dir: &std::path::Path) -> (Engine, EventStream) {
+        engine_on(dir, Arc::new(QuietHost::in_dir(&dir.join("tokens")))).await
+    }
+
+    /// [`quiet_engine`], on `host`.
+    async fn engine_on(dir: &std::path::Path, host: Arc<dyn Host>) -> (Engine, EventStream) {
         let paths = Paths {
             config_file: dir.join("config.toml"),
             data_dir: dir.join("data"),
             cache_dir: dir.join("cache"),
         };
-        let mut config = Config::default();
-        config.trackers.token_storage = "file".into();
+        let config = Config::default();
         let http = HttpClient::offline(&config.network).unwrap();
         let store = anistream_store::Store::open_in_memory().unwrap();
         let theme = PlayerTheme {
@@ -935,7 +939,94 @@ mod tests {
         let mut options = EngineOptions::new(paths, config, http, store, theme);
         options.sources = Some(ProviderRegistry::new(Vec::new()));
         options.background = false;
-        Engine::start(options, Arc::new(DesktopHost)).await.unwrap()
+        Engine::start(options, host).await.unwrap()
+    }
+
+    /// The trackers' states launch says, by tracker.
+    async fn launch_states(events: &mut EventStream) -> Vec<anistream_model::sync::SyncState> {
+        let launch = events.launch().await.into_iter();
+        launch
+            .filter_map(
+                |event| if let Event::Sync(state) = event { Some(*state) } else { None },
+            )
+            .collect()
+    }
+
+    /// A host with a store of its own, as an app offers a phone's keychain.
+    struct Keeping(Arc<Kept>);
+
+    impl Host for Keeping {
+        fn open_url(&self, _: &str) -> Result<(), String> {
+            Err("a test opens nothing".into())
+        }
+
+        fn notify(&self, _: &str, _: &str) {}
+
+        fn secrets(&self) -> Option<Arc<dyn SecretStore>> {
+            Some(self.0.clone())
+        }
+    }
+
+    /// Values kept in memory, said to be in a keychain.
+    #[derive(Default)]
+    struct Kept(std::sync::Mutex<std::collections::HashMap<String, String>>);
+
+    impl SecretStore for Kept {
+        fn get(&self, id: &str) -> Result<Option<String>, SecretError> {
+            Ok(self.0.lock().unwrap().get(id).cloned())
+        }
+
+        fn set(&self, id: &str, value: &str) -> Result<Storage, SecretError> {
+            self.0.lock().unwrap().insert(id.to_owned(), value.to_owned());
+            Ok(Storage::Keychain)
+        }
+
+        fn delete(&self, id: &str) -> Result<(), SecretError> {
+            self.0.lock().unwrap().remove(id);
+            Ok(())
+        }
+
+        fn storage_for(&self, _: &str) -> Storage {
+            Storage::Keychain
+        }
+    }
+
+    #[tokio::test]
+    async fn the_trackers_read_their_tokens_from_the_hosts_store() {
+        let dir = tempfile::tempdir().unwrap();
+        let kept = Arc::new(Kept::default());
+        kept.set("kitsu", "a-kitsu-token").unwrap();
+        let (_engine, mut events) = engine_on(dir.path(), Arc::new(Keeping(kept))).await;
+        let [kitsu] = &launch_states(&mut events).await[..] else { panic!("kitsu alone") };
+        assert!(kitsu.connected, "the host's token was not read");
+        assert_eq!(kitsu.storage.as_deref(), Some("OS keychain"));
+        assert!(!kitsu.storage_degraded);
+        assert!(
+            !dir.path().join("data").join("tokens").exists(),
+            "a file was written beside it"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_host_with_no_store_has_its_tokens_kept_in_files_under_the_data_directory() {
+        // What a host that offers nothing gets, and says it gets.
+        struct Bare;
+        impl Host for Bare {
+            fn open_url(&self, _: &str) -> Result<(), String> {
+                Err("a test opens nothing".into())
+            }
+            fn notify(&self, _: &str, _: &str) {}
+        }
+        let dir = tempfile::tempdir().unwrap();
+        let tokens = dir.path().join("data").join("tokens");
+        std::fs::create_dir_all(&tokens).unwrap();
+        std::fs::write(tokens.join("kitsu.token"), "a-kitsu-token").unwrap();
+
+        let (_engine, mut events) = engine_on(dir.path(), Arc::new(Bare)).await;
+        let [kitsu] = &launch_states(&mut events).await[..] else { panic!("kitsu alone") };
+        assert!(kitsu.connected, "the file's token was not read");
+        assert_eq!(kitsu.storage.as_deref(), Some("0600 file"));
+        assert!(kitsu.storage_degraded, "a file is less than a keychain, and says so");
     }
 
     #[tokio::test]

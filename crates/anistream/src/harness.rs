@@ -23,7 +23,8 @@
 //! - one [`HttpClient::offline`] for everything, so a request for any host by name fails at
 //!   once rather than leaving the machine. The plugin store client is the exception, being its
 //!   own `reqwest` client: it is only ever given loopback addresses here;
-//! - a [`Host`] that opens no page and shows no notification, and keeps what it was asked.
+//! - a [`Host`] that opens no page and shows no notification, and keeps what it was asked;
+//!   the tokens above are its store's.
 //!
 //! The engine is started from those parts, with none of the work it does on its own at launch.
 //! What it does not stand up: a torrent session, a VPN guard, mpv or a browser. A config that
@@ -52,7 +53,7 @@ use anistream_store::Store;
 use anistream_testkit::{FakeAniList, fixtures::FIXTURE_NOW};
 use anistream_track::{
     AniListTracker,
-    secret::{Backend, TokenStore},
+    secret::{Backend, LocalSecrets, SecretStore, TokenStore},
 };
 use anistream_tui::{
     Clock, Zone,
@@ -190,7 +191,10 @@ impl Harness {
             store.clone(),
         );
 
-        let tokens = TokenStore::with_backend(root.path().join("tokens"), Backend::File);
+        // The host's store, which the engine's own parts are built over below: files in the
+        // temporary directory.
+        let host = Arc::new(TestHost::in_dir(&root.path().join("tokens")));
+        let tokens = TokenStore::over(host.secrets.clone());
         for tracker in &options.signed_in {
             tokens.set(tracker, &format!("harness-{tracker}-token")).expect("a token file");
         }
@@ -237,9 +241,7 @@ impl Harness {
         start.sources = Some(registry.clone());
         start.background = false;
         start.parts = Some(Parts { meta, sync, stores });
-        let (engine, mut events) = Engine::start(start, Arc::new(TestHost::default()))
-            .await
-            .expect("the engine starts");
+        let (engine, mut events) = Engine::start(start, host).await.expect("the engine starts");
         // What launch says, applied as the loop applies it before its first frame: the stores,
         // the chain and the trackers on their rows.
         for update in events.launch().await {
@@ -597,13 +599,23 @@ impl Harness {
 }
 
 /// The machine the harness runs on: it opens nothing and notifies nobody, and keeps what it was
-/// asked to do, in order.
+/// asked to do, in order. Tokens are files in the temporary directory.
 ///
 /// Every page it is asked to open opens, as far as the engine can tell, so the work carries on
 /// as it would once the browser is up.
-#[derive(Default)]
 struct TestHost {
     asked: Mutex<Vec<String>>,
+    secrets: Arc<dyn SecretStore>,
+}
+
+impl TestHost {
+    /// Tokens in files under `dir`, never the keychain.
+    fn in_dir(dir: &std::path::Path) -> Self {
+        Self {
+            asked: Mutex::default(),
+            secrets: Arc::new(LocalSecrets::new(dir, Backend::File)),
+        }
+    }
 }
 
 impl Host for TestHost {
@@ -614,6 +626,10 @@ impl Host for TestHost {
 
     fn notify(&self, title: &str, body: &str) {
         self.asked.lock().expect("the host's record").push(format!("notify {title}: {body}"));
+    }
+
+    fn secrets(&self) -> Option<Arc<dyn SecretStore>> {
+        Some(self.secrets.clone())
     }
 }
 

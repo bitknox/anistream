@@ -70,6 +70,9 @@ impl Sync {
     /// is signed in — Kitsu is enabled by default, so "enabled" no longer implies intent —
     /// and watching now and signing in later still syncs, because the first pull derives
     /// progress from the watch log and reconciles it outward.
+    ///
+    /// With the desktop's tokens, for the command line: see [`token_store`]. The engine builds
+    /// its trackers [`Self::with_tokens`], over wherever its host keeps them.
     pub fn build(
         config: &Config,
         paths: &Paths,
@@ -1062,15 +1065,16 @@ fn pull_key(tracker_id: &str) -> String {
     format!("last_pull:{tracker_id}")
 }
 
-/// Where the file-fallback token lives, if a keychain is unavailable.
-/// A token store honouring `trackers.token_storage` and the `ANISTREAM_TOKEN_STORAGE` override.
+/// The desktop's token store: honouring `ANISTREAM_TOKEN_STORAGE`, then
+/// `trackers.token_storage`, as [`desktop_secrets`] decides.
 ///
-/// One place, so every entry point — the app, `--login`, `--sync`, the probes — agrees about where
-/// tokens live. Disagreeing would mean signing in through one path and being unauthenticated
-/// through another.
+/// For the entry points that run on the desktop with no engine — `--login`, `--sync`, the
+/// probes — which have to agree with the app about where tokens live. Disagreeing would mean
+/// signing in through one path and being unauthenticated through another.
+///
+/// [`desktop_secrets`]: crate::host::desktop_secrets
 pub fn token_store(config: &Config, paths: &Paths) -> TokenStore {
-    let backend = anistream_track::secret::Backend::from_env_or(&config.trackers.token_storage);
-    TokenStore::with_backend(token_dir(paths), backend)
+    TokenStore::over(crate::host::desktop_secrets(config, paths))
 }
 
 /// Where the `0600` token file lives when the file backend is in use: under the data directory
@@ -1253,8 +1257,8 @@ mod tests {
         let sync = Sync::with_tokens(&config, &store, &http, tokens);
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
-        connect(sync, Arc::new(crate::host::DesktopHost), "kitsu".into(), Outbox::from(tx))
-            .await;
+        let host = Arc::new(crate::host::QuietHost::in_dir(dir.path()));
+        connect(sync, host, "kitsu".into(), Outbox::from(tx)).await;
         let Ok(Event::Toast(notice)) = rx.try_recv() else { panic!("no notice") };
         assert_eq!(notice.text, "kitsu signs in from the Accounts screen");
         assert_eq!(notice.hint, Some(NoticeHint::KitsuCredentials));

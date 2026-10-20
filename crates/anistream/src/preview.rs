@@ -82,12 +82,13 @@ pub async fn preview(
     }
     // The engine on that chain, whole, and with none of its own work beside what it is sent:
     // nothing in a still frame brings a torrent source up, and nothing it does not draw runs.
+    let host = Arc::new(DesktopHost::new(&config, paths));
     let mut options =
         EngineOptions::new(paths.clone(), config.clone(), http, store, player_theme());
     options.saved = Some(config);
     options.sources = Some(registry);
     options.background = false;
-    let (engine, mut events) = Engine::start(options, Arc::new(DesktopHost)).await?;
+    let (engine, mut events) = Engine::start(options, host).await?;
     // What launch says: the stores, the chain's rows and the trackers' states.
     for update in events.launch().await {
         app.apply(update);
