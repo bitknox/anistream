@@ -12,9 +12,9 @@ instead, which say what the state is rather than where it is kept:
     a.search_query           ->  a.text(Field::Search)
     a.search_query = q;      ->  a.set_text(Field::Search, q);
 
-Only test code is rewritten: the `mod tests` at the end of a source file, the integration tests,
-and the binary's contract tests and their harness. The reducer and the renderer reach the state
-themselves. A receiver is `a`, `app`, `self.app`, or the harness's `app()` and `app_mut()`.
+Only test code is rewritten: the `mod tests` at the end of a source file, the helpers the App's
+tests share in `app/fixtures.rs`, the integration tests, and the binary's contract tests and
+their harness. The reducer and the renderer reach the state themselves. A receiver is `a`, `app`, `self.app`, or the harness's `app()` and `app_mut()`.
 
 Rerunnable, and meant to be: run it after each merge of main, and it rewrites whatever main added
 since. A name it has rewritten is a method call, which it leaves alone, so a second run changes
@@ -87,6 +87,11 @@ def import_field(text, path, start):
     """Give the test code a `use` of `Field` once it names it and nothing brings it in yet."""
     if "Field::" not in text[start:]:
         return text
+    # The App's own tests, each feature's and the fixtures, take every name of the app module
+    # from the fixtures, which re-export it whole. An import of their own would hide the
+    # fixtures' re-export of `Field` from the tests that rely on it.
+    if path.parts[:4] == ("crates", "anistream-tui", "src", "app"):
+        return text
     # A source file's tests take their parent's names with `use super::*`, the enum's own
     # file among them.
     if re.search(r"^\s*(?:pub )?use [^;]*\bField\b[^;]*;|^pub enum Field\b", text, re.M):
@@ -114,6 +119,7 @@ def main():
             "tests" in path.parts[:3]
             or path.parts[:4] == ("crates", "anistream", "src", "contract")
             or path.parts[:4] == ("crates", "anistream", "src", "harness.rs")
+            or path.parts == ("crates", "anistream-tui", "src", "app", "fixtures.rs")
         )
         file = root / path
         before = file.read_text()

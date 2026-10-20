@@ -13,7 +13,9 @@ each merge of main, in this order, from the repository root or anywhere inside i
    anistream-ui becomes anistream-tui.
 5. `test_accessors.py`: tests read and set the App's cursors and text buffers through accessors,
    `a.cursor()` and `a.text(Field::Search)` for `a.selected` and `a.search_query`, so the state
-   behind them can be reshaped and split by feature without the tests following it.
+   behind them can be reshaped and split by feature without the tests following it. It reads
+   the App's tests where the split put them: the `mod tests` at the end of each
+   `crates/anistream-tui/src/app/*.rs`, and the helpers they share in `app/fixtures.rs`.
 
 The order matters within a run: model_paths.py moves the `Notice`, `Command` and `Event` that
 the first two write, so a name main adds is converted in one run rather than two.
@@ -21,6 +23,12 @@ the first two write, so a name main adds is converted in one run rather than two
 Each script rewrites only names that are still old, so running all five again changes nothing.
 After a run, `cargo fmt --all` lays out the imports they rewrote, and the compiler names what is
 left to do by hand.
+
+main's `crates/anistream-ui/src/app.rs` is one file where this branch has a file for each
+feature in `crates/anistream-tui/src/app/`, and git cannot follow one file split into many. A
+change main makes there conflicts: take this branch's side, then make main's change by hand in
+the file of the feature it touches, a test in that file's `mod tests` and a helper more than one
+feature's tests use in `app/fixtures.rs`, and run the scripts after, as for any merge.
 
 Files main adds do not always follow the moves. One added in `crates/anistream-ui/` lands in
 `crates/anistream-tui/`, and git asks to confirm it as a conflict. One added beside the old
