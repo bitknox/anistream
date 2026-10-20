@@ -58,7 +58,7 @@ whose URL has no extension, `download-source` on a stream.
 
 Errors map one-for-one onto the registry's failover rules:
 
-| Return | Meaning | Failover? |
+| Return | Meaning | Fails over |
 |---|---|---|
 | `not-found` | Works, no such title or episode | Yes, not counted as a fault |
 | `blocked(msg)` | The site refused the request: a rate limit, a region block, an access check or a ban | Yes |

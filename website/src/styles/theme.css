@@ -804,6 +804,11 @@ starlight-tabs .tab [role='tab'][aria-selected='true'] {
 }
 
 /* ── Code blocks: the copy button sits on the well, haze, silk on hover ─── */
+/* Room at the end of every line, so a long line can be scrolled out from under the button. */
+.expressive-code .ec-line .code {
+	padding-inline-end: 48px;
+}
+
 .expressive-code .copy {
 	inset-block-start: 6px;
 	inset-inline-end: 6px;
