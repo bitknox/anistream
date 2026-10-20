@@ -35,7 +35,7 @@ use std::{
 use anistream_core::config::{Config, NetworkConfig, Paths};
 use anistream_engine::{
     data,
-    outbox::{Internal, Outbox, WeakOutbox},
+    outbox::{Envelope, Internal, Outbox, WeakOutbox},
     plugin_stores,
     slot::PlayerSlot,
     sources, tracking,
@@ -115,8 +115,6 @@ pub struct Harness {
     engine: EngineState,
     seam: ConfigSeam,
     jobs: Jobs,
-    /// What the engine side leaves itself to do, read as the loop reads it.
-    bus: mpsc::UnboundedReceiver<Internal>,
     /// The last settle, by name: see [`Harness::trace`].
     trace: Vec<&'static str>,
     _arrived: mpsc::UnboundedReceiver<(u64, Result<sources::TorrentUp, String>)>,
@@ -209,12 +207,10 @@ impl Harness {
         }
 
         let (arrivals, arrived) = mpsc::unbounded_channel();
-        let (bus_tx, bus) = mpsc::unbounded_channel();
         Self {
-            engine: EngineState::new(config, arrivals, bus_tx),
+            engine: EngineState::new(config, arrivals),
             seam: ConfigSeam::default(),
             jobs: Jobs::default(),
-            bus,
             trace: Vec::new(),
             app,
             server,
@@ -295,9 +291,9 @@ impl Harness {
     /// The event loop's reactions included, each where the loop has it: a metadata notice as
     /// the status rows and a toast just before the update it arrived with, a queued progress
     /// drained at once, and work the reducer queued dispatched before the next update is read.
-    /// What the engine side left itself to do is done once every event sent before it is in,
-    /// as the loop does it: the chain put in a new order and its rows sent, or the sources
-    /// rebuilt and `SourcesChanged` sent ahead of what the rebuild reports. Covers are fetched
+    /// What the engine side left itself to do is done in its place among them, as the loop does
+    /// it: the chain put in a new order and its rows sent, or the sources rebuilt and
+    /// `SourcesChanged` sent ahead of what the rebuild reports. Covers are fetched
     /// as the loop fetches them, which with images off is never.
     ///
     /// Done means done, not quiet for a while: every piece of work dispatched holds a sender,
@@ -319,27 +315,11 @@ impl Harness {
             }
             // And whatever moved the config since, before the reactions read it.
             self.use_config();
-            let Some(updates) = self.channels.open.front_mut() else {
-                // Every event in: what the engine side left itself is all there is left.
-                match self.bus.try_recv() {
-                    Ok(message) => {
-                        self.handle(message, &mut seen).await;
-                        continue;
-                    }
-                    Err(_) => break,
-                }
-            };
-            // A message to the engine side waits for every event sent before it, as the loop's
-            // `if rx.is_empty()` has it.
-            if updates.is_empty()
-                && let Ok(message) = self.bus.try_recv()
-            {
-                self.handle(message, &mut seen).await;
-                continue;
-            }
+            let Some(updates) = self.channels.open.front_mut() else { break };
             let wait = deadline.saturating_duration_since(tokio::time::Instant::now());
             match tokio::time::timeout(wait, updates.recv()).await {
-                Ok(Some(update)) => self.react(update, &mut seen).await,
+                Ok(Some(Envelope::Event(update))) => self.react(update, &mut seen).await,
+                Ok(Some(Envelope::Internal(message))) => self.handle(message, &mut seen).await,
                 Ok(None) => {
                     self.channels.open.pop_front();
                 }
@@ -474,8 +454,8 @@ impl Harness {
         self.apply(update, seen);
     }
 
-    /// What the engine side left itself to do, as the loop's bus arm handles it: what that
-    /// says applied at once, and the message itself in the trace after it, where the App
+    /// What the engine side left itself to do, as the loop handles it: what that says applied
+    /// at once, and the message itself in the trace after it, where the App
     /// applied it when it rode the event channel. Unless it was passed on, and is there as
     /// the event already.
     async fn handle(&mut self, message: Internal, seen: &mut Vec<Event>) {
@@ -559,7 +539,7 @@ impl Jobs {
 /// sent before the new one existed.
 #[derive(Default)]
 struct Channels {
-    open: VecDeque<mpsc::UnboundedReceiver<Event>>,
+    open: VecDeque<mpsc::UnboundedReceiver<Envelope>>,
     newest: Option<WeakOutbox>,
     /// Holds the newest channel open between a [`Harness::send`] and the settle after it,
     /// when nothing else may yet be holding it.
@@ -572,8 +552,7 @@ impl Channels {
         if let Some(tx) = self.newest.as_ref().and_then(WeakOutbox::upgrade) {
             return tx;
         }
-        let (tx, rx) = mpsc::unbounded_channel();
-        let tx = Outbox::from(tx);
+        let (tx, rx) = Outbox::inbox();
         self.newest = Some(tx.downgrade());
         self.open.push_back(rx);
         tx

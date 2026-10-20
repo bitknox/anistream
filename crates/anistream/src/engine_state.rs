@@ -14,7 +14,7 @@
 use std::sync::{Arc, RwLock};
 
 use anistream_core::config::Config;
-use anistream_engine::{SharedConfig, outbox::Internal, sources::TorrentUp};
+use anistream_engine::{SharedConfig, sources::TorrentUp};
 use anistream_model::{
     command::PlayerCommand,
     jobs::JobId,
@@ -27,9 +27,6 @@ use crate::TorrentTasks;
 
 /// Where a bring-up of the torrent source reports in, tagged with the bring-up it answers.
 pub type Arrivals = mpsc::UnboundedSender<(u64, Result<TorrentUp, String>)>;
-
-/// Where the engine side tells itself what to do next. The loop holds the other end.
-pub type Bus = mpsc::UnboundedSender<Internal>;
 
 /// The effect layer's own state: what commands read and leave for the commands after them.
 pub struct EngineState {
@@ -63,15 +60,13 @@ pub struct EngineState {
     pub vpn_guard: Option<(VpnGuard, Arc<TorrentSession>)>,
     /// Where the torrent source reports in once it is up. The loop holds the other end.
     pub arrivals: Arrivals,
-    /// Where the engine side's work leaves it messages: see [`Internal`].
-    pub bus: Bus,
 }
 
 impl EngineState {
     /// The engine side as it starts: on the config the app was launched with, as the file's
     /// too, as the interface starts, until the front end's first `UseConfig` says otherwise.
     /// No torrent stack yet, and `arrivals` for it to report on when one is brought up.
-    pub fn new(config: Config, arrivals: Arrivals, bus: Bus) -> Self {
+    pub fn new(config: Config, arrivals: Arrivals) -> Self {
         Self {
             shared_config: Arc::new(RwLock::new(config.clone())),
             saved_config: config.clone(),
@@ -82,7 +77,6 @@ impl EngineState {
             torrent_tasks: TorrentTasks::default(),
             vpn_guard: None,
             arrivals,
-            bus,
         }
     }
 
