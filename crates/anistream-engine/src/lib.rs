@@ -21,13 +21,15 @@
 pub type SharedConfig = std::sync::Arc<std::sync::RwLock<anistream_core::config::Config>>;
 
 pub mod artwork;
+pub mod background;
 pub mod data;
-pub mod digest;
 pub mod downloads;
 pub mod outbox;
 pub mod playback;
 pub mod plugin_stores;
-pub mod prune;
 pub mod sources;
 pub mod tracking;
 pub mod updates;
+
+// Named here as they were until their callers follow them into `background`.
+pub use background::{digest, prune};
