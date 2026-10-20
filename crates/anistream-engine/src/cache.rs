@@ -66,7 +66,8 @@ pub struct TitleCache {
     table: Option<(AnilistId, Vec<EpisodeRow>)>,
     /// The title the last staged playback was announced as, and whose.
     announced: Option<(AnilistId, String)>,
-    /// Each playback started, by its number: where it last said it was.
+    /// Each playback started, by its number: where it last said it was. Kept once it has
+    /// ended, a few bytes each, so that what it says after is known for a straggler.
     playbacks: HashMap<u64, Playhead>,
 }
 
