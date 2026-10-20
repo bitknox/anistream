@@ -21,6 +21,9 @@ use anistream_model::{
     notice::Notice,
     playback::{Ending, Successor},
 };
+// What the episode table says of the episodes around this one: the front end sends them ahead
+// of a play, so they are the model's, and still named from here for whatever plays.
+pub use anistream_model::playback::{EpisodeEntry, NextEpisode};
 use anistream_net::HttpClient;
 use anistream_player::{
     Action, Choice, ExternalPlayer, Mpv, MpvSession, PlaybackEvent, PlaybackTracker,
@@ -67,30 +70,6 @@ pub struct PlaybackContext {
     pub next: Option<NextEpisode>,
     /// The episode table, for the player's Episodes menu. Empty when it was not loaded.
     pub episodes: Vec<EpisodeEntry>,
-}
-
-/// The episode that follows, as the Up Next card names it.
-#[derive(Debug, Clone, PartialEq)]
-pub struct NextEpisode {
-    pub number: String,
-    pub title: Option<String>,
-    /// The episode's still, by URL, for the Up Next card.
-    pub thumbnail: Option<String>,
-}
-
-impl NextEpisode {
-    pub fn label(&self) -> String {
-        format!("Episode {}", self.number)
-    }
-}
-
-/// One row of the player's Episodes menu.
-#[derive(Debug, Clone, PartialEq)]
-pub struct EpisodeEntry {
-    pub number: String,
-    pub title: Option<String>,
-    pub watched: bool,
-    pub filler: bool,
 }
 
 impl PlaybackContext {

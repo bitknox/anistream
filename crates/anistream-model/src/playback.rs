@@ -1,5 +1,6 @@
 //! Playback, as the work reports it: what a skip would seek past, how a playback came to an end,
-//! and what a newer one is about to play. Also the theme a front end dresses the player in.
+//! and what a newer one is about to play. Also what the player's Up Next card and Episodes menu
+//! show, and the theme a front end dresses the player in.
 
 use anistream_core::ids::AnilistId;
 
@@ -42,6 +43,32 @@ pub struct Successor {
     pub title: String,
     pub episode: String,
     pub translation: anistream_core::media::Translation,
+}
+
+/// The episode that follows, as the Up Next card names it.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct NextEpisode {
+    pub number: String,
+    pub title: Option<String>,
+    /// The episode's still, by URL, for the Up Next card.
+    pub thumbnail: Option<String>,
+}
+
+impl NextEpisode {
+    pub fn label(&self) -> String {
+        format!("Episode {}", self.number)
+    }
+}
+
+/// One row of the player's Episodes menu.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct EpisodeEntry {
+    pub number: String,
+    pub title: Option<String>,
+    pub watched: bool,
+    pub filler: bool,
 }
 
 /// The colours and font the player's own interface is drawn in.
