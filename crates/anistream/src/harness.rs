@@ -315,19 +315,16 @@ impl Harness {
         self.dispatch(task)
     }
 
+    /// Whether the engine has a playback under way, as quitting now would find it.
+    pub async fn under_way(&self) -> bool {
+        self.engine.under_way().await
+    }
+
     /// Quit, as the event loop does once it has left: the engine shut down and waited for.
     /// Returns how long the shutdown took.
     pub async fn quit(self) -> Duration {
-        // Cross-check, while the loop still tells the engine whether a playback is under way:
-        // the engine's own word on it has to agree with the loop's.
-        let under_way = self.app.playing.as_ref().is_some_and(|p| p.duration.is_some());
-        assert_eq!(
-            self.engine.under_way().await,
-            under_way,
-            "the engine and the loop disagree on whether a playback is under way"
-        );
         let started = tokio::time::Instant::now();
-        self.engine.shutdown(under_way).await;
+        self.engine.shutdown().await;
         started.elapsed()
     }
 

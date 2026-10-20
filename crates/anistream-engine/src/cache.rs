@@ -306,8 +306,6 @@ impl TitleCache {
 
     /// Whether playback `serial` has started playing and not ended: it has said how long its
     /// episode is, which it does from its first frames, and not yet how it ended.
-    // Read by the cross-check alone until the exit asks the engine, not the front end.
-    #[cfg_attr(not(feature = "testing"), allow(dead_code))]
     pub(crate) fn under_way(&self, serial: u64) -> bool {
         self.playbacks
             .get(&serial)

@@ -269,6 +269,7 @@ async fn quitting_while_the_next_episode_is_found_does_not_wait() {
     let updates = h.settle_until(|e| matches!(e, Event::PlaybackStaged { .. })).await;
     assert_eq!(staged(&updates).2, "5");
     // Nothing is under way: 4 has ended, and 5 is still being found.
+    assert!(!h.under_way().await);
     let took = h.quit().await;
     assert!(took < std::time::Duration::from_millis(500), "waited {took:?}");
 }
@@ -277,7 +278,8 @@ async fn quitting_while_the_next_episode_is_found_does_not_wait() {
 async fn quitting_partway_through_an_episode_has_one_under_way() {
     let mut h = at_the_table().await;
     playing(&mut h, "4", 600.0).await;
-    // Under way, as the engine and the loop both say; with no player to stop, nothing waits.
+    assert!(h.under_way().await, "4 is playing");
+    // With no player here to stop, nothing waits for it to say where it was left.
     let took = h.quit().await;
     assert!(took < std::time::Duration::from_millis(500), "waited {took:?}");
 }
@@ -429,4 +431,44 @@ async fn n_hands_the_window_to_the_next_episode() {
     assert_eq!(windows(&updates), 0, "in the same window");
     assert_eq!(rolled_on(&updates), [false], "12 is the finale");
     assert!(h.app().playing.is_none());
+}
+
+#[tokio::test]
+async fn quitting_partway_through_an_episode_records_where_it_was_left() {
+    use anistream_core::stream::{Stream, StreamKind};
+    use anistream_testkit::sources;
+    if !mpv_here().await {
+        return;
+    }
+    // A minute of test pattern, so the quit lands well inside the episode.
+    let long = Stream {
+        provider_id: sources::PROVIDER_ID.into(),
+        ..Stream::new("av://lavfi:testsrc=duration=60:size=320x240:rate=30", StreamKind::Mp4)
+    };
+    let provider = anistream_providers::MockProvider::new(sources::PROVIDER_ID)
+        .with_hits(sources::hits())
+        .with_episodes_for(sources::key(FINISHED), sources::episodes(FINISHED))
+        .with_streams_for(sources::key(FINISHED), vec![long]);
+    let options = Options {
+        config: Some(HEADLESS_MPV.into()),
+        registry: Some(anistream_providers::ProviderRegistry::new(vec![provider.arc()])),
+        ..Options::default()
+    };
+    let mut h = Harness::with(options).await;
+    seed::watched(h.store(), FINISHED, 10, FIXTURE_NOW - 86_400);
+    opened(&mut h).await;
+    h.press(Action::ShowEpisodes);
+    h.settle().await;
+    h.press_to_play(Action::Open);
+    h.settle_until(|e| matches!(e, Event::Playback { duration: Some(_), .. })).await;
+    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+
+    // Under way, so quitting stops it and waits for it to write where it was left.
+    assert!(h.under_way().await);
+    let store = h.store().clone();
+    let took = h.quit().await;
+    assert!(took < std::time::Duration::from_secs(2), "waited out the flush: {took:?}");
+    let left = store.events_for(FINISHED, 50).unwrap();
+    let left = left.iter().find(|event| event.episode == "11").expect("a row for 11");
+    assert!(left.position_secs >= 2.5, "the last row is from {}s", left.position_secs);
 }

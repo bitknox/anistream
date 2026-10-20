@@ -248,9 +248,8 @@ pub async fn run(
     };
 
     // A playback that has started, as opposed to one still finding its source, is stopped and
-    // given a moment to record where it was left.
-    let under_way = app.playing.as_ref().is_some_and(|playing| playing.duration.is_some());
-    engine.shutdown(under_way).await;
+    // given a moment to record where it was left: the engine knows which.
+    engine.shutdown().await;
     restore_terminal(&mut terminal)?;
     result
 }

@@ -84,7 +84,7 @@ enum Message {
     /// A command, with the job [`Engine::send`] numbered for it, and its activity.
     Command { job: Option<(JobId, String)>, command: Command },
     /// The app is quitting: see [`Engine::shutdown`].
-    Shutdown { playing: bool, done: oneshot::Sender<()> },
+    Shutdown { done: oneshot::Sender<()> },
     /// An event, as the work would send it: see [`Engine::inject`].
     #[cfg(feature = "testing")]
     Inject(Event),
@@ -94,7 +94,7 @@ enum Message {
     /// The engine's record of the titles, as it stands: see [`Engine::title_cache`].
     #[cfg(feature = "testing")]
     TitleCache(oneshot::Sender<crate::cache::TitleCache>),
-    /// Whether a playback is under way, as the engine sees it: see [`Engine::under_way`].
+    /// Whether a playback is under way, as the exit would see it: see [`Engine::under_way`].
     #[cfg(feature = "testing")]
     UnderWay(oneshot::Sender<bool>),
 }
@@ -350,17 +350,17 @@ impl Engine {
     /// A playback under way is stopped, the way `x` stops it, and given a moment to record
     /// where it was left: it writes its last history row before it reports its ending, which
     /// is what this waits for. The tracker writes a row every ten seconds of playback, so
-    /// quitting without this lost up to that much of the resume point. `playing` is whether
-    /// one is under way: started, not still finding its source, which has nothing to save and
-    /// whose wait would only delay the exit. The front end says so for now, since what is on
-    /// screen is its own until P4 gives the engine its own record of the playback.
+    /// quitting without this lost up to that much of the resume point. Under way is the
+    /// playback Now Playing shows, started and not yet ended, as the engine keeps track of it:
+    /// one still finding its source has nothing to save, and its wait would only delay the
+    /// exit.
     ///
     /// Then the torrent session, if there is one, is stood down in order: each torrent paused
     /// so the next launch knows how far it got, then its tasks and connections stopped. That
     /// is bounded at a second, and with torrents off there is nothing to wait for.
-    pub async fn shutdown(self, playing: bool) {
+    pub async fn shutdown(self) {
         let (done, stopped) = oneshot::channel();
-        if self.commands.send(Message::Shutdown { playing, done }).is_ok() {
+        if self.commands.send(Message::Shutdown { done }).is_ok() {
             let _ = stopped.await;
         }
     }
@@ -406,8 +406,8 @@ impl Engine {
         rx.await.expect("the engine answers while it runs")
     }
 
-    /// Whether the engine sees a playback under way, as the exit would: the one Now Playing
-    /// shows, started and not ended. Read after every command sent before it is routed.
+    /// Whether a playback is under way, as [`Self::shutdown`] would see it now: the one Now
+    /// Playing shows, started and not ended. Read once every command sent before it is routed.
     #[cfg(feature = "testing")]
     pub async fn under_way(&self) -> bool {
         let (tx, rx) = oneshot::channel();
@@ -633,8 +633,8 @@ impl Actor {
                 biased;
                 message = self.commands.recv() => match message {
                     Some(Message::Command { job, command }) => self.route(job, command),
-                    Some(Message::Shutdown { playing, done }) => {
-                        self.stop(playing).await;
+                    Some(Message::Shutdown { done }) => {
+                        self.stop().await;
                         let _ = done.send(());
                         return;
                     }
@@ -773,8 +773,6 @@ impl Actor {
 
     /// Whether a playback is under way: the one Now Playing shows has started playing, and
     /// has not ended. One still finding its stream has nothing to record.
-    // Read by the cross-check alone until the exit asks the engine, not the front end.
-    #[cfg_attr(not(feature = "testing"), allow(dead_code))]
     fn under_way(&self) -> bool {
         let EngineState { staging, cache, .. } = &self.state;
         staging.front().is_some_and(|front| cache.under_way(front.serial))
@@ -817,7 +815,8 @@ impl Actor {
     }
 
     /// Everything the app does on its way out: the playback's last record, then the torrents.
-    async fn stop(&mut self, playing: bool) {
+    async fn stop(&mut self) {
+        let playing = self.under_way();
         self.flush_playback(playing).await;
         self.close_torrents().await;
     }
@@ -1083,8 +1082,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let (engine, mut events) = quiet_engine(dir.path()).await;
         events.launch().await;
-        // Said under way, but no playback was ever started: there is nothing to stop.
-        tokio::time::timeout(Duration::from_millis(500), engine.shutdown(true))
+        // No playback was ever started: there is nothing to stop.
+        tokio::time::timeout(Duration::from_millis(500), engine.shutdown())
             .await
             .expect("no wait for a player that is not there");
         assert!(events.recv().await.is_none(), "the engine has stopped");
