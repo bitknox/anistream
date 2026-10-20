@@ -20,7 +20,7 @@ use std::{
     time::Duration,
 };
 
-use anistream_player::{Mpv, ipc};
+use anistream_player::{Mpv, ipc, protocol::MpvVersion};
 use serde_json::{Value, json};
 use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
@@ -43,6 +43,11 @@ fn clip(seconds: u32) -> String {
 
 async fn mpv_available() -> bool {
     Mpv::new(std::env::temp_dir()).is_available().await
+}
+
+/// The version of the mpv on PATH, for a test of something only newer players have.
+async fn mpv_version() -> MpvVersion {
+    Mpv::new(std::env::temp_dir()).mpv_version().await.expect("mpv reports its version")
 }
 
 /// A scratch directory per player, removed when the player is dropped.
@@ -797,8 +802,25 @@ async fn a_pick_in_the_drawn_menu_is_reported_as_choose() {
 #[tokio::test]
 async fn the_context_menu_gains_an_entry_without_losing_the_users() {
     require_mpv!();
+    let version = mpv_version().await;
     let mut player = Player::start(None, &[]).await;
     player.state("menus", sample_menus()).await;
+    // mpv's own context menu, and the `menu-data` property it is built from, came in 0.40.
+    // Before that the script has nothing to join, and must leave it there without a word.
+    if version < (MpvVersion { major: 0, minor: 40 }) {
+        // Two answers later the script has seen the menus, and with them tried menu-data.
+        player.message("hello", json!({})).await;
+        player.event("ready").await;
+        player.message("hello", json!({})).await;
+        player.event("ready").await;
+        assert!(player.get("menu-data").await.is_null(), "mpv {version} has a menu-data");
+        let log = Arc::clone(&player.stderr);
+        player.finish().await;
+        let log = log.lock().unwrap().clone();
+        assert!(!log.contains("menu-data"), "the script complained on mpv {version}:\n{log}");
+        eprintln!("skipping the context menu: mpv {version} has none (0.40 added it)");
+        return;
+    }
     let titles = |v: &Value| -> Vec<String> {
         v.as_array()
             .into_iter()
