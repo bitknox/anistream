@@ -49,6 +49,9 @@ tracing-subscriber.workspace = true
 tempfile = "3"
 
 [dev-dependencies]
+# The engine as the contract tests stand it up: from the harness's own parts, saying when it is
+# idle. Only for the tests: the binary that ships has none of it.
+anistream-engine = { workspace = true, features = ["testing"] }
 # The fake AniList, fixtures and goldens the dispatch contract tests stand the app up with.
 anistream-testkit.workspace = true
 # The store contract tests serve a real plugin store on loopback.

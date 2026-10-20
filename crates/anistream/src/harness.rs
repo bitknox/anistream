@@ -1,15 +1,16 @@
-//! The app with its effects, driven as the event loop drives them, for the contract tests.
+//! The app with its engine, driven as the event loop drives it, for the contract tests.
 //!
-//! [`dispatch`] and the loop's reactions to what it sends back are the layer
-//! that turns a [`Command`] into work and the work's answers into [`Event`]s. Nothing tested it:
-//! the reducer's tests stop at the task it returns, and the end-to-end tests start mpv. The
-//! contract tests pin what each task sends back and in what order, so that moving all of it
-//! into an engine can be shown to change nothing.
+//! The engine is the layer that turns a [`Command`] into work and the work's answers into
+//! [`Event`]s. Nothing tested it: the reducer's tests stop at the task it returns, and the
+//! end-to-end tests start mpv. The contract tests pin what each task sends back and in what order,
+//! so that moving all of it into an engine could be shown to change nothing.
 //!
 //! So the tests are written against this, and this alone: [`Harness::send`] a task, then
-//! [`Harness::settle`] for every update it led to, in the order the app applied them. Nothing
-//! about `dispatch`'s parameters reaches a test. When the effects move behind
-//! `Engine::send`, the insides of this file change and the tests do not.
+//! [`Harness::settle`] for every update it led to, in the order the app applied them. The app's
+//! commands go through [`Engine::send`] and its updates come back on the engine's
+//! [`EventStream`], as the event loop sends and reads them, and nothing of the engine's insides
+//! reaches a test. They moved behind `Engine::send` with the insides of this file changing and
+//! the tests not.
 //!
 //! What it stands up, all of it in a temporary directory or in memory:
 //!
@@ -24,6 +25,7 @@
 //!   own `reqwest` client: it is only ever given loopback addresses here;
 //! - a [`Host`] that opens no page and shows no notification, and keeps what it was asked.
 //!
+//! The engine is started from those parts, with none of the work it does on its own at launch.
 //! What it does not stand up: a torrent session, a VPN guard, mpv or a browser. A config that
 //! asks for torrents is refused, and so are the tasks that would start a player or open a page.
 
@@ -35,16 +37,11 @@ use std::{
 
 use anistream_core::config::{Config, NetworkConfig, Paths};
 use anistream_engine::{
-    data,
-    dispatch::{dispatch, handle_internal, receive},
+    engine::{Engine, EventStream, Traced},
     host::Host,
-    outbox::{Envelope, Internal, Outbox, WeakOutbox},
-    playback::{prefetch::Prefetch, slot::PlayerSlot},
-    plugin_stores,
-    services::Services,
-    sources,
-    state::EngineState,
-    tracking,
+    options::{EngineOptions, Parts},
+    outbox::Internal,
+    plugin_stores, sources, tracking,
 };
 use anistream_meta::Meta;
 use anistream_model::{command::Command, event::Event, jobs::JobId, notice::Notice};
@@ -63,13 +60,12 @@ use anistream_tui::{
     keymap::{Action, Keymap},
     screens, theme,
 };
-use tokio::sync::mpsc;
 
 use crate::{
     covers,
     tui::{
         run::show_config_problem,
-        seams::{ConfigSeam, command, route},
+        seams::{ConfigSeam, command},
     },
 };
 
@@ -115,21 +111,26 @@ impl Default for Options {
     }
 }
 
-/// The app, its effects, and a fake AniList, in a temporary directory.
+/// The app, its engine, and a fake AniList, in a temporary directory.
 pub struct Harness {
     app: App,
     server: FakeAniList,
     tokens: TokenStore,
     size: (u16, u16),
-    channels: Channels,
-    // The handles the event loop holds, held the same way.
-    services: Services,
-    engine: EngineState,
+    // The engine and what it says, held as the event loop holds them.
+    engine: Engine,
+    events: EventStream,
     seam: ConfigSeam,
     jobs: Jobs,
+    /// How many commands the engine had routed when it last said it had nothing left to do.
+    idle: u64,
     /// The last settle, by name: see [`Harness::trace`].
     trace: Vec<&'static str>,
-    _arrived: mpsc::UnboundedReceiver<(u64, Result<sources::TorrentUp, String>)>,
+    // Handles onto what the engine holds, for a test to seed and to read: each shares its state
+    // with the engine's copy.
+    store: Store,
+    paths: Paths,
+    registry: ProviderRegistry,
     /// Last, so it is removed after everything that might still be writing into it.
     _root: tempfile::TempDir,
 }
@@ -208,53 +209,53 @@ impl Harness {
         if let Some(problem) = &problem {
             show_config_problem(&mut app, &paths, problem);
         }
-        match stores.rows() {
-            Ok(rows) => app.apply(Event::Stores(rows)),
-            Err(e) => app.apply(Event::Toast(Notice::alert(e))),
-        }
-        // As `--preview` has them: the rows the plugin load's reorder puts up a moment in.
-        app.apply(Event::Providers(data::provider_rows(&registry)));
-        for state in sync.initial_states() {
-            app.apply(Event::Sync(Box::new(state)));
+
+        // Started from the parts above rather than its own: it would point the metadata source
+        // at AniList itself, and keep tokens wherever the user's are. With the chain whole and
+        // nothing of its own to do, it does no more than it is sent.
+        let mut start = EngineOptions::new(
+            paths.clone(),
+            config,
+            http,
+            store.clone(),
+            theme::player_theme(),
+        );
+        start.sources = Some(registry.clone());
+        start.background = false;
+        start.parts = Some(Parts { meta, sync, stores });
+        let (engine, mut events) = Engine::start(start, Arc::new(TestHost::default()))
+            .await
+            .expect("the engine starts");
+        // What launch says, applied as the loop applies it before its first frame: the stores,
+        // the chain and the trackers on their rows.
+        for update in events.launch().await {
+            app.apply(update);
         }
 
-        let (arrivals, arrived) = mpsc::unbounded_channel();
         Self {
-            engine: EngineState::new(config, arrivals),
-            seam: ConfigSeam::default(),
-            jobs: Jobs::default(),
-            trace: Vec::new(),
             app,
             server,
             tokens,
             size: options.size,
-            channels: Channels::default(),
-            // Assembled from the parts above rather than built: `Services::build` would point
-            // the metadata source at AniList itself, and keep tokens wherever the user's are.
-            services: Services {
-                paths,
-                http,
-                store,
-                meta,
-                registry,
-                sync,
-                stores,
-                slot: PlayerSlot::default(),
-                prefetch: Prefetch::default(),
-                player_theme: theme::player_theme(),
-                host: Arc::new(TestHost::default()),
-            },
-            _arrived: arrived,
+            engine,
+            events,
+            seam: ConfigSeam::default(),
+            jobs: Jobs::default(),
+            idle: 0,
+            trace: Vec::new(),
+            store,
+            paths,
+            registry,
             _root: root,
         }
     }
 
-    /// Run a task as the event loop runs one: its job started, then dispatched. Returns the
-    /// job, as the engine side numbered it, for work someone waits on.
+    /// Run a task as the event loop runs one: sent to the engine, which starts its job and
+    /// routes it. Returns the job, as the engine numbered it, for work someone waits on.
     ///
     /// Nothing is applied until [`Self::settle`]. Tasks sent one after another without a
-    /// settle between them are dispatched one after another, as keys pressed in quick
-    /// succession are, and whatever one of them writes inline is there for the next.
+    /// settle between them are routed one after another, as keys pressed in quick succession
+    /// are, and whatever one of them writes inline is there for the next.
     ///
     /// # Panics
     ///
@@ -274,7 +275,6 @@ impl Harness {
             ),
             "the harness does not run {task:?}: it would start mpv or open a browser"
         );
-        self.channels.hold();
         self.dispatch(task)
     }
 
@@ -302,20 +302,21 @@ impl Harness {
     /// Each job a command started has to be announced, in the order they were started and by
     /// the number its send returned, before anything else is said about it, and ended once.
     ///
-    /// The event loop's reactions included, each where the loop has it: a metadata notice as
+    /// The engine's reactions are in it, each where the engine has them: a metadata notice as
     /// the status rows and a toast just before the update it arrived with, a queued progress
-    /// drained at once, and work the reducer queued dispatched before the next update is read.
-    /// What the engine side left itself to do is done in its place among them, as the loop does
-    /// it: the chain put in a new order and its rows sent, or the sources rebuilt and
-    /// `SourcesChanged` sent ahead of what the rebuild reports. Covers are fetched
-    /// as the loop fetches them, which with images off is never.
+    /// drained at once, and what the engine side left itself to do done in its place among
+    /// them — the chain put in a new order and its rows sent, or the sources rebuilt and
+    /// `SourcesChanged` sent ahead of what the rebuild reports. And the loop's: work the
+    /// reducer queued sent before the next update is read, and covers fetched as the loop
+    /// fetches them, which with images off is never.
     ///
-    /// Done means done, not quiet for a while: every piece of work dispatched holds a sender,
-    /// so the updates end exactly when the last of the work does. A job still open then is a
-    /// job that never ended, and fails the test by name. The one piece of work that holds no
-    /// sender is a prefetch, which reports nothing, and is not waited for.
+    /// Done means done, not quiet for a while. The engine says when it falls idle: no command
+    /// queued, nothing unread, and no work holding a way to answer. Once it has said so with
+    /// every command sent routed, everything they led to is in, and there is nothing left to
+    /// wait for. A job still open then is a job that never ended, and fails the test by name.
+    /// The one piece of work that holds no way to answer is a prefetch, which reports nothing,
+    /// and is not waited for.
     pub async fn settle(&mut self) -> Vec<Event> {
-        self.channels.held = None;
         self.trace.clear();
         let deadline = tokio::time::Instant::now() + PATIENCE;
         let mut seen = Vec::new();
@@ -329,14 +330,15 @@ impl Harness {
             }
             // And whatever moved the config since, before the reactions read it.
             self.use_config();
-            let Some(updates) = self.channels.open.front_mut() else { break };
+            if self.idle == self.engine.sent() {
+                break;
+            }
             let wait = deadline.saturating_duration_since(tokio::time::Instant::now());
-            match tokio::time::timeout(wait, updates.recv()).await {
-                Ok(Some(Envelope::Event(update))) => self.react(update, &mut seen).await,
-                Ok(Some(Envelope::Internal(message))) => self.handle(message, &mut seen).await,
-                Ok(None) => {
-                    self.channels.open.pop_front();
-                }
+            match tokio::time::timeout(wait, self.events.next_traced()).await {
+                Ok(Some(Traced::Event(update))) => self.apply(update, &mut seen),
+                Ok(Some(Traced::Handled(message))) => self.handled(message),
+                Ok(Some(Traced::Idle { routed })) => self.idle = routed,
+                Ok(None) => panic!("the engine stopped, having seen {:?}", names(&seen)),
                 Err(_) => panic!(
                     "still waiting after {PATIENCE:?} on {:?}, having seen {:?}",
                     self.job_labels(),
@@ -361,7 +363,7 @@ impl Harness {
 
     /// What the last [`Self::settle`] went through, by name and in order: every event it
     /// returned, and between them each message the engine side left itself and kept, where
-    /// the loop handles it. So `SettingsSaved` and `SourcesReordered` are in it, though no
+    /// the engine handles it. So `SettingsSaved` and `SourcesReordered` are in it, though no
     /// front end ever sees them. `SourcesChanged` is passed on once handled, and is in it once,
     /// as the event. `JobStarted` is not, as in what the settle returns.
     pub fn trace(&self) -> &[&'static str] {
@@ -385,17 +387,17 @@ impl Harness {
 
     /// The local database, for seeding and for checking what a task wrote.
     pub fn store(&self) -> &Store {
-        &self.services.store
+        &self.store
     }
 
     /// Where the app's files are: all of them under one temporary directory.
     pub fn paths(&self) -> &Paths {
-        &self.services.paths
+        &self.paths
     }
 
     /// The live source chain.
     pub fn registry(&self) -> &ProviderRegistry {
-        &self.services.registry
+        &self.registry
     }
 
     /// Where tracker and plugin store tokens are kept: files in the temporary directory.
@@ -429,53 +431,29 @@ impl Harness {
     }
 
     /// A command sent as the loop sends one: the config ahead of it when it moved, then the
-    /// command, its job started.
+    /// command, its job numbered as it is sent.
     fn dispatch(&mut self, task: Command) -> Option<JobId> {
-        let tx = self.channels.sender();
-        let Self { app, seam, engine, services, .. } = self;
-        let job = command(app, seam, task, &mut |c| route(c, engine, services, &tx));
+        let Self { app, seam, engine, .. } = self;
+        let job = command(app, seam, task, &mut |c| engine.send(c));
         self.jobs.started.extend(job);
         job
     }
 
-    /// `use_config`, as the loop calls it before its reactions. A channel is opened only to say
-    /// something: one opened on every pass would keep the settle from ever ending.
+    /// `use_config`, as the loop calls it before its reactions.
     fn use_config(&mut self) {
         if let Some(config) = self.seam.moved(&self.app) {
-            let tx = self.channels.sender();
-            dispatch(config, None, &mut self.engine, &self.services, &tx);
+            self.engine.send(config);
         }
     }
 
-    /// One update, as the loop's `rx.recv()` arm handles it.
-    async fn react(&mut self, update: Event, seen: &mut Vec<Event>) {
-        // First, the loop hands an invite link to the terminal's clipboard. There is no
-        // terminal here, so nothing marks the link copied.
-
-        // The engine side's part: a queued progress drained now, and the metadata ladder's
-        // notice ahead of the update.
-        let channels = &mut self.channels;
-        for said in receive(&update, &self.services, || channels.sender()) {
-            self.apply(said, seen);
-        }
-        // The loop asks for the terminal's focus back after an ending; there is no terminal.
-        self.apply(update, seen);
-    }
-
-    /// What the engine side left itself to do, as the loop handles it: what that says applied
-    /// at once, and the message itself in the trace after it, where the App
-    /// applied it when it rode the event channel. Unless it was passed on, and is there as
-    /// the event already.
-    async fn handle(&mut self, message: Internal, seen: &mut Vec<Event>) {
+    /// A message the engine side left itself, handled: in the trace after what it said, where
+    /// the App applied it when it rode the event channel. Unless it was passed on, and is there
+    /// as the event already.
+    fn handled(&mut self, message: Internal) {
         assert!(
-            message != Internal::SourcesChanged
-                || !sources::torrent_wanted(&self.engine.config),
+            message != Internal::SourcesChanged || !sources::torrent_wanted(&self.app.config),
             "the harness has no torrent session or VPN guard to bring up"
         );
-        let tx = self.channels.sender();
-        for said in handle_internal(message, &mut self.engine, &self.services, &tx).await {
-            self.apply(said, seen);
-        }
         match message {
             Internal::SettingsSaved => self.trace.push("SettingsSaved"),
             Internal::SourcesReordered => self.trace.push("SourcesReordered"),
@@ -554,41 +532,6 @@ impl Jobs {
                 names(seen)
             ),
             _ => {}
-        }
-    }
-}
-
-/// The channels the work answers on.
-///
-/// One at a time is open, and work is handed a sender to it; the harness keeps only a weak
-/// one. So a channel closes exactly when the last work holding a sender ends, and an empty,
-/// closed channel is the end of the work — no waiting for a quiet moment. Work dispatched
-/// after the open one has closed gets a new one, read after it: everything on the old one was
-/// sent before the new one existed.
-#[derive(Default)]
-struct Channels {
-    open: VecDeque<mpsc::UnboundedReceiver<Envelope>>,
-    newest: Option<WeakOutbox>,
-    /// Holds the newest channel open between a [`Harness::send`] and the settle after it,
-    /// when nothing else may yet be holding it.
-    held: Option<Outbox>,
-}
-
-impl Channels {
-    /// A sender to the open channel, or to a new one when it has closed.
-    fn sender(&mut self) -> Outbox {
-        if let Some(tx) = self.newest.as_ref().and_then(WeakOutbox::upgrade) {
-            return tx;
-        }
-        let (tx, rx) = Outbox::inbox();
-        self.newest = Some(tx.downgrade());
-        self.open.push_back(rx);
-        tx
-    }
-
-    fn hold(&mut self) {
-        if self.held.is_none() {
-            self.held = Some(self.sender());
         }
     }
 }
