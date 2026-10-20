@@ -127,9 +127,14 @@ pub struct LocalPluginRow {
 /// Exists for exactly one reason: `Command` derives `Debug` and the task router logs a task
 /// when routing goes wrong. A plain `String` there would put a password in the log file;
 /// this prints a placeholder instead, everywhere, unconditionally.
+///
+/// The string itself on the far side of an FFI: the bindings name the type, and keeping it out
+/// of a log there is the front end's to do.
 #[derive(Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct Secret(pub String);
+
+#[cfg(feature = "ffi")]
+uniffi::custom_newtype!(Secret, String);
 
 impl std::fmt::Debug for Secret {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
