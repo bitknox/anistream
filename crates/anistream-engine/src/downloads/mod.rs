@@ -15,6 +15,8 @@
 //! **The VPN guard is re-checked on every start.** A download runs unattended for a long time,
 //! which makes it the most important thing to gate, not the least.
 
+pub mod commands;
+
 use std::{path::PathBuf, sync::Arc, time::Duration};
 
 use anistream_core::{config::Config, ids::AnilistId, media::Translation};
