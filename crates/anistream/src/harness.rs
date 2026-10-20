@@ -433,8 +433,7 @@ impl Harness {
     /// A command sent as the loop sends one: the config ahead of it when it moved, then the
     /// command, its job numbered as it is sent.
     fn dispatch(&mut self, task: Command) -> Option<JobId> {
-        let Self { app, seam, engine, .. } = self;
-        let job = command(app, seam, task, &mut |c| engine.send(c));
+        let job = command(&self.app, &mut self.seam, task, &self.engine);
         self.jobs.started.extend(job);
         job
     }

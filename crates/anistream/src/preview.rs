@@ -215,8 +215,7 @@ impl PreviewRun {
             eprintln!("[preview: not run: {task:?}]");
             return;
         }
-        let Self { seam, engine, .. } = self;
-        command(app, seam, task, &mut |c| engine.send(c));
+        command(app, &mut self.seam, task, &self.engine);
     }
 
     /// Apply updates until the work is done and the screen's covers are in, as the event loop

@@ -1,20 +1,10 @@
-//! The interface's event loop: the terminal made ready, the engine side's work started, and
-//! every event, key, signal and tick handled until the app quits and the terminal is given back.
+//! The interface's event loop: the terminal made ready, the engine started, and every event,
+//! key, signal and tick handled until the app quits and the terminal is given back.
 
 use std::{io, sync::Arc, time::Duration};
 
 use anistream_core::config::{Config, Paths};
-use anistream_engine::{
-    background::datasets::keep_datasets_current,
-    dispatch::{handle_internal, receive},
-    host::DesktopHost,
-    outbox::{Envelope, Internal, Outbox},
-    playback::player::{launch_notice, player},
-    services::Services,
-    sources,
-    state::EngineState,
-    tracking,
-};
+use anistream_engine::{engine::Engine, host::DesktopHost, options::EngineOptions};
 use anistream_model::{command::Command, event::Event, notice::Notice};
 use anistream_net::HttpClient;
 use anistream_store::Store;
@@ -39,7 +29,7 @@ use crate::{
     tui::{
         self,
         clipboard::copy_to_clipboard,
-        seams::{ConfigSeam, command, route, use_config},
+        seams::{ConfigSeam, command, use_config},
     },
 };
 
@@ -59,53 +49,17 @@ pub async fn run(
         eprintln!("warning: keybinding: {problem}");
     }
 
-    // Old logs, stale covers and the player's leftovers, off the critical path.
-    {
-        let paths = paths.clone();
-        tokio::task::spawn_blocking(move || {
-            anistream_engine::background::prune::sweep_at_launch(&paths)
-        });
-    }
-    // With torrents off nothing else would ever prune what an earlier run streamed. With them
-    // on, the session prunes on its way up, before it writes anything.
-    if !config.providers.torrent.enabled {
-        let (dir, limit) =
-            (paths.cache_dir.join("torrents"), config.providers.torrent.cache_limit_bytes());
-        let store = store.clone();
-        tokio::spawn(async move {
-            anistream_engine::background::prune::sweep_torrent_cache(
-                dir,
-                limit,
-                &store,
-                Default::default(),
-            )
-            .await;
-        });
-    }
-
     let image_engine =
         anistream_tui::image::ImageEngine::detect(images).with_cache_dir(paths.image_cache());
     tracing::info!(graphics = ?image_engine.graphics(), "image engine ready");
-    // Without the torrent source, which comes up behind the interface once the VPN guard
-    // passes: see `TorrentTasks::bring_up`.
-    let registry = sources::build_registry_deferred(&config, &http);
-    tracing::info!(providers = ?registry.ids(), "provider registry ready");
-    // Plugins join the chain when they have finished compiling. Nothing waits on this: the first
-    // frame is worth more than a source you have not asked for yet.
-    let plugins_loading = sources::spawn_plugin_load(
-        registry.clone(),
-        config.clone(),
-        http.clone(),
-        paths.clone(),
-    );
-    // What every task is lent, built around that chain.
-    let host = Arc::new(DesktopHost);
-    let services = Services::build(&config, paths, http, store, registry, player_theme(), host)
-        .map_err(anyhow::Error::msg)?;
-    // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
-    let (arrivals_tx, mut arrivals) = mpsc::unbounded_channel();
-    // The effect layer's own state, on the config the app was launched with.
-    let mut engine = EngineState::new(config.clone(), arrivals_tx);
+
+    // The engine, started as the app launches it: its source chain built behind the interface,
+    // and its own work beside the commands. The player is dressed in the immersive palette
+    // whatever the terminal is: see `player_theme`.
+    let options =
+        EngineOptions::new(paths.clone(), config.clone(), http, store, player_theme());
+    let (engine, mut from_engine) = Engine::start(options, Arc::new(DesktopHost)).await?;
+
     let mut app = App::with_images(config, palette, keymap, image_engine);
     // Said inside the app too: the warning above scrolls away behind the alternate screen
     // before anyone reads it, and a refused rebind otherwise looks like a key that does nothing.
@@ -116,109 +70,14 @@ pub async fn run(
 
     // What the file says, as distinct from what is in effect: `--theme` changes only this
     // session, and the Settings screen has to be able to tell the two apart.
-    app.saved_config = Config::load(&services.paths).unwrap_or_default();
+    app.saved_config = Config::load(&paths).unwrap_or_default();
     if let Some(problem) = &config_problem {
-        show_config_problem(&mut app, &services.paths, problem);
+        show_config_problem(&mut app, &paths, problem);
     }
-    // Joined stores as they were left, so Providers can count them on the first frame.
-    let joined = match services.stores.rows() {
-        Ok(rows) => {
-            let joined = !rows.is_empty();
-            app.apply(Event::Stores(rows));
-            joined
-        }
-        Err(e) => {
-            app.apply(Event::Toast(Notice::alert(e)));
-            false
-        }
-    };
 
-    // Background work reports through this channel; nothing off the UI thread ever touches
-    // `App` directly, which is what keeps a slow request from stalling a frame. The engine
-    // side's messages to itself ride it too, each in its place among the events.
-    let (tx, mut rx) = Outbox::inbox();
-
-    // The engine side told the interface's config, the file's included, before it reads it.
+    // The engine told the interface's config, the file's included, before it reads it.
     let mut seam = ConfigSeam::default();
-    use_config(&app, &mut seam, &mut |c| route(c, &mut engine, &services, &tx));
-
-    // The daily update check: one cached request, one quiet toast when a release exists.
-    anistream_engine::updates::spawn_check(
-        engine.config.updates.check,
-        &services.paths.cache_dir,
-        &services.http,
-        &tx,
-    );
-
-    // The airing digest: what aired for shows you watch since the last launch. Same
-    // philosophy as the update check — one line, only when there is something to say.
-    anistream_engine::background::digest::spawn(
-        engine.config.notifications.airing_digest,
-        engine.config.notifications.desktop,
-        services.store.clone(),
-        services.meta.clone(),
-        services.host.clone(),
-        tx.clone(),
-    );
-
-    // Report whatever the background plugin load concluded, once. A plugin that failed to load
-    // must not be silent — the Providers screen is where a missing source gets explained.
-    {
-        let tx = tx.clone();
-        tokio::spawn(async move {
-            if let Ok(outcome) = plugins_loading.await {
-                match outcome {
-                    Some(reason) => {
-                        let _ = tx.send(Event::ProviderNote(reason));
-                    }
-                    // Ranked again by the order as it stands now, since the user may have
-                    // moved a source while these compiled, and the Providers screen refreshed
-                    // so late arrivals actually appear on it.
-                    None => {
-                        let _ = tx.internal(Internal::SourcesReordered);
-                    }
-                }
-            }
-        });
-    }
-
-    // Each joined store asked for its current list, once, in the background. Updates are said
-    // once at launch, the way a new release is, and never installed without being asked. Asked
-    // of the rows read above, which the interface was given whole.
-    if joined {
-        let (stores, tx) = (services.stores.clone(), tx.clone());
-        tokio::spawn(async move {
-            if let Ok(rows) = stores.refresh().await {
-                let _ = tx.send(Event::Stores(rows));
-            }
-            let updates = stores.pending_updates();
-            if !updates.is_empty() {
-                let _ = tx.send(Event::Toast(Notice::info(format!(
-                    "plugin {} ready: {} — Providers, Enter",
-                    if updates.len() == 1 { "update" } else { "updates" },
-                    updates.join(", ")
-                ))));
-            }
-        });
-    }
-
-    for state in services.sync.initial_states() {
-        app.apply(Event::Sync(Box::new(state)));
-    }
-    tracking::spawn_loops(services.sync.clone(), tx.clone());
-
-    // Keep the mapping datasets current without ever blocking startup.
-    tokio::spawn(keep_datasets_current(
-        services.store.clone(),
-        services.http.clone(),
-        tx.clone(),
-    ));
-
-    // The torrent stack's live parts, held so a settings change can tear them down and
-    // stand them back up without a restart. Both are replaced together: the download
-    // manager and the guard's watcher are the two things holding a session alive, and
-    // leaving either behind would mean traffic outliving the source it belongs to.
-    engine.torrent_tasks.bring_up(&engine.config, &services, &tx, &engine.arrivals);
+    use_config(&app, &mut seam, &engine);
 
     // Both before the terminal changes state, so there is no moment in which a signal or a
     // panic could leave it raw.
@@ -227,18 +86,21 @@ pub async fn run(
     let mut terminal = setup_terminal().context("preparing the terminal")?;
 
     if let Some(task) = app.reload() {
-        route(task, &mut engine, &services, &tx);
+        engine.send(task);
+    }
+
+    // What was true at launch, applied before the first frame so that it shows the app as it
+    // was launched: the joined stores, the trackers' states, and what the check of the player
+    // found, which the first frame has always waited for. Nothing the engine has said since
+    // is in it; that is read in the loop, after the first frame, as it always was.
+    for update in from_engine.launch().await {
+        app.apply(update);
     }
 
     let mut events = EventStream::new();
     let mut ticker = tokio::time::interval(Duration::from_millis(100));
     // Covers come back from the blocking pool on this, decoded, to be handed to the app.
     let (covers_tx, mut covers_rx) = mpsc::unbounded_channel();
-
-    let mpv = player(&engine.config, &services.paths, &player_theme());
-    if let Some(notice) = launch_notice(&mpv, &engine.config.playback.mpv_binary).await {
-        app.apply(Event::Toast(notice));
-    }
 
     // Painting on change rather than on every tick: see `Repaint`. `idle_tick` is whether
     // nothing but the ticker woke this pass, the one case that may skip it.
@@ -271,31 +133,22 @@ pub async fn run(
         // each URL, so a re-render cannot re-request one already in flight.
         for url in app.visible_artwork(rows) {
             let task = Command::FetchArtwork { url };
-            command(&app, &mut seam, task, &mut |c| route(c, &mut engine, &services, &tx));
+            command(&app, &mut seam, task, &engine);
         }
 
         // Auto-next is queued by the reducer rather than returned, because an episode ending
         // arrives as an update rather than a keystroke.
         if let Some(task) = app.take_pending() {
-            command(&app, &mut seam, task, &mut |c| route(c, &mut engine, &services, &tx));
+            command(&app, &mut seam, task, &engine);
         }
-        // Whatever moved the config since: a setting put back, say. The reactions below read
-        // the engine side's copy.
-        use_config(&app, &mut seam, &mut |c| route(c, &mut engine, &services, &tx));
+        // Whatever moved the config since: a setting put back, say. What the engine does
+        // with the events it reads next reads its copy.
+        use_config(&app, &mut seam, &engine);
 
         tokio::select! {
-            Some(envelope) = rx.recv() => {
-                let update = match envelope {
-                    Envelope::Event(update) => update,
-                    // What the engine side left itself to do, after everything sent before it
-                    // and before anything sent after.
-                    Envelope::Internal(message) => {
-                        for said in handle_internal(message, &mut engine, &services, &tx).await {
-                            app.apply(said);
-                        }
-                        continue;
-                    }
-                };
+            // One at a time, each in the order the engine applied it, with the loop's own
+            // reactions and the next frame between them, as when the loop read the work itself.
+            Some(update) = from_engine.recv() => {
                 // Handed to the terminal's clipboard on the way in, so the overlay can say
                 // whether it was.
                 let copied = match &update {
@@ -304,10 +157,6 @@ pub async fn run(
                     }
                     _ => false,
                 };
-                // The engine side's part, and what it has to say ahead of the update.
-                for said in receive(&update, &services, || tx.clone()) {
-                    app.apply(said);
-                }
                 let ended = matches!(update, Event::PlaybackEnded { .. });
                 match update {
                     // Decoded off the loop; it comes back on the arm below.
@@ -326,26 +175,13 @@ pub async fn run(
                 }
             }
             Some(decoded) = covers_rx.recv() => covers::hand_over(&mut app, decoded),
-            // The torrent source is up, or will not come up; only the latest bring-up counts.
-            Some((generation, outcome)) = arrivals.recv() => {
-                engine.torrent_tasks.arrived(
-                    generation,
-                    outcome,
-                    &mut engine.vpn_guard,
-                    &services,
-                    &engine.shared_config,
-                    &tx,
-                );
-            }
             // Asked to end from outside — a kill, the terminal closing — which leaves the way
             // Q does, so the player is closed rather than orphaned and playing on.
             signal = signals.recv() => {
                 tracing::info!(signal, "shutting down");
                 tui::terminal::exit_on_second_signal();
                 if let Some(task) = app.handle(anistream_tui::keymap::Action::Quit, rows) {
-                    command(&app, &mut seam, task, &mut |c| {
-                        route(c, &mut engine, &services, &tx)
-                    });
+                    command(&app, &mut seam, task, &engine);
                 }
                 // Whatever an open overlay made of the key, a signal is not a request to close it.
                 app.should_quit = true;
@@ -367,9 +203,7 @@ pub async fn run(
                 match maybe_event {
                     Some(Ok(TermEvent::Key(key))) if key.kind == KeyEventKind::Press => {
                         if let Some(task) = app.press(key, rows) {
-                            command(&app, &mut seam, task, &mut |c| {
-                                route(c, &mut engine, &services, &tx)
-                            });
+                            command(&app, &mut seam, task, &engine);
                         }
                     }
                     // Arrives whole with bracketed paste on, so a pasted link cannot fire
@@ -390,7 +224,10 @@ pub async fn run(
         }
     };
 
-    stop_for_exit(&app, &engine.player_tx, &mut rx).await;
+    // A playback that has started, as opposed to one still finding its source, is stopped and
+    // given a moment to record where it was left.
+    let under_way = app.playing.as_ref().is_some_and(|playing| playing.duration.is_some());
+    engine.shutdown(under_way).await;
     restore_terminal(&mut terminal)?;
     result
 }
@@ -423,39 +260,6 @@ fn config_notice(
     let what = problem.message.split(", expected").next().unwrap_or(&problem.message);
     let place = problem.line.map_or_else(String::new, |line| format!(" line {line}"));
     format!("{name}{place}: {what} — using the defaults until it is fixed")
-}
-
-/// How long quitting waits for the playback to record where it was left.
-const EXIT_FLUSH: Duration = Duration::from_secs(2);
-
-/// Stop what is playing, and wait briefly for it to record where it ended.
-///
-/// The tracker writes a history row every ten seconds of playback, so quitting with an episode
-/// open lost up to that much of the resume point: the runtime took mpv down with it, and the
-/// position since the last row went too. Stopped the way `x` stops it, the playback writes its
-/// last row before it reports the ending, which is what this waits for. Only when a playback is
-/// under way: one still finding a source has nothing to save, and the wait would only delay
-/// the exit.
-async fn stop_for_exit(
-    app: &App,
-    player_tx: &Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
-    rx: &mut mpsc::UnboundedReceiver<Envelope>,
-) {
-    let under_way = app.playing.as_ref().is_some_and(|playing| playing.duration.is_some());
-    let Some(controls) = player_tx.as_ref().filter(|_| under_way) else { return };
-    if controls.send(anistream_model::command::PlayerCommand::Stop).is_err() {
-        return;
-    }
-    let ended = async {
-        while let Some(update) = rx.recv().await {
-            if matches!(update, Envelope::Event(Event::PlaybackEnded { .. })) {
-                break;
-            }
-        }
-    };
-    if tokio::time::timeout(EXIT_FLUSH, ended).await.is_err() {
-        tracing::warn!("the player did not stop in time; its last position may be lost");
-    }
 }
 
 /// The terminal the interface draws on.

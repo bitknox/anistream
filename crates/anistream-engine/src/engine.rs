@@ -242,8 +242,10 @@ impl Engine {
         }
 
         // The torrent stack's live parts, held so a settings change can tear them down and
-        // stand them back up without a restart. A chain given whole has its torrent source in
-        // it already, or none.
+        // stand them back up without a restart. Both are replaced together: the download
+        // manager and the guard's watcher are the two things holding a session alive, and
+        // leaving either behind would mean traffic outliving the source it belongs to. A chain
+        // given whole has its torrent source in it already, or none.
         if own_chain {
             let tx = inbox.sender();
             let EngineState { config, torrent_tasks, arrivals, .. } = &mut state;

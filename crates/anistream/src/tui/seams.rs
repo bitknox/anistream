@@ -4,10 +4,7 @@
 //! engine the config's owner and gives it its own record of the titles opened, and these go.
 
 use anistream_core::config::Config;
-use anistream_engine::{
-    dispatch::dispatch, jobs::JobGuard, outbox::Outbox, playback, services::Services,
-    state::EngineState,
-};
+use anistream_engine::{engine::Engine, playback};
 use anistream_model::{command::Command, jobs::JobId};
 use anistream_tui::app::App;
 
@@ -43,44 +40,26 @@ impl ConfigSeam {
 /// Before the first command, before every command after it, and before the loop's reactions,
 /// which read it too. So the work reads the config the screen shows at the moment it reads it,
 /// as it read `app.config` itself before.
-pub fn use_config(
-    app: &App,
-    seam: &mut ConfigSeam,
-    send: &mut impl FnMut(Command) -> Option<JobId>,
-) {
+pub fn use_config(app: &App, seam: &mut ConfigSeam, engine: &Engine) {
     if let Some(config) = seam.moved(app) {
-        send(config);
+        engine.send(config);
     }
 }
 
-/// Send a command to the engine side as the interface sends one, through `send`: the config
-/// ahead of it when it moved, and a play's hints ahead of a play, then the command. Returns the
-/// job, for work someone waits on.
+/// Send a command to the engine as the interface sends one: the config ahead of it when it
+/// moved, and a play's hints ahead of a play, then the command. Returns the job the engine
+/// numbered, for work someone waits on.
 pub fn command(
     app: &App,
     seam: &mut ConfigSeam,
     task: Command,
-    send: &mut impl FnMut(Command) -> Option<JobId>,
+    engine: &Engine,
 ) -> Option<JobId> {
-    use_config(app, seam, send);
+    use_config(app, seam, engine);
     if let Some(hints) = play_hints(app, &task) {
-        send(hints);
+        engine.send(hints);
     }
-    send(task)
-}
-
-/// Route a command on the engine side, its job started as it is dispatched: what the seams
-/// send through until the front end holds an `Engine` to send it to.
-pub fn route(
-    task: Command,
-    engine: &mut EngineState,
-    services: &Services,
-    tx: &Outbox,
-) -> Option<JobId> {
-    let job = JobGuard::start(engine, &task, tx);
-    let id = job.as_ref().map(|job| job.id);
-    dispatch(task, job, engine, services, tx);
-    id
+    engine.send(task)
 }
 
 /// What a play needs of what the interface shows, sent ahead of it as `PlayHints`: the name the
