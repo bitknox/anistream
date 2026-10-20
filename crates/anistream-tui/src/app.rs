@@ -2159,6 +2159,19 @@ impl App {
         None
     }
 
+    /// The candidate picked, pinned as the title's match.
+    fn confirm_match(&mut self) -> Option<Command> {
+        let candidate = self.match_candidates.get(self.cursors.overlay.selected)?.clone();
+        let (id, provider_id) = self.match_context.clone()?;
+        self.nav.close_overlay();
+        self.cursors.overlay.selected = 0;
+        self.match_candidates.clear();
+        self.match_context = None;
+        self.episodes_loading = true;
+        self.push_toast(Notice::info(format!("matched to {}", candidate.title)));
+        Some(Command::FixMatch { id, provider_id, key: candidate.key })
+    }
+
     /// An episode's releases to pick from: the highlighted one in the table, or the next
     /// unwatched one from a title.
     fn show_sources(&mut self) -> Option<Command> {
@@ -2176,6 +2189,23 @@ impl App {
         };
         self.source_context = Some((id, episode.clone()));
         Some(Command::LoadSources { id, episode })
+    }
+
+    /// The release picked, played.
+    fn confirm_source(&mut self) -> Option<Command> {
+        let candidate = self.sources.get(self.cursors.overlay.selected)?.clone();
+        let (id, episode) = self.source_context.clone()?;
+        self.nav.close_overlay();
+        self.cursors.overlay.selected = 0;
+        self.sources.clear();
+        self.source_context = None;
+        self.raise_now_playing(id, &episode);
+        Some(Command::PlaySource {
+            id,
+            episode,
+            provider_id: candidate.provider_id,
+            source_id: candidate.id,
+        })
     }
 
     /// The episode table, asked for again.
@@ -2527,6 +2557,13 @@ impl App {
         Some(Command::Connect { tracker: tracker.tracker })
     }
 
+    /// Enter on the Accounts overlay: the highlighted tracker signed in or out.
+    fn confirm_account(&mut self) -> Option<Command> {
+        let tracker = self.sync.get(self.cursors.overlay.selected)?.clone();
+        self.nav.close_overlay();
+        self.account_action(tracker)
+    }
+
     /// The trackers a status or score is queued for: those holding a credential, the same
     /// rule the queueing side applies. A tracker waiting on a fresh sign-in still counts —
     /// its queue is kept and drains once it is signed in again.
@@ -2599,6 +2636,20 @@ impl App {
         None
     }
 
+    /// The highlighted disagreement settled for the value kept here.
+    fn confirm_conflict(&mut self) -> Option<Command> {
+        // Enter takes the local value; the remote one is already what the tracker has,
+        // so "keep remote" is just dismissing the row.
+        let row = self.conflicts.get(self.cursors.overlay.selected)?.clone();
+        self.conflicts.remove(self.cursors.overlay.selected);
+        self.cursors.overlay.selected =
+            self.cursors.overlay.selected.min(self.conflicts.len().saturating_sub(1));
+        if self.conflicts.is_empty() {
+            self.nav.close_overlay();
+        }
+        Some(Command::ResolveConflict { id: row.anilist_id, keep_local: true })
+    }
+
     /// Whether the Settings rows have focus.
     ///
     /// Left and Right cycle a value here rather than moving between rail and stage — the same
@@ -2663,6 +2714,22 @@ impl App {
         task
     }
 
+    /// Enter on FILTERS: the search, with the filters as they are set.
+    fn confirm_search_filters(&mut self) -> Option<Command> {
+        self.nav.close_overlay();
+        let query = self.text(Field::Search).trim().to_owned();
+        // A filter with no query is a browse, which is a legitimate search. Both
+        // empty means there is nothing to ask yet, and that is not an error.
+        if query.is_empty() && self.search_filter.is_empty() {
+            return None;
+        }
+        self.searched_query = query.clone();
+        self.content = Content::Loading;
+        // New results start at their top, not at the row the old ones were left on.
+        self.cursors.search = Cursor::default();
+        Some(Command::Search { query, filter: self.search_filter.clone() })
+    }
+
     /// "… from the title's page", when the screen is not one — said for what rides the detail
     /// fetch and came back empty here, as `m` and `P` say it for what only that page can do.
     ///
@@ -2720,6 +2787,19 @@ impl App {
         None
     }
 
+    /// The source picked, pinned for the title on screen.
+    fn confirm_source_provider(&mut self) -> Option<Command> {
+        let (provider, _) = self.provider_choices().get(self.cursors.overlay.selected)?.clone();
+        let id = self.title_on_screen()?;
+        self.nav.close_overlay();
+        self.cursors.overlay.selected = 0;
+        // Reflected immediately rather than waiting for the write to come back: the
+        // overlay has closed, and a row that still showed the old choice would read
+        // as the keystroke having missed.
+        self.provider_preference = provider.clone();
+        Some(Command::SetProviderPreference { id, provider })
+    }
+
     /// The title's trailer, when its record has one.
     fn play_trailer(&mut self) -> Option<Command> {
         let Some(entry) = self.target() else {
@@ -2758,6 +2838,19 @@ impl App {
         None
     }
 
+    /// Into the recommended title picked, with this page kept to come back to.
+    fn confirm_recommendation(&mut self) -> Option<Command> {
+        let pick = self.target()?.recommended.get(self.cursors.overlay.selected)?.clone();
+        self.nav.close_overlay();
+        self.cursors.overlay.selected = 0;
+        self.leave_title();
+        // Same stand-in rule as the watch order: never render one title's data
+        // under another while the fetch is in flight.
+        self.detail = Some(Entry::new(pick.id, pick.title));
+        self.nav.push(StageView::Title(pick.id));
+        Some(Command::LoadDetail(pick.id))
+    }
+
     /// The titles connected to the one here, when its record says.
     fn show_watch_order(&mut self) -> Option<Command> {
         let Some(entry) = self.target() else {
@@ -2776,6 +2869,20 @@ impl App {
         self.cursors.overlay.selected = 0;
         self.nav.open_overlay(Overlay::WatchOrder);
         None
+    }
+
+    /// Into the connected title picked, with this page kept to come back to.
+    fn confirm_watch_order(&mut self) -> Option<Command> {
+        let related = self.target()?.related.get(self.cursors.overlay.selected)?.clone();
+        self.nav.close_overlay();
+        self.cursors.overlay.selected = 0;
+        // Kept, so Back shows this page again rather than the one about to open.
+        self.leave_title();
+        // A minimal entry stands in until the detail fetch answers — the same
+        // stale-data rule as episodes: never render one title's data under another.
+        self.detail = Some(Entry::new(related.id, related.title));
+        self.nav.push(StageView::Title(related.id));
+        Some(Command::LoadDetail(related.id))
     }
 
     /// The list status picker for the title here, opened on the status it has.
@@ -2815,6 +2922,46 @@ impl App {
         } else {
             self.push_toast(Notice::info("nothing selected"));
         }
+    }
+
+    /// The list status picked for the title here, and on every copy of it on screen.
+    fn confirm_list_status(&mut self) -> Option<Command> {
+        let entry = self.target()?;
+        let id = entry.id;
+        let status = *LibrarySegment::ALL.get(self.cursors.overlay.selected)?;
+        self.nav.close_overlay();
+        self.push_toast(Notice::info(format!(
+            "now on your {} list — queued for {}",
+            status.label(),
+            self.signed_in_trackers().join(", ")
+        )));
+        // Remembered on every copy of the title on screen, and past the next reload,
+        // so asking again opens on the answer just given.
+        self.statuses_set.insert(id, status);
+        let entries = match &mut self.content {
+            Content::Entries(entries) => entries.as_mut_slice(),
+            _ => &mut [],
+        };
+        for entry in self.detail.iter_mut().chain(entries.iter_mut()) {
+            if entry.id == id {
+                entry.list_status = Some(status);
+            }
+        }
+        Some(Command::SetStatus { id, status })
+    }
+
+    /// The score picked for the title here.
+    fn confirm_rating(&mut self) -> Option<Command> {
+        let entry = self.target()?;
+        let id = entry.id;
+        // Rows run 10 down to 1, so the row index is the distance from 10.
+        let score = (10 - self.cursors.overlay.selected.min(9)) as f32;
+        self.nav.close_overlay();
+        self.push_toast(Notice::info(format!(
+            "rated {score}/10 — queued for {}",
+            self.signed_in_trackers().join(", ")
+        )));
+        Some(Command::SetScore { id, score })
     }
 
     /// The title page's record, asked for again.
@@ -2984,156 +3131,20 @@ impl App {
     /// Overlays own their own selection index so closing one cannot disturb the list behind it.
     fn confirm_overlay(&mut self, visible_rows: usize) -> Option<Command> {
         match self.nav.overlay() {
-            Some(Overlay::CommandPalette) => {
-                let (action, _) =
-                    self.palette_matches().get(self.cursors.overlay.selected)?.clone();
-                // Close first, then run: several palette actions open an overlay of their own,
-                // and leaving the palette on the stack would bury them.
-                self.nav.close_overlay();
-                self.field_mut(Field::Palette).clear();
-                self.cursors.overlay.selected = 0;
-                self.perform(action, visible_rows)
-            }
+            Some(Overlay::CommandPalette) => self.run_palette_pick(visible_rows),
             Some(Overlay::Logs) => None,
-            Some(Overlay::ListStatus) => {
-                let entry = self.target()?;
-                let id = entry.id;
-                let status = *LibrarySegment::ALL.get(self.cursors.overlay.selected)?;
-                self.nav.close_overlay();
-                self.push_toast(Notice::info(format!(
-                    "now on your {} list — queued for {}",
-                    status.label(),
-                    self.signed_in_trackers().join(", ")
-                )));
-                // Remembered on every copy of the title on screen, and past the next reload,
-                // so asking again opens on the answer just given.
-                self.statuses_set.insert(id, status);
-                let entries = match &mut self.content {
-                    Content::Entries(entries) => entries.as_mut_slice(),
-                    _ => &mut [],
-                };
-                for entry in self.detail.iter_mut().chain(entries.iter_mut()) {
-                    if entry.id == id {
-                        entry.list_status = Some(status);
-                    }
-                }
-                Some(Command::SetStatus { id, status })
-            }
-            Some(Overlay::SearchFilters) => {
-                self.nav.close_overlay();
-                let query = self.text(Field::Search).trim().to_owned();
-                // A filter with no query is a browse, which is a legitimate search. Both
-                // empty means there is nothing to ask yet, and that is not an error.
-                if query.is_empty() && self.search_filter.is_empty() {
-                    return None;
-                }
-                self.searched_query = query.clone();
-                self.content = Content::Loading;
-                // New results start at their top, not at the row the old ones were left on.
-                self.cursors.search = Cursor::default();
-                Some(Command::Search { query, filter: self.search_filter.clone() })
-            }
-            Some(Overlay::Rate) => {
-                let entry = self.target()?;
-                let id = entry.id;
-                // Rows run 10 down to 1, so the row index is the distance from 10.
-                let score = (10 - self.cursors.overlay.selected.min(9)) as f32;
-                self.nav.close_overlay();
-                self.push_toast(Notice::info(format!(
-                    "rated {score}/10 — queued for {}",
-                    self.signed_in_trackers().join(", ")
-                )));
-                Some(Command::SetScore { id, score })
-            }
-            Some(Overlay::Conflicts) => {
-                // Enter takes the local value; the remote one is already what the tracker has,
-                // so "keep remote" is just dismissing the row.
-                let row = self.conflicts.get(self.cursors.overlay.selected)?.clone();
-                self.conflicts.remove(self.cursors.overlay.selected);
-                self.cursors.overlay.selected =
-                    self.cursors.overlay.selected.min(self.conflicts.len().saturating_sub(1));
-                if self.conflicts.is_empty() {
-                    self.nav.close_overlay();
-                }
-                Some(Command::ResolveConflict { id: row.anilist_id, keep_local: true })
-            }
-            Some(Overlay::SourceProvider) => {
-                let (provider, _) =
-                    self.provider_choices().get(self.cursors.overlay.selected)?.clone();
-                let id = self.title_on_screen()?;
-                self.nav.close_overlay();
-                self.cursors.overlay.selected = 0;
-                // Reflected immediately rather than waiting for the write to come back: the
-                // overlay has closed, and a row that still showed the old choice would read
-                // as the keystroke having missed.
-                self.provider_preference = provider.clone();
-                Some(Command::SetProviderPreference { id, provider })
-            }
-            Some(Overlay::WatchOrder) => {
-                let related =
-                    self.target()?.related.get(self.cursors.overlay.selected)?.clone();
-                self.nav.close_overlay();
-                self.cursors.overlay.selected = 0;
-                // Kept, so Back shows this page again rather than the one about to open.
-                self.leave_title();
-                // A minimal entry stands in until the detail fetch answers — the same
-                // stale-data rule as episodes: never render one title's data under another.
-                self.detail = Some(Entry::new(related.id, related.title));
-                self.nav.push(StageView::Title(related.id));
-                Some(Command::LoadDetail(related.id))
-            }
-            Some(Overlay::Recommendations) => {
-                let pick =
-                    self.target()?.recommended.get(self.cursors.overlay.selected)?.clone();
-                self.nav.close_overlay();
-                self.cursors.overlay.selected = 0;
-                self.leave_title();
-                // Same stand-in rule as the watch order: never render one title's data
-                // under another while the fetch is in flight.
-                self.detail = Some(Entry::new(pick.id, pick.title));
-                self.nav.push(StageView::Title(pick.id));
-                Some(Command::LoadDetail(pick.id))
-            }
-            Some(Overlay::Sources) => {
-                let candidate = self.sources.get(self.cursors.overlay.selected)?.clone();
-                let (id, episode) = self.source_context.clone()?;
-                self.nav.close_overlay();
-                self.cursors.overlay.selected = 0;
-                self.sources.clear();
-                self.source_context = None;
-                self.raise_now_playing(id, &episode);
-                Some(Command::PlaySource {
-                    id,
-                    episode,
-                    provider_id: candidate.provider_id,
-                    source_id: candidate.id,
-                })
-            }
-            Some(Overlay::Disambiguate) => {
-                let candidate =
-                    self.match_candidates.get(self.cursors.overlay.selected)?.clone();
-                let (id, provider_id) = self.match_context.clone()?;
-                self.nav.close_overlay();
-                self.cursors.overlay.selected = 0;
-                self.match_candidates.clear();
-                self.match_context = None;
-                self.episodes_loading = true;
-                self.push_toast(Notice::info(format!("matched to {}", candidate.title)));
-                Some(Command::FixMatch { id, provider_id, key: candidate.key })
-            }
-            Some(Overlay::Accounts) => {
-                let tracker = self.sync.get(self.cursors.overlay.selected)?.clone();
-                self.nav.close_overlay();
-                self.account_action(tracker)
-            }
+            Some(Overlay::ListStatus) => self.confirm_list_status(),
+            Some(Overlay::SearchFilters) => self.confirm_search_filters(),
+            Some(Overlay::Rate) => self.confirm_rating(),
+            Some(Overlay::Conflicts) => self.confirm_conflict(),
+            Some(Overlay::SourceProvider) => self.confirm_source_provider(),
+            Some(Overlay::WatchOrder) => self.confirm_watch_order(),
+            Some(Overlay::Recommendations) => self.confirm_recommendation(),
+            Some(Overlay::Sources) => self.confirm_source(),
+            Some(Overlay::Disambiguate) => self.confirm_match(),
+            Some(Overlay::Accounts) => self.confirm_account(),
             Some(Overlay::PluginAction) => self.confirm_plugin_choice(),
-            Some(Overlay::PublishPick) => {
-                let plugin = self.local_plugins.get(self.cursors.overlay.selected)?.id.clone();
-                let store = self.publish_for.clone()?;
-                self.nav.close_overlay();
-                self.cursors.overlay.selected = 0;
-                Some(Command::PublishPlugin { store, plugin })
-            }
+            Some(Overlay::PublishPick) => self.confirm_publish(),
             _ => None,
         }
     }
@@ -3323,6 +3334,17 @@ impl App {
             .into_iter()
             .take(PALETTE_ROWS)
             .collect()
+    }
+
+    /// The palette's highlighted action, run against the screen.
+    fn run_palette_pick(&mut self, visible_rows: usize) -> Option<Command> {
+        let (action, _) = self.palette_matches().get(self.cursors.overlay.selected)?.clone();
+        // Close first, then run: several palette actions open an overlay of their own,
+        // and leaving the palette on the stack would bury them.
+        self.nav.close_overlay();
+        self.field_mut(Field::Palette).clear();
+        self.cursors.overlay.selected = 0;
+        self.perform(action, visible_rows)
     }
 
     fn handle_while_typing(&mut self, action: Action, visible_rows: usize) -> Option<Command> {
@@ -4446,6 +4468,15 @@ impl App {
                 Command::UnpublishPlugin { store, plugin }
             }
         })
+    }
+
+    /// The plugin picked, published to the store on screen.
+    fn confirm_publish(&mut self) -> Option<Command> {
+        let plugin = self.local_plugins.get(self.cursors.overlay.selected)?.id.clone();
+        let store = self.publish_for.clone()?;
+        self.nav.close_overlay();
+        self.cursors.overlay.selected = 0;
+        Some(Command::PublishPlugin { store, plugin })
     }
 
     /// Enter on the members screen: remove a member, or cancel an unused invite.
