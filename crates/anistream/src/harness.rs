@@ -33,7 +33,7 @@ use std::{
 };
 
 use anistream_core::config::{Config, NetworkConfig, Paths};
-use anistream_engine::{artwork, data, plugin_stores, slot::PlayerSlot, sources, tracking};
+use anistream_engine::{data, plugin_stores, slot::PlayerSlot, sources, tracking};
 use anistream_meta::Meta;
 use anistream_model::{command::Command, event::Event, jobs::JobId, notice::Notice};
 use anistream_net::HttpClient;
@@ -300,12 +300,7 @@ impl Harness {
                 self.dispatch(task);
             }
             for url in self.app.visible_artwork(self.rows()) {
-                artwork::spawn_fetch(
-                    url,
-                    self.services.paths.image_cache(),
-                    self.services.http.clone(),
-                    self.channels.sender(),
-                );
+                self.dispatch(Command::FetchArtwork { url });
             }
             let Some(updates) = self.channels.open.front_mut() else { break };
             let wait = deadline.saturating_duration_since(tokio::time::Instant::now());

@@ -295,6 +295,16 @@ pub enum Command {
     OpenAdmin {
         store: String,
     },
+    /// Fetch a cover or banner the front end is about to show, from the cache when it is fresh
+    /// there. Answered with [`Event::ArtworkReady`](crate::event::Event::ArtworkReady), or with
+    /// [`Event::ImageFailed`](crate::event::Event::ImageFailed), and never with a job: covers
+    /// arrive while the screen is already usable.
+    ///
+    /// Asked for by the front end, because only it knows what is on screen. It asks once per
+    /// URL, so a redraw never fetches what is already on its way.
+    FetchArtwork {
+        url: String,
+    },
 }
 
 /// A control sent to whatever is currently playing.

@@ -568,6 +568,8 @@ impl PreviewRun {
                 | Command::LoadLibrary(_)
                 | Command::LoadDownloads
                 | Command::LoadStores
+                // The covers a still frame shows.
+                | Command::FetchArtwork { .. }
         );
         if !loads {
             eprintln!("[preview: not run: {task:?}]");
@@ -587,12 +589,7 @@ impl PreviewRun {
             }
             let mut fetching = false;
             for url in app.visible_artwork(self.rows) {
-                artwork::spawn_fetch(
-                    url,
-                    self.services.paths.image_cache(),
-                    self.services.http.clone(),
-                    self.tx.clone(),
-                );
+                self.dispatch(app, Command::FetchArtwork { url });
                 fetching = true;
             }
             // Quiet for this long with no work outstanding means done. Longer while covers are
@@ -854,12 +851,7 @@ async fn run(
         // Prefetch only what is on screen plus a short lookahead. `visible_artwork` claims
         // each URL, so a re-render cannot re-request one already in flight.
         for url in app.visible_artwork(rows) {
-            artwork::spawn_fetch(
-                url,
-                services.paths.image_cache(),
-                services.http.clone(),
-                tx.clone(),
-            );
+            dispatch(Command::FetchArtwork { url }, None, &mut player_tx, &app, &services, &tx);
         }
 
         // Auto-next is queued by the reducer rather than returned, because an episode ending
@@ -1417,7 +1409,8 @@ fn spawn(
             | Command::LoadLocalPlugins { .. }
             | Command::PublishPlugin { .. }
             | Command::UnpublishPlugin { .. }
-            | Command::OpenAdmin { .. } => {
+            | Command::OpenAdmin { .. }
+            | Command::FetchArtwork { .. } => {
                 tracing::error!(?task, "task reached the generic spawner");
                 return;
             }
@@ -2052,6 +2045,10 @@ fn dispatch(
                     }
                 }
             }
+        }
+        // Off the loop, with no job: covers report back on their own.
+        Command::FetchArtwork { url } => {
+            artwork::spawn_fetch(url, paths.image_cache(), http.clone(), tx.clone());
         }
         task @ (Command::LoadStores
         | Command::PreviewStore { .. }
