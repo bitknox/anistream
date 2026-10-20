@@ -40,8 +40,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Linked against glibc 2.28's symbols rather than the runner's, so it starts on
+          # Debian 10, Ubuntu 20.04, RHEL 8 and everything since. Linked against the runner's
+          # own, it needed 2.39, which Debian 12 and Ubuntu 22.04 do not have.
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            glibc: '2.28'
           - os: macos-latest
             target: aarch64-apple-darwin
           # Cross-compiled on Apple silicon: Apple's toolchain builds for both architectures,
@@ -62,7 +66,9 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
         with:
-          key: ${{ matrix.target }}
+          # Linux's dependencies are compiled by zig against its glibc, so they are keyed by that
+          # glibc and never mixed with ones compiled another way.
+          key: ${{ matrix.glibc && format('{0}.{1}', matrix.target, matrix.glibc) || matrix.target }}
           # Saved only where a later release can restore it (see `on`). A dispatched run starts
           # from main too, so it saves.
           save-if: ${{ github.ref == 'refs/heads/main' }}
@@ -74,8 +80,60 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/setup-nasm@v1
 
+      # zig carries the headers and symbols of every glibc, so it links against the floor's on
+      # any runner. cargo-zigbuild points cargo, cc and cmake at it.
+      - name: Install zig
+        if: runner.os == 'Linux'
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
+          # It would save a cache from every run, pull requests and tags included, where no later
+          # run can read it (see `on`).
+          use-cache: false
+
+      - name: Install cargo-zigbuild
+        if: runner.os == 'Linux'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild@0.23.4
+
       - name: Build
+        if: runner.os != 'Linux'
         run: cargo build --release --locked --target ${{ matrix.target }} -p anistream
+
+      # The suffix on the target is the glibc to link against. The binary still lands in
+      # target/<target>/release.
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        run: >-
+          cargo zigbuild --release --locked
+          --target ${{ matrix.target }}.${{ matrix.glibc }} -p anistream
+
+      # A symbol from a later glibc already fails the link above. This reads the finished binary,
+      # so it holds however the binary comes to be built.
+      - name: Check the glibc floor
+        if: runner.os == 'Linux'
+        run: packaging/linux/glibc-floor.sh target/${{ matrix.target }}/release/anistream ${{ matrix.glibc }}
+
+      # The check above reads what the binary asks for. Running it on the oldest systems it claims
+      # is what shows it starts there. No network and no terminal: --doctor reports what it cannot
+      # reach rather than waiting for it.
+      - name: Run on older distros
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          for image in debian:10 almalinux:8 ubuntu:20.04 debian:11 ubuntu:22.04; do
+            echo "::group::$image"
+            docker run --rm --network none \
+              -v "$PWD/target/${{ matrix.target }}/release/anistream:/usr/local/bin/anistream:ro" \
+              "$image" sh -ec '
+                ldd --version | head -n 1
+                anistream --version
+                anistream --help > /dev/null
+                timeout 60 anistream --doctor
+              '
+            echo "::endgroup::"
+          done
 
       # Archive format follows what each platform's users expect to double-click.
       # On workflow_dispatch GITHUB_REF_NAME is the branch, not the tag, so take the input first
