@@ -1768,6 +1768,19 @@ impl App {
         self.nav.open_overlay(Overlay::Help);
     }
 
+    /// The Logs overlay, at its newest line.
+    fn show_logs(&mut self) {
+        // Rendered newest-first, so nought is the most recent line.
+        self.cursors.overlay.selected = 0;
+        self.nav.open_overlay(Overlay::Logs);
+    }
+
+    /// The command palette, with nothing typed into it.
+    fn open_palette(&mut self) {
+        self.field_mut(Field::Palette).clear();
+        self.nav.open_overlay(Overlay::CommandPalette);
+    }
+
     /// Run an action against the screen, with no overlay or text field in the way.
     ///
     /// Separate from [`Self::handle`] so the command palette can run what it picked: opened
@@ -1827,23 +1840,9 @@ impl App {
             // codebase for the one case it is still right for — being asked to sign in from
             // somewhere else — but "show me my accounts" belongs on a page.
             Action::ShowAccounts => return self.go_to_section(Section::Accounts),
-            Action::ShowLogs => {
-                // Rendered newest-first, so nought is the most recent line.
-                self.cursors.overlay.selected = 0;
-                self.nav.open_overlay(Overlay::Logs);
-            }
-            Action::ShowConflicts => {
-                if self.conflicts.is_empty() {
-                    self.push_toast(Notice::info("nothing to resolve"));
-                } else {
-                    self.cursors.overlay.selected = 0;
-                    self.nav.open_overlay(Overlay::Conflicts);
-                }
-            }
-            Action::CommandPalette => {
-                self.field_mut(Field::Palette).clear();
-                self.nav.open_overlay(Overlay::CommandPalette);
-            }
+            Action::ShowLogs => self.show_logs(),
+            Action::ShowConflicts => self.show_conflicts(),
+            Action::CommandPalette => self.open_palette(),
             // Out of the search results is back into the query they answered, one step short
             // of the rail — the same order the two were entered in.
             Action::Back if self.search_in_results && self.on_search_root() => {
@@ -1851,17 +1850,10 @@ impl App {
             }
             Action::Back => self.go_back(),
             Action::ToggleRail => self.nav.toggle_rail(),
-            Action::JumpSection(n) => {
-                if let Some(section) = Section::from_index(usize::from(n).saturating_sub(1)) {
-                    return self.go_to_section(section);
-                }
-            }
+            Action::JumpSection(n) => return self.jump_section(n),
             // Already on Search, `/` means "let me type" rather than "start again": it returns
             // to the field with the query and results as they were, without asking again.
-            Action::FocusSearch if self.on_search_root() => {
-                self.search_in_results = false;
-                self.nav.focus_stage();
-            }
+            Action::FocusSearch if self.on_search_root() => self.focus_search_field(),
             Action::FocusSearch => return self.go_to_section(Section::Search),
             // Every vertical key, for whatever has the keyboard: the rail when it has focus,
             // otherwise the rows of the screen on top. See `move_cursor`.
@@ -1887,10 +1879,7 @@ impl App {
             {
                 self.go_back();
             }
-            Action::Left => {
-                self.search_in_results = false;
-                self.nav.focus_rail();
-            }
+            Action::Left => self.left_to_rail(),
             // In the episode table Enter plays; everywhere else it opens the title.
             Action::Open if self.in_episodes() => return self.play_selected_episode(),
             // A title page is already open, so Enter goes one deeper — the episode table — the
@@ -1903,16 +1892,7 @@ impl App {
             // open a small typed editor for the values that are text — a screen that
             // points at config.toml for a language code has given up two keys early.
             Action::Open | Action::PlayNext if self.in_settings_stage() => {
-                if let Some(row) = self.settings.rows.get(self.cursors.settings.selected)
-                    && let SettingChange::Typed { text } = &row.change
-                {
-                    let (key, text) = (row.key, text.clone());
-                    self.edit_target = Some(key);
-                    self.field_mut(Field::Setting).set(text);
-                    self.nav.open_overlay(Overlay::EditSetting);
-                    return None;
-                }
-                return self.cycle_setting(1);
+                return self.open_setting();
             }
             Action::Open if self.in_accounts_stage() => return self.toggle_account(),
             // Plugin stores live behind Providers: Enter there opens them, from the rail too,
@@ -1922,45 +1902,17 @@ impl App {
                 return self.open_store_row();
             }
             Action::Open if self.nav.focus() == Focus::Stage && self.store_view().is_some() => {
-                let id = self.store_view()?.to_owned();
-                return self.open_store_line(&id);
+                return self.enter_store_line();
             }
             Action::Open
                 if self.nav.focus() == Focus::Stage && self.members_view().is_some() =>
             {
-                let id = self.members_view()?.to_owned();
-                return self.open_member_row(&id);
+                return self.enter_member_row();
             }
             // Enter plays a finished download from disk. Nothing else on this screen is an "open".
-            Action::Open if self.in_downloads_stage() => {
-                let row = self.downloads.get(self.cursors.downloads.selected)?.clone();
-                match (&row.path, row.state) {
-                    (Some(path), DownloadState::Done) => {
-                        // First-class playback: same staging, history and sync as a stream.
-                        self.raise_now_playing_titled(
-                            row.anilist_id,
-                            row.title.clone(),
-                            &row.episode,
-                        );
-                        return Some(Command::PlayLocal {
-                            id: row.anilist_id,
-                            episode: row.episode,
-                            title: row.title,
-                            path: path.clone(),
-                        });
-                    }
-                    (_, DownloadState::Failed) => {
-                        // The reason is on the row; surfacing it is more use than a dead keypress.
-                        let reason =
-                            row.error.clone().unwrap_or_else(|| "no reason recorded".into());
-                        self.push_toast(Notice::alert(reason));
-                    }
-                    _ => self.push_toast(Notice::info("not finished yet")),
-                }
-            }
+            Action::Open if self.in_downloads_stage() => return self.open_download(),
             Action::DeleteDownload if self.in_downloads_stage() => {
-                let row = self.downloads.get(self.cursors.downloads.selected)?;
-                return Some(Command::DownloadDelete { id: row.id });
+                return self.delete_download();
             }
             Action::ClearCompleted if self.in_downloads_stage() => {
                 return Some(Command::DownloadClearCompleted);
@@ -1976,418 +1928,59 @@ impl App {
             // episode resumes immediately, no detail screen in between. The title's other
             // views stay one key away — `e` episodes, `s` sources, `w` watch order — and
             // rows with nothing to resume still open normally.
-            Action::Open if self.resumes_on_enter() => {
-                let entry = self.selected_entry().expect("checked");
-                let id = entry.id;
-                let next = entry.progress.expect("checked").1;
-                return Some(self.begin_playback(id, next.to_string()));
-            }
+            Action::Open if self.resumes_on_enter() => return self.resume_selected(),
             Action::Open => return self.open_selected(),
             // Space skips the detail screen entirely: from a list, straight into the next
             // episode you have not watched.
             Action::PlayNext => return self.play_next_unwatched(),
-            Action::ShowEpisodes => {
-                // On a title screen it is that title — the list underneath may be sitting on
-                // something else entirely, as it is after stepping through related titles. On a
-                // list it is the row under the cursor. See `target`.
-                if let Some(entry) = self.target().cloned() {
-                    let id = entry.id;
-                    // The episode table is a view *of a title*, and `detail` is how the rest of
-                    // the app asks which title that is. Reached by `e` from a list it was left
-                    // unset, so everything downstream answered "none": a finished episode never
-                    // reached the table it was listed in, and auto-next declined to roll on.
-                    // Opening the title sets this; entering its episodes has to as well.
-                    self.detail = Some(entry);
-                    self.cursors.episodes.selected = 0;
-                    // Discard the previous title's rows *before* the screen appears. They were
-                    // being left in place until the new load answered, so opening episodes for one
-                    // show displayed another show's episode list — complete with its watch
-                    // progress — and then silently corrected itself. Stale data presented as
-                    // current is worse than no data: the loading state is honest, and it is the
-                    // reason the pulse and skeleton rows exist.
-                    self.episodes.clear();
-                    self.episodes_loading = true;
-                    self.nav.push(StageView::Episodes(id));
-                    return Some(Command::LoadEpisodes(id));
-                }
-            }
-            Action::ToggleWatched if self.in_episodes() => {
-                let id = match self.nav.current() {
-                    StageView::Episodes(id) => *id,
-                    _ => return None,
-                };
-                let (number, watched) = {
-                    let row = self.episodes.get(self.cursors.episodes.selected)?;
-                    (row.number.clone(), !row.completed)
-                };
-                // Shown once the engine has written it and says where the title now stands.
-                self.marking = Some(id);
-                return Some(Command::SetWatched { id, episodes: vec![number], watched });
-            }
-            Action::MarkAllPrevious if self.in_episodes() => {
-                let id = match self.nav.current() {
-                    StageView::Episodes(id) => *id,
-                    _ => return None,
-                };
-                // Everything strictly before the selected row that is not already done —
-                // the "I'm caught up to here" gesture.
-                let marked: Vec<String> = self
-                    .episodes
-                    .iter()
-                    .take(self.cursors.episodes.selected)
-                    .filter(|r| !r.completed)
-                    .map(|r| r.number.clone())
-                    .collect();
-                if marked.is_empty() {
-                    // Three different nothings, each said as what it is: "nothing before this
-                    // episode" over an empty table pointed at an episode that was not there.
-                    let why = match self.episodes.get(self.cursors.episodes.selected) {
-                        None => "no episodes listed to mark".to_owned(),
-                        Some(_) if self.cursors.episodes.selected == 0 => {
-                            "nothing comes before the first episode".to_owned()
-                        }
-                        Some(row) => {
-                            format!("everything before ep {} is already watched", row.number)
-                        }
-                    };
-                    self.push_toast(Notice::info(why));
-                    return None;
-                }
-                self.marking = Some(id);
-                self.push_toast(Notice::info(format!(
-                    "marked {} watched",
-                    anistream_model::wording::plural(marked.len(), "episode")
-                )));
-                return Some(Command::SetWatched { id, episodes: marked, watched: true });
-            }
-            Action::DownloadRange if self.in_episodes() => {
-                self.field_mut(Field::Range).clear();
-                self.cursors.overlay.selected = 0;
-                self.nav.open_overlay(Overlay::DownloadRange);
-            }
+            Action::ShowEpisodes => return self.show_episodes(),
+            Action::ToggleWatched if self.in_episodes() => return self.toggle_watched(),
+            Action::MarkAllPrevious if self.in_episodes() => return self.mark_all_previous(),
+            Action::DownloadRange if self.in_episodes() => self.open_download_range(),
             Action::DownloadRange => {
                 self.push_toast(Notice::info("ranges are queued from the episode table"));
             }
-            Action::Filter if self.in_episodes() => {
-                self.episode_filter = self.episode_filter.next();
-                self.apply_episode_filter();
-                self.push_toast(Notice::info(format!(
-                    "showing {}",
-                    self.episode_filter.label()
-                )));
-            }
+            Action::Filter if self.in_episodes() => self.cycle_episode_filter(),
             // By the view, not the section: a title opened from the results is a title page,
             // and `f` there means what it means on every other title page.
-            Action::Filter if self.on_search_root() => {
-                self.cursors.overlay.selected = 0;
-                self.nav.open_overlay(Overlay::SearchFilters);
-            }
-            Action::FilterSearch => {
-                // From anywhere: land on Search first, because the overlay's Enter runs a
-                // search and the results have to have somewhere to go. The jump closes any
-                // overlays, so this one is opened after.
-                let task = (self.nav.section() != Section::Search)
-                    .then(|| self.go_to_section(Section::Search))
-                    .flatten();
-                self.cursors.overlay.selected = 0;
-                self.nav.open_overlay(Overlay::SearchFilters);
-                return task;
-            }
+            Action::Filter if self.on_search_root() => self.open_search_filters(),
+            Action::FilterSearch => return self.filter_search(),
             Action::Filter => {
                 self.push_toast(Notice::info("filters live in search and the episode table"));
             }
             Action::ToggleWatched | Action::MarkAllPrevious => {
                 self.push_toast(Notice::info("watched marks live in the episode table"));
             }
-            Action::OpenInBrowser => {
-                let Some(id) = self.target().map(|e| e.id) else {
-                    self.push_toast(Notice::info("nothing selected"));
-                    return None;
-                };
-                return Some(Command::OpenExternal {
-                    url: format!("https://anilist.co/anime/{}", id.get()),
-                });
-            }
-            Action::PickProvider => {
-                // The choice already in force arrives with the title's record, so only a title's
-                // own page knows it. From a list the overlay would open on the pin of whichever
-                // title was opened last, and confirming "automatic" there could quietly undo a
-                // pin the user made.
-                if self.title_on_screen().is_none() {
-                    let hint = if self.target().is_some() {
-                        "a source is pinned from the title's page"
-                    } else {
-                        "nothing selected"
-                    };
-                    self.push_toast(Notice::info(hint));
-                    return None;
-                }
-                if self.providers.is_empty() {
-                    // Plugins register a moment after launch, so "none yet" is a real state
-                    // rather than a misconfiguration.
-                    self.push_toast(Notice::info("no sources registered yet"));
-                    return None;
-                }
-                // Start on the current choice, so the overlay opens showing where you are.
-                self.cursors.overlay.selected = self
-                    .provider_choices()
-                    .iter()
-                    .position(|(id, _)| id.as_deref() == self.provider_preference.as_deref())
-                    .unwrap_or(0);
-                self.nav.open_overlay(Overlay::SourceProvider);
-            }
-            Action::PlayTrailer => {
-                let Some(entry) = self.target() else {
-                    self.push_toast(Notice::info("nothing selected"));
-                    return None;
-                };
-                let Some(url) = entry.trailer_url.clone() else {
-                    // Rides the detail fetch, so a list row answers after the title has
-                    // been opened once — and some titles genuinely have no trailer.
-                    let why = self
-                        .off_the_page("the trailer is found")
-                        .unwrap_or_else(|| "no trailer on record for this title".into());
-                    self.push_toast(Notice::info(why));
-                    return None;
-                };
-                return Some(Command::PlayTrailer { url, title: entry.title.clone() });
-            }
-            Action::Recommendations => {
-                let Some(entry) = self.target() else {
-                    self.push_toast(Notice::info("nothing selected"));
-                    return None;
-                };
-                if entry.recommended.is_empty() {
-                    // Like relations, recommendations ride the detail fetch — and some
-                    // titles genuinely have none.
-                    let why = self
-                        .off_the_page("recommendations are listed")
-                        .unwrap_or_else(|| "no recommendations known for this title".into());
-                    self.push_toast(Notice::info(why));
-                    return None;
-                }
-                self.cursors.overlay.selected = 0;
-                self.nav.open_overlay(Overlay::Recommendations);
-            }
-            Action::WatchOrder => {
-                let Some(entry) = self.target() else {
-                    self.push_toast(Notice::info("nothing selected"));
-                    return None;
-                };
-                if entry.related.is_empty() {
-                    // Empty on list rows too — the relations ride the detail fetch. From a
-                    // list this still answers after opening the title once.
-                    let why = self
-                        .off_the_page("connected seasons are listed")
-                        .unwrap_or_else(|| "no connected seasons known for this title".into());
-                    self.push_toast(Notice::info(why));
-                    return None;
-                }
-                self.cursors.overlay.selected = 0;
-                self.nav.open_overlay(Overlay::WatchOrder);
-            }
-            Action::FixMapping => {
-                // "This matched the wrong thing" — ask the user what to search for, then
-                // re-enter the ordinary disambiguation flow with their words.
-                //
-                // From a title's page or its episodes only: the answer is a new episode table,
-                // which is taken for the title on screen and nowhere else, so from a list the
-                // pick would be asked for and then silently dropped — or, with a title opened
-                // earlier, applied to that title instead of the highlighted one.
-                let Some(id) = self.title_on_screen() else {
-                    let hint = if self.target().is_some() {
-                        "a match is fixed from the title's page"
-                    } else {
-                        "nothing selected to re-match"
-                    };
-                    self.push_toast(Notice::info(hint));
-                    return None;
-                };
-                self.manual_target = Some(id);
-                self.field_mut(Field::ManualQuery).clear();
-                self.cursors.overlay.selected = 0;
-                self.nav.open_overlay(Overlay::ManualQuery);
-            }
-            Action::ShowSources => {
-                // Same shape as Download: the highlighted episode from the table, the next
-                // unwatched one from a title.
-                let (id, episode) = match self.nav.current() {
-                    StageView::Episodes(id) => {
-                        (*id, self.episodes.get(self.cursors.episodes.selected)?.number.clone())
-                    }
-                    _ => {
-                        let entry = self.target()?;
-                        let episode = entry.progress.map_or(1, |(_, next)| next).to_string();
-                        (entry.id, episode)
-                    }
-                };
-                self.source_context = Some((id, episode.clone()));
-                return Some(Command::LoadSources { id, episode });
-            }
-            Action::PlayParty => {
-                // The same episode Enter would play, but with the room. No Now Playing
-                // view: Syncplay owns the player, and a dead session screen would lie.
-                let (id, episode) = match self.nav.current() {
-                    StageView::Episodes(id) => {
-                        (*id, self.episodes.get(self.cursors.episodes.selected)?.number.clone())
-                    }
-                    _ => {
-                        let entry = self.target()?;
-                        let episode = entry.progress.map_or(1, |(_, next)| next).to_string();
-                        (entry.id, episode)
-                    }
-                };
-                return Some(Command::PlayParty { id, episode });
-            }
-            Action::Download => {
-                // From the episode table it is the highlighted episode; from a title it is the next
-                // one you have not watched, which matches what Enter would have played.
-                let (id, episode) = match self.nav.current() {
-                    StageView::Episodes(id) => {
-                        (*id, self.episodes.get(self.cursors.episodes.selected)?.number.clone())
-                    }
-                    _ => {
-                        let entry = self.target()?;
-                        let episode = entry.progress.map_or(1, |(_, next)| next).to_string();
-                        (entry.id, episode)
-                    }
-                };
-                return Some(Command::DownloadEpisode { id, episode });
-            }
+            Action::OpenInBrowser => return self.open_in_browser(),
+            Action::PickProvider => return self.pick_provider(),
+            Action::PlayTrailer => return self.play_trailer(),
+            Action::Recommendations => return self.show_recommendations(),
+            Action::WatchOrder => return self.show_watch_order(),
+            Action::FixMapping => return self.fix_mapping(),
+            Action::ShowSources => return self.show_sources(),
+            Action::PlayParty => return self.play_party(),
+            Action::Download => return self.download_episode(),
             Action::ToggleSynopsis => self.synopsis_expanded = !self.synopsis_expanded,
-            Action::SetListStatus => {
-                if self.signed_in_trackers().is_empty() {
-                    // Nothing keeps a list status but a tracker. Offering the picker anyway
-                    // ended in "marked watching" for a choice that went nowhere.
-                    self.push_toast(Notice::info(
-                        "list status is kept on a tracker, and none is signed in — :accounts",
-                    ));
-                } else if let Some(entry) = self.target() {
-                    // Preselect what the title is already on, so the common case is one
-                    // keystroke to confirm rather than a hunt. The title's own status, where it
-                    // is known — the Library tab last viewed said nothing about a show opened
-                    // from search, and preselected "dropped" for it. Unknown starts at the top.
-                    let current =
-                        self.statuses_set.get(&entry.id).copied().or(entry.list_status);
-                    self.cursors.overlay.selected = current
-                        .and_then(|status| {
-                            LibrarySegment::ALL.iter().position(|s| *s == status)
-                        })
-                        .unwrap_or(0);
-                    self.nav.open_overlay(Overlay::ListStatus);
-                } else {
-                    self.push_toast(Notice::info("nothing selected"));
-                }
-            }
-            Action::RateTitle => {
-                if self.signed_in_trackers().is_empty() {
-                    self.push_toast(Notice::info(
-                        "ratings are kept on a tracker, and none is signed in — :accounts",
-                    ));
-                } else if self.target().is_some() {
-                    // No local record of an existing score to preselect, so the cursor
-                    // starts at the top and every row is one or two keystrokes away.
-                    self.cursors.overlay.selected = 0;
-                    self.nav.open_overlay(Overlay::Rate);
-                } else {
-                    self.push_toast(Notice::info("nothing selected"));
-                }
-            }
-            Action::HideFromContinue => {
-                // The Home list only: the CONTINUE rail is the one list built from your
-                // history, so it is the one list a title can be dismissed from. The view
-                // check matters as much as the section — a pushed detail or episode table
-                // keeps the Home entries as `content`, and removing the show you are
-                // *looking into* because a list you cannot see holds it would be absurd.
-                // Elsewhere the key says so rather than doing nothing, which would read
-                // as broken.
-                let at_home_list = self.nav.section() == Section::Home
-                    && matches!(self.nav.current(), StageView::Section(Section::Home));
-                if !at_home_list {
-                    self.push_toast(Notice::info("removing works on the Continue list"));
-                    return None;
-                }
-                let Content::Entries(entries) = &mut self.content else {
-                    return None;
-                };
-                if entries.is_empty() {
-                    return None;
-                }
-                // Dropped from the screen before the write: the list answers immediately, and
-                // the store catches up.
-                let home = &mut self.cursors.home;
-                let entry = entries.remove(home.selected.min(entries.len() - 1));
-                home.selected = home.selected.min(entries.len().saturating_sub(1));
-                home.offset = home.offset.min(home.selected);
-                // Say how to undo, because there is no key for it — the way back is the
-                // same thing that put it here.
-                self.push_toast(Notice::info(format!(
-                    "{} removed — watching it again brings it back",
-                    entry.title
-                )));
-                return Some(Command::HideFromContinue { id: entry.id });
-            }
-            Action::ForceResync => {
-                if self.sync.is_empty() {
-                    let accounts = self.section_key(Section::Accounts);
-                    self.push_toast(Notice::info(format!(
-                        "no tracker connected — press {accounts} for Accounts"
-                    )));
-                } else {
-                    return Some(Command::SyncNow);
-                }
-            }
+            Action::SetListStatus => self.pick_list_status(),
+            Action::RateTitle => self.pick_rating(),
+            Action::HideFromContinue => return self.hide_from_continue(),
+            Action::ForceResync => return self.force_resync(),
             // On the store screens, refreshing means asking the stores again, not re-checking
             // the provider table they were opened from.
             Action::Refresh if self.in_stores() || self.store_view().is_some() => {
                 return Some(Command::LoadStores);
             }
-            Action::Refresh if self.members_view().is_some() => {
-                let store = self.members_view()?.to_owned();
-                return Some(Command::LoadMembers { store });
-            }
+            Action::Refresh if self.members_view().is_some() => return self.refresh_members(),
             // A title page and an episode table refresh themselves, not the section's list
             // under them — which is what `r` used to fetch, saying "loading the calendar" over
             // a title page that never changed.
             Action::Refresh if matches!(self.nav.current(), StageView::Title(_)) => {
-                self.images.requests().retry_failed();
-                return self.title_on_screen().map(Command::LoadDetail);
+                return self.refresh_title();
             }
-            Action::Refresh if self.in_episodes() => {
-                // The rows stay on screen until the answer lands, and the answer keeps the
-                // cursor on its episode; the activity row says the table is being asked again.
-                self.images.requests().retry_failed();
-                return self.title_on_screen().map(Command::LoadEpisodes);
-            }
-            Action::Refresh => {
-                // Asking again means the covers too: one that failed while the network was
-                // down should not wait out its backoff once you have said it is back.
-                self.images.requests().retry_failed();
-                return self.reload();
-            }
-            Action::ToggleTranslation => {
-                // For this session: the saved choice is the Settings row's to change.
-                let translation = self.settings.translation.toggled();
-                self.push_toast(Notice::info(format!(
-                    "now using {translation} for this session"
-                )));
-                return Some(Command::SetTranslation { translation });
-            }
-            _ => {
-                // An action that means nothing here — a playback key with nothing playing, a
-                // Downloads key elsewhere, usually run from the palette — says where it does
-                // something rather than doing nothing, which would read as the key being broken.
-                let label = action.label();
-                let mut chars = label.chars();
-                let label = match chars.next() {
-                    Some(first) => first.to_lowercase().chain(chars).collect::<String>(),
-                    None => String::new(),
-                };
-                self.push_toast(Notice::info(format!(
-                    "{label} works {}",
-                    action.where_it_works()
-                )));
-            }
+            Action::Refresh if self.in_episodes() => return self.refresh_episodes(),
+            Action::Refresh => return self.refresh_section(),
+            Action::ToggleTranslation => return self.toggle_translation(),
+            _ => self.works_elsewhere(action),
         }
         None
     }
@@ -2446,6 +2039,153 @@ impl App {
         Some(self.begin_playback(id, episode))
     }
 
+    /// The episode table of the title here, asked for afresh.
+    fn show_episodes(&mut self) -> Option<Command> {
+        // On a title screen it is that title — the list underneath may be sitting on
+        // something else entirely, as it is after stepping through related titles. On a
+        // list it is the row under the cursor. See `target`.
+        if let Some(entry) = self.target().cloned() {
+            let id = entry.id;
+            // The episode table is a view *of a title*, and `detail` is how the rest of
+            // the app asks which title that is. Reached by `e` from a list it was left
+            // unset, so everything downstream answered "none": a finished episode never
+            // reached the table it was listed in, and auto-next declined to roll on.
+            // Opening the title sets this; entering its episodes has to as well.
+            self.detail = Some(entry);
+            self.cursors.episodes.selected = 0;
+            // Discard the previous title's rows *before* the screen appears. They were
+            // being left in place until the new load answered, so opening episodes for one
+            // show displayed another show's episode list — complete with its watch
+            // progress — and then silently corrected itself. Stale data presented as
+            // current is worse than no data: the loading state is honest, and it is the
+            // reason the pulse and skeleton rows exist.
+            self.episodes.clear();
+            self.episodes_loading = true;
+            self.nav.push(StageView::Episodes(id));
+            return Some(Command::LoadEpisodes(id));
+        }
+        None
+    }
+
+    /// The highlighted episode marked watched, or unwatched if it was.
+    fn toggle_watched(&mut self) -> Option<Command> {
+        let id = match self.nav.current() {
+            StageView::Episodes(id) => *id,
+            _ => return None,
+        };
+        let (number, watched) = {
+            let row = self.episodes.get(self.cursors.episodes.selected)?;
+            (row.number.clone(), !row.completed)
+        };
+        // Shown once the engine has written it and says where the title now stands.
+        self.marking = Some(id);
+        Some(Command::SetWatched { id, episodes: vec![number], watched })
+    }
+
+    /// Every episode before the highlighted one that is not finished, marked watched.
+    fn mark_all_previous(&mut self) -> Option<Command> {
+        let id = match self.nav.current() {
+            StageView::Episodes(id) => *id,
+            _ => return None,
+        };
+        // Everything strictly before the selected row that is not already done —
+        // the "I'm caught up to here" gesture.
+        let marked: Vec<String> = self
+            .episodes
+            .iter()
+            .take(self.cursors.episodes.selected)
+            .filter(|r| !r.completed)
+            .map(|r| r.number.clone())
+            .collect();
+        if marked.is_empty() {
+            // Three different nothings, each said as what it is: "nothing before this
+            // episode" over an empty table pointed at an episode that was not there.
+            let why = match self.episodes.get(self.cursors.episodes.selected) {
+                None => "no episodes listed to mark".to_owned(),
+                Some(_) if self.cursors.episodes.selected == 0 => {
+                    "nothing comes before the first episode".to_owned()
+                }
+                Some(row) => {
+                    format!("everything before ep {} is already watched", row.number)
+                }
+            };
+            self.push_toast(Notice::info(why));
+            return None;
+        }
+        self.marking = Some(id);
+        self.push_toast(Notice::info(format!(
+            "marked {} watched",
+            anistream_model::wording::plural(marked.len(), "episode")
+        )));
+        Some(Command::SetWatched { id, episodes: marked, watched: true })
+    }
+
+    /// The prompt for a range of episodes to download, empty.
+    fn open_download_range(&mut self) {
+        self.field_mut(Field::Range).clear();
+        self.cursors.overlay.selected = 0;
+        self.nav.open_overlay(Overlay::DownloadRange);
+    }
+
+    /// The episode table's next filter, said as it is applied.
+    fn cycle_episode_filter(&mut self) {
+        self.episode_filter = self.episode_filter.next();
+        self.apply_episode_filter();
+        self.push_toast(Notice::info(format!("showing {}", self.episode_filter.label())));
+    }
+
+    /// The prompt for a provider's search by hand, for a title it matched wrongly.
+    fn fix_mapping(&mut self) -> Option<Command> {
+        // "This matched the wrong thing" — ask the user what to search for, then
+        // re-enter the ordinary disambiguation flow with their words.
+        //
+        // From a title's page or its episodes only: the answer is a new episode table,
+        // which is taken for the title on screen and nowhere else, so from a list the
+        // pick would be asked for and then silently dropped — or, with a title opened
+        // earlier, applied to that title instead of the highlighted one.
+        let Some(id) = self.title_on_screen() else {
+            let hint = if self.target().is_some() {
+                "a match is fixed from the title's page"
+            } else {
+                "nothing selected to re-match"
+            };
+            self.push_toast(Notice::info(hint));
+            return None;
+        };
+        self.manual_target = Some(id);
+        self.field_mut(Field::ManualQuery).clear();
+        self.cursors.overlay.selected = 0;
+        self.nav.open_overlay(Overlay::ManualQuery);
+        None
+    }
+
+    /// An episode's releases to pick from: the highlighted one in the table, or the next
+    /// unwatched one from a title.
+    fn show_sources(&mut self) -> Option<Command> {
+        // Same shape as Download: the highlighted episode from the table, the next
+        // unwatched one from a title.
+        let (id, episode) = match self.nav.current() {
+            StageView::Episodes(id) => {
+                (*id, self.episodes.get(self.cursors.episodes.selected)?.number.clone())
+            }
+            _ => {
+                let entry = self.target()?;
+                let episode = entry.progress.map_or(1, |(_, next)| next).to_string();
+                (entry.id, episode)
+            }
+        };
+        self.source_context = Some((id, episode.clone()));
+        Some(Command::LoadSources { id, episode })
+    }
+
+    /// The episode table, asked for again.
+    fn refresh_episodes(&mut self) -> Option<Command> {
+        // The rows stay on screen until the answer lands, and the answer keeps the
+        // cursor on its episode; the activity row says the table is being asked again.
+        self.images.requests().retry_failed();
+        self.title_on_screen().map(Command::LoadEpisodes)
+    }
+
     /// Play the first episode local history has not completed.
     ///
     /// Driven off the watch log rather than a tracker, so this works with no account at all.
@@ -2458,6 +2198,23 @@ impl App {
         let episode =
             entry.progress.map(|(_, next)| next.to_string()).unwrap_or_else(|| "1".to_string());
         Some(self.begin_playback(id, episode))
+    }
+
+    /// The episode Enter would play, with the Syncplay room.
+    fn play_party(&mut self) -> Option<Command> {
+        // The same episode Enter would play, but with the room. No Now Playing
+        // view: Syncplay owns the player, and a dead session screen would lie.
+        let (id, episode) = match self.nav.current() {
+            StageView::Episodes(id) => {
+                (*id, self.episodes.get(self.cursors.episodes.selected)?.number.clone())
+            }
+            _ => {
+                let entry = self.target()?;
+                let episode = entry.progress.map_or(1, |(_, next)| next).to_string();
+                (entry.id, episode)
+            }
+        };
+        Some(Command::PlayParty { id, episode })
     }
 
     /// Step to an adjacent episode of what is playing, from whichever view is up.
@@ -2688,6 +2445,54 @@ impl App {
         self.cursors.downloads.selected = self.cursors.downloads.selected.min(last);
     }
 
+    /// Enter on a download: played from disk once it has finished, or why it cannot be.
+    fn open_download(&mut self) -> Option<Command> {
+        let row = self.downloads.get(self.cursors.downloads.selected)?.clone();
+        match (&row.path, row.state) {
+            (Some(path), DownloadState::Done) => {
+                // First-class playback: same staging, history and sync as a stream.
+                self.raise_now_playing_titled(row.anilist_id, row.title.clone(), &row.episode);
+                return Some(Command::PlayLocal {
+                    id: row.anilist_id,
+                    episode: row.episode,
+                    title: row.title,
+                    path: path.clone(),
+                });
+            }
+            (_, DownloadState::Failed) => {
+                // The reason is on the row; surfacing it is more use than a dead keypress.
+                let reason = row.error.clone().unwrap_or_else(|| "no reason recorded".into());
+                self.push_toast(Notice::alert(reason));
+            }
+            _ => self.push_toast(Notice::info("not finished yet")),
+        }
+        None
+    }
+
+    /// The highlighted download deleted, and its file with it.
+    fn delete_download(&mut self) -> Option<Command> {
+        let row = self.downloads.get(self.cursors.downloads.selected)?;
+        Some(Command::DownloadDelete { id: row.id })
+    }
+
+    /// An episode queued for download: the highlighted one in the table, or the next unwatched
+    /// one from a title.
+    fn download_episode(&mut self) -> Option<Command> {
+        // From the episode table it is the highlighted episode; from a title it is the next
+        // one you have not watched, which matches what Enter would have played.
+        let (id, episode) = match self.nav.current() {
+            StageView::Episodes(id) => {
+                (*id, self.episodes.get(self.cursors.episodes.selected)?.number.clone())
+            }
+            _ => {
+                let entry = self.target()?;
+                let episode = entry.progress.map_or(1, |(_, next)| next).to_string();
+                (entry.id, episode)
+            }
+        };
+        Some(Command::DownloadEpisode { id, episode })
+    }
+
     /// Whether the Accounts rows have focus.
     fn in_accounts_stage(&self) -> bool {
         self.nav.section() == Section::Accounts
@@ -2771,6 +2576,29 @@ impl App {
         }
     }
 
+    /// The sync disagreements to settle, or word that there are none.
+    fn show_conflicts(&mut self) {
+        if self.conflicts.is_empty() {
+            self.push_toast(Notice::info("nothing to resolve"));
+        } else {
+            self.cursors.overlay.selected = 0;
+            self.nav.open_overlay(Overlay::Conflicts);
+        }
+    }
+
+    /// A sync with every tracker, now.
+    fn force_resync(&mut self) -> Option<Command> {
+        if self.sync.is_empty() {
+            let accounts = self.section_key(Section::Accounts);
+            self.push_toast(Notice::info(format!(
+                "no tracker connected — press {accounts} for Accounts"
+            )));
+        } else {
+            return Some(Command::SyncNow);
+        }
+        None
+    }
+
     /// Whether the Settings rows have focus.
     ///
     /// Left and Right cycle a value here rather than moving between rail and stage — the same
@@ -2810,6 +2638,31 @@ impl App {
         matches!(self.nav.current(), StageView::Section(Section::Search))
     }
 
+    /// Back into Search's field, with the query and its results as they were.
+    fn focus_search_field(&mut self) {
+        self.search_in_results = false;
+        self.nav.focus_stage();
+    }
+
+    /// The FILTERS overlay, on its first row.
+    fn open_search_filters(&mut self) {
+        self.cursors.overlay.selected = 0;
+        self.nav.open_overlay(Overlay::SearchFilters);
+    }
+
+    /// The FILTERS overlay over Search, from wherever it is asked for.
+    fn filter_search(&mut self) -> Option<Command> {
+        // From anywhere: land on Search first, because the overlay's Enter runs a
+        // search and the results have to have somewhere to go. The jump closes any
+        // overlays, so this one is opened after.
+        let task = (self.nav.section() != Section::Search)
+            .then(|| self.go_to_section(Section::Search))
+            .flatten();
+        self.cursors.overlay.selected = 0;
+        self.nav.open_overlay(Overlay::SearchFilters);
+        task
+    }
+
     /// "… from the title's page", when the screen is not one — said for what rides the detail
     /// fetch and came back empty here, as `m` and `P` say it for what only that page can do.
     ///
@@ -2825,6 +2678,149 @@ impl App {
             StageView::Title(id) | StageView::Episodes(id) => Some(*id),
             _ => None,
         }
+    }
+
+    /// The title here, on AniList in a browser.
+    fn open_in_browser(&mut self) -> Option<Command> {
+        let Some(id) = self.target().map(|e| e.id) else {
+            self.push_toast(Notice::info("nothing selected"));
+            return None;
+        };
+        Some(Command::OpenExternal { url: format!("https://anilist.co/anime/{}", id.get()) })
+    }
+
+    /// The source picker for the title on screen, opened on the choice in force.
+    fn pick_provider(&mut self) -> Option<Command> {
+        // The choice already in force arrives with the title's record, so only a title's
+        // own page knows it. From a list the overlay would open on the pin of whichever
+        // title was opened last, and confirming "automatic" there could quietly undo a
+        // pin the user made.
+        if self.title_on_screen().is_none() {
+            let hint = if self.target().is_some() {
+                "a source is pinned from the title's page"
+            } else {
+                "nothing selected"
+            };
+            self.push_toast(Notice::info(hint));
+            return None;
+        }
+        if self.providers.is_empty() {
+            // Plugins register a moment after launch, so "none yet" is a real state
+            // rather than a misconfiguration.
+            self.push_toast(Notice::info("no sources registered yet"));
+            return None;
+        }
+        // Start on the current choice, so the overlay opens showing where you are.
+        self.cursors.overlay.selected = self
+            .provider_choices()
+            .iter()
+            .position(|(id, _)| id.as_deref() == self.provider_preference.as_deref())
+            .unwrap_or(0);
+        self.nav.open_overlay(Overlay::SourceProvider);
+        None
+    }
+
+    /// The title's trailer, when its record has one.
+    fn play_trailer(&mut self) -> Option<Command> {
+        let Some(entry) = self.target() else {
+            self.push_toast(Notice::info("nothing selected"));
+            return None;
+        };
+        let Some(url) = entry.trailer_url.clone() else {
+            // Rides the detail fetch, so a list row answers after the title has
+            // been opened once — and some titles genuinely have no trailer.
+            let why = self
+                .off_the_page("the trailer is found")
+                .unwrap_or_else(|| "no trailer on record for this title".into());
+            self.push_toast(Notice::info(why));
+            return None;
+        };
+        Some(Command::PlayTrailer { url, title: entry.title.clone() })
+    }
+
+    /// What AniList recommends after the title here, when its record says.
+    fn show_recommendations(&mut self) -> Option<Command> {
+        let Some(entry) = self.target() else {
+            self.push_toast(Notice::info("nothing selected"));
+            return None;
+        };
+        if entry.recommended.is_empty() {
+            // Like relations, recommendations ride the detail fetch — and some
+            // titles genuinely have none.
+            let why = self
+                .off_the_page("recommendations are listed")
+                .unwrap_or_else(|| "no recommendations known for this title".into());
+            self.push_toast(Notice::info(why));
+            return None;
+        }
+        self.cursors.overlay.selected = 0;
+        self.nav.open_overlay(Overlay::Recommendations);
+        None
+    }
+
+    /// The titles connected to the one here, when its record says.
+    fn show_watch_order(&mut self) -> Option<Command> {
+        let Some(entry) = self.target() else {
+            self.push_toast(Notice::info("nothing selected"));
+            return None;
+        };
+        if entry.related.is_empty() {
+            // Empty on list rows too — the relations ride the detail fetch. From a
+            // list this still answers after opening the title once.
+            let why = self
+                .off_the_page("connected seasons are listed")
+                .unwrap_or_else(|| "no connected seasons known for this title".into());
+            self.push_toast(Notice::info(why));
+            return None;
+        }
+        self.cursors.overlay.selected = 0;
+        self.nav.open_overlay(Overlay::WatchOrder);
+        None
+    }
+
+    /// The list status picker for the title here, opened on the status it has.
+    fn pick_list_status(&mut self) {
+        if self.signed_in_trackers().is_empty() {
+            // Nothing keeps a list status but a tracker. Offering the picker anyway
+            // ended in "marked watching" for a choice that went nowhere.
+            self.push_toast(Notice::info(
+                "list status is kept on a tracker, and none is signed in — :accounts",
+            ));
+        } else if let Some(entry) = self.target() {
+            // Preselect what the title is already on, so the common case is one
+            // keystroke to confirm rather than a hunt. The title's own status, where it
+            // is known — the Library tab last viewed said nothing about a show opened
+            // from search, and preselected "dropped" for it. Unknown starts at the top.
+            let current = self.statuses_set.get(&entry.id).copied().or(entry.list_status);
+            self.cursors.overlay.selected = current
+                .and_then(|status| LibrarySegment::ALL.iter().position(|s| *s == status))
+                .unwrap_or(0);
+            self.nav.open_overlay(Overlay::ListStatus);
+        } else {
+            self.push_toast(Notice::info("nothing selected"));
+        }
+    }
+
+    /// The rating picker for the title here.
+    fn pick_rating(&mut self) {
+        if self.signed_in_trackers().is_empty() {
+            self.push_toast(Notice::info(
+                "ratings are kept on a tracker, and none is signed in — :accounts",
+            ));
+        } else if self.target().is_some() {
+            // No local record of an existing score to preselect, so the cursor
+            // starts at the top and every row is one or two keystrokes away.
+            self.cursors.overlay.selected = 0;
+            self.nav.open_overlay(Overlay::Rate);
+        } else {
+            self.push_toast(Notice::info("nothing selected"));
+        }
+    }
+
+    /// The title page's record, asked for again.
+    fn refresh_title(&mut self) -> Option<Command> {
+        self.images.requests().retry_failed();
+        self.title_on_screen().map(Command::LoadDetail)
     }
 
     /// Back: close an overlay, pop a pushed view, or at a section's root hand focus to the rail.
@@ -2846,6 +2842,35 @@ impl App {
             }
             crate::nav::BackOutcome::ClosedOverlay => {}
         }
+    }
+
+    /// A section's number, counted from one: that section, at the top of its own view.
+    fn jump_section(&mut self, n: u8) -> Option<Command> {
+        if let Some(section) = Section::from_index(usize::from(n).saturating_sub(1)) {
+            return self.go_to_section(section);
+        }
+        None
+    }
+
+    /// Left with nothing further left on the screen: onto the rail, and out of the search
+    /// results, so coming back lands in the field.
+    fn left_to_rail(&mut self) {
+        self.search_in_results = false;
+        self.nav.focus_rail();
+    }
+
+    /// An action that means nothing here, saying where it does.
+    fn works_elsewhere(&mut self, action: Action) {
+        // An action that means nothing here — a playback key with nothing playing, a
+        // Downloads key elsewhere, usually run from the palette — says where it does
+        // something rather than doing nothing, which would read as the key being broken.
+        let label = action.label();
+        let mut chars = label.chars();
+        let label = match chars.next() {
+            Some(first) => first.to_lowercase().chain(chars).collect::<String>(),
+            None => String::new(),
+        };
+        self.push_toast(Notice::info(format!("{label} works {}", action.where_it_works())));
     }
 
     /// Remember the title page on screen before a relation or recommendation replaces it.
@@ -2929,6 +2954,29 @@ impl App {
             self.nav.focus_rail();
         }
         None
+    }
+
+    /// Enter or Space on a Settings row: a value that is text opens its editor, and the rest
+    /// step.
+    fn open_setting(&mut self) -> Option<Command> {
+        if let Some(row) = self.settings.rows.get(self.cursors.settings.selected)
+            && let SettingChange::Typed { text } = &row.change
+        {
+            let (key, text) = (row.key, text.clone());
+            self.edit_target = Some(key);
+            self.field_mut(Field::Setting).set(text);
+            self.nav.open_overlay(Overlay::EditSetting);
+            return None;
+        }
+        self.cycle_setting(1)
+    }
+
+    /// Sub or dub for this session: the other one.
+    fn toggle_translation(&mut self) -> Option<Command> {
+        // For this session: the saved choice is the Settings row's to change.
+        let translation = self.settings.translation.toggled();
+        self.push_toast(Notice::info(format!("now using {translation} for this session")));
+        Some(Command::SetTranslation { translation })
     }
 
     /// Confirm the selection in whichever overlay is open.
@@ -3498,6 +3546,50 @@ impl App {
             && self.selected_entry().is_some_and(|e| e.resume.is_some() && e.progress.is_some())
     }
 
+    /// The highlighted Continue row's episode, resumed where it was left.
+    fn resume_selected(&mut self) -> Option<Command> {
+        let entry = self.selected_entry().expect("checked");
+        let id = entry.id;
+        let next = entry.progress.expect("checked").1;
+        Some(self.begin_playback(id, next.to_string()))
+    }
+
+    /// The highlighted title taken off the Continue list.
+    fn hide_from_continue(&mut self) -> Option<Command> {
+        // The Home list only: the CONTINUE rail is the one list built from your
+        // history, so it is the one list a title can be dismissed from. The view
+        // check matters as much as the section — a pushed detail or episode table
+        // keeps the Home entries as `content`, and removing the show you are
+        // *looking into* because a list you cannot see holds it would be absurd.
+        // Elsewhere the key says so rather than doing nothing, which would read
+        // as broken.
+        let at_home_list = self.nav.section() == Section::Home
+            && matches!(self.nav.current(), StageView::Section(Section::Home));
+        if !at_home_list {
+            self.push_toast(Notice::info("removing works on the Continue list"));
+            return None;
+        }
+        let Content::Entries(entries) = &mut self.content else {
+            return None;
+        };
+        if entries.is_empty() {
+            return None;
+        }
+        // Dropped from the screen before the write: the list answers immediately, and
+        // the store catches up.
+        let home = &mut self.cursors.home;
+        let entry = entries.remove(home.selected.min(entries.len() - 1));
+        home.selected = home.selected.min(entries.len().saturating_sub(1));
+        home.offset = home.offset.min(home.selected);
+        // Say how to undo, because there is no key for it — the way back is the
+        // same thing that put it here.
+        self.push_toast(Notice::info(format!(
+            "{} removed — watching it again brings it back",
+            entry.title
+        )));
+        Some(Command::HideFromContinue { id: entry.id })
+    }
+
     /// Whether Enter in Search's field opens the highlighted result rather than searching:
     /// the results on screen are already for the query as typed.
     pub fn search_opens_on_enter(&self) -> bool {
@@ -3839,6 +3931,14 @@ impl App {
         // and acted on under its heading.
         self.content = if self.fetches_list() { Content::Loading } else { Content::Empty };
         Some(task)
+    }
+
+    /// The section's list, asked for again.
+    fn refresh_section(&mut self) -> Option<Command> {
+        // Asking again means the covers too: one that failed while the network was
+        // down should not wait out its backoff once you have said it is back.
+        self.images.requests().retry_failed();
+        self.reload()
     }
 
     /// Whether the section on screen fills `content` with a list it is about to ask for.
@@ -4251,6 +4351,12 @@ impl App {
         }
     }
 
+    /// Enter on a store's page: its highlighted line.
+    fn enter_store_line(&mut self) -> Option<Command> {
+        let id = self.store_view()?.to_owned();
+        self.open_store_line(&id)
+    }
+
     /// Open the plugin overlay for one of a store's plugins, with its choices as they stand now.
     pub fn show_plugin(&mut self, store: &str, plugin: &str) {
         self.plugin_action = Some((store.to_owned(), plugin.to_owned()));
@@ -4366,6 +4472,18 @@ impl App {
         }
         self.nav.open_overlay(Overlay::StoreConfirm);
         None
+    }
+
+    /// Enter on a store's members: the highlighted row.
+    fn enter_member_row(&mut self) -> Option<Command> {
+        let id = self.members_view()?.to_owned();
+        self.open_member_row(&id)
+    }
+
+    /// A store's members, asked for again.
+    fn refresh_members(&mut self) -> Option<Command> {
+        let store = self.members_view()?.to_owned();
+        Some(Command::LoadMembers { store })
     }
 
     /// Feed pasted text to whichever field is active. Control characters are dropped, so the
