@@ -18,4 +18,10 @@ impl JobId {
     pub const fn new(n: u64) -> Self {
         Self(n)
     }
+
+    /// The job's number, for a front end that keys its jobs by a plain integer: one on the far
+    /// side of an FFI.
+    pub const fn get(self) -> u64 {
+        self.0
+    }
 }
