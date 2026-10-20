@@ -15,6 +15,9 @@ default = ["fetch"]
 # Lend plugins the browser-emulating HTTP client. Off, a host can only ask plugins to describe
 # themselves — enough for a plugin store's server, without the network stack in its build.
 fetch = ["dep:anistream-net"]
+# Run plugins in wasmtime's interpreter, Pulley, rather than as native code, on any platform, as
+# iOS always does: the conformance suite on the path an iPhone takes, run where it can be.
+interpret = ["wasmtime/pulley"]
 
 [dependencies]
 anistream-core.workspace = true
@@ -45,6 +48,12 @@ regex = "1"
 # AES-128-CBC, for the wrapped stream payloads some sources use.
 aes = "0.8"
 cbc = { version = "0.1", features = ["alloc"] }
+
+# iOS lets no app but Apple's make memory executable, so nothing a compiler emits as native code
+# can run there. The same Cranelift emits Pulley bytecode instead, which wasmtime's interpreter
+# runs: see `engine::INTERPRETED`.
+[target.'cfg(target_os = "ios")'.dependencies]
+wasmtime = { version = "48.0", default-features = false, features = ["pulley"] }
 
 [dev-dependencies]
 tempfile = "3"
