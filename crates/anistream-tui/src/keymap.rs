@@ -1087,9 +1087,18 @@ fn modal_action(binding: Binding) -> Option<Action> {
 /// typed), and Enter is named for what it does here. A narrow status line drops hints from the
 /// front, so the last — `? keys`, or an overlay's way out — is the one that always shows.
 pub fn status_hints(app: &crate::app::App) -> Vec<(String, &'static str)> {
+    status_hints_paged(app, app.help_pages())
+}
+
+/// [`status_hints`], with the help table running to `help_pages`: the frame being drawn says,
+/// once it has laid the table out, where the App still holds what the last frame said.
+pub(crate) fn status_hints_paged(
+    app: &crate::app::App,
+    help_pages: usize,
+) -> Vec<(String, &'static str)> {
     use crate::nav::StageView as V;
     if let Some(overlay) = app.nav.overlay() {
-        return overlay_hints(app, overlay);
+        return overlay_hints(app, overlay, help_pages);
     }
     if app.is_typing() {
         // Search's field: letters are the query, so only the keys that cannot be typed are
@@ -1245,11 +1254,12 @@ fn with_help(
 fn overlay_hints(
     app: &crate::app::App,
     overlay: &crate::nav::Overlay,
+    help_pages: usize,
 ) -> Vec<(String, &'static str)> {
     use crate::nav::Overlay as O;
     let hint = |key: &str, label: &'static str| (key.to_string(), label);
     match overlay {
-        O::Help if app.help_pages.get() > 1 => vec![hint("↑↓", "page"), hint("esc", "close")],
+        O::Help if help_pages > 1 => vec![hint("↑↓", "page"), hint("esc", "close")],
         O::Help => vec![hint("esc", "close")],
         O::InviteLink => vec![hint("↵", "close")],
         O::Logs if app.logs.is_empty() => vec![hint("esc", "close")],

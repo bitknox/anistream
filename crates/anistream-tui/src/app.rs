@@ -400,6 +400,21 @@ struct TitleFrame {
     provider_preference: Option<String>,
 }
 
+/// What a frame found out that only the renderer can know: how the overlay on screen was laid
+/// out at the size it was drawn at.
+///
+/// The renderer takes the App as it is and changes none of it; what it learns comes back as
+/// this, and whatever drew the frame hands it to [`App::took_frame`] before the next key is read
+/// or the next frame drawn. A field is `None` when the frame drew nothing that decides it, and
+/// the App keeps what an earlier frame said.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct FrameReport {
+    /// The first row a list overlay's window showed, when an overlay other than Help was drawn.
+    pub overlay_offset: Option<usize>,
+    /// How many pages the help table ran to, when it was drawn.
+    pub help_pages: Option<usize>,
+}
+
 /// The whole application state.
 pub struct App {
     pub nav: Nav,
@@ -505,17 +520,18 @@ pub struct App {
     pub overlay_selected: usize,
     /// The first row a list overlay showed at the last frame.
     ///
-    /// Written by the renderer, which is the only place that knows how many rows fit. Kept so the
-    /// window moves only when the highlight would leave it, rather than recomputed from the
-    /// highlight each frame and pinning it to the bottom edge on the way back up.
-    pub overlay_offset: std::cell::Cell<usize>,
+    /// Reported by the renderer, which is the only place that knows how many rows fit: see
+    /// [`FrameReport`]. Kept so the window moves only when the highlight would leave it, rather
+    /// than recomputed from the highlight each frame and pinning it to the bottom edge on the
+    /// way back up.
+    overlay_offset: usize,
     /// The help overlay's page. Its own field because Help opens on top of a picker, and paging
     /// through it must not move the picker's selection underneath.
     pub help_page: usize,
-    /// How many pages the help table ran to at the last frame, written by the renderer — only it
-    /// knows how the table breaks at this size — so paging stops at the last page rather than
+    /// How many pages the help table ran to at the last frame, as the renderer reported it — only
+    /// it knows how the table breaks at this size — so paging stops at the last page rather than
     /// running past it and making the next few presses look dead.
-    pub help_pages: std::cell::Cell<usize>,
+    help_pages: usize,
     /// Frame counter for the loading pulse, advanced by the idle tick.
     pub pulse: u64,
     /// Where the reducer and the renderer read the time and the zone: the system's, unless a
@@ -689,9 +705,9 @@ impl App {
             conflicts: Vec::new(),
             statuses_set: std::collections::HashMap::new(),
             overlay_selected: 0,
-            overlay_offset: std::cell::Cell::new(0),
+            overlay_offset: 0,
             help_page: 0,
-            help_pages: std::cell::Cell::new(1),
+            help_pages: 1,
             pulse: 0,
             clock: Clock::system(),
             downloads: Vec::new(),
@@ -1707,7 +1723,7 @@ impl App {
         }
 
         if *overlay == Overlay::Help {
-            let last = self.help_pages.get().saturating_sub(1);
+            let last = self.help_pages.saturating_sub(1);
             self.help_page = match action {
                 Action::Down | Action::PageDown => (self.help_page + 1).min(last),
                 Action::Up | Action::PageUp => self.help_page.saturating_sub(1),
@@ -3708,6 +3724,26 @@ impl App {
     /// The page of the key reference showing.
     pub fn help_page(&self) -> usize {
         self.help_page
+    }
+
+    /// How many pages the help table ran to when it was last drawn.
+    pub fn help_pages(&self) -> usize {
+        self.help_pages
+    }
+
+    /// The first row the list overlay showed when one was last drawn.
+    pub fn overlay_offset(&self) -> usize {
+        self.overlay_offset
+    }
+
+    /// Keep what the frame just drawn found out: see [`FrameReport`].
+    pub fn took_frame(&mut self, report: FrameReport) {
+        if let Some(offset) = report.overlay_offset {
+            self.overlay_offset = offset;
+        }
+        if let Some(pages) = report.help_pages {
+            self.help_pages = pages;
+        }
     }
 
     /// What `field` holds.

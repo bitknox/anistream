@@ -13,7 +13,7 @@ use anistream_model::{command::Command, event::Event};
 use anistream_net::HttpClient;
 use anistream_store::Store;
 use anistream_tui::{
-    app::App,
+    app::{App, FrameReport},
     keymap::Keymap,
     screens,
     theme::{self, player_theme},
@@ -159,7 +159,9 @@ pub async fn preview(
     );
 
     let mut terminal = Terminal::new(TestBackend::new(width, height))?;
-    terminal.draw(|f| screens::render(f, &app))?;
+    let mut report = FrameReport::default();
+    terminal.draw(|f| report = screens::render(f, &app))?;
+    app.took_frame(report);
     let buffer = terminal.backend().buffer().clone();
 
     for y in 0..buffer.area.height {

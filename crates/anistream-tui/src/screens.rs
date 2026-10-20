@@ -2,7 +2,8 @@
 //!
 //! Read-only over [`App`]: every function here takes `&App` and paints. Nothing mutates, so
 //! a render can never change behaviour, and screens can be exercised against a `TestBackend`
-//! without a running event loop.
+//! without a running event loop. What only a frame can find out — how an overlay laid out at
+//! this size — it reports, as a [`FrameReport`] for whatever drew it to hand back to the App.
 
 use anistream_model::{
     catalog::{Content, Entry, LibrarySegment},
@@ -18,9 +19,9 @@ use ratatui::{
 };
 
 use crate::{
-    app::{App, PluginChoice, StoreConfirm, StoreLine, sync_badge},
+    app::{App, FrameReport, PluginChoice, StoreConfirm, StoreLine, sync_badge},
     clock::Clock,
-    keymap::status_hints,
+    keymap::status_hints_paged,
     layout::{self, Frame},
     nav::{Focus, Overlay, Section, StageView},
     theme::{
@@ -68,8 +69,8 @@ fn set_meter(
     buf.set_string(x + filled_width, y, &empty, palette.style(Role::Rule));
 }
 
-/// Paint a whole frame.
-pub fn render(frame: &mut TFrame<'_>, app: &App) {
+/// Paint a whole frame, and say what it found out that only a frame can: see [`FrameReport`].
+pub fn render(frame: &mut TFrame<'_>, app: &App) -> FrameReport {
     let area = frame.area();
     let now = app.clock.now_instant();
     let activity = app.activity(now);
@@ -101,17 +102,19 @@ pub fn render(frame: &mut TFrame<'_>, app: &App) {
 
     Hairline::new(&app.palette).render(geometry.status_rule, buf);
     let caption_end = render_activity(buf, app, &activity, geometry.status_rule, now);
-    render_overlay(buf, app, area, &geometry);
+    let report = render_overlay(buf, app, area, &geometry);
     // After the overlay, so it is not dimmed with the rest: while one is open the status line
     // carries that overlay's own keys, which are no use faded into the scrim — and the overlay
-    // has to be laid out before its hints can say whether it pages.
-    render_status(buf, app, &geometry);
+    // has to be laid out before its hints can say whether it pages, which is this frame's word
+    // where it drew the help table and the last one's where it did not.
+    render_status(buf, app, &geometry, report.help_pages.unwrap_or(app.help_pages()));
     // After the overlay for the same reason: a message answering a key pressed in a picker
     // is read while the picker is still up.
     render_toasts(buf, app, geometry.status_rule, caption_end);
     // Last, so it occludes: an eyecatch that toasts could bleed through would not be covering
     // anything.
     render_eyecatch(buf, app, geometry.stage);
+    report
 }
 
 fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
@@ -251,12 +254,12 @@ fn job_text(job: &crate::app::Job, now: std::time::Instant) -> (String, Option<S
     (job.label.clone(), detail)
 }
 
-fn render_status(buf: &mut Buffer, app: &App, geometry: &Frame) {
+fn render_status(buf: &mut Buffer, app: &App, geometry: &Frame, help_pages: usize) {
     // A config that did not load outranks everything the line would otherwise say: until it
     // is fixed, the state shown is the defaults', and every setting refuses to save. Here
     // rather than over the stage's bottom row, which hid whatever list row sat there.
     if let Some(notice) = app.notice.as_deref() {
-        let hints = status_hints(app);
+        let hints = status_hints_paged(app, help_pages);
         StatusLine::new(&app.palette, notice)
             .state_role(Role::Alert)
             .hints(&hints)
@@ -273,7 +276,7 @@ fn render_status(buf: &mut Buffer, app: &App, geometry: &Frame) {
     } else {
         app.status.clone()
     };
-    let hints = status_hints(app);
+    let hints = status_hints_paged(app, help_pages);
     StatusLine::new(&app.palette, &state).hints(&hints).render(geometry.status, buf);
 }
 
@@ -3313,9 +3316,11 @@ fn recommendation_rows(app: &App) -> Vec<(String, String)> {
         .collect()
 }
 
-fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
+/// The overlay on top, if there is one, and how it was laid out: see [`FrameReport`].
+fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) -> FrameReport {
+    let mut report = FrameReport::default();
     let Some(overlay) = app.nav.overlay() else {
-        return;
+        return report;
     };
 
     // Full width, but only ever as tall as the stage. The header and status line carry state
@@ -3419,7 +3424,7 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         let available = area.width.saturating_sub(4);
         let help = help_layout(&rows, available, room);
         let pages = help.pages();
-        app.help_pages.set(pages);
+        report.help_pages = Some(pages);
         let page = app.help_page.min(pages - 1);
         let shown: Vec<std::ops::Range<usize>> =
             help.columns.iter().skip(page * help.across).take(help.across).cloned().collect();
@@ -3439,14 +3444,13 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
         let visible = rows.len().min(room);
         let offset = match selected {
             Some(at) => app
-                .overlay_offset
-                .get()
+                .overlay_offset()
                 .min(at)
                 .max((at + 1).saturating_sub(visible))
                 .min(rows.len() - visible),
             None => 0,
         };
-        app.overlay_offset.set(offset);
+        report.overlay_offset = Some(offset);
         let position = (rows.len() > visible)
             .then(|| format!("{}–{} of {}", offset + 1, offset + visible, rows.len()));
         let shown = std::iter::once(offset..offset + visible).collect();
@@ -3482,7 +3486,7 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
     // crashed the app at any height a pane can be dragged to.
     let title_y = band.top() + 1;
     if title_y >= band.bottom() {
-        return;
+        return report;
     }
     buf[(band.left(), title_y)].set_char(OBI).set_style(app.palette.style(Role::Obi));
     let heading = match overlay {
@@ -3651,6 +3655,7 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) {
             }
         }
     }
+    report
 }
 
 /// The last `room` characters of `text`, with an ellipsis when that is not all of it.
@@ -3985,10 +3990,15 @@ pub fn visible_rows(area: Rect, section: Section) -> usize {
 /// Used by the layout tests and by the screen goldens in `tests/goldens.rs`, which are how a
 /// composition gets looked at rather than imagined. Not gated to `cfg(test)`, because those are
 /// integration tests and see the crate only as a library.
-pub fn render_to_buffer(app: &App, width: u16, height: u16) -> Buffer {
+///
+/// Drawn as the event loop draws a frame: what it reports goes back to the app, so the next key
+/// pages and scrolls the overlay as the frame laid it out.
+pub fn render_to_buffer(app: &mut App, width: u16, height: u16) -> Buffer {
     use ratatui::{Terminal, backend::TestBackend};
     let mut terminal = Terminal::new(TestBackend::new(width, height)).expect("terminal");
-    terminal.draw(|f| render(f, app)).expect("draw");
+    let mut report = FrameReport::default();
+    terminal.draw(|f| report = render(f, app)).expect("draw");
+    app.took_frame(report);
     terminal.backend().buffer().clone()
 }
 
@@ -4109,7 +4119,7 @@ mod tests {
             ..anistream_model::sync::SyncState::new("anilist")
         })));
         app.go_to_section(Section::Accounts);
-        let text = text_of(&render_to_buffer(&app, 120, 34));
+        let text = text_of(&render_to_buffer(&mut app, 120, 34));
         assert!(text.contains("pull failed at "), "{text}");
         assert!(text.contains("network: timed out"), "{text}");
     }
@@ -4156,7 +4166,7 @@ mod tests {
     fn running_work_is_captioned_on_the_status_rule_and_moves_nothing() {
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
         let idle: Vec<String> =
-            text_of(&render_to_buffer(&app, 120, 30)).lines().map(str::to_owned).collect();
+            text_of(&render_to_buffer(&mut app, 120, 30)).lines().map(str::to_owned).collect();
         assert!(!idle.join("\n").contains("listing sources"));
 
         running(
@@ -4168,7 +4178,7 @@ mod tests {
             3,
         );
         let busy: Vec<String> =
-            text_of(&render_to_buffer(&app, 120, 30)).lines().map(str::to_owned).collect();
+            text_of(&render_to_buffer(&mut app, 120, 30)).lines().map(str::to_owned).collect();
         // The status rule, second to last, carries the caption and is still a rule after it.
         let rule = &busy[busy.len() - 2];
         assert!(rule.contains("listing sources for ep 10 · 3s"), "status rule was {rule:?}");
@@ -4192,7 +4202,7 @@ mod tests {
             note: "AniList limit".into(),
             wait: Some(std::time::Duration::from_millis(12_400)),
         });
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("loading this season · AniList limit, 12s"), "{text}");
         assert!(!text.contains("· 4s"), "two clocks at once");
 
@@ -4217,7 +4227,7 @@ mod tests {
             2,
         );
         let rows: Vec<String> =
-            text_of(&render_to_buffer(&app, 60, 30)).lines().map(str::to_owned).collect();
+            text_of(&render_to_buffer(&mut app, 60, 30)).lines().map(str::to_owned).collect();
         let row = &rows[rows.len() - 2];
         assert!(row.contains("listing sources for ep 10"), "the newest job leads: {row:?}");
         let caption = row.trim_end_matches(['─', ' ']);
@@ -4235,7 +4245,7 @@ mod tests {
             goal: 1.0,
             left_secs: 18 * 3600,
         }]));
-        let screen = text_of(&render_to_buffer(&app, 120, 30));
+        let screen = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(
             screen.contains("SEEDING AFTER WATCHING")
                 || screen.contains("seeding after watching")
@@ -4246,8 +4256,8 @@ mod tests {
 
     #[test]
     fn a_full_frame_renders_the_chrome_and_content() {
-        let app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
-        let buf = render_to_buffer(&app, 120, 30);
+        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let buf = render_to_buffer(&mut app, 120, 30);
         let text = text_of(&buf);
         assert!(text.contains("anistream"), "header missing");
         assert!(text.contains("CONTINUE"), "rail missing");
@@ -4260,9 +4270,9 @@ mod tests {
     fn nothing_is_drawn_outside_the_buffer_at_any_size() {
         // The real guard against panics: ratatui will not let us write out of bounds, so
         // simply rendering at many sizes without panicking is the assertion.
-        let app = app_with(Content::Entries((1..40).map(|i| entry(i, "Title")).collect()));
+        let mut app = app_with(Content::Entries((1..40).map(|i| entry(i, "Title")).collect()));
         for (w, h) in [(20, 5), (40, 10), (80, 24), (100, 30), (200, 60), (60, 3)] {
-            let buf = render_to_buffer(&app, w, h);
+            let buf = render_to_buffer(&mut app, w, h);
             assert_eq!(buf.area.width, w);
             assert_eq!(buf.area.height, h);
         }
@@ -4281,16 +4291,16 @@ mod tests {
     #[test]
     fn a_failure_is_shown_with_its_reason_never_as_a_blank_screen() {
         // The single most important rendering rule in the app.
-        let app = app_with(Content::Failed("all providers unreachable".into()));
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let mut app = app_with(Content::Failed("all providers unreachable".into()));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("COULD NOT LOAD"));
         assert!(text.contains("all providers unreachable"));
     }
 
     #[test]
     fn loading_says_so_rather_than_looking_empty() {
-        let app = app_with(Content::Loading);
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let mut app = app_with(Content::Loading);
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(
             text.contains("LOADING"),
             "a moving indicator still needs to say what it means"
@@ -4312,7 +4322,7 @@ mod tests {
 
         for section in [Section::Home, Section::Settings, Section::Providers] {
             app.go_to_section(section);
-            let text = text_of(&render_to_buffer(&app, 120, 34));
+            let text = text_of(&render_to_buffer(&mut app, 120, 34));
             let rows: Vec<&str> = text.lines().collect();
             let notice = rows.iter().position(|r| r.contains("unknown field `qualty`"));
             let toast = rows.iter().position(|r| r.contains("a passing problem"));
@@ -4336,13 +4346,13 @@ mod tests {
     #[test]
     fn the_loading_pulse_actually_moves_between_frames() {
         let mut app = app_with(Content::Loading);
-        let first = text_of(&render_to_buffer(&app, 120, 30));
+        let first = text_of(&render_to_buffer(&mut app, 120, 30));
         // Five idle ticks: enough for both the three-frame wave and the slower shimmer to have
         // moved. An indicator that renders identically forever is a picture of an animation.
         for _ in 0..5 {
             app.tick_toasts();
         }
-        let later = text_of(&render_to_buffer(&app, 120, 30));
+        let later = text_of(&render_to_buffer(&mut app, 120, 30));
         assert_ne!(first, later, "the loading state is static");
     }
 
@@ -4354,7 +4364,7 @@ mod tests {
         // Run, as Enter runs it: the answer is for the query in the field.
         app.searched_query = "zzzz".into();
         app.apply(app.content_here(Content::Entries(vec![])));
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("NO MATCHES"), "got {text:?}");
         assert!(!text.contains("COULD NOT"));
     }
@@ -4363,8 +4373,8 @@ mod tests {
     fn an_empty_screen_says_what_to_do_next_rather_than_substituting_content() {
         // Home used to fill an empty continue list with the current season, which made the section
         // labelled CONTINUE a discovery screen — and left a half-finished episode nowhere to appear.
-        let app = app_with(Content::Empty);
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let mut app = app_with(Content::Empty);
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("NOTHING WATCHED YET"), "got {text:?}");
         assert!(text.contains("this season"), "an empty screen needs a way out: {text:?}");
     }
@@ -4375,12 +4385,12 @@ mod tests {
         let mut untouched = app_with(Content::Empty);
         untouched.go_to_section(Section::Search);
         untouched.apply(untouched.content_here(Content::Empty));
-        assert!(text_of(&render_to_buffer(&untouched, 120, 30)).contains("TYPE TO SEARCH"));
+        assert!(text_of(&render_to_buffer(&mut untouched, 120, 30)).contains("TYPE TO SEARCH"));
 
         let mut searched = app_with(Content::Empty);
         searched.go_to_section(Section::Search);
         searched.apply(searched.content_here(Content::Entries(vec![])));
-        assert!(text_of(&render_to_buffer(&searched, 120, 30)).contains("NO MATCHES"));
+        assert!(text_of(&render_to_buffer(&mut searched, 120, 30)).contains("NO MATCHES"));
     }
 
     #[test]
@@ -4390,15 +4400,16 @@ mod tests {
         for ch in "invented".chars() {
             app.type_char(ch);
         }
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("↵ TO SEARCH"), "got {text:?}");
         assert!(!text.contains("TYPE TO SEARCH"), "got {text:?}");
     }
 
     #[test]
     fn the_selected_row_carries_the_obi_and_no_background_fill() {
-        let app = app_with(Content::Entries(vec![entry(1, "Frieren"), entry(2, "Dandadan")]));
-        let buf = render_to_buffer(&app, 120, 30);
+        let mut app =
+            app_with(Content::Entries(vec![entry(1, "Frieren"), entry(2, "Dandadan")]));
+        let buf = render_to_buffer(&mut app, 120, 30);
         let text = text_of(&buf);
         assert!(text.contains('▌'), "obi missing from the selected row");
         // Adaptive mode must not paint any background at all.
@@ -4417,17 +4428,40 @@ mod tests {
     fn immersive_mode_paints_the_ground_everywhere() {
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
         app.palette = Palette::immersive();
-        let buf = render_to_buffer(&app, 60, 12);
+        let buf = render_to_buffer(&mut app, 60, 12);
         let expected = Palette::immersive().ground().unwrap().to_ratatui();
         assert_eq!(buf[(0, 0)].bg, expected);
         assert_eq!(buf[(59, 11)].bg, expected);
+    }
+
+    /// A frame says how it laid the overlay out rather than writing it into the app: the help
+    /// table's pages where it drew Help, the list's window where it drew a list overlay, and
+    /// nothing where it drew neither, for the app to keep what an earlier frame said.
+    #[test]
+    fn a_frame_reports_how_it_laid_the_overlay_out() {
+        use ratatui::{Terminal, backend::TestBackend};
+        let draw = |app: &App| {
+            let mut terminal = Terminal::new(TestBackend::new(80, 24)).expect("terminal");
+            let mut report = FrameReport::default();
+            terminal.draw(|f| report = render(f, app)).expect("draw");
+            report
+        };
+        let mut app = app_with(Content::Empty);
+        assert_eq!(draw(&app), FrameReport::default());
+        app.nav.open_overlay(Overlay::Help);
+        let help = draw(&app);
+        assert!(help.help_pages.is_some_and(|pages| pages > 1), "{help:?}");
+        assert_eq!(help.overlay_offset, None);
+        app.nav.close_overlay();
+        app.nav.open_overlay(Overlay::Logs);
+        assert_eq!(draw(&app), FrameReport { overlay_offset: Some(0), help_pages: None });
     }
 
     #[test]
     fn the_help_overlay_lists_real_bindings() {
         let mut app = app_with(Content::Entries(vec![]));
         app.nav.open_overlay(Overlay::Help);
-        let text = text_of(&render_to_buffer(&app, 120, 40));
+        let text = text_of(&render_to_buffer(&mut app, 120, 40));
         assert!(text.contains("KEYS"));
         assert!(text.contains("Episodes"), "help should list actions");
         assert!(text.contains("GLOBAL"), "help should be grouped by scope");
@@ -4438,7 +4472,7 @@ mod tests {
         // A bordered dialog would break the one rule the whole look depends on.
         let mut app = app_with(Content::Entries(vec![]));
         app.nav.open_overlay(Overlay::Help);
-        let text = text_of(&render_to_buffer(&app, 120, 40));
+        let text = text_of(&render_to_buffer(&mut app, 120, 40));
         for corner in ['┌', '┐', '└', '┘', '├', '┤'] {
             assert!(!text.contains(corner), "overlay drew a box corner {corner:?}");
         }
@@ -4449,7 +4483,7 @@ mod tests {
         let mut app = app_with(Content::Entries(vec![]));
         app.nav.open_overlay(Overlay::CommandPalette);
         app.set_text(Field::Palette, "episode".into());
-        let text = text_of(&render_to_buffer(&app, 120, 40));
+        let text = text_of(&render_to_buffer(&mut app, 120, 40));
         assert!(text.contains("RUN"));
         assert!(text.contains("episode"), "query should be visible");
         assert!(text.contains("Episodes"));
@@ -4461,7 +4495,7 @@ mod tests {
         app.go_to_section(Section::Search);
         app.type_char('f');
         app.type_char('r');
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("FIND"));
         assert!(text.contains("fr"));
     }
@@ -4472,7 +4506,7 @@ mod tests {
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
         app.nav.focus_stage();
         app.handle(crate::keymap::Action::Open, 20);
-        let buf = render_to_buffer(&app, 120, 30);
+        let buf = render_to_buffer(&mut app, 120, 30);
         let text = text_of(&buf);
         assert!(text.contains('░'), "banner plate missing");
 
@@ -4497,7 +4531,7 @@ mod tests {
         let mut app = app_with(Content::Entries(vec![entry(1, "Invented Show")]));
         app.nav.focus_stage();
         app.handle(crate::keymap::Action::Open, 20);
-        let buf = render_to_buffer(&app, 80, 10);
+        let buf = render_to_buffer(&mut app, 80, 10);
         let stage = layout::compute(Rect::new(0, 0, 80, 10), app.nav.rail_width()).stage;
         let below: Vec<String> =
             text_of(&buf).lines().skip(stage.bottom() as usize).map(str::to_owned).collect();
@@ -4513,7 +4547,7 @@ mod tests {
             (1..30).map(|i| entry(i, "A Distinctive Background Title")).collect(),
         ));
         app.nav.open_overlay(Overlay::Help);
-        let buf = render_to_buffer(&app, 120, 30);
+        let buf = render_to_buffer(&mut app, 120, 30);
 
         // Find a row inside the band and confirm no background content survives on it.
         let text = text_of(&buf);
@@ -4557,7 +4591,7 @@ mod tests {
             episode("11", "A Real Hero", 0.0, false),
         ]));
 
-        let text = text_of(&render_to_buffer(&app, 110, 20));
+        let text = text_of(&render_to_buffer(&mut app, 110, 20));
         // Zero-padded numerals in a fixed field: episodes are a real sequence, so the
         // numbering carries information rather than decorating.
         assert!(text.contains("009"), "numerals should be padded");
@@ -4577,7 +4611,7 @@ mod tests {
     fn an_episode_table_with_no_source_explains_itself() {
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
         app.nav.push(StageView::Episodes(AnilistId::new(1)));
-        let text = text_of(&render_to_buffer(&app, 110, 20));
+        let text = text_of(&render_to_buffer(&mut app, 110, 20));
         assert!(text.contains("NO EPISODES YET"));
         assert!(text.contains("Providers screen"), "must point somewhere actionable");
     }
@@ -4623,7 +4657,7 @@ mod tests {
             },
         ]));
 
-        let text = text_of(&render_to_buffer(&app, 110, 20));
+        let text = text_of(&render_to_buffer(&mut app, 110, 20));
         assert!(text.contains("torrent"));
         assert!(text.contains("310ms"), "latency helps judge a slow source");
         assert!(text.contains("cloudflare challenge (403)"), "the reason must be spelled out");
@@ -4637,7 +4671,7 @@ mod tests {
         app.go_to_section(Section::Providers);
         app.apply(Event::Providers(vec![provider("torrent", "held back", false, true)]));
 
-        let buf = render_to_buffer(&app, 110, 20);
+        let buf = render_to_buffer(&mut app, 110, 20);
         let text = text_of(&buf);
         assert!(text.contains("held back"));
 
@@ -4654,7 +4688,7 @@ mod tests {
     fn an_empty_provider_list_says_how_to_fix_it() {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Providers);
-        let text = text_of(&render_to_buffer(&app, 110, 20));
+        let text = text_of(&render_to_buffer(&mut app, 110, 20));
         assert!(text.contains("no sources available"));
         assert!(text.contains("VPN mode"), "must say what to actually do");
     }
@@ -4669,7 +4703,7 @@ mod tests {
             "vpn guard: expected one of [Mullvad], but traffic is leaving via Comcast".into(),
         ));
 
-        let text = text_of(&render_to_buffer(&app, 110, 20));
+        let text = text_of(&render_to_buffer(&mut app, 110, 20));
         assert!(text.contains("Comcast"), "the real reason must reach the screen");
         assert!(
             !text.contains("providers.torrent.enabled"),
@@ -4684,12 +4718,12 @@ mod tests {
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
         app.apply(Event::Vpn(Some(GuardView::Protected { exit: "Mullvad · SE".into() })));
 
-        let buf = render_to_buffer(&app, 120, 20);
+        let buf = render_to_buffer(&mut app, 120, 20);
         let text = text_of(&buf);
         assert!(text.contains("Mullvad"), "badge missing from the header");
 
         app.apply(Event::Vpn(Some(GuardView::Leaking)));
-        let leaking = render_to_buffer(&app, 120, 20);
+        let leaking = render_to_buffer(&mut app, 120, 20);
         let leaking_text = text_of(&leaking);
         assert!(leaking_text.contains("LEAK"));
 
@@ -4732,7 +4766,7 @@ mod tests {
 
     #[test]
     fn now_playing_shows_the_playhead_and_the_clock() {
-        let text = text_of(&render_to_buffer(&app_playing(), 100, 26));
+        let text = text_of(&render_to_buffer(&mut app_playing(), 100, 26));
         assert!(text.contains("Sousou no Frieren"));
         assert!(text.contains("Frieren the Slayer"));
         assert!(text.contains("9:12 / 23:55"), "the clock is missing:\n{text}");
@@ -4745,12 +4779,12 @@ mod tests {
         // One idea used twice: the bar marking where you are in a list is the bar marking
         // where you are in an episode. Pausing needs no badge, just a quieter bar.
         let mut app = app_playing();
-        let playing = render_to_buffer(&app, 100, 26);
+        let playing = render_to_buffer(&mut app, 100, 26);
         let meter_cell = find_cell(&playing, "█").expect("no playhead was drawn");
         assert_eq!(playing[meter_cell].fg, app.palette.color(Role::Obi));
 
         app.apply(Event::Playback { position: 552.0, duration: Some(1435.0), paused: true });
-        let paused = render_to_buffer(&app, 100, 26);
+        let paused = render_to_buffer(&mut app, 100, 26);
         assert_eq!(paused[meter_cell].fg, app.palette.color(Role::TextDim));
         assert!(text_of(&paused).contains("paused"));
     }
@@ -4759,10 +4793,10 @@ mod tests {
     fn the_skip_prompt_names_its_key_and_only_appears_when_offered() {
         let mut app = app_playing();
         // The status-line hint is always there; the prompt in the block is not.
-        assert!(!text_of(&render_to_buffer(&app, 100, 26)).contains("skip opening"));
+        assert!(!text_of(&render_to_buffer(&mut app, 100, 26)).contains("skip opening"));
 
         app.apply(Event::SkipAvailable { kind: SkipKind::Opening, to: 93.2 });
-        let text = text_of(&render_to_buffer(&app, 100, 26));
+        let text = text_of(&render_to_buffer(&mut app, 100, 26));
         assert!(text.contains("skip opening"), "prompt missing:\n{text}");
         assert!(text.contains("S ⟩"), "the prompt has to name the key:\n{text}");
     }
@@ -4771,7 +4805,7 @@ mod tests {
     fn now_playing_composes_as_one_column_on_a_wide_terminal() {
         // The eyebrow and the block share a right edge. Two different right margins reads as
         // a layout bug rather than a composition.
-        let buf = render_to_buffer(&app_playing(), 200, 30);
+        let buf = render_to_buffer(&mut app_playing(), 200, 30);
         let text = text_of(&buf);
         let clock_line =
             text.lines().find(|l| l.contains("9:12 / 23:55")).expect("no clock line");
@@ -4792,7 +4826,7 @@ mod tests {
         let mut app = app_playing();
         app.playing = None;
         app.nav.push(crate::nav::StageView::NowPlaying);
-        assert!(text_of(&render_to_buffer(&app, 100, 26)).contains("nothing is playing"));
+        assert!(text_of(&render_to_buffer(&mut app, 100, 26)).contains("nothing is playing"));
     }
 
     /// An app sitting on the episodes overlay, the way the table tests set it up.
@@ -4834,7 +4868,7 @@ mod tests {
             ],
         });
 
-        let text = text_of(&render_to_buffer(&app, 110, 24));
+        let text = text_of(&render_to_buffer(&mut app, 110, 24));
         assert!(text.contains("WHICH ONE"), "the overlay names what it is asking");
         assert!(text.contains("62%") && text.contains("61%"), "similarity has to be visible");
         assert!(text.contains("Frieren S1") && text.contains("Frieren S2"));
@@ -4887,7 +4921,7 @@ mod tests {
         app.episodes[0].thumbnail = Some("https://cdn.example/1.jpg".into());
         for width in [20, 40, 60, 80, 100, 140] {
             for height in [6, 8, 12, 20, 30] {
-                let _ = render_to_buffer(&app, width, height);
+                let _ = render_to_buffer(&mut app, width, height);
             }
         }
     }
@@ -4902,7 +4936,7 @@ mod tests {
         for _ in 0..crate::eyecatch::SWEEP_FRAMES {
             app.eyecatch.as_mut().unwrap().advance();
         }
-        let quick = text_of(&render_to_buffer(&app, 100, 26));
+        let quick = text_of(&render_to_buffer(&mut app, 100, 26));
         assert!(quick.contains("Frieren"), "the label rides the band");
         assert!(!quick.contains("still resolving"), "a fast play must stay quiet");
 
@@ -4910,7 +4944,7 @@ mod tests {
         for _ in 0..crate::eyecatch::QUIET_HOLD_FRAMES {
             app.eyecatch.as_mut().unwrap().advance();
         }
-        let slow = text_of(&render_to_buffer(&app, 100, 26));
+        let slow = text_of(&render_to_buffer(&mut app, 100, 26));
         assert!(slow.contains("still resolving"), "a long wait must not look wedged");
         assert!(slow.contains("Frieren"), "the label stays alongside it");
     }
@@ -4924,7 +4958,7 @@ mod tests {
         for _ in 0..crate::eyecatch::SWEEP_FRAMES {
             app.tick_animation();
         }
-        let text = text_of(&render_to_buffer(&app, 100, 26));
+        let text = text_of(&render_to_buffer(&mut app, 100, 26));
         assert!(!text.contains("Frieren the Slayer"), "the stage showed through:\n{text}");
         assert!(text.contains("ep 012"), "the band should carry its label:\n{text}");
     }
@@ -4939,7 +4973,7 @@ mod tests {
         for _ in 0..crate::eyecatch::SWEEP_FRAMES {
             app.tick_animation();
         }
-        let text = text_of(&render_to_buffer(&app, 100, 26));
+        let text = text_of(&render_to_buffer(&mut app, 100, 26));
         assert!(text.contains("anistream"), "the header was covered");
         assert!(text.contains("vpn ●  Mullvad"), "the VPN badge was covered:\n{text}");
     }
@@ -4956,7 +4990,7 @@ mod tests {
             for _ in 0..crate::eyecatch::SWEEP_FRAMES {
                 app.tick_animation();
             }
-            let buf = render_to_buffer(&app, 100, 26);
+            let buf = render_to_buffer(&mut app, 100, 26);
             let cell = find_cell(&buf, "F").expect("the label was not drawn");
             let (fg, bg) = (buf[cell].fg, buf[cell].bg);
             let ratio = contrast_ratio(rgb_of(fg), rgb_of(bg));
@@ -5030,7 +5064,7 @@ mod tests {
 
             for section in Section::ALL {
                 app.go_to_section(section);
-                let buf = render_to_buffer(&app, width, height);
+                let buf = render_to_buffer(&mut app, width, height);
                 assert_eq!(buf.area.width, width, "{section:?} at {width}x{height}");
 
                 for (row, line) in text_of(&buf).lines().enumerate() {
@@ -5053,7 +5087,7 @@ mod tests {
             {
                 let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
                 app.nav.open_overlay(overlay.clone());
-                let buf = render_to_buffer(&app, width, height);
+                let buf = render_to_buffer(&mut app, width, height);
                 for (row, line) in text_of(&buf).lines().enumerate() {
                     assert!(
                         display_width(line) <= width as usize,
@@ -5069,8 +5103,8 @@ mod tests {
         // Nobody watches anime in a 12×4 terminal, but a resize passes through every size on the
         // way down, and a panic mid-resize takes the app out.
         for (width, height) in [(12, 4), (8, 3), (4, 2), (1, 1)] {
-            let app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
-            let buf = render_to_buffer(&app, width, height);
+            let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+            let buf = render_to_buffer(&mut app, width, height);
             assert_eq!(buf.area.width, width);
         }
     }
@@ -5088,17 +5122,17 @@ mod tests {
                 let mut app = app_with(Content::Entries(vec![entry_with_meta.clone()]));
                 app.detail = Some(entry_with_meta.clone());
                 app.nav.push(StageView::Title(AnilistId::new(1)));
-                render_to_buffer(&app, width, height);
+                render_to_buffer(&mut app, width, height);
 
                 // Now Playing.
                 let mut app = app_with(Content::Entries(vec![entry_with_meta.clone()]));
                 app.detail = Some(entry_with_meta.clone());
                 app.nav.push(crate::nav::StageView::NowPlaying);
-                render_to_buffer(&app, width, height);
+                render_to_buffer(&mut app, width, height);
 
                 // A load failure, which is the screen that matters most when it appears.
-                let app = app_with(Content::Failed("all providers unreachable".into()));
-                render_to_buffer(&app, width, height);
+                let mut app = app_with(Content::Failed("all providers unreachable".into()));
+                render_to_buffer(&mut app, width, height);
 
                 // Every overlay, since `?` is reachable from anywhere.
                 for overlay in [
@@ -5114,7 +5148,7 @@ mod tests {
                     let mut app = app_with(Content::Entries(vec![entry_with_meta.clone()]));
                     app.detail = Some(entry_with_meta.clone());
                     app.nav.open_overlay(overlay);
-                    render_to_buffer(&app, width, height);
+                    render_to_buffer(&mut app, width, height);
                 }
             }
         }
@@ -5262,7 +5296,7 @@ mod tests {
                 let mut app = app_with_stores();
                 app.go_to_section(Section::Providers);
                 app.nav.push(view.clone());
-                let buf = render_to_buffer(&app, width, height);
+                let buf = render_to_buffer(&mut app, width, height);
                 for (row, line) in text_of(&buf).lines().enumerate() {
                     assert!(
                         display_width(line) <= width as usize,
@@ -5274,7 +5308,7 @@ mod tests {
                     app.go_to_section(Section::Providers);
                     app.nav.push(view.clone());
                     app.nav.open_overlay(overlay.clone());
-                    let buf = render_to_buffer(&app, width, height);
+                    let buf = render_to_buffer(&mut app, width, height);
                     for (row, line) in text_of(&buf).lines().enumerate() {
                         assert!(
                             display_width(line) <= width as usize,
@@ -5290,7 +5324,7 @@ mod tests {
     fn providers_says_stores_exist_even_with_nothing_joined() {
         let mut app = app_with(Content::Entries(Vec::new()));
         app.go_to_section(Section::Providers);
-        let text = text_of(&render_to_buffer(&app, 120, 34));
+        let text = text_of(&render_to_buffer(&mut app, 120, 34));
         assert!(text.contains("PLUGIN STORES"), "{text}");
         assert!(text.contains("invite link"), "{text}");
     }
@@ -5301,7 +5335,7 @@ mod tests {
         app.go_to_section(Section::Providers);
         app.nav.push(StageView::Stores);
         app.nav.push(StageView::Store("aaaa".into()));
-        let text = text_of(&render_to_buffer(&app, 140, 40));
+        let text = text_of(&render_to_buffer(&mut app, 140, 40));
         for expected in [
             "not installed",
             "installed",
@@ -5325,7 +5359,7 @@ mod tests {
         app.stores[0].owner = false;
         app.go_to_section(Section::Providers);
         app.nav.push(StageView::Store("aaaa".into()));
-        let text = text_of(&render_to_buffer(&app, 140, 40));
+        let text = text_of(&render_to_buffer(&mut app, 140, 40));
         assert!(text.contains("link another device"));
         assert!(!text.contains("invite someone"));
         assert!(!text.contains("publish a plugin"));
@@ -5337,7 +5371,7 @@ mod tests {
         app.go_to_section(Section::Providers);
         app.nav.push(StageView::Store("aaaa".into()));
         app.nav.open_overlay(Overlay::PluginAction);
-        let text = text_of(&render_to_buffer(&app, 140, 40));
+        let text = text_of(&render_to_buffer(&mut app, 140, 40));
         let hosts = text.find("may contact   api.example, cdn.example").expect("hosts shown");
         let adds = text.find("the update adds   else.example").expect("new host called out");
         let offer = text.find("update to 1.4.0").expect("update offered");
@@ -5351,7 +5385,7 @@ mod tests {
         app.nav.push(StageView::Store("aaaa".into()));
         app.nav.open_overlay(Overlay::InviteLink);
         // Narrow enough that the link has to span rows.
-        let text = text_of(&render_to_buffer(&app, 60, 30));
+        let text = text_of(&render_to_buffer(&mut app, 60, 30));
         let link = app.invite_link.as_ref().unwrap().link.0.clone();
         let joined: String = text.chars().filter(|c| !c.is_whitespace() && *c != '▌').collect();
         assert!(joined.contains(&link), "the whole link must be on screen:\n{text}");
@@ -5362,10 +5396,10 @@ mod tests {
         // Without a scrim a full-width band cuts through the rail and reads as a
         // rendering fault. Dimming makes it read as a layer on top.
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
-        let before = render_to_buffer(&app, 120, 30);
+        let before = render_to_buffer(&mut app, 120, 30);
 
         app.nav.open_overlay(Overlay::Help);
-        let after = render_to_buffer(&app, 120, 30);
+        let after = render_to_buffer(&mut app, 120, 30);
 
         // The header sits above the band and must survive, but dimmed.
         let header_x = 0;
@@ -5384,7 +5418,7 @@ mod tests {
         let mut app = app_with(Content::Entries(vec![]));
         app.nav.open_overlay(Overlay::CommandPalette);
         app.set_text(Field::Palette, "episode".into());
-        let text = text_of(&render_to_buffer(&app, 160, 24));
+        let text = text_of(&render_to_buffer(&mut app, 160, 24));
 
         let rows: Vec<&str> =
             text.lines().filter(|l| l.contains("episode") || l.contains("Episodes")).collect();
@@ -5402,7 +5436,7 @@ mod tests {
         // Forty-odd bindings do not fit one column; clipping would hide whole categories.
         let mut app = app_with(Content::Entries(vec![]));
         app.nav.open_overlay(Overlay::Help);
-        let text = text_of(&render_to_buffer(&app, 140, 32));
+        let text = text_of(&render_to_buffer(&mut app, 140, 32));
         assert!(text.contains("Show keys"), "first scope missing");
         assert!(text.contains("Stop playback"), "last scope missing — the list was clipped");
     }
@@ -5415,7 +5449,7 @@ mod tests {
         }]));
         app.nav.focus_stage();
         app.handle(crate::keymap::Action::Open, 20);
-        let text = text_of(&render_to_buffer(&app, 120, 34));
+        let text = text_of(&render_to_buffer(&mut app, 120, 34));
         assert!(text.contains("Crunchyroll"));
         assert!(text.contains("Netflix"));
     }
@@ -5424,20 +5458,22 @@ mod tests {
     fn toasts_appear_and_disappear() {
         let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
         app.push_toast(anistream_model::notice::Notice::alert("provider unreachable"));
-        assert!(text_of(&render_to_buffer(&app, 120, 30)).contains("provider unreachable"));
+        assert!(text_of(&render_to_buffer(&mut app, 120, 30)).contains("provider unreachable"));
 
         for _ in 0..300 {
             app.tick_toasts();
         }
-        assert!(!text_of(&render_to_buffer(&app, 120, 30)).contains("provider unreachable"));
+        assert!(
+            !text_of(&render_to_buffer(&mut app, 120, 30)).contains("provider unreachable")
+        );
     }
 
     #[test]
     fn the_status_line_reports_source_translation_and_quality() {
         // Torrents lead the default order and are off by default, so the source named is the
         // first one that is not switched off rather than the first in the list.
-        let app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("plugins · sub · 1080p"), "status line missing state:\n{text}");
     }
 
@@ -5459,7 +5495,7 @@ mod tests {
             },
         )));
 
-        let buf = render_to_buffer(&app, 110, 20);
+        let buf = render_to_buffer(&mut app, 110, 20);
         let text = text_of(&buf);
         assert!(text.contains("FINISH SIGNING IN TO SIMKL"), "got {text:?}");
         assert!(text.contains("https://simkl.com/pin"), "the URL has to be there too");
@@ -5483,7 +5519,7 @@ mod tests {
                 url: "https://simkl.com/pin".into(),
             },
         )));
-        let buf = render_to_buffer(&app, 110, 20);
+        let buf = render_to_buffer(&mut app, 110, 20);
 
         let obi = app.palette.style(Role::Obi).fg;
         let found = (0..20).any(|y| {
@@ -5506,18 +5542,18 @@ mod tests {
                 url: "https://simkl.com/pin".into(),
             },
         )));
-        assert!(text_of(&render_to_buffer(&app, 110, 20)).contains("F A 4 3 3"));
+        assert!(text_of(&render_to_buffer(&mut app, 110, 20)).contains("F A 4 3 3"));
 
         // A prompt left up after approval asks for a code that no longer does anything.
         app.apply(anistream_model::event::Event::DeviceCode(None));
-        assert!(!text_of(&render_to_buffer(&app, 110, 20)).contains("F A 4 3 3"));
+        assert!(!text_of(&render_to_buffer(&mut app, 110, 20)).contains("F A 4 3 3"));
     }
 
     #[test]
     fn an_empty_download_queue_says_how_to_fill_it() {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Downloads);
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("NOTHING QUEUED"), "got {text:?}");
         assert!(text.contains("queues it for offline"), "an empty screen needs a way in");
     }
@@ -5542,7 +5578,7 @@ mod tests {
                 path: Some("/downloads/Frieren - 05.mkv".into()),
             },
         ]));
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("Frieren  ep 5"), "got {text:?}");
         assert!(text.contains("downloading"));
         assert!(text.contains("700 MB / 1.4 GB"), "sizes at human scale: {text:?}");
@@ -5568,7 +5604,7 @@ mod tests {
                 path: None,
             },
         ]));
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("failed"));
         assert!(text.contains("no peers after 60s"), "the reason must survive the toast");
     }
@@ -5596,7 +5632,7 @@ mod tests {
         ));
         app.handle(crate::keymap::Action::Bottom, 20);
         assert_eq!(app.cursor(), 39);
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("Invented Show  ep 40"), "got {text:?}");
     }
 
@@ -5615,7 +5651,7 @@ mod tests {
         for _ in 0..39 {
             app.handle(crate::keymap::Action::Down, rows);
         }
-        let text = text_of(&render_to_buffer(&app, area.width, area.height));
+        let text = text_of(&render_to_buffer(&mut app, area.width, area.height));
         assert!(text.contains("Invented Show 40"), "the highlight left the screen: {text:?}");
     }
 
@@ -5623,7 +5659,7 @@ mod tests {
     fn search_with_nothing_typed_shows_its_empty_state_not_the_last_list() {
         let mut app = app_with(Content::Entries(vec![entry(1, "Invented Show")]));
         app.handle(crate::keymap::Action::JumpSection(4), 20);
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("TYPE TO SEARCH"), "got {text:?}");
         assert!(!text.contains("Invented Show"), "the previous list was drawn under Search");
         assert!(!text.contains("NO MATCHES"));
@@ -5634,7 +5670,7 @@ mod tests {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Settings);
         // Tall enough for every group — scrolling has its own test below.
-        let text = text_of(&render_to_buffer(&app, 120, 48));
+        let text = text_of(&render_to_buffer(&mut app, 120, 48));
         assert!(text.contains("adaptive"), "theme mode");
         assert!(text.contains("1080p"));
         assert!(text.contains("85%"), "commit threshold");
@@ -5652,7 +5688,7 @@ mod tests {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Settings);
         app.set_cursor(anistream_model::settings::SettingKey::ROWS.len() - 1);
-        let text = text_of(&render_to_buffer(&app, 120, 12));
+        let text = text_of(&render_to_buffer(&mut app, 120, 12));
         assert!(text.contains("TOKEN STORAGE"), "the last row must be visible:\n{text}");
     }
 
@@ -5666,7 +5702,7 @@ mod tests {
         upcoming.airing_in = Some(26 * 3600);
         app.apply(app.content_here(Content::Entries(vec![aired, upcoming])));
 
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         // Labels computed by the same helpers the renderer uses, so the assertion holds
         // whatever the wall clock says. 26 hours apart is always two different days.
         let first = super::day_label(&app.clock, super::air_date(&app.clock, -1).unwrap())
@@ -5686,7 +5722,7 @@ mod tests {
         app.clock = clock;
         app.go_to_section(Section::Calendar);
         app.apply(app.content_here(Content::Entries(entries)));
-        text_of(&render_to_buffer(&app, 120, 34))
+        text_of(&render_to_buffer(&mut app, 120, 34))
     }
 
     /// A calendar row: `episode` of `title`, airing `secs` from now (negative once aired).
@@ -5747,9 +5783,9 @@ mod tests {
         let mut e = entry(1, "Frieren");
         e.progress = Some((7, 8));
         e.last_aired = Some((8, 3600));
-        let app = app_with(Content::Entries(vec![e]));
+        let mut app = app_with(Content::Entries(vec![e]));
         // Too narrow for the preview, whose broadcast line would answer for the row.
-        let text = text_of(&render_to_buffer(&app, 70, 30));
+        let text = text_of(&render_to_buffer(&mut app, 70, 30));
         assert!(text.contains("ep 8 out"), "being behind is the fact worth stating:\n{text}");
     }
 
@@ -5762,9 +5798,9 @@ mod tests {
         e.last_aired = Some((8, 3600));
         e.airing_in = Some(2 * 24 * 3600 + 3600);
         e.next_episode = Some(9);
-        let app = app_with(Content::Entries(vec![e]));
+        let mut app = app_with(Content::Entries(vec![e]));
         // Too narrow for the preview, whose broadcast line would answer for the row.
-        let text = text_of(&render_to_buffer(&app, 70, 30));
+        let text = text_of(&render_to_buffer(&mut app, 70, 30));
         assert!(!text.contains("ep 8 out"), "already watched — not news:\n{text}");
         assert!(text.contains("ep 9 in 2d 1h"), "the wait is the fact:\n{text}");
     }
@@ -5779,9 +5815,9 @@ mod tests {
         e.last_aired = Some((7, 7 * 24 * 3600));
         e.next_episode = Some(9);
         e.airing_in = Some(7 * 24 * 3600);
-        let app = app_with(Content::Entries(vec![e]));
+        let mut app = app_with(Content::Entries(vec![e]));
         // Too narrow for the preview, whose broadcast line would answer for the row.
-        let text = text_of(&render_to_buffer(&app, 70, 30));
+        let text = text_of(&render_to_buffer(&mut app, 70, 30));
         assert!(text.contains("ep 8 out"), "the launch went unannounced:\n{text}");
         assert!(!text.contains("ep 9 in"), "counting down is old news beside a launch");
     }
@@ -5794,20 +5830,20 @@ mod tests {
         let mut e = entry(1, "Chainsmoker Cat");
         e.progress = Some((0, 1));
         e.last_aired = Some((4, 3600));
-        let app = app_with(Content::Entries(vec![e]));
+        let mut app = app_with(Content::Entries(vec![e]));
         // Too narrow for the preview, whose broadcast line would answer for the row.
-        let text = text_of(&render_to_buffer(&app, 70, 30));
+        let text = text_of(&render_to_buffer(&mut app, 70, 30));
         assert!(text.contains("ep 4 out"), "got:\n{text}");
     }
 
     #[test]
     fn a_narrow_terminal_drops_the_preview_before_the_list() {
         // Content survives, chrome and secondary panes go first.
-        let app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
-        let narrow = text_of(&render_to_buffer(&app, 62, 20));
+        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let narrow = text_of(&render_to_buffer(&mut app, 62, 20));
         assert!(narrow.contains("Frieren"), "the list must survive");
 
-        let wide = text_of(&render_to_buffer(&app, 120, 20));
+        let wide = text_of(&render_to_buffer(&mut app, 120, 20));
         // Metadata lives in the preview pane, so "2023" only survives at full width.
         assert!(wide.contains("2023"), "the wide layout shows preview metadata");
         assert!(!narrow.contains("2023"), "the narrow layout drops the preview");
@@ -5816,7 +5852,7 @@ mod tests {
     // ---- Wording and display consistency ----
 
     /// The rows of a rendered frame, for assertions about one line.
-    fn lines_of(app: &App, width: u16, height: u16) -> Vec<String> {
+    fn lines_of(app: &mut App, width: u16, height: u16) -> Vec<String> {
         text_of(&render_to_buffer(app, width, height)).lines().map(str::to_owned).collect()
     }
 
@@ -5838,9 +5874,9 @@ mod tests {
                 ..entry(ep, "The Unusually Long Name of an Invented Weekly Broadcast")
             })
             .collect();
-        let app = calendar_with(rows);
+        let mut app = calendar_with(rows);
         for width in [120, 80] {
-            let text = lines_of(&app, width, 30).join("\n");
+            let text = lines_of(&mut app, width, 30).join("\n");
             for ep in 1..=5 {
                 assert!(
                     text.contains(&format!("ep {ep} ")),
@@ -5849,7 +5885,7 @@ mod tests {
             }
         }
         // And the episode lines up as a column, rather than trailing each title.
-        let lines = lines_of(&app, 120, 30);
+        let lines = lines_of(&mut app, 120, 30);
         let columns: Vec<usize> = lines
             .iter()
             .filter_map(|l| l.find("ep ").map(|at| l[..at].chars().count()))
@@ -5865,7 +5901,7 @@ mod tests {
         let mut app = calendar_with(vec![row]);
         app.nav.focus_stage();
         app.handle(crate::keymap::Action::Open, 20);
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("Paper Kite"), "{text}");
         assert!(!text.contains("Paper Kite  ep 7"), "the row's episode leaked:\n{text}");
     }
@@ -5891,7 +5927,7 @@ mod tests {
         app.nav.focus_stage();
         let visible = visible_rows(Rect::new(0, 0, 120, 30), Section::Calendar);
         app.handle(crate::keymap::Action::Bottom, visible);
-        let lines = lines_of(&app, 120, 30);
+        let lines = lines_of(&mut app, 120, 30);
         // The stage runs from row 2 to the status rule, two from the bottom.
         let stage = &lines[2..lines.len() - 2];
         assert!(
@@ -5921,7 +5957,7 @@ mod tests {
         app.nav.focus_stage();
         let visible = visible_rows(Rect::new(0, 0, 120, 30), Section::Calendar);
         app.handle(crate::keymap::Action::Bottom, visible);
-        let lines = lines_of(&app, 120, 30);
+        let lines = lines_of(&mut app, 120, 30);
         let stage = &lines[2..lines.len() - 2];
         assert!(
             stage.last().is_some_and(|l| l.contains("▌ Weekly 79")),
@@ -5939,8 +5975,8 @@ mod tests {
 
     #[test]
     fn an_empty_continue_list_names_keys_as_keys() {
-        let app = app_with(Content::Empty);
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let mut app = app_with(Content::Empty);
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("NOTHING WATCHED YET"), "{text}");
         assert!(text.contains("press 3 for this season"), "{text}");
 
@@ -5949,7 +5985,7 @@ mod tests {
         let mut keys = std::collections::BTreeMap::new();
         keys.insert("jump_section_3".to_string(), "S".to_string());
         assert!(app.keymap.apply_overrides(&keys).is_empty());
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("press S for this season"), "{text}");
     }
 
@@ -5962,7 +5998,7 @@ mod tests {
         }]));
         app.nav.focus_stage();
         app.handle(crate::keymap::Action::HideFromContinue, 20);
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("NOTHING TO CONTINUE"), "{text}");
         assert!(!text.contains("NOTHING WATCHED YET"), "{text}");
     }
@@ -5980,7 +6016,7 @@ mod tests {
         // A source is ready: "no source is configured" was false here.
         let mut app = episodes_open_on(entry(1, "Paper Kite"));
         app.apply(Event::Providers(vec![provider("someplugin", "ready", true, false)]));
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("NO EPISODES LISTED"), "{text}");
         assert!(text.contains("m searches for the right match"), "{text}");
         assert!(!text.contains("no source is configured"), "{text}");
@@ -5993,7 +6029,7 @@ mod tests {
         };
         let mut app = episodes_open_on(unaired);
         app.apply(Event::Providers(vec![provider("someplugin", "ready", true, false)]));
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("NOTHING HAS AIRED YET"), "{text}");
         assert!(text.contains("ep 1 in 1d 12h"), "{text}");
     }
@@ -6011,7 +6047,7 @@ mod tests {
                 rejected: None,
             }],
         });
-        let text = text_of(&render_to_buffer(&app, 110, 24));
+        let text = text_of(&render_to_buffer(&mut app, 110, 24));
         assert!(text.contains("100%"));
         assert!(!text.contains("no confident match"), "{text}");
         assert!(text.contains("enter pins it"), "{text}");
@@ -6025,7 +6061,7 @@ mod tests {
             kind: "plugin".into(),
             ..provider("someplugin", "ready", true, false)
         }]));
-        let buf = render_to_buffer(&app, 120, 30);
+        let buf = render_to_buffer(&mut app, 120, 30);
         let header = text_of(&buf).lines().next().unwrap_or_default().to_owned();
         assert!(header.contains("torrent ○"), "{header}");
         assert!(header.contains("plugins ●"), "{header}");
@@ -6038,7 +6074,7 @@ mod tests {
             kind: "plugin".into(),
             ..provider("someplugin", "down", false, false)
         }]));
-        let buf = render_to_buffer(&app, 120, 30);
+        let buf = render_to_buffer(&mut app, 120, 30);
         let x = find_cell(&buf, "✕").expect("a failing source is marked").0;
         assert_eq!(buf[(x, 0)].fg, alert);
     }
@@ -6047,7 +6083,7 @@ mod tests {
     fn a_signed_out_tracker_is_not_drawn_as_a_separator() {
         let mut app = app_with(Content::Entries(vec![entry(1, "Paper Kite")]));
         app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState::new("kitsu"))));
-        let header = lines_of(&app, 120, 30)[0].clone();
+        let header = lines_of(&mut app, 120, 30)[0].clone();
         assert!(header.contains("kitsu ○"), "{header}");
         assert!(!header.contains("kitsu ·"), "{header}");
     }
@@ -6057,9 +6093,9 @@ mod tests {
     fn a_toast_sits_on_the_status_rule_and_covers_nothing() {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Settings);
-        let before = lines_of(&app, 80, 24);
+        let before = lines_of(&mut app, 80, 24);
         app.push_toast(anistream_model::notice::Notice::info("saved · counts as watched at"));
-        let after = lines_of(&app, 80, 24);
+        let after = lines_of(&mut app, 80, 24);
         let rule = after.len() - 2;
         assert!(after[rule].contains("saved · counts as watched at"), "{after:#?}");
         for (row, (was, is)) in before.iter().zip(&after).enumerate() {
@@ -6069,7 +6105,7 @@ mod tests {
         }
         // More than one up: the newest, and how many others.
         app.push_toast(anistream_model::notice::Notice::alert("source unreachable"));
-        let rule_line = lines_of(&app, 80, 24)[rule].clone();
+        let rule_line = lines_of(&mut app, 80, 24)[rule].clone();
         assert!(rule_line.contains("source unreachable  +1"), "{rule_line}");
     }
 
@@ -6084,7 +6120,7 @@ mod tests {
         app.apply(
             app.content_here(Content::Entries((1..60).map(|i| entry(i, "Show")).collect())),
         );
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("FALL 2026 · THE 40 MOST POPULAR"), "{text}");
 
         // A caption belongs to the list it came with.
@@ -6105,7 +6141,7 @@ mod tests {
         let view = app.content_view().unwrap();
         app.apply(Event::Caption { view: view.clone(), text: "showing the first 30".into() });
         app.apply(Event::Content { view, content: Content::Entries(vec![entry(1, "Kite")]) });
-        let lines = lines_of(&app, 120, 30);
+        let lines = lines_of(&mut app, 120, 30);
         let prompt = lines.iter().find(|l| l.contains("FIND")).unwrap();
         assert!(prompt.contains("showing the first 30"), "{prompt}");
     }
@@ -6115,12 +6151,12 @@ mod tests {
         let e =
             Entry { genres: vec!["Slice of Life".into(), "Sci-Fi".into()], ..entry(1, "Kite") };
         let mut app = app_with(Content::Entries(vec![e]));
-        let preview = text_of(&render_to_buffer(&app, 120, 34));
+        let preview = text_of(&render_to_buffer(&mut app, 120, 34));
         assert!(preview.contains("Slice of Life  ·  Sci-Fi"), "{preview}");
         assert!(!preview.contains("SLICE OF LIFE"), "{preview}");
         app.nav.focus_stage();
         app.handle(crate::keymap::Action::Open, 20);
-        let title = text_of(&render_to_buffer(&app, 120, 34));
+        let title = text_of(&render_to_buffer(&mut app, 120, 34));
         assert!(title.contains("Slice of Life  ·  Sci-Fi"), "{title}");
     }
 
@@ -6135,11 +6171,11 @@ mod tests {
             ..entry(1, "Kite")
         };
         let mut app = app_with(Content::Entries(vec![e]));
-        let preview = text_of(&render_to_buffer(&app, 120, 34));
+        let preview = text_of(&render_to_buffer(&mut app, 120, 34));
         assert!(preview.contains("ep 3 out 2d ago  ·  ep 4 in 4d 20h"), "{preview}");
         app.nav.focus_stage();
         app.handle(crate::keymap::Action::Open, 20);
-        let title = text_of(&render_to_buffer(&app, 120, 34));
+        let title = text_of(&render_to_buffer(&mut app, 120, 34));
         assert!(title.contains("ep 3 out 2d ago  ·  ep 4 in 4d 20h"), "{title}");
         assert!(!title.contains("next episode in"), "{title}");
     }
@@ -6147,8 +6183,8 @@ mod tests {
     #[test]
     fn progress_on_a_row_reads_as_a_count() {
         let e = Entry { progress: Some((5, 6)), ..entry(1, "Kite") };
-        let app = app_with(Content::Entries(vec![e]));
-        let text = text_of(&render_to_buffer(&app, 70, 30));
+        let mut app = app_with(Content::Entries(vec![e]));
+        let text = text_of(&render_to_buffer(&mut app, 70, 30));
         assert!(text.contains("5 / 28"), "{text}");
         assert!(!text.contains("▏5"), "{text}");
     }
@@ -6158,7 +6194,7 @@ mod tests {
         let mut app = app_at_episodes();
         app.episodes[0].thumbnail = Some("https://cdn.example/1.jpg".into());
         app.episodes[1].title = Some("A Title That Needs Most of Thirty Cells".into());
-        let text = text_of(&render_to_buffer(&app, 80, 24));
+        let text = text_of(&render_to_buffer(&mut app, 80, 24));
         assert!(text.contains("A Title That Needs Most of Thi"), "{text}");
     }
 
@@ -6166,7 +6202,7 @@ mod tests {
     fn a_placeholder_says_its_note_as_a_phrase() {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Downloads);
-        let text = text_of(&render_to_buffer(&app, 40, 7));
+        let text = text_of(&render_to_buffer(&mut app, 40, 7));
         assert!(text.contains("needs a larger terminal"), "{text}");
         assert!(!text.contains("arrives in"), "{text}");
     }
@@ -6201,7 +6237,7 @@ mod tests {
             download(long, "3", DownloadState::Paused, 1_468_000_000),
             download(long, "2", DownloadState::Active, 0),
         ]));
-        let lines = lines_of(&app, 80, 24);
+        let lines = lines_of(&mut app, 80, 24);
         let text = lines.join("\n");
         for ep in ["ep 4", "ep 3", "ep 2"] {
             assert!(text.contains(ep), "{ep} cut away:\n{text}");
@@ -6228,7 +6264,7 @@ mod tests {
         // The paused row is not resolving anything.
         app.nav.focus_stage();
         app.handle(crate::keymap::Action::Down, 20);
-        let text = text_of(&render_to_buffer(&app, 80, 24));
+        let text = text_of(&render_to_buffer(&mut app, 80, 24));
         assert!(text.contains("paused at 734 MB of 1.5 GB"), "{text}");
         assert!(!text.contains("resolving a source"), "{text}");
     }
@@ -6244,7 +6280,7 @@ mod tests {
             app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState::new("kitsu"))));
             app.apply(Event::Providers(vec![provider("one", "ready", true, false)]));
             app.nav.focus_rail();
-            let buf = render_to_buffer(&app, 120, 30);
+            let buf = render_to_buffer(&mut app, 120, 30);
             let stage_marks: Vec<(u16, u16)> = (2..28)
                 .flat_map(|y| (20..120).map(move |x| (x, y)))
                 .filter(|pos| buf[*pos].symbol() == "▌")
@@ -6253,7 +6289,7 @@ mod tests {
             assert_eq!(buf[stage_marks[0]].fg, app.palette.color(Role::TextDim), "{section:?}");
 
             app.nav.focus_stage();
-            let buf = render_to_buffer(&app, 120, 30);
+            let buf = render_to_buffer(&mut app, 120, 30);
             assert_eq!(buf[stage_marks[0]].fg, app.palette.color(Role::Obi), "{section:?}");
         }
     }
@@ -6268,20 +6304,20 @@ mod tests {
             provider("one", "ready", true, false),
             provider("two", "ready", true, false),
         ]));
-        let marked = |app: &App| -> Vec<String> {
+        let marked = |app: &mut App| -> Vec<String> {
             lines_of(app, 120, 30)
                 .into_iter()
                 .filter(|l| l.contains("▌ one") || l.contains("▌ two"))
                 .collect()
         };
-        let lines = marked(&app);
+        let lines = marked(&mut app);
         assert!(lines.len() == 1 && lines[0].contains("▌ one"), "{lines:#?}");
 
         app.settings.sources.order = vec!["one".into(), "two".into()];
         app.handle(crate::keymap::Action::LowerSource, 20);
-        let lines = marked(&app);
+        let lines = marked(&mut app);
         assert!(lines.len() == 1 && lines[0].contains("▌ one"), "{lines:#?}");
-        let lines = lines_of(&app, 120, 30);
+        let lines = lines_of(&mut app, 120, 30);
         let two = lines.iter().position(|l| l.contains(" two ")).unwrap();
         let one = lines.iter().position(|l| l.contains("▌ one")).unwrap();
         assert!(two < one, "{lines:#?}");
@@ -6292,7 +6328,7 @@ mod tests {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Providers);
         app.apply(Event::Providers(vec![provider("someplugin", "ready", true, false)]));
-        let text = text_of(&render_to_buffer(&app, 40, 15));
+        let text = text_of(&render_to_buffer(&mut app, 40, 15));
         assert!(
             !text.contains("STAT\u{20}")
                 && !text.lines().any(|l| l.trim_end().ends_with("STAT"))
@@ -6310,7 +6346,7 @@ mod tests {
             .position(|id| *id == anistream_model::settings::SettingKey::NightMode)
             .unwrap();
         app.set_cursor(night);
-        let text = text_of(&render_to_buffer(&app, 120, 34));
+        let text = text_of(&render_to_buffer(&mut app, 120, 34));
         assert!(text.contains("evens out quiet dialogue"), "{text}");
         assert!(text.contains("NIGHT MODE"), "the row itself is still in view:\n{text}");
     }
@@ -6319,12 +6355,12 @@ mod tests {
     fn the_library_points_at_the_same_next_step_as_accounts() {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Library);
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("trackers.enabled"), "nothing to sign in to yet:\n{text}");
         assert!(!text.contains("run \"accounts\""), "{text}");
 
         app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState::new("kitsu"))));
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("press 8 for Accounts to sign in"), "{text}");
     }
 
@@ -6332,7 +6368,7 @@ mod tests {
     fn list_statuses_read_as_lowercase_values_in_the_picker() {
         let mut app = app_with(Content::Entries(vec![entry(1, "Kite")]));
         app.nav.open_overlay(Overlay::ListStatus);
-        let text = text_of(&render_to_buffer(&app, 120, 30));
+        let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("watching"), "{text}");
         assert!(!text.contains("WATCHING"), "{text}");
     }

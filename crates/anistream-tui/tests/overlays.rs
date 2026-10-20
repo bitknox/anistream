@@ -297,14 +297,14 @@ fn esc_cancels_the_palette_whatever_back_is_rebound_to() {
 fn help_pages(width: u16, height: u16) -> Vec<String> {
     let mut a = app();
     press(&mut a, &["?"]);
-    let mut pages = vec![text_of(&render_to_buffer(&a, width, height))];
+    let mut pages = vec![text_of(&render_to_buffer(&mut a, width, height))];
     for _ in 0..40 {
         let before = a.help_page();
         press(&mut a, &["j"]);
         if a.help_page() == before {
             break;
         }
-        pages.push(text_of(&render_to_buffer(&a, width, height)));
+        pages.push(text_of(&render_to_buffer(&mut a, width, height)));
     }
     pages
 }
@@ -403,7 +403,7 @@ fn logs_scroll_with_the_highlight() {
     press(&mut a, &["L"]);
     for _ in 0..30 {
         press(&mut a, &["j"]);
-        let text = text_of(&render_to_buffer(&a, 80, 24));
+        let text = text_of(&render_to_buffer(&mut a, 80, 24));
         // Newest first: the highlight on row n is line 39 - n.
         let wanted = format!("line {}", 39 - a.overlay_cursor());
         let marked = text.lines().find(|l| l.starts_with('▌') && l.contains("line "));
@@ -414,7 +414,7 @@ fn logs_scroll_with_the_highlight() {
     }
     // And back up, without the window jumping to keep the highlight at its bottom edge.
     press(&mut a, &["k"]);
-    let text = text_of(&render_to_buffer(&a, 80, 24));
+    let text = text_of(&render_to_buffer(&mut a, 80, 24));
     let rows: Vec<&str> = text.lines().filter(|l| l.contains("line ")).collect();
     let marked = rows.iter().position(|l| l.starts_with('▌')).unwrap();
     assert!(marked < rows.len() - 1, "moving up pinned the highlight to the bottom:\n{text}");
@@ -430,7 +430,7 @@ fn identical_log_lines_merge_into_one_with_a_count() {
     assert_eq!(a.logs.len(), 2);
     assert_eq!(a.logs[0].count, 25);
     press(&mut a, &["L"]);
-    let text = text_of(&render_to_buffer(&a, 80, 24));
+    let text = text_of(&render_to_buffer(&mut a, 80, 24));
     let line = text.lines().find(|l| l.contains("cover unavailable")).unwrap();
     assert!(line.contains("×25"), "{line}");
 }
@@ -502,7 +502,7 @@ fn an_overlay_shows_its_own_hints() {
 
     let mut a = app();
     press(&mut a, &["?"]);
-    render_to_buffer(&a, 80, 24);
+    render_to_buffer(&mut a, 80, 24);
     assert_eq!(hint(&a, "↑↓"), Some("page"));
     assert_eq!(hint(&a, "esc"), Some("close"));
 }
@@ -512,7 +512,7 @@ fn a_narrow_status_line_keeps_the_way_to_help() {
     let mut a = app();
     a.apply(a.content_here(entries(3)));
     a.nav.focus_stage();
-    let text = text_of(&render_to_buffer(&a, 40, 15));
+    let text = text_of(&render_to_buffer(&mut a, 40, 15));
     let status = text.lines().last().unwrap();
     assert!(status.trim_end().ends_with("? keys"), "{status:?}");
 }
@@ -636,7 +636,7 @@ fn an_overlay_keeps_its_hints_legible_above_the_scrim() {
     // The status line carries the overlay's own keys, so it is drawn over the dimming.
     let mut a = app();
     press(&mut a, &["?"]);
-    let buf = render_to_buffer(&a, 80, 24);
+    let buf = render_to_buffer(&mut a, 80, 24);
     let status_y = buf.area.height - 1;
     let text = text_of(&buf);
     let status = text.lines().last().unwrap();

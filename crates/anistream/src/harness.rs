@@ -527,9 +527,10 @@ impl Harness {
     }
 
     /// The frame as text: one line per row, trailing spaces trimmed, as `--preview` prints it.
-    pub fn screen(&self) -> String {
+    /// Drawn as the loop draws one, so what it reports goes back to the app.
+    pub fn screen(&mut self) -> String {
         let (width, height) = self.size;
-        let buffer = screens::render_to_buffer(&self.app, width, height);
+        let buffer = screens::render_to_buffer(&mut self.app, width, height);
         (0..height)
             .map(|y| {
                 let line: String = (0..width).map(|x| buffer[(x, y)].symbol()).collect();

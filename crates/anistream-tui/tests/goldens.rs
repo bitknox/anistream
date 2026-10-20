@@ -87,8 +87,9 @@ fn tokyo() -> Zone {
 /// One app, driven the way the event loop drives it, at one terminal size.
 ///
 /// Every step draws a frame and throws it away, as the loop does between events: two pieces of
-/// state are written by the renderer — how many pages the help table runs to, and where a list
-/// overlay's window sits — and a key pressed before any frame would read their defaults.
+/// state only a frame can find out — how many pages the help table runs to, and where a list
+/// overlay's window sits — come back from it to the app, and a key pressed before any frame
+/// would read their defaults.
 struct Screen {
     app: App,
     width: u16,
@@ -101,7 +102,7 @@ impl Screen {
         // Stopped before anything can start a job, so every job's running time is measured
         // against this clock's own instant.
         app.clock = Clock::fixed(NOW, tokyo());
-        let screen = Self { app, width, height };
+        let mut screen = Self { app, width, height };
         screen.draw();
         screen
     }
@@ -115,8 +116,9 @@ impl Screen {
         visible_rows(self.area(), self.app.nav.section())
     }
 
-    fn draw(&self) -> Buffer {
-        render_to_buffer(&self.app, self.width, self.height)
+    /// A frame, drawn as the loop draws one: what it reports goes back to the app.
+    fn draw(&mut self) -> Buffer {
+        render_to_buffer(&mut self.app, self.width, self.height)
     }
 
     /// An action, as a bound key resolves to it. The work it asks for is not run: what the
