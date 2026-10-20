@@ -27,6 +27,7 @@ pub mod downloads;
 pub mod outbox;
 pub mod playback;
 pub mod plugin_stores;
+pub mod services;
 pub mod sources;
 pub mod tracking;
 pub mod updates;

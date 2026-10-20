@@ -5,7 +5,7 @@ use anistream_net::HttpClient;
 use anistream_store::Store;
 use anyhow::Result;
 
-use crate::services::build_meta;
+use anistream_engine::services::build_meta;
 
 /// Search AniList from the shell.
 ///

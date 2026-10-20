@@ -9,6 +9,7 @@ use anistream_engine::{
         player::{player, shader_dir},
         slot::PlayerSlot,
     },
+    services::build_meta,
     sources, tracking,
 };
 use anistream_model::event::Event;
@@ -18,7 +19,7 @@ use anistream_tui::theme::player_theme;
 use anyhow::{Context, Result};
 use tokio::sync::mpsc;
 
-use crate::{play_settings, resolve_for_playback, services::build_meta, signed_in_tracker_ids};
+use crate::{play_settings, resolve_for_playback, signed_in_tracker_ids};
 
 /// Resolve one episode and print the URL, keeping the stream server alive.
 ///

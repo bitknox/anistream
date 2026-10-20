@@ -3,7 +3,6 @@
 mod cli;
 mod covers;
 mod engine_state;
-mod services;
 mod tui;
 
 use cli::{
@@ -17,7 +16,6 @@ use cli::{
     sync::sync_once,
 };
 use engine_state::{EngineState, PlayHints};
-use services::Services;
 
 use anistream_engine::{
     SharedConfig, artwork,
@@ -29,7 +27,9 @@ use anistream_engine::{
         self,
         player::{player, shader_dir},
     },
-    plugin_stores, sources, tracking,
+    plugin_stores,
+    services::Services,
+    sources, tracking,
 };
 
 use std::{io, sync::Arc, time::Duration};
