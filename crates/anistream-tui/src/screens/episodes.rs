@@ -294,7 +294,7 @@ pub(super) fn candidate_rows(app: &App) -> Vec<(String, String)> {
         .iter()
         .map(|candidate| {
             let similarity = format!("{:>3.0}%", candidate.similarity * 100.0);
-            let title = match candidate.rejected {
+            let title = match &candidate.rejected {
                 Some(reason) => format!("{}  ·  {reason}", candidate.title),
                 None => candidate.title.clone(),
             };
@@ -487,7 +487,7 @@ mod tests {
                     title: "Frieren S2".into(),
                     key: anistream_core::ids::ProviderKey::new("b"),
                     similarity: 0.61,
-                    rejected: Some("episode count"),
+                    rejected: Some("episode count".into()),
                 },
             ],
         });

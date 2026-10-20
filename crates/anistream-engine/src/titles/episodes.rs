@@ -65,7 +65,7 @@ pub async fn load_episodes(
                         title: candidate.hit.title.clone(),
                         key: candidate.hit.key.clone(),
                         similarity: candidate.score,
-                        rejected: candidate.rejected,
+                        rejected: candidate.rejected.map(str::to_owned),
                     })
                     .collect(),
             });

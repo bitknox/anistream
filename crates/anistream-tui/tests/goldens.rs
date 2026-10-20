@@ -1417,11 +1417,11 @@ fn logs(s: &mut Screen) {
 /// The match ladder could not choose: three candidates, two ruled out and saying why.
 fn disambiguate(s: &mut Screen) {
     on_kaze(s);
-    let candidate = |title: &str, similarity: f64, rejected| MatchCandidate {
+    let candidate = |title: &str, similarity: f64, rejected: Option<&str>| MatchCandidate {
         title: title.into(),
         key: ProviderKey::new(title.to_lowercase().replace(' ', "-")),
         similarity,
-        rejected,
+        rejected: rejected.map(Into::into),
     };
     s.apply(Event::MatchChoices {
         id: id(102),

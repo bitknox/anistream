@@ -89,7 +89,7 @@ pub fn manual_search(
                             title: scored.hit.title.clone(),
                             key: scored.hit.key.clone(),
                             similarity: scored.score,
-                            rejected: scored.rejected,
+                            rejected: scored.rejected.map(str::to_owned),
                         })
                         .collect();
                     Event::MatchChoices { id, provider_id, candidates }
