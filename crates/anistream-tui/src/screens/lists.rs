@@ -957,7 +957,7 @@ mod tests {
 
     #[test]
     fn a_tracked_show_with_an_aired_episode_says_so() {
-        let mut e = entry(1, "Frieren");
+        let mut e = entry(1, "Hoshikuzu");
         e.progress = Some(TitleProgress { done: 7, next: 8 });
         e.last_aired = Some(Aired { episode: 8, ago: 3600 });
         let mut app = app_with(ContentList::Entries(vec![e]));
@@ -970,7 +970,7 @@ mod tests {
     fn a_caught_up_show_counts_down_instead_of_crying_out() {
         // Watched everything that aired: "ep 8 out" would be old news. The row waits
         // with you instead.
-        let mut e = entry(1, "Frieren");
+        let mut e = entry(1, "Hoshikuzu");
         e.progress = Some(TitleProgress { done: 8, next: 9 });
         e.last_aired = Some(Aired { episode: 8, ago: 3600 });
         e.airing_in = Some(2 * 24 * 3600 + 3600);
@@ -987,7 +987,7 @@ mod tests {
         // The window right after a broadcast: nextAiringEpisode already says 9, the
         // last-aired row still says 7. The fact worth stating is that 8 is out — the row
         // used to count down to 9 instead, naming the fresh episode only by its successor.
-        let mut e = entry(1, "Frieren");
+        let mut e = entry(1, "Hoshikuzu");
         e.progress = Some(TitleProgress { done: 7, next: 8 });
         e.last_aired = Some(Aired { episode: 7, ago: 7 * 24 * 3600 });
         e.next_episode = Some(9);
@@ -1016,9 +1016,9 @@ mod tests {
     #[test]
     fn a_narrow_terminal_drops_the_preview_before_the_list() {
         // Content survives, chrome and secondary panes go first.
-        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         let narrow = text_of(&render_to_buffer(&mut app, 62, 20));
-        assert!(narrow.contains("Frieren"), "the list must survive");
+        assert!(narrow.contains("Hoshikuzu"), "the list must survive");
 
         let wide = text_of(&render_to_buffer(&mut app, 120, 20));
         // Metadata lives in the preview pane, so "2023" only survives at full width.

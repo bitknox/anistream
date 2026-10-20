@@ -592,7 +592,7 @@ mod tests {
     fn selection_is_an_obi_bar_and_not_a_filled_row() {
         // The signature element. A full-width background highlight is the conventional TUI
         // treatment and would fight the borderless composition.
-        let rows = [ObiRow::new("Frieren").selected(true), ObiRow::new("Dandadan")];
+        let rows = [ObiRow::new("Hoshikuzu").selected(true), ObiRow::new("Tsukiakari")];
         let mut buf = buffer(20, 2);
         ObiList::new(&rows, &palette())
             .render(Rect { x: 0, y: 0, width: 20, height: 2 }, &mut buf);
@@ -609,7 +609,7 @@ mod tests {
     #[test]
     fn the_obi_uses_the_accent_only_when_the_pane_has_focus() {
         // Two visible lists must not both look active.
-        let rows = [ObiRow::new("Frieren").selected(true)];
+        let rows = [ObiRow::new("Hoshikuzu").selected(true)];
         let p = palette();
 
         let mut focused = buffer(20, 1);
@@ -661,11 +661,11 @@ mod tests {
 
     #[test]
     fn trailing_text_is_right_aligned_and_does_not_overlap_the_label() {
-        let rows = [ObiRow::new("Frieren").trailing("12")];
+        let rows = [ObiRow::new("Hoshikuzu").trailing("12")];
         let mut buf = buffer(20, 1);
         ObiList::new(&rows, &palette()).render(buf.area, &mut buf);
         let text = row_text(&buf, 0);
-        assert!(text.contains("Frieren"));
+        assert!(text.contains("Hoshikuzu"));
         assert!(text.trim_end().ends_with("12"), "got {text:?}");
     }
 
@@ -810,7 +810,7 @@ mod tests {
     #[test]
     fn truncation_counts_characters_not_bytes() {
         // Multibyte titles are the norm here, so a byte-based truncate would corrupt them.
-        assert_eq!(truncate("葬送のフリーレン", 4), "葬送の…");
+        assert_eq!(truncate("星屑のトラベラー", 4), "星屑の…");
         assert_eq!(truncate("abc", 10), "abc");
         assert_eq!(truncate("abcdef", 3), "ab…");
         assert_eq!(truncate("abc", 0), "");

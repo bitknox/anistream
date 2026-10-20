@@ -255,14 +255,14 @@ mod tests {
     fn conflicts_are_announced_when_they_first_appear() {
         // Surfaced rather than resolved — the whole reason the merge refuses to guess.
         let mut a = app();
-        a.apply(Event::Conflicts(vec![conflict("Frieren")]));
+        a.apply(Event::Conflicts(vec![conflict("Hoshikuzu")]));
         assert_eq!(a.conflicts.len(), 1);
         assert!(a.toasts.iter().any(|t| t.notice.text.contains("disagreement")));
 
         // A second pull returning the same set must not re-announce.
         let announced = |a: &App| a.logs.iter().map(|l| l.count).sum::<u32>();
         let before = announced(&a);
-        a.apply(Event::Conflicts(vec![conflict("Frieren")]));
+        a.apply(Event::Conflicts(vec![conflict("Hoshikuzu")]));
         assert_eq!(announced(&a), before);
     }
 
@@ -273,7 +273,7 @@ mod tests {
         a.handle(Action::ShowConflicts, 20);
         assert!(!a.nav.has_overlay());
 
-        a.apply(Event::Conflicts(vec![conflict("Frieren")]));
+        a.apply(Event::Conflicts(vec![conflict("Hoshikuzu")]));
         a.handle(Action::ShowConflicts, 20);
         assert_eq!(a.nav.overlay(), Some(&Overlay::Conflicts));
     }
@@ -281,7 +281,7 @@ mod tests {
     #[test]
     fn resolving_a_conflict_removes_it_and_closes_when_empty() {
         let mut a = app();
-        a.apply(Event::Conflicts(vec![conflict("Frieren"), conflict("Dandadan")]));
+        a.apply(Event::Conflicts(vec![conflict("Hoshikuzu"), conflict("Tsukiakari")]));
         a.handle(Action::ShowConflicts, 20);
 
         let task = a.handle(Action::Open, 20);

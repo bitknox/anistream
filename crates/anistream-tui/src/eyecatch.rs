@@ -156,7 +156,7 @@ mod tests {
 
     #[test]
     fn a_wipe_covers_then_holds_until_released() {
-        let mut e = Eyecatch::new("Frieren ep 12");
+        let mut e = Eyecatch::new("Hoshikuzu ep 12");
         assert_eq!(e.stage(), Stage::Covering);
         for _ in 0..SWEEP_FRAMES {
             assert!(e.advance());
@@ -220,7 +220,7 @@ mod tests {
 
     #[test]
     fn a_slow_resolve_reports_seconds_that_keep_climbing() {
-        let mut e = Eyecatch::new("Frieren ep 12");
+        let mut e = Eyecatch::new("Hoshikuzu ep 12");
         for _ in 0..SWEEP_FRAMES + QUIET_HOLD_FRAMES {
             e.advance();
         }
@@ -286,7 +286,7 @@ mod tests {
         // Reported from real use: mpv spawned, never reported a position, and the band covered
         // the entire stage until the process was killed. The wipe covers a slow operation; it
         // must never *be* the outcome.
-        let mut e = Eyecatch::new("Frieren");
+        let mut e = Eyecatch::new("Hoshikuzu");
         for _ in 0..MAX_HOLD_FRAMES {
             assert!(e.advance(), "should still be running before the deadline");
         }
@@ -305,7 +305,7 @@ mod tests {
     fn a_normal_release_is_not_reported_as_a_timeout() {
         // The two paths look identical on screen, so the caller needs to tell them apart — one
         // deserves an explanation and the other must stay silent.
-        let mut e = Eyecatch::new("Frieren");
+        let mut e = Eyecatch::new("Hoshikuzu");
         for _ in 0..3 {
             e.advance();
         }
@@ -316,7 +316,7 @@ mod tests {
 
     #[test]
     fn the_label_waits_for_room() {
-        let mut e = Eyecatch::new("Frieren ep 12");
+        let mut e = Eyecatch::new("Hoshikuzu ep 12");
         assert!(!e.shows_label(), "a two-cell sliver cannot carry text");
         for _ in 0..SWEEP_FRAMES {
             e.advance();

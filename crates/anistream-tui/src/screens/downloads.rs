@@ -333,22 +333,22 @@ mod tests {
             anistream_model::downloads::DownloadRow {
                 id: 1,
                 anilist_id: AnilistId::new(1),
-                title: "Frieren".into(),
+                title: "Hoshikuzu".into(),
                 episode: "5".into(),
                 state: DownloadState::Active,
                 fraction: 0.5,
                 downloaded: 700_000_000,
                 total: 1_400_000_000,
                 error: None,
-                path: Some("/downloads/Frieren - 05.mkv".into()),
+                path: Some("/downloads/Hoshikuzu - 05.mkv".into()),
             },
         ]));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
-        assert!(text.contains("Frieren  ep 5"), "got {text:?}");
+        assert!(text.contains("Hoshikuzu  ep 5"), "got {text:?}");
         assert!(text.contains("downloading"));
         assert!(text.contains("700 MB / 1.4 GB"), "sizes at human scale: {text:?}");
         assert!(text.contains('█'), "no progress meter");
-        assert!(text.contains("/downloads/Frieren - 05.mkv"), "the path belongs on screen");
+        assert!(text.contains("/downloads/Hoshikuzu - 05.mkv"), "the path belongs on screen");
     }
 
     #[test]
@@ -359,7 +359,7 @@ mod tests {
             anistream_model::downloads::DownloadRow {
                 id: 1,
                 anilist_id: AnilistId::new(1),
-                title: "Frieren".into(),
+                title: "Hoshikuzu".into(),
                 episode: "5".into(),
                 state: DownloadState::Failed,
                 fraction: 0.0,

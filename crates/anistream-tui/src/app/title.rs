@@ -491,10 +491,10 @@ mod tests {
     fn recommendations_open_a_list_and_enter_walks_into_the_pick() {
         let mut a = app();
         a.apply(a.content_here(entries(1)));
-        let mut detail = Entry::new(AnilistId::new(1), "Frieren");
+        let mut detail = Entry::new(AnilistId::new(1), "Hoshikuzu");
         detail.recommended = vec![RelatedTitle {
             id: AnilistId::new(99),
-            title: "Mushishi".into(),
+            title: "Kumo no Ue no Toshokan".into(),
             relation: String::new(),
             format: Some("TV".into()),
         }];
@@ -516,7 +516,7 @@ mod tests {
         a.handle(Action::PlayTrailer, 20);
         assert!(a.toasts.iter().any(|t| t.notice.text.contains("from the title's page")));
 
-        let mut detail = Entry::new(AnilistId::new(1), "Frieren");
+        let mut detail = Entry::new(AnilistId::new(1), "Hoshikuzu");
         detail.trailer_url = Some("https://www.youtube.com/watch?v=x".into());
         a.detail = Some(detail);
         let task = a.handle(Action::PlayTrailer, 20);
@@ -524,7 +524,7 @@ mod tests {
             task,
             Some(Command::PlayTrailer {
                 url: "https://www.youtube.com/watch?v=x".into(),
-                title: "Frieren".into(),
+                title: "Hoshikuzu".into(),
             })
         );
     }

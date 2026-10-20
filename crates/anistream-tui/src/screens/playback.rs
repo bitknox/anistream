@@ -224,14 +224,14 @@ mod tests {
 
     /// An app parked on Now Playing, partway through an episode.
     fn app_playing() -> App {
-        let mut app = app_with(ContentList::Entries(vec![entry(1, "Sousou no Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu no Tabibito")]));
         app.detail = app.content.entries().first().cloned();
         app.nav.push(crate::nav::StageView::NowPlaying);
         app.playing = Some(crate::app::NowPlaying {
             id: app.detail.as_ref().map(|e| e.id),
-            title: "Sousou no Frieren".into(),
+            title: "Hoshikuzu no Tabibito".into(),
             episode: "11".into(),
-            episode_title: Some("Frieren the Slayer".into()),
+            episode_title: Some("Where the Roads Cross".into()),
             position: 552.0,
             duration: Some(1435.0),
             paused: false,
@@ -244,8 +244,8 @@ mod tests {
     #[test]
     fn now_playing_shows_the_playhead_and_the_clock() {
         let text = text_of(&render_to_buffer(&mut app_playing(), 100, 26));
-        assert!(text.contains("Sousou no Frieren"));
-        assert!(text.contains("Frieren the Slayer"));
+        assert!(text.contains("Hoshikuzu no Tabibito"));
+        assert!(text.contains("Where the Roads Cross"));
         assert!(text.contains("9:12 / 23:55"), "the clock is missing:\n{text}");
         // The zero-padded numeral field: episodes are a sequence you navigate by.
         assert!(text.contains("ep 011"), "episode number is not in a fixed field:\n{text}");
@@ -310,14 +310,14 @@ mod tests {
     fn a_slow_eyecatch_admits_it_is_still_working() {
         // A band that just sits there is indistinguishable from a wedged resolve.
         let mut app = app_playing();
-        app.eyecatch = Some(crate::Eyecatch::new("Sousou no Frieren  ·  ep 012"));
+        app.eyecatch = Some(crate::Eyecatch::new("Hoshikuzu no Tabibito  ·  ep 012"));
 
         // Covered, but only briefly: this still feels instant, so nothing extra is said.
         for _ in 0..crate::eyecatch::SWEEP_FRAMES {
             app.eyecatch.as_mut().unwrap().advance();
         }
         let quick = text_of(&render_to_buffer(&mut app, 100, 26));
-        assert!(quick.contains("Frieren"), "the label rides the band");
+        assert!(quick.contains("Hoshikuzu"), "the label rides the band");
         assert!(!quick.contains("still resolving"), "a fast play must stay quiet");
 
         // Past the quiet window it says so, with how long it has been.
@@ -326,7 +326,7 @@ mod tests {
         }
         let slow = text_of(&render_to_buffer(&mut app, 100, 26));
         assert!(slow.contains("still resolving"), "a long wait must not look wedged");
-        assert!(slow.contains("Frieren"), "the label stays alongside it");
+        assert!(slow.contains("Hoshikuzu"), "the label stays alongside it");
     }
 
     #[test]
@@ -334,12 +334,12 @@ mod tests {
         // The whole point is hiding a slow resolution. Content showing through would make it
         // decoration rather than cover.
         let mut app = app_playing();
-        app.eyecatch = Some(crate::Eyecatch::new("Sousou no Frieren  ·  ep 012"));
+        app.eyecatch = Some(crate::Eyecatch::new("Hoshikuzu no Tabibito  ·  ep 012"));
         for _ in 0..crate::eyecatch::SWEEP_FRAMES {
             app.tick_animation();
         }
         let text = text_of(&render_to_buffer(&mut app, 100, 26));
-        assert!(!text.contains("Frieren the Slayer"), "the stage showed through:\n{text}");
+        assert!(!text.contains("Where the Roads Cross"), "the stage showed through:\n{text}");
         assert!(text.contains("ep 012"), "the band should carry its label:\n{text}");
     }
 
@@ -366,12 +366,12 @@ mod tests {
         for palette in [Palette::dark(), Palette::light(), Palette::immersive()] {
             let mut app = app_with(ContentList::Entries(vec![]));
             app.palette = palette;
-            app.eyecatch = Some(crate::Eyecatch::new("Frieren"));
+            app.eyecatch = Some(crate::Eyecatch::new("Hoshikuzu"));
             for _ in 0..crate::eyecatch::SWEEP_FRAMES {
                 app.tick_animation();
             }
             let buf = render_to_buffer(&mut app, 100, 26);
-            let cell = find_cell(&buf, "F").expect("the label was not drawn");
+            let cell = find_cell(&buf, "z").expect("the label was not drawn");
             let (fg, bg) = (buf[cell].fg, buf[cell].bg);
             let ratio = contrast_ratio(rgb_of(fg), rgb_of(bg));
             assert!(ratio >= AA_NORMAL, "label on the band is {ratio:.2}:1 ({fg:?} on {bg:?})");

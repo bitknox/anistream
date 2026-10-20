@@ -622,7 +622,7 @@ mod tests {
             for overlay in
                 [Overlay::Help, Overlay::CommandPalette, Overlay::Accounts, Overlay::ListStatus]
             {
-                let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
+                let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
                 app.nav.open_overlay(overlay.clone());
                 let buf = render_to_buffer(&mut app, width, height);
                 for (row, line) in text_of(&buf).lines().enumerate() {
@@ -639,7 +639,7 @@ mod tests {
     fn an_overlay_dims_the_content_behind_it() {
         // Without a scrim a full-width band cuts through the rail and reads as a
         // rendering fault. Dimming makes it read as a layer on top.
-        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         let before = render_to_buffer(&mut app, 120, 30);
 
         app.nav.open_overlay(Overlay::Help);

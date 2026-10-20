@@ -827,7 +827,7 @@ mod tests {
     #[test]
     fn enter_on_a_resumable_continue_row_plays_immediately() {
         let mut a = app();
-        let mut e = Entry::new(AnilistId::new(5), "Frieren");
+        let mut e = Entry::new(AnilistId::new(5), "Hoshikuzu");
         e.progress = Some(TitleProgress { done: 7, next: 8 });
         e.resume = Some(ResumePoint { position: 600.0, fraction: Some(0.5) });
         a.apply(a.content_here(ContentList::Entries(vec![e])));
@@ -989,14 +989,17 @@ mod tests {
         let mut a = app();
         let task = a.handle(Action::FocusSearch, 10);
         assert_eq!(task, None, "an empty query has nothing to submit");
-        for ch in "frieren".chars() {
+        for ch in "hoshikuzu".chars() {
             a.type_char(ch);
         }
 
         // First Enter runs it.
         assert_eq!(
             a.handle(Action::Open, 10),
-            Some(Command::Search { query: "frieren".into(), filter: SearchFilters::default() })
+            Some(Command::Search {
+                query: "hoshikuzu".into(),
+                filter: SearchFilters::default()
+            })
         );
         a.apply(a.content_here(entries(3)));
 
@@ -1011,7 +1014,7 @@ mod tests {
         assert_eq!(
             a.handle(Action::Open, 10),
             Some(Command::Search {
-                query: "frierenx".into(),
+                query: "hoshikuzux".into(),
                 filter: SearchFilters::default()
             })
         );
@@ -1124,7 +1127,7 @@ mod tests {
         let mut a = app();
         let _ = a.go_to_section(Section::Search);
         a.nav.focus_stage();
-        for query in ["fri", "frieren"] {
+        for query in ["hos", "hoshikuzu"] {
             a.set_text(Field::Search, query.into());
             assert!(matches!(a.handle(Action::Open, 20), Some(Command::Search { .. })));
         }
@@ -1132,12 +1135,12 @@ mod tests {
             view: ContentFor::Search { query: query.into(), filter: SearchFilters::default() },
             content: entries(n),
         };
-        a.apply(answer("frieren", 2));
+        a.apply(answer("hoshikuzu", 2));
         a.apply(answer("fri", 9));
         assert_eq!(
             a.content.len(),
             2,
-            "the results for \"fri\" replaced those for \"frieren\""
+            "the results for \"hos\" replaced those for \"hoshikuzu\""
         );
     }
 

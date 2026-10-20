@@ -240,7 +240,7 @@ mod tests {
     #[test]
     fn the_title_screen_leads_with_the_key_visual() {
         // The hero is the artwork, not a headline — that is the thesis of the design.
-        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         app.nav.focus_stage();
         app.handle(crate::keymap::Action::Open, 20);
         let buf = render_to_buffer(&mut app, 120, 30);
@@ -249,15 +249,15 @@ mod tests {
 
         // The title is bold, and no longer letterspaced anywhere — measured on a real terminal,
         // tracking read as tiring rather than refined, and it was worst on digits.
-        assert!(text.contains("Frieren"), "title missing");
-        assert!(!text.contains("FRIEREN"), "the hero title must not be letterspaced");
+        assert!(text.contains("Hoshikuzu"), "title missing");
+        assert!(!text.contains("HOSHIKUZU"), "the hero title must not be letterspaced");
 
         // Metadata is still distinguished, by case and the dim role rather than by width.
         assert!(text.contains("28 EP"), "metadata should be caps");
 
         // The plate occupies the top of the stage, above the title block.
         let plate_row = text.lines().position(|l| l.contains('░')).unwrap();
-        let title_row = text.lines().position(|l| l.contains("Frieren")).unwrap();
+        let title_row = text.lines().position(|l| l.contains("Hoshikuzu")).unwrap();
         assert!(plate_row < title_row, "artwork must lead");
     }
 
@@ -279,14 +279,14 @@ mod tests {
     #[test]
     fn availability_badges_appear_when_a_title_has_them() {
         let mut app = app_with(ContentList::Entries(vec![Entry {
-            available_on: vec!["Crunchyroll".into(), "Netflix".into()],
-            ..entry(1, "Frieren")
+            available_on: vec!["Hikari Stream".into(), "Nami TV".into()],
+            ..entry(1, "Hoshikuzu")
         }]));
         app.nav.focus_stage();
         app.handle(crate::keymap::Action::Open, 20);
         let text = text_of(&render_to_buffer(&mut app, 120, 34));
-        assert!(text.contains("Crunchyroll"));
-        assert!(text.contains("Netflix"));
+        assert!(text.contains("Hikari Stream"));
+        assert!(text.contains("Nami TV"));
     }
 
     #[test]

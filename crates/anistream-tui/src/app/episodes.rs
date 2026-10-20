@@ -792,12 +792,12 @@ mod tests {
         assert_eq!(a.nav.overlay(), Some(&Overlay::ManualQuery));
         assert!(a.is_typing(), "the overlay must take text");
 
-        for c in "frieren".chars() {
+        for c in "hoshikuzu".chars() {
             a.type_char(c);
         }
         let task = a.handle(Action::Open, 20).expect("enter must search");
         match task {
-            Command::ManualSearch { query, .. } => assert_eq!(query, "frieren"),
+            Command::ManualSearch { query, .. } => assert_eq!(query, "hoshikuzu"),
             other => panic!("expected ManualSearch, got {other:?}"),
         }
         // The overlay closes; the results return through MatchChoices and reuse the
@@ -821,7 +821,7 @@ mod tests {
         a.apply(Event::MatchChoices {
             id: AnilistId::new(1),
             provider_id: "torrent".into(),
-            candidates: vec![candidate("Frieren S1", 0.62), candidate("Frieren S2", 0.61)],
+            candidates: vec![candidate("Hoshikuzu S1", 0.62), candidate("Hoshikuzu S2", 0.61)],
         });
 
         assert_eq!(a.nav.overlay(), Some(&Overlay::Disambiguate));
@@ -846,7 +846,7 @@ mod tests {
         a.apply(Event::MatchChoices {
             id: AnilistId::new(1),
             provider_id: "torrent".into(),
-            candidates: vec![candidate("Frieren S1", 0.62), candidate("Frieren S2", 0.61)],
+            candidates: vec![candidate("Hoshikuzu S1", 0.62), candidate("Hoshikuzu S2", 0.61)],
         });
 
         // Move to the second candidate and take it.
@@ -857,7 +857,7 @@ mod tests {
             Command::FixMatch {
                 id: AnilistId::new(1),
                 provider_id: "torrent".into(),
-                key: anistream_core::ids::ProviderKey::new("Frieren S2"),
+                key: anistream_core::ids::ProviderKey::new("Hoshikuzu S2"),
             }
         );
 

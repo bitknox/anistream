@@ -398,7 +398,7 @@ mod tests {
     #[test]
     fn the_episode_table_width_is_never_stolen_by_the_rail() {
         // Chrome yields to content: at 80 columns the rail must be a strip, not a menu.
-        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         app.nav.push(StageView::Episodes(AnilistId::new(1)));
         let geometry = layout::compute(Rect::new(0, 0, 80, 24), app.nav.rail_width());
         assert!(geometry.rail.width <= 3);
@@ -407,15 +407,15 @@ mod tests {
 
     #[test]
     fn the_episode_table_reads_as_a_timing_sheet() {
-        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         app.handle(crate::keymap::Action::Open, 20);
         // As entering episodes does: the table is a view of the open title.
         app.detail = app.selected_entry().cloned();
         app.nav.push(StageView::Episodes(AnilistId::new(1)));
         app.apply(app.episodes_here(vec![
-            episode("9", "Aura the Guillotine", 1.0, true),
-            episode("10", "Frieren the Slayer", 0.62, false),
-            episode("11", "A Real Hero", 0.0, false),
+            episode("9", "The Last Lamplighter", 1.0, true),
+            episode("10", "Where the Roads Cross", 0.62, false),
+            episode("11", "The Sky Archive", 0.0, false),
         ]));
 
         let text = text_of(&render_to_buffer(&mut app, 110, 20));
@@ -423,7 +423,7 @@ mod tests {
         // numbering carries information rather than decorating.
         assert!(text.contains("009"), "numerals should be padded");
         assert!(text.contains("010"));
-        assert!(text.contains("Aura the Guillotine"));
+        assert!(text.contains("The Last Lamplighter"));
         assert!(text.contains("24:00"), "runtime as mm:ss");
         assert!(text.contains("done"), "completed episodes are marked");
         assert!(text.contains("TITLE"), "caps column headers");
@@ -436,7 +436,7 @@ mod tests {
 
     #[test]
     fn an_episode_table_with_no_source_explains_itself() {
-        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         app.nav.push(StageView::Episodes(AnilistId::new(1)));
         let text = text_of(&render_to_buffer(&mut app, 110, 20));
         assert!(text.contains("NO EPISODES YET"));
@@ -446,7 +446,7 @@ mod tests {
     #[test]
     fn the_episode_table_gets_the_full_stage_width() {
         // Chrome yields to content: this is the table the collapse rule exists for.
-        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         app.nav.push(StageView::Episodes(AnilistId::new(1)));
         let geometry = layout::compute(Rect::new(0, 0, 110, 20), app.nav.rail_width());
         assert!(geometry.rail.width <= 3);
@@ -455,15 +455,15 @@ mod tests {
 
     /// An app sitting on the episodes overlay, the way the table tests set it up.
     fn app_at_episodes() -> App {
-        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         app.handle(crate::keymap::Action::Open, 20);
         // As entering episodes does: the table is a view of the open title.
         app.detail = app.selected_entry().cloned();
         app.nav.push(StageView::Episodes(AnilistId::new(1)));
         app.apply(app.episodes_here(vec![
-            episode("9", "Aura the Guillotine", 1.0, true),
-            episode("10", "Frieren the Slayer", 0.62, false),
-            episode("11", "A Real Hero", 0.0, false),
+            episode("9", "The Last Lamplighter", 1.0, true),
+            episode("10", "Where the Roads Cross", 0.62, false),
+            episode("11", "The Sky Archive", 0.0, false),
         ]));
         app
     }
@@ -478,13 +478,13 @@ mod tests {
             provider_id: "torrent".into(),
             candidates: vec![
                 anistream_model::sources::MatchCandidate {
-                    title: "Frieren S1".into(),
+                    title: "Hoshikuzu S1".into(),
                     key: anistream_core::ids::ProviderKey::new("a"),
                     similarity: 0.62,
                     rejected: None,
                 },
                 anistream_model::sources::MatchCandidate {
-                    title: "Frieren S2".into(),
+                    title: "Hoshikuzu S2".into(),
                     key: anistream_core::ids::ProviderKey::new("b"),
                     similarity: 0.61,
                     rejected: Some("episode count".into()),
@@ -495,7 +495,7 @@ mod tests {
         let text = text_of(&render_to_buffer(&mut app, 110, 24));
         assert!(text.contains("WHICH ONE"), "the overlay names what it is asking");
         assert!(text.contains("62%") && text.contains("61%"), "similarity has to be visible");
-        assert!(text.contains("Frieren S1") && text.contains("Frieren S2"));
+        assert!(text.contains("Hoshikuzu S1") && text.contains("Hoshikuzu S2"));
         // A rejection reason explains why a plausible row was passed over.
         assert!(text.contains("episode count"));
     }

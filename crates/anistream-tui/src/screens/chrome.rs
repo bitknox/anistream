@@ -320,7 +320,7 @@ mod tests {
 
     #[test]
     fn running_work_is_captioned_on_the_status_rule_and_moves_nothing() {
-        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         let idle: Vec<String> =
             text_of(&render_to_buffer(&mut app, 120, 30)).lines().map(str::to_owned).collect();
         assert!(!idle.join("\n").contains("listing sources"));
@@ -392,12 +392,12 @@ mod tests {
 
     #[test]
     fn a_full_frame_renders_the_chrome_and_content() {
-        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         let buf = render_to_buffer(&mut app, 120, 30);
         let text = text_of(&buf);
         assert!(text.contains("anistream"), "header missing");
         assert!(text.contains("CONTINUE"), "rail missing");
-        assert!(text.contains("Frieren"), "content missing");
+        assert!(text.contains("Hoshikuzu"), "content missing");
         assert!(text.contains('─'), "hairlines missing");
         assert!(text.contains('│'), "divider missing");
     }
@@ -465,7 +465,7 @@ mod tests {
     #[test]
     fn the_selected_row_carries_the_obi_and_no_background_fill() {
         let mut app =
-            app_with(ContentList::Entries(vec![entry(1, "Frieren"), entry(2, "Dandadan")]));
+            app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu"), entry(2, "Tsukiakari")]));
         let buf = render_to_buffer(&mut app, 120, 30);
         let text = text_of(&buf);
         assert!(text.contains('▌'), "obi missing from the selected row");
@@ -483,7 +483,7 @@ mod tests {
 
     #[test]
     fn immersive_mode_paints_the_ground_everywhere() {
-        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         app.palette = Palette::immersive();
         let buf = render_to_buffer(&mut app, 60, 12);
         let expected = Palette::immersive().ground().unwrap().to_ratatui();
@@ -495,7 +495,7 @@ mod tests {
     fn the_vpn_badge_is_shown_and_alerts_when_leaking() {
         // Discovering a failing guard only when playback refuses would be far worse than
         // a badge that is always visible.
-        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         app.apply(Event::Vpn(Some(GuardView::Protected { exit: "Mullvad · SE".into() })));
 
         let buf = render_to_buffer(&mut app, 120, 20);
@@ -517,7 +517,7 @@ mod tests {
     #[test]
     fn a_guard_that_was_already_leaking_does_not_re_announce() {
         // Repeating the alert on every verification tick would be noise.
-        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         app.apply(Event::Vpn(Some(GuardView::Leaking)));
         let announced = |a: &App| a.logs.iter().map(|l| l.count).sum::<u32>();
         let after_first = announced(&app);
@@ -538,10 +538,10 @@ mod tests {
                     secondary: Some(
                         "A rather long secondary title that wants to overflow".into(),
                     ),
-                    studio: Some("Madhouse".into()),
+                    studio: Some("Kumoriya".into()),
                     episodes: Some(28),
                     progress: Some(TitleProgress { done: 11, next: 12 }),
-                    ..entry(1, "Sousou no Frieren: Beyond Journey's End, Extended Edition")
+                    ..entry(1, "Hoshikuzu no Tabibito: Wayfarer's Route, Extended Edition")
                 },
                 entry(2, "Short"),
             ]));
@@ -567,7 +567,7 @@ mod tests {
         // Nobody watches anime in a 12×4 terminal, but a resize passes through every size on the
         // way down, and a panic mid-resize takes the app out.
         for (width, height) in [(12, 4), (8, 3), (4, 2), (1, 1)] {
-            let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
+            let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
             let buf = render_to_buffer(&mut app, width, height);
             assert_eq!(buf.area.width, width);
         }
@@ -579,7 +579,7 @@ mod tests {
         // small heights and each panicked: the title screen at nine rows or fewer, any overlay
         // at four, a load failure at four, Now Playing at three. All the same shape — a row
         // offset added to a top, written without asking whether that row exists.
-        let entry_with_meta = entry(1, "葬送のフリーレン");
+        let entry_with_meta = entry(1, "星屑のトラベラー");
         for height in 1..=12u16 {
             for width in [1, 8, 20, 40, 80] {
                 // Title.
@@ -620,7 +620,7 @@ mod tests {
 
     #[test]
     fn toasts_appear_and_disappear() {
-        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         app.push_toast(anistream_model::notice::Notice::alert("provider unreachable"));
         assert!(text_of(&render_to_buffer(&mut app, 120, 30)).contains("provider unreachable"));
 
@@ -636,7 +636,7 @@ mod tests {
     fn the_status_line_reports_source_translation_and_quality() {
         // Torrents lead the default order and are off by default, so the source named is the
         // first one that is not switched off rather than the first in the list.
-        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Hoshikuzu")]));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("plugins · sub · 1080p"), "status line missing state:\n{text}");
     }

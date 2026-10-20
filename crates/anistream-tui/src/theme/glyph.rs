@@ -190,7 +190,7 @@ mod tests {
     fn an_eyebrow_is_caps_and_nothing_else() {
         // Specifically *not* letterspaced. The width matters: a tracked label is twice as
         // wide, and in a fixed grid that width comes straight out of the content beside it.
-        assert_eq!(eyebrow("Madhouse"), "MADHOUSE");
+        assert_eq!(eyebrow("Atelier Hotaru"), "ATELIER HOTARU");
         assert_eq!(eyebrow("28 EP"), "28 EP");
         assert_eq!(eyebrow(""), "");
     }

@@ -453,7 +453,7 @@ mod tests {
     use super::*;
     use anistream_core::ids::AnilistId;
 
-    const FRIEREN: AnilistId = AnilistId::new(154_587);
+    const HOSHIKUZU: AnilistId = AnilistId::new(154_587);
 
     #[test]
     fn starts_on_home_with_the_rail_focused_and_expanded() {
@@ -472,7 +472,7 @@ mod tests {
         // status picked for one show wrote it to whichever title happened to be row 0 of the
         // calendar. A silent wrong write to the user's tracker.
         let mut nav = Nav::new();
-        nav.push(StageView::Title(FRIEREN));
+        nav.push(StageView::Title(HOSHIKUZU));
         nav.open_overlay(Overlay::ListStatus);
         nav.open_overlay(Overlay::Sources);
 
@@ -487,11 +487,11 @@ mod tests {
         // The subtlest rule in the whole navigation model: dismissing a dialog must not
         // also navigate backwards.
         let mut nav = Nav::new();
-        nav.push(StageView::Title(FRIEREN));
+        nav.push(StageView::Title(HOSHIKUZU));
         nav.open_overlay(Overlay::Sources);
 
         assert_eq!(nav.back(), BackOutcome::ClosedOverlay);
-        assert_eq!(nav.current(), &StageView::Title(FRIEREN), "stage must not have moved");
+        assert_eq!(nav.current(), &StageView::Title(HOSHIKUZU), "stage must not have moved");
 
         assert_eq!(nav.back(), BackOutcome::Popped);
         assert_eq!(nav.current(), &StageView::Section(Section::Home));
@@ -523,10 +523,10 @@ mod tests {
     #[test]
     fn the_rail_collapses_entering_episodes_and_restores_on_pop() {
         let mut nav = Nav::new();
-        nav.push(StageView::Title(FRIEREN));
+        nav.push(StageView::Title(HOSHIKUZU));
         assert_eq!(nav.rail_width(), RailWidth::Expanded, "title screen keeps the rail");
 
-        nav.push(StageView::Episodes(FRIEREN));
+        nav.push(StageView::Episodes(HOSHIKUZU));
         assert_eq!(
             nav.rail_width(),
             RailWidth::Collapsed,
@@ -555,7 +555,7 @@ mod tests {
 
         // Navigating clears the override — the new destination's own preference applies.
         nav.toggle_rail();
-        nav.push(StageView::Episodes(FRIEREN));
+        nav.push(StageView::Episodes(HOSHIKUZU));
         nav.pop();
         assert_eq!(nav.rail_width(), RailWidth::Expanded);
     }
@@ -571,8 +571,8 @@ mod tests {
     #[test]
     fn jumping_to_a_section_resets_the_stage() {
         let mut nav = Nav::new();
-        nav.push(StageView::Title(FRIEREN));
-        nav.push(StageView::Episodes(FRIEREN));
+        nav.push(StageView::Title(HOSHIKUZU));
+        nav.push(StageView::Episodes(HOSHIKUZU));
         assert_eq!(nav.depth(), 3);
 
         nav.go_to(Section::Seasonal);
@@ -597,8 +597,8 @@ mod tests {
     fn pushing_the_same_view_twice_is_a_no_op() {
         // Otherwise a double keypress needs two pops to undo.
         let mut nav = Nav::new();
-        nav.push(StageView::Title(FRIEREN));
-        nav.push(StageView::Title(FRIEREN));
+        nav.push(StageView::Title(HOSHIKUZU));
+        nav.push(StageView::Title(HOSHIKUZU));
         assert_eq!(nav.depth(), 2);
     }
 
