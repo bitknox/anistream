@@ -140,6 +140,31 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: cargo build -p anistream-model --features ffi
 
+  # Swift drives a real engine through the generated bindings: apple/build.sh builds the FFI
+  # library with the test kit in it, generates the Swift bindings from the built library, and runs
+  # the Swift package's tests, which start the engine on a fake AniList and search it. Not
+  # blocking while the FFI spike is new; it turns blocking, by dropping continue-on-error, once the
+  # spike is merged.
+  swift:
+    runs-on: macos-latest
+    continue-on-error: true
+    env:
+      # The Swift package's minimum, as apple/build.sh sets it, so the Rust tests share its build.
+      MACOSX_DEPLOYMENT_TARGET: "14.0"
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install
+      # Its own cache: this build has features and a deployment target no other job's has.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: swift
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: swift --version
+      - name: Rust tests
+        run: cargo test -p anistream-ffi --features testing,cli
+      - name: Swift tests
+        run: apple/build.sh
+
   # The plugin store's admin page is committed as built output, so building the server never
   # needs bun. This rebuilds it from source and fails if the two have drifted apart.
   admin-page:

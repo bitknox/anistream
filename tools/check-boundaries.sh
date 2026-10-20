@@ -27,6 +27,7 @@ rules=(
   "anistream-plugin-store|$terminal"
   "anistream-model|$terminal"
   "anistream-engine|$terminal"
+  "anistream-ffi|$terminal"
   "anistream-tui|^anistream-engine "
 )
 
