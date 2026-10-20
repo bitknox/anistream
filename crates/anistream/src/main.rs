@@ -16,7 +16,9 @@ use cli::{
 };
 
 use anistream_engine::{
-    artwork, data, downloads,
+    artwork, data,
+    dispatch::{Lent, spawn},
+    downloads,
     jobs::JobGuard,
     now_epoch,
     outbox::{Envelope, Internal, Outbox},
@@ -1229,51 +1231,6 @@ async fn publish_list(
         // line to it. Logged so the Logs overlay can still explain a missing line.
         Err(e) => tracing::warn!(%e, "last-aired lookup failed"),
     }
-}
-
-/// What a task run by [`spawn`] is lent: its own clones of the handles it reads, and of the
-/// outbox it answers on.
-struct Lent {
-    pub meta: Meta,
-    pub store: Store,
-    pub registry: ProviderRegistry,
-    pub tx: Outbox,
-}
-
-/// Run a task off the UI thread, once the AniList rate limit lets it, and let it report back
-/// through the channel.
-fn spawn<W, F>(job: Option<JobGuard>, services: &Services, tx: &Outbox, work: W)
-where
-    W: FnOnce(Lent) -> F + Send + 'static,
-    F: Future<Output = ()> + Send + 'static,
-{
-    let meta = services.meta.clone();
-    let store = services.store.clone();
-    let registry = services.registry.clone();
-    let tx = tx.clone();
-
-    tokio::spawn(async move {
-        // Say so before waiting, not after. At thirty requests a minute a burst of navigation can
-        // drain the budget, and the token bucket then delays every request — which presented as an
-        // indefinite loading indicator and looked exactly like a hang. As a note on the job it
-        // counts down and goes away with the work, where a status line kept saying "12s" after.
-        if let Some(wait) = meta.rate_limit_wait().await
-            && wait.as_millis() > 400
-        {
-            match &job {
-                Some(job) => job.note("AniList limit", Some(wait)),
-                // No job to note it on. A toast, which goes when it is done: as a status it
-                // stayed, still counting "12s", after the wait was over.
-                None => {
-                    let _ = tx.send(Event::Toast(Notice::info(format!(
-                        "waiting {}s on the AniList rate limit",
-                        wait.as_secs().max(1)
-                    ))));
-                }
-            }
-        }
-        work(Lent { meta, store, registry, tx }).await;
-    });
 }
 
 /// What you were watching, as the CONTINUE rail lists it, or the empty that says nothing has
