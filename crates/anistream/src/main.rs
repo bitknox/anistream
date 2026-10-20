@@ -591,7 +591,7 @@ mod tests {
         let mut written: Vec<(&[&str], &str)> = app
             .setting_rows()
             .iter()
-            .filter_map(|row| row.editable.as_ref().map(|edit| (edit.table, edit.key)))
+            .filter_map(|row| row.editable.then(|| row.key.path()).flatten())
             .collect();
         written.push((&["providers"], "order"));
         for (table, key) in &written {

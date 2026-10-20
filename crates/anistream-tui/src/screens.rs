@@ -3032,7 +3032,7 @@ fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
                 // A read-only row is dimmed to the hairline weight rather than shown in the
                 // text role: the value is still legible, but it no longer looks like
                 // something an arrow will change.
-                let value_style = match (row.editable.is_some(), selected) {
+                let value_style = match (row.editable, selected) {
                     (false, _) => app.palette.style(Role::Rule),
                     (true, true) => app.palette.style(Role::Text).add_modifier(Modifier::BOLD),
                     (true, false) => app.palette.style(Role::Text),
@@ -5641,7 +5641,7 @@ mod tests {
         // scroll into view rather than living below the fold.
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Settings);
-        app.selected = crate::app::SettingId::ALL.len() - 1;
+        app.selected = crate::app::SettingKey::ROWS.len() - 1;
         let text = text_of(&render_to_buffer(&app, 120, 12));
         assert!(text.contains("TOKEN STORAGE"), "the last row must be visible:\n{text}");
     }
@@ -6253,9 +6253,9 @@ mod tests {
         let mut app = app_with(Content::Empty);
         app.go_to_section(Section::Settings);
         app.nav.focus_stage();
-        let night = crate::app::SettingId::ALL
+        let night = crate::app::SettingKey::ROWS
             .iter()
-            .position(|id| *id == crate::app::SettingId::NightMode)
+            .position(|id| *id == crate::app::SettingKey::NightMode)
             .unwrap();
         app.selected = night;
         let text = text_of(&render_to_buffer(&app, 120, 34));

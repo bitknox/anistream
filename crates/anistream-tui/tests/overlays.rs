@@ -196,9 +196,9 @@ fn ctrl_c_quits_from_every_overlay_and_prompt() {
 fn arrows_in_a_text_prompt_do_not_move_the_list_behind_it() {
     let mut a = at_settings();
     // Subtitles is a text setting: Enter opens its editor.
-    a.selected = anistream_tui::app::SettingId::ALL
+    a.selected = anistream_tui::app::SettingKey::ROWS
         .iter()
-        .position(|s| *s == anistream_tui::app::SettingId::Subtitles)
+        .position(|s| *s == anistream_tui::app::SettingKey::Subtitles)
         .unwrap();
     let row = a.selected;
     press(&mut a, &["enter"]);

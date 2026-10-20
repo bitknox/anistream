@@ -64,26 +64,23 @@ pub struct SettingRow {
     pub category: &'static str,
     /// Rendered value.
     pub value: String,
-    /// `None` for rows that are shown but not editable here.
-    pub editable: Option<SettingEdit>,
+    /// The setting it shows.
+    pub key: SettingKey,
+    /// `false` for rows that are shown but not editable here.
+    pub editable: bool,
     /// Why a row is read-only, or what a change will not do until restart.
     pub note: Option<&'static str>,
 }
 
-/// Where a row writes and what it cycles through.
-#[derive(Debug, Clone, PartialEq)]
-pub struct SettingEdit {
-    /// Dotted path of the containing table, as `anistream_core::settings::write_key` wants it.
-    pub table: &'static [&'static str],
-    pub key: &'static str,
-}
-
-/// Every row of the Settings screen, in display order.
+/// Every setting a front end shows or changes, named for what it is rather than for where the
+/// file keeps it: the Settings screen's rows, in display order in [`Self::ROWS`], and the one
+/// with no row there, the source order.
 ///
 /// An enum rather than positional indices: the cycling logic and the renderer both key off this,
-/// so inserting a row cannot make the screen edit the setting below the one it is showing.
+/// so inserting a row cannot make the screen edit the setting below the one it is showing. And
+/// rather than the file's table and key, which are where it is written and nothing more.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SettingId {
+pub enum SettingKey {
     Theme,
     Motion,
     Translation,
@@ -114,12 +111,16 @@ pub enum SettingId {
     SyncplayServer,
     SyncplayRoom,
     UpdateCheck,
+    /// The order failover walks the sources in. No row on Settings: `K` and `J` on Providers
+    /// move a source up and down it.
+    SourceOrder,
 }
 
-impl SettingId {
-    /// Display order. Grouped by [`Self::category`] — the renderer draws a heading each
-    /// time the category changes, so rows of one category must be contiguous here.
-    pub const ALL: [Self; 30] = [
+impl SettingKey {
+    /// The Settings screen's rows, in display order. Grouped by [`Self::category`] — the
+    /// renderer draws a heading each time the category changes, so rows of one category must
+    /// be contiguous here.
+    pub const ROWS: [Self; 30] = [
         Self::Theme,
         Self::Motion,
         Self::Translation,
@@ -152,17 +153,63 @@ impl SettingId {
         Self::UpdateCheck,
     ];
 
-    /// The settings whose values are typed rather than cycled, with where they write.
-    /// Everything else either has a closed set of values or is read-only on purpose.
-    pub const fn text_edit(self) -> Option<(&'static [&'static str], &'static str)> {
-        match self {
-            Self::Subtitles => Some((&["playback"], "subtitle_language")),
-            Self::DownloadDir => Some((&["downloads"], "directory")),
-            Self::DownloadHook => Some((&["downloads"], "on_complete")),
-            Self::SyncplayServer => Some((&["syncplay"], "server")),
-            Self::SyncplayRoom => Some((&["syncplay"], "room")),
-            _ => None,
-        }
+    /// Where the file keeps it: the containing table, as the dotted path
+    /// `anistream_core::settings::write_key` takes, and the key. `None` for the two shown and
+    /// never written from here, the VPN mode and where tokens are kept: the file's to change.
+    pub const fn path(self) -> Option<(&'static [&'static str], &'static str)> {
+        Some(match self {
+            Self::Theme => (&["theme"], "mode"),
+            Self::Motion => (&["theme"], "motion"),
+            Self::Translation => (&["playback"], "translation"),
+            Self::Quality => (&["playback"], "quality"),
+            Self::Subtitles => (&["playback"], "subtitle_language"),
+            Self::CommitThreshold => (&["playback"], "commit_threshold"),
+            Self::AutoNext => (&["playback"], "auto_next"),
+            Self::SkipOpening => (&["playback"], "skip_opening"),
+            Self::SkipFiller => (&["playback"], "skip_filler"),
+            Self::MarkChapters => (&["playback"], "mark_chapters"),
+            Self::Fullscreen => (&["playback"], "fullscreen"),
+            Self::Upscaling => (&["playback"], "upscaling"),
+            Self::PlayerUi => (&["playback"], "player_ui"),
+            Self::NightMode => (&["playback"], "night_mode"),
+            Self::DownloadDir => (&["downloads"], "directory"),
+            Self::MergeSubtitles => (&["downloads"], "merge_subtitles"),
+            Self::KeepSeeding => (&["downloads"], "keep_seeding"),
+            Self::DownloadHook => (&["downloads"], "on_complete"),
+            Self::Presence => (&["presence"], "enabled"),
+            Self::PresenceTitle => (&["presence"], "show_title"),
+            Self::Torrents => (&["providers", "torrent"], "enabled"),
+            Self::SeedRatio => (&["providers", "torrent", "seeding"], "ratio"),
+            Self::SeedHours => (&["providers", "torrent", "seeding"], "hours"),
+            Self::UploadLimit => (&["providers", "torrent", "seeding"], "upload_limit_kib"),
+            Self::Syncplay => (&["syncplay"], "enabled"),
+            Self::SyncplayServer => (&["syncplay"], "server"),
+            Self::SyncplayRoom => (&["syncplay"], "room"),
+            Self::UpdateCheck => (&["updates"], "check"),
+            Self::SourceOrder => (&["providers"], "order"),
+            Self::VpnMode | Self::TokenStorage => return None,
+        })
+    }
+
+    /// The setting the file keeps at `table`.`key`, when it is one a front end changes.
+    pub fn at(table: &[&str], key: &str) -> Option<Self> {
+        Self::ROWS
+            .into_iter()
+            .chain([Self::SourceOrder])
+            .find(|setting| setting.path().is_some_and(|(t, k)| t == table && k == key))
+    }
+
+    /// Whether its value is typed rather than cycled. Everything else either has a closed set
+    /// of values or is read-only on purpose.
+    pub const fn typed(self) -> bool {
+        matches!(
+            self,
+            Self::Subtitles
+                | Self::DownloadDir
+                | Self::DownloadHook
+                | Self::SyncplayServer
+                | Self::SyncplayRoom
+        )
     }
 
     /// Copy this setting's value from one configuration to another.
@@ -212,6 +259,7 @@ impl SettingId {
             Self::SyncplayServer => to.syncplay.server.clone_from(&from.syncplay.server),
             Self::SyncplayRoom => to.syncplay.room.clone_from(&from.syncplay.room),
             Self::UpdateCheck => to.updates.check = from.updates.check,
+            Self::SourceOrder => to.providers.order.clone_from(&from.providers.order),
             // Not editable here, so never written and never rolled back.
             Self::VpnMode | Self::TokenStorage => {}
         }
@@ -242,7 +290,8 @@ impl SettingId {
             | Self::VpnMode
             | Self::SeedRatio
             | Self::SeedHours
-            | Self::UploadLimit => "sources",
+            | Self::UploadLimit
+            | Self::SourceOrder => "sources",
             Self::Presence
             | Self::PresenceTitle
             | Self::TokenStorage
@@ -287,6 +336,7 @@ impl SettingId {
             Self::UploadLimit => "upload limit",
             Self::VpnMode => "vpn mode",
             Self::TokenStorage => "token storage",
+            Self::SourceOrder => "source order",
         }
     }
 }
@@ -325,24 +375,6 @@ fn parse_episode_range(input: &str) -> Option<(u32, Option<u32>)> {
 
 fn on_off(yes: bool) -> String {
     if yes { "on".into() } else { "off".into() }
-}
-
-/// Map a row's dotted table name onto the slice form the writer takes.
-///
-/// A `&'static [&'static str]` cannot be built from a runtime split, and the set of tables the
-/// Settings screen writes to is closed, so they are spelled out.
-fn table_path(dotted: &'static str) -> &'static [&'static str] {
-    match dotted {
-        "theme" => &["theme"],
-        "playback" => &["playback"],
-        "presence" => &["presence"],
-        "providers.torrent" => &["providers", "torrent"],
-        "providers.torrent.seeding" => &["providers", "torrent", "seeding"],
-        "downloads" => &["downloads"],
-        "syncplay" => &["syncplay"],
-        "updates" => &["updates"],
-        other => unreachable!("no table path for {other}"),
-    }
 }
 
 /// A setting's saved value, with the session's own beside it when they differ.
@@ -869,7 +901,7 @@ pub struct App {
     /// What is being typed into the setting editor.
     pub edit_value: String,
     /// Which text-valued setting the editor is writing.
-    pub edit_target: Option<SettingId>,
+    pub edit_target: Option<SettingKey>,
     /// Selection within the episode table, tracked separately from list selection so
     /// stepping back out of Episodes does not disturb where you were in the list.
     pub episode_selected: usize,
@@ -1641,17 +1673,17 @@ impl App {
     }
 
     /// The live value a text setting starts editing from.
-    fn current_text_value(&self, id: SettingId) -> String {
+    fn current_text_value(&self, id: SettingKey) -> String {
         match id {
-            SettingId::Subtitles => self.config.playback.subtitle_language.clone(),
-            SettingId::DownloadDir => {
+            SettingKey::Subtitles => self.config.playback.subtitle_language.clone(),
+            SettingKey::DownloadDir => {
                 self.config.downloads.directory.clone().unwrap_or_default()
             }
-            SettingId::DownloadHook => {
+            SettingKey::DownloadHook => {
                 self.config.downloads.on_complete.clone().unwrap_or_default()
             }
-            SettingId::SyncplayServer => self.config.syncplay.server.clone(),
-            SettingId::SyncplayRoom => self.config.syncplay.room.clone().unwrap_or_default(),
+            SettingKey::SyncplayServer => self.config.syncplay.server.clone(),
+            SettingKey::SyncplayRoom => self.config.syncplay.room.clone().unwrap_or_default(),
             _ => String::new(),
         }
     }
@@ -2083,7 +2115,7 @@ impl App {
         let len = match rows {
             Rows::Downloads => self.downloads.len(),
             Rows::Accounts => self.sync.len(),
-            Rows::Settings => SettingId::ALL.len(),
+            Rows::Settings => SettingKey::ROWS.len(),
             Rows::Providers => self.providers.len(),
             Rows::Episodes => self.episodes.len(),
             // The last row is the one that joins another store.
@@ -2472,9 +2504,9 @@ impl App {
             // open a small typed editor for the values that are text — a screen that
             // points at config.toml for a language code has given up two keys early.
             Action::Open | Action::PlayNext if self.in_settings_stage() => {
-                let id = SettingId::ALL.get(self.selected).copied();
+                let id = SettingKey::ROWS.get(self.selected).copied();
                 if let Some(id) = id
-                    && id.text_edit().is_some()
+                    && id.typed()
                 {
                     self.edit_target = Some(id);
                     self.edit_value = self.current_text_value(id);
@@ -3350,9 +3382,9 @@ impl App {
     /// because flipping on both arrows meant Left could never arrive anywhere. Enter and Space
     /// still flip it. A row the arrows cannot step at all, typed or read-only, is at both ends.
     fn step_setting(&mut self, delta: isize) -> Option<Command> {
-        let id = *SettingId::ALL.get(self.selected)?;
-        let steppable = id.text_edit().is_none()
-            && self.setting_rows().get(self.selected).is_some_and(|row| row.editable.is_some());
+        let id = *SettingKey::ROWS.get(self.selected)?;
+        let steppable = !id.typed()
+            && self.setting_rows().get(self.selected).is_some_and(|row| row.editable);
         if !steppable || self.two_state(id).is_some_and(|second| second == (delta > 0)) {
             if delta < 0 {
                 self.nav.focus_rail();
@@ -3377,8 +3409,8 @@ impl App {
 
     /// Where a two-state Settings row stands: `Some(true)` on its second state — on, or the
     /// second of its two choices. `None` for every other row.
-    fn two_state(&self, id: SettingId) -> Option<bool> {
-        use SettingId as S;
+    fn two_state(&self, id: SettingKey) -> Option<bool> {
+        use SettingKey as S;
         use anistream_core::config::{PlayerUi, ThemeMode};
         let c = &self.config;
         // Theme and sub/dub can differ for this session (`--theme`, `t`), and their arrows
@@ -3409,8 +3441,8 @@ impl App {
     }
 
     /// A laddered Settings row's value as it would be written, to tell a step from a stay.
-    fn ladder_value(&self, id: SettingId) -> Option<anistream_core::settings::SettingValue> {
-        use SettingId as S;
+    fn ladder_value(&self, id: SettingKey) -> Option<anistream_core::settings::SettingValue> {
+        use SettingKey as S;
         use anistream_core::settings::SettingValue as V;
         let playback = &self.config.playback;
         let seeding = &self.config.providers.torrent.seeding;
@@ -3636,10 +3668,10 @@ impl App {
     /// changed for a session only, theme and sub/dub, show what is saved and mark the session's
     /// value beside it: the file and the next launch go by the saved one.
     pub fn setting_rows(&self) -> Vec<SettingRow> {
-        use SettingId as S;
+        use SettingKey as S;
         let playback = &self.config.playback;
         let torrent = &self.config.providers.torrent;
-        SettingId::ALL
+        SettingKey::ROWS
             .iter()
             .map(|id| {
                 let (value, editable, note) = match id {
@@ -3648,59 +3680,47 @@ impl App {
                             format!("{:?}", self.saved_config.theme.mode).to_lowercase(),
                             format!("{:?}", self.config.theme.mode).to_lowercase(),
                         ),
-                        Some(("theme", "mode")),
+                        true,
                         None,
                     ),
-                    S::Motion => {
-                        (on_off(self.config.theme.motion), Some(("theme", "motion")), None)
-                    }
+                    S::Motion => (on_off(self.config.theme.motion), true, None),
                     S::Translation => (
                         session_marked(
                             self.saved_config.playback.translation.to_string(),
                             playback.translation.to_string(),
                         ),
-                        Some(("playback", "translation")),
+                        true,
                         None,
                     ),
-                    S::Quality => {
-                        (format!("{}p", playback.quality), Some(("playback", "quality")), None)
-                    }
+                    S::Quality => (format!("{}p", playback.quality), true, None),
                     // Text, not a closed set — a language code cycler would be a list of every
                     // ISO 639 code, which is a config-file job rather than a screen job.
                     S::Subtitles => (
                         playback.subtitle_language.clone(),
-                        Some(("playback", "subtitle_language")),
+                        true,
                         Some("enter types a language code — too many values to cycle"),
                     ),
                     S::CommitThreshold => (
                         format!("{}%", (playback.commit_threshold * 100.0).round()),
-                        Some(("playback", "commit_threshold")),
+                        true,
                         None,
                     ),
-                    S::AutoNext => {
-                        (on_off(playback.auto_next), Some(("playback", "auto_next")), None)
-                    }
-                    S::SkipOpening => (
-                        on_off(playback.skip_opening),
-                        Some(("playback", "skip_opening")),
-                        None,
-                    ),
-                    S::SkipFiller => {
-                        (on_off(playback.skip_filler), Some(("playback", "skip_filler")), None)
-                    }
+                    S::AutoNext => (on_off(playback.auto_next), true, None),
+                    S::SkipOpening => (on_off(playback.skip_opening), true, None),
+                    S::SkipFiller => (on_off(playback.skip_filler), true, None),
                     S::MarkChapters => (
                         on_off(playback.mark_chapters),
-                        Some(("playback", "mark_chapters")),
+                        true,
                         Some("chapter marks on the seek bar, where the stream has none"),
                     ),
                     S::Fullscreen => (
                         on_off(playback.fullscreen),
-                        Some(("playback", "fullscreen")),
+                        true,
                         Some("mpv opens fullscreen; its own f key still leaves it"),
                     ),
                     S::Upscaling => (
                         upscaling_label(playback.upscaling).into(),
-                        Some(("playback", "upscaling")),
+                        true,
                         // Read per playback, so the next episode uses this; the player's own
                         // menu changes the one playing.
                         Some("adapts to the source and your GPU · from the next episode"),
@@ -3711,12 +3731,12 @@ impl App {
                             anistream_core::config::PlayerUi::Mpv => "your mpv setup",
                         }
                         .into(),
-                        Some(("playback", "player_ui")),
+                        true,
                         Some("thumbnails, menus and the skip button in anistream's look"),
                     ),
                     S::NightMode => (
                         on_off(playback.night_mode),
-                        Some(("playback", "night_mode")),
+                        true,
                         Some("evens out quiet dialogue and loud music"),
                     ),
                     S::DownloadDir => (
@@ -3725,17 +3745,17 @@ impl App {
                             .directory
                             .clone()
                             .unwrap_or_else(|| "kept with the torrent cache".into()),
-                        Some(("downloads", "directory")),
+                        true,
                         Some("enter types a path — applies to the next download"),
                     ),
                     S::MergeSubtitles => (
                         on_off(self.config.downloads.merge_subtitles),
-                        Some(("downloads", "merge_subtitles")),
+                        true,
                         Some("applies to the next download that finishes"),
                     ),
                     S::KeepSeeding => (
                         on_off(self.config.downloads.keep_seeding),
-                        Some(("downloads", "keep_seeding")),
+                        true,
                         // The privacy dial; saying so is the point of the row.
                         Some("on keeps advertising you as a source — applies immediately"),
                     ),
@@ -3745,12 +3765,12 @@ impl App {
                         } else {
                             "none".into()
                         },
-                        Some(("downloads", "on_complete")),
+                        true,
                         Some("enter types a command — run after each finished download"),
                     ),
                     S::Syncplay => (
                         on_off(self.config.syncplay.enabled),
-                        Some(("syncplay", "enabled")),
+                        true,
                         // `y` is the ordinary way in; this toggle sends *every* play there.
                         Some(
                             "y plays one episode with the room set below — on sends every play",
@@ -3758,7 +3778,7 @@ impl App {
                     ),
                     S::SyncplayServer => (
                         self.config.syncplay.server.clone(),
-                        Some(("syncplay", "server")),
+                        true,
                         Some("enter types host:port"),
                     ),
                     S::SyncplayRoom => (
@@ -3767,17 +3787,17 @@ impl App {
                             .room
                             .clone()
                             .unwrap_or_else(|| "unset — needed for parties".into()),
-                        Some(("syncplay", "room")),
+                        true,
                         Some("enter types the room everyone joins"),
                     ),
                     S::UpdateCheck => (
                         on_off(self.config.updates.check),
-                        Some(("updates", "check")),
+                        true,
                         Some("one cached request a day, checked at startup"),
                     ),
                     S::Presence => (
                         on_off(self.config.presence.enabled),
-                        Some(("presence", "enabled")),
+                        true,
                         // Enabling it without a client id is a no-op, and a toggle that appears to
                         // work while doing nothing is worse than one that says why.
                         if self.config.presence.resolved_client_id().is_some() {
@@ -3790,14 +3810,14 @@ impl App {
                     ),
                     S::PresenceTitle => (
                         on_off(self.config.presence.show_title),
-                        Some(("presence", "show_title")),
+                        true,
                         // The privacy dial. Off still publishes that you are watching *something*,
                         // which is the point for anyone who wants the presence without the title.
                         Some("off shows \"Watching anime\" without naming the show"),
                     ),
                     S::Torrents => (
                         on_off(torrent.enabled),
-                        Some(("providers.torrent", "enabled")),
+                        true,
                         Some("needs a VPN configured; takes effect immediately"),
                     ),
                     // Deliberately not editable. `mode = "none"` requires an explicit
@@ -3805,7 +3825,7 @@ impl App {
                     // with an arrow key would be a way around friction that exists on purpose.
                     S::VpnMode => (
                         format!("{:?}", torrent.vpn.mode).to_lowercase(),
-                        None,
+                        false,
                         Some("edit config.toml — turning this off has to be deliberate"),
                     ),
                     S::SeedRatio => (
@@ -3814,31 +3834,33 @@ impl App {
                         } else {
                             "off".into()
                         },
-                        Some(("providers.torrent.seeding", "ratio")),
+                        true,
                         Some("keeps watched episodes seeding while anistream is open"),
                     ),
                     S::SeedHours => (
                         format!("{} h", torrent.seeding.hours),
-                        Some(("providers.torrent.seeding", "hours")),
+                        true,
                         Some("the longest one episode keeps seeding, whatever its ratio"),
                     ),
                     S::UploadLimit => (
                         upload_label(torrent.seeding.upload_limit_kib),
-                        Some(("providers.torrent.seeding", "upload_limit_kib")),
+                        true,
                         Some("caps all torrent upload, so seeding never slows playback"),
                     ),
                     S::TokenStorage => (
                         self.config.trackers.token_storage.clone(),
-                        None,
+                        false,
                         Some("use --token-to-file to move an existing token"),
                     ),
+                    // Not among the rows: Providers shows the order, as its table.
+                    S::SourceOrder => (String::new(), false, None),
                 };
                 SettingRow {
                     label: id.label(),
                     category: id.category(),
                     value,
-                    editable: editable
-                        .map(|(table, key)| SettingEdit { table: table_path(table), key }),
+                    key: *id,
+                    editable,
                     note,
                 }
             })
@@ -3852,14 +3874,7 @@ impl App {
     /// `None` for what is stored without a row of its own, the remembered speed and volume:
     /// saved in passing, and not something anyone asked to have confirmed.
     pub fn setting_label(&self, table: &[&str], key: &str) -> Option<&'static str> {
-        // No row on Settings: `K` and `J` on Providers change it.
-        if table == ["providers"] && key == "order" {
-            return Some("source order");
-        }
-        self.setting_rows()
-            .into_iter()
-            .find(|row| row.editable.as_ref().is_some_and(|e| e.table == table && e.key == key))
-            .map(|row| row.label)
+        SettingKey::at(table, key).map(SettingKey::label)
     }
 
     /// Step the selected setting through its values.
@@ -3871,17 +3886,19 @@ impl App {
         use anistream_core::media::Translation;
         use anistream_core::settings::SettingValue as V;
 
-        let id = *SettingId::ALL.get(self.selected)?;
+        let id = *SettingKey::ROWS.get(self.selected)?;
         let rows = self.setting_rows();
-        let edit = rows.get(self.selected)?.editable.clone();
-        let Some(edit) = edit else {
-            let note = rows.get(self.selected).and_then(|r| r.note);
-            self.push_toast(Notice::info(note.unwrap_or("not editable here")));
-            return None;
+        let (table, key) = match id.path() {
+            Some(path) if rows.get(self.selected)?.editable => path,
+            _ => {
+                let note = rows.get(self.selected).and_then(|r| r.note);
+                self.push_toast(Notice::info(note.unwrap_or("not editable here")));
+                return None;
+            }
         };
 
         let value = match id {
-            SettingId::Theme => {
+            SettingKey::Theme => {
                 // From the saved value, which is the one the row shows: the arrows change
                 // what is saved, and a session override simply gives way to it.
                 let next = match self.saved_config.theme.mode {
@@ -3900,11 +3917,11 @@ impl App {
                     if next == ThemeMode::Immersive { "immersive" } else { "adaptive" }.into(),
                 )
             }
-            SettingId::Motion => {
+            SettingKey::Motion => {
                 self.config.theme.motion = !self.config.theme.motion;
                 V::Bool(self.config.theme.motion)
             }
-            SettingId::Translation => {
+            SettingKey::Translation => {
                 let next = match self.saved_config.playback.translation {
                     Translation::Sub => Translation::Dub,
                     Translation::Dub => Translation::Sub,
@@ -3912,24 +3929,24 @@ impl App {
                 self.config.playback.translation = next;
                 V::Str(next.to_string())
             }
-            SettingId::Quality => {
+            SettingKey::Quality => {
                 const LADDER: [u32; 4] = [480, 720, 1080, 2160];
                 let next = step_through(&LADDER, self.config.playback.quality, delta);
                 self.config.playback.quality = next;
                 V::Int(i64::from(next))
             }
-            SettingId::CommitThreshold => {
+            SettingKey::CommitThreshold => {
                 const LADDER: [u32; 5] = [70, 80, 85, 90, 95];
                 let current = (self.config.playback.commit_threshold * 100.0).round() as u32;
                 let next = step_through(&LADDER, current, delta);
                 self.config.playback.commit_threshold = f64::from(next) / 100.0;
                 V::Float(f64::from(next) / 100.0)
             }
-            SettingId::AutoNext => {
+            SettingKey::AutoNext => {
                 self.config.playback.auto_next = !self.config.playback.auto_next;
                 V::Bool(self.config.playback.auto_next)
             }
-            SettingId::Upscaling => {
+            SettingKey::Upscaling => {
                 use anistream_core::config::Upscaling as U;
                 const LADDER: [U; 3] = [U::Off, U::Natural, U::Sharp];
                 let at = LADDER
@@ -3940,7 +3957,7 @@ impl App {
                 self.config.playback.upscaling = next;
                 V::Str(next.name().into())
             }
-            SettingId::PlayerUi => {
+            SettingKey::PlayerUi => {
                 use anistream_core::config::PlayerUi as P;
                 let next = match self.config.playback.player_ui {
                     P::Anistream => P::Mpv,
@@ -3949,55 +3966,55 @@ impl App {
                 self.config.playback.player_ui = next;
                 V::Str(if next == P::Anistream { "anistream" } else { "mpv" }.into())
             }
-            SettingId::NightMode => {
+            SettingKey::NightMode => {
                 self.config.playback.night_mode = !self.config.playback.night_mode;
                 V::Bool(self.config.playback.night_mode)
             }
-            SettingId::MergeSubtitles => {
+            SettingKey::MergeSubtitles => {
                 self.config.downloads.merge_subtitles = !self.config.downloads.merge_subtitles;
                 V::Bool(self.config.downloads.merge_subtitles)
             }
-            SettingId::KeepSeeding => {
+            SettingKey::KeepSeeding => {
                 self.config.downloads.keep_seeding = !self.config.downloads.keep_seeding;
                 V::Bool(self.config.downloads.keep_seeding)
             }
-            SettingId::Syncplay => {
+            SettingKey::Syncplay => {
                 self.config.syncplay.enabled = !self.config.syncplay.enabled;
                 V::Bool(self.config.syncplay.enabled)
             }
-            SettingId::UpdateCheck => {
+            SettingKey::UpdateCheck => {
                 self.config.updates.check = !self.config.updates.check;
                 V::Bool(self.config.updates.check)
             }
-            SettingId::SkipOpening => {
+            SettingKey::SkipOpening => {
                 self.config.playback.skip_opening = !self.config.playback.skip_opening;
                 V::Bool(self.config.playback.skip_opening)
             }
-            SettingId::SkipFiller => {
+            SettingKey::SkipFiller => {
                 self.config.playback.skip_filler = !self.config.playback.skip_filler;
                 V::Bool(self.config.playback.skip_filler)
             }
-            SettingId::MarkChapters => {
+            SettingKey::MarkChapters => {
                 self.config.playback.mark_chapters = !self.config.playback.mark_chapters;
                 V::Bool(self.config.playback.mark_chapters)
             }
-            SettingId::Fullscreen => {
+            SettingKey::Fullscreen => {
                 self.config.playback.fullscreen = !self.config.playback.fullscreen;
                 V::Bool(self.config.playback.fullscreen)
             }
-            SettingId::Presence => {
+            SettingKey::Presence => {
                 self.config.presence.enabled = !self.config.presence.enabled;
                 V::Bool(self.config.presence.enabled)
             }
-            SettingId::PresenceTitle => {
+            SettingKey::PresenceTitle => {
                 self.config.presence.show_title = !self.config.presence.show_title;
                 V::Bool(self.config.presence.show_title)
             }
-            SettingId::Torrents => {
+            SettingKey::Torrents => {
                 self.config.providers.torrent.enabled = !self.config.providers.torrent.enabled;
                 V::Bool(self.config.providers.torrent.enabled)
             }
-            SettingId::SeedRatio => {
+            SettingKey::SeedRatio => {
                 // Tenths, so the ladder can be matched exactly rather than as floats.
                 const LADDER: [u32; 5] = [0, 5, 10, 15, 20];
                 let seeding = &mut self.config.providers.torrent.seeding;
@@ -4005,32 +4022,34 @@ impl App {
                 seeding.ratio = f64::from(step_through(&LADDER, current, delta)) / 10.0;
                 V::Float(seeding.ratio)
             }
-            SettingId::SeedHours => {
+            SettingKey::SeedHours => {
                 const LADDER: [u32; 5] = [1, 6, 12, 24, 72];
                 let seeding = &mut self.config.providers.torrent.seeding;
                 seeding.hours = step_through(&LADDER, seeding.hours, delta);
                 V::Int(i64::from(seeding.hours))
             }
-            SettingId::UploadLimit => {
+            SettingKey::UploadLimit => {
                 const LADDER: [u32; 6] = [0, 256, 512, 1024, 2048, 5120];
                 let seeding = &mut self.config.providers.torrent.seeding;
                 seeding.upload_limit_kib =
                     step_through(&LADDER, seeding.upload_limit_kib, delta);
                 V::Int(i64::from(seeding.upload_limit_kib))
             }
-            SettingId::VpnMode | SettingId::TokenStorage => return None,
+            SettingKey::VpnMode | SettingKey::TokenStorage | SettingKey::SourceOrder => {
+                return None;
+            }
             // Text values are typed, not cycled — arrows have nothing to step through.
-            SettingId::Subtitles
-            | SettingId::DownloadDir
-            | SettingId::DownloadHook
-            | SettingId::SyncplayServer
-            | SettingId::SyncplayRoom => {
+            SettingKey::Subtitles
+            | SettingKey::DownloadDir
+            | SettingKey::DownloadHook
+            | SettingKey::SyncplayServer
+            | SettingKey::SyncplayRoom => {
                 self.push_toast(Notice::info("enter types a value here"));
                 return None;
             }
         };
 
-        Some(Command::SaveSetting { table: edit.table, key: edit.key, value })
+        Some(Command::SaveSetting { table, key, value })
     }
 
     /// Put a setting whose write failed back to what the file holds.
@@ -4041,19 +4060,12 @@ impl App {
     fn roll_back_setting(&mut self, table: &[&str], key: &str) {
         // The order has no Settings row. Its rows on Providers come back with the chain's own,
         // sent with the refusal: the chain was never moved.
-        if table == ["providers"] && key == "order" {
-            self.config.providers.order = self.saved_config.providers.order.clone();
+        let Some(id) = SettingKey::at(table, key) else { return };
+        id.copy(&self.saved_config, &mut self.config);
+        if id == SettingKey::SourceOrder {
             return;
         }
-        let rows = self.setting_rows();
-        let Some(id) = SettingId::ALL.iter().zip(&rows).find_map(|(id, row)| {
-            let edit = row.editable.as_ref()?;
-            (edit.table == table && edit.key == key).then_some(*id)
-        }) else {
-            return;
-        };
-        id.copy(&self.saved_config, &mut self.config);
-        if id == SettingId::Theme {
+        if id == SettingKey::Theme {
             use anistream_core::config::ThemeMode;
             self.palette = crate::theme::Palette::of(match self.config.theme.mode {
                 ThemeMode::Immersive => crate::theme::Variant::Immersive,
@@ -4175,7 +4187,7 @@ impl App {
             }
             Action::Open if self.nav.overlay() == Some(&Overlay::EditSetting) => {
                 let id = self.edit_target.take()?;
-                let (table, key) = id.text_edit()?;
+                let (table, key) = id.path().filter(|_| id.typed())?;
                 let value = self.edit_value.trim().to_owned();
                 self.nav.close_overlay();
                 if value.is_empty() {
@@ -4187,19 +4199,19 @@ impl App {
                     return None;
                 }
                 match id {
-                    SettingId::Subtitles => {
+                    SettingKey::Subtitles => {
                         self.config.playback.subtitle_language = value.clone();
                     }
-                    SettingId::DownloadDir => {
+                    SettingKey::DownloadDir => {
                         self.config.downloads.directory = Some(value.clone());
                     }
-                    SettingId::DownloadHook => {
+                    SettingKey::DownloadHook => {
                         self.config.downloads.on_complete = Some(value.clone());
                     }
-                    SettingId::SyncplayServer => {
+                    SettingKey::SyncplayServer => {
                         self.config.syncplay.server = value.clone();
                     }
-                    SettingId::SyncplayRoom => {
+                    SettingKey::SyncplayRoom => {
                         self.config.syncplay.room = Some(value.clone());
                     }
                     _ => return None,
@@ -5504,7 +5516,7 @@ mod tests {
         a.go_to_section(Section::Settings);
         a.nav.focus_stage();
         a.selected =
-            SettingId::ALL.iter().position(|s| *s == SettingId::Subtitles).expect("row");
+            SettingKey::ROWS.iter().position(|s| *s == SettingKey::Subtitles).expect("row");
 
         a.handle(Action::Open, 20);
         assert_eq!(a.nav.overlay(), Some(&Overlay::EditSetting));
@@ -5651,7 +5663,8 @@ mod tests {
         let mut a = app();
         let _ = a.go_to_section(Section::Settings);
         a.nav.focus_stage();
-        a.selected = SettingId::ALL.iter().position(|id| *id == SettingId::Subtitles).unwrap();
+        a.selected =
+            SettingKey::ROWS.iter().position(|id| *id == SettingKey::Subtitles).unwrap();
         a.handle(Action::Open, 10);
         for c in "ger".chars() {
             a.type_char(c);
@@ -7538,8 +7551,8 @@ mod tests {
         }
     }
 
-    fn setting_row(id: SettingId) -> usize {
-        SettingId::ALL.iter().position(|s| *s == id).expect("a settings row")
+    fn setting_row(id: SettingKey) -> usize {
+        SettingKey::ROWS.iter().position(|s| *s == id).expect("a settings row")
     }
 
     #[test]
@@ -7782,7 +7795,7 @@ mod tests {
         let mut a = home_list(5);
         a.handle(Action::JumpSection(9), 5);
         a.handle(Action::Bottom, 5);
-        assert_eq!(a.selected, SettingId::ALL.len() - 1);
+        assert_eq!(a.selected, SettingKey::ROWS.len() - 1);
         a.handle(Action::Top, 5);
         a.handle(Action::PageDown, 5);
         assert_eq!(a.selected, 5);
@@ -8046,7 +8059,7 @@ mod tests {
         assert_eq!(a.nav.focus(), Focus::Rail);
 
         a.handle(Action::JumpSection(9), 5);
-        a.selected = setting_row(SettingId::Motion);
+        a.selected = setting_row(SettingKey::Motion);
         a.config.theme.motion = true;
         assert_eq!(a.handle(Action::Right, 5), None, "a switch that is on stays on");
         assert!(a.config.theme.motion);
@@ -8064,10 +8077,10 @@ mod tests {
         // A ladder on its bottom rung and a typed value have nothing further left either.
         for (row, prepare) in [
             (
-                SettingId::Quality,
+                SettingKey::Quality,
                 (|a: &mut App| a.config.playback.quality = 480) as fn(&mut App),
             ),
-            (SettingId::Subtitles, |_| {}),
+            (SettingKey::Subtitles, |_| {}),
         ] {
             a.nav.focus_stage();
             a.selected = setting_row(row);
@@ -8573,7 +8586,7 @@ mod tests {
         a.go_to_section(Section::Settings);
         a.nav.focus_stage();
 
-        a.selected = SettingId::ALL.iter().position(|id| *id == SettingId::Quality).unwrap();
+        a.selected = SettingKey::ROWS.iter().position(|id| *id == SettingKey::Quality).unwrap();
         let task = a.handle(Action::Right, 10);
         assert_eq!(a.config.playback.quality, 2160);
         assert!(matches!(
@@ -8582,23 +8595,23 @@ mod tests {
         ));
 
         a.selected =
-            SettingId::ALL.iter().position(|id| *id == SettingId::CommitThreshold).unwrap();
+            SettingKey::ROWS.iter().position(|id| *id == SettingKey::CommitThreshold).unwrap();
         a.handle(Action::Right, 10);
         assert_eq!(a.config.playback.commit_threshold, 0.97, "→ never lowers it");
         a.handle(Action::Left, 10);
         assert_eq!(a.config.playback.commit_threshold, 0.95);
     }
 
-    fn setting_text(a: &App, id: SettingId) -> String {
-        let at = SettingId::ALL.iter().position(|row| *row == id).unwrap();
+    fn setting_text(a: &App, id: SettingKey) -> String {
+        let at = SettingKey::ROWS.iter().position(|row| *row == id).unwrap();
         a.setting_rows()[at].value.clone()
     }
 
-    fn settings_at(id: SettingId) -> App {
+    fn settings_at(id: SettingKey) -> App {
         let mut a = app();
         a.go_to_section(Section::Settings);
         a.nav.focus_stage();
-        a.selected = SettingId::ALL.iter().position(|row| *row == id).unwrap();
+        a.selected = SettingKey::ROWS.iter().position(|row| *row == id).unwrap();
         a
     }
 
@@ -8606,7 +8619,7 @@ mod tests {
     fn a_refused_settings_write_puts_the_setting_back() {
         // The value changed before the write and nothing undid it, so a refused write — torrents
         // on with no VPN configured — went on showing "on" and the status line the new value.
-        let mut a = settings_at(SettingId::Torrents);
+        let mut a = settings_at(SettingKey::Torrents);
         let Some(Command::SaveSetting { table, key, .. }) = a.handle(Action::Right, 10) else {
             panic!("no write asked for")
         };
@@ -8618,7 +8631,7 @@ mod tests {
             failed: Some((table, key)),
         });
         assert!(!a.config.providers.torrent.enabled, "back to what the file holds");
-        assert_eq!(setting_text(&a, SettingId::Torrents), "off");
+        assert_eq!(setting_text(&a, SettingKey::Torrents), "off");
         assert!(a.status.is_empty(), "the status line shows what is in effect again");
     }
 
@@ -8626,11 +8639,12 @@ mod tests {
     fn a_rollback_leaves_other_settings_alone() {
         // A second setting changed while the first write was refused has its own write, which
         // landed; undoing everything would undo that too.
-        let mut a = settings_at(SettingId::Quality);
+        let mut a = settings_at(SettingKey::Quality);
         a.handle(Action::Right, 10);
         let mut on_disk = Config::default();
         on_disk.playback.quality = 2160;
-        a.selected = SettingId::ALL.iter().position(|row| *row == SettingId::Torrents).unwrap();
+        a.selected =
+            SettingKey::ROWS.iter().position(|row| *row == SettingKey::Torrents).unwrap();
         a.handle(Action::Right, 10);
 
         a.apply(Event::SettingWritten {
@@ -8647,11 +8661,11 @@ mod tests {
         // next launch said otherwise.
         let mut a = app();
         a.handle(Action::ToggleTranslation, 10);
-        assert_eq!(setting_text(&a, SettingId::Translation), "sub · dub this session");
+        assert_eq!(setting_text(&a, SettingKey::Translation), "sub · dub this session");
         assert!(a.toasts.last().unwrap().notice.text.contains("for this session"));
 
         // The arrows change the saved value, the one the row leads with.
-        let mut a = settings_at(SettingId::Translation);
+        let mut a = settings_at(SettingKey::Translation);
         a.handle(Action::ToggleTranslation, 10);
         let task = a.handle(Action::Right, 10);
         assert!(matches!(
@@ -8661,7 +8675,7 @@ mod tests {
         let mut on_disk = Config::default();
         on_disk.playback.translation = anistream_core::media::Translation::Dub;
         a.apply(Event::SettingWritten { on_disk: Box::new(on_disk), failed: None });
-        assert_eq!(setting_text(&a, SettingId::Translation), "dub");
+        assert_eq!(setting_text(&a, SettingKey::Translation), "dub");
     }
 
     #[test]
@@ -8671,7 +8685,7 @@ mod tests {
         config.theme.mode = ThemeMode::Immersive;
         let mut a = App::new(config, Palette::dark(), Keymap::new());
         a.saved_config.theme.mode = ThemeMode::Adaptive;
-        assert_eq!(setting_text(&a, SettingId::Theme), "adaptive · immersive this session");
+        assert_eq!(setting_text(&a, SettingKey::Theme), "adaptive · immersive this session");
     }
 
     #[test]
@@ -8683,7 +8697,7 @@ mod tests {
 
         // Quality steps up the ladder and clamps, rather than wrapping round to 480p.
         let quality_row =
-            SettingId::ALL.iter().position(|id| *id == SettingId::Quality).unwrap();
+            SettingKey::ROWS.iter().position(|id| *id == SettingKey::Quality).unwrap();
         a.selected = quality_row;
         assert_eq!(a.config.playback.quality, 1080);
         let task = a.handle(Action::Right, 10);
@@ -8702,7 +8716,8 @@ mod tests {
         assert_eq!(a.config.playback.quality, 1080);
 
         // And the rows that cannot be edited here say so instead of silently ignoring the key.
-        let vpn_row = SettingId::ALL.iter().position(|id| *id == SettingId::VpnMode).unwrap();
+        let vpn_row =
+            SettingKey::ROWS.iter().position(|id| *id == SettingKey::VpnMode).unwrap();
         a.selected = vpn_row;
         let before = format!("{:?}", a.config.providers.torrent.vpn.mode);
         assert_eq!(a.handle(Action::Right, 10), None);
@@ -8719,10 +8734,10 @@ mod tests {
         let mut a = app();
         a.go_to_section(Section::Settings);
         a.nav.focus_stage();
-        let at = |id| SettingId::ALL.iter().position(|row| *row == id).unwrap();
+        let at = |id| SettingKey::ROWS.iter().position(|row| *row == id).unwrap();
 
         // Off by default; one step right turns it on, at a modest ratio.
-        a.selected = at(SettingId::SeedRatio);
+        a.selected = at(SettingKey::SeedRatio);
         assert_eq!(a.config.providers.torrent.seeding.ratio, 0.0);
         assert_eq!(
             a.handle(Action::Right, 10),
@@ -8734,7 +8749,7 @@ mod tests {
         );
         assert!(a.config.providers.torrent.seeding.enabled());
 
-        a.selected = at(SettingId::SeedHours);
+        a.selected = at(SettingKey::SeedHours);
         assert_eq!(
             a.handle(Action::Right, 10),
             Some(Command::SaveSetting {
@@ -8744,7 +8759,7 @@ mod tests {
             })
         );
 
-        a.selected = at(SettingId::UploadLimit);
+        a.selected = at(SettingKey::UploadLimit);
         let rows = a.setting_rows();
         assert_eq!(rows[a.selected].value, "unlimited");
         a.handle(Action::Right, 10);
@@ -8762,7 +8777,8 @@ mod tests {
         let mut a = app();
         a.go_to_section(Section::Settings);
         a.nav.focus_stage();
-        a.selected = SettingId::ALL.iter().position(|id| *id == SettingId::Presence).unwrap();
+        a.selected =
+            SettingKey::ROWS.iter().position(|id| *id == SettingKey::Presence).unwrap();
 
         assert!(!a.config.presence.enabled, "off by default: it publishes to a third party");
         let task = a.handle(Action::Open, 10);
@@ -8787,9 +8803,9 @@ mod tests {
         let rows = a.setting_rows();
         let row = rows
             .iter()
-            .find(|r| r.label == SettingId::Presence.label())
+            .find(|r| r.label == SettingKey::Presence.label())
             .expect("the presence row");
-        assert!(row.editable.is_some(), "it must still be toggleable");
+        assert!(row.editable, "it must still be toggleable");
         // A client id ships by default, so the row says when the change applies rather than what is
         // missing. A Discord id is public, so there is nothing to withhold.
         assert!(row.note.is_some_and(|n| n.contains("next episode")), "got {:?}", row.note);
@@ -8802,7 +8818,7 @@ mod tests {
 
     #[test]
     fn the_settings_cursor_is_not_clamped_by_an_empty_content_list() {
-        // Settings is built from `SettingId::ALL`, not from `content`, so the shared clamp would
+        // Settings is built from `SettingKey::ROWS`, not from `content`, so the shared clamp would
         // have pinned the cursor to the first row and made everything below it unreachable.
         let mut a = app();
         a.go_to_section(Section::Settings);
@@ -8814,7 +8830,7 @@ mod tests {
         for _ in 0..50 {
             a.handle(Action::Down, 10);
         }
-        assert_eq!(a.selected, SettingId::ALL.len() - 1, "clamped at the last row");
+        assert_eq!(a.selected, SettingKey::ROWS.len() - 1, "clamped at the last row");
     }
 
     #[test]
