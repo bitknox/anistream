@@ -435,7 +435,8 @@ async fn preview(
         note = Some(reason);
     }
     let services = Services::build(&config, paths.clone(), http, store, registry)?;
-    let state = EngineState::new(config.clone());
+    // Nothing in a still frame brings a torrent source up, so nothing reports on this.
+    let state = EngineState::new(config.clone(), mpsc::unbounded_channel().0);
     let mut app = App::with_images(config, palette, keymap, engine);
     if let Some(note) = note {
         app.apply(Event::ProviderNote(note));
@@ -612,10 +613,9 @@ impl PreviewRun {
                         }
                         update => app.apply(update),
                     }
-                    if let Some(notice) = self.services.meta.take_notice() {
-                        app.apply(Event::MetaStatus(data::meta_rows(&self.services.meta)));
-                        app.apply(Event::Toast(Notice::info(notice)));
-                    }
+                    meta_notice(&self.services.meta)
+                        .into_iter()
+                        .for_each(|said| app.apply(said));
                 }
                 Ok(None) => return,
                 Err(_) if app.jobs.is_empty() => return,
@@ -672,10 +672,8 @@ async fn run(
         anistream_tui::image::ImageEngine::detect(images).with_cache_dir(paths.image_cache());
     tracing::info!(graphics = ?image_engine.graphics(), "image engine ready");
     // Without the torrent source, which comes up behind the interface once the VPN guard
-    // passes: see `TorrentTasks::bring_up`. Mutable: a settings change can stand the torrent
-    // stack down and back up, which replaces the guard along with the session it protects.
+    // passes: see `TorrentTasks::bring_up`.
     let registry = sources::build_registry_deferred(&config, &http);
-    let mut vpn_guard = None;
     tracing::info!(providers = ?registry.ids(), "provider registry ready");
     // Plugins join the chain when they have finished compiling. Nothing waits on this: the first
     // frame is worth more than a source you have not asked for yet.
@@ -687,8 +685,10 @@ async fn run(
     );
     // What every task is lent, built around that chain.
     let services = Services::build(&config, paths, http, store, registry)?;
+    // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
+    let (arrivals_tx, mut arrivals) = mpsc::unbounded_channel();
     // The effect layer's own state, on the config the app was launched with.
-    let mut engine = EngineState::new(config.clone());
+    let mut engine = EngineState::new(config.clone(), arrivals_tx);
     let mut app = App::with_images(config, palette, keymap, image_engine);
     // Said inside the app too: the warning above scrolls away behind the alternate screen
     // before anyone reads it, and a refused rebind otherwise looks like a key that does nothing.
@@ -791,14 +791,7 @@ async fn run(
     // stand them back up without a restart. Both are replaced together: the download
     // manager and the guard's watcher are the two things holding a session alive, and
     // leaving either behind would mean traffic outliving the source it belongs to.
-    // The copy the background tasks read. Kept in step with the engine side's own whenever a
-    // setting is written, so "saved" and "in effect" are the same moment.
-    let shared_config: anistream_engine::SharedConfig =
-        Arc::new(std::sync::RwLock::new(engine.config.clone()));
-    // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
-    let (arrivals_tx, mut arrivals) = mpsc::unbounded_channel();
-    let mut torrent_tasks = TorrentTasks::default();
-    torrent_tasks.bring_up(&engine.config, &services, &tx, &arrivals_tx);
+    engine.torrent_tasks.bring_up(&engine.config, &services, &tx, &engine.arrivals);
 
     // Both before the terminal changes state, so there is no moment in which a signal or a
     // panic could leave it raw.
@@ -880,21 +873,9 @@ async fn run(
                     }
                     _ => false,
                 };
-                // A finished episode should reach the tracker now, not at the next drain
-                // tick — up to a minute later, the pushed progress looked simply absent.
-                if matches!(update, Event::ProgressQueued) {
-                    let (sync, tx) = (services.sync.clone(), tx.clone());
-                    tokio::spawn(async move { tracking::drain_once(&sync, &tx).await });
-                }
-                // Say when the metadata ladder moved, once per transition, in both
-                // directions — silently recovering would leave the last thing said untrue.
-                // The status rows ride along so the header chip and the Providers screen
-                // agree with the toast without waiting for a refresh.
-                if let Some(notice) = services.meta.take_notice() {
-                    app.apply(Event::MetaStatus(anistream_engine::data::meta_rows(
-                        &services.meta,
-                    )));
-                    app.apply(Event::Toast(Notice::info(notice)));
+                // The engine side's part, and what it has to say ahead of the update.
+                for said in receive(&update, &services, || tx.clone()) {
+                    app.apply(said);
                 }
                 // A source setting changed. Awaited here rather than spawned: this owns the
                 // session and the guard, and two rebuilds racing would leave one of their
@@ -903,7 +884,7 @@ async fn run(
                 if matches!(
                     update,
                     Event::SettingsSaved | Event::SourcesChanged | Event::SourcesReordered
-                ) && let Ok(mut shared) = shared_config.write()
+                ) && let Ok(mut shared) = engine.shared_config.write()
                 {
                     *shared = engine.config.clone();
                 }
@@ -915,11 +896,11 @@ async fn run(
                 if matches!(update, Event::SourcesChanged) {
                     reload_sources(
                         &services,
-                        &mut torrent_tasks,
-                        &mut vpn_guard,
-                        &shared_config,
+                        &mut engine.torrent_tasks,
+                        &mut engine.vpn_guard,
+                        &engine.shared_config,
                         &tx,
-                        &arrivals_tx,
+                        &engine.arrivals,
                     )
                     .await;
                 }
@@ -943,12 +924,12 @@ async fn run(
             Some(decoded) = covers_rx.recv() => covers::hand_over(&mut app, decoded),
             // The torrent source is up, or will not come up; only the latest bring-up counts.
             Some((generation, outcome)) = arrivals.recv() => {
-                torrent_tasks.arrived(
+                engine.torrent_tasks.arrived(
                     generation,
                     outcome,
-                    &mut vpn_guard,
+                    &mut engine.vpn_guard,
                     &services,
-                    &shared_config,
+                    &engine.shared_config,
                     &tx,
                 );
             }
@@ -1553,6 +1534,32 @@ fn spawn(
         };
         let _ = tx.send(update);
     });
+}
+
+/// The engine side's part in an event on its way to the front end, and what it has to say
+/// ahead of the event, for the front end to apply first.
+///
+/// A finished episode's progress goes to the trackers now, not at the next drain tick: up to a
+/// minute later, the pushed progress looked simply absent. And the metadata ladder's notice, when
+/// it moved. `tx` is asked for only when there is work to answer on it.
+fn receive(
+    update: &Event,
+    services: &Services,
+    tx: impl FnOnce() -> mpsc::UnboundedSender<Event>,
+) -> Vec<Event> {
+    if matches!(update, Event::ProgressQueued) {
+        let (sync, tx) = (services.sync.clone(), tx());
+        tokio::spawn(async move { tracking::drain_once(&sync, &tx).await });
+    }
+    meta_notice(&services.meta)
+}
+
+/// What to say when the metadata ladder moved: once per transition, in both directions, since
+/// silently recovering would leave the last thing said untrue. The status rows ride along, so
+/// the header chip and the Providers screen agree with the toast without waiting for a refresh.
+fn meta_notice(meta: &Meta) -> Vec<Event> {
+    let Some(notice) = meta.take_notice() else { return Vec::new() };
+    vec![Event::MetaStatus(data::meta_rows(meta)), Event::Toast(Notice::info(notice))]
 }
 
 /// Route a task to whoever performs it.
@@ -3800,7 +3807,7 @@ mod tests {
     #[test]
     fn a_job_starts_only_for_work_someone_waits_on() {
         let (tx, mut rx) = mpsc::unbounded_channel();
-        let mut engine = EngineState::new(Config::default());
+        let mut engine = EngineState::new(Config::default(), mpsc::unbounded_channel().0);
         let score =
             Command::SetScore { id: anistream_core::ids::AnilistId::new(1), score: 7.0 };
         assert!(JobGuard::start(&mut engine, &score, &tx).is_none());
@@ -3847,7 +3854,7 @@ mod tests {
     #[tokio::test]
     async fn a_job_ends_however_its_work_does_even_by_panicking() {
         let (tx, mut rx) = mpsc::unbounded_channel();
-        let mut engine = EngineState::new(Config::default());
+        let mut engine = EngineState::new(Config::default(), mpsc::unbounded_channel().0);
         let job = JobGuard::start(&mut engine, &Command::CheckProviders, &tx).unwrap();
         let id = job.id;
 

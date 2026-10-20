@@ -28,7 +28,7 @@
 
 use std::{
     collections::{HashSet, VecDeque},
-    sync::{Arc, RwLock},
+    sync::Arc,
     time::Duration,
 };
 
@@ -37,7 +37,7 @@ use anistream_engine::{data, plugin_stores, slot::PlayerSlot, sources, tracking}
 use anistream_meta::Meta;
 use anistream_model::{command::Command, event::Event, jobs::JobId, notice::Notice};
 use anistream_net::HttpClient;
-use anistream_providers::{ProviderRegistry, vpn::VpnGuard};
+use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 use anistream_testkit::{FakeAniList, fixtures::FIXTURE_NOW};
 use anistream_track::{
@@ -53,9 +53,7 @@ use anistream_tui::{
 };
 use tokio::sync::mpsc;
 
-use crate::{
-    ConfigSeam, Prefetch, TorrentTasks, engine_state::EngineState, services::Services,
-};
+use crate::{ConfigSeam, Prefetch, engine_state::EngineState, services::Services};
 
 /// How long [`Harness::settle`] waits for work to finish before failing the test.
 ///
@@ -111,10 +109,6 @@ pub struct Harness {
     engine: EngineState,
     seam: ConfigSeam,
     jobs: Jobs,
-    shared_config: anistream_engine::SharedConfig,
-    torrent_tasks: TorrentTasks,
-    vpn_guard: Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
-    arrivals: mpsc::UnboundedSender<(u64, Result<sources::TorrentUp, String>)>,
     _arrived: mpsc::UnboundedReceiver<(u64, Result<sources::TorrentUp, String>)>,
     /// Last, so it is removed after everything that might still be writing into it.
     _root: tempfile::TempDir,
@@ -206,10 +200,9 @@ impl Harness {
 
         let (arrivals, arrived) = mpsc::unbounded_channel();
         Self {
-            engine: EngineState::new(config.clone()),
+            engine: EngineState::new(config, arrivals),
             seam: ConfigSeam::default(),
             jobs: Jobs::default(),
-            shared_config: Arc::new(RwLock::new(config)),
             app,
             server,
             tokens,
@@ -228,9 +221,6 @@ impl Harness {
                 slot: PlayerSlot::default(),
                 prefetch: Prefetch::default(),
             },
-            torrent_tasks: TorrentTasks::default(),
-            vpn_guard: None,
-            arrivals,
             _arrived: arrived,
             _root: root,
         }
@@ -433,19 +423,16 @@ impl Harness {
         // First, the loop hands an invite link to the terminal's clipboard. There is no
         // terminal here, so nothing marks the link copied.
 
-        // A finished episode's progress goes to the trackers now, not at the next drain tick.
-        if matches!(update, Event::ProgressQueued) {
-            let (sync, tx) = (self.services.sync.clone(), self.channels.sender());
-            tokio::spawn(async move { tracking::drain_once(&sync, &tx).await });
-        }
-        if let Some(notice) = self.services.meta.take_notice() {
-            self.apply(Event::MetaStatus(data::meta_rows(&self.services.meta)), seen);
-            self.apply(Event::Toast(Notice::info(notice)), seen);
+        // The engine side's part: a queued progress drained now, and the metadata ladder's
+        // notice ahead of the update.
+        let channels = &mut self.channels;
+        for said in crate::receive(&update, &self.services, || channels.sender()) {
+            self.apply(said, seen);
         }
         if matches!(
             update,
             Event::SettingsSaved | Event::SourcesChanged | Event::SourcesReordered
-        ) && let Ok(mut shared) = self.shared_config.write()
+        ) && let Ok(mut shared) = self.engine.shared_config.write()
         {
             *shared = self.engine.config.clone();
         }
@@ -461,11 +448,11 @@ impl Harness {
             let tx = self.channels.sender();
             crate::reload_sources(
                 &self.services,
-                &mut self.torrent_tasks,
-                &mut self.vpn_guard,
-                &self.shared_config,
+                &mut self.engine.torrent_tasks,
+                &mut self.engine.vpn_guard,
+                &self.engine.shared_config,
                 &tx,
-                &self.arrivals,
+                &self.engine.arrivals,
             )
             .await;
         }
