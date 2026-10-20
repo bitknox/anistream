@@ -6,10 +6,13 @@ import AnistreamKit
 import Foundation
 import Testing
 
-/// A host that opens nothing and shows nothing.
+/// A host that opens nothing, shows nothing and keeps no secrets.
 final class QuietHost: FfiHost {
     func openUrl(url: String) -> Bool { false }
     func notify(title: String, body: String) {}
+    func secretGet(id: String) -> String? { nil }
+    func secretSet(id: String, value: String) -> Bool { false }
+    func secretDelete(id: String) -> Bool { true }
 }
 
 /// The engine started for a test in a new temporary directory, which the caller removes.

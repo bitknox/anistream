@@ -21,7 +21,7 @@ use anistream_model::{
 /// so a wait this long is a bug.
 const PATIENCE: Duration = Duration::from_secs(30);
 
-/// A host that opens nothing and shows nothing.
+/// A host that opens nothing, shows nothing and keeps no secrets.
 struct Quiet;
 
 impl FfiHost for Quiet {
@@ -30,6 +30,18 @@ impl FfiHost for Quiet {
     }
 
     fn notify(&self, _title: String, _body: String) {}
+
+    fn secret_get(&self, _id: String) -> Option<String> {
+        None
+    }
+
+    fn secret_set(&self, _id: String, _value: String) -> bool {
+        false
+    }
+
+    fn secret_delete(&self, _id: String) -> bool {
+        true
+    }
 }
 
 /// An engine started for a test in a temporary directory, which it is kept beside.

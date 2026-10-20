@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use anistream_core::config::NetworkConfig;
 use anistream_engine::{
-    options::{EngineOptions, Parts},
+    options::{Background, EngineOptions, Parts},
     plugin_stores, tracking,
 };
 use anistream_meta::Meta;
@@ -69,7 +69,7 @@ fn options(opened: Opened, server: &FakeAniList) -> Result<EngineOptions, FfiErr
 
     let mut options = Opened { paths, config, store }.options(http);
     options.sources = Some(anistream_testkit::sources::registry());
-    options.background = false;
+    options.background = Background::none();
     options.parts = Some(Parts { meta, sync, stores });
     Ok(options)
 }

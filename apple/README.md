@@ -93,21 +93,25 @@ for event in await engine.nextEvents() {
 
 The engine object is `FfiEngine`:
 
-- `FfiEngine.start(dirs:host:)` stands it up on the app's directories, as the terminal app does;
-  `startTesting(dirs:host:)` exists only in a `testing` build;
+- `FfiEngine.start(dirs:host:background:)` stands it up on the app's directories, as the
+  terminal app does, with the work the engine does on its own switched as `FfiBackground` says
+  (every switch on by default); `startTesting(dirs:host:)` exists only in a `testing` build;
 - `send(command:)` puts a `Command` on a channel and returns the `JobId` of the work it starts,
   when that is work someone waits on, so the main thread can call it;
 - `nextEvents()` is `async`, and returns the `Event`s there are once there is at least one, or an
   empty array once the engine has stopped;
 - `shutdown()` stops the engine and its runtime, and blocks until the engine has wound down.
 
-The app hands the engine an `FfiHost`, which opens links and posts notifications for it. The engine
-calls it on its own threads.
+The app hands the engine an `FfiHost`, which opens links, posts notifications and keeps the
+trackers' and plugin stores' tokens for it, in the keychain: `secretGet`, `secretSet` and
+`secretDelete`, by id. The engine calls it on its own threads.
 
 ## Not yet
 
 - Linking: `Package.swift` finds the library through `unsafeFlags`, which SwiftPM accepts only in
   a root package, so the package cannot yet be a dependency of an app. Shipping needs an
   XCFramework built for each platform, as a binary target.
-- iOS: nothing is built for it yet, and the engine still runs mpv as a child process for playback,
-  which P6 puts behind a desktop-only feature.
+- iOS: CI cross-compiles the library for it without the engine's `desktop` feature
+  (`--no-default-features`), so with no mpv, and with plugins run by wasmtime's interpreter; but
+  nothing plays yet. A play is answered with a notice until the engine can hand a stream to a
+  native player.

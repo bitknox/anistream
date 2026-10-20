@@ -20,7 +20,7 @@
 //! UniFFI types in it: `anistream_core`, `anistream_model` and this crate's `anistream_ffi`. For
 //! Swift that is a source file and a C header with its module map each, compiled into one Swift
 //! module; for Kotlin, a package each. Only what a start needs is this crate's own: [`FfiDirs`],
-//! [`FfiError`] and the [`FfiHost`] callback interface.
+//! [`FfiBackground`], [`FfiError`] and the [`FfiHost`] callback interface.
 
 uniffi::setup_scaffolding!();
 
@@ -32,7 +32,7 @@ mod testing;
 
 pub use engine::FfiEngine;
 pub use host::FfiHost;
-pub use start::{FfiDirs, FfiError};
+pub use start::{FfiBackground, FfiDirs, FfiError};
 
 /// Each command and event, written as the bindings write it and read back: what a front end sends
 /// is what the engine receives, and what the engine says is what the front end reads. The Swift

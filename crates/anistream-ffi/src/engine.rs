@@ -22,7 +22,7 @@ use tokio::runtime::{Handle, Runtime};
 
 use crate::{
     host::{Adapter, FfiHost},
-    start::{FfiDirs, FfiError},
+    start::{FfiBackground, FfiDirs, FfiError},
 };
 
 /// The engine, started from a native app: where its commands go and where its events are read.
@@ -47,20 +47,27 @@ pub struct FfiEngine {
 #[uniffi::export]
 impl FfiEngine {
     /// Stand the engine up on the app's directories, as the terminal app launches it: the
-    /// sources the config names, and the work the engine does on its own beside the commands.
+    /// sources the config names, and as much of the work the engine does on its own beside the
+    /// commands as `background` says. Tokens are kept in the host's keychain.
     ///
     /// Reads `config.toml` from `dirs.config`, or starts on the defaults when there is none, as
     /// on a first launch; the engine writes the file once a setting is saved. Opens the
     /// database in `dirs.data`. Blocks for as long as that takes, which is short: what is slow
     /// to come up, such as the plugins, comes up behind it.
     #[uniffi::constructor]
-    pub fn start(dirs: FfiDirs, host: Arc<dyn FfiHost>) -> Result<Arc<Self>, FfiError> {
+    pub fn start(
+        dirs: FfiDirs,
+        host: Arc<dyn FfiHost>,
+        background: FfiBackground,
+    ) -> Result<Arc<Self>, FfiError> {
         let opened = Opened::open(&dirs)?;
         let runtime = runtime()?;
         let started = runtime.block_on(async {
             let http = HttpClient::new(&opened.config.network)
                 .map_err(|e| FfiError::Client { reason: e.to_string() })?;
-            Self::launch(opened.options(http), host).await
+            let mut options = opened.options(http);
+            options.background = background.into();
+            Self::launch(options, host).await
         });
         Self::hold(runtime, started, None)
     }
