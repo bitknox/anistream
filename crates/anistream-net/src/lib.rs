@@ -13,7 +13,7 @@ pub mod client;
 pub mod fetch;
 pub mod ratelimit;
 
-pub use client::{HttpClient, NetError, Profile};
+pub use client::{HttpClient, NetError, Profile, trusted_roots};
 pub use fetch::{Conditional, ConditionalResponse};
 pub use ratelimit::RateLimiter;
 

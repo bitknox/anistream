@@ -84,7 +84,7 @@ impl HttpClient {
             .build()
             .map_err(|e| NetError::Build(format!("emulated client: {e}")))?;
 
-        let plain = reqwest::Client::builder()
+        let plain = trusted_roots(reqwest::Client::builder())
             .timeout(timeout)
             .user_agent(concat!("anistream/", env!("CARGO_PKG_VERSION")))
             .build()
@@ -119,7 +119,7 @@ impl HttpClient {
             .build()
             .map_err(|e| NetError::Build(format!("emulated client: {e}")))?;
 
-        let plain = reqwest::Client::builder()
+        let plain = trusted_roots(reqwest::Client::builder())
             .timeout(timeout)
             .user_agent(concat!("anistream/", env!("CARGO_PKG_VERSION")))
             .no_proxy()
@@ -145,6 +145,33 @@ impl HttpClient {
     pub fn profile(&self) -> Profile {
         self.profile
     }
+}
+
+/// `builder`, trusting what a plain client trusts on this platform. Every plain client is built
+/// through this: [`HttpClient`]'s, and the VPN guard's.
+///
+/// Everywhere but Android, reqwest's own choice, the platform's verifier: the system's trust
+/// store, with whatever the user or their organisation installed in it. Desktops and iOS are
+/// left exactly as they were.
+///
+/// On Android that verifier reaches the system's store through JNI, and the app has to hand it
+/// the JVM and a context before the first request, or every request fails. So there a plain
+/// client trusts the Mozilla roots built into the binary instead, [`bundled_roots`], which need
+/// nothing from the app. **The cost: a CA the user installed on the device is not trusted.** A
+/// request through a proxy that inspects TLS, or to a server behind a private CA, fails on
+/// Android where it works elsewhere. The emulated client has always trusted those same bundled
+/// roots, through BoringSSL, on every platform.
+pub fn trusted_roots(builder: reqwest::ClientBuilder) -> reqwest::ClientBuilder {
+    if cfg!(target_os = "android") { builder.tls_certs_only(bundled_roots()) } else { builder }
+}
+
+/// The Mozilla roots built into the binary, as reqwest takes them: what Android's plain clients
+/// trust, see [`trusted_roots`].
+fn bundled_roots() -> Vec<reqwest::Certificate> {
+    webpki_root_certs::TLS_SERVER_ROOT_CERTS
+        .iter()
+        .filter_map(|der| reqwest::Certificate::from_der(der).ok())
+        .collect()
 }
 
 /// The resolver behind [`HttpClient::offline`]: every name is refused, without asking anyone.
@@ -184,6 +211,17 @@ mod tests {
         assert_eq!(Profile::parse("  firefox ").unwrap(), Profile::Firefox);
         assert_eq!(Profile::parse("chromium").unwrap(), Profile::Chrome);
         assert!(Profile::parse("netscape").is_err());
+    }
+
+    #[test]
+    fn every_bundled_root_is_one_a_client_will_trust() {
+        // What Android's plain clients trust, checked where the tests run: one root dropped as
+        // unreadable is a host that fails there and nowhere else, and a root rustls refuses
+        // fails the client's build, which is the app not starting.
+        let roots = bundled_roots();
+        assert_eq!(roots.len(), webpki_root_certs::TLS_SERVER_ROOT_CERTS.len());
+        assert!(roots.len() > 100, "{} roots", roots.len());
+        reqwest::Client::builder().tls_certs_only(roots).build().unwrap();
     }
 
     #[test]
