@@ -5,6 +5,7 @@
 //! while it lived in `main.rs` the only way to find out what it had registered was to start the
 //! whole interface and look. A probe can now ask it directly.
 
+pub mod commands;
 pub mod torrent;
 pub mod vpn;
 

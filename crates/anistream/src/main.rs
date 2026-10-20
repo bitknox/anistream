@@ -24,7 +24,7 @@ use anistream_engine::{
         search::search,
     },
     data,
-    dispatch::{Lent, spawn},
+    dispatch::spawn,
     downloads,
     jobs::JobGuard,
     now_epoch,
@@ -38,7 +38,7 @@ use anistream_engine::{
     },
     plugin_stores,
     services::Services,
-    sources::{self, torrent::reload_sources},
+    sources::{self, commands::check_providers, torrent::reload_sources},
     state::EngineState,
     titles::{
         episodes::{list_episodes, set_watched},
@@ -1202,17 +1202,6 @@ async fn stop_for_exit(
     if tokio::time::timeout(EXIT_FLUSH, ended).await.is_err() {
         tracing::warn!("the player did not stop in time; its last position may be lost");
     }
-}
-
-/// Every source's condition, and the metadata ladder's beside them.
-async fn check_providers(lent: Lent) {
-    let Lent { meta, registry, tx, .. } = lent;
-    registry.check_all(now_epoch()).await;
-    // The metadata ladder rides the same refresh: one screen, one key,
-    // every source's condition.
-    let _ = tx.send(Event::MetaStatus(data::meta_rows(&meta)));
-    let update = Event::Providers(data::provider_rows(&registry));
-    let _ = tx.send(update);
 }
 
 /// The engine side's part in an event on its way to the front end, and what it has to say
