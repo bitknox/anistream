@@ -78,10 +78,6 @@ fn auth_flow(auth: &anistream_core::config::AniListAuthConfig) -> anistream_trac
     }
 }
 
-/// Sign in: run the configured flow, or take a code that was obtained by hand.
-///
-/// The code is exchanged for a token here rather than stored as-is — an authorization code is
-/// single-use and short-lived, so keeping one would be storing something already spent.
 /// Lift a tracker's drain hold after a command-line sign-in.
 ///
 /// A rejected credential holds that tracker's queue so a dead token is not re-presented every
@@ -95,6 +91,10 @@ fn lift_reauth_hold(tracker: &str) {
     let _ = anistream_track::sync::clear_reauth_hold(&store, tracker);
 }
 
+/// Sign in: run the configured flow, or take a code that was obtained by hand.
+///
+/// The code is exchanged for a token here rather than stored as-is — an authorization code is
+/// single-use and short-lived, so keeping one would be storing something already spent.
 pub async fn login(
     config: &Config,
     tracker: &str,
@@ -203,12 +203,6 @@ pub async fn login(
     Ok(())
 }
 
-/// Sign in to MyAnimeList.
-///
-/// A separate function from the AniList flow rather than a branch inside it, because almost nothing
-/// is shared: PKCE instead of a secret, a form-encoded exchange instead of JSON, and a token pair
-/// with an expiry instead of a bare year-long token. Forcing them into one function would mean a
-/// parameter for every difference.
 /// Device-flow endpoints for a tracker, if it uses one.
 fn device_endpoints_for(tracker: &str) -> Option<anistream_track::DeviceEndpoints> {
     match tracker {
@@ -289,6 +283,12 @@ async fn login_device(
     Ok(())
 }
 
+/// Sign in to MyAnimeList.
+///
+/// A separate function from the AniList flow rather than a branch inside it, because almost nothing
+/// is shared: PKCE instead of a secret, a form-encoded exchange instead of JSON, and a token pair
+/// with an expiry instead of a bare year-long token. Forcing them into one function would mean a
+/// parameter for every difference.
 async fn login_mal(config: &Config, http: &HttpClient) -> Result<()> {
     use anistream_track::mal;
 
