@@ -12,6 +12,15 @@ on:
       - Cargo.lock
       - rust-toolchain.toml
       - .github/workflows/release.yml
+  # A pull request that would make main rebuild these builds them first, saving and publishing
+  # nothing, so a release that no longer builds, or no longer starts on older Linux, shows up
+  # before the merge rather than on main or on a tag.
+  pull_request:
+    paths:
+      - Cargo.lock
+      - rust-toolchain.toml
+      - .github/workflows/release.yml
+      - packaging/linux/glibc-floor.sh
   # GitHub drops a cache nobody has read for seven days, and releases are further apart than
   # that, so a weekly build reads it and keeps it.
   schedule:
@@ -21,6 +30,12 @@ on:
       tag:
         description: Tag to build and publish
         required: true
+
+# A newer push to a pull request makes its running builds moot. Every other run is a group of its
+# own, so nothing cancels or holds up a tag's.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -33,8 +48,9 @@ jobs:
     name: ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     env:
-      # Off on main and on the schedule, where the build is only for the cache: a package needs a
-      # tag to be named after, and dpkg refuses a version that does not start with a digit.
+      # Off on main, on the schedule and on pull requests, where the build is only for the cache
+      # or the checks: a package needs a tag to be named after, and dpkg refuses a version that
+      # does not start with a digit.
       PACKAGE: ${{ github.ref_type == 'tag' || github.event_name == 'workflow_dispatch' }}
     strategy:
       fail-fast: false
