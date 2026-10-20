@@ -98,7 +98,7 @@ async fn seasonal_names_its_season_before_the_list_and_dates_it_after() {
 
     assert_eq!(names(&updates), ["Caption", "Content", "LastAired", "JobDone"]);
     // The season is the real clock's, as the app asks for the one it is in.
-    let (season, year) = crate::current_season();
+    let (season, year) = anistream_engine::catalog::lists::current_season();
     let Event::Caption { view: ContentFor::Seasonal, text } = &updates[0] else {
         panic!("{:?}", updates[0])
     };
