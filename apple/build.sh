@@ -9,7 +9,9 @@
 # generated every time: the generated Swift checks, when it loads the library, that both came
 # from the same interface.
 set -euo pipefail
-shopt -s inherit_errexit
+# Bash 4.4 and newer only. macOS's own /bin/bash is 3.2, which is what CI's macOS runner
+# finds first, so the option is kept where the shell has it.
+shopt -s inherit_errexit 2>/dev/null || true
 
 test=1
 case "${1:-}" in
