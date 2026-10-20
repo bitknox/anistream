@@ -556,6 +556,270 @@ mod tests {
         assert_eq!((progress, resume), (None, None));
     }
 
+    // The App's tests of the progress rules, moved with the rules: each scenario as the engine
+    // sees it, three titles listed and the first one's twelve-episode table loaded.
+
+    const SHOW: AnilistId = AnilistId::new(1);
+
+    /// Titles 1 to 3 listed, all saying `progress`, and the first one's table loaded with the
+    /// episodes in `done` finished.
+    fn at_episodes(progress: Option<(u32, u32)>, done: &[u32]) -> TitleCache {
+        let mut cache = TitleCache::default();
+        let entries = (1..=3)
+            .map(|n| Entry {
+                progress,
+                ..Entry::new(AnilistId::new(n), format!("Title {}", n - 1))
+            })
+            .collect();
+        listed(&mut cache, entries);
+        let mut table = rows(1..=12);
+        for row in &mut table {
+            row.duration_secs = Some(1_435);
+            if done.iter().any(|n| row.number == n.to_string()) {
+                row.completed = true;
+                row.watched = 1.0;
+            }
+        }
+        cache.observe(&Event::Episodes { id: SHOW, rows: table }, None);
+        cache
+    }
+
+    /// A playback of `episode` of the first title, started.
+    fn play(cache: &mut TitleCache, episode: &str) -> Played {
+        let played = Played {
+            serial: cache.playbacks.len() as u64 + 1,
+            id: SHOW,
+            episode: episode.into(),
+        };
+        cache.started(&played);
+        played
+    }
+
+    /// What the playback says, taken in: the title said whole when it moved.
+    fn say(cache: &mut TitleCache, played: &Played, event: Event) -> Option<Event> {
+        cache.observe(&event, Some(played)).and_then(|id| cache.progress(id))
+    }
+
+    fn tick(position: f64, duration: f64) -> Event {
+        Event::Playback { position, duration: Some(duration), paused: false }
+    }
+
+    fn finished(next: Option<&str>) -> Event {
+        Event::PlaybackEnded {
+            watched: true,
+            ending: anistream_model::playback::Ending::Complete { next: next.map(Into::into) },
+        }
+    }
+
+    fn ended(watched: bool, ending: anistream_model::playback::Ending) -> Event {
+        Event::PlaybackEnded { watched, ending }
+    }
+
+    /// Episodes done and the one Continue offers, and where it resumes, as the record says.
+    fn standing(
+        cache: &TitleCache,
+        id: AnilistId,
+    ) -> (Option<(u32, u32)>, Option<ResumePoint>) {
+        let Some(Event::Progress { progress, resume, .. }) = cache.progress(id) else {
+            panic!("{id:?} is known")
+        };
+        (progress.map(|p| (p.done, p.next)), resume)
+    }
+
+    /// A row of the first title's table: its meter, and whether it is finished.
+    fn row_of(cache: &TitleCache, episode: &str) -> (f64, bool) {
+        let (_, rows) = cache.table().expect("a table");
+        let row = rows.iter().find(|r| r.number == episode).expect("a row");
+        (row.watched, row.completed)
+    }
+
+    #[test]
+    fn a_first_watch_moves_progress_without_waiting_for_a_reload() {
+        // A show with no history has no (done, next) pair to advance, and the old rule —
+        // only advance the episode progress was waiting on — silently skipped it, so the
+        // detail meter sat empty until the next load from the store.
+        let mut cache = at_episodes(None, &[]);
+        let played = play(&mut cache, "1");
+        assert!(say(&mut cache, &played, finished(None)).is_some(), "said, having moved");
+        assert_eq!(standing(&cache, SHOW).0, Some((1, 2)));
+    }
+
+    #[test]
+    fn a_watch_lands_only_on_the_entry_being_played() {
+        // Several shows on Home can share a next-episode number; a finished episode used
+        // to advance every one of them.
+        let mut cache = at_episodes(Some((0, 1)), &[]);
+        let played = play(&mut cache, "1");
+        let Some(Event::Progress { id, .. }) = say(&mut cache, &played, finished(None)) else {
+            panic!("the title is said")
+        };
+        assert_eq!(id, SHOW);
+        assert_eq!(standing(&cache, SHOW).0, Some((1, 2)));
+        assert_eq!(standing(&cache, AnilistId::new(2)).0, Some((0, 1)), "another show took it");
+    }
+
+    #[test]
+    fn a_watched_mark_moves_the_title_and_its_list_row_too() {
+        // Two watched, three next: marking three moves the title on, unmarking it puts it
+        // back, and marking everything before episode six catches it up to there.
+        let mut cache = at_episodes(Some((2, 3)), &[1, 2]);
+        let held = |held: bool| move |_: &str| held;
+        assert_eq!(cache.marked(SHOW, &["3".into()], true, held(true)), Some(SHOW));
+        assert_eq!(standing(&cache, SHOW).0, Some((3, 4)), "marking ep 3 moves it on");
+        assert_eq!(row_of(&cache, "3"), (1.0, true));
+        cache.marked(SHOW, &["3".into()], false, held(false));
+        assert_eq!(standing(&cache, SHOW).0, Some((2, 3)), "unmarking puts it back");
+        assert_eq!(row_of(&cache, "3"), (0.0, false));
+        let before_six = ["3", "4", "5"].map(String::from);
+        cache.marked(SHOW, &before_six, true, held(true));
+        assert_eq!(standing(&cache, SHOW).0, Some((5, 6)), "M catches it up to the cursor");
+    }
+
+    #[test]
+    fn a_mark_the_store_did_not_take_is_not_shown() {
+        // The record is moved on by what the store holds once written, not by what was asked.
+        let mut cache = at_episodes(Some((2, 3)), &[1, 2]);
+        let answer = cache.marked(SHOW, &["3".into()], true, |_| false);
+        assert_eq!(answer, Some(SHOW), "a mark is answered all the same");
+        assert_eq!(standing(&cache, SHOW).0, Some((2, 3)));
+        assert_eq!(row_of(&cache, "3"), (0.0, false));
+        // A title the record does not know has no answer to give.
+        assert_eq!(cache.marked(AnilistId::new(99), &["1".into()], true, |_| true), None);
+    }
+
+    #[test]
+    fn after_the_last_episode_continue_goes_back_to_one_skipped() {
+        let done: Vec<u32> = (1..=11).filter(|n| *n != 4).collect();
+        let mut cache = at_episodes(Some((10, 12)), &done);
+        let played = play(&mut cache, "12");
+        say(&mut cache, &played, finished(None));
+        assert_eq!(standing(&cache, SHOW).0, Some((11, 4)));
+    }
+
+    #[test]
+    fn continue_follows_an_unfinished_episode_watched_out_of_order() {
+        // Episodes 1-5 finished; episode 8 left halfway. Continue is episode 8, at 10:00, with
+        // the count still five.
+        let mut cache = at_episodes(Some((5, 6)), &[1, 2, 3, 4, 5]);
+        let played = play(&mut cache, "8");
+        say(&mut cache, &played, tick(600.0, 1_200.0));
+        say(&mut cache, &played, ended(false, anistream_model::playback::Ending::Closed));
+        let (progress, resume) = standing(&cache, SHOW);
+        assert_eq!(progress, Some((5, 8)));
+        assert_eq!(resume.map(|r| r.position), Some(600.0));
+    }
+
+    #[test]
+    fn continue_never_offers_an_episode_already_watched() {
+        // Episodes 1-5 and 7 finished. Finishing 6 counts once, and Continue moves past 7.
+        let mut cache = at_episodes(Some((6, 6)), &[1, 2, 3, 4, 5, 7]);
+        let six = play(&mut cache, "6");
+        say(&mut cache, &six, finished(Some("7")));
+        assert_eq!(standing(&cache, SHOW).0, Some((7, 8)));
+
+        // Seven rolled on to and stopped before it played; then a rewatch of episode 3, which
+        // moves neither the count nor Continue back into what is done.
+        let seven = play(&mut cache, "7");
+        say(&mut cache, &seven, ended(false, anistream_model::playback::Ending::Stopped));
+        let three = play(&mut cache, "3");
+        say(&mut cache, &three, finished(None));
+        assert_eq!(standing(&cache, SHOW).0, Some((7, 8)));
+    }
+
+    #[test]
+    fn a_rewatch_does_not_inflate_the_progress_count() {
+        // The store counts *distinct* completed episodes; the record has to hold the same line
+        // or the meter jumps on every revisit.
+        let mut cache = at_episodes(Some((3, 4)), &[3]);
+        let played = play(&mut cache, "3");
+        say(&mut cache, &played, finished(None));
+        assert_eq!(standing(&cache, SHOW).0, Some((3, 4)));
+    }
+
+    #[test]
+    fn quitting_partway_moves_the_resume_point_at_once() {
+        // The Continue rail reads the resume point; leaving it where the *previous* session
+        // stopped made a fresh quit look unrecorded until the next load from the store.
+        let mut cache = at_episodes(Some((0, 1)), &[]);
+        let played = play(&mut cache, "1");
+        say(&mut cache, &played, tick(600.0, 1_200.0));
+        say(&mut cache, &played, ended(false, anistream_model::playback::Ending::Closed));
+        let resume = standing(&cache, SHOW).1.expect("a resume point");
+        assert_eq!(resume.position, 600.0);
+        assert_eq!(resume.fraction, Some(0.5));
+    }
+
+    #[test]
+    fn finishing_an_episode_updates_the_table_without_a_reload() {
+        // Reported from real use: the episode table still showed the old state after an
+        // episode finished, so it looked as though nothing had been recorded.
+        let mut cache = at_episodes(None, &[]);
+        // Nothing is playing yet, so a tick is ignored rather than inventing state.
+        let stray = Played { serial: 99, id: SHOW, episode: "1".into() };
+        assert!(say(&mut cache, &stray, tick(0.0, 1_440.0)).is_none());
+        assert_eq!(row_of(&cache, "1"), (0.0, false));
+
+        // Halfway through, then detached: the row shows where the viewer actually is.
+        let played = play(&mut cache, "1");
+        let Some(Event::Progress { episodes, .. }) =
+            say(&mut cache, &played, tick(720.0, 1_440.0))
+        else {
+            panic!("the tick moved the row")
+        };
+        let first = episodes.iter().find(|e| e.number == "1").expect("said");
+        assert!((first.watched - 0.5).abs() < 1e-6, "got {}", first.watched);
+        assert!(!first.completed, "halfway is not finished");
+
+        say(&mut cache, &played, finished(None));
+        assert_eq!(row_of(&cache, "1"), (1.0, true), "finished reads as finished");
+        assert_eq!(row_of(&cache, "2"), (0.0, false), "only the episode watched changes");
+        // And a tick after the end is a straggler, not the playback coming back.
+        assert!(say(&mut cache, &played, tick(100.0, 1_440.0)).is_none());
+    }
+
+    #[test]
+    fn a_re_watch_quit_early_does_not_erase_that_it_was_finished() {
+        let mut cache = at_episodes(None, &[1]);
+        let played = play(&mut cache, "1");
+        say(&mut cache, &played, tick(60.0, 1_440.0));
+        assert_eq!(row_of(&cache, "1"), (1.0, true), "still finished, and monotonic");
+    }
+
+    #[test]
+    fn closing_or_stopping_past_the_threshold_still_counts_as_watched() {
+        // Split from the App's test that such an ending does not roll on: it is recorded as
+        // watched all the same.
+        use anistream_model::playback::Ending;
+        for ending in [Ending::Closed, Ending::Stopped] {
+            let mut cache = at_episodes(None, &[]);
+            let played = play(&mut cache, "1");
+            say(&mut cache, &played, ended(true, ending.clone()));
+            assert_eq!(
+                row_of(&cache, "1"),
+                (1.0, true),
+                "recorded as watched after {ending:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_window_handed_over_is_a_watch_by_what_it_said() {
+        let mut cache = at_episodes(Some((0, 1)), &[]);
+        let played = play(&mut cache, "1");
+        let left = Event::EpisodeLeft {
+            id: SHOW,
+            episode: "1".into(),
+            position: 300.0,
+            duration: Some(1_200.0),
+            watched: false,
+        };
+        assert!(say(&mut cache, &played, left).is_some());
+        assert_eq!(standing(&cache, SHOW).1.map(|r| r.position), Some(300.0));
+        assert_eq!(row_of(&cache, "1"), (0.25, false));
+        // It has ended: what it says after is a straggler.
+        assert!(say(&mut cache, &played, finished(None)).is_none());
+    }
+
     #[test]
     fn the_record_lets_the_titles_touched_least_recently_go() {
         let mut cache = TitleCache::default();

@@ -121,7 +121,9 @@ async fn a_mark_on_the_table_moves_the_row_the_title_and_continue() {
 
     // Written, then answered with where the title now stands.
     h.press(Action::ToggleWatched);
+    assert!(h.app().awaiting_mark(), "the App waits for the engine's word");
     assert_eq!(names(&h.settle().await), ["Progress"]);
+    assert!(!h.app().awaiting_mark());
     assert_eq!(finished(&h), ["1", "2", "3", "4"]);
     assert_eq!(meter(&h, "4"), 1.0, "a marked episode reads as finished");
     assert_eq!(standing(&h, FINISHED), (Some((4, 5)), None), "Continue moves past it");

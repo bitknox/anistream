@@ -29,6 +29,11 @@ use crate::{
     tui::{self, clipboard::copy_to_clipboard},
 };
 
+/// How long a mark made here waits on the engine's word before the loop draws and reads keys
+/// again regardless. The engine writes a mark inline and answers at once; this only bounds a
+/// wait on an engine that has stopped answering.
+const MARK_WAIT: Duration = Duration::from_millis(250);
+
 pub async fn run(
     config: Config,
     paths: Paths,
@@ -102,11 +107,19 @@ pub async fn run(
     // nothing but the ticker woke this pass, the one case that may skip it.
     let mut repaint = tui::terminal::Repaint::default();
     let mut idle_tick = false;
+    // Until when a mark made here waits on the engine's word: see `MARK_WAIT`.
+    let mut mark_due: Option<std::time::Instant> = None;
     let result = loop {
         let now = std::time::Instant::now();
+        // A mark is the engine's to make: the table shows it once the engine has written it
+        // and said where the title stands, which it does at once. Until then the next frame
+        // and the next key wait, so the frame after `u` shows the mark, as when the interface
+        // marked its own rows, and a second `u` reads the first rather than a row not yet
+        // marked.
+        let waiting = app.awaiting_mark() && mark_due.is_some_and(|by| now < by);
         // Work on screen keeps its clocks and its pulse moving, the eyecatch its wipe.
         let live = !app.jobs.is_empty() || app.is_animating();
-        if !idle_tick || repaint.due(live, now) {
+        if !waiting && (!idle_tick || repaint.due(live, now)) {
             // Broken out of rather than returned from: a terminal that can no longer be drawn
             // on still has to be given back, and the player closed.
             if let Err(e) = terminal.draw(|frame| screens::render(frame, &app)) {
@@ -197,10 +210,13 @@ pub async fn run(
             {
                 app.tick_animation();
             }
-            maybe_event = events.next() => {
+            maybe_event = events.next(), if !waiting => {
                 match maybe_event {
                     Some(Ok(TermEvent::Key(key))) if key.kind == KeyEventKind::Press => {
                         if let Some(task) = app.press(key, rows) {
+                            if matches!(task, Command::SetWatched { .. }) {
+                                mark_due = Some(std::time::Instant::now() + MARK_WAIT);
+                            }
                             engine.send(task);
                         }
                     }

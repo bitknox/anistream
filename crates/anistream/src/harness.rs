@@ -45,9 +45,7 @@ use anistream_engine::{
     plugin_stores, sources, tracking,
 };
 use anistream_meta::Meta;
-use anistream_model::{
-    command::Command, episodes::EpisodeRow, event::Event, jobs::JobId, notice::Notice,
-};
+use anistream_model::{command::Command, event::Event, jobs::JobId, notice::Notice};
 use anistream_net::HttpClient;
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
@@ -352,53 +350,7 @@ impl Harness {
             self.jobs.started,
             names(&seen)
         );
-        self.cross_check(&seen).await;
         seen
-    }
-
-    /// Cross-check, while the App still works out a title's progress on its own: the engine's
-    /// record of the titles, as it stands once everything is applied, says the same of every
-    /// title the App shows. Each entry's progress and resume point, and the App's episode
-    /// table, row by row, watched and finished. A table the App does not hold because no title
-    /// was open for it, as when a test loads one without opening the title, is not the App's
-    /// to say anything of. Temporary: it goes with the App's own rules.
-    async fn cross_check(&self, seen: &[Event]) {
-        let cache = self.engine.title_cache().await;
-        let app = &self.app;
-        for entry in app.detail.iter().chain(app.content.entries()) {
-            let standing = match cache.progress(entry.id) {
-                Some(Event::Progress { progress, resume, .. }) => {
-                    Some((progress.map(|p| (p.done, p.next)), resume))
-                }
-                _ => None,
-            };
-            assert_eq!(
-                standing,
-                Some((entry.progress, entry.resume)),
-                "the engine's record of {:?} is not the App's, having seen {:?}",
-                entry.id,
-                names(seen)
-            );
-        }
-        let watch_state = |rows: &[EpisodeRow]| {
-            rows.iter().map(|r| (r.number.clone(), r.watched, r.completed)).collect::<Vec<_>>()
-        };
-        let open = app.detail.as_ref().map(|d| d.id);
-        let held = cache.table().map(|(id, _)| id);
-        let playing = app.playing.as_ref().and_then(|p| p.id);
-        for id in [open, held, playing].into_iter().flatten() {
-            let shown = app.episode_rows_for(id);
-            let ours = cache.table().filter(|(table, _)| *table == id).map_or(&[][..], |t| t.1);
-            if shown.is_empty() && open != Some(id) {
-                continue;
-            }
-            assert_eq!(
-                watch_state(ours),
-                watch_state(shown),
-                "the engine's table for {id:?} is not the App's, having seen {:?}",
-                names(seen)
-            );
-        }
     }
 
     /// The engine's record of the titles, as it stands: what a play would take from it, for a

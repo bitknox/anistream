@@ -16,7 +16,7 @@ use anistream_model::{
     jobs::JobId,
     notice::{Notice, NoticeHint, NoticeKind},
     playback::{Ending, SkipKind},
-    progress::{Watch, after_filler, mark_row, unmark_entry, watch_entry, watch_row},
+    progress::after_filler,
     settings::{SettingChange, SettingKey, SettingsView},
     sources::{
         GuardView, MatchCandidate, MetaSourceRow, ProviderRow, SourceChip, SourceState,
@@ -529,6 +529,10 @@ pub struct App {
     /// A backfill is in flight. Without this a fast scroll would ask for the same page on every
     /// keystroke and empty the request budget answering one question.
     calendar_loading_past: bool,
+    /// The title a mark made here is waiting on the engine's word for. The engine writes the
+    /// mark and says where the title stands, at once; until it has, the loop holds the next
+    /// frame and key, so the frame after the key shows the mark and a second press reads it.
+    marking: Option<AnilistId>,
     /// Work the reducer produced while applying an update rather than handling a key.
     ///
     /// Auto-next is one source: an episode ending has to be able to start the next one, and
@@ -675,6 +679,7 @@ impl App {
             calendar_pages: 0,
             calendar_more_past: false,
             calendar_loading_past: false,
+            marking: None,
             pending: None,
             vpn_badge: None,
             vpn_leaking: false,
@@ -1002,18 +1007,13 @@ impl App {
             Event::Playback { position, duration, paused } => {
                 // Playback updates arrive about once a second and must never resurrect a
                 // finished session, so they only ever mutate an existing one.
+                // What the playhead moves of the title's progress, the engine says ahead of it.
                 if let Some(playing) = self.superseded.as_mut().or(self.playing.as_mut()) {
                     playing.position = position;
                     playing.paused = paused;
                     if duration.is_some() {
                         playing.duration = duration;
                     }
-                    let (id, episode, duration) =
-                        (playing.id, playing.episode.clone(), playing.duration);
-                    // Keeps the table honest while detached: `q` leaves mpv running and drops you
-                    // back on the episode list, which would otherwise sit frozen at the position
-                    // you started from.
-                    self.reflect_watch(id, &episode, position, duration, false);
                 }
             }
             Event::SkipAvailable { kind, to } => {
@@ -1053,8 +1053,9 @@ impl App {
                     self.playing = Some(kept);
                 }
             }
-            Event::EpisodeLeft { id, episode, position, duration, watched } => {
-                // The window has changed hands, so what reports from here on is the successor.
+            // The window has changed hands, so what reports from here on is the successor. What
+            // the episode left moves of its title, the engine says ahead of this.
+            Event::EpisodeLeft { id, episode, .. } => {
                 if self
                     .superseded
                     .as_ref()
@@ -1062,7 +1063,6 @@ impl App {
                 {
                     self.superseded = None;
                 }
-                self.reflect_watch(Some(id), &episode, position, duration, watched);
             }
             // In effect for the session already: the engine put it there on the way.
             Event::PlayerTranslation(translation) => {
@@ -1090,23 +1090,12 @@ impl App {
             | Event::PlaybackVolume(_) => {}
             // The playback still in the window ended while its successor was being found: the
             // successor is what was asked for, so nothing comes down and nothing rolls on.
-            Event::PlaybackEnded { watched, .. } if self.superseded.is_some() => {
-                if let Some(finished) = self.superseded.take() {
-                    let NowPlaying { id, episode, position, duration, .. } = finished;
-                    self.reflect_watch(id, &episode, position, duration, watched);
-                }
-            }
-            Event::PlaybackEnded { watched, ending } => {
+            //
+            // What either ending moves of its title, the engine says ahead of it: the screen
+            // the viewer drops back to shows the finished episode as finished.
+            Event::PlaybackEnded { .. } if self.superseded.is_some() => self.superseded = None,
+            Event::PlaybackEnded { ending, .. } => {
                 let finished = self.playing.take();
-                if let Some(playing) = &finished {
-                    self.reflect_watch(
-                        playing.id,
-                        &playing.episode,
-                        playing.position,
-                        playing.duration,
-                        watched,
-                    );
-                }
                 // Leaving Now Playing on screen with nothing playing would be a dead end.
                 if matches!(self.nav.current(), StageView::NowPlaying) {
                     self.nav.pop();
@@ -1258,6 +1247,12 @@ impl App {
                         }
                     }
                 }
+                // The answer to a mark made here. Under the unwatched filter a marked row
+                // leaves the view at once — which is the binge-marking flow working.
+                if self.marking == Some(id) {
+                    self.marking = None;
+                    self.apply_episode_filter();
+                }
             }
         }
     }
@@ -1383,84 +1378,9 @@ impl App {
         counts
     }
 
-    /// Flip one episode's watched state in both the visible and the full list.
-    fn set_episode_watched(&mut self, number: &str, watched: bool) {
-        for list in [&mut self.episodes, &mut self.episodes_all] {
-            mark_row(list, number, watched);
-        }
-    }
-
-    /// A `u` or `M` mark, reflected wherever the title's progress shows: its table, its page and
-    /// the list rows for it.
-    ///
-    /// Only the table used to change, so after `u` on the next episode the page still read
-    /// "2 / 26 ep 3 next", and so did Home, until the title was opened again.
-    fn mark_episode(&mut self, id: AnilistId, number: &str, watched: bool) {
-        if watched {
-            // A mark is a finished watch with no position, and the reflection of one already
-            // moves the count and Continue the way the store will.
-            self.reflect_watch(Some(id), number, 0.0, None, true);
-            return;
-        }
-        let was_done = self.episodes_all.iter().any(|r| r.number == number && r.completed);
-        self.set_episode_watched(number, false);
-        if !was_done || self.episodes_for != Some(id) {
-            return;
-        }
-        for entry in self.detail.iter_mut().chain(match &mut self.content {
-            Content::Entries(entries) => entries.iter_mut(),
-            _ => [].iter_mut(),
-        }) {
-            if entry.id == id {
-                unmark_entry(entry, &self.episodes_all, number);
-            }
-        }
-    }
-
-    /// Reflect a watch into the episode table and the title's progress, without a reload.
-    ///
-    /// Reported from real use: finishing an episode left the table showing the old state, so it
-    /// looked as though nothing had been recorded. It had been — the row was just built once by
-    /// `LoadEpisodes` and never touched again.
-    ///
-    /// Done locally rather than by re-issuing that task, because re-issuing it would walk the
-    /// provider chain over the network to re-learn something we already know: the episode, the
-    /// position and whether it finished all came from this process. A network round trip to display
-    /// local state would also be slower than the eye.
-    fn reflect_watch(
-        &mut self,
-        id: Option<AnilistId>,
-        episode: &str,
-        position: f64,
-        duration: Option<f64>,
-        completed: bool,
-    ) {
-        let watch = Watch { episode: episode.to_owned(), position, duration, completed };
-        // The episode table is one title's; while detached the viewer can be looking at
-        // another show entirely, whose rows must neither take this watch nor speak for it.
-        let rows_apply = match id {
-            Some(id) => self.episodes_for == Some(id),
-            None => true,
-        };
-        // What the table says about this title, read before the rows are updated.
-        let rows = rows_apply.then_some(self.episodes_all.as_slice());
-        for entry in self.detail.iter_mut().chain(match &mut self.content {
-            Content::Entries(entries) => entries.iter_mut(),
-            _ => [].iter_mut(),
-        }) {
-            // Only the entry being played: several shows on Home can share a next-episode
-            // number, and a watch reflected onto all of them corrupts every other count.
-            if id.is_some_and(|id| entry.id != id) {
-                continue;
-            }
-            watch_entry(entry, rows, &watch);
-        }
-
-        if rows_apply {
-            for list in [&mut self.episodes, &mut self.episodes_all] {
-                watch_row(list, &watch);
-            }
-        }
+    /// Whether a mark made here is waiting on the engine's word: see `marking`.
+    pub fn awaiting_mark(&self) -> bool {
+        self.marking.is_some()
     }
 
     /// Whether the reducer has just queued another playback — auto-next or an in-player
@@ -2116,10 +2036,8 @@ impl App {
                     let row = self.episodes.get(self.episode_selected)?;
                     (row.number.clone(), !row.completed)
                 };
-                self.mark_episode(id, &number, watched);
-                // Under the unwatched filter a marked row leaves the view at once —
-                // which is the binge-marking flow working, not a glitch.
-                self.apply_episode_filter();
+                // Shown once the engine has written it and says where the title now stands.
+                self.marking = Some(id);
                 return Some(Command::SetWatched { id, episodes: vec![number], watched });
             }
             Action::MarkAllPrevious if self.in_episodes() => {
@@ -2151,10 +2069,7 @@ impl App {
                     self.push_toast(Notice::info(why));
                     return None;
                 }
-                for number in &marked {
-                    self.mark_episode(id, number, true);
-                }
-                self.apply_episode_filter();
+                self.marking = Some(id);
                 self.push_toast(Notice::info(format!(
                     "marked {} watched",
                     anistream_model::wording::plural(marked.len(), "episode")
@@ -2414,8 +2329,8 @@ impl App {
                 if entries.is_empty() {
                     return None;
                 }
-                // Dropped from the screen before the write, same contract as SetWatched:
-                // the list answers immediately, the store catches up.
+                // Dropped from the screen before the write: the list answers immediately, and
+                // the store catches up.
                 let entry = entries.remove(self.selected.min(entries.len() - 1));
                 self.selected = self.selected.min(self.content.len().saturating_sub(1));
                 self.offset = self.offset.min(self.selected);
@@ -4234,6 +4149,7 @@ mod tests {
     use anistream_model::{
         catalog::{RelatedTitle, ResumePoint},
         episodes::EpisodeKind,
+        progress::{EpisodeProgress, TitleProgress, mark_row},
         settings,
     };
 
@@ -4298,6 +4214,64 @@ mod tests {
         /// Tell the App the settings as they stand.
         fn tell(&self, a: &mut App) {
             a.apply(Event::Settings(settings::view(&self.effective, &self.saved)));
+        }
+    }
+
+    /// One episode marked watched or not on the table, in both the visible and the full list,
+    /// as a test sets the stage.
+    fn set_watched(a: &mut App, number: &str, watched: bool) {
+        for list in [&mut a.episodes, &mut a.episodes_all] {
+            mark_row(list, number, watched);
+        }
+    }
+
+    /// The engine's word on a mark, as far as the table goes: each episode the mark asks for
+    /// marked or not, with its meter full or empty to match, said back as the engine says a
+    /// title's progress. Where the title then stands is the engine's to work out, and its
+    /// tests' to check; here it is said as it stood. Returns the command, to be checked.
+    fn answer_mark(a: &mut App, task: Option<Command>) -> Option<Command> {
+        let Some(Command::SetWatched { id, episodes, watched }) = &task else { return task };
+        let mut rows = a.episodes_all.clone();
+        for episode in episodes {
+            mark_row(&mut rows, episode, *watched);
+        }
+        let entry = a.detail.as_ref().filter(|d| d.id == *id);
+        a.apply(Event::Progress {
+            id: *id,
+            progress: entry
+                .and_then(|e| e.progress)
+                .map(|(done, next)| TitleProgress { done, next }),
+            resume: entry.and_then(|e| e.resume),
+            episodes: rows
+                .iter()
+                .map(|r| EpisodeProgress {
+                    number: r.number.clone(),
+                    watched: r.watched,
+                    completed: r.completed,
+                })
+                .collect(),
+        });
+        task
+    }
+
+    /// What the engine says of a title's episodes, each by number with its meter and whether
+    /// it is finished, and of the title as the App's page for it stands.
+    fn episodes_said(a: &App, id: AnilistId, rows: &[(&str, f64, bool)]) -> Event {
+        let entry = a.detail.as_ref().filter(|d| d.id == id);
+        Event::Progress {
+            id,
+            progress: entry
+                .and_then(|e| e.progress)
+                .map(|(done, next)| TitleProgress { done, next }),
+            resume: entry.and_then(|e| e.resume),
+            episodes: rows
+                .iter()
+                .map(|(number, watched, completed)| EpisodeProgress {
+                    number: (*number).into(),
+                    watched: *watched,
+                    completed: *completed,
+                })
+                .collect(),
         }
     }
 
@@ -4571,40 +4545,51 @@ mod tests {
     #[test]
     fn toggling_watched_flips_the_row_and_persists() {
         let mut a = app_at_episodes();
-        let task = a.handle(Action::ToggleWatched, 20).expect("toggling must persist");
-        assert!(a.episodes[0].completed, "the table answers immediately");
-        assert!(matches!(task, Command::SetWatched { watched: true, .. }), "got {task:?}");
+        let task = a_toggle(&mut a);
+        let task = answer_mark(&mut a, task);
+        assert!(a.episodes[0].completed, "the table shows the mark once the engine has it");
+        assert!(
+            matches!(task, Some(Command::SetWatched { watched: true, .. })),
+            "got {task:?}"
+        );
+        assert!(!a.awaiting_mark(), "answered");
 
-        let task = a.handle(Action::ToggleWatched, 20).expect("toggling back must too");
+        let task = a_toggle(&mut a);
+        let task = answer_mark(&mut a, task);
         assert!(!a.episodes[0].completed);
-        assert!(matches!(task, Command::SetWatched { watched: false, .. }), "got {task:?}");
+        assert!(
+            matches!(task, Some(Command::SetWatched { watched: false, .. })),
+            "got {task:?}"
+        );
+    }
+
+    /// `u` on the table: the mark it asks for, with the App left waiting on the engine's word.
+    fn a_toggle(a: &mut App) -> Option<Command> {
+        let task = a.handle(Action::ToggleWatched, 20);
+        assert!(a.awaiting_mark(), "a mark waits on the engine's word");
+        task
     }
 
     #[test]
     fn a_watched_mark_moves_the_title_and_its_list_row_too() {
-        // Two watched, three next, on the page and on the list under it.
+        // Where a title stands is the engine's to work out, from the mark; the App shows it
+        // wherever the title is on screen: its page and its row in the list under it, and only
+        // that title's, though another shares its next-episode number.
         let mut a = app_at_episodes();
-        for n in ["1", "2"] {
-            a.set_episode_watched(n, true);
-        }
-        let at = |a: &App| {
-            let row = a.content.entries()[0].progress;
-            (a.detail.as_ref().and_then(|d| d.progress), row)
+        let at = |a: &App, row: usize| {
+            (a.detail.as_ref().and_then(|d| d.progress), a.content.entries()[row].progress)
         };
-        a.detail.as_mut().expect("detail").progress = Some((2, 3));
         if let Content::Entries(rows) = &mut a.content {
-            rows[0].progress = Some((2, 3));
+            rows[1].progress = Some((2, 3));
         }
-
-        a.episode_selected = 2;
-        a.handle(Action::ToggleWatched, 20);
-        assert_eq!(at(&a), (Some((3, 4)), Some((3, 4))), "marking ep 3 moves both on");
-        a.handle(Action::ToggleWatched, 20);
-        assert_eq!(at(&a), (Some((2, 3)), Some((2, 3))), "unmarking puts both back");
-
-        a.episode_selected = 5;
-        a.handle(Action::MarkAllPrevious, 20);
-        assert_eq!(at(&a), (Some((5, 6)), Some((5, 6))), "M catches both up to the cursor");
+        a.apply(Event::Progress {
+            id: AnilistId::new(1),
+            progress: Some(TitleProgress { done: 3, next: 4 }),
+            resume: None,
+            episodes: Vec::new(),
+        });
+        assert_eq!(at(&a, 0), (Some((3, 4)), Some((3, 4))), "the page and the list row move");
+        assert_eq!(at(&a, 1).1, Some((2, 3)), "another show is not touched");
     }
 
     #[test]
@@ -4616,8 +4601,9 @@ mod tests {
         a.episodes[1].completed = true;
         a.episodes_all[1].completed = true;
 
-        let task = a.handle(Action::MarkAllPrevious, 20).expect("marking must persist");
-        match task {
+        let task = a.handle(Action::MarkAllPrevious, 20);
+        let task = answer_mark(&mut a, task);
+        match task.expect("marking must persist") {
             Command::SetWatched { episodes, watched: true, .. } => {
                 assert_eq!(episodes, vec!["1".to_string(), "3".into(), "4".into()]);
             }
@@ -4766,7 +4752,8 @@ mod tests {
         );
 
         a.episode_selected = 3;
-        a.handle(Action::MarkAllPrevious, 20);
+        let task = a.handle(Action::MarkAllPrevious, 20);
+        answer_mark(&mut a, task);
         assert!(
             a.toasts.iter().any(|t| t.notice.text == "marked 3 episodes watched"),
             "{:?}",
@@ -5067,8 +5054,9 @@ mod tests {
         assert_eq!(a.episode_filter, EpisodeFilter::Unwatched);
         assert_eq!(a.episodes.len(), 9, "three watched episodes leave the view");
 
-        // Marking one under the unwatched filter removes it at once.
-        a.handle(Action::ToggleWatched, 20);
+        // Marking one under the unwatched filter removes it at once, once it is written.
+        let task = a.handle(Action::ToggleWatched, 20);
+        answer_mark(&mut a, task);
         assert_eq!(a.episodes.len(), 8);
 
         a.handle(Action::Filter, 20);
@@ -5305,67 +5293,6 @@ mod tests {
     }
 
     #[test]
-    fn continue_follows_an_unfinished_episode_watched_out_of_order() {
-        // Episodes 1-5 finished; episode 8 left halfway. Continue is episode 8, at 10:00, with
-        // the count still five.
-        let mut a = app_at_episodes();
-        for list in [&mut a.episodes, &mut a.episodes_all] {
-            for row in list.iter_mut().take(5) {
-                row.completed = true;
-            }
-        }
-        a.detail.as_mut().unwrap().progress = Some((5, 6));
-        a.episode_selected = 7;
-        a.handle(Action::Open, 20);
-        a.apply(Event::Playback { position: 600.0, duration: Some(1200.0), paused: false });
-        a.apply(Event::PlaybackEnded { watched: false, ending: Ending::Closed });
-        let entry = a.detail.as_ref().unwrap();
-        assert_eq!(entry.progress, Some((5, 8)));
-        assert_eq!(entry.resume.map(|r| r.position), Some(600.0));
-    }
-
-    #[test]
-    fn after_the_last_episode_continue_goes_back_to_one_skipped() {
-        let mut a = app_at_episodes();
-        for list in [&mut a.episodes, &mut a.episodes_all] {
-            for row in list.iter_mut().take(11).filter(|r| r.number != "4") {
-                row.completed = true;
-            }
-        }
-        a.detail.as_mut().unwrap().progress = Some((10, 12));
-        a.episode_selected = 11;
-        a.handle(Action::Open, 20);
-        a.apply(finished(None));
-        assert_eq!(a.detail.as_ref().unwrap().progress, Some((11, 4)));
-    }
-
-    #[test]
-    fn continue_never_offers_an_episode_already_watched() {
-        // Episodes 1-5 and 7 finished. Finishing 6 counts once, and Continue moves past 7.
-        let mut a = app_at_episodes();
-        for list in [&mut a.episodes, &mut a.episodes_all] {
-            for row in list.iter_mut().take(5) {
-                row.completed = true;
-            }
-            list[6].completed = true;
-        }
-        a.detail.as_mut().unwrap().progress = Some((6, 6));
-        a.episode_selected = 5;
-        a.handle(Action::Open, 20);
-        a.apply(finished(Some("7")));
-        assert_eq!(a.detail.as_ref().unwrap().progress, Some((7, 8)));
-
-        // A rewatch of episode 3 moves neither the count nor Continue back into what is done.
-        a.take_pending();
-        a.apply(Event::PlaybackEnded { watched: false, ending: Ending::Stopped });
-        a.nav.push(StageView::Episodes(AnilistId::new(1)));
-        a.episode_selected = 2;
-        a.handle(Action::Open, 20);
-        a.apply(finished(None));
-        assert_eq!(a.detail.as_ref().unwrap().progress, Some((7, 8)));
-    }
-
-    #[test]
     fn playback_updates_never_resurrect_a_finished_session() {
         // A position tick can arrive after the `Ended` event that preceded it. Recreating
         // `playing` from it would leave a phantom player on screen.
@@ -5407,8 +5334,9 @@ mod tests {
             let mut a = app_at_episodes();
             a.handle(Action::Open, 20);
             a.apply(Event::PlaybackEnded { watched: true, ending: ending.clone() });
+            // That it is recorded as watched all the same is the engine's: see its record's
+            // `closing_or_stopping_past_the_threshold_still_counts_as_watched`.
             assert_eq!(a.take_pending(), None, "{ending:?} rolled on");
-            assert!(a.episodes[0].completed, "still recorded as watched after {ending:?}");
         }
     }
 
@@ -5459,8 +5387,7 @@ mod tests {
         a.selected = 1;
         let task = a.handle(Action::HideFromContinue, 20);
         assert_eq!(task, Some(Command::HideFromContinue { id: AnilistId::new(2) }));
-        // Gone from the screen before the store is even asked — same contract as
-        // marking watched.
+        // Gone from the screen before the store is even asked.
         assert_eq!(a.content.len(), 2);
         assert!(a.content.entries().iter().all(|e| e.id != AnilistId::new(2)));
     }
@@ -5472,66 +5399,6 @@ mod tests {
         let mut a = app_at_episodes();
         assert_eq!(a.handle(Action::HideFromContinue, 20), None);
         assert_eq!(a.content.len(), 3, "a row vanished from a list not on screen");
-    }
-
-    #[test]
-    fn a_first_watch_moves_progress_without_waiting_for_a_reload() {
-        // A show with no history has no (done, next) pair to advance, and the old rule —
-        // only advance the episode progress was waiting on — silently skipped it, so the
-        // detail meter sat empty until the next load from the store.
-        let mut a = app_at_episodes();
-        assert_eq!(a.detail.as_ref().unwrap().progress, None);
-        a.handle(Action::Open, 20);
-        a.apply(finished(None));
-        assert_eq!(a.detail.as_ref().unwrap().progress, Some((1, 2)));
-    }
-
-    #[test]
-    fn a_watch_lands_only_on_the_entry_being_played() {
-        // Several shows on Home can share a next-episode number; a finished episode used
-        // to advance every one of them.
-        let mut a = app_at_episodes();
-        if let Content::Entries(entries) = &mut a.content {
-            for e in entries.iter_mut() {
-                e.progress = Some((0, 1));
-            }
-        }
-        a.detail.as_mut().unwrap().progress = Some((0, 1));
-        a.handle(Action::Open, 20);
-        a.apply(finished(None));
-
-        let entries = a.content.entries();
-        assert_eq!(entries[0].progress, Some((1, 2)));
-        assert_eq!(entries[1].progress, Some((0, 1)), "another show took the watch");
-    }
-
-    #[test]
-    fn a_rewatch_does_not_inflate_the_progress_count() {
-        // The store counts *distinct* completed episodes; the in-memory mirror has to
-        // hold the same line or the meter jumps on every revisit.
-        let mut a = app_at_episodes();
-        a.episodes[2].completed = true;
-        a.episodes_all[2].completed = true;
-        a.detail.as_mut().unwrap().progress = Some((3, 4));
-        a.episode_selected = 2;
-        a.handle(Action::Open, 20);
-        a.apply(finished(None));
-        assert_eq!(a.detail.as_ref().unwrap().progress, Some((3, 4)));
-    }
-
-    #[test]
-    fn quitting_partway_moves_the_resume_point_at_once() {
-        // The Continue rail reads `entry.resume`; leaving it where the *previous* session
-        // stopped made a fresh quit look unrecorded until the next load from the store.
-        let mut a = app_at_episodes();
-        a.detail.as_mut().unwrap().progress = Some((0, 1));
-        a.handle(Action::Open, 20);
-        a.apply(Event::Playback { position: 600.0, duration: Some(1200.0), paused: false });
-        a.apply(Event::PlaybackEnded { watched: false, ending: Ending::Closed });
-
-        let resume = a.detail.as_ref().unwrap().resume.expect("no resume point");
-        assert_eq!(resume.position, 600.0);
-        assert_eq!(resume.fraction, Some(0.5));
     }
 
     #[test]
@@ -6962,7 +6829,7 @@ mod tests {
     fn the_filter_keeps_the_same_episode_under_the_cursor() {
         let mut a = app_at_episodes();
         for n in ["1", "2", "3"] {
-            a.set_episode_watched(n, true);
+            set_watched(&mut a, n, true);
         }
         a.apply_episode_filter();
         let under = |a: &App| a.episodes[a.episode_selected].number.clone();
@@ -7336,21 +7203,29 @@ mod tests {
             },
         ]));
 
-        a.apply(Event::Playback { position: 0.0, duration: Some(1440.0), paused: false });
-        // Nothing is playing yet, so that update is correctly ignored rather than inventing state.
-        assert_eq!(a.episodes[0].watched, 0.0);
-
+        a.episode_selected = 1;
         a.begin_playback(id, "1".into());
+        a.nav.pop();
 
-        // Halfway through, then detached: the row must show where you actually are.
+        // What a watch moves is the engine's to work out — see its record's test of the same
+        // name — and it says so ahead of what moved it. The table takes it in place, row by
+        // row, with the cursor where it was. Halfway through, then detached:
+        a.apply(episodes_said(&a, id, &[("1", 0.5, false), ("2", 0.0, false)]));
         a.apply(Event::Playback { position: 720.0, duration: Some(1440.0), paused: false });
         assert!((a.episodes[0].watched - 0.5).abs() < 1e-6, "got {}", a.episodes[0].watched);
         assert!(!a.episodes[0].completed, "halfway is not finished");
 
+        a.apply(episodes_said(&a, id, &[("1", 1.0, true), ("2", 0.0, false)]));
         a.apply(finished(None));
         assert!(a.episodes[0].completed, "a finished episode must show as finished");
         assert!((a.episodes[0].watched - 1.0).abs() < 1e-6);
         assert_eq!(a.episodes[1].watched, 0.0, "only the episode watched should change");
+        assert_eq!(a.episode_selected, 1, "and the cursor stays put");
+
+        // Another title's word never lands on this table.
+        let other = AnilistId::new(3);
+        a.apply(episodes_said(&a, other, &[("2", 1.0, true)]));
+        assert!(!a.episodes[1].completed);
     }
 
     /// Reported from real use: an episode finished, the toast said so, and its row stayed empty
@@ -7386,6 +7261,13 @@ mod tests {
         );
 
         a.begin_playback(id, "1".into());
+        // The engine says where the title stands ahead of the ending; reached by `e`, the
+        // table is the title's, so that lands on it.
+        a.apply(episodes_said(
+            &a,
+            id,
+            &[("1", 1.0, true), ("2", 0.0, false), ("3", 0.0, false)],
+        ));
         a.apply(finished(Some("2")));
 
         assert!(a.episodes[0].completed, "the finished episode must be marked in the table");
@@ -7476,29 +7358,6 @@ mod tests {
         // An empty answer is still an answer, and must clear the wait.
         a.apply(a.episodes_here(Vec::new()));
         assert!(!a.episodes_loading, "an empty result is not a permanent loading state");
-    }
-
-    #[test]
-    fn a_re_watch_quit_early_does_not_erase_that_it_was_finished() {
-        let mut a = app();
-        a.apply(a.content_here(entries(1)));
-        let id = a.selected_entry().expect("an entry").id;
-        a.detail = Some(a.selected_entry().expect("an entry").clone());
-        a.apply(a.episodes_here(vec![EpisodeRow {
-            number: "1".into(),
-            title: None,
-            duration_secs: Some(1440),
-            watched: 1.0,
-            completed: true,
-            kind: None,
-            skippable: false,
-            thumbnail: None,
-            description: None,
-        }]));
-        a.begin_playback(id, "1".into());
-        a.apply(Event::Playback { position: 60.0, duration: Some(1440.0), paused: false });
-        assert!(a.episodes[0].completed, "still finished");
-        assert!((a.episodes[0].watched - 1.0).abs() < 1e-6, "progress is monotonic");
     }
 
     #[test]

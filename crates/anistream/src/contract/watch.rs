@@ -54,7 +54,7 @@ async fn marking_watched_queues_progress_for_signed_in_trackers_only() {
     let updates = h.settle().await;
 
     assert!(job.is_none(), "written as it is asked");
-    assert_eq!(names(&updates), Vec::<&str>::new(), "the reducer already flipped the rows");
+    assert_eq!(names(&updates), Vec::<&str>::new(), "no record of the title to say");
     assert_eq!(completed(&h), ["1", "2"]);
     assert_eq!(h.store().pending_progress("anilist", FINISHED).unwrap(), Some(2));
     assert_eq!(h.store().outbox_depth(Some("kitsu")).unwrap(), 0, "no account to queue for");
