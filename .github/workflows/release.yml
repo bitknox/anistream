@@ -133,7 +133,8 @@ jobs:
 
       # The check above reads what the binary asks for. Running it on the oldest systems it claims
       # is what shows it starts there. No network and no terminal: --doctor reports what it cannot
-      # reach rather than waiting for it.
+      # reach rather than waiting for it. The Debian and Ubuntu images have no CA certificates,
+      # and anistream will not build its HTTP client without any, so they borrow the runner's.
       - name: Run on older distros
         if: runner.os == 'Linux'
         shell: bash
@@ -142,6 +143,8 @@ jobs:
             echo "::group::$image"
             docker run --rm --network none \
               -v "$PWD/target/${{ matrix.target }}/release/anistream:/usr/local/bin/anistream:ro" \
+              -v /etc/ssl/certs/ca-certificates.crt:/run/ca-certificates.crt:ro \
+              -e SSL_CERT_FILE=/run/ca-certificates.crt \
               "$image" sh -ec '
                 ldd --version | head -n 1
                 anistream --version
