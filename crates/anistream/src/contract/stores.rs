@@ -10,7 +10,7 @@ use std::sync::Arc;
 use anistream_model::{
     command::Command,
     event::Event,
-    stores::{Secret, StoreState},
+    stores::{InvitePreview, Secret, StoreState},
 };
 use anistream_plugin_store::server::{self, Server, Storage};
 
@@ -101,7 +101,8 @@ async fn an_invite_is_previewed_then_joined() {
     assert_eq!(names(&updates), ["StorePreview", "JobDone"]);
     assert!(matches!(
         &updates[0],
-        Event::StorePreview(Ok(preview)) if preview.name == "Ours" && !preview.already_joined
+        Event::StorePreview(InvitePreview::Store(preview))
+            if preview.name == "Ours" && !preview.already_joined
     ));
     ends(&updates, job);
 
@@ -128,9 +129,10 @@ async fn a_link_that_is_not_one_previews_as_a_refusal() {
     let updates = h.settle().await;
 
     assert_eq!(names(&updates), ["StorePreview", "JobDone"]);
-    assert!(
-        matches!(&updates[0], Event::StorePreview(Err(why)) if why == "that is not a link")
-    );
+    assert!(matches!(
+        &updates[0],
+        Event::StorePreview(InvitePreview::Failed { reason }) if reason == "that is not a link"
+    ));
     ends(&updates, job);
 }
 

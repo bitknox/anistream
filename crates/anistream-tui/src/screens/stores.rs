@@ -681,8 +681,8 @@ mod tests {
     /// An app holding one store in every state worth drawing.
     fn app_with_stores() -> App {
         use anistream_model::stores::{
-            InviteLinkView, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow,
-            StorePluginRow, StorePreview,
+            InviteLinkView, InvitedStore, LocalPluginRow, Secret, StoreInviteRow,
+            StoreMemberRow, StorePluginRow,
         };
         let plugin = |id: &str, status| StorePluginRow {
             id: id.into(),
@@ -771,7 +771,7 @@ mod tests {
             expires_at: i64::MAX / 2,
         });
         app.invite_copied = true;
-        app.store_confirm = Some(crate::app::StoreConfirm::Join(StorePreview {
+        app.store_confirm = Some(crate::app::StoreConfirm::Join(InvitedStore {
             link: Secret("https://plugins.example/join/x#y".into()),
             name: "Our plugins".into(),
             url: "https://plugins.example".into(),

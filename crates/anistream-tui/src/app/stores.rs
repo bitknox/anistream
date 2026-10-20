@@ -5,8 +5,8 @@ use anistream_model::{
     command::Command,
     notice::Notice,
     stores::{
-        InviteLinkView, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
-        StorePluginStatus, StorePreview, StoreRow, StoreState,
+        InviteLinkView, InvitePreview, InvitedStore, LocalPluginRow, Secret, StoreInviteRow,
+        StoreMemberRow, StorePluginRow, StorePluginStatus, StoreRow, StoreState,
     },
 };
 
@@ -16,7 +16,7 @@ use crate::nav::{Overlay, StageView};
 /// A store action waiting for a yes.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum StoreConfirm {
-    Join(StorePreview),
+    Join(InvitedStore),
     Leave { store: String, name: String },
     RemoveMember { store: String, member: String, name: String, devices: u32 },
     CancelInvite { store: String, invite: String, name: String },
@@ -150,21 +150,21 @@ impl App {
         }
     }
 
-    pub(super) fn apply_store_preview(&mut self, outcome: Result<StorePreview, String>) {
+    pub(super) fn apply_store_preview(&mut self, outcome: InvitePreview) {
         match outcome {
             // Asked from the store list with nothing open. Anywhere else, a confirmation that
             // took over would be answering a question the user is not looking at — and an open
             // "leave" or "remove" would quietly become a "join" under the same Enter.
-            Ok(_) if !self.in_stores() || self.nav.has_overlay() => {
+            InvitePreview::Store(_) if !self.in_stores() || self.nav.has_overlay() => {
                 self.push_toast(Notice::info(
                     "the invite checked out — paste it again to join",
                 ));
             }
-            Ok(preview) => {
+            InvitePreview::Store(preview) => {
                 self.store_confirm = Some(StoreConfirm::Join(preview));
                 self.nav.open_overlay(Overlay::StoreConfirm);
             }
-            Err(reason) => {
+            InvitePreview::Failed { reason } => {
                 self.push_toast(Notice::alert(reason));
                 // Back to the prompt with the link still in it, so a link cut short in the
                 // copy can be finished rather than pasted again — when the user is still here.
@@ -516,7 +516,7 @@ mod tests {
         );
         assert!(!a.nav.has_overlay());
 
-        a.apply(Event::StorePreview(Ok(StorePreview {
+        a.apply(Event::StorePreview(InvitePreview::Store(InvitedStore {
             link: Secret("https://plugins.example/join/abc#key".into()),
             name: "Our plugins".into(),
             url: "https://plugins.example".into(),
@@ -544,7 +544,9 @@ mod tests {
         a.handle(Action::Open, 20);
         type_text(&mut a, "https://plugins.example/join/abc");
         a.handle(Action::Open, 20);
-        a.apply(Event::StorePreview(Err("the link is missing the store's key".into())));
+        a.apply(Event::StorePreview(InvitePreview::Failed {
+            reason: "the link is missing the store's key".into(),
+        }));
         assert_eq!(a.nav.overlay(), Some(&Overlay::JoinStore));
         assert_eq!(a.text(Field::JoinLink), "https://plugins.example/join/abc");
         assert!(a.toasts.iter().any(|t| t.notice.text.contains("missing the store's key")));
@@ -932,7 +934,7 @@ mod tests {
         a.handle(Action::Open, 20);
         let leave = a.store_confirm.clone();
         assert!(matches!(leave, Some(StoreConfirm::Leave { .. })));
-        a.apply(Event::StorePreview(Ok(StorePreview {
+        a.apply(Event::StorePreview(InvitePreview::Store(InvitedStore {
             link: Secret("x".into()),
             name: "Other".into(),
             url: "https://other.example".into(),

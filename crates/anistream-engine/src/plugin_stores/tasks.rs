@@ -4,7 +4,11 @@
 use std::sync::Arc;
 
 use anistream_core::config::{Config, Paths};
-use anistream_model::{event::Event, notice::Notice, stores::Secret};
+use anistream_model::{
+    event::Event,
+    notice::Notice,
+    stores::{InvitePreview, Secret},
+};
 use anistream_net::HttpClient;
 use anistream_providers::ProviderRegistry;
 
@@ -62,7 +66,11 @@ impl StoreTaskContext {
 
     /// What a pasted invite link would join, asked of the store it names before it is spent.
     pub async fn preview_store(self, link: Secret) {
-        self.send(Event::StorePreview(self.stores.preview(&link.0).await));
+        let preview = match self.stores.preview(&link.0).await {
+            Ok(store) => InvitePreview::Store(store),
+            Err(reason) => InvitePreview::Failed { reason },
+        };
+        self.send(Event::StorePreview(preview));
     }
 
     /// Spend an invite link, and join its store.

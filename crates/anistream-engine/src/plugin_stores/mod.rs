@@ -15,8 +15,8 @@ use std::{
 
 use anistream_core::config::{Config, Paths};
 use anistream_model::stores::{
-    InviteLinkView, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
-    StorePluginStatus, StorePreview, StoreRow, StoreState,
+    InviteLinkView, InvitedStore, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow,
+    StorePluginRow, StorePluginStatus, StoreRow, StoreState,
 };
 use anistream_plugin_store::{
     ClientError, Inspector, Invite, Joined, LocalState, PluginInfo, PluginStatus, StoreClient,
@@ -242,11 +242,11 @@ impl Stores {
     }
 
     /// What a pasted link leads to, checked against the key it carries. Spends nothing.
-    pub async fn preview(&self, link: &str) -> Result<StorePreview, String> {
+    pub async fn preview(&self, link: &str) -> Result<InvitedStore, String> {
         let invite = Invite::parse(link).map_err(|e| e.to_string())?;
         let already = self.same_address(&invite)?.is_some();
         let info = self.client.preview(&invite).await.map_err(|e| e.to_string())?;
-        Ok(StorePreview {
+        Ok(InvitedStore {
             link: Secret(invite.link()),
             name: info.name,
             url: invite.base.clone(),

@@ -15,7 +15,7 @@ use crate::{
     settings::SettingsView,
     sources::{GuardView, MatchCandidate, MetaSourceRow, ProviderRow},
     stores::{
-        InviteLinkView, LocalPluginRow, StoreInviteRow, StoreMemberRow, StorePreview, StoreRow,
+        InviteLinkView, InvitePreview, LocalPluginRow, StoreInviteRow, StoreMemberRow, StoreRow,
     },
     sync::{ConflictRow, DeviceCodePrompt, SyncState},
 };
@@ -259,7 +259,7 @@ pub enum Event {
     /// Every joined plugin store, replacing whatever was there.
     Stores(Vec<StoreRow>),
     /// What a pasted invite link leads to, or why it leads nowhere.
-    StorePreview(Result<StorePreview, String>),
+    StorePreview(InvitePreview),
     /// A store was joined. The view moves into it if the user is still on the store list.
     StoreJoined {
         store: String,

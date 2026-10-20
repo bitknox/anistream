@@ -43,8 +43,8 @@ use anistream_model::{
     settings::{self, SettingsView},
     sources::{MatchCandidate, MetaSourceRow, ProviderRow},
     stores::{
-        InviteLinkView, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
-        StorePluginStatus, StorePreview, StoreRow, StoreState,
+        InviteLinkView, InvitePreview, InvitedStore, LocalPluginRow, Secret, StoreInviteRow,
+        StoreMemberRow, StorePluginRow, StorePluginStatus, StoreRow, StoreState,
     },
     sync::{ConflictRow, DeviceCodePrompt, PullError, SyncState},
 };
@@ -1638,7 +1638,7 @@ fn join_store(s: &mut Screen) {
 fn store_confirm(s: &mut Screen) {
     join_store(s);
     s.press(&["enter"]);
-    s.apply(Event::StorePreview(Ok(StorePreview {
+    s.apply(Event::StorePreview(InvitePreview::Store(InvitedStore {
         link: Secret(INVITE.into()),
         name: "Rin's sources".into(),
         url: "https://rin.example".into(),
