@@ -101,8 +101,7 @@ impl FfiEngine {
         // calls run on those.
         let stopping = std::thread::spawn(move || {
             if let Some(engine) = engine {
-                // Nothing plays through this surface yet, so there is no playback to save.
-                runtime.block_on(engine.shutdown(false));
+                runtime.block_on(engine.shutdown());
             }
             runtime.shutdown_background();
         });
