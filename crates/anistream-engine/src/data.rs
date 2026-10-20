@@ -218,7 +218,7 @@ pub fn provider_rows(registry: &anistream_providers::ProviderRegistry) -> Vec<Pr
 /// Fill in episode titles and stills a source could not supply, from metadata.
 ///
 /// A torrent source has no catalogue — its episode list comes from parsing release names, so it
-/// knows episode 13 exists but not that it is called "Aversion to One's Own Kind", let alone what
+/// knows episode 13 exists but not that it is called "The Ferryman's Ledger", let alone what
 /// it looks like. AniList's streaming listings know both. Anything the source already supplied
 /// wins: it knows the release it is actually offering, which metadata cannot.
 pub fn name_episodes(
@@ -365,7 +365,7 @@ mod naming_tests {
     use anistream_core::media::{Episode, EpisodeNumber};
 
     fn titles() -> std::collections::BTreeMap<u32, String> {
-        [(12, "A Real Hero".to_owned()), (13, "Aversion to One's Own Kind".to_owned())]
+        [(12, "The Sky Archive".to_owned()), (13, "The Ferryman's Ledger".to_owned())]
             .into_iter()
             .collect()
     }
@@ -410,8 +410,8 @@ mod naming_tests {
             Episode::new(EpisodeNumber::new("13")),
         ];
         name_episodes(&mut episodes, &titles(), &stills());
-        assert_eq!(episodes[0].title.as_deref(), Some("A Real Hero"));
-        assert_eq!(episodes[1].title.as_deref(), Some("Aversion to One's Own Kind"));
+        assert_eq!(episodes[0].title.as_deref(), Some("The Sky Archive"));
+        assert_eq!(episodes[1].title.as_deref(), Some("The Ferryman's Ledger"));
     }
 
     #[test]
@@ -465,17 +465,17 @@ mod tests {
         serde_json::from_value(serde_json::json!({
             "id": 154587,
             "idMal": 52991,
-            "title": {"romaji": "Sousou no Frieren", "english": "Frieren: Beyond Journey's End"},
+            "title": {"romaji": "Hoshikuzu no Tabibito", "english": "Stardust Wayfarer"},
             "format": "TV",
             "episodes": 28,
             "seasonYear": 2023,
             "averageScore": 91,
-            "description": "<p>An elf mage.</p>",
+            "description": "<p>A lamplighter.</p>",
             "coverImage": {"extraLarge": "https://s4.anilist.co/cover.jpg"},
             "bannerImage": "https://s4.anilist.co/banner.jpg",
             "genres": ["Adventure"],
             "externalLinks": [
-                {"site": "Crunchyroll", "url": "https://cr.test", "type": "STREAMING"},
+                {"site": "Hikari Stream", "url": "https://hikari.test", "type": "STREAMING"},
                 {"site": "Official Site", "url": "https://x.test", "type": "INFO"}
             ]
         }))
@@ -486,18 +486,18 @@ mod tests {
     fn a_media_becomes_a_renderable_entry() {
         let e = entry_from(&media(), None);
         assert_eq!(e.id, AnilistId::new(154_587));
-        assert_eq!(e.title, "Frieren: Beyond Journey's End");
-        assert_eq!(e.secondary.as_deref(), Some("Sousou no Frieren"));
+        assert_eq!(e.title, "Stardust Wayfarer");
+        assert_eq!(e.secondary.as_deref(), Some("Hoshikuzu no Tabibito"));
         assert_eq!(e.episodes, Some(28));
         assert_eq!(e.format.as_deref(), Some("TV"));
-        assert_eq!(e.synopsis, "An elf mage.", "html must be stripped for the terminal");
+        assert_eq!(e.synopsis, "A lamplighter.", "html must be stripped for the terminal");
         assert!(e.cover_url.is_some() && e.banner_url.is_some());
     }
 
     #[test]
     fn only_streaming_links_become_availability_badges() {
         let e = entry_from(&media(), None);
-        assert_eq!(e.available_on, vec!["Crunchyroll"]);
+        assert_eq!(e.available_on, vec!["Hikari Stream"]);
     }
 
     #[test]

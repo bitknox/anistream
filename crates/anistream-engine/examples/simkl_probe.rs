@@ -21,7 +21,7 @@ use anistream_core::{
 use anistream_net::HttpClient;
 use anistream_store::Store;
 
-/// Frieren — present in both mapping corpora, so the MAL bridge has something to resolve.
+/// A stable, real id in both mapping corpora, so the MAL bridge has something to resolve.
 const SUBJECT: AnilistId = AnilistId::new(154_587);
 
 #[tokio::main]

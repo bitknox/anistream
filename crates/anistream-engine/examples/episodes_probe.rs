@@ -19,7 +19,7 @@ use anistream_core::{
 use anistream_net::HttpClient;
 use anistream_store::Store;
 
-/// Frieren — present in both mapping corpora and covered by curation.
+/// A stable, real id — present in both mapping corpora and covered by curation.
 const DEFAULT: u32 = 154_587;
 
 #[tokio::main]

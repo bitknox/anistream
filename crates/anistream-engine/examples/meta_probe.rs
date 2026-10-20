@@ -17,7 +17,7 @@ use anistream_core::{
 use anistream_net::HttpClient;
 use anistream_store::Store;
 
-/// Frieren — a stable id present in both mapping corpora.
+/// A stable, real id present in both mapping corpora.
 const SUBJECT: AnilistId = AnilistId::new(154_587);
 
 #[tokio::main]
@@ -51,7 +51,7 @@ async fn main() {
     // Reported rather than fatal: search proxies MAL live where detail serves from
     // Tenrai's cache, so this leg can be down while the fallback is still useful — an
     // outage here is weather, and weather is what the ladder exists for.
-    let search_ok = match tenrai.search("frieren", &Default::default(), 1, 10).await {
+    let search_ok = match tenrai.search("summer", &Default::default(), 1, 10).await {
         Ok(page) => {
             println!("  search      {} rows, all with anilist identity", page.items.len());
             for media in page.items.iter().take(3) {

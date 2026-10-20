@@ -109,8 +109,8 @@ mod tests {
 
     #[test]
     fn one_episode_is_named_rather_than_counted() {
-        let line = compose(&[("Frieren".into(), 12)]);
-        assert!(line.contains("Frieren"), "got {line:?}");
+        let line = compose(&[("Hoshikuzu".into(), 12)]);
+        assert!(line.contains("Hoshikuzu"), "got {line:?}");
         assert!(line.contains("12"));
     }
 

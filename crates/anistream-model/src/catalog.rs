@@ -418,7 +418,7 @@ mod tests {
         // Right after a broadcast AniList's `nextAiringEpisode` can already say 9 while
         // the last-aired schedule row still answers 7 — during that window the app named
         // the fresh episode only by its successor. Episode 8 is out, provably.
-        let mut e = Entry::new(AnilistId::new(1), "Frieren");
+        let mut e = Entry::new(AnilistId::new(1), "Hoshikuzu");
         e.last_aired = Some(Aired { episode: 7, ago: 7 * 24 * 3600 });
         e.next_episode = Some(9);
         assert_eq!(e.latest_aired(), Some((8, None)), "the stale schedule row won");

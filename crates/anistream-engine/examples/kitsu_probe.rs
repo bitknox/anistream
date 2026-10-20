@@ -23,7 +23,7 @@ use anistream_core::{
 use anistream_net::HttpClient;
 use anistream_store::Store;
 
-/// Frieren — a stable id present in both mapping corpora.
+/// A stable, real id present in both mapping corpora.
 const SUBJECT: AnilistId = AnilistId::new(154_587);
 
 const API: &str = "https://kitsu.io/api/edge";
@@ -150,7 +150,7 @@ async fn main() {
 
     println!();
     println!("── push (writes to your real Kitsu list, then removes it) ─");
-    println!("  subject   Sousou no Frieren (kitsu {kitsu_id})");
+    println!("  subject   anilist {SUBJECT} (kitsu {kitsu_id})");
 
     // Through the trait, exactly as the drain does — progress and a score in one
     // batch, so the coalesce-then-upsert path is what gets exercised.

@@ -20,7 +20,7 @@ use anistream_core::{
 use anistream_net::HttpClient;
 use anistream_store::Store;
 
-/// Frieren — a stable id present in both mapping corpora.
+/// A stable, real id present in both mapping corpora.
 const SUBJECT: AnilistId = AnilistId::new(154_587);
 
 #[tokio::main]
@@ -92,7 +92,7 @@ async fn main() {
     println!();
     println!("── push (writes to your real MAL list, then removes it) ─");
     let mal_id = mal_id.expect("checked above");
-    println!("  subject   Sousou no Frieren (mal {mal_id})");
+    println!("  subject   anilist {SUBJECT} (mal {mal_id})");
 
     // Through the trait, exactly as the drain does.
     match mal.push(&[TrackOp::SetProgress { anilist_id: SUBJECT, episode: 1 }]).await {

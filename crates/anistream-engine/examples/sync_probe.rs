@@ -137,13 +137,8 @@ async fn main() {
             (entry.media.id, entry.progress, entry.media.title.display().to_owned(), false)
         }
         None => {
-            // Frieren — a stable, real id, added only for the length of this check.
-            (
-                anistream_core::ids::AnilistId::new(154_587),
-                0,
-                "Sousou no Frieren".to_owned(),
-                true,
-            )
+            // A stable, real id, added only for the length of this check.
+            (anistream_core::ids::AnilistId::new(154_587), 0, "anilist 154587".to_owned(), true)
         }
     };
     let bumped = original + 1;

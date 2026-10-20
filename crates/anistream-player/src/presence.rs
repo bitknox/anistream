@@ -17,8 +17,8 @@
 //!
 //! **It reports what you are watching, never where it came from.** The provider, the file, the
 //! magnet and the local URL are all deliberately absent from the payload: this is the one part of
-//! anistream that publishes to a third party, and "Frieren · Episode 5" is the whole of what a
-//! presence needs to say.
+//! anistream that publishes to a third party, and "Hoshikuzu · Episode 5" is the whole of what
+//! a presence needs to say.
 
 use std::{
     path::PathBuf,
@@ -242,7 +242,7 @@ mod tests {
         let truncated = truncate(&long);
         assert_eq!(truncated.chars().count(), 128);
         assert!(truncated.ends_with('…'));
-        assert_eq!(truncate("Frieren"), "Frieren");
+        assert_eq!(truncate("Hoshikuzu"), "Hoshikuzu");
     }
 
     #[test]
@@ -250,7 +250,7 @@ mod tests {
         // Discord's elapsed timer keeps running on its own, so leaving a start time on a paused
         // episode would show it advancing while nothing plays.
         let activity = Activity {
-            title: "Frieren".into(),
+            title: "Hoshikuzu".into(),
             detail: "Episode 5".into(),
             paused: true,
             started_at: Some(1_700_000_000),
