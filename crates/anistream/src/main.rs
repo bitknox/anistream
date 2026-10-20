@@ -1699,32 +1699,61 @@ fn dispatch(
         ),
 
         // The plugin stores.
-        task @ (Command::LoadStores
-        | Command::PreviewStore { .. }
-        | Command::JoinStore { .. }
-        | Command::LeaveStore { .. }
-        | Command::InstallPlugin { .. }
-        | Command::RemovePlugin { .. }
-        | Command::CreateInvite { .. }
-        | Command::LoadMembers { .. }
-        | Command::RemoveMember { .. }
-        | Command::CancelInvite { .. }
-        | Command::LoadLocalPlugins { .. }
-        | Command::PublishPlugin { .. }
-        | Command::UnpublishPlugin { .. }
-        | Command::OpenAdmin { .. }) => {
-            let context = StoreTaskContext {
-                stores: services.stores.clone(),
-                registry: services.registry.clone(),
-                config: engine.config.clone(),
-                http: services.http.clone(),
-                paths: services.paths.clone(),
-                tx: tx.clone(),
-            };
-            tokio::spawn(async move {
-                let _job = job;
-                context.run(task).await;
-            });
+        Command::LoadStores => {
+            store_task(job, engine, services, tx, StoreTaskContext::load_stores)
+        }
+        Command::PreviewStore { link } => {
+            store_task(job, engine, services, tx, move |context| context.preview_store(link))
+        }
+        Command::JoinStore { link } => {
+            store_task(job, engine, services, tx, move |context| context.join_store(link))
+        }
+        Command::LeaveStore { store } => {
+            store_task(job, engine, services, tx, move |context| context.leave_store(store))
+        }
+        Command::InstallPlugin { store, plugin } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.install_plugin(store, plugin)
+            })
+        }
+        Command::RemovePlugin { plugin } => {
+            store_task(job, engine, services, tx, move |context| context.remove_plugin(plugin))
+        }
+        Command::CreateInvite { store, name } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.create_invite(store, name)
+            })
+        }
+        Command::LoadMembers { store } => {
+            store_task(job, engine, services, tx, move |context| context.load_members(store))
+        }
+        Command::RemoveMember { store, member } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.remove_member(store, member)
+            })
+        }
+        Command::CancelInvite { store, invite } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.cancel_invite(store, invite)
+            })
+        }
+        Command::LoadLocalPlugins { store } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.load_local_plugins(store)
+            })
+        }
+        Command::PublishPlugin { store, plugin } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.publish_plugin(store, plugin)
+            })
+        }
+        Command::UnpublishPlugin { store, plugin } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.unpublish_plugin(store, plugin)
+            })
+        }
+        Command::OpenAdmin { store } => {
+            store_task(job, engine, services, tx, move |context| context.open_admin(store))
         }
     }
 }
@@ -2478,124 +2507,149 @@ impl StoreTaskContext {
         }
     }
 
-    async fn run(&self, task: Command) {
-        match task {
-            Command::LoadStores => {
-                // What is on disk answers at once; the network fills in behind it.
+    /// The joined stores, as they are on disk and then as each store says.
+    async fn load_stores(self) {
+        // What is on disk answers at once; the network fills in behind it.
+        self.rows();
+        match self.stores.refresh().await {
+            Ok(rows) => self.send(Event::Stores(rows)),
+            Err(e) => self.toast(Notice::alert(e)),
+        }
+    }
+
+    /// What a pasted invite link would join, asked of the store it names before it is spent.
+    async fn preview_store(self, link: Secret) {
+        self.send(Event::StorePreview(self.stores.preview(&link.0).await));
+    }
+
+    /// Spend an invite link, and join its store.
+    async fn join_store(self, link: Secret) {
+        match self.stores.join(&link.0).await {
+            Ok(joined) => {
                 self.rows();
-                match self.stores.refresh().await {
-                    Ok(rows) => self.send(Event::Stores(rows)),
-                    Err(e) => self.toast(Notice::alert(e)),
-                }
+                self.send(Event::StoreJoined { store: joined.id.clone() });
+                self.toast(Notice::info(format!(
+                    "joined {} as {}",
+                    joined.name, joined.member.name
+                )));
             }
-            Command::PreviewStore { link } => {
-                self.send(Event::StorePreview(self.stores.preview(&link.0).await));
+            Err(e) => self.toast(Notice::alert(e)),
+        }
+    }
+
+    /// Leave a store; what was installed from it stays.
+    async fn leave_store(self, store: String) {
+        match self.stores.leave(&store).await {
+            Ok(name) => {
+                self.rows();
+                self.toast(Notice::info(format!("left {name} — its plugins stay installed")));
             }
-            Command::JoinStore { link } => match self.stores.join(&link.0).await {
-                Ok(joined) => {
-                    self.rows();
-                    self.send(Event::StoreJoined { store: joined.id.clone() });
-                    self.toast(Notice::info(format!(
-                        "joined {} as {}",
-                        joined.name, joined.member.name
-                    )));
-                }
-                Err(e) => self.toast(Notice::alert(e)),
+            Err(e) => self.toast(Notice::alert(e)),
+        }
+    }
+
+    /// Install a store's plugin, or update it, and bring it into the running chain.
+    async fn install_plugin(self, store: String, plugin: String) {
+        match self.stores.install(&store, &plugin).await {
+            Ok((entry, path)) => {
+                self.rows();
+                self.load_installed(&entry.name, &entry.version, &path).await;
+            }
+            Err(e) => {
+                // The install refreshed the list on its way, so the screen catches up
+                // with whatever made it refuse.
+                self.rows();
+                self.toast(Notice::alert(format!("{plugin} not installed: {e}")));
+            }
+        }
+    }
+
+    /// Delete an installed plugin, and take it out of the chain.
+    async fn remove_plugin(self, plugin: String) {
+        match self.stores.remove(&plugin).await {
+            Ok(()) => {
+                self.registry.remove(&plugin);
+                self.send(Event::Providers(data::provider_rows(&self.registry)));
+                self.rows();
+                self.toast(Notice::info(format!("removed {plugin}")));
+            }
+            Err(e) => self.toast(Notice::alert(e)),
+        }
+    }
+
+    /// Make an invite link to a store.
+    async fn create_invite(self, store: String, name: Option<String>) {
+        match self.stores.invite(&store, name).await {
+            Ok(view) => self.send(Event::InviteLink(view)),
+            Err(e) => self.toast(Notice::alert(e)),
+        }
+    }
+
+    /// A store's members and its open invites.
+    async fn load_members(self, store: String) {
+        self.members(&store).await
+    }
+
+    /// Take a member's access away, and list who is left.
+    async fn remove_member(self, store: String, member: String) {
+        match self.stores.remove_member(&store, &member).await {
+            Ok(()) => self.toast(Notice::info("removed — their devices stopped working here")),
+            Err(e) => self.toast(Notice::alert(e)),
+        }
+        self.members(&store).await;
+    }
+
+    /// Cancel an invite, and list what is left.
+    async fn cancel_invite(self, store: String, invite: String) {
+        match self.stores.cancel_invite(&store, &invite).await {
+            Ok(()) => self.toast(Notice::info("invite cancelled — the link no longer works")),
+            Err(e) => self.toast(Notice::alert(e)),
+        }
+        self.members(&store).await;
+    }
+
+    /// The local plugins a store's owner could publish there.
+    async fn load_local_plugins(self, store: String) {
+        match self.stores.local_plugins(&store).await {
+            Ok(plugins) => self.send(Event::LocalPlugins { store, plugins }),
+            Err(e) => self.toast(Notice::alert(e)),
+        }
+    }
+
+    /// Publish a local plugin to a store.
+    async fn publish_plugin(self, store: String, plugin: String) {
+        match self.stores.publish(&store, &plugin).await {
+            Ok(entry) => {
+                self.rows();
+                self.toast(Notice::info(format!("published {} {}", entry.name, entry.version)));
+            }
+            Err(e) => self.toast(Notice::alert(format!("{plugin} not published: {e}"))),
+        }
+    }
+
+    /// Stop offering a plugin in a store.
+    async fn unpublish_plugin(self, store: String, plugin: String) {
+        match self.stores.unpublish(&store, &plugin).await {
+            Ok(()) => {
+                self.rows();
+                self.toast(Notice::info(format!("{plugin} is no longer offered")));
+            }
+            Err(e) => self.toast(Notice::alert(e)),
+        }
+    }
+
+    /// Open a store's admin page in the browser, signed in by a link that works once.
+    async fn open_admin(self, store: String) {
+        match self.stores.admin_link(&store).await {
+            Ok(link) => match open::that_detached(&link) {
+                Ok(()) => self.toast(Notice::info(
+                    "opened the admin page in your browser — the link works once, for ten minutes",
+                )),
+                Err(e) => self.toast(Notice::alert(format!(
+                    "could not open a browser ({e}) — on the store's machine, `anistream store admin` prints a link"
+                ))),
             },
-            Command::LeaveStore { store } => match self.stores.leave(&store).await {
-                Ok(name) => {
-                    self.rows();
-                    self.toast(Notice::info(format!(
-                        "left {name} — its plugins stay installed"
-                    )));
-                }
-                Err(e) => self.toast(Notice::alert(e)),
-            },
-            Command::InstallPlugin { store, plugin } => {
-                match self.stores.install(&store, &plugin).await {
-                    Ok((entry, path)) => {
-                        self.rows();
-                        self.load_installed(&entry.name, &entry.version, &path).await;
-                    }
-                    Err(e) => {
-                        // The install refreshed the list on its way, so the screen catches up
-                        // with whatever made it refuse.
-                        self.rows();
-                        self.toast(Notice::alert(format!("{plugin} not installed: {e}")));
-                    }
-                }
-            }
-            Command::RemovePlugin { plugin } => match self.stores.remove(&plugin).await {
-                Ok(()) => {
-                    self.registry.remove(&plugin);
-                    self.send(Event::Providers(data::provider_rows(&self.registry)));
-                    self.rows();
-                    self.toast(Notice::info(format!("removed {plugin}")));
-                }
-                Err(e) => self.toast(Notice::alert(e)),
-            },
-            Command::CreateInvite { store, name } => {
-                match self.stores.invite(&store, name).await {
-                    Ok(view) => self.send(Event::InviteLink(view)),
-                    Err(e) => self.toast(Notice::alert(e)),
-                }
-            }
-            Command::LoadMembers { store } => self.members(&store).await,
-            Command::RemoveMember { store, member } => {
-                match self.stores.remove_member(&store, &member).await {
-                    Ok(()) => {
-                        self.toast(Notice::info("removed — their devices stopped working here"))
-                    }
-                    Err(e) => self.toast(Notice::alert(e)),
-                }
-                self.members(&store).await;
-            }
-            Command::CancelInvite { store, invite } => {
-                match self.stores.cancel_invite(&store, &invite).await {
-                    Ok(()) => {
-                        self.toast(Notice::info("invite cancelled — the link no longer works"))
-                    }
-                    Err(e) => self.toast(Notice::alert(e)),
-                }
-                self.members(&store).await;
-            }
-            Command::LoadLocalPlugins { store } => match self.stores.local_plugins(&store).await {
-                Ok(plugins) => self.send(Event::LocalPlugins { store, plugins }),
-                Err(e) => self.toast(Notice::alert(e)),
-            },
-            Command::PublishPlugin { store, plugin } => {
-                match self.stores.publish(&store, &plugin).await {
-                    Ok(entry) => {
-                        self.rows();
-                        self.toast(Notice::info(format!(
-                            "published {} {}",
-                            entry.name, entry.version
-                        )));
-                    }
-                    Err(e) => self.toast(Notice::alert(format!("{plugin} not published: {e}"))),
-                }
-            }
-            Command::UnpublishPlugin { store, plugin } => {
-                match self.stores.unpublish(&store, &plugin).await {
-                    Ok(()) => {
-                        self.rows();
-                        self.toast(Notice::info(format!("{plugin} is no longer offered")));
-                    }
-                    Err(e) => self.toast(Notice::alert(e)),
-                }
-            }
-            Command::OpenAdmin { store } => match self.stores.admin_link(&store).await {
-                Ok(link) => match open::that_detached(&link) {
-                    Ok(()) => self.toast(Notice::info(
-                        "opened the admin page in your browser — the link works once, for ten minutes",
-                    )),
-                    Err(e) => self.toast(Notice::alert(format!(
-                        "could not open a browser ({e}) — on the store's machine, `anistream store admin` prints a link"
-                    ))),
-                },
-                Err(e) => self.toast(Notice::alert(e)),
-            },
-            other => tracing::error!(task = ?other, "not a plugin store task"),
+            Err(e) => self.toast(Notice::alert(e)),
         }
     }
 
@@ -2631,6 +2685,31 @@ impl StoreTaskContext {
                 .toast(Notice::alert(format!("installed {name}, but it does not load: {e}"))),
         }
     }
+}
+
+/// Run a plugin store task off the UI thread, with what it needs moved into it.
+fn store_task<W, F>(
+    job: Option<JobGuard>,
+    engine: &EngineState,
+    services: &Services,
+    tx: &Outbox,
+    work: W,
+) where
+    W: FnOnce(StoreTaskContext) -> F + Send + 'static,
+    F: Future<Output = ()> + Send + 'static,
+{
+    let context = StoreTaskContext {
+        stores: services.stores.clone(),
+        registry: services.registry.clone(),
+        config: engine.config.clone(),
+        http: services.http.clone(),
+        paths: services.paths.clone(),
+        tx: tx.clone(),
+    };
+    tokio::spawn(async move {
+        let _job = job;
+        work(context).await;
+    });
 }
 
 /// Resolve a stream and start playing it.
