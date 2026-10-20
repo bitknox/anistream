@@ -69,6 +69,8 @@ pub struct Cursors {
     /// [`FrameReport`]. Kept so the window moves only when the highlight would leave it, rather
     /// than recomputed from the highlight each frame and pinning it to the bottom edge on the
     /// way back up.
+    ///
+    /// [`FrameReport`]: super::FrameReport
     pub overlay: Cursor,
 }
 

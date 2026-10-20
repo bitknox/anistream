@@ -231,6 +231,8 @@ impl App {
     ///
     /// The episode an ending rolled on to takes the finished one's place: that one comes down
     /// as any ending takes it, Now Playing with it, and goes back up for this one at once.
+    ///
+    /// [`Event::PlaybackStaged`]: anistream_model::event::Event::PlaybackStaged
     pub(super) fn take_staged(
         &mut self,
         id: AnilistId,

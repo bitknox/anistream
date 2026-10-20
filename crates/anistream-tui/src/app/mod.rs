@@ -3,6 +3,14 @@
 //! State lives here and rendering reads it; nothing in [`crate::screens`] mutates. That
 //! split is what keeps the event loop honest — the UI thread only ever applies already-
 //! computed [`Event`]s, so a slow provider or a large image decode cannot stall a frame.
+//!
+//! [`App`] is defined here, every field of it, so the module of each feature below reaches the
+//! state it works on directly. [`App::apply`] hands each event to the feature it is about, and
+//! [`App::press`] starts a key on its way: into a text field, an open overlay, or the screen.
+//! The features are the sections' lists, the title page and its episode table, Now Playing,
+//! downloads, the Providers table, plugin stores, trackers, settings, notices, the overlays and
+//! the text fields. Each module's tests are the ones that exercise it, and what they share is
+//! in `fixtures`.
 
 use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 use anistream_model::{

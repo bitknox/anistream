@@ -158,6 +158,9 @@ impl App {
     /// For a still frame or a test that stages one. The running app's jobs are numbered where
     /// the work runs, which says so with [`Event::JobStarted`]; the runner ends each with
     /// [`Event::JobDone`] when the work stops.
+    ///
+    /// [`Event::JobStarted`]: anistream_model::event::Event::JobStarted
+    /// [`Event::JobDone`]: anistream_model::event::Event::JobDone
     pub fn begin_job(&mut self, task: &Command) -> Option<JobId> {
         let label = task.activity()?;
         self.next_job += 1;
