@@ -135,8 +135,6 @@ pub struct Harness {
     engine: Engine,
     events: EventStream,
     jobs: Jobs,
-    /// The cross-check of what a playback leads to: see [`Follows`].
-    follows: Follows,
     /// How many commands the engine had routed when it last said it had nothing left to do.
     idle: u64,
     /// The last settle, by name: see [`Harness::trace`].
@@ -256,7 +254,6 @@ impl Harness {
             engine,
             events,
             jobs: Jobs::default(),
-            follows: Follows::default(),
             idle: 0,
             trace: Vec::new(),
             store,
@@ -312,13 +309,10 @@ impl Harness {
     /// When the key does not play.
     pub fn press_to_play(&mut self, action: Action) -> Option<JobId> {
         let task = self.app.handle(action, self.rows());
-        let Some(Command::Play { id, episode } | Command::PlaySource { id, episode, .. }) =
-            &task
-        else {
+        let Some(task @ (Command::Play { .. } | Command::PlaySource { .. })) = task else {
             panic!("{action:?} played nothing: {task:?}")
         };
-        self.follows.keyed.push_back((*id, episode.clone()));
-        self.dispatch(task.expect("a play"))
+        self.dispatch(task)
     }
 
     /// Quit, as the event loop does once it has left: the engine shut down and waited for.
@@ -376,7 +370,7 @@ impl Harness {
         loop {
             // The reducer's follow-ups, as at the top of the loop.
             if let Some(task) = self.app.take_pending() {
-                self.pending(task);
+                self.dispatch(task);
             }
             for url in self.app.visible_artwork(self.rows()) {
                 self.dispatch(Command::FetchArtwork { url });
@@ -409,13 +403,6 @@ impl Harness {
             self.jobs.started,
             names(&seen)
         );
-        let Follows { asked, keyed } = &self.follows;
-        assert!(
-            asked.is_empty() && keyed.is_empty(),
-            "plays the App asked for, {asked:?}, and keys played, {keyed:?}, that the engine \
-             never staged, having seen {:?}",
-            names(&seen)
-        );
         seen
     }
 
@@ -428,7 +415,7 @@ impl Harness {
         let mut seen = Vec::new();
         loop {
             if let Some(task) = self.app.take_pending() {
-                self.pending(task);
+                self.dispatch(task);
             }
             if seen.last().is_some_and(&done) {
                 return seen;
@@ -601,50 +588,12 @@ impl Harness {
             self.trace.push(name(&update));
             seen.push(copy(&update));
         }
-        self.follows.staged(&update, &self.app, seen);
-        let rolling_on = match &update {
-            Event::PlaybackEnded { rolling_on, .. } => Some(*rolling_on),
-            _ => None,
-        };
-        let leads_on = matches!(
-            update,
-            Event::PlaybackEnded { .. }
-                | Event::PlayerPlayEpisode { .. }
-                | Event::PlayerTranslation(_)
-        );
         match update {
             // Decoded at once rather than on the blocking pool: settling has no frame to keep.
             Event::ArtworkReady { url, bytes } => {
                 covers::hand_over(&mut self.app, covers::now(url, &bytes));
             }
             update => self.app.apply(update),
-        }
-        if let Some(rolling_on) = rolling_on {
-            assert_eq!(
-                rolling_on,
-                self.app.will_play_next(),
-                "the engine says the ending rolls on, the App that it does not, or the other way \
-                 round, having seen {:?}",
-                names(seen)
-            );
-        }
-        // What the App made of an event that leads to a play, taken at once, so what it asked
-        // for is known before the engine's word on it is applied, however the events come.
-        if leads_on && let Some(task) = self.app.take_pending() {
-            self.pending(task);
-        }
-    }
-
-    /// Work the reducer queued, sent as the loop sends it. A play or a prefetch is what a
-    /// playback led to, which the engine has started already: the App's own answer, which it
-    /// still works out until it is deleted, is held to what the engine staged, not sent.
-    fn pending(&mut self, task: Command) {
-        match task {
-            Command::Play { id, episode } => self.follows.asked.push_back((id, episode)),
-            Command::Prefetch { .. } => {}
-            task => {
-                self.dispatch(task);
-            }
         }
     }
 }
@@ -723,59 +672,6 @@ impl Jobs {
             ),
             _ => {}
         }
-    }
-}
-
-/// Cross-check, while the App still works out on its own what a playback leads to: the next
-/// episode an ending rolls on to, with filler stepped over, an episode picked in the player and
-/// the episode restarted in the other translation. The engine starts these itself, and says
-/// what it staged with `PlaybackStaged`; the App's answer is held to it.
-///
-/// Every play the App asks for has to be the next one the engine stages, title and episode;
-/// every play a key sent has to be staged in its turn too; and whichever it is, Now Playing as
-/// the App staged it has to be what the engine says, to the byte, eyecatch and all. An ending
-/// rolls on, as the engine says, exactly when the App asked for the next episode.
-#[derive(Default)]
-struct Follows {
-    /// Plays the App asked for after a playback's event, not yet staged by the engine.
-    asked: VecDeque<(anistream_core::ids::AnilistId, String)>,
-    /// Plays a key sent, not yet staged by the engine.
-    keyed: VecDeque<(anistream_core::ids::AnilistId, String)>,
-}
-
-impl Follows {
-    fn staged(&mut self, update: &Event, app: &App, seen: &[Event]) {
-        let Event::PlaybackStaged { id, title, episode, episode_title, speed } = update else {
-            return;
-        };
-        let staged = (*id, episode.clone());
-        if self.keyed.front() == Some(&staged) {
-            self.keyed.pop_front();
-        } else {
-            let asked = self.asked.pop_front();
-            assert_eq!(
-                asked,
-                Some(staged),
-                "the engine staged one play, the App asked for another, having seen {:?}",
-                names(seen)
-            );
-        }
-        let playing = app.playing.as_ref().expect("the App has staged Now Playing");
-        assert_eq!(
-            (
-                playing.id,
-                &playing.title,
-                &playing.episode,
-                &playing.episode_title,
-                playing.speed,
-                playing.duration,
-                playing.position,
-            ),
-            (Some(*id), title, episode, episode_title, *speed, None, 0.0),
-            "Now Playing as the App staged it is not what the engine staged"
-        );
-        let label = app.eyecatch.as_ref().map(|eyecatch| eyecatch.label.as_str());
-        assert_eq!(label, Some(format!("{title}  ·  ep {episode}").as_str()));
     }
 }
 

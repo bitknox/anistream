@@ -29,10 +29,11 @@ use crate::{
     tui::{self, clipboard::copy_to_clipboard},
 };
 
-/// How long a mark made here waits on the engine's word before the loop draws and reads keys
-/// again regardless. The engine writes a mark inline and answers at once; this only bounds a
-/// wait on an engine that has stopped answering.
-const MARK_WAIT: Duration = Duration::from_millis(250);
+/// How long the screen waits on the engine's word before the loop draws and reads keys again
+/// regardless: a mark made here, or the staging of the episode an ending rolled on to. The
+/// engine writes a mark inline and answers at once, and stages a roll-on with its ending; this
+/// only bounds a wait on an engine that has stopped answering.
+const ENGINE_WAIT: Duration = Duration::from_millis(250);
 
 pub async fn run(
     config: Config,
@@ -107,16 +108,17 @@ pub async fn run(
     // nothing but the ticker woke this pass, the one case that may skip it.
     let mut repaint = tui::terminal::Repaint::default();
     let mut idle_tick = false;
-    // Until when a mark made here waits on the engine's word: see `MARK_WAIT`.
-    let mut mark_due: Option<std::time::Instant> = None;
+    // Until when the screen waits on the engine's word: see `ENGINE_WAIT`.
+    let mut engine_due: Option<std::time::Instant> = None;
     let result = loop {
         let now = std::time::Instant::now();
         // A mark is the engine's to make: the table shows it once the engine has written it
         // and said where the title stands, which it does at once. Until then the next frame
         // and the next key wait, so the frame after `u` shows the mark, as when the interface
         // marked its own rows, and a second `u` reads the first rather than a row not yet
-        // marked.
-        let waiting = app.awaiting_mark() && mark_due.is_some_and(|by| now < by);
+        // marked. An ending that rolls on is the same: the next episode is staged right after
+        // it, and the frame after the ending shows it, as when the interface staged it itself.
+        let waiting = app.awaiting_engine() && engine_due.is_some_and(|by| now < by);
         // Work on screen keeps its clocks and its pulse moving, the eyecatch its wipe.
         let live = !app.jobs.is_empty() || app.is_animating();
         if !waiting && (!idle_tick || repaint.due(live, now)) {
@@ -144,13 +146,9 @@ pub async fn run(
             engine.send(Command::FetchArtwork { url });
         }
 
-        // Work the reducer queued while applying an update rather than handling a key. What a
-        // playback leads to — the next episode, one picked in the player, the next one's
-        // streams found ahead — the engine starts itself; the reducer still works out its own
-        // answer until that goes, and it is not sent.
-        if let Some(task) = app.take_pending()
-            && !matches!(task, Command::Play { .. } | Command::Prefetch { .. })
-        {
+        // What the viewer asked for without a key to carry it: a scroll's backfill, a
+        // section's reload once the rail has settled.
+        if let Some(task) = app.take_pending() {
             engine.send(task);
         }
 
@@ -172,7 +170,14 @@ pub async fn run(
                     }
                     _ => false,
                 };
-                let ended = matches!(update, Event::PlaybackEnded { .. });
+                // An ending that rolls on has the next episode staged right after it.
+                let (ended, rolling_on) = match &update {
+                    Event::PlaybackEnded { rolling_on, .. } => (true, *rolling_on),
+                    _ => (false, false),
+                };
+                if rolling_on {
+                    engine_due = Some(std::time::Instant::now() + ENGINE_WAIT);
+                }
                 match update {
                     // Decoded off the loop; it comes back on the arm below.
                     Event::ArtworkReady { url, bytes } => covers::spawn(url, bytes, &covers_tx),
@@ -181,11 +186,11 @@ pub async fn run(
                 if copied {
                     app.invite_copied = true;
                 }
-                // mpv's window is gone; unless the reducer queued the next episode — in
-                // which case another window is about to open — the viewer's next keypress
-                // belongs to the terminal, so ask for focus back rather than leaving it
-                // wherever the window manager dropped it.
-                if ended && !app.will_play_next() && app.playing.is_none() {
+                // mpv's window is gone; unless the ending rolled on — the next episode plays
+                // in the window it left — the viewer's next keypress belongs to the terminal,
+                // so ask for focus back rather than leaving it wherever the window manager
+                // dropped it.
+                if ended && !rolling_on && app.playing.is_none() {
                     tui::focus::refocus_terminal();
                 }
             }
@@ -219,7 +224,7 @@ pub async fn run(
                     Some(Ok(TermEvent::Key(key))) if key.kind == KeyEventKind::Press => {
                         if let Some(task) = app.press(key, rows) {
                             if matches!(task, Command::SetWatched { .. }) {
-                                mark_due = Some(std::time::Instant::now() + MARK_WAIT);
+                                engine_due = Some(std::time::Instant::now() + ENGINE_WAIT);
                             }
                             engine.send(task);
                         }

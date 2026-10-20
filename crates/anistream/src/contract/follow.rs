@@ -45,6 +45,23 @@ fn staged(updates: &[Event]) -> (AnilistId, String, String, Option<String>) {
     first
 }
 
+/// Now Playing as the App has it once the one `PlaybackStaged` among `updates` is applied: what
+/// the engine staged, to the byte, eyecatch and all.
+#[track_caller]
+fn staged_alike(h: &Harness, updates: &[Event]) {
+    let (id, title, episode, episode_title) = staged(updates);
+    let app = h.app();
+    let playing = app.playing.as_ref().expect("Now Playing is up");
+    assert_eq!(
+        (playing.id, &playing.title, &playing.episode, &playing.episode_title),
+        (Some(id), &title, &episode, &episode_title)
+    );
+    assert_eq!((playing.speed, playing.duration, playing.position), (1.0, None, 0.0));
+    let label = app.eyecatch.as_ref().map(|eyecatch| eyecatch.label.clone());
+    assert_eq!(label, Some(format!("{title}  ·  ep {episode}")));
+    assert_eq!(app.nav.current(), &StageView::NowPlaying);
+}
+
 /// Whether each ending among `updates` rolled on, as the engine says, in order.
 fn rolled_on(updates: &[Event]) -> Vec<bool> {
     updates
@@ -82,15 +99,20 @@ async fn an_ending_that_rolls_on_stages_the_next_episode_under_the_name_it_playe
     let mut h = at_the_table().await;
     playing(&mut h, "4", 1_400.0).await;
     h.playback_says(PLAYBACK, FINISHED, "4", complete(Some("5")));
-    let updates = h.settle().await;
+    let rolled = h.settle_until(|e| matches!(e, Event::PlaybackStaged { .. })).await;
 
-    let rolled = ["Progress", "PlaybackEnded", "PlaybackStaged"];
-    assert_eq!(names(&updates), [&rolled[..], &LOOKED_UP].concat());
-    assert_eq!(rolled_on(&updates), [true, false], "4 rolls on; 5, found nothing, does not");
+    // Now Playing for 5 is up the moment 4 is done, under 4's name.
+    assert_eq!(names(&rolled), ["Progress", "PlaybackEnded", "PlaybackStaged"]);
+    assert_eq!(rolled_on(&rolled), [true], "4 rolls on");
     let what =
         (FINISHED, title(FINISHED), "5".into(), Some("What the Beacons Remember".into()));
-    assert_eq!(staged(&updates), what);
-    assert!(!toasts(&updates).iter().any(|t| t.contains("filler")), "nothing was skipped");
+    assert_eq!(staged(&rolled), what);
+    staged_alike(&h, &rolled);
+    assert!(!toasts(&rolled).iter().any(|t| t.contains("filler")), "nothing was skipped");
+
+    let updates = h.settle().await;
+    assert_eq!(names(&updates), LOOKED_UP);
+    assert_eq!(rolled_on(&updates), [false], "5, found nothing, does not roll on");
     assert!(h.app().playing.is_none(), "found nothing, so nothing is left staged");
 }
 
@@ -265,25 +287,65 @@ async fn a_play_asked_for_on_the_table_is_staged_alike_here_and_by_the_engine() 
     let mut h = at_the_table().await;
     assert_eq!(cursor(&h), "4");
     h.press_to_play(Action::Open);
-    let updates = h.settle().await;
-    assert_eq!(names(&updates), [&["PlaybackStaged"][..], &LOOKED_UP].concat());
+    let updates = h.settle_until(|e| matches!(e, Event::PlaybackStaged { .. })).await;
     let what = (FINISHED, title(FINISHED), "4".into(), Some("Embers in the Snow".into()));
     assert_eq!(staged(&updates), what);
+    // Staged here as the key asked for it, and the engine's word on it is the same.
+    staged_alike(&h, &updates);
+    assert_eq!(names(&h.settle().await), LOOKED_UP);
 }
 
 #[tokio::test]
 async fn a_play_resumed_from_continue_is_staged_alike_here_and_by_the_engine() {
     // Enter on Home resumes the episode left partway, by the name the row has.
-    let mut h =
-        Harness::with(Options { registry: Some(streamless()), ..Options::default() }).await;
+    let options = Options { registry: Some(streamless()), ..Options::default() };
+    let mut h = Harness::with(options).await;
     seed_partway(&h);
     h.reload();
     h.settle().await;
     h.app_mut().nav.focus_stage();
     h.press_to_play(Action::Open);
-    let updates = h.settle().await;
+    let updates = h.settle_until(|e| matches!(e, Event::PlaybackStaged { .. })).await;
     let what = (FINISHED, title(FINISHED), "4".into(), None);
     assert_eq!(staged(&updates), what, "no table is open to name the episode");
+    staged_alike(&h, &updates);
+    h.settle().await;
+}
+
+#[tokio::test]
+async fn a_remembered_speed_is_what_the_next_episode_is_staged_at() {
+    let mut h = at_the_table().await;
+    playing(&mut h, "4", 1_200.0).await;
+    h.playback_says(PLAYBACK, FINISHED, "4", Event::PlaybackSpeed(1.25));
+    h.playback_says(PLAYBACK, FINISHED, "4", complete(Some("5")));
+    let updates = h.settle_until(|e| matches!(e, Event::PlaybackStaged { .. })).await;
+    let speed = updates.iter().find_map(|update| match update {
+        Event::PlaybackStaged { speed, .. } => Some(*speed),
+        _ => None,
+    });
+    assert_eq!(speed, Some(1.25));
+    assert_eq!(h.app().playing.as_ref().map(|p| p.speed), Some(1.25));
+    h.settle().await;
+}
+
+#[tokio::test]
+async fn an_ending_s_next_episode_is_found_ahead_by_the_engine() {
+    // The source counts what it is asked: the next episode's streams are looked for as soon as
+    // the ending says so, with nothing asked of the front end.
+    use std::sync::atomic::Ordering;
+    let provider = anistream_testkit::sources::provider();
+    let asked = provider.call_count();
+    let registry = anistream_providers::ProviderRegistry::new(vec![provider.arc()]);
+    let mut h = Harness::with(Options { registry: Some(registry), ..Options::default() }).await;
+    let before = asked.load(Ordering::SeqCst);
+    h.player_says(Event::PrefetchNext { id: FINISHED, episode: "5".into() });
+    assert_eq!(names(&h.settle().await), ["PrefetchNext"]);
+    assert!(h.app().jobs.is_empty(), "found quietly, with no job");
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(10);
+    while asked.load(Ordering::SeqCst) == before {
+        assert!(tokio::time::Instant::now() < deadline, "the source was never asked");
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
 }
 
 #[tokio::test]

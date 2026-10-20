@@ -320,12 +320,10 @@ pub struct SettingsView {
     /// The sources the config sets up: the header's chips, the source the status line names,
     /// and the order Providers moves a source up and down.
     pub sources: ConfiguredSources,
-    /// The speed a playback starts at, when one is remembered: what Now Playing shows of a new
-    /// playback until the player says.
+    /// The speed a playback starts at, when one is remembered: what Now Playing shows of a
+    /// playback the front end stages as it asks for it, until the player says. One the engine
+    /// starts on its own comes staged with it.
     pub speed: Option<f64>,
-    /// Whether auto-next steps over filler. Read by the front end while it decides what plays
-    /// next.
-    pub skip_filler: bool,
     /// Whether Discord presence has a client to publish under, which its row's note depends on.
     pub presence_client: bool,
 }
@@ -348,7 +346,6 @@ pub fn view(effective: &Config, saved: &Config) -> SettingsView {
         theme: effective.theme.mode,
         sources: ConfiguredSources::of(&effective.providers),
         speed: effective.playback.persisted_speed,
-        skip_filler: effective.playback.skip_filler,
         presence_client: effective.presence.resolved_client_id().is_some(),
     }
 }

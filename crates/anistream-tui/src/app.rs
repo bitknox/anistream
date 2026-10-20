@@ -16,7 +16,6 @@ use anistream_model::{
     jobs::JobId,
     notice::{Notice, NoticeHint, NoticeKind},
     playback::{Ending, SkipKind},
-    progress::after_filler,
     settings::{SettingChange, SettingKey, SettingsView},
     sources::{
         GuardView, MatchCandidate, MetaSourceRow, ProviderRow, SourceChip, SourceState,
@@ -533,12 +532,18 @@ pub struct App {
     /// mark and says where the title stands, at once; until it has, the loop holds the next
     /// frame and key, so the frame after the key shows the mark and a second press reads it.
     marking: Option<AnilistId>,
-    /// Work the reducer produced while applying an update rather than handling a key.
+    /// An ending rolled on, and the next episode's staging is on its way: the engine says it
+    /// right after the ending. Until it comes, Now Playing stays as it was and the loop holds
+    /// the next frame and key, so the frame after the ending shows the next episode staged, and
+    /// no key acts on the one that has just ended.
+    rolling: bool,
+    /// Work the reducer produced outside a key's answer, which the event loop drains each
+    /// iteration: what the viewer asked for, without a key that could carry it. The calendar's
+    /// backfill is triggered by scrolling near its top, which reports no task of its own; and
+    /// a section's reload waits for the rail to settle, and goes out from the idle tick.
     ///
-    /// Auto-next is one source: an episode ending has to be able to start the next one, and
-    /// [`Self::apply`] has no return channel. The calendar's backfill is the other — it is
-    /// triggered by scrolling, which reports no task of its own. The event loop drains this
-    /// each iteration.
+    /// What a playback leads to on its own, the next episode and the rest, is not here: the
+    /// engine starts it, and says what it staged.
     pending: Option<Command>,
     /// Rows for the Episodes screen — the ones the current filter admits. Everything that
     /// reads or navigates episodes works on this list, which is what keeps the filter from
@@ -680,6 +685,7 @@ impl App {
             calendar_more_past: false,
             calendar_loading_past: false,
             marking: None,
+            rolling: false,
             pending: None,
             vpn_badge: None,
             vpn_leaking: false,
@@ -1036,18 +1042,6 @@ impl App {
                 }
             }
             Event::ActiveProvider(provider) => self.active_provider = Some(provider),
-            Event::PlayerPlayEpisode { episode, title: episode_title } => {
-                // By the playing title rather than the open one: the viewer may be browsing
-                // another show in the terminal while the player is the thing they are using.
-                if let Some(playing) = &self.playing
-                    && let Some(id) = playing.id
-                {
-                    let title = playing.title.clone();
-                    self.raise_now_playing_titled(id, title, &episode);
-                    self.name_playing_episode(episode_title);
-                    self.pending = Some(Command::Play { id, episode });
-                }
-            }
             Event::PlaybackKept => {
                 if let Some(kept) = self.superseded.take() {
                     self.playing = Some(kept);
@@ -1067,27 +1061,15 @@ impl App {
                     self.superseded = None;
                 }
             }
-            // In effect for the session already: the engine put it there on the way, and says
-            // that it now uses it.
-            Event::PlayerTranslation(_) => {
-                if let Some(playing) = &self.playing
-                    && let Some(id) = playing.id
-                {
-                    let (title, episode) = (playing.title.clone(), playing.episode.clone());
-                    let episode_title = playing.episode_title.clone();
-                    self.raise_now_playing_titled(id, title, &episode);
-                    self.name_playing_episode(episode_title);
-                    self.pending = Some(Command::Play { id, episode });
-                }
-            }
-            Event::PrefetchNext { id, episode } => {
-                // Best effort: an ending that arrives while something else holds the slot simply
-                // plays the next episode the usual way.
-                if self.pending.is_none() {
-                    self.pending = Some(Command::Prefetch { id, episode });
-                }
-            }
-            Event::PlayerUpscaling(_)
+            // What a playback leads to on its own is the engine's to start: an episode picked in
+            // the player, the episode again in the other translation, the next one's streams.
+            // What it started comes as `PlaybackStaged`, and the notice that it now uses the
+            // other translation with it. And what the player changes of the config is the
+            // engine's to keep.
+            Event::PlayerPlayEpisode { .. }
+            | Event::PlayerTranslation(_)
+            | Event::PrefetchNext { .. }
+            | Event::PlayerUpscaling(_)
             | Event::PlayerToneMapping(_)
             | Event::PlayerNightMode(_)
             | Event::PlaybackVolume(_) => {}
@@ -1097,36 +1079,25 @@ impl App {
             // What either ending moves of its title, the engine says ahead of it: the screen
             // the viewer drops back to shows the finished episode as finished.
             Event::PlaybackEnded { .. } if self.superseded.is_some() => self.superseded = None,
+            // Rolling on: the engine has started the next episode in this window, and stages it
+            // with the `PlaybackStaged` that follows. Now Playing stays up as it is until then,
+            // and the loop draws and reads keys again once it has come: see `rolling`.
+            //
+            // Whether it rolls on is the playback's decision, which the engine follows. That side
+            // knows how the episode ended — closing the window past the commit threshold is
+            // `watched` too, and rolling on from it opened a new window on someone who had just
+            // closed one — whether Up Next was cancelled for this episode, and whether the
+            // episode list has a next one at all. It is also the side keeping a window open for
+            // the next episode, so the two cannot disagree into a window left waiting for an
+            // episode nobody starts.
+            Event::PlaybackEnded { rolling_on: true, .. } => self.rolling = true,
             Event::PlaybackEnded { ending, .. } => {
-                let finished = self.playing.take();
+                self.playing = None;
                 // Leaving Now Playing on screen with nothing playing would be a dead end.
                 if matches!(self.nav.current(), StageView::NowPlaying) {
                     self.nav.pop();
                 }
-
-                // Auto-next follows the playback's decision and nothing else. That side knows how
-                // the episode ended — closing the window past the commit threshold is `watched`
-                // too, and rolling on from it opened a new window on someone who had just closed
-                // one — whether Up Next was cancelled for this episode, and whether the episode
-                // list has a next one at all. It is also the side keeping a window open for the
-                // next episode, so the two cannot disagree into a window left waiting for an
-                // episode nobody starts.
-                let next = match &ending {
-                    Ending::Complete { next } => next.clone(),
-                    _ => None,
-                };
-                if let Some(next) = next
-                    && let Some(finished) = finished
-                    && let Some(id) = finished.id
-                {
-                    // The filler walk reads this title's episode table, when it is known here. That
-                    // it stepped over any is the engine's to say.
-                    let after_filler = self.next_after_filler(id, next);
-                    // Under the name it was playing under: whichever title is open now may be
-                    // another show entirely.
-                    self.raise_now_playing_titled(id, finished.title, &after_filler);
-                    self.pending = Some(Command::Play { id, episode: after_filler });
-                } else if matches!(ending, Ending::Complete { .. }) {
+                if matches!(ending, Ending::Complete { .. }) {
                     self.push_toast(Notice::info("episode finished"));
                 }
             }
@@ -1382,11 +1353,11 @@ impl App {
         self.marking.is_some()
     }
 
-    /// Whether the reducer has just queued another playback — auto-next or an in-player
-    /// episode step about to fire. The event loop uses this to know an ended session is a
-    /// handoff rather than a return to the terminal.
-    pub fn will_play_next(&self) -> bool {
-        matches!(self.pending, Some(Command::Play { .. } | Command::PlaySource { .. }))
+    /// Whether the screen is waiting on the engine's word before it is drawn again or reads
+    /// another key: a mark made here, or the staging of the episode an ending rolled on to.
+    /// See `marking` and `rolling`.
+    pub fn awaiting_engine(&self) -> bool {
+        self.marking.is_some() || self.rolling
     }
 
     /// Age toasts by one frame.
@@ -1576,8 +1547,8 @@ impl App {
             || self.calendar_loading_past
             || !self.calendar_more_past
             || self.selected > CALENDAR_BACKFILL_MARGIN
-            // The slot holds one task and auto-next has the stronger claim on it. Losing a
-            // backfill costs nothing: the next scroll asks again.
+            // The slot holds one task, and a section's reload waiting in it is not displaced.
+            // Losing a backfill costs nothing: the next scroll asks again.
             || self.pending.is_some()
         {
             return;
@@ -2495,12 +2466,6 @@ impl App {
         if self.episodes_for == Some(id) { &self.episodes_all } else { &[] }
     }
 
-    /// Where auto-next actually lands, honouring `playback.skip_filler`, by this title's
-    /// episode table: see [`after_filler`].
-    fn next_after_filler(&self, id: AnilistId, next: String) -> String {
-        after_filler(self.episode_rows_for(id), next, self.settings.skip_filler)
-    }
-
     /// Push Now Playing, raise the eyecatch, and ask for the stream.
     ///
     /// The order matters: the wipe goes up *before* resolution starts, so the user never sees
@@ -2562,6 +2527,9 @@ impl App {
     /// Idempotent. A playback staged here already — as this asked for it, or as the engine said
     /// it once before — is left as it is, eyecatch and all: it is the same playback while it has
     /// not started playing, and the same title and episode.
+    ///
+    /// The episode an ending rolled on to takes the finished one's place: that one comes down
+    /// as any ending takes it, Now Playing with it, and goes back up for this one at once.
     fn take_staged(
         &mut self,
         id: AnilistId,
@@ -2570,10 +2538,14 @@ impl App {
         episode_title: Option<String>,
         speed: f64,
     ) {
-        let staged_here = self.playing.as_ref().is_some_and(|playing| {
+        if std::mem::take(&mut self.rolling) {
+            self.playing = None;
+            if matches!(self.nav.current(), StageView::NowPlaying) {
+                self.nav.pop();
+            }
+        } else if self.playing.as_ref().is_some_and(|playing| {
             playing.id == Some(id) && playing.episode == episode && playing.duration.is_none()
-        });
-        if staged_here {
+        }) {
             return;
         }
         let playing = NowPlaying {
@@ -2585,16 +2557,6 @@ impl App {
             ..NowPlaying::default()
         };
         self.put_up(playing);
-    }
-
-    /// Name the episode just staged, when the caller knows it better than the table here — the
-    /// playback holds its own title's list, whichever title is open in the terminal.
-    fn name_playing_episode(&mut self, title: Option<String>) {
-        if let Some(playing) = &mut self.playing
-            && title.is_some()
-        {
-            playing.episode_title = title;
-        }
     }
 
     /// Advance the eyecatch one frame, dropping it when the wipe finishes.
@@ -2617,7 +2579,7 @@ impl App {
         self.eyecatch.is_some()
     }
 
-    /// Take any work the reducer queued while applying an update.
+    /// Take the work the reducer queued outside a key's answer: see `pending`.
     pub fn take_pending(&mut self) -> Option<Command> {
         self.pending.take()
     }
@@ -3517,8 +3479,8 @@ impl App {
         }
         self.reload_countdown = None;
         if let Some(task) = self.reload() {
-            // Through `pending` because the idle tick has no return channel, the same route
-            // auto-next already uses.
+            // Through `pending` because the idle tick has no return channel, the same route a
+            // scroll's backfill takes.
             self.pending = Some(task);
         }
     }
@@ -4185,7 +4147,6 @@ mod tests {
     use anistream_core::{config::Config, settings::SettingValue};
     use anistream_model::{
         catalog::{RelatedTitle, ResumePoint},
-        episodes::EpisodeKind,
         progress::{EpisodeProgress, TitleProgress, mark_row},
         settings,
     };
@@ -4468,9 +4429,23 @@ mod tests {
 
     /// An app with one title selected and its episode table loaded, ready to play.
     /// The end of an episode mpv played to its end, naming the episode the player kept its
-    /// window for when it rolls on.
+    /// window for when it rolls on, as the engine says it of the playback on screen: rolling on
+    /// when there is one.
     fn finished(next: Option<&str>) -> Event {
-        Event::playback_ended(true, Ending::Complete { next: next.map(Into::into) })
+        let ending = Ending::Complete { next: next.map(Into::into) };
+        Event::PlaybackEnded { watched: true, ending, rolling_on: next.is_some() }
+    }
+
+    /// A playback the engine staged: `episode` of title `id`, under `title`, at the speed
+    /// nothing remembered.
+    fn staged(id: u32, title: &str, episode: &str, episode_title: Option<&str>) -> Event {
+        Event::PlaybackStaged {
+            id: AnilistId::new(id),
+            title: title.into(),
+            episode: episode.into(),
+            episode_title: episode_title.map(Into::into),
+            speed: 1.0,
+        }
     }
 
     fn app_at_episodes() -> App {
@@ -5254,30 +5229,6 @@ mod tests {
     }
 
     #[test]
-    fn an_episode_the_player_asks_for_is_of_the_show_playing() {
-        // Title 0's table is loaded and open; Title 1 is the one playing.
-        let mut a = app_at_episodes();
-        a.playing = Some(NowPlaying {
-            id: Some(AnilistId::new(2)),
-            title: "Title 1".into(),
-            episode: "4".into(),
-            ..NowPlaying::default()
-        });
-        a.apply(Event::PlayerPlayEpisode { episode: "5".into(), title: Some("Fifth".into()) });
-        assert_eq!(
-            a.take_pending(),
-            Some(Command::Play { id: AnilistId::new(2), episode: "5".into() })
-        );
-        let playing = a.playing.as_ref().unwrap();
-        assert_eq!(playing.title, "Title 1");
-        assert_eq!(playing.episode_title.as_deref(), Some("Fifth"));
-
-        // Named by nobody, it is left unnamed rather than given the open show's episode 6.
-        a.apply(Event::PlayerPlayEpisode { episode: "6".into(), title: None });
-        assert_eq!(a.playing.as_ref().unwrap().episode_title, None);
-    }
-
-    #[test]
     fn an_episode_that_cannot_be_found_leaves_the_one_playing_on_screen() {
         let mut a = app();
         a.playing = Some(NowPlaying {
@@ -5287,7 +5238,7 @@ mod tests {
             ..NowPlaying::default()
         });
         a.apply(Event::Playback { position: 300.0, duration: Some(1440.0), paused: false });
-        a.apply(Event::PlayerPlayEpisode { episode: "9".into(), title: None });
+        a.apply(staged(2, "Title 1", "9", None));
         assert_eq!(a.playing.as_ref().unwrap().episode, "9", "staged while it is found");
 
         // Episode 4 keeps the window meanwhile, and its reports are its own.
@@ -5301,7 +5252,7 @@ mod tests {
         assert_eq!((playing.episode.as_str(), playing.position), ("4", 301.0));
 
         // Found, the window changes hands and what reports from then on is the successor.
-        a.apply(Event::PlayerPlayEpisode { episode: "5".into(), title: None });
+        a.apply(staged(2, "Title 1", "5", None));
         a.apply(Event::EpisodeLeft {
             id: AnilistId::new(2),
             episode: "4".into(),
@@ -5314,6 +5265,50 @@ mod tests {
         assert_eq!((playing.episode.as_str(), playing.position), ("5", 1.0));
     }
 
+    #[test]
+    fn a_playback_the_engine_stages_is_put_up_as_it_says() {
+        // An episode picked in the player, of Title 1, while Title 0's table is open: staged
+        // under the name and the episode title the engine gives it, not the open table's.
+        let mut a = app_at_episodes();
+        a.apply(Event::PlaybackStaged {
+            id: AnilistId::new(2),
+            title: "Title 1".into(),
+            episode: "5".into(),
+            episode_title: Some("Fifth".into()),
+            speed: 1.25,
+        });
+        let playing = a.playing.as_ref().expect("staged");
+        assert_eq!(
+            (playing.id, playing.title.as_str(), playing.episode.as_str()),
+            (Some(AnilistId::new(2)), "Title 1", "5")
+        );
+        assert_eq!(playing.episode_title.as_deref(), Some("Fifth"));
+        assert_eq!((playing.speed, playing.duration), (1.25, None));
+        assert_eq!(a.eyecatch.as_ref().map(|e| e.label.as_str()), Some("Title 1  ·  ep 5"));
+        assert_eq!(a.nav.current(), &StageView::NowPlaying);
+    }
+
+    #[test]
+    fn a_staging_made_here_or_said_before_changes_nothing() {
+        // Enter stages episode 1 here as it asks for it; the engine says it staged the same,
+        // once and then again. Nothing moves, the wipe least of all.
+        let mut a = app_at_episodes();
+        a.handle(Action::Open, 20);
+        let eyecatch = a.eyecatch.as_mut().expect("the wipe is up");
+        eyecatch.advance();
+        let (before, wipe) = (a.playing.clone(), a.eyecatch.clone());
+        for _ in 0..2 {
+            a.apply(staged(1, "Title 0", "1", Some("Episode 1")));
+            assert_eq!(a.playing, before);
+            assert_eq!(a.eyecatch, wipe, "the wipe started over");
+        }
+        // Once it plays, the same episode staged again is a new playback of it: the restart in
+        // the other translation.
+        a.apply(Event::Playback { position: 60.0, duration: Some(1435.0), paused: false });
+        a.apply(staged(1, "Title 0", "1", Some("Episode 1")));
+        assert_eq!(a.playing.as_ref().map(|p| p.duration), Some(None), "staged anew");
+        assert_ne!(a.eyecatch, wipe);
+    }
     #[test]
     fn another_titles_rows_never_speak_for_the_one_opened_after_them() {
         // Title 0's rows are loaded; Title 1 is opened and its own rows have not arrived. The
@@ -5340,80 +5335,53 @@ mod tests {
     }
 
     #[test]
-    fn finishing_an_episode_queues_the_next_one() {
-        let mut a = app_at_episodes();
-        a.handle(Action::Open, 20);
-        a.apply(finished(Some("2")));
-        assert_eq!(
-            a.take_pending(),
-            Some(Command::Play { id: AnilistId::new(1), episode: "2".into() }),
-            "auto-next did not follow a finished episode"
-        );
-    }
-
-    #[test]
     fn quitting_partway_does_not_roll_on_to_the_next_episode() {
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
         a.apply(Event::playback_ended(false, Ending::Closed));
         assert_eq!(a.take_pending(), None);
+        assert!(a.playing.is_none() && !a.awaiting_engine(), "Now Playing came down");
     }
 
     #[test]
-    fn closing_or_stopping_past_the_threshold_does_not_roll_on() {
-        // Past the commit threshold the episode counts as watched, and auto-next used to read
-        // that as finished: closing the window during the credits opened a new one on the next
-        // episode. Only an episode mpv played to its end rolls on.
-        for ending in [Ending::Closed, Ending::Stopped] {
-            let mut a = app_at_episodes();
-            a.handle(Action::Open, 20);
-            a.apply(Event::playback_ended(true, ending.clone()));
-            // That it is recorded as watched all the same is the engine's: see its record's
-            // `closing_or_stopping_past_the_threshold_still_counts_as_watched`.
-            assert_eq!(a.take_pending(), None, "{ending:?} rolled on");
-        }
-    }
-
-    #[test]
-    fn auto_next_continues_the_show_that_played_under_its_own_name() {
-        // Another show's page is open by the time the episode ends; the next episode is still
-        // the one that played, named as it was, with its own table's episode title.
+    fn an_ending_that_rolls_on_keeps_now_playing_up_for_the_next_episode() {
+        // Another show's page is open by the time the episode ends. Until the engine stages the
+        // episode it rolled on to, Now Playing stays as it was, and the loop waits for it; then
+        // the next one is up under the name and the episode title the engine gives it.
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
+        a.apply(Event::Playback { position: 1430.0, duration: Some(1435.0), paused: false });
         a.detail = a.content.entries().get(1).cloned();
         a.apply(finished(Some("2")));
-        assert_eq!(
-            a.take_pending(),
-            Some(Command::Play { id: AnilistId::new(1), episode: "2".into() })
-        );
+        assert_eq!(a.playing.as_ref().map(|p| p.episode.as_str()), Some("1"));
+        assert_eq!(a.nav.current(), &StageView::NowPlaying);
+        assert!(a.awaiting_engine(), "nothing is drawn or read until the next one is staged");
+
+        a.apply(staged(1, "Title 0", "2", Some("Episode 2")));
+        assert!(!a.awaiting_engine());
         let playing = a.playing.as_ref().expect("the next episode is staged");
-        assert_eq!(playing.title, "Title 0");
+        assert_eq!((playing.title.as_str(), playing.episode.as_str()), ("Title 0", "2"));
         assert_eq!(playing.episode_title.as_deref(), Some("Episode 2"));
+        assert_eq!(a.eyecatch.as_ref().map(|e| e.label.as_str()), Some("Title 0  ·  ep 2"));
+        assert_eq!(a.nav.current(), &StageView::NowPlaying);
+        // The finished one is gone, not kept in the window: what reports now is the next one.
+        a.apply(Event::Playback { position: 1.0, duration: Some(1420.0), paused: false });
+        assert_eq!(a.playing.as_ref().map(|p| p.position), Some(1.0));
+        assert_eq!(a.take_pending(), None, "the engine started it; nothing is asked for here");
     }
 
     #[test]
-    fn a_cancel_does_not_carry_over_to_the_next_episode() {
-        // Up Next was cancelled on episode 1, then episode 2 was started from the player. Its
-        // own ending rolls on: whether it does is the playback's to say, per episode, and
-        // nothing of episode 1's choice is held here to overrule it.
+    fn rolling_on_hands_the_keys_back_to_the_screen_as_an_ending_does() {
+        // The rail had the keyboard over Now Playing. The finished episode came down, and the
+        // next one went up, so Now Playing has it again, as it had when the interface rolled on.
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
-        a.apply(Event::PlayerPlayEpisode { episode: "2".into(), title: None });
-        assert!(matches!(a.take_pending(), Some(Command::Play { .. })));
-        a.apply(Event::EpisodeLeft {
-            id: AnilistId::new(1),
-            episode: "1".into(),
-            position: 300.0,
-            duration: Some(1435.0),
-            watched: false,
-        });
-        a.apply(finished(Some("3")));
-        assert_eq!(
-            a.take_pending(),
-            Some(Command::Play { id: AnilistId::new(1), episode: "3".into() })
-        );
+        a.nav.focus_rail();
+        a.apply(finished(Some("2")));
+        a.apply(staged(1, "Title 0", "2", Some("Episode 2")));
+        assert_eq!(a.nav.focus(), Focus::Stage);
+        assert_eq!(a.nav.current(), &StageView::NowPlaying);
     }
-
     #[test]
     fn x_on_home_dismisses_the_selected_title_from_continue() {
         let mut a = app();
@@ -5437,14 +5405,11 @@ mod tests {
 
     #[test]
     fn an_ending_asks_for_the_next_episode_without_taking_a_busy_slot() {
+        // The next episode's streams found ahead, and an episode picked in the player, are the
+        // engine's to start: neither takes the slot, so nothing waiting in it is displaced.
         let mut a = app();
         a.apply(Event::PrefetchNext { id: AnilistId::new(3), episode: "6".into() });
-        assert_eq!(
-            a.take_pending(),
-            Some(Command::Prefetch { id: AnilistId::new(3), episode: "6".into() })
-        );
-        // Best effort: a slot already holding work keeps it — an episode picked in the player,
-        // here. A choice of night mode there used to hold it too; the engine saves that now.
+        assert_eq!(a.take_pending(), None);
         a.playing = Some(NowPlaying {
             id: Some(AnilistId::new(3)),
             title: "Hoshikuzu no Tabibito".into(),
@@ -5453,15 +5418,14 @@ mod tests {
         });
         a.apply(Event::PlayerPlayEpisode { episode: "7".into(), title: None });
         a.apply(Event::PrefetchNext { id: AnilistId::new(3), episode: "6".into() });
-        assert!(matches!(a.take_pending(), Some(Command::Play { .. })));
+        assert_eq!(a.take_pending(), None);
+        assert_eq!(a.playing.as_ref().map(|p| p.episode.as_str()), Some("5"), "until staged");
     }
-
     #[test]
     fn a_choice_made_in_the_player_takes_no_slot_and_waits_behind_none() {
         // The engine keeps and saves what the player changes, as it passes. Queued here, each
         // save waited in the one slot, and one that found it taken was skipped.
         let mut a = app();
-        let prefetch = Command::Prefetch { id: AnilistId::new(3), episode: "6".into() };
         a.apply(Event::PrefetchNext { id: AnilistId::new(3), episode: "6".into() });
         for choice in [
             Event::PlayerNightMode(true),
@@ -5472,8 +5436,11 @@ mod tests {
         ] {
             a.apply(choice);
         }
-        assert_eq!(a.take_pending(), Some(prefetch), "the ending's work keeps the slot");
-        assert_eq!(a.take_pending(), None, "and no save waits behind it");
+        assert_eq!(
+            a.take_pending(),
+            None,
+            "the ending's work is the engine's, and no save waits"
+        );
         // Nor kept here: what is in effect is the engine's to say, in `Settings`.
         assert_eq!(a.settings, SettingsView::default());
     }
@@ -5549,28 +5516,6 @@ mod tests {
     }
 
     #[test]
-    fn auto_next_steps_over_filler_when_asked() {
-        let mut a = app_at_episodes();
-        a.settings.skip_filler = true;
-        for list in [&mut a.episodes, &mut a.episodes_all] {
-            for i in [1, 2] {
-                list[i].skippable = true;
-                list[i].kind = Some(EpisodeKind::Filler);
-            }
-        }
-        a.handle(Action::Open, 20); // plays ep 1
-
-        a.apply(finished(Some("2")));
-        let task = a.take_pending().expect("auto-next must fire");
-        match task {
-            Command::Play { episode, .. } => {
-                assert_eq!(episode, "4", "eps 2-3 are pure filler")
-            }
-            other => panic!("expected Play, got {other:?}"),
-        }
-    }
-
-    #[test]
     fn a_remembered_speed_carries_into_the_next_episode() {
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
@@ -5581,11 +5526,25 @@ mod tests {
         owner.tell(&mut a);
         assert_eq!(a.settings.speed, Some(1.25));
 
+        // Staged by the engine at it, when an ending rolls on...
         a.apply(finished(Some("2")));
-        a.take_pending();
+        a.apply(Event::PlaybackStaged {
+            id: AnilistId::new(1),
+            title: "Title 0".into(),
+            episode: "2".into(),
+            episode_title: Some("Episode 2".into()),
+            speed: 1.25,
+        });
         assert_eq!(a.playing.as_ref().map(|p| p.speed), Some(1.25));
+        // ...and here, when Enter asks for one.
+        a.apply(Event::playback_ended(false, Ending::Stopped));
+        a.episode_selected = 2;
+        a.handle(Action::Open, 20);
+        assert_eq!(
+            a.playing.as_ref().map(|p| (p.episode.as_str(), p.speed)),
+            Some(("3", 1.25))
+        );
     }
-
     #[test]
     fn the_playhead_clock_is_a_fixed_field() {
         // Ragged clocks shuffle sideways once a minute. Padding elapsed to the width of total
@@ -7306,9 +7265,11 @@ mod tests {
 
         assert!(a.episodes[0].completed, "the finished episode must be marked in the table");
         assert!((a.episodes[0].watched - 1.0).abs() < 1e-6, "and its meter filled");
+        // Auto-next is the engine's, which stages the next episode of the title that played.
+        a.apply(staged(1, "Title 0", "2", None));
         assert_eq!(
-            a.pending,
-            Some(Command::Play { id, episode: "2".into() }),
+            a.playing.as_ref().map(|p| (p.id, p.episode.as_str())),
+            Some((Some(id), "2")),
             "auto-next follows the episode that just played"
         );
     }
