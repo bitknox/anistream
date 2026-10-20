@@ -512,6 +512,7 @@ impl Channels {
 /// the moment to decide what the contract says about it.
 pub fn name(update: &Event) -> &'static str {
     match update {
+        Event::JobStarted { .. } => "JobStarted",
         Event::JobNote { .. } => "JobNote",
         Event::JobDone(_) => "JobDone",
         Event::Content { .. } => "Content",
@@ -578,6 +579,9 @@ pub fn names(updates: &[Event]) -> Vec<&'static str> {
 /// [`name`], so the two cannot drift apart.
 fn copy(update: &Event) -> Event {
     match update {
+        Event::JobStarted { job, activity } => {
+            Event::JobStarted { job: *job, activity: activity.clone() }
+        }
         Event::JobNote { job, note, wait } => {
             Event::JobNote { job: *job, note: note.clone(), wait: *wait }
         }

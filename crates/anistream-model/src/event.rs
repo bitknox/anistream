@@ -25,6 +25,14 @@ use crate::{
 #[derive(Debug)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum Event {
+    /// Work someone waits on has started, as a job named for the activity row. Sent ahead of
+    /// anything else the work sends, so its notes and its end always find it.
+    ///
+    /// Jobs are numbered where the work runs, once each per run, so a front end never has to.
+    JobStarted {
+        job: JobId,
+        activity: String,
+    },
     /// What a running job is held up on, and for how long from now, when that is known.
     ///
     /// A span rather than a moment: a moment is read off a clock, and the one that counts the

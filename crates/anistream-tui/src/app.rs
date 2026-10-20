@@ -1499,6 +1499,7 @@ impl App {
                     None => self.sync.push(*state),
                 }
             }
+            Event::JobStarted { job, activity } => self.start_job(job, activity),
             Event::JobNote { job, note, wait } => {
                 let until = wait.map(|wait| self.clock.now_instant() + wait);
                 if let Some(job) = self.jobs.iter_mut().find(|j| j.id == job) {
@@ -4453,16 +4454,23 @@ impl App {
         self.reload()
     }
 
-    /// Start a [`Job`] for `task`, if it is work the user will wait on.
+    /// Start a [`Job`] for `task`, numbered here, if it is work the user will wait on.
     ///
-    /// Called by whoever runs the task, at the moment it does, so the job's clock starts when
-    /// the work does; the runner ends it with [`Event::JobDone`] when the work stops.
+    /// For a still frame or a test that stages one. The running app's jobs are numbered where
+    /// the work runs, which says so with [`Event::JobStarted`]; the runner ends each with
+    /// [`Event::JobDone`] when the work stops.
     pub fn begin_job(&mut self, task: &Command) -> Option<JobId> {
         let label = task.activity()?;
         self.next_job += 1;
         let id = JobId::new(self.next_job);
-        self.jobs.push(Job { id, label, started: self.clock.now_instant(), note: None });
+        self.start_job(id, label);
         Some(id)
+    }
+
+    /// A job begun now, by this clock, so the time it shows counts from the moment the
+    /// interface learned of it.
+    fn start_job(&mut self, id: JobId, label: String) {
+        self.jobs.push(Job { id, label, started: self.clock.now_instant(), note: None });
     }
 
     /// The jobs worth showing at `now`, newest first: the thing just asked for leads, and work
@@ -8835,6 +8843,22 @@ mod tests {
         );
         assert!(a.begin_job(&Command::Player(PlayerCommand::TogglePause)).is_none());
         assert_eq!(a.jobs.len(), 2);
+    }
+
+    #[test]
+    fn a_job_numbered_where_the_work_runs_is_shown_as_one_begun_here() {
+        let mut a = app();
+        let id = JobId::new(41);
+        let before = a.clock.now_instant();
+        a.apply(Event::JobStarted { job: id, activity: "checking providers".into() });
+        assert_eq!(a.jobs.len(), 1);
+        assert_eq!((a.jobs[0].id, a.jobs[0].label.as_str()), (id, "checking providers"));
+        let started = a.jobs[0].started;
+        assert!(before <= started && started <= a.clock.now_instant(), "timed from then");
+        a.apply(Event::JobNote { job: id, note: "AniList limit".into(), wait: None });
+        assert!(a.jobs[0].note.is_some());
+        a.apply(Event::JobDone(id));
+        assert!(a.jobs.is_empty());
     }
 
     #[test]
