@@ -1,11 +1,48 @@
-//! Routing: each command to whatever carries it out.
+//! Routing: each command to whatever carries it out, what the engine side does on the way of an
+//! event, and the work it leaves itself.
 
 use anistream_meta::Meta;
-use anistream_model::{event::Event, notice::Notice};
+use anistream_model::{command::Command, event::Event, notice::Notice};
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 
-use crate::{jobs::JobGuard, outbox::Outbox, services::Services};
+use crate::{
+    artwork,
+    catalog::{
+        calendar::{load_calendar, load_calendar_past},
+        detail::{load_detail, open_external, play_trailer},
+        lists::{hide_from_continue, load_continue, load_seasonal},
+        search::search,
+    },
+    data,
+    downloads::{
+        self,
+        commands::{
+            download_cancel, download_clear_completed, download_delete, download_episode,
+            download_many, download_pause,
+        },
+    },
+    jobs::JobGuard,
+    outbox::{Internal, Outbox},
+    playback::{
+        prefetch::prefetch,
+        resolve::load_sources,
+        start::{control_player, keep_hints, play, play_local, play_party, play_source},
+    },
+    plugin_stores::tasks::{StoreTaskContext, store_task},
+    services::Services,
+    settings::{save_setting, take_config},
+    sources::{self, commands::check_providers, torrent::reload_sources},
+    state::EngineState,
+    titles::{
+        episodes::{list_episodes, set_watched},
+        matching::{clear_match, fix_match, manual_search, set_provider_preference},
+    },
+    tracking::{
+        self,
+        commands::{connect, connect_kitsu, load_library, set_score, set_status, sync_now},
+    },
+};
 
 /// What a task run by [`spawn`] is lent: its own clones of the handles it reads, and of the
 /// outbox it answers on.
@@ -50,4 +87,245 @@ where
         }
         work(Lent { meta, store, registry, tx }).await;
     });
+}
+
+/// Route a command to whatever carries it out.
+///
+/// One arm for every command, and each names what runs it, so a command added to the
+/// protocol does not build until it is routed. What asks AniList or the sources and answers
+/// once runs through [`spawn`], behind the AniList limit. Playback runs on its own: it owns
+/// the live player's control channel, and replacing that sender is what stops a finished
+/// episode's keys steering the next one.
+pub fn dispatch(
+    task: Command,
+    job: Option<JobGuard>,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &Outbox,
+) {
+    match task {
+        // What the front end keeps the engine side told of, until P4.
+        Command::UseConfig { config, saved } => take_config(config, saved, engine),
+        Command::PlayHints { title, next, episodes } => {
+            keep_hints(title, next, episodes, engine)
+        }
+
+        // The lists, the calendar, search and a title's page.
+        Command::LoadContinue => spawn(job, services, tx, load_continue),
+        Command::LoadSeasonal => spawn(job, services, tx, load_seasonal),
+        Command::HideFromContinue { id } => hide_from_continue(id, services, tx),
+        Command::LoadCalendar => spawn(job, services, tx, load_calendar),
+        Command::LoadCalendarPast { anchor, page } => {
+            spawn(job, services, tx, move |lent| load_calendar_past(lent, anchor, page))
+        }
+        Command::Search { query, filter } => {
+            spawn(job, services, tx, move |lent| search(lent, query, filter))
+        }
+        Command::LoadDetail(id) => spawn(job, services, tx, move |lent| load_detail(lent, id)),
+        Command::PlayTrailer { url, title } => play_trailer(url, title, job, engine, tx),
+        Command::OpenExternal { url } => open_external(url, tx),
+
+        // A title's episodes, and the source match they come from.
+        Command::LoadEpisodes(id) => {
+            spawn(job, services, tx, move |lent| list_episodes(lent, id))
+        }
+        Command::SetWatched { id, episodes, watched } => {
+            set_watched(id, episodes, watched, services)
+        }
+        Command::ClearMatch { id } => {
+            spawn(job, services, tx, move |lent| clear_match(lent, id))
+        }
+        Command::FixMatch { id, provider_id, key } => {
+            spawn(job, services, tx, move |lent| fix_match(lent, id, provider_id, key))
+        }
+        Command::ManualSearch { id, query } => {
+            manual_search(id, query, job, engine, services, tx)
+        }
+        Command::SetProviderPreference { id, provider } => {
+            set_provider_preference(id, provider, services, tx)
+        }
+
+        // Playback.
+        Command::Prefetch { id, episode } => prefetch(id, episode, engine, services),
+        Command::Play { id, episode } => play(id, episode, job, engine, services, tx),
+        Command::PlaySource { id, episode, provider_id, source_id } => {
+            play_source(id, episode, provider_id, source_id, job, engine, services, tx)
+        }
+        Command::PlayParty { id, episode } => {
+            play_party(id, episode, job, engine, services, tx)
+        }
+        Command::PlayLocal { id, episode, title, path } => {
+            play_local(id, episode, title, path, job, engine, services, tx)
+        }
+        Command::LoadSources { id, episode } => {
+            load_sources(id, episode, job, engine, services, tx)
+        }
+        Command::Player(command) => control_player(command, engine),
+
+        // The sources.
+        Command::CheckProviders => spawn(job, services, tx, check_providers),
+
+        // The trackers.
+        Command::SyncNow => sync_now(job, services, tx),
+        Command::Connect { tracker } => connect(tracker, job, services, tx),
+        Command::ConnectKitsu { username, password } => {
+            connect_kitsu(username, password, job, services, tx)
+        }
+        Command::Disconnect { tracker } => tracking::disconnect(&services.sync, &tracker, tx),
+        Command::SetStatus { id, status } => set_status(id, status, services, tx),
+        Command::SetScore { id, score } => set_score(id, score, services, tx),
+        Command::ResolveConflict { id, keep_local } => {
+            tracking::resolve_conflict(&services.sync, id, keep_local)
+        }
+        Command::LoadLibrary(segment) => load_library(segment, job, services, tx),
+
+        // Downloads.
+        Command::LoadDownloads => downloads::publish_now(&services.store, tx),
+        Command::DownloadEpisode { id, episode } => {
+            download_episode(id, episode, job, engine, services, tx)
+        }
+        Command::DownloadMany { id, episodes } => {
+            download_many(id, episodes, job, engine, services, tx)
+        }
+        Command::DownloadPause { id } => download_pause(id, services, tx),
+        Command::DownloadCancel { id } => download_cancel(id, services, tx),
+        Command::DownloadDelete { id } => download_delete(id, services, tx),
+        Command::DownloadClearCompleted => download_clear_completed(services, tx),
+
+        // Settings.
+        Command::SaveSetting { table, key, value } => {
+            save_setting(table, key, value, engine, services, tx)
+        }
+
+        // Off the loop, with no job: covers report back on their own.
+        Command::FetchArtwork { url } => artwork::spawn_fetch(
+            url,
+            services.paths.image_cache(),
+            services.http.clone(),
+            tx.clone(),
+        ),
+
+        // The plugin stores.
+        Command::LoadStores => {
+            store_task(job, engine, services, tx, StoreTaskContext::load_stores)
+        }
+        Command::PreviewStore { link } => {
+            store_task(job, engine, services, tx, move |context| context.preview_store(link))
+        }
+        Command::JoinStore { link } => {
+            store_task(job, engine, services, tx, move |context| context.join_store(link))
+        }
+        Command::LeaveStore { store } => {
+            store_task(job, engine, services, tx, move |context| context.leave_store(store))
+        }
+        Command::InstallPlugin { store, plugin } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.install_plugin(store, plugin)
+            })
+        }
+        Command::RemovePlugin { plugin } => {
+            store_task(job, engine, services, tx, move |context| context.remove_plugin(plugin))
+        }
+        Command::CreateInvite { store, name } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.create_invite(store, name)
+            })
+        }
+        Command::LoadMembers { store } => {
+            store_task(job, engine, services, tx, move |context| context.load_members(store))
+        }
+        Command::RemoveMember { store, member } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.remove_member(store, member)
+            })
+        }
+        Command::CancelInvite { store, invite } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.cancel_invite(store, invite)
+            })
+        }
+        Command::LoadLocalPlugins { store } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.load_local_plugins(store)
+            })
+        }
+        Command::PublishPlugin { store, plugin } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.publish_plugin(store, plugin)
+            })
+        }
+        Command::UnpublishPlugin { store, plugin } => {
+            store_task(job, engine, services, tx, move |context| {
+                context.unpublish_plugin(store, plugin)
+            })
+        }
+        Command::OpenAdmin { store } => {
+            store_task(job, engine, services, tx, move |context| context.open_admin(store))
+        }
+    }
+}
+
+/// The engine side's part in an event on its way to the front end, and what it has to say
+/// ahead of the event, for the front end to apply first.
+///
+/// A finished episode's progress goes to the trackers now, not at the next drain tick: up to a
+/// minute later, the pushed progress looked simply absent. And the metadata ladder's notice, when
+/// it moved. `tx` is asked for only when there is work to answer on it.
+pub fn receive(update: &Event, services: &Services, tx: impl FnOnce() -> Outbox) -> Vec<Event> {
+    if matches!(update, Event::ProgressQueued) {
+        let (sync, tx) = (services.sync.clone(), tx());
+        tokio::spawn(async move { tracking::drain_once(&sync, &tx).await });
+    }
+    meta_notice(&services.meta)
+}
+
+/// What to say when the metadata ladder moved: once per transition, in both directions, since
+/// silently recovering would leave the last thing said untrue. The status rows ride along, so
+/// the header chip and the Providers screen agree with the toast without waiting for a refresh.
+pub fn meta_notice(meta: &Meta) -> Vec<Event> {
+    let Some(notice) = meta.take_notice() else { return Vec::new() };
+    vec![Event::MetaStatus(data::meta_rows(meta)), Event::Toast(Notice::info(notice))]
+}
+
+/// Do what the engine side left itself to do, and return what it then has to say, for the
+/// front end to apply at once, before anything sent since. Reached in the message's own place
+/// among the events, after everything sent before it.
+///
+/// The metadata ladder's notice comes first, as on the way of an event. Then the copy of the
+/// config the background tasks read is brought up to the one in effect, whatever the message.
+pub async fn handle_internal(
+    message: Internal,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &Outbox,
+) -> Vec<Event> {
+    let mut said = meta_notice(&services.meta);
+    if let Ok(mut shared) = engine.shared_config.write() {
+        *shared = engine.config.clone();
+    }
+    match message {
+        Internal::SettingsSaved => {}
+        // Only the order changed: the chain as it stands is put in it, with no rebuild.
+        Internal::SourcesReordered => {
+            sources::arrange(&services.registry, &engine.config);
+            said.push(Event::Providers(data::provider_rows(&services.registry)));
+        }
+        // Awaited rather than spawned: this owns the session and the guard, and two
+        // rebuilds racing would leave one of their sessions running with nothing holding
+        // it. Quick: the new torrent source comes up behind the interface, as at launch.
+        Internal::SourcesChanged => {
+            reload_sources(
+                services,
+                &mut engine.torrent_tasks,
+                &mut engine.vpn_guard,
+                &engine.shared_config,
+                tx,
+                &engine.arrivals,
+            )
+            .await;
+            // Passed on, ahead of what the rebuild reports: the screen says it reloads.
+            said.push(Event::SourcesChanged);
+        }
+    }
+    said
 }
