@@ -1,6 +1,6 @@
 //! The app with its effects, driven as the event loop drives them, for the contract tests.
 //!
-//! [`dispatch`](crate::dispatch) and the loop's reactions to what it sends back are the layer
+//! [`dispatch`] and the loop's reactions to what it sends back are the layer
 //! that turns a [`Command`] into work and the work's answers into [`Event`]s. Nothing tested it:
 //! the reducer's tests stop at the task it returns, and the end-to-end tests start mpv. The
 //! contract tests pin what each task sends back and in what order, so that moving all of it
@@ -58,7 +58,10 @@ use anistream_tui::{
 };
 use tokio::sync::mpsc;
 
-use crate::{ConfigSeam, Prefetch, engine_state::EngineState, services::Services};
+use crate::{
+    ConfigSeam, Prefetch, command, covers, dispatch, engine_state::EngineState,
+    handle_internal, receive, services::Services, show_config_problem,
+};
 
 /// How long [`Harness::settle`] waits for work to finish before failing the test.
 ///
@@ -193,7 +196,7 @@ impl Harness {
         }
         app.saved_config = Config::load(&paths).unwrap_or_default();
         if let Some(problem) = &problem {
-            crate::show_config_problem(&mut app, &paths, problem);
+            show_config_problem(&mut app, &paths, problem);
         }
         match stores.rows() {
             Ok(rows) => app.apply(Event::Stores(rows)),
@@ -418,14 +421,8 @@ impl Harness {
     /// command, its job started.
     fn dispatch(&mut self, task: Command) -> Option<JobId> {
         let tx = self.channels.sender();
-        let job = crate::command(
-            &self.app,
-            &mut self.seam,
-            task,
-            &mut self.engine,
-            &self.services,
-            &tx,
-        );
+        let job =
+            command(&self.app, &mut self.seam, task, &mut self.engine, &self.services, &tx);
         self.jobs.started.extend(job);
         job
     }
@@ -435,7 +432,7 @@ impl Harness {
     fn use_config(&mut self) {
         if let Some(config) = self.seam.moved(&self.app) {
             let tx = self.channels.sender();
-            crate::dispatch(config, None, &mut self.engine, &self.services, &tx);
+            dispatch(config, None, &mut self.engine, &self.services, &tx);
         }
     }
 
@@ -447,7 +444,7 @@ impl Harness {
         // The engine side's part: a queued progress drained now, and the metadata ladder's
         // notice ahead of the update.
         let channels = &mut self.channels;
-        for said in crate::receive(&update, &self.services, || channels.sender()) {
+        for said in receive(&update, &self.services, || channels.sender()) {
             self.apply(said, seen);
         }
         // The loop asks for the terminal's focus back after an ending; there is no terminal.
@@ -465,8 +462,7 @@ impl Harness {
             "the harness has no torrent session or VPN guard to bring up"
         );
         let tx = self.channels.sender();
-        for said in crate::handle_internal(message, &mut self.engine, &self.services, &tx).await
-        {
+        for said in handle_internal(message, &mut self.engine, &self.services, &tx).await {
             self.apply(said, seen);
         }
         match message {
@@ -485,7 +481,7 @@ impl Harness {
         match update {
             // Decoded at once rather than on the blocking pool: settling has no frame to keep.
             Event::ArtworkReady { url, bytes } => {
-                crate::covers::hand_over(&mut self.app, crate::covers::now(url, &bytes));
+                covers::hand_over(&mut self.app, covers::now(url, &bytes));
             }
             update => self.app.apply(update),
         }

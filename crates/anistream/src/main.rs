@@ -20,7 +20,9 @@ use engine_state::{EngineState, PlayHints};
 use services::Services;
 
 use anistream_engine::{
-    artwork, data, downloads,
+    SharedConfig, artwork,
+    background::prune,
+    data, downloads,
     outbox::{Envelope, Internal, Outbox},
     playback::{
         self,
@@ -3218,7 +3220,7 @@ impl TorrentTasks {
     fn start(
         guard: &Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
         store: &Store,
-        config: &anistream_engine::SharedConfig,
+        config: &SharedConfig,
         tx: &Outbox,
     ) -> Self {
         let Some((guard, session)) = guard.clone() else {
@@ -3235,7 +3237,7 @@ impl TorrentTasks {
         let watcher = tokio::spawn(vpn_watch(guard, session.clone(), tx.clone()));
         let seeding =
             tokio::spawn(seeding_watch(session.clone(), Arc::clone(config), tx.clone()));
-        let cache = tokio::spawn(anistream_engine::background::prune::torrent_cache_watch(
+        let cache = tokio::spawn(prune::torrent_cache_watch(
             session.clone(),
             store.clone(),
             Arc::clone(config),
@@ -3294,7 +3296,7 @@ impl TorrentTasks {
         outcome: std::result::Result<sources::TorrentUp, String>,
         vpn_guard: &mut Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
         services: &Services,
-        config: &anistream_engine::SharedConfig,
+        config: &SharedConfig,
         tx: &Outbox,
     ) {
         if generation != self.generation {
@@ -3354,7 +3356,7 @@ impl TorrentTasks {
 /// rebuild of the source (which would tear down the episode playing).
 async fn seeding_watch(
     session: Arc<anistream_providers::torrent::TorrentSession>,
-    config: anistream_engine::SharedConfig,
+    config: SharedConfig,
     tx: Outbox,
 ) {
     let mut ticker = tokio::time::interval(Duration::from_secs(10));
@@ -3449,7 +3451,7 @@ async fn reload_sources(
     services: &Services,
     torrent_tasks: &mut TorrentTasks,
     vpn_guard: &mut Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
-    config: &anistream_engine::SharedConfig,
+    config: &SharedConfig,
     tx: &Outbox,
     arrivals: &mpsc::UnboundedSender<(u64, std::result::Result<sources::TorrentUp, String>)>,
 ) {
