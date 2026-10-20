@@ -770,7 +770,9 @@ impl Keymap {
 
         Self { bindings, playback }
     }
+}
 
+impl Keymap {
     /// Apply `[keys]` overrides from config.
     ///
     /// Returns the specs it refused, so a typo is reported rather than silently leaving the
@@ -921,7 +923,9 @@ impl Keymap {
             })
             .collect()
     }
+}
 
+impl Keymap {
     /// The help overlay's content, grouped by scope.
     ///
     /// Generated from the live table — this *is* the documentation, so it cannot drift.
@@ -980,7 +984,9 @@ impl Keymap {
             })
             .collect()
     }
+}
 
+impl Keymap {
     /// Actions offered by the command palette, best match first, each with the key that runs
     /// it in `context` — the screen's, once the palette is closed. While something plays, `L`
     /// seeks rather than opening Logs, and the palette said `L` for Logs.
@@ -1251,6 +1257,8 @@ fn with_help(
 
 /// An overlay's own hints. Its keys are the fixed ones from [`modal_action`], so they hold
 /// whatever `[keys]` says. Esc goes last: it is the one a narrow line must keep.
+///
+/// [`modal_action`]: crate::keymap::modal_action
 fn overlay_hints(
     app: &crate::app::App,
     overlay: &crate::nav::Overlay,
