@@ -9,11 +9,11 @@
 //! **Where tokens are kept**, the trackers' and the plugin stores', is decided here and nowhere
 //! else, in this order:
 //!
-//! 1. A host's own store, from [`Host::secrets`], is the only store. A phone's keychain is one:
-//!    no setting and no environment variable is read over it, since a phone has no environment
-//!    its user sets, and its keychain prompts nobody.
-//! 2. The [`DesktopHost`]'s store is the desktop's, as it always was: see [`desktop_secrets`].
-//!    `ANISTREAM_TOKEN_STORAGE` still wins there over `trackers.token_storage`.
+//! 1. The store a host offers, from [`Host::secrets`], is the only store: the engine reads no
+//!    setting and no environment variable over it. A phone's keychain is offered this way, and
+//!    a phone has no environment its user sets, and its keychain prompts nobody.
+//! 2. The [`DesktopHost`] offers the desktop's, chosen as it always was when the host is built:
+//!    `ANISTREAM_TOKEN_STORAGE` first, then `trackers.token_storage`. See [`desktop_secrets`].
 //! 3. A host that offers no store gets `0600` files under the data directory, the engine's
 //!    fallback, which the Accounts screen says, since a file is less than a keychain.
 
