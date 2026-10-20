@@ -121,7 +121,7 @@ fn render_header(buf: &mut Buffer, app: &App, geometry: &Frame) {
     // used to take its name from the first source in the order and its state from whether
     // torrents were switched on, so a session that plugins were serving read as broken in the
     // alert colour. Off is a choice and is said quietly; only a source that is failing alerts.
-    for (source, state) in app.source_states() {
+    for crate::app::SourceChip { id: source, state } in app.source_states() {
         use crate::app::SourceState as S;
         let (mark, role) = match state {
             S::Ready => (glyph::STATE_READY, Role::State),
