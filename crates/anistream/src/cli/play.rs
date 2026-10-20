@@ -4,6 +4,7 @@
 use anistream_core::config::{Config, Paths};
 use anistream_engine::{
     now_epoch,
+    playback::resolve::resolve_for_playback,
     playback::{
         self,
         player::{player, shader_dir},
@@ -20,7 +21,7 @@ use anistream_tui::theme::player_theme;
 use anyhow::{Context, Result};
 use tokio::sync::mpsc;
 
-use crate::{play_settings, resolve_for_playback};
+use crate::play_settings;
 
 /// Resolve one episode and print the URL, keeping the stream server alive.
 ///

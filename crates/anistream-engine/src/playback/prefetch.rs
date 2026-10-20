@@ -3,7 +3,15 @@
 
 use std::{sync::Arc, time::Duration};
 
-use crate::playback::resolve::Resolved;
+use anistream_core::ids::AnilistId;
+use tokio::sync::mpsc;
+
+use crate::{
+    outbox::Outbox,
+    playback::resolve::{Resolved, resolve_for_playback},
+    services::Services,
+    state::EngineState,
+};
 
 /// How long streams found ahead stay usable. Long enough to cover a viewer who lets the ending
 /// and a post-credits scene play out; short enough that a signed stream URL is still good.
@@ -67,6 +75,35 @@ impl Prefetch {
         }
         slot.take().map(|entry| entry.resolved)
     }
+}
+
+/// Find the next episode's streams while this one's ending plays, for the play that follows to
+/// take.
+pub fn prefetch(id: AnilistId, episode: String, engine: &EngineState, services: &Services) {
+    let Services { meta, store, registry, prefetch, .. } = services;
+    let EngineState { config, .. } = engine;
+    let (meta, store, registry, playback, prefetch) = (
+        meta.clone(),
+        store.clone(),
+        registry.clone(),
+        config.playback.clone(),
+        prefetch.clone(),
+    );
+    tokio::spawn(async move {
+        // Quiet: the steps of a search nobody is waiting on must not take the status
+        // line from the episode playing. Nothing reads this channel.
+        let quiet = Outbox::from(mpsc::unbounded_channel().0);
+        let found = resolve_for_playback(
+            &meta, &store, &registry, id, &episode, None, &playback, None, &quiet,
+        )
+        .await;
+        match found {
+            Ok(resolved) => prefetch.keep(id, &episode, playback.translation, resolved),
+            Err(reason) => {
+                tracing::info!(%reason, "could not find the next episode ahead")
+            }
+        }
+    });
 }
 
 #[cfg(test)]

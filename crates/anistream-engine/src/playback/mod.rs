@@ -6,6 +6,7 @@
 
 mod session;
 
+pub mod handoff;
 pub mod mend;
 pub mod picture;
 pub mod player;

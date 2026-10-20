@@ -34,6 +34,11 @@ use anistream_engine::{
         self,
         player::{player, shader_dir},
     },
+    playback::{
+        handoff::{Handoff, successor, take_controls},
+        prefetch::prefetch,
+        resolve::{load_sources, resolve_for_playback},
+    },
     plugin_stores,
     services::Services,
     sources::{self, torrent::reload_sources},
@@ -1481,35 +1486,6 @@ fn keep_hints(
     *hints = Some(PlayHints { title, next, episodes });
 }
 
-/// Find the next episode's streams while this one's ending plays, for the play that follows to
-/// take.
-fn prefetch(id: AnilistId, episode: String, engine: &EngineState, services: &Services) {
-    let Services { meta, store, registry, prefetch, .. } = services;
-    let EngineState { config, .. } = engine;
-    let (meta, store, registry, playback, prefetch) = (
-        meta.clone(),
-        store.clone(),
-        registry.clone(),
-        config.playback.clone(),
-        prefetch.clone(),
-    );
-    tokio::spawn(async move {
-        // Quiet: the steps of a search nobody is waiting on must not take the status
-        // line from the episode playing. Nothing reads this channel.
-        let quiet = Outbox::from(mpsc::unbounded_channel().0);
-        let found = resolve_for_playback(
-            &meta, &store, &registry, id, &episode, None, &playback, None, &quiet,
-        )
-        .await;
-        match found {
-            Ok(resolved) => prefetch.keep(id, &episode, playback.translation, resolved),
-            Err(reason) => {
-                tracing::info!(%reason, "could not find the next episode ahead")
-            }
-        }
-    });
-}
-
 /// Play an episode from whichever source the resolution ladder chooses.
 ///
 /// No player handle is kept across the session: every play builds its own from the config in
@@ -1702,31 +1678,6 @@ fn play_local(
             ..play_settings(&config, tracker_ids, config.syncplay.enabled)
         };
         playback::play(vec![stream], context, store, http, mpv, settings, slot, tx, prx).await;
-    });
-}
-
-/// The releases an episode can be played from, for the Sources overlay.
-fn load_sources(
-    id: AnilistId,
-    episode: String,
-    job: Option<JobGuard>,
-    engine: &EngineState,
-    services: &Services,
-    tx: &Outbox,
-) {
-    let Services { meta, store, registry, .. } = services;
-    let EngineState { config, .. } = engine;
-    let (store, registry, meta, tx) =
-        (store.clone(), registry.clone(), meta.clone(), tx.clone());
-    let translation = config.playback.translation;
-    tokio::spawn(async move {
-        let _job = job;
-        let update =
-            match source_slate(&meta, &store, &registry, id, &episode, translation).await {
-                Ok(candidates) => Event::Sources { id, episode, candidates },
-                Err(reason) => Event::Toast(Notice::alert(reason)),
-            };
-        let _ = tx.send(update);
     });
 }
 
@@ -2287,191 +2238,6 @@ fn spawn_playback(
     });
 }
 
-/// Everything needed before mpv can be spawned: a stream, and the context history needs.
-#[allow(clippy::too_many_arguments)]
-async fn resolve_for_playback(
-    meta: &Meta,
-    store: &Store,
-    registry: &ProviderRegistry,
-    id: anistream_core::ids::AnilistId,
-    episode: &str,
-    pick: Option<(String, String)>,
-    playback: &anistream_core::config::PlaybackConfig,
-    job: Option<&JobGuard>,
-    tx: &Outbox,
-) -> std::result::Result<(Vec<anistream_core::stream::Stream>, playback::PlaybackContext), String>
-{
-    // The step under way, on the job when there is one; the CLI has no activity row and reads
-    // the status channel instead.
-    let step = |text: String| match job {
-        Some(job) => job.note(text, None),
-        None => {
-            let _ = tx.send(Event::Status(text));
-        }
-    };
-    if registry.is_empty() {
-        return Err("no sources configured — see the Providers screen".into());
-    }
-    // Phase-labelled, because the wait between Enter and mpv is where every tool in
-    // this category earns its "is it frozen?" issues. The status line names the rung
-    // being climbed; the eyecatch's own timer says how long it has taken.
-    step("looking up the title".into());
-    let media = meta.media(id).await.map_err(|e| e.to_string())?;
-    let now = now_epoch();
-
-    // "Use this source for this series", applied *before* the title is matched.
-    //
-    // The order matters: a `ProviderKey` is only meaningful to the provider that issued it, so
-    // matching against the whole chain and then resolving against a pinned source would hand one
-    // provider's key to another and look like a missing episode.
-    //
-    // Skipped when the user picked an exact release from the Sources overlay. That pick is the
-    // more immediate instruction of the two, it already names its own provider, and honouring the
-    // remembered preference instead would refuse a release the user is looking straight at.
-    //
-    // A preference naming a provider that is not registered — a plugin removed, or one still
-    // compiling in the background — falls back to the normal chain. Refusing to play because a
-    // remembered choice is momentarily unresolvable would be a worse answer than playing.
-    let preference =
-        pick.is_none().then(|| store.provider_preference(id).ok().flatten()).flatten();
-    let pinned = preference.as_deref().and_then(|id| registry.pinned(id));
-    if let Some(name) = &preference
-        && pinned.is_none()
-    {
-        tracing::debug!(provider = %name, "pinned source is not registered, using the chain");
-    }
-    let registry = pinned.as_ref().unwrap_or(registry);
-    let target = media.match_target();
-
-    step(format!("searching sources for ep {episode}"));
-    let mut streams = match &pick {
-        // A picked release goes straight to its provider, no failover: substituting a
-        // different stream for the one the user chose would silently undo the choice. Matched
-        // on that provider, whose key it is.
-        Some((provider_id, source_id)) => {
-            let source = registry
-                .pinned(provider_id)
-                .ok_or_else(|| format!("{provider_id} is not a source any more"))?;
-            let resolution = anistream_providers::resolve(
-                store,
-                &source,
-                id,
-                &target,
-                playback.translation,
-                now,
-            )
-            .await;
-            let key = resolution.key().cloned().ok_or_else(|| {
-                format!("could not match this title: {}", resolution.explain())
-            })?;
-            source
-                .resolve_source(
-                    provider_id,
-                    &key,
-                    episode,
-                    playback.translation,
-                    source_id,
-                    now,
-                )
-                .await
-                .map_err(|e| format!("could not start that release: {e}"))?
-        }
-        None => {
-            let answer = anistream_providers::first_answer(
-                store,
-                registry,
-                id,
-                &target,
-                playback.translation,
-                now,
-                |source, key| async move {
-                    source.resolve(&key, episode, playback.translation, now).await
-                },
-            )
-            .await;
-            match answer {
-                anistream_providers::Answer::Answered { value, .. } => value,
-                anistream_providers::Answer::Ambiguous { .. } => {
-                    return Err(format!("could not match this title: {}", answer.explain()));
-                }
-                anistream_providers::Answer::Unanswered { .. } => return Err(answer.explain()),
-            }
-        }
-    };
-
-    // Toward the configured quality, preferring a step down over upscaling. The whole list is
-    // returned rather than the winner: the sort is a preference, and playback falls over to
-    // the next entry when a stream turns out not to decode.
-    streams.sort_by_key(|s| s.quality_rank(playback.quality));
-    if streams.is_empty() {
-        return Err("no playable stream".into());
-    }
-
-    // Resume and skip data are both best-effort: a database hiccup or a missing MAL id must
-    // not stop an episode from playing.
-    let resume_at = store
-        .resume_position(id, episode)
-        .inspect_err(|e| tracing::warn!(error = %e, "could not read resume position"))
-        .unwrap_or(None);
-    let mal_id = store.mapping_for(id).ok().flatten().and_then(|m| m.mal_id);
-
-    let context = playback::PlaybackContext {
-        anilist_id: id,
-        mal_id,
-        episode: episode.to_owned(),
-        // The name the terminal shows the title by, so the player's top bar, the window and
-        // the terminal agree. The match target's first title is whichever the matcher tries
-        // first, which is often the romaji one.
-        title: media.title.display().to_owned(),
-        translation: playback.translation,
-        resume_at,
-        runtime_secs: media.duration.map(|minutes| minutes * 60),
-        speed: playback.persist_speed.then_some(playback.persisted_speed).flatten(),
-        volume: playback.persist_volume.then_some(playback.persisted_volume).flatten(),
-        // Filled in by the caller, which has the episode table; headless play has none.
-        next: None,
-        episodes: Vec::new(),
-    };
-    Ok((streams, context))
-}
-
-/// The selectable releases for one episode, across every usable provider.
-///
-/// Shares the title-matching rung with playback: the slate is only meaningful for the
-/// provider key the ladder would actually use.
-async fn source_slate(
-    meta: &Meta,
-    store: &Store,
-    registry: &ProviderRegistry,
-    id: anistream_core::ids::AnilistId,
-    episode: &str,
-    translation: anistream_core::media::Translation,
-) -> std::result::Result<Vec<anistream_core::traits::SourceCandidate>, String> {
-    if registry.is_empty() {
-        return Err("no sources configured — see the Providers screen".into());
-    }
-    let media = meta.media(id).await.map_err(|e| e.to_string())?;
-    let target = media.match_target();
-    let now = now_epoch();
-    // Each provider's releases under its own key: one provider's key means nothing to another.
-    // A provider that cannot match the title has nothing to offer here, and the rest still do.
-    let mut slate = Vec::new();
-    let mut reasons = Vec::new();
-    for provider_id in registry.usable_ids() {
-        let Some(source) = registry.pinned(&provider_id) else { continue };
-        let resolution =
-            anistream_providers::resolve(store, &source, id, &target, translation, now).await;
-        match resolution.key() {
-            Some(key) => slate.extend(source.sources(key, episode, translation, now).await),
-            None => reasons.push(format!("{provider_id}: {}", resolution.explain())),
-        }
-    }
-    if slate.is_empty() && !reasons.is_empty() {
-        return Err(format!("could not match this title: {}", reasons.join(", ")));
-    }
-    Ok(slate)
-}
-
 /// The terminal the interface draws on.
 type Tui = Terminal<tui::terminal::Quiet<CrosstermBackend<io::Stdout>>>;
 
@@ -2700,104 +2466,6 @@ fn following(rows: &[EpisodeRow], episode: &str) -> Option<String> {
     rows.iter().any(|row| row.number == next).then_some(next)
 }
 
-/// A fresh control channel for a new playback, and the handoff from the playback it replaces.
-///
-/// The old playback, once told, parks its window rather than closing it, and the new one claims
-/// it — which is how pressing N inside the player stays in the same window.
-fn take_controls(
-    player_tx: &mut Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
-    successor: anistream_model::playback::Successor,
-) -> (mpsc::UnboundedReceiver<anistream_model::command::PlayerCommand>, Handoff) {
-    let previous = player_tx.take();
-    let (ptx, prx) = mpsc::unbounded_channel();
-    *player_tx = Some(ptx);
-    (prx, Handoff { previous, successor })
-}
-
-/// How long a new playback waits for the old one to park its window before opening its own.
-/// Bounded, because a playback still starting reads its controls only once it is playing.
-const HANDOVER_WAIT: Duration = Duration::from_secs(10);
-
-/// The playback a new one takes the window from, told only once the new one has something to
-/// play. Handing over at once closed the window on the episode being watched whenever the new
-/// one's lookup then failed, and a timeout was enough for that.
-struct Handoff {
-    previous: Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
-    successor: anistream_model::playback::Successor,
-}
-
-impl Handoff {
-    /// Whether a playback is still running in the window.
-    fn live(&self) -> bool {
-        self.previous.as_ref().is_some_and(|p| !p.is_closed())
-    }
-
-    /// Ask for the window without waiting: nothing can fail between here and playing.
-    fn now(self) {
-        if let Some(previous) = self.previous {
-            let _ = previous
-                .send(anistream_model::command::PlayerCommand::Handover(self.successor));
-        }
-    }
-
-    /// Ask for the window and wait until it is parked: claiming it any earlier finds the slot
-    /// empty and opens a second window beside it.
-    async fn complete(self) {
-        let Some(previous) = self.previous else { return };
-        if previous
-            .send(anistream_model::command::PlayerCommand::Handover(self.successor))
-            .is_ok()
-        {
-            let _ = tokio::time::timeout(HANDOVER_WAIT, previous.closed()).await;
-        }
-    }
-
-    /// The new playback found nothing, so the old one keeps the window: say why on the video
-    /// it is showing, and pass on the controls the terminal now sends to the new channel until
-    /// the old playback ends. A later playback's handover reaches it the same way.
-    async fn keep(
-        self,
-        mut controls: mpsc::UnboundedReceiver<anistream_model::command::PlayerCommand>,
-        reason: String,
-    ) {
-        use anistream_model::command::PlayerCommand;
-        let Some(previous) = self.previous else { return };
-        let _ = previous.send(PlayerCommand::Alert(reason));
-        loop {
-            tokio::select! {
-                command = controls.recv() => match command {
-                    // The list loaded for the episode that is not playing: it would give the one
-                    // that is the wrong neighbours.
-                    Some(PlayerCommand::Episodes { .. }) => {}
-                    Some(command) => {
-                        if previous.send(command).is_err() {
-                            break;
-                        }
-                    }
-                    None => break,
-                },
-                () = previous.closed() => break,
-            }
-        }
-    }
-}
-
-/// What a new playback is about to play, as the window it takes over says while it is found:
-/// named as the front end said ahead of the play, in the translation in effect.
-fn successor(
-    id: anistream_core::ids::AnilistId,
-    episode: &str,
-    title: String,
-    config: &Config,
-) -> anistream_model::playback::Successor {
-    anistream_model::playback::Successor {
-        id,
-        title,
-        episode: episode.to_owned(),
-        translation: config.playback.translation,
-    }
-}
-
 /// What an older mpv costs, in a sentence, or `None` when it costs nothing.
 ///
 /// Ubuntu 24.04 ships 0.37 and Debian 12 ships 0.35, and the `.deb` installs whichever the system
@@ -2886,35 +2554,6 @@ mod tests {
                 episodes.iter().map(|e| (e.number.as_str(), e.watched)).collect();
             assert_eq!(listed, [("1", true), ("2", false), ("3", false)]);
         }
-    }
-
-    #[tokio::test]
-    async fn a_lookup_that_fails_leaves_the_controls_with_the_episode_playing() {
-        use anistream_model::command::PlayerCommand;
-        let (previous, mut playing) = mpsc::unbounded_channel();
-        let mut player_tx = Some(previous);
-        let successor = anistream_model::playback::Successor {
-            id: anistream_core::ids::AnilistId::new(1),
-            title: "A Show".into(),
-            episode: "5".into(),
-            translation: anistream_core::media::Translation::Sub,
-        };
-        let (controls, handoff) = take_controls(&mut player_tx, successor);
-        assert!(handoff.live());
-        assert!(playing.try_recv().is_err(), "the window was asked for before 5 was found");
-
-        let terminal = player_tx.clone().unwrap();
-        let kept = tokio::spawn(handoff.keep(controls, "a: timed out".into()));
-        terminal.send(PlayerCommand::TogglePause).unwrap();
-        terminal.send(PlayerCommand::Episodes { rows: Vec::new(), next: None }).unwrap();
-        terminal.send(PlayerCommand::Stop).unwrap();
-        assert_eq!(playing.recv().await, Some(PlayerCommand::Alert("a: timed out".into())));
-        assert_eq!(playing.recv().await, Some(PlayerCommand::TogglePause));
-        assert_eq!(playing.recv().await, Some(PlayerCommand::Stop), "5's list passed on to 4");
-
-        // It stands aside once the playback it kept has ended.
-        drop(playing);
-        tokio::time::timeout(Duration::from_secs(5), kept).await.unwrap().unwrap();
     }
 
     #[test]
