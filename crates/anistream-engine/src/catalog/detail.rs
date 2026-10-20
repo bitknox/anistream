@@ -22,6 +22,9 @@ pub async fn load_detail(lent: Lent, id: AnilistId) {
 }
 
 /// Play a title's trailer in mpv, or open it in the browser when mpv cannot stream it.
+///
+/// Without the `desktop` feature there is no mpv, and the trailer is opened wherever the host
+/// opens a link: on a phone, the app that plays the site's videos.
 pub fn play_trailer(
     url: String,
     title: String,
@@ -30,14 +33,19 @@ pub fn play_trailer(
     services: &Services,
     tx: &Outbox,
 ) {
+    #[cfg(feature = "desktop")]
     let config = engine.config.effective();
+    #[cfg(feature = "desktop")]
     let mpv_binary = config.playback.mpv_binary.clone();
+    #[cfg(not(feature = "desktop"))]
+    let _ = (engine, title);
     let (host, tx) = (services.host.clone(), tx.clone());
     tokio::spawn(async move {
         let _job = job;
         // mpv streams YouTube through yt-dlp, and without it the window opens and
         // dies with nothing to say. Checked up front so the failure mode is a
         // browser tab rather than a mystery.
+        #[cfg(feature = "desktop")]
         if in_path(&["yt-dlp", "youtube-dl"])
             && let Ok(mut child) = tokio::process::Command::new(&mpv_binary)
                 .arg(format!("--force-media-title={title} — trailer"))
@@ -63,6 +71,7 @@ pub fn play_trailer(
 ///
 /// Checked by looking rather than by running: the question is "will mpv find yt-dlp",
 /// and mpv looks, it does not run `--version` first.
+#[cfg(feature = "desktop")]
 fn in_path(names: &[&str]) -> bool {
     let Some(path) = std::env::var_os("PATH") else {
         return false;

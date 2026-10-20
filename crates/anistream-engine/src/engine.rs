@@ -34,6 +34,12 @@ use tokio::{
     task::JoinHandle,
 };
 
+#[cfg(feature = "desktop")]
+use crate::playback::{
+    autonext::Follow,
+    player::{launch_notice, player},
+    start::play_following,
+};
 use crate::{
     background::{datasets::keep_datasets_current, digest, prune},
     data,
@@ -43,12 +49,7 @@ use crate::{
     jobs::JobGuard,
     options::EngineOptions,
     outbox::{Envelope, Internal, Outbox, Played, WeakOutbox},
-    playback::{
-        autonext,
-        player::{launch_notice, player},
-        prefetch::prefetch,
-        start::play_following,
-    },
+    playback::{autonext, prefetch::prefetch},
     plugin_stores,
     services::Services,
     settings,
@@ -197,6 +198,7 @@ impl Engine {
                 registry,
                 sync: parts.sync,
                 stores: parts.stores,
+                #[cfg(feature = "desktop")]
                 slot: Default::default(),
                 prefetch: Default::default(),
                 player_theme,
@@ -294,12 +296,16 @@ impl Engine {
         }
 
         // The player is checked last, as launch always has, and not waited for.
+        #[cfg(feature = "desktop")]
         let checking = background.player_check.then(|| {
             let config = state.config.effective();
             let mpv = player(config, &services.paths, &services.player_theme);
             let binary = config.playback.mpv_binary.clone();
             tokio::spawn(async move { launch_notice(&mpv, &binary).await.map(Event::Toast) })
         });
+        // Without the desktop's player there is none to check.
+        #[cfg(not(feature = "desktop"))]
+        let checking = None;
 
         let (commands_tx, commands) = mpsc::unbounded_channel();
         let (out, live) = mpsc::unbounded_channel();
@@ -311,6 +317,7 @@ impl Engine {
             commands,
             arrivals,
             out,
+            #[cfg(feature = "desktop")]
             jobs: jobs.clone(),
             #[cfg(feature = "testing")]
             routed: 0,
@@ -606,7 +613,9 @@ struct Actor {
     commands: mpsc::UnboundedReceiver<Message>,
     arrivals: mpsc::UnboundedReceiver<(u64, Result<TorrentUp, String>)>,
     out: mpsc::UnboundedSender<Out>,
-    /// The count the jobs it starts on its own are numbered by: see [`Jobs`].
+    /// The count the jobs it starts on its own are numbered by: see [`Jobs`]. Only the
+    /// desktop's player leads it to start any.
+    #[cfg(feature = "desktop")]
     jobs: Jobs,
     /// Commands routed so far.
     #[cfg(feature = "testing")]
@@ -764,6 +773,14 @@ impl Actor {
             skip_filler,
         );
         let Some(follow) = follow else { return said };
+        said.extend(self.roll_on(follow, event));
+        said
+    }
+
+    /// Play what `event` led to, as `follow` says, and return what it was staged as. An ending
+    /// that rolls on is said to.
+    #[cfg(feature = "desktop")]
+    fn roll_on(&mut self, follow: Follow, event: &mut Event) -> Option<Event> {
         if let Event::PlaybackEnded { rolling_on, .. } = event {
             *rolling_on = true;
         }
@@ -771,8 +788,14 @@ impl Actor {
         let play = Command::Play { id: follow.id, episode: follow.episode.clone() };
         let job =
             play.activity().map(|activity| JobGuard::announce(self.jobs.next(), activity, &tx));
-        said.push(play_following(follow, job, &mut self.state, &self.services, &tx));
-        said
+        Some(play_following(follow, job, &mut self.state, &self.services, &tx))
+    }
+
+    /// Without the desktop's player nothing plays, so nothing ends to roll on from: what the
+    /// rules would follow with is let go, and nothing is said of it.
+    #[cfg(not(feature = "desktop"))]
+    fn roll_on(&mut self, _: autonext::Follow, _: &mut Event) -> Option<Event> {
+        None
     }
 
     /// Whether a playback is under way: the one Now Playing shows has started playing, and
@@ -1170,6 +1193,42 @@ mod tests {
         let row = view.rows.iter().find(|row| row.key == SettingKey::Translation).unwrap();
         assert_eq!(row.value, "sub · dub this session");
         assert!(!dir.path().join("config.toml").exists(), "the file is the saved choice's");
+    }
+
+    #[cfg(not(feature = "desktop"))]
+    #[tokio::test]
+    async fn without_a_player_a_play_is_refused_in_words_and_nothing_is_staged() {
+        use anistream_model::{command::PlayerCommand, notice::NoticeKind};
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        events.launch().await;
+        let id = anistream_core::ids::AnilistId::new(1);
+
+        let job = engine.send(Command::Play { id, episode: "1".into() }).expect("a job");
+        let seen = until(&mut events, |e| matches!(e, Event::JobDone(_))).await;
+        let [
+            Event::JobStarted { job: started, .. },
+            Event::Toast(refusal),
+            Event::JobDone(done),
+        ] = &seen[..]
+        else {
+            panic!("the job, the refusal and the job's end: {seen:?}")
+        };
+        assert_eq!((*started, *done), (job, job));
+        assert_eq!(refusal.kind, NoticeKind::Alert);
+        assert_eq!(refusal.text, "playback isn't built into this front end");
+
+        // Steering nothing says nothing; a download played from disk is refused alike.
+        engine.send(Command::Player(PlayerCommand::Stop));
+        let path = dir.path().join("Hoshikuzu no Tabibito 01.mkv");
+        let title = "Hoshikuzu no Tabibito".into();
+        let path = path.display().to_string();
+        engine.send(Command::PlayLocal { id, episode: "1".into(), title, path });
+        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        assert!(
+            matches!(&seen[..], [Event::Toast(n)] if n.text == crate::playback::NO_PLAYER),
+            "{seen:?}"
+        );
     }
 
     #[tokio::test]

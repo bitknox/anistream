@@ -26,7 +26,9 @@ use anistream_model::{
     sync::{ConflictRow, SyncState},
 };
 use anistream_store::Store;
-use anistream_track::{AniListTracker, TokenStore, auth, sync};
+#[cfg(feature = "desktop")]
+use anistream_track::auth;
+use anistream_track::{AniListTracker, TokenStore, sync};
 
 use crate::{host::Host, outbox::Outbox};
 
@@ -73,6 +75,7 @@ impl Sync {
     ///
     /// With the desktop's tokens, for the command line: see [`token_store`]. The engine builds
     /// its trackers [`Self::with_tokens`], over wherever its host keeps them.
+    #[cfg(feature = "desktop")]
     pub fn build(
         config: &Config,
         paths: &Paths,
@@ -613,7 +616,36 @@ pub async fn connect(sync: Sync, host: Arc<dyn Host>, tracker_id: String, tx: Ou
             tx.send(Event::Toast(Notice::alert(format!("{tracker_id}: no sign-in flow yet"))));
         return;
     }
+    connect_anilist(sync, host, tx).await;
+}
 
+/// AniList and MyAnimeList sign in through a redirect to a listener on this machine, which only
+/// the desktop has: an app on a phone takes the redirect itself, through a scheme of its own.
+/// So without the `desktop` feature their sign-in says so, rather than opening a browser onto
+/// a sign-in that cannot finish.
+#[cfg(not(feature = "desktop"))]
+async fn connect_anilist(_: Sync, _: Arc<dyn Host>, tx: Outbox) {
+    refuse_redirect("anilist", &tx);
+}
+
+/// See [`connect_anilist`].
+#[cfg(not(feature = "desktop"))]
+async fn connect_mal(_: Sync, _: Arc<dyn Host>, tx: Outbox) {
+    refuse_redirect("mal", &tx);
+}
+
+#[cfg(not(feature = "desktop"))]
+fn refuse_redirect(tracker_id: &str, tx: &Outbox) {
+    let _ = tx.send(Event::Toast(Notice::alert(format!(
+        "{tracker_id} signs in through a browser redirect, which isn't built into this front end"
+    ))));
+}
+
+/// Sign in to AniList: the authorization code, caught on the loopback redirect, exchanged for
+/// a token.
+#[cfg(feature = "desktop")]
+async fn connect_anilist(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
+    let tracker_id = "anilist";
     let auth_config = &sync.config.trackers.anilist;
     let blank = |field: &Option<String>| field.as_deref().unwrap_or("").trim().is_empty();
     if blank(&auth_config.client_id) || blank(&auth_config.client_secret) {
@@ -686,7 +718,7 @@ pub async fn connect(sync: Sync, host: Arc<dyn Host>, tracker_id: String, tx: Ou
         }
     };
 
-    match sync.tokens.set(&tracker_id, &token) {
+    match sync.tokens.set(tracker_id, &token) {
         Ok(storage) => {
             let mut message = format!("signed in to {tracker_id}");
             if storage.is_degraded() {
@@ -702,7 +734,7 @@ pub async fn connect(sync: Sync, host: Arc<dyn Host>, tracker_id: String, tx: Ou
                 refresh: None,
                 expires_at: auth::token_expiry(&token),
             };
-            activate(&sync, &tracker_id, &pair, &tx).await;
+            activate(&sync, tracker_id, &pair, &tx).await;
         }
         Err(e) => {
             let _ =
@@ -757,6 +789,7 @@ pub async fn connect_kitsu(sync: Sync, username: String, password: String, tx: O
 /// There was no interactive flow at all — the Accounts screen answered "mal: no sign-in flow yet"
 /// while `--login --tracker mal` worked perfectly from the command line. The PKCE machinery already
 /// existed; only this wiring was missing.
+#[cfg(feature = "desktop")]
 async fn connect_mal(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
     use anistream_track::mal;
 
@@ -1073,6 +1106,7 @@ fn pull_key(tracker_id: &str) -> String {
 /// signing in through one path and being unauthenticated through another.
 ///
 /// [`desktop_secrets`]: crate::host::desktop_secrets
+#[cfg(feature = "desktop")]
 pub fn token_store(config: &Config, paths: &Paths) -> TokenStore {
     TokenStore::over(crate::host::desktop_secrets(config, paths))
 }
@@ -1263,6 +1297,36 @@ mod tests {
         assert_eq!(notice.text, "kitsu signs in from the Accounts screen");
         assert_eq!(notice.hint, Some(NoticeHint::KitsuCredentials));
         assert!(rx.try_recv().is_err(), "and nothing else: no browser, no state");
+    }
+
+    #[cfg(not(feature = "desktop"))]
+    #[tokio::test]
+    async fn without_the_desktop_a_redirect_sign_in_is_refused_in_words() {
+        // No listener on this machine for the redirect to reach, so no browser opened onto a
+        // sign-in that cannot finish.
+        let mut config = Config::default();
+        config.trackers.enabled = vec!["anilist".into(), "mal".into()];
+        config.trackers.anilist.client_id = Some("1".into());
+        config.trackers.anilist.client_secret = Some("2".into());
+        config.trackers.mal.client_id = Some("3".into());
+        let store = Store::open_in_memory().unwrap();
+        let http = anistream_net::HttpClient::offline(&config.network).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        for tracker in ["anilist", "mal"] {
+            let sync = Sync::with_tokens(&config, &store, &http, files_in(dir.path()));
+            let host = Arc::new(crate::host::QuietHost::in_dir(dir.path()));
+            let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+            connect(sync, host, tracker.into(), Outbox::from(tx)).await;
+            let Ok(Event::Toast(notice)) = rx.try_recv() else { panic!("no notice") };
+            assert_eq!(
+                notice.text,
+                format!(
+                    "{tracker} signs in through a browser redirect, which isn't built into \
+                     this front end"
+                )
+            );
+            assert!(rx.try_recv().is_err(), "and nothing else");
+        }
     }
 
     #[test]

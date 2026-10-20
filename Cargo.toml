@@ -19,7 +19,9 @@ anistream-core = { path = "crates/anistream-core" }
 anistream-net = { path = "crates/anistream-net" }
 anistream-meta = { path = "crates/anistream-meta" }
 anistream-model = { path = "crates/anistream-model" }
-anistream-engine = { path = "crates/anistream-engine" }
+# Without its defaults, so each crate says whether it wants the desktop's parts: the binary
+# does, and a phone's build of the FFI does not. See the engine's `desktop` feature.
+anistream-engine = { path = "crates/anistream-engine", default-features = false }
 anistream-player = { path = "crates/anistream-player" }
 anistream-plugin = { path = "crates/anistream-plugin", default-features = false }
 anistream-plugin-store = { path = "crates/anistream-plugin-store" }

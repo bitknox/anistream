@@ -16,6 +16,55 @@
 //! it. That matters most for [`playback`], where the thing being verified — a torrent stream
 //! reaching mpv and the resulting position landing in SQLite — cannot be covered by unit tests
 //! at all.
+//!
+//! # The `desktop` feature
+//!
+//! On by default, and what the terminal app is built with. It carries what has no story on a
+//! phone:
+//!
+//! - **the mpv child process** each playback runs in, with the window kept between episodes and
+//!   handed from one to the next, the upscaling shaders and the governor that picks them, and
+//!   the check of the player at launch: the playback session, `playback::start`,
+//!   `playback::player`, `playback::slot`, `playback::handoff`, `playback::picture` and
+//!   `playback::shaders`, and `anistream-player` beneath them;
+//! - **Syncplay**, which a play can be handed to as a watch party;
+//! - **the browser redirect** AniList and MyAnimeList sign in through: a listener on
+//!   `127.0.0.1` waiting for the code;
+//! - **`osascript` and `notify-send`**, and links opened by the system's own handler: the
+//!   `host::DesktopHost`, with `host::desktop_secrets`, the keychain or `0600` files the
+//!   desktop keeps tokens in;
+//! - **`pmset`**, read for whether a laptop is on battery: `playback::power`.
+//!
+//! Built without it, the engine has none of these, nor `anistream-player` and `open`, and a
+//! front end gets instead:
+//!
+//! - every play, `Play`, `PlaySource`, `PlayParty` and `PlayLocal`, answered with an alert that
+//!   playback isn't built into this front end, and the player's controls ignored. Nothing is
+//!   staged, and nothing rolls on. That is for now: playing the stream in the platform's own
+//!   player, handed over by the engine, is a later step;
+//! - a trailer opened wherever the host opens links, rather than in mpv;
+//! - sign-in through the device flow, Simkl's and Trakt's, and Kitsu's credentials, none of
+//!   which needs a redirect; AniList and MyAnimeList answered with an alert instead;
+//! - tokens kept in the store its host offers, [`host::Host::secrets`], or in `0600` files under
+//!   the data directory when it offers none;
+//! - links and notifications through its host, as on the desktop.
+//!
+//! What stays is everything a player of any kind would need: the lists, search and the titles'
+//! pages, episodes and their match, the streams found for an episode and ahead of the next one
+//! (`LoadSources`, `Prefetch`), sync with the trackers, downloads and the torrent source, the
+//! plugins and their stores, settings and artwork. The mending proxy stays too,
+//! `playback::mend`: a stream served in disguise is as unplayable for a phone's player as for
+//! mpv, and a loopback server runs on a phone as it does on a desktop.
+//!
+//! So a front end on a phone has to:
+//!
+//! - implement [`host::Host`] in full: open a link in the browser or the app that handles it,
+//!   post a notification, and keep tokens in the platform's keychain through
+//!   [`host::Host::secrets`], since files are the fallback and are said to be less;
+//! - choose the background work its platform allows, in [`options::Background`]: the system
+//!   may not let a sync loop run while the app is away, and may run its own schedule instead;
+//! - not offer playback, or a sign-in to AniList or MyAnimeList, until the engine can hand it
+//!   a stream to play and a redirect to take.
 
 /// Configuration shared with the long-running background tasks.
 ///

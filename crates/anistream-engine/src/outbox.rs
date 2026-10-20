@@ -82,6 +82,9 @@ impl Outbox {
     /// The same outbox for one playback to answer on: what it says reaches the engine side
     /// named with it, in its place among everything else. Events only, as they were, for a
     /// reader with no engine side to tell.
+    ///
+    /// Without the desktop's player only a test answers as a playback.
+    #[cfg_attr(not(feature = "desktop"), allow(dead_code))]
     pub(crate) fn for_playback(&self, played: Played) -> Self {
         match &self.0 {
             Route::Inbox(tx) | Route::Played(tx, _) => Self(Route::Played(tx.clone(), played)),

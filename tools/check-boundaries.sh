@@ -54,4 +54,24 @@ for rule in "${rules[@]}"; do
     echo "$crate: clean, $(wc -l <<<"$tree" | tr -d ' ') packages in its tree"
   fi
 done
+
+# A phone's build: the engine and the FFI without the desktop feature, resolved for each phone
+# target on its own, since the keychain crate is left out by target rather than by feature.
+# Neither may reach the crate that runs mpv, the desktop's opener or the keychain crate: on a
+# phone the player, the browser and the keychain are the app's, reached through its host.
+phone='^(anistream-player|open|keyring) '
+for crate in anistream-engine anistream-ffi; do
+  for target in aarch64-apple-ios aarch64-linux-android; do
+    tree="$(cargo tree --quiet --color never -p "$crate" --no-default-features -e normal \
+      --target "$target" --prefix none | sed 's/ (\*)$//' | sort -u)"
+    found="$(grep -E "$phone" <<<"$tree" || true)"
+    if [[ -n "$found" ]]; then
+      echo "$crate for $target, without desktop, must not depend on:" >&2
+      sed 's/^/  /' <<<"$found" >&2
+      status=1
+    else
+      echo "$crate for $target without desktop: clean, $(wc -l <<<"$tree" | tr -d ' ') packages"
+    fi
+  done
+done
 exit $status

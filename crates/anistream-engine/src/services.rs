@@ -10,11 +10,7 @@ use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 use anistream_track::TokenStore;
 
-use crate::{
-    host::Host,
-    playback::{prefetch::Prefetch, slot::PlayerSlot},
-    plugin_stores, tracking,
-};
+use crate::{host::Host, playback::prefetch::Prefetch, plugin_stores, tracking};
 
 /// The handles every effect shares, which the command line uses too.
 ///
@@ -44,7 +40,8 @@ pub struct Services {
     /// The plugin stores joined.
     pub stores: plugin_stores::Stores,
     /// The player window kept between episodes, claimed by whichever playback comes next.
-    pub slot: PlayerSlot,
+    #[cfg(feature = "desktop")]
+    pub slot: crate::playback::slot::PlayerSlot,
     /// The next episode's streams, found while the current one's ending plays.
     pub prefetch: Prefetch,
     /// How the player's own interface is dressed: the front end's choice, made once from its
@@ -89,7 +86,8 @@ impl Services {
             registry,
             sync,
             stores,
-            slot: PlayerSlot::default(),
+            #[cfg(feature = "desktop")]
+            slot: Default::default(),
             prefetch: Prefetch::default(),
             player_theme,
             host,

@@ -19,7 +19,9 @@
 
 use std::sync::Arc;
 
-use anistream_core::config::{Config, Paths};
+#[cfg(feature = "desktop")]
+use anistream_core::config::Config;
+use anistream_core::config::Paths;
 use anistream_track::secret::{Backend, LocalSecrets};
 
 pub use anistream_track::secret::{SecretError, SecretStore, Storage};
@@ -65,6 +67,7 @@ pub(crate) fn file_secrets(paths: &Paths) -> Arc<dyn SecretStore> {
 /// 2. Otherwise `trackers.token_storage`, `"keychain"` or `"file"`.
 /// 3. The keychain, by default, with a `0600` file as its fallback where no keychain answers,
 ///    as on a Linux box with no D-Bus session. That fallback is said, not hidden.
+#[cfg(feature = "desktop")]
 pub fn desktop_secrets(config: &Config, paths: &Paths) -> Arc<dyn SecretStore> {
     let backend = Backend::from_env_or(&config.trackers.token_storage);
     Arc::new(LocalSecrets::new(crate::tracking::token_dir(paths), backend))
@@ -74,13 +77,15 @@ pub fn desktop_secrets(config: &Config, paths: &Paths) -> Arc<dyn SecretStore> {
 /// `osascript` on macOS and `notify-send` on Linux, and tokens in the keychain or a `0600` file
 /// as [`desktop_secrets`] decides.
 ///
-/// What the engine did itself before front ends other than the terminal were in view. P6 puts
-/// it behind a `desktop` feature, with the rest of what has no mobile story.
+/// What the engine did itself before front ends other than the terminal were in view: so it is
+/// the `desktop` feature's, with the rest of what has no mobile story.
+#[cfg(feature = "desktop")]
 #[derive(Clone)]
 pub struct DesktopHost {
     secrets: Arc<dyn SecretStore>,
 }
 
+#[cfg(feature = "desktop")]
 impl DesktopHost {
     /// The desktop the app runs on, for the config it was launched with and the directories
     /// `paths` names: tokens where [`desktop_secrets`] says.
@@ -95,6 +100,7 @@ impl DesktopHost {
     }
 }
 
+#[cfg(feature = "desktop")]
 impl Host for DesktopHost {
     fn open_url(&self, url: &str) -> Result<(), String> {
         // Detached, so a browser that is slow to start, or that stays in the foreground,

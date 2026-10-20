@@ -177,6 +177,9 @@ impl TitleCache {
     }
 
     /// A playback is starting: what it says is taken in from now until it says it ended.
+    ///
+    /// Without the desktop's player only a test starts one.
+    #[cfg_attr(not(feature = "desktop"), allow(dead_code))]
     pub(crate) fn started(&mut self, played: &Played) {
         self.playbacks.insert(played.serial, Playhead::default());
     }

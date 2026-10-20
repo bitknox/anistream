@@ -12,7 +12,7 @@ path = "src/main.rs"
 
 [dependencies]
 anistream-core.workspace = true
-anistream-engine.workspace = true
+anistream-engine = { workspace = true, features = ["desktop"] }
 anistream-meta.workspace = true
 anistream-model.workspace = true
 anistream-net.workspace = true
