@@ -10,7 +10,7 @@ use anistream_engine::{
     host::DesktopHost,
     jobs::JobGuard,
     outbox::{Envelope, Internal, Outbox},
-    playback::player::player,
+    playback::player::{launch_notice, player},
     services::Services,
     sources,
     state::EngineState,
@@ -36,7 +36,7 @@ use ratatui::{Terminal, backend::CrosstermBackend};
 use tokio::sync::mpsc;
 
 use crate::{
-    covers, old_mpv_note,
+    covers,
     tui::{
         self,
         clipboard::copy_to_clipboard,
@@ -238,14 +238,8 @@ pub async fn run(
     let (covers_tx, mut covers_rx) = mpsc::unbounded_channel();
 
     let mpv = player(&engine.config, &services.paths, &player_theme());
-    if !mpv.is_available().await {
-        // Said once at startup rather than at the moment you press Enter on an episode.
-        app.apply(Event::Toast(Notice::alert(format!(
-            "{} not found — install mpv to play anything",
-            engine.config.playback.mpv_binary
-        ))));
-    } else if let Some(note) = mpv.mpv_version().await.and_then(old_mpv_note) {
-        app.apply(Event::Toast(Notice::info(note)));
+    if let Some(notice) = launch_notice(&mpv, &engine.config.playback.mpv_binary).await {
+        app.apply(Event::Toast(notice));
     }
 
     // Painting on change rather than on every tick: see `Repaint`. `idle_tick` is whether

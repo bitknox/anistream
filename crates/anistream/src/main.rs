@@ -388,19 +388,6 @@ fn init_logging(paths: &Paths) {
         .try_init();
 }
 
-/// What an older mpv costs, in a sentence, or `None` when it costs nothing.
-///
-/// Ubuntu 24.04 ships 0.37 and Debian 12 ships 0.35, and the `.deb` installs whichever the system
-/// has, so this is a common case rather than an edge one.
-fn old_mpv_note(version: anistream_player::protocol::MpvVersion) -> Option<String> {
-    (!version.has_companion_support()).then(|| {
-        format!(
-            "mpv {version} plays, but anistream's player (skip button, Up Next, menus, \
-             thumbnails) needs mpv 0.36 or newer"
-        )
-    })
-}
-
 #[cfg(test)]
 mod contract;
 #[cfg(test)]

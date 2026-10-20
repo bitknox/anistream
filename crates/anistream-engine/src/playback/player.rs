@@ -4,7 +4,8 @@
 //! the player a playback gets.
 
 use anistream_core::config::{Config, Paths};
-use anistream_model::playback::PlayerTheme;
+use anistream_model::{notice::Notice, playback::PlayerTheme};
+use anistream_player::protocol::MpvVersion;
 
 /// The player, built from the configuration *as it stands now*.
 ///
@@ -35,6 +36,33 @@ pub fn player(config: &Config, paths: &Paths, theme: &PlayerTheme) -> anistream_
         .with_ui(config.playback.player_ui, bundle)
         .with_theme(theme.options())
         .with_extra_args(args)
+}
+
+/// What launch says of the player, or `None` when it plays as it should: that mpv is not there
+/// to play anything, or that it is too old to wear anistream's interface.
+///
+/// Said once at launch rather than at the moment someone presses Enter on an episode. `binary`
+/// is what the config calls mpv, the name the notice gives it.
+pub async fn launch_notice(mpv: &anistream_player::Mpv, binary: &str) -> Option<Notice> {
+    if !mpv.is_available().await {
+        return Some(Notice::alert(format!(
+            "{binary} not found — install mpv to play anything"
+        )));
+    }
+    mpv.mpv_version().await.and_then(old_mpv_note).map(Notice::info)
+}
+
+/// What an older mpv costs, in a sentence, or `None` when it costs nothing.
+///
+/// Ubuntu 24.04 ships 0.37 and Debian 12 ships 0.35, and the `.deb` installs whichever the system
+/// has, so this is a common case rather than an edge one.
+pub fn old_mpv_note(version: MpvVersion) -> Option<String> {
+    (!version.has_companion_support()).then(|| {
+        format!(
+            "mpv {version} plays, but anistream's player (skip button, Up Next, menus, \
+             thumbnails) needs mpv 0.36 or newer"
+        )
+    })
 }
 
 /// Where the upscaling shaders were written, or `None` when anistream should leave
