@@ -20,7 +20,9 @@ use crate::{
 use super::{
     MIN_TABLE_HEIGHT,
     chrome::{mark_selected, render_placeholder},
-    draw_artwork, field_text, line, set_meter,
+    draw_artwork, line,
+    overlays::field_text,
+    set_meter,
 };
 
 /// A list section: search box if relevant, then results, then a detail preview.
