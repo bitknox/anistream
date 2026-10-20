@@ -35,7 +35,7 @@ use crate::{
     },
     plugin_stores::tasks::{StoreTaskContext, store_task},
     services::Services,
-    settings::{save_setting, set_setting, set_translation, step_setting, take_config},
+    settings::{set_setting, set_translation, step_setting},
     sources::{self, commands::check_providers, torrent::reload_sources},
     state::EngineState,
     titles::{
@@ -110,8 +110,7 @@ pub(crate) fn dispatch(
     tx: &Outbox,
 ) {
     match task {
-        // What the front end keeps the engine side told of, until P4.
-        Command::UseConfig { config, saved } => take_config(config, saved, engine),
+        // What the front end tells the engine side of a title, until P4b.
         Command::PlayHints { title, next, episodes } => {
             keep_hints(title, next, episodes, engine)
         }
@@ -201,9 +200,6 @@ pub(crate) fn dispatch(
         Command::DownloadClearCompleted => download_clear_completed(services, tx),
 
         // Settings.
-        Command::SaveSetting { table, key, value } => {
-            save_setting(table, key, value, engine, services, tx)
-        }
         Command::StepSetting { key, delta } => step_setting(key, delta, engine, services, tx),
         Command::SetSetting { key, value } => set_setting(key, value, engine, services, tx),
         Command::SetTranslation { translation } => set_translation(translation, engine, tx),

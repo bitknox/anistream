@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use anistream_core::{config::Config, ids::AnilistId, traits::SourceCandidate};
+use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 
 use crate::{
     catalog::{Content, ContentFor, Entry},
@@ -79,13 +79,6 @@ pub enum Event {
     Providers(Vec<ProviderRow>),
     /// The metadata ladder's condition: which rung is serving, and why.
     MetaStatus(Vec<MetaSourceRow>),
-    /// A settings write was attempted, and this is what the file holds afterwards. `failed`
-    /// names the setting whose write did not land, so the screen can put it back rather than
-    /// go on showing a value that was never saved.
-    SettingWritten {
-        on_disk: Box<Config>,
-        failed: Option<(&'static [&'static str], &'static str)>,
-    },
     /// The config, as a front end shows it, whenever any of it changed: a setting written or
     /// refused, a session's choice, or what the player changed on its own.
     Settings(SettingsView),

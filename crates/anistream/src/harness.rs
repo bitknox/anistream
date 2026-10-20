@@ -579,7 +579,6 @@ pub fn name(update: &Event) -> &'static str {
         Event::Toast(_) => "Toast",
         Event::Providers(_) => "Providers",
         Event::MetaStatus(_) => "MetaStatus",
-        Event::SettingWritten { .. } => "SettingWritten",
         Event::Settings(_) => "Settings",
         Event::SourcesChanged => "SourcesChanged",
         Event::ProviderNote(_) => "ProviderNote",
@@ -659,9 +658,6 @@ fn copy(update: &Event) -> Event {
         Event::Toast(toast) => Event::Toast(toast.clone()),
         Event::Providers(rows) => Event::Providers(rows.clone()),
         Event::MetaStatus(rows) => Event::MetaStatus(rows.clone()),
-        Event::SettingWritten { on_disk, failed } => {
-            Event::SettingWritten { on_disk: on_disk.clone(), failed: *failed }
-        }
         Event::Settings(view) => Event::Settings(view.clone()),
         Event::SourcesChanged => Event::SourcesChanged,
         Event::ProviderNote(text) => Event::ProviderNote(text.clone()),

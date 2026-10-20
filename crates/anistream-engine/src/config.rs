@@ -54,13 +54,6 @@ impl ConfigState {
         settings::view(&self.effective, &self.saved)
     }
 
-    /// Both, as a front end says they are, with `UseConfig`. Temporary: nothing sends it any
-    /// more, and it goes with the command.
-    pub fn take(&mut self, effective: Config, saved: Config) {
-        self.effective = effective;
-        self.saved = saved;
-    }
-
     /// Write `value` at `table`.`key`, then read the file back, whatever the write did: what
     /// the file holds is what the Settings screen shows. A refused write — torrents on with no
     /// VPN, a file that did not load, a disk that said no — puts that one setting in effect

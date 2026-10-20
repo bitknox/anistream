@@ -965,8 +965,6 @@ impl App {
                 self.overlay_selected = 0;
                 self.nav.open_overlay(Overlay::PublishPick);
             }
-            // Nothing sends it any more: the engine says what the file holds in `Settings`.
-            Event::SettingWritten { .. } => {}
             Event::Settings(view) => self.take_settings(view),
             Event::SourcesChanged => self.status = "reloading sources…".into(),
             Event::ProviderNote(note) => self.provider_note = Some(note),

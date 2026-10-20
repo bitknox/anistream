@@ -2,7 +2,7 @@
 //! the player changes on its own; and a setting written to the file, named as the Settings
 //! screen names it, with the work the write leaves the engine side.
 
-use anistream_core::{config::Config, media::Translation, settings::SettingValue};
+use anistream_core::{media::Translation, settings::SettingValue};
 use anistream_model::{
     event::Event,
     notice::Notice,
@@ -16,12 +16,6 @@ use crate::{
     services::Services,
     state::EngineState,
 };
-
-/// The config in effect and the file's, as the front end last said. Kept current by the front
-/// end, which changes its own in place, until P4.
-pub fn take_config(now: Box<Config>, saved: Box<Config>, engine: &mut EngineState) {
-    engine.config.take(*now, *saved);
-}
 
 /// Step `key` through its values, toward `delta`'s sign, by the Settings screen's rules, and
 /// write what that makes of it: [`set_setting`]. A setting no step changes — typed, read-only,
@@ -58,7 +52,7 @@ pub fn set_setting(
         tracing::debug!(?key, ?value, "not a value this setting takes; nothing written");
         return;
     }
-    write_setting(table, file_key, value, Answer::View, engine, services, tx);
+    write_setting(table, file_key, value, engine, services, tx);
 }
 
 /// Sub or dub for this session only: in effect at once, and the file left as it is, so the next
@@ -68,40 +62,17 @@ pub fn set_translation(translation: Translation, engine: &mut EngineState, tx: &
     let _ = tx.send(Event::Settings(engine.config.view()));
 }
 
-/// Write a setting to the file, and say how that went.
+/// Write a setting the config already has in effect, and say how that went: the settings as
+/// the file then leaves them, the "saved" or "not saved" notice, and the work the write leaves
+/// the engine side.
 ///
-/// Written here rather than in the reducer: the reducer has already changed the in-memory
-/// config, so the screen is correct whatever the disk does, and this keeps file IO out of a
-/// pure function. Synchronous on purpose — one small file, and a settings change that silently
-/// lost a race with the next one would be worse than a paused frame.
-pub fn save_setting(
-    table: &'static [&'static str],
-    key: &'static str,
-    value: SettingValue,
-    engine: &mut EngineState,
-    services: &Services,
-    tx: &Outbox,
-) {
-    write_setting(table, key, value, Answer::OnDisk, engine, services, tx);
-}
-
-/// How a write's outcome is said. Temporary, while a front end that keeps a config of its own
-/// still asks for writes with `SaveSetting`.
-#[derive(Clone, Copy)]
-enum Answer {
-    /// What the file holds, whole, for that front end to keep: `SettingWritten`.
-    OnDisk,
-    /// The settings as the engine has them: [`Event::Settings`].
-    View,
-}
-
-/// Write a setting the config already has in effect, and say how that went: what the file then
-/// holds, the "saved" or "not saved" notice, and the work the write leaves the engine side.
+/// In line, here, rather than off the actor: one small file, and a settings change that
+/// silently lost a race with the next one would be worse than a paused frame. The screen is
+/// right whatever the disk does, since what it is told is what is in effect afterwards.
 fn write_setting(
     table: &'static [&'static str],
     key: &'static str,
     value: SettingValue,
-    answer: Answer,
     engine: &mut EngineState,
     services: &Services,
     tx: &Outbox,
@@ -112,18 +83,12 @@ fn write_setting(
         && matches!(&value, anistream_core::settings::SettingValue::List(order)
             if only_reorders(&engine.config.saved().providers.order, order));
     let written = engine.config.write(paths, table, key, value);
-    // What the file holds after the write, so the Settings screen shows the file rather
-    // than its own hopes — and can put a refused setting back.
-    let _ = tx.send(match answer {
-        Answer::OnDisk => Event::SettingWritten {
-            on_disk: Box::new(engine.config.saved().clone()),
-            failed: written.is_err().then_some((table, key)),
-        },
-        Answer::View => Event::Settings(settings::SettingsView {
-            refused: written.as_ref().err().and_then(|_| SettingKey::at(table, key)),
-            ..engine.config.view()
-        }),
-    });
+    // What the write left, so the Settings screen shows the file rather than its own hopes,
+    // with a refused setting put back and named.
+    let _ = tx.send(Event::Settings(settings::SettingsView {
+        refused: written.as_ref().err().and_then(|_| SettingKey::at(table, key)),
+        ..engine.config.view()
+    }));
     match written {
         Ok(()) => {
             // A toast, named as the Settings screen names it. As a status it stayed
@@ -218,7 +183,7 @@ pub fn remember(
     let tx = tx();
     match saved {
         Some((key, value)) => {
-            write_setting(&["playback"], key, value, Answer::View, engine, services, &tx);
+            write_setting(&["playback"], key, value, engine, services, &tx);
         }
         // Kept for this session only: in effect, and the file left as it is.
         None => {

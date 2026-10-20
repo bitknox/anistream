@@ -231,16 +231,6 @@ pub enum Command {
         title: String,
         path: String,
     },
-    /// Persist one changed setting to `config.toml`.
-    ///
-    /// The reducer changes `self.config` immediately so the screen responds at once, and the file
-    /// write goes out as a task — it touches the disk, and a reducer that did IO could not be
-    /// tested without one.
-    SaveSetting {
-        table: &'static [&'static str],
-        key: &'static str,
-        value: anistream_core::settings::SettingValue,
-    },
     /// Step a setting through its values, toward `delta`'s sign: a ladder one rung, stopping at
     /// its ends, and a two-state value over to the other. The arrows on a Settings row, and Enter.
     ///
@@ -328,16 +318,6 @@ pub enum Command {
     /// URL, so a redraw never fetches what is already on its way.
     FetchArtwork {
         url: String,
-    },
-    /// The config as the front end has it: `config` in effect, `saved` as the file holds it.
-    /// Sent ahead of the first command, and again ahead of whatever follows a change to either,
-    /// so the work reads the config the screen shows.
-    ///
-    /// Temporary, while the front end owns the config and changes it in place. P4 gives the
-    /// engine the config to own, front ends ask it for a change instead, and this goes.
-    UseConfig {
-        config: Box<anistream_core::config::Config>,
-        saved: Box<anistream_core::config::Config>,
     },
     /// What the front end knows of a title that playing it needs. Sent immediately ahead of
     /// each [`Command::Play`], [`Command::PlaySource`], [`Command::PlayParty`] and
