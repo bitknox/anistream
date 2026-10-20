@@ -2,9 +2,7 @@
 //! the lists and playbacks a test sets the stage with, and the names the tests are written
 //! in.
 
-pub(super) use anistream_core::{
-    config::Config, ids::AnilistId, settings::SettingValue, traits::SourceCandidate,
-};
+pub(super) use anistream_core::{config::Config, ids::AnilistId, settings::SettingValue};
 pub(super) use anistream_model::{
     catalog::{
         Content, ContentFor, Entry, LibrarySegment, RelatedTitle, ResumePoint, SearchFilters,
@@ -14,9 +12,9 @@ pub(super) use anistream_model::{
     event::Event,
     notice::NoticeKind,
     playback::Ending,
-    progress::{EpisodeProgress, TitleProgress, mark_row},
+    progress::mark_row,
     settings::{self, SettingKey, SettingsView},
-    sources::{MatchCandidate, MetaSourceRow},
+    sources::MetaSourceRow,
     stores::{
         InviteLinkView, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
         StorePluginStatus, StorePreview, StoreRow, StoreState,
