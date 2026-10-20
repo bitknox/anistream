@@ -22,10 +22,7 @@ use anyhow::Result;
 
 use crate::{
     PreviewScreen, covers, describe_graphics,
-    tui::{
-        run::show_config_problem,
-        seams::{ConfigSeam, command},
-    },
+    tui::{run::show_config_problem, seams::command},
 };
 
 /// Render one frame with live data and print it as text.
@@ -72,7 +69,9 @@ pub async fn preview(
     if let Ok(Some(reason)) = plugins.await {
         note = Some(reason);
     }
-    let mut app = App::with_images(config.clone(), palette, keymap, image_engine);
+    // As the file's too: a still frame shows a `--theme` as the saved choice, as it always has.
+    let settings = anistream_model::settings::view(&config, &config);
+    let mut app = App::with_images(settings, palette, keymap, image_engine);
     if let Some(note) = note {
         app.apply(Event::ProviderNote(note));
     }
@@ -86,7 +85,9 @@ pub async fn preview(
     }
     // The engine on that chain, whole, and with none of its own work beside what it is sent:
     // nothing in a still frame brings a torrent source up, and nothing it does not draw runs.
-    let mut options = EngineOptions::new(paths.clone(), config, http, store, player_theme());
+    let mut options =
+        EngineOptions::new(paths.clone(), config.clone(), http, store, player_theme());
+    options.saved = Some(config);
     options.sources = Some(registry);
     options.background = false;
     let (engine, mut events) = Engine::start(options, Arc::new(DesktopHost)).await?;
@@ -102,7 +103,6 @@ pub async fn preview(
         ),
         engine,
         events,
-        seam: ConfigSeam::default(),
     };
 
     // Launch: Home loads.
@@ -178,7 +178,6 @@ struct PreviewRun {
     rows: usize,
     engine: Engine,
     events: EventStream,
-    seam: ConfigSeam,
 }
 
 impl PreviewRun {
@@ -215,7 +214,7 @@ impl PreviewRun {
             eprintln!("[preview: not run: {task:?}]");
             return;
         }
-        command(app, &mut self.seam, task, &self.engine);
+        command(app, task, &self.engine);
     }
 
     /// Apply updates until the work is done and the screen's covers are in, as the event loop

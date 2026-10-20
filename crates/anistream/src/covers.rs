@@ -56,8 +56,8 @@ pub fn hand_over(app: &mut App, decoded: Decoded) {
 
 #[cfg(test)]
 mod tests {
-    use anistream_core::config::Config;
     use anistream_model::event::Event;
+    use anistream_model::settings::SettingsView;
     use anistream_tui::{
         Keymap,
         image::{ImageEngine, RequestState},
@@ -69,7 +69,12 @@ mod tests {
     /// An app that draws covers, in halfblocks so no terminal has to be asked.
     fn app() -> App {
         let palette = theme::resolve_with(Default::default(), None);
-        App::with_images(Config::default(), palette, Keymap::new(), ImageEngine::halfblocks())
+        App::with_images(
+            SettingsView::default(),
+            palette,
+            Keymap::new(),
+            ImageEngine::halfblocks(),
+        )
     }
 
     fn png() -> Vec<u8> {

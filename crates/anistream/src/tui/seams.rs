@@ -1,61 +1,14 @@
-//! The front end's half of the seams between the interface and the engine side: the config the
-//! engine side is told whenever the interface's own moves, and what a play needs of the screen,
-//! sent ahead of it. Both read the `App`, so both are the front end's. Temporary: P4 makes the
-//! engine the config's owner and gives it its own record of the titles opened, and these go.
+//! The front end's half of the seam left between the interface and the engine side: what a play
+//! needs of the screen, sent ahead of it. It reads the `App`, so it is the front end's.
+//! Temporary: P4 gives the engine its own record of the titles opened, and this goes.
 
-use anistream_core::config::Config;
 use anistream_engine::{engine::Engine, playback};
 use anistream_model::{command::Command, jobs::JobId};
 use anistream_tui::app::App;
 
-/// What the engine side was last told of the interface's config.
-///
-/// The interface changes its config in place, from a keypress or from the player, and the
-/// engine side works from a copy. This keeps the copy current: compared on every pass, sent as
-/// `UseConfig` when either half moved. Temporary, like `UseConfig`: P4 makes the engine the
-/// config's owner, and both go.
-#[derive(Default)]
-pub struct ConfigSeam(Option<(Config, Config)>);
-
-impl ConfigSeam {
-    /// `UseConfig`, when the config in effect or the saved one has moved since the engine side
-    /// was last told, and the first time it is asked.
-    pub fn moved(&mut self, app: &App) -> Option<Command> {
-        if let Some((config, saved)) = &self.0
-            && *config == app.config
-            && *saved == app.saved_config
-        {
-            return None;
-        }
-        self.0 = Some((app.config.clone(), app.saved_config.clone()));
-        Some(Command::UseConfig {
-            config: Box::new(app.config.clone()),
-            saved: Box::new(app.saved_config.clone()),
-        })
-    }
-}
-
-/// Tell the engine side the interface's config, when it moved since the engine side was told.
-///
-/// Before the first command, before every command after it, and before the loop's reactions,
-/// which read it too. So the work reads the config the screen shows at the moment it reads it,
-/// as it read `app.config` itself before.
-pub fn use_config(app: &App, seam: &mut ConfigSeam, engine: &Engine) {
-    if let Some(config) = seam.moved(app) {
-        engine.send(config);
-    }
-}
-
-/// Send a command to the engine as the interface sends one: the config ahead of it when it
-/// moved, and a play's hints ahead of a play, then the command. Returns the job the engine
-/// numbered, for work someone waits on.
-pub fn command(
-    app: &App,
-    seam: &mut ConfigSeam,
-    task: Command,
-    engine: &Engine,
-) -> Option<JobId> {
-    use_config(app, seam, engine);
+/// Send a command to the engine as the interface sends one: a play's hints ahead of a play,
+/// then the command. Returns the job the engine numbered, for work someone waits on.
+pub fn command(app: &App, task: Command, engine: &Engine) -> Option<JobId> {
     if let Some(hints) = play_hints(app, &task) {
         engine.send(hints);
     }
@@ -121,29 +74,11 @@ mod tests {
     use super::*;
     use anistream_model::episodes::EpisodeRow;
     use anistream_model::event::Event;
+    use anistream_model::settings::SettingsView;
     use anistream_tui::{keymap::Keymap, theme};
 
     fn test_app() -> App {
-        App::new(Config::default(), theme::Palette::dark(), Keymap::new())
-    }
-
-    #[test]
-    fn the_engine_side_hears_of_a_config_change_before_the_next_command() {
-        let mut app = test_app();
-        let mut seam = ConfigSeam::default();
-        assert!(matches!(seam.moved(&app), Some(Command::UseConfig { .. })), "said at once");
-        assert_eq!(seam.moved(&app), None, "and not again while nothing moves");
-
-        app.config.playback.auto_next = false;
-        let Some(Command::UseConfig { config, saved }) = seam.moved(&app) else {
-            panic!("a change in effect is said");
-        };
-        assert!(!config.playback.auto_next);
-        assert!(saved.playback.auto_next, "the file is told apart from what is in effect");
-
-        // A write read back, or one put back, moves only the file's half.
-        app.saved_config.playback.auto_next = false;
-        assert!(seam.moved(&app).is_some());
+        App::new(SettingsView::default(), theme::Palette::dark(), Keymap::new())
     }
 
     #[test]

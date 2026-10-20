@@ -94,8 +94,8 @@ impl Engine {
     /// torrent source brought up, and the check of the player.
     ///
     /// What was true at launch is queued at the head of the [`EventStream`], for the front end
-    /// to apply before its first frame: the joined stores, the chain's rows when it was given
-    /// whole, the trackers' states, and what the check of the player found. That check runs
+    /// to apply before its first frame: the settings, the joined stores, the chain's rows when
+    /// it was given whole, the trackers' states, and what the check of the player found. That check runs
     /// mpv, so it is not waited for here: the front end can send its first commands while it
     /// runs, as the app did, and [`EventStream::launch`] waits for it. Everything else the
     /// engine says follows, in the order the actor applied it.
@@ -108,6 +108,7 @@ impl Engine {
         let EngineOptions {
             paths,
             config,
+            saved,
             http,
             store,
             player_theme,
@@ -186,8 +187,10 @@ impl Engine {
         // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
         let (arrivals_tx, arrivals) = mpsc::unbounded_channel();
         // The engine side's own state, on the config the app was launched with.
-        let mut state = EngineState::new(config, &services.paths, arrivals_tx);
+        let mut state = EngineState::new(config, saved, &services.paths, arrivals_tx);
         let mut launch = VecDeque::new();
+        // The settings first: everything after is drawn under the config they say.
+        launch.push_back(Event::Settings(state.config.view()));
 
         // Joined stores as they were left, so Providers can count them on the first frame.
         let joined = match services.stores.rows() {
@@ -772,7 +775,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn launch_says_the_stores_the_chain_and_the_trackers_in_that_order() {
+    async fn launch_says_the_settings_the_stores_the_chain_and_the_trackers_in_that_order() {
         let dir = tempfile::tempdir().unwrap();
         let (_engine, mut events) = quiet_engine(dir.path()).await;
         let launch: Vec<&str> = events
@@ -780,6 +783,7 @@ mod tests {
             .await
             .iter()
             .map(|event| match event {
+                Event::Settings(_) => "settings",
                 Event::Stores(_) => "stores",
                 Event::Providers(_) => "providers",
                 Event::Sync(_) => "sync",
@@ -787,7 +791,7 @@ mod tests {
             })
             .collect();
         // Kitsu is the one tracker the defaults build.
-        assert_eq!(launch, ["stores", "providers", "sync"]);
+        assert_eq!(launch, ["settings", "stores", "providers", "sync"]);
         assert!(events.launch().await.is_empty(), "taken once");
     }
 

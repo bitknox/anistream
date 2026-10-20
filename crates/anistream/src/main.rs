@@ -405,7 +405,7 @@ mod tests {
         settings::setting_label,
         sources,
     };
-    use anistream_model::settings::SettingKey;
+    use anistream_model::settings::{SettingKey, SettingsView};
     use anistream_tui::{
         app::App,
         keymap::Keymap,
@@ -413,7 +413,7 @@ mod tests {
     };
 
     fn test_app() -> App {
-        App::new(Config::default(), theme::Palette::dark(), Keymap::new())
+        App::new(SettingsView::default(), theme::Palette::dark(), Keymap::new())
     }
 
     #[test]

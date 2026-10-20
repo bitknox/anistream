@@ -10,6 +10,7 @@ use anistream_model::{
     catalog::{ContentFor, LibrarySegment, SearchFilters},
     command::{Command, PlayerCommand},
     event::Event,
+    settings::SettingKey,
 };
 use anistream_providers::ProviderRegistry;
 use anistream_store::DownloadState;
@@ -150,11 +151,7 @@ async fn work_nobody_waits_on_starts_no_job() {
         Command::SetScore { id: FINISHED, score: 7.0 },
         Command::ResolveConflict { id: FINISHED, keep_local: true },
         Command::SetProviderPreference { id: FINISHED, provider: Some("fixture".into()) },
-        Command::SaveSetting {
-            table: &["playback"],
-            key: "auto_next",
-            value: SettingValue::Bool(false),
-        },
+        Command::SetSetting { key: SettingKey::AutoNext, value: SettingValue::Bool(false) },
         Command::LoadDownloads,
         Command::DownloadPause { id: queued.id },
         Command::DownloadCancel { id: failed.id },

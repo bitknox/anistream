@@ -26,11 +26,7 @@ use tokio::sync::mpsc;
 
 use crate::{
     covers,
-    tui::{
-        self,
-        clipboard::copy_to_clipboard,
-        seams::{ConfigSeam, command, use_config},
-    },
+    tui::{self, clipboard::copy_to_clipboard, seams::command},
 };
 
 pub async fn run(
@@ -53,14 +49,21 @@ pub async fn run(
         anistream_tui::image::ImageEngine::detect(images).with_cache_dir(paths.image_cache());
     tracing::info!(graphics = ?image_engine.graphics(), "image engine ready");
 
+    // What the file says, as distinct from what is in effect: `--theme` changes only this
+    // session, and the Settings screen has to be able to tell the two apart.
+    let saved = Config::load(&paths).unwrap_or_default();
+
     // The engine, started as the app launches it: its source chain built behind the interface,
     // and its own work beside the commands. The player is dressed in the immersive palette
-    // whatever the terminal is: see `player_theme`.
-    let options =
+    // whatever the terminal is: see `player_theme`. It owns the config from here on.
+    let mut options =
         EngineOptions::new(paths.clone(), config.clone(), http, store, player_theme());
+    options.saved = Some(saved.clone());
     let (engine, mut from_engine) = Engine::start(options, Arc::new(DesktopHost)).await?;
 
-    let mut app = App::with_images(config, palette, keymap, image_engine);
+    // The settings as the engine starts on them, which it says again at launch.
+    let settings = anistream_model::settings::view(&config, &saved);
+    let mut app = App::with_images(settings, palette, keymap, image_engine);
     // Said inside the app too: the warning above scrolls away behind the alternate screen
     // before anyone reads it, and a refused rebind otherwise looks like a key that does nothing.
     for problem in keybinding_problems {
@@ -68,16 +71,9 @@ pub async fn run(
         app.push_toast(Notice::alert(format!("keybinding not applied: {problem}")));
     }
 
-    // What the file says, as distinct from what is in effect: `--theme` changes only this
-    // session, and the Settings screen has to be able to tell the two apart.
-    app.saved_config = Config::load(&paths).unwrap_or_default();
     if let Some(problem) = &config_problem {
         show_config_problem(&mut app, &paths, problem);
     }
-
-    // The engine told the interface's config, the file's included, before it reads it.
-    let mut seam = ConfigSeam::default();
-    use_config(&app, &mut seam, &engine);
 
     // Both before the terminal changes state, so there is no moment in which a signal or a
     // panic could leave it raw.
@@ -133,17 +129,14 @@ pub async fn run(
         // each URL, so a re-render cannot re-request one already in flight.
         for url in app.visible_artwork(rows) {
             let task = Command::FetchArtwork { url };
-            command(&app, &mut seam, task, &engine);
+            command(&app, task, &engine);
         }
 
         // Auto-next is queued by the reducer rather than returned, because an episode ending
         // arrives as an update rather than a keystroke.
         if let Some(task) = app.take_pending() {
-            command(&app, &mut seam, task, &engine);
+            command(&app, task, &engine);
         }
-        // Whatever moved the config since: a setting put back, say. What the engine does
-        // with the events it reads next reads its copy.
-        use_config(&app, &mut seam, &engine);
 
         tokio::select! {
             // One at a time, each in the order the engine applied it, with the loop's own
@@ -187,7 +180,7 @@ pub async fn run(
                 tracing::info!(signal, "shutting down");
                 tui::terminal::exit_on_second_signal();
                 if let Some(task) = app.handle(anistream_tui::keymap::Action::Quit, rows) {
-                    command(&app, &mut seam, task, &engine);
+                    command(&app, task, &engine);
                 }
                 // Whatever an open overlay made of the key, a signal is not a request to close it.
                 app.should_quit = true;
@@ -209,7 +202,7 @@ pub async fn run(
                 match maybe_event {
                     Some(Ok(TermEvent::Key(key))) if key.kind == KeyEventKind::Press => {
                         if let Some(task) = app.press(key, rows) {
-                            command(&app, &mut seam, task, &engine);
+                            command(&app, task, &engine);
                         }
                     }
                     // Arrives whole with bracketed paste on, so a pasted link cannot fire

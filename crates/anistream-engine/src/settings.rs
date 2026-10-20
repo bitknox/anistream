@@ -167,10 +167,12 @@ fn write_setting(
 
 /// What the player changed of the config on its own, from its menus or its keys, kept in effect
 /// for the next playback and saved as any setting is, as the event that says so passes on its
-/// way to the front end. `tx` is asked for only when there is a save to report.
+/// way to the front end, which is told the settings after it. `tx` is asked for only when there
+/// is something to say.
 ///
 /// The speed and the volume are remembered whatever the config says, and saved only when it
-/// asks for them to be: `persist_speed`, `persist_volume`.
+/// asks for them to be: `persist_speed`, `persist_volume`. Sub or dub picked in the player is
+/// for this session, as `t` is, and not saved.
 ///
 /// The interface used to do this as the event reached it, by queueing the save in its one slot
 /// for work, which an ending's prefetch, auto-next and an episode picked in the player fill too.
@@ -185,37 +187,44 @@ pub fn remember(
 ) {
     use anistream_core::settings::SettingValue as V;
     let playback = &mut engine.config.effective_mut().playback;
-    let (key, value) = match event {
+    let saved = match event {
         Event::PlaybackSpeed(speed) => {
             playback.persisted_speed = Some(*speed);
-            if !playback.persist_speed {
-                return;
-            }
-            ("persisted_speed", V::Float(*speed))
+            playback.persist_speed.then_some(("persisted_speed", V::Float(*speed)))
         }
         Event::PlaybackVolume(volume) => {
             playback.persisted_volume = Some(*volume);
-            if !playback.persist_volume {
-                return;
-            }
-            ("persisted_volume", V::Float(*volume))
+            playback.persist_volume.then_some(("persisted_volume", V::Float(*volume)))
         }
         Event::PlayerUpscaling(name) => {
             let Some(mode) = anistream_core::config::Upscaling::from_name(name) else { return };
             playback.upscaling = mode;
-            ("upscaling", V::Str(name.clone()))
+            Some(("upscaling", V::Str(name.clone())))
         }
         Event::PlayerToneMapping(curve) => {
             playback.tone_mapping.clone_from(curve);
-            ("tone_mapping", V::Str(curve.clone()))
+            Some(("tone_mapping", V::Str(curve.clone())))
         }
         Event::PlayerNightMode(on) => {
             playback.night_mode = *on;
-            ("night_mode", V::Bool(*on))
+            Some(("night_mode", V::Bool(*on)))
+        }
+        Event::PlayerTranslation(translation) => {
+            playback.translation = *translation;
+            None
         }
         _ => return,
     };
-    save_setting(&["playback"], key, value, engine, services, &tx());
+    let tx = tx();
+    match saved {
+        Some((key, value)) => {
+            write_setting(&["playback"], key, value, Answer::View, engine, services, &tx);
+        }
+        // Kept for this session only: in effect, and the file left as it is.
+        None => {
+            let _ = tx.send(Event::Settings(engine.config.view()));
+        }
+    }
 }
 
 /// The name the Settings screen gives the setting stored at `table`.`key`, for saying it was

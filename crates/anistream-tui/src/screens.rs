@@ -267,8 +267,8 @@ fn render_status(buf: &mut Buffer, app: &App, geometry: &Frame) {
         format!(
             "{} · {} · {}p",
             app.source_label(),
-            app.config.playback.translation,
-            app.config.playback.quality
+            app.settings.translation,
+            app.settings.quality
         )
     } else {
         app.status.clone()
@@ -1016,9 +1016,7 @@ fn download_note(app: &App, row: &anistream_model::downloads::DownloadRow) -> St
         DownloadState::Active => "  waiting for metadata".into(),
         // Downloads come through the torrent session, so with torrents off a queued row will
         // never start. "waiting for metadata" said so forever.
-        DownloadState::Queued if !app.config.providers.torrent.enabled => {
-            "  torrents are off".into()
-        }
+        DownloadState::Queued if !app.settings.sources.torrent => "  torrents are off".into(),
         DownloadState::Queued => "  waiting to start".into(),
         _ => String::new(),
     }
@@ -1051,7 +1049,7 @@ fn download_detail(app: &App, row: &anistream_model::downloads::DownloadRow) -> 
             human_bytes(row.total)
         ),
         DownloadState::Paused => "paused before it started".into(),
-        DownloadState::Queued if !app.config.providers.torrent.enabled => format!(
+        DownloadState::Queued if !app.settings.sources.torrent => format!(
             "downloads need torrents, which are off — press {} for Settings",
             app.section_key(Section::Settings)
         ),
@@ -3987,11 +3985,11 @@ pub fn render_to_buffer(app: &App, width: u16, height: u16) -> Buffer {
 mod tests {
     use super::*;
     use crate::{keymap::Keymap, theme::Palette};
-    use anistream_core::{config::Config, ids::AnilistId};
-    use anistream_model::{event::Event, sources::GuardView};
+    use anistream_core::ids::AnilistId;
+    use anistream_model::{event::Event, settings::SettingsView, sources::GuardView};
 
     fn app_with(content: Content) -> App {
-        let mut app = App::new(Config::default(), Palette::dark(), Keymap::new());
+        let mut app = App::new(SettingsView::default(), Palette::dark(), Keymap::new());
         app.apply(app.content_here(content));
         app
     }
@@ -6225,7 +6223,7 @@ mod tests {
         let lines = marked(&app);
         assert!(lines.len() == 1 && lines[0].contains("▌ one"), "{lines:#?}");
 
-        app.config.providers.order = vec!["one".into(), "two".into()];
+        app.settings.sources.order = vec!["one".into(), "two".into()];
         app.handle(crate::keymap::Action::LowerSource, 20);
         let lines = marked(&app);
         assert!(lines.len() == 1 && lines[0].contains("▌ one"), "{lines:#?}");

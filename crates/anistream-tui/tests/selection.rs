@@ -4,7 +4,8 @@
 //! was assumed to become: on Downloads, Space and `x` arrive as the browsing actions, and that
 //! is exactly where pause and cancel used to go missing.
 
-use anistream_core::{config::Config, ids::AnilistId};
+use anistream_core::ids::AnilistId;
+use anistream_model::settings::SettingsView;
 use anistream_model::{
     catalog::{Content, Entry},
     command::Command,
@@ -18,7 +19,7 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 const ROWS: usize = 20;
 
 fn app() -> App {
-    App::new(Config::default(), Palette::dark(), Keymap::new())
+    App::new(SettingsView::default(), Palette::dark(), Keymap::new())
 }
 
 fn entries(n: u32) -> Content {

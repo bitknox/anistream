@@ -39,6 +39,7 @@ use anistream_model::{
     jobs::JobId,
     notice::Notice,
     playback::SkipKind,
+    settings::{self, SettingsView},
     sources::{MatchCandidate, MetaSourceRow, ProviderRow},
     stores::{
         InviteLinkView, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
@@ -96,7 +97,7 @@ struct Screen {
 
 impl Screen {
     fn new(width: u16, height: u16) -> Self {
-        let mut app = App::new(Config::default(), Palette::dark(), Keymap::new());
+        let mut app = App::new(SettingsView::default(), Palette::dark(), Keymap::new());
         // Stopped before anything can start a job, so every job's running time is measured
         // against this clock's own instant.
         app.clock = Clock::fixed(NOW, tokyo());
@@ -145,6 +146,11 @@ impl Screen {
     fn apply(&mut self, update: Event) {
         self.app.apply(update);
         self.draw();
+    }
+
+    /// The settings the engine answers a change with: `effective` in effect, `saved` in the file.
+    fn settings(&mut self, effective: &Config, saved: &Config) {
+        self.apply(Event::Settings(settings::view(effective, saved)));
     }
 
     /// A caption for the list on screen, sent before it as the binary sends one.
@@ -949,6 +955,10 @@ fn settings(s: &mut Screen) {
             .into(),
     );
     s.act(Action::ToggleTranslation);
+    // Dub for the session, and the file as it was.
+    let mut session = Config::default();
+    session.playback.translation = anistream_core::media::Translation::Dub;
+    s.settings(&session, &Config::default());
     s.press(&["j"; 11]);
 }
 
@@ -956,6 +966,10 @@ fn settings(s: &mut Screen) {
 fn immersive(s: &mut Screen) {
     settled_on(s, 9);
     s.press(&["right"]);
+    // Written, and in effect.
+    let mut immersive = Config::default();
+    immersive.theme.mode = anistream_core::config::ThemeMode::Immersive;
+    s.settings(&immersive, &immersive);
     s.act(Action::JumpSection(1));
     s.list(vec![hoshikuzu(), kaze(), yoru()]);
 }

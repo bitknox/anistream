@@ -1,9 +1,9 @@
 //! What the effect layer keeps between one command and the next, on its own side of the seam.
 //!
 //! The interface's `App` held some of it, and the loop the rest, and `dispatch` read the config
-//! and the episode table off the `App`. This is the engine side's half: what it was told the
-//! config is and what the next play needs, the live player's controls, and the torrent stack the
-//! settings stand down and back up. The engine's actor owns it, beside the `Services`, and
+//! and the episode table off the `App`. This is the engine side's half: the config, which it
+//! owns, what it was told the next play needs, the live player's controls, and the torrent stack
+//! the settings stand down and back up. The engine's actor owns it, beside the `Services`, and
 //! nothing here reads the interface.
 //!
 //! Not here: the receiving ends of the channels the actor reads, and the count the jobs are
@@ -33,7 +33,7 @@ pub struct EngineState {
     /// The config: the one in effect, which the work runs on and each playback builds its
     /// player from, so a setting changed on screen reaches the next one; and the file's, which
     /// a new source order is checked against, to tell a reorder from a change of which sources
-    /// there are. What the front end last said with `UseConfig`, until the engine owns it.
+    /// there are. The engine's own: front ends ask it for changes.
     pub config: ConfigState,
     /// What the front end said the next play needs, with `PlayHints`, until that play takes it.
     ///
@@ -57,13 +57,18 @@ pub struct EngineState {
 }
 
 impl EngineState {
-    /// The engine side as it starts: on the config the app was launched with, and the file as
-    /// it is at `paths`. No torrent stack yet, and `arrivals` for it to report on when one is
-    /// brought up.
-    pub fn new(config: Config, paths: &Paths, arrivals: Arrivals) -> Self {
+    /// The engine side as it starts: on the config the app was launched with, and the file's,
+    /// as given or as it is at `paths`. No torrent stack yet, and `arrivals` for it to report on
+    /// when one is brought up.
+    pub fn new(
+        config: Config,
+        saved: Option<Config>,
+        paths: &Paths,
+        arrivals: Arrivals,
+    ) -> Self {
         Self {
             shared_config: Arc::new(RwLock::new(config.clone())),
-            config: ConfigState::new(config, paths),
+            config: ConfigState::new(config, saved, paths),
             hints: None,
             player_tx: None,
             torrent_tasks: TorrentTasks::default(),

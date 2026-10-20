@@ -6,7 +6,7 @@
 
 use std::time::{Duration, Instant};
 
-use anistream_core::{config::Config, ids::AnilistId, traits::SourceCandidate};
+use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 use anistream_model::{
     catalog::{Content, ContentFor, Entry, LibrarySegment, ResumePoint, SearchFilters},
     command::{Command, PlayerCommand},
@@ -16,10 +16,10 @@ use anistream_model::{
     jobs::JobId,
     notice::{Notice, NoticeHint, NoticeKind},
     playback::{Ending, SkipKind},
-    settings::{self, SettingChange, SettingKey},
+    settings::{SettingChange, SettingKey, SettingsView},
     sources::{
-        ConfiguredSources, GuardView, MatchCandidate, MetaSourceRow, ProviderRow, SourceChip,
-        SourceState, order_with_source_moved, source_states,
+        GuardView, MatchCandidate, MetaSourceRow, ProviderRow, SourceChip, SourceState,
+        order_with_source_moved, source_states,
     },
     stores::{
         InviteLinkView, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
@@ -379,13 +379,10 @@ pub struct App {
     pub nav: Nav,
     pub palette: Palette,
     pub keymap: Keymap,
-    /// The configuration in effect: what the file says, plus anything changed for this session
-    /// only — `t` for sub or dub, `--theme`.
-    pub config: Config,
-    /// What `config.toml` holds, read back after every settings write. The Settings screen
-    /// shows these values and marks a session-only difference, and a write that fails puts
-    /// its setting back to this.
-    pub saved_config: Config,
+    /// The config, as the engine last said: the Settings rows, and what else on screen the
+    /// config decides. The engine owns the config, and the interface keeps no copy: a change is
+    /// asked for, and shows once the engine says it is in effect.
+    pub settings: SettingsView,
     pub content: Content,
     /// The caption for the list on screen, with the view it belongs to. See [`Event::Caption`].
     pub caption: Option<(ContentFor, String)>,
@@ -610,12 +607,14 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(config: Config, palette: Palette, keymap: Keymap) -> Self {
-        Self::with_images(config, palette, keymap, crate::image::ImageEngine::disabled())
+    /// The app on `settings`, as the config it was launched on makes them, painted with
+    /// `palette` and driven by `keymap`.
+    pub fn new(settings: SettingsView, palette: Palette, keymap: Keymap) -> Self {
+        Self::with_images(settings, palette, keymap, crate::image::ImageEngine::disabled())
     }
 
     pub fn with_images(
-        config: Config,
+        settings: SettingsView,
         palette: Palette,
         keymap: Keymap,
         engine: crate::image::ImageEngine,
@@ -625,8 +624,7 @@ impl App {
             nav: Nav::new(),
             palette,
             keymap,
-            saved_config: config.clone(),
-            config,
+            settings,
             content: Content::Loading,
             caption: None,
             selected: 0,
@@ -967,15 +965,9 @@ impl App {
                 self.overlay_selected = 0;
                 self.nav.open_overlay(Overlay::PublishPick);
             }
-            Event::SettingWritten { on_disk, failed } => {
-                self.saved_config = *on_disk;
-                if let Some((table, key)) = failed {
-                    self.roll_back_setting(table, key);
-                }
-            }
-            // Nothing asks for these yet: the interface keeps a config of its own until the
-            // engine owns it.
-            Event::Settings(_) => {}
+            // Nothing sends it any more: the engine says what the file holds in `Settings`.
+            Event::SettingWritten { .. } => {}
+            Event::Settings(view) => self.take_settings(view),
             Event::SourcesChanged => self.status = "reloading sources…".into(),
             Event::ProviderNote(note) => self.provider_note = Some(note),
             Event::ProviderPreference(choice) => self.provider_preference = choice,
@@ -1036,12 +1028,10 @@ impl App {
                 }
             }
             // What the player changes of the config on its own is the engine's to keep and to
-            // save, as it passes: see `anistream_engine::settings::remember`. Kept here too, for
-            // as long as the interface holds a config of its own. Saved from here, they waited
-            // in `pending`, and a save that found the slot taken was skipped.
+            // save, as it passes: see `anistream_engine::settings::remember`. It says the
+            // settings after, the speed a new playback starts at among them. Saved from here,
+            // they waited in `pending`, and a save that found the slot taken was skipped.
             Event::PlaybackSpeed(speed) => {
-                // Remembered in config so the next episode starts at the same speed.
-                self.config.playback.persisted_speed = Some(speed);
                 if let Some(playing) = &mut self.playing {
                     playing.speed = speed;
                 }
@@ -1075,8 +1065,8 @@ impl App {
                 }
                 self.reflect_watch(Some(id), &episode, position, duration, watched);
             }
+            // In effect for the session already: the engine put it there on the way.
             Event::PlayerTranslation(translation) => {
-                self.config.playback.translation = translation;
                 self.push_toast(Notice::info(format!("now using {translation}")));
                 if let Some(playing) = &self.playing
                     && let Some(id) = playing.id
@@ -1088,11 +1078,6 @@ impl App {
                     self.pending = Some(Command::Play { id, episode });
                 }
             }
-            Event::PlayerUpscaling(name) => {
-                if let Some(mode) = anistream_core::config::Upscaling::from_name(&name) {
-                    self.config.playback.upscaling = mode;
-                }
-            }
             Event::PrefetchNext { id, episode } => {
                 // Best effort: an ending that arrives while something else holds the slot simply
                 // plays the next episode the usual way.
@@ -1100,12 +1085,10 @@ impl App {
                     self.pending = Some(Command::Prefetch { id, episode });
                 }
             }
-            Event::PlayerToneMapping(curve) => self.config.playback.tone_mapping = curve,
-            Event::PlayerNightMode(on) => self.config.playback.night_mode = on,
-            // Same contract as speed: remembered in config for the next episode.
-            Event::PlaybackVolume(volume) => {
-                self.config.playback.persisted_volume = Some(volume)
-            }
+            Event::PlayerUpscaling(_)
+            | Event::PlayerToneMapping(_)
+            | Event::PlayerNightMode(_)
+            | Event::PlaybackVolume(_) => {}
             // The playback still in the window ended while its successor was being found: the
             // successor is what was asked for, so nothing comes down and nothing rolls on.
             Event::PlaybackEnded { watched, .. } if self.superseded.is_some() => {
@@ -1353,8 +1336,7 @@ impl App {
     /// Each configured source, in the order failover walks them, and how it stands: see
     /// [`source_states`].
     pub fn source_states(&self) -> Vec<SourceChip> {
-        let configured = ConfiguredSources::of(&self.config.providers);
-        source_states(&configured, &self.providers, self.provider_note.is_some())
+        source_states(&self.settings.sources, &self.providers, self.provider_note.is_some())
     }
 
     /// Badge counts for the rail: work in flight, questions pending.
@@ -2084,12 +2066,11 @@ impl App {
             // open a small typed editor for the values that are text — a screen that
             // points at config.toml for a language code has given up two keys early.
             Action::Open | Action::PlayNext if self.in_settings_stage() => {
-                let rows = settings::rows(&self.config, &self.saved_config);
-                if let Some(row) = rows.into_iter().nth(self.selected)
-                    && let SettingChange::Typed { text } = row.change
+                if let Some(row) = self.settings.rows.get(self.selected)
+                    && let SettingChange::Typed { text } = &row.change
                 {
                     self.edit_target = Some(row.key);
-                    self.edit_value = text;
+                    self.edit_value = text.clone();
                     self.nav.open_overlay(Overlay::EditSetting);
                     return None;
                 }
@@ -2552,11 +2533,11 @@ impl App {
             }
             Action::ToggleTranslation => {
                 // For this session: the saved choice is the Settings row's to change.
-                self.config.playback.translation = self.config.playback.translation.toggled();
+                let translation = self.settings.translation.toggled();
                 self.push_toast(Notice::info(format!(
-                    "now using {} for this session",
-                    self.config.playback.translation
+                    "now using {translation} for this session"
                 )));
+                return Some(Command::SetTranslation { translation });
             }
             _ => {
                 // An action that means nothing here — a playback key with nothing playing, a
@@ -2684,7 +2665,7 @@ impl App {
     /// story). Only rows present in the title's episode table can be judged; an unknown
     /// episode is played rather than guessed about, and another show's table never answers.
     fn next_after_filler(&self, id: AnilistId, mut next: String) -> String {
-        if !self.config.playback.skip_filler {
+        if !self.settings.skip_filler {
             return next;
         }
         let rows = self.episode_rows_for(id);
@@ -2746,7 +2727,7 @@ impl App {
                 .iter()
                 .find(|e| e.number == episode)
                 .and_then(|e| e.title.clone()),
-            speed: self.config.playback.persisted_speed.unwrap_or(1.0),
+            speed: self.settings.speed.unwrap_or(1.0),
             ..NowPlaying::default()
         });
         self.nav.push(StageView::NowPlaying);
@@ -2962,8 +2943,7 @@ impl App {
     /// because flipping on both arrows meant Left could never arrive anywhere. Enter and Space
     /// still flip it. A row the arrows cannot step at all, typed or read-only, is at both ends.
     fn step_setting(&mut self, delta: isize) -> Option<Command> {
-        let rows = settings::rows(&self.config, &self.saved_config);
-        let moves = match rows.get(self.selected)?.change {
+        let moves = match self.settings.rows.get(self.selected)?.change {
             SettingChange::Steps { back, forward } => {
                 if delta < 0 {
                     back
@@ -3194,15 +3174,16 @@ impl App {
     /// The Settings screen's rows, as the config in effect and the file's make them, each
     /// under its heading and with the terminal's note.
     pub fn setting_rows(&self) -> Vec<SettingLine> {
-        settings::rows(&self.config, &self.saved_config)
-            .into_iter()
+        self.settings
+            .rows
+            .iter()
             .map(|row| SettingLine {
                 label: row.key.label(),
                 category: row.key.category(),
                 editable: row.change.editable(),
                 note: self.setting_note(row.key),
                 key: row.key,
-                value: row.value,
+                value: row.value.clone(),
             })
             .collect()
     }
@@ -3232,9 +3213,7 @@ impl App {
             S::UpdateCheck => "one cached request a day, checked at startup",
             // Enabling it without a client id is a no-op, and a toggle that appears to work
             // while doing nothing is worse than one that says why.
-            S::Presence if self.config.presence.resolved_client_id().is_some() => {
-                "takes effect on the next episode"
-            }
+            S::Presence if self.settings.presence_client => "takes effect on the next episode",
             S::Presence => "needs a client id — register an app at discord.com/developers",
             // The privacy dial. Off still publishes that you are watching *something*, which
             // is the point for anyone who wants the presence without the title.
@@ -3274,8 +3253,8 @@ impl App {
     fn cycle_setting(&mut self, delta: isize) -> Option<Command> {
         let id = *SettingKey::ROWS.get(self.selected)?;
         let rows = self.setting_rows();
-        let (table, key) = match id.path() {
-            Some(path) if rows.get(self.selected)?.editable => path,
+        match id.path() {
+            Some(_) if rows.get(self.selected)?.editable => {}
             _ => {
                 let note = rows.get(self.selected).and_then(|r| r.note);
                 self.push_toast(Notice::info(note.unwrap_or("not editable here")));
@@ -3287,44 +3266,32 @@ impl App {
             self.push_toast(Notice::info("enter types a value here"));
             return None;
         }
-        let value = settings::step(&self.config, &self.saved_config, id, delta as i64)?;
-        settings::put(&mut self.config, id, &value);
-        if id == SettingKey::Theme {
-            use anistream_core::config::ThemeMode;
-            // Repaint immediately. Re-running detection would read the terminal's background
-            // over OSC 11 from inside the render loop, which competes with the key reader for
-            // stdin; the variant found at startup is already the right answer.
-            self.palette = crate::theme::Palette::of(match self.config.theme.mode {
-                ThemeMode::Immersive => crate::theme::Variant::Immersive,
-                ThemeMode::Adaptive => self.adaptive_variant,
-            });
-        }
-        Some(Command::SaveSetting { table, key, value })
+        // The engine steps it, by the rules every front end shares, and says the outcome.
+        Some(Command::StepSetting { key: id, delta: delta as i64 })
     }
 
-    /// Put a setting whose write failed back to what the file holds.
+    /// The settings the engine says are in effect, in place of the last.
     ///
-    /// The reducer changes a setting before the write it asks for, so the screen answers at
-    /// once; when the write was refused — enabling torrents with no VPN, an unwritable file —
-    /// the screen and the status line went on showing the value that never landed.
-    fn roll_back_setting(&mut self, table: &[&str], key: &str) {
-        // The order has no Settings row. Its rows on Providers come back with the chain's own,
-        // sent with the refusal: the chain was never moved.
-        let Some(id) = SettingKey::at(table, key) else { return };
-        id.copy(&self.saved_config, &mut self.config);
-        if id == SettingKey::SourceOrder {
-            return;
-        }
-        if id == SettingKey::Theme {
-            use anistream_core::config::ThemeMode;
-            self.palette = crate::theme::Palette::of(match self.config.theme.mode {
+    /// A new theme repaints, from the variant detection found at startup: re-running detection
+    /// would read the terminal's background over OSC 11 from inside the render loop, which
+    /// competes with the key reader for stdin. A refused write has had its setting put back
+    /// already; the status line falls back to what is in effect, rather than a message about an
+    /// earlier save, and a refused theme repaints as the one in effect. The order has no row:
+    /// its Providers rows come back with the chain's own, sent with the refusal.
+    fn take_settings(&mut self, view: SettingsView) {
+        use anistream_core::config::ThemeMode;
+        let refused = view.refused.filter(|key| *key != SettingKey::SourceOrder);
+        let repaint = view.theme != self.settings.theme || refused == Some(SettingKey::Theme);
+        self.settings = view;
+        if repaint {
+            self.palette = crate::theme::Palette::of(match self.settings.theme {
                 ThemeMode::Immersive => crate::theme::Variant::Immersive,
                 ThemeMode::Adaptive => self.adaptive_variant,
             });
         }
-        // The status line falls back to what is in effect, rather than a message about an
-        // earlier save.
-        self.status.clear();
+        if refused.is_some() {
+            self.status.clear();
+        }
     }
 
     /// Actions matching the current palette query, in the order they are rendered.
@@ -3437,7 +3404,9 @@ impl App {
             }
             Action::Open if self.nav.overlay() == Some(&Overlay::EditSetting) => {
                 let id = self.edit_target.take()?;
-                let (table, key) = id.path().filter(|_| id.typed())?;
+                if !id.typed() {
+                    return None;
+                }
                 let value = self.edit_value.trim().to_owned();
                 self.nav.close_overlay();
                 if value.is_empty() {
@@ -3448,13 +3417,10 @@ impl App {
                     ));
                     return None;
                 }
-                let value = anistream_core::settings::SettingValue::Str(value);
-                if !settings::put(&mut self.config, id, &value) {
-                    return None;
-                }
                 // No toast here: the write reports itself once it has landed, which is the
                 // moment "saved" is true. Saying it now as well put two confirmations up.
-                return Some(Command::SaveSetting { table, key, value });
+                let value = anistream_core::settings::SettingValue::Str(value);
+                return Some(Command::SetSetting { key: id, value });
             }
             Action::Open if self.nav.overlay() == Some(&Overlay::DownloadRange) => {
                 let id = match self.nav.current() {
@@ -3905,17 +3871,17 @@ impl App {
     fn move_source(&mut self, step: isize) -> Option<Command> {
         let id = self.providers.get(self.selected)?.id.clone();
         let order =
-            order_with_source_moved(&self.config.providers.order, &self.providers, &id, step)?;
+            order_with_source_moved(&self.settings.sources.order, &self.providers, &id, step)?;
         // Every row is named in the new order, so its place there is its place in the chain.
         let place = |row: &ProviderRow| order.iter().position(|entry| *entry == row.id);
         self.providers.sort_by_key(|row| place(row).unwrap_or(order.len()));
         self.selected = self.providers.iter().position(|row| row.id == id).unwrap_or(0);
-        // In effect before it is on disk, as every setting is, so a second press moves on from
-        // this one rather than from the order before it.
-        self.config.providers.order = order.clone();
-        Some(Command::SaveSetting {
-            table: &["providers"],
-            key: "order",
+        // Taken as the order here before the engine says it is, so a second press moves on
+        // from this one rather than from the order before it. The engine's answer is the same
+        // order, or on a refusal the file's, with the chain's own rows.
+        self.settings.sources.order.clone_from(&order);
+        Some(Command::SetSetting {
+            key: SettingKey::SourceOrder,
             value: anistream_core::settings::SettingValue::List(order),
         })
     }
@@ -4362,10 +4328,71 @@ pub const ACTIVITY_DELAY: Duration = Duration::from_millis(600);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anistream_model::{catalog::RelatedTitle, episodes::EpisodeKind};
+    use anistream_core::{config::Config, settings::SettingValue};
+    use anistream_model::{catalog::RelatedTitle, episodes::EpisodeKind, settings};
 
     fn app() -> App {
-        App::new(Config::default(), Palette::dark(), Keymap::new())
+        App::new(SettingsView::default(), Palette::dark(), Keymap::new())
+    }
+
+    /// An app launched on `config`, as both what is in effect and what the file holds.
+    fn app_on(config: &Config) -> App {
+        App::new(settings::view(config, config), Palette::dark(), Keymap::new())
+    }
+
+    /// The engine's part in a change of settings, played by the model's own rules and with no
+    /// file: what each command puts in effect, and the settings it answers with. A write here
+    /// always lands, so what is in effect and what is saved move together; [`Self::refuse`]
+    /// answers one that does not.
+    struct Owner {
+        effective: Config,
+        saved: Config,
+    }
+
+    impl Owner {
+        fn new(config: Config) -> Self {
+            Self { saved: config.clone(), effective: config }
+        }
+
+        /// Do what `task` asks of the config, as the engine does, and tell the App the outcome.
+        /// Anything else is not the config's, and nothing is said.
+        fn answer(&mut self, a: &mut App, task: Option<Command>) {
+            let (key, value) = match task {
+                Some(Command::StepSetting { key, delta }) => {
+                    let Some(value) = settings::step(&self.effective, &self.saved, key, delta)
+                    else {
+                        return;
+                    };
+                    (key, value)
+                }
+                Some(Command::SetSetting { key, value }) => (key, value),
+                Some(Command::SetTranslation { translation }) => {
+                    self.effective.playback.translation = translation;
+                    return self.tell(a);
+                }
+                _ => return,
+            };
+            if settings::put(&mut self.effective, key, &value) {
+                settings::put(&mut self.saved, key, &value);
+            }
+            self.tell(a);
+        }
+
+        /// Refuse the write `task` asks for, as the engine does: the setting stays what the file
+        /// holds, and the App is told which one was put back.
+        fn refuse(&mut self, a: &mut App, task: Option<Command>) {
+            let key = match task {
+                Some(Command::StepSetting { key, .. } | Command::SetSetting { key, .. }) => key,
+                other => panic!("not a write: {other:?}"),
+            };
+            let view = settings::view(&self.effective, &self.saved);
+            a.apply(Event::Settings(SettingsView { refused: Some(key), ..view }));
+        }
+
+        /// Tell the App the settings as they stand.
+        fn tell(&self, a: &mut App) {
+            a.apply(Event::Settings(settings::view(&self.effective, &self.saved)));
+        }
     }
 
     fn entries(n: usize) -> Content {
@@ -4762,10 +4789,15 @@ mod tests {
         }
         let task = a.handle(Action::Open, 20).expect("enter must save");
         assert!(
-            matches!(task, Command::SaveSetting { key: "subtitle_language", .. }),
+            matches!(
+                &task,
+                Command::SetSetting { key: SettingKey::Subtitles, value: SettingValue::Str(v) }
+                    if v == "spa"
+            ),
             "got {task:?}"
         );
-        assert_eq!(a.config.playback.subtitle_language, "spa");
+        Owner::new(Config::default()).answer(&mut a, Some(task));
+        assert_eq!(setting_text(&a, SettingKey::Subtitles), "spa");
         assert_eq!(a.nav.overlay(), None);
     }
 
@@ -4902,7 +4934,7 @@ mod tests {
             a.type_char(c);
         }
         let task = a.handle(Action::Open, 10);
-        assert!(matches!(task, Some(Command::SaveSetting { key: "subtitle_language", .. })));
+        assert!(matches!(task, Some(Command::SetSetting { key: SettingKey::Subtitles, .. })));
         assert!(a.toasts.is_empty(), "the save says so when it lands: {:?}", a.toasts);
     }
 
@@ -4975,7 +5007,7 @@ mod tests {
     fn a_named_plugin_adds_no_chip_of_its_own() {
         // The `"plugins"` chip speaks for every plugin, named in the order or not.
         let mut a = app();
-        a.config.providers.order = strings(&["alpha", "torrent", "plugins"]);
+        a.settings.sources.order = strings(&["alpha", "torrent", "plugins"]);
         a.apply(Event::Providers(vec![source_row("alpha", "plugin")]));
         assert_eq!(
             a.source_states(),
@@ -4986,7 +5018,7 @@ mod tests {
     /// An app on Providers with the stage focused, showing a torrent source and two plugins.
     fn at_providers() -> App {
         let mut a = app();
-        a.config.providers.order = strings(&["torrent", "plugins"]);
+        a.settings.sources.order = strings(&["torrent", "plugins"]);
         a.go_to_section(Section::Providers);
         a.nav.focus_stage();
         a.apply(Event::Providers(vec![
@@ -5004,10 +5036,9 @@ mod tests {
     /// The order a task saves, for a task that must be the order being saved.
     fn saved_order(task: Option<Command>) -> Vec<String> {
         match task {
-            Some(Command::SaveSetting {
-                table: ["providers"],
-                key: "order",
-                value: anistream_core::settings::SettingValue::List(order),
+            Some(Command::SetSetting {
+                key: SettingKey::SourceOrder,
+                value: SettingValue::List(order),
             }) => order,
             other => panic!("not an order save: {other:?}"),
         }
@@ -5027,7 +5058,7 @@ mod tests {
         assert_eq!(order, strings(&["alpha", "torrent", "beta", "plugins"]));
         assert_eq!(row_ids(&a), ["alpha", "torrent", "beta"], "the rows move at once");
         assert_eq!(a.selected, 0, "the cursor goes with its row");
-        assert_eq!(a.config.providers.order, order, "the next press starts from it");
+        assert_eq!(a.settings.sources.order, order, "the next press starts from it");
 
         // At the top: nothing moves and nothing is saved.
         assert_eq!(press(&mut a, 'K'), None);
@@ -5071,15 +5102,14 @@ mod tests {
         let mut a = at_providers();
         assert_eq!(a.setting_label(&["providers"], "order"), Some("source order"));
 
-        let before = a.config.providers.order.clone();
-        a.saved_config.providers.order = before.clone();
-        press(&mut a, 'J');
-        assert_ne!(a.config.providers.order, before);
-        a.apply(Event::SettingWritten {
-            on_disk: Box::new(a.saved_config.clone()),
-            failed: Some((&["providers"], "order")),
-        });
-        assert_eq!(a.config.providers.order, before);
+        let mut owner = Owner::new(Config::default());
+        owner.effective.providers.order = a.settings.sources.order.clone();
+        owner.saved.providers.order = a.settings.sources.order.clone();
+        let before = a.settings.sources.order.clone();
+        let task = press(&mut a, 'J');
+        assert_ne!(a.settings.sources.order, before);
+        owner.refuse(&mut a, task);
+        assert_eq!(a.settings.sources.order, before);
     }
 
     #[test]
@@ -5638,9 +5668,8 @@ mod tests {
         }
         assert_eq!(a.take_pending(), Some(prefetch), "the ending's work keeps the slot");
         assert_eq!(a.take_pending(), None, "and no save waits behind it");
-        // In effect here as well, for as long as the interface keeps a config of its own.
-        assert!(a.config.playback.night_mode);
-        assert_eq!(a.config.playback.upscaling, anistream_core::config::Upscaling::Sharp);
+        // Nor kept here: what is in effect is the engine's to say, in `Settings`.
+        assert_eq!(a.settings, SettingsView::default());
     }
 
     #[test]
@@ -5726,7 +5755,7 @@ mod tests {
     #[test]
     fn auto_next_steps_over_filler_when_asked() {
         let mut a = app_at_episodes();
-        a.config.playback.skip_filler = true;
+        a.settings.skip_filler = true;
         for list in [&mut a.episodes, &mut a.episodes_all] {
             for i in [1, 2] {
                 list[i].skippable = true;
@@ -5749,8 +5778,12 @@ mod tests {
     fn a_remembered_speed_carries_into_the_next_episode() {
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
+        // The speed, then what the engine makes of it: remembered, for the next episode.
         a.apply(Event::PlaybackSpeed(1.25));
-        assert_eq!(a.config.playback.persisted_speed, Some(1.25));
+        let mut owner = Owner::new(Config::default());
+        owner.effective.playback.persisted_speed = Some(1.25);
+        owner.tell(&mut a);
+        assert_eq!(a.settings.speed, Some(1.25));
 
         a.apply(finished(Some("2")));
         a.take_pending();
@@ -7326,35 +7359,38 @@ mod tests {
 
         a.handle(Action::JumpSection(9), 5);
         a.selected = setting_row(SettingKey::Motion);
-        a.config.theme.motion = true;
+        let mut owner = Owner::new(Config::default());
+        owner.effective.theme.motion = true;
+        owner.tell(&mut a);
         assert_eq!(a.handle(Action::Right, 5), None, "a switch that is on stays on");
-        assert!(a.config.theme.motion);
-        assert!(matches!(
-            a.handle(Action::Left, 5),
-            Some(Command::SaveSetting {
-                value: anistream_core::settings::SettingValue::Bool(false),
-                ..
-            })
-        ));
+        assert_eq!(setting_text(&a, SettingKey::Motion), "on");
+        let task = a.handle(Action::Left, 5);
+        assert_eq!(task, Some(Command::StepSetting { key: SettingKey::Motion, delta: -1 }));
+        owner.answer(&mut a, task);
         assert_eq!(a.handle(Action::Left, 5), None);
         assert_eq!(a.nav.focus(), Focus::Rail);
-        assert!(!a.config.theme.motion, "reaching the rail changed nothing");
+        assert_eq!(
+            setting_text(&a, SettingKey::Motion),
+            "off",
+            "reaching the rail changed nothing"
+        );
 
         // A ladder on its bottom rung and a typed value have nothing further left either.
         for (row, prepare) in [
             (
                 SettingKey::Quality,
-                (|a: &mut App| a.config.playback.quality = 480) as fn(&mut App),
+                (|owner: &mut Owner| owner.effective.playback.quality = 480) as fn(&mut Owner),
             ),
             (SettingKey::Subtitles, |_| {}),
         ] {
             a.nav.focus_stage();
             a.selected = setting_row(row);
-            prepare(&mut a);
+            prepare(&mut owner);
+            owner.tell(&mut a);
             assert_eq!(a.handle(Action::Left, 5), None, "{row:?}");
             assert_eq!(a.nav.focus(), Focus::Rail, "{row:?}");
         }
-        assert_eq!(a.config.playback.quality, 480);
+        assert_eq!(a.settings.quality, 480);
     }
 
     #[test]
@@ -7428,8 +7464,9 @@ mod tests {
     /// watch had nowhere to land — and auto-next, asking the same question, stayed put.
     #[test]
     fn reaching_episodes_by_key_still_lands_a_finished_watch_on_the_table() {
+        // Auto-next is on by default, and the playback's to decide: it names the next episode
+        // in the ending it reports.
         let mut a = app();
-        a.config.playback.auto_next = true;
         a.apply(a.content_here(entries(3)));
         a.nav.focus_stage();
         let id = a.selected_entry().expect("an entry").id;
@@ -7828,28 +7865,29 @@ mod tests {
 
     #[test]
     fn the_settings_screen_steps_an_off_ladder_quality_up_not_down() {
-        use anistream_core::settings::SettingValue;
         let mut config = Config::default();
         config.playback.quality = 1440;
         config.playback.commit_threshold = 0.97;
-        let mut a = App::new(config, Palette::dark(), Keymap::new());
+        let mut a = app_on(&config);
+        let mut owner = Owner::new(config);
         a.go_to_section(Section::Settings);
         a.nav.focus_stage();
 
         a.selected = SettingKey::ROWS.iter().position(|id| *id == SettingKey::Quality).unwrap();
         let task = a.handle(Action::Right, 10);
-        assert_eq!(a.config.playback.quality, 2160);
-        assert!(matches!(
-            task,
-            Some(Command::SaveSetting { value: SettingValue::Int(2160), .. })
-        ));
+        assert_eq!(task, Some(Command::StepSetting { key: SettingKey::Quality, delta: 1 }));
+        owner.answer(&mut a, task);
+        assert_eq!(a.settings.quality, 2160);
+        assert_eq!(owner.saved.playback.quality, 2160, "the step written is up the ladder");
 
         a.selected =
             SettingKey::ROWS.iter().position(|id| *id == SettingKey::CommitThreshold).unwrap();
-        a.handle(Action::Right, 10);
-        assert_eq!(a.config.playback.commit_threshold, 0.97, "→ never lowers it");
-        a.handle(Action::Left, 10);
-        assert_eq!(a.config.playback.commit_threshold, 0.95);
+        assert_eq!(a.handle(Action::Right, 10), None, "→ never lowers it");
+        assert_eq!(setting_text(&a, SettingKey::CommitThreshold), "97%");
+        let task = a.handle(Action::Left, 10);
+        owner.answer(&mut a, task);
+        assert_eq!(setting_text(&a, SettingKey::CommitThreshold), "95%");
+        assert_eq!(owner.saved.playback.commit_threshold, 0.95);
     }
 
     fn setting_text(a: &App, id: SettingKey) -> String {
@@ -7870,17 +7908,12 @@ mod tests {
         // The value changed before the write and nothing undid it, so a refused write — torrents
         // on with no VPN configured — went on showing "on" and the status line the new value.
         let mut a = settings_at(SettingKey::Torrents);
-        let Some(Command::SaveSetting { table, key, .. }) = a.handle(Action::Right, 10) else {
-            panic!("no write asked for")
-        };
-        assert!(a.config.providers.torrent.enabled, "the screen answers at once");
+        let task = a.handle(Action::Right, 10);
+        assert_eq!(task, Some(Command::StepSetting { key: SettingKey::Torrents, delta: 1 }));
         a.status = "saved quality".into();
 
-        a.apply(Event::SettingWritten {
-            on_disk: Box::new(Config::default()),
-            failed: Some((table, key)),
-        });
-        assert!(!a.config.providers.torrent.enabled, "back to what the file holds");
+        Owner::new(Config::default()).refuse(&mut a, task);
+        assert!(!a.settings.sources.torrent, "back to what the file holds");
         assert_eq!(setting_text(&a, SettingKey::Torrents), "off");
         assert!(a.status.is_empty(), "the status line shows what is in effect again");
     }
@@ -7890,19 +7923,16 @@ mod tests {
         // A second setting changed while the first write was refused has its own write, which
         // landed; undoing everything would undo that too.
         let mut a = settings_at(SettingKey::Quality);
-        a.handle(Action::Right, 10);
-        let mut on_disk = Config::default();
-        on_disk.playback.quality = 2160;
+        let mut owner = Owner::new(Config::default());
+        let task = a.handle(Action::Right, 10);
+        owner.answer(&mut a, task);
         a.selected =
             SettingKey::ROWS.iter().position(|row| *row == SettingKey::Torrents).unwrap();
-        a.handle(Action::Right, 10);
+        let task = a.handle(Action::Right, 10);
 
-        a.apply(Event::SettingWritten {
-            on_disk: Box::new(on_disk),
-            failed: Some((&["providers", "torrent"], "enabled")),
-        });
-        assert_eq!(a.config.playback.quality, 2160);
-        assert!(!a.config.providers.torrent.enabled);
+        owner.refuse(&mut a, task);
+        assert_eq!(a.settings.quality, 2160);
+        assert!(!a.settings.sources.torrent);
     }
 
     #[test]
@@ -7910,21 +7940,24 @@ mod tests {
         // `t` is for this session, and Settings showed it as if saved while the file and the
         // next launch said otherwise.
         let mut a = app();
-        a.handle(Action::ToggleTranslation, 10);
+        let task = a.handle(Action::ToggleTranslation, 10);
+        Owner::new(Config::default()).answer(&mut a, task);
         assert_eq!(setting_text(&a, SettingKey::Translation), "sub · dub this session");
         assert!(a.toasts.last().unwrap().notice.text.contains("for this session"));
 
         // The arrows change the saved value, the one the row leads with.
         let mut a = settings_at(SettingKey::Translation);
-        a.handle(Action::ToggleTranslation, 10);
+        let mut owner = Owner::new(Config::default());
+        let task = a.handle(Action::ToggleTranslation, 10);
+        owner.answer(&mut a, task);
         let task = a.handle(Action::Right, 10);
-        assert!(matches!(
-            task,
-            Some(Command::SaveSetting { key: "translation", value: anistream_core::settings::SettingValue::Str(ref v), .. }) if v == "dub"
-        ));
-        let mut on_disk = Config::default();
-        on_disk.playback.translation = anistream_core::media::Translation::Dub;
-        a.apply(Event::SettingWritten { on_disk: Box::new(on_disk), failed: None });
+        assert_eq!(task, Some(Command::StepSetting { key: SettingKey::Translation, delta: 1 }));
+        owner.answer(&mut a, task);
+        assert_eq!(
+            owner.saved.playback.translation,
+            anistream_core::media::Translation::Dub,
+            "dub is what is written"
+        );
         assert_eq!(setting_text(&a, SettingKey::Translation), "dub");
     }
 
@@ -7933,15 +7966,15 @@ mod tests {
         use anistream_core::config::ThemeMode;
         let mut config = Config::default();
         config.theme.mode = ThemeMode::Immersive;
-        let mut a = App::new(config, Palette::dark(), Keymap::new());
-        a.saved_config.theme.mode = ThemeMode::Adaptive;
+        let saved = Config::default();
+        let a = App::new(settings::view(&config, &saved), Palette::dark(), Keymap::new());
         assert_eq!(setting_text(&a, SettingKey::Theme), "adaptive · immersive this session");
     }
 
     #[test]
     fn settings_rows_cycle_and_ask_to_be_persisted() {
-        use anistream_core::settings::SettingValue;
         let mut a = app();
+        let mut owner = Owner::new(Config::default());
         a.go_to_section(Section::Settings);
         a.nav.focus_stage();
 
@@ -7949,29 +7982,24 @@ mod tests {
         let quality_row =
             SettingKey::ROWS.iter().position(|id| *id == SettingKey::Quality).unwrap();
         a.selected = quality_row;
-        assert_eq!(a.config.playback.quality, 1080);
+        assert_eq!(a.settings.quality, 1080);
         let task = a.handle(Action::Right, 10);
-        assert_eq!(a.config.playback.quality, 2160, "the change must apply immediately");
-        assert_eq!(
-            task,
-            Some(Command::SaveSetting {
-                table: &["playback"],
-                key: "quality",
-                value: SettingValue::Int(2160),
-            })
-        );
-        a.handle(Action::Right, 10);
-        assert_eq!(a.config.playback.quality, 2160, "clamped at the top of the ladder");
-        a.handle(Action::Left, 10);
-        assert_eq!(a.config.playback.quality, 1080);
+        assert_eq!(task, Some(Command::StepSetting { key: SettingKey::Quality, delta: 1 }));
+        owner.answer(&mut a, task);
+        assert_eq!(a.settings.quality, 2160, "the change applies once the engine has it");
+        assert_eq!(owner.saved.playback.quality, 2160, "and is written");
+        assert_eq!(a.handle(Action::Right, 10), None, "clamped at the top of the ladder");
+        let task = a.handle(Action::Left, 10);
+        owner.answer(&mut a, task);
+        assert_eq!(a.settings.quality, 1080);
 
         // And the rows that cannot be edited here say so instead of silently ignoring the key.
         let vpn_row =
             SettingKey::ROWS.iter().position(|id| *id == SettingKey::VpnMode).unwrap();
         a.selected = vpn_row;
-        let before = format!("{:?}", a.config.providers.torrent.vpn.mode);
+        let before = setting_text(&a, SettingKey::VpnMode);
         assert_eq!(a.handle(Action::Right, 10), None);
-        assert_eq!(format!("{:?}", a.config.providers.torrent.vpn.mode), before);
+        assert_eq!(setting_text(&a, SettingKey::VpnMode), before);
         assert!(
             a.toasts.iter().any(|t| t.notice.text.contains("config.toml")),
             "a read-only row must explain itself"
@@ -7980,69 +8008,63 @@ mod tests {
 
     #[test]
     fn seeding_is_set_from_the_settings_screen() {
-        use anistream_core::settings::SettingValue;
         let mut a = app();
+        let mut owner = Owner::new(Config::default());
         a.go_to_section(Section::Settings);
         a.nav.focus_stage();
         let at = |id| SettingKey::ROWS.iter().position(|row| *row == id).unwrap();
 
         // Off by default; one step right turns it on, at a modest ratio.
         a.selected = at(SettingKey::SeedRatio);
-        assert_eq!(a.config.providers.torrent.seeding.ratio, 0.0);
-        assert_eq!(
-            a.handle(Action::Right, 10),
-            Some(Command::SaveSetting {
-                table: &["providers", "torrent", "seeding"],
-                key: "ratio",
-                value: SettingValue::Float(0.5),
-            })
-        );
-        assert!(a.config.providers.torrent.seeding.enabled());
+        assert_eq!(setting_text(&a, SettingKey::SeedRatio), "off");
+        let task = a.handle(Action::Right, 10);
+        assert_eq!(task, Some(Command::StepSetting { key: SettingKey::SeedRatio, delta: 1 }));
+        owner.answer(&mut a, task);
+        assert_eq!(owner.saved.providers.torrent.seeding.ratio, 0.5);
+        assert!(owner.effective.providers.torrent.seeding.enabled());
 
         a.selected = at(SettingKey::SeedHours);
-        assert_eq!(
-            a.handle(Action::Right, 10),
-            Some(Command::SaveSetting {
-                table: &["providers", "torrent", "seeding"],
-                key: "hours",
-                value: SettingValue::Int(72),
-            })
-        );
+        let task = a.handle(Action::Right, 10);
+        assert_eq!(task, Some(Command::StepSetting { key: SettingKey::SeedHours, delta: 1 }));
+        owner.answer(&mut a, task);
+        assert_eq!(owner.saved.providers.torrent.seeding.hours, 72);
 
         a.selected = at(SettingKey::UploadLimit);
         let rows = a.setting_rows();
         assert_eq!(rows[a.selected].value, "unlimited");
-        a.handle(Action::Right, 10);
+        let task = a.handle(Action::Right, 10);
+        owner.answer(&mut a, task);
         // 256 KiB/s in the file, said in the decimal units every other size uses.
         assert_eq!(a.setting_rows()[a.selected].value, "262 kB/s");
         for _ in 0..3 {
-            a.handle(Action::Right, 10);
+            let task = a.handle(Action::Right, 10);
+            owner.answer(&mut a, task);
         }
         assert_eq!(a.setting_rows()[a.selected].value, "2.1 MB/s");
     }
 
     #[test]
     fn discord_presence_can_be_toggled_from_settings() {
-        use anistream_core::settings::SettingValue;
         let mut a = app();
+        let mut owner = Owner::new(Config::default());
         a.go_to_section(Section::Settings);
         a.nav.focus_stage();
         a.selected =
             SettingKey::ROWS.iter().position(|id| *id == SettingKey::Presence).unwrap();
 
-        assert!(!a.config.presence.enabled, "off by default: it publishes to a third party");
-        let task = a.handle(Action::Open, 10);
-        assert!(a.config.presence.enabled);
         assert_eq!(
-            task,
-            Some(Command::SaveSetting {
-                table: &["presence"],
-                key: "enabled",
-                value: SettingValue::Bool(true),
-            })
+            setting_text(&a, SettingKey::Presence),
+            "off",
+            "off by default: it publishes to a third party"
         );
-        a.handle(Action::Open, 10);
-        assert!(!a.config.presence.enabled, "and back off again");
+        let task = a.handle(Action::Open, 10);
+        assert_eq!(task, Some(Command::StepSetting { key: SettingKey::Presence, delta: 1 }));
+        owner.answer(&mut a, task);
+        assert!(owner.saved.presence.enabled, "written on");
+        assert_eq!(setting_text(&a, SettingKey::Presence), "on");
+        let task = a.handle(Action::Open, 10);
+        owner.answer(&mut a, task);
+        assert_eq!(setting_text(&a, SettingKey::Presence), "off", "and back off again");
     }
 
     #[test]
@@ -8062,8 +8084,10 @@ mod tests {
 
         // Blanking the field must still resolve, via the shipped default — otherwise clearing it
         // instead of deleting the line would silently disable the feature.
-        a.config.presence.client_id = Some(String::new());
-        assert!(a.config.presence.resolved_client_id().is_some());
+        let mut config = Config::default();
+        config.presence.client_id = Some(String::new());
+        assert!(config.presence.resolved_client_id().is_some());
+        assert!(settings::view(&config, &config).presence_client);
     }
 
     #[test]
@@ -8433,9 +8457,11 @@ mod tests {
     #[test]
     fn toggling_translation_updates_config_and_says_so() {
         let mut a = app();
-        let before = a.config.playback.translation;
-        a.handle(Action::ToggleTranslation, 10);
-        assert_ne!(a.config.playback.translation, before);
+        let before = a.settings.translation;
+        let task = a.handle(Action::ToggleTranslation, 10);
+        assert_eq!(task, Some(Command::SetTranslation { translation: before.toggled() }));
+        Owner::new(Config::default()).answer(&mut a, task);
+        assert_ne!(a.settings.translation, before);
         assert!(a.toasts[0].notice.text.contains("dub"));
     }
 

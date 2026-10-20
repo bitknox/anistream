@@ -25,10 +25,12 @@ pub struct ConfigState {
 }
 
 impl ConfigState {
-    /// The config the app was launched on, in effect, and the file as it is now. A file that
-    /// does not load is read as startup reads it, as the defaults.
-    pub fn new(launched: Config, paths: &Paths) -> Self {
-        Self { saved: Config::load(paths).unwrap_or_default(), effective: launched }
+    /// The config the app was launched on, in effect, and the file's: `saved` when the front
+    /// end has read it, or the file as it is now. A file that does not load is read as startup
+    /// reads it, as the defaults.
+    pub fn new(launched: Config, saved: Option<Config>, paths: &Paths) -> Self {
+        let saved = saved.unwrap_or_else(|| Config::load(paths).unwrap_or_default());
+        Self { saved, effective: launched }
     }
 
     /// The config in effect.
@@ -52,8 +54,8 @@ impl ConfigState {
         settings::view(&self.effective, &self.saved)
     }
 
-    /// Both, as the front end says they are. Temporary, for `UseConfig`, while the front end
-    /// changes its own copy in place.
+    /// Both, as a front end says they are, with `UseConfig`. Temporary: nothing sends it any
+    /// more, and it goes with the command.
     pub fn take(&mut self, effective: Config, saved: Config) {
         self.effective = effective;
         self.saved = saved;
@@ -101,7 +103,7 @@ mod tests {
     fn a_refused_write_puts_back_only_its_own_setting() {
         let dir = tempfile::tempdir().unwrap();
         let paths = paths_in(dir.path());
-        let mut config = ConfigState::new(Config::default(), &paths);
+        let mut config = ConfigState::new(Config::default(), None, &paths);
 
         config.effective_mut().playback.quality = 2160;
         config.write(&paths, &["playback"], "quality", SettingValue::Int(2160)).unwrap();

@@ -6,13 +6,14 @@
 
 use std::collections::BTreeMap;
 
-use anistream_core::{config::Config, ids::AnilistId};
+use anistream_core::ids::AnilistId;
 use anistream_model::{
     catalog::{Content, Entry, ResumePoint},
     command::Command,
     episodes::EpisodeRow,
     event::Event,
     notice::Notice,
+    settings::SettingsView,
     sync::SyncState,
 };
 use anistream_tui::{
@@ -26,7 +27,7 @@ use ratatui::buffer::Buffer;
 const ROWS: usize = 20;
 
 fn app() -> App {
-    App::new(Config::default(), Palette::dark(), Keymap::new())
+    App::new(SettingsView::default(), Palette::dark(), Keymap::new())
 }
 
 fn entries(n: u32) -> Content {
@@ -126,12 +127,12 @@ fn nothing_behind_help_or_logs_changes_or_saves_a_setting() {
     // config.toml.
     for overlay in ["?", "L"] {
         let mut a = at_settings();
-        let config = format!("{:?}", a.config);
+        let config = format!("{:?}", a.settings);
         press(&mut a, &[overlay]);
         assert!(a.nav.has_overlay());
         let tasks = press(&mut a, SCREEN_KEYS);
         assert!(tasks.is_empty(), "{overlay}: keys behind the overlay made work: {tasks:?}");
-        assert_eq!(format!("{:?}", a.config), config, "{overlay}: a setting changed");
+        assert_eq!(format!("{:?}", a.settings), config, "{overlay}: a setting changed");
         assert_eq!(a.selected, 1, "{overlay}: the settings cursor moved behind the overlay");
         assert_eq!(a.nav.section(), Section::Settings);
         assert!(a.nav.has_overlay(), "{overlay}: a stray key closed it");
@@ -276,7 +277,7 @@ fn esc_cancels_the_palette_whatever_back_is_rebound_to() {
     // was typed into the query.
     let mut keymap = Keymap::new();
     assert!(keymap.apply_overrides(&BTreeMap::from([("back".into(), "z".into())])).is_empty());
-    let mut a = App::new(Config::default(), Palette::dark(), keymap);
+    let mut a = App::new(SettingsView::default(), Palette::dark(), keymap);
     press(&mut a, &[":", "z"]);
     assert_eq!(a.palette_query, "z", "a letter is typed into the palette");
     press(&mut a, &["esc"]);

@@ -17,6 +17,10 @@ pub struct EngineOptions {
     /// The config the app was launched with: the file's, with whatever the command line
     /// changed for this session.
     pub config: Config,
+    /// The config the file holds, when the front end has read it already, or `None` for the
+    /// engine to read it from `paths`. What tells the session's own choices from the file's on
+    /// the Settings screen.
+    pub saved: Option<Config>,
     /// The client every request goes through, with the configured proxy and timeouts.
     pub http: HttpClient,
     /// The local database.
@@ -57,6 +61,7 @@ impl EngineOptions {
         Self {
             paths,
             config,
+            saved: None,
             http,
             store,
             player_theme,

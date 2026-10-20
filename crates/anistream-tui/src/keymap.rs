@@ -1662,7 +1662,7 @@ mod tests {
         // The whole point of not having a footer: at most a few hints, never a wall.
         use crate::nav::StageView;
         let mut app = crate::app::App::new(
-            anistream_core::config::Config::default(),
+            anistream_model::settings::SettingsView::default(),
             crate::theme::Palette::dark(),
             Keymap::new(),
         );
@@ -1698,7 +1698,7 @@ mod tests {
     #[test]
     fn providers_offers_the_order_keys_as_one_hint_once_there_is_something_to_order() {
         let mut app = crate::app::App::new(
-            anistream_core::config::Config::default(),
+            anistream_model::settings::SettingsView::default(),
             crate::theme::Palette::dark(),
             Keymap::new(),
         );
@@ -1739,7 +1739,7 @@ mod tests {
         // Space pauses and `q` detaches while something plays, so "space play next" and
         // "q back" were both wrong there.
         let mut app = crate::app::App::new(
-            anistream_core::config::Config::default(),
+            anistream_model::settings::SettingsView::default(),
             crate::theme::Palette::dark(),
             Keymap::new(),
         );

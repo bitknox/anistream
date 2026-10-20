@@ -63,10 +63,7 @@ use anistream_tui::{
 
 use crate::{
     covers,
-    tui::{
-        run::show_config_problem,
-        seams::{ConfigSeam, command},
-    },
+    tui::{run::show_config_problem, seams::command},
 };
 
 /// How long [`Harness::settle`] waits for work to finish before failing the test.
@@ -120,7 +117,6 @@ pub struct Harness {
     // The engine and what it says, held as the event loop holds them.
     engine: Engine,
     events: EventStream,
-    seam: ConfigSeam,
     jobs: Jobs,
     /// How many commands the engine had routed when it last said it had nothing left to do.
     idle: u64,
@@ -199,13 +195,13 @@ impl Harness {
         let palette = theme::resolve_with(config.theme.mode, None);
         let mut keymap = Keymap::new();
         let problems = keymap.apply_overrides(&config.keys);
-        let mut app =
-            App::with_images(config.clone(), palette, keymap, ImageEngine::disabled());
+        let saved = Config::load(&paths).unwrap_or_default();
+        let settings = anistream_model::settings::view(&config, &saved);
+        let mut app = App::with_images(settings, palette, keymap, ImageEngine::disabled());
         app.clock = Clock::fixed(options.now, zone());
         for problem in problems {
             app.push_toast(Notice::alert(format!("keybinding not applied: {problem}")));
         }
-        app.saved_config = Config::load(&paths).unwrap_or_default();
         if let Some(problem) = &problem {
             show_config_problem(&mut app, &paths, problem);
         }
@@ -220,6 +216,7 @@ impl Harness {
             store.clone(),
             theme::player_theme(),
         );
+        start.saved = Some(saved);
         start.sources = Some(registry.clone());
         start.background = false;
         start.parts = Some(Parts { meta, sync, stores });
@@ -239,7 +236,6 @@ impl Harness {
             size: options.size,
             engine,
             events,
-            seam: ConfigSeam::default(),
             jobs: Jobs::default(),
             idle: 0,
             trace: Vec::new(),
@@ -328,8 +324,6 @@ impl Harness {
             for url in self.app.visible_artwork(self.rows()) {
                 self.dispatch(Command::FetchArtwork { url });
             }
-            // And whatever moved the config since, before the reactions read it.
-            self.use_config();
             if self.idle == self.engine.sent() {
                 break;
             }
@@ -464,27 +458,25 @@ impl Harness {
         self.app.jobs.iter().map(|job| job.label.clone()).collect()
     }
 
-    /// A command sent as the loop sends one: the config ahead of it when it moved, then the
-    /// command, its job numbered as it is sent.
+    /// A command sent as the loop sends one: a play's hints ahead of it, then the command, its
+    /// job numbered as it is sent.
     fn dispatch(&mut self, task: Command) -> Option<JobId> {
-        let job = command(&self.app, &mut self.seam, task, &self.engine);
+        let job = command(&self.app, task, &self.engine);
         self.jobs.started.extend(job);
         job
-    }
-
-    /// `use_config`, as the loop calls it before its reactions.
-    fn use_config(&mut self) {
-        if let Some(config) = self.seam.moved(&self.app) {
-            self.engine.send(config);
-        }
     }
 
     /// A message the engine side left itself, handled: in the trace after what it said, where
     /// the App applied it when it rode the event channel. Unless it was passed on, and is there
     /// as the event already.
     fn handled(&mut self, message: Internal) {
+        // What `sources::torrent_wanted` asks of the config, of the sources the App was told.
+        let configured = &self.app.settings.sources;
+        let torrent_wanted = configured.torrent
+            && configured.order.iter().any(|id| id == "torrent")
+            && !configured.disabled.iter().any(|id| id == "torrent");
         assert!(
-            message != Internal::SourcesChanged || !sources::torrent_wanted(&self.app.config),
+            message != Internal::SourcesChanged || !torrent_wanted,
             "the harness has no torrent session or VPN guard to bring up"
         );
         match message {
