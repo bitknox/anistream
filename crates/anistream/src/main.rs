@@ -22,7 +22,7 @@ use services::Services;
 use anistream_engine::{
     SharedConfig, artwork,
     background::prune,
-    data, downloads,
+    data, downloads, now_epoch,
     outbox::{Envelope, Internal, Outbox},
     playback::{
         self,
@@ -4037,13 +4037,6 @@ const CALENDAR_PER_PAGE: u32 = 50;
 const CALENDAR_INITIAL_PAST_PAGES: u32 = 3;
 /// And forward, covering the week ahead by the same measure.
 const CALENDAR_FUTURE_PAGES: u32 = 3;
-
-fn now_epoch() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_secs() as i64)
-        .unwrap_or_default()
-}
 
 /// The season containing today, derived from the epoch without a calendar dependency.
 fn current_season() -> (anistream_meta::anilist::Season, u16) {

@@ -9,7 +9,9 @@ use anistream_store::Store;
 use anistream_tui::theme;
 use anyhow::Result;
 
-use crate::{describe_graphics, now_epoch, old_mpv_note, plain_failure};
+use anistream_engine::now_epoch;
+
+use crate::{describe_graphics, old_mpv_note, plain_failure};
 
 /// Report the environment, without starting the UI.
 pub async fn doctor(config: &Config, paths: &Paths, store: &Store, images: bool) -> Result<()> {

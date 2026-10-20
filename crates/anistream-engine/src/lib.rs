@@ -30,3 +30,10 @@ pub mod plugin_stores;
 pub mod sources;
 pub mod tracking;
 pub mod updates;
+
+pub fn now_epoch() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs() as i64)
+        .unwrap_or_default()
+}
