@@ -1250,74 +1250,9 @@ mod tests {
     use super::*;
     use anistream_engine::playback::player::shader_dir;
     use anistream_engine::settings::{SETTING_LABELS, setting_label};
-    use anistream_model::episodes::EpisodeRow;
 
     fn test_app() -> App {
         App::new(Config::default(), theme::Palette::dark(), Keymap::new())
-    }
-
-    #[test]
-    fn the_engine_side_hears_of_a_config_change_before_the_next_command() {
-        let mut app = test_app();
-        let mut seam = ConfigSeam::default();
-        assert!(matches!(seam.moved(&app), Some(Command::UseConfig { .. })), "said at once");
-        assert_eq!(seam.moved(&app), None, "and not again while nothing moves");
-
-        app.config.playback.auto_next = false;
-        let Some(Command::UseConfig { config, saved }) = seam.moved(&app) else {
-            panic!("a change in effect is said");
-        };
-        assert!(!config.playback.auto_next);
-        assert!(saved.playback.auto_next, "the file is told apart from what is in effect");
-
-        // A write read back, or one put back, moves only the file's half.
-        app.saved_config.playback.auto_next = false;
-        assert!(seam.moved(&app).is_some());
-    }
-
-    #[test]
-    fn a_play_is_sent_with_what_the_screen_knows_of_its_title() {
-        use anistream_core::ids::AnilistId;
-        let id = AnilistId::new(7);
-        let mut app = test_app();
-        let play = Command::Play { id, episode: "2".into() };
-        // Nothing of it on screen: nothing to announce, and a list the playback loads itself.
-        let nothing =
-            Command::PlayHints { title: String::new(), next: None, episodes: Vec::new() };
-        assert_eq!(play_hints(&app, &play), Some(nothing));
-        assert_eq!(play_hints(&app, &Command::LoadEpisodes(id)), None, "only a play has hints");
-
-        // The title open, as opening it from a list leaves it.
-        app.detail = Some(anistream_model::catalog::Entry::new(id, "Hoshikuzu no Tabibito"));
-        let row = |n: &str| EpisodeRow {
-            number: n.into(),
-            title: Some(format!("Part {n}")),
-            thumbnail: None,
-            description: None,
-            duration_secs: None,
-            watched: 0.0,
-            completed: n == "1",
-            kind: None,
-            skippable: false,
-        };
-        app.apply(Event::Episodes { id, rows: vec![row("1"), row("2"), row("3")] });
-        let local = Command::PlayLocal {
-            id,
-            episode: "2".into(),
-            title: "Hoshikuzu no Tabibito".into(),
-            path: "/downloads/2.mp4".into(),
-        };
-        for task in [play, local] {
-            let Some(Command::PlayHints { title, next, episodes }) = play_hints(&app, &task)
-            else {
-                panic!("{task:?} has hints");
-            };
-            assert_eq!(title, "Hoshikuzu no Tabibito");
-            assert_eq!(next.map(|n| n.number).as_deref(), Some("3"));
-            let listed: Vec<(&str, bool)> =
-                episodes.iter().map(|e| (e.number.as_str(), e.watched)).collect();
-            assert_eq!(listed, [("1", true), ("2", false), ("3", false)]);
-        }
     }
 
     #[test]
@@ -1536,6 +1471,81 @@ mod tests {
                 anistream_tui::screens::skip_label(playback::offered(kind)),
                 kind.label()
             );
+        }
+    }
+}
+
+/// The seams' tests, apart from the rest, as the seams are about to be.
+#[cfg(test)]
+mod seam_tests {
+    use super::*;
+    use anistream_model::episodes::EpisodeRow;
+
+    fn test_app() -> App {
+        App::new(Config::default(), theme::Palette::dark(), Keymap::new())
+    }
+
+    #[test]
+    fn the_engine_side_hears_of_a_config_change_before_the_next_command() {
+        let mut app = test_app();
+        let mut seam = ConfigSeam::default();
+        assert!(matches!(seam.moved(&app), Some(Command::UseConfig { .. })), "said at once");
+        assert_eq!(seam.moved(&app), None, "and not again while nothing moves");
+
+        app.config.playback.auto_next = false;
+        let Some(Command::UseConfig { config, saved }) = seam.moved(&app) else {
+            panic!("a change in effect is said");
+        };
+        assert!(!config.playback.auto_next);
+        assert!(saved.playback.auto_next, "the file is told apart from what is in effect");
+
+        // A write read back, or one put back, moves only the file's half.
+        app.saved_config.playback.auto_next = false;
+        assert!(seam.moved(&app).is_some());
+    }
+
+    #[test]
+    fn a_play_is_sent_with_what_the_screen_knows_of_its_title() {
+        use anistream_core::ids::AnilistId;
+        let id = AnilistId::new(7);
+        let mut app = test_app();
+        let play = Command::Play { id, episode: "2".into() };
+        // Nothing of it on screen: nothing to announce, and a list the playback loads itself.
+        let nothing =
+            Command::PlayHints { title: String::new(), next: None, episodes: Vec::new() };
+        assert_eq!(play_hints(&app, &play), Some(nothing));
+        assert_eq!(play_hints(&app, &Command::LoadEpisodes(id)), None, "only a play has hints");
+
+        // The title open, as opening it from a list leaves it.
+        app.detail = Some(anistream_model::catalog::Entry::new(id, "Hoshikuzu no Tabibito"));
+        let row = |n: &str| EpisodeRow {
+            number: n.into(),
+            title: Some(format!("Part {n}")),
+            thumbnail: None,
+            description: None,
+            duration_secs: None,
+            watched: 0.0,
+            completed: n == "1",
+            kind: None,
+            skippable: false,
+        };
+        app.apply(Event::Episodes { id, rows: vec![row("1"), row("2"), row("3")] });
+        let local = Command::PlayLocal {
+            id,
+            episode: "2".into(),
+            title: "Hoshikuzu no Tabibito".into(),
+            path: "/downloads/2.mp4".into(),
+        };
+        for task in [play, local] {
+            let Some(Command::PlayHints { title, next, episodes }) = play_hints(&app, &task)
+            else {
+                panic!("{task:?} has hints");
+            };
+            assert_eq!(title, "Hoshikuzu no Tabibito");
+            assert_eq!(next.map(|n| n.number).as_deref(), Some("3"));
+            let listed: Vec<(&str, bool)> =
+                episodes.iter().map(|e| (e.number.as_str(), e.watched)).collect();
+            assert_eq!(listed, [("1", true), ("2", false), ("3", false)]);
         }
     }
 }
