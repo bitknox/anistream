@@ -433,7 +433,9 @@ impl TrackPolicy {
         slot.expect = None;
         self.remember_selection(kind, id, actions);
     }
+}
 
+impl TrackPolicy {
     fn remember_selection(
         &mut self,
         kind: TrackKind,
@@ -506,7 +508,9 @@ impl TrackPolicy {
             actions.push(TrackAction::Remember(self.memory.clone()));
         }
     }
+}
 
+impl TrackPolicy {
     /// Make this file's choice.
     fn choose(&mut self, now: Instant, actions: &mut Vec<TrackAction>) {
         self.chosen = true;
