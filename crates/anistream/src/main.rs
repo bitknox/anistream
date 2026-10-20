@@ -16,7 +16,7 @@ use cli::{
     store::store_command,
     sync::sync_once,
 };
-use engine_state::{EngineState, PlayHints};
+use engine_state::{EngineState, Internal, PlayHints};
 use services::Services;
 
 use anistream_engine::{
@@ -435,8 +435,10 @@ async fn preview(
         note = Some(reason);
     }
     let services = Services::build(&config, paths.clone(), http, store, registry)?;
-    // Nothing in a still frame brings a torrent source up, so nothing reports on this.
-    let state = EngineState::new(config.clone(), mpsc::unbounded_channel().0);
+    // Nothing in a still frame brings a torrent source up or writes a setting, so nothing
+    // reports on either of these.
+    let (arrivals, bus) = (mpsc::unbounded_channel().0, mpsc::unbounded_channel().0);
+    let state = EngineState::new(config.clone(), arrivals, bus);
     let mut app = App::with_images(config, palette, keymap, engine);
     if let Some(note) = note {
         app.apply(Event::ProviderNote(note));
@@ -687,8 +689,10 @@ async fn run(
     let services = Services::build(&config, paths, http, store, registry)?;
     // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
     let (arrivals_tx, mut arrivals) = mpsc::unbounded_channel();
+    // Where the engine side leaves itself work: see `Internal`.
+    let (bus_tx, mut bus) = mpsc::unbounded_channel();
     // The effect layer's own state, on the config the app was launched with.
-    let mut engine = EngineState::new(config.clone(), arrivals_tx);
+    let mut engine = EngineState::new(config.clone(), arrivals_tx, bus_tx);
     let mut app = App::with_images(config, palette, keymap, image_engine);
     // Said inside the app too: the warning above scrolls away behind the alternate screen
     // before anyone reads it, and a refused rebind otherwise looks like a key that does nothing.
@@ -738,7 +742,7 @@ async fn run(
     // Report whatever the background plugin load concluded, once. A plugin that failed to load
     // must not be silent — the Providers screen is where a missing source gets explained.
     {
-        let tx = tx.clone();
+        let (tx, bus) = (tx.clone(), engine.bus.clone());
         tokio::spawn(async move {
             if let Ok(outcome) = plugins_loading.await {
                 match outcome {
@@ -749,7 +753,7 @@ async fn run(
                     // moved a source while these compiled, and the Providers screen refreshed
                     // so late arrivals actually appear on it.
                     None => {
-                        let _ = tx.send(Event::SourcesReordered);
+                        let _ = bus.send(Internal::SourcesReordered);
                     }
                 }
             }
@@ -877,33 +881,6 @@ async fn run(
                 for said in receive(&update, &services, || tx.clone()) {
                     app.apply(said);
                 }
-                // A source setting changed. Awaited here rather than spawned: this owns the
-                // session and the guard, and two rebuilds racing would leave one of their
-                // sessions running with nothing holding it. Quick: the new torrent source
-                // comes up behind the interface, as at launch.
-                if matches!(
-                    update,
-                    Event::SettingsSaved | Event::SourcesChanged | Event::SourcesReordered
-                ) && let Ok(mut shared) = engine.shared_config.write()
-                {
-                    *shared = engine.config.clone();
-                }
-                // Only the order changed: the chain as it stands is put in it, with no rebuild.
-                if matches!(update, Event::SourcesReordered) {
-                    sources::arrange(&services.registry, &engine.config);
-                    app.apply(Event::Providers(data::provider_rows(&services.registry)));
-                }
-                if matches!(update, Event::SourcesChanged) {
-                    reload_sources(
-                        &services,
-                        &mut engine.torrent_tasks,
-                        &mut engine.vpn_guard,
-                        &engine.shared_config,
-                        &tx,
-                        &engine.arrivals,
-                    )
-                    .await;
-                }
                 let ended = matches!(update, Event::PlaybackEnded { .. });
                 match update {
                     // Decoded off the loop; it comes back on the arm below.
@@ -919,6 +896,13 @@ async fn run(
                 // wherever the window manager dropped it.
                 if ended && !app.will_play_next() && app.playing.is_none() {
                     tui::focus::refocus_terminal();
+                }
+            }
+            // What the engine side left itself to do, once every event sent before it is in:
+            // so it keeps its place among them, as it did when it rode their channel.
+            Some(message) = bus.recv(), if rx.is_empty() => {
+                for said in handle_internal(message, &mut engine, &services, &tx).await {
+                    app.apply(said);
                 }
             }
             Some(decoded) = covers_rx.recv() => covers::hand_over(&mut app, decoded),
@@ -1562,6 +1546,48 @@ fn meta_notice(meta: &Meta) -> Vec<Event> {
     vec![Event::MetaStatus(data::meta_rows(meta)), Event::Toast(Notice::info(notice))]
 }
 
+/// Do what the engine side left itself to do, and return what it then has to say, for the
+/// front end to apply at once, before anything sent since.
+///
+/// The metadata ladder's notice comes first, as on the way of an event. Then the copy of the
+/// config the background tasks read is brought up to the one in effect, whatever the message.
+async fn handle_internal(
+    message: Internal,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &mpsc::UnboundedSender<Event>,
+) -> Vec<Event> {
+    let mut said = meta_notice(&services.meta);
+    if let Ok(mut shared) = engine.shared_config.write() {
+        *shared = engine.config.clone();
+    }
+    match message {
+        Internal::SettingsSaved => {}
+        // Only the order changed: the chain as it stands is put in it, with no rebuild.
+        Internal::SourcesReordered => {
+            sources::arrange(&services.registry, &engine.config);
+            said.push(Event::Providers(data::provider_rows(&services.registry)));
+        }
+        // Awaited rather than spawned: this owns the session and the guard, and two
+        // rebuilds racing would leave one of their sessions running with nothing holding
+        // it. Quick: the new torrent source comes up behind the interface, as at launch.
+        Internal::SourcesChanged => {
+            reload_sources(
+                services,
+                &mut engine.torrent_tasks,
+                &mut engine.vpn_guard,
+                &engine.shared_config,
+                tx,
+                &engine.arrivals,
+            )
+            .await;
+            // Passed on, ahead of what the rebuild reports: the screen says it reloads.
+            said.push(Event::SourcesChanged);
+        }
+    }
+    said
+}
+
 /// Route a task to whoever performs it.
 ///
 /// Playback is handled here rather than in [`spawn`] because it owns the live player's control
@@ -1575,7 +1601,7 @@ fn dispatch(
 ) {
     let Services { paths, http, store, meta, registry, sync, stores, slot, prefetch } =
         services;
-    let EngineState { config, saved_config, hints, player_tx, .. } = engine;
+    let EngineState { config, saved_config, hints, player_tx, bus, .. } = engine;
     // No player handle is passed in: every playback path builds its own from the config
     // above, which is the live one the Settings screen edits, as the front end last said. A
     // handle held across the session is exactly how a turned-off upscaler kept running.
@@ -2125,15 +2151,16 @@ fn dispatch(
                     }
                     // Republish what the background tasks read, so the next download to
                     // finish honours the value that was just written.
-                    let _ = tx.send(Event::SettingsSaved);
+                    let _ = bus.send(Internal::SettingsSaved);
                     // A setting that redefines what sources exist takes effect now rather
-                    // than at the next launch. The run loop owns the session and the guard,
-                    // so it does the work; this only says that it is needed. An order that
-                    // only moves sources is put in effect without a rebuild.
+                    // than at the next launch. The engine side's loop owns the session and
+                    // the guard, so it does the work, once what was said above is in; this
+                    // only says that it is needed. An order that only moves sources is put in
+                    // effect without a rebuild.
                     if reordered {
-                        let _ = tx.send(Event::SourcesReordered);
+                        let _ = bus.send(Internal::SourcesReordered);
                     } else if redefines_sources(table, key) {
-                        let _ = tx.send(Event::SourcesChanged);
+                        let _ = bus.send(Internal::SourcesChanged);
                     }
                 }
                 // The guard reaching the UI: enabling torrents with no VPN configured fails
@@ -3807,7 +3834,8 @@ mod tests {
     #[test]
     fn a_job_starts_only_for_work_someone_waits_on() {
         let (tx, mut rx) = mpsc::unbounded_channel();
-        let mut engine = EngineState::new(Config::default(), mpsc::unbounded_channel().0);
+        let (arrivals, bus) = (mpsc::unbounded_channel().0, mpsc::unbounded_channel().0);
+        let mut engine = EngineState::new(Config::default(), arrivals, bus);
         let score =
             Command::SetScore { id: anistream_core::ids::AnilistId::new(1), score: 7.0 };
         assert!(JobGuard::start(&mut engine, &score, &tx).is_none());
@@ -3854,7 +3882,8 @@ mod tests {
     #[tokio::test]
     async fn a_job_ends_however_its_work_does_even_by_panicking() {
         let (tx, mut rx) = mpsc::unbounded_channel();
-        let mut engine = EngineState::new(Config::default(), mpsc::unbounded_channel().0);
+        let (arrivals, bus) = (mpsc::unbounded_channel().0, mpsc::unbounded_channel().0);
+        let mut engine = EngineState::new(Config::default(), arrivals, bus);
         let job = JobGuard::start(&mut engine, &Command::CheckProviders, &tx).unwrap();
         let id = job.id;
 

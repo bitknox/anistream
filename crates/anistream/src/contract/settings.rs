@@ -11,7 +11,7 @@ use anistream_providers::{MockProvider, ProviderRegistry};
 use anistream_testkit::sources;
 
 use super::toasts;
-use crate::harness::{Harness, Options, names};
+use crate::harness::{Harness, Options};
 
 /// A file that does not load: the app runs on the defaults and says so.
 const BROKEN: &str = "[playback]\nqualty = 720\n";
@@ -55,7 +55,7 @@ async fn an_ordinary_write_lands_in_the_file_and_is_read_back() {
     let updates = h.settle().await;
 
     assert!(job.is_none(), "too quick to wait on");
-    assert_eq!(names(&updates), ["SettingWritten", "Toast", "SettingsSaved"]);
+    assert_eq!(h.trace(), ["SettingWritten", "Toast", "SettingsSaved"]);
     let (on_disk, failed) = written(&updates[0]);
     assert!(!on_disk.playback.auto_next);
     assert_eq!(failed, None);
@@ -75,7 +75,7 @@ async fn a_setting_with_no_row_is_saved_without_a_word() {
     });
     let updates = h.settle().await;
 
-    assert_eq!(names(&updates), ["SettingWritten", "SettingsSaved"]);
+    assert_eq!(h.trace(), ["SettingWritten", "SettingsSaved"]);
     assert_eq!(written(&updates[0]).0.playback.persisted_speed, Some(1.25));
 }
 
@@ -100,7 +100,7 @@ async fn writes_in_a_row_land_in_order_and_each_sees_the_last() {
         })
         .collect();
     assert_eq!(reads, [(false, true), (false, false), (true, false)]);
-    let saved = names(&updates).iter().filter(|name| **name == "SettingsSaved").count();
+    let saved = h.trace().iter().filter(|name| **name == "SettingsSaved").count();
     assert_eq!(saved, 3);
 }
 
@@ -114,16 +114,16 @@ async fn an_order_that_only_moves_sources_reorders_the_chain_in_place() {
 
     // The chain's own rows go up before the reorder itself is applied, as the loop has it.
     assert_eq!(
-        names(&updates),
+        h.trace(),
         ["SettingWritten", "Toast", "SettingsSaved", "Providers", "SourcesReordered"]
     );
     assert_eq!(toasts(&updates), ["info: saved · source order"]);
-    assert_eq!(provider_ids(&updates[3]), ["alt", "fixture"]);
+    assert_eq!(provider_ids(&updates[2]), ["alt", "fixture"]);
     assert_eq!(h.registry().ids(), ["alt", "fixture"], "the live chain, not a rebuilt one");
 
     reorder(&mut h, &["fixture", "alt", "torrent", "plugins"]);
     let updates = h.settle().await;
-    assert_eq!(provider_ids(&updates[3]), ["fixture", "alt"]);
+    assert_eq!(provider_ids(&updates[2]), ["fixture", "alt"]);
 }
 
 #[tokio::test]
@@ -134,7 +134,7 @@ async fn an_order_that_takes_a_source_away_rebuilds_the_chain() {
 
     // The rebuild's reports come after the change that asked for it.
     assert_eq!(
-        names(&updates),
+        h.trace(),
         [
             "SettingWritten",
             "Toast",
@@ -145,11 +145,11 @@ async fn an_order_that_takes_a_source_away_rebuilds_the_chain() {
             "Providers"
         ]
     );
-    assert!(matches!(&updates[4], Event::Vpn(None)));
-    let Event::ProviderNote(note) = &updates[5] else { unreachable!() };
+    assert!(matches!(&updates[3], Event::Vpn(None)));
+    let Event::ProviderNote(note) = &updates[4] else { unreachable!() };
     assert_eq!(note, "torrents are off — the session was stopped");
     // Rebuilt from the config, which describes no source the fixture one could be.
-    assert!(provider_ids(&updates[6]).is_empty());
+    assert!(provider_ids(&updates[5]).is_empty());
     assert!(h.registry().is_empty());
 }
 
@@ -164,7 +164,7 @@ async fn a_write_the_config_refuses_leaves_the_file_alone_and_alerts() {
     });
     let updates = h.settle().await;
 
-    assert_eq!(names(&updates), ["SettingWritten", "Toast"]);
+    assert_eq!(h.trace(), ["SettingWritten", "Toast"]);
     let (on_disk, failed) = written(&updates[0]);
     assert_eq!(failed, Some((&["providers", "torrent"][..], "enabled")));
     assert!(!on_disk.providers.torrent.enabled);
@@ -185,7 +185,7 @@ async fn a_file_that_does_not_load_is_not_written_over() {
     });
     let updates = h.settle().await;
 
-    assert_eq!(names(&updates), ["SettingWritten", "Toast"]);
+    assert_eq!(h.trace(), ["SettingWritten", "Toast"]);
     let (on_disk, failed) = written(&updates[0]);
     assert_eq!(failed, Some((&["playback"][..], "auto_next")));
     assert!(on_disk.playback.auto_next, "read back as startup reads it: the defaults");
@@ -202,7 +202,7 @@ async fn a_refused_order_puts_the_provider_rows_back() {
     let updates = h.settle().await;
 
     // The rows moved when the key was pressed; the chain did not, so its rows put them back.
-    assert_eq!(names(&updates), ["SettingWritten", "Toast", "Providers"]);
+    assert_eq!(h.trace(), ["SettingWritten", "Toast", "Providers"]);
     assert_eq!(provider_ids(&updates[2]), ["fixture"]);
     assert_eq!(std::fs::read_to_string(&h.paths().config_file).unwrap(), BROKEN);
 }

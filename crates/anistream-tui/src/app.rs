@@ -1248,9 +1248,6 @@ impl App {
                 self.overlay_selected = 0;
                 self.nav.open_overlay(Overlay::PublishPick);
             }
-            // Both are handled outside the reducer, by the loop that owns the background
-            // tasks and the session.
-            Event::SettingsSaved => {}
             Event::SettingWritten { on_disk, failed } => {
                 self.saved_config = *on_disk;
                 if let Some((table, key)) = failed {
@@ -1258,8 +1255,6 @@ impl App {
                 }
             }
             Event::SourcesChanged => self.status = "reloading sources…".into(),
-            // The rows moved when the key was pressed; the run loop sends the chain's own.
-            Event::SourcesReordered => {}
             Event::ProviderNote(note) => self.provider_note = Some(note),
             Event::ProviderPreference(choice) => self.provider_preference = choice,
             Event::Sources { id, episode, candidates } => {
@@ -5772,12 +5767,17 @@ mod tests {
 
     #[test]
     fn a_new_order_does_not_say_the_sources_are_reloading() {
-        // Nothing is rebuilt for a reorder, so the status line must not claim a reload.
+        // Nothing is rebuilt for a reorder, so the status line must not claim a reload. All a
+        // reorder sends the interface is the chain's own rows, in their new order.
         let mut a = at_providers();
         let before = a.status.clone();
-        a.apply(Event::SourcesReordered);
+        a.apply(Event::Providers(vec![
+            source_row("alpha", "plugin"),
+            source_row("torrent", "torrent"),
+            source_row("beta", "plugin"),
+        ]));
         assert_eq!(a.status, before);
-        assert_eq!(row_ids(&a), ["torrent", "alpha", "beta"]);
+        assert_eq!(row_ids(&a), ["alpha", "torrent", "beta"]);
     }
 
     #[test]

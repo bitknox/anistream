@@ -78,9 +78,6 @@ pub enum Event {
     Providers(Vec<ProviderRow>),
     /// The metadata ladder's condition: which rung is serving, and why.
     MetaStatus(Vec<MetaSourceRow>),
-    /// A setting reached disk. The run loop republishes the configuration its background
-    /// tasks read, so saved and in-effect are the same moment.
-    SettingsSaved,
     /// A settings write was attempted, and this is what the file holds afterwards. `failed`
     /// names the setting whose write did not land, so the screen can put it back rather than
     /// go on showing a value that was never saved.
@@ -88,12 +85,10 @@ pub enum Event {
         on_disk: Box<Config>,
         failed: Option<(&'static [&'static str], &'static str)>,
     },
-    /// A setting changed what sources should exist. Acted on by the run loop, which owns
-    /// the torrent session and the VPN guard; the reducer only needs to not choke on it.
+    /// The sources are being rebuilt, because a setting changed which ones should exist. Sent
+    /// once the torrent stack is stood down and the chain swapped, ahead of what the rebuild
+    /// reports: whatever reloads them has done so, and the screen only has to say it.
     SourcesChanged,
-    /// The order changed and the sources did not. The run loop puts the live chain in the new
-    /// order without a rebuild, which would restart the torrent session under a playing episode.
-    SourcesReordered,
     /// Why no sources are available, when none are.
     ProviderNote(String),
     /// The source pinned for the title on screen, or `None` for automatic.

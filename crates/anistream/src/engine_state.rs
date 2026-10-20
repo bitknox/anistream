@@ -10,6 +10,8 @@
 //!
 //! Not here: the receiving ends of the channels the loop waits on, which it selects over beside
 //! the terminal's own, and anything of the terminal's.
+//!
+//! Also here: [`Internal`], what the engine side tells itself.
 
 use std::sync::{Arc, RwLock};
 
@@ -27,6 +29,29 @@ use crate::TorrentTasks;
 
 /// Where a bring-up of the torrent source reports in, tagged with the bring-up it answers.
 pub type Arrivals = mpsc::UnboundedSender<(u64, Result<TorrentUp, String>)>;
+
+/// Work a command or a task leaves for the engine side to do, once every event sent before it
+/// has been passed on to the front end.
+///
+/// These rode the event channel as events, and the loop caught them on their way to the `App`,
+/// which did nothing with two of them. On a channel of their own they never reach a front end.
+/// What the front end has to know comes to it as events: the providers rows after a reorder,
+/// and that the sources are being reloaded.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Internal {
+    /// A setting reached disk: bring the copy the background tasks read up to the config in
+    /// effect, so the next download to finish honours the value just written.
+    SettingsSaved,
+    /// The source order changed and the sources did not: put the live chain in the new order.
+    /// Without a rebuild, which would restart the torrent session under a playing episode.
+    SourcesReordered,
+    /// A setting changed which sources should exist: stand the torrent stack down, rebuild
+    /// the chain, and pass it on as [`Event::SourcesChanged`](anistream_model::event::Event).
+    SourcesChanged,
+}
+
+/// Where the engine side tells itself what to do next. The loop holds the other end.
+pub type Bus = mpsc::UnboundedSender<Internal>;
 
 /// The effect layer's own state: what commands read and leave for the commands after them.
 pub struct EngineState {
@@ -60,13 +85,15 @@ pub struct EngineState {
     pub vpn_guard: Option<(VpnGuard, Arc<TorrentSession>)>,
     /// Where the torrent source reports in once it is up. The loop holds the other end.
     pub arrivals: Arrivals,
+    /// Where the engine side's work leaves it messages: see [`Internal`].
+    pub bus: Bus,
 }
 
 impl EngineState {
     /// The engine side as it starts: on the config the app was launched with, as the file's
     /// too, as the interface starts, until the front end's first `UseConfig` says otherwise.
     /// No torrent stack yet, and `arrivals` for it to report on when one is brought up.
-    pub fn new(config: Config, arrivals: Arrivals) -> Self {
+    pub fn new(config: Config, arrivals: Arrivals, bus: Bus) -> Self {
         Self {
             shared_config: Arc::new(RwLock::new(config.clone())),
             saved_config: config.clone(),
@@ -77,6 +104,7 @@ impl EngineState {
             torrent_tasks: TorrentTasks::default(),
             vpn_guard: None,
             arrivals,
+            bus,
         }
     }
 

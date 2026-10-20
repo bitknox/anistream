@@ -53,7 +53,11 @@ use anistream_tui::{
 };
 use tokio::sync::mpsc;
 
-use crate::{ConfigSeam, Prefetch, engine_state::EngineState, services::Services};
+use crate::{
+    ConfigSeam, Prefetch,
+    engine_state::{EngineState, Internal},
+    services::Services,
+};
 
 /// How long [`Harness::settle`] waits for work to finish before failing the test.
 ///
@@ -109,6 +113,10 @@ pub struct Harness {
     engine: EngineState,
     seam: ConfigSeam,
     jobs: Jobs,
+    /// What the engine side leaves itself to do, read as the loop reads it.
+    bus: mpsc::UnboundedReceiver<Internal>,
+    /// The last settle, by name: see [`Harness::trace`].
+    trace: Vec<&'static str>,
     _arrived: mpsc::UnboundedReceiver<(u64, Result<sources::TorrentUp, String>)>,
     /// Last, so it is removed after everything that might still be writing into it.
     _root: tempfile::TempDir,
@@ -199,10 +207,13 @@ impl Harness {
         }
 
         let (arrivals, arrived) = mpsc::unbounded_channel();
+        let (bus_tx, bus) = mpsc::unbounded_channel();
         Self {
-            engine: EngineState::new(config, arrivals),
+            engine: EngineState::new(config, arrivals, bus_tx),
             seam: ConfigSeam::default(),
             jobs: Jobs::default(),
+            bus,
+            trace: Vec::new(),
             app,
             server,
             tokens,
@@ -280,11 +291,12 @@ impl Harness {
     /// the number its send returned, before anything else is said about it, and ended once.
     ///
     /// The event loop's reactions included, each where the loop has it: a metadata notice as
-    /// the status rows and a toast just before the update it arrived with, the chain put in a
-    /// new order before `SourcesReordered`, the sources rebuilt before `SourcesChanged`, a
-    /// queued progress drained at once, and work the reducer queued dispatched before the next
-    /// update is read. Covers are fetched as the loop fetches them, which with images off is
-    /// never.
+    /// the status rows and a toast just before the update it arrived with, a queued progress
+    /// drained at once, and work the reducer queued dispatched before the next update is read.
+    /// What the engine side left itself to do is done once every event sent before it is in,
+    /// as the loop does it: the chain put in a new order and its rows sent, or the sources
+    /// rebuilt and `SourcesChanged` sent ahead of what the rebuild reports. Covers are fetched
+    /// as the loop fetches them, which with images off is never.
     ///
     /// Done means done, not quiet for a while: every piece of work dispatched holds a sender,
     /// so the updates end exactly when the last of the work does. A job still open then is a
@@ -292,6 +304,7 @@ impl Harness {
     /// sender is a prefetch, which reports nothing, and is not waited for.
     pub async fn settle(&mut self) -> Vec<Event> {
         self.channels.held = None;
+        self.trace.clear();
         let deadline = tokio::time::Instant::now() + PATIENCE;
         let mut seen = Vec::new();
         loop {
@@ -304,7 +317,24 @@ impl Harness {
             }
             // And whatever moved the config since, before the reactions read it.
             self.use_config();
-            let Some(updates) = self.channels.open.front_mut() else { break };
+            let Some(updates) = self.channels.open.front_mut() else {
+                // Every event in: what the engine side left itself is all there is left.
+                match self.bus.try_recv() {
+                    Ok(message) => {
+                        self.handle(message, &mut seen).await;
+                        continue;
+                    }
+                    Err(_) => break,
+                }
+            };
+            // A message to the engine side waits for every event sent before it, as the loop's
+            // `if rx.is_empty()` has it.
+            if updates.is_empty()
+                && let Ok(message) = self.bus.try_recv()
+            {
+                self.handle(message, &mut seen).await;
+                continue;
+            }
             let wait = deadline.saturating_duration_since(tokio::time::Instant::now());
             match tokio::time::timeout(wait, updates.recv()).await {
                 Ok(Some(update)) => self.react(update, &mut seen).await,
@@ -331,6 +361,15 @@ impl Harness {
             names(&seen)
         );
         seen
+    }
+
+    /// What the last [`Self::settle`] went through, by name and in order: every event it
+    /// returned, and between them each message the engine side left itself and kept, where
+    /// the loop handles it. So `SettingsSaved` and `SourcesReordered` are in it, though no
+    /// front end ever sees them. `SourcesChanged` is passed on once handled, and is in it once,
+    /// as the event. `JobStarted` is not, as in what the settle returns.
+    pub fn trace(&self) -> &[&'static str] {
+        &self.trace
     }
 
     /// The app, as the work has left it.
@@ -429,40 +468,36 @@ impl Harness {
         for said in crate::receive(&update, &self.services, || channels.sender()) {
             self.apply(said, seen);
         }
-        if matches!(
-            update,
-            Event::SettingsSaved | Event::SourcesChanged | Event::SourcesReordered
-        ) && let Ok(mut shared) = self.engine.shared_config.write()
-        {
-            *shared = self.engine.config.clone();
-        }
-        if matches!(update, Event::SourcesReordered) {
-            sources::arrange(&self.services.registry, &self.engine.config);
-            self.apply(Event::Providers(data::provider_rows(&self.services.registry)), seen);
-        }
-        if matches!(update, Event::SourcesChanged) {
-            assert!(
-                !sources::torrent_wanted(&self.engine.config),
-                "the harness has no torrent session or VPN guard to bring up"
-            );
-            let tx = self.channels.sender();
-            crate::reload_sources(
-                &self.services,
-                &mut self.engine.torrent_tasks,
-                &mut self.engine.vpn_guard,
-                &self.engine.shared_config,
-                &tx,
-                &self.engine.arrivals,
-            )
-            .await;
-        }
         // The loop asks for the terminal's focus back after an ending; there is no terminal.
         self.apply(update, seen);
+    }
+
+    /// What the engine side left itself to do, as the loop's bus arm handles it: what that
+    /// says applied at once, and the message itself in the trace after it, where the App
+    /// applied it when it rode the event channel. Unless it was passed on, and is there as
+    /// the event already.
+    async fn handle(&mut self, message: Internal, seen: &mut Vec<Event>) {
+        assert!(
+            message != Internal::SourcesChanged
+                || !sources::torrent_wanted(&self.engine.config),
+            "the harness has no torrent session or VPN guard to bring up"
+        );
+        let tx = self.channels.sender();
+        for said in crate::handle_internal(message, &mut self.engine, &self.services, &tx).await
+        {
+            self.apply(said, seen);
+        }
+        match message {
+            Internal::SettingsSaved => self.trace.push("SettingsSaved"),
+            Internal::SourcesReordered => self.trace.push("SourcesReordered"),
+            Internal::SourcesChanged => {}
+        }
     }
 
     fn apply(&mut self, update: Event, seen: &mut Vec<Event>) {
         self.jobs.check(&update, seen);
         if !matches!(update, Event::JobStarted { .. }) {
+            self.trace.push(name(&update));
             seen.push(copy(&update));
         }
         match update {
@@ -566,10 +601,8 @@ pub fn name(update: &Event) -> &'static str {
         Event::Toast(_) => "Toast",
         Event::Providers(_) => "Providers",
         Event::MetaStatus(_) => "MetaStatus",
-        Event::SettingsSaved => "SettingsSaved",
         Event::SettingWritten { .. } => "SettingWritten",
         Event::SourcesChanged => "SourcesChanged",
-        Event::SourcesReordered => "SourcesReordered",
         Event::ProviderNote(_) => "ProviderNote",
         Event::ProviderPreference(_) => "ProviderPreference",
         Event::MatchChoices { .. } => "MatchChoices",
@@ -647,12 +680,10 @@ fn copy(update: &Event) -> Event {
         Event::Toast(toast) => Event::Toast(toast.clone()),
         Event::Providers(rows) => Event::Providers(rows.clone()),
         Event::MetaStatus(rows) => Event::MetaStatus(rows.clone()),
-        Event::SettingsSaved => Event::SettingsSaved,
         Event::SettingWritten { on_disk, failed } => {
             Event::SettingWritten { on_disk: on_disk.clone(), failed: *failed }
         }
         Event::SourcesChanged => Event::SourcesChanged,
-        Event::SourcesReordered => Event::SourcesReordered,
         Event::ProviderNote(text) => Event::ProviderNote(text.clone()),
         Event::ProviderPreference(provider) => Event::ProviderPreference(provider.clone()),
         Event::MatchChoices { id, provider_id, candidates } => Event::MatchChoices {
