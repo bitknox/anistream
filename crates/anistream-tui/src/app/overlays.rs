@@ -181,9 +181,14 @@ impl App {
         self.nav.open_overlay(Overlay::Logs);
     }
 
-    /// The command palette, with nothing typed into it.
+    /// The command palette, with nothing typed into it and its first match highlighted.
     pub(super) fn open_palette(&mut self) {
         self.field_mut(Field::Palette).clear();
+        // The overlays share one cursor, and each list overlay sets it as it opens. Left as it
+        // was, the palette opened on whichever row Logs or the palette itself was left on, and
+        // Enter ran that action rather than the top match. At nought the renderer puts the
+        // window at the top as well.
+        self.cursors.overlay.selected = 0;
         self.nav.open_overlay(Overlay::CommandPalette);
     }
 

@@ -653,24 +653,29 @@ fn an_overlay_keeps_its_hints_legible_above_the_scrim() {
     assert!(status.contains("↑↓ page"), "{status:?}");
 }
 
-/// The overlays have one cursor between them, apart from the screens'. Every list overlay sets
-/// it as it opens, but the command palette opens with it where the overlay before left it —
-/// Logs, or the palette itself last time — until a letter is typed, which puts it at the top.
+/// The overlays have one cursor between them, apart from the screens', and every list overlay
+/// sets it as it opens. The command palette was the one that did not: it opened where the
+/// overlay before left it — Logs, or the palette itself last time — until a letter was typed,
+/// so Enter on a palette just opened ran whichever action sat on that row.
 #[test]
-fn the_palette_opens_on_the_row_the_overlay_before_it_was_left_on() {
+fn the_palette_opens_on_its_first_row_wherever_the_overlay_before_it_was_left() {
     let mut a = app();
-    for i in 0..10 {
+    for i in 0..40 {
         a.push_toast(Notice::info(format!("line {i}")));
     }
-    press(&mut a, &["L", "j", "j", "j"]);
-    assert_eq!(a.overlay_cursor(), 3);
+    // Logs at its oldest line, drawn, so its window has scrolled down to it.
+    press(&mut a, &["L", "G"]);
+    assert!(a.overlay_cursor() > 0);
+    render_to_buffer(&mut a, 80, 24);
+    assert!(a.overlay_offset() > 0, "Logs' window never left its top");
+
     press(&mut a, &[":"]);
     assert_eq!(a.nav.overlay(), Some(&Overlay::CommandPalette));
-    assert_eq!(a.overlay_cursor(), 3, "opened where Logs was left");
-    press(&mut a, &["e"]);
-    assert_eq!(a.overlay_cursor(), 0, "a letter typed starts the matches at the top");
+    assert_eq!(a.overlay_cursor(), 0, "opened where Logs was left");
+    render_to_buffer(&mut a, 80, 24);
+    assert_eq!(a.overlay_offset(), 0, "the palette's window opened off its top");
 
-    press(&mut a, &["backspace", "down", "down", "esc", ":"]);
-    assert_eq!(a.overlay_cursor(), 2, "and where it was itself left");
+    press(&mut a, &["down", "down", "esc", ":"]);
+    assert_eq!(a.overlay_cursor(), 0, "opened where it was itself left");
     assert_eq!(a.cursor(), 0, "none of it moved the list behind");
 }

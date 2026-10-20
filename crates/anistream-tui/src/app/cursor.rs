@@ -42,8 +42,7 @@ pub struct Cursor {
 /// One for each, where the sections used to share one. A section is always entered at its top
 /// — see [`App::go_to_section`] — so whichever section is on screen has its cursor where the
 /// shared one was, and the rest wait to be entered afresh. The overlays share one between them,
-/// apart from the screens': each list overlay sets it as it opens, and the palette opens on it
-/// as the overlay before left it.
+/// apart from the screens': each list overlay, the palette among them, sets it as it opens.
 #[derive(Debug, Clone, Default)]
 pub struct Cursors {
     pub home: Cursor,
