@@ -8,7 +8,7 @@ use std::time::{Duration, Instant};
 
 use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 use anistream_model::{
-    catalog::{Content, ContentFor, Entry, LibrarySegment, SearchFilters},
+    catalog::{Content, ContentFor, Entry, LibrarySegment, ResumePoint, SearchFilters},
     command::{Command, PlayerCommand},
     downloads::{DownloadRow, DownloadState, SeedRow},
     episodes::EpisodeRow,
@@ -16,6 +16,7 @@ use anistream_model::{
     jobs::JobId,
     notice::{Notice, NoticeHint, NoticeKind},
     playback::{Ending, SkipKind},
+    progress::{EpisodeProgress, TitleProgress},
     settings::{SettingChange, SettingKey, SettingsView},
     sources::{
         GuardView, MatchCandidate, MetaSourceRow, ProviderRow, SourceChip, SourceState,
@@ -952,272 +953,64 @@ impl App {
 
         match update {
             Event::CalendarWindow { anchor, pages, more_past } => {
-                // Paging for a calendar the user has left would let a scroll elsewhere ask for
-                // history nobody is looking at.
-                if self.nav.section() != Section::Calendar {
-                    return;
-                }
-                self.calendar_anchor = Some(anchor);
-                self.calendar_pages = pages;
-                self.calendar_more_past = more_past;
-                self.calendar_loading_past = false;
+                self.apply_calendar_window(anchor, pages, more_past)
             }
             Event::CalendarBackfill { page, entries, more_past } => {
-                self.calendar_loading_past = false;
-                self.calendar_more_past = more_past;
-                if let Some(page) = page {
-                    self.calendar_pages = self.calendar_pages.max(page);
-                }
-                // Only the screen that asked can take them. A backfill landing after the user
-                // has moved on would otherwise splice a fortnight of broadcasts into whatever
-                // list is on screen now.
-                if !entries.is_empty()
-                    && self.nav.section() == Section::Calendar
-                    && let Content::Entries(existing) = &mut self.content
-                {
-                    let added = entries.len();
-                    let mut merged = entries;
-                    merged.append(existing);
-                    self.content = Content::Entries(merged);
-                    // The whole point of the exercise: the rows arrive *above* the viewport, so
-                    // both the selection and the scroll position shift by exactly what was
-                    // inserted and nothing moves under the user. Without this the screen would
-                    // lurch a page and a half every time history was extended.
-                    self.cursors.calendar.selected += added;
-                    self.cursors.calendar.offset += added;
-                }
+                self.apply_calendar_backfill(page, entries, more_past)
             }
-            Event::Caption { view, text } => {
-                if self.content_view().as_ref() == Some(&view) {
-                    self.caption = (!text.is_empty()).then_some((view, text));
-                }
-            }
-            Event::Content { view, content } => {
-                if self.content_view().as_ref() != Some(&view) {
-                    return;
-                }
-                // A caption is sent just before the list it describes; one left over from
-                // another list describes something no longer on screen.
-                if self.caption.as_ref().is_some_and(|(captioned, _)| *captioned != view) {
-                    self.caption = None;
-                }
-                self.content = content;
-                // A Library pull is the tracker's own answer for the titles it lists, and it
-                // outranks one given here earlier.
-                if matches!(view, ContentFor::Library(_)) {
-                    for entry in
-                        self.content.entries().iter().filter(|e| e.list_status.is_some())
-                    {
-                        self.statuses_set.remove(&entry.id);
-                    }
-                }
-                // Selection must stay in range or the next render would index past the end.
-                let len = self.content.len();
-                let cursor = self.cursors.section_mut(self.nav.section());
-                cursor.selected = cursor.selected.min(len.saturating_sub(1));
-                if len == 0 {
-                    *cursor = Cursor::default();
-                }
-                // The calendar is a timeline running from a week ago to a week ahead, so landing
-                // on row nought would open it on the *oldest* episode in view. Today is the
-                // useful place to be: the window opens at today's first entry — everything that
-                // already aired today in view above — with the selection on the next thing to
-                // happen. Capped so a very broadcast-heavy day cannot push the selection below
-                // a short terminal's fold.
-                if self.nav.section() == Section::Calendar
-                    && let Content::Entries(entries) = &self.content
-                    && let Some(next) =
-                        entries.iter().position(|e| e.airing_in.is_some_and(|secs| secs > 0))
-                {
-                    let today = self.clock.today();
-                    let start_of_today = entries
-                        .iter()
-                        .position(|e| {
-                            e.airing_in.is_some_and(|secs| {
-                                air_date(&self.clock, secs).is_some_and(|d| d >= today)
-                            })
-                        })
-                        .unwrap_or(next);
-                    self.cursors.calendar = Cursor {
-                        selected: next,
-                        offset: next.saturating_sub((next - start_of_today.min(next)).min(12)),
-                    };
-                }
-            }
+            Event::Caption { view, text } => self.apply_caption(view, text),
+            Event::Content { view, content } => self.apply_content(view, content),
             // Every way into a title sets a stand-in `detail` for it before the fetch goes out, so
             // a full record for any other id answers a title the user has already left.
-            Event::Detail(mut entry) => {
-                if let Some(detail) = self.detail.as_ref().filter(|d| d.id == entry.id) {
-                    // The record does not carry the tracker's status; the row it was opened
-                    // from may, and losing it here would make `a` forget what it is on.
-                    entry.list_status = entry.list_status.or(detail.list_status);
-                    self.detail = Some(*entry);
-                }
-            }
+            Event::Detail(entry) => self.apply_detail(entry),
             Event::DeviceCode(prompt) => self.device_code = prompt,
             Event::Seeding(rows) => self.seeding = rows,
-            Event::Downloads(rows) => {
-                self.downloads = rows;
-                // The cursor has to stay in range: a completed row being cleared shortens the list
-                // under it. The screen's own, so it needs no asking whether that is on screen.
-                let last = self.downloads.len().saturating_sub(1);
-                self.cursors.downloads.selected = self.cursors.downloads.selected.min(last);
-            }
-            Event::LastAired(rows) => {
-                // Applied to both the list and any open detail, since the same title can be
-                // on screen twice and a line that appears in one place but not the other
-                // reads as a bug.
-                if let Content::Entries(entries) = &mut self.content {
-                    for entry in entries.iter_mut() {
-                        if let Some((_, ep, at)) =
-                            rows.iter().find(|(id, _, _)| *id == entry.id)
-                        {
-                            entry.last_aired = Some((*ep, *at));
-                        }
-                    }
-                }
-                if let Some(detail) = &mut self.detail
-                    && let Some((_, ep, at)) = rows.iter().find(|(id, _, _)| *id == detail.id)
-                {
-                    detail.last_aired = Some((*ep, *at));
-                }
-            }
+            Event::Downloads(rows) => self.apply_downloads(rows),
+            Event::LastAired(rows) => self.apply_last_aired(rows),
             Event::Status(status) => self.status = status,
             Event::Toast(notice) => self.push_toast(notice),
             // Decoded off the loop, and back through `artwork_decoded`.
             Event::ArtworkReady { .. } => {}
             Event::ImageFailed { url, offline } => self.images.mark_failed(&url, offline),
-            Event::Providers(rows) => {
-                self.providers = rows;
-                // The cursor stays in range: a removed plugin shortens the table under it.
-                let last = self.providers.len().saturating_sub(1);
-                self.cursors.providers.selected = self.cursors.providers.selected.min(last);
-            }
+            Event::Providers(rows) => self.apply_providers(rows),
             Event::MetaStatus(rows) => self.meta_status = rows,
             Event::Stores(rows) => self.apply_stores(rows),
             Event::StorePreview(outcome) => self.apply_store_preview(outcome),
-            Event::StoreJoined { store } => {
-                // Into the store just joined, but only from the list it was joined from. A join
-                // that finishes after the user has gone elsewhere must not drag them back.
-                if self.nav.current() == &StageView::Stores && self.store(&store).is_some() {
-                    self.cursors.store_lines.selected = 0;
-                    self.nav.push(StageView::Store(store));
-                }
-            }
-            Event::InviteLink(view) => {
-                self.invite_link = Some(view);
-                self.invite_copied = false;
-                self.nav.open_overlay(Overlay::InviteLink);
-            }
+            Event::StoreJoined { store } => self.apply_store_joined(store),
+            Event::InviteLink(view) => self.apply_invite_link(view),
             Event::StoreMembers { store, members, invites } => {
-                if self.members_for.as_deref() == Some(store.as_str()) {
-                    self.store_members = members;
-                    self.store_invites = invites;
-                    let rows = self.store_members.len() + self.store_invites.len();
-                    self.cursors.members.selected =
-                        self.cursors.members.selected.min(rows.saturating_sub(1));
-                }
+                self.apply_store_members(store, members, invites)
             }
-            Event::LocalPlugins { store, plugins } => {
-                // Only for the store still on screen; a late answer for another is dropped.
-                let here = self.nav.current() == &StageView::Store(store.clone());
-                if self.publish_for.as_deref() != Some(store.as_str()) || !here {
-                    return;
-                }
-                if plugins.is_empty() {
-                    self.push_toast(Notice::info(
-                        "no plugins in the plugin directory to publish — `anistream --plugins` shows where it is",
-                    ));
-                    return;
-                }
-                self.local_plugins = plugins;
-                self.cursors.overlay.selected = 0;
-                self.nav.open_overlay(Overlay::PublishPick);
-            }
+            Event::LocalPlugins { store, plugins } => self.apply_local_plugins(store, plugins),
             Event::Settings(view) => self.take_settings(view),
             Event::SourcesChanged => self.status = "reloading sources…".into(),
             Event::ProviderNote(note) => self.provider_note = Some(note),
             Event::ProviderPreference(choice) => self.provider_preference = choice,
             Event::Sources { id, episode, candidates } => {
-                // A stale answer — the user has navigated away since asking, or asked about
-                // another episode — is not a question worth interrupting them with, and offering
-                // one episode's releases under another's context would play the wrong one.
-                if self.source_context.as_ref() != Some(&(id, episode)) {
-                    return;
-                }
-                if candidates.is_empty() {
-                    self.source_context = None;
-                    self.push_toast(Notice::info("no selectable sources for this episode"));
-                    return;
-                }
-                self.sources = candidates;
-                self.cursors.overlay.selected = 0;
-                self.nav.open_overlay(Overlay::Sources);
+                self.apply_sources(id, episode, candidates)
             }
             Event::MatchChoices { id, provider_id, candidates } => {
-                // An empty set is not a question worth asking; the caller reports it as a
-                // plain failure instead. Nor is one about a title the user has left.
-                if candidates.is_empty() || !self.detail.as_ref().is_some_and(|d| d.id == id) {
-                    return;
-                }
-                self.episodes_loading = false;
-                self.match_candidates = candidates;
-                self.match_context = Some((id, provider_id));
-                self.cursors.overlay.selected = 0;
-                self.nav.open_overlay(Overlay::Disambiguate);
+                self.apply_match_choices(id, provider_id, candidates)
             }
 
             Event::Playback { position, duration, paused } => {
-                // Playback updates arrive about once a second and must never resurrect a
-                // finished session, so they only ever mutate an existing one.
-                // What the playhead moves of the title's progress, the engine says ahead of it.
-                if let Some(playing) = self.superseded.as_mut().or(self.playing.as_mut()) {
-                    playing.position = position;
-                    playing.paused = paused;
-                    if duration.is_some() {
-                        playing.duration = duration;
-                    }
-                }
+                self.apply_playback(position, duration, paused)
             }
-            Event::SkipAvailable { kind, to } => {
-                if let Some(playing) = &mut self.playing {
-                    playing.skip = Some((kind, to));
-                }
-            }
-            Event::SkipCleared => {
-                if let Some(playing) = &mut self.playing {
-                    playing.skip = None;
-                }
-            }
+            Event::SkipAvailable { kind, to } => self.apply_skip_available(kind, to),
+            Event::SkipCleared => self.apply_skip_cleared(),
             // What the player changes of the config on its own is the engine's to keep and to
             // save, as it passes: see `anistream_engine::settings::remember`. It says the
             // settings after, the speed a new playback starts at among them. Saved from here,
             // they waited in a single slot, and a save that found it taken was skipped.
-            Event::PlaybackSpeed(speed) => {
-                if let Some(playing) = &mut self.playing {
-                    playing.speed = speed;
-                }
-            }
+            Event::PlaybackSpeed(speed) => self.apply_playback_speed(speed),
             Event::ActiveProvider(provider) => self.active_provider = Some(provider),
-            Event::PlaybackKept => {
-                if let Some(kept) = self.superseded.take() {
-                    self.playing = Some(kept);
-                }
-            }
+            Event::PlaybackKept => self.apply_playback_kept(),
             Event::PlaybackStaged { id, title, episode, episode_title, speed } => {
                 self.take_staged(id, title, episode, episode_title, speed);
             }
             // The window has changed hands, so what reports from here on is the successor. What
             // the episode left moves of its title, the engine says ahead of this.
-            Event::EpisodeLeft { id, episode, .. } => {
-                if self
-                    .superseded
-                    .as_ref()
-                    .is_some_and(|s| s.id == Some(id) && s.episode == episode)
-                {
-                    self.superseded = None;
-                }
-            }
+            Event::EpisodeLeft { id, episode, .. } => self.apply_episode_left(id, episode),
             // What a playback leads to on its own is the engine's to start: an episode picked in
             // the player, the episode again in the other translation, the next one's streams.
             // What it started comes as `PlaybackStaged`, and the notice that it now uses the
@@ -1248,138 +1041,18 @@ impl App {
             // the next episode, so the two cannot disagree into a window left waiting for an
             // episode nobody starts.
             Event::PlaybackEnded { rolling_on: true, .. } => self.rolling = true,
-            Event::PlaybackEnded { ending, .. } => {
-                self.playing = None;
-                // Leaving Now Playing on screen with nothing playing would be a dead end.
-                if matches!(self.nav.current(), StageView::NowPlaying) {
-                    self.nav.pop();
-                }
-                if matches!(ending, Ending::Complete { .. }) {
-                    self.push_toast(Notice::info("episode finished"));
-                }
-            }
-            Event::Sync(state) => {
-                // Re-authorisation is the one sync condition worth interrupting for: until it
-                // is done, everything queues silently and the user would have no idea.
-                let announce = state.needs_reauth
-                    && !self.sync.iter().any(|s| s.tracker == state.tracker && s.needs_reauth);
-                if announce {
-                    let accounts = self.section_key(Section::Accounts);
-                    self.push_toast(Notice::alert(format!(
-                        "{} needs signing in again — press {accounts} for Accounts",
-                        state.tracker
-                    )));
-                }
-                match self.sync.iter_mut().find(|s| s.tracker == state.tracker) {
-                    Some(existing) => *existing = *state,
-                    None => self.sync.push(*state),
-                }
-            }
+            Event::PlaybackEnded { ending, .. } => self.apply_playback_ended(ending),
+            Event::Sync(state) => self.apply_sync(*state),
             Event::JobStarted { job, activity } => self.start_job(job, activity),
-            Event::JobNote { job, note, wait } => {
-                let until = wait.map(|wait| self.clock.now_instant() + wait);
-                if let Some(job) = self.jobs.iter_mut().find(|j| j.id == job) {
-                    job.note = Some((note, until));
-                }
-            }
+            Event::JobNote { job, note, wait } => self.apply_job_note(job, note, wait),
             Event::JobDone(job) => self.jobs.retain(|j| j.id != job),
-            Event::ProgressQueued => {
-                // Optimistic, and safe to be: the row is already in SQLite by the time this
-                // arrives, so the count can only be corrected downward by the next drain.
-                for state in &mut self.sync {
-                    state.outbox = state.outbox.saturating_add(1);
-                }
-            }
-            Event::Conflicts(rows) => {
-                let appeared = !rows.is_empty() && self.conflicts.is_empty();
-                self.conflicts = rows;
-                if appeared {
-                    // Surfaced rather than resolved — the whole point of not guessing.
-                    let settle = self.key_for(Action::ShowConflicts);
-                    self.push_toast(Notice::info(format!(
-                        "{} — {settle} settles them",
-                        anistream_model::wording::plural(
-                            self.conflicts.len(),
-                            "sync disagreement"
-                        )
-                    )));
-                }
-            }
-            Event::Resumed { position } => {
-                // Resume happens without asking — mpv is already at the right place by the time
-                // this arrives. Saying so is what keeps it from feeling like a glitch.
-                self.push_toast(Notice::info(format!(
-                    "resumed at {}",
-                    NowPlaying::clock(position)
-                )));
-                if let Some(playing) = &mut self.playing {
-                    playing.position = position;
-                }
-            }
-            Event::Vpn(guard) => {
-                // No guard empties the badge rather than removing it.
-                let (badge, leaking) =
-                    guard.as_ref().map_or_else(|| (String::new(), false), vpn_badge);
-                // A newly-failing guard is worth interrupting for: torrents have just been
-                // paused and the user needs to know why playback stopped.
-                if leaking && !self.vpn_leaking {
-                    self.push_toast(Notice::alert(format!("{badge} — torrents paused")));
-                }
-                self.vpn_badge = Some(badge);
-                self.vpn_leaking = leaking;
-            }
-            Event::Episodes { id, rows } => {
-                // `detail` is the title the table is a view of; rows for any other belong to a
-                // load the user has since walked away from.
-                if !self.detail.as_ref().is_some_and(|d| d.id == id) {
-                    return;
-                }
-                self.episodes_all = rows;
-                self.episodes_for = Some(id);
-                self.apply_episode_filter();
-                self.episodes_loading = false;
-                // The amber bar lands where the viewer is going: the first unwatched
-                // row. Row nought means "just opened" — a cursor already mid-list is a
-                // position the user chose, and a reload must not move it.
-                if self.cursors.episodes.selected == 0
-                    && let Some(first) = self.episodes.iter().position(|r| !r.completed)
-                {
-                    self.cursors.episodes.selected = first;
-                }
-            }
+            Event::ProgressQueued => self.apply_progress_queued(),
+            Event::Conflicts(rows) => self.apply_conflicts(rows),
+            Event::Resumed { position } => self.apply_resumed(position),
+            Event::Vpn(guard) => self.apply_vpn(guard),
+            Event::Episodes { id, rows } => self.apply_episodes(id, rows),
             Event::Progress { id, progress, resume, episodes } => {
-                // Every entry of the title on screen says it alike: its page and its rows in the
-                // list under it. Only this title's: several shows on Home can share a
-                // next-episode number.
-                for entry in self.detail.iter_mut().chain(match &mut self.content {
-                    Content::Entries(entries) => entries.iter_mut(),
-                    _ => [].iter_mut(),
-                }) {
-                    if entry.id == id {
-                        entry.progress = progress.map(|p| (p.done, p.next));
-                        entry.resume = resume;
-                    }
-                }
-                // The table, row by row, when it is this title's: while detached the viewer can
-                // be looking at another show entirely, whose rows must not take this one's.
-                // In place, so the cursor and the filter's view stay as they are.
-                if self.episodes_for == Some(id) {
-                    for list in [&mut self.episodes, &mut self.episodes_all] {
-                        for row in list.iter_mut() {
-                            if let Some(said) = episodes.iter().find(|e| e.number == row.number)
-                            {
-                                row.watched = said.watched;
-                                row.completed = said.completed;
-                            }
-                        }
-                    }
-                }
-                // The answer to a mark made here. Under the unwatched filter a marked row
-                // leaves the view at once — which is the binge-marking flow working.
-                if self.marking == Some(id) {
-                    self.marking = None;
-                    self.apply_episode_filter();
-                }
+                self.apply_progress(id, progress, resume, episodes)
             }
         }
     }
@@ -1465,6 +1138,112 @@ impl App {
         self.episodes.is_empty() && !self.episodes_all.is_empty()
     }
 
+    /// Releases to pick from, for the episode the source picker was asked about.
+    fn apply_sources(
+        &mut self,
+        id: AnilistId,
+        episode: String,
+        candidates: Vec<SourceCandidate>,
+    ) {
+        // A stale answer — the user has navigated away since asking, or asked about
+        // another episode — is not a question worth interrupting them with, and offering
+        // one episode's releases under another's context would play the wrong one.
+        if self.source_context.as_ref() != Some(&(id, episode)) {
+            return;
+        }
+        if candidates.is_empty() {
+            self.source_context = None;
+            self.push_toast(Notice::info("no selectable sources for this episode"));
+            return;
+        }
+        self.sources = candidates;
+        self.cursors.overlay.selected = 0;
+        self.nav.open_overlay(Overlay::Sources);
+    }
+
+    /// What a provider might have the title as, when it could not tell on its own: the question
+    /// the Disambiguate overlay asks.
+    fn apply_match_choices(
+        &mut self,
+        id: AnilistId,
+        provider_id: String,
+        candidates: Vec<MatchCandidate>,
+    ) {
+        // An empty set is not a question worth asking; the caller reports it as a
+        // plain failure instead. Nor is one about a title the user has left.
+        if candidates.is_empty() || !self.detail.as_ref().is_some_and(|d| d.id == id) {
+            return;
+        }
+        self.episodes_loading = false;
+        self.match_candidates = candidates;
+        self.match_context = Some((id, provider_id));
+        self.cursors.overlay.selected = 0;
+        self.nav.open_overlay(Overlay::Disambiguate);
+    }
+
+    /// A title's episode table.
+    fn apply_episodes(&mut self, id: AnilistId, rows: Vec<EpisodeRow>) {
+        // `detail` is the title the table is a view of; rows for any other belong to a
+        // load the user has since walked away from.
+        if !self.detail.as_ref().is_some_and(|d| d.id == id) {
+            return;
+        }
+        self.episodes_all = rows;
+        self.episodes_for = Some(id);
+        self.apply_episode_filter();
+        self.episodes_loading = false;
+        // The amber bar lands where the viewer is going: the first unwatched
+        // row. Row nought means "just opened" — a cursor already mid-list is a
+        // position the user chose, and a reload must not move it.
+        if self.cursors.episodes.selected == 0
+            && let Some(first) = self.episodes.iter().position(|r| !r.completed)
+        {
+            self.cursors.episodes.selected = first;
+        }
+    }
+
+    /// Where a title stands, and each of its episodes, as the engine says once a watch or a mark
+    /// has been written.
+    fn apply_progress(
+        &mut self,
+        id: AnilistId,
+        progress: Option<TitleProgress>,
+        resume: Option<ResumePoint>,
+        episodes: Vec<EpisodeProgress>,
+    ) {
+        // Every entry of the title on screen says it alike: its page and its rows in the
+        // list under it. Only this title's: several shows on Home can share a
+        // next-episode number.
+        for entry in self.detail.iter_mut().chain(match &mut self.content {
+            Content::Entries(entries) => entries.iter_mut(),
+            _ => [].iter_mut(),
+        }) {
+            if entry.id == id {
+                entry.progress = progress.map(|p| (p.done, p.next));
+                entry.resume = resume;
+            }
+        }
+        // The table, row by row, when it is this title's: while detached the viewer can
+        // be looking at another show entirely, whose rows must not take this one's.
+        // In place, so the cursor and the filter's view stay as they are.
+        if self.episodes_for == Some(id) {
+            for list in [&mut self.episodes, &mut self.episodes_all] {
+                for row in list.iter_mut() {
+                    if let Some(said) = episodes.iter().find(|e| e.number == row.number) {
+                        row.watched = said.watched;
+                        row.completed = said.completed;
+                    }
+                }
+            }
+        }
+        // The answer to a mark made here. Under the unwatched filter a marked row
+        // leaves the view at once — which is the binge-marking flow working.
+        if self.marking == Some(id) {
+            self.marking = None;
+            self.apply_episode_filter();
+        }
+    }
+
     /// What the status line should call the source: the provider that last actually served,
     /// before anything has played the first configured source that is ready, and failing that
     /// the first one that is not switched off.
@@ -1488,6 +1267,27 @@ impl App {
     /// [`source_states`].
     pub fn source_states(&self) -> Vec<SourceChip> {
         source_states(&self.settings.sources, &self.providers, self.provider_note.is_some())
+    }
+
+    /// The Providers table as it stands.
+    fn apply_providers(&mut self, rows: Vec<ProviderRow>) {
+        self.providers = rows;
+        // The cursor stays in range: a removed plugin shortens the table under it.
+        let last = self.providers.len().saturating_sub(1);
+        self.cursors.providers.selected = self.cursors.providers.selected.min(last);
+    }
+
+    /// The VPN guard's verdict, for the header's chip: `None` when there is no guard.
+    fn apply_vpn(&mut self, guard: Option<GuardView>) {
+        // No guard empties the badge rather than removing it.
+        let (badge, leaking) = guard.as_ref().map_or_else(|| (String::new(), false), vpn_badge);
+        // A newly-failing guard is worth interrupting for: torrents have just been
+        // paused and the user needs to know why playback stopped.
+        if leaking && !self.vpn_leaking {
+            self.push_toast(Notice::alert(format!("{badge} — torrents paused")));
+        }
+        self.vpn_badge = Some(badge);
+        self.vpn_leaking = leaking;
     }
 
     /// Badge counts for the rail: work in flight, questions pending.
@@ -1719,6 +1519,53 @@ impl App {
         let Some(anchor) = self.calendar_anchor else { return };
         self.calendar_loading_past = true;
         self.commands.push(Command::LoadCalendarPast { anchor, page: self.calendar_pages + 1 });
+    }
+
+    /// The paging of the calendar just loaded: the instant its pages count back from, how many
+    /// pages of the past it holds, and whether there are more.
+    fn apply_calendar_window(&mut self, anchor: i64, pages: u32, more_past: bool) {
+        // Paging for a calendar the user has left would let a scroll elsewhere ask for
+        // history nobody is looking at.
+        if self.nav.section() != Section::Calendar {
+            return;
+        }
+        self.calendar_anchor = Some(anchor);
+        self.calendar_pages = pages;
+        self.calendar_more_past = more_past;
+        self.calendar_loading_past = false;
+    }
+
+    /// A page of older broadcasts, as [`Self::backfill_calendar_if_near_top`] asked for, or word
+    /// that it could not be had.
+    fn apply_calendar_backfill(
+        &mut self,
+        page: Option<u32>,
+        entries: Vec<Entry>,
+        more_past: bool,
+    ) {
+        self.calendar_loading_past = false;
+        self.calendar_more_past = more_past;
+        if let Some(page) = page {
+            self.calendar_pages = self.calendar_pages.max(page);
+        }
+        // Only the screen that asked can take them. A backfill landing after the user
+        // has moved on would otherwise splice a fortnight of broadcasts into whatever
+        // list is on screen now.
+        if !entries.is_empty()
+            && self.nav.section() == Section::Calendar
+            && let Content::Entries(existing) = &mut self.content
+        {
+            let added = entries.len();
+            let mut merged = entries;
+            merged.append(existing);
+            self.content = Content::Entries(merged);
+            // The whole point of the exercise: the rows arrive *above* the viewport, so
+            // both the selection and the scroll position shift by exactly what was
+            // inserted and nothing moves under the user. Without this the screen would
+            // lurch a page and a half every time history was extended.
+            self.cursors.calendar.selected += added;
+            self.cursors.calendar.offset += added;
+        }
     }
 
     /// Handle a keystroke: text into a focused field first, then the binding it resolves to.
@@ -2727,6 +2574,79 @@ impl App {
         self.put_up(playing);
     }
 
+    /// A report from the player: where it is, how long the episode runs, and whether it is
+    /// paused.
+    fn apply_playback(&mut self, position: f64, duration: Option<f64>, paused: bool) {
+        // Playback updates arrive about once a second and must never resurrect a
+        // finished session, so they only ever mutate an existing one.
+        // What the playhead moves of the title's progress, the engine says ahead of it.
+        if let Some(playing) = self.superseded.as_mut().or(self.playing.as_mut()) {
+            playing.position = position;
+            playing.paused = paused;
+            if duration.is_some() {
+                playing.duration = duration;
+            }
+        }
+    }
+
+    /// A skip on offer: past what, and where it would seek to.
+    fn apply_skip_available(&mut self, kind: SkipKind, to: f64) {
+        if let Some(playing) = &mut self.playing {
+            playing.skip = Some((kind, to));
+        }
+    }
+
+    /// The skip on offer is gone.
+    fn apply_skip_cleared(&mut self) {
+        if let Some(playing) = &mut self.playing {
+            playing.skip = None;
+        }
+    }
+
+    /// The speed the player plays at now.
+    fn apply_playback_speed(&mut self, speed: f64) {
+        if let Some(playing) = &mut self.playing {
+            playing.speed = speed;
+        }
+    }
+
+    /// The playback staged over the one in the window found nothing to play, so the one in the
+    /// window is what Now Playing shows again.
+    fn apply_playback_kept(&mut self) {
+        if let Some(kept) = self.superseded.take() {
+            self.playing = Some(kept);
+        }
+    }
+
+    /// An episode the window has moved on from.
+    fn apply_episode_left(&mut self, id: AnilistId, episode: String) {
+        if self.superseded.as_ref().is_some_and(|s| s.id == Some(id) && s.episode == episode) {
+            self.superseded = None;
+        }
+    }
+
+    /// The end of the playback on screen, with nothing rolling on from it.
+    fn apply_playback_ended(&mut self, ending: Ending) {
+        self.playing = None;
+        // Leaving Now Playing on screen with nothing playing would be a dead end.
+        if matches!(self.nav.current(), StageView::NowPlaying) {
+            self.nav.pop();
+        }
+        if matches!(ending, Ending::Complete { .. }) {
+            self.push_toast(Notice::info("episode finished"));
+        }
+    }
+
+    /// A playback that picked up where it was left.
+    fn apply_resumed(&mut self, position: f64) {
+        // Resume happens without asking — mpv is already at the right place by the time
+        // this arrives. Saying so is what keeps it from feeling like a glitch.
+        self.push_toast(Notice::info(format!("resumed at {}", NowPlaying::clock(position))));
+        if let Some(playing) = &mut self.playing {
+            playing.position = position;
+        }
+    }
+
     /// Advance the eyecatch one frame, dropping it when the wipe finishes.
     ///
     /// A wipe that reaches its deadline reveals without a word. Its clock starts at the keypress,
@@ -2757,6 +2677,15 @@ impl App {
         self.nav.section() == Section::Downloads
             && self.nav.focus() == Focus::Stage
             && matches!(self.nav.current(), StageView::Section(Section::Downloads))
+    }
+
+    /// The download queue as it stands.
+    fn apply_downloads(&mut self, rows: Vec<DownloadRow>) {
+        self.downloads = rows;
+        // The cursor has to stay in range: a completed row being cleared shortens the list
+        // under it. The screen's own, so it needs no asking whether that is on screen.
+        let last = self.downloads.len().saturating_sub(1);
+        self.cursors.downloads.selected = self.cursors.downloads.selected.min(last);
     }
 
     /// Whether the Accounts rows have focus.
@@ -2798,6 +2727,48 @@ impl App {
     /// its queue is kept and drains once it is signed in again.
     fn signed_in_trackers(&self) -> Vec<&str> {
         self.sync.iter().filter(|s| s.connected).map(|s| s.tracker.as_str()).collect()
+    }
+
+    /// A tracker's sync state, in place of the one it had.
+    fn apply_sync(&mut self, state: SyncState) {
+        // Re-authorisation is the one sync condition worth interrupting for: until it
+        // is done, everything queues silently and the user would have no idea.
+        let announce = state.needs_reauth
+            && !self.sync.iter().any(|s| s.tracker == state.tracker && s.needs_reauth);
+        if announce {
+            let accounts = self.section_key(Section::Accounts);
+            self.push_toast(Notice::alert(format!(
+                "{} needs signing in again — press {accounts} for Accounts",
+                state.tracker
+            )));
+        }
+        match self.sync.iter_mut().find(|s| s.tracker == state.tracker) {
+            Some(existing) => *existing = state,
+            None => self.sync.push(state),
+        }
+    }
+
+    /// Progress queued for the trackers, to go out with the next drain.
+    fn apply_progress_queued(&mut self) {
+        // Optimistic, and safe to be: the row is already in SQLite by the time this
+        // arrives, so the count can only be corrected downward by the next drain.
+        for state in &mut self.sync {
+            state.outbox = state.outbox.saturating_add(1);
+        }
+    }
+
+    /// The sync disagreements still to settle.
+    fn apply_conflicts(&mut self, rows: Vec<ConflictRow>) {
+        let appeared = !rows.is_empty() && self.conflicts.is_empty();
+        self.conflicts = rows;
+        if appeared {
+            // Surfaced rather than resolved — the whole point of not guessing.
+            let settle = self.key_for(Action::ShowConflicts);
+            self.push_toast(Notice::info(format!(
+                "{} — {settle} settles them",
+                anistream_model::wording::plural(self.conflicts.len(), "sync disagreement")
+            )));
+        }
     }
 
     /// Whether the Settings rows have focus.
@@ -2915,6 +2886,16 @@ impl App {
         self.apply_episode_filter();
         self.episodes_loading = false;
         self.provider_preference = frame.provider_preference;
+    }
+
+    /// A title's full record, in place of the stand-in set as it was opened.
+    fn apply_detail(&mut self, mut entry: Box<Entry>) {
+        if let Some(detail) = self.detail.as_ref().filter(|d| d.id == entry.id) {
+            // The record does not carry the tracker's status; the row it was opened
+            // from may, and losing it here would make `a` forget what it is on.
+            entry.list_status = entry.list_status.or(detail.list_status);
+            self.detail = Some(*entry);
+        }
     }
 
     /// Left and Right on a Settings row: step its value, stopping at the ends, and from a value
@@ -3674,6 +3655,14 @@ impl App {
         self.jobs.push(Job { id, label, started: self.clock.now_instant(), note: None });
     }
 
+    /// What a job is held up on, and until when.
+    fn apply_job_note(&mut self, job: JobId, note: String, wait: Option<Duration>) {
+        let until = wait.map(|wait| self.clock.now_instant() + wait);
+        if let Some(job) = self.jobs.iter_mut().find(|j| j.id == job) {
+            job.note = Some((note, until));
+        }
+    }
+
     /// The jobs worth showing at `now`, newest first: the thing just asked for leads, and work
     /// that has been running a while trails after it.
     pub fn activity(&self, now: Instant) -> Vec<&Job> {
@@ -3704,6 +3693,85 @@ impl App {
     pub fn list_caption(&self) -> Option<&str> {
         let (view, text) = self.caption.as_ref()?;
         (self.content_view().as_ref() == Some(view)).then_some(text.as_str())
+    }
+
+    /// The caption for a list, taken while that list is the one on screen. An empty one clears
+    /// it.
+    fn apply_caption(&mut self, view: ContentFor, text: String) {
+        if self.content_view().as_ref() == Some(&view) {
+            self.caption = (!text.is_empty()).then_some((view, text));
+        }
+    }
+
+    /// A list for a view, taken only while that view is on screen: see [`Self::content_view`].
+    fn apply_content(&mut self, view: ContentFor, content: Content) {
+        if self.content_view().as_ref() != Some(&view) {
+            return;
+        }
+        // A caption is sent just before the list it describes; one left over from
+        // another list describes something no longer on screen.
+        if self.caption.as_ref().is_some_and(|(captioned, _)| *captioned != view) {
+            self.caption = None;
+        }
+        self.content = content;
+        // A Library pull is the tracker's own answer for the titles it lists, and it
+        // outranks one given here earlier.
+        if matches!(view, ContentFor::Library(_)) {
+            for entry in self.content.entries().iter().filter(|e| e.list_status.is_some()) {
+                self.statuses_set.remove(&entry.id);
+            }
+        }
+        // Selection must stay in range or the next render would index past the end.
+        let len = self.content.len();
+        let cursor = self.cursors.section_mut(self.nav.section());
+        cursor.selected = cursor.selected.min(len.saturating_sub(1));
+        if len == 0 {
+            *cursor = Cursor::default();
+        }
+        // The calendar is a timeline running from a week ago to a week ahead, so landing
+        // on row nought would open it on the *oldest* episode in view. Today is the
+        // useful place to be: the window opens at today's first entry — everything that
+        // already aired today in view above — with the selection on the next thing to
+        // happen. Capped so a very broadcast-heavy day cannot push the selection below
+        // a short terminal's fold.
+        if self.nav.section() == Section::Calendar
+            && let Content::Entries(entries) = &self.content
+            && let Some(next) =
+                entries.iter().position(|e| e.airing_in.is_some_and(|secs| secs > 0))
+        {
+            let today = self.clock.today();
+            let start_of_today = entries
+                .iter()
+                .position(|e| {
+                    e.airing_in.is_some_and(|secs| {
+                        air_date(&self.clock, secs).is_some_and(|d| d >= today)
+                    })
+                })
+                .unwrap_or(next);
+            self.cursors.calendar = Cursor {
+                selected: next,
+                offset: next.saturating_sub((next - start_of_today.min(next)).min(12)),
+            };
+        }
+    }
+
+    /// When each title's latest episode aired, and which episode it was.
+    fn apply_last_aired(&mut self, rows: Vec<(AnilistId, u32, i64)>) {
+        // Applied to both the list and any open detail, since the same title can be
+        // on screen twice and a line that appears in one place but not the other
+        // reads as a bug.
+        if let Content::Entries(entries) = &mut self.content {
+            for entry in entries.iter_mut() {
+                if let Some((_, ep, at)) = rows.iter().find(|(id, _, _)| *id == entry.id) {
+                    entry.last_aired = Some((*ep, *at));
+                }
+            }
+        }
+        if let Some(detail) = &mut self.detail
+            && let Some((_, ep, at)) = rows.iter().find(|(id, _, _)| *id == detail.id)
+        {
+            detail.last_aired = Some((*ep, *at));
+        }
     }
 
     /// An answer for what is on screen right now: the list for the current view, the episodes
@@ -4066,6 +4134,57 @@ impl App {
                 }
             }
         }
+    }
+
+    /// A store just joined.
+    fn apply_store_joined(&mut self, store: String) {
+        // Into the store just joined, but only from the list it was joined from. A join
+        // that finishes after the user has gone elsewhere must not drag them back.
+        if self.nav.current() == &StageView::Stores && self.store(&store).is_some() {
+            self.cursors.store_lines.selected = 0;
+            self.nav.push(StageView::Store(store));
+        }
+    }
+
+    /// An invite link just made, shown until it is dismissed.
+    fn apply_invite_link(&mut self, view: InviteLinkView) {
+        self.invite_link = Some(view);
+        self.invite_copied = false;
+        self.nav.open_overlay(Overlay::InviteLink);
+    }
+
+    /// A store's members and its unused invites, for the members screen.
+    fn apply_store_members(
+        &mut self,
+        store: String,
+        members: Vec<StoreMemberRow>,
+        invites: Vec<StoreInviteRow>,
+    ) {
+        if self.members_for.as_deref() == Some(store.as_str()) {
+            self.store_members = members;
+            self.store_invites = invites;
+            let rows = self.store_members.len() + self.store_invites.len();
+            self.cursors.members.selected =
+                self.cursors.members.selected.min(rows.saturating_sub(1));
+        }
+    }
+
+    /// The plugins that could be published to a store, for the publish picker.
+    fn apply_local_plugins(&mut self, store: String, plugins: Vec<LocalPluginRow>) {
+        // Only for the store still on screen; a late answer for another is dropped.
+        let here = self.nav.current() == &StageView::Store(store.clone());
+        if self.publish_for.as_deref() != Some(store.as_str()) || !here {
+            return;
+        }
+        if plugins.is_empty() {
+            self.push_toast(Notice::info(
+                "no plugins in the plugin directory to publish — `anistream --plugins` shows where it is",
+            ));
+            return;
+        }
+        self.local_plugins = plugins;
+        self.cursors.overlay.selected = 0;
+        self.nav.open_overlay(Overlay::PublishPick);
     }
 
     fn open_stores(&mut self) -> Option<Command> {
