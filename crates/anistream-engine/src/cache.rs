@@ -77,7 +77,7 @@ struct Title {
     /// What it is called, as its page and its list rows name it.
     name: String,
     /// Episodes done, and the one Continue offers.
-    progress: Option<(u32, u32)>,
+    progress: Option<TitleProgress>,
     /// Where Continue resumes that episode.
     resume: Option<ResumePoint>,
     touched: u64,
@@ -278,12 +278,7 @@ impl TitleCache {
                 completed: row.completed,
             })
             .collect();
-        Some(Event::Progress {
-            id,
-            progress: title.progress.map(|(done, next)| TitleProgress { done, next }),
-            resume: title.resume,
-            episodes,
-        })
+        Some(Event::Progress { id, progress: title.progress, resume: title.resume, episodes })
     }
 
     /// The table loaded last, and whose it is.
@@ -584,7 +579,7 @@ mod tests {
         let mut cache = TitleCache::default();
         let entries = (1..=3)
             .map(|n| Entry {
-                progress,
+                progress: progress.map(|(done, next)| TitleProgress { done, next }),
                 ..Entry::new(AnilistId::new(n), format!("Title {}", n - 1))
             })
             .collect();

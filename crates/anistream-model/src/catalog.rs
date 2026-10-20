@@ -3,6 +3,8 @@
 
 use anistream_core::ids::AnilistId;
 
+use crate::progress::TitleProgress;
+
 /// A title as the list views need it.
 ///
 /// A flattened projection rather than the full `Media`, so rendering does not depend on the
@@ -25,7 +27,7 @@ pub struct Entry {
     /// Services carrying this title, from AniList's external links.
     pub available_on: Vec<String>,
     /// Local progress: episodes completed, and the next episode to watch.
-    pub progress: Option<(u32, u32)>,
+    pub progress: Option<TitleProgress>,
     /// Seconds until *this row's* broadcast — which for a calendar entry is the episode the row
     /// is about, and runs negative once that episode has aired. Everywhere else it is the same
     /// thing as [`Self::next_airing_in`].
@@ -149,7 +151,7 @@ impl Entry {
     /// Fraction watched, for the progress meter.
     pub fn watched_fraction(&self) -> f64 {
         match (self.progress, self.progress_of()) {
-            (Some((done, _)), Some((of, _))) => {
+            (Some(TitleProgress { done, .. }), Some((of, _))) => {
                 (f64::from(done) / f64::from(of)).clamp(0.0, 1.0)
             }
             _ => 0.0,
@@ -159,7 +161,7 @@ impl Entry {
     /// The count beside the meter: `2 / 12`, `2 / 3 aired` while the length is unannounced, or
     /// `2 watched` when there is nothing to count against.
     pub fn progress_label(&self) -> Option<String> {
-        let (done, _) = self.progress?;
+        let done = self.progress?.done;
         Some(match self.progress_of() {
             Some((total, true)) => format!("{done} / {total}"),
             Some((aired, false)) => format!("{done} / {aired} aired"),
@@ -346,11 +348,11 @@ mod tests {
         assert_eq!(e.watched_fraction(), 0.0);
 
         e.episodes = Some(28);
-        e.progress = Some((14, 15));
+        e.progress = Some(TitleProgress { done: 14, next: 15 });
         assert!((e.watched_fraction() - 0.5).abs() < 1e-9);
 
         // More progress than episodes (a rewatch, or bad remote data) must not exceed 1.
-        e.progress = Some((99, 100));
+        e.progress = Some(TitleProgress { done: 99, next: 100 });
         assert_eq!(e.watched_fraction(), 1.0);
 
         e.episodes = Some(0);
@@ -360,7 +362,7 @@ mod tests {
     #[test]
     fn progress_counts_against_what_is_known() {
         let mut e = Entry::new(AnilistId::new(1), "x");
-        e.progress = Some((2, 3));
+        e.progress = Some(TitleProgress { done: 2, next: 3 });
         assert_eq!(
             e.progress_label().as_deref(),
             Some("2 watched"),

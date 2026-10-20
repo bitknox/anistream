@@ -290,6 +290,7 @@ mod tests {
         catalog::{Content, Entry},
         downloads::DownloadState,
         event::Event,
+        progress::TitleProgress,
         sources::GuardView,
     };
 
@@ -538,7 +539,7 @@ mod tests {
                     ),
                     studio: Some("Madhouse".into()),
                     episodes: Some(28),
-                    progress: Some((11, 12)),
+                    progress: Some(TitleProgress { done: 11, next: 12 }),
                     ..entry(1, "Sousou no Frieren: Beyond Journey's End, Extended Edition")
                 },
                 entry(2, "Short"),

@@ -23,6 +23,7 @@ use anistream_model::{
     catalog::{ContentFor, LibrarySegment},
     event::Event,
     notice::{Notice, NoticeHint},
+    progress::TitleProgress,
     sync::{ConflictRow, SyncState},
 };
 use anistream_store::Store;
@@ -385,7 +386,10 @@ pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -
                 // the remote list, and showing local numbers here would hide a divergence
                 // rather than reveal it.
                 let total = row.episodes.unwrap_or(0);
-                row.progress = Some((entry.progress, (entry.progress + 1).min(total.max(1))));
+                row.progress = Some(TitleProgress {
+                    done: entry.progress,
+                    next: (entry.progress + 1).min(total.max(1)),
+                });
                 // The one place the tracker's status for a title is known, so `a` opens on it.
                 row.list_status = Some(segment);
                 rows.push(row);

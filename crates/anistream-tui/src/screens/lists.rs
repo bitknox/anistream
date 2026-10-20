@@ -4,6 +4,7 @@
 
 use anistream_model::{
     catalog::{Content, Entry, LibrarySegment},
+    progress::TitleProgress,
     wording::{broadcast_line, calendar_time},
 };
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
@@ -183,7 +184,9 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
                     // A part-watched episode is the most actionable thing a row can say, so it
                     // outranks everything else. The percentage is what makes it obvious this is
                     // something to *finish* rather than something to start.
-                    (Some((_, next)), Section::Home, _) if entry.resume.is_some() => {
+                    (Some(TitleProgress { next, .. }), Section::Home, _)
+                        if entry.resume.is_some() =>
+                    {
                         let resume = entry.resume.expect("checked");
                         Some((
                             match resume.fraction {
@@ -199,7 +202,7 @@ pub(super) fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Sect
                     // aired. Named by what is actually *out* — the same number the preview
                     // states — never by where your history happens to stand, which read as
                     // the app being wrong about the broadcast.
-                    (Some((_, next)), s, _)
+                    (Some(TitleProgress { next, .. }), s, _)
                         if s != Section::Calendar
                             && entry.latest_aired().is_some_and(|(ep, _)| ep >= next) =>
                     {
@@ -517,7 +520,7 @@ fn render_preview(buf: &mut Buffer, app: &App, area: Rect, entry: &Entry) {
     if let Some(resume) = entry.resume
         && y < area.bottom()
     {
-        let next = entry.progress.map_or(1, |(_, next)| next);
+        let next = entry.progress.map_or(1, |p| p.next);
         let label = match resume.fraction {
             Some(f) => format!(
                 "{} resume ep {next} at {} ({}%)",
@@ -746,7 +749,7 @@ mod tests {
         let mut e = entry(1, "Item");
         e.episodes = None;
         e.next_episode = Some(3);
-        e.progress = Some((2, 3));
+        e.progress = Some(TitleProgress { done: 2, next: 3 });
         let app = app_with(Content::Entries(vec![e.clone()]));
         let area = Rect::new(0, 0, 60, 24);
         let mut buf = Buffer::empty(area);
@@ -955,7 +958,7 @@ mod tests {
     #[test]
     fn a_tracked_show_with_an_aired_episode_says_so() {
         let mut e = entry(1, "Frieren");
-        e.progress = Some((7, 8));
+        e.progress = Some(TitleProgress { done: 7, next: 8 });
         e.last_aired = Some((8, 3600));
         let mut app = app_with(Content::Entries(vec![e]));
         // Too narrow for the preview, whose broadcast line would answer for the row.
@@ -968,7 +971,7 @@ mod tests {
         // Watched everything that aired: "ep 8 out" would be old news. The row waits
         // with you instead.
         let mut e = entry(1, "Frieren");
-        e.progress = Some((8, 9));
+        e.progress = Some(TitleProgress { done: 8, next: 9 });
         e.last_aired = Some((8, 3600));
         e.airing_in = Some(2 * 24 * 3600 + 3600);
         e.next_episode = Some(9);
@@ -985,7 +988,7 @@ mod tests {
         // last-aired row still says 7. The fact worth stating is that 8 is out — the row
         // used to count down to 9 instead, naming the fresh episode only by its successor.
         let mut e = entry(1, "Frieren");
-        e.progress = Some((7, 8));
+        e.progress = Some(TitleProgress { done: 7, next: 8 });
         e.last_aired = Some((7, 7 * 24 * 3600));
         e.next_episode = Some(9);
         e.airing_in = Some(7 * 24 * 3600);
@@ -1002,7 +1005,7 @@ mod tests {
         // not where the viewer's history stands — "ep 1 out" under an "EP 4 out"
         // preview read as the app contradicting itself.
         let mut e = entry(1, "Chainsmoker Cat");
-        e.progress = Some((0, 1));
+        e.progress = Some(TitleProgress { done: 0, next: 1 });
         e.last_aired = Some((4, 3600));
         let mut app = app_with(Content::Entries(vec![e]));
         // Too narrow for the preview, whose broadcast line would answer for the row.
@@ -1160,7 +1163,7 @@ mod tests {
     #[test]
     fn continue_with_everything_hidden_says_so() {
         let mut app = app_with(Content::Entries(vec![Entry {
-            progress: Some((2, 3)),
+            progress: Some(TitleProgress { done: 2, next: 3 }),
             ..entry(1, "Paper Kite")
         }]));
         app.nav.focus_stage();
@@ -1229,7 +1232,8 @@ mod tests {
 
     #[test]
     fn progress_on_a_row_reads_as_a_count() {
-        let e = Entry { progress: Some((5, 6)), ..entry(1, "Kite") };
+        let e =
+            Entry { progress: Some(TitleProgress { done: 5, next: 6 }), ..entry(1, "Kite") };
         let mut app = app_with(Content::Entries(vec![e]));
         let text = text_of(&render_to_buffer(&mut app, 70, 30));
         assert!(text.contains("5 / 28"), "{text}");

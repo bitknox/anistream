@@ -13,6 +13,7 @@ use anistream_model::{
     episodes::EpisodeRow,
     event::Event,
     notice::Notice,
+    progress::TitleProgress,
     settings::SettingsView,
     sync::SyncState,
 };
@@ -453,7 +454,7 @@ fn enter_is_named_for_what_it_does() {
     assert_eq!(hint(&a, "↵"), Some("play"), "Enter plays in the episode table");
 
     let mut e = Entry::new(AnilistId::new(5), "Title");
-    e.progress = Some((7, 8));
+    e.progress = Some(TitleProgress { done: 7, next: 8 });
     e.resume = Some(ResumePoint { position: 600.0, fraction: Some(0.5) });
     a = app();
     a.apply(a.content_here(Content::Entries(vec![e, Entry::new(AnilistId::new(6), "Other")])));

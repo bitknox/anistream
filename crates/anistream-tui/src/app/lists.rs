@@ -216,7 +216,7 @@ impl App {
     pub(super) fn resume_selected(&mut self) -> Option<Command> {
         let entry = self.selected_entry().expect("checked");
         let id = entry.id;
-        let next = entry.progress.expect("checked").1;
+        let next = entry.progress.expect("checked").next;
         Some(self.begin_playback(id, next.to_string()))
     }
 
@@ -647,6 +647,8 @@ pub fn cycle_search_filter(
 
 #[cfg(test)]
 mod tests {
+    use anistream_model::progress::TitleProgress;
+
     use super::*;
     use crate::app::fixtures::*;
 
@@ -824,7 +826,7 @@ mod tests {
     fn enter_on_a_resumable_continue_row_plays_immediately() {
         let mut a = app();
         let mut e = Entry::new(AnilistId::new(5), "Frieren");
-        e.progress = Some((7, 8));
+        e.progress = Some(TitleProgress { done: 7, next: 8 });
         e.resume = Some(ResumePoint { position: 600.0, fraction: Some(0.5) });
         a.apply(a.content_here(Content::Entries(vec![e])));
         a.nav.focus_stage();

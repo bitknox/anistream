@@ -85,8 +85,10 @@ fn entries(h: &Harness, id: AnilistId) -> Vec<&Entry> {
 /// and where Continue resumes it. One answer, however many places show it.
 #[track_caller]
 fn standing(h: &Harness, id: AnilistId) -> (Option<(u32, u32)>, Option<f64>) {
-    let all: Vec<_> =
-        entries(h, id).iter().map(|e| (e.progress, e.resume.map(|r| r.position))).collect();
+    let all: Vec<_> = entries(h, id)
+        .iter()
+        .map(|e| (e.progress.map(|p| (p.done, p.next)), e.resume.map(|r| r.position)))
+        .collect();
     assert!(!all.is_empty(), "{id:?} is on screen");
     assert!(all.windows(2).all(|pair| pair[0] == pair[1]), "one answer everywhere: {all:?}");
     all[0]

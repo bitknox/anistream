@@ -2,7 +2,9 @@
 //! opened from it: the list status and rating pickers, the source picker, the watch order and the
 //! recommendations.
 
-use anistream_model::{catalog::LibrarySegment, wording::broadcast_line};
+use anistream_model::{
+    catalog::LibrarySegment, progress::TitleProgress, wording::broadcast_line,
+};
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier};
 
 use crate::{
@@ -104,7 +106,9 @@ pub(super) fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
 
     // Progress, or the countdown to the next broadcast — whichever the viewer needs next.
     if y < area.bottom() {
-        if let (Some((_, next)), Some(label)) = (entry.progress, entry.progress_label()) {
+        if let (Some(TitleProgress { next, .. }), Some(label)) =
+            (entry.progress, entry.progress_label())
+        {
             let mut x = area.left();
             if entry.progress_of().is_some() {
                 set_meter(buf, x, y, &app.palette, entry.watched_fraction(), 20, Role::Obi);
@@ -139,9 +143,7 @@ pub(super) fn status_rows(app: &App) -> Vec<(String, String)> {
         .iter()
         .map(|segment| {
             let hint = match (segment, current.and_then(|e| e.progress)) {
-                (LibrarySegment::Completed, Some((_, _))) => {
-                    "sets progress to the last episode"
-                }
+                (LibrarySegment::Completed, Some(_)) => "sets progress to the last episode",
                 _ => "",
             };
             // A status is a value, and values are lowercase — as the Library strip and every

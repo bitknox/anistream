@@ -178,7 +178,7 @@ impl App {
             _ => [].iter_mut(),
         }) {
             if entry.id == id {
-                entry.progress = progress.map(|p| (p.done, p.next));
+                entry.progress = progress;
                 entry.resume = resume;
             }
         }
@@ -410,7 +410,7 @@ impl App {
             }
             _ => {
                 let entry = self.target()?;
-                let episode = entry.progress.map_or(1, |(_, next)| next).to_string();
+                let episode = entry.progress.map_or(1, |p| p.next).to_string();
                 (entry.id, episode)
             }
         };
@@ -498,9 +498,7 @@ mod tests {
         let entry = a.detail.as_ref().filter(|d| d.id == *id);
         a.apply(Event::Progress {
             id: *id,
-            progress: entry
-                .and_then(|e| e.progress)
-                .map(|(done, next)| TitleProgress { done, next }),
+            progress: entry.and_then(|e| e.progress),
             resume: entry.and_then(|e| e.resume),
             episodes: rows
                 .iter()
@@ -520,9 +518,7 @@ mod tests {
         let entry = a.detail.as_ref().filter(|d| d.id == id);
         Event::Progress {
             id,
-            progress: entry
-                .and_then(|e| e.progress)
-                .map(|(done, next)| TitleProgress { done, next }),
+            progress: entry.and_then(|e| e.progress),
             resume: entry.and_then(|e| e.resume),
             episodes: rows
                 .iter()
@@ -650,7 +646,7 @@ mod tests {
             (a.detail.as_ref().and_then(|d| d.progress), a.content.entries()[row].progress)
         };
         if let Content::Entries(rows) = &mut a.content {
-            rows[1].progress = Some((2, 3));
+            rows[1].progress = Some(TitleProgress { done: 2, next: 3 });
         }
         a.apply(Event::Progress {
             id: AnilistId::new(1),
@@ -658,8 +654,12 @@ mod tests {
             resume: None,
             episodes: Vec::new(),
         });
-        assert_eq!(at(&a, 0), (Some((3, 4)), Some((3, 4))), "the page and the list row move");
-        assert_eq!(at(&a, 1).1, Some((2, 3)), "another show is not touched");
+        let (three, two) = (
+            Some(TitleProgress { done: 3, next: 4 }),
+            Some(TitleProgress { done: 2, next: 3 }),
+        );
+        assert_eq!(at(&a, 0), (three, three), "the page and the list row move");
+        assert_eq!(at(&a, 1).1, two, "another show is not touched");
     }
 
     #[test]

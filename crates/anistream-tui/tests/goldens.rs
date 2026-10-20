@@ -39,6 +39,7 @@ use anistream_model::{
     jobs::JobId,
     notice::Notice,
     playback::SkipKind,
+    progress::TitleProgress,
     settings::{self, SettingsView},
     sources::{MatchCandidate, MetaSourceRow, ProviderRow},
     stores::{
@@ -588,7 +589,7 @@ fn hoshikuzu() -> Entry {
         banner_url: Some("https://img.example/banner/hoshikuzu.jpg".into()),
         genres: vec!["Adventure".into(), "Fantasy".into(), "Slice of Life".into()],
         available_on: vec!["Hikari Stream".into(), "Nami TV".into()],
-        progress: Some((3, 4)),
+        progress: Some(TitleProgress { done: 3, next: 4 }),
         resume: Some(ResumePoint { position: 812.0, fraction: Some(0.57) }),
         last_aired: Some((4, 2 * DAY + 3 * HOUR + 7 * MINUTE + 41)),
         next_episode: Some(5),
@@ -608,7 +609,7 @@ fn kaze() -> Entry {
         studio: Some("Atelier Hotaru".into()),
         synopsis: "A postwoman in a hill town reads the wind for letters nobody sent.".into(),
         genres: vec!["Drama".into(), "Romance".into()],
-        progress: Some((6, 7)),
+        progress: Some(TitleProgress { done: 6, next: 7 }),
         last_aired: Some((9, DAY + 2 * HOUR + 4 * MINUTE + 13)),
         next_episode: Some(10),
         next_airing_in: Some(5 * DAY + 21 * HOUR + 22 * MINUTE + 47),
@@ -629,7 +630,7 @@ fn yoru() -> Entry {
                    lost something."
             .into(),
         genres: vec!["Mystery".into(), "Supernatural".into()],
-        progress: Some((5, 6)),
+        progress: Some(TitleProgress { done: 5, next: 6 }),
         last_aired: Some((5, 5 * DAY + 21 * HOUR + 18 * MINUTE + 51)),
         next_episode: Some(6),
         next_airing_in: Some(2 * HOUR + 41 * MINUTE + 9),
@@ -650,7 +651,7 @@ fn tsuki() -> Entry {
                    lighthouse is the only one who hears it sing."
             .into(),
         genres: vec!["Drama".into(), "Fantasy".into()],
-        progress: Some((7, 8)),
+        progress: Some(TitleProgress { done: 7, next: 8 }),
         ..Entry::new(id(104), "Tsuki to Kujira no Uta")
     }
 }
@@ -1167,8 +1168,11 @@ fn episodes(s: &mut Screen) {
 /// cursor far enough down that the table has scrolled at both sizes.
 fn episodes_long_filtered(s: &mut Screen) {
     settled_on(s, 1);
-    let tanuki =
-        Entry { episodes: Some(48), progress: Some((6, 7)), ..catalogue(20).swap_remove(19) };
+    let tanuki = Entry {
+        episodes: Some(48),
+        progress: Some(TitleProgress { done: 6, next: 7 }),
+        ..catalogue(20).swap_remove(19)
+    };
     s.list(vec![tanuki]);
     s.press(&["e"]);
     let rows = (1..=48)
