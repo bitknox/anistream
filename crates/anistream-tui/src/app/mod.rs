@@ -38,6 +38,9 @@ use crate::{
     theme::{Palette, glyph},
 };
 
+#[cfg(test)]
+mod fixtures;
+
 /// A notice on screen, for as long as it stays.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Toast {
@@ -4727,76 +4730,12 @@ pub const ACTIVITY_DELAY: Duration = Duration::from_millis(600);
 
 #[cfg(test)]
 mod tests {
+    use super::fixtures::*;
     use super::*;
-    use anistream_core::{config::Config, settings::SettingValue};
-    use anistream_model::{
-        catalog::{RelatedTitle, ResumePoint},
-        progress::{EpisodeProgress, TitleProgress, mark_row},
-        settings,
-    };
-
-    fn app() -> App {
-        App::new(SettingsView::default(), Palette::dark(), Keymap::new())
-    }
 
     /// An app launched on `config`, as both what is in effect and what the file holds.
     fn app_on(config: &Config) -> App {
         App::new(settings::view(config, config), Palette::dark(), Keymap::new())
-    }
-
-    /// The engine's part in a change of settings, played by the model's own rules and with no
-    /// file: what each command puts in effect, and the settings it answers with. A write here
-    /// always lands, so what is in effect and what is saved move together; [`Self::refuse`]
-    /// answers one that does not.
-    struct Owner {
-        effective: Config,
-        saved: Config,
-    }
-
-    impl Owner {
-        fn new(config: Config) -> Self {
-            Self { saved: config.clone(), effective: config }
-        }
-
-        /// Do what `task` asks of the config, as the engine does, and tell the App the outcome.
-        /// Anything else is not the config's, and nothing is said.
-        fn answer(&mut self, a: &mut App, task: Option<Command>) {
-            let (key, value) = match task {
-                Some(Command::StepSetting { key, delta }) => {
-                    let Some(value) = settings::step(&self.effective, &self.saved, key, delta)
-                    else {
-                        return;
-                    };
-                    (key, value)
-                }
-                Some(Command::SetSetting { key, value }) => (key, value),
-                Some(Command::SetTranslation { translation }) => {
-                    self.effective.playback.translation = translation;
-                    return self.tell(a);
-                }
-                _ => return,
-            };
-            if settings::put(&mut self.effective, key, &value) {
-                settings::put(&mut self.saved, key, &value);
-            }
-            self.tell(a);
-        }
-
-        /// Refuse the write `task` asks for, as the engine does: the setting stays what the file
-        /// holds, and the App is told which one was put back.
-        fn refuse(&mut self, a: &mut App, task: Option<Command>) {
-            let key = match task {
-                Some(Command::StepSetting { key, .. } | Command::SetSetting { key, .. }) => key,
-                other => panic!("not a write: {other:?}"),
-            };
-            let view = settings::view(&self.effective, &self.saved);
-            a.apply(Event::Settings(SettingsView { refused: Some(key), ..view }));
-        }
-
-        /// Tell the App the settings as they stand.
-        fn tell(&self, a: &mut App) {
-            a.apply(Event::Settings(settings::view(&self.effective, &self.saved)));
-        }
     }
 
     /// One episode marked watched or not on the table, in both the visible and the full list,
@@ -4855,14 +4794,6 @@ mod tests {
                 })
                 .collect(),
         }
-    }
-
-    fn entries(n: usize) -> Content {
-        Content::Entries(
-            (0..n)
-                .map(|i| Entry::new(AnilistId::new(i as u32 + 1), format!("Title {i}")))
-                .collect(),
-        )
     }
 
     /// The anchor a test calendar is paged against. Any fixed instant will do — the point is
@@ -5033,53 +4964,6 @@ mod tests {
             ]
         );
         assert!(a.take_commands().is_empty(), "taken once, and gone");
-    }
-
-    /// An app with one title selected and its episode table loaded, ready to play.
-    /// The end of an episode mpv played to its end, naming the episode the player kept its
-    /// window for when it rolls on, as the engine says it of the playback on screen: rolling on
-    /// when there is one.
-    fn finished(next: Option<&str>) -> Event {
-        let ending = Ending::Complete { next: next.map(Into::into) };
-        Event::PlaybackEnded { watched: true, ending, rolling_on: next.is_some() }
-    }
-
-    /// A playback the engine staged: `episode` of title `id`, under `title`, at the speed
-    /// nothing remembered.
-    fn staged(id: u32, title: &str, episode: &str, episode_title: Option<&str>) -> Event {
-        Event::PlaybackStaged {
-            id: AnilistId::new(id),
-            title: title.into(),
-            episode: episode.into(),
-            episode_title: episode_title.map(Into::into),
-            speed: 1.0,
-        }
-    }
-
-    fn app_at_episodes() -> App {
-        let mut a = app();
-        a.apply(a.content_here(entries(3)));
-        // The title first: a table is only taken for the title it is a view of.
-        a.detail = a.content.entries().first().cloned();
-        a.apply(
-            a.episodes_here(
-                (1..=12)
-                    .map(|n| EpisodeRow {
-                        number: n.to_string(),
-                        title: Some(format!("Episode {n}")),
-                        duration_secs: Some(1435),
-                        watched: 0.0,
-                        completed: false,
-                        kind: None,
-                        skippable: false,
-                        thumbnail: None,
-                        description: None,
-                    })
-                    .collect(),
-            ),
-        );
-        a.nav.push(StageView::Episodes(AnilistId::new(1)));
-        a
     }
 
     #[test]
@@ -6187,10 +6071,6 @@ mod tests {
         assert_eq!(NowPlaying::clock(-5.0), "0:00");
     }
 
-    fn connected(outbox: u32) -> SyncState {
-        SyncState { tracker: "anilist".into(), connected: true, outbox, ..SyncState::default() }
-    }
-
     #[test]
     fn the_sync_badge_carries_the_queue_depth() {
         // "Did my progress actually go anywhere?" is the only sync question anyone asks, and
@@ -6266,16 +6146,6 @@ mod tests {
         assert_eq!(announced(&a), before);
     }
 
-    fn conflict(title: &str) -> ConflictRow {
-        ConflictRow {
-            anilist_id: AnilistId::new(1),
-            title: title.into(),
-            field: "status".into(),
-            local: "Completed".into(),
-            remote: "Current".into(),
-        }
-    }
-
     #[test]
     fn the_conflicts_overlay_refuses_to_open_with_nothing_to_resolve() {
         // An empty modal is a dead end.
@@ -6342,21 +6212,6 @@ mod tests {
             version: "2.0.0".into(),
             hosts: vec!["api.example".into()],
             status,
-        }
-    }
-
-    /// An app on Providers → stores, with the given stores.
-    fn at_stores(stores: Vec<StoreRow>) -> App {
-        let mut a = app();
-        a.go_to_section(Section::Providers);
-        assert_eq!(a.handle(Action::Open, 20), Some(Command::LoadStores));
-        a.apply(Event::Stores(stores));
-        a
-    }
-
-    fn type_text(a: &mut App, text: &str) {
-        for ch in text.chars() {
-            a.type_char(ch);
         }
     }
 
@@ -7221,23 +7076,6 @@ mod tests {
             a.cursor(),
             a.offset()
         );
-    }
-
-    /// Continue with `n` titles on screen and the keyboard in the list, as `1` leaves it.
-    fn home_list(n: usize) -> App {
-        let mut a = app();
-        a.handle(Action::JumpSection(1), 5);
-        a.apply(a.content_here(entries(n)));
-        a
-    }
-
-    fn related(id: u32, title: &str) -> RelatedTitle {
-        RelatedTitle {
-            id: AnilistId::new(id),
-            title: title.into(),
-            relation: "sequel".into(),
-            format: None,
-        }
     }
 
     fn setting_row(id: SettingKey) -> usize {
@@ -8283,11 +8121,6 @@ mod tests {
         owner.answer(&mut a, task);
         assert_eq!(setting_text(&a, SettingKey::CommitThreshold), "95%");
         assert_eq!(owner.saved.playback.commit_threshold, 0.95);
-    }
-
-    fn setting_text(a: &App, id: SettingKey) -> String {
-        let at = SettingKey::ROWS.iter().position(|row| *row == id).unwrap();
-        a.setting_rows()[at].value.clone()
     }
 
     fn settings_at(id: SettingKey) -> App {
