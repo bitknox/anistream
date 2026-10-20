@@ -183,7 +183,8 @@ async fn main() -> anyhow::Result<()> {
             }
         }
     });
-    let play = playback::play(streams, context, store, http, mpv, settings, slot, tx, commands);
+    let play =
+        playback::play(streams, context, store, http, mpv, settings, slot, tx.into(), commands);
     tokio::time::timeout(Duration::from_secs(3600), play).await?;
     let _ = printer.await;
     // Finished with Up Next on, the window is parked for the next episode with its loading card

@@ -16,11 +16,13 @@ use cli::{
     store::store_command,
     sync::sync_once,
 };
-use engine_state::{EngineState, Internal, PlayHints};
+use engine_state::{EngineState, PlayHints};
 use services::Services;
 
 use anistream_engine::{
-    artwork, data, downloads, playback,
+    artwork, data, downloads,
+    outbox::{Internal, Outbox},
+    playback,
     player::{player, shader_dir},
     plugin_stores, sources, tracking,
 };
@@ -461,6 +463,7 @@ async fn preview(
     }
 
     let (tx, mut rx) = mpsc::unbounded_channel();
+    let tx = Outbox::from(tx);
     let mut run = PreviewRun {
         tx,
         rows: screens::visible_rows(
@@ -542,7 +545,7 @@ async fn preview(
 
 /// What `--preview` drives the app with: the same handles the event loop holds.
 struct PreviewRun {
-    tx: mpsc::UnboundedSender<Event>,
+    tx: Outbox,
     rows: usize,
     engine: EngineState,
     seam: ConfigSeam,
@@ -723,6 +726,7 @@ async fn run(
     // Background work reports through this channel; nothing off the UI thread ever touches
     // `App` directly, which is what keeps a slow request from stalling a frame.
     let (tx, mut rx) = mpsc::unbounded_channel::<Event>();
+    let tx = Outbox::from(tx);
 
     // The engine side told the interface's config, the file's included, before it reads it.
     let mut seam = ConfigSeam::default();
@@ -1016,7 +1020,7 @@ fn use_config(
     seam: &mut ConfigSeam,
     engine: &mut EngineState,
     services: &Services,
-    tx: &mpsc::UnboundedSender<Event>,
+    tx: &Outbox,
 ) {
     if let Some(config) = seam.moved(app) {
         dispatch(config, None, engine, services, tx);
@@ -1032,7 +1036,7 @@ fn command(
     task: Command,
     engine: &mut EngineState,
     services: &Services,
-    tx: &mpsc::UnboundedSender<Event>,
+    tx: &Outbox,
 ) -> Option<JobId> {
     use_config(app, seam, engine, services, tx);
     if let Some(hints) = play_hints(app, &task) {
@@ -1051,11 +1055,7 @@ fn command(
 /// A failure is said once, in words; the retries back off from five minutes to an hour; and
 /// the recovery is said too, so the last thing on screen stays true. A refresh only fetches what
 /// is due, so a retry asks again for exactly the datasets that failed.
-async fn keep_datasets_current(
-    store: Store,
-    http: HttpClient,
-    tx: mpsc::UnboundedSender<Event>,
-) {
+async fn keep_datasets_current(store: Store, http: HttpClient, tx: Outbox) {
     let mut wait = Duration::from_secs(5 * 60);
     let mut said = false;
     loop {
@@ -1178,7 +1178,7 @@ async fn stop_for_exit(
 /// broadcast line a moment later, rather than the whole screen waiting on an annotation.
 async fn publish_list(
     meta: &Meta,
-    tx: &mpsc::UnboundedSender<Event>,
+    tx: &Outbox,
     view: ContentFor,
     entries: Vec<anistream_model::catalog::Entry>,
     now: i64,
@@ -1217,7 +1217,7 @@ async fn publish_list(
 /// that thought to, and outlived their work on every other one.
 struct JobGuard {
     id: JobId,
-    tx: mpsc::UnboundedSender<Event>,
+    tx: Outbox,
 }
 
 impl JobGuard {
@@ -1226,11 +1226,7 @@ impl JobGuard {
     ///
     /// Announced on the channel the work answers on, before the work can send anything, so the
     /// job's notes and its end always find it in the front end.
-    fn start(
-        engine: &mut EngineState,
-        task: &Command,
-        tx: &mpsc::UnboundedSender<Event>,
-    ) -> Option<Self> {
+    fn start(engine: &mut EngineState, task: &Command, tx: &Outbox) -> Option<Self> {
         let activity = task.activity()?;
         let id = engine.number_job();
         let _ = tx.send(Event::JobStarted { job: id, activity });
@@ -1250,12 +1246,7 @@ impl Drop for JobGuard {
 }
 
 /// Run a task off the UI thread and report the result back through the channel.
-fn spawn(
-    task: Command,
-    job: Option<JobGuard>,
-    services: &Services,
-    tx: &mpsc::UnboundedSender<Event>,
-) {
+fn spawn(task: Command, job: Option<JobGuard>, services: &Services, tx: &Outbox) {
     let meta = services.meta.clone();
     let store = services.store.clone();
     let registry = services.registry.clone();
@@ -1534,11 +1525,7 @@ fn spawn(
 /// A finished episode's progress goes to the trackers now, not at the next drain tick: up to a
 /// minute later, the pushed progress looked simply absent. And the metadata ladder's notice, when
 /// it moved. `tx` is asked for only when there is work to answer on it.
-fn receive(
-    update: &Event,
-    services: &Services,
-    tx: impl FnOnce() -> mpsc::UnboundedSender<Event>,
-) -> Vec<Event> {
+fn receive(update: &Event, services: &Services, tx: impl FnOnce() -> Outbox) -> Vec<Event> {
     if matches!(update, Event::ProgressQueued) {
         let (sync, tx) = (services.sync.clone(), tx());
         tokio::spawn(async move { tracking::drain_once(&sync, &tx).await });
@@ -1563,7 +1550,7 @@ async fn handle_internal(
     message: Internal,
     engine: &mut EngineState,
     services: &Services,
-    tx: &mpsc::UnboundedSender<Event>,
+    tx: &Outbox,
 ) -> Vec<Event> {
     let mut said = meta_notice(&services.meta);
     if let Ok(mut shared) = engine.shared_config.write() {
@@ -1605,7 +1592,7 @@ fn dispatch(
     job: Option<JobGuard>,
     engine: &mut EngineState,
     services: &Services,
-    tx: &mpsc::UnboundedSender<Event>,
+    tx: &Outbox,
 ) {
     let Services { paths, http, store, meta, registry, sync, stores, slot, prefetch } =
         services;
@@ -1702,7 +1689,7 @@ fn dispatch(
             tokio::spawn(async move {
                 // Quiet: the steps of a search nobody is waiting on must not take the status
                 // line from the episode playing. Nothing reads this channel.
-                let (quiet, _) = mpsc::unbounded_channel();
+                let quiet = Outbox::from(mpsc::unbounded_channel().0);
                 let found = resolve_for_playback(
                     &meta, &store, &registry, id, &episode, None, &playback, None, &quiet,
                 )
@@ -2231,7 +2218,7 @@ struct StoreTaskContext {
     config: Config,
     http: HttpClient,
     paths: Paths,
-    tx: mpsc::UnboundedSender<Event>,
+    tx: Outbox,
 }
 
 impl StoreTaskContext {
@@ -2440,7 +2427,7 @@ fn spawn_playback(
     // This episode's streams, found ahead while the previous one's ending played.
     prefetched: Option<Resolved>,
     job: Option<JobGuard>,
-    tx: &mpsc::UnboundedSender<Event>,
+    tx: &Outbox,
 ) {
     let (config, meta, store, registry, http, mpv, slot, tx) = (
         config.clone(),
@@ -2530,7 +2517,7 @@ async fn resolve_for_playback(
     pick: Option<(String, String)>,
     playback: &anistream_core::config::PlaybackConfig,
     job: Option<&JobGuard>,
-    tx: &mpsc::UnboundedSender<Event>,
+    tx: &Outbox,
 ) -> std::result::Result<(Vec<anistream_core::stream::Stream>, playback::PlaybackContext), String>
 {
     // The step under way, on the job when there is one; the CLI has no activity row and reads
@@ -2921,7 +2908,7 @@ impl TorrentTasks {
         guard: &Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
         store: &Store,
         config: &anistream_engine::SharedConfig,
-        tx: &mpsc::UnboundedSender<Event>,
+        tx: &Outbox,
     ) -> Self {
         let Some((guard, session)) = guard.clone() else {
             // No session means no downloads, which is correct rather than a limitation:
@@ -2962,7 +2949,7 @@ impl TorrentTasks {
         &mut self,
         config: &Config,
         services: &Services,
-        tx: &mpsc::UnboundedSender<Event>,
+        tx: &Outbox,
         arrivals: &mpsc::UnboundedSender<(
             u64,
             std::result::Result<sources::TorrentUp, String>,
@@ -2997,7 +2984,7 @@ impl TorrentTasks {
         vpn_guard: &mut Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
         services: &Services,
         config: &anistream_engine::SharedConfig,
-        tx: &mpsc::UnboundedSender<Event>,
+        tx: &Outbox,
     ) {
         if generation != self.generation {
             // Superseded. Its session holds no torrents yet, so letting go of it is enough.
@@ -3057,7 +3044,7 @@ impl TorrentTasks {
 async fn seeding_watch(
     session: Arc<anistream_providers::torrent::TorrentSession>,
     config: anistream_engine::SharedConfig,
-    tx: mpsc::UnboundedSender<Event>,
+    tx: Outbox,
 ) {
     let mut ticker = tokio::time::interval(Duration::from_secs(10));
     let mut shown: Option<Vec<anistream_model::downloads::SeedRow>> = None;
@@ -3093,7 +3080,7 @@ async fn seeding_watch(
 async fn vpn_watch(
     guard: VpnGuard,
     session: Arc<anistream_providers::torrent::TorrentSession>,
-    tx: mpsc::UnboundedSender<Event>,
+    tx: Outbox,
 ) {
     let mut ticker = tokio::time::interval(guard.verify_interval());
     // The first tick fires immediately; the guard was already verified at startup.
@@ -3152,7 +3139,7 @@ async fn reload_sources(
     torrent_tasks: &mut TorrentTasks,
     vpn_guard: &mut Option<(VpnGuard, Arc<anistream_providers::torrent::TorrentSession>)>,
     config: &anistream_engine::SharedConfig,
-    tx: &mpsc::UnboundedSender<Event>,
+    tx: &Outbox,
     arrivals: &mpsc::UnboundedSender<(u64, std::result::Result<sources::TorrentUp, String>)>,
 ) {
     // Old traffic stops before new traffic starts. The other order would leave two
@@ -3842,6 +3829,7 @@ mod tests {
     #[test]
     fn a_job_starts_only_for_work_someone_waits_on() {
         let (tx, mut rx) = mpsc::unbounded_channel();
+        let tx = Outbox::from(tx);
         let (arrivals, bus) = (mpsc::unbounded_channel().0, mpsc::unbounded_channel().0);
         let mut engine = EngineState::new(Config::default(), arrivals, bus);
         let score =
@@ -3890,6 +3878,7 @@ mod tests {
     #[tokio::test]
     async fn a_job_ends_however_its_work_does_even_by_panicking() {
         let (tx, mut rx) = mpsc::unbounded_channel();
+        let tx = Outbox::from(tx);
         let (arrivals, bus) = (mpsc::unbounded_channel().0, mpsc::unbounded_channel().0);
         let mut engine = EngineState::new(Config::default(), arrivals, bus);
         let job = JobGuard::start(&mut engine, &Command::CheckProviders, &tx).unwrap();

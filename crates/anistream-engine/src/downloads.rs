@@ -21,7 +21,8 @@ use anistream_core::{config::Config, ids::AnilistId, media::Translation};
 use anistream_model::{event::Event, notice::Notice};
 use anistream_providers::{ProviderRegistry, torrent::TorrentSession};
 use anistream_store::{Download, DownloadState, Store};
-use tokio::sync::mpsc;
+
+use crate::outbox::Outbox;
 
 /// How many torrents fetch at once.
 ///
@@ -48,7 +49,7 @@ pub fn spawn(
     store: Store,
     session: Arc<TorrentSession>,
     config: crate::SharedConfig,
-    tx: mpsc::UnboundedSender<Event>,
+    tx: Outbox,
 ) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         let mut running: Vec<Running> = Vec::new();
@@ -83,7 +84,7 @@ async fn poll_running(
     store: &Store,
     session: &TorrentSession,
     config: &Config,
-    tx: &mpsc::UnboundedSender<Event>,
+    tx: &Outbox,
     running: &mut Vec<Running>,
 ) {
     let mut finished = Vec::new();
@@ -214,7 +215,7 @@ async fn poll_running(
 async fn start_queued(
     store: &Store,
     session: &TorrentSession,
-    tx: &mpsc::UnboundedSender<Event>,
+    tx: &Outbox,
     running: &mut Vec<Running>,
 ) {
     if running.len() >= CONCURRENCY {
@@ -377,7 +378,7 @@ async fn finish(
     }
 }
 
-fn publish(store: &Store, tx: &mpsc::UnboundedSender<Event>) {
+fn publish(store: &Store, tx: &Outbox) {
     if let Ok(rows) = store.downloads() {
         let _ = tx.send(Event::Downloads(rows.iter().map(to_row).collect()));
     }
@@ -412,7 +413,7 @@ fn row_state(state: DownloadState) -> anistream_model::downloads::DownloadState 
 }
 
 /// Publish the queue as it currently stands, for a screen that has just been opened.
-pub fn publish_now(store: &Store, tx: &mpsc::UnboundedSender<Event>) {
+pub fn publish_now(store: &Store, tx: &Outbox) {
     publish(store, tx);
 }
 

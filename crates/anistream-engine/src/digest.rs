@@ -10,7 +10,8 @@ use std::collections::HashSet;
 use anistream_meta::Meta;
 use anistream_model::{event::Event, notice::Notice};
 use anistream_store::Store;
-use tokio::sync::mpsc;
+
+use crate::outbox::Outbox;
 
 /// The stored-state key holding when the digest last looked.
 const SEEN_KEY: &str = "airing_digest_seen";
@@ -22,13 +23,7 @@ const WINDOW_SECS: i64 = 7 * 24 * 3600;
 /// How many titles of history count as "shows you watch".
 const WATCHED_ROWS: u32 = 100;
 
-pub fn spawn(
-    enabled: bool,
-    desktop: bool,
-    store: Store,
-    meta: Meta,
-    tx: mpsc::UnboundedSender<Event>,
-) {
+pub fn spawn(enabled: bool, desktop: bool, store: Store, meta: Meta, tx: Outbox) {
     if !enabled {
         return;
     }

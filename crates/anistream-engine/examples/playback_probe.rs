@@ -189,7 +189,7 @@ async fn main() {
             mpv,
             settings,
             anistream_engine::slot::PlayerSlot::default(),
-            tx,
+            tx.into(),
             command_rx,
         )
         .await;

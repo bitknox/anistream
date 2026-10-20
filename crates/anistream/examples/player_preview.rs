@@ -129,7 +129,7 @@ async fn main() -> anyhow::Result<()> {
             mpv.clone(),
             settings,
             slot.clone(),
-            tx,
+            tx.into(),
             commands,
         );
         tokio::time::timeout(Duration::from_secs(600), play).await?;

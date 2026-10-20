@@ -25,7 +25,8 @@ use anistream_model::{
 };
 use anistream_store::Store;
 use anistream_track::{AniListTracker, TokenStore, auth, sync};
-use tokio::sync::mpsc;
+
+use crate::outbox::Outbox;
 
 /// Everything the sync loops need.
 #[derive(Clone)]
@@ -395,7 +396,7 @@ pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -
 ///
 /// Both run forever. The drain is cheap when idle — one indexed count against SQLite — so it can
 /// tick often; a pull costs a real request out of thirty a minute, so it does not.
-pub fn spawn_loops(sync: Sync, tx: mpsc::UnboundedSender<Event>) {
+pub fn spawn_loops(sync: Sync, tx: Outbox) {
     if sync.trackers.is_empty() {
         return;
     }
@@ -465,7 +466,7 @@ async fn persist_renewed_tokens(sync: &Sync) {
 }
 
 /// One drain pass across every tracker.
-pub async fn drain_once(sync: &Sync, tx: &mpsc::UnboundedSender<Event>) {
+pub async fn drain_once(sync: &Sync, tx: &Outbox) {
     let now = anistream_store::now();
     persist_renewed_tokens(sync).await;
     // Every tracker at once. Each drains only its own outbox rows to its own host, so nothing
@@ -502,7 +503,7 @@ pub async fn drain_once(sync: &Sync, tx: &mpsc::UnboundedSender<Event>) {
 }
 
 /// One library pull across every tracker.
-pub async fn pull_once(sync: &Sync, tx: &mpsc::UnboundedSender<Event>) {
+pub async fn pull_once(sync: &Sync, tx: &Outbox) {
     let now = anistream_store::now();
     // The libraries are fetched at once — separate hosts, and a pull can be several pages —
     // but merged one at a time in tracker order. Every merge reads and writes the same local
@@ -579,7 +580,7 @@ pub async fn pull_once(sync: &Sync, tx: &mpsc::UnboundedSender<Event>) {
 /// Opens a browser and waits. Everything here is best-effort and every failure is reported as a
 /// toast rather than propagated — a failed sign-in must leave the app exactly as usable as it
 /// was, because local history never needed an account.
-pub async fn connect(sync: Sync, tracker_id: String, tx: mpsc::UnboundedSender<Event>) {
+pub async fn connect(sync: Sync, tracker_id: String, tx: Outbox) {
     // Simkl and Trakt use the device flow: no redirect URI to register, and it works over SSH.
     if let Some(endpoints) = device_endpoints(&tracker_id) {
         connect_device(sync, tracker_id, endpoints, tx).await;
@@ -706,12 +707,7 @@ pub async fn connect(sync: Sync, tracker_id: String, tx: mpsc::UnboundedSender<E
 /// The password arrives from the prompt, goes to Kitsu's token endpoint, and is dropped
 /// when this function returns — the same one-way journey `--login` gives it. Success
 /// hands the pair to the live tracker through the same [`activate`] every flow uses.
-pub async fn connect_kitsu(
-    sync: Sync,
-    username: String,
-    password: String,
-    tx: mpsc::UnboundedSender<Event>,
-) {
+pub async fn connect_kitsu(sync: Sync, username: String, password: String, tx: Outbox) {
     let pair = match anistream_track::kitsu::login(
         sync.http.plain(),
         &username,
@@ -752,7 +748,7 @@ pub async fn connect_kitsu(
 /// There was no interactive flow at all — the Accounts screen answered "mal: no sign-in flow yet"
 /// while `--login --tracker mal` worked perfectly from the command line. The PKCE machinery already
 /// existed; only this wiring was missing.
-async fn connect_mal(sync: Sync, tx: mpsc::UnboundedSender<Event>) {
+async fn connect_mal(sync: Sync, tx: Outbox) {
     use anistream_track::mal;
 
     let auth = &sync.config.trackers.mal;
@@ -843,7 +839,7 @@ async fn activate(
     sync: &Sync,
     tracker_id: &str,
     pair: &anistream_track::TokenPair,
-    tx: &mpsc::UnboundedSender<Event>,
+    tx: &Outbox,
 ) {
     if let Some(tracker) = sync.trackers.iter().find(|t| t.id() == tracker_id) {
         tracker
@@ -882,7 +878,7 @@ async fn connect_device(
     sync: Sync,
     tracker_id: String,
     endpoints: anistream_track::DeviceEndpoints,
-    tx: mpsc::UnboundedSender<Event>,
+    tx: Outbox,
 ) {
     let (client_id, client_secret) = match tracker_id.as_str() {
         "simkl" => (sync.config.trackers.simkl.client_id.clone(), None),
@@ -961,7 +957,7 @@ async fn connect_device(
 }
 
 /// Forget a tracker's token.
-pub fn disconnect(sync: &Sync, tracker_id: &str, tx: &mpsc::UnboundedSender<Event>) {
+pub fn disconnect(sync: &Sync, tracker_id: &str, tx: &Outbox) {
     let update = match sync.tokens.clear(tracker_id) {
         // The queue is deliberately left alone. Signing out is not "discard my progress", and
         // signing back in should send what accumulated.
@@ -1189,7 +1185,8 @@ mod tests {
         let flaky = Arc::new(Flaky { down: true.into() });
         let sync =
             Sync { trackers: vec![flaky.clone()], ..Sync::build(&config, &store, &http) };
-        let (tx, mut rx) = mpsc::unbounded_channel();
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+        let tx = Outbox::from(tx);
 
         pull_once(&sync, &tx).await;
         let Some(Event::Sync(state)) = rx.try_recv().ok() else { panic!("no state sent") };
@@ -1252,7 +1249,8 @@ mod tests {
                 0,
             )
             .unwrap();
-        let (tx, _rx) = mpsc::unbounded_channel();
+        let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
+        let tx = Outbox::from(tx);
         disconnect(&sync, "anilist", &tx);
         assert_eq!(store.outbox_depth(Some("anilist")).unwrap(), 1);
     }

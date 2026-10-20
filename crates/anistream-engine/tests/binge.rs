@@ -128,7 +128,7 @@ async fn run_streams(
             mpv.clone(),
             settings,
             slot.clone(),
-            tx,
+            tx.into(),
             commands,
         ),
     )
@@ -387,7 +387,7 @@ fn start(
         mpv.clone(),
         settings,
         slot.clone(),
-        tx,
+        tx.into(),
         commands,
     ));
     (task, rx)

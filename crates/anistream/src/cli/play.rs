@@ -132,6 +132,8 @@ pub async fn play_cli(
     }
 
     let (tx, mut rx) = mpsc::unbounded_channel();
+    // Events only: the command line narrates them, and has no engine side to tell anything.
+    let tx = anistream_engine::outbox::Outbox::from(tx);
     let (streams, context) = resolve_for_playback(
         &meta,
         store,

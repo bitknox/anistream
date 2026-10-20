@@ -33,7 +33,13 @@ use std::{
 };
 
 use anistream_core::config::{Config, NetworkConfig, Paths};
-use anistream_engine::{data, plugin_stores, slot::PlayerSlot, sources, tracking};
+use anistream_engine::{
+    data,
+    outbox::{Internal, Outbox, WeakOutbox},
+    plugin_stores,
+    slot::PlayerSlot,
+    sources, tracking,
+};
 use anistream_meta::Meta;
 use anistream_model::{command::Command, event::Event, jobs::JobId, notice::Notice};
 use anistream_net::HttpClient;
@@ -53,11 +59,7 @@ use anistream_tui::{
 };
 use tokio::sync::mpsc;
 
-use crate::{
-    ConfigSeam, Prefetch,
-    engine_state::{EngineState, Internal},
-    services::Services,
-};
+use crate::{ConfigSeam, Prefetch, engine_state::EngineState, services::Services};
 
 /// How long [`Harness::settle`] waits for work to finish before failing the test.
 ///
@@ -558,19 +560,20 @@ impl Jobs {
 #[derive(Default)]
 struct Channels {
     open: VecDeque<mpsc::UnboundedReceiver<Event>>,
-    newest: Option<mpsc::WeakUnboundedSender<Event>>,
+    newest: Option<WeakOutbox>,
     /// Holds the newest channel open between a [`Harness::send`] and the settle after it,
     /// when nothing else may yet be holding it.
-    held: Option<mpsc::UnboundedSender<Event>>,
+    held: Option<Outbox>,
 }
 
 impl Channels {
     /// A sender to the open channel, or to a new one when it has closed.
-    fn sender(&mut self) -> mpsc::UnboundedSender<Event> {
-        if let Some(tx) = self.newest.as_ref().and_then(mpsc::WeakUnboundedSender::upgrade) {
+    fn sender(&mut self) -> Outbox {
+        if let Some(tx) = self.newest.as_ref().and_then(WeakOutbox::upgrade) {
             return tx;
         }
         let (tx, rx) = mpsc::unbounded_channel();
+        let tx = Outbox::from(tx);
         self.newest = Some(tx.downgrade());
         self.open.push_back(rx);
         tx

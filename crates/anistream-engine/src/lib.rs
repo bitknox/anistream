@@ -25,6 +25,7 @@ pub mod data;
 pub mod digest;
 pub mod downloads;
 pub mod mend;
+pub mod outbox;
 pub mod picture;
 pub mod playback;
 pub mod player;

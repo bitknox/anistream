@@ -318,7 +318,7 @@ pub async fn bring_up_torrent(
     http: HttpClient,
     paths: Paths,
     store: anistream_store::Store,
-    tx: tokio::sync::mpsc::UnboundedSender<anistream_model::event::Event>,
+    tx: crate::outbox::Outbox,
 ) -> std::result::Result<TorrentUp, String> {
     use anistream_model::event::Event;
     use anistream_providers::vpn::{GuardLog, GuardNote, GuardState};

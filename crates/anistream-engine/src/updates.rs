@@ -9,7 +9,8 @@ use std::path::Path;
 
 use anistream_net::HttpClient;
 use anistream_model::{event::Event, notice::Notice};
-use tokio::sync::mpsc;
+
+use crate::outbox::Outbox;
 
 /// The repository whose releases the check looks for and the updater installs from.
 pub const REPO: &str = "bitknox/anistream";
@@ -51,7 +52,7 @@ pub fn spawn_check(
     enabled: bool,
     cache_dir: &Path,
     http: &HttpClient,
-    tx: &mpsc::UnboundedSender<Event>,
+    tx: &Outbox,
 ) {
     if !enabled {
         return;

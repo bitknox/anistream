@@ -14,7 +14,8 @@ use std::path::{Path, PathBuf};
 
 use anistream_model::event::Event;
 use anistream_net::HttpClient;
-use tokio::sync::mpsc;
+
+use crate::outbox::Outbox;
 
 /// How long a cached cover stays valid. Art changes rarely; a month avoids re-fetching a
 /// library's worth of images while still letting a replaced cover through eventually.
@@ -24,12 +25,7 @@ pub const CACHE_TTL_SECS: u64 = 30 * 24 * 3_600;
 const _: () = assert!(CACHE_TTL_SECS > 0);
 
 /// Fetch one image, from the cache when it is fresh there, and hand its bytes to the UI.
-pub fn spawn_fetch(
-    url: String,
-    cache_dir: PathBuf,
-    http: HttpClient,
-    tx: mpsc::UnboundedSender<Event>,
-) {
+pub fn spawn_fetch(url: String, cache_dir: PathBuf, http: HttpClient, tx: Outbox) {
     tokio::spawn(async move {
         let path = cache_dir.join(format!("{}.img", anistream_core::hash::stable_hash(&url)));
 
@@ -149,8 +145,8 @@ mod tests {
     /// What one fetch sent back to the UI.
     async fn fetch_once(url: String, cache: &std::path::Path) -> Event {
         let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
-        let (tx, mut rx) = mpsc::unbounded_channel();
-        spawn_fetch(url, cache.to_path_buf(), http, tx);
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+        spawn_fetch(url, cache.to_path_buf(), http, tx.into());
         tokio::time::timeout(std::time::Duration::from_secs(20), rx.recv())
             .await
             .expect("the fetch never reported back")

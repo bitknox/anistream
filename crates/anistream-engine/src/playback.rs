@@ -35,6 +35,7 @@ use futures::StreamExt;
 use tokio::sync::mpsc;
 
 use crate::{
+    outbox::Outbox,
     picture::{self, Governor, HdrKind},
     power,
     shaders::{self, Look},
@@ -472,7 +473,7 @@ pub async fn play(
     mpv: Mpv,
     settings: PlaySettings,
     slot: PlayerSlot,
-    tx: mpsc::UnboundedSender<Event>,
+    tx: Outbox,
     mut commands: mpsc::UnboundedReceiver<PlayerCommand>,
 ) {
     let Some(first) = streams.first() else {
@@ -785,11 +786,7 @@ fn next_untried(tried: &[bool], current: usize) -> usize {
 }
 
 /// Start a Syncplay party on a stream.
-fn hand_to_syncplay(
-    syncplay: &anistream_core::config::SyncplayConfig,
-    url: &str,
-    tx: &mpsc::UnboundedSender<Event>,
-) {
+fn hand_to_syncplay(syncplay: &anistream_core::config::SyncplayConfig, url: &str, tx: &Outbox) {
     // Syncplay's no-gui mode refuses to start without a room, so asking first beats
     // spawning a process whose refusal we would have to fish out of its stderr.
     let Some(room) = syncplay.room.clone().filter(|r| !r.trim().is_empty()) else {
@@ -843,7 +840,7 @@ struct Run<'a> {
     context: &'a PlaybackContext,
     settings: &'a PlaySettings,
     store: &'a Store,
-    tx: &'a mpsc::UnboundedSender<Event>,
+    tx: &'a Outbox,
     skips: Vec<SkipInterval>,
     controls_open: bool,
     /// The viewer cancelled Up Next, so the end of this episode is the end.
