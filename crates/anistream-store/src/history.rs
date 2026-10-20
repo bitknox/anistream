@@ -470,7 +470,7 @@ fn row_to_progress(r: &rusqlite::Row<'_>) -> rusqlite::Result<Progress> {
 mod tests {
     use super::*;
 
-    const FRIEREN: AnilistId = AnilistId::new(154_587);
+    const HOSHIKUZU: AnilistId = AnilistId::new(154_587);
     const THRESHOLD: f64 = 0.85;
 
     fn event(ep: &str, position: f64, duration: f64, at: i64) -> WatchEvent {
@@ -478,7 +478,7 @@ mod tests {
             completed: is_complete(position, Some(duration), THRESHOLD),
             duration_secs: Some(duration),
             at,
-            ..WatchEvent::new(FRIEREN, ep, position)
+            ..WatchEvent::new(HOSHIKUZU, ep, position)
         }
     }
 
@@ -494,16 +494,16 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         store.record_event(&event("13", 720.0, 1440.0, 5_000)).unwrap();
 
-        let adopted = store.adopt_progress(FRIEREN, 12, 6_000).unwrap();
+        let adopted = store.adopt_progress(HOSHIKUZU, 12, 6_000).unwrap();
 
         assert_eq!(adopted, 12, "every episode up to the remote's figure");
-        assert_eq!(store.completed_episode_count(FRIEREN).unwrap(), 12);
+        assert_eq!(store.completed_episode_count(HOSHIKUZU).unwrap(), 12);
         assert_eq!(
-            store.resume_position(FRIEREN, "13").unwrap(),
+            store.resume_position(HOSHIKUZU, "13").unwrap(),
             Some(720.0),
             "the twelve-minute mark of episode 13 survived the adoption"
         );
-        let progress = store.progress(FRIEREN).unwrap().expect("a row");
+        let progress = store.progress(HOSHIKUZU).unwrap().expect("a row");
         assert_eq!(progress.last_episode, "13", "the rail still points where the viewer is");
         assert_eq!(progress.last_position, 720.0);
     }
@@ -516,11 +516,11 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         store.record_event(&event("9", 720.0, 1440.0, 5_000)).unwrap();
 
-        store.adopt_progress(FRIEREN, 12, 6_000).unwrap();
+        store.adopt_progress(HOSHIKUZU, 12, 6_000).unwrap();
 
-        assert_eq!(store.completed_episode_count(FRIEREN).unwrap(), 12);
+        assert_eq!(store.completed_episode_count(HOSHIKUZU).unwrap(), 12);
         assert_eq!(
-            store.resume_position(FRIEREN, "9").unwrap(),
+            store.resume_position(HOSHIKUZU, "9").unwrap(),
             None,
             "an episode the remote counts as watched is not half-watched any more"
         );
@@ -529,9 +529,9 @@ mod tests {
     #[test]
     fn adopting_the_same_progress_twice_changes_nothing() {
         let store = Store::open_in_memory().unwrap();
-        assert_eq!(store.adopt_progress(FRIEREN, 5, 1_000).unwrap(), 5);
-        assert_eq!(store.adopt_progress(FRIEREN, 5, 2_000).unwrap(), 0, "already adopted");
-        assert_eq!(store.completed_episode_count(FRIEREN).unwrap(), 5);
+        assert_eq!(store.adopt_progress(HOSHIKUZU, 5, 1_000).unwrap(), 5);
+        assert_eq!(store.adopt_progress(HOSHIKUZU, 5, 2_000).unwrap(), 0, "already adopted");
+        assert_eq!(store.completed_episode_count(HOSHIKUZU).unwrap(), 5);
     }
 
     #[test]
@@ -543,7 +543,7 @@ mod tests {
         store.record_event(&event("3", 900.0, 1440.0, 5_000)).unwrap();
         store.record_event(&event("3", 10.0, 1440.0, 1_000)).unwrap();
 
-        let progress = store.progress(FRIEREN).unwrap().expect("a row");
+        let progress = store.progress(HOSHIKUZU).unwrap().expect("a row");
         assert_eq!(progress.last_position, 900.0, "the newer observation still stands");
         assert_eq!(progress.updated_at, 5_000);
     }
@@ -557,15 +557,15 @@ mod tests {
         store.record_event(&event("5", 300.0, 1440.0, 1_000)).unwrap();
         store.record_event(&event("6", 600.0, 1440.0, 2_000)).unwrap();
 
-        store.forget_episode(FRIEREN, "6").unwrap();
+        store.forget_episode(HOSHIKUZU, "6").unwrap();
 
-        let progress = store.progress(FRIEREN).unwrap().expect("episode 5 is still watched");
+        let progress = store.progress(HOSHIKUZU).unwrap().expect("episode 5 is still watched");
         assert_eq!(progress.last_episode, "5", "the rail describes surviving history");
         assert_eq!(progress.last_position, 300.0);
 
         // And with the last event gone, the row goes too rather than lingering empty.
-        store.forget_episode(FRIEREN, "5").unwrap();
-        assert!(store.progress(FRIEREN).unwrap().is_none());
+        store.forget_episode(HOSHIKUZU, "5").unwrap();
+        assert!(store.progress(HOSHIKUZU).unwrap().is_none());
         assert!(store.continue_list(10).unwrap().is_empty());
     }
 
@@ -578,8 +578,8 @@ mod tests {
         store.record_event(&event("3", 400.0, 1440.0, 1_000)).unwrap();
         store.record_event(&event("4", 900.0, 1440.0, 2_000)).unwrap();
 
-        assert_eq!(store.resume_position(FRIEREN, "3").unwrap(), Some(400.0));
-        assert_eq!(store.resume_position(FRIEREN, "4").unwrap(), Some(900.0));
+        assert_eq!(store.resume_position(HOSHIKUZU, "3").unwrap(), Some(400.0));
+        assert_eq!(store.resume_position(HOSHIKUZU, "4").unwrap(), Some(900.0));
     }
 
     #[test]
@@ -589,7 +589,7 @@ mod tests {
         for (i, position) in [100.0, 200.0, 300.0].into_iter().enumerate() {
             store.record_event(&event("5", position, 1440.0, 1_000 + i as i64)).unwrap();
         }
-        assert_eq!(store.resume_position(FRIEREN, "5").unwrap(), Some(300.0));
+        assert_eq!(store.resume_position(HOSHIKUZU, "5").unwrap(), Some(300.0));
     }
 
     #[test]
@@ -598,7 +598,7 @@ mod tests {
         // offer there is the *next* episode.
         let store = Store::open_in_memory().unwrap();
         store.record_event(&event("6", 1440.0 * 0.9, 1440.0, 1_000)).unwrap();
-        assert_eq!(store.resume_position(FRIEREN, "6").unwrap(), None);
+        assert_eq!(store.resume_position(HOSHIKUZU, "6").unwrap(), None);
     }
 
     #[test]
@@ -606,13 +606,13 @@ mod tests {
         // Indistinguishable from starting fresh, and the prompt would be noise.
         let store = Store::open_in_memory().unwrap();
         store.record_event(&event("7", 12.0, 1440.0, 1_000)).unwrap();
-        assert_eq!(store.resume_position(FRIEREN, "7").unwrap(), None);
+        assert_eq!(store.resume_position(HOSHIKUZU, "7").unwrap(), None);
     }
 
     #[test]
     fn an_unwatched_episode_has_nothing_to_resume() {
         let store = Store::open_in_memory().unwrap();
-        assert_eq!(store.resume_position(FRIEREN, "1").unwrap(), None);
+        assert_eq!(store.resume_position(HOSHIKUZU, "1").unwrap(), None);
     }
 
     #[test]
@@ -621,9 +621,9 @@ mod tests {
         // resume there would silently lose the position on exactly the source that needs it.
         let store = Store::open_in_memory().unwrap();
         store
-            .record_event(&WatchEvent { at: 1_000, ..WatchEvent::new(FRIEREN, "8", 600.0) })
+            .record_event(&WatchEvent { at: 1_000, ..WatchEvent::new(HOSHIKUZU, "8", 600.0) })
             .unwrap();
-        assert_eq!(store.resume_position(FRIEREN, "8").unwrap(), Some(600.0));
+        assert_eq!(store.resume_position(HOSHIKUZU, "8").unwrap(), Some(600.0));
     }
 
     #[test]
@@ -653,7 +653,7 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         store.record_event(&event("011", 600.0, 1440.0, 1_000)).unwrap();
 
-        let p = store.progress(FRIEREN).unwrap().unwrap();
+        let p = store.progress(HOSHIKUZU).unwrap().unwrap();
         assert_eq!(p.last_episode, "011");
         assert_eq!(p.last_position, 600.0);
         assert_eq!(p.episodes_done, 0, "600/1440 is below the threshold");
@@ -669,11 +669,11 @@ mod tests {
         for at in [1_000, 2_000, 3_000] {
             store.record_event(&event("001", 1400.0, 1440.0, at)).unwrap();
         }
-        assert_eq!(store.completed_episode_count(FRIEREN).unwrap(), 1);
+        assert_eq!(store.completed_episode_count(HOSHIKUZU).unwrap(), 1);
 
         store.record_event(&event("002", 1400.0, 1440.0, 4_000)).unwrap();
-        assert_eq!(store.completed_episode_count(FRIEREN).unwrap(), 2);
-        assert_eq!(store.progress(FRIEREN).unwrap().unwrap().episodes_done, 2);
+        assert_eq!(store.completed_episode_count(HOSHIKUZU).unwrap(), 2);
+        assert_eq!(store.progress(HOSHIKUZU).unwrap().unwrap().episodes_done, 2);
     }
 
     #[test]
@@ -686,12 +686,12 @@ mod tests {
                 .record_event(&event(&ep.to_string(), 1400.0, 1440.0, 1_000 + i as i64))
                 .unwrap();
         }
-        assert_eq!(store.tracker_progress(FRIEREN).unwrap(), 12);
+        assert_eq!(store.tracker_progress(HOSHIKUZU).unwrap(), 12);
 
         // A lone episode 6 is "on episode 6", not "one episode in".
         let other = Store::open_in_memory().unwrap();
         other.record_event(&event("6", 1400.0, 1440.0, 1_000)).unwrap();
-        assert_eq!(other.tracker_progress(FRIEREN).unwrap(), 6);
+        assert_eq!(other.tracker_progress(HOSHIKUZU).unwrap(), 6);
     }
 
     #[test]
@@ -702,11 +702,11 @@ mod tests {
         for (i, ep) in ["0", "011", "12.5", "SP1", "13.5"].into_iter().enumerate() {
             store.record_event(&event(ep, 1400.0, 1440.0, 1_000 + i as i64)).unwrap();
         }
-        assert_eq!(store.tracker_progress(FRIEREN).unwrap(), 11, "leading zeros still count");
+        assert_eq!(store.tracker_progress(HOSHIKUZU).unwrap(), 11, "leading zeros still count");
 
         let specials_only = Store::open_in_memory().unwrap();
         specials_only.record_event(&event("0", 1400.0, 1440.0, 1_000)).unwrap();
-        assert_eq!(specials_only.tracker_progress(FRIEREN).unwrap(), 0);
+        assert_eq!(specials_only.tracker_progress(HOSHIKUZU).unwrap(), 0);
     }
 
     #[test]
@@ -714,7 +714,7 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         store.record_event(&event("3", 1400.0, 1440.0, 1_000)).unwrap();
         store.record_event(&event("4", 300.0, 1440.0, 2_000)).unwrap();
-        assert_eq!(store.tracker_progress(FRIEREN).unwrap(), 3);
+        assert_eq!(store.tracker_progress(HOSHIKUZU).unwrap(), 3);
     }
 
     #[test]
@@ -723,7 +723,7 @@ mod tests {
         for (i, pos) in [100.0, 400.0, 900.0].into_iter().enumerate() {
             store.record_event(&event("011", pos, 1440.0, 1_000 + i as i64)).unwrap();
         }
-        let events = store.events_for(FRIEREN, 10).unwrap();
+        let events = store.events_for(HOSHIKUZU, 10).unwrap();
         assert_eq!(events.len(), 3, "history is a log, not a mutable row");
         // Newest first.
         assert_eq!(events[0].position_secs, 900.0);
@@ -735,30 +735,30 @@ mod tests {
 
         // Barely started: offering to resume 12 seconds in is noise.
         store.record_event(&event("001", 12.0, 1440.0, 1_000)).unwrap();
-        assert!(!store.progress(FRIEREN).unwrap().unwrap().is_resumable(THRESHOLD));
+        assert!(!store.progress(HOSHIKUZU).unwrap().unwrap().is_resumable(THRESHOLD));
 
         // Effectively finished: the useful offer is the next episode, not the last 60s.
         store.record_event(&event("001", 1400.0, 1440.0, 2_000)).unwrap();
-        assert!(!store.progress(FRIEREN).unwrap().unwrap().is_resumable(THRESHOLD));
+        assert!(!store.progress(HOSHIKUZU).unwrap().unwrap().is_resumable(THRESHOLD));
     }
 
     #[test]
     fn continue_list_is_ordered_by_recency() {
         let store = Store::open_in_memory().unwrap();
-        let dandadan = AnilistId::new(185_660);
+        let tsukiakari = AnilistId::new(185_660);
         store.record_event(&event("011", 600.0, 1440.0, 1_000)).unwrap();
         store
             .record_event(&WatchEvent {
                 duration_secs: Some(1440.0),
                 at: 5_000,
-                ..WatchEvent::new(dandadan, "004", 300.0)
+                ..WatchEvent::new(tsukiakari, "004", 300.0)
             })
             .unwrap();
 
         let list = store.continue_list(10).unwrap();
         assert_eq!(list.len(), 2);
-        assert_eq!(list[0].anilist_id, dandadan, "most recent first");
-        assert_eq!(list[1].anilist_id, FRIEREN);
+        assert_eq!(list[0].anilist_id, tsukiakari, "most recent first");
+        assert_eq!(list[1].anilist_id, HOSHIKUZU);
     }
 
     #[test]
@@ -768,10 +768,10 @@ mod tests {
         store.record_event(&event("011", 600.0, 1440.0, 1_000)).unwrap();
         assert_eq!(store.continue_list(10).unwrap().len(), 1);
 
-        store.hide_from_continue(FRIEREN).unwrap();
+        store.hide_from_continue(HOSHIKUZU).unwrap();
         assert!(store.continue_list(10).unwrap().is_empty());
-        assert_eq!(store.resume_position(FRIEREN, "011").unwrap(), Some(600.0));
-        assert!(store.progress(FRIEREN).unwrap().is_some(), "the projection survives");
+        assert_eq!(store.resume_position(HOSHIKUZU, "011").unwrap(), Some(600.0));
+        assert!(store.progress(HOSHIKUZU).unwrap().is_some(), "the projection survives");
     }
 
     #[test]
@@ -780,7 +780,7 @@ mod tests {
         // clear the flag or a dismissed show could never return to the rail.
         let store = Store::open_in_memory().unwrap();
         store.record_event(&event("011", 600.0, 1440.0, 1_000)).unwrap();
-        store.hide_from_continue(FRIEREN).unwrap();
+        store.hide_from_continue(HOSHIKUZU).unwrap();
         assert!(store.continue_list(10).unwrap().is_empty());
 
         store.record_event(&event("012", 90.0, 1440.0, 2_000)).unwrap();
@@ -798,10 +798,10 @@ mod tests {
                 provider_id: Some("torrent".into()),
                 translation: Some(Translation::Dub),
                 duration_secs: Some(1440.0),
-                ..WatchEvent::new(FRIEREN, "011", 700.0)
+                ..WatchEvent::new(HOSHIKUZU, "011", 700.0)
             })
             .unwrap();
-        let ev = &store.events_for(FRIEREN, 1).unwrap()[0];
+        let ev = &store.events_for(HOSHIKUZU, 1).unwrap()[0];
         assert_eq!(ev.provider_id.as_deref(), Some("torrent"));
         assert_eq!(ev.translation, Some(Translation::Dub));
     }

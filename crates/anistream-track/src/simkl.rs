@@ -310,7 +310,7 @@ fn not_found(body: &serde_json::Value) -> Vec<u32> {
 mod tests {
     use super::*;
 
-    const FRIEREN: AnilistId = AnilistId::new(154_587);
+    const HOSHIKUZU: AnilistId = AnilistId::new(154_587);
     const UNKNOWN_TO_SIMKL: AnilistId = AnilistId::new(1);
 
     struct FixedMapping;
@@ -398,7 +398,7 @@ mod tests {
         .await;
         let ignored = tracker_at(base)
             .push_checked(&[
-                TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 },
+                TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 },
                 TrackOp::SetProgress { anilist_id: UNKNOWN_TO_SIMKL, episode: 3 },
             ])
             .await
@@ -418,7 +418,7 @@ mod tests {
         ])
         .await;
         let ignored = tracker_at(base)
-            .push_checked(&[TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 }])
+            .push_checked(&[TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 }])
             .await
             .unwrap();
         assert!(ignored.is_empty());

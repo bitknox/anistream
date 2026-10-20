@@ -80,7 +80,7 @@ impl Store {
 mod tests {
     use super::*;
 
-    const FRIEREN: AnilistId = AnilistId::new(154_587);
+    const HOSHIKUZU: AnilistId = AnilistId::new(154_587);
 
     #[test]
     fn clearing_by_prefix_takes_only_what_starts_with_it() {
@@ -124,9 +124,12 @@ mod tests {
     #[test]
     fn a_title_round_trips() {
         let store = Store::open_in_memory().unwrap();
-        assert_eq!(store.cached_title(FRIEREN).unwrap(), None);
-        store.remember_title(FRIEREN, "Sousou no Frieren").unwrap();
-        assert_eq!(store.cached_title(FRIEREN).unwrap(), Some("Sousou no Frieren".into()));
+        assert_eq!(store.cached_title(HOSHIKUZU).unwrap(), None);
+        store.remember_title(HOSHIKUZU, "Hoshikuzu no Tabibito").unwrap();
+        assert_eq!(
+            store.cached_title(HOSHIKUZU).unwrap(),
+            Some("Hoshikuzu no Tabibito".into())
+        );
     }
 
     #[test]
@@ -134,19 +137,16 @@ mod tests {
         // Storing an empty string would make the fallback ("anilist 154587") unreachable, and
         // a nameless row is worse than a numbered one.
         let store = Store::open_in_memory().unwrap();
-        store.remember_title(FRIEREN, "   ").unwrap();
-        assert_eq!(store.cached_title(FRIEREN).unwrap(), None);
+        store.remember_title(HOSHIKUZU, "   ").unwrap();
+        assert_eq!(store.cached_title(HOSHIKUZU).unwrap(), None);
     }
 
     #[test]
     fn a_retitled_show_takes_the_newer_name() {
         // AniList does rename entries — usually romaji to an official English title.
         let store = Store::open_in_memory().unwrap();
-        store.remember_title(FRIEREN, "Sousou no Frieren").unwrap();
-        store.remember_title(FRIEREN, "Frieren: Beyond Journey's End").unwrap();
-        assert_eq!(
-            store.cached_title(FRIEREN).unwrap(),
-            Some("Frieren: Beyond Journey's End".into())
-        );
+        store.remember_title(HOSHIKUZU, "Hoshikuzu no Tabibito").unwrap();
+        store.remember_title(HOSHIKUZU, "Stardust Wayfarer").unwrap();
+        assert_eq!(store.cached_title(HOSHIKUZU).unwrap(), Some("Stardust Wayfarer".into()));
     }
 }

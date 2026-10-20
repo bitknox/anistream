@@ -309,8 +309,8 @@ mod tests {
     fn queueing_the_same_episode_twice_is_one_download() {
         // A held-down key must not queue eight copies of one file.
         let store = store();
-        let first = store.enqueue_download(ID, "1", "Frieren", "magnet:?xt=a").unwrap();
-        let second = store.enqueue_download(ID, "1", "Frieren", "magnet:?xt=a").unwrap();
+        let first = store.enqueue_download(ID, "1", "Hoshikuzu", "magnet:?xt=a").unwrap();
+        let second = store.enqueue_download(ID, "1", "Hoshikuzu", "magnet:?xt=a").unwrap();
         assert_eq!(first.id, second.id);
         assert_eq!(store.downloads().unwrap().len(), 1);
     }
@@ -318,11 +318,11 @@ mod tests {
     #[test]
     fn asking_again_for_a_failed_download_retries_it() {
         let store = store();
-        let row = store.enqueue_download(ID, "1", "Frieren", "magnet:?xt=a").unwrap();
+        let row = store.enqueue_download(ID, "1", "Hoshikuzu", "magnet:?xt=a").unwrap();
         store.fail_download(row.id, "no peers").unwrap();
         assert_eq!(store.download_for(ID, "1").unwrap().unwrap().state, DownloadState::Failed);
 
-        let retried = store.enqueue_download(ID, "1", "Frieren", "magnet:?xt=a").unwrap();
+        let retried = store.enqueue_download(ID, "1", "Hoshikuzu", "magnet:?xt=a").unwrap();
         assert_eq!(retried.state, DownloadState::Queued, "a retry must re-enter the queue");
         assert_eq!(retried.error, None, "and forget the previous reason");
     }
@@ -332,9 +332,9 @@ mod tests {
         // Re-downloading something already on disk is the worst possible interpretation of a
         // second keypress.
         let store = store();
-        let row = store.enqueue_download(ID, "1", "Frieren", "magnet:?xt=a").unwrap();
+        let row = store.enqueue_download(ID, "1", "Hoshikuzu", "magnet:?xt=a").unwrap();
         store.finish_download(row.id, Some("/tmp/ep1.mkv")).unwrap();
-        let again = store.enqueue_download(ID, "1", "Frieren", "magnet:?xt=a").unwrap();
+        let again = store.enqueue_download(ID, "1", "Hoshikuzu", "magnet:?xt=a").unwrap();
         assert_eq!(again.state, DownloadState::Done);
         assert_eq!(again.path.as_deref(), Some("/tmp/ep1.mkv"));
     }
@@ -344,7 +344,7 @@ mod tests {
         // Metadata arrives after the torrent is added, so a stats poll in between reports a total
         // of nothing — and letting that through would make the meter jump back to empty.
         let store = store();
-        let row = store.enqueue_download(ID, "1", "Frieren", "magnet:?xt=a").unwrap();
+        let row = store.enqueue_download(ID, "1", "Hoshikuzu", "magnet:?xt=a").unwrap();
         store.update_download_progress(row.id, 100, 5_000, None).unwrap();
         store.update_download_progress(row.id, 200, 0, None).unwrap();
         let after = store.download_for(ID, "1").unwrap().unwrap();
@@ -356,7 +356,7 @@ mod tests {
     #[test]
     fn progress_promotes_a_queued_download_to_active() {
         let store = store();
-        let row = store.enqueue_download(ID, "1", "Frieren", "magnet:?xt=a").unwrap();
+        let row = store.enqueue_download(ID, "1", "Hoshikuzu", "magnet:?xt=a").unwrap();
         store.update_download_progress(row.id, 1, 10, None).unwrap();
         assert_eq!(store.download_for(ID, "1").unwrap().unwrap().state, DownloadState::Active);
     }
@@ -365,7 +365,7 @@ mod tests {
     fn progress_does_not_resurrect_a_paused_download() {
         // A final stats poll can arrive after the user pauses, and it must not undo that.
         let store = store();
-        let row = store.enqueue_download(ID, "1", "Frieren", "magnet:?xt=a").unwrap();
+        let row = store.enqueue_download(ID, "1", "Hoshikuzu", "magnet:?xt=a").unwrap();
         store.set_download_state(row.id, DownloadState::Paused).unwrap();
         store.update_download_progress(row.id, 5, 10, None).unwrap();
         assert_eq!(store.download_for(ID, "1").unwrap().unwrap().state, DownloadState::Paused);
@@ -376,7 +376,7 @@ mod tests {
         let store = store();
         for episode in ["1", "2", "3"] {
             // Distinct timestamps: `now()` has second resolution and these would otherwise tie.
-            let row = store.enqueue_download(ID, episode, "Frieren", "magnet:?xt=a").unwrap();
+            let row = store.enqueue_download(ID, episode, "Hoshikuzu", "magnet:?xt=a").unwrap();
             store
                 .with_conn(|c| {
                     c.execute(
@@ -402,10 +402,10 @@ mod tests {
         // state and the bytes already on disk — and after a restart the queue resumed a
         // different release against that partial file.
         let store = store();
-        let row = store.enqueue_download(ID, "1", "Frieren", "magnet:?xt=OLD").unwrap();
+        let row = store.enqueue_download(ID, "1", "Hoshikuzu", "magnet:?xt=OLD").unwrap();
         store.set_download_state(row.id, DownloadState::Active).unwrap();
 
-        store.enqueue_download(ID, "1", "Frieren", "magnet:?xt=NEW").unwrap();
+        store.enqueue_download(ID, "1", "Hoshikuzu", "magnet:?xt=NEW").unwrap();
 
         let after = store.download_for(ID, "1").unwrap().expect("the row");
         assert_eq!(after.magnet, "magnet:?xt=OLD", "a running torrent was repointed");
@@ -417,10 +417,10 @@ mod tests {
         // The other half: a retry is exactly when a fresh magnet is the point, because the
         // old one is what failed.
         let store = store();
-        let row = store.enqueue_download(ID, "1", "Frieren", "magnet:?xt=OLD").unwrap();
+        let row = store.enqueue_download(ID, "1", "Hoshikuzu", "magnet:?xt=OLD").unwrap();
         store.fail_download(row.id, "no peers").unwrap();
 
-        store.enqueue_download(ID, "1", "Frieren", "magnet:?xt=NEW").unwrap();
+        store.enqueue_download(ID, "1", "Hoshikuzu", "magnet:?xt=NEW").unwrap();
 
         let after = store.download_for(ID, "1").unwrap().expect("the row");
         assert_eq!(after.magnet, "magnet:?xt=NEW");
@@ -433,7 +433,7 @@ mod tests {
         // when it was not — so a finished download reported 0 of 0 bytes and rendered as
         // never started.
         let store = store();
-        let row = store.enqueue_download(ID, "1", "Frieren", "m").unwrap();
+        let row = store.enqueue_download(ID, "1", "Hoshikuzu", "m").unwrap();
         store.update_download_progress(row.id, 1_400, 0, None).unwrap();
 
         store.finish_download(row.id, None).unwrap();
@@ -450,9 +450,9 @@ mod tests {
     #[test]
     fn only_running_downloads_count_toward_the_badge() {
         let store = store();
-        let a = store.enqueue_download(ID, "1", "Frieren", "m").unwrap();
-        let b = store.enqueue_download(ID, "2", "Frieren", "m").unwrap();
-        store.enqueue_download(ID, "3", "Frieren", "m").unwrap();
+        let a = store.enqueue_download(ID, "1", "Hoshikuzu", "m").unwrap();
+        let b = store.enqueue_download(ID, "2", "Hoshikuzu", "m").unwrap();
+        store.enqueue_download(ID, "3", "Hoshikuzu", "m").unwrap();
         store.finish_download(a.id, None).unwrap();
         store.set_download_state(b.id, DownloadState::Paused).unwrap();
         assert_eq!(store.active_download_count().unwrap(), 1);
@@ -462,9 +462,9 @@ mod tests {
     #[test]
     fn clearing_completed_leaves_everything_else() {
         let store = store();
-        let done = store.enqueue_download(ID, "1", "Frieren", "m").unwrap();
-        store.enqueue_download(ID, "2", "Frieren", "m").unwrap();
-        let failed = store.enqueue_download(ID, "3", "Frieren", "m").unwrap();
+        let done = store.enqueue_download(ID, "1", "Hoshikuzu", "m").unwrap();
+        store.enqueue_download(ID, "2", "Hoshikuzu", "m").unwrap();
+        let failed = store.enqueue_download(ID, "3", "Hoshikuzu", "m").unwrap();
         store.finish_download(done.id, None).unwrap();
         store.fail_download(failed.id, "no peers").unwrap();
 

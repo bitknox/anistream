@@ -234,10 +234,10 @@ fn scores_match(a: Option<f32>, b: Option<f32>) -> bool {
 mod tests {
     use super::*;
 
-    const FRIEREN: AnilistId = AnilistId::new(154_587);
+    const HOSHIKUZU: AnilistId = AnilistId::new(154_587);
 
     fn remote(progress: u32, status: WatchStatus, score: Option<f32>) -> TrackedEntry {
-        TrackedEntry { anilist_id: FRIEREN, progress, status, score }
+        TrackedEntry { anilist_id: HOSHIKUZU, progress, status, score }
     }
 
     #[test]
@@ -248,7 +248,7 @@ mod tests {
         let merged = reconcile(&ahead, &remote(7, WatchStatus::Current, None), None);
         assert_eq!(
             merged.push,
-            vec![TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 }]
+            vec![TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 }]
         );
         assert_eq!(merged.adopt_progress, None);
 
@@ -282,7 +282,7 @@ mod tests {
         let merged = reconcile(&local, &remote(2, WatchStatus::Current, None), Some(5));
         assert_eq!(
             merged.push,
-            vec![TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 }]
+            vec![TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 }]
         );
     }
 
@@ -299,7 +299,7 @@ mod tests {
         let merged = reconcile(&moved_on, &remote(7, WatchStatus::Current, None), None);
         assert_eq!(
             merged.push,
-            vec![TrackOp::SetProgress { anilist_id: FRIEREN, episode: 13 }],
+            vec![TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 13 }],
             "new progress still goes out"
         );
     }
@@ -327,7 +327,7 @@ mod tests {
         assert_eq!(
             merged.push,
             vec![TrackOp::SetStatus {
-                anilist_id: FRIEREN,
+                anilist_id: HOSHIKUZU,
                 status: WatchStatus::Completed,
                 at: 2_000
             }]
@@ -386,7 +386,7 @@ mod tests {
         let merged = reconcile_at(&local, &remote(7, WatchStatus::Current, None), None, 9_999);
         assert_eq!(
             merged.push,
-            vec![TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 }]
+            vec![TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 }]
         );
     }
 
@@ -407,7 +407,7 @@ mod tests {
         let merged = reconcile(&local, &remote(0, WatchStatus::Current, Some(6.0)), None);
         assert_eq!(
             merged.push,
-            vec![TrackOp::SetScore { anilist_id: FRIEREN, score: 9.0, at: 1_000 }]
+            vec![TrackOp::SetScore { anilist_id: HOSHIKUZU, score: 9.0, at: 1_000 }]
         );
     }
 
@@ -449,7 +449,7 @@ mod tests {
         let merged = reconcile(&local, &remote(1, WatchStatus::Current, Some(3.0)), None);
         assert_eq!(merged.push.len(), 3);
         for op in &merged.push {
-            assert_eq!(op.anilist_id(), FRIEREN);
+            assert_eq!(op.anilist_id(), HOSHIKUZU);
         }
     }
 }
