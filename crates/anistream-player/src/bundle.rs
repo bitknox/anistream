@@ -384,6 +384,12 @@ empty=
     fn uosc_and_thumbfast_load_in_mpv_without_lua_errors() {
         // CI has no mpv; what is under test is the vendored Lua, not the machine.
         if !mpv_available() {
+            // CI's mpv job installs mpv and sets this, so a missing mpv fails there
+            // instead of passing as a skip.
+            assert!(
+                std::env::var("ANISTREAM_REQUIRE_MPV").as_deref() != Ok("1"),
+                "ANISTREAM_REQUIRE_MPV is set but mpv is not on PATH"
+            );
             eprintln!("skipping: mpv is not on PATH");
             return;
         }
@@ -442,6 +448,12 @@ empty=
         use std::os::unix::{fs::PermissionsExt as _, net::UnixStream};
 
         if !mpv_available() {
+            // CI's mpv job installs mpv and sets this, so a missing mpv fails there
+            // instead of passing as a skip.
+            assert!(
+                std::env::var("ANISTREAM_REQUIRE_MPV").as_deref() != Ok("1"),
+                "ANISTREAM_REQUIRE_MPV is set but mpv is not on PATH"
+            );
             eprintln!("skipping: mpv is not on PATH");
             return;
         }
