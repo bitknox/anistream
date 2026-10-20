@@ -139,13 +139,11 @@ jobs:
       - run: cargo clippy -p anistream-model --features ffi --all-targets -- -D warnings
 
   # Swift drives a real engine through the generated bindings: apple/build.sh builds the FFI
-  # library with the test kit in it, generates the Swift bindings from the built library, and runs
-  # the Swift package's tests, which start the engine on a fake AniList and search it. Not
-  # blocking while the FFI spike is new; it turns blocking, by dropping continue-on-error, once the
-  # spike is merged.
+  # library with the test kit in it, generates each crate's Swift bindings from the built library,
+  # and runs the Swift package's tests, which start the engine on a fake AniList and send it the
+  # model's own commands.
   swift:
     runs-on: macos-latest
-    continue-on-error: true
     env:
       # The Swift package's minimum, as apple/build.sh sets it, so the Rust tests share its build.
       MACOSX_DEPLOYMENT_TARGET: "14.0"
