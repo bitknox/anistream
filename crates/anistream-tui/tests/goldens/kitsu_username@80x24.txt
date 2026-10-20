@@ -1,0 +1,67 @@
+anistream           torrent ○  plugins ●  ·  anilist ⇅ 3  kitsu ○  mal ✕ sign in
+────────────────────────────────────────────────────────────────────────────────
+  ▸│  TRACKER         STATE             QUEUED    TOKEN
+  ▤│  ────────────────────────────────────────────────────────────────────────
+  ▦│    ANILIST       ● connected       3         OS keychain
+  /│  ▌ KITSU         ○ not connected   0         0600 file
+  ▥│    MAL           ✕ sign in again   0
+────────────────────────────────────────────────────────────────────────────────
+▌ SIGN IN TO KITSU   hotaru@mail.example▏
+────────────────────────────────────────────────────────────────────────────────
+  email or username — enter continues, esc cancels
+
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+────────────────────────── ▌ mal needs signing in again — press 8 for Accounts ─
+plugins · sub · 1080p                                        ↵ next   esc cancel
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=rule mod=BOLD
+r00 c09-79 fg=rule
+r01 c00-79 fg=rule
+r02 c00-79 fg=rule
+r03 c00-79 fg=rule
+r04 c00-79 fg=rule
+r05 c00-07 fg=rule
+r05 c08-12 fg=rule mod=BOLD
+r05 c13-79 fg=rule
+r06 c00-79 fg=rule
+r07 c00-79 fg=rule bg=ground
+r08 c00-00 fg=obi bg=ground
+r08 c01-01 fg=rule bg=ground
+r08 c02-40 fg=text bg=ground mod=BOLD
+r08 c41-79 fg=rule bg=ground
+r09 c00-79 fg=rule bg=ground
+r10 c00-01 fg=rule bg=ground
+r10 c02-49 fg=text-dim bg=ground
+r10 c50-79 fg=rule bg=ground
+r11 c00-79 fg=rule bg=ground
+r12 c00-79 fg=rule
+r13 c00-79 fg=rule
+r14 c00-79 fg=rule
+r15 c00-79 fg=rule
+r16 c00-79 fg=rule
+r17 c00-79 fg=rule
+r18 c00-79 fg=rule
+r19 c00-79 fg=rule
+r20 c00-79 fg=rule
+r21 c00-79 fg=rule
+r22 c00-25 fg=rule
+r22 c26-26 fg=text
+r22 c27-27 fg=alert
+r22 c28-78 fg=text
+r22 c79-79 fg=rule
+r23 c00-20 fg=text-dim
+r23 c21-60 fg=rule
+r23 c61-61 fg=text
+r23 c62-69 fg=text-dim
+r23 c70-72 fg=text
+r23 c73-79 fg=text-dim

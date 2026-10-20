@@ -39,7 +39,7 @@ pub struct Release {
     pub bluray: bool,
     /// A whole-season pack with no stated episode range.
     ///
-    /// Common in real feeds — `[SeasonGroup] Sousou no Frieren - Season 2 (WEB 1080p)` — and
+    /// Common in real feeds — `[SeasonGroup] Hoshikuzu no Tabibito - Season 2 (WEB 1080p)` — and
     /// worth recognising: without it these fall through as unclassified and good releases
     /// become unselectable.
     pub season_pack: bool,
@@ -54,7 +54,7 @@ impl Release {
     /// Whether this release can supply episode `wanted` of season `season`.
     ///
     /// Season awareness is the important part, and a live feed made the reason obvious:
-    /// `[SubGroup] Sousou no Frieren S2 (01-10)` is *season two* episodes one to ten. A
+    /// `[SubGroup] Hoshikuzu no Tabibito S2 (01-10)` is *season two* episodes one to ten. A
     /// numbering-only check would happily offer it for absolute episode 1 and silently play
     /// the wrong episode.
     ///
@@ -255,7 +255,7 @@ pub fn parse(raw: &str) -> Release {
     // Walk the de-bracketed body for season, episode and batch markers.
     //
     // The body has to be scanned for quality and audio flags too, not just the tags. Real
-    // feeds are full of titles like `Frieren ... BD_1080p Dolby TrueHD Dual Audio`, where
+    // feeds are full of titles like `Hoshikuzu ... BD_1080p Dolby TrueHD Dual Audio`, where
     // none of the metadata is bracketed at all.
     let mut title_tokens: Vec<String> = Vec::new();
     let tokens: Vec<&str> = body.split_whitespace().collect();
@@ -407,9 +407,9 @@ mod tests {
 
     #[test]
     fn a_standard_single_episode_release_parses() {
-        let r = parse("[SubGroup] Sousou no Frieren - 12 (1080p) [A1B2C3D4].mkv");
+        let r = parse("[SubGroup] Hoshikuzu no Tabibito - 12 (1080p) [A1B2C3D4].mkv");
         assert_eq!(r.group.as_deref(), Some("SubGroup"));
-        assert_eq!(r.title, "Sousou no Frieren");
+        assert_eq!(r.title, "Hoshikuzu no Tabibito");
         assert_eq!(r.episode, Some(12));
         assert_eq!(r.quality, Some(1080));
         assert!(!r.is_batch());
@@ -419,8 +419,9 @@ mod tests {
     fn a_batch_is_never_mistaken_for_episode_one() {
         // The failure this prevents: grabbing a whole-series torrent and playing the wrong
         // file because "01-24" was read as episode 1.
-        let r =
-            parse("[BatchGroup] Sousou no Frieren (01-28) (BD 1080p x265 10bit) [Dual-Audio]");
+        let r = parse(
+            "[BatchGroup] Hoshikuzu no Tabibito (01-28) (BD 1080p x265 10bit) [Dual-Audio]",
+        );
         assert_eq!(r.batch, Some((1, 28)));
         assert!(r.is_batch());
         assert_eq!(r.episode, None, "a batch has no single episode");
@@ -434,7 +435,7 @@ mod tests {
         // `2023-2024` is a plausible-looking range of one, so the span check let it through
         // and the release read as a batch covering episodes 2023 to 2024. That cost it the
         // single-episode bonus in ranking, and put two episodes nobody has into the list.
-        let r = parse("[Group] Sousou no Frieren - 05 (2023-2024) [1080p]");
+        let r = parse("[Group] Hoshikuzu no Tabibito - 05 (2023-2024) [1080p]");
         assert_eq!(r.batch, None, "a pair of years is not a batch");
         assert_eq!(r.episode, Some(5));
         assert!(r.covers(5, None) && !r.covers(2023, None));
@@ -444,15 +445,15 @@ mod tests {
     fn season_and_episode_markers_are_read_separately() {
         // Recorded, not reconciled: turning S2E01 into an absolute number is the mapping
         // layer's job, using episode_offset and anime-relations.
-        let r = parse("[Alt-Raws] Dandadan S02E05 [1080p][Multiple Subtitle]");
+        let r = parse("[Hotaru-Raws] Tsukiakari S02E05 [1080p][Multiple Subtitle]");
         assert_eq!(r.season, Some(2));
         assert_eq!(r.episode, Some(5));
-        assert_eq!(r.title, "Dandadan");
+        assert_eq!(r.title, "Tsukiakari");
     }
 
     #[test]
     fn an_absolute_numbered_release_is_left_absolute() {
-        let r = parse("[Group] Dandadan - 29 (1080p)");
+        let r = parse("[Group] Tsukiakari - 29 (1080p)");
         assert_eq!(r.episode, Some(29));
         assert_eq!(r.season, None, "no season was stated, so none is invented");
     }
@@ -481,11 +482,11 @@ mod tests {
 
     #[test]
     fn dual_audio_and_bluray_flags_are_detected() {
-        let r = parse("[PMR] Frieren (BD 1080p) [Dual Audio]");
+        let r = parse("[Kumo-subs] Hoshikuzu (BD 1080p) [Dual Audio]");
         assert!(r.dual_audio);
         assert!(r.bluray);
 
-        let web = parse("[SubGroup] Frieren - 12 (1080p)");
+        let web = parse("[SubGroup] Hoshikuzu - 12 (1080p)");
         assert!(!web.dual_audio);
         assert!(!web.bluray);
     }
@@ -503,7 +504,7 @@ mod tests {
         }
         assert!(!parse("[SubGroup] Show - 12 (1080p)").dubbed);
         // A dual release is dual, not dub-only — the flags answer different questions.
-        assert!(!parse("[PMR] Frieren (BD 1080p) [Dual Audio]").dubbed);
+        assert!(!parse("[Kumo-subs] Hoshikuzu (BD 1080p) [Dual Audio]").dubbed);
     }
 
     #[test]
@@ -516,14 +517,14 @@ mod tests {
     #[test]
     fn titles_containing_numbers_survive() {
         // The same trap as season parsing: some titles simply have digits in them.
-        let r = parse("[Group] 86 - Eighty Six - 11 (1080p)");
+        let r = parse("[Group] 73 - Seventy Three - 11 (1080p)");
         assert_eq!(r.episode, Some(11));
-        assert!(r.title.contains("86"), "got {:?}", r.title);
+        assert!(r.title.contains("73"), "got {:?}", r.title);
     }
 
     #[test]
     fn a_release_with_no_brackets_at_all_still_parses() {
-        let r = parse("Sousou no Frieren - 05 1080p");
+        let r = parse("Hoshikuzu no Tabibito - 05 1080p");
         assert_eq!(r.episode, Some(5));
         assert_eq!(r.group, None);
     }
@@ -563,7 +564,7 @@ mod tests {
         // Found in a live indexer feed. `S2 (01-10)` is season two episodes one to ten; a
         // numbering-only check would offer it for absolute episode 1 and silently play
         // entirely the wrong episode.
-        let r = parse("[SubGroup] Sousou no Frieren S2 (01-10) (1080p) [Batch]");
+        let r = parse("[SubGroup] Hoshikuzu no Tabibito S2 (01-10) (1080p) [Batch]");
         assert_eq!(r.season, Some(2));
         assert_eq!(r.batch, Some((1, 10)));
 
@@ -592,7 +593,7 @@ mod tests {
     fn a_whole_season_pack_is_recognised_rather_than_left_unclassified() {
         // Real feeds are full of these; without recognition they are unselectable and good
         // releases get skipped.
-        let r = parse("[SeasonGroup] Sousou no Frieren - Season 2 (WEB 1080p HEVC EAC-3)");
+        let r = parse("[SeasonGroup] Hoshikuzu no Tabibito - Season 2 (WEB 1080p HEVC EAC-3)");
         assert_eq!(r.season, Some(2));
         assert!(r.season_pack);
         assert!(r.is_batch(), "a season pack is a batch for ranking purposes");
@@ -606,9 +607,9 @@ mod tests {
         // From a live feed. The body parser never sees bracketed text, so without this the
         // season guard silently never fires.
         for raw in [
-            "[BatchGroup] Sousou no Frieren (Season 02) (1080p)",
-            "[BatchGroup] Sousou no Frieren (2nd Season) (1080p)",
-            "[BatchGroup] Sousou no Frieren [S02] (1080p)",
+            "[BatchGroup] Hoshikuzu no Tabibito (Season 02) (1080p)",
+            "[BatchGroup] Hoshikuzu no Tabibito (2nd Season) (1080p)",
+            "[BatchGroup] Hoshikuzu no Tabibito [S02] (1080p)",
         ] {
             assert_eq!(parse(raw).season, Some(2), "no season found in {raw:?}");
         }
@@ -617,7 +618,7 @@ mod tests {
     #[test]
     fn a_tagged_season_pack_refuses_an_absolute_request() {
         // The end-to-end consequence: this must not be offered for absolute episode 1.
-        let r = parse("[BatchGroup] Sousou no Frieren (Season 02) (1080p) [Batch]");
+        let r = parse("[BatchGroup] Hoshikuzu no Tabibito (Season 02) (1080p) [Batch]");
         assert_eq!(r.season, Some(2));
         assert!(!r.covers(1, None));
         assert!(r.covers(1, Some(2)));
@@ -625,9 +626,9 @@ mod tests {
 
     #[test]
     fn season_parsing_does_not_fire_on_ordinary_words() {
-        // `Sousou`, `Sword`, `Spy` all begin with s; none states a season.
-        assert_eq!(parse_season("Sousou no Frieren"), None);
-        assert_eq!(parse_season("Spy x Family"), None);
+        // `Sorairo`, `Sword`, `Shinobi` all begin with s; none states a season.
+        assert_eq!(parse_season("Sorairo no Tabibito"), None);
+        assert_eq!(parse_season("Shinobi x Bakery"), None);
         assert_eq!(parse_season("1080p HEVC"), None);
         assert_eq!(parse_season("s2"), Some(2));
     }
@@ -656,9 +657,9 @@ mod tests {
     fn real_titles_from_a_live_feed_parse() {
         // Captured from a live indexer feed during planning.
         let r = parse(
-            "[anime4life.] Frieren - Beyond Journey's End Season 1 BD_1080p Dolby TrueHD Dual Audio",
+            "[hoshi4life.] Hoshikuzu - Wayfarer's Long Road Season 1 BD_1080p Dolby TrueHD Dual Audio",
         );
-        assert_eq!(r.group.as_deref(), Some("anime4life."));
+        assert_eq!(r.group.as_deref(), Some("hoshi4life."));
         assert_eq!(r.season, Some(1));
         assert!(r.dual_audio);
         assert!(r.bluray);

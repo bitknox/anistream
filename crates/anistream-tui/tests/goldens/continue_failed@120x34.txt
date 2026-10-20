@@ -1,0 +1,104 @@
+anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▌ ▸  CONTINUE               │  COULD NOT LOAD
+  ▤  CALENDAR               │
+  ▦  SEASONAL               │  AniList did not answer within 20 s — the request will be tried again on the next
+  /  SEARCH                 │  refresh, and the library on disk is untouched
+  ▥  LIBRARY                │
+  ↓  DOWNLOADS              │
+  ◇  PROVIDERS              │
+  ◎  ACCOUNTS               │
+  ⚙  SETTINGS               │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                                                       ↵ open   e episodes   ? keys
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=text mod=BOLD
+r00 c84-94 fg=text-dim
+r00 c95-103 fg=state
+r00 c104-105 fg=text-dim
+r00 c106-106 fg=rule
+r00 c107-108 fg=text-dim
+r00 c109-119 fg=state
+r01 c00-119 fg=rule
+r02 c00-00 fg=text-dim
+r02 c02-02 fg=text
+r02 c05-12 fg=text mod=BOLD
+r02 c28-28 fg=rule
+r02 c31-44 fg=alert mod=BOLD
+r03 c02-02 fg=text-dim
+r03 c05-12 fg=text-dim
+r03 c28-28 fg=rule
+r04 c02-02 fg=text-dim
+r04 c05-12 fg=text-dim
+r04 c28-28 fg=rule
+r04 c31-110 fg=text-dim
+r05 c02-02 fg=text-dim
+r05 c05-10 fg=text-dim
+r05 c28-28 fg=rule
+r05 c31-75 fg=text-dim
+r06 c02-02 fg=text-dim
+r06 c05-11 fg=text-dim
+r06 c28-28 fg=rule
+r07 c02-02 fg=text-dim
+r07 c05-13 fg=text-dim
+r07 c28-28 fg=rule
+r08 c02-02 fg=text-dim
+r08 c05-13 fg=text-dim
+r08 c28-28 fg=rule
+r09 c02-02 fg=text-dim
+r09 c05-12 fg=text-dim
+r09 c28-28 fg=rule
+r10 c02-02 fg=text-dim
+r10 c05-12 fg=text-dim
+r10 c28-28 fg=rule
+r11 c28-28 fg=rule
+r12 c28-28 fg=rule
+r13 c28-28 fg=rule
+r14 c28-28 fg=rule
+r15 c28-28 fg=rule
+r16 c28-28 fg=rule
+r17 c28-28 fg=rule
+r18 c28-28 fg=rule
+r19 c28-28 fg=rule
+r20 c28-28 fg=rule
+r21 c28-28 fg=rule
+r22 c28-28 fg=rule
+r23 c28-28 fg=rule
+r24 c28-28 fg=rule
+r25 c28-28 fg=rule
+r26 c28-28 fg=rule
+r27 c28-28 fg=rule
+r28 c28-28 fg=rule
+r29 c28-28 fg=rule
+r30 c28-28 fg=rule
+r31 c28-28 fg=rule
+r32 c00-119 fg=rule
+r33 c00-20 fg=text-dim
+r33 c92-92 fg=text
+r33 c93-100 fg=text-dim
+r33 c101-101 fg=text
+r33 c102-113 fg=text-dim
+r33 c114-114 fg=text
+r33 c115-119 fg=text-dim

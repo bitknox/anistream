@@ -58,7 +58,19 @@ jobs:
       # nextest builds every test target and runs the binaries in parallel, where `cargo test`
       # runs them one after another; a separate build step only compiled the same code twice.
       - name: Test
-        run: cargo nextest run --workspace
+        run: cargo nextest run --workspace --profile ci
+
+      # The engine as a phone builds it, without the desktop feature, run here where it can be:
+      # what a play and a sign-in through a redirect answer when there is no mpv and no
+      # loopback listener. The workspace above builds it with the feature, as the app does.
+      - name: Test the engine without the desktop feature
+        run: cargo nextest run -p anistream-engine --no-default-features --lib --profile ci
+
+      # After the tests, so listing them reuses their build. On macOS only: tests gated to one
+      # OS make the count differ by OS, and macOS is where the app is developed.
+      - name: Test count
+        if: matrix.os == 'macos-latest'
+        run: tools/check-test-count.sh
 
   # The real-mpv tests (the companion script, whole binges, the seek-bar thumbnailers) skip
   # where mpv is missing, which is every runner above. Here apt installs mpv and the tests
@@ -84,10 +96,14 @@ jobs:
       - name: Install mpv
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mpv
       - run: mpv --version | head -1
+      # A test that moves module leaves the group by its old path, and this job would stop
+      # running it without failing: the group's size is held to what it records.
+      - name: Group size
+        run: tools/check-mpv-group.sh
       - name: Test
         run: >-
-          cargo nextest run --profile ci -p anistream -p anistream-player -p anistream-providers
-          -E 'group(mpv)'
+          cargo nextest run --profile ci -p anistream -p anistream-engine -p anistream-player
+          -p anistream-providers -E 'group(mpv)'
         env:
           ANISTREAM_REQUIRE_MPV: "1"
 
@@ -112,6 +128,106 @@ jobs:
         if: matrix.os == 'windows-latest'
         uses: ilammy/setup-nasm@v1
       - run: cargo clippy --workspace --all-targets -- -D warnings
+      # The engine without its desktop parts, as the phone builds below compile it: a `cfg` the
+      # desktop build never sees can still leave something unused there.
+      - run: cargo clippy -p anistream-engine --no-default-features --all-targets -- -D warnings
+
+  # The engine has to run under front ends that are not a terminal, so the layers beneath the
+  # terminal front end may never depend on a terminal library. Resolving the tree needs no
+  # build, so this is quick.
+  boundaries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install
+      - run: tools/check-boundaries.sh
+
+  # The model's types as UniFFI hands them to a native front end, with the core's that they carry.
+  # Fails on a type that cannot cross a foreign-function boundary: a tuple, a borrowed string, a
+  # tuple struct, a Result in a field, or a core type without a conversion. Linted as the rest of
+  # the workspace is, since the derives are code too.
+  ffi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: cargo clippy -p anistream-model --features ffi --all-targets -- -D warnings
+
+  # Swift drives a real engine through the generated bindings: apple/build.sh builds the FFI
+  # library with the test kit in it, generates each crate's Swift bindings from the built library,
+  # and runs the Swift package's tests, which start the engine on a fake AniList and send it the
+  # model's own commands.
+  swift:
+    runs-on: macos-latest
+    env:
+      # The Swift package's minimum, as apple/build.sh sets it, so the Rust tests share its build.
+      MACOSX_DEPLOYMENT_TARGET: "14.0"
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install
+      # Its own cache: this build has features and a deployment target no other job's has.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: swift
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: swift --version
+      - name: Rust tests
+        run: cargo test -p anistream-ffi --features testing,cli
+      - name: Swift tests
+        run: apple/build.sh
+
+  # The engine and its FFI library as an iPhone builds them: without the desktop feature, so
+  # without mpv, Syncplay, the loopback sign-in and the keychain crate, and with plugins run by
+  # wasmtime's interpreter. Cross-compiled only, since nothing here runs iOS. The part that can
+  # break is the C beneath it, built with the runner's Xcode for the iOS SDK: BoringSSL (cmake
+  # and bindgen), aws-lc, SQLite, zstd and wasmtime's own helpers.
+  ios:
+    runs-on: macos-latest
+    env:
+      IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install && rustup target add aarch64-apple-ios
+      # Its own cache: nothing else here builds for this target.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ios
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - name: The engine
+        run: cargo build -p anistream-engine --no-default-features --target aarch64-apple-ios
+      # The static library an app links, and the dynamic one, both linked against the SDK.
+      - name: The FFI library
+        run: cargo build -p anistream-ffi --no-default-features --target aarch64-apple-ios
+
+  # The same for an Android phone, with the runner's NDK through cargo-ndk, which points every
+  # C build at the NDK's clang for API level 24. Cross-compiled only.
+  android:
+    runs-on: ubuntu-latest
+    env:
+      # BoringSSL's bindings are generated by bindgen, which asks clang for the Rust target as
+      # it is named, without an API level, and the NDK's headers refuse an unversioned one.
+      BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android: --target=aarch64-linux-android24
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install && rustup target add aarch64-linux-android
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: android
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-ndk
+      - name: The engine
+        run: >-
+          cargo ndk --target arm64-v8a --platform 24
+          build -p anistream-engine --no-default-features
+      - name: The FFI library
+        run: >-
+          cargo ndk --target arm64-v8a --platform 24
+          build -p anistream-ffi --no-default-features
 
   # The plugin store's admin page is committed as built output, so building the server never
   # needs bun. This rebuilds it from source and fails if the two have drifted apart.

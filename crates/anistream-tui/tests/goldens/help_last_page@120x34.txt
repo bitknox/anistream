@@ -1,0 +1,337 @@
+anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▌ ▸  CONTINUE               │  ▌ Hoshikuzu no Tabibito   ep 4 · 57%   ░░░░░░░░░░░░░░░░░
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▌ KEYS
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  GLOBAL                                 Play next unwatched         space  DOWNLOADS
+    Show keys                       ?    Set list status                 a    Clear finished downloads        c
+    Run a command          : / ctrl+k    Rate this title                 *    Delete download and its file    X
+    Quit                   Q / ctrl+c    Expand synopsis                 i  PROVIDERS
+    Back                      q / esc    Remove from continue watching   x    Move source up                  K
+    Toggle rail width             tab    Search filters             ctrl+f    Move source down                J
+    Refresh this view               r  TITLE                                NOW PLAYING
+    Force a full resync             R    Episodes                        e    Play / pause                space
+    Switch sub / dub                t    Sources                         s    Back 5s                         ←
+    Go to section                 1–9    Source for this title           P    Forward 5s                      →
+    Search                          /    Fix this match                  m    Back 30s                        H
+    Recent messages                 L    Download                        d    Forward 30s                     L
+  MOVEMENT                               Watch order                     w    Next episode                    n
+    Move up                     k / ↑    Recommendations                 b    Previous episode                N
+    Move down                   j / ↓    Play the trailer                v    Skip opening                    S
+    Move left                   h / ←    Open on AniList                 o    Slower                          [
+    Move right                  l / →    Play in a Syncplay party        y    Faster                          ]
+    Jump to top                     g  EPISODES                               Volume down                     9
+    Jump to bottom                  G    Download a range of episodes    D    Volume up                       0
+    Page up                    ctrl+u    Toggle watched                  u    Fullscreen                      F
+    Page down                  ctrl+d    Mark all previous watched       M    Leave player running            q
+  LISTS AND GRIDS                        Filter                          f    Stop playback                   x
+    Open                            ↵
+
+                            │
+                            │                                         █████░░░░░░░░░░░░░░░  3 / 12
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                                                                          esc close
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=rule mod=BOLD
+r00 c09-119 fg=rule
+r01 c00-119 fg=rule
+r02 c00-04 fg=rule
+r02 c05-12 fg=rule mod=BOLD
+r02 c13-32 fg=rule
+r02 c33-53 fg=rule mod=BOLD
+r02 c54-119 fg=rule
+r03 c00-119 fg=rule bg=ground
+r04 c00-00 fg=obi bg=ground
+r04 c01-01 fg=rule bg=ground
+r04 c02-05 fg=text bg=ground mod=BOLD
+r04 c06-119 fg=rule bg=ground
+r05 c00-119 fg=rule bg=ground
+r06 c00-01 fg=rule bg=ground
+r06 c02-07 fg=text bg=ground
+r06 c08-38 fg=rule bg=ground
+r06 c39-59 fg=text-dim bg=ground
+r06 c60-68 fg=rule bg=ground
+r06 c69-73 fg=text bg=ground
+r06 c74-75 fg=rule bg=ground
+r06 c76-84 fg=text bg=ground
+r06 c85-119 fg=rule bg=ground
+r07 c00-01 fg=rule bg=ground
+r07 c02-12 fg=text-dim bg=ground
+r07 c13-35 fg=rule bg=ground
+r07 c36-36 fg=text bg=ground
+r07 c37-38 fg=rule bg=ground
+r07 c39-55 fg=text-dim bg=ground
+r07 c56-72 fg=rule bg=ground
+r07 c73-73 fg=text bg=ground
+r07 c74-75 fg=rule bg=ground
+r07 c76-101 fg=text-dim bg=ground
+r07 c102-109 fg=rule bg=ground
+r07 c110-110 fg=text bg=ground
+r07 c111-119 fg=rule bg=ground
+r08 c00-01 fg=rule bg=ground
+r08 c02-16 fg=text-dim bg=ground
+r08 c17-26 fg=rule bg=ground
+r08 c27-36 fg=text bg=ground
+r08 c37-38 fg=rule bg=ground
+r08 c39-55 fg=text-dim bg=ground
+r08 c56-72 fg=rule bg=ground
+r08 c73-73 fg=text bg=ground
+r08 c74-75 fg=rule bg=ground
+r08 c76-105 fg=text-dim bg=ground
+r08 c106-109 fg=rule bg=ground
+r08 c110-110 fg=text bg=ground
+r08 c111-119 fg=rule bg=ground
+r09 c00-01 fg=rule bg=ground
+r09 c02-07 fg=text-dim bg=ground
+r09 c08-26 fg=rule bg=ground
+r09 c27-36 fg=text bg=ground
+r09 c37-38 fg=rule bg=ground
+r09 c39-55 fg=text-dim bg=ground
+r09 c56-72 fg=rule bg=ground
+r09 c73-73 fg=text bg=ground
+r09 c74-75 fg=rule bg=ground
+r09 c76-84 fg=text bg=ground
+r09 c85-119 fg=rule bg=ground
+r10 c00-01 fg=rule bg=ground
+r10 c02-07 fg=text-dim bg=ground
+r10 c08-29 fg=rule bg=ground
+r10 c30-36 fg=text bg=ground
+r10 c37-38 fg=rule bg=ground
+r10 c39-69 fg=text-dim bg=ground
+r10 c70-72 fg=rule bg=ground
+r10 c73-73 fg=text bg=ground
+r10 c74-75 fg=rule bg=ground
+r10 c76-91 fg=text-dim bg=ground
+r10 c92-109 fg=rule bg=ground
+r10 c110-110 fg=text bg=ground
+r10 c111-119 fg=rule bg=ground
+r11 c00-01 fg=rule bg=ground
+r11 c02-20 fg=text-dim bg=ground
+r11 c21-33 fg=rule bg=ground
+r11 c34-36 fg=text bg=ground
+r11 c37-38 fg=rule bg=ground
+r11 c39-54 fg=text-dim bg=ground
+r11 c55-67 fg=rule bg=ground
+r11 c68-73 fg=text bg=ground
+r11 c74-75 fg=rule bg=ground
+r11 c76-93 fg=text-dim bg=ground
+r11 c94-109 fg=rule bg=ground
+r11 c110-110 fg=text bg=ground
+r11 c111-119 fg=rule bg=ground
+r12 c00-01 fg=rule bg=ground
+r12 c02-20 fg=text-dim bg=ground
+r12 c21-35 fg=rule bg=ground
+r12 c36-36 fg=text bg=ground
+r12 c37-38 fg=rule bg=ground
+r12 c39-43 fg=text bg=ground
+r12 c44-75 fg=rule bg=ground
+r12 c76-86 fg=text bg=ground
+r12 c87-119 fg=rule bg=ground
+r13 c00-01 fg=rule bg=ground
+r13 c02-22 fg=text-dim bg=ground
+r13 c23-35 fg=rule bg=ground
+r13 c36-36 fg=text bg=ground
+r13 c37-38 fg=rule bg=ground
+r13 c39-48 fg=text-dim bg=ground
+r13 c49-72 fg=rule bg=ground
+r13 c73-73 fg=text bg=ground
+r13 c74-75 fg=rule bg=ground
+r13 c76-89 fg=text-dim bg=ground
+r13 c90-105 fg=rule bg=ground
+r13 c106-110 fg=text bg=ground
+r13 c111-119 fg=rule bg=ground
+r14 c00-01 fg=rule bg=ground
+r14 c02-19 fg=text-dim bg=ground
+r14 c20-35 fg=rule bg=ground
+r14 c36-36 fg=text bg=ground
+r14 c37-38 fg=rule bg=ground
+r14 c39-47 fg=text-dim bg=ground
+r14 c48-72 fg=rule bg=ground
+r14 c73-73 fg=text bg=ground
+r14 c74-75 fg=rule bg=ground
+r14 c76-84 fg=text-dim bg=ground
+r14 c85-109 fg=rule bg=ground
+r14 c110-110 fg=text bg=ground
+r14 c111-119 fg=rule bg=ground
+r15 c00-01 fg=rule bg=ground
+r15 c02-16 fg=text-dim bg=ground
+r15 c17-33 fg=rule bg=ground
+r15 c34-36 fg=text bg=ground
+r15 c37-38 fg=rule bg=ground
+r15 c39-61 fg=text-dim bg=ground
+r15 c62-72 fg=rule bg=ground
+r15 c73-73 fg=text bg=ground
+r15 c74-75 fg=rule bg=ground
+r15 c76-87 fg=text-dim bg=ground
+r15 c88-109 fg=rule bg=ground
+r15 c110-110 fg=text bg=ground
+r15 c111-119 fg=rule bg=ground
+r16 c00-01 fg=rule bg=ground
+r16 c02-09 fg=text-dim bg=ground
+r16 c10-35 fg=rule bg=ground
+r16 c36-36 fg=text bg=ground
+r16 c37-38 fg=rule bg=ground
+r16 c39-54 fg=text-dim bg=ground
+r16 c55-69 fg=rule bg=ground
+r16 c70-72 fg=rule bg=ground mod=BOLD
+r16 c73-73 fg=text bg=ground mod=BOLD
+r16 c74-75 fg=rule bg=ground mod=BOLD
+r16 c76-85 fg=text-dim bg=ground mod=BOLD
+r16 c86-90 fg=rule bg=ground mod=BOLD
+r16 c91-109 fg=rule bg=ground
+r16 c110-110 fg=text bg=ground
+r16 c111-119 fg=rule bg=ground
+r17 c00-01 fg=rule bg=ground
+r17 c02-18 fg=text-dim bg=ground
+r17 c19-35 fg=rule bg=ground
+r17 c36-36 fg=text bg=ground
+r17 c37-38 fg=rule bg=ground
+r17 c39-48 fg=text-dim bg=ground
+r17 c49-72 fg=rule bg=ground
+r17 c73-73 fg=text bg=ground
+r17 c74-75 fg=rule bg=ground
+r17 c76-88 fg=text-dim bg=ground
+r17 c89-109 fg=rule bg=ground
+r17 c110-110 fg=text bg=ground
+r17 c111-119 fg=rule bg=ground
+r18 c00-01 fg=rule bg=ground
+r18 c02-09 fg=text bg=ground
+r18 c10-38 fg=rule bg=ground
+r18 c39-51 fg=text-dim bg=ground
+r18 c52-72 fg=rule bg=ground
+r18 c73-73 fg=text bg=ground
+r18 c74-75 fg=rule bg=ground
+r18 c76-89 fg=text-dim bg=ground
+r18 c90-109 fg=rule bg=ground
+r18 c110-110 fg=text bg=ground
+r18 c111-119 fg=rule bg=ground
+r19 c00-01 fg=rule bg=ground
+r19 c02-10 fg=text-dim bg=ground
+r19 c11-31 fg=rule bg=ground
+r19 c32-36 fg=text bg=ground
+r19 c37-38 fg=rule bg=ground
+r19 c39-55 fg=text-dim bg=ground
+r19 c56-72 fg=rule bg=ground
+r19 c73-73 fg=text bg=ground
+r19 c74-75 fg=rule bg=ground
+r19 c76-93 fg=text-dim bg=ground
+r19 c94-109 fg=rule bg=ground
+r19 c110-110 fg=text bg=ground
+r19 c111-119 fg=rule bg=ground
+r20 c00-01 fg=rule bg=ground
+r20 c02-12 fg=text-dim bg=ground
+r20 c13-31 fg=rule bg=ground
+r20 c32-36 fg=text bg=ground
+r20 c37-38 fg=rule bg=ground
+r20 c39-56 fg=text-dim bg=ground
+r20 c57-72 fg=rule bg=ground
+r20 c73-73 fg=text bg=ground
+r20 c74-75 fg=rule bg=ground
+r20 c76-89 fg=text-dim bg=ground
+r20 c90-109 fg=rule bg=ground
+r20 c110-110 fg=text bg=ground
+r20 c111-119 fg=rule bg=ground
+r21 c00-01 fg=rule bg=ground
+r21 c02-12 fg=text-dim bg=ground
+r21 c13-31 fg=rule bg=ground
+r21 c32-36 fg=text bg=ground
+r21 c37-38 fg=rule bg=ground
+r21 c39-55 fg=text-dim bg=ground
+r21 c56-72 fg=rule bg=ground
+r21 c73-73 fg=text bg=ground
+r21 c74-75 fg=rule bg=ground
+r21 c76-83 fg=text-dim bg=ground
+r21 c84-109 fg=rule bg=ground
+r21 c110-110 fg=text bg=ground
+r21 c111-119 fg=rule bg=ground
+r22 c00-01 fg=rule bg=ground
+r22 c02-13 fg=text-dim bg=ground
+r22 c14-31 fg=rule bg=ground
+r22 c32-36 fg=text bg=ground
+r22 c37-38 fg=rule bg=ground
+r22 c39-64 fg=text-dim bg=ground
+r22 c65-69 fg=rule bg=ground
+r22 c70-72 fg=rule bg=ground mod=BOLD
+r22 c73-73 fg=text bg=ground mod=BOLD
+r22 c74-75 fg=rule bg=ground mod=BOLD
+r22 c76-83 fg=text-dim bg=ground mod=BOLD
+r22 c84-97 fg=rule bg=ground mod=BOLD
+r22 c98-109 fg=rule bg=ground
+r22 c110-110 fg=text bg=ground
+r22 c111-119 fg=rule bg=ground
+r23 c00-01 fg=rule bg=ground
+r23 c02-14 fg=text-dim bg=ground
+r23 c15-35 fg=rule bg=ground
+r23 c36-36 fg=text bg=ground
+r23 c37-38 fg=rule bg=ground
+r23 c39-46 fg=text bg=ground
+r23 c47-75 fg=rule bg=ground
+r23 c76-88 fg=text-dim bg=ground
+r23 c89-109 fg=rule bg=ground
+r23 c110-110 fg=text bg=ground
+r23 c111-119 fg=rule bg=ground
+r24 c00-01 fg=rule bg=ground
+r24 c02-17 fg=text-dim bg=ground
+r24 c18-35 fg=rule bg=ground
+r24 c36-36 fg=text bg=ground
+r24 c37-38 fg=rule bg=ground
+r24 c39-68 fg=text-dim bg=ground
+r24 c69-72 fg=rule bg=ground
+r24 c73-73 fg=text bg=ground
+r24 c74-75 fg=rule bg=ground
+r24 c76-86 fg=text-dim bg=ground
+r24 c87-109 fg=rule bg=ground
+r24 c110-110 fg=text bg=ground
+r24 c111-119 fg=rule bg=ground
+r25 c00-01 fg=rule bg=ground
+r25 c02-10 fg=text-dim bg=ground
+r25 c11-30 fg=rule bg=ground
+r25 c31-36 fg=text bg=ground
+r25 c37-38 fg=rule bg=ground
+r25 c39-54 fg=text-dim bg=ground
+r25 c55-72 fg=rule bg=ground
+r25 c73-73 fg=text bg=ground
+r25 c74-75 fg=rule bg=ground
+r25 c76-87 fg=text-dim bg=ground
+r25 c88-109 fg=rule bg=ground
+r25 c110-110 fg=text bg=ground
+r25 c111-119 fg=rule bg=ground
+r26 c00-01 fg=rule bg=ground
+r26 c02-12 fg=text-dim bg=ground
+r26 c13-30 fg=rule bg=ground
+r26 c31-36 fg=text bg=ground
+r26 c37-38 fg=rule bg=ground
+r26 c39-65 fg=text-dim bg=ground
+r26 c66-72 fg=rule bg=ground
+r26 c73-73 fg=text bg=ground
+r26 c74-75 fg=rule bg=ground
+r26 c76-97 fg=text-dim bg=ground
+r26 c98-109 fg=rule bg=ground
+r26 c110-110 fg=text bg=ground
+r26 c111-119 fg=rule bg=ground
+r27 c00-01 fg=rule bg=ground
+r27 c02-16 fg=text bg=ground
+r27 c17-38 fg=rule bg=ground
+r27 c39-46 fg=text-dim bg=ground
+r27 c47-72 fg=rule bg=ground
+r27 c73-73 fg=text bg=ground
+r27 c74-75 fg=rule bg=ground
+r27 c76-90 fg=text-dim bg=ground
+r27 c91-109 fg=rule bg=ground
+r27 c110-110 fg=text bg=ground
+r27 c111-119 fg=rule bg=ground
+r28 c00-01 fg=rule bg=ground
+r28 c02-07 fg=text-dim bg=ground
+r28 c08-35 fg=rule bg=ground
+r28 c36-36 fg=text bg=ground
+r28 c37-119 fg=rule bg=ground
+r29 c00-119 fg=rule bg=ground
+r30 c00-119 fg=rule
+r31 c00-119 fg=rule
+r32 c00-119 fg=rule
+r33 c00-20 fg=text-dim
+r33 c21-110 fg=rule
+r33 c111-113 fg=text
+r33 c114-119 fg=text-dim

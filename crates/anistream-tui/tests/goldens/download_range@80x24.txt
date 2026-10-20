@@ -1,0 +1,69 @@
+anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────
+▌▸ │  ←  Hoshikuzu no Tabibito
+ ▤ │
+ ▦ │    #     TITLE                                   RUN     WATCHED
+ / │  ────────────────────────────────────────────────────────────────────────
+ ▥ │    001   The Last Mail Coach                     23:55   ██████████  done
+────────────────────────────────────────────────────────────────────────────────
+▌ DOWNLOAD EPISODES   5-9▏
+────────────────────────────────────────────────────────────────────────────────
+  4 for one episode, 1-12 for a run, 7- for everything from there
+
+   │    007   The Festival of Small Stars             23:55   ░░░░░░░░░░  filler
+   │    008   Where the Road Ends                     23:55   ░░░░░░░░░░
+   │    009   Postmarked Yesterday                    23:55   ░░░░░░░░░░
+   │    010   The Comet's Wake                        23:55   ░░░░░░░░░░
+   │    011   Every Lamp at Once                      23:55   ░░░░░░░░░░
+   │    012   The Stardust Traveller                  --:--   ░░░░░░░░░░
+   │
+   │
+   │
+   │
+────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                       ↵ queue   esc cancel
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=rule mod=BOLD
+r00 c09-79 fg=rule
+r01 c00-79 fg=rule
+r02 c00-00 fg=rule
+r02 c01-01 fg=rule mod=BOLD
+r02 c02-05 fg=rule
+r02 c06-29 fg=rule mod=BOLD
+r02 c30-79 fg=rule
+r03 c00-79 fg=rule
+r04 c00-79 fg=rule
+r05 c00-79 fg=rule
+r06 c00-79 fg=rule
+r07 c00-79 fg=rule bg=ground
+r08 c00-00 fg=obi bg=ground
+r08 c01-01 fg=rule bg=ground
+r08 c02-25 fg=text bg=ground mod=BOLD
+r08 c26-79 fg=rule bg=ground
+r09 c00-07 fg=rule bg=ground
+r09 c08-10 fg=rule bg=ground mod=BOLD
+r09 c11-13 fg=rule bg=ground
+r09 c14-40 fg=rule bg=ground mod=BOLD
+r09 c41-79 fg=rule bg=ground
+r10 c00-01 fg=rule bg=ground
+r10 c02-64 fg=text-dim bg=ground
+r10 c65-79 fg=rule bg=ground
+r11 c00-79 fg=rule bg=ground
+r12 c00-79 fg=rule
+r13 c00-79 fg=rule
+r14 c00-79 fg=rule
+r15 c00-79 fg=rule
+r16 c00-79 fg=rule
+r17 c00-79 fg=rule
+r18 c00-79 fg=rule
+r19 c00-79 fg=rule
+r20 c00-79 fg=rule
+r21 c00-79 fg=rule
+r22 c00-79 fg=rule
+r23 c00-20 fg=text-dim
+r23 c21-59 fg=rule
+r23 c60-60 fg=text
+r23 c61-69 fg=text-dim
+r23 c70-72 fg=text
+r23 c73-79 fg=text-dim

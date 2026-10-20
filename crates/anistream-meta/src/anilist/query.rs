@@ -46,7 +46,7 @@ pub fn search() -> String {
 }
 
 /// Search with the filter surface: the same server-side arguments as the seasonal
-/// browse, every one optional, so one document serves "frieren", "mecha from 2006"
+/// browse, every one optional, so one document serves "hoshikuzu", "mecha from 2006"
 /// and "best of fall" alike.
 pub fn search_filtered() -> String {
     format!(
@@ -140,8 +140,8 @@ pub fn airing_schedule() -> String {
 /// answers the question, but it returns nodes in *ascending* episode order and takes no sort
 /// argument — so page one gives you episode 1, and finding the newest means walking to the
 /// last page. And deriving it from `nextAiringEpisode.airingAt` minus a week assumes a weekly
-/// cadence: measured against live data, Mushoku Tensei III's first two episodes aired 30
-/// minutes apart and the third eight days later, so that arithmetic is simply false.
+/// cadence: measured against live data, one sequel's first two episodes aired 30 minutes
+/// apart and the third eight days later, so that arithmetic is simply false.
 ///
 /// `mediaId_in` takes the whole visible list at once, so this costs one request per load
 /// rather than one per title — which matters against a 30-per-minute budget.

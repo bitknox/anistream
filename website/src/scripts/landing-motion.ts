@@ -102,10 +102,8 @@ function buildCoverCells(cols: number, rows: number): Cell[] {
 	const mix = (a: [number, number, number], b: [number, number, number], k: number): [number, number, number] =>
 		[lerp(a[0], b[0], k), lerp(a[1], b[1], k), lerp(a[2], b[2], k)];
 
-	/* The scene: the Era meteor shower over a meadow with a lone tree on the
-	   hill — an original halfblock rendering of landscape motifs any Frieren
-	   viewer recognises. No character, no copied artwork; the association
-	   does the work. */
+	/* The scene: a meteor shower across the dusk sky — an original halfblock
+	   rendering, with no character and no copied artwork. */
 	/* The setting: a rooftop at dusk over a lit city — modern, streaming-
 	   coded (every window a glowing screen), still nobody's IP. */
 	const hash = (n: number) => (((Math.sin(n) * 43758.5453) % 1) + 1) % 1;
@@ -342,7 +340,7 @@ function buildDemo() {
 	// Search: `/`, the query types itself, results land.
 	key('/');
 	swap('search');
-	const query = 'frieren';
+	const query = 'stardust';
 	const typing = { n: 0 };
 	tl.to(typing, {
 		n: query.length,

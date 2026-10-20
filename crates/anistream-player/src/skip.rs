@@ -1,6 +1,6 @@
 //! Opening and ending skip times, from aniskip.
 //!
-//! Verified during planning: `api.aniskip.com/v2` returns real intervals — Frieren episode 1
+//! Verified during planning: `api.aniskip.com/v2` returns real intervals — MAL 52991 ep 1
 //! gives OP `3.2–93.2s` and ED `1417–1507s`. It is keyed on **MAL id**, not AniList, which is
 //! one of the two places the mapping layer earns its keep (the other being release numbering).
 //!
@@ -304,7 +304,7 @@ pub fn active(intervals: &[SkipInterval], position: f64) -> Option<&SkipInterval
 mod tests {
     use super::*;
 
-    /// Shape captured from api.aniskip.com during planning (Frieren, MAL 52991, ep 1).
+    /// Shape captured from api.aniskip.com during planning (MAL 52991, ep 1).
     const PAYLOAD: &str = r#"{
       "found": true,
       "results": [

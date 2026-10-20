@@ -263,7 +263,8 @@ impl VpnGuard {
     /// Routing the *check* through the proxy is the point. Measuring this machine's egress
     /// would say nothing about where the torrent session's traffic actually goes.
     pub fn new(config: VpnConfig) -> Result<Self, String> {
-        let mut builder = reqwest::Client::builder().timeout(Duration::from_secs(15));
+        let mut builder = anistream_net::trusted_roots(reqwest::Client::builder())
+            .timeout(Duration::from_secs(15));
 
         // Outside proxy mode the check goes out the way the torrent session does: directly.
         // Left to itself the client would honour `HTTPS_PROXY`, which librqbit's peer

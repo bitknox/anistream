@@ -6,31 +6,25 @@ rust-version.workspace = true
 license.workspace = true
 description = "An anime streaming TUI"
 
-[lib]
-name = "anistream"
-path = "src/lib.rs"
-# No doc example is written as a test, and rustdoc spends seconds per crate finding none.
-doctest = false
-
 [[bin]]
 name = "anistream"
 path = "src/main.rs"
 
 [dependencies]
 anistream-core.workspace = true
+anistream-engine = { workspace = true, features = ["desktop"] }
 anistream-meta.workspace = true
+anistream-model.workspace = true
 anistream-net.workspace = true
 anistream-player.workspace = true
 anistream-plugin = { workspace = true, features = ["fetch"] }
-anistream-plugin-store.workspace = true
 anistream-store-server.workspace = true
 anistream-providers.workspace = true
 anistream-store.workspace = true
 anistream-track.workspace = true
-anistream-ui.workspace = true
+anistream-tui.workspace = true
 open.workspace = true
 anyhow.workspace = true
-async-trait.workspace = true
 # Encodes an invite link for the terminal's clipboard (OSC 52). Already in the tree.
 base64 = "0.22"
 # Verifies release archives against their published SHA-256 before `--update` installs.
@@ -38,7 +32,6 @@ sha2 = "0.10"
 # Raises the open-file allowance at startup — macOS's default 256 is less than one
 # healthy torrent swarm.
 rlimit = "0.10"
-thiserror.workspace = true
 clap.workspace = true
 crossterm.workspace = true
 futures.workspace = true
@@ -54,12 +47,15 @@ tracing-subscriber.workspace = true
 # The updater stages a download in a private directory rather than a predictable one in
 # the shared temp dir: what it installs is read back from disk after `tar` runs.
 tempfile = "3"
-# Random tokens for the mending proxy's loopback path.
-rand = "0.10"
-# Named by the mending proxy, whose upstream requests go through `HttpClient::emulated`.
-wreq.workspace = true
 
 [dev-dependencies]
+# The engine as the contract tests stand it up: from the harness's own parts, saying when it is
+# idle. Only for the tests: the binary that ships has none of it.
+anistream-engine = { workspace = true, features = ["testing"] }
+# The fake AniList, fixtures and goldens the dispatch contract tests stand the app up with.
+anistream-testkit.workspace = true
+# The store contract tests serve a real plugin store on loopback.
+anistream-plugin-store.workspace = true
 serde_json.workspace = true
 tempfile = "3"
 

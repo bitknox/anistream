@@ -1,0 +1,61 @@
+[package]
+name = "anistream-ffi"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "The engine as a native front end holds it, through UniFFI: Swift and Kotlin bindings over its whole protocol"
+# Linked into a native app, never published: its shape follows the engine's.
+publish = false
+
+[lib]
+# `lib` for the tests and the bindings generator, `staticlib` for an app that links the engine
+# in, as iOS has to, and `cdylib` for the generator to read the interface from and for a front
+# end that loads it at run time.
+crate-type = ["lib", "staticlib", "cdylib"]
+# No doc example is written as a test, and rustdoc spends seconds per crate finding none.
+doctest = false
+
+# Generates the Swift and Kotlin bindings from the built library, from the same UniFFI release
+# as the scaffolding compiled into it. Behind its own feature so an app's build of the library
+# does not compile the generator and its command line.
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/bin/uniffi-bindgen.rs"
+required-features = ["cli"]
+
+[features]
+default = ["desktop"]
+# The engine's desktop parts, mpv among them. A phone's build turns it off, with
+# `--no-default-features`.
+desktop = ["anistream-engine/desktop"]
+# `FfiEngine::start_testing`: the engine on a fake AniList, the test kit's fixture source and a
+# client that cannot leave the machine, for the Swift package's tests. Never on in an app.
+testing = ["anistream-engine/testing", "dep:anistream-testkit", "dep:anistream-meta", "dep:anistream-track"]
+# The `uniffi-bindgen` binary.
+cli = ["uniffi/cli"]
+
+# No terminal crate, not even transitively: tools/check-boundaries.sh holds it to that in CI.
+[dependencies]
+anistream-core.workspace = true
+anistream-engine.workspace = true
+# The commands and events themselves cross, with every row they carry: the model's `ffi` feature
+# derives their conversions, and turns on the core's for the core types among them.
+anistream-model = { workspace = true, features = ["ffi"] }
+anistream-net.workspace = true
+anistream-store.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+uniffi.workspace = true
+# What `start_testing` builds the engine's parts from.
+anistream-meta = { workspace = true, optional = true }
+anistream-testkit = { workspace = true, optional = true }
+anistream-track = { workspace = true, optional = true }
+
+[dev-dependencies]
+# Polls `next_events` on the test's own thread, outside the engine's runtime, as Swift does.
+futures.workspace = true
+tempfile = "3"
+
+[lints]
+workspace = true

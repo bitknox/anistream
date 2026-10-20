@@ -1,0 +1,128 @@
+anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────
+▌ ▸│  ▌ Hoshikuzu no Tabibito                                      ep 4 · 57%
+  ▤│    Kaze no Tegami                                               ep 9 out
+  ▦│    Yoru no Toshokan                                       ep 6 in 2h 41m
+  /│
+  ▥│
+  ↓│
+  ◇│
+  ◎│
+  ⚙│
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                               ↵ play   e episodes   ? keys
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=text bg=#161a2e mod=BOLD
+r00 c09-43 bg=#161a2e
+r00 c44-54 fg=#9298b5 bg=#161a2e
+r00 c55-63 fg=state bg=#161a2e
+r00 c64-65 fg=#9298b5 bg=#161a2e
+r00 c66-66 fg=#434653 bg=#161a2e
+r00 c67-68 fg=#9298b5 bg=#161a2e
+r00 c69-79 fg=state bg=#161a2e
+r01 c00-79 fg=#434653 bg=#161a2e
+r02 c00-00 fg=#9298b5 bg=#161a2e
+r02 c01-01 bg=#161a2e
+r02 c02-02 fg=text bg=#161a2e
+r02 c03-03 fg=#434653 bg=#161a2e
+r02 c04-05 bg=#161a2e
+r02 c06-06 fg=obi bg=#161a2e
+r02 c07-07 bg=#161a2e
+r02 c08-28 fg=text bg=#161a2e mod=BOLD
+r02 c29-66 bg=#161a2e
+r02 c67-76 fg=state bg=#161a2e
+r02 c77-79 bg=#161a2e
+r03 c00-01 bg=#161a2e
+r03 c02-02 fg=#9298b5 bg=#161a2e
+r03 c03-03 fg=#434653 bg=#161a2e
+r03 c04-07 bg=#161a2e
+r03 c08-21 fg=#9298b5 bg=#161a2e
+r03 c22-68 bg=#161a2e
+r03 c69-76 fg=state bg=#161a2e
+r03 c77-79 bg=#161a2e
+r04 c00-01 bg=#161a2e
+r04 c02-02 fg=#9298b5 bg=#161a2e
+r04 c03-03 fg=#434653 bg=#161a2e
+r04 c04-07 bg=#161a2e
+r04 c08-23 fg=#9298b5 bg=#161a2e
+r04 c24-62 bg=#161a2e
+r04 c63-76 fg=#9298b5 bg=#161a2e
+r04 c77-79 bg=#161a2e
+r05 c00-01 bg=#161a2e
+r05 c02-02 fg=#9298b5 bg=#161a2e
+r05 c03-03 fg=#434653 bg=#161a2e
+r05 c04-79 bg=#161a2e
+r06 c00-01 bg=#161a2e
+r06 c02-02 fg=#9298b5 bg=#161a2e
+r06 c03-03 fg=#434653 bg=#161a2e
+r06 c04-79 bg=#161a2e
+r07 c00-01 bg=#161a2e
+r07 c02-02 fg=#9298b5 bg=#161a2e
+r07 c03-03 fg=#434653 bg=#161a2e
+r07 c04-79 bg=#161a2e
+r08 c00-01 bg=#161a2e
+r08 c02-02 fg=#9298b5 bg=#161a2e
+r08 c03-03 fg=#434653 bg=#161a2e
+r08 c04-79 bg=#161a2e
+r09 c00-01 bg=#161a2e
+r09 c02-02 fg=#9298b5 bg=#161a2e
+r09 c03-03 fg=#434653 bg=#161a2e
+r09 c04-79 bg=#161a2e
+r10 c00-01 bg=#161a2e
+r10 c02-02 fg=#9298b5 bg=#161a2e
+r10 c03-03 fg=#434653 bg=#161a2e
+r10 c04-79 bg=#161a2e
+r11 c00-02 bg=#161a2e
+r11 c03-03 fg=#434653 bg=#161a2e
+r11 c04-79 bg=#161a2e
+r12 c00-02 bg=#161a2e
+r12 c03-03 fg=#434653 bg=#161a2e
+r12 c04-79 bg=#161a2e
+r13 c00-02 bg=#161a2e
+r13 c03-03 fg=#434653 bg=#161a2e
+r13 c04-79 bg=#161a2e
+r14 c00-02 bg=#161a2e
+r14 c03-03 fg=#434653 bg=#161a2e
+r14 c04-79 bg=#161a2e
+r15 c00-02 bg=#161a2e
+r15 c03-03 fg=#434653 bg=#161a2e
+r15 c04-79 bg=#161a2e
+r16 c00-02 bg=#161a2e
+r16 c03-03 fg=#434653 bg=#161a2e
+r16 c04-79 bg=#161a2e
+r17 c00-02 bg=#161a2e
+r17 c03-03 fg=#434653 bg=#161a2e
+r17 c04-79 bg=#161a2e
+r18 c00-02 bg=#161a2e
+r18 c03-03 fg=#434653 bg=#161a2e
+r18 c04-79 bg=#161a2e
+r19 c00-02 bg=#161a2e
+r19 c03-03 fg=#434653 bg=#161a2e
+r19 c04-79 bg=#161a2e
+r20 c00-02 bg=#161a2e
+r20 c03-03 fg=#434653 bg=#161a2e
+r20 c04-79 bg=#161a2e
+r21 c00-02 bg=#161a2e
+r21 c03-03 fg=#434653 bg=#161a2e
+r21 c04-79 bg=#161a2e
+r22 c00-79 fg=#434653 bg=#161a2e
+r23 c00-20 fg=#9298b5 bg=#161a2e
+r23 c21-51 bg=#161a2e
+r23 c52-52 fg=text bg=#161a2e
+r23 c53-60 fg=#9298b5 bg=#161a2e
+r23 c61-61 fg=text bg=#161a2e
+r23 c62-73 fg=#9298b5 bg=#161a2e
+r23 c74-74 fg=text bg=#161a2e
+r23 c75-79 fg=#9298b5 bg=#161a2e

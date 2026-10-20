@@ -433,21 +433,21 @@ mod tests {
 
     #[test]
     fn a_key_round_trips_with_and_without_an_anilist_id() {
-        let with = encode_key("Sousou no Frieren", Some(154_587));
-        assert_eq!(decode_key(&with), ("Sousou no Frieren".into(), Some(154_587)));
+        let with = encode_key("Hoshikuzu no Tabibito", Some(154_587));
+        assert_eq!(decode_key(&with), ("Hoshikuzu no Tabibito".into(), Some(154_587)));
 
-        let without = encode_key("Sousou no Frieren", None);
-        assert_eq!(decode_key(&without), ("Sousou no Frieren".into(), None));
+        let without = encode_key("Hoshikuzu no Tabibito", None);
+        assert_eq!(decode_key(&without), ("Hoshikuzu no Tabibito".into(), None));
     }
 
     #[test]
     fn a_title_containing_punctuation_survives_the_round_trip() {
         // The separator is a control character precisely so ordinary punctuation is safe.
         for title in [
-            "Frieren: Beyond Journey's End",
-            "Re:Zero - Starting Life in Another World",
-            "K-On!",
-            "86",
+            "Hoshikuzu: Wayfarer's Long Road",
+            "Yoru:Kaze - Letters from Another Town",
+            "Ton-Ton!",
+            "73",
         ] {
             let key = encode_key(title, Some(1));
             assert_eq!(decode_key(&key), (title.to_owned(), Some(1)));
@@ -457,8 +457,8 @@ mod tests {
     #[test]
     fn a_key_from_an_older_cache_without_a_separator_still_decodes() {
         // Cached resolutions persist across upgrades, so a bare title must remain valid.
-        let legacy = ProviderKey::new("Sousou no Frieren");
-        assert_eq!(decode_key(&legacy), ("Sousou no Frieren".into(), None));
+        let legacy = ProviderKey::new("Hoshikuzu no Tabibito");
+        assert_eq!(decode_key(&legacy), ("Hoshikuzu no Tabibito".into(), None));
     }
 
     #[test]

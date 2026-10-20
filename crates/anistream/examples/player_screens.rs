@@ -20,19 +20,18 @@
 
 use std::time::Duration;
 
-use anistream::{
-    playback::{self, EpisodeEntry, NextEpisode, PlaySettings, PlaybackContext},
-    slot::PlayerSlot,
-};
 use anistream_core::{
     config::{Config, Paths},
     ids::AnilistId,
     media::Translation,
     stream::{Stream, StreamKind},
 };
+use anistream_engine::playback::{
+    self, EpisodeEntry, NextEpisode, PlaySettings, PlaybackContext, slot::PlayerSlot,
+};
+use anistream_model::event::Event;
 use anistream_net::HttpClient;
 use anistream_store::Store;
-use anistream_ui::app::Update;
 use tokio::sync::mpsc;
 
 struct Scenario {
@@ -99,7 +98,11 @@ async fn main() -> anyhow::Result<()> {
     let scratch = tempfile::tempdir()?;
     let paths = Paths { cache_dir: scratch.path().to_path_buf(), ..Paths::resolve()? };
     let config = Config::load(&paths)?;
-    let mpv = anistream::player::player(&config, &paths);
+    let mpv = anistream_engine::playback::player::player(
+        &config,
+        &paths,
+        &anistream_tui::theme::player_theme(),
+    );
     println!("player scratch dir: {}", mpv.scratch_dir().display());
 
     let store = Store::open_in_memory()?;
@@ -148,7 +151,7 @@ async fn main() -> anyhow::Result<()> {
         night_mode: false,
         remember_tracks: false,
         look: config.playback.upscaling.into(),
-        shader_dir: anistream::player::shader_dir(&config, &paths),
+        shader_dir: anistream_engine::playback::player::shader_dir(&config, &paths),
         tone_mapping: config.playback.tone_mapping.clone(),
         tracker_ids: Vec::new(),
         presence: Default::default(),
@@ -170,16 +173,17 @@ async fn main() -> anyhow::Result<()> {
     let printer = tokio::spawn(async move {
         while let Some(update) = rx.recv().await {
             match update {
-                Update::Status(s) if !s.is_empty() => println!("  status: {s}"),
-                Update::Toast(t) => println!("  toast: {}", t.text),
-                Update::PlaybackEnded { watched, ending } => {
+                Event::Status(s) if !s.is_empty() => println!("  status: {s}"),
+                Event::Toast(t) => println!("  toast: {}", t.text),
+                Event::PlaybackEnded { watched, ending, .. } => {
                     println!("  ended (watched: {watched}, {ending:?})")
                 }
                 _ => {}
             }
         }
     });
-    let play = playback::play(streams, context, store, http, mpv, settings, slot, tx, commands);
+    let play =
+        playback::play(streams, context, store, http, mpv, settings, slot, tx.into(), commands);
     tokio::time::timeout(Duration::from_secs(3600), play).await?;
     let _ = printer.await;
     // Finished with Up Next on, the window is parked for the next episode with its loading card

@@ -1,0 +1,90 @@
+anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▌ ▸  CONTINUE               │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+  ▤  CALENDAR               │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+  ▦  SEASONAL               │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+  /  SEARCH                 │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+  ▥  LIBRARY                │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+  ↓  DOWNLOADS              │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+  ◇  PROVIDERS              │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▌ SOURCE FOR THIS TITLE   Kaze no Tegami — enter pins it
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Automatic — best available source
+  yamabiko  ·  plugin
+▌ tsubame  ·  plugin                                                                                          in use
+
+                            │
+                            │  A postwoman in a hill town reads the wind for letters nobody sent. When one arrives
+                            │  addressed to her in her own hand, dated ten years from now, she starts delivering the
+                            │  future one envelope at a time — and learns that every letter she carries changes who
+                            │  will be there to write the next. Adapted from the serial in Kumo Monthly, with the
+                            │  town's old station rebuilt shot for shot.
+                            │
+                            │  Drama  ·  Romance
+                            │
+                            │  █████░░░░░░░░░░░░░░░  6 / 24   ep 7 next
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                                                                 ↵ pin   esc cancel
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=rule mod=BOLD
+r00 c09-119 fg=rule
+r01 c00-119 fg=rule
+r02 c00-04 fg=rule
+r02 c05-12 fg=rule mod=BOLD
+r02 c13-119 fg=rule
+r03 c00-119 fg=rule
+r04 c00-119 fg=rule
+r05 c00-119 fg=rule
+r06 c00-119 fg=rule
+r07 c00-119 fg=rule
+r08 c00-119 fg=rule
+r09 c00-119 fg=rule bg=ground
+r10 c00-00 fg=obi bg=ground
+r10 c01-01 fg=rule bg=ground
+r10 c02-55 fg=text bg=ground mod=BOLD
+r10 c56-119 fg=rule bg=ground
+r11 c00-119 fg=rule bg=ground
+r12 c00-01 fg=rule bg=ground
+r12 c02-34 fg=text-dim bg=ground
+r12 c35-119 fg=rule bg=ground
+r13 c00-01 fg=rule bg=ground
+r13 c02-20 fg=text-dim bg=ground
+r13 c21-119 fg=rule bg=ground
+r14 c00-00 fg=obi bg=ground
+r14 c01-01 fg=rule bg=ground
+r14 c02-19 fg=text bg=ground mod=BOLD
+r14 c20-109 fg=rule bg=ground
+r14 c110-115 fg=text bg=ground
+r14 c116-119 fg=rule bg=ground
+r15 c00-119 fg=rule bg=ground
+r16 c00-119 fg=rule
+r17 c00-119 fg=rule
+r18 c00-119 fg=rule
+r19 c00-119 fg=rule
+r20 c00-119 fg=rule
+r21 c00-119 fg=rule
+r22 c00-119 fg=rule
+r23 c00-119 fg=rule
+r24 c00-119 fg=rule
+r25 c00-119 fg=rule
+r26 c00-119 fg=rule
+r27 c00-119 fg=rule
+r28 c00-119 fg=rule
+r29 c00-119 fg=rule
+r30 c00-119 fg=rule
+r31 c00-119 fg=rule
+r32 c00-119 fg=rule
+r33 c00-20 fg=text-dim
+r33 c21-101 fg=rule
+r33 c102-102 fg=text
+r33 c103-109 fg=text-dim
+r33 c110-112 fg=text
+r33 c113-119 fg=text-dim

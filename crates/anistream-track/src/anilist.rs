@@ -223,7 +223,7 @@ fn to_core(error: AniListError) -> anistream_core::Error {
 mod tests {
     use super::*;
 
-    const FRIEREN: AnilistId = AnilistId::new(154_587);
+    const HOSHIKUZU: AnilistId = AnilistId::new(154_587);
 
     #[test]
     fn every_status_survives_a_round_trip() {
@@ -269,21 +269,21 @@ mod tests {
         // Thirty requests a minute is the whole budget, so a per-op mutation would make a
         // resync of twenty titles take a minute.
         let ops = [
-            TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 },
-            TrackOp::SetStatus { anilist_id: FRIEREN, status: WatchStatus::Completed, at: 1 },
-            TrackOp::SetScore { anilist_id: FRIEREN, score: 9.0, at: 1 },
+            TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 },
+            TrackOp::SetStatus { anilist_id: HOSHIKUZU, status: WatchStatus::Completed, at: 1 },
+            TrackOp::SetScore { anilist_id: HOSHIKUZU, score: 9.0, at: 1 },
         ];
         let batched = coalesce(&ops);
         assert_eq!(batched.len(), 1);
-        assert_eq!(batched[0], mutation(FRIEREN, Some(12), Some("COMPLETED"), Some(9.0)));
+        assert_eq!(batched[0], mutation(HOSHIKUZU, Some(12), Some("COMPLETED"), Some(9.0)));
     }
 
     #[test]
     fn batching_keeps_the_highest_progress() {
         // Two progress ops in one batch must not let the later, lower one win.
         let ops = [
-            TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 },
-            TrackOp::SetProgress { anilist_id: FRIEREN, episode: 4 },
+            TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 },
+            TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 4 },
         ];
         assert_eq!(
             coalesce(&ops)[0].progress,
@@ -296,12 +296,12 @@ mod tests {
     fn different_titles_stay_separate() {
         let other = AnilistId::new(1);
         let ops = [
-            TrackOp::SetProgress { anilist_id: FRIEREN, episode: 3 },
+            TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 3 },
             TrackOp::SetProgress { anilist_id: other, episode: 7 },
         ];
         let batched = coalesce(&ops);
         assert_eq!(batched.len(), 2);
-        assert_eq!(batched[0], mutation(FRIEREN, Some(3), None, None));
+        assert_eq!(batched[0], mutation(HOSHIKUZU, Some(3), None, None));
         assert_eq!(batched[1], mutation(other, Some(7), None, None));
     }
 
@@ -309,8 +309,8 @@ mod tests {
     fn a_progress_only_push_leaves_status_and_score_untouched() {
         // The reason unset fields are omitted rather than nulled: AniList treats null as
         // "clear this", so a progress push would wipe the user's score.
-        let ops = [TrackOp::SetProgress { anilist_id: FRIEREN, episode: 5 }];
-        assert_eq!(coalesce(&ops)[0], mutation(FRIEREN, Some(5), None, None));
+        let ops = [TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 5 }];
+        assert_eq!(coalesce(&ops)[0], mutation(HOSHIKUZU, Some(5), None, None));
     }
 
     #[test]

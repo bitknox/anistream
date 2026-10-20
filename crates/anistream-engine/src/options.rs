@@ -1,0 +1,179 @@
+//! What an engine is started with.
+
+use anistream_core::config::{Config, Paths};
+use anistream_model::playback::PlayerTheme;
+use anistream_net::HttpClient;
+use anistream_providers::ProviderRegistry;
+use anistream_store::Store;
+
+/// Everything [`crate::engine::Engine::start`] needs to stand the engine up.
+///
+/// [`Self::new`] gives the app's own launch: the source chain config describes, built by the
+/// engine with its torrent source and plugins coming up behind it, and the work the engine does
+/// on its own. A still frame or a test changes the fields after.
+pub struct EngineOptions {
+    /// Where the config, the database, the caches and the tokens are.
+    pub paths: Paths,
+    /// The config the app was launched with: the file's, with whatever the command line
+    /// changed for this session.
+    pub config: Config,
+    /// The config the file holds, when the front end has read it already, or `None` for the
+    /// engine to read it from `paths`. What tells the session's own choices from the file's on
+    /// the Settings screen.
+    pub saved: Option<Config>,
+    /// The client every request goes through, with the configured proxy and timeouts.
+    pub http: HttpClient,
+    /// The local database.
+    pub store: Store,
+    /// How the player's own interface is dressed: the front end's choice, from its palette.
+    pub player_theme: PlayerTheme,
+    /// The source chain, whole, for an engine that is not to build its own: a still frame
+    /// waits for every source before it starts, and a test brings sources of its own.
+    ///
+    /// `None` for the app's launch, where the engine builds the chain config describes. The
+    /// torrent source joins it once its VPN guard has passed, and the plugins once compiled,
+    /// so that the first frame waits for neither. A chain given whole is final: nothing joins
+    /// it, and its rows are said at launch.
+    pub sources: Option<ProviderRegistry>,
+    /// The work the engine does on its own beside the commands, each piece on its own switch:
+    /// all of it for the app's launch, none for a still frame or a test, which must reach no
+    /// further than they are sent. See [`Background`].
+    pub background: Background,
+    /// Parts a test stands the engine up with instead of the ones it builds.
+    #[cfg(feature = "testing")]
+    pub parts: Option<Parts>,
+}
+
+impl EngineOptions {
+    /// The options for the app's own launch: the engine builds its source chain and does its
+    /// own work beside the commands.
+    pub fn new(
+        paths: Paths,
+        config: Config,
+        http: HttpClient,
+        store: Store,
+        player_theme: PlayerTheme,
+    ) -> Self {
+        Self {
+            paths,
+            config,
+            saved: None,
+            http,
+            store,
+            player_theme,
+            sources: None,
+            background: Background::default(),
+            #[cfg(feature = "testing")]
+            parts: None,
+        }
+    }
+}
+
+/// The work the engine does on its own beside the commands, each piece on its own switch.
+///
+/// [`Default`] is the desktop app's launch, with everything on. A still frame and a test turn
+/// it all off with [`Self::none`]. A phone keeps what it has a use for: the system there may
+/// run some of it on its own schedule, or not let it run at all while the app is in the
+/// background.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Background {
+    /// Sweep old logs, stale covers and the player's leftovers at launch, and the torrent cache
+    /// when torrents are off, since nothing else would.
+    pub prune: bool,
+    /// Ask once a day whether there is a new release, and say so when there is.
+    pub update_check: bool,
+    /// Say what aired since the last launch for the shows being watched: a notice, and on the
+    /// desktop too when the settings ask for it.
+    pub digest: bool,
+    /// Keep the mapping datasets current, which the trackers match titles by.
+    pub datasets: bool,
+    /// Push what is queued to the trackers, and pull their lists, on a timer.
+    pub sync_loops: bool,
+    /// Ask each joined plugin store for its list once at launch, and say what can be updated.
+    pub store_refresh: bool,
+    /// Check that mpv is there to play, and new enough to wear anistream's interface, and say
+    /// so at launch. Only with the `desktop` feature: without it there is no player to check.
+    pub player_check: bool,
+}
+
+impl Background {
+    /// None of it: a still frame's, and a test's.
+    pub const fn none() -> Self {
+        Self {
+            prune: false,
+            update_check: false,
+            digest: false,
+            datasets: false,
+            sync_loops: false,
+            store_refresh: false,
+            player_check: false,
+        }
+    }
+}
+
+impl Default for Background {
+    /// All of it, as the app launches.
+    fn default() -> Self {
+        Self {
+            prune: true,
+            update_check: true,
+            digest: true,
+            datasets: true,
+            sync_loops: true,
+            store_refresh: true,
+            player_check: true,
+        }
+    }
+}
+
+/// What a test stands the engine up with, in place of what the engine would build: a metadata
+/// source pointed at a fake, and trackers and plugin stores that keep their tokens in a
+/// temporary directory, the trackers' clients pointed at the fake too.
+///
+/// With these, nothing the engine does reaches the network or the user's keychain. An engine
+/// started with them also says in its event stream what it did with each message it left
+/// itself, and when it has nothing left to do: see
+/// [`EventStream::next_traced`](crate::engine::EventStream::next_traced).
+#[cfg(feature = "testing")]
+pub struct Parts {
+    /// The metadata source.
+    pub meta: anistream_meta::Meta,
+    /// The trackers, built with the test's token store.
+    pub sync: crate::tracking::Sync,
+    /// The plugin stores, built with the test's token store.
+    pub stores: crate::plugin_stores::Stores,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_default_is_the_apps_launch_and_none_is_nothing_at_all() {
+        // The terminal app starts on the default, so a switch defaulting to off would quietly
+        // stop something it has always done at launch.
+        let on = Background::default();
+        let all = [
+            on.prune,
+            on.update_check,
+            on.digest,
+            on.datasets,
+            on.sync_loops,
+            on.store_refresh,
+            on.player_check,
+        ];
+        assert!(all.iter().all(|on| *on), "{on:?}");
+        assert_eq!(
+            Background::none(),
+            Background {
+                prune: false,
+                update_check: false,
+                digest: false,
+                datasets: false,
+                sync_loops: false,
+                store_refresh: false,
+                player_check: false,
+            }
+        );
+    }
+}

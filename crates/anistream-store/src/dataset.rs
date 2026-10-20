@@ -287,7 +287,7 @@ impl Store {
 mod tests {
     use super::*;
 
-    const FRIEREN: u32 = 154_587;
+    const HOSHIKUZU: u32 = 154_587;
 
     fn entry(anilist_id: u32) -> MappingInput {
         MappingInput { anilist_id, ..Default::default() }
@@ -296,7 +296,7 @@ mod tests {
     #[test]
     fn materialising_records_entries_and_the_etag() {
         let store = Store::open_in_memory().unwrap();
-        let entries = vec![MappingInput { mal_id: Some(52_991), ..entry(FRIEREN) }];
+        let entries = vec![MappingInput { mal_id: Some(52_991), ..entry(HOSHIKUZU) }];
         let n = store
             .materialise_mapping("thaunknown", 0, &entries, Some("\"v1\""), 1_000)
             .unwrap();
@@ -322,7 +322,7 @@ mod tests {
                 &[MappingInput {
                     mal_id: Some(52_991),
                     kitsu_id: Some(46_474),
-                    ..entry(FRIEREN)
+                    ..entry(HOSHIKUZU)
                 }],
                 None,
                 1_000,
@@ -337,14 +337,14 @@ mod tests {
                     mal_id: Some(52_991),
                     tvdb_id: Some(424_536),
                     episode_offset: Some(2),
-                    ..entry(FRIEREN)
+                    ..entry(HOSHIKUZU)
                 }],
                 None,
                 2_000,
             )
             .unwrap();
 
-        let m = store.mapping_for(AnilistId::new(FRIEREN)).unwrap().unwrap();
+        let m = store.mapping_for(AnilistId::new(HOSHIKUZU)).unwrap().unwrap();
         assert_eq!(m.kitsu_id, Some(46_474), "primary's field survived");
         assert_eq!(m.tvdb_id, Some(424_536), "secondary filled a gap");
         assert_eq!(m.episode_offset, Some(2), "only Fribb has this");
@@ -364,7 +364,7 @@ mod tests {
             .materialise_mapping(
                 "thaunknown",
                 0,
-                &[MappingInput { mal_id: Some(52_991), ..entry(FRIEREN) }],
+                &[MappingInput { mal_id: Some(52_991), ..entry(HOSHIKUZU) }],
                 None,
                 1_000,
             )
@@ -373,13 +373,13 @@ mod tests {
             .materialise_mapping(
                 "fribb",
                 1,
-                &[MappingInput { mal_id: Some(999_999), ..entry(FRIEREN) }],
+                &[MappingInput { mal_id: Some(999_999), ..entry(HOSHIKUZU) }],
                 None,
                 2_000,
             )
             .unwrap();
 
-        let m = store.mapping_for(AnilistId::new(FRIEREN)).unwrap().unwrap();
+        let m = store.mapping_for(AnilistId::new(HOSHIKUZU)).unwrap().unwrap();
         assert_eq!(m.mal_id, Some(52_991), "the stronger claim was overwritten");
 
         // The stronger source may still change its own mind on a later refresh.
@@ -387,13 +387,13 @@ mod tests {
             .materialise_mapping(
                 "thaunknown",
                 0,
-                &[MappingInput { mal_id: Some(12_345), ..entry(FRIEREN) }],
+                &[MappingInput { mal_id: Some(12_345), ..entry(HOSHIKUZU) }],
                 None,
                 3_000,
             )
             .unwrap();
         assert_eq!(
-            store.mapping_for(AnilistId::new(FRIEREN)).unwrap().unwrap().mal_id,
+            store.mapping_for(AnilistId::new(HOSHIKUZU)).unwrap().unwrap().mal_id,
             Some(12_345)
         );
     }
@@ -420,7 +420,9 @@ mod tests {
     fn re_materialising_the_same_source_updates_in_place() {
         let store = Store::open_in_memory().unwrap();
         for round in 0..3 {
-            store.materialise_mapping("thaunknown", 0, &[entry(FRIEREN)], None, round).unwrap();
+            store
+                .materialise_mapping("thaunknown", 0, &[entry(HOSHIKUZU)], None, round)
+                .unwrap();
         }
         assert_eq!(store.mapping_count().unwrap(), 1);
     }
@@ -429,7 +431,7 @@ mod tests {
     fn a_304_touch_restarts_the_cadence_without_touching_data() {
         let store = Store::open_in_memory().unwrap();
         store
-            .materialise_mapping("thaunknown", 0, &[entry(FRIEREN)], Some("\"v1\""), 1_000)
+            .materialise_mapping("thaunknown", 0, &[entry(HOSHIKUZU)], Some("\"v1\""), 1_000)
             .unwrap();
         store.touch_dataset("thaunknown", 5_000).unwrap();
 
@@ -447,7 +449,7 @@ mod tests {
             .materialise_mapping(
                 "thaunknown",
                 0,
-                &[MappingInput { mal_id: Some(52_991), ..entry(FRIEREN) }],
+                &[MappingInput { mal_id: Some(52_991), ..entry(HOSHIKUZU) }],
                 Some("\"v1\""),
                 1_000,
             )
@@ -459,7 +461,7 @@ mod tests {
         assert_eq!(state.last_error.as_deref(), Some("connection reset"));
         assert_eq!(state.etag.as_deref(), Some("\"v1\""));
         assert_eq!(
-            store.mapping_for(AnilistId::new(FRIEREN)).unwrap().unwrap().mal_id,
+            store.mapping_for(AnilistId::new(HOSHIKUZU)).unwrap().unwrap().mal_id,
             Some(52_991),
             "mappings must survive a failed refresh"
         );
@@ -472,12 +474,12 @@ mod tests {
             .materialise_mapping(
                 "t",
                 0,
-                &[MappingInput { mal_id: Some(52_991), ..entry(FRIEREN) }],
+                &[MappingInput { mal_id: Some(52_991), ..entry(HOSHIKUZU) }],
                 None,
                 0,
             )
             .unwrap();
-        assert_eq!(store.anilist_id_for_mal(52_991).unwrap(), Some(AnilistId::new(FRIEREN)));
+        assert_eq!(store.anilist_id_for_mal(52_991).unwrap(), Some(AnilistId::new(HOSHIKUZU)));
         assert_eq!(store.anilist_id_for_mal(1).unwrap(), None);
     }
 

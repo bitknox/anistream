@@ -166,6 +166,8 @@ pub struct AniList {
     /// end with "restart to start syncing": the token reached the keychain and nothing that could
     /// use it ever saw it. A shared cell is the whole difference.
     token: Arc<std::sync::RwLock<Option<String>>>,
+    /// Where GraphQL requests go: [`ENDPOINT`], unless a test pointed it elsewhere.
+    endpoint: Arc<str>,
 }
 
 impl AniList {
@@ -174,7 +176,22 @@ impl AniList {
             http,
             limiter: Arc::new(RateLimiter::per_minute(requests_per_minute)),
             token: Arc::new(std::sync::RwLock::new(None)),
+            endpoint: Arc::from(ENDPOINT),
         }
+    }
+
+    /// Send every request to `endpoint` instead of AniList: a stand-in server on loopback.
+    ///
+    /// For tests and probes only, which is why it is hidden from the docs and has no config
+    /// key. A configurable endpoint would be one more way for a user's metadata to come from
+    /// somewhere that is not AniList, and nothing but a test has a reason to want that. The
+    /// request is otherwise unchanged, so it is the production path that gets exercised: the
+    /// same rate limiter, and the same plain client, which speaks `http://` as readily as
+    /// `https://`.
+    #[doc(hidden)]
+    pub fn with_endpoint(mut self, endpoint: impl Into<String>) -> Self {
+        self.endpoint = Arc::from(endpoint.into());
+        self
     }
 
     /// Attach an OAuth token for library and mutation access.
@@ -221,7 +238,7 @@ impl AniList {
         let mut request = self
             .http
             .plain()
-            .post(ENDPOINT)
+            .post(&*self.endpoint)
             .header("content-type", "application/json")
             .header("accept", "application/json");
         if let Some(token) = &self.token() {
@@ -674,7 +691,7 @@ mod tests {
     fn a_media_page_decodes_and_reports_pagination() {
         let payload = serde_json::json!({
             "pageInfo": {"hasNextPage": true},
-            "media": [{"id": 154587, "title": {"romaji": "Sousou no Frieren"}}]
+            "media": [{"id": 154587, "title": {"romaji": "Hoshikuzu no Tabibito"}}]
         });
         let page = decode_media_page(&payload).unwrap();
         assert_eq!(page.items.len(), 1);
@@ -721,6 +738,15 @@ mod tests {
         assert!(!client.is_authenticated());
         let err = futures_lite_block(client.viewer_id());
         assert!(matches!(err, Err(AniListError::Unauthenticated)));
+    }
+
+    #[test]
+    fn requests_go_to_anilist_unless_a_test_says_otherwise() {
+        let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
+        let client = AniList::new(http, 30);
+        assert_eq!(&*client.endpoint, ENDPOINT);
+        let pointed = client.with_endpoint("http://127.0.0.1:9/graphql");
+        assert_eq!(&*pointed.endpoint, "http://127.0.0.1:9/graphql");
     }
 
     /// Minimal blocking executor so this test needs no async runtime feature.

@@ -345,7 +345,7 @@ protocol.
 
 ## Architecture
 
-Fourteen crates. The app's, volatility increasing left to right:
+Eighteen crates. The app's, volatility increasing left to right:
 
 ```
  AniList        ID mapping        Provider         Player
@@ -361,7 +361,12 @@ Fourteen crates. The app's, volatility increasing left to right:
 
 `anistream-core` (types and traits) · `-net` (HTTP, rate limiting) · `-meta` (AniList, Tenrai failover, ID mapping,
 filler) · `-store` (SQLite) · `-providers` (torrent transport, remote, mock) · `-player` (mpv IPC) ·
-`-track` (AniList, MAL, Kitsu, Simkl, Trakt, sync) · `-plugin` (WASM host) · `-ui` (ratatui) · `anistream` (wiring).
+`-track` (AniList, MAL, Kitsu, Simkl, Trakt, sync) · `-plugin` (WASM host) · `-model` (the protocol
+between the engine and a front end, and its wording) · `-engine` (playback, sources, sync, downloads
+and the background jobs) · `-tui` (the terminal front end, ratatui) · `anistream` (the binary: the
+command line, the terminal's event loop, and the wiring from front end to engine) · `-ffi` (the
+engine for native front ends, through UniFFI; the Swift package is in `apple/`) · `-testkit` (a
+fake AniList and goldens, for tests).
 
 Plugin stores have four of their own: `-store-core` (the protocol, the store's rules and its admin
 page, built natively and to WebAssembly) · `-plugin-store` (the client and the reference server) ·
@@ -370,12 +375,16 @@ store for Workers and serverless functions). `-store` is the app's own history, 
 
 Sources decay, so every volatile piece sits behind a trait and the core never depends on one.
 
+The engine and the model use no terminal library, so a front end that is not a terminal can run
+on them. The terminal front end depends on the model, not the engine, and the binary connects
+the two. `tools/check-boundaries.sh` checks both rules in CI.
+
 ## Development
 
 ```sh
 cargo test --workspace        # no network
 cargo clippy --workspace --all-targets
-cargo run -p anistream-ui --example screen_preview     # look at the layouts
+cargo test -p anistream-tui --test goldens    # every screen against its saved golden
 ```
 
 The website and docs are in `website/` (Astro + Starlight): `cd website && bun run dev`.
@@ -385,19 +394,19 @@ The website and docs are in `website/` (Astro + Starlight): `cd website && bun r
 There are also live probes. They need real services and are not part of `cargo test`:
 
 ```sh
-cargo run -p anistream-providers --example stream_probe    # torrent path through the VPN
-cargo run -p anistream --example playback_probe            # torrent → mpv → history
-cargo run -p anistream --example sync_probe -- --write     # AniList push, then undo
-cargo run -p anistream --example mal_probe -- --write      # MAL push, then undo
-cargo run -p anistream --example kitsu_probe -- --write    # Kitsu push, then undo; no args = public wire check
-cargo run -p anistream --example meta_probe                # Tenrai translation and the cache write-through
-cargo run -p anistream --example simkl_probe -- --write    # Simkl push, then undo
-cargo run -p anistream --example mend_probe -- <url>       # disguised HLS → mpv
-cargo run -p anistream --example player_preview -- <video> # the player UI as a two-episode binge
-cargo run -p anistream-meta --example filler_probe         # filler parsing
-cargo run -p anistream-meta --example episode_meta_probe   # episode titles, stills, numbering
-cargo run -p anistream --example episodes_probe            # every stage from title to stream
-cargo run -p anistream --example continue_probe            # resume vs. sync thresholds
+cargo run -p anistream-providers --example stream_probe          # torrent path through the VPN
+cargo run -p anistream-engine --example playback_probe           # torrent → mpv → history
+cargo run -p anistream-engine --example sync_probe -- --write    # AniList push, then undo
+cargo run -p anistream-engine --example mal_probe -- --write     # MAL push, then undo
+cargo run -p anistream-engine --example kitsu_probe -- --write   # Kitsu push, then undo; no args = public wire check
+cargo run -p anistream-engine --example meta_probe               # Tenrai translation and the cache write-through
+cargo run -p anistream-engine --example simkl_probe -- --write   # Simkl push, then undo
+cargo run -p anistream-engine --example mend_probe -- <url>      # disguised HLS → mpv
+cargo run -p anistream --example player_preview -- <video>       # the player UI as a two-episode binge
+cargo run -p anistream-meta --example filler_probe               # filler parsing
+cargo run -p anistream-meta --example episode_meta_probe         # episode titles, stills, numbering
+cargo run -p anistream-engine --example episodes_probe           # every stage from title to stream
+cargo run -p anistream-engine --example continue_probe           # resume vs. sync thresholds
 ```
 
 ## Scope

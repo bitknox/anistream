@@ -263,8 +263,8 @@ mod tests {
     use super::*;
     use crate::WatchEvent;
 
-    const FRIEREN: AnilistId = AnilistId::new(154_587);
-    const DANDADAN: AnilistId = AnilistId::new(171_018);
+    const HOSHIKUZU: AnilistId = AnilistId::new(154_587);
+    const TSUKIAKARI: AnilistId = AnilistId::new(171_018);
 
     /// A session's worth of rows for one episode: positions recorded every ten seconds, each
     /// carrying the session total so far. This shape is why the queries take a maximum.
@@ -291,7 +291,7 @@ mod tests {
         // session total to that point; summing them would report 3× the truth here, and ~50× in a
         // real session recorded every ten seconds.
         let store = Store::open_in_memory().unwrap();
-        record_session(&store, FRIEREN, 1, 1_400.0, 1_000);
+        record_session(&store, HOSHIKUZU, 1, 1_400.0, 1_000);
 
         let stats = store.stats().unwrap();
         assert_eq!(stats.watched_secs, 1_400.0, "watch time was summed across rows");
@@ -303,9 +303,9 @@ mod tests {
     #[test]
     fn stats_aggregate_across_titles_and_episodes() {
         let store = Store::open_in_memory().unwrap();
-        record_session(&store, FRIEREN, 1, 1_400.0, 1_000);
-        record_session(&store, FRIEREN, 2, 1_400.0, 2_000);
-        record_session(&store, DANDADAN, 1, 700.0, 3_000);
+        record_session(&store, HOSHIKUZU, 1, 1_400.0, 1_000);
+        record_session(&store, HOSHIKUZU, 2, 1_400.0, 2_000);
+        record_session(&store, TSUKIAKARI, 1, 700.0, 3_000);
 
         let stats = store.stats().unwrap();
         assert_eq!(stats.titles, 2);
@@ -320,8 +320,8 @@ mod tests {
     fn rewatching_does_not_inflate_the_episode_count() {
         // Distinct episodes, not events — the same rule the tracker push depends on.
         let store = Store::open_in_memory().unwrap();
-        record_session(&store, FRIEREN, 1, 1_400.0, 1_000);
-        record_session(&store, FRIEREN, 1, 1_400.0, 9_000);
+        record_session(&store, HOSHIKUZU, 1, 1_400.0, 1_000);
+        record_session(&store, HOSHIKUZU, 1, 1_400.0, 9_000);
         assert_eq!(store.stats().unwrap().episodes_completed, 1);
     }
 
@@ -348,20 +348,23 @@ mod tests {
     #[test]
     fn an_export_round_trips_into_an_empty_store() {
         let source = Store::open_in_memory().unwrap();
-        record_session(&source, FRIEREN, 1, 1_400.0, 1_000);
-        record_session(&source, FRIEREN, 2, 1_400.0, 2_000);
-        source.remember_title(FRIEREN, "Sousou no Frieren").unwrap();
+        record_session(&source, HOSHIKUZU, 1, 1_400.0, 1_000);
+        record_session(&source, HOSHIKUZU, 2, 1_400.0, 2_000);
+        source.remember_title(HOSHIKUZU, "Hoshikuzu no Tabibito").unwrap();
 
         let export = source.export(5_000).unwrap();
         assert_eq!(export.version, EXPORT_VERSION);
         assert_eq!(export.titles.len(), 1);
         assert_eq!(export.titles[0].episodes_completed, 2);
-        assert_eq!(export.titles[0].title.as_deref(), Some("Sousou no Frieren"));
+        assert_eq!(export.titles[0].title.as_deref(), Some("Hoshikuzu no Tabibito"));
 
         let target = Store::open_in_memory().unwrap();
         assert_eq!(target.import(&export, 6_000).unwrap(), 1);
-        assert_eq!(target.completed_episode_count(FRIEREN).unwrap(), 2);
-        assert_eq!(target.cached_title(FRIEREN).unwrap().as_deref(), Some("Sousou no Frieren"));
+        assert_eq!(target.completed_episode_count(HOSHIKUZU).unwrap(), 2);
+        assert_eq!(
+            target.cached_title(HOSHIKUZU).unwrap().as_deref(),
+            Some("Hoshikuzu no Tabibito")
+        );
     }
 
     #[test]
@@ -378,7 +381,7 @@ mod tests {
                     completed: true,
                     duration_secs: Some(1440.0),
                     at: 1_000,
-                    ..crate::WatchEvent::new(FRIEREN, ep, 1440.0)
+                    ..crate::WatchEvent::new(HOSHIKUZU, ep, 1440.0)
                 })
                 .unwrap();
         }
@@ -386,7 +389,7 @@ mod tests {
             .record_event(&crate::WatchEvent {
                 duration_secs: Some(1440.0),
                 at: 2_000,
-                ..crate::WatchEvent::new(FRIEREN, "9", 720.0)
+                ..crate::WatchEvent::new(HOSHIKUZU, "9", 720.0)
             })
             .unwrap();
 
@@ -394,7 +397,7 @@ mod tests {
             version: EXPORT_VERSION,
             exported_at: 0,
             titles: vec![ExportedTitle {
-                anilist_id: FRIEREN.get(),
+                anilist_id: HOSHIKUZU.get(),
                 title: None,
                 episodes_completed: 10,
                 last_episode: "9".into(),
@@ -406,11 +409,11 @@ mod tests {
         assert_eq!(store.import(&export, 3_000).unwrap(), 1);
 
         assert_eq!(
-            store.completed_episode_count(FRIEREN).unwrap(),
+            store.completed_episode_count(HOSHIKUZU).unwrap(),
             10,
             "the file said ten episodes are watched, so ten are"
         );
-        let progress = store.progress(FRIEREN).unwrap().expect("a row");
+        let progress = store.progress(HOSHIKUZU).unwrap().expect("a row");
         assert_eq!(progress.episodes_done, 10);
     }
 
@@ -424,7 +427,7 @@ mod tests {
             version: EXPORT_VERSION,
             exported_at: 0,
             titles: vec![ExportedTitle {
-                anilist_id: FRIEREN.get(),
+                anilist_id: HOSHIKUZU.get(),
                 title: None,
                 episodes_completed: 8,
                 last_episode: "9".into(),
@@ -436,7 +439,7 @@ mod tests {
         store.import(&export, 3_000).unwrap();
 
         assert_eq!(
-            store.resume_position(FRIEREN, "9").unwrap(),
+            store.resume_position(HOSHIKUZU, "9").unwrap(),
             Some(615.0),
             "the ten-minute mark of episode 9 came back with the backup"
         );
@@ -451,7 +454,7 @@ mod tests {
             version: EXPORT_VERSION,
             exported_at: 0,
             titles: vec![ExportedTitle {
-                anilist_id: FRIEREN.get(),
+                anilist_id: HOSHIKUZU.get(),
                 title: None,
                 episodes_completed: u32::MAX,
                 last_episode: String::new(),
@@ -461,7 +464,7 @@ mod tests {
             }],
         };
         store.import(&export, 100).unwrap();
-        assert_eq!(store.completed_episode_count(FRIEREN).unwrap(), MAX_IMPORTED_EPISODES);
+        assert_eq!(store.completed_episode_count(HOSHIKUZU).unwrap(), MAX_IMPORTED_EPISODES);
     }
 
     #[test]
@@ -472,7 +475,7 @@ mod tests {
             version: EXPORT_VERSION,
             exported_at: 0,
             titles: vec![ExportedTitle {
-                anilist_id: FRIEREN.get(),
+                anilist_id: HOSHIKUZU.get(),
                 title: None,
                 episodes_completed: 4,
                 last_episode: "4".into(),
@@ -487,7 +490,7 @@ mod tests {
             0,
             "the second import advanced something"
         );
-        assert_eq!(store.completed_episode_count(FRIEREN).unwrap(), 4);
+        assert_eq!(store.completed_episode_count(HOSHIKUZU).unwrap(), 4);
     }
 
     #[test]
@@ -496,13 +499,19 @@ mod tests {
         // what you watched since.
         let store = Store::open_in_memory().unwrap();
         for episode in 1..=8 {
-            record_session(&store, FRIEREN, episode, 1_400.0, 1_000 + i64::from(episode) * 10);
+            record_session(
+                &store,
+                HOSHIKUZU,
+                episode,
+                1_400.0,
+                1_000 + i64::from(episode) * 10,
+            );
         }
         let stale = Export {
             version: EXPORT_VERSION,
             exported_at: 0,
             titles: vec![ExportedTitle {
-                anilist_id: FRIEREN.get(),
+                anilist_id: HOSHIKUZU.get(),
                 title: None,
                 episodes_completed: 3,
                 last_episode: "3".into(),
@@ -512,7 +521,7 @@ mod tests {
             }],
         };
         assert_eq!(store.import(&stale, 9_000).unwrap(), 0);
-        assert_eq!(store.completed_episode_count(FRIEREN).unwrap(), 8, "episodes were lost");
+        assert_eq!(store.completed_episode_count(HOSHIKUZU).unwrap(), 8, "episodes were lost");
     }
 
     #[test]
@@ -527,7 +536,7 @@ mod tests {
     fn an_export_is_json_that_survives_a_round_trip() {
         // The point of an export is that another tool can read it.
         let store = Store::open_in_memory().unwrap();
-        record_session(&store, FRIEREN, 1, 1_400.0, 1_000);
+        record_session(&store, HOSHIKUZU, 1, 1_400.0, 1_000);
         let export = store.export(5_000).unwrap();
 
         let json = serde_json::to_string_pretty(&export).unwrap();
@@ -541,11 +550,11 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         assert_eq!(store.random_watched().unwrap(), None, "nothing watched yet");
 
-        record_session(&store, FRIEREN, 1, 100.0, 1_000);
-        record_session(&store, DANDADAN, 1, 100.0, 2_000);
+        record_session(&store, HOSHIKUZU, 1, 100.0, 1_000);
+        record_session(&store, TSUKIAKARI, 1, 100.0, 2_000);
         for _ in 0..20 {
             let picked = store.random_watched().unwrap().expect("a pick");
-            assert!(picked == FRIEREN || picked == DANDADAN, "picked {picked:?}");
+            assert!(picked == HOSHIKUZU || picked == TSUKIAKARI, "picked {picked:?}");
         }
     }
 }

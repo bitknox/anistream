@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 /// episodes and 12 dubbed ones — so this is threaded through search, episode listing and
 /// resolution rather than applied as a filter at the end.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 #[serde(rename_all = "lowercase")]
 pub enum Translation {
     #[default]

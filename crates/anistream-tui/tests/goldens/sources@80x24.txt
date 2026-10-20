@@ -1,0 +1,82 @@
+anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────
+▌▸ │  ←  Hoshikuzu no Tabibito
+ ▤ │
+ ▦ │    #     TITLE                                   RUN     WATCHED
+ / │  ────────────────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────────────────────────
+▌ SOURCES   ep 4 — enter plays your pick
+────────────────────────────────────────────────────────────────────────────────
+  [Kawasemi-Subs] Hoshikuzu no Tabibito - 04 (1080p)  ·  1.4 GiB  ·  …   212
+▌ [Tsuki] Hoshikuzu no Tabibito 04 [Dual]  ·  2.1 GiB  ·  dual         ▲  14
+  [Nagi] Hoshikuzu no Tabibito - 04  ·  0.9 GiB                        ✕   3
+  Hoshikuzu no Tabibito — episode 4 (dub)  ·  dub
+
+   │    009   Postmarked Yesterday                    23:55   ░░░░░░░░░░
+   │    010   The Comet's Wake                        23:55   ░░░░░░░░░░
+   │    011   Every Lamp at Once                      23:55   ░░░░░░░░░░
+   │    012   The Stardust Traveller                  --:--   ░░░░░░░░░░
+   │
+   │
+   │
+   │
+────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                        ↵ play   esc cancel
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=rule mod=BOLD
+r00 c09-79 fg=rule
+r01 c00-79 fg=rule
+r02 c00-00 fg=rule
+r02 c01-01 fg=rule mod=BOLD
+r02 c02-05 fg=rule
+r02 c06-29 fg=rule mod=BOLD
+r02 c30-79 fg=rule
+r03 c00-79 fg=rule
+r04 c00-79 fg=rule
+r05 c00-79 fg=rule
+r06 c00-79 fg=rule bg=ground
+r07 c00-00 fg=obi bg=ground
+r07 c01-01 fg=rule bg=ground
+r07 c02-39 fg=text bg=ground mod=BOLD
+r07 c40-79 fg=rule bg=ground
+r08 c00-79 fg=rule bg=ground
+r09 c00-01 fg=rule bg=ground
+r09 c02-07 fg=text-dim bg=ground
+r09 c08-10 fg=text-dim bg=ground mod=BOLD
+r09 c11-13 fg=text-dim bg=ground
+r09 c14-40 fg=text-dim bg=ground mod=BOLD
+r09 c41-69 fg=text-dim bg=ground
+r09 c70-70 fg=rule bg=ground
+r09 c71-75 fg=text bg=ground
+r09 c76-79 fg=rule bg=ground
+r10 c00-00 fg=obi bg=ground
+r10 c01-01 fg=rule bg=ground
+r10 c02-61 fg=text bg=ground mod=BOLD
+r10 c62-70 fg=rule bg=ground
+r10 c71-75 fg=text bg=ground
+r10 c76-79 fg=rule bg=ground
+r11 c00-01 fg=rule bg=ground
+r11 c02-46 fg=text-dim bg=ground
+r11 c47-70 fg=rule bg=ground
+r11 c71-75 fg=text bg=ground
+r11 c76-79 fg=rule bg=ground
+r12 c00-01 fg=rule bg=ground
+r12 c02-48 fg=text-dim bg=ground
+r12 c49-79 fg=rule bg=ground
+r13 c00-79 fg=rule bg=ground
+r14 c00-79 fg=rule
+r15 c00-79 fg=rule
+r16 c00-79 fg=rule
+r17 c00-79 fg=rule
+r18 c00-79 fg=rule
+r19 c00-79 fg=rule
+r20 c00-79 fg=rule
+r21 c00-79 fg=rule
+r22 c00-79 fg=rule
+r23 c00-20 fg=text-dim
+r23 c21-60 fg=rule
+r23 c61-61 fg=text
+r23 c62-69 fg=text-dim
+r23 c70-72 fg=text
+r23 c73-79 fg=text-dim

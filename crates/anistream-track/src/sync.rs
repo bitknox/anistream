@@ -426,7 +426,7 @@ mod tests {
     use anistream_store::WatchEvent;
     use std::sync::Mutex;
 
-    const FRIEREN: AnilistId = AnilistId::new(154_587);
+    const HOSHIKUZU: AnilistId = AnilistId::new(154_587);
 
     /// A tracker that records what it was asked to do and fails how the test tells it to.
     struct MockTracker {
@@ -526,7 +526,7 @@ mod tests {
                     duration_secs: Some(1440.0),
                     completed: true,
                     at: 1_000 + i64::from(ep),
-                    ..WatchEvent::new(FRIEREN, ep.to_string(), 1400.0)
+                    ..WatchEvent::new(HOSHIKUZU, ep.to_string(), 1400.0)
                 })
                 .unwrap();
         }
@@ -537,7 +537,7 @@ mod tests {
     async fn a_successful_drain_empties_the_queue() {
         let store = Store::open_in_memory().unwrap();
         store
-            .enqueue("mock", &TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 }, 0)
+            .enqueue("mock", &TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 }, 0)
             .unwrap();
 
         let tracker = MockTracker::new();
@@ -553,7 +553,7 @@ mod tests {
         // Losing a queued op on a transient failure is the worst thing this code could do.
         let store = Store::open_in_memory().unwrap();
         store
-            .enqueue("mock", &TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 }, 0)
+            .enqueue("mock", &TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 }, 0)
             .unwrap();
 
         let tracker = MockTracker::failing(anistream_core::Error::Network("503".into()));
@@ -573,7 +573,7 @@ mod tests {
         // retry delay to an hour, so a user who re-authorises would sit and wait for nothing.
         let store = Store::open_in_memory().unwrap();
         store
-            .enqueue("mock", &TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 }, 0)
+            .enqueue("mock", &TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 }, 0)
             .unwrap();
 
         let tracker = MockTracker::failing(anistream_core::Error::Auth("bad token".into()));
@@ -596,7 +596,7 @@ mod tests {
         // batch at a rate-limited third party every tick, for as long as the app ran.
         let store = Store::open_in_memory().unwrap();
         store
-            .enqueue("mock", &TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 }, 0)
+            .enqueue("mock", &TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 }, 0)
             .unwrap();
         let tracker = MockTracker::failing(anistream_core::Error::Auth("bad token".into()));
 
@@ -623,7 +623,7 @@ mod tests {
         // whenever an account appears.
         let store = Store::open_in_memory().unwrap();
         store
-            .enqueue("mock", &TrackOp::SetProgress { anilist_id: FRIEREN, episode: 4 }, 0)
+            .enqueue("mock", &TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 4 }, 0)
             .unwrap();
 
         let tracker = MockTracker::unauthenticated();
@@ -645,7 +645,7 @@ mod tests {
             .enqueue("mock", &TrackOp::SetProgress { anilist_id: obscure, episode: 3 }, 0)
             .unwrap();
         store
-            .enqueue("mock", &TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 }, 1)
+            .enqueue("mock", &TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 }, 1)
             .unwrap();
         let tracker = MockTracker::new();
         tracker.unmapped.lock().unwrap().push(obscure);
@@ -654,7 +654,7 @@ mod tests {
         assert_eq!((report.sent, report.deferred, report.remaining), (1, 1, 1));
         assert_eq!(
             tracker.batches(),
-            vec![vec![TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 }]],
+            vec![vec![TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 }]],
             "only the addressable op goes out"
         );
 
@@ -707,7 +707,11 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         for ep in 1..=12 {
             store
-                .enqueue("mock", &TrackOp::SetProgress { anilist_id: FRIEREN, episode: ep }, 0)
+                .enqueue(
+                    "mock",
+                    &TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: ep },
+                    0,
+                )
                 .unwrap();
         }
         let tracker = MockTracker::new();
@@ -716,7 +720,7 @@ mod tests {
         assert_eq!(report.sent, 1);
         assert_eq!(
             tracker.batches()[0],
-            vec![TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 }]
+            vec![TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 }]
         );
     }
 
@@ -724,7 +728,7 @@ mod tests {
     async fn pushing_the_same_progress_twice_is_harmless() {
         // The idempotence the batch-fate logic depends on.
         let store = Store::open_in_memory().unwrap();
-        let op = TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 };
+        let op = TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 };
         store.enqueue("mock", &op, 0).unwrap();
 
         let tracker = MockTracker::new();
@@ -740,7 +744,7 @@ mod tests {
     async fn a_pull_queues_local_progress_when_local_is_ahead() {
         let store = store_with_completed(12);
         let tracker = MockTracker::with_remote(vec![TrackedEntry {
-            anilist_id: FRIEREN,
+            anilist_id: HOSHIKUZU,
             progress: 7,
             status: WatchStatus::Current,
             score: None,
@@ -757,7 +761,7 @@ mod tests {
         // "Watched two episodes on my phone" — no prompt, no conflict.
         let store = store_with_completed(3);
         let tracker = MockTracker::with_remote(vec![TrackedEntry {
-            anilist_id: FRIEREN,
+            anilist_id: HOSHIKUZU,
             progress: 9,
             status: WatchStatus::Current,
             score: None,
@@ -773,7 +777,7 @@ mod tests {
     async fn a_pull_with_matching_progress_is_silent() {
         let store = store_with_completed(12);
         let tracker = MockTracker::with_remote(vec![TrackedEntry {
-            anilist_id: FRIEREN,
+            anilist_id: HOSHIKUZU,
             progress: 12,
             status: WatchStatus::Current,
             score: None,
@@ -790,7 +794,7 @@ mod tests {
         // Pull-then-pull with no drain in between must not stack duplicate ops.
         let store = store_with_completed(12);
         let tracker = MockTracker::with_remote(vec![TrackedEntry {
-            anilist_id: FRIEREN,
+            anilist_id: HOSHIKUZU,
             progress: 7,
             status: WatchStatus::Current,
             score: None,
@@ -810,7 +814,7 @@ mod tests {
         // a week. Once sent, a value waits for local progress to move past it.
         let store = store_with_completed(12);
         let tracker = MockTracker::with_remote(vec![TrackedEntry {
-            anilist_id: FRIEREN,
+            anilist_id: HOSHIKUZU,
             progress: 7,
             status: WatchStatus::Current,
             score: None,
@@ -833,7 +837,7 @@ mod tests {
                 duration_secs: Some(1440.0),
                 completed: true,
                 at: 7_000,
-                ..WatchEvent::new(FRIEREN, "13", 1400.0)
+                ..WatchEvent::new(HOSHIKUZU, "13", 1400.0)
             })
             .unwrap();
         assert_eq!(pull(&store, &tracker, 8_000, 6_000).await.unwrap().queued, 1);
@@ -844,9 +848,9 @@ mod tests {
         // A 200 that matched nothing used to count as success.
         let store = Store::open_in_memory().unwrap();
         store
-            .enqueue("mock", &TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 }, 0)
+            .enqueue("mock", &TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 }, 0)
             .unwrap();
-        let tracker = MockTracker { ignores: vec![FRIEREN], ..MockTracker::new() };
+        let tracker = MockTracker { ignores: vec![HOSHIKUZU], ..MockTracker::new() };
 
         let report = drain(&store, &tracker, 100).await.unwrap();
         assert_eq!((report.sent, report.ignored, report.remaining), (0, 1, 0));
@@ -868,11 +872,11 @@ mod tests {
         // the log.
         let store = store_with_completed(12);
         let tracker: Arc<dyn Tracker> = Arc::new(MockTracker::new());
-        queue_progress(&store, &[tracker], FRIEREN, 9_000);
+        queue_progress(&store, &[tracker], HOSHIKUZU, 9_000);
 
         let queued = store.claim_ready("mock", 9_000, 10).unwrap();
         assert_eq!(queued.len(), 1);
-        assert_eq!(queued[0].op, TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 });
+        assert_eq!(queued[0].op, TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 });
 
         // Rewatching episode 1 adds an event but not an episode.
         store
@@ -880,11 +884,11 @@ mod tests {
                 duration_secs: Some(1440.0),
                 completed: true,
                 at: 20_000,
-                ..WatchEvent::new(FRIEREN, "1", 1400.0)
+                ..WatchEvent::new(HOSHIKUZU, "1", 1400.0)
             })
             .unwrap();
-        queue_progress(&store, &[], FRIEREN, 21_000);
-        assert_eq!(store.completed_episode_count(FRIEREN).unwrap(), 12);
+        queue_progress(&store, &[], HOSHIKUZU, 21_000);
+        assert_eq!(store.completed_episode_count(HOSHIKUZU).unwrap(), 12);
     }
 
     #[test]
@@ -898,14 +902,14 @@ mod tests {
                     duration_secs: Some(1440.0),
                     completed: true,
                     at: 1_000 + i64::from(ep),
-                    ..WatchEvent::new(FRIEREN, ep.to_string(), 1400.0)
+                    ..WatchEvent::new(HOSHIKUZU, ep.to_string(), 1400.0)
                 })
                 .unwrap();
         }
-        queue_progress_for(&store, &["mock".to_owned()], FRIEREN, 9_000);
+        queue_progress_for(&store, &["mock".to_owned()], HOSHIKUZU, 9_000);
         let queued = store.claim_ready("mock", 9_000, 10).unwrap();
-        assert_eq!(queued[0].op, TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 });
-        assert_eq!(local_state(&store, FRIEREN).unwrap().progress, 12);
+        assert_eq!(queued[0].op, TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 });
+        assert_eq!(local_state(&store, HOSHIKUZU).unwrap().progress, 12);
     }
 
     #[tokio::test]
@@ -920,12 +924,12 @@ mod tests {
                     duration_secs: Some(1440.0),
                     completed: true,
                     at: 1_000 + i64::from(ep),
-                    ..WatchEvent::new(FRIEREN, ep.to_string(), 1400.0)
+                    ..WatchEvent::new(HOSHIKUZU, ep.to_string(), 1400.0)
                 })
                 .unwrap();
         }
         let tracker = MockTracker::with_remote(vec![TrackedEntry {
-            anilist_id: FRIEREN,
+            anilist_id: HOSHIKUZU,
             progress: 12,
             status: WatchStatus::Current,
             score: None,
@@ -939,7 +943,7 @@ mod tests {
         // Opening a title to read the synopsis must not touch anyone's list.
         let store = Store::open_in_memory().unwrap();
         let tracker: Arc<dyn Tracker> = Arc::new(MockTracker::new());
-        queue_progress(&store, &[tracker], FRIEREN, 100);
+        queue_progress(&store, &[tracker], HOSHIKUZU, 100);
         assert_eq!(store.outbox_depth(None).unwrap(), 0);
     }
 
@@ -966,7 +970,7 @@ mod tests {
         let store = store_with_completed(4);
         let trackers: Vec<Arc<dyn Tracker>> =
             vec![Arc::new(Named("anilist")), Arc::new(Named("mal"))];
-        queue_progress(&store, &trackers, FRIEREN, 9_000);
+        queue_progress(&store, &trackers, HOSHIKUZU, 9_000);
 
         assert_eq!(store.outbox_depth(Some("anilist")).unwrap(), 1);
         assert_eq!(store.outbox_depth(Some("mal")).unwrap(), 1);

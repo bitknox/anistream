@@ -305,10 +305,10 @@ mod tests {
     use super::*;
     use anistream_core::traits::WatchStatus;
 
-    const FRIEREN: AnilistId = AnilistId::new(154_587);
+    const HOSHIKUZU: AnilistId = AnilistId::new(154_587);
 
     fn progress(episode: u32) -> TrackOp {
-        TrackOp::SetProgress { anilist_id: FRIEREN, episode }
+        TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode }
     }
 
     #[test]
@@ -437,7 +437,7 @@ mod tests {
             .enqueue(
                 "anilist",
                 &TrackOp::SetStatus {
-                    anilist_id: FRIEREN,
+                    anilist_id: HOSHIKUZU,
                     status: WatchStatus::Completed,
                     at: 1_100,
                 },
@@ -501,10 +501,10 @@ mod tests {
     #[test]
     fn pending_progress_reports_the_highest_queued_episode() {
         let store = Store::open_in_memory().unwrap();
-        assert_eq!(store.pending_progress("anilist", FRIEREN).unwrap(), None);
+        assert_eq!(store.pending_progress("anilist", HOSHIKUZU).unwrap(), None);
         store.enqueue("anilist", &progress(5), 0).unwrap();
         store.enqueue("anilist", &progress(9), 0).unwrap();
-        assert_eq!(store.pending_progress("anilist", FRIEREN).unwrap(), Some(9));
+        assert_eq!(store.pending_progress("anilist", HOSHIKUZU).unwrap(), Some(9));
     }
 
     #[test]
@@ -514,8 +514,8 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         let ops = [
             progress(3),
-            TrackOp::SetStatus { anilist_id: FRIEREN, status: WatchStatus::Paused, at: 7 },
-            TrackOp::SetScore { anilist_id: FRIEREN, score: 8.5, at: 9 },
+            TrackOp::SetStatus { anilist_id: HOSHIKUZU, status: WatchStatus::Paused, at: 7 },
+            TrackOp::SetScore { anilist_id: HOSHIKUZU, score: 8.5, at: 9 },
         ];
         for (i, op) in ops.iter().enumerate() {
             store.enqueue("t", op, i as i64).unwrap();

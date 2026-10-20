@@ -51,15 +51,15 @@ impl Store {
 mod tests {
     use super::*;
 
-    const FRIEREN: AnilistId = AnilistId::new(154_587);
+    const HOSHIKUZU: AnilistId = AnilistId::new(154_587);
 
     #[test]
     fn a_fresh_fetch_replaces_the_stale_row() {
         let store = Store::open_in_memory().unwrap();
-        store.cache_media(FRIEREN, r#"{"id":154587,"old":true}"#, 1_000).unwrap();
-        store.cache_media(FRIEREN, r#"{"id":154587,"old":false}"#, 2_000).unwrap();
+        store.cache_media(HOSHIKUZU, r#"{"id":154587,"old":true}"#, 1_000).unwrap();
+        store.cache_media(HOSHIKUZU, r#"{"id":154587,"old":false}"#, 2_000).unwrap();
 
-        let (payload, at) = store.cached_media(FRIEREN).unwrap().expect("cached");
+        let (payload, at) = store.cached_media(HOSHIKUZU).unwrap().expect("cached");
         assert!(payload.contains("false"));
         assert_eq!(at, 2_000);
     }
@@ -67,6 +67,6 @@ mod tests {
     #[test]
     fn a_title_never_fetched_is_simply_absent() {
         let store = Store::open_in_memory().unwrap();
-        assert!(store.cached_media(FRIEREN).unwrap().is_none());
+        assert!(store.cached_media(HOSHIKUZU).unwrap().is_none());
     }
 }

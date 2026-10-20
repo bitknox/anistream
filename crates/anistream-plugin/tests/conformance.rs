@@ -93,7 +93,7 @@ async fn assert_reference_behaviour(plugin: &LoadedPlugin, expected_id: &str) {
 
     // Records cross the ABI intact, including `option` fields.
     let episodes = plugin
-        .list_episodes("example:frieren", "sub")
+        .list_episodes("example:hoshikuzu", "sub")
         .await
         .expect("no trap")
         .expect("episodes");
@@ -101,7 +101,7 @@ async fn assert_reference_behaviour(plugin: &LoadedPlugin, expected_id: &str) {
     assert_eq!(episodes[0].number, "1");
     assert_eq!(episodes[0].duration_secs, Some(1_440));
     assert!(
-        episodes[0].title.as_deref().unwrap().contains("frieren"),
+        episodes[0].title.as_deref().unwrap().contains("hoshikuzu"),
         "got {:?}",
         episodes[0].title
     );
@@ -111,8 +111,11 @@ async fn assert_reference_behaviour(plugin: &LoadedPlugin, expected_id: &str) {
     assert!(matches!(missing, Err(GuestError::NotFound)), "got {missing:?}");
 
     // The lent AES, from inside a guest that carries no crypto of its own.
-    let streams =
-        plugin.resolve("example:frieren", "1", "sub").await.expect("no trap").expect("streams");
+    let streams = plugin
+        .resolve("example:hoshikuzu", "1", "sub")
+        .await
+        .expect("no trap")
+        .expect("streams");
     assert_eq!(streams.len(), 1);
     assert_eq!(
         streams[0].url, "https://cdn.example.test/master.m3u8",
@@ -140,7 +143,7 @@ async fn assert_reference_behaviour(plugin: &LoadedPlugin, expected_id: &str) {
     // The Sources overlay surface: a candidate slate, and a pick routed back by its own id —
     // which must resolve to the *picked* quality, not the automatic one.
     let candidates = plugin
-        .sources("example:frieren", "1", "sub")
+        .sources("example:hoshikuzu", "1", "sub")
         .await
         .expect("no trap")
         .expect("candidates");
@@ -148,7 +151,7 @@ async fn assert_reference_behaviour(plugin: &LoadedPlugin, expected_id: &str) {
     assert_eq!(candidates[0].quality, Some(1080));
     assert!(candidates[1].size.is_some());
     let picked = plugin
-        .resolve_source("example:frieren", "1", "sub", &candidates[1].id)
+        .resolve_source("example:hoshikuzu", "1", "sub", &candidates[1].id)
         .await
         .expect("no trap")
         .expect("streams");
@@ -192,7 +195,7 @@ async fn a_guest_calling_a_disallowed_host_is_denied() {
     // With `http: None` the host reports a transport failure, which the guest maps to `blocked`.
     // Either way the call returns cleanly rather than trapping, which is the point: a guest
     // cannot distinguish "denied" from "unreachable" by crashing the host.
-    let result = plugin.search("frieren", "sub").await.expect("no trap");
+    let result = plugin.search("hoshikuzu", "sub").await.expect("no trap");
     assert!(
         matches!(result, Err(GuestError::Blocked(_)) | Err(GuestError::Other(_))),
         "expected a clean provider error, got {result:?}"
@@ -219,14 +222,14 @@ async fn a_guest_can_return_structured_results() {
     let plugin = host.load(&path).await.expect("load");
 
     let episodes = plugin
-        .list_episodes("example:frieren", "sub")
+        .list_episodes("example:hoshikuzu", "sub")
         .await
         .expect("no trap")
         .expect("episodes");
     assert_eq!(episodes.len(), 3);
     assert_eq!(episodes[0].number, "1");
     assert_eq!(episodes[0].duration_secs, Some(1_440));
-    assert!(episodes[0].title.as_deref().unwrap().contains("frieren"));
+    assert!(episodes[0].title.as_deref().unwrap().contains("hoshikuzu"));
 }
 
 #[tokio::test]
@@ -237,8 +240,11 @@ async fn the_lent_aes_works_from_inside_a_guest() {
     let host = PluginHost::new(Limits::default(), None).unwrap();
     let plugin = host.load(&path).await.expect("load");
 
-    let streams =
-        plugin.resolve("example:frieren", "1", "sub").await.expect("no trap").expect("streams");
+    let streams = plugin
+        .resolve("example:hoshikuzu", "1", "sub")
+        .await
+        .expect("no trap")
+        .expect("streams");
     assert_eq!(streams.len(), 1);
     assert_eq!(
         streams[0].url, "https://cdn.example.test/master.m3u8",
@@ -395,7 +401,7 @@ async fn granted_settings_reach_the_guest_and_only_the_guest_they_name() {
     };
     let resolved_cdn = |plugin: LoadedPlugin| async move {
         let streams = plugin
-            .resolve("example:frieren", "1", "sub")
+            .resolve("example:hoshikuzu", "1", "sub")
             .await
             .expect("no trap")
             .expect("streams");

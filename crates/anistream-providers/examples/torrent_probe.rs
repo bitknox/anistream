@@ -34,7 +34,7 @@ async fn main() {
         .expect("client");
 
     println!("── indexer rss ────────────────────────────────────────");
-    let url = indexer::search_url(&rss_template, "Frieren", Some(1080));
+    let url = indexer::search_url(&rss_template, "summer", Some(1080));
     println!("  {url}");
 
     let items = match client.get(&url).send().await {
@@ -100,7 +100,7 @@ async fn main() {
 
     println!();
     println!("── curation, keyed on anilist id ──────────────────────");
-    // Frieren. Keyed directly on the AniList id, with no mapping step.
+    // A stable, real id, keyed directly on the AniList id with no mapping step.
     let Some(curation_template) = curation_template.as_deref() else {
         println!("  (no curation url given — skipped)");
         return;

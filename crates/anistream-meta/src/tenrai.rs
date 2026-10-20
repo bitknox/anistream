@@ -86,11 +86,28 @@ pub struct Tenrai {
     http: HttpClient,
     limiter: RateLimiter,
     store: Store,
+    /// The base every path is joined to: [`API`], unless a test pointed it elsewhere.
+    api: String,
 }
 
 impl Tenrai {
     pub fn new(http: HttpClient, store: Store) -> Self {
-        Self { http, limiter: RateLimiter::per_minute_burst(PER_MINUTE, PER_SECOND), store }
+        Self {
+            http,
+            limiter: RateLimiter::per_minute_burst(PER_MINUTE, PER_SECOND),
+            store,
+            api: API.to_owned(),
+        }
+    }
+
+    /// Join every path to `base` instead of Tenrai's: a stand-in server on loopback.
+    ///
+    /// For tests and probes only, like `AniList::with_endpoint`, and hidden for the same
+    /// reason. `base` takes the place of the service's whole base URL, version path and all.
+    #[doc(hidden)]
+    pub fn with_endpoint(mut self, base: impl Into<String>) -> Self {
+        self.api = base.into();
+        self
     }
 
     async fn get(&self, path: &str) -> Result<serde_json::Value> {
@@ -114,7 +131,7 @@ impl Tenrai {
         let response = self
             .http
             .plain()
-            .get(format!("{API}{path}"))
+            .get(format!("{}{path}", self.api))
             .send()
             .await
             .map_err(|e| TenraiError::Network(e.to_string()))?;
@@ -418,22 +435,22 @@ mod tests {
         Tenrai::new(http, store)
     }
 
-    fn frieren_datum() -> serde_json::Value {
+    fn hoshikuzu_datum() -> serde_json::Value {
         serde_json::json!({
             "mal_id": 52991,
-            "title": "Sousou no Frieren",
-            "title_english": "Frieren: Beyond Journey's End",
-            "title_japanese": "葬送のフリーレン",
-            "title_synonyms": ["Frieren at the Funeral"],
+            "title": "Hoshikuzu no Tabibito",
+            "title_english": "Stardust Wayfarer",
+            "title_japanese": "星屑の旅人",
+            "title_synonyms": ["Hoshitabi"],
             "type": "TV",
             "status": "Finished Airing",
             "episodes": 28,
             "duration": "24 min per ep",
             "year": 2023,
             "score": 9.29,
-            "synopsis": "During their decade-long quest...",
+            "synopsis": "A lamplighter walks the old star roads...",
             "genres": [{"name": "Adventure"}, {"name": "Drama"}, {"name": "Fantasy"}],
-            "studios": [{"name": "Madhouse"}],
+            "studios": [{"name": "Kujaku Animation Works"}],
             "images": {"jpg": {
                 "image_url": "https://cdn.myanimelist.net/images/anime/small.jpg",
                 "large_image_url": "https://cdn.myanimelist.net/images/anime/large.jpg"
@@ -443,12 +460,20 @@ mod tests {
     }
 
     #[test]
+    fn requests_go_to_tenrai_unless_a_test_says_otherwise() {
+        let client = tenrai(Store::open_in_memory().unwrap());
+        assert_eq!(client.api, API);
+        let pointed = client.with_endpoint("http://127.0.0.1:9/v1");
+        assert_eq!(pointed.api, "http://127.0.0.1:9/v1");
+    }
+
+    #[test]
     fn a_tenrai_row_becomes_our_media_keyed_on_the_anilist_id() {
         let j = tenrai(store_with_mapping());
-        let media = j.to_media(&frieren_datum()).expect("mapped");
+        let media = j.to_media(&hoshikuzu_datum()).expect("mapped");
         assert_eq!(media.id, AnilistId::new(154_587));
         assert_eq!(media.id_mal, Some(52_991));
-        assert_eq!(media.title.display(), "Frieren: Beyond Journey's End");
+        assert_eq!(media.title.display(), "Stardust Wayfarer");
         assert_eq!(media.format, Some(MediaFormat::Tv));
         assert_eq!(media.status, Some(MediaStatus::Finished));
         assert_eq!(media.episodes, Some(28));
@@ -470,7 +495,7 @@ mod tests {
         // A title without an AniList id has no history, no episodes screen and no way
         // to be played — showing it would be offering a dead end.
         let j = tenrai(store_with_mapping());
-        let mut datum = frieren_datum();
+        let mut datum = hoshikuzu_datum();
         datum["mal_id"] = serde_json::json!(999_999_999);
         assert!(j.to_media(&datum).is_none());
     }
@@ -480,9 +505,9 @@ mod tests {
         // What playback resolution needs must come through intact, whichever well the
         // metadata was drawn from.
         let j = tenrai(store_with_mapping());
-        let media = j.to_media(&frieren_datum()).expect("mapped");
+        let media = j.to_media(&hoshikuzu_datum()).expect("mapped");
         let target = media.match_target();
-        assert!(target.titles.iter().any(|t| t.contains("Frieren")));
+        assert!(target.titles.iter().any(|t| t.contains("Hoshikuzu")));
         assert_eq!(target.episode_count, Some(28));
         assert_eq!(target.year, Some(2023));
     }

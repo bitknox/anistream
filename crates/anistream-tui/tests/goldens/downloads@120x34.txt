@@ -1,0 +1,142 @@
+anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ▸  CONTINUE               │  TITLE                             STATE         PROGRESS
+  ▤  CALENDAR               │  ───────────────────────────────────────────────────────────────────────────────────────
+  ▦  SEASONAL               │    Hoshikuzu no Tabibito  ep 4     downloading   ███████▍░░░░░░░░░░░░  512 MB / 1.4 GB
+  /  SEARCH                 │    Hoshikuzu no Tabibito  ep 5     queued        ░░░░░░░░░░░░░░░░░░░░  torrents are off
+  ▥  LIBRARY                │    Kaze no Tegami  ep 9            paused        ███▋░░░░░░░░░░░░░░░░  201 MB / 1.1 GB
+▌ ↓  DOWNLOADS            2 │  ▌ Yoru no Toshokan  ep 5          failed        █▍░░░░░░░░░░░░░░░░░░  88 MB / 1.2 GB
+  ◇  PROVIDERS              │    Tsuki to Kujira no Uta  ep 7    complete      ████████████████████  1.3 GB / 1.3 GB
+  ◎  ACCOUNTS               │
+  ⚙  SETTINGS               │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │  ───────────────────────────────────────────────────────────────────────────────────────
+                            │    the swarm went quiet — no peers for 10 minutes
+                            │  ───────────────────────────────────────────────────────────────────────────────────────
+                            │  SEEDING AFTER WATCHING
+                            │    Tsuki to Kujira no Uta - 06     ███████▎░░░░  0.6 of 1.0 · 6 h left · 734 MB up
+                            │    Kaze no Tegami - 08             ███████▊░░░░  1.3 of 2.0 · 42 min left · 1.4 GB up
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                                               c clear finished   x cancel   ? keys
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=text mod=BOLD
+r00 c84-94 fg=text-dim
+r00 c95-103 fg=state
+r00 c104-105 fg=text-dim
+r00 c106-106 fg=rule
+r00 c107-108 fg=text-dim
+r00 c109-119 fg=state
+r01 c00-119 fg=rule
+r02 c02-02 fg=text-dim
+r02 c05-12 fg=text-dim
+r02 c28-28 fg=rule
+r02 c31-35 fg=text-dim
+r02 c65-69 fg=text-dim
+r02 c79-86 fg=text-dim
+r03 c02-02 fg=text-dim
+r03 c05-12 fg=text-dim
+r03 c28-28 fg=rule
+r03 c31-117 fg=rule
+r04 c02-02 fg=text-dim
+r04 c05-12 fg=text-dim
+r04 c28-28 fg=rule
+r04 c33-59 fg=text
+r04 c65-75 fg=text
+r04 c79-86 fg=obi
+r04 c87-98 fg=rule
+r04 c99-115 fg=text-dim
+r05 c02-02 fg=text-dim
+r05 c05-10 fg=text-dim
+r05 c28-28 fg=rule
+r05 c33-59 fg=text
+r05 c65-70 fg=text-dim
+r05 c79-98 fg=rule
+r05 c99-116 fg=text-dim
+r06 c02-02 fg=text-dim
+r06 c05-11 fg=text-dim
+r06 c28-28 fg=rule
+r06 c33-52 fg=text
+r06 c65-70 fg=text-dim
+r06 c79-82 fg=obi
+r06 c83-98 fg=rule
+r06 c99-115 fg=text-dim
+r07 c00-00 fg=text-dim
+r07 c02-02 fg=text
+r07 c05-13 fg=text mod=BOLD
+r07 c26-26 fg=text-dim
+r07 c28-28 fg=rule
+r07 c31-31 fg=obi
+r07 c33-54 fg=text mod=BOLD
+r07 c65-70 fg=alert
+r07 c79-80 fg=obi
+r07 c81-98 fg=rule
+r07 c99-114 fg=text-dim
+r08 c02-02 fg=text-dim
+r08 c05-13 fg=text-dim
+r08 c28-28 fg=rule
+r08 c33-60 fg=text
+r08 c65-72 fg=state
+r08 c79-98 fg=obi
+r08 c99-115 fg=text-dim
+r09 c02-02 fg=text-dim
+r09 c05-12 fg=text-dim
+r09 c28-28 fg=rule
+r10 c02-02 fg=text-dim
+r10 c05-12 fg=text-dim
+r10 c28-28 fg=rule
+r11 c28-28 fg=rule
+r12 c28-28 fg=rule
+r13 c28-28 fg=rule
+r14 c28-28 fg=rule
+r15 c28-28 fg=rule
+r16 c28-28 fg=rule
+r17 c28-28 fg=rule
+r18 c28-28 fg=rule
+r19 c28-28 fg=rule
+r20 c28-28 fg=rule
+r21 c28-28 fg=rule
+r22 c28-28 fg=rule
+r23 c28-28 fg=rule
+r24 c28-28 fg=rule
+r25 c28-28 fg=rule
+r26 c28-28 fg=rule
+r26 c31-117 fg=rule
+r27 c28-28 fg=rule
+r27 c33-78 fg=alert
+r28 c28-28 fg=rule
+r28 c31-117 fg=rule
+r29 c28-28 fg=rule
+r29 c31-52 fg=text-dim
+r30 c28-28 fg=rule
+r30 c33-59 fg=text
+r30 c65-72 fg=state
+r30 c73-76 fg=rule
+r30 c77-111 fg=text-dim
+r31 c28-28 fg=rule
+r31 c33-51 fg=text
+r31 c65-72 fg=state
+r31 c73-76 fg=rule
+r31 c77-114 fg=text-dim
+r32 c00-119 fg=rule
+r33 c00-20 fg=text-dim
+r33 c84-84 fg=text
+r33 c85-102 fg=text-dim
+r33 c103-103 fg=text
+r33 c104-113 fg=text-dim
+r33 c114-114 fg=text
+r33 c115-119 fg=text-dim

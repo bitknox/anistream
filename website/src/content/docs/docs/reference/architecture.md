@@ -1,9 +1,9 @@
 ---
 title: Architecture
-description: Fourteen crates ordered by volatility, and why the core never depends on a source.
+description: Eighteen crates ordered by volatility, and why the core never depends on a source.
 ---
 
-Fourteen crates. The app's layers, volatility increasing left to right:
+Eighteen crates. The app's layers, volatility increasing left to right:
 
 ```
  AniList        ID mapping        Provider         Player
@@ -21,8 +21,31 @@ Fourteen crates. The app's layers, volatility increasing left to right:
 `-meta` (AniList, the metadata failover, ID mapping, filler) · `-store` (SQLite) ·
 `-providers` (torrent, remote, mock) · `-player` (mpv IPC, the companion-script protocol, the
 bundled player files, track selection, aniskip, Discord presence) · `-track` (AniList, MAL, Kitsu,
-Simkl, Trakt, sync) · `-plugin` (WASM host) · `-ui` (ratatui) ·
-`anistream` (wiring, downloads, self-update, HLS mending, choosing the upscaling).
+Simkl, Trakt, sync) · `-plugin` (WASM host).
+
+The rest of the app:
+
+- `anistream-model` is the protocol between the engine and a front end: the commands a front end
+  sends, the events it gets back, the rows they carry, and the wording they are shown in. It
+  depends only on the core and does no I/O.
+- `anistream-engine` does the work behind the screens: playback and the player's setup, sources
+  and plugins, tracker sync, downloads, artwork, plugin stores, HLS mending, choosing the
+  upscaling, and the background jobs, such as the daily update check.
+- `anistream-tui` is the terminal front end: the screens, the keymap and the theme, on ratatui.
+- `anistream` is the binary. It holds the command line, self-update, and the terminal's event
+  loop, which hands the front end's commands to the engine and its events back.
+- `anistream-ffi` is the engine for native front ends: SwiftUI on macOS and iOS, Jetpack Compose
+  on Android. It hands them the model's own commands and events through UniFFI, and takes
+  links, notifications and the OS's secret store from the app. The Swift package that wraps it
+  is in `apple/`.
+- `anistream-testkit` is used only by tests: a fake AniList, fixture titles and golden files.
+
+The engine and the model use no terminal library, not even through a dependency, so a front end
+that is not a terminal can run on them. The terminal front end depends on the model and the core,
+never on the engine. The engine's `desktop` feature holds what only a computer can do: mpv, watch
+parties, the browser sign-in redirect and desktop notifications. A phone build leaves it out.
+`tools/check-boundaries.sh` checks all three rules against the resolved dependency tree in CI,
+the last for iOS and Android.
 
 Four more crates make up [plugin stores](/docs/plugins/stores/). `anistream-plugin-store` is the
 store client and the reference server. `anistream-store-core` holds the store's protocol, rules,
@@ -47,15 +70,15 @@ The mender is worth knowing about because it sits on the default playback path: 
 loopback proxy that looks for where the media actually starts in each segment, since some hosts
 serve video behind an image header that mpv reads literally and refuses. A healthy segment matches
 at offset zero and passes through byte-for-byte, and nothing is decrypted. See
-`crates/anistream/src/mend.rs`.
+`crates/anistream-engine/src/playback/mend.rs`.
 
 ## Development
 
 ```sh
 cargo test --workspace        # no network
 cargo clippy --workspace --all-targets
-cargo run -p anistream-ui --example screen_preview     # look at the layouts
-cargo run -p anistream-ui --example palette_report     # the palette's contrast margins
+cargo test -p anistream-tui --test goldens              # every screen against its saved golden
+cargo run -p anistream-tui --example palette_report     # the palette's contrast margins
 cargo run -p anistream --example player_preview -- path/to/video.mp4   # the player, no source
 cargo run -p anistream-plugin --example plugin_bench --release        # what a plugin call costs
 ```
@@ -63,20 +86,20 @@ cargo run -p anistream-plugin --example plugin_bench --release        # what a p
 There are also live probes. They need real services and are not part of `cargo test`:
 
 ```sh
-cargo run -p anistream-providers --example stream_probe    # torrent path through the VPN
-cargo run -p anistream --example playback_probe            # torrent → mpv → history
-cargo run -p anistream --example sync_probe -- --write     # AniList push, then undo
-cargo run -p anistream --example mal_probe -- --write      # MAL push, then undo
-cargo run -p anistream --example simkl_probe -- --write    # Simkl push, then undo
-cargo run -p anistream --example kitsu_probe -- --write    # Kitsu push, then undo
-cargo run -p anistream --example mend_probe -- <url>       # disguised HLS → mpv
-cargo run -p anistream-providers --example torrent_probe   # an indexer, end to end
-cargo run -p anistream-providers --example halt_probe      # the guard pausing torrents
-cargo run -p anistream-meta --example filler_probe         # filler parsing
-cargo run -p anistream-meta --example episode_meta_probe   # episode titles, stills, numbering
-cargo run -p anistream-meta --example anilist_probe        # the AniList client
-cargo run -p anistream-meta --example dataset_probe        # ID-mapping datasets
-cargo run -p anistream --example meta_probe                # the metadata failover
-cargo run -p anistream --example episodes_probe            # every stage from title to stream
-cargo run -p anistream --example continue_probe            # resume vs. sync thresholds
+cargo run -p anistream-providers --example stream_probe          # torrent path through the VPN
+cargo run -p anistream-engine --example playback_probe           # torrent → mpv → history
+cargo run -p anistream-engine --example sync_probe -- --write    # AniList push, then undo
+cargo run -p anistream-engine --example mal_probe -- --write     # MAL push, then undo
+cargo run -p anistream-engine --example simkl_probe -- --write   # Simkl push, then undo
+cargo run -p anistream-engine --example kitsu_probe -- --write   # Kitsu push, then undo
+cargo run -p anistream-engine --example mend_probe -- <url>      # disguised HLS → mpv
+cargo run -p anistream-providers --example torrent_probe         # an indexer, end to end
+cargo run -p anistream-providers --example halt_probe            # the guard pausing torrents
+cargo run -p anistream-meta --example filler_probe               # filler parsing
+cargo run -p anistream-meta --example episode_meta_probe         # episode titles, stills, numbering
+cargo run -p anistream-meta --example anilist_probe              # the AniList client
+cargo run -p anistream-meta --example dataset_probe              # ID-mapping datasets
+cargo run -p anistream-engine --example meta_probe               # the metadata failover
+cargo run -p anistream-engine --example episodes_probe           # every stage from title to stream
+cargo run -p anistream-engine --example continue_probe           # resume vs. sync thresholds
 ```
