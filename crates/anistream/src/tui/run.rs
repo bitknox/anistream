@@ -147,8 +147,8 @@ pub async fn run(
         }
 
         // What the viewer asked for without a key to carry it: a scroll's backfill, a
-        // section's reload once the rail has settled.
-        if let Some(task) = app.take_pending() {
+        // section's reload once the rail has settled. All of it, in the order it was asked.
+        for task in app.take_commands() {
             engine.send(task);
         }
 

@@ -563,14 +563,16 @@ pub struct App {
     /// the next frame and key, so the frame after the ending shows the next episode staged, and
     /// no key acts on the one that has just ended.
     rolling: bool,
-    /// Work the reducer produced outside a key's answer, which the event loop drains each
-    /// iteration: what the viewer asked for, without a key that could carry it. The calendar's
-    /// backfill is triggered by scrolling near its top, which reports no task of its own; and
-    /// a section's reload waits for the rail to settle, and goes out from the idle tick.
+    /// Work the reducer produced outside a key's answer, in the order it was produced, which the
+    /// event loop drains each iteration: what the viewer asked for, without a key that could
+    /// carry it. The calendar's backfill is triggered by scrolling near its top, which reports
+    /// no task of its own; and a section's reload waits for the rail to settle, and goes out
+    /// from the idle tick.
     ///
+    /// A queue rather than one slot, so nothing put here can displace what is already waiting.
     /// What a playback leads to on its own, the next episode and the rest, is not here: the
     /// engine starts it, and says what it staged.
-    pending: Option<Command>,
+    commands: Vec<Command>,
     /// Rows for the Episodes screen — the ones the current filter admits. Everything that
     /// reads or navigates episodes works on this list, which is what keeps the filter from
     /// needing index remapping at every call site.
@@ -712,7 +714,7 @@ impl App {
             calendar_loading_past: false,
             marking: None,
             rolling: false,
-            pending: None,
+            commands: Vec::new(),
             vpn_badge: None,
             vpn_leaking: false,
             providers: Vec::new(),
@@ -1061,7 +1063,7 @@ impl App {
             // What the player changes of the config on its own is the engine's to keep and to
             // save, as it passes: see `anistream_engine::settings::remember`. It says the
             // settings after, the speed a new playback starts at among them. Saved from here,
-            // they waited in `pending`, and a save that found the slot taken was skipped.
+            // they waited in a single slot, and a save that found it taken was skipped.
             Event::PlaybackSpeed(speed) => {
                 if let Some(playing) = &mut self.playing {
                     playing.speed = speed;
@@ -1573,16 +1575,12 @@ impl App {
             || self.calendar_loading_past
             || !self.calendar_more_past
             || self.selected > CALENDAR_BACKFILL_MARGIN
-            // The slot holds one task, and a section's reload waiting in it is not displaced.
-            // Losing a backfill costs nothing: the next scroll asks again.
-            || self.pending.is_some()
         {
             return;
         }
         let Some(anchor) = self.calendar_anchor else { return };
         self.calendar_loading_past = true;
-        self.pending =
-            Some(Command::LoadCalendarPast { anchor, page: self.calendar_pages + 1 });
+        self.commands.push(Command::LoadCalendarPast { anchor, page: self.calendar_pages + 1 });
     }
 
     /// Handle a keystroke: text into a focused field first, then the binding it resolves to.
@@ -2605,9 +2603,9 @@ impl App {
         self.eyecatch.is_some()
     }
 
-    /// Take the work the reducer queued outside a key's answer: see `pending`.
-    pub fn take_pending(&mut self) -> Option<Command> {
-        self.pending.take()
+    /// Take the work the reducer queued outside a key's answer, oldest first: see `commands`.
+    pub fn take_commands(&mut self) -> Vec<Command> {
+        std::mem::take(&mut self.commands)
     }
 
     /// Whether the download queue has focus.
@@ -3505,9 +3503,9 @@ impl App {
         }
         self.reload_countdown = None;
         if let Some(task) = self.reload() {
-            // Through `pending` because the idle tick has no return channel, the same route a
-            // scroll's backfill takes.
-            self.pending = Some(task);
+            // Queued because the idle tick has no return channel, the same route a scroll's
+            // backfill takes.
+            self.commands.push(task);
         }
     }
 
@@ -4426,9 +4424,8 @@ mod tests {
         a.set_cursor(80);
         a.set_offset(61);
         a.handle(Action::Up, 20);
-        assert_eq!(
-            a.take_pending(),
-            None,
+        assert!(
+            a.take_commands().is_empty(),
             "a scroll through rows already loaded must not spend a request"
         );
 
@@ -4437,8 +4434,8 @@ mod tests {
         a.set_cursor(CALENDAR_BACKFILL_MARGIN + 1);
         a.handle(Action::Up, 20);
         assert_eq!(
-            a.take_pending(),
-            Some(Command::LoadCalendarPast { anchor: CALENDAR_TEST_ANCHOR, page: 4 }),
+            a.take_commands(),
+            [Command::LoadCalendarPast { anchor: CALENDAR_TEST_ANCHOR, page: 4 }],
             "nearing the top should reach for the page behind the ones loaded"
         );
 
@@ -4446,7 +4443,7 @@ mod tests {
         // 30-per-minute budget answering one question.
         for _ in 0..5 {
             a.handle(Action::Up, 20);
-            assert_eq!(a.take_pending(), None, "a held arrow must not re-request page four");
+            assert!(a.take_commands().is_empty(), "a held arrow must not re-request page four");
         }
     }
 
@@ -4498,15 +4495,15 @@ mod tests {
         let mut a = calendar_loaded();
         a.set_cursor(CALENDAR_BACKFILL_MARGIN + 1);
         a.handle(Action::Up, 20);
-        assert!(a.take_pending().is_some(), "the scroll should have asked for page four");
+        assert!(!a.take_commands().is_empty(), "the scroll should have asked for page four");
 
         a.apply(Event::CalendarBackfill { page: None, entries: Vec::new(), more_past: true });
         assert_eq!(a.content.len(), 150, "a failed backfill must not disturb the list");
 
         a.handle(Action::Up, 20);
         assert_eq!(
-            a.take_pending(),
-            Some(Command::LoadCalendarPast { anchor: CALENDAR_TEST_ANCHOR, page: 4 }),
+            a.take_commands(),
+            [Command::LoadCalendarPast { anchor: CALENDAR_TEST_ANCHOR, page: 4 }],
             "the page that failed is the page still missing"
         );
     }
@@ -4522,9 +4519,8 @@ mod tests {
 
         a.set_cursor(2);
         a.handle(Action::Up, 20);
-        assert_eq!(
-            a.take_pending(),
-            None,
+        assert!(
+            a.take_commands().is_empty(),
             "AniList said there is nothing older; asking again is a wasted request"
         );
     }
@@ -4539,11 +4535,37 @@ mod tests {
 
         a.set_cursor(2);
         a.handle(Action::Up, 20);
-        assert_eq!(
-            a.take_pending(),
-            None,
+        assert!(
+            a.take_commands().is_empty(),
             "page four of the previous timeline is not worth a request against the new one"
         );
+    }
+
+    /// What the reducer asks for without a key waits in a queue, in the order it was asked for,
+    /// and nothing put there displaces what is already waiting: a backfill, then the reload of
+    /// the section the rail was stepped to after it, both go out. In one slot the reload took
+    /// the backfill's place, which the loop never let happen only because it took the slot
+    /// between the two.
+    #[test]
+    fn work_asked_for_without_a_key_waits_in_order_and_displaces_nothing() {
+        let mut a = calendar_loaded();
+        a.set_cursor(CALENDAR_BACKFILL_MARGIN + 1);
+        a.handle(Action::Up, 20);
+        a.nav.focus_rail();
+        a.handle(Action::Down, 20);
+        assert_eq!(a.nav.section(), Section::Seasonal);
+        // The rail settles, and the section's list is asked for from the idle tick.
+        for _ in 0..=RELOAD_IDLE_TICKS {
+            a.tick_toasts();
+        }
+        assert_eq!(
+            a.take_commands(),
+            [
+                Command::LoadCalendarPast { anchor: CALENDAR_TEST_ANCHOR, page: 4 },
+                Command::LoadSeasonal
+            ]
+        );
+        assert!(a.take_commands().is_empty(), "taken once, and gone");
     }
 
     /// An app with one title selected and its episode table loaded, ready to play.
@@ -5460,7 +5482,7 @@ mod tests {
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
         a.apply(Event::playback_ended(false, Ending::Closed));
-        assert_eq!(a.take_pending(), None);
+        assert!(a.take_commands().is_empty());
         assert!(a.playing.is_none() && !a.awaiting_engine(), "Now Playing came down");
     }
 
@@ -5488,7 +5510,10 @@ mod tests {
         // The finished one is gone, not kept in the window: what reports now is the next one.
         a.apply(Event::Playback { position: 1.0, duration: Some(1420.0), paused: false });
         assert_eq!(a.playing.as_ref().map(|p| p.position), Some(1.0));
-        assert_eq!(a.take_pending(), None, "the engine started it; nothing is asked for here");
+        assert!(
+            a.take_commands().is_empty(),
+            "the engine started it; nothing is asked for here"
+        );
     }
 
     #[test]
@@ -5530,7 +5555,7 @@ mod tests {
         // engine's to start: neither takes the slot, so nothing waiting in it is displaced.
         let mut a = app();
         a.apply(Event::PrefetchNext { id: AnilistId::new(3), episode: "6".into() });
-        assert_eq!(a.take_pending(), None);
+        assert!(a.take_commands().is_empty());
         a.playing = Some(NowPlaying {
             id: Some(AnilistId::new(3)),
             title: "Hoshikuzu no Tabibito".into(),
@@ -5539,7 +5564,7 @@ mod tests {
         });
         a.apply(Event::PlayerPlayEpisode { episode: "7".into(), title: None });
         a.apply(Event::PrefetchNext { id: AnilistId::new(3), episode: "6".into() });
-        assert_eq!(a.take_pending(), None);
+        assert!(a.take_commands().is_empty());
         assert_eq!(a.playing.as_ref().map(|p| p.episode.as_str()), Some("5"), "until staged");
     }
     #[test]
@@ -5557,9 +5582,8 @@ mod tests {
         ] {
             a.apply(choice);
         }
-        assert_eq!(
-            a.take_pending(),
-            None,
+        assert!(
+            a.take_commands().is_empty(),
             "the ending's work is the engine's, and no save waits"
         );
         // Nor kept here: what is in effect is the engine's to say, in `Settings`.
@@ -5575,7 +5599,7 @@ mod tests {
         a.set_episode_cursor(11);
         a.handle(Action::Open, 20);
         a.apply(finished(None));
-        assert_eq!(a.take_pending(), None);
+        assert!(a.take_commands().is_empty());
         assert!(a.toasts.iter().any(|t| t.notice.text == "episode finished"));
     }
 
@@ -7026,7 +7050,7 @@ mod tests {
             a.tick_pending_reload();
         }
         assert_eq!(a.content, Content::Empty);
-        assert_eq!(a.take_pending(), None);
+        assert!(a.take_commands().is_empty());
     }
 
     #[test]

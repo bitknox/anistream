@@ -219,7 +219,7 @@ impl PreviewRun {
     async fn settle(&mut self, app: &mut App) -> Result<()> {
         let deadline = tokio::time::Instant::now() + Self::PATIENCE;
         loop {
-            if let Some(task) = app.take_pending() {
+            for task in app.take_commands() {
                 self.dispatch(task);
             }
             let mut fetching = false;

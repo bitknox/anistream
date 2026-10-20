@@ -366,7 +366,7 @@ impl Harness {
         let mut seen = Vec::new();
         loop {
             // The reducer's follow-ups, as at the top of the loop.
-            if let Some(task) = self.app.take_pending() {
+            for task in self.app.take_commands() {
                 self.dispatch(task);
             }
             for url in self.app.visible_artwork(self.rows()) {
@@ -411,7 +411,7 @@ impl Harness {
         let deadline = tokio::time::Instant::now() + PATIENCE;
         let mut seen = Vec::new();
         loop {
-            if let Some(task) = self.app.take_pending() {
+            for task in self.app.take_commands() {
                 self.dispatch(task);
             }
             if seen.last().is_some_and(&done) {
