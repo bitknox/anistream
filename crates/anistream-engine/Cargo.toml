@@ -13,6 +13,12 @@ doctest = false
 
 # No terminal crate, not even transitively, and not the terminal front end: the engine runs under
 # front ends that are not a terminal. tools/check-boundaries.sh holds it to that in CI.
+[features]
+# What a test stands the engine up with instead of what it builds, and what only a test wants to
+# hear from it: see `options::Parts` and `engine::Traced`. Never on in a build that ships: the
+# binary turns it on for its own tests alone, as a dev-dependency.
+testing = []
+
 [dependencies]
 anistream-core.workspace = true
 anistream-meta.workspace = true

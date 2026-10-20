@@ -28,9 +28,15 @@ impl JobGuard {
     /// Public until P3e, where `Engine::send` starts the job and returns its number.
     pub fn start(engine: &mut EngineState, task: &Command, tx: &Outbox) -> Option<Self> {
         let activity = task.activity()?;
-        let id = engine.number_job();
+        Some(Self::announce(engine.number_job(), activity, tx))
+    }
+
+    /// Job `id`, numbered already, announced with `JobStarted` on the channel the work answers
+    /// on, before the work can send anything, so the job's notes and its end always find it in
+    /// the front end.
+    pub fn announce(id: JobId, activity: String, tx: &Outbox) -> Self {
         let _ = tx.send(Event::JobStarted { job: id, activity });
-        Some(Self { id, tx: tx.clone() })
+        Self { id, tx: tx.clone() }
     }
 
     /// Say what the work is held up on, and for how long if that is known.
