@@ -1,7 +1,8 @@
 /* ───────────────────────────────────────────────────────────────────────────
-   Landing page — Obi & Silk. Structure from hairlines and negative space;
-   amber is the only saturated colour in chrome. Saturated colour is allowed
-   in content — which is what the halfblock cover plate is.
+   The landing page, on the native apps' design system: the system face for text and Zen Kaku
+   Gothic for the headline and section titles, one amber action per view, structure from faint
+   rules, and pictures (the scene, the terminal, the player frames) that stay as they are in
+   either theme.
    ─────────────────────────────────────────────────────────────────────────── */
 
 * {
@@ -10,20 +11,23 @@
 	box-sizing: border-box;
 }
 
-/* Safari 26 and later tint their toolbar from the page, not from theme-color: from a fixed
-   element across the top if there is one, otherwise from the root's background. */
-html {
-	background: var(--ani-ground);
-}
-
 body.landing {
+	--pad: 16px;
+	--gutter: max(var(--pad), calc((100% - 1200px) / 2));
+	position: relative;
 	background: var(--ani-ground);
 	color: var(--ani-text);
-	font-family: var(--ani-font-display);
-	font-weight: 400;
-	line-height: 1.7;
+	font-family: var(--ani-font-ui);
+	font-size: 16px;
+	line-height: 1.5;
 	-webkit-font-smoothing: antialiased;
-	overflow-x: hidden;
+	overflow-x: clip;
+}
+
+@media (min-width: 600px) {
+	body.landing {
+		--pad: clamp(32px, 8.333vw, 120px);
+	}
 }
 
 .landing a {
@@ -31,18 +35,13 @@ body.landing {
 	text-decoration: none;
 }
 
+.landing > :not(.ambient) {
+	position: relative;
+	z-index: 1;
+}
+
 .wrap {
-	max-width: 1040px;
-	margin-inline: auto;
-	padding-inline: clamp(1.25rem, 4vw, 2.5rem);
-}
-
-.mono {
-	font-family: var(--ani-font-mono);
-}
-
-.c-obi {
-	color: var(--ani-obi);
+	padding-inline: var(--gutter);
 }
 
 .sr-only {
@@ -54,330 +53,363 @@ body.landing {
 	white-space: nowrap;
 }
 
-/* Pre-paint hidden state for the load sequence; JS reveals. No-JS stays visible. */
-html.js .prefade {
-	opacity: 0;
+.caps {
+	font-size: 11px;
+	font-weight: 500;
+	line-height: 14px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--ani-dim);
 }
 
-html.js .hero-h1 .hch {
-	opacity: 0;
-	transform: translateY(0.55em);
+.caption {
+	font-size: 14px;
+	line-height: 20px;
+	color: var(--ani-dim);
 }
 
-/* ── The page eyecatch: amber band wipe on load ─────────────────────────── */
-/* Out of the page except during the wipe: Safari samples a fixed element across the top for
-   its toolbar, invisible or not, and would stay amber. */
-.eyecatch-page {
-	display: none;
-	position: fixed;
-	inset: 0;
-	background: var(--ani-obi);
-	transform: scaleX(0);
-	transform-origin: left;
-	z-index: 100;
-	pointer-events: none;
+/* ── Buttons: one amber capsule per view, the rest raised ───────────────── */
+.actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
 }
 
-/* ── Obi scroll marker: the app's focus bar, applied to the page ────────── */
-.obi-progress {
-	position: fixed;
-	inset-block: 0;
-	left: 0;
-	width: 4px;
-	z-index: 50;
-	pointer-events: none;
+.btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	height: 40px;
+	padding: 0 18px;
+	border: 1px solid var(--ani-rule-faint);
+	border-radius: 20px;
+	background: var(--ani-raised);
+	color: var(--ani-text);
+	font-size: 15px;
+	font-weight: 600;
+	white-space: nowrap;
+	transition: background-color var(--ani-quick) var(--ani-spring);
 }
 
-.obi-progress-thumb {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 4px;
-	height: 56px;
-	background: var(--ani-obi);
+.btn:hover {
+	background: var(--ani-raised-selected);
 }
 
-/* ── Nav ────────────────────────────────────────────────────────────────── */
+.landing .btn-primary {
+	padding: 0 20px;
+	border-color: transparent;
+	background: var(--ani-obi-fill);
+	color: var(--ani-on-obi);
+}
+
+.landing .btn-primary:hover {
+	background: var(--ani-obi-fill-hover);
+}
+
+@media (max-width: 899px) {
+	.btn {
+		height: 44px;
+		border-radius: 22px;
+		font-size: 16px;
+	}
+}
+
+/* ── Nav: solid ground, not sticky ──────────────────────────────────────── */
 .l-nav {
 	display: flex;
-	align-items: baseline;
+	align-items: center;
 	justify-content: space-between;
-	padding-block: 1.4rem;
-	border-bottom: 1px solid var(--ani-rule-faint);
+	height: 64px;
+	padding-inline: var(--gutter);
 }
 
 .l-brand {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	height: 44px;
+	font-family: var(--ani-font-display);
+	font-size: 20px;
 	font-weight: 500;
 	letter-spacing: 0.02em;
-	font-size: 1.05rem;
-}
-
-.l-brand .obi-glyph {
-	color: var(--ani-obi);
 }
 
 .l-nav-links {
 	display: flex;
-	gap: 2rem;
-	font-family: var(--ani-font-mono);
-	font-size: 0.85rem;
-	color: var(--ani-dim);
+	gap: 28px;
+}
+
+.l-nav-links a,
+.l-footer nav a {
+	display: flex;
+	align-items: center;
+	height: 44px;
+	font-size: 15px;
+	font-weight: 500;
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-decoration-color: transparent;
+	text-underline-offset: 3px;
+	transition: text-decoration-color var(--ani-quick) var(--ani-spring);
 }
 
 .l-nav-links a:hover,
-.l-nav-links a:focus-visible {
-	color: var(--ani-obi);
+.l-footer nav a:hover {
+	text-decoration-color: var(--ani-rule);
 }
 
-/* ── Hero ───────────────────────────────────────────────────────────────── */
-.hero {
+@media (max-width: 599px) {
+	.l-nav {
+		height: 56px;
+	}
+
+	.l-brand {
+		font-size: 18px;
+	}
+
+	.l-brand svg {
+		width: 18px;
+		height: 18px;
+	}
+
+	.l-nav-links {
+		gap: 16px;
+	}
+
+	.l-nav-links a {
+		padding: 0 4px;
+	}
+
+	.l-nav-links .l-nav-releases {
+		display: none;
+	}
+}
+
+/* ── Hero: the scene, full width, then the copy under it ────────────────── */
+.scene {
 	position: relative;
-	padding-block: clamp(3rem, 8vh, 5.5rem) clamp(3rem, 8vh, 5rem);
+	height: 560px;
+	overflow: hidden;
+	/* The scene is a picture and keeps its dusk ground in either theme. */
+	background: #161a2e;
 }
 
-/* Vertical katakana spine — media-packaging spine text */
-.hero-spine {
+html:not(.js) .scene {
+	display: none;
+}
+
+.scene canvas {
 	position: absolute;
-	top: -4rem;
-	right: clamp(0rem, 1vw, 1.5rem);
-	writing-mode: vertical-rl;
-	font-weight: 700;
-	font-size: clamp(4rem, 11vw, 9rem);
-	line-height: 1;
-	letter-spacing: 0.06em;
-	color: var(--ani-text);
-	opacity: 0.055;
-	user-select: none;
-	pointer-events: none;
-	white-space: nowrap;
-	z-index: 0;
+	top: 0;
+	left: 0;
+	display: block;
+	image-rendering: pixelated;
+	opacity: 0;
+	transition: opacity var(--ani-fade-in);
 }
 
-.hero-grid {
-	position: relative;
+.scene.is-drawn canvas {
+	opacity: 1;
+}
+
+.hero-copy {
 	display: grid;
-	grid-template-columns: 1.15fr 0.85fr;
-	gap: clamp(2rem, 5vw, 4.5rem);
-	align-items: center;
-	z-index: 1;
+	grid-template-columns: minmax(0, 792fr) minmax(0, 384fr);
+	column-gap: 24px;
+	align-items: start;
+	padding-top: 40px;
 }
 
-.hero-eyebrow {
-	font-size: 0.85rem;
-	color: var(--ani-obi);
-	margin-bottom: 1.25rem;
-}
-
-.hero-h1 {
+.hero-copy h1 {
+	font-family: var(--ani-font-display);
+	font-size: 52px;
 	font-weight: 700;
-	font-size: clamp(2rem, 4.6vw, 3.1rem);
-	line-height: 1.18;
+	line-height: 60px;
 	letter-spacing: 0.005em;
-	white-space: nowrap;
 }
 
-/* Full-width CJK brackets carry large side bearings — tuck them in */
-.hero-h1 .hch.c-obi {
-	margin-inline: -0.14em;
-}
-
-.hero-h1 .hword {
-	display: inline-block;
-	white-space: nowrap;
-}
-
-.hero-h1 .hch {
-	display: inline-block;
+.hero-side {
+	display: flex;
+	flex-direction: column;
+	padding-top: 6px;
 }
 
 .hero-sub {
-	margin-top: 1.4rem;
-	font-size: clamp(1rem, 2vw, 1.15rem);
-	color: var(--ani-dim);
-	max-width: 42ch;
+	font-size: 17px;
+	line-height: 26px;
 }
 
-.hero-ctas {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 1rem;
-	margin-top: 2.2rem;
-	font-family: var(--ani-font-mono);
-	font-size: 0.92rem;
+.hero-side .actions {
+	margin-top: 22px;
 }
 
-.btn {
-	display: inline-block;
-	padding: 0.7rem 1.5rem;
-	border: 1px solid var(--ani-rule);
-	transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
-}
-
-.btn:hover,
-.btn:focus-visible {
-	border-color: var(--ani-obi);
-	color: var(--ani-obi);
-}
-
-.btn-solid {
-	background: var(--ani-obi);
-	border-color: var(--ani-obi);
-	color: var(--ani-ground);
-	font-weight: 500;
-}
-
-.btn-solid:hover,
-.btn-solid:focus-visible {
-	background: transparent;
-	color: var(--ani-obi);
-}
-
-/* Ambient halfblock field behind the whole page — its own depth plane */
-body.landing {
-	position: relative;
-}
-
-.ambient {
-	position: absolute;
-	inset: 0;
-	overflow: hidden;
-	pointer-events: none;
-	z-index: 0;
-}
-
-.wrap,
-.obi-band {
-	position: relative;
-	z-index: 1;
-}
-
-.amb {
-	position: absolute;
-	font-family: var(--ani-font-mono);
-	color: var(--ani-text);
-	user-select: none;
-	will-change: transform;
-}
-
-/* ── Cover plate: halfblock-rendered “cover art” ────────────────────────── */
-.cover-plate {
-	justify-self: end;
-	width: min(100%, 340px);
-}
-
-.plate-frame {
-	position: relative;
-	border: 1px solid var(--ani-rule);
-	padding: 8px;
-	background: #10131f;
-}
-
-/* The plate carries the obi on its left edge, like the app's focused cover */
-.plate-frame::before {
-	content: '';
-	position: absolute;
-	left: -1px;
-	top: -1px;
-	bottom: -1px;
-	width: 4px;
-	background: var(--ani-obi);
-}
-
-.cover-plate canvas {
-	display: block;
-	width: 100%;
-	height: auto;
-	image-rendering: pixelated;
-}
-
-.cover-plate figcaption {
-	margin-top: 0.7rem;
-	font-size: 0.75rem;
+.hero-note {
+	margin-top: 14px;
+	font-size: 13px;
+	line-height: 18px;
 	color: var(--ani-dim);
 }
 
-/* ── Terminal demo ──────────────────────────────────────────────────────── */
-.term-holder {
-	margin-top: clamp(3rem, 7vh, 4.5rem);
+@media (max-width: 899px) {
+	.scene {
+		height: 420px;
+	}
+
+	.hero-copy {
+		display: flex;
+		flex-direction: column;
+		padding-top: 24px;
+	}
+
+	.hero-copy h1 {
+		font-size: 34px;
+		line-height: 40px;
+		letter-spacing: 0;
+	}
+
+	.hero-side {
+		padding-top: 0;
+	}
+
+	.hero-sub {
+		margin-top: 16px;
+	}
+
+	.hero-side .actions {
+		margin-top: 20px;
+	}
+}
+
+/* ── The terminal demo: a dark terminal in either theme ─────────────────── */
+.term-sect {
+	display: grid;
+	grid-template-columns: minmax(0, 840fr) minmax(0, 336fr);
+	column-gap: 24px;
+	align-items: end;
+	padding-top: 72px;
+}
+
+@media (max-width: 1199px) {
+	.term-sect {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 12px;
+		padding-top: 56px;
+	}
+}
+
+@media (max-width: 899px) {
+	.term-sect {
+		padding-top: 40px;
+	}
 }
 
 .term {
-	/* A terminal is dark in any site theme */
 	--t-ground: #10131f;
+	--t-edge: #2f3242;
 	--t-text: #e4e0d6;
-	--t-dim: #6a7090;
+	--t-dim: #9298b5;
 	--t-amber: #f2a64b;
 	--t-water: #7fc7d9;
 	--t-red: #e06b54;
+	--tpad: 12px;
+	position: relative;
+	container-type: inline-size;
+	overflow: hidden;
+	border: 1px solid var(--t-edge);
+	border-radius: var(--ani-r-box);
 	background: var(--t-ground);
-	border: 1px solid var(--ani-rule);
 }
 
 .term-chrome {
 	display: flex;
 	align-items: center;
-	gap: 0.45rem;
-	padding: 0.6rem 0.9rem;
-	border-bottom: 1px solid color-mix(in srgb, #e4e0d6 10%, #10131f);
-}
-
-.term-dot {
-	width: 9px;
-	height: 9px;
-	border-radius: 50%;
-	background: color-mix(in srgb, #e4e0d6 18%, #10131f);
-}
-
-.term-title {
-	margin-left: 0.6rem;
+	height: 34px;
+	padding: 0 16px;
+	border-bottom: 1px solid var(--t-edge);
 	font-family: var(--ani-font-mono);
-	font-size: 0.7rem;
+	font-size: 12px;
 	color: var(--t-dim);
 }
 
+/* 82 columns keep at least 12 px; a frame narrower than that scrolls sideways. */
 .term-body {
-	position: relative;
-	overflow: hidden;
-	/* The mono font must live here, not just on the <pre>: the cover
-	   canvas positions itself in ch units and must measure the same font. */
+	overflow-x: auto;
+	overscroll-behavior-x: contain;
+	scrollbar-width: thin;
+	scrollbar-color: var(--t-edge) transparent;
+	/* The mono font lives here, not only on the <pre>s: the cover canvas is placed in ch. */
 	font-family: var(--ani-font-mono);
-	font-size: clamp(0.34rem, 1.12vw, 1rem);
+	font-size: clamp(12px, calc((100cqw - 2 * var(--tpad)) / 49.6), 16px);
 	line-height: 1.5;
-	height: calc(18 * 1.5em + 2.2rem);
 }
 
-.term-body .screen {
+@container (min-width: 700px) {
+	.term-body {
+		--tpad: 22px;
+	}
+}
+
+.term-canvas {
+	position: relative;
+	width: calc(82ch + 2 * var(--tpad));
+	min-width: 100%;
+	height: calc(18 * 1.5em + 2 * var(--tpad));
+}
+
+.term .screen {
 	position: absolute;
-	inset: 1.1rem 1.2rem;
-	margin: 0;
-	font-family: var(--ani-font-mono);
-	font-size: inherit;
-	line-height: inherit;
+	inset: var(--tpad);
+	font: inherit;
 	color: var(--t-text);
+	white-space: pre;
 	visibility: hidden;
 	opacity: 0;
 }
 
-/* Token colours (terminal-local, theme-independent) */
-.term .c-a { color: var(--t-amber); }
-.term .c-d { color: var(--t-dim); }
-.term .c-w { color: var(--t-water); }
-.term .c-r { color: var(--t-red); }
+/* At rest, before the demo runs and without script, the terminal shows its home screen. */
+.term [data-screen='home'] {
+	visibility: visible;
+	opacity: 1;
+}
+
+.term .c-a {
+	color: var(--t-amber);
+}
+
+.term .c-d {
+	color: var(--t-dim);
+}
+
+.term .c-w {
+	color: var(--t-water);
+}
+
+.term .c-r {
+	color: var(--t-red);
+}
+
 .term .c-k {
 	color: var(--t-dim);
 	animation: skel-pulse 1.1s ease-in-out infinite;
 }
 
 @keyframes skel-pulse {
-	0%, 100% { opacity: 0.35; }
-	50% { opacity: 0.75; }
+	0%,
+	100% {
+		opacity: 0.35;
+	}
+	50% {
+		opacity: 0.75;
+	}
 }
 
 .term .row {
 	display: block;
 }
 
-/* Obi cell: always occupies its column, lights up when focused */
+/* The obi cell always holds its column and lights up on the focused row. */
 .term .oc {
 	color: transparent;
 }
@@ -391,14 +423,16 @@ body.landing {
 }
 
 @keyframes blink {
-	50% { opacity: 0; }
+	50% {
+		opacity: 0;
+	}
 }
 
-/* The cover image inside the home screen: a real image, halfblock-rendered */
+/* The home screen's cover: an image drawn in halfblocks, as the app draws one. */
 .term-cover {
 	position: absolute;
-	top: calc(1.1rem + 2.1 * 1.5em);
-	left: calc(1.2rem + 58ch);
+	top: calc(var(--tpad) + 2.1 * 1.5em);
+	left: calc(var(--tpad) + 58ch);
 	width: 21ch;
 	height: calc(13.5 * 1.5em);
 	image-rendering: pixelated;
@@ -406,7 +440,7 @@ body.landing {
 	opacity: 0;
 }
 
-/* Eyecatch inside the terminal — covers stream resolution, as in the app */
+/* The eyecatch inside the terminal covers stream resolution, as in the app. */
 .eyecatch-term {
 	position: absolute;
 	inset: 0;
@@ -416,172 +450,433 @@ body.landing {
 	pointer-events: none;
 }
 
-/* Key badge: which key was just "pressed" */
+/* Which key was just pressed: a chip over the picture. */
 .demo-key {
 	position: absolute;
-	right: 1rem;
-	bottom: 0.9rem;
+	right: 16px;
+	bottom: 14px;
+	display: flex;
+	align-items: center;
+	height: 26px;
+	padding: 0 11px;
+	border: 1px solid var(--ani-over-art-edge);
+	border-radius: 13px;
+	background: var(--ani-over-art);
+	color: var(--t-text);
 	font-family: var(--ani-font-mono);
-	font-size: 1.05em;
-	padding: 0.28em 0.7em;
-	color: var(--t-amber);
-	border: 1px solid color-mix(in srgb, #f2a64b 45%, #10131f);
-	background: color-mix(in srgb, #f2a64b 10%, #10131f);
+	font-size: 13px;
 	opacity: 0;
+	pointer-events: none;
 }
 
-/* ── Obi band: the packaging strip, full bleed, marquee ─────────────────── */
-.obi-band {
-	margin-top: clamp(3.5rem, 8vh, 5.5rem);
-	background: var(--ani-obi);
-	color: var(--ani-ground);
+/* ── The band: a marquee on the ground, between faint rules ─────────────── */
+.band {
+	display: flex;
+	align-items: center;
+	height: 48px;
+	margin-top: 72px;
 	overflow: hidden;
-	padding-block: 0.85rem;
-	font-family: var(--ani-font-mono);
+	border-top: 1px solid var(--ani-rule-faint);
+	border-bottom: 1px solid var(--ani-rule-faint);
+	font-size: 15px;
 	font-weight: 500;
-	font-size: 0.9rem;
 }
 
-.obi-track {
+.band-track {
 	display: flex;
 	width: max-content;
-	white-space: pre;
+	white-space: nowrap;
 	will-change: transform;
+}
+
+.band-run {
+	display: flex;
+	padding-left: 14px;
+}
+
+.band-dot {
+	padding: 0 14px;
+	color: var(--ani-dim);
+}
+
+@media (max-width: 899px) {
+	.band {
+		height: 44px;
+		margin-top: 40px;
+		font-size: 14px;
+	}
+
+	.band-run {
+		padding-left: 12px;
+	}
+
+	.band-dot {
+		padding: 0 12px;
+	}
 }
 
 /* ── Sections ───────────────────────────────────────────────────────────── */
 .sect {
-	padding-block: clamp(3.5rem, 9vh, 6rem) 0;
+	padding-top: 120px;
 }
 
-.rule {
-	height: 1px;
-	background: var(--ani-rule);
-	transform-origin: left;
-}
-
-.sect-head {
-	padding-block: 2.2rem 0.5rem;
-}
-
-.eyebrow {
-	display: inline-block;
-	font-family: var(--ani-font-mono);
-	font-size: 0.82rem;
-	color: var(--ani-obi);
-	white-space: pre;
-	overflow: hidden;
-	vertical-align: bottom;
+.sect:first-child {
+	padding-top: 112px;
 }
 
 .sect h2 {
-	font-weight: 500;
-	font-size: clamp(1.5rem, 3.4vw, 2.1rem);
-	margin-top: 0.5rem;
-	letter-spacing: 0.005em;
+	font-family: var(--ani-font-display);
+	font-size: 36px;
+	font-weight: 700;
+	line-height: 44px;
 }
 
-.sect-lede {
-	color: var(--ani-dim);
-	max-width: 58ch;
-	margin-top: 0.8rem;
+.lede {
+	max-width: 792px;
+	margin-top: 12px;
+	font-size: 17px;
+	line-height: 28px;
 }
 
-/* The player: the comparison, then three stills */
+@media (max-width: 899px) {
+	.sect,
+	.sect:first-child {
+		padding-top: 72px;
+	}
+
+	.sect h2 {
+		font-size: 26px;
+		line-height: 32px;
+	}
+
+	.lede {
+		margin-top: 10px;
+		font-size: 16px;
+		line-height: 26px;
+	}
+}
+
+/* What is in the app: one dense list, grouped */
+.feat-list {
+	position: relative;
+	margin-top: 40px;
+	border-bottom: 1px solid var(--ani-rule-faint);
+}
+
+.feat-row {
+	display: grid;
+	grid-template-columns: minmax(0, 200fr) minmax(0, 344fr) minmax(0, 608fr);
+	column-gap: 24px;
+	padding: 16px 0;
+	border-top: 1px solid var(--ani-rule-faint);
+}
+
+.feat-label-above {
+	display: none;
+}
+
+.feat-label-beside {
+	padding-top: 5px;
+}
+
+.feat-row h3 {
+	font-size: 17px;
+	font-weight: 600;
+	line-height: 24px;
+}
+
+.feat-row p:last-child {
+	font-size: 15px;
+	line-height: 24px;
+}
+
+/* The katakana spine, faint, in the right margin beside the list */
+.spine {
+	position: absolute;
+	top: 0;
+	right: calc((100% - 100vw) / 2 + 10px);
+	writing-mode: vertical-rl;
+	font-family: var(--ani-font-display);
+	font-size: 104px;
+	font-weight: 700;
+	line-height: 1;
+	letter-spacing: 0.06em;
+	white-space: nowrap;
+	color: var(--ani-text);
+	opacity: 0.05;
+	/* Vertical text spills past its line box; clipping it keeps the page from scrolling sideways. */
+	overflow: hidden;
+	pointer-events: none;
+	user-select: none;
+}
+
+@media (max-width: 1279px) {
+	.spine {
+		display: none;
+	}
+}
+
+@media (max-width: 899px) {
+	.feat-list {
+		margin-top: 12px;
+	}
+
+	.feat-label-above {
+		display: block;
+		padding: 20px 0 8px;
+	}
+
+	.feat-row {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 14px 0;
+	}
+
+	.feat-row > :first-child {
+		display: none;
+	}
+
+	.feat-row h3 {
+		font-size: 16px;
+		line-height: 22px;
+	}
+
+	.feat-row p:last-child {
+		line-height: 22px;
+	}
+}
+
+/* Inside the player */
 .player-block {
-	padding-block: 1.9rem;
+	margin-top: 32px;
 }
 
 .player-shots {
 	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	gap: 1.25rem;
-	margin-top: 2.4rem;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	column-gap: 24px;
+	margin-top: 40px;
 }
 
 .player-shots figure {
-	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
 }
 
 .player-shots a {
 	display: block;
-}
-
-.player-shots a:focus-visible {
-	outline: 2px solid var(--ani-obi);
-	outline-offset: 3px;
+	overflow: hidden;
+	border-radius: var(--ani-r-row);
 }
 
 .player-shots img {
 	display: block;
 	width: 100%;
 	height: auto;
-	border: 1px solid var(--ani-rule);
 }
 
 .player-shots figcaption {
-	margin-top: 0.55rem;
-	font-size: 0.88rem;
+	font-size: 14px;
+	line-height: 20px;
 	color: var(--ani-dim);
 }
 
 .player-credit {
-	margin-top: 1.8rem;
-	font-size: 0.82rem;
+	margin-top: 28px;
+	font-size: 13px;
+	line-height: 18px;
 	color: var(--ani-dim);
 }
 
 .player-credit a {
-	color: inherit;
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
 	text-decoration-color: var(--ani-rule);
-	text-underline-offset: 0.2em;
+	text-underline-offset: 3px;
 }
 
-/* Feature rows: mono eyebrow column + copy */
-.feat {
+@media (max-width: 899px) {
+	.player-block {
+		margin-top: 24px;
+	}
+
+	.player-shots {
+		grid-template-columns: minmax(0, 1fr);
+		row-gap: 20px;
+		margin-top: 28px;
+	}
+
+	.player-shots figure {
+		gap: 8px;
+	}
+
+	.player-credit {
+		margin-top: 20px;
+	}
+}
+
+/* Where episodes come from */
+.legal-lead {
+	max-width: 792px;
+	margin-top: 16px;
+	font-size: 20px;
+	font-weight: 600;
+	line-height: 30px;
+}
+
+.rows {
+	margin-top: 28px;
+	border-bottom: 1px solid var(--ani-rule-faint);
+}
+
+.rows .row {
 	display: grid;
-	grid-template-columns: 180px 1fr;
-	gap: 1rem 2.5rem;
-	padding-block: 2rem;
+	grid-template-columns: minmax(0, 200fr) minmax(0, 976fr);
+	column-gap: 24px;
+	padding: 16px 0;
+	border-top: 1px solid var(--ani-rule-faint);
 }
 
-.feat h3 {
+.rows dt {
+	font-size: 17px;
+	font-weight: 600;
+	line-height: 24px;
+}
+
+.rows dd {
+	max-width: 760px;
+	font-size: 15px;
+	line-height: 24px;
+}
+
+.rows + .lede {
+	margin-top: 24px;
+}
+
+@media (max-width: 899px) {
+	.legal-lead {
+		margin-top: 12px;
+		font-size: 17px;
+		line-height: 26px;
+	}
+
+	.rows {
+		margin-top: 20px;
+	}
+
+	.rows .row {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 14px 0;
+	}
+
+	.rows dt {
+		font-size: 16px;
+		line-height: 22px;
+	}
+
+	.rows dd {
+		line-height: 22px;
+	}
+
+	.rows + .lede {
+		margin-top: 20px;
+	}
+}
+
+/* Installation */
+.release-files {
+	width: 100%;
+	margin-top: 32px;
+	border-collapse: collapse;
+	table-layout: fixed;
+	border-bottom: 1px solid var(--ani-rule-faint);
+	text-align: left;
+}
+
+.release-files thead th {
+	height: 32px;
+	padding-right: 24px;
+	font-size: 11px;
 	font-weight: 500;
-	font-size: 1.12rem;
-	letter-spacing: 0.005em;
-	margin-bottom: 0.45rem;
-}
-
-.feat > div:last-child > p:last-child {
+	line-height: 14px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
 	color: var(--ani-dim);
-	font-size: 0.98rem;
-	max-width: 62ch;
+	vertical-align: middle;
 }
 
-/* Sources / install / next */
-.plain-block {
-	padding-block: 1.9rem;
+.release-files thead th:nth-child(1) {
+	width: 18.6%;
 }
 
-.plain-block > p {
+.release-files thead th:nth-child(2) {
+	width: 20.3%;
+}
+
+.release-files thead th:nth-child(3) {
+	width: 18.6%;
+}
+
+.release-files thead th:nth-child(4) {
+	width: 15.3%;
+}
+
+.release-files tbody tr {
+	height: 56px;
+	border-top: 1px solid var(--ani-rule-faint);
+}
+
+.release-files tbody :is(th, td) {
+	padding-right: 24px;
+	vertical-align: middle;
+}
+
+.release-files tbody th {
+	font-size: 17px;
+	font-weight: 600;
+}
+
+.rf-note {
+	font-size: 15px;
 	color: var(--ani-dim);
-	max-width: 68ch;
 }
 
-.plain-block p strong {
-	color: var(--ani-text);
-	font-weight: 500;
+.rf-file,
+.rf-code {
+	font-family: var(--ani-font-mono);
+	font-size: 14px;
+}
+
+.rf-deps {
+	font-size: 15px;
+}
+
+.rf-sep,
+.rf-deps-label,
+.rf-note-inline {
+	display: none;
+}
+
+.sect .release-files + .actions {
+	margin-top: 28px;
 }
 
 .code-block {
-	margin-top: 1.6rem;
-	padding: 1.3rem 1.5rem;
-	border: 1px solid var(--ani-rule-faint);
-	background: var(--ani-raised);
-	font-family: var(--ani-font-mono);
-	font-size: 0.86rem;
-	line-height: 1.9;
+	max-width: 792px;
+	margin-top: 32px;
+	padding: 16px 20px;
 	overflow-x: auto;
+	border: 1px solid var(--ani-rule-faint);
+	border-radius: var(--ani-r-box);
+	background: var(--ani-well);
+	color: var(--ani-text);
+	font-family: var(--ani-font-mono);
+	font-size: 14px;
+	line-height: 26px;
 	white-space: pre;
 }
 
@@ -589,106 +884,298 @@ body.landing {
 	color: var(--ani-dim);
 }
 
-.code-block .c-a {
-	color: var(--ani-obi);
+.code-block .c-n {
+	color: #e8bf8c;
 }
 
-.tests-line {
-	margin-top: 2rem;
-	font-family: var(--ani-font-mono);
-	font-size: 0.82rem;
+[data-theme='light'] .code-block .c-n {
+	color: #7a4309;
+}
+
+.code-block + .caption {
+	margin-top: 12px;
+}
+
+@media (max-width: 899px) {
+	.release-files {
+		display: block;
+		margin-top: 20px;
+	}
+
+	.release-files thead {
+		display: none;
+	}
+
+	.release-files tbody {
+		display: block;
+	}
+
+	.release-files tbody tr {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		height: auto;
+		padding: 14px 0;
+		row-gap: 4px;
+	}
+
+	.release-files tbody :is(th, td) {
+		padding: 0;
+	}
+
+	.release-files tbody th {
+		flex-basis: 100%;
+		font-size: 16px;
+		line-height: 22px;
+	}
+
+	.rf-note-inline {
+		display: inline;
+		margin-left: 10px;
+		font-size: 14px;
+		font-weight: 400;
+		line-height: 20px;
+		color: var(--ani-dim);
+	}
+
+	.rf-note {
+		display: none;
+	}
+
+	.rf-file {
+		line-height: 22px;
+	}
+
+	.rf-sep {
+		display: inline;
+		white-space: pre;
+	}
+
+	.rf-file + .rf-file {
+		margin-left: 0.5ch;
+	}
+
+	.rf-deps,
+	.rf-code {
+		flex-basis: 100%;
+		font-family: var(--ani-font-ui);
+		font-size: 14px;
+		line-height: 20px;
+		color: var(--ani-dim);
+	}
+
+	.rf-deps-label {
+		display: inline;
+	}
+
+	.sect .release-files + .actions {
+		flex-direction: column;
+		margin-top: 20px;
+	}
+
+	.sect .release-files + .actions .btn {
+		width: 100%;
+	}
+
+	.code-block {
+		margin-top: 20px;
+		padding: 14px 16px;
+		font-size: 13px;
+		line-height: 22px;
+	}
+}
+
+/* Building in the open */
+.platforms {
+	margin-top: 32px;
+	list-style: none;
+	border-bottom: 1px solid var(--ani-rule-faint);
+}
+
+.platforms li {
+	display: grid;
+	grid-template-columns: minmax(0, 344fr) minmax(0, 608fr) minmax(0, 200fr);
+	column-gap: 24px;
+	align-items: center;
+	min-height: 56px;
+	border-top: 1px solid var(--ani-rule-faint);
+}
+
+.platform-name {
+	font-size: 17px;
+	font-weight: 600;
+}
+
+.platform-text {
+	font-size: 15px;
+}
+
+.status {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+	line-height: 20px;
 	color: var(--ani-dim);
 }
 
-/* Kinu's recurring appearance */
-.mascot-row {
-	display: flex;
-	align-items: flex-end;
-	gap: 1.6rem;
-	margin-top: 2.6rem;
+.status-dot {
+	width: 7px;
+	height: 7px;
+	flex-shrink: 0;
+	border-radius: 4px;
+	background: var(--ani-dim);
 }
 
-.mascot-bust {
-	width: 102px;
-	height: 96px;
-	image-rendering: pixelated;
+.status-dot.is-available {
+	background: var(--ani-state);
+}
+
+.platforms + .actions {
+	margin-top: 28px;
+}
+
+@media (max-width: 899px) {
+	.platforms {
+		margin-top: 20px;
+	}
+
+	.platforms li {
+		grid-template-columns: minmax(0, 1fr) auto;
+		grid-template-areas:
+			'name status'
+			'text text';
+		row-gap: 4px;
+		padding: 14px 0;
+	}
+
+	.platform-name {
+		grid-area: name;
+		font-size: 16px;
+		line-height: 22px;
+	}
+
+	.status {
+		grid-area: status;
+	}
+
+	.platform-text {
+		grid-area: text;
+		line-height: 22px;
+	}
+
+	.platforms + .actions {
+		margin-top: 20px;
+	}
+}
+
+/* ── Footer: Nagare once more, the legal line and the licence ───────────── */
+.l-footer {
+	display: grid;
+	grid-template-columns: minmax(0, 344fr) minmax(0, 608fr) auto;
+	column-gap: 24px;
+	align-items: end;
+	margin-top: 120px;
+	margin-inline: var(--gutter);
+	padding: 40px 0 56px;
+	border-top: 1px solid var(--ani-rule-faint);
+}
+
+.footer-mascot {
+	display: flex;
+	align-items: flex-end;
+	gap: 20px;
+}
+
+.footer-nagare {
 	flex-shrink: 0;
 }
 
-.mascot-note {
-	font-size: 0.78rem;
+.footer-mascot p {
+	margin-bottom: 6px;
+	font-size: 13px;
+	line-height: 18px;
 	color: var(--ani-dim);
-	line-height: 1.9;
 }
 
-/* ── Footer ─────────────────────────────────────────────────────────────── */
-.l-footer {
-	margin-top: clamp(4rem, 10vh, 7rem);
-	padding-block: 2.2rem 3rem;
-	border-top: 1px solid var(--ani-rule-faint);
+.footer-legal {
 	display: flex;
-	flex-wrap: wrap;
-	gap: 1rem 2.5rem;
-	align-items: baseline;
-	justify-content: space-between;
-	font-family: var(--ani-font-mono);
-	font-size: 0.82rem;
+	flex-direction: column;
+	gap: 6px;
+	padding-bottom: 6px;
+	font-size: 15px;
+	line-height: 22px;
+}
+
+.footer-licence {
+	font-size: 13px;
+	line-height: 18px;
 	color: var(--ani-dim);
 }
 
 .l-footer nav {
 	display: flex;
-	gap: 2rem;
+	gap: 28px;
 }
 
-.l-footer a:hover,
-.l-footer a:focus-visible {
-	color: var(--ani-obi);
+@media (max-width: 899px) {
+	.l-footer {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 20px;
+		margin-top: 72px;
+		padding: 32px 0 40px;
+	}
+
+	.footer-mascot {
+		gap: 16px;
+	}
+
+	.footer-nagare {
+		width: 80px;
+		height: 128px;
+	}
+
+	.footer-mascot p {
+		margin-bottom: 4px;
+	}
+
+	.footer-legal {
+		padding-bottom: 0;
+	}
+
+	.l-footer nav {
+		gap: 24px;
+	}
 }
 
-/* ── Focus, reduced motion, responsive ──────────────────────────────────── */
-.landing :focus-visible {
-	outline: 2px solid var(--ani-obi);
-	outline-offset: 3px;
+/* ── The ambient field: faint halfblock glyphs on their own far plane ───── */
+.ambient {
+	position: absolute;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+	z-index: 0;
 }
 
+.amb {
+	position: absolute;
+	font-family: var(--ani-font-mono);
+	line-height: 1;
+	color: var(--ani-text);
+	user-select: none;
+	will-change: transform;
+}
+
+/* ── Reduced motion: the resting frame ──────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
+	.ambient {
+		display: none;
+	}
+
 	.term .c-k,
 	.term .cursor {
 		animation: none;
-	}
-	html.js .prefade,
-	html.js .hero-h1 .hch {
-		opacity: 1;
-		transform: none;
-	}
-}
-
-@media (max-width: 900px) {
-	.hero-spine {
-		font-size: 5rem;
-		opacity: 0.04;
-	}
-	.hero-grid {
-		grid-template-columns: 1fr;
-	}
-	.cover-plate {
-		justify-self: start;
-		width: min(100%, 300px);
-	}
-	.feat {
-		grid-template-columns: 1fr;
-		gap: 0.9rem;
-	}
-	.player-shots {
-		grid-template-columns: 1fr;
-	}
-	.plate {
-		width: 64px;
-		height: 64px;
-		font-size: 1.6rem;
-	}
-	.obi-progress {
-		display: none;
 	}
 }
