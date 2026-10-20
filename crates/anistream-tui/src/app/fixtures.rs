@@ -21,7 +21,7 @@ pub(super) use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 pub(super) use super::*;
 pub(super) use crate::{
     keymap::{Action, Keymap},
-    nav::{Section, StageView},
+    nav::{Focus, Overlay, Section, StageView},
     theme::Palette,
 };
 

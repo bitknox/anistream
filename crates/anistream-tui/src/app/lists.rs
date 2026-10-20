@@ -1097,6 +1097,9 @@ mod tests {
         assert_eq!(a.nav.depth(), 1);
     }
 
+    // Requests are never cancelled, so every answer below is one the app really receives when
+    // the user moves faster than the network: it has to be recognised as late and left alone.
+
     #[test]
     fn a_late_list_for_the_section_just_left_is_not_shown_under_the_next() {
         let mut a = app();
