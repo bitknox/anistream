@@ -3,7 +3,10 @@
 use anistream_core::ids::AnilistId;
 use anistream_model::{event::Event, notice::Notice};
 
-use crate::{data, dispatch::Lent, jobs::JobGuard, outbox::Outbox, state::EngineState};
+use crate::{
+    data, dispatch::Lent, jobs::JobGuard, outbox::Outbox, services::Services,
+    state::EngineState,
+};
 
 /// A title's page, with the source chosen for it sent ahead.
 pub async fn load_detail(lent: Lent, id: AnilistId) {
@@ -24,11 +27,12 @@ pub fn play_trailer(
     title: String,
     job: Option<JobGuard>,
     engine: &EngineState,
+    services: &Services,
     tx: &Outbox,
 ) {
     let EngineState { config, .. } = engine;
     let mpv_binary = config.playback.mpv_binary.clone();
-    let tx = tx.clone();
+    let (host, tx) = (services.host.clone(), tx.clone());
     tokio::spawn(async move {
         let _job = job;
         // mpv streams YouTube through yt-dlp, and without it the window opens and
@@ -47,7 +51,7 @@ pub fn play_trailer(
             let _ = child.wait().await;
             return;
         }
-        let update = match open::that_detached(&url) {
+        let update = match host.open_url(&url) {
             Ok(()) => Event::Toast(Notice::info("trailer opened in your browser")),
             Err(e) => Event::Toast(Notice::alert(format!("could not open the trailer: {e}"))),
         };
@@ -71,8 +75,8 @@ fn in_path(names: &[&str]) -> bool {
 }
 
 /// Open a link in the browser.
-pub fn open_external(url: String, tx: &Outbox) {
-    if let Err(e) = open::that_detached(&url) {
+pub fn open_external(url: String, services: &Services, tx: &Outbox) {
+    if let Err(e) = services.host.open_url(&url) {
         let _ = tx.send(Event::Toast(Notice::alert(format!("could not open: {e}"))));
     }
 }

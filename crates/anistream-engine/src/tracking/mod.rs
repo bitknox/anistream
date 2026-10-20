@@ -28,7 +28,7 @@ use anistream_model::{
 use anistream_store::Store;
 use anistream_track::{AniListTracker, TokenStore, auth, sync};
 
-use crate::outbox::Outbox;
+use crate::{host::Host, outbox::Outbox};
 
 /// Everything the sync loops need.
 #[derive(Clone)]
@@ -582,14 +582,14 @@ pub async fn pull_once(sync: &Sync, tx: &Outbox) {
 /// Opens a browser and waits. Everything here is best-effort and every failure is reported as a
 /// toast rather than propagated — a failed sign-in must leave the app exactly as usable as it
 /// was, because local history never needed an account.
-pub async fn connect(sync: Sync, tracker_id: String, tx: Outbox) {
+pub async fn connect(sync: Sync, host: Arc<dyn Host>, tracker_id: String, tx: Outbox) {
     // Simkl and Trakt use the device flow: no redirect URI to register, and it works over SSH.
     if let Some(endpoints) = device_endpoints(&tracker_id) {
-        connect_device(sync, tracker_id, endpoints, tx).await;
+        connect_device(sync, host, tracker_id, endpoints, tx).await;
         return;
     }
     if tracker_id == "mal" {
-        connect_mal(sync, tx).await;
+        connect_mal(sync, host, tx).await;
         return;
     }
     // Kitsu never reaches here: the Accounts screen opens its credential prompt directly
@@ -637,7 +637,7 @@ pub async fn connect(sync: Sync, tracker_id: String, tx: Outbox) {
     let listening = matches!(flow, auth::Flow::Loopback)
         .then(|| tokio::spawn(auth::wait_for_code_from(port, "AniList")));
 
-    if let Err(e) = open::that_detached(&url) {
+    if let Err(e) = host.open_url(&url) {
         let _ = tx.send(Event::Toast(Notice::alert(format!("could not open a browser: {e}"))));
         tracing::info!(%url, "open this to sign in");
     }
@@ -750,7 +750,7 @@ pub async fn connect_kitsu(sync: Sync, username: String, password: String, tx: O
 /// There was no interactive flow at all — the Accounts screen answered "mal: no sign-in flow yet"
 /// while `--login --tracker mal` worked perfectly from the command line. The PKCE machinery already
 /// existed; only this wiring was missing.
-async fn connect_mal(sync: Sync, tx: Outbox) {
+async fn connect_mal(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
     use anistream_track::mal;
 
     let auth = &sync.config.trackers.mal;
@@ -769,7 +769,7 @@ async fn connect_mal(sync: Sync, tx: Outbox) {
 
     // Listening starts before the browser opens, or a fast redirect arrives before the socket does.
     let waiting = tokio::spawn(auth::wait_for_code_from(auth.redirect_port, "MyAnimeList"));
-    if let Err(e) = open::that_detached(&url) {
+    if let Err(e) = host.open_url(&url) {
         let _ = tx.send(Event::Toast(Notice::alert(format!("could not open a browser: {e}"))));
         tracing::info!(%url, "open this to sign in");
     }
@@ -878,6 +878,7 @@ fn device_endpoints(tracker_id: &str) -> Option<anistream_track::DeviceEndpoints
 /// that fades after nine seconds while they are still reaching for the keyboard.
 async fn connect_device(
     sync: Sync,
+    host: Arc<dyn Host>,
     tracker_id: String,
     endpoints: anistream_track::DeviceEndpoints,
     tx: Outbox,
@@ -915,7 +916,7 @@ async fn connect_device(
         code: code.user_code.clone(),
         url: code.verification_url.clone(),
     })));
-    if let Err(e) = open::that_detached(&code.verification_url) {
+    if let Err(e) = host.open_url(&code.verification_url) {
         tracing::info!(url = %code.verification_url, error = %e, "open this to approve");
     }
 

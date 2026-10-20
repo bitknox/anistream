@@ -129,8 +129,10 @@ pub fn dispatch(
             spawn(job, services, tx, move |lent| search(lent, query, filter))
         }
         Command::LoadDetail(id) => spawn(job, services, tx, move |lent| load_detail(lent, id)),
-        Command::PlayTrailer { url, title } => play_trailer(url, title, job, engine, tx),
-        Command::OpenExternal { url } => open_external(url, tx),
+        Command::PlayTrailer { url, title } => {
+            play_trailer(url, title, job, engine, services, tx)
+        }
+        Command::OpenExternal { url } => open_external(url, services, tx),
 
         // A title's episodes, and the source match they come from.
         Command::LoadEpisodes(id) => {

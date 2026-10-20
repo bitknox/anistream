@@ -5,13 +5,13 @@
 //! digest works with no tracker account at all. First run is silent on purpose: with no
 //! previous launch there is no "since", and inventing one would open the app onto noise.
 
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::Arc};
 
 use anistream_meta::Meta;
 use anistream_model::{event::Event, notice::Notice};
 use anistream_store::Store;
 
-use crate::outbox::Outbox;
+use crate::{host::Host, outbox::Outbox};
 
 /// The stored-state key holding when the digest last looked.
 const SEEN_KEY: &str = "airing_digest_seen";
@@ -23,7 +23,16 @@ const WINDOW_SECS: i64 = 7 * 24 * 3600;
 /// How many titles of history count as "shows you watch".
 const WATCHED_ROWS: u32 = 100;
 
-pub fn spawn(enabled: bool, desktop: bool, store: Store, meta: Meta, tx: Outbox) {
+/// Look for what aired since the last launch, in the background, and say it once: as a toast,
+/// and on the desktop too when `desktop` asks for it, through the host.
+pub fn spawn(
+    enabled: bool,
+    desktop: bool,
+    store: Store,
+    meta: Meta,
+    host: Arc<dyn Host>,
+    tx: Outbox,
+) {
     if !enabled {
         return;
     }
@@ -78,8 +87,9 @@ pub fn spawn(enabled: bool, desktop: bool, store: Store, meta: Meta, tx: Outbox)
         }
 
         let text = compose(&hits);
+        // A copy for people who launch the app and switch away. The toast is the real channel.
         if desktop {
-            notify_desktop(&text);
+            host.notify("anistream", &text);
         }
         let _ = tx.send(Event::Toast(Notice::info(text)));
     });
@@ -90,27 +100,6 @@ fn compose(hits: &[(String, u32)]) -> String {
     match hits {
         [(title, episode)] => format!("{title} ep {episode} aired while you were away"),
         _ => format!("{} new episodes for shows you watch — the calendar has them", hits.len()),
-    }
-}
-
-/// Best-effort, per platform, silent on failure. The toast is the real channel; this is
-/// a copy for people who launch the app and switch away.
-fn notify_desktop(body: &str) {
-    #[cfg(target_os = "macos")]
-    {
-        let script = format!(
-            "display notification \"{}\" with title \"anistream\"",
-            body.replace('\\', "\\\\").replace('"', "\\\"")
-        );
-        let _ = std::process::Command::new("osascript").args(["-e", &script]).spawn();
-    }
-    #[cfg(target_os = "linux")]
-    {
-        let _ = std::process::Command::new("notify-send").args(["anistream", body]).spawn();
-    }
-    #[cfg(not(any(target_os = "macos", target_os = "linux")))]
-    {
-        let _ = body;
     }
 }
 

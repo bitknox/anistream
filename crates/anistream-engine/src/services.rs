@@ -1,5 +1,7 @@
 //! The handles every effect shares, and how they are built.
 
+use std::sync::Arc;
+
 use anistream_core::config::{Config, Paths};
 use anistream_meta::{Meta, Tenrai, anilist::AniList};
 use anistream_model::playback::PlayerTheme;
@@ -8,6 +10,7 @@ use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 
 use crate::{
+    host::Host,
     playback::{prefetch::Prefetch, slot::PlayerSlot},
     plugin_stores, tracking,
 };
@@ -46,6 +49,9 @@ pub struct Services {
     /// How the player's own interface is dressed: the front end's choice, made once from its
     /// palette and the same for every playback.
     pub player_theme: PlayerTheme,
+    /// The machine the engine runs on, as the front end offers it: where a link is opened and a
+    /// notification shown.
+    pub host: Arc<dyn Host>,
 }
 
 impl Services {
@@ -53,7 +59,7 @@ impl Services {
     ///
     /// The chain is passed in because the entry points stand it up differently: the interface
     /// without its torrent source, which comes up behind it, and a preview with every source in.
-    /// The player's theme is passed in because it is the front end's.
+    /// The player's theme and the host are passed in because they are the front end's.
     /// A test assembles `Services` from parts of its own instead, an offline client and a fake
     /// AniList among them, so that nothing it runs can reach the network.
     pub fn build(
@@ -63,6 +69,7 @@ impl Services {
         store: Store,
         registry: ProviderRegistry,
         player_theme: PlayerTheme,
+        host: Arc<dyn Host>,
     ) -> Result<Self, String> {
         let meta = build_meta(config, &http, &store);
         let stores = plugin_stores::Stores::new(config, &paths)?;
@@ -80,6 +87,7 @@ impl Services {
             slot: PlayerSlot::default(),
             prefetch: Prefetch::default(),
             player_theme,
+            host,
         })
     }
 }

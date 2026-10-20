@@ -27,6 +27,7 @@ pub mod catalog;
 pub mod data;
 pub mod dispatch;
 pub mod downloads;
+pub mod host;
 pub mod jobs;
 pub mod outbox;
 pub mod playback;

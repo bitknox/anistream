@@ -1,14 +1,16 @@
 //! What a front end asks of the plugin stores, each task run off the UI thread with what it needs
 //! moved into it: joining and leaving, installing and removing, invites, members, and publishing.
 
+use std::sync::Arc;
+
 use anistream_core::config::{Config, Paths};
 use anistream_model::{event::Event, notice::Notice, stores::Secret};
 use anistream_net::HttpClient;
 use anistream_providers::ProviderRegistry;
 
 use crate::{
-    data, jobs::JobGuard, outbox::Outbox, plugin_stores, services::Services, sources,
-    state::EngineState,
+    data, host::Host, jobs::JobGuard, outbox::Outbox, plugin_stores, services::Services,
+    sources, state::EngineState,
 };
 
 /// What a plugin store task needs, moved into the task that runs it.
@@ -18,6 +20,7 @@ pub struct StoreTaskContext {
     config: Config,
     http: HttpClient,
     paths: Paths,
+    host: Arc<dyn Host>,
     tx: Outbox,
 }
 
@@ -181,7 +184,7 @@ impl StoreTaskContext {
     /// Open a store's admin page in the browser, signed in by a link that works once.
     pub async fn open_admin(self, store: String) {
         match self.stores.admin_link(&store).await {
-            Ok(link) => match open::that_detached(&link) {
+            Ok(link) => match self.host.open_url(&link) {
                 Ok(()) => self.toast(Notice::info(
                     "opened the admin page in your browser — the link works once, for ten minutes",
                 )),
@@ -244,6 +247,7 @@ pub fn store_task<W, F>(
         config: engine.config.clone(),
         http: services.http.clone(),
         paths: services.paths.clone(),
+        host: services.host.clone(),
         tx: tx.clone(),
     };
     tokio::spawn(async move {

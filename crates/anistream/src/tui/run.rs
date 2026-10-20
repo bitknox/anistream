@@ -1,12 +1,13 @@
 //! The interface's event loop: the terminal made ready, the engine side's work started, and
 //! every event, key, signal and tick handled until the app quits and the terminal is given back.
 
-use std::{io, time::Duration};
+use std::{io, sync::Arc, time::Duration};
 
 use anistream_core::config::{Config, Paths};
 use anistream_engine::{
     background::datasets::keep_datasets_current,
     dispatch::{dispatch, handle_internal, receive},
+    host::DesktopHost,
     jobs::JobGuard,
     outbox::{Envelope, Internal, Outbox},
     playback::player::player,
@@ -99,7 +100,8 @@ pub async fn run(
         paths.clone(),
     );
     // What every task is lent, built around that chain.
-    let services = Services::build(&config, paths, http, store, registry, player_theme())
+    let host = Arc::new(DesktopHost);
+    let services = Services::build(&config, paths, http, store, registry, player_theme(), host)
         .map_err(anyhow::Error::msg)?;
     // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
     let (arrivals_tx, mut arrivals) = mpsc::unbounded_channel();
@@ -156,6 +158,7 @@ pub async fn run(
         engine.config.notifications.desktop,
         services.store.clone(),
         services.meta.clone(),
+        services.host.clone(),
         tx.clone(),
     );
 

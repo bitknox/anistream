@@ -23,11 +23,11 @@ pub fn sync_now(job: Option<JobGuard>, services: &Services, tx: &Outbox) {
 
 /// Sign in to a tracker, off the UI thread: it opens a browser and waits.
 pub fn connect(tracker: String, job: Option<JobGuard>, services: &Services, tx: &Outbox) {
-    let Services { sync, .. } = services;
-    let (sync, tx) = (sync.clone(), tx.clone());
+    let Services { sync, host, .. } = services;
+    let (sync, host, tx) = (sync.clone(), host.clone(), tx.clone());
     tokio::spawn(async move {
         let _job = job;
-        tracking::connect(sync, tracker, tx).await;
+        tracking::connect(sync, host, tracker, tx).await;
     });
 }
 

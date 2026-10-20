@@ -1,11 +1,12 @@
 //! `anistream --preview`: one frame of the interface, with live data, printed as text.
 
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use anistream_core::config::{Config, Paths};
 use anistream_engine::{
     data,
     dispatch::{handle_internal, meta_notice},
+    host::DesktopHost,
     outbox::{Envelope, Outbox},
     services::Services,
     sources,
@@ -75,8 +76,9 @@ pub async fn preview(
     if let Ok(Some(reason)) = plugins.await {
         note = Some(reason);
     }
+    let host = Arc::new(DesktopHost);
     let services =
-        Services::build(&config, paths.clone(), http, store, registry, player_theme())
+        Services::build(&config, paths.clone(), http, store, registry, player_theme(), host)
             .map_err(anyhow::Error::msg)?;
     // Nothing in a still frame brings a torrent source up, so nothing reports on this.
     let state = EngineState::new(config.clone(), mpsc::unbounded_channel().0);

@@ -21,14 +21,15 @@
 //!   keychain — and a signed-in AniList pointed at the fake;
 //! - one [`HttpClient::offline`] for everything, so a request for any host by name fails at
 //!   once rather than leaving the machine. The plugin store client is the exception, being its
-//!   own `reqwest` client: it is only ever given loopback addresses here.
+//!   own `reqwest` client: it is only ever given loopback addresses here;
+//! - a [`Host`] that opens no page and shows no notification, and keeps what it was asked.
 //!
 //! What it does not stand up: a torrent session, a VPN guard, mpv or a browser. A config that
 //! asks for torrents is refused, and so are the tasks that would start a player or open a page.
 
 use std::{
     collections::{HashSet, VecDeque},
-    sync::Arc,
+    sync::{Arc, Mutex},
     time::Duration,
 };
 
@@ -36,6 +37,7 @@ use anistream_core::config::{Config, NetworkConfig, Paths};
 use anistream_engine::{
     data,
     dispatch::{dispatch, handle_internal, receive},
+    host::Host,
     outbox::{Envelope, Internal, Outbox, WeakOutbox},
     playback::{prefetch::Prefetch, slot::PlayerSlot},
     plugin_stores,
@@ -240,6 +242,7 @@ impl Harness {
                 slot: PlayerSlot::default(),
                 prefetch: Prefetch::default(),
                 player_theme: theme::player_theme(),
+                host: Arc::new(TestHost::default()),
             },
             _arrived: arrived,
             _root: root,
@@ -493,6 +496,27 @@ impl Harness {
             }
             update => self.app.apply(update),
         }
+    }
+}
+
+/// The machine the harness runs on: it opens nothing and notifies nobody, and keeps what it was
+/// asked to do, in order.
+///
+/// Every page it is asked to open opens, as far as the engine can tell, so the work carries on
+/// as it would once the browser is up.
+#[derive(Default)]
+struct TestHost {
+    asked: Mutex<Vec<String>>,
+}
+
+impl Host for TestHost {
+    fn open_url(&self, url: &str) -> Result<(), String> {
+        self.asked.lock().expect("the host's record").push(format!("open {url}"));
+        Ok(())
+    }
+
+    fn notify(&self, title: &str, body: &str) {
+        self.asked.lock().expect("the host's record").push(format!("notify {title}: {body}"));
     }
 }
 
