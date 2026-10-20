@@ -110,7 +110,11 @@ impl PlaybackContext {
             _ => format!("Opening Episode {}…", successor.episode),
         }
     }
+}
 
+/// What the player's companion is told of the episode: mpv's own business, beside what any
+/// player is told of a playback above.
+impl PlaybackContext {
     fn episode_info(&self, episodes: &[EpisodeEntry]) -> companion::EpisodeInfo {
         companion::EpisodeInfo {
             number: self.episode.clone(),
