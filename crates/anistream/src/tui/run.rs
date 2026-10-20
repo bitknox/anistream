@@ -144,9 +144,13 @@ pub async fn run(
             engine.send(Command::FetchArtwork { url });
         }
 
-        // Auto-next is queued by the reducer rather than returned, because an episode ending
-        // arrives as an update rather than a keystroke.
-        if let Some(task) = app.take_pending() {
+        // Work the reducer queued while applying an update rather than handling a key. What a
+        // playback leads to — the next episode, one picked in the player, the next one's
+        // streams found ahead — the engine starts itself; the reducer still works out its own
+        // answer until that goes, and it is not sent.
+        if let Some(task) = app.take_pending()
+            && !matches!(task, Command::Play { .. } | Command::Prefetch { .. })
+        {
             engine.send(task);
         }
 

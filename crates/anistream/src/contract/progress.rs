@@ -27,14 +27,14 @@ use crate::harness::{Harness, Options, names};
 
 /// Three episodes of [`FINISHED`] watched two days ago and the fourth stopped five minutes in,
 /// an hour ago: Home has it to continue.
-fn seed_partway(h: &Harness) {
+pub(super) fn seed_partway(h: &Harness) {
     seed::watched(h.store(), FINISHED, 3, FIXTURE_NOW - 2 * 86_400);
     seed::stopped_at(h.store(), FINISHED, "4", 300.0, FIXTURE_NOW - 3_600);
 }
 
 /// Home loaded, and the first title on it opened, as Enter on a row with nothing to resume
 /// opens it: Enter itself plays a row with something to resume.
-async fn opened(h: &mut Harness) {
+pub(super) async fn opened(h: &mut Harness) {
     h.reload();
     h.settle().await;
     h.press(Action::Open);
@@ -49,7 +49,7 @@ async fn at_the_table() -> Harness {
 }
 
 /// [`at_the_table`], set up as `options` say.
-async fn at_the_table_with(options: Options) -> Harness {
+pub(super) async fn at_the_table_with(options: Options) -> Harness {
     let mut h = Harness::with(options).await;
     seed_partway(&h);
     opened(&mut h).await;
@@ -60,7 +60,7 @@ async fn at_the_table_with(options: Options) -> Harness {
 }
 
 /// The episode under the table's cursor.
-fn cursor(h: &Harness) -> String {
+pub(super) fn cursor(h: &Harness) -> String {
     let app = h.app();
     app.episodes[app.episode_selected].number.clone()
 }
@@ -95,9 +95,14 @@ fn standing(h: &Harness, id: AnilistId) -> (Option<(u32, u32)>, Option<f64>) {
 /// Now Playing as the App stages it for `episode` of [`FINISHED`]: these tests have no player,
 /// so nothing else would stage it.
 fn stage(h: &mut Harness, episode: &str) {
+    stage_of(h, FINISHED, episode);
+}
+
+/// [`stage`], for `episode` of `id`.
+pub(super) fn stage_of(h: &mut Harness, id: AnilistId, episode: &str) {
     h.app_mut().playing = Some(NowPlaying {
-        id: Some(FINISHED),
-        title: title(FINISHED),
+        id: Some(id),
+        title: title(id),
         episode: episode.into(),
         speed: 1.0,
         ..NowPlaying::default()
@@ -105,10 +110,10 @@ fn stage(h: &mut Harness, episode: &str) {
 }
 
 /// The playback the tests play episode 4 in.
-const PLAYBACK: u64 = 1_000_001;
+pub(super) const PLAYBACK: u64 = 1_000_001;
 
 /// A tick of the playhead from [`PLAYBACK`].
-fn at(h: &mut Harness, position: f64) {
+pub(super) fn at(h: &mut Harness, position: f64) {
     let duration = Some(runtime_secs(FINISHED));
     let tick = Event::Playback { position, duration, paused: false };
     h.playback_says(PLAYBACK, FINISHED, "4", tick);
@@ -162,7 +167,7 @@ async fn a_playback_moves_the_table_and_continue_as_it_plays_and_as_it_ends() {
     assert_eq!(standing(&h, FINISHED), (Some((3, 4)), Some(720.0)), "and so does Continue");
 
     at(&mut h, 1_300.0);
-    let ended = Event::PlaybackEnded { watched: true, ending: Ending::Closed };
+    let ended = Event::playback_ended(true, Ending::Closed);
     h.playback_says(PLAYBACK, FINISHED, "4", ended);
     // And ahead of the ending, so the screen it drops back to shows the episode finished.
     assert_eq!(names(&h.settle().await), ["Progress", "Playback", "Progress", "PlaybackEnded"]);
@@ -212,7 +217,7 @@ async fn a_watch_from_home_moves_only_the_row_it_is_of() {
 
     stage(&mut h, "4");
     at(&mut h, 900.0);
-    let ended = Event::PlaybackEnded { watched: true, ending: Ending::Stopped };
+    let ended = Event::playback_ended(true, Ending::Stopped);
     h.playback_says(PLAYBACK, FINISHED, "4", ended);
     assert_eq!(names(&h.settle().await), ["Progress", "Playback", "Progress", "PlaybackEnded"]);
     assert_eq!(standing(&h, FINISHED), (Some((4, 5)), None));
@@ -221,7 +226,7 @@ async fn a_watch_from_home_moves_only_the_row_it_is_of() {
 
 /// The fixture source with its titles and their episodes listed, and no stream for any of
 /// them: a play is looked up and fails there, with no player to start.
-fn streamless() -> ProviderRegistry {
+pub(super) fn streamless() -> ProviderRegistry {
     let mut provider = MockProvider::new(sources::PROVIDER_ID).with_hits(sources::hits());
     for id in fixtures::ALL {
         provider = provider.with_episodes_for(sources::key(id), sources::episodes(id));
@@ -235,16 +240,13 @@ async fn an_ending_that_rolls_on_plays_the_next_episode_under_the_name_it_played
         at_the_table_with(Options { registry: Some(streamless()), ..Options::default() }).await;
     stage(&mut h, "4");
     at(&mut h, 1_400.0);
-    let ended = Event::PlaybackEnded {
-        watched: true,
-        ending: Ending::Complete { next: Some("5".into()) },
-    };
+    let ended = Event::playback_ended(true, Ending::Complete { next: Some("5".into()) });
     h.playback_says(PLAYBACK, FINISHED, "4", ended);
     let updates = h.settle().await;
 
-    // Episode 5 is staged and asked for, and the lookup finds nothing to play.
+    // Episode 5 is started and staged, and the lookup finds nothing to play.
     let looked_up = ["JobNote", "JobNote", "Toast", "PlaybackEnded", "Status", "JobDone"];
-    let finished_4 = ["Progress", "Playback", "Progress", "PlaybackEnded"];
+    let finished_4 = ["Progress", "Playback", "Progress", "PlaybackEnded", "PlaybackStaged"];
     assert_eq!(names(&updates), [&finished_4[..], &looked_up].concat());
     assert_eq!(finished(&h), ["1", "2", "3", "4"]);
     assert_eq!(standing(&h, FINISHED), (Some((4, 5)), None));
@@ -264,9 +266,9 @@ async fn an_episode_picked_in_the_player_is_asked_for_by_the_title_playing() {
     h.playback_says(PLAYBACK, FINISHED, "4", picked);
     let updates = h.settle().await;
 
-    // Asked for, as the player asked, and looked up; there is nothing to play it from.
+    // Started and staged, as the player asked, and looked up; there is nothing to play it from.
     let looked_up = ["JobNote", "JobNote", "Toast", "PlaybackEnded", "Status", "JobDone"];
-    let picked = ["Progress", "Playback", "PlayerPlayEpisode"];
+    let picked = ["Progress", "Playback", "PlayerPlayEpisode", "PlaybackStaged"];
     assert_eq!(names(&updates), [&picked[..], &looked_up].concat());
     assert!(
         toasts(&updates).iter().any(|toast| toast.starts_with("alert: ")),

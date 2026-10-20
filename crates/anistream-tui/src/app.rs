@@ -1053,6 +1053,9 @@ impl App {
                     self.playing = Some(kept);
                 }
             }
+            Event::PlaybackStaged { id, title, episode, episode_title, speed } => {
+                self.take_staged(id, title, episode, episode_title, speed);
+            }
             // The window has changed hands, so what reports from here on is the successor. What
             // the episode left moves of its title, the engine says ahead of this.
             Event::EpisodeLeft { id, episode, .. } => {
@@ -1064,9 +1067,9 @@ impl App {
                     self.superseded = None;
                 }
             }
-            // In effect for the session already: the engine put it there on the way.
-            Event::PlayerTranslation(translation) => {
-                self.push_toast(Notice::info(format!("now using {translation}")));
+            // In effect for the session already: the engine put it there on the way, and says
+            // that it now uses it.
+            Event::PlayerTranslation(_) => {
                 if let Some(playing) = &self.playing
                     && let Some(id) = playing.id
                 {
@@ -1116,13 +1119,9 @@ impl App {
                     && let Some(finished) = finished
                     && let Some(id) = finished.id
                 {
-                    // The filler walk reads this title's episode table, when it is known here.
-                    let after_filler = self.next_after_filler(id, next.clone());
-                    if after_filler != next {
-                        self.push_toast(Notice::info(format!(
-                            "skipped filler — ep {after_filler} next"
-                        )));
-                    }
+                    // The filler walk reads this title's episode table, when it is known here. That
+                    // it stepped over any is the engine's to say.
+                    let after_filler = self.next_after_filler(id, next);
                     // Under the name it was playing under: whichever title is open now may be
                     // another show entirely.
                     self.raise_now_playing_titled(id, finished.title, &after_filler);
@@ -2527,14 +2526,7 @@ impl App {
     /// The same staging with the title stated by the caller — the Downloads screen knows
     /// what its rows are called without any list selection being involved.
     fn raise_now_playing_titled(&mut self, id: AnilistId, title: String, episode: &str) {
-        self.eyecatch = Some(Eyecatch::new(format!("{title}  ·  ep {episode}")));
-        // One that has reported keeps playing until this one is found; one merely staged before
-        // this was never going to play.
-        let replaced = self.playing.take().filter(|p| p.duration.is_some());
-        if replaced.is_some() && self.superseded.is_none() {
-            self.superseded = replaced;
-        }
-        self.playing = Some(NowPlaying {
+        let playing = NowPlaying {
             id: Some(id),
             title,
             episode: episode.to_owned(),
@@ -2546,8 +2538,53 @@ impl App {
                 .and_then(|e| e.title.clone()),
             speed: self.settings.speed.unwrap_or(1.0),
             ..NowPlaying::default()
-        });
+        };
+        self.put_up(playing);
+    }
+
+    /// Now Playing for a playback just staged: the eyecatch over it while its stream is found,
+    /// and the view pushed.
+    fn put_up(&mut self, playing: NowPlaying) {
+        self.eyecatch =
+            Some(Eyecatch::new(format!("{}  ·  ep {}", playing.title, playing.episode)));
+        // One that has reported keeps playing until this one is found; one merely staged before
+        // this was never going to play.
+        let replaced = self.playing.take().filter(|p| p.duration.is_some());
+        if replaced.is_some() && self.superseded.is_none() {
+            self.superseded = replaced;
+        }
+        self.playing = Some(playing);
         self.nav.push(StageView::NowPlaying);
+    }
+
+    /// A playback the engine has staged, staged here as it says: see [`Event::PlaybackStaged`].
+    ///
+    /// Idempotent. A playback staged here already — as this asked for it, or as the engine said
+    /// it once before — is left as it is, eyecatch and all: it is the same playback while it has
+    /// not started playing, and the same title and episode.
+    fn take_staged(
+        &mut self,
+        id: AnilistId,
+        title: String,
+        episode: String,
+        episode_title: Option<String>,
+        speed: f64,
+    ) {
+        let staged_here = self.playing.as_ref().is_some_and(|playing| {
+            playing.id == Some(id) && playing.episode == episode && playing.duration.is_none()
+        });
+        if staged_here {
+            return;
+        }
+        let playing = NowPlaying {
+            id: Some(id),
+            title,
+            episode,
+            episode_title,
+            speed,
+            ..NowPlaying::default()
+        };
+        self.put_up(playing);
     }
 
     /// Name the episode just staged, when the caller knows it better than the table here — the
@@ -4433,10 +4470,7 @@ mod tests {
     /// The end of an episode mpv played to its end, naming the episode the player kept its
     /// window for when it rolls on.
     fn finished(next: Option<&str>) -> Event {
-        Event::PlaybackEnded {
-            watched: true,
-            ending: Ending::Complete { next: next.map(Into::into) },
-        }
+        Event::playback_ended(true, Ending::Complete { next: next.map(Into::into) })
     }
 
     fn app_at_episodes() -> App {
@@ -5298,7 +5332,7 @@ mod tests {
         // `playing` from it would leave a phantom player on screen.
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
-        a.apply(Event::PlaybackEnded { watched: false, ending: Ending::Closed });
+        a.apply(Event::playback_ended(false, Ending::Closed));
         assert!(a.playing.is_none());
 
         a.apply(Event::Playback { position: 100.0, duration: Some(1435.0), paused: false });
@@ -5321,7 +5355,7 @@ mod tests {
     fn quitting_partway_does_not_roll_on_to_the_next_episode() {
         let mut a = app_at_episodes();
         a.handle(Action::Open, 20);
-        a.apply(Event::PlaybackEnded { watched: false, ending: Ending::Closed });
+        a.apply(Event::playback_ended(false, Ending::Closed));
         assert_eq!(a.take_pending(), None);
     }
 
@@ -5333,7 +5367,7 @@ mod tests {
         for ending in [Ending::Closed, Ending::Stopped] {
             let mut a = app_at_episodes();
             a.handle(Action::Open, 20);
-            a.apply(Event::PlaybackEnded { watched: true, ending: ending.clone() });
+            a.apply(Event::playback_ended(true, ending.clone()));
             // That it is recorded as watched all the same is the engine's: see its record's
             // `closing_or_stopping_past_the_threshold_still_counts_as_watched`.
             assert_eq!(a.take_pending(), None, "{ending:?} rolled on");

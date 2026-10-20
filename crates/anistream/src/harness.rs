@@ -70,6 +70,25 @@ use crate::{covers, tui::run::show_config_problem};
 /// that never ends — a bug the failure names.
 const PATIENCE: Duration = Duration::from_secs(30);
 
+/// A config that runs mpv with no window and no sound, for a test that plays: the fixture
+/// source has a four-second test pattern for every episode, which mpv draws itself.
+pub const HEADLESS_MPV: &str = "[playback]\nmpv_args = [\"--vo=null\", \"--ao=null\"]\n";
+
+/// Whether mpv is here to play with, for a test that plays. CI's Linux job installs it and sets
+/// `ANISTREAM_REQUIRE_MPV`, so there a missing mpv fails the test instead of skipping it.
+pub async fn mpv_here() -> bool {
+    let dir = tempfile::tempdir().expect("a temporary directory for mpv");
+    let here = anistream_player::Mpv::new(dir.path()).is_available().await;
+    if !here {
+        assert!(
+            std::env::var("ANISTREAM_REQUIRE_MPV").as_deref() != Ok("1"),
+            "ANISTREAM_REQUIRE_MPV is set but mpv is not on PATH"
+        );
+        eprintln!("skipping: mpv is not on PATH");
+    }
+    here
+}
+
 /// The zone the app's clock reads dates in: nine hours east, far enough from UTC that a date
 /// taken in the wrong zone shows.
 pub fn zone() -> Zone {
@@ -116,6 +135,8 @@ pub struct Harness {
     engine: Engine,
     events: EventStream,
     jobs: Jobs,
+    /// The cross-check of what a playback leads to: see [`Follows`].
+    follows: Follows,
     /// How many commands the engine had routed when it last said it had nothing left to do.
     idle: u64,
     /// The last settle, by name: see [`Harness::trace`].
@@ -235,6 +256,7 @@ impl Harness {
             engine,
             events,
             jobs: Jobs::default(),
+            follows: Follows::default(),
             idle: 0,
             trace: Vec::new(),
             store,
@@ -278,6 +300,43 @@ impl Harness {
         self.send(task)
     }
 
+    /// Press a key that plays, as the event loop does: the reducer stages Now Playing and asks
+    /// for the play, which is sent.
+    ///
+    /// Only where nothing would start a player in front of the test: a source with no stream
+    /// for the episode, so the lookup fails before any player starts, or a config that runs mpv
+    /// with no window and no sound.
+    ///
+    /// # Panics
+    ///
+    /// When the key does not play.
+    pub fn press_to_play(&mut self, action: Action) -> Option<JobId> {
+        let task = self.app.handle(action, self.rows());
+        let Some(Command::Play { id, episode } | Command::PlaySource { id, episode, .. }) =
+            &task
+        else {
+            panic!("{action:?} played nothing: {task:?}")
+        };
+        self.follows.keyed.push_back((*id, episode.clone()));
+        self.dispatch(task.expect("a play"))
+    }
+
+    /// Quit, as the event loop does once it has left: the engine shut down and waited for.
+    /// Returns how long the shutdown took.
+    pub async fn quit(self) -> Duration {
+        // Cross-check, while the loop still tells the engine whether a playback is under way:
+        // the engine's own word on it has to agree with the loop's.
+        let under_way = self.app.playing.as_ref().is_some_and(|p| p.duration.is_some());
+        assert_eq!(
+            self.engine.under_way().await,
+            under_way,
+            "the engine and the loop disagree on whether a playback is under way"
+        );
+        let started = tokio::time::Instant::now();
+        self.engine.shutdown(under_way).await;
+        started.elapsed()
+    }
+
     /// Type into whatever field has the keyboard, a character at a time.
     pub fn type_text(&mut self, text: &str) {
         text.chars().for_each(|c| self.app.type_char(c));
@@ -315,9 +374,9 @@ impl Harness {
         let deadline = tokio::time::Instant::now() + PATIENCE;
         let mut seen = Vec::new();
         loop {
-            // Auto-next and the reducer's other follow-ups, as at the top of the loop.
+            // The reducer's follow-ups, as at the top of the loop.
             if let Some(task) = self.app.take_pending() {
-                self.dispatch(task);
+                self.pending(task);
             }
             for url in self.app.visible_artwork(self.rows()) {
                 self.dispatch(Command::FetchArtwork { url });
@@ -350,7 +409,41 @@ impl Harness {
             self.jobs.started,
             names(&seen)
         );
+        let Follows { asked, keyed } = &self.follows;
+        assert!(
+            asked.is_empty() && keyed.is_empty(),
+            "plays the App asked for, {asked:?}, and keys played, {keyed:?}, that the engine \
+             never staged, having seen {:?}",
+            names(&seen)
+        );
         seen
+    }
+
+    /// Apply what the work sends until `done` says one is the last, without waiting for the
+    /// rest: for a test that acts while work is still under way, as a person can. Returns what
+    /// was applied, in order, all but `JobStarted` as [`Self::settle`] does; the jobs still
+    /// running are left to run.
+    pub async fn settle_until(&mut self, done: impl Fn(&Event) -> bool) -> Vec<Event> {
+        let deadline = tokio::time::Instant::now() + PATIENCE;
+        let mut seen = Vec::new();
+        loop {
+            if let Some(task) = self.app.take_pending() {
+                self.pending(task);
+            }
+            if seen.last().is_some_and(&done) {
+                return seen;
+            }
+            let wait = deadline.saturating_duration_since(tokio::time::Instant::now());
+            match tokio::time::timeout(wait, self.events.next_traced()).await {
+                Ok(Some(Traced::Event(update))) => self.apply(update, &mut seen),
+                Ok(Some(Traced::Handled(message))) => self.handled(message),
+                Ok(Some(Traced::Idle { routed })) => self.idle = routed,
+                Ok(None) => panic!("the engine stopped, having seen {:?}", names(&seen)),
+                Err(_) => {
+                    panic!("still waiting after {PATIENCE:?}, having seen {:?}", names(&seen))
+                }
+            }
+        }
     }
 
     /// The engine's record of the titles, as it stands: what a play would take from it, for a
@@ -478,6 +571,7 @@ impl Harness {
     fn dispatch(&mut self, task: Command) -> Option<JobId> {
         let job = self.engine.send(task);
         self.jobs.started.extend(job);
+        self.jobs.numbered.extend(job);
         job
     }
 
@@ -507,12 +601,50 @@ impl Harness {
             self.trace.push(name(&update));
             seen.push(copy(&update));
         }
+        self.follows.staged(&update, &self.app, seen);
+        let rolling_on = match &update {
+            Event::PlaybackEnded { rolling_on, .. } => Some(*rolling_on),
+            _ => None,
+        };
+        let leads_on = matches!(
+            update,
+            Event::PlaybackEnded { .. }
+                | Event::PlayerPlayEpisode { .. }
+                | Event::PlayerTranslation(_)
+        );
         match update {
             // Decoded at once rather than on the blocking pool: settling has no frame to keep.
             Event::ArtworkReady { url, bytes } => {
                 covers::hand_over(&mut self.app, covers::now(url, &bytes));
             }
             update => self.app.apply(update),
+        }
+        if let Some(rolling_on) = rolling_on {
+            assert_eq!(
+                rolling_on,
+                self.app.will_play_next(),
+                "the engine says the ending rolls on, the App that it does not, or the other way \
+                 round, having seen {:?}",
+                names(seen)
+            );
+        }
+        // What the App made of an event that leads to a play, taken at once, so what it asked
+        // for is known before the engine's word on it is applied, however the events come.
+        if leads_on && let Some(task) = self.app.take_pending() {
+            self.pending(task);
+        }
+    }
+
+    /// Work the reducer queued, sent as the loop sends it. A play or a prefetch is what a
+    /// playback led to, which the engine has started already: the App's own answer, which it
+    /// still works out until it is deleted, is held to what the engine staged, not sent.
+    fn pending(&mut self, task: Command) {
+        match task {
+            Command::Play { id, episode } => self.follows.asked.push_back((id, episode)),
+            Command::Prefetch { .. } => {}
+            task => {
+                self.dispatch(task);
+            }
         }
     }
 }
@@ -538,18 +670,35 @@ impl Host for TestHost {
     }
 }
 
-/// The jobs the harness's commands started, held to what the work says of them.
+/// The jobs the harness's commands started, and the engine on its own, held to what the work
+/// says of them.
 #[derive(Default)]
 struct Jobs {
     /// Numbered by a command, and not yet announced: in the order the commands were sent.
     started: VecDeque<JobId>,
+    /// Every number a command's send returned.
+    numbered: HashSet<JobId>,
     /// Announced, and not yet ended.
     running: HashSet<JobId>,
+    /// Every job announced so far.
+    announced: HashSet<JobId>,
 }
 
 impl Jobs {
     fn check(&mut self, update: &Event, seen: &[Event]) {
         match update {
+            // A job of a command is announced in the order the commands were sent, by the
+            // number its send returned. One the engine started on its own — the next episode an
+            // ending rolls on to, an episode picked in the player — has a number no send
+            // returned, from the same count, and comes in its own place among them.
+            Event::JobStarted { job, .. } if !self.numbered.contains(job) => {
+                assert!(
+                    self.announced.insert(*job),
+                    "{job:?} announced twice, having seen {:?}",
+                    names(seen)
+                );
+                self.running.insert(*job);
+            }
             Event::JobStarted { job, .. } => {
                 let expected = self.started.pop_front();
                 assert_eq!(
@@ -559,6 +708,7 @@ impl Jobs {
                      having seen {:?}",
                     names(seen)
                 );
+                self.announced.insert(*job);
                 self.running.insert(*job);
             }
             Event::JobNote { job, .. } => assert!(
@@ -573,6 +723,59 @@ impl Jobs {
             ),
             _ => {}
         }
+    }
+}
+
+/// Cross-check, while the App still works out on its own what a playback leads to: the next
+/// episode an ending rolls on to, with filler stepped over, an episode picked in the player and
+/// the episode restarted in the other translation. The engine starts these itself, and says
+/// what it staged with `PlaybackStaged`; the App's answer is held to it.
+///
+/// Every play the App asks for has to be the next one the engine stages, title and episode;
+/// every play a key sent has to be staged in its turn too; and whichever it is, Now Playing as
+/// the App staged it has to be what the engine says, to the byte, eyecatch and all. An ending
+/// rolls on, as the engine says, exactly when the App asked for the next episode.
+#[derive(Default)]
+struct Follows {
+    /// Plays the App asked for after a playback's event, not yet staged by the engine.
+    asked: VecDeque<(anistream_core::ids::AnilistId, String)>,
+    /// Plays a key sent, not yet staged by the engine.
+    keyed: VecDeque<(anistream_core::ids::AnilistId, String)>,
+}
+
+impl Follows {
+    fn staged(&mut self, update: &Event, app: &App, seen: &[Event]) {
+        let Event::PlaybackStaged { id, title, episode, episode_title, speed } = update else {
+            return;
+        };
+        let staged = (*id, episode.clone());
+        if self.keyed.front() == Some(&staged) {
+            self.keyed.pop_front();
+        } else {
+            let asked = self.asked.pop_front();
+            assert_eq!(
+                asked,
+                Some(staged),
+                "the engine staged one play, the App asked for another, having seen {:?}",
+                names(seen)
+            );
+        }
+        let playing = app.playing.as_ref().expect("the App has staged Now Playing");
+        assert_eq!(
+            (
+                playing.id,
+                &playing.title,
+                &playing.episode,
+                &playing.episode_title,
+                playing.speed,
+                playing.duration,
+                playing.position,
+            ),
+            (Some(*id), title, episode, episode_title, *speed, None, 0.0),
+            "Now Playing as the App staged it is not what the engine staged"
+        );
+        let label = app.eyecatch.as_ref().map(|eyecatch| eyecatch.label.as_str());
+        assert_eq!(label, Some(format!("{title}  ·  ep {episode}").as_str()));
     }
 }
 
@@ -615,6 +818,7 @@ pub fn name(update: &Event) -> &'static str {
         Event::SkipCleared => "SkipCleared",
         Event::PlaybackSpeed(_) => "PlaybackSpeed",
         Event::PlaybackEnded { .. } => "PlaybackEnded",
+        Event::PlaybackStaged { .. } => "PlaybackStaged",
         Event::Resumed { .. } => "Resumed",
         Event::Sync(_) => "Sync",
         Event::ProgressQueued => "ProgressQueued",
@@ -712,8 +916,19 @@ fn copy(update: &Event) -> Event {
         Event::SkipAvailable { kind, to } => Event::SkipAvailable { kind: *kind, to: *to },
         Event::SkipCleared => Event::SkipCleared,
         Event::PlaybackSpeed(speed) => Event::PlaybackSpeed(*speed),
-        Event::PlaybackEnded { watched, ending } => {
-            Event::PlaybackEnded { watched: *watched, ending: ending.clone() }
+        Event::PlaybackEnded { watched, ending, rolling_on } => Event::PlaybackEnded {
+            watched: *watched,
+            ending: ending.clone(),
+            rolling_on: *rolling_on,
+        },
+        Event::PlaybackStaged { id, title, episode, episode_title, speed } => {
+            Event::PlaybackStaged {
+                id: *id,
+                title: title.clone(),
+                episode: episode.clone(),
+                episode_title: episode_title.clone(),
+                speed: *speed,
+            }
         }
         Event::Resumed { position } => Event::Resumed { position: *position },
         Event::Sync(state) => Event::Sync(state.clone()),

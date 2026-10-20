@@ -10,9 +10,10 @@ use tokio::sync::mpsc;
 use crate::{
     cache::{PlayHints, PlayKind},
     jobs::JobGuard,
-    outbox::Outbox,
+    outbox::{Outbox, Played},
     playback::{
         self,
+        autonext::{Follow, Staged},
         handoff::{Handoff, successor, take_controls},
         player::{player, shader_dir},
         resolve::{Resolved, resolve_for_playback},
@@ -43,7 +44,8 @@ fn hints_for(
     hints
 }
 
-/// Play an episode from whichever source the resolution ladder chooses.
+/// Play an episode from whichever source the resolution ladder chooses, staged for Now Playing
+/// as the engine's record of the titles names it, which the front end is told.
 ///
 /// No player handle is kept across the session: every play builds its own from the config in
 /// effect, which is the live one the Settings screen edits, as the front end last said. A
@@ -56,39 +58,9 @@ pub fn play(
     services: &Services,
     tx: &Outbox,
 ) {
-    let Services { paths, sync, prefetch, player_theme, .. } = services;
-    let played = engine.next_playback(id, &episode);
-    let PlayHints { title, next, episodes } = hints_for(id, &episode, PlayKind::Staged, engine);
-    let EngineState { config, player_tx, .. } = engine;
-    let config = config.effective();
-    // A fresh channel per playback. The one playing gives up its window only once
-    // this one has something to play — see `Handoff`.
-    let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
-    let prefetched = prefetch.take(id, &episode, config.playback.translation);
-    // Tracker ids rather than trackers: playback only needs to know which queues to
-    // append to, and passing the set would couple the player to the sync layer.
-    let tracker_ids = signed_in_tracker_ids(sync);
-    let extras = (next, episodes);
-    if extras.1.is_empty() {
-        fill_episodes(id, &episode, services, player_tx);
-    }
-    spawn_playback(
-        id,
-        episode,
-        None,
-        config.syncplay.enabled,
-        prx,
-        handoff,
-        config,
-        services,
-        &player(config, paths, player_theme),
-        tracker_ids,
-        extras,
-        shader_dir(config, paths),
-        prefetched,
-        job,
-        &tx.for_playback(played),
-    );
+    let billing = named(id, &episode, engine);
+    let staged = play_staged(id, episode, None, billing, job, engine, services, tx);
+    let _ = tx.send(staged);
 }
 
 /// Play the release the user picked in the Sources overlay.
@@ -103,16 +75,92 @@ pub fn play_source(
     services: &Services,
     tx: &Outbox,
 ) {
-    let Services { paths, sync, player_theme, .. } = services;
+    let billing = named(id, &episode, engine);
+    let pick = Some((provider_id, source_id));
+    let staged = play_staged(id, episode, pick, billing, job, engine, services, tx);
+    let _ = tx.send(staged);
+}
+
+/// Play what a playback led to, which the engine starts on its own: staged as `follow` says,
+/// under the name the playback before it went by. Returns what it was staged as, for the
+/// engine to say right after the event that led to it.
+pub(crate) fn play_following(
+    follow: Follow,
+    job: Option<JobGuard>,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &Outbox,
+) -> Event {
+    let Follow { id, episode, title, episode_title } = follow;
+    let billing = (title, episode_title);
+    play_staged(id, episode, None, billing, job, engine, services, tx)
+}
+
+/// What a play the front end asked for is staged as: the name the engine's record of the titles
+/// gives it, and the episode's own name from the table it holds when that is this title's.
+fn named(id: AnilistId, episode: &str, engine: &EngineState) -> (String, Option<String>) {
+    (engine.cache.name_for(id, PlayKind::Staged), engine.cache.episode_title(id, episode))
+}
+
+/// Stage a playback for Now Playing as `title`, with `episode_title`: the name the episode
+/// after it goes by too, and the engine's record of what Now Playing shows. Returns what the
+/// front end is told of it, for the caller to say in its place.
+fn stage(
+    played: &Played,
+    title: String,
+    episode_title: Option<String>,
+    engine: &mut EngineState,
+) -> Event {
+    engine.cache.announce(played.id, title.clone());
+    engine.staging.staged(Staged {
+        serial: played.serial,
+        id: played.id,
+        episode: played.episode.clone(),
+        title: title.clone(),
+        episode_title: episode_title.clone(),
+    });
+    Event::PlaybackStaged {
+        id: played.id,
+        title,
+        episode: played.episode.clone(),
+        episode_title,
+        // What the player starts at when it remembers a speed, and Now Playing until it says.
+        speed: engine.config.effective().playback.persisted_speed.unwrap_or(1.0),
+    }
+}
+
+/// Play an episode staged for Now Playing as `billing` says, its title and its episode's own
+/// name, from the release `pick` names or whichever the resolution ladder chooses. Returns what
+/// it was staged as.
+#[allow(clippy::too_many_arguments)]
+fn play_staged(
+    id: AnilistId,
+    episode: String,
+    // `(provider_id, source_id)` when the user picked an exact release in the Sources overlay.
+    pick: Option<(String, String)>,
+    (title, episode_title): (String, Option<String>),
+    job: Option<JobGuard>,
+    engine: &mut EngineState,
+    services: &Services,
+    tx: &Outbox,
+) -> Event {
+    let Services { paths, sync, prefetch, player_theme, .. } = services;
     let played = engine.next_playback(id, &episode);
+    let staged = stage(&played, title, episode_title, engine);
     let PlayHints { title, next, episodes } = hints_for(id, &episode, PlayKind::Staged, engine);
     let EngineState { config, player_tx, .. } = engine;
     let config = config.effective();
-    // Identical to Play except the stream comes from the exact release the user
-    // picked — same fresh channel, same session-replacement semantics. Never from the
-    // streams found ahead: the pick names its own release.
+    // A fresh channel per playback. The one playing gives up its window only once
+    // this one has something to play — see `Handoff`.
     let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
-    let prefetched = None;
+    // Never from the streams found ahead for a release picked by hand: the pick names its
+    // own. Otherwise the same fresh channel, the same session-replacement semantics.
+    let prefetched = match pick {
+        None => prefetch.take(id, &episode, config.playback.translation),
+        Some(_) => None,
+    };
+    // Tracker ids rather than trackers: playback only needs to know which queues to
+    // append to, and passing the set would couple the player to the sync layer.
     let tracker_ids = signed_in_tracker_ids(sync);
     let extras = (next, episodes);
     if extras.1.is_empty() {
@@ -121,7 +169,7 @@ pub fn play_source(
     spawn_playback(
         id,
         episode,
-        Some((provider_id, source_id)),
+        pick,
         config.syncplay.enabled,
         prx,
         handoff,
@@ -135,6 +183,7 @@ pub fn play_source(
         job,
         &tx.for_playback(played),
     );
+    staged
 }
 
 /// Play an episode for a Syncplay party rather than in a session of its own.
@@ -193,7 +242,9 @@ pub fn play_local(
     let PlayHints { next, episodes, .. } =
         engine.cache.hints(id, &episode, skip_filler, PlayKind::Staged);
     // Named by the download it plays: the Downloads screen says what its rows are called.
-    engine.cache.announce(id, title.clone());
+    let staged =
+        stage(&played, title.clone(), engine.cache.episode_title(id, &episode), engine);
+    let _ = tx.send(staged);
     let EngineState { config, player_tx, .. } = engine;
     let config = config.effective();
     // No provider walk and no torrent session — the file is on disk — but the full
@@ -336,10 +387,10 @@ fn spawn_playback(
                 let _ = tx.send(Event::Toast(Notice::alert(reason)));
                 // A window left open for this episode would wait for nothing.
                 slot.release();
-                let _ = tx.send(Event::PlaybackEnded {
-                    watched: false,
-                    ending: anistream_model::playback::Ending::Failed,
-                });
+                let _ = tx.send(Event::playback_ended(
+                    false,
+                    anistream_model::playback::Ending::Failed,
+                ));
                 // The playback this one took over left its "playing" line up for it to replace.
                 let _ = tx.send(Event::Status(String::new()));
                 return;

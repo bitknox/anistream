@@ -155,7 +155,7 @@ fn windows(updates: &[Event]) -> usize {
 /// The tracker's verdict and how the playback ended.
 fn ended(updates: &[Event]) -> Option<(bool, Ending)> {
     updates.iter().find_map(|u| match u {
-        Event::PlaybackEnded { watched, ending } => Some((*watched, ending.clone())),
+        Event::PlaybackEnded { watched, ending, .. } => Some((*watched, ending.clone())),
         _ => None,
     })
 }

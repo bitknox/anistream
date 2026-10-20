@@ -9,6 +9,7 @@
 
 mod session;
 
+pub mod autonext;
 pub mod handoff;
 pub mod mend;
 pub mod picture;

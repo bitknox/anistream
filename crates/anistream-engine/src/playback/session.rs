@@ -480,7 +480,7 @@ pub async fn play(
 ) {
     let Some(first) = streams.first() else {
         slot.release();
-        let _ = tx.send(Event::PlaybackEnded { watched: false, ending: Ending::Failed });
+        let _ = tx.send(Event::playback_ended(false, Ending::Failed));
         return;
     };
 
@@ -498,7 +498,7 @@ pub async fn play(
         let _ = tx.send(update);
         // Nothing plays here, so Now Playing comes down rather than waiting on a player that
         // was never going to report.
-        let _ = tx.send(Event::PlaybackEnded { watched: false, ending: Ending::Elsewhere });
+        let _ = tx.send(Event::playback_ended(false, Ending::Elsewhere));
         return;
     }
 
@@ -508,7 +508,7 @@ pub async fn play(
     if settings.party {
         slot.release();
         hand_to_syncplay(&settings.syncplay, &first.url, &tx);
-        let _ = tx.send(Event::PlaybackEnded { watched: false, ending: Ending::Elsewhere });
+        let _ = tx.send(Event::playback_ended(false, Ending::Elsewhere));
         return;
     }
 
@@ -627,8 +627,7 @@ pub async fn play(
                     let _ = tx.send(Event::Toast(Notice::alert(format!("mpv: {e}"))));
                     // The player never existed, but the UI has Now Playing up and a control
                     // surface pointed at it. Saying so is what takes them down.
-                    let _ = tx
-                        .send(Event::PlaybackEnded { watched: false, ending: Ending::Failed });
+                    let _ = tx.send(Event::playback_ended(false, Ending::Failed));
                     let _ = tx.send(Event::Status(String::new()));
                     return;
                 }
@@ -770,8 +769,7 @@ pub async fn play(
                 } else {
                     Ending::Failed
                 };
-                let _ =
-                    tx.send(Event::PlaybackEnded { watched: watched.unwrap_or(false), ending });
+                let _ = tx.send(Event::playback_ended(watched.unwrap_or(false), ending));
                 let _ = tx.send(Event::Status(String::new()));
                 return;
             }

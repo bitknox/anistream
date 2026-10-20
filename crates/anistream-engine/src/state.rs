@@ -24,6 +24,7 @@ use crate::{
     cache::TitleCache,
     config::ConfigState,
     outbox::Played,
+    playback::autonext::Staging,
     sources::{TorrentUp, torrent::TorrentTasks},
 };
 
@@ -57,6 +58,8 @@ pub struct EngineState {
     pub playbacks: u64,
     /// The engine's record of the titles the front end shows: see [`TitleCache`].
     pub cache: TitleCache,
+    /// Which playback Now Playing shows, and what it goes back to: see [`Staging`].
+    pub staging: Staging,
 }
 
 impl EngineState {
@@ -78,6 +81,7 @@ impl EngineState {
             arrivals,
             playbacks: 0,
             cache: TitleCache::default(),
+            staging: Staging::default(),
         }
     }
 

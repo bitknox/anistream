@@ -8,10 +8,13 @@
 //! change of a field's type.
 //!
 //! Grouped by feature: the lists and loads, a title's page and its sources, settings, watching
-//! and the trackers, downloads, plugin stores, and the rules every job keeps. Playback is not
-//! here: it needs mpv, and the engine's `tests/binge.rs` covers it.
+//! and the trackers, downloads, plugin stores, and the rules every job keeps. Playback is here
+//! as far as it goes without a player: what a playback says moves a title on, and leads the
+//! engine to the next play, which a source with no stream lets it start and look up. The
+//! player itself needs mpv, and the engine's `tests/binge.rs` covers it.
 
 mod downloads;
+mod follow;
 mod jobs;
 mod lists;
 mod preview;

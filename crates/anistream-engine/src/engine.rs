@@ -43,7 +43,12 @@ use crate::{
     jobs::JobGuard,
     options::EngineOptions,
     outbox::{Envelope, Internal, Outbox, Played, WeakOutbox},
-    playback::player::{launch_notice, player},
+    playback::{
+        autonext,
+        player::{launch_notice, player},
+        prefetch::prefetch,
+        start::play_following,
+    },
     plugin_stores,
     services::Services,
     settings,
@@ -65,9 +70,10 @@ const TORRENT_CLOSE: Duration = Duration::from_secs(1);
 /// the runtime it runs on ends, as it always has when the app quits.
 pub struct Engine {
     commands: mpsc::UnboundedSender<Message>,
-    /// Jobs numbered so far, here rather than in the actor so [`Self::send`] can say at once
-    /// which number the actor will announce.
-    jobs: AtomicU64,
+    /// Jobs numbered so far, here as well as in the actor so [`Self::send`] can say at once
+    /// which number the actor will announce. The actor numbers the jobs it starts on its own
+    /// from the same count: see [`Jobs`].
+    jobs: Jobs,
     /// Commands sent so far, which an idle engine's word is read against: see `Traced::Idle`.
     #[cfg(feature = "testing")]
     sent: AtomicU64,
@@ -88,6 +94,20 @@ enum Message {
     /// The engine's record of the titles, as it stands: see [`Engine::title_cache`].
     #[cfg(feature = "testing")]
     TitleCache(oneshot::Sender<crate::cache::TitleCache>),
+    /// Whether a playback is under way, as the engine sees it: see [`Engine::under_way`].
+    #[cfg(feature = "testing")]
+    UnderWay(oneshot::Sender<bool>),
+}
+
+/// The count jobs are numbered by, from one: shared by [`Engine::send`], which numbers the
+/// jobs of the commands sent, and the actor, which numbers the jobs it starts on its own.
+#[derive(Clone, Default)]
+struct Jobs(Arc<AtomicU64>);
+
+impl Jobs {
+    fn next(&self) -> JobId {
+        JobId::new(self.0.fetch_add(1, Ordering::Relaxed) + 1)
+    }
 }
 
 impl Engine {
@@ -279,6 +299,7 @@ impl Engine {
 
         let (commands_tx, commands) = mpsc::unbounded_channel();
         let (out, live) = mpsc::unbounded_channel();
+        let jobs = Jobs::default();
         let actor = Actor {
             state,
             services,
@@ -286,6 +307,7 @@ impl Engine {
             commands,
             arrivals,
             out,
+            jobs: jobs.clone(),
             #[cfg(feature = "testing")]
             routed: 0,
             #[cfg(feature = "testing")]
@@ -297,7 +319,7 @@ impl Engine {
 
         let engine = Self {
             commands: commands_tx,
-            jobs: AtomicU64::new(0),
+            jobs,
             #[cfg(feature = "testing")]
             sent: AtomicU64::new(0),
         };
@@ -315,9 +337,7 @@ impl Engine {
     ///
     /// `None` too once the engine has stopped, when nothing would announce the job.
     pub fn send(&self, command: Command) -> Option<JobId> {
-        let job = command.activity().map(|activity| {
-            (JobId::new(self.jobs.fetch_add(1, Ordering::Relaxed) + 1), activity)
-        });
+        let job = command.activity().map(|activity| (self.jobs.next(), activity));
         let id = job.as_ref().map(|(id, _)| *id);
         #[cfg(feature = "testing")]
         self.sent.fetch_add(1, Ordering::Relaxed);
@@ -383,6 +403,15 @@ impl Engine {
     pub async fn title_cache(&self) -> crate::cache::TitleCache {
         let (tx, rx) = oneshot::channel();
         let _ = self.commands.send(Message::TitleCache(tx));
+        rx.await.expect("the engine answers while it runs")
+    }
+
+    /// Whether the engine sees a playback under way, as the exit would: the one Now Playing
+    /// shows, started and not ended. Read after every command sent before it is routed.
+    #[cfg(feature = "testing")]
+    pub async fn under_way(&self) -> bool {
+        let (tx, rx) = oneshot::channel();
+        let _ = self.commands.send(Message::UnderWay(tx));
         rx.await.expect("the engine answers while it runs")
     }
 }
@@ -573,6 +602,8 @@ struct Actor {
     commands: mpsc::UnboundedReceiver<Message>,
     arrivals: mpsc::UnboundedReceiver<(u64, Result<TorrentUp, String>)>,
     out: mpsc::UnboundedSender<Out>,
+    /// The count the jobs it starts on its own are numbered by: see [`Jobs`].
+    jobs: Jobs,
     /// Commands routed so far.
     #[cfg(feature = "testing")]
     routed: u64,
@@ -615,7 +646,7 @@ impl Actor {
                     #[cfg(feature = "testing")]
                     Some(Message::InjectFrom(played, event)) => {
                         if self.injected.insert(played.serial) {
-                            self.state.cache.started(&played);
+                            self.started(&played);
                         }
                         let _ = self.inbox.sender().for_playback(played).send(event);
                         self.routed += 1;
@@ -623,6 +654,10 @@ impl Actor {
                     #[cfg(feature = "testing")]
                     Some(Message::TitleCache(answer)) => {
                         let _ = answer.send(self.state.cache.clone());
+                    }
+                    #[cfg(feature = "testing")]
+                    Some(Message::UnderWay(answer)) => {
+                        let _ = answer.send(self.under_way());
                     }
                     // Every handle on the engine has gone.
                     None => return,
@@ -683,7 +718,7 @@ impl Actor {
     /// A title the event moves on — a tick of the playhead, an ending, a window handed over —
     /// is said whole just before it, so that whatever the event brings up, the screen a
     /// finished episode drops back to among them, shows the title as it now stands.
-    fn forward(&mut self, event: Event, played: Option<Played>) {
+    fn forward(&mut self, mut event: Event, played: Option<Played>) {
         let Self { services, inbox, .. } = self;
         let said = receive(&event, services, || inbox.sender());
         said.into_iter().for_each(|said| self.pass_on(said));
@@ -696,7 +731,71 @@ impl Actor {
         // coming after the event, in its place in the inbox.
         let Self { services, inbox, state, .. } = self;
         settings::remember(&event, state, services, || inbox.sender());
+        // What it leads to on its own, started now and said right after it, so nothing the
+        // front end reads comes between an ending and the episode it rolls on to.
+        let after = self.follow(&mut event, played.as_ref());
         self.pass_on(event);
+        after.into_iter().for_each(|said| self.pass_on(said));
+    }
+
+    /// Start what a playback's event leads to — the next episode an ending rolls on to, an
+    /// episode picked in the player, the episode restarted in the other translation, the next
+    /// episode's streams found ahead — and return what to say of it after the event: see
+    /// [`autonext`]. An ending that rolls on is said to.
+    ///
+    /// A play started here is a job like one the front end asks for, numbered from the same
+    /// count, and staged like one: it is announced, then said as `PlaybackStaged`.
+    fn follow(&mut self, event: &mut Event, played: Option<&Played>) -> Vec<Event> {
+        let finished = self.state.staging.observe(event, played);
+        if let Event::PrefetchNext { id, episode } = event {
+            prefetch(*id, episode.clone(), &self.state, &self.services);
+            return Vec::new();
+        }
+        let skip_filler = self.state.config.effective().playback.skip_filler;
+        let (mut said, follow) = autonext::follow(
+            event,
+            finished,
+            self.state.staging.front(),
+            &self.state.cache,
+            skip_filler,
+        );
+        let Some(follow) = follow else { return said };
+        if let Event::PlaybackEnded { rolling_on, .. } = event {
+            *rolling_on = true;
+        }
+        let tx = self.inbox.sender();
+        let play = Command::Play { id: follow.id, episode: follow.episode.clone() };
+        let job =
+            play.activity().map(|activity| JobGuard::announce(self.jobs.next(), activity, &tx));
+        said.push(play_following(follow, job, &mut self.state, &self.services, &tx));
+        said
+    }
+
+    /// Whether a playback is under way: the one Now Playing shows has started playing, and
+    /// has not ended. One still finding its stream has nothing to record.
+    // Read by the cross-check alone until the exit asks the engine, not the front end.
+    #[cfg_attr(not(feature = "testing"), allow(dead_code))]
+    fn under_way(&self) -> bool {
+        let EngineState { staging, cache, .. } = &self.state;
+        staging.front().is_some_and(|front| cache.under_way(front.serial))
+    }
+
+    /// A playback a test speaks for has started, as a play the front end asked for starts
+    /// one: the record takes what it says from now, and Now Playing shows it.
+    #[cfg(feature = "testing")]
+    fn started(&mut self, played: &Played) {
+        use crate::{cache::PlayKind, playback::autonext::Staged};
+        let EngineState { cache, staging, .. } = &mut self.state;
+        cache.started(played);
+        let title = cache.name_for(played.id, PlayKind::Staged);
+        cache.announce(played.id, title.clone());
+        staging.staged(Staged {
+            serial: played.serial,
+            id: played.id,
+            episode: played.episode.clone(),
+            title,
+            episode_title: cache.episode_title(played.id, &played.episode),
+        });
     }
 
     /// The torrent source is up, or will not come up; only the latest bring-up counts.

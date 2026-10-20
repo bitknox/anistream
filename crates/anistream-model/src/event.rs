@@ -111,6 +111,9 @@ pub enum Event {
     /// The player asked for an episode of what is playing: its Episodes menu, Up Next's
     /// "play now", N/P inside the window, or the terminal's n/N. `title` is the episode's name
     /// from the episode list the playback holds, which is that title's whatever is open here.
+    ///
+    /// The engine starts it, of the title Now Playing shows, and says so with the
+    /// [`Event::PlaybackStaged`] that follows this: there is nothing here for a front end to do.
     PlayerPlayEpisode {
         episode: String,
         title: Option<String>,
@@ -128,6 +131,8 @@ pub enum Event {
         watched: bool,
     },
     /// Sub or dub, picked in the player: the episode restarts in the other one, where it was.
+    /// The engine puts it in effect for the session, restarts the episode Now Playing shows and
+    /// says so, with a notice and the [`Event::PlaybackStaged`] that follow this.
     PlayerTranslation(anistream_core::media::Translation),
     /// An upscaling mode picked in the player, by its config name.
     PlayerUpscaling(String),
@@ -135,8 +140,8 @@ pub enum Event {
     PlayerNightMode(bool),
     /// An HDR tone-mapping curve picked in the player.
     PlayerToneMapping(String),
-    /// The episode playing has reached its ending: find the next one's streams now, so Up Next
-    /// can start it without a search.
+    /// The episode playing has reached its ending, and the engine is finding the next one's
+    /// streams now, so Up Next can start it without a search.
     PrefetchNext {
         id: AnilistId,
         episode: String,
@@ -156,9 +161,33 @@ pub enum Event {
     PlaybackSpeed(f64),
     /// A playback is over. `watched` is the tracker's verdict, for the meters; `ending` is how
     /// it came to an end, which is what decides whether anything plays next.
+    ///
+    /// `rolling_on` is whether it did: the engine has started the next episode in the same
+    /// window, and stages it with the [`Event::PlaybackStaged`] that follows this, so Now
+    /// Playing stays up for it rather than coming down. Only an ending of the playback Now
+    /// Playing shows rolls on, when mpv played it to its end and the playback kept its window
+    /// for the next. A playback cannot know this of itself, and says `false`
+    /// ([`Event::playback_ended`]); the engine says it on the way.
     PlaybackEnded {
         watched: bool,
         ending: Ending,
+        rolling_on: bool,
+    },
+    /// A playback the engine has started, as Now Playing shows it while its stream is found:
+    /// whose it is, what it is called, which episode and the episode's own name, and the speed
+    /// it starts at. Said for every play Now Playing shows, the ones a front end asked for and
+    /// the ones the engine starts on its own: the next episode an ending rolls on to, an episode
+    /// picked in the player, and an episode restarted in the other translation.
+    ///
+    /// Applied idempotently: a front end that staged this playback itself, as it asked for it,
+    /// or was told it once already, changes nothing. A watch party is not staged, and is not
+    /// said: the party's player is not the app's.
+    PlaybackStaged {
+        id: AnilistId,
+        title: String,
+        episode: String,
+        episode_title: Option<String>,
+        speed: f64,
     },
     /// Playback started from a stored position rather than the beginning.
     Resumed {
@@ -248,4 +277,12 @@ pub enum Event {
         store: String,
         plugins: Vec<LocalPluginRow>,
     },
+}
+
+impl Event {
+    /// A playback's ending as the playback says it: whether it rolls on is not its to know,
+    /// and the engine says it on the way. See [`Event::PlaybackEnded`].
+    pub fn playback_ended(watched: bool, ending: Ending) -> Self {
+        Self::PlaybackEnded { watched, ending, rolling_on: false }
+    }
 }

@@ -236,7 +236,7 @@ impl TitleCache {
                 filler: row.skippable,
             })
             .collect();
-        PlayHints { title: self.announce_as(id, kind), next, episodes }
+        PlayHints { title: self.name_for(id, kind), next, episodes }
     }
 
     /// The name a play of `id` is announced by: the one its last playback went by, so an
@@ -244,7 +244,7 @@ impl TitleCache {
     /// other translation — goes by the name the one before did; else what the title is called
     /// here. A playback with no name to go by is staged as just that, playing; a watch party
     /// stages nothing, and has none.
-    fn announce_as(&self, id: AnilistId, kind: PlayKind) -> String {
+    pub(crate) fn name_for(&self, id: AnilistId, kind: PlayKind) -> String {
         if let Some((_, title)) =
             self.announced.as_ref().filter(|(announced, _)| *announced == id)
         {
@@ -292,8 +292,26 @@ impl TitleCache {
     }
 
     /// The rows of the table loaded last, when it is this title's.
-    fn rows(&self, id: AnilistId) -> Option<&[EpisodeRow]> {
+    pub(crate) fn rows(&self, id: AnilistId) -> Option<&[EpisodeRow]> {
         self.table.as_ref().filter(|(table, _)| *table == id).map(|(_, rows)| rows.as_slice())
+    }
+
+    /// An episode's own name, from the table loaded last when it is this title's: what Now
+    /// Playing shows under the title. `None` for any other title's, rather than another
+    /// show's episode name.
+    pub fn episode_title(&self, id: AnilistId, episode: &str) -> Option<String> {
+        let row = self.rows(id)?.iter().find(|row| row.number == episode)?;
+        row.title.clone()
+    }
+
+    /// Whether playback `serial` has started playing and not ended: it has said how long its
+    /// episode is, which it does from its first frames, and not yet how it ended.
+    // Read by the cross-check alone until the exit asks the engine, not the front end.
+    #[cfg_attr(not(feature = "testing"), allow(dead_code))]
+    pub(crate) fn under_way(&self, serial: u64) -> bool {
+        self.playbacks
+            .get(&serial)
+            .is_some_and(|playhead| playhead.duration.is_some() && !playhead.ended)
     }
 
     /// A playback under way: started, and not yet ended.
@@ -606,14 +624,14 @@ mod tests {
     }
 
     fn finished(next: Option<&str>) -> Event {
-        Event::PlaybackEnded {
-            watched: true,
-            ending: anistream_model::playback::Ending::Complete { next: next.map(Into::into) },
-        }
+        Event::playback_ended(
+            true,
+            anistream_model::playback::Ending::Complete { next: next.map(Into::into) },
+        )
     }
 
     fn ended(watched: bool, ending: anistream_model::playback::Ending) -> Event {
-        Event::PlaybackEnded { watched, ending }
+        Event::playback_ended(watched, ending)
     }
 
     /// Episodes done and the one Continue offers, and where it resumes, as the record says.

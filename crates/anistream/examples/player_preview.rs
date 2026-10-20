@@ -113,7 +113,7 @@ async fn main() -> anyhow::Result<()> {
                 match update {
                     Event::Status(s) if !s.is_empty() => println!("  status: {s}"),
                     Event::Toast(t) => println!("  toast: {}", t.text),
-                    Event::PlaybackEnded { watched, ending } => {
+                    Event::PlaybackEnded { watched, ending, .. } => {
                         println!("  ended (watched: {watched}, {ending:?})")
                     }
                     _ => {}
