@@ -52,7 +52,7 @@ pub struct Entry {
     ///
     /// Answers the question a list of airing shows is actually asked — *is there something new
     /// to watch* — which neither the total episode count nor the next countdown can.
-    pub last_aired: Option<(u32, i64)>,
+    pub last_aired: Option<Aired>,
     /// An episode left part-watched, and where in it you stopped.
     ///
     /// Deliberately independent of the commit threshold. That threshold governs when an episode is
@@ -72,6 +72,24 @@ pub struct Entry {
     /// segment, and a status set in this session is remembered on the entry. `None` means not
     /// known, not "on no list" — nothing outside the Library carries the tracker's answer.
     pub list_status: Option<LibrarySegment>,
+}
+
+/// A title's most recent broadcast: which episode, and how long ago it aired.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct Aired {
+    pub episode: u32,
+    /// Seconds since it aired, as of when it was looked up.
+    pub ago: i64,
+}
+
+/// One title's most recent broadcast, as
+/// [`Event::LastAired`](crate::event::Event::LastAired) says it for each airing title of a list.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct TitleAired {
+    pub id: AnilistId,
+    pub aired: Aired,
 }
 
 /// One step of a title's watch order.
@@ -180,8 +198,10 @@ impl Entry {
     pub fn latest_aired(&self) -> Option<(u32, Option<i64>)> {
         let derived = self.next_episode.and_then(|n| n.checked_sub(1)).filter(|n| *n >= 1);
         match (self.last_aired, derived) {
-            (Some((episode, _)), Some(proven)) if proven > episode => Some((proven, None)),
-            (Some((episode, ago)), _) => Some((episode, Some(ago))),
+            (Some(Aired { episode, .. }), Some(proven)) if proven > episode => {
+                Some((proven, None))
+            }
+            (Some(Aired { episode, ago }), _) => Some((episode, Some(ago))),
             (None, proven) => proven.map(|episode| (episode, None)),
         }
     }
@@ -386,12 +406,12 @@ mod tests {
         // the last-aired schedule row still answers 7 — during that window the app named
         // the fresh episode only by its successor. Episode 8 is out, provably.
         let mut e = Entry::new(AnilistId::new(1), "Frieren");
-        e.last_aired = Some((7, 7 * 24 * 3600));
+        e.last_aired = Some(Aired { episode: 7, ago: 7 * 24 * 3600 });
         e.next_episode = Some(9);
         assert_eq!(e.latest_aired(), Some((8, None)), "the stale schedule row won");
 
         // When the sources agree, the schedule row's own timestamp is kept.
-        e.last_aired = Some((8, 3600));
+        e.last_aired = Some(Aired { episode: 8, ago: 3600 });
         assert_eq!(e.latest_aired(), Some((8, Some(3600))));
 
         // A premiere still ahead proves nothing aired.

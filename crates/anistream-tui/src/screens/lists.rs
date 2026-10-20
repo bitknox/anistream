@@ -735,7 +735,7 @@ pub(super) fn metadata_line(entry: &Entry) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anistream_model::event::Event;
+    use anistream_model::{catalog::Aired, event::Event};
 
     use crate::screens::{
         fixtures::{NOON_MONDAY, app_with, entry, lines_of, text_of},
@@ -912,7 +912,7 @@ mod tests {
         const DAY: i64 = 86_400;
         // The first upcoming row is the one selected, so its broadcast line is the preview's.
         let next = Entry {
-            last_aired: Some((3, 2 * DAY)),
+            last_aired: Some(Aired { episode: 3, ago: 2 * DAY }),
             next_episode: Some(4),
             next_airing_in: Some(4 * DAY + 20 * 3_600),
             ..airing(3, "Hoshikuzu no Tabibito", 4, 4 * DAY + 20 * 3_600)
@@ -959,7 +959,7 @@ mod tests {
     fn a_tracked_show_with_an_aired_episode_says_so() {
         let mut e = entry(1, "Frieren");
         e.progress = Some(TitleProgress { done: 7, next: 8 });
-        e.last_aired = Some((8, 3600));
+        e.last_aired = Some(Aired { episode: 8, ago: 3600 });
         let mut app = app_with(Content::Entries(vec![e]));
         // Too narrow for the preview, whose broadcast line would answer for the row.
         let text = text_of(&render_to_buffer(&mut app, 70, 30));
@@ -972,7 +972,7 @@ mod tests {
         // with you instead.
         let mut e = entry(1, "Frieren");
         e.progress = Some(TitleProgress { done: 8, next: 9 });
-        e.last_aired = Some((8, 3600));
+        e.last_aired = Some(Aired { episode: 8, ago: 3600 });
         e.airing_in = Some(2 * 24 * 3600 + 3600);
         e.next_episode = Some(9);
         let mut app = app_with(Content::Entries(vec![e]));
@@ -989,7 +989,7 @@ mod tests {
         // used to count down to 9 instead, naming the fresh episode only by its successor.
         let mut e = entry(1, "Frieren");
         e.progress = Some(TitleProgress { done: 7, next: 8 });
-        e.last_aired = Some((7, 7 * 24 * 3600));
+        e.last_aired = Some(Aired { episode: 7, ago: 7 * 24 * 3600 });
         e.next_episode = Some(9);
         e.airing_in = Some(7 * 24 * 3600);
         let mut app = app_with(Content::Entries(vec![e]));
@@ -1006,7 +1006,7 @@ mod tests {
         // preview read as the app contradicting itself.
         let mut e = entry(1, "Chainsmoker Cat");
         e.progress = Some(TitleProgress { done: 0, next: 1 });
-        e.last_aired = Some((4, 3600));
+        e.last_aired = Some(Aired { episode: 4, ago: 3600 });
         let mut app = app_with(Content::Entries(vec![e]));
         // Too narrow for the preview, whose broadcast line would answer for the row.
         let text = text_of(&render_to_buffer(&mut app, 70, 30));
@@ -1214,7 +1214,7 @@ mod tests {
     #[test]
     fn the_next_episode_is_worded_one_way() {
         let e = Entry {
-            last_aired: Some((3, 2 * 86_400)),
+            last_aired: Some(Aired { episode: 3, ago: 2 * 86_400 }),
             next_episode: Some(4),
             next_airing_in: Some(4 * 86_400 + 20 * 3600),
             airing_in: Some(4 * 86_400 + 20 * 3600),

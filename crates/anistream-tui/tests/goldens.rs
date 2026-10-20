@@ -31,7 +31,7 @@ use anistream_core::{
     traits::SourceCandidate,
 };
 use anistream_model::{
-    catalog::{Content, Entry, LibrarySegment, RelatedTitle, ResumePoint},
+    catalog::{Aired, Content, Entry, LibrarySegment, RelatedTitle, ResumePoint},
     command::Command,
     downloads::{DownloadRow, DownloadState, SeedRow},
     episodes::{EpisodeKind, EpisodeRow},
@@ -591,7 +591,7 @@ fn hoshikuzu() -> Entry {
         available_on: vec!["Hikari Stream".into(), "Nami TV".into()],
         progress: Some(TitleProgress { done: 3, next: 4 }),
         resume: Some(ResumePoint { position: 812.0, fraction: Some(0.57) }),
-        last_aired: Some((4, 2 * DAY + 3 * HOUR + 7 * MINUTE + 41)),
+        last_aired: Some(Aired { episode: 4, ago: 2 * DAY + 3 * HOUR + 7 * MINUTE + 41 }),
         next_episode: Some(5),
         next_airing_in: Some(4 * DAY + 20 * HOUR + 13 * MINUTE + 27),
         airing_in: Some(4 * DAY + 20 * HOUR + 13 * MINUTE + 27),
@@ -610,7 +610,7 @@ fn kaze() -> Entry {
         synopsis: "A postwoman in a hill town reads the wind for letters nobody sent.".into(),
         genres: vec!["Drama".into(), "Romance".into()],
         progress: Some(TitleProgress { done: 6, next: 7 }),
-        last_aired: Some((9, DAY + 2 * HOUR + 4 * MINUTE + 13)),
+        last_aired: Some(Aired { episode: 9, ago: DAY + 2 * HOUR + 4 * MINUTE + 13 }),
         next_episode: Some(10),
         next_airing_in: Some(5 * DAY + 21 * HOUR + 22 * MINUTE + 47),
         airing_in: Some(5 * DAY + 21 * HOUR + 22 * MINUTE + 47),
@@ -631,7 +631,7 @@ fn yoru() -> Entry {
             .into(),
         genres: vec!["Mystery".into(), "Supernatural".into()],
         progress: Some(TitleProgress { done: 5, next: 6 }),
-        last_aired: Some((5, 5 * DAY + 21 * HOUR + 18 * MINUTE + 51)),
+        last_aired: Some(Aired { episode: 5, ago: 5 * DAY + 21 * HOUR + 18 * MINUTE + 51 }),
         next_episode: Some(6),
         next_airing_in: Some(2 * HOUR + 41 * MINUTE + 9),
         airing_in: Some(2 * HOUR + 41 * MINUTE + 9),
@@ -1092,7 +1092,7 @@ fn title_not_started(s: &mut Screen) {
     settled_on(s, 3);
     let umibe = Entry {
         secondary: Some("The Seaside Café".into()),
-        last_aired: Some((2, 6 * DAY + 2 * HOUR + 11 * MINUTE + 5)),
+        last_aired: Some(Aired { episode: 2, ago: 6 * DAY + 2 * HOUR + 11 * MINUTE + 5 }),
         next_episode: Some(3),
         next_airing_in: Some(17 * HOUR + 48 * MINUTE + 31),
         ..catalogue(7).swap_remove(6)

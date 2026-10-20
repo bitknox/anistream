@@ -69,9 +69,9 @@ async fn continue_lists_the_latest_first_then_dates_what_is_airing() {
     assert_eq!(ids(content(&updates)), [AIRING, FINISHED], "most recent first");
     // Asked about the airing title only; the age is the real clock's, so only its sign is read.
     let Event::LastAired(rows) = &updates[1] else { unreachable!() };
-    let aired: Vec<_> = rows.iter().map(|(id, episode, _)| (*id, *episode)).collect();
+    let aired: Vec<_> = rows.iter().map(|row| (row.id, row.aired.episode)).collect();
     assert_eq!(aired, [(AIRING, 5)]);
-    assert!(rows.iter().all(|(_, _, age)| *age >= 0));
+    assert!(rows.iter().all(|row| row.aired.ago >= 0));
     ends(&updates, job);
     assert_eq!(h.server().requests_for(Operation::Many).len(), 1);
     assert_eq!(h.server().requests_for(Operation::LastAired).len(), 1);
@@ -109,7 +109,7 @@ async fn seasonal_names_its_season_before_the_list_and_dates_it_after() {
     );
     assert_eq!(ids(content(&updates)), SEASONAL);
     let Event::LastAired(rows) = &updates[2] else { unreachable!() };
-    let aired: Vec<_> = rows.iter().map(|(id, episode, _)| (*id, *episode)).collect();
+    let aired: Vec<_> = rows.iter().map(|row| (row.id, row.aired.episode)).collect();
     assert_eq!(aired, [(AIRING, 5), (AIRING_NO_MAL, 8)]);
     ends(&updates, job);
 }

@@ -4,7 +4,7 @@
 use anistream_core::ids::AnilistId;
 use anistream_meta::Meta;
 use anistream_model::{
-    catalog::{Content, ContentFor},
+    catalog::{Aired, Content, ContentFor, TitleAired},
     event::Event,
     notice::Notice,
 };
@@ -136,7 +136,13 @@ pub async fn publish_list(
                     // time is still ahead, and naming next week's episode as "out just now"
                     // is exactly the lie the broadcast line exists not to tell.
                     .filter(|r| r.airing_at <= now)
-                    .map(|r| (r.media_id, r.episode, now.saturating_sub(r.airing_at)))
+                    .map(|r| TitleAired {
+                        id: r.media_id,
+                        aired: Aired {
+                            episode: r.episode,
+                            ago: now.saturating_sub(r.airing_at),
+                        },
+                    })
                     .collect(),
             ));
         }

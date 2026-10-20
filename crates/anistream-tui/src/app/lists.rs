@@ -1,9 +1,8 @@
 //! The sections' lists: what each one asks for and takes, the calendar's paging back through
 //! time, Search with its filters, the Library's segments, and the Continue list.
 
-use anistream_core::ids::AnilistId;
 use anistream_model::{
-    catalog::{Content, ContentFor, Entry, SearchFilters},
+    catalog::{Content, ContentFor, Entry, SearchFilters, TitleAired},
     command::Command,
     event::Event,
     notice::Notice,
@@ -417,21 +416,21 @@ impl App {
     }
 
     /// When each title's latest episode aired, and which episode it was.
-    pub(super) fn apply_last_aired(&mut self, rows: Vec<(AnilistId, u32, i64)>) {
+    pub(super) fn apply_last_aired(&mut self, rows: Vec<TitleAired>) {
         // Applied to both the list and any open detail, since the same title can be
         // on screen twice and a line that appears in one place but not the other
         // reads as a bug.
         if let Content::Entries(entries) = &mut self.content {
             for entry in entries.iter_mut() {
-                if let Some((_, ep, at)) = rows.iter().find(|(id, _, _)| *id == entry.id) {
-                    entry.last_aired = Some((*ep, *at));
+                if let Some(row) = rows.iter().find(|row| row.id == entry.id) {
+                    entry.last_aired = Some(row.aired);
                 }
             }
         }
         if let Some(detail) = &mut self.detail
-            && let Some((_, ep, at)) = rows.iter().find(|(id, _, _)| *id == detail.id)
+            && let Some(row) = rows.iter().find(|row| row.id == detail.id)
         {
-            detail.last_aired = Some((*ep, *at));
+            detail.last_aired = Some(row.aired);
         }
     }
 
@@ -647,6 +646,7 @@ pub fn cycle_search_filter(
 
 #[cfg(test)]
 mod tests {
+    use anistream_core::ids::AnilistId;
     use anistream_model::progress::TitleProgress;
 
     use super::*;
