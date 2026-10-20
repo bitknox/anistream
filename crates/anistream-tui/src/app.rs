@@ -14,7 +14,7 @@ use anistream_model::{
     episodes::EpisodeRow,
     event::Event,
     jobs::JobId,
-    notice::{Notice, NoticeKind},
+    notice::{Notice, NoticeHint, NoticeKind},
     playback::{Ending, SkipKind},
     sources::{GuardView, MatchCandidate, MetaSourceRow, ProviderRow, order_with_source_moved},
     stores::{
@@ -483,6 +483,29 @@ pub fn vpn_badge(guard: &GuardView) -> (String, bool) {
         GuardView::Unreachable => (format!("vpn {}  unreachable", glyph::STATE_DOWN), true),
         GuardView::Unprotected => (format!("vpn {}  unprotected", glyph::STATE_DOWN), false),
     }
+}
+
+/// A notice as the terminal says it: what can be done about it, if the work said, put in the
+/// terminal's own words and keys.
+///
+/// Said where the work used to say the key itself, so the line reads exactly as it always has:
+/// after the text's first " — ", with a "; " before the rest of it, or at the end after a " — "
+/// of its own. Its key is the one bound now, so a rebind changes what the line says. Enter is
+/// named in words, as these lines always named it, where the binding would draw it as `↵`.
+pub fn worded(notice: Notice, keymap: &Keymap) -> Notice {
+    let Some(hint) = notice.hint else { return notice };
+    let said = match hint {
+        NoticeHint::StopPlayback => {
+            format!("press {} to stop", keymap.key_for(Action::StopPlayback))
+        }
+        NoticeHint::OpenStores => "Providers, Enter".into(),
+        NoticeHint::KitsuCredentials => "enter on its row asks for credentials".into(),
+    };
+    let text = match notice.text.split_once(" — ") {
+        Some((head, rest)) => format!("{head} — {said}; {rest}"),
+        None => format!("{} — {said}", notice.text),
+    };
+    Notice { kind: notice.kind, text, hint: None }
 }
 
 /// A store action waiting for a yes.
@@ -1035,15 +1058,9 @@ impl App {
         }
     }
 
-    /// The key for `action` as a sentence names it: the first one the help overlay lists, so a
-    /// rebind changes what the sentence says. Unbound, it points at the palette instead.
+    /// The key for `action` as a sentence names it: see [`Keymap::key_for`].
     pub fn key_for(&self, action: Action) -> String {
-        let mut keys = self.keymap.keys_for(action);
-        keys.sort();
-        keys.first().map_or_else(
-            || format!("\u{201c}{}\u{201d} in the palette", action.label().to_lowercase()),
-            crate::keymap::Binding::render,
-        )
+        self.keymap.key_for(action)
     }
 
     /// The key that jumps to `section`.
@@ -1582,6 +1599,9 @@ impl App {
     }
 
     pub fn push_toast(&mut self, notice: Notice) {
+        // In the terminal's words, before it is logged or compared: the line on screen and in
+        // the log is the one with the key in it.
+        let notice = worded(notice, &self.keymap);
         // Every toast is also a log line. A toast lives for a few seconds and the stack is
         // capped at three, so without this the *third* provider failure silently erases the
         // first — and when a source breaks, the earliest error is usually the one that explains
@@ -5428,6 +5448,54 @@ mod tests {
         }
         assert!(a.episodes[..4].iter().all(|r| r.completed));
         assert!(!a.episodes[4].completed, "the cursor row itself stays untouched");
+    }
+
+    #[test]
+    fn a_hint_is_said_in_the_terminal_s_words_where_the_key_used_to_be() {
+        // Each line as the work wrote it with the key in it, word for word.
+        let keymap = Keymap::new();
+        let said = |notice: Notice| worded(notice, &keymap).text;
+        let stalled = "mpv has not started playing after 20s — the source may have no data, \
+                       or check `mpv` plays a file on its own";
+        assert_eq!(
+            said(Notice::alert(stalled).with_hint(NoticeHint::StopPlayback)),
+            "mpv has not started playing after 20s — press x to stop; the source may have no \
+             data, or check `mpv` plays a file on its own"
+        );
+        assert_eq!(
+            said(Notice::info("plugin update ready: alpha").with_hint(NoticeHint::OpenStores)),
+            "plugin update ready: alpha — Providers, Enter"
+        );
+        assert_eq!(
+            said(
+                Notice::info("kitsu signs in from the Accounts screen")
+                    .with_hint(NoticeHint::KitsuCredentials)
+            ),
+            "kitsu signs in from the Accounts screen — enter on its row asks for credentials"
+        );
+        assert_eq!(said(Notice::info("no hint — said as sent")), "no hint — said as sent");
+
+        // The key bound now, not the default.
+        let mut keymap = Keymap::new();
+        let rebound = [("stop_playback".to_owned(), "s".to_owned())].into_iter().collect();
+        assert!(keymap.apply_overrides(&rebound).is_empty());
+        let notice = Notice::alert("stuck — try again").with_hint(NoticeHint::StopPlayback);
+        assert_eq!(worded(notice, &keymap).text, "stuck — press s to stop; try again");
+    }
+
+    #[test]
+    fn a_hinted_notice_is_shown_and_logged_as_the_terminal_words_it() {
+        let mut a = app();
+        let notice =
+            Notice::info("plugin update ready: alpha").with_hint(NoticeHint::OpenStores);
+        a.apply(Event::Toast(notice.clone()));
+        a.apply(Event::Toast(notice));
+        assert_eq!(a.toasts.len(), 1, "the same notice again is the same line");
+        assert_eq!(a.toasts[0].notice.text, "plugin update ready: alpha — Providers, Enter");
+        assert_eq!(
+            a.logs.last().unwrap().text,
+            "plugin update ready: alpha — Providers, Enter"
+        );
     }
 
     #[test]

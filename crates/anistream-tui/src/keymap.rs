@@ -897,6 +897,17 @@ impl Keymap {
             .collect()
     }
 
+    /// The key for `action` as a sentence names it: the first one the help overlay lists, so a
+    /// rebind changes what the sentence says. Unbound, it points at the palette instead.
+    pub fn key_for(&self, action: Action) -> String {
+        let mut keys = self.keys_for(action);
+        keys.sort();
+        keys.first().map_or_else(
+            || format!("\u{201c}{}\u{201d} in the palette", action.label().to_lowercase()),
+            Binding::render,
+        )
+    }
+
     /// The keys that reach `action` once the screen has the keyboard in `context`: every key
     /// bound to it, less any browsing key the playback table takes while something plays.
     ///

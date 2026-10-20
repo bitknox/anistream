@@ -157,13 +157,15 @@ pub async fn play_cli(
     }
 
     // The updates the TUI would draw, printed instead. Drained concurrently so a full
-    // channel can never stall the player.
+    // channel can never stall the player. A notice's hint in the terminal's words, as the
+    // work used to write it into the line: on the default keys, which are all this reads.
+    let keymap = anistream_tui::keymap::Keymap::new();
     let printer = tokio::spawn(async move {
         let mut watched = false;
         while let Some(update) = rx.recv().await {
             match update {
                 Event::Status(s) if !s.trim().is_empty() => println!("{s}"),
-                Event::Toast(t) => println!("{}", t.text),
+                Event::Toast(t) => println!("{}", anistream_tui::app::worded(t, &keymap).text),
                 Event::PlaybackEnded { watched: w, .. } => watched = w,
                 _ => {}
             }
