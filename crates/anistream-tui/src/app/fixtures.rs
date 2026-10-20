@@ -2,8 +2,6 @@
 //! the lists and playbacks a test sets the stage with, and the names the tests are written
 //! in.
 
-pub(super) use std::time::Duration;
-
 pub(super) use anistream_core::{
     config::Config, ids::AnilistId, settings::SettingValue, traits::SourceCandidate,
 };
@@ -15,8 +13,7 @@ pub(super) use anistream_model::{
     downloads::{DownloadRow, DownloadState},
     episodes::EpisodeRow,
     event::Event,
-    jobs::JobId,
-    notice::{Notice, NoticeHint, NoticeKind},
+    notice::{Notice, NoticeKind},
     playback::{Ending, SkipKind},
     progress::{EpisodeProgress, TitleProgress, mark_row},
     settings::{self, SettingKey, SettingsView},
