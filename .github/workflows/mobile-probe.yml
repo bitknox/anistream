@@ -1,0 +1,36 @@
+# TEMPORARY, for engine-p6b only: what the engine's C dependencies make of the phone targets,
+# before the mobile jobs are written into ci.yml. Removed before the branch's last commit.
+name: Mobile probe
+
+on:
+  push:
+    branches: [engine-p6b]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_PROFILE_DEV_DEBUG: line-tables-only
+
+jobs:
+  ios:
+    runs-on: macos-latest
+    env:
+      IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install && rustup target add aarch64-apple-ios
+      - run: xcodebuild -version && xcrun --sdk iphoneos --show-sdk-path && cmake --version
+      - run: cargo build -p anistream-engine --target aarch64-apple-ios --keep-going
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install && rustup target add aarch64-linux-android
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-ndk
+      - run: echo "$ANDROID_NDK_LATEST_HOME" && ls "$ANDROID_NDK_LATEST_HOME" && cmake --version
+      - run: ANDROID_NDK_HOME="$ANDROID_NDK_LATEST_HOME" cargo ndk -t arm64-v8a build -p anistream-engine --keep-going
