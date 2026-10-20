@@ -5,9 +5,11 @@ description: Plugins get no sockets and reach only the hosts they declare, throu
 
 A plugin has no sockets. It asks the host to make each request, through `fetch`.
 
-The host owns the browser-shaped TLS/HTTP2 handshake, so a plugin is a parser: it says what to
-request, the host makes the request. A plugin carries no networking stack of its own, inherits the
-fingerprint, and cannot exfiltrate anything, because the declared hosts are enforced host-side.
+The host makes every request with anistream's own HTTP client, so a plugin carries no networking
+code of its own: it says what to request, and the host makes the request. Requests go only to the
+hosts the plugin declares, because the host checks the allowlist before each one. A plugin can
+still send what it is given, such as your search terms and its own settings, to those hosts, so
+`anistream --plugins` and a store's page show them before you rely on a plugin.
 Regex, AES-CBC (128/192/256 by key length) and per-plugin settings are lent for the same reason.
 
 ## The limits

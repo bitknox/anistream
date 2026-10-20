@@ -61,7 +61,7 @@ Errors map one-for-one onto the registry's failover rules:
 | Return | Meaning | Failover? |
 |---|---|---|
 | `not-found` | Works, no such title or episode | Yes, not counted as a fault |
-| `blocked(msg)` | Bot protection, rate limit, geo-block, ban | Yes |
+| `blocked(msg)` | The site refused the request: a rate limit, a region block, an access check or a ban | Yes |
 | `parse(msg)` | Response arrived, did not look like expected | Yes |
 | `other(msg)` | Anything else | Yes |
 

@@ -1,6 +1,6 @@
 ---
 title: Torrents and the VPN guard
-description: Off by default, external by nature, and unreachable without a fail-closed VPN guard.
+description: The torrent source is off by default, has no indexer of its own, and pauses whenever the VPN check fails.
 ---
 
 :::caution[No indexer included]
@@ -55,6 +55,9 @@ account cannot be played.
 
 ## What the guard does
 
+Your VPN or proxy is what protects you. The guard checks where torrent traffic leaves from and
+pauses torrents when that check fails.
+
 - Routes the session through your VPN's SOCKS5 proxy.
 - Turns DHT off. SOCKS5 UDP-associate is unreliable and librqbit does not document whether
   DHT is tunnelled, so it is treated as a leak.
@@ -88,8 +91,9 @@ Playing while downloading means an episode can *count* before its file is comple
 [Watched versus resumable](/docs/guides/configuration/#watched-versus-resumable) keeps those ideas
 apart: `commit_threshold` decides when it is watched, and resume state is its own thing.
 
-Seeding is off by default, which is a privacy choice. Completed downloads get subtitles muxed in
-with a stream copy.
+Seeding after an episode is watched, and after a download finishes, is off by default, which is a
+privacy choice. An episode still uploads to its swarm while it plays, as [Seeding](#seeding)
+describes. Completed downloads get subtitles muxed in with a stream copy.
 
 ## Seeding
 

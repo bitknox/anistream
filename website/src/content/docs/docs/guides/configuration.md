@@ -53,8 +53,8 @@ own, and no entry does anything until you configure it.
   the [VPN guard](/docs/guides/torrents-vpn/).
 - `"plugins"` is every [provider plugin](/docs/plugins/authoring/) you have installed, by hand or
   from a [plugin store](/docs/plugins/stores/).
-- `"remote"` is a Consumet-shaped API you host yourself, which does nothing until
-  `providers.remote_url` names it.
+- `"remote"` is a JSON API you host yourself, answering `search/<query>`, `info/<id>` and
+  `watch/<id>-episode-<n>` under `providers.remote_url`. It does nothing until that is set.
 
 Plugins compile in the background and are cached, so they never hold up the first frame. An
 installed plugin is only used while `"plugins"` is in the order; drop it if you use none.
