@@ -22,9 +22,7 @@ uniffi = { workspace = true, optional = true }
 
 [features]
 # The model's types as UniFFI records and enums, for a native front end's bindings, with the core's
-# that they carry. Off by default, and built in CI only to report what still keeps the types from
-# crossing: tuples, tuple structs, borrowed strings and a Result in a field. It becomes a gate once
-# those are reshaped.
+# that they carry. Off by default; CI builds it on its own and fails on a type that cannot cross.
 ffi = ["dep:uniffi", "anistream-core/ffi"]
 
 [lints]
