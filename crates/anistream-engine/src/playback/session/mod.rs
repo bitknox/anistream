@@ -25,8 +25,8 @@ use anistream_model::{
 pub use anistream_model::playback::{EpisodeEntry, NextEpisode};
 use anistream_net::HttpClient;
 use anistream_player::{
-    Action, Choice, ExternalPlayer, Mpv, MpvSession, PlaybackEvent, PlaybackTracker,
-    ScriptEvent, SkipInterval, SkipKind, TrackAction, TrackInput, TrackPreferences, companion,
+    Action, Choice, ExternalPlayer, Mpv, PlaybackEvent, PlaybackTracker, ScriptEvent,
+    SkipInterval, SkipKind, TrackAction, TrackInput, TrackPreferences, companion,
 };
 use anistream_store::Store;
 use tokio::sync::mpsc;
@@ -43,6 +43,7 @@ use crate::{
 };
 
 mod companion_state;
+mod controls;
 mod presence;
 mod skips;
 mod subtitles;
@@ -53,6 +54,7 @@ pub use skips::{fetch_skips, offered};
 pub use upscaling::PictureState;
 
 use companion_state::fetch_still;
+use controls::apply_command;
 use presence::Rpc;
 use skips::{kind_id, skip_target};
 use subtitles::{localise_subtitles, sanitise};
@@ -999,183 +1001,8 @@ impl Run<'_> {
     }
 }
 
-impl Run<'_> {
-    /// Step to an adjacent episode: N/P in the player, n/N in the terminal.
-    ///
-    /// The next playback's arrival is what ends this one — the task runner hands this window
-    /// over to it — so nothing stops here, and nothing at all happens when the episode list says
-    /// there is no such episode: asking for it anyway handed the finale's window to a search
-    /// that could only fail, which closed the window on the episode being watched. An episode
-    /// list not known yet is no evidence either way, and the step goes ahead.
-    async fn step(&self, delta: i64, session: &MpvSession, from_terminal: bool) {
-        let target = self.context.episode.trim().parse::<i64>().ok().map(|n| n + delta);
-        let listed = |n: i64| {
-            self.episodes.is_empty() || self.episodes.iter().any(|e| e.number == n.to_string())
-        };
-        let refusal = match target {
-            Some(n) if n < 1 => Some("Already at the first episode".to_owned()),
-            Some(n) if listed(n) => None,
-            // "OVA" and "Special" have no neighbour to guess at.
-            _ if delta > 0 => Some(match target {
-                Some(_) => {
-                    format!("No next episode · {} is the last", self.context.episode_label())
-                }
-                None => "No next episode".to_owned(),
-            }),
-            _ => Some("No previous episode".to_owned()),
-        };
-        match (refusal, target) {
-            (Some(refusal), _) => {
-                // Said where the key was pressed.
-                if from_terminal {
-                    let _ = self.tx.send(Event::Toast(Notice::info(refusal.to_lowercase())));
-                } else {
-                    let _ = session.notify(refusal).await;
-                }
-            }
-            (None, Some(n)) => {
-                let episode = n.to_string();
-                let title = self.episode_title(&episode);
-                let _ = self.tx.send(Event::PlayerPlayEpisode { episode, title });
-            }
-            (None, None) => {}
-        }
-    }
-
-    /// An episode's name, from the list this playback holds.
-    fn episode_title(&self, number: &str) -> Option<String> {
-        self.episodes.iter().find(|e| e.number == number).and_then(|e| e.title.clone())
-    }
-
-    /// Answer what the viewer did inside the player. `Some` ends the file.
-    async fn answer(
-        &mut self,
-        event: &ScriptEvent,
-        session: &MpvSession,
-        tracker: &mut PlaybackTracker,
-        last_skip: &mut Option<SkipKind>,
-        streams: &[Stream],
-        index: usize,
-    ) -> Option<FileOutcome> {
-        let context = self.context;
-        let tx = self.tx;
-        match event {
-            ScriptEvent::Ready { uosc } => {
-                tracing::debug!(uosc, "companion script ready");
-            }
-            ScriptEvent::Next | ScriptEvent::Previous => {
-                let delta = if matches!(event, ScriptEvent::Next) { 1 } else { -1 };
-                self.step(delta, session, false).await;
-            }
-            ScriptEvent::PlayNext => {
-                if let Some(next) = &self.next {
-                    let _ = tx.send(Event::PlayerPlayEpisode {
-                        episode: next.number.clone(),
-                        title: next.title.clone(),
-                    });
-                }
-            }
-            // Held here, for this playback only: the next one starts with Up Next as the
-            // settings have it, however this episode was left.
-            ScriptEvent::CancelNext => self.cancel_next = true,
-            ScriptEvent::Skip => {
-                if let Some(to) =
-                    tracker.offered_skip().map(|s| skip_target(s.end, tracker.duration()))
-                {
-                    let _ = session.seek_to(to).await;
-                }
-            }
-            ScriptEvent::UndoSkip { to } => {
-                if let Some(kind) = last_skip.take() {
-                    tracker.decline(kind);
-                }
-                let _ = session.seek_to(*to).await;
-            }
-            ScriptEvent::Choose(choice) => match choice {
-                Choice::Episode(number) => {
-                    if *number != context.episode {
-                        let _ = tx.send(Event::PlayerPlayEpisode {
-                            episode: number.clone(),
-                            title: self.episode_title(number),
-                        });
-                    }
-                }
-                Choice::Source(id) => {
-                    if let Ok(to) = id.parse::<usize>()
-                        && to < streams.len()
-                        && to != index
-                    {
-                        return Some(FileOutcome::Switch { to, at: tracker.position() });
-                    }
-                }
-                Choice::Translation(value) => {
-                    let wanted =
-                        if value == "dub" { Translation::Dub } else { Translation::Sub };
-                    if wanted != context.translation {
-                        let _ = tx.send(Event::PlayerTranslation(wanted));
-                    }
-                }
-                // Handled where the picture state lives, in `file`.
-                Choice::Upscaling(_) | Choice::ToneMapping(_) => {}
-                Choice::NightMode(on) => {
-                    self.night = *on;
-                    self.apply_night(session).await;
-                    // The menu's toggle offers the opposite of what it was last told, so it has
-                    // to be told: left stale, turning night mode off offered "off" again, and
-                    // it could never be turned back on.
-                    let _ = session
-                        .send(companion::state("menus", &self.menus(streams, index)))
-                        .await;
-                    let _ = tx.send(Event::PlayerNightMode(*on));
-                }
-            },
-            ScriptEvent::StallSwitch | ScriptEvent::StallWait => {}
-        }
-        None
-    }
-}
-
 /// How often the battery is asked about during playback.
 const BATTERY_POLL: Duration = Duration::from_secs(60);
-
-/// Translate a UI control into mpv IPC.
-///
-/// Every failure is swallowed deliberately: mpv may have exited a millisecond ago, and a lost
-/// seek is not worth an error toast when the `Ended` event is already on its way.
-async fn apply_command(session: &MpvSession, command: PlayerCommand) {
-    match command {
-        PlayerCommand::TogglePause => {
-            let _ = session.pause_toggle().await;
-        }
-        PlayerCommand::Seek(delta) => {
-            let _ = session.seek(delta).await;
-        }
-        PlayerCommand::SeekTo(position) => {
-            let _ = session.seek_to(position).await;
-        }
-        PlayerCommand::Speed(delta) => {
-            let _ = session.nudge_speed(delta).await;
-        }
-        PlayerCommand::Volume(delta) => {
-            let _ = session.nudge_volume(delta).await;
-        }
-        PlayerCommand::Fullscreen => {
-            let _ = session.fullscreen_toggle().await;
-        }
-        PlayerCommand::Alert(text) => {
-            let _ = session.send(companion::toast(&text, companion::Level::Alert)).await;
-        }
-        // Detaching is purely a UI move — mpv is untouched, which is the whole point.
-        PlayerCommand::Detach => {}
-        // Handled by the playback loop itself, which owns the window and what it shows.
-        PlayerCommand::Handover(_)
-        | PlayerCommand::Episodes { .. }
-        | PlayerCommand::Step(_) => {}
-        PlayerCommand::Stop => {
-            let _ = session.quit().await;
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {
