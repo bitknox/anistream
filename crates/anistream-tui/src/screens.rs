@@ -420,6 +420,17 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
             // can mislabel a boundary, and the next reload corrects it.
             let mut current_day: Option<chrono::NaiveDate> = None;
             let today = app.clock.today();
+            // A calendar scrolled to its end keeps its last entry on the bottom row. Reaching
+            // back one more entry across a day costs three rows (the entry, its heading, the
+            // blank before the next), so with fewer free the window cannot fill, and `G` left
+            // them blank at the bottom. They go above the first heading instead. A calendar that
+            // fits on one screen starts at the top as ever.
+            let slack = match entries.len().checked_sub(1) {
+                Some(last) if section == Section::Calendar && start > 0 => visible
+                    .saturating_sub(calendar_rows(&app.clock, entries, start, last, visible)),
+                _ => 0,
+            };
+            rows.extend((0..slack).map(|_| ObiRow::new(String::new())));
             // The caption's row comes out of the window, not off the end of the list.
             let fits = visible.saturating_sub(rows.len());
             for (i, entry) in entries.iter().enumerate().skip(start).take(fits) {
@@ -430,7 +441,7 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
                 {
                     // A blank row before each ruling after the first — the separation is
                     // half the point of having days at all.
-                    if !rows.is_empty() {
+                    if rows.len() > slack {
                         rows.push(ObiRow::new(String::new()));
                     }
                     // Yesterday, today and tomorrow are where the calendar's answer
@@ -5887,6 +5898,42 @@ mod tests {
             "blank at the end:\n{lines:#?}"
         );
         assert!(lines.iter().any(|l| l.contains("▌ Weekly 79")), "the last row is selected");
+    }
+
+    /// The same end, where the last screenful starts on a day's heading: reaching back one
+    /// more entry would cost three rows with two free, so two rows were left blank under
+    /// the last entry. 13:31 at UTC+2 is a time that lines it up so.
+    #[test]
+    fn the_end_of_the_calendar_keeps_its_last_entry_at_the_bottom_across_a_day() {
+        let rows: Vec<Entry> = (0..80u32)
+            .map(|i| Entry {
+                airing_in: Some(3_600 + i64::from(i) * 600),
+                airing_episode: Some(i + 1),
+                ..entry(i + 1, &format!("Weekly {i}"))
+            })
+            .collect();
+        let mut app = app_with(Content::Empty);
+        app.clock =
+            Clock::fixed(NOON_MONDAY - 1_740, crate::clock::Zone::hours_east(2).unwrap());
+        app.go_to_section(Section::Calendar);
+        app.apply(app.content_here(Content::Entries(rows)));
+        app.nav.focus_stage();
+        let visible = visible_rows(Rect::new(0, 0, 120, 30), Section::Calendar);
+        app.handle(crate::keymap::Action::Bottom, visible);
+        let lines = lines_of(&app, 120, 30);
+        let stage = &lines[2..lines.len() - 2];
+        assert!(
+            stage.last().is_some_and(|l| l.contains("▌ Weekly 79")),
+            "blank at the end:\n{lines:#?}"
+        );
+        assert!(
+            stage.iter().any(|l| l.contains("TOMORROW")),
+            "the day's heading stays:\n{lines:#?}"
+        );
+        // The slack sits above the heading, and the heading still has no blank pushed
+        // between it and its rows.
+        let heading = stage.iter().position(|l| l.contains("TOMORROW")).expect("heading");
+        assert!(stage[heading + 1].contains("Weekly"), "{lines:#?}");
     }
 
     #[test]
