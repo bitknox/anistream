@@ -5,7 +5,7 @@ use anistream_core::{
     config::{Config, Paths},
     settings::SettingValue,
 };
-use anistream_model::settings::SettingKey;
+use anistream_model::settings::{self, SettingKey, SettingsView};
 
 /// The config: the file's, and the one in effect.
 ///
@@ -45,6 +45,11 @@ impl ConfigState {
     /// The file, as last read.
     pub fn saved(&self) -> &Config {
         &self.saved
+    }
+
+    /// What a front end is told of it.
+    pub fn view(&self) -> SettingsView {
+        settings::view(&self.effective, &self.saved)
     }
 
     /// Both, as the front end says they are. Temporary, for `UseConfig`, while the front end

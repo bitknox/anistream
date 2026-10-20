@@ -11,6 +11,7 @@ use crate::{
     jobs::JobId,
     notice::Notice,
     playback::{Ending, SkipKind},
+    settings::SettingsView,
     sources::{GuardView, MatchCandidate, MetaSourceRow, ProviderRow},
     stores::{
         InviteLinkView, LocalPluginRow, StoreInviteRow, StoreMemberRow, StorePreview, StoreRow,
@@ -85,6 +86,9 @@ pub enum Event {
         on_disk: Box<Config>,
         failed: Option<(&'static [&'static str], &'static str)>,
     },
+    /// The config, as a front end shows it, whenever any of it changed: a setting written or
+    /// refused, a session's choice, or what the player changed on its own.
+    Settings(SettingsView),
     /// The sources are being rebuilt, because a setting changed which ones should exist. Sent
     /// once the torrent stack is stood down and the chain swapped, ahead of what the rebuild
     /// reports: whatever reloads them has done so, and the screen only has to say it.

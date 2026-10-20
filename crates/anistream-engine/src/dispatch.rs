@@ -35,7 +35,7 @@ use crate::{
     },
     plugin_stores::tasks::{StoreTaskContext, store_task},
     services::Services,
-    settings::{save_setting, take_config},
+    settings::{save_setting, set_setting, set_translation, step_setting, take_config},
     sources::{self, commands::check_providers, torrent::reload_sources},
     state::EngineState,
     titles::{
@@ -204,6 +204,9 @@ pub(crate) fn dispatch(
         Command::SaveSetting { table, key, value } => {
             save_setting(table, key, value, engine, services, tx)
         }
+        Command::StepSetting { key, delta } => step_setting(key, delta, engine, services, tx),
+        Command::SetSetting { key, value } => set_setting(key, value, engine, services, tx),
+        Command::SetTranslation { translation } => set_translation(translation, engine, tx),
 
         // Off the loop, with no job: covers report back on their own.
         Command::FetchArtwork { url } => artwork::spawn_fetch(

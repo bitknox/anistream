@@ -6,6 +6,7 @@ use crate::{
     catalog::{LibrarySegment, SearchFilters},
     episodes::EpisodeRow,
     playback::{EpisodeEntry, NextEpisode, Successor},
+    settings::SettingKey,
     stores::Secret,
 };
 
@@ -239,6 +240,29 @@ pub enum Command {
         table: &'static [&'static str],
         key: &'static str,
         value: anistream_core::settings::SettingValue,
+    },
+    /// Step a setting through its values, toward `delta`'s sign: a ladder one rung, stopping at
+    /// its ends, and a two-state value over to the other. The arrows on a Settings row, and Enter.
+    ///
+    /// The engine puts the new value in effect and writes it, and answers with
+    /// [`Event::Settings`](crate::event::Event::Settings): what the file then holds, with the
+    /// setting put back when the write was refused, and a notice saying so.
+    StepSetting {
+        key: SettingKey,
+        delta: i64,
+    },
+    /// Set a setting to `value`, as the file takes it: a typed one, or the source order moved
+    /// on Providers. Answered as [`Command::StepSetting`] is; a value the setting does not take
+    /// changes nothing.
+    SetSetting {
+        key: SettingKey,
+        value: anistream_core::settings::SettingValue,
+    },
+    /// Sub or dub for this session only: put in effect at once and not written, so the next
+    /// launch goes by the saved choice. Answered with
+    /// [`Event::Settings`](crate::event::Event::Settings).
+    SetTranslation {
+        translation: anistream_core::media::Translation,
     },
     /// Read the joined stores, then refresh each one's plugin list.
     LoadStores,

@@ -838,6 +838,77 @@ mod tests {
         }
     }
 
+    /// Events until one `done` says is the last, or a second of nothing.
+    async fn until(events: &mut EventStream, done: impl Fn(&Event) -> bool) -> Vec<Event> {
+        let mut seen = Vec::new();
+        while !seen.last().is_some_and(&done) {
+            match tokio::time::timeout(Duration::from_secs(1), events.next_events()).await {
+                Ok(batch) if !batch.is_empty() => seen.extend(batch),
+                _ => panic!("nothing more, having seen {seen:?}"),
+            }
+        }
+        seen
+    }
+
+    #[tokio::test]
+    async fn a_step_asked_for_is_put_in_effect_written_and_said_whole() {
+        use anistream_model::settings::SettingKey;
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        events.launch().await;
+
+        engine.send(Command::StepSetting { key: SettingKey::AutoNext, delta: 1 });
+        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        let [Event::Settings(view), Event::Toast(saved)] = &seen[..] else {
+            panic!("the settings, then the notice: {seen:?}")
+        };
+        let row = view.rows.iter().find(|row| row.key == SettingKey::AutoNext).unwrap();
+        assert_eq!(row.value, "off");
+        assert_eq!(view.refused, None);
+        assert_eq!(saved.text, "saved · auto-play next");
+        let file = std::fs::read_to_string(dir.path().join("config.toml")).unwrap();
+        assert_eq!(file, "[playback]\nauto_next = false\n");
+    }
+
+    #[tokio::test]
+    async fn a_refused_write_is_said_with_its_setting_put_back() {
+        use anistream_model::{notice::NoticeKind, settings::SettingKey};
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        events.launch().await;
+
+        // Torrents with no VPN configured: refused by the config's own rules.
+        engine.send(Command::StepSetting { key: SettingKey::Torrents, delta: 1 });
+        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        let [Event::Settings(view), Event::Toast(refusal)] = &seen[..] else {
+            panic!("the settings, then the notice: {seen:?}")
+        };
+        assert_eq!(view.refused, Some(SettingKey::Torrents));
+        let row = view.rows.iter().find(|row| row.key == SettingKey::Torrents).unwrap();
+        assert_eq!(row.value, "off", "put back to what the file holds");
+        assert!(!view.sources.torrent);
+        assert_eq!(refusal.kind, NoticeKind::Alert);
+        assert!(refusal.text.starts_with("not saved: torrents need"), "{}", refusal.text);
+        assert!(!dir.path().join("config.toml").exists(), "nothing written");
+    }
+
+    #[tokio::test]
+    async fn sub_or_dub_for_the_session_is_put_in_effect_and_not_written() {
+        use anistream_core::media::Translation;
+        use anistream_model::settings::SettingKey;
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        events.launch().await;
+
+        engine.send(Command::SetTranslation { translation: Translation::Dub });
+        let seen = until(&mut events, |e| matches!(e, Event::Settings(_))).await;
+        let [Event::Settings(view)] = &seen[..] else { panic!("the settings alone: {seen:?}") };
+        assert_eq!(view.translation, Translation::Dub);
+        let row = view.rows.iter().find(|row| row.key == SettingKey::Translation).unwrap();
+        assert_eq!(row.value, "sub · dub this session");
+        assert!(!dir.path().join("config.toml").exists(), "the file is the saved choice's");
+    }
+
     #[tokio::test]
     async fn quitting_with_nothing_playing_does_not_wait() {
         let dir = tempfile::tempdir().unwrap();

@@ -1,6 +1,16 @@
-//! Settings: each one a front end shows or changes, named for what it is.
+//! Settings: each one a front end shows or changes, named for what it is; the rules for what a
+//! row shows and what a step makes of it; and what a front end is told of the config.
+//!
+//! The engine owns the config and runs these rules over it. A front end asks for a change with
+//! a command and is told the outcome as a [`SettingsView`]: the config itself never crosses.
 
-use anistream_core::{config::Config, settings::SettingValue};
+use anistream_core::{
+    config::{Config, ThemeMode},
+    media::Translation,
+    settings::SettingValue,
+};
+
+use crate::sources::ConfiguredSources;
 
 /// Every setting a front end shows or changes, named for what it is rather than for where the
 /// file keeps it: the Settings screen's rows, in display order in [`Self::ROWS`], and the one
@@ -278,8 +288,64 @@ impl SettingKey {
 // Pure, so they can run wherever the config is owned, and a front end shows what they say: the
 // ladders, the two-state values and their ends, and the wording of each value.
 
+/// What a front end is told of the config: the Settings screen's rows, and everything else it
+/// shows or acts on that the config decides.
+///
+/// Sent whole whenever any of it changes, so a front end never holds a config of its own: what
+/// it shows is what the engine has in effect.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct SettingsView {
+    /// The Settings screen's rows, in display order.
+    pub rows: Vec<SettingRow>,
+    /// The setting whose write was just refused and put back to what the file holds: on the
+    /// view that answers the refusal, and on no other. The notice saying why comes after it.
+    pub refused: Option<SettingKey>,
+    /// Sub or dub, in effect: what the status line says, and what `t` turns over.
+    pub translation: Translation,
+    /// The quality asked of the sources, in effect, for the status line.
+    pub quality: u32,
+    /// The theme in effect, which the terminal paints with.
+    pub theme: ThemeMode,
+    /// The sources the config sets up: the header's chips, the source the status line names,
+    /// and the order Providers moves a source up and down.
+    pub sources: ConfiguredSources,
+    /// The speed a playback starts at, when one is remembered: what Now Playing shows of a new
+    /// playback until the player says.
+    pub speed: Option<f64>,
+    /// Whether auto-next steps over filler. Read by the front end while it decides what plays
+    /// next.
+    pub skip_filler: bool,
+    /// Whether Discord presence has a client to publish under, which its row's note depends on.
+    pub presence_client: bool,
+}
+
+impl Default for SettingsView {
+    /// The view of the defaults, in effect and in the file alike.
+    fn default() -> Self {
+        let config = Config::default();
+        view(&config, &config)
+    }
+}
+
+/// What a front end is told of the config, from the config in effect and the file's.
+pub fn view(effective: &Config, saved: &Config) -> SettingsView {
+    SettingsView {
+        rows: rows(effective, saved),
+        refused: None,
+        translation: effective.playback.translation,
+        quality: effective.playback.quality,
+        theme: effective.theme.mode,
+        sources: ConfiguredSources::of(&effective.providers),
+        speed: effective.playback.persisted_speed,
+        skip_filler: effective.playback.skip_filler,
+        presence_client: effective.presence.resolved_client_id().is_some(),
+    }
+}
+
 /// One row of the Settings screen, as the config makes it.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct SettingRow {
     /// The setting it shows.
     pub key: SettingKey,
@@ -291,6 +357,7 @@ pub struct SettingRow {
 
 /// How a row's value is changed.
 #[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum SettingChange {
     /// Stepped through a closed set of values: a ladder, or two states. `back` and `forward`
     /// say whether a step that way would change it — not at a ladder's end, and not toward

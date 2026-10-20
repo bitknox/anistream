@@ -973,6 +973,9 @@ impl App {
                     self.roll_back_setting(table, key);
                 }
             }
+            // Nothing asks for these yet: the interface keeps a config of its own until the
+            // engine owns it.
+            Event::Settings(_) => {}
             Event::SourcesChanged => self.status = "reloading sources…".into(),
             Event::ProviderNote(note) => self.provider_note = Some(note),
             Event::ProviderPreference(choice) => self.provider_preference = choice,

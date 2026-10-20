@@ -76,6 +76,7 @@ pub fn only_reorders(before: &[String], after: &[String]) -> bool {
 
 /// The sources the config sets up, as far as the header's chips and the source label read them.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct ConfiguredSources {
     /// The order failover walks them in.
     pub order: Vec<String>,
@@ -100,6 +101,7 @@ impl ConfiguredSources {
 
 /// One configured source, and how it stands: a header chip.
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct SourceChip {
     pub id: String,
     pub state: SourceState,
@@ -154,6 +156,7 @@ pub fn source_states(
 
 /// How one configured source stands, for the header chip that names it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum SourceState {
     /// At least one of its providers will be tried.
     Ready,
