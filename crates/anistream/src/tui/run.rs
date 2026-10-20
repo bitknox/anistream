@@ -148,7 +148,13 @@ pub async fn run(
         tokio::select! {
             // One at a time, each in the order the engine applied it, with the loop's own
             // reactions and the next frame between them, as when the loop read the work itself.
-            Some(update) = from_engine.recv() => {
+            update = from_engine.recv() => {
+                // The engine stops on its own only by panicking: it is shut down after this
+                // loop. A panic in its work used to take the loop down with it, and the app
+                // still ends rather than going on with nothing to answer it.
+                let Some(update) = update else {
+                    break Err(anyhow::anyhow!("the engine stopped; the log says why"));
+                };
                 // Handed to the terminal's clipboard on the way in, so the overlay can say
                 // whether it was.
                 let copied = match &update {

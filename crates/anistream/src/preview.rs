@@ -109,7 +109,7 @@ pub async fn preview(
     if let Some(task) = app.reload() {
         run.dispatch(&mut app, task);
     }
-    run.settle(&mut app).await;
+    run.settle(&mut app).await?;
 
     let section = |n: u8| Action::JumpSection(n);
     let keys: Vec<Action> = match screen {
@@ -142,7 +142,7 @@ pub async fn preview(
         PreviewScreen::Title | PreviewScreen::Episodes => {
             if let Some(task) = app.open_selected() {
                 run.dispatch(&mut app, task);
-                run.settle(&mut app).await;
+                run.settle(&mut app).await?;
             } else {
                 eprintln!("[title: nothing on Home to open — watch something first]");
             }
@@ -154,7 +154,7 @@ pub async fn preview(
         _ => {}
     }
     // Whatever the last keys started.
-    run.settle(&mut app).await;
+    run.settle(&mut app).await?;
     eprintln!(
         "[graphics: {}, {} image(s) loaded]",
         describe_graphics(graphics),
@@ -219,8 +219,8 @@ impl PreviewRun {
     }
 
     /// Apply updates until the work is done and the screen's covers are in, as the event loop
-    /// would over the same moments.
-    async fn settle(&mut self, app: &mut App) {
+    /// would over the same moments. Fails if the engine stops, which it does only by panicking.
+    async fn settle(&mut self, app: &mut App) -> Result<()> {
         let deadline = tokio::time::Instant::now() + Self::PATIENCE;
         loop {
             if let Some(task) = app.take_pending() {
@@ -246,13 +246,13 @@ impl PreviewRun {
                     }
                     update => app.apply(update),
                 },
-                Ok(None) => return,
-                Err(_) if app.jobs.is_empty() => return,
+                Ok(None) => anyhow::bail!("the engine stopped; the log says why"),
+                Err(_) if app.jobs.is_empty() => return Ok(()),
                 Err(_) => {
                     let waiting: Vec<&str> =
                         app.jobs.iter().map(|j| j.label.as_str()).collect();
                     eprintln!("[preview: drawn while still {}]", waiting.join(", "));
-                    return;
+                    return Ok(());
                 }
             }
         }
