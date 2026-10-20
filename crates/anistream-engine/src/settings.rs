@@ -108,7 +108,7 @@ fn write_setting(
             // effect without a rebuild.
             if reordered {
                 let _ = tx.internal(Internal::SourcesReordered);
-            } else if redefines_sources(table, key) {
+            } else if SettingKey::at(table, key).is_some_and(redefines_sources) {
                 let _ = tx.internal(Internal::SourcesChanged);
             }
         }
@@ -204,17 +204,14 @@ pub fn setting_label(table: &[&str], key: &str) -> Option<&'static str> {
     SettingKey::at(table, key).map(SettingKey::label)
 }
 
-/// Whether writing this key changes which sources exist, and so needs the chain rebuilt.
+/// Whether writing this setting changes which sources exist, and so needs the chain rebuilt.
 ///
 /// Listed rather than inferred: a rebuild tears down a live torrent session, which is far
-/// too blunt to trigger on a guess about a key name.
-fn redefines_sources(table: &[&str], key: &str) -> bool {
-    matches!(
-        (table, key),
-        (["providers", "torrent"], "enabled")
-            | (["providers", "torrent", "vpn"], "mode")
-            | (["providers"], "order" | "disabled" | "remote_url")
-    )
+/// too blunt to trigger on a guess about a setting. The VPN mode is listed though nothing here
+/// writes it, since it decides whether torrents run at all; the sources switched off by name
+/// and the remote's address, which the file alone sets, have no key to list.
+fn redefines_sources(setting: SettingKey) -> bool {
+    matches!(setting, SettingKey::Torrents | SettingKey::VpnMode | SettingKey::SourceOrder)
 }
 
 #[cfg(test)]
@@ -225,13 +222,13 @@ mod tests {
     fn only_source_defining_keys_force_a_rebuild() {
         // A rebuild tears down a live torrent session, so it must not fire on a setting
         // that has nothing to do with which sources exist.
-        assert!(redefines_sources(&["providers", "torrent"], "enabled"));
-        assert!(redefines_sources(&["providers", "torrent", "vpn"], "mode"));
-        assert!(redefines_sources(&["providers"], "order"));
+        assert!(redefines_sources(SettingKey::Torrents));
+        assert!(redefines_sources(SettingKey::VpnMode));
+        assert!(redefines_sources(SettingKey::SourceOrder));
 
-        assert!(!redefines_sources(&["playback"], "upscaling"));
-        assert!(!redefines_sources(&["playback"], "quality"));
-        assert!(!redefines_sources(&["downloads"], "directory"));
-        assert!(!redefines_sources(&["theme"], "mode"));
+        assert!(!redefines_sources(SettingKey::Upscaling));
+        assert!(!redefines_sources(SettingKey::Quality));
+        assert!(!redefines_sources(SettingKey::DownloadDir));
+        assert!(!redefines_sources(SettingKey::Theme));
     }
 }
