@@ -78,6 +78,8 @@ impl TorrentTasks {
     /// In the background: the guard's check is a network request through a tunnel that may
     /// be down, and the first frame must not wait on it. The badge says what the guard found
     /// meanwhile, and the source joins the chain when it passes — see [`Self::arrived`].
+    ///
+    /// Public until P3e, whose `Engine::start` brings the stack up as the loop does now.
     pub fn bring_up(
         &mut self,
         config: &Config,
@@ -110,6 +112,8 @@ impl TorrentTasks {
 
     /// A bring-up finished: put the source in the chain and start what runs beside it, or say
     /// why it will not come up.
+    ///
+    /// Public until P3e, whose actor takes the arrivals the loop selects over now.
     pub fn arrived(
         &mut self,
         generation: u64,

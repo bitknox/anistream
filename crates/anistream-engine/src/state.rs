@@ -31,6 +31,8 @@ use crate::{
 pub type Arrivals = mpsc::UnboundedSender<(u64, Result<TorrentUp, String>)>;
 
 /// The effect layer's own state: what commands read and leave for the commands after them.
+///
+/// Public until P3e, when it becomes the actor's own and a front end holds an `Engine` instead.
 pub struct EngineState {
     /// The config in effect, as the front end last said with `UseConfig`. What the work runs
     /// on, and what each playback builds its player from, so a setting changed on screen

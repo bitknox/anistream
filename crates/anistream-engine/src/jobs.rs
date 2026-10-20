@@ -24,6 +24,8 @@ impl JobGuard {
     ///
     /// Announced on the channel the work answers on, before the work can send anything, so the
     /// job's notes and its end always find it in the front end.
+    ///
+    /// Public until P3e, where `Engine::send` starts the job and returns its number.
     pub fn start(engine: &mut EngineState, task: &Command, tx: &Outbox) -> Option<Self> {
         let activity = task.activity()?;
         let id = engine.number_job();

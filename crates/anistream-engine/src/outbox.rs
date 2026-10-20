@@ -57,6 +57,9 @@ enum Route {
 
 impl Outbox {
     /// An inbox for the engine side to read, and the outbox the work writes to it through.
+    ///
+    /// Public until P3e, whose actor reads the one inbox the loop, the preview and the harness
+    /// each read now.
     pub fn inbox() -> (Self, mpsc::UnboundedReceiver<Envelope>) {
         let (tx, rx) = mpsc::unbounded_channel();
         (Self(Route::Inbox(tx)), rx)
