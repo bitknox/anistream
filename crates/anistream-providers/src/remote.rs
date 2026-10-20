@@ -271,12 +271,12 @@ mod tests {
     fn hits_parse_from_the_common_consumet_shape() {
         let payload = json!({
             "results": [
-                {"id": "frieren", "title": "Frieren", "totalEpisodes": 28, "type": "TV"}
+                {"id": "hoshikuzu", "title": "Hoshikuzu", "totalEpisodes": 28, "type": "TV"}
             ]
         });
         let hits = parse_hits(&payload);
         assert_eq!(hits.len(), 1);
-        assert_eq!(hits[0].key.as_str(), "frieren");
+        assert_eq!(hits[0].key.as_str(), "hoshikuzu");
         assert_eq!(hits[0].episode_count, Some(28));
         assert_eq!(hits[0].format, Some(MediaFormat::Tv));
     }
@@ -285,11 +285,11 @@ mod tests {
     fn hits_parse_when_the_service_uses_different_field_names() {
         // The point of an escape hatch is that it works with whatever you pointed it at.
         let payload = json!({
-            "data": [{"animeId": "x1", "name": "Dandadan", "episodeCount": "12"}]
+            "data": [{"animeId": "x1", "name": "Tsukiakari", "episodeCount": "12"}]
         });
         let hits = parse_hits(&payload);
         assert_eq!(hits[0].key.as_str(), "x1");
-        assert_eq!(hits[0].title, "Dandadan");
+        assert_eq!(hits[0].title, "Tsukiakari");
         assert_eq!(hits[0].episode_count, Some(12), "numbers may arrive as strings");
     }
 
@@ -375,7 +375,7 @@ mod tests {
         assert_eq!(urlencode("a/b?c"), "a%2Fb%3Fc");
         assert_eq!(urlencode("safe-id_1.0~x"), "safe-id_1.0~x");
         // A title with non-ASCII must not produce a broken URL.
-        assert!(!urlencode("葬送のフリーレン").contains('葬'));
+        assert!(!urlencode("星屑の旅人").contains('星'));
     }
 
     #[test]

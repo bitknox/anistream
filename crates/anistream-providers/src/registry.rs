@@ -808,12 +808,12 @@ mod tests {
         let r = registry(vec![
             MockProvider::new("a").failing(ProviderError::Blocked("x".into())).arc(),
             MockProvider::new("b")
-                .with_hits(vec![SearchHit::new(ProviderKey::new("k"), "Frieren")])
+                .with_hits(vec![SearchHit::new(ProviderKey::new("k"), "Hoshikuzu")])
                 .with_episodes(vec![Episode::new(1u32)])
                 .arc(),
         ]);
         assert_eq!(
-            r.search("frieren", Translation::Sub, 0).await.provider.as_deref(),
+            r.search("hoshikuzu", Translation::Sub, 0).await.provider.as_deref(),
             Some("b")
         );
         assert_eq!(

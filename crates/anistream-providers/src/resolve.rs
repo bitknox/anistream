@@ -271,11 +271,14 @@ mod tests {
     use crate::mock::MockProvider;
     use anistream_core::{error::ProviderError, media::MediaFormat};
 
-    const FRIEREN: AnilistId = AnilistId::new(154_587);
+    const HOSHIKUZU: AnilistId = AnilistId::new(154_587);
 
     fn target() -> MatchTarget {
         MatchTarget {
-            titles: vec!["Sousou no Frieren".into(), "Frieren: Beyond Journey's End".into()],
+            titles: vec![
+                "Hoshikuzu no Tabibito".into(),
+                "Hoshikuzu: Wayfarer's Long Road".into(),
+            ],
             episode_count: Some(28),
             year: Some(2023),
             format: Some(MediaFormat::Tv),
@@ -298,9 +301,9 @@ mod tests {
     #[tokio::test]
     async fn a_confident_title_match_resolves_and_is_cached() {
         let store = Store::open_in_memory().unwrap();
-        let registry = registry_with(vec![hit("t-1", "Sousou no Frieren")]);
+        let registry = registry_with(vec![hit("t-1", "Hoshikuzu no Tabibito")]);
 
-        let r = resolve(&store, &registry, FRIEREN, &target(), Translation::Sub, 0).await;
+        let r = resolve(&store, &registry, HOSHIKUZU, &target(), Translation::Sub, 0).await;
         match &r {
             Resolution::Resolved { key, rung, .. } => {
                 assert_eq!(key.as_str(), "t-1");
@@ -310,7 +313,7 @@ mod tests {
         }
 
         // Cached as rung 2 for next time, but *not* as an override.
-        let cached = store.lookup_mapping(FRIEREN, "torrent").unwrap().unwrap();
+        let cached = store.lookup_mapping(HOSHIKUZU, "torrent").unwrap().unwrap();
         assert_eq!(cached.provider_key.as_str(), "t-1");
         assert_ne!(cached.rung, ResolutionRung::Override, "must stay revisable");
     }
@@ -319,13 +322,13 @@ mod tests {
     async fn an_override_wins_without_touching_the_provider() {
         // Rung 1 must short-circuit: the user already told us the answer.
         let store = Store::open_in_memory().unwrap();
-        store.set_override(FRIEREN, "torrent", &ProviderKey::new("corrected"), 0).unwrap();
+        store.set_override(HOSHIKUZU, "torrent", &ProviderKey::new("corrected"), 0).unwrap();
 
-        let provider = MockProvider::new("torrent").with_hits(vec![hit("wrong", "Frieren")]);
+        let provider = MockProvider::new("torrent").with_hits(vec![hit("wrong", "Hoshikuzu")]);
         let calls = provider.call_count();
         let registry = ProviderRegistry::new(vec![provider.arc()]);
 
-        let r = resolve(&store, &registry, FRIEREN, &target(), Translation::Sub, 0).await;
+        let r = resolve(&store, &registry, HOSHIKUZU, &target(), Translation::Sub, 0).await;
         assert_eq!(r.key().unwrap().as_str(), "corrected");
         assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 0, "no search needed");
         assert_eq!(r.explain(), "your correction");
@@ -342,25 +345,25 @@ mod tests {
             ..SearchHit::new(ProviderKey::new("maybe"), "Something Entirely Different")
         }]);
 
-        let r = resolve(&store, &registry, FRIEREN, &target(), Translation::Sub, 0).await;
+        let r = resolve(&store, &registry, HOSHIKUZU, &target(), Translation::Sub, 0).await;
         assert!(r.needs_user_input());
         match r {
             Resolution::Ambiguous { candidates, .. } => assert_eq!(candidates.len(), 1),
             other => panic!("expected ambiguity, got {other:?}"),
         }
         // Nothing weak may be cached, or the guess would stick.
-        assert!(store.lookup_mapping(FRIEREN, "torrent").unwrap().is_none());
+        assert!(store.lookup_mapping(HOSHIKUZU, "torrent").unwrap().is_none());
     }
 
     #[tokio::test]
     async fn confirming_a_choice_writes_an_override_that_survives_a_refresh() {
         // This is what makes disambiguating worth doing exactly once.
         let store = Store::open_in_memory().unwrap();
-        let r = confirm(&store, FRIEREN, "torrent", &ProviderKey::new("picked"), 0);
+        let r = confirm(&store, HOSHIKUZU, "torrent", &ProviderKey::new("picked"), 0);
         assert_eq!(r.key().unwrap().as_str(), "picked");
 
         store.clear_cached_resolutions().unwrap();
-        let after = store.lookup_mapping(FRIEREN, "torrent").unwrap().unwrap();
+        let after = store.lookup_mapping(HOSHIKUZU, "torrent").unwrap().unwrap();
         assert_eq!(after.provider_key.as_str(), "picked");
         assert_eq!(after.rung, ResolutionRung::Override);
     }
@@ -368,10 +371,10 @@ mod tests {
     #[tokio::test]
     async fn a_previously_confirmed_title_is_never_asked_about_again() {
         let store = Store::open_in_memory().unwrap();
-        confirm(&store, FRIEREN, "torrent", &ProviderKey::new("picked"), 0);
+        confirm(&store, HOSHIKUZU, "torrent", &ProviderKey::new("picked"), 0);
 
-        let registry = registry_with(vec![hit("something-else", "Frieren")]);
-        let r = resolve(&store, &registry, FRIEREN, &target(), Translation::Sub, 1).await;
+        let registry = registry_with(vec![hit("something-else", "Hoshikuzu")]);
+        let r = resolve(&store, &registry, HOSHIKUZU, &target(), Translation::Sub, 1).await;
         assert!(!r.needs_user_input());
         assert_eq!(r.key().unwrap().as_str(), "picked");
     }
@@ -380,7 +383,7 @@ mod tests {
     async fn an_empty_result_set_offers_a_manual_query() {
         let store = Store::open_in_memory().unwrap();
         let registry = registry_with(vec![]);
-        let r = resolve(&store, &registry, FRIEREN, &target(), Translation::Sub, 0).await;
+        let r = resolve(&store, &registry, HOSHIKUZU, &target(), Translation::Sub, 0).await;
         match &r {
             Resolution::NotFound { reason } => assert!(reason.contains("no matches")),
             other => panic!("expected not-found, got {other:?}"),
@@ -397,7 +400,7 @@ mod tests {
                 .failing(ProviderError::Blocked("cloudflare".into()))
                 .arc(),
         ]);
-        let r = resolve(&store, &registry, FRIEREN, &target(), Translation::Sub, 0).await;
+        let r = resolve(&store, &registry, HOSHIKUZU, &target(), Translation::Sub, 0).await;
         match r {
             Resolution::NotFound { reason } => {
                 assert!(reason.contains("blocked"), "got {reason}")
@@ -410,7 +413,7 @@ mod tests {
     async fn no_providers_configured_is_stated_plainly() {
         let store = Store::open_in_memory().unwrap();
         let registry = ProviderRegistry::new(vec![]);
-        let r = resolve(&store, &registry, FRIEREN, &target(), Translation::Sub, 0).await;
+        let r = resolve(&store, &registry, HOSHIKUZU, &target(), Translation::Sub, 0).await;
         assert!(matches!(r, Resolution::NotFound { .. }));
         assert!(r.explain().contains("no providers"));
     }
@@ -424,12 +427,12 @@ mod tests {
             SearchHit {
                 format: Some(MediaFormat::Ova),
                 episode_count: Some(1),
-                ..SearchHit::new(ProviderKey::new("ova"), "Sousou no Frieren")
+                ..SearchHit::new(ProviderKey::new("ova"), "Hoshikuzu no Tabibito")
             },
-            hit("tv", "Sousou no Frieren"),
+            hit("tv", "Hoshikuzu no Tabibito"),
         ]);
 
-        let r = resolve(&store, &registry, FRIEREN, &target(), Translation::Sub, 0).await;
+        let r = resolve(&store, &registry, HOSHIKUZU, &target(), Translation::Sub, 0).await;
         assert_eq!(r.key().unwrap().as_str(), "tv", "the OVA must not win");
     }
 
@@ -438,10 +441,12 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         let registry = ProviderRegistry::new(vec![
             MockProvider::new("dead").failing(ProviderError::Transport("timeout".into())).arc(),
-            MockProvider::new("alive").with_hits(vec![hit("a-1", "Sousou no Frieren")]).arc(),
+            MockProvider::new("alive")
+                .with_hits(vec![hit("a-1", "Hoshikuzu no Tabibito")])
+                .arc(),
         ]);
 
-        let r = resolve(&store, &registry, FRIEREN, &target(), Translation::Sub, 0).await;
+        let r = resolve(&store, &registry, HOSHIKUZU, &target(), Translation::Sub, 0).await;
         match &r {
             Resolution::Resolved { provider_id, key, .. } => {
                 assert_eq!(provider_id, "alive");
@@ -450,8 +455,8 @@ mod tests {
             other => panic!("expected failover to succeed, got {other:?}"),
         }
         // And the cache is keyed to the provider that actually answered.
-        assert!(store.lookup_mapping(FRIEREN, "alive").unwrap().is_some());
-        assert!(store.lookup_mapping(FRIEREN, "dead").unwrap().is_none());
+        assert!(store.lookup_mapping(HOSHIKUZU, "alive").unwrap().is_some());
+        assert!(store.lookup_mapping(HOSHIKUZU, "dead").unwrap().is_none());
     }
 
     #[tokio::test]
@@ -459,7 +464,7 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         let registry = registry_with(vec![hit("x", "y")]);
         let empty = MatchTarget::default();
-        let r = resolve(&store, &registry, FRIEREN, &empty, Translation::Sub, 0).await;
+        let r = resolve(&store, &registry, HOSHIKUZU, &empty, Translation::Sub, 0).await;
         assert!(matches!(r, Resolution::NotFound { .. }));
     }
 
@@ -491,14 +496,14 @@ mod tests {
     async fn a_cached_resolution_is_reused_without_searching_again() {
         let store = Store::open_in_memory().unwrap();
         let first =
-            MockProvider::new("torrent").with_hits(vec![hit("t-1", "Sousou no Frieren")]);
+            MockProvider::new("torrent").with_hits(vec![hit("t-1", "Hoshikuzu no Tabibito")]);
         let calls = first.call_count();
         let registry = ProviderRegistry::new(vec![first.arc()]);
 
-        resolve(&store, &registry, FRIEREN, &target(), Translation::Sub, 0).await;
+        resolve(&store, &registry, HOSHIKUZU, &target(), Translation::Sub, 0).await;
         assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
 
-        resolve(&store, &registry, FRIEREN, &target(), Translation::Sub, 1).await;
+        resolve(&store, &registry, HOSHIKUZU, &target(), Translation::Sub, 1).await;
         assert_eq!(
             calls.load(std::sync::atomic::Ordering::SeqCst),
             1,
