@@ -46,7 +46,7 @@ use anistream_model::{
         InviteLinkView, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
         StorePluginStatus, StorePreview, StoreRow, StoreState,
     },
-    sync::{ConflictRow, DeviceCodePrompt, SyncState},
+    sync::{ConflictRow, DeviceCodePrompt, PullError, SyncState},
 };
 use anistream_tui::{
     Action, App, Clock, Keymap, Overlay, Palette, Role, Zone,
@@ -938,7 +938,10 @@ fn accounts(s: &mut Screen) {
         user: Some("hotaru_watches".into()),
         needs_reauth: true,
         storage: Some("OS keychain".into()),
-        pull_error: Some(("the token was refused".into(), NOW - 2 * HOUR - 13 * MINUTE - 4)),
+        pull_error: Some(PullError {
+            reason: "the token was refused".into(),
+            at: NOW - 2 * HOUR - 13 * MINUTE - 4,
+        }),
         ..SyncState::new("mal")
     })));
     s.apply(Event::DeviceCode(Some(DeviceCodePrompt {
@@ -1328,10 +1331,10 @@ fn three_trackers(s: &mut Screen) {
         connected: true,
         user: Some("hotaru_watches".into()),
         needs_reauth: true,
-        pull_error: Some((
-            "the token was refused".into(),
-            NOW - 3 * DAY - 4 * HOUR - 9 * MINUTE,
-        )),
+        pull_error: Some(PullError {
+            reason: "the token was refused".into(),
+            at: NOW - 3 * DAY - 4 * HOUR - 9 * MINUTE,
+        }),
         ..SyncState::new("mal")
     })));
 }

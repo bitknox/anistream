@@ -2,6 +2,7 @@
 //! sign-in prompt while a device code is pending, and the rows of the overlays that show the
 //! accounts and the divergences a merge refused to guess at.
 
+use anistream_model::sync::PullError;
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier, widgets::Widget};
 
 use crate::{
@@ -178,7 +179,7 @@ pub(super) fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
         y += 1;
         // A failed pull says so under its tracker until the next one succeeds: "connected" on
         // its own read as everything working while the library had stopped updating.
-        if let Some((error, at)) = &state.pull_error
+        if let Some(PullError { reason: error, at }) = &state.pull_error
             && y < area.bottom().saturating_sub(2)
         {
             buf.set_string(
@@ -272,7 +273,7 @@ pub(super) fn accounts_rows(app: &App) -> Vec<(String, String)> {
                 detail.push(last.clone());
             }
             // Last, so a narrow row truncates the reason rather than the fact.
-            if let Some((error, at)) = &state.pull_error {
+            if let Some(PullError { reason: error, at }) = &state.pull_error {
                 detail.push(format!("pull failed {}: {error}", pull_time(&app.clock, *at)));
             }
             (action.to_string(), detail.join("  ·  "))
@@ -353,7 +354,7 @@ mod tests {
         let at = NOON_MONDAY - 60;
         app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState {
             connected: true,
-            pull_error: Some(("network: timed out".into(), at)),
+            pull_error: Some(PullError { reason: "network: timed out".into(), at }),
             ..anistream_model::sync::SyncState::new("anilist")
         })));
         let (_, detail) = &accounts_rows(&app)[0];
@@ -376,7 +377,10 @@ mod tests {
         let mut app = app_with(Content::Entries(Vec::new()));
         app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState {
             connected: true,
-            pull_error: Some(("network: timed out".into(), app.clock.now_epoch())),
+            pull_error: Some(PullError {
+                reason: "network: timed out".into(),
+                at: app.clock.now_epoch(),
+            }),
             ..anistream_model::sync::SyncState::new("anilist")
         })));
         app.go_to_section(Section::Accounts);

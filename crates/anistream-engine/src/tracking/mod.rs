@@ -24,7 +24,7 @@ use anistream_model::{
     event::Event,
     notice::{Notice, NoticeHint},
     progress::TitleProgress,
-    sync::{ConflictRow, SyncState},
+    sync::{ConflictRow, PullError, SyncState},
 };
 use anistream_store::Store;
 use anistream_track::{AniListTracker, TokenStore, auth, sync};
@@ -60,7 +60,7 @@ pub struct Sync {
     /// Held here rather than sent once, because every state this module publishes replaces
     /// the previous one whole: the next drain tick would otherwise wipe the error off the
     /// Accounts screen a minute after it appeared.
-    pub pull_errors: Arc<std::sync::Mutex<std::collections::HashMap<String, (String, i64)>>>,
+    pub pull_errors: Arc<std::sync::Mutex<std::collections::HashMap<String, PullError>>>,
 }
 
 impl Sync {
@@ -183,11 +183,11 @@ impl Sync {
         }
     }
 
-    fn pull_error(&self, tracker_id: &str) -> Option<(String, i64)> {
+    fn pull_error(&self, tracker_id: &str) -> Option<PullError> {
         self.pull_errors.lock().ok()?.get(tracker_id).cloned()
     }
 
-    fn note_pull(&self, tracker_id: &str, error: Option<(String, i64)>) {
+    fn note_pull(&self, tracker_id: &str, error: Option<PullError>) {
         if let Ok(mut errors) = self.pull_errors.lock() {
             match error {
                 Some(error) => errors.insert(tracker_id.to_owned(), error),
@@ -575,7 +575,10 @@ pub async fn pull_once(sync: &Sync, tx: &Outbox) {
             // Accounts row carries it, with when, until a pull succeeds.
             Err(e) => {
                 tracing::warn!(tracker = tracker.id(), error = %e, "library pull failed");
-                sync.note_pull(tracker.id(), Some((e.to_string(), now)));
+                sync.note_pull(
+                    tracker.id(),
+                    Some(PullError { reason: e.to_string(), at: now }),
+                );
                 let _ = tx.send(Event::Sync(Box::new(sync.state_for(
                     tracker.as_ref(),
                     false,
@@ -1215,7 +1218,7 @@ mod tests {
 
         pull_once(&sync, &tx).await;
         let Some(Event::Sync(state)) = rx.try_recv().ok() else { panic!("no state sent") };
-        let (error, _) = state.pull_error.expect("the failure is on the row");
+        let error = state.pull_error.expect("the failure is on the row").reason;
         assert!(error.contains("timed out"), "{error}");
 
         // It survives the next drain's state, which used to replace it whole.
