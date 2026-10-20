@@ -12,12 +12,14 @@ use anistream_model::{
     event::Event,
     playback::Ending,
 };
+use anistream_providers::{MockProvider, ProviderRegistry};
 use anistream_testkit::{
-    fixtures::{FINISHED, FIXTURE_NOW, SEQUEL, runtime_secs, title},
+    fixtures::{self, FINISHED, FIXTURE_NOW, SEQUEL, runtime_secs, title},
     seed, sources,
 };
 use anistream_tui::{app::NowPlaying, keymap::Action};
 
+use super::toasts;
 use crate::harness::{Harness, Options, names};
 
 /// Three episodes of [`FINISHED`] watched two days ago and the fourth stopped five minutes in,
@@ -40,7 +42,12 @@ async fn opened(h: &mut Harness) {
 
 /// The App on [`FINISHED`]'s episode table, reached from Home, its cursor on episode 4.
 async fn at_the_table() -> Harness {
-    let mut h = Harness::new().await;
+    at_the_table_with(Options::default()).await
+}
+
+/// [`at_the_table`], set up as `options` say.
+async fn at_the_table_with(options: Options) -> Harness {
+    let mut h = Harness::with(options).await;
     seed_partway(&h);
     opened(&mut h).await;
     h.press(Action::ShowEpisodes);
@@ -202,6 +209,60 @@ async fn a_watch_from_home_moves_only_the_row_it_is_of() {
     assert_eq!(names(&h.settle().await), ["Playback", "PlaybackEnded"]);
     assert_eq!(standing(&h, FINISHED), (Some((4, 5)), None));
     assert_eq!(standing(&h, SEQUEL), (Some((2, 3)), None), "another show took the watch");
+}
+
+/// The fixture source with its titles and their episodes listed, and no stream for any of
+/// them: a play is looked up and fails there, with no player to start.
+fn streamless() -> ProviderRegistry {
+    let mut provider = MockProvider::new(sources::PROVIDER_ID).with_hits(sources::hits());
+    for id in fixtures::ALL {
+        provider = provider.with_episodes_for(sources::key(id), sources::episodes(id));
+    }
+    ProviderRegistry::new(vec![provider.arc()])
+}
+
+#[tokio::test]
+async fn an_ending_that_rolls_on_plays_the_next_episode_under_the_name_it_played_under() {
+    let mut h =
+        at_the_table_with(Options { registry: Some(streamless()), ..Options::default() }).await;
+    stage(&mut h, "4");
+    at(&mut h, 1_400.0);
+    let ended = Event::PlaybackEnded {
+        watched: true,
+        ending: Ending::Complete { next: Some("5".into()) },
+    };
+    h.playback_says(PLAYBACK, FINISHED, "4", ended);
+    let updates = h.settle().await;
+
+    // Episode 5 is staged and asked for, and the lookup finds nothing to play.
+    let looked_up = ["JobNote", "JobNote", "Toast", "PlaybackEnded", "Status", "JobDone"];
+    assert_eq!(names(&updates), [&["Playback", "PlaybackEnded"][..], &looked_up].concat());
+    assert_eq!(finished(&h), ["1", "2", "3", "4"]);
+    assert_eq!(standing(&h, FINISHED), (Some((4, 5)), None));
+    assert!(h.app().playing.is_none(), "nothing is left staged");
+}
+
+#[tokio::test]
+async fn an_episode_picked_in_the_player_is_asked_for_by_the_title_playing() {
+    let mut h =
+        at_the_table_with(Options { registry: Some(streamless()), ..Options::default() }).await;
+    stage(&mut h, "4");
+    at(&mut h, 200.0);
+    let picked = Event::PlayerPlayEpisode {
+        episode: "6".into(),
+        title: Some("Rain over Kiriya Pass".into()),
+    };
+    h.playback_says(PLAYBACK, FINISHED, "4", picked);
+    let updates = h.settle().await;
+
+    // Asked for, as the player asked, and looked up; there is nothing to play it from.
+    let looked_up = ["JobNote", "JobNote", "Toast", "PlaybackEnded", "Status", "JobDone"];
+    assert_eq!(names(&updates), [&["Playback", "PlayerPlayEpisode"][..], &looked_up].concat());
+    assert!(
+        toasts(&updates).iter().any(|toast| toast.starts_with("alert: ")),
+        "the lookup says why: {:?}",
+        toasts(&updates)
+    );
 }
 
 #[tokio::test]
