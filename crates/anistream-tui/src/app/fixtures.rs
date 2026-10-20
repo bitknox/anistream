@@ -4,9 +4,7 @@
 
 pub(super) use anistream_core::{config::Config, ids::AnilistId, settings::SettingValue};
 pub(super) use anistream_model::{
-    catalog::{
-        Content, ContentFor, Entry, LibrarySegment, RelatedTitle, ResumePoint, SearchFilters,
-    },
+    catalog::{Content, Entry, LibrarySegment, RelatedTitle, ResumePoint},
     command::{Command, PlayerCommand},
     episodes::EpisodeRow,
     event::Event,
