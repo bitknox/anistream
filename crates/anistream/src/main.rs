@@ -576,22 +576,7 @@ impl PreviewRun {
             return;
         }
         let job = JobGuard::start(app, &task, &self.tx);
-        dispatch(
-            task,
-            job,
-            &mut self.player_tx,
-            &self.services.paths,
-            app,
-            &self.services.slot,
-            &self.services.prefetch,
-            &self.services.meta,
-            &self.services.store,
-            &self.services.registry,
-            &self.services.http,
-            &self.services.sync,
-            &self.services.stores,
-            &self.tx,
-        );
+        dispatch(task, job, &mut self.player_tx, app, &self.services, &self.tx);
     }
 
     /// Apply updates until the work is done and the screen's covers are in, as the event loop
@@ -825,7 +810,7 @@ async fn run(
 
     if let Some(task) = app.reload() {
         let job = JobGuard::start(&mut app, &task, &tx);
-        spawn(task, job, &services.meta, &services.store, &services.registry, &tx);
+        spawn(task, job, &services, &tx);
     }
 
     let mut events = EventStream::new();
@@ -890,22 +875,7 @@ async fn run(
         // arrives as an update rather than a keystroke.
         if let Some(task) = app.take_pending() {
             let job = JobGuard::start(&mut app, &task, &tx);
-            dispatch(
-                task,
-                job,
-                &mut player_tx,
-                &services.paths,
-                &app,
-                &services.slot,
-                &services.prefetch,
-                &services.meta,
-                &services.store,
-                &services.registry,
-                &services.http,
-                &services.sync,
-                &services.stores,
-                &tx,
-            );
+            dispatch(task, job, &mut player_tx, &app, &services, &tx);
         }
 
         tokio::select! {
@@ -1001,22 +971,7 @@ async fn run(
                 tui::terminal::exit_on_second_signal();
                 if let Some(task) = app.handle(anistream_tui::keymap::Action::Quit, rows) {
                     let job = JobGuard::start(&mut app, &task, &tx);
-                    dispatch(
-                        task,
-                        job,
-                        &mut player_tx,
-                        &services.paths,
-                        &app,
-                        &services.slot,
-                        &services.prefetch,
-                        &services.meta,
-                        &services.store,
-                        &services.registry,
-                        &services.http,
-                        &services.sync,
-                        &services.stores,
-                        &tx,
-                    );
+                    dispatch(task, job, &mut player_tx, &app, &services, &tx);
                 }
                 // Whatever an open overlay made of the key, a signal is not a request to close it.
                 app.should_quit = true;
@@ -1039,22 +994,7 @@ async fn run(
                     Some(Ok(TermEvent::Key(key))) if key.kind == KeyEventKind::Press => {
                         if let Some(task) = app.press(key, rows) {
                             let job = JobGuard::start(&mut app, &task, &tx);
-                            dispatch(
-                                task,
-                                job,
-                                &mut player_tx,
-                                &services.paths,
-                                &app,
-                                &services.slot,
-                                &services.prefetch,
-                                &services.meta,
-                                &services.store,
-                                &services.registry,
-                                &services.http,
-                                &services.sync,
-                                &services.stores,
-                                &tx,
-                            );
+                            dispatch(task, job, &mut player_tx, &app, &services, &tx);
                         }
                     }
                     // Arrives whole with bracketed paste on, so a pasted link cannot fire
@@ -1277,14 +1217,12 @@ impl Drop for JobGuard {
 fn spawn(
     task: Command,
     job: Option<JobGuard>,
-    meta: &Meta,
-    store: &Store,
-    registry: &ProviderRegistry,
+    services: &Services,
     tx: &mpsc::UnboundedSender<Event>,
 ) {
-    let meta = meta.clone();
-    let store = store.clone();
-    let registry = registry.clone();
+    let meta = services.meta.clone();
+    let store = services.store.clone();
+    let registry = services.registry.clone();
     let tx = tx.clone();
 
     tokio::spawn(async move {
@@ -1555,29 +1493,23 @@ fn spawn(
 ///
 /// Playback is handled here rather than in [`spawn`] because it owns the live player's control
 /// channel: replacing that sender is what stops a finished episode's keys steering the next one.
-#[allow(clippy::too_many_arguments)]
 fn dispatch(
     task: Command,
     job: Option<JobGuard>,
     player_tx: &mut Option<mpsc::UnboundedSender<anistream_model::command::PlayerCommand>>,
-    paths: &Paths,
     app: &App,
-    slot: &PlayerSlot,
-    prefetch: &Prefetch,
-    meta: &Meta,
-    store: &Store,
-    registry: &ProviderRegistry,
-    http: &HttpClient,
-    sync: &tracking::Sync,
-    stores: &plugin_stores::Stores,
+    services: &Services,
     tx: &mpsc::UnboundedSender<Event>,
 ) {
+    let Services { paths, http, store, meta, registry, sync, stores, slot, prefetch } =
+        services;
     let config = &app.config;
     // No player handle is passed in: every playback path builds its own from the config
     // above, which is the live one the Settings screen edits. A handle held across the
     // session is exactly how a turned-off upscaler kept running.
     match task {
-        // Sync work needs the tracker set, which `spawn` deliberately does not carry.
+        // Sync work needs the tracker set, which `spawn` deliberately does not move into
+        // its task.
         Command::SyncNow => {
             let (sync, tx) = (sync.clone(), tx.clone());
             tokio::spawn(async move {
@@ -2173,7 +2105,7 @@ fn dispatch(
                 context.run(task).await;
             });
         }
-        other => spawn(other, job, meta, store, registry, tx),
+        other => spawn(other, job, services, tx),
     }
 }
 

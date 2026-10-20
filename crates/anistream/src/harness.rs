@@ -8,7 +8,7 @@
 //!
 //! So the tests are written against this, and this alone: [`Harness::send`] a task, then
 //! [`Harness::settle`] for every update it led to, in the order the app applied them. Nothing
-//! about `dispatch`'s fourteen parameters reaches a test. When the effects move behind
+//! about `dispatch`'s parameters reaches a test. When the effects move behind
 //! `Engine::send`, the insides of this file change and the tests do not.
 //!
 //! What it stands up, all of it in a temporary directory or in memory:
@@ -395,22 +395,7 @@ impl Harness {
         let tx = self.channels.sender();
         let job = JobGuard::start(&mut self.app, &task, &tx);
         let id = job.as_ref().map(|job| job.id);
-        crate::dispatch(
-            task,
-            job,
-            &mut self.player_tx,
-            &self.services.paths,
-            &self.app,
-            &self.services.slot,
-            &self.services.prefetch,
-            &self.services.meta,
-            &self.services.store,
-            &self.services.registry,
-            &self.services.http,
-            &self.services.sync,
-            &self.services.stores,
-            &tx,
-        );
+        crate::dispatch(task, job, &mut self.player_tx, &self.app, &self.services, &tx);
         id
     }
 
