@@ -24,6 +24,7 @@ pub mod artwork;
 pub mod background;
 pub mod data;
 pub mod downloads;
+pub mod jobs;
 pub mod outbox;
 pub mod playback;
 pub mod plugin_stores;
