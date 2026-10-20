@@ -7,6 +7,7 @@
 //!
 //! What front ends, the command line and the probes call to play is named from here.
 
+mod context;
 mod session;
 
 pub mod autonext;
@@ -22,7 +23,7 @@ pub mod shaders;
 pub mod slot;
 pub mod start;
 
+pub use context::PlaybackContext;
 pub use session::{
-    EpisodeEntry, NextEpisode, PictureState, PlaySettings, PlaybackContext, fetch_skips,
-    offered, play,
+    EpisodeEntry, NextEpisode, PictureState, PlaySettings, fetch_skips, offered, play,
 };
