@@ -23,6 +23,10 @@ pub(super) struct TitleFrame {
     depth: usize,
     entry: Entry,
     episodes_all: Vec<EpisodeRow>,
+    /// Whose rows `episodes_all` are, put back with them. Left behind, the parent's rows came
+    /// back owned by the child, whose rows were the last loaded: the parent's progress then
+    /// found no row to land on, and the child's was written over the parent's episodes.
+    episodes_for: Option<AnilistId>,
     episode_selected: usize,
     provider_preference: Option<String>,
 }
@@ -308,6 +312,7 @@ impl App {
             depth,
             entry,
             episodes_all: self.episodes_all.clone(),
+            episodes_for: self.episodes_for,
             episode_selected: self.cursors.episodes.selected,
             provider_preference: self.provider_preference.clone(),
         });
@@ -327,6 +332,7 @@ impl App {
         };
         self.detail = Some(frame.entry);
         self.episodes_all = frame.episodes_all;
+        self.episodes_for = frame.episodes_for;
         // Cleared first so the filter places the cursor from the remembered row, not from
         // whichever row of the child's table it was on.
         self.episodes.clear();
@@ -683,6 +689,62 @@ mod tests {
         a.handle(Action::Back, 5);
         assert_eq!(a.nav.current(), &StageView::Title(parent));
         assert_eq!(a.target(), Some(&full), "the parent's page came back showing the child");
+    }
+
+    #[test]
+    fn back_from_a_related_title_gives_the_parents_rows_back_to_the_parent() {
+        // The trail put the parent's rows back but left them owned by the child, whose rows
+        // were the last loaded: the engine's word on a mark made on them found no row to land
+        // on, and the child's own progress would be written over the parent's episodes.
+        let mut a = app_at_episodes();
+        let (parent, child) = (AnilistId::new(1), AnilistId::new(90));
+        a.detail.as_mut().expect("the parent's record").related =
+            vec![related(90, "Its sequel")];
+        a.handle(Action::WatchOrder, 20);
+        assert_eq!(a.handle(Action::Open, 20), Some(Command::LoadDetail(child)));
+        assert_eq!(a.handle(Action::ShowEpisodes, 20), Some(Command::LoadEpisodes(child)));
+        let row = |n: &str| EpisodeRow {
+            number: n.into(),
+            title: None,
+            duration_secs: None,
+            watched: 0.0,
+            completed: false,
+            kind: None,
+            skippable: false,
+            thumbnail: None,
+            description: None,
+        };
+        a.apply(Event::Episodes { id: child, rows: vec![row("1"), row("2")] });
+        assert_eq!(a.episodes_for, Some(child));
+
+        a.handle(Action::Back, 20);
+        a.handle(Action::Back, 20);
+        assert_eq!(a.nav.current(), &StageView::Episodes(parent));
+        assert_eq!(a.episodes.len(), 12, "the parent's rows are back");
+        assert_eq!(a.episodes_for, Some(parent), "but still owned by the child");
+        assert!(a.episode_rows_for(child).is_empty(), "the parent's rows spoke for the child");
+
+        let said = |id, number: &str| Event::Progress {
+            id,
+            progress: None,
+            resume: None,
+            episodes: vec![anistream_model::progress::EpisodeProgress {
+                number: number.into(),
+                watched: 1.0,
+                completed: true,
+            }],
+        };
+        // The child's progress is not the parent's, however its episodes are numbered.
+        a.apply(said(child, "2"));
+        assert!(!a.episodes[1].completed, "the child's progress was written over the parent's");
+
+        // A mark made here is the parent's, and the engine's answer lands on its row.
+        assert_eq!(
+            a.handle(Action::ToggleWatched, 20),
+            Some(Command::SetWatched { id: parent, episodes: vec!["1".into()], watched: true })
+        );
+        a.apply(said(parent, "1"));
+        assert!(a.episodes[0].completed, "the parent's answer found no row to land on");
     }
 
     #[test]
