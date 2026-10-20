@@ -11,7 +11,9 @@ use anistream_model::{
     command::Command,
     downloads::{DownloadRow, DownloadState},
     event::Event,
+    sources::ProviderRow,
 };
+use anistream_tui::app::Field;
 use anistream_tui::{App, Focus, Keymap, Palette, Section, StageView, keymap::status_hints};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
@@ -112,7 +114,7 @@ fn h_then_j_on_a_title_page_keeps_the_section() {
     press(&mut a, &["enter", "h", "j"]);
     assert_eq!(a.nav.section(), Section::Home);
     assert_eq!(a.nav.current(), &StageView::Section(Section::Home));
-    assert_eq!(a.selected, 1);
+    assert_eq!(a.cursor(), 1);
 }
 
 #[test]
@@ -121,9 +123,9 @@ fn settings_g_and_ctrl_d_reach_its_own_last_row() {
     let mut a = home(5);
     press(&mut a, &["9", "G"]);
     let last = a.setting_rows().len() - 1;
-    assert_eq!(a.selected, last);
+    assert_eq!(a.cursor(), last);
     press(&mut a, &["g", "ctrl+d", "ctrl+d", "ctrl+d"]);
-    assert_eq!(a.selected, last);
+    assert_eq!(a.cursor(), last);
 }
 
 #[test]
@@ -151,15 +153,15 @@ fn every_number_key_lands_the_same_way() {
 fn down_moves_from_the_search_field_into_its_results() {
     let mut a = app();
     press(&mut a, &["4", "q", "u", "e", "r", "y"]);
-    assert_eq!(a.search_query, "query", "letters are typed in the field");
+    assert_eq!(a.text(Field::Search), "query", "letters are typed in the field");
     assert!(matches!(press(&mut a, &["enter"]).as_slice(), [Command::Search { .. }]));
     a.apply(a.content_here(entries(30)));
     assert_eq!(hint(&a, "↓"), Some("results"));
 
     press(&mut a, &["down", "j", "j", "G"]);
-    assert_eq!(a.search_query, "query", "j and G were typed into the query");
-    assert_eq!(a.selected, 29);
-    assert!(a.selected < a.offset + ROWS, "the last result is off screen");
+    assert_eq!(a.text(Field::Search), "query", "j and G were typed into the query");
+    assert_eq!(a.cursor(), 29);
+    assert!(a.cursor() < a.offset() + ROWS, "the last result is off screen");
     press(&mut a, &["esc"]);
     assert!(a.is_typing(), "Esc from the results returns to the field");
 }
@@ -182,4 +184,103 @@ fn space_and_x_pause_and_cancel_downloads_while_idle_and_say_so() {
     a.apply(Event::Downloads(vec![download(9, DownloadState::Done)]));
     assert_eq!(hint(&a, "↵"), Some("play"));
     assert_eq!(hint(&a, "space"), None, "a finished download has nothing to pause");
+}
+
+// ── Where a cursor lands as the screens change ─────────────────────────────────────────────────
+//
+// Each section's own view has a cursor — its list, or its table — and these are the rules for
+// where it is when the screen on top changes: so that one cursor shared by the sections, or one
+// for each, is the same thing to whoever is pressing the keys.
+
+/// Into a section, by a jump or by the rail's arrows, is onto its first row with its window at
+/// the top, however that section or the last one was left: a list, or a table like Settings'.
+#[test]
+fn every_way_into_a_section_lands_on_its_first_row_however_it_was_left() {
+    let mut a = home(50);
+    press(&mut a, &["G"]);
+    assert_eq!((a.cursor(), a.offset()), (49, 30));
+
+    press(&mut a, &["9"]);
+    assert_eq!(a.cursor(), 0, "Settings opens on its first row");
+    press(&mut a, &["j", "j", "j"]);
+    assert_eq!(a.cursor(), 3);
+
+    press(&mut a, &["1"]);
+    a.apply(a.content_here(entries(50)));
+    assert_eq!(
+        (a.cursor(), a.offset()),
+        (0, 0),
+        "Home opens at its top, not where it was left"
+    );
+
+    press(&mut a, &["9"]);
+    assert_eq!(a.cursor(), 0, "Settings too");
+
+    // By the rail: up to Accounts and back down, each step a section entered afresh.
+    press(&mut a, &["j", "j", "esc"]);
+    assert_eq!((a.nav.focus(), a.cursor()), (Focus::Rail, 2), "the rail moves no row");
+    press(&mut a, &["k", "j"]);
+    assert_eq!((a.nav.section(), a.nav.focus()), (Section::Settings, Focus::Rail));
+    assert_eq!(a.cursor(), 0, "back onto Settings from the rail");
+
+    press(&mut a, &["1"]);
+    a.apply(a.content_here(entries(50)));
+    press(&mut a, &["G", "left"]);
+    assert_eq!((a.nav.focus(), a.cursor(), a.offset()), (Focus::Rail, 49, 30));
+    press(&mut a, &["j", "k"]);
+    assert_eq!(a.nav.section(), Section::Home);
+    a.apply(a.content_here(entries(50)));
+    assert_eq!((a.cursor(), a.offset()), (0, 0), "back onto Home from the rail");
+}
+
+fn provider(id: &str) -> ProviderRow {
+    ProviderRow {
+        id: id.into(),
+        kind: "plugin".into(),
+        state: "ready".into(),
+        latency_ms: None,
+        last_error: None,
+        usable: true,
+        held_back: false,
+    }
+}
+
+/// A view pushed over a section's own leaves the section's cursor alone, and Back finds it
+/// where it was: the plugin stores over the Providers table, as a title over a list.
+#[test]
+fn back_from_the_stores_finds_the_providers_table_where_it_was() {
+    let mut a = app();
+    press(&mut a, &["7"]);
+    a.apply(Event::Providers(vec![provider("one"), provider("two"), provider("three")]));
+    press(&mut a, &["j", "j"]);
+    assert_eq!(a.cursor(), 2);
+    assert_eq!(press(&mut a, &["enter"]), vec![Command::LoadStores]);
+    assert_eq!(a.nav.current(), &StageView::Stores);
+    a.apply(Event::Stores(Vec::new()));
+    press(&mut a, &["j", "k", "esc"]);
+    assert_eq!(a.nav.current(), &StageView::Section(Section::Providers));
+    assert_eq!(a.cursor(), 2, "the table is where it was left");
+}
+
+/// A search sent anew, from the field or from the filters, starts its results at the top rather
+/// than at the row the last ones were left on. Back in the field, the results stay as they were.
+#[test]
+fn a_search_sent_anew_starts_its_results_at_the_top() {
+    let mut a = app();
+    press(&mut a, &["4", "a", "b", "c", "enter"]);
+    a.apply(a.content_here(entries(40)));
+    press(&mut a, &["down", "G"]);
+    assert_eq!((a.cursor(), a.offset()), (39, 20));
+    press(&mut a, &["/"]);
+    assert!(a.is_typing());
+    assert_eq!((a.cursor(), a.offset()), (39, 20), "the field leaves the results as they were");
+
+    press(&mut a, &["d", "enter"]);
+    assert_eq!((a.cursor(), a.offset()), (0, 0), "a new query's results start at their top");
+
+    a.apply(a.content_here(entries(40)));
+    press(&mut a, &["down", "G", "f"]);
+    assert_eq!(a.nav.overlay(), Some(&anistream_tui::Overlay::SearchFilters));
+    press(&mut a, &["l", "enter"]);
+    assert_eq!((a.cursor(), a.offset()), (0, 0), "so do a filtered search's");
 }

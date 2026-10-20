@@ -16,6 +16,7 @@ use anistream_model::{
     settings::SettingsView,
     sync::SyncState,
 };
+use anistream_tui::app::Field;
 use anistream_tui::{
     App, Keymap, Overlay, Palette, Section, StageView, app::NowPlaying, keymap::status_hints,
     screens::render_to_buffer,
@@ -88,7 +89,7 @@ fn at_settings() -> App {
     let mut a = app();
     a.go_to_section(Section::Settings);
     a.nav.focus_stage();
-    a.selected = 1;
+    a.set_cursor(1);
     a
 }
 
@@ -133,7 +134,7 @@ fn nothing_behind_help_or_logs_changes_or_saves_a_setting() {
         let tasks = press(&mut a, SCREEN_KEYS);
         assert!(tasks.is_empty(), "{overlay}: keys behind the overlay made work: {tasks:?}");
         assert_eq!(format!("{:?}", a.settings), config, "{overlay}: a setting changed");
-        assert_eq!(a.selected, 1, "{overlay}: the settings cursor moved behind the overlay");
+        assert_eq!(a.cursor(), 1, "{overlay}: the settings cursor moved behind the overlay");
         assert_eq!(a.nav.section(), Section::Settings);
         assert!(a.nav.has_overlay(), "{overlay}: a stray key closed it");
         press(&mut a, &["esc"]);
@@ -171,7 +172,7 @@ fn every_question_overlay_swallows_keys_that_are_not_its_own() {
         assert!(tasks.is_empty(), "{overlay:?}: {tasks:?}");
         assert_eq!(a.nav.overlay(), Some(&overlay), "{overlay:?} lost the keyboard");
         assert_eq!(a.nav.section(), Section::Home);
-        assert_eq!(a.selected, 0, "{overlay:?}: the list behind it moved");
+        assert_eq!(a.cursor(), 0, "{overlay:?}: the list behind it moved");
     }
 }
 
@@ -197,17 +198,19 @@ fn ctrl_c_quits_from_every_overlay_and_prompt() {
 fn arrows_in_a_text_prompt_do_not_move_the_list_behind_it() {
     let mut a = at_settings();
     // Subtitles is a text setting: Enter opens its editor.
-    a.selected = anistream_model::settings::SettingKey::ROWS
-        .iter()
-        .position(|s| *s == anistream_model::settings::SettingKey::Subtitles)
-        .unwrap();
-    let row = a.selected;
+    a.set_cursor(
+        anistream_model::settings::SettingKey::ROWS
+            .iter()
+            .position(|s| *s == anistream_model::settings::SettingKey::Subtitles)
+            .unwrap(),
+    );
+    let row = a.cursor();
     press(&mut a, &["enter"]);
     assert_eq!(a.nav.overlay(), Some(&Overlay::EditSetting));
     press(&mut a, &["down", "down", "up", "down"]);
-    assert_eq!(a.selected, row, "the arrows moved the settings cursor behind the prompt");
+    assert_eq!(a.cursor(), row, "the arrows moved the settings cursor behind the prompt");
     press(&mut a, &["esc"]);
-    assert_eq!(a.selected, row);
+    assert_eq!(a.cursor(), row);
     assert_eq!(a.nav.overlay(), None);
 }
 
@@ -249,10 +252,10 @@ fn help_over_a_picker_returns_to_it_with_its_selection() {
     a.nav.focus_stage();
     press(&mut a, &["*", "j", "j"]);
     assert_eq!(a.nav.overlay(), Some(&Overlay::Rate));
-    let picked = a.overlay_selected;
+    let picked = a.overlay_cursor();
     press(&mut a, &["?", "j", "G", "esc"]);
     assert_eq!(a.nav.overlay(), Some(&Overlay::Rate), "esc from Help returns to the question");
-    assert_eq!(a.overlay_selected, picked, "paging Help moved the picker underneath");
+    assert_eq!(a.overlay_cursor(), picked, "paging Help moved the picker underneath");
 }
 
 #[test]
@@ -279,7 +282,7 @@ fn esc_cancels_the_palette_whatever_back_is_rebound_to() {
     assert!(keymap.apply_overrides(&BTreeMap::from([("back".into(), "z".into())])).is_empty());
     let mut a = App::new(SettingsView::default(), Palette::dark(), keymap);
     press(&mut a, &[":", "z"]);
-    assert_eq!(a.palette_query, "z", "a letter is typed into the palette");
+    assert_eq!(a.text(Field::Palette), "z", "a letter is typed into the palette");
     press(&mut a, &["esc"]);
     assert_eq!(a.nav.overlay(), None, "esc must still close the palette");
 
@@ -294,14 +297,14 @@ fn esc_cancels_the_palette_whatever_back_is_rebound_to() {
 fn help_pages(width: u16, height: u16) -> Vec<String> {
     let mut a = app();
     press(&mut a, &["?"]);
-    let mut pages = vec![text_of(&render_to_buffer(&a, width, height))];
+    let mut pages = vec![text_of(&render_to_buffer(&mut a, width, height))];
     for _ in 0..40 {
-        let before = a.help_page;
+        let before = a.help_page();
         press(&mut a, &["j"]);
-        if a.help_page == before {
+        if a.help_page() == before {
             break;
         }
-        pages.push(text_of(&render_to_buffer(&a, width, height)));
+        pages.push(text_of(&render_to_buffer(&mut a, width, height)));
     }
     pages
 }
@@ -400,9 +403,9 @@ fn logs_scroll_with_the_highlight() {
     press(&mut a, &["L"]);
     for _ in 0..30 {
         press(&mut a, &["j"]);
-        let text = text_of(&render_to_buffer(&a, 80, 24));
+        let text = text_of(&render_to_buffer(&mut a, 80, 24));
         // Newest first: the highlight on row n is line 39 - n.
-        let wanted = format!("line {}", 39 - a.overlay_selected);
+        let wanted = format!("line {}", 39 - a.overlay_cursor());
         let marked = text.lines().find(|l| l.starts_with('▌') && l.contains("line "));
         assert!(
             marked.is_some_and(|l| l.contains(&wanted)),
@@ -411,7 +414,7 @@ fn logs_scroll_with_the_highlight() {
     }
     // And back up, without the window jumping to keep the highlight at its bottom edge.
     press(&mut a, &["k"]);
-    let text = text_of(&render_to_buffer(&a, 80, 24));
+    let text = text_of(&render_to_buffer(&mut a, 80, 24));
     let rows: Vec<&str> = text.lines().filter(|l| l.contains("line ")).collect();
     let marked = rows.iter().position(|l| l.starts_with('▌')).unwrap();
     assert!(marked < rows.len() - 1, "moving up pinned the highlight to the bottom:\n{text}");
@@ -427,7 +430,7 @@ fn identical_log_lines_merge_into_one_with_a_count() {
     assert_eq!(a.logs.len(), 2);
     assert_eq!(a.logs[0].count, 25);
     press(&mut a, &["L"]);
-    let text = text_of(&render_to_buffer(&a, 80, 24));
+    let text = text_of(&render_to_buffer(&mut a, 80, 24));
     let line = text.lines().find(|l| l.contains("cover unavailable")).unwrap();
     assert!(line.contains("×25"), "{line}");
 }
@@ -499,7 +502,7 @@ fn an_overlay_shows_its_own_hints() {
 
     let mut a = app();
     press(&mut a, &["?"]);
-    render_to_buffer(&a, 80, 24);
+    render_to_buffer(&mut a, 80, 24);
     assert_eq!(hint(&a, "↑↓"), Some("page"));
     assert_eq!(hint(&a, "esc"), Some("close"));
 }
@@ -509,7 +512,7 @@ fn a_narrow_status_line_keeps_the_way_to_help() {
     let mut a = app();
     a.apply(a.content_here(entries(3)));
     a.nav.focus_stage();
-    let text = text_of(&render_to_buffer(&a, 40, 15));
+    let text = text_of(&render_to_buffer(&mut a, 40, 15));
     let status = text.lines().last().unwrap();
     assert!(status.trim_end().ends_with("? keys"), "{status:?}");
 }
@@ -587,8 +590,8 @@ fn going_to_a_section_from_the_palette_goes_to_that_section() {
     ] {
         let mut a = app();
         press(&mut a, &[":"]);
-        a.palette_query = format!("go to {query}");
-        a.overlay_selected = 0;
+        a.set_text(Field::Palette, format!("go to {query}"));
+        a.set_overlay_cursor(0);
         press(&mut a, &["enter"]);
         assert_eq!(a.nav.section(), section, "{query}");
     }
@@ -600,7 +603,7 @@ fn a_refused_range_is_cleared_and_the_prompt_stays_open() {
     let mut a = at_episodes();
     press(&mut a, &["D", "1", "2", "-", "4", "enter"]);
     assert_eq!(a.nav.overlay(), Some(&Overlay::DownloadRange));
-    assert_eq!(a.range_query, "", "the refused range must not stay in the field");
+    assert_eq!(a.text(Field::Range), "", "the refused range must not stay in the field");
     let tasks = press(&mut a, &["1", "-", "3", "enter"]);
     match tasks.as_slice() {
         [Command::DownloadMany { episodes, .. }] => assert_eq!(episodes, &["1", "2", "3"]),
@@ -610,7 +613,7 @@ fn a_refused_range_is_cleared_and_the_prompt_stays_open() {
     let mut a = at_episodes();
     press(&mut a, &["D", "4", "0", "enter"]);
     assert_eq!(a.nav.overlay(), Some(&Overlay::DownloadRange), "nothing in range: try again");
-    assert_eq!(a.range_query, "");
+    assert_eq!(a.text(Field::Range), "");
 }
 
 #[test]
@@ -633,7 +636,7 @@ fn an_overlay_keeps_its_hints_legible_above_the_scrim() {
     // The status line carries the overlay's own keys, so it is drawn over the dimming.
     let mut a = app();
     press(&mut a, &["?"]);
-    let buf = render_to_buffer(&a, 80, 24);
+    let buf = render_to_buffer(&mut a, 80, 24);
     let status_y = buf.area.height - 1;
     let text = text_of(&buf);
     let status = text.lines().last().unwrap();
@@ -645,4 +648,26 @@ fn an_overlay_keeps_its_hints_legible_above_the_scrim() {
     );
     // And the first frame already knows the table pages at this size.
     assert!(status.contains("↑↓ page"), "{status:?}");
+}
+
+/// The overlays have one cursor between them, apart from the screens'. Every list overlay sets
+/// it as it opens, but the command palette opens with it where the overlay before left it —
+/// Logs, or the palette itself last time — until a letter is typed, which puts it at the top.
+#[test]
+fn the_palette_opens_on_the_row_the_overlay_before_it_was_left_on() {
+    let mut a = app();
+    for i in 0..10 {
+        a.push_toast(Notice::info(format!("line {i}")));
+    }
+    press(&mut a, &["L", "j", "j", "j"]);
+    assert_eq!(a.overlay_cursor(), 3);
+    press(&mut a, &[":"]);
+    assert_eq!(a.nav.overlay(), Some(&Overlay::CommandPalette));
+    assert_eq!(a.overlay_cursor(), 3, "opened where Logs was left");
+    press(&mut a, &["e"]);
+    assert_eq!(a.overlay_cursor(), 0, "a letter typed starts the matches at the top");
+
+    press(&mut a, &["backspace", "down", "down", "esc", ":"]);
+    assert_eq!(a.overlay_cursor(), 2, "and where it was itself left");
+    assert_eq!(a.cursor(), 0, "none of it moved the list behind");
 }

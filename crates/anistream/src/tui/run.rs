@@ -9,7 +9,7 @@ use anistream_model::{command::Command, event::Event, notice::Notice};
 use anistream_net::HttpClient;
 use anistream_store::Store;
 use anistream_tui::{
-    app::App,
+    app::{App, FrameReport},
     keymap::Keymap,
     screens,
     theme::{self, player_theme},
@@ -124,9 +124,12 @@ pub async fn run(
         if !waiting && (!idle_tick || repaint.due(live, now)) {
             // Broken out of rather than returned from: a terminal that can no longer be drawn
             // on still has to be given back, and the player closed.
-            if let Err(e) = terminal.draw(|frame| screens::render(frame, &app)) {
+            let mut report = FrameReport::default();
+            if let Err(e) = terminal.draw(|frame| report = screens::render(frame, &app)) {
                 break Err(e.into());
             }
+            // How the frame laid the overlay out, for the next key to page and scroll by.
+            app.took_frame(report);
             repaint.painted(terminal.backend_mut().take_wrote(), now);
         }
         idle_tick = false;
@@ -147,8 +150,8 @@ pub async fn run(
         }
 
         // What the viewer asked for without a key to carry it: a scroll's backfill, a
-        // section's reload once the rail has settled.
-        if let Some(task) = app.take_pending() {
+        // section's reload once the rail has settled. All of it, in the order it was asked.
+        for task in app.take_commands() {
             engine.send(task);
         }
 

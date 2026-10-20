@@ -62,7 +62,7 @@ pub(super) async fn at_the_table_with(options: Options) -> Harness {
 /// The episode under the table's cursor.
 pub(super) fn cursor(h: &Harness) -> String {
     let app = h.app();
-    app.episodes[app.episode_selected].number.clone()
+    app.episodes[app.episode_cursor()].number.clone()
 }
 
 /// Each row of the table that is finished, by number.

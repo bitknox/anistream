@@ -1,6 +1,6 @@
 # Codemods for the engine extraction
 
-These scripts rewrite code that uses main's names so it uses this branch's. Run all four after
+These scripts rewrite code that uses main's names so it uses this branch's. Run all five after
 each merge of main, in this order, from the repository root or anywhere inside it:
 
 1. `notice.sh`: the toast that crosses into the interface becomes a `Notice`, and its kind a
@@ -11,11 +11,14 @@ each merge of main, in this order, from the repository root or anywhere inside i
 4. `crate_paths.sh`: the old library's paths become anistream-engine's; tty, focus and the
    updater are named as the binary's `tui::terminal`, `tui::focus` and `cli::update`; and
    anistream-ui becomes anistream-tui.
+5. `test_accessors.py`: tests read and set the App's cursors and text buffers through accessors,
+   `a.cursor()` and `a.text(Field::Search)` for `a.selected` and `a.search_query`, so the state
+   behind them can be reshaped and split by feature without the tests following it.
 
 The order matters within a run: model_paths.py moves the `Notice`, `Command` and `Event` that
 the first two write, so a name main adds is converted in one run rather than two.
 
-Each script rewrites only names that are still old, so running all four again changes nothing.
+Each script rewrites only names that are still old, so running all five again changes nothing.
 After a run, `cargo fmt --all` lays out the imports they rewrote, and the compiler names what is
 left to do by hand.
 

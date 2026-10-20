@@ -366,7 +366,7 @@ impl Harness {
         let mut seen = Vec::new();
         loop {
             // The reducer's follow-ups, as at the top of the loop.
-            if let Some(task) = self.app.take_pending() {
+            for task in self.app.take_commands() {
                 self.dispatch(task);
             }
             for url in self.app.visible_artwork(self.rows()) {
@@ -411,7 +411,7 @@ impl Harness {
         let deadline = tokio::time::Instant::now() + PATIENCE;
         let mut seen = Vec::new();
         loop {
-            if let Some(task) = self.app.take_pending() {
+            for task in self.app.take_commands() {
                 self.dispatch(task);
             }
             if seen.last().is_some_and(&done) {
@@ -527,9 +527,10 @@ impl Harness {
     }
 
     /// The frame as text: one line per row, trailing spaces trimmed, as `--preview` prints it.
-    pub fn screen(&self) -> String {
+    /// Drawn as the loop draws one, so what it reports goes back to the app.
+    pub fn screen(&mut self) -> String {
         let (width, height) = self.size;
-        let buffer = screens::render_to_buffer(&self.app, width, height);
+        let buffer = screens::render_to_buffer(&mut self.app, width, height);
         (0..height)
             .map(|y| {
                 let line: String = (0..width).map(|x| buffer[(x, y)].symbol()).collect();
