@@ -345,7 +345,7 @@ protocol.
 
 ## Architecture
 
-Seventeen crates. The app's, volatility increasing left to right:
+Eighteen crates. The app's, volatility increasing left to right:
 
 ```
  AniList        ID mapping        Provider         Player
@@ -364,7 +364,8 @@ filler) · `-store` (SQLite) · `-providers` (torrent transport, remote, mock) �
 `-track` (AniList, MAL, Kitsu, Simkl, Trakt, sync) · `-plugin` (WASM host) · `-model` (the protocol
 between the engine and a front end, and its wording) · `-engine` (playback, sources, sync, downloads
 and the background jobs) · `-tui` (the terminal front end, ratatui) · `anistream` (the binary: the
-command line, the terminal's event loop, and the wiring from front end to engine) · `-testkit` (a
+command line, the terminal's event loop, and the wiring from front end to engine) · `-ffi` (the
+engine for native front ends, through UniFFI; the Swift package is in `apple/`) · `-testkit` (a
 fake AniList and goldens, for tests).
 
 Plugin stores have four of their own: `-store-core` (the protocol, the store's rules and its admin

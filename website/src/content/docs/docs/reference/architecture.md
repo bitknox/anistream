@@ -1,9 +1,9 @@
 ---
 title: Architecture
-description: Seventeen crates ordered by volatility, and why the core never depends on a source.
+description: Eighteen crates ordered by volatility, and why the core never depends on a source.
 ---
 
-Seventeen crates. The app's layers, volatility increasing left to right:
+Eighteen crates. The app's layers, volatility increasing left to right:
 
 ```
  AniList        ID mapping        Provider         Player
@@ -34,12 +34,18 @@ The rest of the app:
 - `anistream-tui` is the terminal front end: the screens, the keymap and the theme, on ratatui.
 - `anistream` is the binary. It holds the command line, self-update, and the terminal's event
   loop, which hands the front end's commands to the engine and its events back.
+- `anistream-ffi` is the engine for native front ends: SwiftUI on macOS and iOS, Jetpack Compose
+  on Android. It hands them the model's own commands and events through UniFFI, and takes
+  links, notifications and the OS's secret store from the app. The Swift package that wraps it
+  is in `apple/`.
 - `anistream-testkit` is used only by tests: a fake AniList, fixture titles and golden files.
 
 The engine and the model use no terminal library, not even through a dependency, so a front end
 that is not a terminal can run on them. The terminal front end depends on the model and the core,
-never on the engine. `tools/check-boundaries.sh` checks both rules against the resolved
-dependency tree in CI.
+never on the engine. The engine's `desktop` feature holds what only a computer can do: mpv, watch
+parties, the browser sign-in redirect and desktop notifications. A phone build leaves it out.
+`tools/check-boundaries.sh` checks all three rules against the resolved dependency tree in CI,
+the last for iOS and Android.
 
 Four more crates make up [plugin stores](/docs/plugins/stores/). `anistream-plugin-store` is the
 store client and the reference server. `anistream-store-core` holds the store's protocol, rules,
