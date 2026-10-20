@@ -10,7 +10,6 @@ use anistream_model::playback::PlayerTheme;
 use anistream_net::HttpClient;
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
-use anyhow::Result;
 
 /// The handles every effect shares, which the command line uses too.
 ///
@@ -62,10 +61,9 @@ impl Services {
         store: Store,
         registry: ProviderRegistry,
         player_theme: PlayerTheme,
-    ) -> Result<Self> {
+    ) -> Result<Self, String> {
         let meta = build_meta(config, &http, &store);
-        let stores =
-            plugin_stores::Stores::new(config, &paths).map_err(|e| anyhow::anyhow!(e))?;
+        let stores = plugin_stores::Stores::new(config, &paths)?;
         // Trackers are built whether or not they hold a token: the Accounts overlay needs
         // something to offer a sign-in for, and the outbox accumulates against the id meanwhile.
         let sync = tracking::Sync::build(config, &store, &http);

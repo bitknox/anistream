@@ -447,7 +447,8 @@ async fn preview(
         note = Some(reason);
     }
     let services =
-        Services::build(&config, paths.clone(), http, store, registry, player_theme())?;
+        Services::build(&config, paths.clone(), http, store, registry, player_theme())
+            .map_err(anyhow::Error::msg)?;
     // Nothing in a still frame brings a torrent source up, so nothing reports on this.
     let state = EngineState::new(config.clone(), mpsc::unbounded_channel().0);
     let mut app = App::with_images(config, palette, keymap, engine);
@@ -707,7 +708,8 @@ async fn run(
         paths.clone(),
     );
     // What every task is lent, built around that chain.
-    let services = Services::build(&config, paths, http, store, registry, player_theme())?;
+    let services = Services::build(&config, paths, http, store, registry, player_theme())
+        .map_err(anyhow::Error::msg)?;
     // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
     let (arrivals_tx, mut arrivals) = mpsc::unbounded_channel();
     // The effect layer's own state, on the config the app was launched with.
