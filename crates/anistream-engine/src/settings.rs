@@ -6,7 +6,7 @@ use anistream_core::{media::Translation, settings::SettingValue};
 use anistream_model::{
     event::Event,
     notice::Notice,
-    settings::{self, SettingKey},
+    settings::{self, SettingKey, redefines_sources},
     sources::only_reorders,
 };
 
@@ -202,33 +202,4 @@ pub fn remember(
 /// of its own, held to the Settings screen's rows by a test.
 pub fn setting_label(table: &[&str], key: &str) -> Option<&'static str> {
     SettingKey::at(table, key).map(SettingKey::label)
-}
-
-/// Whether writing this setting changes which sources exist, and so needs the chain rebuilt.
-///
-/// Listed rather than inferred: a rebuild tears down a live torrent session, which is far
-/// too blunt to trigger on a guess about a setting. The VPN mode is listed though nothing here
-/// writes it, since it decides whether torrents run at all; the sources switched off by name
-/// and the remote's address, which the file alone sets, have no key to list.
-fn redefines_sources(setting: SettingKey) -> bool {
-    matches!(setting, SettingKey::Torrents | SettingKey::VpnMode | SettingKey::SourceOrder)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn only_source_defining_keys_force_a_rebuild() {
-        // A rebuild tears down a live torrent session, so it must not fire on a setting
-        // that has nothing to do with which sources exist.
-        assert!(redefines_sources(SettingKey::Torrents));
-        assert!(redefines_sources(SettingKey::VpnMode));
-        assert!(redefines_sources(SettingKey::SourceOrder));
-
-        assert!(!redefines_sources(SettingKey::Upscaling));
-        assert!(!redefines_sources(SettingKey::Quality));
-        assert!(!redefines_sources(SettingKey::DownloadDir));
-        assert!(!redefines_sources(SettingKey::Theme));
-    }
 }
