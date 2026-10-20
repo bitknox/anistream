@@ -31,7 +31,7 @@ use anistream_core::{
     traits::SourceCandidate,
 };
 use anistream_model::{
-    catalog::{Content, Entry, LibrarySegment, RelatedTitle, ResumePoint},
+    catalog::{Aired, ContentList, Entry, LibrarySegment, RelatedTitle, ResumePoint},
     command::Command,
     downloads::{DownloadRow, DownloadState, SeedRow},
     episodes::{EpisodeKind, EpisodeRow},
@@ -39,13 +39,14 @@ use anistream_model::{
     jobs::JobId,
     notice::Notice,
     playback::SkipKind,
+    progress::TitleProgress,
     settings::{self, SettingsView},
     sources::{MatchCandidate, MetaSourceRow, ProviderRow},
     stores::{
-        InviteLinkView, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow, StorePluginRow,
-        StorePluginStatus, StorePreview, StoreRow, StoreState,
+        InviteLinkView, InvitePreview, InvitedStore, LocalPluginRow, Secret, StoreInviteRow,
+        StoreMemberRow, StorePluginRow, StorePluginStatus, StoreRow, StoreState,
     },
-    sync::{ConflictRow, DeviceCodePrompt, SyncState},
+    sync::{ConflictRow, DeviceCodePrompt, PullError, SyncState},
 };
 use anistream_tui::{
     Action, App, Clock, Keymap, Overlay, Palette, Role, Zone,
@@ -163,10 +164,10 @@ impl Screen {
 
     /// The answer to the list on screen.
     fn list(&mut self, entries: Vec<Entry>) {
-        self.content(Content::Entries(entries));
+        self.content(ContentList::Entries(entries));
     }
 
-    fn content(&mut self, content: Content) {
+    fn content(&mut self, content: ContentList) {
         let update = self.app.content_here(content);
         self.apply(update);
     }
@@ -588,9 +589,9 @@ fn hoshikuzu() -> Entry {
         banner_url: Some("https://img.example/banner/hoshikuzu.jpg".into()),
         genres: vec!["Adventure".into(), "Fantasy".into(), "Slice of Life".into()],
         available_on: vec!["Hikari Stream".into(), "Nami TV".into()],
-        progress: Some((3, 4)),
+        progress: Some(TitleProgress { done: 3, next: 4 }),
         resume: Some(ResumePoint { position: 812.0, fraction: Some(0.57) }),
-        last_aired: Some((4, 2 * DAY + 3 * HOUR + 7 * MINUTE + 41)),
+        last_aired: Some(Aired { episode: 4, ago: 2 * DAY + 3 * HOUR + 7 * MINUTE + 41 }),
         next_episode: Some(5),
         next_airing_in: Some(4 * DAY + 20 * HOUR + 13 * MINUTE + 27),
         airing_in: Some(4 * DAY + 20 * HOUR + 13 * MINUTE + 27),
@@ -608,8 +609,8 @@ fn kaze() -> Entry {
         studio: Some("Atelier Hotaru".into()),
         synopsis: "A postwoman in a hill town reads the wind for letters nobody sent.".into(),
         genres: vec!["Drama".into(), "Romance".into()],
-        progress: Some((6, 7)),
-        last_aired: Some((9, DAY + 2 * HOUR + 4 * MINUTE + 13)),
+        progress: Some(TitleProgress { done: 6, next: 7 }),
+        last_aired: Some(Aired { episode: 9, ago: DAY + 2 * HOUR + 4 * MINUTE + 13 }),
         next_episode: Some(10),
         next_airing_in: Some(5 * DAY + 21 * HOUR + 22 * MINUTE + 47),
         airing_in: Some(5 * DAY + 21 * HOUR + 22 * MINUTE + 47),
@@ -629,8 +630,8 @@ fn yoru() -> Entry {
                    lost something."
             .into(),
         genres: vec!["Mystery".into(), "Supernatural".into()],
-        progress: Some((5, 6)),
-        last_aired: Some((5, 5 * DAY + 21 * HOUR + 18 * MINUTE + 51)),
+        progress: Some(TitleProgress { done: 5, next: 6 }),
+        last_aired: Some(Aired { episode: 5, ago: 5 * DAY + 21 * HOUR + 18 * MINUTE + 51 }),
         next_episode: Some(6),
         next_airing_in: Some(2 * HOUR + 41 * MINUTE + 9),
         airing_in: Some(2 * HOUR + 41 * MINUTE + 9),
@@ -650,7 +651,7 @@ fn tsuki() -> Entry {
                    lighthouse is the only one who hears it sing."
             .into(),
         genres: vec!["Drama".into(), "Fantasy".into()],
-        progress: Some((7, 8)),
+        progress: Some(TitleProgress { done: 7, next: 8 }),
         ..Entry::new(id(104), "Tsuki to Kujira no Uta")
     }
 }
@@ -937,7 +938,10 @@ fn accounts(s: &mut Screen) {
         user: Some("hotaru_watches".into()),
         needs_reauth: true,
         storage: Some("OS keychain".into()),
-        pull_error: Some(("the token was refused".into(), NOW - 2 * HOUR - 13 * MINUTE - 4)),
+        pull_error: Some(PullError {
+            reason: "the token was refused".into(),
+            at: NOW - 2 * HOUR - 13 * MINUTE - 4,
+        }),
         ..SyncState::new("mal")
     })));
     s.apply(Event::DeviceCode(Some(DeviceCodePrompt {
@@ -1091,7 +1095,7 @@ fn title_not_started(s: &mut Screen) {
     settled_on(s, 3);
     let umibe = Entry {
         secondary: Some("The Seaside Café".into()),
-        last_aired: Some((2, 6 * DAY + 2 * HOUR + 11 * MINUTE + 5)),
+        last_aired: Some(Aired { episode: 2, ago: 6 * DAY + 2 * HOUR + 11 * MINUTE + 5 }),
         next_episode: Some(3),
         next_airing_in: Some(17 * HOUR + 48 * MINUTE + 31),
         ..catalogue(7).swap_remove(6)
@@ -1167,8 +1171,11 @@ fn episodes(s: &mut Screen) {
 /// cursor far enough down that the table has scrolled at both sizes.
 fn episodes_long_filtered(s: &mut Screen) {
     settled_on(s, 1);
-    let tanuki =
-        Entry { episodes: Some(48), progress: Some((6, 7)), ..catalogue(20).swap_remove(19) };
+    let tanuki = Entry {
+        episodes: Some(48),
+        progress: Some(TitleProgress { done: 6, next: 7 }),
+        ..catalogue(20).swap_remove(19)
+    };
     s.list(vec![tanuki]);
     s.press(&["e"]);
     let rows = (1..=48)
@@ -1324,10 +1331,10 @@ fn three_trackers(s: &mut Screen) {
         connected: true,
         user: Some("hotaru_watches".into()),
         needs_reauth: true,
-        pull_error: Some((
-            "the token was refused".into(),
-            NOW - 3 * DAY - 4 * HOUR - 9 * MINUTE,
-        )),
+        pull_error: Some(PullError {
+            reason: "the token was refused".into(),
+            at: NOW - 3 * DAY - 4 * HOUR - 9 * MINUTE,
+        }),
         ..SyncState::new("mal")
     })));
 }
@@ -1410,11 +1417,11 @@ fn logs(s: &mut Screen) {
 /// The match ladder could not choose: three candidates, two ruled out and saying why.
 fn disambiguate(s: &mut Screen) {
     on_kaze(s);
-    let candidate = |title: &str, similarity: f64, rejected| MatchCandidate {
+    let candidate = |title: &str, similarity: f64, rejected: Option<&str>| MatchCandidate {
         title: title.into(),
         key: ProviderKey::new(title.to_lowercase().replace(' ', "-")),
         similarity,
-        rejected,
+        rejected: rejected.map(Into::into),
     };
     s.apply(Event::MatchChoices {
         id: id(102),
@@ -1631,7 +1638,7 @@ fn join_store(s: &mut Screen) {
 fn store_confirm(s: &mut Screen) {
     join_store(s);
     s.press(&["enter"]);
-    s.apply(Event::StorePreview(Ok(StorePreview {
+    s.apply(Event::StorePreview(InvitePreview::Store(InvitedStore {
         link: Secret(INVITE.into()),
         name: "Rin's sources".into(),
         url: "https://rin.example".into(),
@@ -1700,7 +1707,7 @@ fn publish_pick(s: &mut Screen) {
 /// Nothing watched yet: the mark above the message where there is room, and the ways on.
 fn continue_empty(s: &mut Screen) {
     settled_on(s, 1);
-    s.content(Content::Empty);
+    s.content(ContentList::Empty);
 }
 
 /// History, all of it hidden from Continue — not the same as nothing watched.
@@ -1712,7 +1719,7 @@ fn continue_all_hidden(s: &mut Screen) {
 /// The list could not load, and says why, wrapped.
 fn continue_failed(s: &mut Screen) {
     settled_on(s, 1);
-    s.content(Content::Failed(
+    s.content(ContentList::Failed(
         "AniList did not answer within 20 s — the request will be tried again on the next \
          refresh, and the library on disk is untouched"
             .into(),
@@ -1751,7 +1758,7 @@ fn search_no_matches(s: &mut Screen) {
 fn search_failed(s: &mut Screen) {
     search_unsent(s);
     s.press(&["enter"]);
-    s.content(Content::Failed("AniList answered 500 Internal Server Error".into()));
+    s.content(ContentList::Failed("AniList answered 500 Internal Server Error".into()));
 }
 
 /// The Library with its tracker signed out: a setup state, saying where to sign in.
@@ -1765,7 +1772,9 @@ fn library_no_account(s: &mut Screen) {
 /// A failed pull, under the segment strip.
 fn library_failed(s: &mut Screen) {
     settled_on(s, 5);
-    s.content(Content::Failed("the token was refused — sign in again from Accounts".into()));
+    s.content(ContentList::Failed(
+        "the token was refused — sign in again from Accounts".into(),
+    ));
 }
 
 /// The episode table waiting on its provider: the skeleton, not the last title's rows.

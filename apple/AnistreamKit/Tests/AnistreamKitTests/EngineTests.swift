@@ -1,5 +1,6 @@
 // The engine driven from Swift through the generated bindings: started on the test kit's fake
-// AniList, sent a search, and read with `nextEvents()` until the search's titles come back.
+// AniList, sent the model's own commands, and read with `nextEvents()` for the model's own events
+// until the job a command started has ended.
 
 import AnistreamKit
 import Foundation
@@ -23,6 +24,19 @@ func startedEngine() throws -> (FfiEngine, URL) {
     return (try FfiEngine.startTesting(dirs: dirs, host: QuietHost()), root)
 }
 
+/// Every event until the one that ends `job`, that one included.
+func events(until job: JobId, from engine: FfiEngine) async throws -> [Event] {
+    var read: [Event] = []
+    while true {
+        let batch = await engine.nextEvents()
+        try #require(!batch.isEmpty, "the engine stopped before the job ended: \(read)")
+        read += batch
+        if batch.contains(.jobDone(job)) {
+            return read
+        }
+    }
+}
+
 @Suite(.timeLimit(.minutes(1)))
 struct EngineTests {
     @Test func aSearchComesBackWithTheFixtureTitles() async throws {
@@ -30,33 +44,58 @@ struct EngineTests {
         defer { try? FileManager.default.removeItem(at: root) }
         defer { engine.shutdown() }
 
-        let job = try #require(engine.send(command: .search(query: "hoshikuzu")))
-        var titles: [FfiTitle]?
-        var ended = false
-        while titles == nil || !ended {
-            let events = await engine.nextEvents()
-            try #require(!events.isEmpty, "the engine stopped before it answered")
-            for event in events {
-                switch event {
-                case .content(view: .search(query: "hoshikuzu"), content: .titles(let found)):
-                    titles = found
-                case .jobDone(job: job):
-                    ended = true
-                default:
-                    break
-                }
-            }
-        }
-        #expect(
-            titles == [
-                FfiTitle(id: 900_001, title: "Stardust Wayfarer", secondary: "Hoshikuzu no Tabibito"),
-                FfiTitle(
-                    id: 900_004,
-                    title: "Stardust Wayfarer Season 2",
-                    secondary: "Hoshikuzu no Tabibito 2nd Season"
-                ),
-            ]
+        let job = try #require(
+            engine.send(command: .search(query: "hoshikuzu", filter: SearchFilters()))
         )
+        let read = try await events(until: job, from: engine)
+
+        let titles = read.lazy.compactMap { event -> [Entry]? in
+            guard case .content(view: .search(query: "hoshikuzu", filter: _), content: .entries(let entries)) = event
+            else { return nil }
+            return entries
+        }.first
+        let found = try #require(titles, "the search's titles: \(read)")
+        #expect(found.map(\.id) == [900_001, 900_004])
+        #expect(found.map(\.title) == ["Stardust Wayfarer", "Stardust Wayfarer Season 2"])
+        #expect(
+            found.map(\.secondary) == ["Hoshikuzu no Tabibito", "Hoshikuzu no Tabibito 2nd Season"]
+        )
+        // What launch said came first, the settings ahead of everything.
+        guard case .settings = read.first else {
+            Issue.record("launch's settings first: \(read)")
+            return
+        }
+    }
+
+    @Test func continueIsEmptyOnANewDatabase() async throws {
+        let (engine, root) = try startedEngine()
+        defer { try? FileManager.default.removeItem(at: root) }
+        defer { engine.shutdown() }
+
+        let job = try #require(engine.send(command: .loadContinue))
+        let read = try await events(until: job, from: engine)
+        // Nothing has been watched yet, and the list says so rather than failing.
+        #expect(read.contains(.content(view: .continue, content: .empty)), "\(read)")
+    }
+
+    @Test func aTitleComesBackWholeAfterTheSourcePinnedForIt() async throws {
+        let (engine, root) = try startedEngine()
+        defer { try? FileManager.default.removeItem(at: root) }
+        defer { engine.shutdown() }
+
+        let job = try #require(engine.send(command: .loadDetail(900_001)))
+        let read = try await events(until: job, from: engine)
+
+        let pinned = try #require(read.firstIndex(of: .providerPreference(nil)), "\(read)")
+        let page = try #require(
+            read.firstIndex { if case .detail = $0 { true } else { false } }, "\(read)"
+        )
+        // Said ahead of the page, so the page never shows another title's pin.
+        #expect(pinned < page)
+        guard case .detail(let entry) = read[page] else { return }
+        #expect(entry.id == 900_001)
+        #expect(entry.title == "Stardust Wayfarer")
+        #expect(!entry.related.isEmpty, "the detail-only fields came with it")
     }
 
     @Test func shutdownEndsTheStream() async throws {

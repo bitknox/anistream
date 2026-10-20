@@ -31,7 +31,7 @@ fn order(entries: &[&str]) -> Vec<String> {
 fn reorder(h: &mut Harness, to: &[&str]) {
     h.send(Command::SetSetting {
         key: SettingKey::SourceOrder,
-        value: SettingValue::List(order(to)),
+        value: SettingValue::Strings(order(to)),
     });
 }
 

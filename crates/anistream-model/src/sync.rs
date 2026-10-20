@@ -34,9 +34,19 @@ pub struct SyncState {
     pub needs_reauth: bool,
     /// Most recent sync outcome, in words.
     pub last: Option<String>,
-    /// Why the last library pull failed, and when (epoch seconds). Cleared by the next pull
-    /// that succeeds, so a row never goes on saying "pulled" over an outage.
-    pub pull_error: Option<(String, i64)>,
+    /// Why the last library pull failed, and when. Cleared by the next pull that succeeds, so a
+    /// row never goes on saying "pulled" over an outage.
+    pub pull_error: Option<PullError>,
+}
+
+/// Why a tracker's library pull failed, and when.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct PullError {
+    /// What went wrong, in words.
+    pub reason: String,
+    /// When, in Unix seconds.
+    pub at: i64,
 }
 
 impl SyncState {

@@ -134,7 +134,7 @@ pub(super) fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
 #[cfg(test)]
 mod tests {
 
-    use anistream_model::catalog::Content;
+    use anistream_model::catalog::ContentList;
 
     use crate::{
         nav::Section,
@@ -146,7 +146,7 @@ mod tests {
 
     #[test]
     fn settings_shows_the_live_configuration() {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Settings);
         // Tall enough for every group — scrolling has its own test below.
         let text = text_of(&render_to_buffer(&mut app, 120, 48));
@@ -164,7 +164,7 @@ mod tests {
     fn a_short_terminal_scrolls_the_selected_setting_into_view() {
         // The grouped list is taller than the screen at modest heights; the selection must
         // scroll into view rather than living below the fold.
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Settings);
         app.set_cursor(anistream_model::settings::SettingKey::ROWS.len() - 1);
         let text = text_of(&render_to_buffer(&mut app, 120, 12));
@@ -173,7 +173,7 @@ mod tests {
 
     #[test]
     fn the_focused_settings_note_shows_at_an_ordinary_size() {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Settings);
         app.nav.focus_stage();
         let night = anistream_model::settings::SettingKey::ROWS

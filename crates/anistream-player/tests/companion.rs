@@ -20,7 +20,7 @@ use std::{
     time::Duration,
 };
 
-use anistream_player::{Mpv, ipc};
+use anistream_player::{Mpv, ipc, protocol::MpvVersion};
 use serde_json::{Value, json};
 use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
@@ -43,6 +43,11 @@ fn clip(seconds: u32) -> String {
 
 async fn mpv_available() -> bool {
     Mpv::new(std::env::temp_dir()).is_available().await
+}
+
+/// The version of the mpv on PATH, for a test of something only newer players have.
+async fn mpv_version() -> MpvVersion {
+    Mpv::new(std::env::temp_dir()).mpv_version().await.expect("mpv reports its version")
 }
 
 /// A scratch directory per player, removed when the player is dropped.
@@ -331,7 +336,7 @@ fn payload(event: &Value) -> Value {
 macro_rules! require_mpv {
     () => {
         if !mpv_available().await {
-            // CI's Linux job installs mpv and sets this, so a missing mpv fails there
+            // CI's mpv job installs mpv and sets this, so a missing mpv fails there
             // instead of passing as a skip.
             assert!(
                 std::env::var("ANISTREAM_REQUIRE_MPV").as_deref() != Ok("1"),
@@ -462,13 +467,13 @@ async fn play_now_is_enter_on_the_up_next_card() {
     player.finish().await;
 }
 
-#[tokio::test]
-async fn the_up_next_still_is_shown_and_given_back() {
-    require_mpv!();
-    let mut player = Player::start(Some(&clip(30)), &["--pause"]).await;
-    // A 32x18 BGRA still, as the host writes it.
+/// Up Next's still, from the host writing it to the card giving it back on Cancel.
+async fn the_still_comes_and_goes(extra: &[&str], (width, height): (usize, usize)) {
+    let args: Vec<&str> = ["--pause"].into_iter().chain(extra.iter().copied()).collect();
+    let mut player = Player::start(Some(&clip(30)), &args).await;
+    // A BGRA still, as the host writes it.
     let still = player.path("still.bgra");
-    std::fs::write(&still, vec![0x80; 32 * 18 * 4]).unwrap();
+    std::fs::write(&still, vec![0x80; width * height * 4]).unwrap();
     player.state("next", json!({"label": "Episode 2", "at": 0.0, "auto": true})).await;
     player.wait_ui("Up Next", |ui| ui["up_next"]["visible"] == true).await;
     assert_eq!(player.ui().await["up_next"]["still"], false);
@@ -478,15 +483,33 @@ async fn the_up_next_still_is_shown_and_given_back() {
         .state(
             "next",
             json!({"label": "Episode 2", "title": "A Title", "at": 0.0, "auto": true,
-                   "thumbnail": {"path": still.to_string_lossy(), "width": 32, "height": 18}}),
+                   "thumbnail": {"path": still.to_string_lossy(), "width": width, "height": height}}),
         )
         .await;
     player.wait_ui("the still", |ui| ui["up_next"]["still"] == true).await;
+    // A copy resampled for an mpv that cannot scale is only on disk for the call that adds it.
+    assert!(!player.path("still.bgra.scaled").exists(), "the resampled copy was left behind");
 
     player.key("ESC").await;
     player.event("cancel-next").await;
     player.wait_ui("the still to go", |ui| ui["up_next"]["still"] == false).await;
     player.finish().await;
+}
+
+#[tokio::test]
+async fn the_up_next_still_is_shown_and_given_back() {
+    require_mpv!();
+    the_still_comes_and_goes(&[], (32, 18)).await;
+}
+
+/// Before mpv 0.38 overlay-add cannot scale a bitmap, so the script resamples the still to its
+/// slot itself. The test above takes that path on such a player; this one takes it on any, with
+/// a still the size the host writes.
+#[tokio::test]
+async fn where_mpv_cannot_scale_the_still_the_script_resamples_it() {
+    require_mpv!();
+    the_still_comes_and_goes(&["--script-opts-append=anistream-scaled_still=no"], (640, 360))
+        .await;
 }
 
 #[tokio::test]
@@ -729,12 +752,11 @@ async fn escape_cancels_a_sync_without_touching_the_timing() {
     let _ = std::fs::remove_dir_all(dir);
 }
 
-/// Tracks that carry only a language code are named in the menu. `lang.lua` is pure, so it is
-/// checked on its own, inside mpv's Lua, by a script that quits with 1 on a wrong name.
-#[tokio::test]
-async fn a_language_code_becomes_its_name() {
-    require_mpv!();
-    let test = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/lua/lang_test.lua");
+/// Run `tests/lua/<name>.lua` inside mpv, which is where the companion's Lua runs. Each loads a
+/// pure module from the script directory and quits with 1 on a wrong answer; returns whether it
+/// passed, and what it said.
+async fn lua_check(name: &str) -> (bool, String) {
+    let test = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("tests/lua/{name}.lua"));
     let output = Command::new("mpv")
         .arg("--no-config")
         .arg("--load-scripts=no")
@@ -742,12 +764,29 @@ async fn a_language_code_becomes_its_name() {
         .arg("--vo=null")
         .arg("--ao=null")
         .arg(format!("--script={}", test.display()))
-        .arg(format!("--script-opts=lang_test-dir={}", script_dir().display()))
+        .arg(format!("--script-opts={name}-dir={}", script_dir().display()))
         .output()
         .await
         .expect("run mpv");
-    let said = String::from_utf8_lossy(&output.stderr);
-    assert!(output.status.success(), "lang.lua named something wrongly:\n{said}");
+    (output.status.success(), String::from_utf8_lossy(&output.stderr).into_owned())
+}
+
+/// Tracks that carry only a language code are named in the menu. `lang.lua` is pure, so it is
+/// checked on its own.
+#[tokio::test]
+async fn a_language_code_becomes_its_name() {
+    require_mpv!();
+    let (passed, said) = lua_check("lang_test").await;
+    assert!(passed, "lang.lua named something wrongly:\n{said}");
+}
+
+/// The resampling behind the still on an mpv that cannot scale it, checked pixel by pixel,
+/// which the companion tests above never look at.
+#[tokio::test]
+async fn a_resampled_bitmap_is_the_mean_of_what_each_pixel_covers() {
+    require_mpv!();
+    let (passed, said) = lua_check("bgra_test").await;
+    assert!(passed, "bgra.lua resampled something wrongly:\n{said}");
 }
 
 fn sample_menus() -> Value {
@@ -797,8 +836,25 @@ async fn a_pick_in_the_drawn_menu_is_reported_as_choose() {
 #[tokio::test]
 async fn the_context_menu_gains_an_entry_without_losing_the_users() {
     require_mpv!();
+    let version = mpv_version().await;
     let mut player = Player::start(None, &[]).await;
     player.state("menus", sample_menus()).await;
+    // mpv's own context menu, and the `menu-data` property it is built from, came in 0.40.
+    // Before that the script has nothing to join, and must leave it there without a word.
+    if version < (MpvVersion { major: 0, minor: 40 }) {
+        // Two answers later the script has seen the menus, and with them tried menu-data.
+        player.message("hello", json!({})).await;
+        player.event("ready").await;
+        player.message("hello", json!({})).await;
+        player.event("ready").await;
+        assert!(player.get("menu-data").await.is_null(), "mpv {version} has a menu-data");
+        let log = Arc::clone(&player.stderr);
+        player.finish().await;
+        let log = log.lock().unwrap().clone();
+        assert!(!log.contains("menu-data"), "the script complained on mpv {version}:\n{log}");
+        eprintln!("skipping the context menu: mpv {version} has none (0.40 added it)");
+        return;
+    }
     let titles = |v: &Value| -> Vec<String> {
         v.as_array()
             .into_iter()

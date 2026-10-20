@@ -97,7 +97,7 @@ pub fn watch_entry(entry: &mut Entry, rows: Option<&[EpisodeRow]>, watch: &Watch
         next
     });
 
-    let next_up = entry.progress.map_or(1, |(_, next)| next).to_string();
+    let next_up = entry.progress.map_or(1, |p| p.next).to_string();
     if !watch.completed {
         // A part-watched episode moves the resume point, so the Continue rail is current the
         // moment mpv exits rather than at the next reload from the store — and it is where
@@ -106,7 +106,10 @@ pub fn watch_entry(entry: &mut Entry, rows: Option<&[EpisodeRow]>, watch: &Watch
             && (episode == next_up || unfinished)
             && let Ok(number) = episode.trim().parse::<u32>()
         {
-            entry.progress = Some((entry.progress.map_or(0, |(done, _)| done), number));
+            entry.progress = Some(TitleProgress {
+                done: entry.progress.map_or(0, |p| p.done),
+                next: number,
+            });
             entry.resume = Some(ResumePoint {
                 position: watch.position,
                 fraction: watch
@@ -123,9 +126,9 @@ pub fn watch_entry(entry: &mut Entry, rows: Option<&[EpisodeRow]>, watch: &Watch
     // out-of-order catch-up the table can vouch for — where a rewatch leaves it alone. Continue
     // moves past the episode just finished either way.
     let first = !was_done && (entry.progress.is_none() || rows_apply || episode == next_up);
-    let done = entry.progress.map_or(0, |(done, _)| done) + u32::from(first);
-    let next = after.or(entry.progress.map(|(_, next)| next)).unwrap_or(done + 1);
-    entry.progress = Some((done, next));
+    let done = entry.progress.map_or(0, |p| p.done) + u32::from(first);
+    let next = after.or(entry.progress.map(|p| p.next)).unwrap_or(done + 1);
+    entry.progress = Some(TitleProgress { done, next });
     // Where the previous Continue episode was left is no longer what Continue offers.
     if next.to_string() != next_up {
         entry.resume = None;
@@ -147,7 +150,7 @@ pub fn mark_row(rows: &mut [EpisodeRow], number: &str, watched: bool) {
 /// past the table's end it falls back to the first episode not watched. `rows` is the title's
 /// table with the episode already unmarked.
 pub fn unmark_entry(entry: &mut Entry, rows: &[EpisodeRow], number: &str) {
-    let Some((done, next)) = entry.progress else { return };
+    let Some(TitleProgress { done, next }) = entry.progress else { return };
     let unmarked = number.trim().parse::<u32>().ok();
     let numbered =
         || rows.iter().filter_map(|r| Some((r.number.trim().parse::<u32>().ok()?, r)));
@@ -161,7 +164,7 @@ pub fn unmark_entry(entry: &mut Entry, rows: &[EpisodeRow], number: &str) {
     if moved != next {
         entry.resume = None;
     }
-    entry.progress = Some((done.saturating_sub(1), moved));
+    entry.progress = Some(TitleProgress { done: done.saturating_sub(1), next: moved });
 }
 
 /// Where auto-next actually lands from `next`, honouring `skip_filler`.

@@ -66,10 +66,25 @@ pub enum StorePluginStatus {
     OtherStore(String),
 }
 
-/// A store about to be joined, for the confirmation.
+/// What a pasted invite link leads to, or why it leads nowhere: the answer to a preview, which
+/// [`Event::StorePreview`](crate::event::Event::StorePreview) carries.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum InvitePreview {
+    /// The store it leads to, checked against the key the link carries.
+    Store(InvitedStore),
+    /// Why it leads nowhere, in words to show in its place.
+    Failed { reason: String },
+}
+
+/// A store an invite link leads to, about to be joined, for the confirmation.
+///
+/// Not named for the event that carries it: no variant is named after the type it carries. In
+/// the Kotlin bindings a variant is a class nested in its enum's, and hides any type of its name
+/// spelled bare there.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Record))]
-pub struct StorePreview {
+pub struct InvitedStore {
     pub link: Secret,
     pub name: String,
     pub url: String,
@@ -127,9 +142,14 @@ pub struct LocalPluginRow {
 /// Exists for exactly one reason: `Command` derives `Debug` and the task router logs a task
 /// when routing goes wrong. A plain `String` there would put a password in the log file;
 /// this prints a placeholder instead, everywhere, unconditionally.
+///
+/// The string itself on the far side of an FFI: the bindings name the type, and keeping it out
+/// of a log there is the front end's to do.
 #[derive(Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct Secret(pub String);
+
+#[cfg(feature = "ffi")]
+uniffi::custom_newtype!(Secret, String);
 
 impl std::fmt::Debug for Secret {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

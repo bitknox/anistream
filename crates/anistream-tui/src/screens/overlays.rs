@@ -533,7 +533,7 @@ fn log_rows(app: &App) -> Vec<(String, String)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anistream_model::catalog::Content;
+    use anistream_model::catalog::ContentList;
 
     use crate::screens::{
         fixtures::{app_with, display_width, entry, text_of},
@@ -552,7 +552,7 @@ mod tests {
             terminal.draw(|f| report = render(f, app)).expect("draw");
             report
         };
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         assert_eq!(draw(&app), FrameReport::default());
         app.nav.open_overlay(Overlay::Help);
         let help = draw(&app);
@@ -565,7 +565,7 @@ mod tests {
 
     #[test]
     fn the_help_overlay_lists_real_bindings() {
-        let mut app = app_with(Content::Entries(vec![]));
+        let mut app = app_with(ContentList::Entries(vec![]));
         app.nav.open_overlay(Overlay::Help);
         let text = text_of(&render_to_buffer(&mut app, 120, 40));
         assert!(text.contains("KEYS"));
@@ -576,7 +576,7 @@ mod tests {
     #[test]
     fn overlays_use_hairlines_and_an_obi_rather_than_a_border() {
         // A bordered dialog would break the one rule the whole look depends on.
-        let mut app = app_with(Content::Entries(vec![]));
+        let mut app = app_with(ContentList::Entries(vec![]));
         app.nav.open_overlay(Overlay::Help);
         let text = text_of(&render_to_buffer(&mut app, 120, 40));
         for corner in ['┌', '┐', '└', '┘', '├', '┤'] {
@@ -586,7 +586,7 @@ mod tests {
 
     #[test]
     fn the_command_palette_shows_the_query_and_filters() {
-        let mut app = app_with(Content::Entries(vec![]));
+        let mut app = app_with(ContentList::Entries(vec![]));
         app.nav.open_overlay(Overlay::CommandPalette);
         app.set_text(Field::Palette, "episode".into());
         let text = text_of(&render_to_buffer(&mut app, 120, 40));
@@ -599,7 +599,7 @@ mod tests {
     fn an_overlay_spans_the_full_width_so_nothing_bleeds_alongside_it() {
         // A partial-width panel leaves live content visible either side of it, which reads
         // as a rendering fault rather than a modal.
-        let mut app = app_with(Content::Entries(
+        let mut app = app_with(ContentList::Entries(
             (1..30).map(|i| entry(i, "A Distinctive Background Title")).collect(),
         ));
         app.nav.open_overlay(Overlay::Help);
@@ -622,7 +622,7 @@ mod tests {
             for overlay in
                 [Overlay::Help, Overlay::CommandPalette, Overlay::Accounts, Overlay::ListStatus]
             {
-                let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+                let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
                 app.nav.open_overlay(overlay.clone());
                 let buf = render_to_buffer(&mut app, width, height);
                 for (row, line) in text_of(&buf).lines().enumerate() {
@@ -639,7 +639,7 @@ mod tests {
     fn an_overlay_dims_the_content_behind_it() {
         // Without a scrim a full-width band cuts through the rail and reads as a
         // rendering fault. Dimming makes it read as a layer on top.
-        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
         let before = render_to_buffer(&mut app, 120, 30);
 
         app.nav.open_overlay(Overlay::Help);
@@ -659,7 +659,7 @@ mod tests {
     #[test]
     fn a_picker_overlay_stays_a_single_ranked_list() {
         // Splitting a picker into columns would scatter the best match away from the top.
-        let mut app = app_with(Content::Entries(vec![]));
+        let mut app = app_with(ContentList::Entries(vec![]));
         app.nav.open_overlay(Overlay::CommandPalette);
         app.set_text(Field::Palette, "episode".into());
         let text = text_of(&render_to_buffer(&mut app, 160, 24));
@@ -678,7 +678,7 @@ mod tests {
     #[test]
     fn a_wide_terminal_lays_the_keymap_out_in_columns() {
         // Forty-odd bindings do not fit one column; clipping would hide whole categories.
-        let mut app = app_with(Content::Entries(vec![]));
+        let mut app = app_with(ContentList::Entries(vec![]));
         app.nav.open_overlay(Overlay::Help);
         let text = text_of(&render_to_buffer(&mut app, 140, 32));
         assert!(text.contains("Show keys"), "first scope missing");
@@ -687,7 +687,7 @@ mod tests {
 
     #[test]
     fn list_statuses_read_as_lowercase_values_in_the_picker() {
-        let mut app = app_with(Content::Entries(vec![entry(1, "Kite")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Kite")]));
         app.nav.open_overlay(Overlay::ListStatus);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("watching"), "{text}");

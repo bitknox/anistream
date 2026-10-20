@@ -11,13 +11,14 @@ let package = Package(
         .library(name: "AnistreamKit", targets: ["AnistreamKit"]),
     ],
     targets: [
-        // The C side of the bindings: the header and the module map UniFFI generates, under the
-        // module name the generated Swift imports.
-        .systemLibrary(name: "anistream_ffiFFI", path: "Sources/anistream_ffiFFI"),
-        // The Swift side UniFFI generates, linked against the engine's static library.
+        // The C side of the bindings: a header per crate with UniFFI types in it, and one module
+        // map declaring each crate's C module under the name its generated Swift imports.
+        .systemLibrary(name: "AnistreamFFI", path: "Sources/AnistreamFFI"),
+        // The Swift side UniFFI generates, a file per crate in one module, linked against the
+        // engine's static library.
         .target(
             name: "AnistreamKit",
-            dependencies: ["anistream_ffiFFI"],
+            dependencies: ["AnistreamFFI"],
             linkerSettings: [
                 // Where build.sh links the library in from cargo's target directory. Alone there,
                 // since the linker takes a dynamic library over a static one beside it.

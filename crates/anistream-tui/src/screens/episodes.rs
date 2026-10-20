@@ -294,7 +294,7 @@ pub(super) fn candidate_rows(app: &App) -> Vec<(String, String)> {
         .iter()
         .map(|candidate| {
             let similarity = format!("{:>3.0}%", candidate.similarity * 100.0);
-            let title = match candidate.rejected {
+            let title = match &candidate.rejected {
                 Some(reason) => format!("{}  ·  {reason}", candidate.title),
                 None => candidate.title.clone(),
             };
@@ -381,7 +381,7 @@ mod tests {
     use super::*;
     use anistream_core::ids::AnilistId;
     use anistream_model::{
-        catalog::{Content, Entry},
+        catalog::{ContentList, Entry},
         event::Event,
     };
 
@@ -398,7 +398,7 @@ mod tests {
     #[test]
     fn the_episode_table_width_is_never_stolen_by_the_rail() {
         // Chrome yields to content: at 80 columns the rail must be a strip, not a menu.
-        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
         app.nav.push(StageView::Episodes(AnilistId::new(1)));
         let geometry = layout::compute(Rect::new(0, 0, 80, 24), app.nav.rail_width());
         assert!(geometry.rail.width <= 3);
@@ -407,7 +407,7 @@ mod tests {
 
     #[test]
     fn the_episode_table_reads_as_a_timing_sheet() {
-        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
         app.handle(crate::keymap::Action::Open, 20);
         // As entering episodes does: the table is a view of the open title.
         app.detail = app.selected_entry().cloned();
@@ -436,7 +436,7 @@ mod tests {
 
     #[test]
     fn an_episode_table_with_no_source_explains_itself() {
-        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
         app.nav.push(StageView::Episodes(AnilistId::new(1)));
         let text = text_of(&render_to_buffer(&mut app, 110, 20));
         assert!(text.contains("NO EPISODES YET"));
@@ -446,7 +446,7 @@ mod tests {
     #[test]
     fn the_episode_table_gets_the_full_stage_width() {
         // Chrome yields to content: this is the table the collapse rule exists for.
-        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
         app.nav.push(StageView::Episodes(AnilistId::new(1)));
         let geometry = layout::compute(Rect::new(0, 0, 110, 20), app.nav.rail_width());
         assert!(geometry.rail.width <= 3);
@@ -455,7 +455,7 @@ mod tests {
 
     /// An app sitting on the episodes overlay, the way the table tests set it up.
     fn app_at_episodes() -> App {
-        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
         app.handle(crate::keymap::Action::Open, 20);
         // As entering episodes does: the table is a view of the open title.
         app.detail = app.selected_entry().cloned();
@@ -487,7 +487,7 @@ mod tests {
                     title: "Frieren S2".into(),
                     key: anistream_core::ids::ProviderKey::new("b"),
                     similarity: 0.61,
-                    rejected: Some("episode count"),
+                    rejected: Some("episode count".into()),
                 },
             ],
         });
@@ -551,7 +551,7 @@ mod tests {
     }
 
     fn episodes_open_on(detail: Entry) -> App {
-        let mut app = app_with(Content::Entries(vec![detail.clone()]));
+        let mut app = app_with(ContentList::Entries(vec![detail.clone()]));
         app.nav.push(StageView::Episodes(detail.id));
         app.detail = Some(detail);
         app.apply(app.episodes_here(Vec::new()));

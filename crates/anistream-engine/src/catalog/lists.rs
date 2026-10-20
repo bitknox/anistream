@@ -4,7 +4,7 @@
 use anistream_core::ids::AnilistId;
 use anistream_meta::Meta;
 use anistream_model::{
-    catalog::{Content, ContentFor},
+    catalog::{Aired, ContentFor, ContentList, TitleAired},
     event::Event,
     notice::Notice,
 };
@@ -21,13 +21,15 @@ pub async fn load_continue(lent: Lent) {
         // nothing left to continue — everything hidden with `x` — and only the first
         // is "nothing watched yet". `Empty` says it is the first.
         Ok(entries) if entries.is_empty() && store.stats().is_ok_and(|s| s.titles == 0) => {
-            Event::Content { view: ContentFor::Continue, content: Content::Empty }
+            Event::Content { view: ContentFor::Continue, content: ContentList::Empty }
         }
         Ok(entries) => {
             publish_list(&meta, &tx, ContentFor::Continue, entries, now_epoch()).await;
             return;
         }
-        Err(e) => Event::Content { view: ContentFor::Continue, content: Content::Failed(e) },
+        Err(e) => {
+            Event::Content { view: ContentFor::Continue, content: ContentList::Failed(e) }
+        }
     };
     let _ = tx.send(update);
 }
@@ -55,7 +57,7 @@ pub async fn load_seasonal(lent: Lent) {
         }
         Err(e) => Event::Content {
             view: ContentFor::Seasonal,
-            content: Content::Failed(e.to_string()),
+            content: ContentList::Failed(e.to_string()),
         },
     };
     let _ = tx.send(update);
@@ -124,7 +126,7 @@ pub async fn publish_list(
     // spend rows of a capped response on titles that cannot use them.
     let ids: Vec<anistream_core::ids::AnilistId> =
         entries.iter().filter(|e| e.airing_in.is_some()).map(|e| e.id).collect();
-    let _ = tx.send(Event::Content { view, content: Content::Entries(entries) });
+    let _ = tx.send(Event::Content { view, content: ContentList::Entries(entries) });
     if ids.is_empty() {
         return;
     }
@@ -136,7 +138,13 @@ pub async fn publish_list(
                     // time is still ahead, and naming next week's episode as "out just now"
                     // is exactly the lie the broadcast line exists not to tell.
                     .filter(|r| r.airing_at <= now)
-                    .map(|r| (r.media_id, r.episode, now.saturating_sub(r.airing_at)))
+                    .map(|r| TitleAired {
+                        id: r.media_id,
+                        aired: Aired {
+                            episode: r.episode,
+                            ago: now.saturating_sub(r.airing_at),
+                        },
+                    })
                     .collect(),
             ));
         }

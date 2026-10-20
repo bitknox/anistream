@@ -15,7 +15,7 @@ use anistream_track::secret::{Backend, TokenStore};
 use crate::{
     engine::{FfiEngine, Opened, runtime},
     host::FfiHost,
-    protocol::{FfiDirs, FfiError},
+    start::{FfiDirs, FfiError},
 };
 
 #[uniffi::export]

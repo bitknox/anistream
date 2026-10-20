@@ -8,11 +8,12 @@ use std::collections::BTreeMap;
 
 use anistream_core::ids::AnilistId;
 use anistream_model::{
-    catalog::{Content, Entry, ResumePoint},
+    catalog::{ContentList, Entry, ResumePoint},
     command::Command,
     episodes::EpisodeRow,
     event::Event,
     notice::Notice,
+    progress::TitleProgress,
     settings::SettingsView,
     sync::SyncState,
 };
@@ -31,8 +32,8 @@ fn app() -> App {
     App::new(SettingsView::default(), Palette::dark(), Keymap::new())
 }
 
-fn entries(n: u32) -> Content {
-    Content::Entries(
+fn entries(n: u32) -> ContentList {
+    ContentList::Entries(
         (1..=n).map(|i| Entry::new(AnilistId::new(i), format!("Title {i}"))).collect(),
     )
 }
@@ -453,10 +454,12 @@ fn enter_is_named_for_what_it_does() {
     assert_eq!(hint(&a, "↵"), Some("play"), "Enter plays in the episode table");
 
     let mut e = Entry::new(AnilistId::new(5), "Title");
-    e.progress = Some((7, 8));
+    e.progress = Some(TitleProgress { done: 7, next: 8 });
     e.resume = Some(ResumePoint { position: 600.0, fraction: Some(0.5) });
     a = app();
-    a.apply(a.content_here(Content::Entries(vec![e, Entry::new(AnilistId::new(6), "Other")])));
+    a.apply(
+        a.content_here(ContentList::Entries(vec![e, Entry::new(AnilistId::new(6), "Other")])),
+    );
     a.nav.focus_stage();
     assert_eq!(hint(&a, "↵"), Some("play"), "a resumable Continue row plays on Enter");
     press(&mut a, &["j"]);
@@ -554,7 +557,7 @@ fn every_title_command_with_nothing_selected_says_so() {
         A::Open,
     ] {
         let mut a = app();
-        a.apply(a.content_here(Content::Entries(Vec::new())));
+        a.apply(a.content_here(ContentList::Entries(Vec::new())));
         a.nav.focus_stage();
         assert_eq!(a.handle(action, ROWS), None, "{action:?}");
         assert!(

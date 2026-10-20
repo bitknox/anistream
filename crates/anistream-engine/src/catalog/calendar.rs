@@ -3,7 +3,7 @@
 
 use anistream_meta::Meta;
 use anistream_model::{
-    catalog::{Content, ContentFor},
+    catalog::{ContentFor, ContentList},
     event::Event,
 };
 use anistream_store::Store;
@@ -27,10 +27,12 @@ pub async fn load_calendar(lent: Lent) {
             });
             Event::Content {
                 view: ContentFor::Calendar,
-                content: Content::Entries(load.entries),
+                content: ContentList::Entries(load.entries),
             }
         }
-        Err(e) => Event::Content { view: ContentFor::Calendar, content: Content::Failed(e) },
+        Err(e) => {
+            Event::Content { view: ContentFor::Calendar, content: ContentList::Failed(e) }
+        }
     };
     let _ = tx.send(update);
 }

@@ -2,7 +2,9 @@
 //! opened from it: the list status and rating pickers, the source picker, the watch order and the
 //! recommendations.
 
-use anistream_model::{catalog::LibrarySegment, wording::broadcast_line};
+use anistream_model::{
+    catalog::LibrarySegment, progress::TitleProgress, wording::broadcast_line,
+};
 use ratatui::{buffer::Buffer, layout::Rect, style::Modifier};
 
 use crate::{
@@ -104,7 +106,9 @@ pub(super) fn render_title(buf: &mut Buffer, app: &App, area: Rect) {
 
     // Progress, or the countdown to the next broadcast — whichever the viewer needs next.
     if y < area.bottom() {
-        if let (Some((_, next)), Some(label)) = (entry.progress, entry.progress_label()) {
+        if let (Some(TitleProgress { next, .. }), Some(label)) =
+            (entry.progress, entry.progress_label())
+        {
             let mut x = area.left();
             if entry.progress_of().is_some() {
                 set_meter(buf, x, y, &app.palette, entry.watched_fraction(), 20, Role::Obi);
@@ -139,9 +143,7 @@ pub(super) fn status_rows(app: &App) -> Vec<(String, String)> {
         .iter()
         .map(|segment| {
             let hint = match (segment, current.and_then(|e| e.progress)) {
-                (LibrarySegment::Completed, Some((_, _))) => {
-                    "sets progress to the last episode"
-                }
+                (LibrarySegment::Completed, Some(_)) => "sets progress to the last episode",
                 _ => "",
             };
             // A status is a value, and values are lowercase — as the Library strip and every
@@ -225,7 +227,7 @@ pub(super) fn recommendation_rows(app: &App) -> Vec<(String, String)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anistream_model::catalog::{Content, Entry};
+    use anistream_model::catalog::{ContentList, Entry};
 
     use crate::{
         layout,
@@ -238,7 +240,7 @@ mod tests {
     #[test]
     fn the_title_screen_leads_with_the_key_visual() {
         // The hero is the artwork, not a headline — that is the thesis of the design.
-        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
         app.nav.focus_stage();
         app.handle(crate::keymap::Action::Open, 20);
         let buf = render_to_buffer(&mut app, 120, 30);
@@ -263,7 +265,7 @@ mod tests {
     fn a_short_terminal_keeps_the_title_page_inside_the_stage() {
         // At ten rows the banner leaves the stage a few lines, and the metadata ran on into
         // the status rule and line under it.
-        let mut app = app_with(Content::Entries(vec![entry(1, "Invented Show")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Invented Show")]));
         app.nav.focus_stage();
         app.handle(crate::keymap::Action::Open, 20);
         let buf = render_to_buffer(&mut app, 80, 10);
@@ -276,7 +278,7 @@ mod tests {
 
     #[test]
     fn availability_badges_appear_when_a_title_has_them() {
-        let mut app = app_with(Content::Entries(vec![Entry {
+        let mut app = app_with(ContentList::Entries(vec![Entry {
             available_on: vec!["Crunchyroll".into(), "Netflix".into()],
             ..entry(1, "Frieren")
         }]));
@@ -291,7 +293,7 @@ mod tests {
     fn genres_read_the_same_in_the_preview_and_on_the_title() {
         let e =
             Entry { genres: vec!["Slice of Life".into(), "Sci-Fi".into()], ..entry(1, "Kite") };
-        let mut app = app_with(Content::Entries(vec![e]));
+        let mut app = app_with(ContentList::Entries(vec![e]));
         let preview = text_of(&render_to_buffer(&mut app, 120, 34));
         assert!(preview.contains("Slice of Life  ·  Sci-Fi"), "{preview}");
         assert!(!preview.contains("SLICE OF LIFE"), "{preview}");

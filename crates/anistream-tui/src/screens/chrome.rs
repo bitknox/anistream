@@ -287,9 +287,10 @@ mod tests {
     use super::*;
     use anistream_core::ids::AnilistId;
     use anistream_model::{
-        catalog::{Content, Entry},
+        catalog::{ContentList, Entry},
         downloads::DownloadState,
         event::Event,
+        progress::TitleProgress,
         sources::GuardView,
     };
 
@@ -319,7 +320,7 @@ mod tests {
 
     #[test]
     fn running_work_is_captioned_on_the_status_rule_and_moves_nothing() {
-        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
         let idle: Vec<String> =
             text_of(&render_to_buffer(&mut app, 120, 30)).lines().map(str::to_owned).collect();
         assert!(!idle.join("\n").contains("listing sources"));
@@ -349,7 +350,7 @@ mod tests {
 
     #[test]
     fn a_hold_up_is_counted_down_in_place_of_the_runtime() {
-        let mut app = app_with(Content::Loading);
+        let mut app = app_with(ContentList::Loading);
         let id = running(&mut app, &anistream_model::command::Command::LoadSeasonal, 4);
         let until = app.clock.now_instant() + std::time::Duration::from_millis(12_400);
         app.apply(Event::JobNote {
@@ -369,7 +370,7 @@ mod tests {
 
     #[test]
     fn jobs_that_do_not_fit_are_counted_rather_than_cut() {
-        let mut app = app_with(Content::Loading);
+        let mut app = app_with(ContentList::Loading);
         for _ in 0..3 {
             running(&mut app, &anistream_model::command::Command::CheckProviders, 2);
         }
@@ -391,7 +392,7 @@ mod tests {
 
     #[test]
     fn a_full_frame_renders_the_chrome_and_content() {
-        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
         let buf = render_to_buffer(&mut app, 120, 30);
         let text = text_of(&buf);
         assert!(text.contains("anistream"), "header missing");
@@ -405,7 +406,8 @@ mod tests {
     fn nothing_is_drawn_outside_the_buffer_at_any_size() {
         // The real guard against panics: ratatui will not let us write out of bounds, so
         // simply rendering at many sizes without panicking is the assertion.
-        let mut app = app_with(Content::Entries((1..40).map(|i| entry(i, "Title")).collect()));
+        let mut app =
+            app_with(ContentList::Entries((1..40).map(|i| entry(i, "Title")).collect()));
         for (w, h) in [(20, 5), (40, 10), (80, 24), (100, 30), (200, 60), (60, 3)] {
             let buf = render_to_buffer(&mut app, w, h);
             assert_eq!(buf.area.width, w);
@@ -415,7 +417,7 @@ mod tests {
 
     #[test]
     fn a_standing_notice_stays_on_every_screen_beside_the_toasts() {
-        let mut app = app_with(Content::Entries(vec![entry(1, "An Invented Show")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "An Invented Show")]));
         app.notice =
             Some("config.toml line 5: unknown field `qualty` — running on defaults".into());
         app.push_toast(anistream_model::notice::Notice::info("saved quality"));
@@ -449,7 +451,7 @@ mod tests {
 
     #[test]
     fn the_loading_pulse_actually_moves_between_frames() {
-        let mut app = app_with(Content::Loading);
+        let mut app = app_with(ContentList::Loading);
         let first = text_of(&render_to_buffer(&mut app, 120, 30));
         // Five idle ticks: enough for both the three-frame wave and the slower shimmer to have
         // moved. An indicator that renders identically forever is a picture of an animation.
@@ -463,7 +465,7 @@ mod tests {
     #[test]
     fn the_selected_row_carries_the_obi_and_no_background_fill() {
         let mut app =
-            app_with(Content::Entries(vec![entry(1, "Frieren"), entry(2, "Dandadan")]));
+            app_with(ContentList::Entries(vec![entry(1, "Frieren"), entry(2, "Dandadan")]));
         let buf = render_to_buffer(&mut app, 120, 30);
         let text = text_of(&buf);
         assert!(text.contains('▌'), "obi missing from the selected row");
@@ -481,7 +483,7 @@ mod tests {
 
     #[test]
     fn immersive_mode_paints_the_ground_everywhere() {
-        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
         app.palette = Palette::immersive();
         let buf = render_to_buffer(&mut app, 60, 12);
         let expected = Palette::immersive().ground().unwrap().to_ratatui();
@@ -493,7 +495,7 @@ mod tests {
     fn the_vpn_badge_is_shown_and_alerts_when_leaking() {
         // Discovering a failing guard only when playback refuses would be far worse than
         // a badge that is always visible.
-        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
         app.apply(Event::Vpn(Some(GuardView::Protected { exit: "Mullvad · SE".into() })));
 
         let buf = render_to_buffer(&mut app, 120, 20);
@@ -515,7 +517,7 @@ mod tests {
     #[test]
     fn a_guard_that_was_already_leaking_does_not_re_announce() {
         // Repeating the alert on every verification tick would be noise.
-        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
         app.apply(Event::Vpn(Some(GuardView::Leaking)));
         let announced = |a: &App| a.logs.iter().map(|l| l.count).sum::<u32>();
         let after_first = announced(&app);
@@ -531,14 +533,14 @@ mod tests {
         let sizes = [(200, 50), (120, 34), (100, 28), (80, 24), (60, 20), (40, 15), (24, 8)];
 
         for (width, height) in sizes {
-            let mut app = app_with(Content::Entries(vec![
+            let mut app = app_with(ContentList::Entries(vec![
                 Entry {
                     secondary: Some(
                         "A rather long secondary title that wants to overflow".into(),
                     ),
                     studio: Some("Madhouse".into()),
                     episodes: Some(28),
-                    progress: Some((11, 12)),
+                    progress: Some(TitleProgress { done: 11, next: 12 }),
                     ..entry(1, "Sousou no Frieren: Beyond Journey's End, Extended Edition")
                 },
                 entry(2, "Short"),
@@ -565,7 +567,7 @@ mod tests {
         // Nobody watches anime in a 12×4 terminal, but a resize passes through every size on the
         // way down, and a panic mid-resize takes the app out.
         for (width, height) in [(12, 4), (8, 3), (4, 2), (1, 1)] {
-            let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+            let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
             let buf = render_to_buffer(&mut app, width, height);
             assert_eq!(buf.area.width, width);
         }
@@ -581,19 +583,19 @@ mod tests {
         for height in 1..=12u16 {
             for width in [1, 8, 20, 40, 80] {
                 // Title.
-                let mut app = app_with(Content::Entries(vec![entry_with_meta.clone()]));
+                let mut app = app_with(ContentList::Entries(vec![entry_with_meta.clone()]));
                 app.detail = Some(entry_with_meta.clone());
                 app.nav.push(StageView::Title(AnilistId::new(1)));
                 render_to_buffer(&mut app, width, height);
 
                 // Now Playing.
-                let mut app = app_with(Content::Entries(vec![entry_with_meta.clone()]));
+                let mut app = app_with(ContentList::Entries(vec![entry_with_meta.clone()]));
                 app.detail = Some(entry_with_meta.clone());
                 app.nav.push(crate::nav::StageView::NowPlaying);
                 render_to_buffer(&mut app, width, height);
 
                 // A load failure, which is the screen that matters most when it appears.
-                let mut app = app_with(Content::Failed("all providers unreachable".into()));
+                let mut app = app_with(ContentList::Failed("all providers unreachable".into()));
                 render_to_buffer(&mut app, width, height);
 
                 // Every overlay, since `?` is reachable from anywhere.
@@ -607,7 +609,7 @@ mod tests {
                     Overlay::Logs,
                     Overlay::ManualQuery,
                 ] {
-                    let mut app = app_with(Content::Entries(vec![entry_with_meta.clone()]));
+                    let mut app = app_with(ContentList::Entries(vec![entry_with_meta.clone()]));
                     app.detail = Some(entry_with_meta.clone());
                     app.nav.open_overlay(overlay);
                     render_to_buffer(&mut app, width, height);
@@ -618,7 +620,7 @@ mod tests {
 
     #[test]
     fn toasts_appear_and_disappear() {
-        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
         app.push_toast(anistream_model::notice::Notice::alert("provider unreachable"));
         assert!(text_of(&render_to_buffer(&mut app, 120, 30)).contains("provider unreachable"));
 
@@ -634,7 +636,7 @@ mod tests {
     fn the_status_line_reports_source_translation_and_quality() {
         // Torrents lead the default order and are off by default, so the source named is the
         // first one that is not switched off rather than the first in the list.
-        let mut app = app_with(Content::Entries(vec![entry(1, "Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Frieren")]));
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("plugins · sub · 1080p"), "status line missing state:\n{text}");
     }
@@ -642,7 +644,7 @@ mod tests {
     #[test]
     fn the_header_shows_each_source_as_it_stands() {
         // Torrents off, plugins serving: nothing is failing, and nothing alerts.
-        let mut app = app_with(Content::Entries(vec![entry(1, "Paper Kite")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Paper Kite")]));
         app.apply(Event::Providers(vec![anistream_model::sources::ProviderRow {
             kind: "plugin".into(),
             ..provider("someplugin", "ready", true, false)
@@ -667,7 +669,7 @@ mod tests {
 
     #[test]
     fn a_signed_out_tracker_is_not_drawn_as_a_separator() {
-        let mut app = app_with(Content::Entries(vec![entry(1, "Paper Kite")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Paper Kite")]));
         app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState::new("kitsu"))));
         let header = lines_of(&mut app, 120, 30)[0].clone();
         assert!(header.contains("kitsu ○"), "{header}");
@@ -677,7 +679,7 @@ mod tests {
     /// Toasts sat in the stage's bottom-right corner, over whatever value was there.
     #[test]
     fn a_toast_sits_on_the_status_rule_and_covers_nothing() {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Settings);
         let before = lines_of(&mut app, 80, 24);
         app.push_toast(anistream_model::notice::Notice::info("saved · counts as watched at"));
@@ -697,7 +699,7 @@ mod tests {
 
     #[test]
     fn a_placeholder_says_its_note_as_a_phrase() {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Downloads);
         let text = text_of(&render_to_buffer(&mut app, 40, 7));
         assert!(text.contains("needs a larger terminal"), "{text}");
@@ -709,7 +711,7 @@ mod tests {
         for section in
             [Section::Downloads, Section::Settings, Section::Accounts, Section::Providers]
         {
-            let mut app = app_with(Content::Empty);
+            let mut app = app_with(ContentList::Empty);
             app.go_to_section(section);
             app.apply(Event::Downloads(vec![download("Kite", "1", DownloadState::Queued, 0)]));
             app.apply(Event::Sync(Box::new(anistream_model::sync::SyncState::new("kitsu"))));

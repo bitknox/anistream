@@ -1,7 +1,7 @@
 //! Search, and browsing by filter when nothing is typed.
 
 use anistream_model::{
-    catalog::{Content, ContentFor, SearchFilters},
+    catalog::{ContentFor, ContentList, SearchFilters},
     event::Event,
 };
 
@@ -33,7 +33,7 @@ pub async fn search(lent: Lent, query: String, filter: SearchFilters) {
             publish_list(&meta, &tx, view, entries, now_epoch()).await;
             return;
         }
-        Err(e) => Event::Content { view, content: Content::Failed(e.to_string()) },
+        Err(e) => Event::Content { view, content: ContentList::Failed(e.to_string()) },
     };
     let _ = tx.send(update);
 }

@@ -368,7 +368,7 @@ mod tests {
     #[test]
     fn moving_in_empty_content_is_a_no_op() {
         let mut a = app();
-        a.apply(a.content_here(Content::Entries(vec![])));
+        a.apply(a.content_here(ContentList::Entries(vec![])));
         a.handle(Action::Down, 10);
         a.handle(Action::Bottom, 10);
         assert_eq!(a.cursor(), 0);
@@ -394,7 +394,7 @@ mod tests {
         let mut a = app();
         a.apply(a.content_here(entries(50)));
         a.handle(Action::Bottom, 10);
-        a.apply(a.content_here(Content::Entries(vec![])));
+        a.apply(a.content_here(ContentList::Entries(vec![])));
         assert_eq!(a.cursor(), 0);
         assert_eq!(a.offset(), 0);
         assert!(a.selected_entry().is_none());

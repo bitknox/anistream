@@ -8,6 +8,7 @@ use anistream_meta::anilist::{AiringEntry, Media};
 use anistream_model::{
     catalog::Entry,
     episodes::{EpisodeKind, EpisodeRow},
+    progress::TitleProgress,
     sources::ProviderRow,
 };
 use anistream_store::Store;
@@ -19,13 +20,16 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
     let progress = store.and_then(|s| {
         let progress = s.progress(media.id).ok().flatten()?;
         let completed = s.completed_episodes(media.id).unwrap_or_default();
-        Some((progress.episodes_done, continue_from(&progress, &completed, media.episodes)))
+        Some(TitleProgress {
+            done: progress.episodes_done,
+            next: continue_from(&progress, &completed, media.episodes),
+        })
     });
 
     // Where an unfinished episode was left. Read for the *next* episode specifically, which is
     // the one a part-watched title is sitting in the middle of.
     let resume = store.and_then(|s| {
-        let next = progress.map_or(1, |(_, next)| next);
+        let next = progress.map_or(1, |p| p.next);
         let episode = next.to_string();
         let position = s.resume_position(media.id, &episode).ok().flatten()?;
         let duration = s
@@ -511,7 +515,11 @@ mod tests {
                 .unwrap();
         }
         let e = entry_from(&media(), Some(&store));
-        assert_eq!(e.progress, Some((2, 3)), "two done, three is next");
+        assert_eq!(
+            e.progress,
+            Some(TitleProgress { done: 2, next: 3 }),
+            "two done, three is next"
+        );
         assert!((e.watched_fraction() - 2.0 / 28.0).abs() < 1e-9);
     }
 
@@ -536,7 +544,7 @@ mod tests {
         }
         watch(&store, "8", 510.0, false, 10);
         let e = entry_from(&media(), Some(&store));
-        assert_eq!(e.progress, Some((5, 8)));
+        assert_eq!(e.progress, Some(TitleProgress { done: 5, next: 8 }));
         assert_eq!(e.resume.map(|r| r.position), Some(510.0));
     }
 
@@ -547,16 +555,25 @@ mod tests {
         for (at, episode) in ["1", "2", "3", "4", "6"].into_iter().enumerate() {
             watch(&store, episode, 1400.0, true, at as i64);
         }
-        assert_eq!(entry_from(&media(), Some(&store)).progress, Some((5, 7)));
+        assert_eq!(
+            entry_from(&media(), Some(&store)).progress,
+            Some(TitleProgress { done: 5, next: 7 })
+        );
 
         // A rewatch of episode 3, finished: past everything already watched after it.
         watch(&store, "5", 1400.0, true, 20);
         watch(&store, "3", 1400.0, true, 30);
-        assert_eq!(entry_from(&media(), Some(&store)).progress, Some((6, 7)));
+        assert_eq!(
+            entry_from(&media(), Some(&store)).progress,
+            Some(TitleProgress { done: 6, next: 7 })
+        );
 
         // The season's last episode, watched with others skipped: back to the first skipped.
         watch(&store, "28", 1400.0, true, 40);
-        assert_eq!(entry_from(&media(), Some(&store)).progress, Some((7, 7)));
+        assert_eq!(
+            entry_from(&media(), Some(&store)).progress,
+            Some(TitleProgress { done: 7, next: 7 })
+        );
     }
 
     #[test]

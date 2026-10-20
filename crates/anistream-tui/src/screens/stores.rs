@@ -667,7 +667,7 @@ pub(super) fn publish_rows(app: &App) -> Vec<(String, String)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anistream_model::catalog::Content;
+    use anistream_model::catalog::ContentList;
 
     use crate::{
         app::Field,
@@ -681,8 +681,8 @@ mod tests {
     /// An app holding one store in every state worth drawing.
     fn app_with_stores() -> App {
         use anistream_model::stores::{
-            InviteLinkView, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow,
-            StorePluginRow, StorePreview,
+            InviteLinkView, InvitedStore, LocalPluginRow, Secret, StoreInviteRow,
+            StoreMemberRow, StorePluginRow,
         };
         let plugin = |id: &str, status| StorePluginRow {
             id: id.into(),
@@ -691,7 +691,7 @@ mod tests {
             hosts: vec!["api.example".into(), "cdn.example".into()],
             status,
         };
-        let mut app = app_with(Content::Entries(Vec::new()));
+        let mut app = app_with(ContentList::Entries(Vec::new()));
         app.apply(anistream_model::event::Event::Stores(vec![
             StoreRow {
                 id: "aaaa".into(),
@@ -771,7 +771,7 @@ mod tests {
             expires_at: i64::MAX / 2,
         });
         app.invite_copied = true;
-        app.store_confirm = Some(crate::app::StoreConfirm::Join(StorePreview {
+        app.store_confirm = Some(crate::app::StoreConfirm::Join(InvitedStore {
             link: Secret("https://plugins.example/join/x#y".into()),
             name: "Our plugins".into(),
             url: "https://plugins.example".into(),
@@ -846,7 +846,7 @@ mod tests {
 
     #[test]
     fn providers_says_stores_exist_even_with_nothing_joined() {
-        let mut app = app_with(Content::Entries(Vec::new()));
+        let mut app = app_with(ContentList::Entries(Vec::new()));
         app.go_to_section(Section::Providers);
         let text = text_of(&render_to_buffer(&mut app, 120, 34));
         assert!(text.contains("PLUGIN STORES"), "{text}");

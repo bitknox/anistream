@@ -37,7 +37,7 @@ https://github.com/google/material-design-icons (`LICENSE` at `49d4db35df873165d
 | What | seekbar thumbnailer: `assets/mpv/scripts/thumbfast.lua` |
 | Source | https://github.com/po5/thumbfast, `master` at `0f711de3138c9bd6718209d819ac54022c23ded2` (2026-06-28) |
 | Upstream file sha256 | `a3d08e71eae8b892f6cd39f9593ea219768e709312d176bca883841b156448bf` |
-| Shipped file sha256 | `354f3028524a9b822ad639bf9266f093726c3d4550dde73b9dd41c0c7dd40021` |
+| Shipped file sha256 | `9e1d7e3caca75ff6d3f82eee74daa415890539cd1e8d91060c6fbce31a7d0562` |
 | Licence | MPL-2.0, `assets/mpv/licenses/LICENSE-thumbfast` |
 | Changes | Yes, each marked `-- anistream:` in the file; summarised below. |
 
@@ -52,7 +52,10 @@ next segment before returning anything of the current one, and starts exactly at
 the first thumbnail was asked for rather than at the keyframe before it. It also hides a
 thumbnail whose frame has not arrived within 350 ms, so a seek the host's URL cannot answer
 yet shows nothing rather than the last frame, and asks again every second while the pointer
-rests there. The modified file is shipped in source form, as MPL-2.0 requires.
+rests there. Its child sets `keep-open` again once it is up: mpv before 0.40 applies its
+`encoding` profile after the command line, which turns `--keep-open=always` off, and the child
+then ended its file at the first seek that met an end of file and drew nothing after it. The
+modified file is shipped in source form, as MPL-2.0 requires.
 `assets/mpv/thumbfast-opts.conf` is anistream's own and not part of thumbfast.
 
 ## Zen Kaku Gothic New

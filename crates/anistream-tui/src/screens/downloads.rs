@@ -287,7 +287,7 @@ fn time_left(secs: u64) -> String {
 mod tests {
     use super::*;
     use anistream_core::ids::AnilistId;
-    use anistream_model::{catalog::Content, event::Event};
+    use anistream_model::{catalog::ContentList, event::Event};
 
     use crate::screens::{
         fixtures::{app_with, download, lines_of, text_of},
@@ -296,7 +296,7 @@ mod tests {
 
     #[test]
     fn the_downloads_screen_says_what_is_still_seeding() {
-        let mut app = app_with(Content::Loading);
+        let mut app = app_with(ContentList::Loading);
         app.go_to_section(Section::Downloads);
         app.apply(Event::Seeding(vec![anistream_model::downloads::SeedRow {
             name: "Show - 05.mkv".into(),
@@ -316,7 +316,7 @@ mod tests {
 
     #[test]
     fn an_empty_download_queue_says_how_to_fill_it() {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Downloads);
         let text = text_of(&render_to_buffer(&mut app, 120, 30));
         assert!(text.contains("NOTHING QUEUED"), "got {text:?}");
@@ -327,7 +327,7 @@ mod tests {
     fn the_download_queue_shows_progress_and_size() {
         // The two things a queue is actually read for. A percentage alone cannot distinguish a slow
         // download from a stalled one; bytes that stop moving can.
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Downloads);
         app.apply(anistream_model::event::Event::Downloads(vec![
             anistream_model::downloads::DownloadRow {
@@ -353,7 +353,7 @@ mod tests {
 
     #[test]
     fn a_failed_download_shows_its_reason_rather_than_just_failing() {
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Downloads);
         app.apply(anistream_model::event::Event::Downloads(vec![
             anistream_model::downloads::DownloadRow {
@@ -377,7 +377,7 @@ mod tests {
     #[test]
     fn a_queue_longer_than_the_screen_scrolls_to_its_selection() {
         // The rows stopped at the fold while the cursor carried on below it.
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Downloads);
         app.apply(anistream_model::event::Event::Downloads(
             (1..=40)
@@ -404,7 +404,7 @@ mod tests {
     #[test]
     fn download_rows_keep_the_episode_and_say_what_they_wait_on() {
         let long = "An Invented Show With a Title Too Long for the Column";
-        let mut app = app_with(Content::Empty);
+        let mut app = app_with(ContentList::Empty);
         app.go_to_section(Section::Downloads);
         app.apply(Event::Downloads(vec![
             download(long, "4", DownloadState::Queued, 0),

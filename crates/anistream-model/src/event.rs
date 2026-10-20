@@ -5,7 +5,7 @@ use std::time::Duration;
 use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 
 use crate::{
-    catalog::{Content, ContentFor, Entry, ResumePoint},
+    catalog::{ContentFor, ContentList, Entry, ResumePoint, TitleAired},
     downloads::{DownloadRow, SeedRow},
     episodes::EpisodeRow,
     jobs::JobId,
@@ -15,7 +15,7 @@ use crate::{
     settings::SettingsView,
     sources::{GuardView, MatchCandidate, MetaSourceRow, ProviderRow},
     stores::{
-        InviteLinkView, LocalPluginRow, StoreInviteRow, StoreMemberRow, StorePreview, StoreRow,
+        InviteLinkView, InvitePreview, LocalPluginRow, StoreInviteRow, StoreMemberRow, StoreRow,
     },
     sync::{ConflictRow, DeviceCodePrompt, SyncState},
 };
@@ -49,7 +49,7 @@ pub enum Event {
     /// A list, tagged with the view that asked for it. See [`ContentFor`].
     Content {
         view: ContentFor,
-        content: Content,
+        content: ContentList,
     },
     /// What a list is, said above it: which season Seasonal is, and that a list stopped at the
     /// size of one page when there was more. Tagged like [`Event::Content`] and sent before it,
@@ -255,11 +255,11 @@ pub enum Event {
     /// Arrives *after* the list it annotates, because it takes a second request that depends on
     /// which titles came back. The list renders immediately without it and gains the line when
     /// it lands, rather than the whole screen waiting on an embellishment.
-    LastAired(Vec<(AnilistId, u32, i64)>),
+    LastAired(Vec<TitleAired>),
     /// Every joined plugin store, replacing whatever was there.
     Stores(Vec<StoreRow>),
     /// What a pasted invite link leads to, or why it leads nowhere.
-    StorePreview(Result<StorePreview, String>),
+    StorePreview(InvitePreview),
     /// A store was joined. The view moves into it if the user is still on the store list.
     StoreJoined {
         store: String,

@@ -80,7 +80,7 @@ fn write_setting(
     let Services { paths, registry, .. } = services;
     // Against the file's order, not the one in effect: the new order is in effect already.
     let reordered = (table, key) == (&["providers"][..], "order")
-        && matches!(&value, anistream_core::settings::SettingValue::List(order)
+        && matches!(&value, anistream_core::settings::SettingValue::Strings(order)
             if only_reorders(&engine.config.saved().providers.order, order));
     let written = engine.config.write(paths, table, key, value);
     // What the write left, so the Settings screen shows the file rather than its own hopes,

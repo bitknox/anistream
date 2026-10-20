@@ -18,8 +18,14 @@
 //!   frames, no keys. A front end's view state stays in that front end.
 //! - The engine's own state, its services, or how it decides.
 //!
-//! The `ffi` feature derives UniFFI records and enums on the types, for a native front end's
-//! bindings. Not every type can cross yet, so CI builds it to report what cannot, without failing.
+//! The `ffi` feature derives UniFFI records and enums on the types, and the core's on those of its
+//! types they carry, for a native front end's bindings. Every type crosses, and CI holds them to
+//! it: the feature's build fails on one that cannot, such as a tuple, a borrowed string or a
+//! `Result` in a field. What the build cannot see is a clash in the Kotlin bindings, where each
+//! variant is a class nested in its enum's and hides any type of its name spelled bare there, such
+//! as Kotlin's own `List`. So no variant is named after a type it carries, nor after a Kotlin
+//! type. Where the type is the model's, the type is the one renamed, so the variant keeps the name
+//! the front ends match on.
 
 pub mod catalog;
 pub mod command;

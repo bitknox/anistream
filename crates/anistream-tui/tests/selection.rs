@@ -7,7 +7,7 @@
 use anistream_core::ids::AnilistId;
 use anistream_model::settings::SettingsView;
 use anistream_model::{
-    catalog::{Content, Entry},
+    catalog::{ContentList, Entry},
     command::Command,
     downloads::{DownloadRow, DownloadState},
     event::Event,
@@ -24,8 +24,8 @@ fn app() -> App {
     App::new(SettingsView::default(), Palette::dark(), Keymap::new())
 }
 
-fn entries(n: u32) -> Content {
-    Content::Entries(
+fn entries(n: u32) -> ContentList {
+    ContentList::Entries(
         (1..=n).map(|i| Entry::new(AnilistId::new(i), format!("Title {i}"))).collect(),
     )
 }

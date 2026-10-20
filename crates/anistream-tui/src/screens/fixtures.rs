@@ -6,7 +6,7 @@
 
 use anistream_core::ids::AnilistId;
 use anistream_model::{
-    catalog::{Content, Entry},
+    catalog::{ContentList, Entry},
     downloads::DownloadState,
     settings::SettingsView,
 };
@@ -16,7 +16,7 @@ use crate::{app::App, keymap::Keymap, theme::Palette};
 
 use super::render_to_buffer;
 
-pub(super) fn app_with(content: Content) -> App {
+pub(super) fn app_with(content: ContentList) -> App {
     let mut app = App::new(SettingsView::default(), Palette::dark(), Keymap::new());
     app.apply(app.content_here(content));
     app

@@ -212,7 +212,7 @@ pub(super) fn render_eyecatch(buf: &mut Buffer, app: &App, area: Rect) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use anistream_model::{catalog::Content, event::Event, sources::GuardView};
+    use anistream_model::{catalog::ContentList, event::Event, sources::GuardView};
 
     use crate::{
         screens::{
@@ -224,7 +224,7 @@ mod tests {
 
     /// An app parked on Now Playing, partway through an episode.
     fn app_playing() -> App {
-        let mut app = app_with(Content::Entries(vec![entry(1, "Sousou no Frieren")]));
+        let mut app = app_with(ContentList::Entries(vec![entry(1, "Sousou no Frieren")]));
         app.detail = app.content.entries().first().cloned();
         app.nav.push(crate::nav::StageView::NowPlaying);
         app.playing = Some(crate::app::NowPlaying {
@@ -364,7 +364,7 @@ mod tests {
         // the one place the contrast floor has to be checked against a fill.
         use crate::theme::color::{AA_NORMAL, contrast_ratio};
         for palette in [Palette::dark(), Palette::light(), Palette::immersive()] {
-            let mut app = app_with(Content::Entries(vec![]));
+            let mut app = app_with(ContentList::Entries(vec![]));
             app.palette = palette;
             app.eyecatch = Some(crate::Eyecatch::new("Frieren"));
             for _ in 0..crate::eyecatch::SWEEP_FRAMES {

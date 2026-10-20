@@ -3,6 +3,8 @@
 
 use anistream_core::ids::AnilistId;
 
+use crate::progress::TitleProgress;
+
 /// A title as the list views need it.
 ///
 /// A flattened projection rather than the full `Media`, so rendering does not depend on the
@@ -25,7 +27,7 @@ pub struct Entry {
     /// Services carrying this title, from AniList's external links.
     pub available_on: Vec<String>,
     /// Local progress: episodes completed, and the next episode to watch.
-    pub progress: Option<(u32, u32)>,
+    pub progress: Option<TitleProgress>,
     /// Seconds until *this row's* broadcast — which for a calendar entry is the episode the row
     /// is about, and runs negative once that episode has aired. Everywhere else it is the same
     /// thing as [`Self::next_airing_in`].
@@ -50,7 +52,7 @@ pub struct Entry {
     ///
     /// Answers the question a list of airing shows is actually asked — *is there something new
     /// to watch* — which neither the total episode count nor the next countdown can.
-    pub last_aired: Option<(u32, i64)>,
+    pub last_aired: Option<Aired>,
     /// An episode left part-watched, and where in it you stopped.
     ///
     /// Deliberately independent of the commit threshold. That threshold governs when an episode is
@@ -70,6 +72,24 @@ pub struct Entry {
     /// segment, and a status set in this session is remembered on the entry. `None` means not
     /// known, not "on no list" — nothing outside the Library carries the tracker's answer.
     pub list_status: Option<LibrarySegment>,
+}
+
+/// A title's most recent broadcast: which episode, and how long ago it aired.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct Aired {
+    pub episode: u32,
+    /// Seconds since it aired, as of when it was looked up.
+    pub ago: i64,
+}
+
+/// One title's most recent broadcast, as
+/// [`Event::LastAired`](crate::event::Event::LastAired) says it for each airing title of a list.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct TitleAired {
+    pub id: AnilistId,
+    pub aired: Aired,
 }
 
 /// One step of a title's watch order.
@@ -149,7 +169,7 @@ impl Entry {
     /// Fraction watched, for the progress meter.
     pub fn watched_fraction(&self) -> f64 {
         match (self.progress, self.progress_of()) {
-            (Some((done, _)), Some((of, _))) => {
+            (Some(TitleProgress { done, .. }), Some((of, _))) => {
                 (f64::from(done) / f64::from(of)).clamp(0.0, 1.0)
             }
             _ => 0.0,
@@ -159,7 +179,7 @@ impl Entry {
     /// The count beside the meter: `2 / 12`, `2 / 3 aired` while the length is unannounced, or
     /// `2 watched` when there is nothing to count against.
     pub fn progress_label(&self) -> Option<String> {
-        let (done, _) = self.progress?;
+        let done = self.progress?.done;
         Some(match self.progress_of() {
             Some((total, true)) => format!("{done} / {total}"),
             Some((aired, false)) => format!("{done} / {aired} aired"),
@@ -178,8 +198,10 @@ impl Entry {
     pub fn latest_aired(&self) -> Option<(u32, Option<i64>)> {
         let derived = self.next_episode.and_then(|n| n.checked_sub(1)).filter(|n| *n >= 1);
         match (self.last_aired, derived) {
-            (Some((episode, _)), Some(proven)) if proven > episode => Some((proven, None)),
-            (Some((episode, ago)), _) => Some((episode, Some(ago))),
+            (Some(Aired { episode, .. }), Some(proven)) if proven > episode => {
+                Some((proven, None))
+            }
+            (Some(Aired { episode, ago }), _) => Some((episode, Some(ago))),
             (None, proven) => proven.map(|episode| (episode, None)),
         }
     }
@@ -238,9 +260,13 @@ impl LibrarySegment {
 }
 
 /// What the stage is currently showing.
+///
+/// Not named for the event that carries it: no variant is named after the type it carries. In
+/// the Kotlin bindings a variant is a class nested in its enum's, and hides any type of its name
+/// spelled bare there.
 #[derive(Debug, Clone, Default, PartialEq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
-pub enum Content {
+pub enum ContentList {
     #[default]
     Empty,
     Loading,
@@ -252,7 +278,7 @@ pub enum Content {
     Failed(String),
 }
 
-impl Content {
+impl ContentList {
     pub fn entries(&self) -> &[Entry] {
         match self {
             Self::Entries(e) => e,
@@ -295,16 +321,25 @@ pub enum ContentFor {
 /// Wire values rather than display values — what AniList's enums expect, lowercased only
 /// when a row is drawn. `None` reads as "any" and is omitted from the query entirely,
 /// because AniList treats an explicit null differently from a missing argument.
+///
+/// Each filter defaults to "any" in the bindings too, so a native front end writes
+/// `SearchFilters()` for none and names only the ones it sets.
 #[derive(Debug, Clone, Default, PartialEq)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct SearchFilters {
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub genre: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub year: Option<u32>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub season: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub format: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub status: Option<String>,
     /// `None` is relevance — AniList's `SEARCH_MATCH` — which is only meaningful with a
     /// search term, so the executor substitutes popularity for a filter-only browse.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub sort: Option<String>,
 }
 
@@ -346,11 +381,11 @@ mod tests {
         assert_eq!(e.watched_fraction(), 0.0);
 
         e.episodes = Some(28);
-        e.progress = Some((14, 15));
+        e.progress = Some(TitleProgress { done: 14, next: 15 });
         assert!((e.watched_fraction() - 0.5).abs() < 1e-9);
 
         // More progress than episodes (a rewatch, or bad remote data) must not exceed 1.
-        e.progress = Some((99, 100));
+        e.progress = Some(TitleProgress { done: 99, next: 100 });
         assert_eq!(e.watched_fraction(), 1.0);
 
         e.episodes = Some(0);
@@ -360,7 +395,7 @@ mod tests {
     #[test]
     fn progress_counts_against_what_is_known() {
         let mut e = Entry::new(AnilistId::new(1), "x");
-        e.progress = Some((2, 3));
+        e.progress = Some(TitleProgress { done: 2, next: 3 });
         assert_eq!(
             e.progress_label().as_deref(),
             Some("2 watched"),
@@ -384,12 +419,12 @@ mod tests {
         // the last-aired schedule row still answers 7 — during that window the app named
         // the fresh episode only by its successor. Episode 8 is out, provably.
         let mut e = Entry::new(AnilistId::new(1), "Frieren");
-        e.last_aired = Some((7, 7 * 24 * 3600));
+        e.last_aired = Some(Aired { episode: 7, ago: 7 * 24 * 3600 });
         e.next_episode = Some(9);
         assert_eq!(e.latest_aired(), Some((8, None)), "the stale schedule row won");
 
         // When the sources agree, the schedule row's own timestamp is kept.
-        e.last_aired = Some((8, 3600));
+        e.last_aired = Some(Aired { episode: 8, ago: 3600 });
         assert_eq!(e.latest_aired(), Some((8, Some(3600))));
 
         // A premiere still ahead proves nothing aired.

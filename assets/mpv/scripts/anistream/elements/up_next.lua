@@ -9,12 +9,15 @@
 -- The still is raw BGRA the host writes beside `next` (often a moment after it), shown with
 -- mpv's `overlay-add`. Those bitmaps sit above every ASS overlay and cannot be masked, so it is
 -- square-cornered, and it is removed the moment the card stops being shown rather than faded.
+-- mpv scales it to the card from 0.38; before that the script resamples it (see `SCALES`).
 --
 -- The playhead is only observed while a card could still appear; for most of an episode, and
 -- for every episode with no next, this costs nothing per frame.
 
 local app = require("app")
+local bgra = require("bgra")
 local card = require("card")
+local config = require("config")
 local util = require("util")
 
 local COUNTDOWN_FROM = 10
@@ -25,6 +28,10 @@ local FALLBACK_MIN_DURATION = 120
 local OVERLAY_ID = 57
 -- The still's size on the card, in base pixels (16:9).
 local STILL_W, STILL_H = 160, 90
+-- overlay-add's `dw` and `dh`, which scale a bitmap as it is shown: mpv 0.38. Without them a
+-- bitmap is shown at its own size, and the host writes the still at four times the slot so it
+-- stays sharp at HiDPI scale; placed as it is, it would cover the card.
+local SCALES = config.opts.scaled_still and util.mpv_at_least(0, 38)
 
 local info = nil -- the host's `next`, normalised
 local last = { label = "", title = nil } -- what was last shown, for the fade-out
@@ -34,6 +41,7 @@ local shown = false
 local countdown = nil
 local observing = false
 local still_key = nil -- what overlay-add last placed, or nil when nothing is up
+local resampled = nil -- { key, pixels }: the still at its slot's size, where mpv cannot scale
 
 local M
 
@@ -91,12 +99,45 @@ end
 ---------------------------------------------------------------------------------------------
 
 local function remove_still()
+    resampled = nil
     if still_key then
         mp.commandv("overlay-remove", tostring(OVERLAY_ID))
         still_key = nil
         -- Published state follows on the next refresh, outside the frame being drawn.
         mp.add_timeout(0, app.changed)
     end
+end
+
+-- The still at w x h, for an mpv that cannot scale it: resampled here once per size, and
+-- written beside the host's file only for the call, because overlay-add copies the bitmap in
+-- before it returns. Moving the card again costs a write, not a resample.
+local function add_resampled(thumb, x, y, w, h)
+    local key = string.format("%s %d %d %d %d", thumb.path, thumb.width, thumb.height, w, h)
+    if not resampled or resampled.key ~= key then
+        local source = io.open(thumb.path, "rb")
+        local data = source and source:read("*a")
+        if source then
+            source:close()
+        end
+        local pixels = data and bgra.resample(data, thumb.width, thumb.height, w, h)
+        if not pixels then
+            return false
+        end
+        resampled = { key = key, pixels = pixels }
+    end
+    local path = thumb.path .. ".scaled"
+    local out = io.open(path, "wb")
+    if not out then
+        return false
+    end
+    out:write(resampled.pixels)
+    out:close()
+    local ok = mp.commandv(
+        "overlay-add", tostring(OVERLAY_ID), tostring(x), tostring(y), path, "0", "bgra",
+        tostring(w), tostring(h), tostring(w * 4)
+    )
+    os.remove(path)
+    return ok
 end
 
 -- Put the still at (x, y) scaled to w x h; repeated calls with the same placement cost nothing.
@@ -106,10 +147,15 @@ local function place_still(thumb, x, y, w, h)
     if key == still_key then
         return
     end
-    local ok = mp.commandv(
-        "overlay-add", tostring(OVERLAY_ID), tostring(x), tostring(y), thumb.path, "0", "bgra",
-        tostring(thumb.width), tostring(thumb.height), tostring(thumb.width * 4), tostring(w), tostring(h)
-    )
+    local ok
+    if SCALES then
+        ok = mp.commandv(
+            "overlay-add", tostring(OVERLAY_ID), tostring(x), tostring(y), thumb.path, "0", "bgra",
+            tostring(thumb.width), tostring(thumb.height), tostring(thumb.width * 4), tostring(w), tostring(h)
+        )
+    else
+        ok = add_resampled(thumb, x, y, w, h)
+    end
     local was = still_key
     still_key = ok and key or nil
     if (was == nil) ~= (still_key == nil) then

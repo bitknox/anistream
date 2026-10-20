@@ -384,7 +384,7 @@ empty=
     fn uosc_and_thumbfast_load_in_mpv_without_lua_errors() {
         // CI has no mpv; what is under test is the vendored Lua, not the machine.
         if !mpv_available() {
-            // CI's Linux job installs mpv and sets this, so a missing mpv fails there
+            // CI's mpv job installs mpv and sets this, so a missing mpv fails there
             // instead of passing as a skip.
             assert!(
                 std::env::var("ANISTREAM_REQUIRE_MPV").as_deref() != Ok("1"),
@@ -448,7 +448,7 @@ empty=
         use std::os::unix::{fs::PermissionsExt as _, net::UnixStream};
 
         if !mpv_available() {
-            // CI's Linux job installs mpv and sets this, so a missing mpv fails there
+            // CI's mpv job installs mpv and sets this, so a missing mpv fails there
             // instead of passing as a skip.
             assert!(
                 std::env::var("ANISTREAM_REQUIRE_MPV").as_deref() != Ok("1"),
@@ -564,6 +564,81 @@ empty=
         assert_eq!(third.last().map(String::as_str), Some(video));
 
         send(serde_json::json!(["quit"]));
+        drop(guard);
+    }
+
+    /// thumbfast's child runs in mpv's encoding mode, where mpv before 0.40 applies its
+    /// `encoding` profile after the command line and turns the child's `--keep-open=always`
+    /// off; the first seek to meet an end of file then ended the file, and the child drew
+    /// nothing after it. The patched client script sets it again once the child is up. This
+    /// asks a real child what it ended up with, through the file thumbfast writes its seeks to.
+    #[cfg(unix)]
+    #[test]
+    fn thumbfasts_child_keeps_its_file_open_past_an_end() {
+        use std::io::Write as _;
+        use std::os::unix::net::UnixStream;
+
+        if !mpv_available() {
+            // CI's mpv job installs mpv and sets this, so a missing mpv fails there
+            // instead of passing as a skip.
+            assert!(
+                std::env::var("ANISTREAM_REQUIRE_MPV").as_deref() != Ok("1"),
+                "ANISTREAM_REQUIRE_MPV is set but mpv is not on PATH"
+            );
+            eprintln!("skipping: mpv is not on PATH");
+            return;
+        }
+        let cache = tempfile::tempdir().unwrap();
+        let bundle = Bundle::materialize(cache.path()).unwrap();
+        let commands = cache.path().join("commands");
+        let answer = cache.path().join("answer");
+        let socket = cache.path().join("ipc.sock");
+        let mut mpv = Command::new("mpv")
+            .args(["--no-config", "--load-scripts=no", "--pause", "--vo=null", "--ao=null"])
+            .arg(format!("--script={}", bundle.thumbfast().display()))
+            // thumbfast adds the parent's pid to both, and they stay in this test's directory.
+            .arg(format!("--script-opts-append=thumbfast-socket={}", commands.display()))
+            .arg(format!(
+                "--script-opts-append=thumbfast-thumbnail={}",
+                cache.path().join("thumb").display()
+            ))
+            .arg("--script-opts-append=thumbfast-spawn_first=yes")
+            .arg(format!("--input-ipc-server={}", socket.display()))
+            .arg("av://lavfi:testsrc2=size=640x360:rate=24:duration=60")
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        let commands = PathBuf::from(format!("{}{}", commands.display(), mpv.id()));
+        let guard = KillOnDrop(&mut mpv);
+
+        // The client script clears the file as it starts, so the question is asked until the
+        // child answers; until then the file is not there to append to.
+        let question = format!(
+            "expand-properties run /bin/sh -c \"printf %s ${{keep-open}} > '{}'\"\n",
+            answer.display()
+        );
+        let started = Instant::now();
+        let keep_open = loop {
+            if let Some(said) = fs::read_to_string(&answer).ok().filter(|s| !s.is_empty()) {
+                break said;
+            }
+            assert!(
+                started.elapsed() < Duration::from_secs(10),
+                "thumbfast's child never answered"
+            );
+            if let Ok(mut file) = fs::OpenOptions::new().append(true).open(&commands) {
+                file.write_all(question.as_bytes()).unwrap();
+            }
+            std::thread::sleep(Duration::from_millis(100));
+        };
+        assert_eq!(keep_open, "always", "the child's keep-open was turned off");
+
+        // Quitting the parent ends its file, and with it the child: thumbfast starts it as a
+        // subprocess that lasts as long as the playback.
+        let mut ipc = UnixStream::connect(&socket).unwrap();
+        ipc.write_all(b"{\"command\":[\"quit\"]}\n").unwrap();
         drop(guard);
     }
 

@@ -116,6 +116,7 @@ pub fn clock(span: std::time::Duration) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::catalog::Aired;
     use anistream_core::ids::AnilistId;
 
     #[test]
@@ -149,7 +150,7 @@ mod tests {
     fn the_broadcast_line_drops_a_countdown_that_has_run_out() {
         // A calendar row about episode 5, which aired an hour ago. Episode 6 is a week out.
         let mut e = Entry::new(AnilistId::new(1), "Hoshikuzu no Tabibito");
-        e.last_aired = Some((5, 3_600));
+        e.last_aired = Some(Aired { episode: 5, ago: 3_600 });
         e.airing_in = Some(-3_600);
         e.next_episode = Some(6);
         e.next_airing_in = Some(604_800);

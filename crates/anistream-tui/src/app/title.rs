@@ -3,7 +3,7 @@
 
 use anistream_core::ids::AnilistId;
 use anistream_model::{
-    catalog::{Content, Entry, LibrarySegment},
+    catalog::{ContentList, Entry, LibrarySegment},
     command::Command,
     episodes::EpisodeRow,
     notice::Notice,
@@ -265,7 +265,7 @@ impl App {
         // so asking again opens on the answer just given.
         self.statuses_set.insert(id, status);
         let entries = match &mut self.content {
-            Content::Entries(entries) => entries.as_mut_slice(),
+            ContentList::Entries(entries) => entries.as_mut_slice(),
             _ => &mut [],
         };
         for entry in self.detail.iter_mut().chain(entries.iter_mut()) {
@@ -407,7 +407,7 @@ mod tests {
         a.go_to_section(Section::Library);
         a.library_segment = LibrarySegment::Completed;
         let mut rows = entries(3);
-        if let Content::Entries(rows) = &mut rows {
+        if let ContentList::Entries(rows) = &mut rows {
             // As the Library's own fetch marks its rows.
             rows.iter_mut().for_each(|row| row.list_status = Some(LibrarySegment::Completed));
         }
@@ -455,7 +455,7 @@ mod tests {
         a.go_to_section(Section::Library);
         a.library_segment = LibrarySegment::Completed;
         let mut rows = entries(3);
-        if let Content::Entries(rows) = &mut rows {
+        if let ContentList::Entries(rows) = &mut rows {
             rows.iter_mut().for_each(|row| row.list_status = Some(LibrarySegment::Completed));
         }
         a.apply(a.content_here(rows));

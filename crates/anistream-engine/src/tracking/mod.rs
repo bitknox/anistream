@@ -23,7 +23,8 @@ use anistream_model::{
     catalog::{ContentFor, LibrarySegment},
     event::Event,
     notice::{Notice, NoticeHint},
-    sync::{ConflictRow, SyncState},
+    progress::TitleProgress,
+    sync::{ConflictRow, PullError, SyncState},
 };
 use anistream_store::Store;
 #[cfg(feature = "desktop")]
@@ -61,7 +62,7 @@ pub struct Sync {
     /// Held here rather than sent once, because every state this module publishes replaces
     /// the previous one whole: the next drain tick would otherwise wipe the error off the
     /// Accounts screen a minute after it appeared.
-    pub pull_errors: Arc<std::sync::Mutex<std::collections::HashMap<String, (String, i64)>>>,
+    pub pull_errors: Arc<std::sync::Mutex<std::collections::HashMap<String, PullError>>>,
 }
 
 impl Sync {
@@ -188,11 +189,11 @@ impl Sync {
         }
     }
 
-    fn pull_error(&self, tracker_id: &str) -> Option<(String, i64)> {
+    fn pull_error(&self, tracker_id: &str) -> Option<PullError> {
         self.pull_errors.lock().ok()?.get(tracker_id).cloned()
     }
 
-    fn note_pull(&self, tracker_id: &str, error: Option<(String, i64)>) {
+    fn note_pull(&self, tracker_id: &str, error: Option<PullError>) {
         if let Ok(mut errors) = self.pull_errors.lock() {
             match error {
                 Some(error) => errors.insert(tracker_id.to_owned(), error),
@@ -358,26 +359,26 @@ impl anistream_track::kitsu::IdMapping for StoreMapping {
 /// Titles are remembered as they pass through, which is what later lets a sync conflict name the
 /// show instead of printing a bare id.
 pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -> Event {
-    use anistream_model::catalog::Content;
+    use anistream_model::catalog::ContentList;
 
     // Tagged with its segment: switching tabs while a pull is in flight must not show this one
     // under the next tab's heading.
     let answer = |content| Event::Content { view: ContentFor::Library(segment), content };
 
     let Some(tracker) = sync.trackers.first() else {
-        return answer(Content::Entries(Vec::new()));
+        return answer(ContentList::Entries(Vec::new()));
     };
     if !tracker.is_authenticated() {
         // Not a failure. The Library screen renders its own "no account" state, which explains
         // that history works regardless.
-        return answer(Content::Entries(Vec::new()));
+        return answer(ContentList::Entries(Vec::new()));
     }
 
     // The concrete handle, kept alongside the trait object rather than reached by downcasting:
     // the trait returns only the syncable projection, but this screen needs covers and titles
     // too, and fetching those per title would cost a request each against thirty a minute.
     let Some(anilist) = sync.anilist.as_ref() else {
-        return answer(Content::Entries(Vec::new()));
+        return answer(ContentList::Entries(Vec::new()));
     };
 
     match anilist.library().await {
@@ -391,17 +392,20 @@ pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -
                 // the remote list, and showing local numbers here would hide a divergence
                 // rather than reveal it.
                 let total = row.episodes.unwrap_or(0);
-                row.progress = Some((entry.progress, (entry.progress + 1).min(total.max(1))));
+                row.progress = Some(TitleProgress {
+                    done: entry.progress,
+                    next: (entry.progress + 1).min(total.max(1)),
+                });
                 // The one place the tracker's status for a title is known, so `a` opens on it.
                 row.list_status = Some(segment);
                 rows.push(row);
             }
-            answer(Content::Entries(rows))
+            answer(ContentList::Entries(rows))
         }
         Err(anistream_core::Error::Auth(_)) => {
-            answer(Content::Failed("sign in again on the Accounts screen".into()))
+            answer(ContentList::Failed("sign in again on the Accounts screen".into()))
         }
-        Err(e) => answer(Content::Failed(e.to_string())),
+        Err(e) => answer(ContentList::Failed(e.to_string())),
     }
 }
 
@@ -577,7 +581,10 @@ pub async fn pull_once(sync: &Sync, tx: &Outbox) {
             // Accounts row carries it, with when, until a pull succeeds.
             Err(e) => {
                 tracing::warn!(tracker = tracker.id(), error = %e, "library pull failed");
-                sync.note_pull(tracker.id(), Some((e.to_string(), now)));
+                sync.note_pull(
+                    tracker.id(),
+                    Some(PullError { reason: e.to_string(), at: now }),
+                );
                 let _ = tx.send(Event::Sync(Box::new(sync.state_for(
                     tracker.as_ref(),
                     false,
@@ -1250,7 +1257,7 @@ mod tests {
 
         pull_once(&sync, &tx).await;
         let Some(Event::Sync(state)) = rx.try_recv().ok() else { panic!("no state sent") };
-        let (error, _) = state.pull_error.expect("the failure is on the row");
+        let error = state.pull_error.expect("the failure is on the row").reason;
         assert!(error.contains("timed out"), "{error}");
 
         // It survives the next drain's state, which used to replace it whole.

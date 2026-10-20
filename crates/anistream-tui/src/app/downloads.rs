@@ -67,7 +67,7 @@ impl App {
             }
             _ => {
                 let entry = self.target()?;
-                let episode = entry.progress.map_or(1, |(_, next)| next).to_string();
+                let episode = entry.progress.map_or(1, |p| p.next).to_string();
                 (entry.id, episode)
             }
         };

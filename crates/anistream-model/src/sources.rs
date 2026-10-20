@@ -221,7 +221,7 @@ pub struct MatchCandidate {
     /// Title-match similarity, 0..1.
     pub similarity: f64,
     /// Why the ladder ruled it out, when it did.
-    pub rejected: Option<&'static str>,
+    pub rejected: Option<String>,
 }
 
 #[cfg(test)]
