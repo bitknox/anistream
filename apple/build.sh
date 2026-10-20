@@ -49,7 +49,8 @@ mkdir -p "$generated"
 # filled afresh, so a crate that stops having UniFFI types leaves nothing behind.
 swift="$package/Sources/AnistreamKit"
 ffi="$package/Sources/AnistreamFFI"
-rm -rf "$swift" "$ffi"
+# Also where the one crate's C module went before there was a module per crate.
+rm -rf "$swift" "$ffi" "$package/Sources/anistream_ffiFFI"
 mkdir -p "$swift" "$ffi"
 cp "$generated"/*.swift "$swift/"
 cp "$generated"/*.h "$ffi/"
