@@ -10,6 +10,7 @@ binary(companion) | binary(binge)
 | test(=mpv::tests::a_detected_mpv_also_reports_its_version)
 | test(=bundle::tests::uosc_and_thumbfast_load_in_mpv_without_lua_errors)
 | test(=bundle::tests::thumbfast_opens_the_host_url_and_inherits_the_http_identity)
+| test(=bundle::tests::thumbfasts_child_keeps_its_file_open_past_an_end)
 | test(=mend::tests::a_flooded_thumbnailer_draws_where_the_pointer_rests)
 | test(=torrent::http::tests::a_thumbnail_child_keeps_working_through_seeks_into_missing_pieces)
 '''

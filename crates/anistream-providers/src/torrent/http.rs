@@ -1463,6 +1463,10 @@ mod tests {
             .spawn()
             .unwrap();
         let mut ipc = Ipc::connect(&ipc_path).await;
+        // As thumbfast's child does once it is up: mpv before 0.40 applies its encoding profile
+        // after the command line, which turns keep-open off, and the first seek to meet an end
+        // of file then ended the file and left the child idle.
+        ipc.command(serde_json::json!(["set_property", "keep-open", "always"])).await;
         assert!(
             drawn_within(&thumb, frame, std::time::Duration::from_secs(5)).await,
             "no first thumbnail"
