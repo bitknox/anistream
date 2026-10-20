@@ -31,10 +31,13 @@ use anistream_engine::{
 
 use std::{io, sync::Arc, time::Duration};
 
-use anistream_core::config::{Config, Paths, ThemeMode};
+use anistream_core::{
+    config::{Config, Paths, ThemeMode},
+    ids::{AnilistId, ProviderKey},
+};
 use anistream_meta::{Meta, dataset};
 use anistream_model::{
-    catalog::{Content, ContentFor},
+    catalog::{Content, ContentFor, SearchFilters},
     command::Command,
     episodes::EpisodeRow,
     event::Event,
@@ -824,7 +827,7 @@ async fn run(
 
     if let Some(task) = app.reload() {
         let job = JobGuard::start(&mut engine, &task, &tx);
-        spawn(task, job, &services, &tx);
+        dispatch(task, job, &mut engine, &services, &tx);
     }
 
     let mut events = EventStream::new();
@@ -1256,8 +1259,22 @@ impl Drop for JobGuard {
     }
 }
 
-/// Run a task off the UI thread and report the result back through the channel.
-fn spawn(task: Command, job: Option<JobGuard>, services: &Services, tx: &Outbox) {
+/// What a task run by [`spawn`] is lent: its own clones of the handles it reads, and of the
+/// outbox it answers on.
+struct Lent {
+    pub meta: Meta,
+    pub store: Store,
+    pub registry: ProviderRegistry,
+    pub tx: Outbox,
+}
+
+/// Run a task off the UI thread, once the AniList rate limit lets it, and let it report back
+/// through the channel.
+fn spawn<W, F>(job: Option<JobGuard>, services: &Services, tx: &Outbox, work: W)
+where
+    W: FnOnce(Lent) -> F + Send + 'static,
+    F: Future<Output = ()> + Send + 'static,
+{
     let meta = services.meta.clone();
     let store = services.store.clone();
     let registry = services.registry.clone();
@@ -1283,251 +1300,219 @@ fn spawn(task: Command, job: Option<JobGuard>, services: &Services, tx: &Outbox)
                 }
             }
         }
-        let update = match task {
-            Command::LoadContinue => match continue_entries(&meta, &store).await {
-                // Nothing in the history at all is a different empty from a history with
-                // nothing left to continue — everything hidden with `x` — and only the first
-                // is "nothing watched yet". `Empty` says it is the first.
-                Ok(entries)
-                    if entries.is_empty() && store.stats().is_ok_and(|s| s.titles == 0) =>
-                {
-                    Event::Content { view: ContentFor::Continue, content: Content::Empty }
-                }
-                Ok(entries) => {
-                    publish_list(&meta, &tx, ContentFor::Continue, entries, now_epoch()).await;
-                    return;
-                }
-                Err(e) => {
-                    Event::Content { view: ContentFor::Continue, content: Content::Failed(e) }
-                }
-            },
-            Command::LoadSeasonal => {
-                const PAGE: u32 = 40;
-                let (season, year) = current_season();
-                match meta.seasonal(season, year, &Default::default(), 1, PAGE).await {
-                    Ok(page) => {
-                        // Which season this is, which the screen never said, and that one
-                        // page is not all of it when it is not.
-                        let season = format!("{} {year}", season.as_str().to_lowercase());
-                        let text = if page.has_next {
-                            format!("{season} · the {PAGE} most popular")
-                        } else {
-                            season
-                        };
-                        let _ = tx.send(Event::Caption { view: ContentFor::Seasonal, text });
-                        let entries = page
-                            .items
-                            .iter()
-                            .map(|m| data::entry_from(m, Some(&store)))
-                            .collect();
-                        publish_list(&meta, &tx, ContentFor::Seasonal, entries, now_epoch())
-                            .await;
-                        return;
-                    }
-                    Err(e) => Event::Content {
-                        view: ContentFor::Seasonal,
-                        content: Content::Failed(e.to_string()),
-                    },
-                }
-            }
-            Command::LoadCalendar => {
-                let anchor = now_epoch();
-                match calendar_timeline(&meta, &store, anchor).await {
-                    Ok(load) => {
-                        // Sent before the content, so the reducer knows how to continue the
-                        // list at the moment the list exists — a backfill triggered by the
-                        // very first keypress has everything it needs.
-                        let _ = tx.send(Event::CalendarWindow {
-                            anchor,
-                            pages: load.pages,
-                            more_past: load.more_past,
-                        });
-                        Event::Content {
-                            view: ContentFor::Calendar,
-                            content: Content::Entries(load.entries),
-                        }
-                    }
-                    Err(e) => Event::Content {
-                        view: ContentFor::Calendar,
-                        content: Content::Failed(e),
-                    },
-                }
-            }
-            Command::LoadCalendarPast { anchor, page } => {
-                match calendar_past_page(&meta, &store, anchor, page).await {
-                    Ok((entries, more_past)) => {
-                        Event::CalendarBackfill { page: Some(page), entries, more_past }
-                    }
-                    // Not a toast. The user never asked for this page by name — they scrolled —
-                    // and the calendar in front of them is unchanged and still correct. The
-                    // reducer clears its in-flight flag so the next scroll tries again.
-                    Err(e) => {
-                        tracing::warn!(%e, page, "calendar backfill failed");
-                        Event::CalendarBackfill {
-                            page: None,
-                            entries: Vec::new(),
-                            more_past: true,
-                        }
-                    }
-                }
-            }
-            Command::Search { query, filter } => {
-                let view = ContentFor::Search { query: query.clone(), filter: filter.clone() };
-                let browse = anistream_meta::anilist::BrowseFilter {
-                    genres: filter.genre.iter().cloned().collect(),
-                    format: filter.format.clone(),
-                    status: filter.status.clone(),
-                    min_score: None,
-                    sort: filter.sort.clone(),
-                    season: filter.season.clone(),
-                    year: filter.year,
-                };
-                const PAGE: u32 = 30;
-                match meta.search(&query, &browse, 1, PAGE).await {
-                    Ok(page) => {
-                        // Sent every time, empty when the page held everything, so a caption
-                        // from an earlier run of the same search cannot outlive its answer.
-                        let text = if page.has_next {
-                            format!("showing the first {PAGE}")
-                        } else {
-                            String::new()
-                        };
-                        let _ = tx.send(Event::Caption { view: view.clone(), text });
-                        let entries = page
-                            .items
-                            .iter()
-                            .map(|m| data::entry_from(m, Some(&store)))
-                            .collect();
-                        publish_list(&meta, &tx, view, entries, now_epoch()).await;
-                        return;
-                    }
-                    Err(e) => Event::Content { view, content: Content::Failed(e.to_string()) },
-                }
-            }
-            Command::LoadDetail(id) => {
-                // Sent before the detail itself, so the picker knows the current choice the
-                // moment the title is on screen rather than only after it is opened once.
-                let _ = tx.send(Event::ProviderPreference(
-                    store.provider_preference(id).ok().flatten(),
-                ));
-                match meta.media(id).await {
-                    Ok(media) => {
-                        Event::Detail(Box::new(data::entry_from(&media, Some(&store))))
-                    }
-                    Err(e) => Event::Toast(Notice::alert(format!("could not load title: {e}"))),
-                }
-            }
-            Command::CheckProviders => {
-                registry.check_all(now_epoch()).await;
-                // The metadata ladder rides the same refresh: one screen, one key,
-                // every source's condition.
-                let _ = tx.send(Event::MetaStatus(data::meta_rows(&meta)));
-                Event::Providers(data::provider_rows(&registry))
-            }
-            // Handled in `dispatch`, which owns the live player's control channel and the
-            // tracker set. Reaching here would mean a routing mistake, so it says so.
-            Command::Play { .. }
-            | Command::Prefetch { .. }
-            | Command::PlayParty { .. }
-            | Command::LoadSources { .. }
-            | Command::PlaySource { .. }
-            | Command::ManualSearch { .. }
-            | Command::SetWatched { .. }
-            | Command::HideFromContinue { .. }
-            | Command::OpenExternal { .. }
-            | Command::PlayTrailer { .. }
-            | Command::Player(_)
-            | Command::SyncNow
-            | Command::Connect { .. }
-            | Command::ConnectKitsu { .. }
-            | Command::Disconnect { .. }
-            | Command::SetStatus { .. }
-            | Command::SetScore { .. }
-            | Command::ResolveConflict { .. }
-            | Command::SetProviderPreference { .. }
-            | Command::LoadLibrary(_)
-            | Command::DownloadEpisode { .. }
-            | Command::DownloadMany { .. }
-            | Command::DownloadPause { .. }
-            | Command::DownloadCancel { .. }
-            | Command::DownloadDelete { .. }
-            | Command::DownloadClearCompleted
-            | Command::LoadDownloads
-            | Command::PlayLocal { .. }
-            | Command::SaveSetting { .. }
-            | Command::LoadStores
-            | Command::PreviewStore { .. }
-            | Command::JoinStore { .. }
-            | Command::LeaveStore { .. }
-            | Command::InstallPlugin { .. }
-            | Command::RemovePlugin { .. }
-            | Command::CreateInvite { .. }
-            | Command::LoadMembers { .. }
-            | Command::RemoveMember { .. }
-            | Command::CancelInvite { .. }
-            | Command::LoadLocalPlugins { .. }
-            | Command::PublishPlugin { .. }
-            | Command::UnpublishPlugin { .. }
-            | Command::OpenAdmin { .. }
-            | Command::FetchArtwork { .. }
-            | Command::UseConfig { .. }
-            | Command::PlayHints { .. } => {
-                tracing::error!(?task, "task reached the generic spawner");
-                return;
-            }
-            Command::ClearMatch { id } => {
-                if let Err(e) = store.clear_title_match(id) {
-                    Event::Toast(Notice::alert(format!("could not reset the match: {e}")))
-                } else {
-                    match load_episodes(&meta, &store, &registry, id).await {
-                        Ok(EpisodeLoad::Rows(rows)) => Event::Episodes { id, rows },
-                        Ok(EpisodeLoad::Choose { provider_id, candidates }) => {
-                            Event::MatchChoices { id, provider_id, candidates }
-                        }
-                        Err(reason) => {
-                            let _ = tx.send(Event::Episodes { id, rows: Vec::new() });
-                            Event::Toast(Notice::alert(reason))
-                        }
-                    }
-                }
-            }
-            Command::FixMatch { id, provider_id, key } => {
-                // Remembered as an override, which the ladder consults before anything else —
-                // so the question is asked once, not on every visit.
-                if let Err(e) = store.set_override(id, &provider_id, &key, now_epoch()) {
-                    Event::Toast(Notice::alert(format!("could not save that match: {e}")))
-                } else {
-                    match load_episodes(&meta, &store, &registry, id).await {
-                        Ok(EpisodeLoad::Rows(rows)) => Event::Episodes { id, rows },
-                        // The override *is* the answer, so the ladder cannot come back
-                        // undecided; if it somehow does, say so rather than looping.
-                        Ok(EpisodeLoad::Choose { .. }) => Event::Toast(Notice::alert(
-                            "that match did not stick — the source may have changed",
-                        )),
-                        Err(reason) => {
-                            let _ = tx.send(Event::Episodes { id, rows: Vec::new() });
-                            Event::Toast(Notice::alert(reason))
-                        }
-                    }
-                }
-            }
-            Command::LoadEpisodes(id) => {
-                match load_episodes(&meta, &store, &registry, id).await {
-                    Ok(EpisodeLoad::Rows(rows)) => Event::Episodes { id, rows },
-                    Ok(EpisodeLoad::Choose { provider_id, candidates }) => {
-                        Event::MatchChoices { id, provider_id, candidates }
-                    }
-                    Err(reason) => {
-                        // The Episodes screen shows its own empty state, so the reason belongs
-                        // in a toast rather than replacing the whole view.
-                        let _ = tx.send(Event::Episodes { id, rows: Vec::new() });
-                        Event::Toast(Notice::alert(reason))
-                    }
-                }
-            }
-        };
-        let _ = tx.send(update);
+        work(Lent { meta, store, registry, tx }).await;
     });
+}
+
+/// What you were watching, as the CONTINUE rail lists it, or the empty that says nothing has
+/// been watched yet.
+async fn load_continue(lent: Lent) {
+    let Lent { meta, store, tx, .. } = lent;
+    let update = match continue_entries(&meta, &store).await {
+        // Nothing in the history at all is a different empty from a history with
+        // nothing left to continue — everything hidden with `x` — and only the first
+        // is "nothing watched yet". `Empty` says it is the first.
+        Ok(entries) if entries.is_empty() && store.stats().is_ok_and(|s| s.titles == 0) => {
+            Event::Content { view: ContentFor::Continue, content: Content::Empty }
+        }
+        Ok(entries) => {
+            publish_list(&meta, &tx, ContentFor::Continue, entries, now_epoch()).await;
+            return;
+        }
+        Err(e) => Event::Content { view: ContentFor::Continue, content: Content::Failed(e) },
+    };
+    let _ = tx.send(update);
+}
+
+/// This season's most popular titles, captioned with which season it is.
+async fn load_seasonal(lent: Lent) {
+    let Lent { meta, store, tx, .. } = lent;
+    const PAGE: u32 = 40;
+    let (season, year) = current_season();
+    let update = match meta.seasonal(season, year, &Default::default(), 1, PAGE).await {
+        Ok(page) => {
+            // Which season this is, which the screen never said, and that one
+            // page is not all of it when it is not.
+            let season = format!("{} {year}", season.as_str().to_lowercase());
+            let text = if page.has_next {
+                format!("{season} · the {PAGE} most popular")
+            } else {
+                season
+            };
+            let _ = tx.send(Event::Caption { view: ContentFor::Seasonal, text });
+            let entries =
+                page.items.iter().map(|m| data::entry_from(m, Some(&store))).collect();
+            publish_list(&meta, &tx, ContentFor::Seasonal, entries, now_epoch()).await;
+            return;
+        }
+        Err(e) => Event::Content {
+            view: ContentFor::Seasonal,
+            content: Content::Failed(e.to_string()),
+        },
+    };
+    let _ = tx.send(update);
+}
+
+/// The calendar's first load: what recently aired and the week ahead, with the window a
+/// backfill continues from.
+async fn load_calendar(lent: Lent) {
+    let Lent { meta, store, tx, .. } = lent;
+    let anchor = now_epoch();
+    let update = match calendar_timeline(&meta, &store, anchor).await {
+        Ok(load) => {
+            // Sent before the content, so the reducer knows how to continue the
+            // list at the moment the list exists — a backfill triggered by the
+            // very first keypress has everything it needs.
+            let _ = tx.send(Event::CalendarWindow {
+                anchor,
+                pages: load.pages,
+                more_past: load.more_past,
+            });
+            Event::Content {
+                view: ContentFor::Calendar,
+                content: Content::Entries(load.entries),
+            }
+        }
+        Err(e) => Event::Content { view: ContentFor::Calendar, content: Content::Failed(e) },
+    };
+    let _ = tx.send(update);
+}
+
+/// One page further back in the calendar, for a scroll toward its top.
+async fn load_calendar_past(lent: Lent, anchor: i64, page: u32) {
+    let Lent { meta, store, tx, .. } = lent;
+    let update = match calendar_past_page(&meta, &store, anchor, page).await {
+        Ok((entries, more_past)) => {
+            Event::CalendarBackfill { page: Some(page), entries, more_past }
+        }
+        // Not a toast. The user never asked for this page by name — they scrolled —
+        // and the calendar in front of them is unchanged and still correct. The
+        // reducer clears its in-flight flag so the next scroll tries again.
+        Err(e) => {
+            tracing::warn!(%e, page, "calendar backfill failed");
+            Event::CalendarBackfill { page: None, entries: Vec::new(), more_past: true }
+        }
+    };
+    let _ = tx.send(update);
+}
+
+/// A search, or a browse when the query is empty, captioned when one page did not hold it.
+async fn search(lent: Lent, query: String, filter: SearchFilters) {
+    let Lent { meta, store, tx, .. } = lent;
+    let view = ContentFor::Search { query: query.clone(), filter: filter.clone() };
+    let browse = anistream_meta::anilist::BrowseFilter {
+        genres: filter.genre.iter().cloned().collect(),
+        format: filter.format.clone(),
+        status: filter.status.clone(),
+        min_score: None,
+        sort: filter.sort.clone(),
+        season: filter.season.clone(),
+        year: filter.year,
+    };
+    const PAGE: u32 = 30;
+    let update = match meta.search(&query, &browse, 1, PAGE).await {
+        Ok(page) => {
+            // Sent every time, empty when the page held everything, so a caption
+            // from an earlier run of the same search cannot outlive its answer.
+            let text =
+                if page.has_next { format!("showing the first {PAGE}") } else { String::new() };
+            let _ = tx.send(Event::Caption { view: view.clone(), text });
+            let entries =
+                page.items.iter().map(|m| data::entry_from(m, Some(&store))).collect();
+            publish_list(&meta, &tx, view, entries, now_epoch()).await;
+            return;
+        }
+        Err(e) => Event::Content { view, content: Content::Failed(e.to_string()) },
+    };
+    let _ = tx.send(update);
+}
+
+/// A title's page, with the source chosen for it sent ahead.
+async fn load_detail(lent: Lent, id: AnilistId) {
+    let Lent { meta, store, tx, .. } = lent;
+    // Sent before the detail itself, so the picker knows the current choice the
+    // moment the title is on screen rather than only after it is opened once.
+    let _ = tx.send(Event::ProviderPreference(store.provider_preference(id).ok().flatten()));
+    let update = match meta.media(id).await {
+        Ok(media) => Event::Detail(Box::new(data::entry_from(&media, Some(&store)))),
+        Err(e) => Event::Toast(Notice::alert(format!("could not load title: {e}"))),
+    };
+    let _ = tx.send(update);
+}
+
+/// Every source's condition, and the metadata ladder's beside them.
+async fn check_providers(lent: Lent) {
+    let Lent { meta, registry, tx, .. } = lent;
+    registry.check_all(now_epoch()).await;
+    // The metadata ladder rides the same refresh: one screen, one key,
+    // every source's condition.
+    let _ = tx.send(Event::MetaStatus(data::meta_rows(&meta)));
+    let update = Event::Providers(data::provider_rows(&registry));
+    let _ = tx.send(update);
+}
+
+/// Forget the source match a title was given, and list its episodes as the ladder matches
+/// them now.
+async fn clear_match(lent: Lent, id: AnilistId) {
+    let Lent { meta, store, registry, tx, .. } = lent;
+    let update = if let Err(e) = store.clear_title_match(id) {
+        Event::Toast(Notice::alert(format!("could not reset the match: {e}")))
+    } else {
+        match load_episodes(&meta, &store, &registry, id).await {
+            Ok(EpisodeLoad::Rows(rows)) => Event::Episodes { id, rows },
+            Ok(EpisodeLoad::Choose { provider_id, candidates }) => {
+                Event::MatchChoices { id, provider_id, candidates }
+            }
+            Err(reason) => {
+                let _ = tx.send(Event::Episodes { id, rows: Vec::new() });
+                Event::Toast(Notice::alert(reason))
+            }
+        }
+    };
+    let _ = tx.send(update);
+}
+
+/// Keep the match the user chose for a title, and list its episodes from it.
+async fn fix_match(lent: Lent, id: AnilistId, provider_id: String, key: ProviderKey) {
+    let Lent { meta, store, registry, tx, .. } = lent;
+    // Remembered as an override, which the ladder consults before anything else —
+    // so the question is asked once, not on every visit.
+    let update = if let Err(e) = store.set_override(id, &provider_id, &key, now_epoch()) {
+        Event::Toast(Notice::alert(format!("could not save that match: {e}")))
+    } else {
+        match load_episodes(&meta, &store, &registry, id).await {
+            Ok(EpisodeLoad::Rows(rows)) => Event::Episodes { id, rows },
+            // The override *is* the answer, so the ladder cannot come back
+            // undecided; if it somehow does, say so rather than looping.
+            Ok(EpisodeLoad::Choose { .. }) => Event::Toast(Notice::alert(
+                "that match did not stick — the source may have changed",
+            )),
+            Err(reason) => {
+                let _ = tx.send(Event::Episodes { id, rows: Vec::new() });
+                Event::Toast(Notice::alert(reason))
+            }
+        }
+    };
+    let _ = tx.send(update);
+}
+
+/// A title's episodes, from the source playback would use, or the candidates to choose
+/// between when the ladder could not choose.
+async fn list_episodes(lent: Lent, id: AnilistId) {
+    let Lent { meta, store, registry, tx, .. } = lent;
+    let update = match load_episodes(&meta, &store, &registry, id).await {
+        Ok(EpisodeLoad::Rows(rows)) => Event::Episodes { id, rows },
+        Ok(EpisodeLoad::Choose { provider_id, candidates }) => {
+            Event::MatchChoices { id, provider_id, candidates }
+        }
+        Err(reason) => {
+            // The Episodes screen shows its own empty state, so the reason belongs
+            // in a toast rather than replacing the whole view.
+            let _ = tx.send(Event::Episodes { id, rows: Vec::new() });
+            Event::Toast(Notice::alert(reason))
+        }
+    };
+    let _ = tx.send(update);
 }
 
 /// The engine side's part in an event on its way to the front end, and what it has to say
@@ -2219,7 +2204,26 @@ fn dispatch(
                 context.run(task).await;
             });
         }
-        other => spawn(other, job, services, tx),
+        Command::LoadContinue => spawn(job, services, tx, load_continue),
+        Command::LoadSeasonal => spawn(job, services, tx, load_seasonal),
+        Command::LoadCalendar => spawn(job, services, tx, load_calendar),
+        Command::LoadCalendarPast { anchor, page } => {
+            spawn(job, services, tx, move |lent| load_calendar_past(lent, anchor, page))
+        }
+        Command::Search { query, filter } => {
+            spawn(job, services, tx, move |lent| search(lent, query, filter))
+        }
+        Command::LoadDetail(id) => spawn(job, services, tx, move |lent| load_detail(lent, id)),
+        Command::CheckProviders => spawn(job, services, tx, check_providers),
+        Command::ClearMatch { id } => {
+            spawn(job, services, tx, move |lent| clear_match(lent, id))
+        }
+        Command::FixMatch { id, provider_id, key } => {
+            spawn(job, services, tx, move |lent| fix_match(lent, id, provider_id, key))
+        }
+        Command::LoadEpisodes(id) => {
+            spawn(job, services, tx, move |lent| list_episodes(lent, id))
+        }
     }
 }
 
