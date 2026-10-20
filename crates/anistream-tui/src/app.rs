@@ -346,7 +346,7 @@ pub fn sync_badge(state: &SyncState) -> String {
 /// The rows a screen's cursor walks. See [`App::rows_here`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Rows {
-    /// The section's list: `content`, `selected` and `offset`.
+    /// The section's list: `content`, and the section's cursor in `cursors`.
     List,
     Downloads,
     Accounts,
@@ -383,6 +383,82 @@ pub enum Field {
     JoinLink,
     /// Who an invite is for.
     InviteName,
+}
+
+/// Where a view's highlight is, and the first row its window shows.
+///
+/// The window is kept only where it should not follow the highlight on every move: the sections'
+/// lists and the overlays'. A table that draws its window from the highlight leaves it at nought.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Cursor {
+    pub selected: usize,
+    pub offset: usize,
+}
+
+/// Every view's cursor: each section's own view, the views pushed over them, and the overlays.
+///
+/// One for each, where the sections used to share one. A section is always entered at its top
+/// — see [`App::go_to_section`] — so whichever section is on screen has its cursor where the
+/// shared one was, and the rest wait to be entered afresh. The overlays share one between them,
+/// apart from the screens': each list overlay sets it as it opens, and the palette opens on it
+/// as the overlay before left it.
+#[derive(Debug, Clone, Default)]
+pub struct Cursors {
+    pub home: Cursor,
+    pub calendar: Cursor,
+    pub seasonal: Cursor,
+    pub search: Cursor,
+    pub library: Cursor,
+    pub downloads: Cursor,
+    pub providers: Cursor,
+    pub accounts: Cursor,
+    pub settings: Cursor,
+    /// The episode table, kept apart from the list it was opened from so stepping back out of
+    /// Episodes does not disturb where you were in the list.
+    pub episodes: Cursor,
+    /// The three store screens, so stepping back out of a store finds the store list where it
+    /// was. One past the last store is the join row.
+    pub stores: Cursor,
+    pub store_lines: Cursor,
+    pub members: Cursor,
+    /// The list overlay on top: Accounts, Conflicts, the list status, the palette and the rest.
+    ///
+    /// Its window is the renderer's to place, the only place that knows how many rows fit: see
+    /// [`FrameReport`]. Kept so the window moves only when the highlight would leave it, rather
+    /// than recomputed from the highlight each frame and pinning it to the bottom edge on the
+    /// way back up.
+    pub overlay: Cursor,
+}
+
+impl Cursors {
+    /// The cursor of `section`'s own view: its list, or its table.
+    pub fn section(&self, section: Section) -> &Cursor {
+        match section {
+            Section::Home => &self.home,
+            Section::Calendar => &self.calendar,
+            Section::Seasonal => &self.seasonal,
+            Section::Search => &self.search,
+            Section::Library => &self.library,
+            Section::Downloads => &self.downloads,
+            Section::Providers => &self.providers,
+            Section::Accounts => &self.accounts,
+            Section::Settings => &self.settings,
+        }
+    }
+
+    pub fn section_mut(&mut self, section: Section) -> &mut Cursor {
+        match section {
+            Section::Home => &mut self.home,
+            Section::Calendar => &mut self.calendar,
+            Section::Seasonal => &mut self.seasonal,
+            Section::Search => &mut self.search,
+            Section::Library => &mut self.library,
+            Section::Downloads => &mut self.downloads,
+            Section::Providers => &mut self.providers,
+            Section::Accounts => &mut self.accounts,
+            Section::Settings => &mut self.settings,
+        }
+    }
 }
 
 /// A title page left for one of its relations or recommendations.
@@ -427,10 +503,8 @@ pub struct App {
     pub content: Content,
     /// The caption for the list on screen, with the view it belongs to. See [`Event::Caption`].
     pub caption: Option<(ContentFor, String)>,
-    /// Selection index within the current content.
-    pub selected: usize,
-    /// Scroll offset, so long lists page rather than jumping.
-    pub offset: usize,
+    /// Where each view's highlight is, and the window of each list that keeps one.
+    pub cursors: Cursors,
     pub search_query: String,
     /// The query the results on screen belong to.
     ///
@@ -516,15 +590,6 @@ pub struct App {
     /// Not only on the rows, which every reload rebuilds: Home reloaded, and `a` opened at the
     /// top of the picker rather than on the status just given.
     statuses_set: std::collections::HashMap<AnilistId, LibrarySegment>,
-    /// Selection within an overlay list (Accounts, Conflicts, list status, command palette).
-    pub overlay_selected: usize,
-    /// The first row a list overlay showed at the last frame.
-    ///
-    /// Reported by the renderer, which is the only place that knows how many rows fit: see
-    /// [`FrameReport`]. Kept so the window moves only when the highlight would leave it, rather
-    /// than recomputed from the highlight each frame and pinning it to the bottom edge on the
-    /// way back up.
-    overlay_offset: usize,
     /// The help overlay's page. Its own field because Help opens on top of a picker, and paging
     /// through it must not move the picker's selection underneath.
     pub help_page: usize,
@@ -623,18 +688,10 @@ pub struct App {
     pub edit_value: String,
     /// Which text-valued setting the editor is writing.
     pub edit_target: Option<SettingKey>,
-    /// Selection within the episode table, tracked separately from list selection so
-    /// stepping back out of Episodes does not disturb where you were in the list.
-    pub episode_selected: usize,
     /// Joined plugin stores.
     pub stores: Vec<StoreRow>,
     /// Whether the store list has arrived at least once, so "none joined" is not said early.
     pub stores_loaded: bool,
-    /// Cursors for the three store screens. Separate, so stepping back out of a store finds the
-    /// store list where it was.
-    pub store_selected: usize,
-    pub store_line_selected: usize,
-    pub member_selected: usize,
     /// The store whose members are on screen, and them.
     pub members_for: Option<String>,
     pub store_members: Vec<StoreMemberRow>,
@@ -681,8 +738,7 @@ impl App {
             settings,
             content: Content::Loading,
             caption: None,
-            selected: 0,
-            offset: 0,
+            cursors: Cursors::default(),
             search_query: String::new(),
             searched_query: String::new(),
             search_filter: SearchFilters::default(),
@@ -704,8 +760,6 @@ impl App {
             sync: Vec::new(),
             conflicts: Vec::new(),
             statuses_set: std::collections::HashMap::new(),
-            overlay_selected: 0,
-            overlay_offset: 0,
             help_page: 0,
             help_pages: 1,
             pulse: 0,
@@ -742,7 +796,6 @@ impl App {
             episodes_for: None,
             episode_filter: EpisodeFilter::default(),
             active_provider: None,
-            episode_selected: 0,
             match_candidates: Vec::new(),
             match_context: None,
             sources: Vec::new(),
@@ -754,9 +807,6 @@ impl App {
             edit_target: None,
             stores: Vec::new(),
             stores_loaded: false,
-            store_selected: 0,
-            store_line_selected: 0,
-            member_selected: 0,
             members_for: None,
             store_members: Vec::new(),
             store_invites: Vec::new(),
@@ -783,7 +833,7 @@ impl App {
         if !matches!(self.nav.current(), StageView::Section(_)) {
             return None;
         }
-        self.content.entries().get(self.selected)
+        self.content.entries().get(self.section_cursor().selected)
     }
 
     /// The title the screen on top is about: the one every title action means.
@@ -871,8 +921,8 @@ impl App {
                     // both the selection and the scroll position shift by exactly what was
                     // inserted and nothing moves under the user. Without this the screen would
                     // lurch a page and a half every time history was extended.
-                    self.selected += added;
-                    self.offset += added;
+                    self.cursors.calendar.selected += added;
+                    self.cursors.calendar.offset += added;
                 }
             }
             Event::Caption { view, text } => {
@@ -900,10 +950,11 @@ impl App {
                     }
                 }
                 // Selection must stay in range or the next render would index past the end.
-                self.selected = self.selected.min(self.content.len().saturating_sub(1));
-                if self.content.is_empty() {
-                    self.selected = 0;
-                    self.offset = 0;
+                let len = self.content.len();
+                let cursor = self.cursors.section_mut(self.nav.section());
+                cursor.selected = cursor.selected.min(len.saturating_sub(1));
+                if len == 0 {
+                    *cursor = Cursor::default();
                 }
                 // The calendar is a timeline running from a week ago to a week ahead, so landing
                 // on row nought would open it on the *oldest* episode in view. Today is the
@@ -925,9 +976,10 @@ impl App {
                             })
                         })
                         .unwrap_or(next);
-                    self.selected = next;
-                    self.offset =
-                        next.saturating_sub((next - start_of_today.min(next)).min(12));
+                    self.cursors.calendar = Cursor {
+                        selected: next,
+                        offset: next.saturating_sub((next - start_of_today.min(next)).min(12)),
+                    };
                 }
             }
             // Every way into a title sets a stand-in `detail` for it before the fetch goes out, so
@@ -945,10 +997,9 @@ impl App {
             Event::Downloads(rows) => {
                 self.downloads = rows;
                 // The cursor has to stay in range: a completed row being cleared shortens the list
-                // under it.
-                if self.nav.section() == Section::Downloads {
-                    self.selected = self.selected.min(self.downloads.len().saturating_sub(1));
-                }
+                // under it. The screen's own, so it needs no asking whether that is on screen.
+                let last = self.downloads.len().saturating_sub(1);
+                self.cursors.downloads.selected = self.cursors.downloads.selected.min(last);
             }
             Event::LastAired(rows) => {
                 // Applied to both the list and any open detail, since the same title can be
@@ -977,9 +1028,8 @@ impl App {
             Event::Providers(rows) => {
                 self.providers = rows;
                 // The cursor stays in range: a removed plugin shortens the table under it.
-                if self.nav.section() == Section::Providers {
-                    self.selected = self.selected.min(self.providers.len().saturating_sub(1));
-                }
+                let last = self.providers.len().saturating_sub(1);
+                self.cursors.providers.selected = self.cursors.providers.selected.min(last);
             }
             Event::MetaStatus(rows) => self.meta_status = rows,
             Event::Stores(rows) => self.apply_stores(rows),
@@ -988,7 +1038,7 @@ impl App {
                 // Into the store just joined, but only from the list it was joined from. A join
                 // that finishes after the user has gone elsewhere must not drag them back.
                 if self.nav.current() == &StageView::Stores && self.store(&store).is_some() {
-                    self.store_line_selected = 0;
+                    self.cursors.store_lines.selected = 0;
                     self.nav.push(StageView::Store(store));
                 }
             }
@@ -1002,7 +1052,8 @@ impl App {
                     self.store_members = members;
                     self.store_invites = invites;
                     let rows = self.store_members.len() + self.store_invites.len();
-                    self.member_selected = self.member_selected.min(rows.saturating_sub(1));
+                    self.cursors.members.selected =
+                        self.cursors.members.selected.min(rows.saturating_sub(1));
                 }
             }
             Event::LocalPlugins { store, plugins } => {
@@ -1018,7 +1069,7 @@ impl App {
                     return;
                 }
                 self.local_plugins = plugins;
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 self.nav.open_overlay(Overlay::PublishPick);
             }
             Event::Settings(view) => self.take_settings(view),
@@ -1038,7 +1089,7 @@ impl App {
                     return;
                 }
                 self.sources = candidates;
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 self.nav.open_overlay(Overlay::Sources);
             }
             Event::MatchChoices { id, provider_id, candidates } => {
@@ -1050,7 +1101,7 @@ impl App {
                 self.episodes_loading = false;
                 self.match_candidates = candidates;
                 self.match_context = Some((id, provider_id));
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 self.nav.open_overlay(Overlay::Disambiguate);
             }
 
@@ -1228,10 +1279,10 @@ impl App {
                 // The amber bar lands where the viewer is going: the first unwatched
                 // row. Row nought means "just opened" — a cursor already mid-list is a
                 // position the user chose, and a reload must not move it.
-                if self.episode_selected == 0
+                if self.cursors.episodes.selected == 0
                     && let Some(first) = self.episodes.iter().position(|r| !r.completed)
                 {
-                    self.episode_selected = first;
+                    self.cursors.episodes.selected = first;
                 }
             }
             Event::Progress { id, progress, resume, episodes } => {
@@ -1334,15 +1385,17 @@ impl App {
     /// what makes marking down an unwatched-only list walk forward one episode at a time.
     fn apply_episode_filter(&mut self) {
         let filter = self.episode_filter;
-        let under_cursor = self.episodes.get(self.episode_selected).map(|r| r.number.clone());
+        let under_cursor =
+            self.episodes.get(self.cursors.episodes.selected).map(|r| r.number.clone());
         self.episodes = self.episodes_all.iter().filter(|r| filter.keeps(r)).cloned().collect();
         let kept = under_cursor.and_then(|number| {
             let from = self.episodes_all.iter().position(|r| r.number == number)?;
             let next = self.episodes_all[from..].iter().find(|r| filter.keeps(r))?;
             self.episodes.iter().position(|r| r.number == next.number)
         });
-        self.episode_selected =
-            kept.unwrap_or(self.episode_selected).min(self.episodes.len().saturating_sub(1));
+        self.cursors.episodes.selected = kept
+            .unwrap_or(self.cursors.episodes.selected)
+            .min(self.episodes.len().saturating_sub(1));
     }
 
     /// Whether the filter is hiding everything — distinct from a title with no episodes.
@@ -1428,15 +1481,16 @@ impl App {
         if len == 0 {
             return;
         }
-        let next = (self.selected as isize + delta).clamp(0, len as isize - 1) as usize;
-        self.selected = next;
+        let cursor = self.cursors.section_mut(self.nav.section());
+        let next = (cursor.selected as isize + delta).clamp(0, len as isize - 1) as usize;
+        cursor.selected = next;
 
         // Keep the selection inside the viewport.
-        if self.selected < self.offset {
-            self.offset = self.selected;
-        } else if visible_rows > 0 && self.selected >= self.offset + visible_rows {
-            self.selected = self.selected.min(len - 1);
-            self.offset = self.selected + 1 - visible_rows;
+        if cursor.selected < cursor.offset {
+            cursor.offset = cursor.selected;
+        } else if visible_rows > 0 && cursor.selected >= cursor.offset + visible_rows {
+            cursor.selected = cursor.selected.min(len - 1);
+            cursor.offset = cursor.selected + 1 - visible_rows;
         }
 
         self.backfill_calendar_if_near_top();
@@ -1453,19 +1507,20 @@ impl App {
             return;
         }
         let len = self.content.len();
+        let cursor = self.cursors.section_mut(self.nav.section());
         if len == 0 {
-            self.offset = 0;
+            cursor.offset = 0;
             return;
         }
         let rows = visible_rows.max(1);
-        self.selected = self.selected.min(len - 1);
-        if self.selected < self.offset {
-            self.offset = self.selected;
-        } else if self.selected >= self.offset + rows {
-            self.offset = self.selected + 1 - rows;
+        cursor.selected = cursor.selected.min(len - 1);
+        if cursor.selected < cursor.offset {
+            cursor.offset = cursor.selected;
+        } else if cursor.selected >= cursor.offset + rows {
+            cursor.offset = cursor.selected + 1 - rows;
         }
         // A taller window shows more of the list rather than empty rows under its end.
-        self.offset = self.offset.min(len.saturating_sub(rows));
+        cursor.offset = cursor.offset.min(len.saturating_sub(rows));
     }
 
     /// Which rows the cursor walks on the screen on top, if it has any.
@@ -1524,18 +1579,22 @@ impl App {
         let rows = self.rows_here()?;
         if rows == Rows::List {
             // Above the first result is the query it answered.
-            if self.search_in_results && action == Action::Up && self.selected == 0 {
+            if self.search_in_results
+                && action == Action::Up
+                && self.section_cursor().selected == 0
+            {
                 self.search_in_results = false;
                 return None;
             }
+            let last = self.content.len().saturating_sub(1);
             match action {
                 Action::Top => {
-                    self.selected = 0;
-                    self.offset = 0;
+                    *self.cursors.section_mut(self.nav.section()) = Cursor::default()
                 }
                 Action::Bottom => {
-                    self.selected = self.content.len().saturating_sub(1);
-                    self.offset = self.selected.saturating_sub(visible_rows.saturating_sub(1));
+                    let offset = last.saturating_sub(visible_rows.saturating_sub(1));
+                    *self.cursors.section_mut(self.nav.section()) =
+                        Cursor { selected: last, offset };
                 }
                 _ => self.move_selection(delta, visible_rows),
             }
@@ -1561,13 +1620,14 @@ impl App {
             return None;
         }
         let cursor = match rows {
-            Rows::Downloads | Rows::Accounts | Rows::Settings | Rows::Providers => {
-                &mut self.selected
-            }
-            Rows::Episodes => &mut self.episode_selected,
-            Rows::Stores => &mut self.store_selected,
-            Rows::StoreLines => &mut self.store_line_selected,
-            Rows::Members => &mut self.member_selected,
+            Rows::Downloads => &mut self.cursors.downloads.selected,
+            Rows::Accounts => &mut self.cursors.accounts.selected,
+            Rows::Settings => &mut self.cursors.settings.selected,
+            Rows::Providers => &mut self.cursors.providers.selected,
+            Rows::Episodes => &mut self.cursors.episodes.selected,
+            Rows::Stores => &mut self.cursors.stores.selected,
+            Rows::StoreLines => &mut self.cursors.store_lines.selected,
+            Rows::Members => &mut self.cursors.members.selected,
             Rows::List => return None,
         };
         let last = len as isize - 1;
@@ -1590,7 +1650,7 @@ impl App {
         if self.nav.section() != Section::Calendar
             || self.calendar_loading_past
             || !self.calendar_more_past
-            || self.selected > CALENDAR_BACKFILL_MARGIN
+            || self.cursors.calendar.selected > CALENDAR_BACKFILL_MARGIN
         {
             return;
         }
@@ -1753,25 +1813,29 @@ impl App {
         let page = visible_rows.saturating_sub(4).max(1);
         match action {
             Action::Down => {
-                self.overlay_selected = (self.overlay_selected + 1).min(len.saturating_sub(1));
+                self.cursors.overlay.selected =
+                    (self.cursors.overlay.selected + 1).min(len.saturating_sub(1));
             }
-            Action::Up => self.overlay_selected = self.overlay_selected.saturating_sub(1),
+            Action::Up => {
+                self.cursors.overlay.selected = self.cursors.overlay.selected.saturating_sub(1)
+            }
             Action::PageDown => {
-                self.overlay_selected =
-                    (self.overlay_selected + page).min(len.saturating_sub(1));
+                self.cursors.overlay.selected =
+                    (self.cursors.overlay.selected + page).min(len.saturating_sub(1));
             }
             Action::PageUp => {
-                self.overlay_selected = self.overlay_selected.saturating_sub(page);
+                self.cursors.overlay.selected =
+                    self.cursors.overlay.selected.saturating_sub(page);
             }
-            Action::Top => self.overlay_selected = 0,
-            Action::Bottom => self.overlay_selected = len.saturating_sub(1),
+            Action::Top => self.cursors.overlay.selected = 0,
+            Action::Bottom => self.cursors.overlay.selected = len.saturating_sub(1),
             Action::Open if len > 0 => return self.confirm_overlay(visible_rows),
             // The filters overlay edits in place: the vertical axis picks a row and the
             // horizontal one walks its values, the same grammar as the Settings screen.
             Action::Left if *overlay == Overlay::SearchFilters => {
                 cycle_search_filter(
                     &mut self.search_filter,
-                    self.overlay_selected,
+                    self.cursors.overlay.selected,
                     false,
                     &self.clock,
                 );
@@ -1779,7 +1843,7 @@ impl App {
             Action::Right if *overlay == Overlay::SearchFilters => {
                 cycle_search_filter(
                     &mut self.search_filter,
-                    self.overlay_selected,
+                    self.cursors.overlay.selected,
                     true,
                     &self.clock,
                 );
@@ -1809,11 +1873,11 @@ impl App {
         if self.in_downloads_stage() {
             match action {
                 Action::PlayNext | Action::PlayPause => {
-                    let id = self.downloads.get(self.selected)?.id;
+                    let id = self.downloads.get(self.cursors.downloads.selected)?.id;
                     return Some(Command::DownloadPause { id });
                 }
                 Action::HideFromContinue | Action::StopPlayback => {
-                    let row = self.downloads.get(self.selected)?;
+                    let row = self.downloads.get(self.cursors.downloads.selected)?;
                     // A finished download has nothing left to cancel. Cancelling it forgot the
                     // row and left the file on disk with no way back to it from here.
                     if row.state == DownloadState::Done {
@@ -1856,14 +1920,14 @@ impl App {
             Action::ShowAccounts => return self.go_to_section(Section::Accounts),
             Action::ShowLogs => {
                 // Rendered newest-first, so nought is the most recent line.
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 self.nav.open_overlay(Overlay::Logs);
             }
             Action::ShowConflicts => {
                 if self.conflicts.is_empty() {
                     self.push_toast(Notice::info("nothing to resolve"));
                 } else {
-                    self.overlay_selected = 0;
+                    self.cursors.overlay.selected = 0;
                     self.nav.open_overlay(Overlay::Conflicts);
                 }
             }
@@ -1930,7 +1994,7 @@ impl App {
             // open a small typed editor for the values that are text — a screen that
             // points at config.toml for a language code has given up two keys early.
             Action::Open | Action::PlayNext if self.in_settings_stage() => {
-                if let Some(row) = self.settings.rows.get(self.selected)
+                if let Some(row) = self.settings.rows.get(self.cursors.settings.selected)
                     && let SettingChange::Typed { text } = &row.change
                 {
                     self.edit_target = Some(row.key);
@@ -1959,7 +2023,7 @@ impl App {
             }
             // Enter plays a finished download from disk. Nothing else on this screen is an "open".
             Action::Open if self.in_downloads_stage() => {
-                let row = self.downloads.get(self.selected)?.clone();
+                let row = self.downloads.get(self.cursors.downloads.selected)?.clone();
                 match (&row.path, row.state) {
                     (Some(path), DownloadState::Done) => {
                         // First-class playback: same staging, history and sync as a stream.
@@ -1985,7 +2049,7 @@ impl App {
                 }
             }
             Action::DeleteDownload if self.in_downloads_stage() => {
-                let row = self.downloads.get(self.selected)?;
+                let row = self.downloads.get(self.cursors.downloads.selected)?;
                 return Some(Command::DownloadDelete { id: row.id });
             }
             Action::ClearCompleted if self.in_downloads_stage() => {
@@ -2024,7 +2088,7 @@ impl App {
                     // reached the table it was listed in, and auto-next declined to roll on.
                     // Opening the title sets this; entering its episodes has to as well.
                     self.detail = Some(entry);
-                    self.episode_selected = 0;
+                    self.cursors.episodes.selected = 0;
                     // Discard the previous title's rows *before* the screen appears. They were
                     // being left in place until the new load answered, so opening episodes for one
                     // show displayed another show's episode list — complete with its watch
@@ -2043,7 +2107,7 @@ impl App {
                     _ => return None,
                 };
                 let (number, watched) = {
-                    let row = self.episodes.get(self.episode_selected)?;
+                    let row = self.episodes.get(self.cursors.episodes.selected)?;
                     (row.number.clone(), !row.completed)
                 };
                 // Shown once the engine has written it and says where the title now stands.
@@ -2060,16 +2124,16 @@ impl App {
                 let marked: Vec<String> = self
                     .episodes
                     .iter()
-                    .take(self.episode_selected)
+                    .take(self.cursors.episodes.selected)
                     .filter(|r| !r.completed)
                     .map(|r| r.number.clone())
                     .collect();
                 if marked.is_empty() {
                     // Three different nothings, each said as what it is: "nothing before this
                     // episode" over an empty table pointed at an episode that was not there.
-                    let why = match self.episodes.get(self.episode_selected) {
+                    let why = match self.episodes.get(self.cursors.episodes.selected) {
                         None => "no episodes listed to mark".to_owned(),
-                        Some(_) if self.episode_selected == 0 => {
+                        Some(_) if self.cursors.episodes.selected == 0 => {
                             "nothing comes before the first episode".to_owned()
                         }
                         Some(row) => {
@@ -2088,7 +2152,7 @@ impl App {
             }
             Action::DownloadRange if self.in_episodes() => {
                 self.range_query.clear();
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 self.nav.open_overlay(Overlay::DownloadRange);
             }
             Action::DownloadRange => {
@@ -2105,7 +2169,7 @@ impl App {
             // By the view, not the section: a title opened from the results is a title page,
             // and `f` there means what it means on every other title page.
             Action::Filter if self.on_search_root() => {
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 self.nav.open_overlay(Overlay::SearchFilters);
             }
             Action::FilterSearch => {
@@ -2115,7 +2179,7 @@ impl App {
                 let task = (self.nav.section() != Section::Search)
                     .then(|| self.go_to_section(Section::Search))
                     .flatten();
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 self.nav.open_overlay(Overlay::SearchFilters);
                 return task;
             }
@@ -2155,7 +2219,7 @@ impl App {
                     return None;
                 }
                 // Start on the current choice, so the overlay opens showing where you are.
-                self.overlay_selected = self
+                self.cursors.overlay.selected = self
                     .provider_choices()
                     .iter()
                     .position(|(id, _)| id.as_deref() == self.provider_preference.as_deref())
@@ -2192,7 +2256,7 @@ impl App {
                     self.push_toast(Notice::info(why));
                     return None;
                 }
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 self.nav.open_overlay(Overlay::Recommendations);
             }
             Action::WatchOrder => {
@@ -2209,7 +2273,7 @@ impl App {
                     self.push_toast(Notice::info(why));
                     return None;
                 }
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 self.nav.open_overlay(Overlay::WatchOrder);
             }
             Action::FixMapping => {
@@ -2231,7 +2295,7 @@ impl App {
                 };
                 self.manual_target = Some(id);
                 self.manual_query.clear();
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 self.nav.open_overlay(Overlay::ManualQuery);
             }
             Action::ShowSources => {
@@ -2239,7 +2303,7 @@ impl App {
                 // unwatched one from a title.
                 let (id, episode) = match self.nav.current() {
                     StageView::Episodes(id) => {
-                        (*id, self.episodes.get(self.episode_selected)?.number.clone())
+                        (*id, self.episodes.get(self.cursors.episodes.selected)?.number.clone())
                     }
                     _ => {
                         let entry = self.target()?;
@@ -2255,7 +2319,7 @@ impl App {
                 // view: Syncplay owns the player, and a dead session screen would lie.
                 let (id, episode) = match self.nav.current() {
                     StageView::Episodes(id) => {
-                        (*id, self.episodes.get(self.episode_selected)?.number.clone())
+                        (*id, self.episodes.get(self.cursors.episodes.selected)?.number.clone())
                     }
                     _ => {
                         let entry = self.target()?;
@@ -2270,7 +2334,7 @@ impl App {
                 // one you have not watched, which matches what Enter would have played.
                 let (id, episode) = match self.nav.current() {
                     StageView::Episodes(id) => {
-                        (*id, self.episodes.get(self.episode_selected)?.number.clone())
+                        (*id, self.episodes.get(self.cursors.episodes.selected)?.number.clone())
                     }
                     _ => {
                         let entry = self.target()?;
@@ -2295,7 +2359,7 @@ impl App {
                     // from search, and preselected "dropped" for it. Unknown starts at the top.
                     let current =
                         self.statuses_set.get(&entry.id).copied().or(entry.list_status);
-                    self.overlay_selected = current
+                    self.cursors.overlay.selected = current
                         .and_then(|status| {
                             LibrarySegment::ALL.iter().position(|s| *s == status)
                         })
@@ -2313,7 +2377,7 @@ impl App {
                 } else if self.target().is_some() {
                     // No local record of an existing score to preselect, so the cursor
                     // starts at the top and every row is one or two keystrokes away.
-                    self.overlay_selected = 0;
+                    self.cursors.overlay.selected = 0;
                     self.nav.open_overlay(Overlay::Rate);
                 } else {
                     self.push_toast(Notice::info("nothing selected"));
@@ -2341,9 +2405,10 @@ impl App {
                 }
                 // Dropped from the screen before the write: the list answers immediately, and
                 // the store catches up.
-                let entry = entries.remove(self.selected.min(entries.len() - 1));
-                self.selected = self.selected.min(self.content.len().saturating_sub(1));
-                self.offset = self.offset.min(self.selected);
+                let home = &mut self.cursors.home;
+                let entry = entries.remove(home.selected.min(entries.len() - 1));
+                home.selected = home.selected.min(entries.len().saturating_sub(1));
+                home.offset = home.offset.min(home.selected);
                 // Say how to undo, because there is no key for it — the way back is the
                 // same thing that put it here.
                 self.push_toast(Notice::info(format!(
@@ -2467,7 +2532,7 @@ impl App {
             StageView::Episodes(id) => *id,
             _ => return None,
         };
-        let episode = self.episodes.get(self.episode_selected)?.number.clone();
+        let episode = self.episodes.get(self.cursors.episodes.selected)?.number.clone();
         Some(self.begin_playback(id, episode))
     }
 
@@ -2643,7 +2708,7 @@ impl App {
     /// The same decision the Accounts overlay made, kept in one place so the screen and the overlay
     /// cannot disagree about what Enter does.
     fn toggle_account(&mut self) -> Option<Command> {
-        let tracker = self.sync.get(self.selected)?.clone();
+        let tracker = self.sync.get(self.cursors.accounts.selected)?.clone();
         self.account_action(tracker)
     }
 
@@ -2701,8 +2766,7 @@ impl App {
             return None;
         }
         self.library_segment = next;
-        self.selected = 0;
-        self.offset = 0;
+        self.cursors.library = Cursor::default();
         self.content = Content::Loading;
         Some(Command::LoadLibrary(self.library_segment))
     }
@@ -2762,7 +2826,7 @@ impl App {
             depth,
             entry,
             episodes_all: self.episodes_all.clone(),
-            episode_selected: self.episode_selected,
+            episode_selected: self.cursors.episodes.selected,
             provider_preference: self.provider_preference.clone(),
         });
     }
@@ -2784,7 +2848,7 @@ impl App {
         // Cleared first so the filter places the cursor from the remembered row, not from
         // whichever row of the child's table it was on.
         self.episodes.clear();
-        self.episode_selected = frame.episode_selected;
+        self.cursors.episodes.selected = frame.episode_selected;
         self.apply_episode_filter();
         self.episodes_loading = false;
         self.provider_preference = frame.provider_preference;
@@ -2799,7 +2863,7 @@ impl App {
     /// because flipping on both arrows meant Left could never arrive anywhere. Enter and Space
     /// still flip it. A row the arrows cannot step at all, typed or read-only, is at both ends.
     fn step_setting(&mut self, delta: isize) -> Option<Command> {
-        let moves = match self.settings.rows.get(self.selected)?.change {
+        let moves = match self.settings.rows.get(self.cursors.settings.selected)?.change {
             SettingChange::Steps { back, forward } => {
                 if delta < 0 {
                     back
@@ -2829,19 +2893,20 @@ impl App {
     fn confirm_overlay(&mut self, visible_rows: usize) -> Option<Command> {
         match self.nav.overlay() {
             Some(Overlay::CommandPalette) => {
-                let (action, _) = self.palette_matches().get(self.overlay_selected)?.clone();
+                let (action, _) =
+                    self.palette_matches().get(self.cursors.overlay.selected)?.clone();
                 // Close first, then run: several palette actions open an overlay of their own,
                 // and leaving the palette on the stack would bury them.
                 self.nav.close_overlay();
                 self.palette_query.clear();
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 self.perform(action, visible_rows)
             }
             Some(Overlay::Logs) => None,
             Some(Overlay::ListStatus) => {
                 let entry = self.target()?;
                 let id = entry.id;
-                let status = *LibrarySegment::ALL.get(self.overlay_selected)?;
+                let status = *LibrarySegment::ALL.get(self.cursors.overlay.selected)?;
                 self.nav.close_overlay();
                 self.push_toast(Notice::info(format!(
                     "now on your {} list — queued for {}",
@@ -2873,15 +2938,14 @@ impl App {
                 self.searched_query = query.clone();
                 self.content = Content::Loading;
                 // New results start at their top, not at the row the old ones were left on.
-                self.selected = 0;
-                self.offset = 0;
+                self.cursors.search = Cursor::default();
                 Some(Command::Search { query, filter: self.search_filter.clone() })
             }
             Some(Overlay::Rate) => {
                 let entry = self.target()?;
                 let id = entry.id;
                 // Rows run 10 down to 1, so the row index is the distance from 10.
-                let score = (10 - self.overlay_selected.min(9)) as f32;
+                let score = (10 - self.cursors.overlay.selected.min(9)) as f32;
                 self.nav.close_overlay();
                 self.push_toast(Notice::info(format!(
                     "rated {score}/10 — queued for {}",
@@ -2892,20 +2956,21 @@ impl App {
             Some(Overlay::Conflicts) => {
                 // Enter takes the local value; the remote one is already what the tracker has,
                 // so "keep remote" is just dismissing the row.
-                let row = self.conflicts.get(self.overlay_selected)?.clone();
-                self.conflicts.remove(self.overlay_selected);
-                self.overlay_selected =
-                    self.overlay_selected.min(self.conflicts.len().saturating_sub(1));
+                let row = self.conflicts.get(self.cursors.overlay.selected)?.clone();
+                self.conflicts.remove(self.cursors.overlay.selected);
+                self.cursors.overlay.selected =
+                    self.cursors.overlay.selected.min(self.conflicts.len().saturating_sub(1));
                 if self.conflicts.is_empty() {
                     self.nav.close_overlay();
                 }
                 Some(Command::ResolveConflict { id: row.anilist_id, keep_local: true })
             }
             Some(Overlay::SourceProvider) => {
-                let (provider, _) = self.provider_choices().get(self.overlay_selected)?.clone();
+                let (provider, _) =
+                    self.provider_choices().get(self.cursors.overlay.selected)?.clone();
                 let id = self.title_on_screen()?;
                 self.nav.close_overlay();
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 // Reflected immediately rather than waiting for the write to come back: the
                 // overlay has closed, and a row that still showed the old choice would read
                 // as the keystroke having missed.
@@ -2913,9 +2978,10 @@ impl App {
                 Some(Command::SetProviderPreference { id, provider })
             }
             Some(Overlay::WatchOrder) => {
-                let related = self.target()?.related.get(self.overlay_selected)?.clone();
+                let related =
+                    self.target()?.related.get(self.cursors.overlay.selected)?.clone();
                 self.nav.close_overlay();
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 // Kept, so Back shows this page again rather than the one about to open.
                 self.leave_title();
                 // A minimal entry stands in until the detail fetch answers — the same
@@ -2925,9 +2991,10 @@ impl App {
                 Some(Command::LoadDetail(related.id))
             }
             Some(Overlay::Recommendations) => {
-                let pick = self.target()?.recommended.get(self.overlay_selected)?.clone();
+                let pick =
+                    self.target()?.recommended.get(self.cursors.overlay.selected)?.clone();
                 self.nav.close_overlay();
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 self.leave_title();
                 // Same stand-in rule as the watch order: never render one title's data
                 // under another while the fetch is in flight.
@@ -2936,10 +3003,10 @@ impl App {
                 Some(Command::LoadDetail(pick.id))
             }
             Some(Overlay::Sources) => {
-                let candidate = self.sources.get(self.overlay_selected)?.clone();
+                let candidate = self.sources.get(self.cursors.overlay.selected)?.clone();
                 let (id, episode) = self.source_context.clone()?;
                 self.nav.close_overlay();
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 self.sources.clear();
                 self.source_context = None;
                 self.raise_now_playing(id, &episode);
@@ -2951,10 +3018,11 @@ impl App {
                 })
             }
             Some(Overlay::Disambiguate) => {
-                let candidate = self.match_candidates.get(self.overlay_selected)?.clone();
+                let candidate =
+                    self.match_candidates.get(self.cursors.overlay.selected)?.clone();
                 let (id, provider_id) = self.match_context.clone()?;
                 self.nav.close_overlay();
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 self.match_candidates.clear();
                 self.match_context = None;
                 self.episodes_loading = true;
@@ -2962,16 +3030,16 @@ impl App {
                 Some(Command::FixMatch { id, provider_id, key: candidate.key })
             }
             Some(Overlay::Accounts) => {
-                let tracker = self.sync.get(self.overlay_selected)?.clone();
+                let tracker = self.sync.get(self.cursors.overlay.selected)?.clone();
                 self.nav.close_overlay();
                 self.account_action(tracker)
             }
             Some(Overlay::PluginAction) => self.confirm_plugin_choice(),
             Some(Overlay::PublishPick) => {
-                let plugin = self.local_plugins.get(self.overlay_selected)?.id.clone();
+                let plugin = self.local_plugins.get(self.cursors.overlay.selected)?.id.clone();
                 let store = self.publish_for.clone()?;
                 self.nav.close_overlay();
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 Some(Command::PublishPlugin { store, plugin })
             }
             _ => None,
@@ -3107,12 +3175,13 @@ impl App {
     /// Cycling rather than free entry, because every editable setting here has a small closed set
     /// of sensible values — and a cycler cannot produce a config the app then refuses to load.
     fn cycle_setting(&mut self, delta: isize) -> Option<Command> {
-        let id = *SettingKey::ROWS.get(self.selected)?;
+        let row = self.cursors.settings.selected;
+        let id = *SettingKey::ROWS.get(row)?;
         let rows = self.setting_rows();
         match id.path() {
-            Some(_) if rows.get(self.selected)?.editable => {}
+            Some(_) if rows.get(row)?.editable => {}
             _ => {
-                let note = rows.get(self.selected).and_then(|r| r.note);
+                let note = rows.get(row).and_then(|r| r.note);
                 self.push_toast(Notice::info(note.unwrap_or("not editable here")));
                 return None;
             }
@@ -3248,7 +3317,7 @@ impl App {
             // Mid-query is exactly when filters are wanted, so ctrl+f cannot wait for the
             // box to lose focus.
             Action::FilterSearch => {
-                self.overlay_selected = 0;
+                self.cursors.overlay.selected = 0;
                 self.nav.open_overlay(Overlay::SearchFilters);
             }
             // The palette takes text, so it reaches this path rather than the overlay block in
@@ -3331,10 +3400,10 @@ impl App {
             }
             Action::Down if self.nav.overlay() == Some(&Overlay::CommandPalette) => {
                 let last = self.palette_matches().len().saturating_sub(1);
-                self.overlay_selected = (self.overlay_selected + 1).min(last);
+                self.cursors.overlay.selected = (self.cursors.overlay.selected + 1).min(last);
             }
             Action::Up if self.nav.overlay() == Some(&Overlay::CommandPalette) => {
-                self.overlay_selected = self.overlay_selected.saturating_sub(1);
+                self.cursors.overlay.selected = self.cursors.overlay.selected.saturating_sub(1);
             }
             Action::Open if self.nav.section() == Section::Search => {
                 let query = self.search_query.trim().to_owned();
@@ -3351,8 +3420,7 @@ impl App {
                 self.searched_query = query.clone();
                 self.content = Content::Loading;
                 // New results start at their top, not at the row the old ones were left on.
-                self.selected = 0;
-                self.offset = 0;
+                self.cursors.search = Cursor::default();
                 return Some(Command::Search { query, filter: self.search_filter.clone() });
             }
             // Down leaves the query for its results, where the keyboard is a list's again: `j`,
@@ -3418,7 +3486,7 @@ impl App {
             self.palette_query.push(ch);
             // Filtering reorders the matches, so the old index would point at an unrelated
             // action — and the top hit is what a fuzzy filter is for.
-            self.overlay_selected = 0;
+            self.cursors.overlay.selected = 0;
         } else if self.nav.overlay() == Some(&Overlay::ManualQuery) {
             self.manual_query.push(ch);
         } else if self.nav.overlay() == Some(&Overlay::DownloadRange) {
@@ -3448,7 +3516,7 @@ impl App {
     pub fn backspace(&mut self) {
         if self.nav.overlay() == Some(&Overlay::CommandPalette) {
             self.palette_query.pop();
-            self.overlay_selected = 0;
+            self.cursors.overlay.selected = 0;
         } else if self.nav.overlay() == Some(&Overlay::ManualQuery) {
             self.manual_query.pop();
         } else if self.nav.overlay() == Some(&Overlay::DownloadRange) {
@@ -3497,8 +3565,8 @@ impl App {
         // and firing a request per step is how a 30-per-minute budget disappears in two seconds.
         self.nav.go_to(section);
         self.nav.focus_rail();
-        self.selected = 0;
-        self.offset = 0;
+        // Entered at its top, as every section is: see `Cursors`.
+        *self.cursors.section_mut(section) = Cursor::default();
         self.detail = None;
         self.title_trail.clear();
         self.search_in_results = false;
@@ -3525,10 +3593,14 @@ impl App {
         }
     }
 
+    /// Jump to `section`, at the top of its own view, and ask for what it shows.
+    ///
+    /// Every way into a section is through here or the rail's step, and both put its cursor at
+    /// the top: the sections shared one cursor once, which a change of section reset, and
+    /// keeping that is what lets each have its own with nothing on screen telling them apart.
     pub fn go_to_section(&mut self, section: Section) -> Option<Command> {
         self.nav.go_to(section);
-        self.selected = 0;
-        self.offset = 0;
+        *self.cursors.section_mut(section) = Cursor::default();
         self.detail = None;
         self.title_trail.clear();
         self.search_in_results = false;
@@ -3671,54 +3743,59 @@ impl App {
     /// The highlighted row of the section's own view: its list, or its table on Downloads,
     /// Providers, Accounts and Settings. A view pushed over the section leaves it where it was.
     pub fn cursor(&self) -> usize {
-        self.selected
+        self.section_cursor().selected
     }
 
     pub fn set_cursor(&mut self, row: usize) {
-        self.selected = row;
+        self.cursors.section_mut(self.nav.section()).selected = row;
     }
 
     /// The first row the section's list shows.
     pub fn offset(&self) -> usize {
-        self.offset
+        self.section_cursor().offset
     }
 
     pub fn set_offset(&mut self, row: usize) {
-        self.offset = row;
+        self.cursors.section_mut(self.nav.section()).offset = row;
+    }
+
+    /// The cursor of the section's own view, whatever is pushed over it.
+    pub fn section_cursor(&self) -> &Cursor {
+        self.cursors.section(self.nav.section())
     }
 
     /// The highlighted row of the episode table.
     pub fn episode_cursor(&self) -> usize {
-        self.episode_selected
+        self.cursors.episodes.selected
     }
 
     pub fn set_episode_cursor(&mut self, row: usize) {
-        self.episode_selected = row;
+        self.cursors.episodes.selected = row;
     }
 
     /// The highlighted row of the list overlay on top: one cursor for every overlay, which
     /// each one that lists something sets as it opens.
     pub fn overlay_cursor(&self) -> usize {
-        self.overlay_selected
+        self.cursors.overlay.selected
     }
 
     pub fn set_overlay_cursor(&mut self, row: usize) {
-        self.overlay_selected = row;
+        self.cursors.overlay.selected = row;
     }
 
     /// The highlighted row of the store list; one past the last store is the join row.
     pub fn store_cursor(&self) -> usize {
-        self.store_selected
+        self.cursors.stores.selected
     }
 
     /// The highlighted line of a store's page.
     pub fn store_line_cursor(&self) -> usize {
-        self.store_line_selected
+        self.cursors.store_lines.selected
     }
 
     /// The highlighted row of a store's members, its unused invites after them.
     pub fn member_cursor(&self) -> usize {
-        self.member_selected
+        self.cursors.members.selected
     }
 
     /// The page of the key reference showing.
@@ -3733,13 +3810,13 @@ impl App {
 
     /// The first row the list overlay showed when one was last drawn.
     pub fn overlay_offset(&self) -> usize {
-        self.overlay_offset
+        self.cursors.overlay.offset
     }
 
     /// Keep what the frame just drawn found out: see [`FrameReport`].
     pub fn took_frame(&mut self, report: FrameReport) {
         if let Some(offset) = report.overlay_offset {
-            self.overlay_offset = offset;
+            self.cursors.overlay.offset = offset;
         }
         if let Some(pages) = report.help_pages {
             self.help_pages = pages;
@@ -3801,7 +3878,7 @@ impl App {
         // The still for the episode under the cursor, plus its immediate neighbours so that
         // moving one row does not stall on a fetch.
         if matches!(self.nav.current(), StageView::Episodes(_)) {
-            let from = self.episode_selected.saturating_sub(1);
+            let from = self.cursors.episodes.selected.saturating_sub(1);
             for row in self.episodes.iter().skip(from).take(3) {
                 if let Some(url) = &row.thumbnail {
                     urls.push(url.clone());
@@ -3809,8 +3886,12 @@ impl App {
             }
         }
         // A small lookahead so scrolling does not stall on every step.
-        for entry in
-            self.content.entries().iter().skip(self.offset).take(visible_rows.saturating_add(4))
+        for entry in self
+            .content
+            .entries()
+            .iter()
+            .skip(self.section_cursor().offset)
+            .take(visible_rows.saturating_add(4))
         {
             if let Some(url) = &entry.cover_url {
                 urls.push(url.clone());
@@ -3838,13 +3919,14 @@ impl App {
     /// The rows move at once and the cursor with its row; the run loop puts the live chain in
     /// the same order once the file has it. At either end nothing moves and nothing is saved.
     fn move_source(&mut self, step: isize) -> Option<Command> {
-        let id = self.providers.get(self.selected)?.id.clone();
+        let id = self.providers.get(self.cursors.providers.selected)?.id.clone();
         let order =
             order_with_source_moved(&self.settings.sources.order, &self.providers, &id, step)?;
         // Every row is named in the new order, so its place there is its place in the chain.
         let place = |row: &ProviderRow| order.iter().position(|entry| *entry == row.id);
         self.providers.sort_by_key(|row| place(row).unwrap_or(order.len()));
-        self.selected = self.providers.iter().position(|row| row.id == id).unwrap_or(0);
+        self.cursors.providers.selected =
+            self.providers.iter().position(|row| row.id == id).unwrap_or(0);
         // Taken as the order here before the engine says it is, so a second press moves on
         // from this one rather than from the order before it. The engine's answer is the same
         // order, or on a refusal the file's, with the chain's own rows.
@@ -3901,7 +3983,7 @@ impl App {
         self.stores = rows;
         self.stores_loaded = true;
         // One past the last store is the "join a store" row.
-        self.store_selected = self.store_selected.min(self.stores.len());
+        self.cursors.stores.selected = self.cursors.stores.selected.min(self.stores.len());
 
         // A store that was left takes its screens with it, rather than leaving a page about
         // something that no longer exists.
@@ -3918,7 +4000,7 @@ impl App {
                 self.nav.pop();
             } else if let Some(store) = self.store(&id) {
                 let last = self.store_lines(store).len().saturating_sub(1);
-                self.store_line_selected = self.store_line_selected.min(last);
+                self.cursors.store_lines.selected = self.cursors.store_lines.selected.min(last);
             }
         }
     }
@@ -3949,17 +4031,17 @@ impl App {
     }
 
     fn open_stores(&mut self) -> Option<Command> {
-        self.store_selected = 0;
+        self.cursors.stores.selected = 0;
         self.nav.push(StageView::Stores);
         Some(Command::LoadStores)
     }
 
     /// Enter on the store list: into a store, or the join prompt from the last row.
     fn open_store_row(&mut self) -> Option<Command> {
-        match self.stores.get(self.store_selected) {
+        match self.stores.get(self.cursors.stores.selected) {
             Some(store) => {
                 let id = store.id.clone();
-                self.store_line_selected = 0;
+                self.cursors.store_lines.selected = 0;
                 self.nav.push(StageView::Store(id));
             }
             None => {
@@ -3972,7 +4054,7 @@ impl App {
 
     fn open_store_line(&mut self, id: &str) -> Option<Command> {
         let store = self.store(id)?.clone();
-        let line = *self.store_lines(&store).get(self.store_line_selected)?;
+        let line = *self.store_lines(&store).get(self.cursors.store_lines.selected)?;
         match line {
             StoreLine::Plugin(i) => {
                 let plugin = store.plugins.get(i)?.id.clone();
@@ -3991,7 +4073,7 @@ impl App {
                 self.members_for = Some(store.id.clone());
                 self.store_members.clear();
                 self.store_invites.clear();
-                self.member_selected = 0;
+                self.cursors.members.selected = 0;
                 self.nav.push(StageView::StoreMembers(store.id.clone()));
                 Some(Command::LoadMembers { store: store.id })
             }
@@ -4016,7 +4098,7 @@ impl App {
     pub fn show_plugin(&mut self, store: &str, plugin: &str) {
         self.plugin_action = Some((store.to_owned(), plugin.to_owned()));
         self.plugin_options = self.current_plugin_choices();
-        self.overlay_selected = 0;
+        self.cursors.overlay.selected = 0;
         self.nav.open_overlay(Overlay::PluginAction);
     }
 
@@ -4062,12 +4144,12 @@ impl App {
     }
 
     fn confirm_plugin_choice(&mut self) -> Option<Command> {
-        let choice = self.plugin_options.get(self.overlay_selected)?.clone();
+        let choice = self.plugin_options.get(self.cursors.overlay.selected)?.clone();
         self.plugin_options.clear();
         let name = self.plugin_in_action().map(|(_, p)| p.name.clone()).unwrap_or_default();
         let (store, plugin) = self.plugin_action.clone()?;
         self.nav.close_overlay();
-        self.overlay_selected = 0;
+        self.cursors.overlay.selected = 0;
         match choice {
             PluginChoice::Install | PluginChoice::Update(_) | PluginChoice::Replace => {
                 Some(Command::InstallPlugin { store, plugin })
@@ -4105,7 +4187,7 @@ impl App {
 
     /// Enter on the members screen: remove a member, or cancel an unused invite.
     fn open_member_row(&mut self, store: &str) -> Option<Command> {
-        let at = self.member_selected;
+        let at = self.cursors.members.selected;
         if let Some(member) = self.store_members.get(at) {
             if member.you {
                 self.push_toast(Notice::info("that is you — a store always keeps its owner"));

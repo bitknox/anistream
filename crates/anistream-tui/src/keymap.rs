@@ -1182,7 +1182,7 @@ pub(crate) fn status_hints_paged(
                 (Action::PlayNext, Action::HideFromContinue)
             };
             let clear = (Action::ClearCompleted, Action::ClearCompleted.hint());
-            match app.downloads.get(app.selected).map(|row| row.state) {
+            match app.downloads.get(app.cursors.downloads.selected).map(|row| row.state) {
                 Some(DownloadState::Done) => vec![
                     clear,
                     (Action::DeleteDownload, Action::DeleteDownload.hint()),
@@ -1212,7 +1212,7 @@ pub(crate) fn status_hints_paged(
             return with_help(keymap, hints);
         }
         // Enter signs the highlighted tracker in or out, so it is named for which.
-        V::Section(Section::Accounts) => match app.sync.get(app.selected) {
+        V::Section(Section::Accounts) => match app.sync.get(app.cursors.accounts.selected) {
             Some(tracker) if tracker.connected && !tracker.needs_reauth => {
                 vec![(Action::Open, "sign out")]
             }

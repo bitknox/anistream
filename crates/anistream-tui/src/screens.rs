@@ -395,10 +395,11 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
             {
                 rows.push(ObiRow::heading(caption).ruled());
             }
+            let cursor = app.cursors.section(section);
             let start = if section == Section::Calendar {
-                calendar_window(&app.clock, entries, app.offset, app.selected, visible)
+                calendar_window(&app.clock, entries, cursor.offset, cursor.selected, visible)
             } else {
-                app.offset
+                cursor.offset
             };
             // The calendar's episode and time columns, sized to what is in view so the
             // numbers line up down the list rather than floating at each row's end.
@@ -454,7 +455,7 @@ fn render_list(buf: &mut Buffer, app: &App, area: Rect, section: Section) {
                     current_day = Some(day);
                 }
 
-                let mut row = ObiRow::new(entry.title.clone()).selected(i == app.selected);
+                let mut row = ObiRow::new(entry.title.clone()).selected(i == cursor.selected);
                 // Trailing text answers the question the *current screen* is about:
                 // how far along you are, when it airs, or how good it is. The bool says
                 // whether it is an actionable fact, which draws in the state role.
@@ -771,7 +772,7 @@ fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
         if y >= area.bottom().saturating_sub(2) {
             break;
         }
-        let selected = i == app.selected;
+        let selected = i == app.cursors.accounts.selected;
         if selected {
             mark_selected(buf, app, area.left(), y, focused);
         }
@@ -860,7 +861,7 @@ fn render_accounts(buf: &mut Buffer, app: &App, area: Rect) {
     // it should never be a surprise.
     let action = app
         .sync
-        .get(app.selected)
+        .get(app.cursors.accounts.selected)
         .map(|s| if s.connected && !s.needs_reauth { "↵ sign out" } else { "↵ sign in" });
     if let Some(action) = action
         && y + 1 < area.bottom()
@@ -927,7 +928,7 @@ fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
     // Anchored to the selection, like the episode table: a queue longer than the screen used
     // to stop drawing at the fold while the cursor carried on below it.
     let rows_room = last_row.saturating_sub(y).max(1) as usize;
-    let first = app.selected.saturating_sub(rows_room - 1);
+    let first = app.cursors.downloads.selected.saturating_sub(rows_room - 1);
     // One meter width for the whole table, whatever each row's note says, so the bars line up
     // as a column. Sized per row, they were as wide as each row's note let them be — and a bar
     // one cell wide drew only its half block, which is the selection mark's glyph.
@@ -941,7 +942,7 @@ fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
         if y >= last_row {
             break;
         }
-        let selected = i == app.selected;
+        let selected = i == app.cursors.downloads.selected;
         if selected {
             mark_selected(buf, app, area.left(), y, focused);
         }
@@ -1002,7 +1003,7 @@ fn render_downloads(buf: &mut Buffer, app: &App, area: Rect) {
 
     // The selected row's detail, under a hairline: where the file is, why it failed, or what
     // it is waiting for.
-    if let Some(row) = app.downloads.get(app.selected) {
+    if let Some(row) = app.downloads.get(app.cursors.downloads.selected) {
         let detail_y = area.bottom().saturating_sub(1);
         let (text, role) = download_detail(app, row);
         if detail_y > y && !text.is_empty() {
@@ -1532,7 +1533,7 @@ fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
         // The panel is shared: the still on top, the episode's synopsis under it. When no
         // episode in this list has a still at all, the plate would be an empty rectangle
         // pretending to be an image — the words start at the top instead.
-        let selected = app.episodes.get(app.episode_selected);
+        let selected = app.episodes.get(app.cursors.episodes.selected);
         let mut text_top = panel.y;
         if app.episodes.iter().any(|row| row.thumbnail.is_some()) {
             draw_artwork(buf, app, selected.and_then(|e| e.thumbnail.as_deref()), panel);
@@ -1598,11 +1599,11 @@ fn render_episodes(buf: &mut Buffer, app: &App, area: Rect) {
     let rows = table.bottom().saturating_sub(body_top) as usize;
     // Keep the selection on screen without a separate scroll offset: the table is short
     // enough that anchoring the window to the selection is sufficient.
-    let first = app.episode_selected.saturating_sub(rows.saturating_sub(1));
+    let first = app.cursors.episodes.selected.saturating_sub(rows.saturating_sub(1));
 
     for (i, episode) in app.episodes.iter().enumerate().skip(first).take(rows) {
         let y = body_top + (i - first) as u16;
-        let selected = i == app.episode_selected;
+        let selected = i == app.cursors.episodes.selected;
 
         if selected {
             mark_selected(buf, app, table.left(), y, app.nav.focus() == Focus::Stage);
@@ -2246,7 +2247,7 @@ fn render_providers(buf: &mut Buffer, app: &App, area: Rect) {
         // The obi marks the row `K` and `J` move, as it marks the selected row everywhere.
         // Whether a source will be used is the state column's job, and the weight of its name,
         // which drops for one that will not.
-        let selected = i == app.selected;
+        let selected = i == app.cursors.providers.selected;
         if selected {
             mark_selected(buf, app, area.left(), y, app.nav.focus() == Focus::Stage);
         }
@@ -2489,7 +2490,7 @@ fn render_stores(buf: &mut Buffer, app: &App, area: Rect) {
         if y >= last_row {
             break;
         }
-        let style = focus_row(buf, app, area, y, i == app.store_selected);
+        let style = focus_row(buf, app, area, y, i == app.cursors.stores.selected);
         line(
             buf,
             area.left() + COL_PROVIDER,
@@ -2525,11 +2526,12 @@ fn render_stores(buf: &mut Buffer, app: &App, area: Rect) {
     // The join row, set apart from the stores by a blank line.
     let join_y = y + 1;
     if join_y < last_row {
-        let style = focus_row(buf, app, area, join_y, app.store_selected == app.stores.len());
+        let style =
+            focus_row(buf, app, area, join_y, app.cursors.stores.selected == app.stores.len());
         line(buf, area.left() + COL_PROVIDER, join_y, "+ join a store", style);
     }
 
-    let (footer, role) = match app.stores.get(app.store_selected) {
+    let (footer, role) = match app.stores.get(app.cursors.stores.selected) {
         Some(store) => match &store.state {
             StoreState::Revoked => (
                 "this store no longer accepts this device — its owner can send a new invite"
@@ -2639,7 +2641,7 @@ fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
         if y >= last_row {
             break;
         }
-        let style = focus_row(buf, app, area, y, i == app.store_line_selected);
+        let style = focus_row(buf, app, area, y, i == app.cursors.store_lines.selected);
         match entry {
             StoreLine::Plugin(at) => {
                 let Some(plugin) = store.plugins.get(*at) else { continue };
@@ -2684,19 +2686,20 @@ fn render_store(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
                 );
             }
             action => {
-                let style =
-                    if matches!(action, StoreLine::Leave) && i != app.store_line_selected {
-                        app.palette.style(Role::TextDim)
-                    } else {
-                        style
-                    };
+                let style = if matches!(action, StoreLine::Leave)
+                    && i != app.cursors.store_lines.selected
+                {
+                    app.palette.style(Role::TextDim)
+                } else {
+                    style
+                };
                 line(buf, area.left() + COL_PROVIDER, y, action.label(), style);
             }
         }
         y += 1;
     }
 
-    let (footer, role) = match lines.get(app.store_line_selected) {
+    let (footer, role) = match lines.get(app.cursors.store_lines.selected) {
         Some(StoreLine::Plugin(at)) => match store.plugins.get(*at) {
             Some(plugin) => match &plugin.status {
                 StorePluginStatus::Update { new_hosts, .. } if !new_hosts.is_empty() => (
@@ -2799,7 +2802,7 @@ fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
         if y >= last_row {
             break;
         }
-        let style = focus_row(buf, app, area, y, i == app.member_selected);
+        let style = focus_row(buf, app, area, y, i == app.cursors.members.selected);
         let label =
             if member.you { format!("{} (you)", member.name) } else { member.name.clone() };
         line(
@@ -2845,7 +2848,7 @@ fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
                 break;
             }
             let at = app.store_members.len() + i;
-            let style = focus_row(buf, app, area, y, at == app.member_selected);
+            let style = focus_row(buf, app, area, y, at == app.cursors.members.selected);
             let label = if invite.device {
                 format!("{}, another device", invite.name)
             } else {
@@ -2872,8 +2875,8 @@ fn render_store_members(buf: &mut Buffer, app: &App, area: Rect, id: &str) {
         }
     }
 
-    let footer = if app.member_selected < app.store_members.len() {
-        match app.store_members.get(app.member_selected) {
+    let footer = if app.cursors.members.selected < app.store_members.len() {
+        match app.store_members.get(app.cursors.members.selected) {
             Some(member) if member.you => "you — a store always keeps its owner",
             _ => "↵ remove their access",
         }
@@ -2995,7 +2998,7 @@ fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
     // than the old flat one, and clipping the tail would hide whole categories.
     let selected_line = lines
         .iter()
-        .position(|l| matches!(l, SettingsLine::Row(i) if *i == app.selected))
+        .position(|l| matches!(l, SettingsLine::Row(i) if *i == app.cursors.settings.selected))
         .unwrap_or(0);
     // The bottom two rows are kept for the focused row's note whenever there is height to
     // spare them. The note used to wait for the whole list to fit above it, which the grouped
@@ -3024,7 +3027,7 @@ fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
             }
             SettingsLine::Row(i) => {
                 let row = &rows[*i];
-                let selected = *i == app.selected;
+                let selected = *i == app.cursors.settings.selected;
                 if selected {
                     mark_selected(buf, app, area.left(), y, focused);
                 }
@@ -3057,7 +3060,7 @@ fn render_settings(buf: &mut Buffer, app: &App, area: Rect) {
 
     // One note at a time, for the selected row only. Printing every caveat beside every row
     // would turn a twelve-line screen into a wall and bury the values it exists to show.
-    if let Some(note) = rows.get(app.selected).and_then(|r| r.note) {
+    if let Some(note) = rows.get(app.cursors.settings.selected).and_then(|r| r.note) {
         let note_y = area.bottom().saturating_sub(1);
         let drawn = lines.len().saturating_sub(offset).min(visible);
         if reserved > 0 || note_y > area.top() + drawn as u16 + 1 {
@@ -3389,7 +3392,7 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) -> 
     // picker, so it showed matches with no indication of which one Enter would run.
     let selected = match overlay {
         // The plugin overlay explains before it offers, so its choices start below the facts.
-        Overlay::PluginAction => Some(plugin_action_rows(app).1 + app.overlay_selected),
+        Overlay::PluginAction => Some(plugin_action_rows(app).1 + app.cursors.overlay.selected),
         // "Nothing logged yet" is a note, not a line that can be picked.
         Overlay::Logs if app.logs.is_empty() => None,
         _ => matches!(
@@ -3408,7 +3411,7 @@ fn render_overlay(buf: &mut Buffer, app: &App, area: Rect, geometry: &Frame) -> 
                 | Overlay::Recommendations
                 | Overlay::PublishPick
         )
-        .then_some(app.overlay_selected),
+        .then_some(app.cursors.overlay.selected),
     };
     // The invite link is the thing to copy, so it is drawn at full weight rather than dimmed
     // like the notes under it.
