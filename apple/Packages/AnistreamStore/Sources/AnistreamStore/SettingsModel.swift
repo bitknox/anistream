@@ -1,6 +1,7 @@
 // The config as the engine shows it, and the trackers' sync.
 
 import AnistreamKit
+import Foundation
 import Observation
 
 /// The settings, as the engine last said them.
@@ -20,7 +21,22 @@ public final class SettingsModel {
 
     /// One row's value as the file holds it, in words.
     public func value(_ key: SettingKey) -> String? {
-        view?.rows.first { $0.key == key }?.value
+        row(key)?.value
+    }
+
+    /// One row: its value, and how it is changed.
+    public func row(_ key: SettingKey) -> SettingRow? {
+        view?.rows.first { $0.key == key }
+    }
+
+    /// Whether a switch is on.
+    public func isOn(_ key: SettingKey) -> Bool {
+        row(key)?.isOn ?? false
+    }
+
+    /// The sources the config sets up.
+    public var sources: ConfiguredSources {
+        view?.sources ?? ConfiguredSources(order: [], disabled: [], torrent: false, remote: false)
     }
 }
 
@@ -36,6 +52,10 @@ public final class AccountsModel {
     /// Whether AniList is out of reach, as the metadata ladder last said: the app is showing
     /// what it has, and changes wait.
     public private(set) var offline = false
+    /// When each tracker last said a sync went through with nothing left to send.
+    public private(set) var syncedAt: [String: Date] = [:]
+    /// The sign-ins and syncs under way, by job: the tracker each is for.
+    public private(set) var working: [JobId: String] = [:]
 
     public init() {}
 
@@ -43,13 +63,31 @@ public final class AccountsModel {
         trackers.first { $0.tracker == name }
     }
 
-    func apply(_ state: SyncState) {
+    func apply(_ state: SyncState, at now: Date = .now) {
         if let index = trackers.firstIndex(where: { $0.tracker == state.tracker }) {
             trackers[index] = state
         } else {
             trackers.append(state)
         }
         queued = 0
+        if !state.connected {
+            syncedAt[state.tracker] = nil
+        } else if state.last != nil, state.outbox == 0, state.pullError == nil {
+            syncedAt[state.tracker] = now
+        }
+    }
+
+    func started(_ tracker: String, job: JobId?) {
+        if let job { working[job] = tracker }
+    }
+
+    func done(_ job: JobId) {
+        working[job] = nil
+    }
+
+    /// Whether a sign-in or a sync for `tracker` is under way.
+    public func isWorking(_ tracker: String) -> Bool {
+        working.values.contains(tracker)
     }
 
     func progressQueued() {

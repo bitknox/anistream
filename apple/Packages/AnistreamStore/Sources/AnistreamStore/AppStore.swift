@@ -32,6 +32,9 @@ public final class AppStore {
     public let notices: NoticesModel
     public let settings = SettingsModel()
     public let accounts = AccountsModel()
+    public let providers = ProvidersModel()
+    public let stores = StoresModel()
+    public let downloads = DownloadsModel()
     @ObservationIgnored public private(set) var artwork: ArtworkStore!
 
     @ObservationIgnored private var client: EngineClient?
@@ -201,6 +204,8 @@ public final class AppStore {
             jobs.note(job, note: note, wait: wait)
         case .jobDone(let job):
             jobs.done(job)
+            stores.done(job)
+            accounts.done(job)
 
         case .content(let view, let content):
             self.content(content, for: view)
@@ -237,6 +242,36 @@ public final class AppStore {
             accounts.deviceCode(prompt)
         case .metaStatus(let rows):
             accounts.metaStatus(rows)
+            providers.meta(rows)
+
+        case .providers(let rows):
+            providers.apply(rows)
+        case .providerNote(let text):
+            providers.note(text)
+        case .sourcesChanged:
+            providers.sourcesChanged()
+        case .providerPreference(let provider):
+            providers.preference(provider)
+        case .vpn(let view):
+            providers.guardSaid(view)
+
+        case .stores(let rows):
+            stores.apply(rows)
+        case .storePreview(let answer):
+            stores.previewed(answer)
+        case .storeJoined(let store):
+            stores.joined(store)
+        case .inviteLink(let link):
+            stores.invited(link)
+        case .storeMembers(let store, let members, let invites):
+            stores.members(store: store, members: members, invites: invites)
+        case .localPlugins(let store, let plugins):
+            stores.localPlugins(store: store, plugins: plugins)
+
+        case .downloads(let rows):
+            downloads.apply(rows)
+        case .seeding(let rows):
+            downloads.seeding(rows)
 
         case .artworkReady(let url, let bytes):
             artwork.ready(url: url, bytes: bytes)
@@ -244,7 +279,7 @@ public final class AppStore {
             artwork.failed(url: url)
 
         default:
-            // Playback, sources, providers, downloads and plugin stores have no screen yet.
+            // Playback has no screen yet.
             break
         }
     }
