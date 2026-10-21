@@ -518,10 +518,23 @@ function M.is_open()
     return menu_view.is_open() or uosc_menu_type == TYPE
 end
 
+-- The host keys the menu is built from, as they stand now. main.lua's observers keep them in
+-- `app.host`, but mpv delivers an observer only after the events already queued, and the key
+-- or binding that opens the menu is one of those: a menu opened just after the host wrote new
+-- lists showed the old ones (without its episodes and sources, say) until the observer ran.
+-- The observer's refresh that follows then finds nothing new.
+local MENU_KEYS = { "menus", "episode", "media" }
+local function catch_up()
+    for _, key in ipairs(MENU_KEYS) do
+        app.host[key] = mp.get_property_native("user-data/anistream/" .. key)
+    end
+end
+
 -- Open the whole menu, or one of its lists (`episodes`, `sources`, `subtitles`, `audio`) on
 -- its own. Asking for what is already open closes it, so one key toggles.
 function M.open(view)
     view = view or "root"
+    catch_up()
     if config.opts.uosc then
         if menu_view.is_open() then
             menu_view.close()

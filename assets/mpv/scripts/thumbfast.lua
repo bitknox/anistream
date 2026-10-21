@@ -12,8 +12,9 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 -- anistream: modified copy of po5/thumbfast at 0f711de3138c9bd6718209d819ac54022c23ded2.
 -- Every change is marked `-- anistream:`: a helper and one command in client_script, four
--- blocks in spawn(), one observer at the end of the file, a timer that hides a frame which
--- never arrives and one that asks for it again. The thumbnailer opens
+-- blocks in spawn(), a check at the top of thumb() and the observer at the end of the file
+-- that share one function, a timer that hides a frame which never arrives and one that asks
+-- for it again. The thumbnailer opens
 -- user-data/anistream/thumbnail-url instead of `path` when the host sets one, inherits the
 -- parent's user-agent, referrer and http-header-fields, reads HLS one segment at a time,
 -- starts exactly where the first thumbnail was asked for, and keeps its file open past an end
@@ -843,11 +844,28 @@ end
 activity_timer = mp.add_timeout(options.quit_after_inactivity, quit)
 activity_timer:kill()
 
+-- anistream: a file change already replaces the child (its subprocess is playback_only, so
+-- mpv kills it when the file ends, and file_load() clears `spawned`). A URL that arrives or
+-- changes while a file plays does not, so retire the child the way watch_changes() does on a
+-- resize, and the next request spawns one on the new URL. The observer at the end of the file
+-- does this as the URL changes, and thumb() does it again before it uses the child: mpv
+-- delivers an observer only after the messages already queued, so a request that followed a
+-- new URL closely still reached the child on the old one, and no new child started.
+local function anistream_retire_stale()
+    if spawned and anistream_thumbnail_url() ~= anistream_spawned_url then
+        run("quit")
+        clear()
+        spawned = false
+    end
+end
+
 local function thumb(time, r_x, r_y, script)
     if disabled then return end
 
     time = tonumber(time)
     if time == nil then return end
+
+    anistream_retire_stale() -- anistream
 
     if r_x == "" or r_y == "" then
         x, y = nil, nil
@@ -1043,17 +1061,8 @@ mp.observe_property("vid", "native", sync_changes)
 mp.observe_property("edition", "native", sync_changes)
 mp.observe_property("duration", "native", on_duration)
 
--- anistream: a file change already replaces the child (its subprocess is playback_only, so
--- mpv kills it when the file ends, and file_load() clears `spawned`). A URL that arrives or
--- changes while a file plays does not, so retire the child here the way watch_changes()
--- does on a resize; the next hover spawns one on the new URL.
-mp.observe_property("user-data/anistream/thumbnail-url", "native", function()
-    if spawned and anistream_thumbnail_url() ~= anistream_spawned_url then
-        run("quit")
-        clear()
-        spawned = false
-    end
-end)
+-- anistream: retire the child as soon as the host's URL changes; see anistream_retire_stale.
+mp.observe_property("user-data/anistream/thumbnail-url", "native", anistream_retire_stale)
 
 mp.register_script_message("thumb", thumb)
 mp.register_script_message("clear", clear)

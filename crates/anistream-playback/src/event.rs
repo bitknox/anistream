@@ -37,11 +37,15 @@ pub enum PlaybackEvent {
     /// Running total of frames the video output dropped.
     FrameDrops(u64),
     Seeking(bool),
-    /// The display the window is on, once mpv knows it.
+    /// The display the window is on, once mpv knows it, and whether the renderer runs compute
+    /// shaders there.
     Display {
         width: u32,
         height: u32,
+        compute: bool,
     },
+    /// The renderer disabled a shader hook it could not compile or run, as it names it.
+    HookDisabled(String),
     /// The file was replaced by our own `loadfile`. The player is still there.
     Replaced,
     /// Playback of the file ended. `complete` is true only when mpv reached the end of it.

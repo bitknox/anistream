@@ -59,6 +59,9 @@ pub struct PictureState {
     /// The chain mpv is running, as absolute paths; compared before every write.
     pub(super) applied: Vec<String>,
     pub(super) display: Option<shaders::Display>,
+    /// The chain that was eased for a hook the renderer disabled: one step for it, however
+    /// many of its hooks are said to have failed.
+    pub(super) failed: Option<Vec<String>>,
     pub(super) on_battery: bool,
     pub(super) battery_checked: Option<tokio::time::Instant>,
     /// The governor's clock: monotonic, so a pause or a seek cannot move it.
@@ -71,6 +74,7 @@ impl Default for PictureState {
             governor: Governor::new(Governor::DEFAULT_CAP),
             applied: Vec::new(),
             display: None,
+            failed: None,
             on_battery: false,
             battery_checked: None,
             clock: std::time::Instant::now(),
@@ -89,5 +93,32 @@ pub(super) fn read_source(
         width: dimension("dw")?,
         height: dimension("dh")?,
         hdr: picture::classify(params, track),
+        // Android's zero-copy decoding hands the renderer one RGB texture; anything else, a
+        // software frame or a copy back from the decoder, comes as planes.
+        planar: params.get("pixelformat").and_then(serde_json::Value::as_str)
+            != Some("mediacodec"),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::*;
+
+    #[test]
+    fn only_a_zero_copy_frame_comes_without_planes() {
+        let params = |format: Option<&str>| {
+            let mut params = json!({ "w": 1280, "h": 720, "dw": 1280, "dh": 720 });
+            if let Some(format) = format {
+                params["pixelformat"] = json!(format);
+            }
+            params
+        };
+        let planar = |format| read_source(&params(format), None).map(|source| source.planar);
+        assert_eq!(planar(Some("mediacodec")), Some(false));
+        for format in [Some("yuv420p"), Some("nv12"), Some("yuv420p10"), None] {
+            assert_eq!(planar(format), Some(true), "{format:?}");
+        }
+    }
 }

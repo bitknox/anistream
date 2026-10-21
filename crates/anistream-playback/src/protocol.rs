@@ -451,7 +451,9 @@ impl Reader {
 
     fn display_event(&self) -> Option<PlaybackEvent> {
         let (width, height) = self.display;
-        Some(PlaybackEvent::Display { width: width?, height: height? })
+        // The desktop's mpv says nothing of compute, and its renderers have it: Vulkan, Metal
+        // through MoltenVK, D3D11 and desktop OpenGL.
+        Some(PlaybackEvent::Display { width: width?, height: height?, compute: true })
     }
 }
 
@@ -597,7 +599,7 @@ mod tests {
         assert_eq!(reader.read(Event::DisplayWidth(3_024)), None);
         assert_eq!(
             reader.read(Event::DisplayHeight(1_964)),
-            Some(PlaybackEvent::Display { width: 3_024, height: 1_964 })
+            Some(PlaybackEvent::Display { width: 3_024, height: 1_964, compute: true })
         );
         // The companion is its owner's to read.
         assert_eq!(reader.read(Event::ClientMessage(vec!["anistream".into()])), None);

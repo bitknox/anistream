@@ -23,7 +23,47 @@ env:
   CARGO_PROFILE_DEV_DEBUG: line-tables-only
 
 jobs:
+  # Which parts a pull request touches, so a change to the apps alone does not wait on the whole
+  # Rust matrix, and a change to the engine still runs everything the apps build on. Pushes to
+  # main run every job regardless: their caches are the ones pull requests restore from.
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      rust: ${{ github.event_name == 'push' || steps.filter.outputs.rust == 'true' }}
+      apple: ${{ github.event_name == 'push' || steps.filter.outputs.rust == 'true' || steps.filter.outputs.apple == 'true' }}
+      android: ${{ github.event_name == 'push' || steps.filter.outputs.rust == 'true' || steps.filter.outputs.android == 'true' }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            rust:
+              - 'crates/**'
+              - 'wit/**'
+              - 'assets/**'
+              - 'deploy/**'
+              - 'packaging/**'
+              - 'tools/**'
+              - '.cargo/**'
+              - '.config/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'rust-toolchain.toml'
+              - 'rustfmt.toml'
+              - 'deny.toml'
+              - '.github/workflows/ci.yml'
+            apple:
+              - 'apple/**'
+            android:
+              - 'android/**'
+
   test:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -72,6 +112,8 @@ jobs:
   # 0.37 is the oldest that runs the companion (0.36 is its floor) and lacks what later players
   # added, such as a scaled overlay (0.38) and the context menu (0.40); 26.04's 0.41 has them.
   mpv:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     name: mpv (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -101,6 +143,8 @@ jobs:
   # to them: clippy checks dependencies in a different mode and cannot reuse the test build.
   # Still on every OS, because the Windows named-pipe and macOS paths only exist there.
   clippy:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     name: clippy (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
@@ -126,6 +170,8 @@ jobs:
   # terminal front end may never depend on a terminal library. Resolving the tree needs no
   # build, so this is quick.
   boundaries:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -137,6 +183,8 @@ jobs:
   # tuple struct, a Result in a field, or a core type without a conversion. Linted as the rest of
   # the workspace is, since the derives are code too.
   ffi:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -151,6 +199,8 @@ jobs:
   # each crate's Swift bindings generated from it) and runs every Swift package's tests on it: the
   # bindings, the design tokens, and the app's store over a real engine on the fake AniList.
   swift:
+    needs: changes
+    if: needs.changes.outputs.apple == 'true'
     runs-on: macos-26
     env:
       # engine.sh builds with these; the Rust tests below share its build only with them too.
@@ -186,6 +236,8 @@ jobs:
   # BoringSSL (cmake and bindgen), aws-lc, SQLite, zstd and wasmtime's own helpers. The app's
   # minimum, iOS 26, is the deployment target, as apple/scripts/engine.sh builds it.
   ios:
+    needs: changes
+    if: needs.changes.outputs.apple == 'true'
     runs-on: macos-26
     env:
       IPHONEOS_DEPLOYMENT_TARGET: "26.0"
@@ -259,6 +311,8 @@ jobs:
   # every C build at the NDK's clang for API level 35, the Android app's minimum. Cross-compiled
   # only, and the library checked for what Android needs of it.
   android:
+    needs: changes
+    if: needs.changes.outputs.android == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -312,6 +366,8 @@ jobs:
   # The plugin store's admin page is committed as built output, so building the server never
   # needs bun. This rebuilds it from source and fails if the two have drifted apart.
   admin-page:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -331,6 +387,8 @@ jobs:
   # moved on or a template's copy differs, and the build below proves it still compiles.
   # store-templates runs the committed copies through the whole store journey.
   store-wasm:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -349,6 +407,8 @@ jobs:
   # journey a store's owner and members take: claim, publish in parts, join, download in ranges,
   # remove, sign in to the admin page. Nothing else exercises the templates' JavaScript.
   store-templates:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -367,6 +427,8 @@ jobs:
       - run: deploy/test/journeys.sh
 
   audit:
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

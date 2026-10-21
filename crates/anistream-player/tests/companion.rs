@@ -806,6 +806,16 @@ fn sample_menus() -> Value {
     })
 }
 
+/// The drawn menu's cursor, as the script publishes it: the open list, and the row's title.
+fn menu_at(ui: &Value, menu: &str, focus: &str) -> bool {
+    ui["menu"] == menu && ui["menu_focus"] == focus
+}
+
+/// Whether the open list shows a row with this title.
+fn menu_lists(ui: &Value, title: &str) -> bool {
+    ui["menu_items"].as_array().is_some_and(|rows| rows.iter().any(|row| row == title))
+}
+
 #[tokio::test]
 async fn a_pick_in_the_drawn_menu_is_reported_as_choose() {
     require_mpv!();
@@ -813,12 +823,25 @@ async fn a_pick_in_the_drawn_menu_is_reported_as_choose() {
     let mut player = Player::start(None, &["--script-opts-append=anistream-uosc=yes"]).await;
     player.state("menus", sample_menus()).await;
     player.binding("menu").await;
-    player.wait_ui("the menu", |ui| ui["menu"] == "root").await;
-    // Episodes, then Sources; into it, past the current source, and pick.
+    // The menus reach the script as a property change, which mpv delivers only after events
+    // already queued, the binding among them. So the root can open without the host's lists
+    // (Subtitles, Audio, …) and gain them a moment later, the cursor staying on its row. Wait
+    // for the lists, then put the cursor on the first row rather than assume it is there.
+    player
+        .wait_ui("the root with the host's lists", |ui| {
+            ui["menu"] == "root" && menu_lists(ui, "Sources")
+        })
+        .await;
+    player.key("HOME").await;
+    player.wait_ui("the cursor on Episodes", |ui| menu_at(ui, "root", "Episodes")).await;
+    // Each key moves the cursor once; wait for it there before the next.
     player.key("DOWN").await;
+    player.wait_ui("the cursor on Sources", |ui| menu_at(ui, "root", "Sources")).await;
     player.key("ENTER").await;
-    player.wait_ui("the source list", |ui| ui["menu"] == "sources").await;
+    // Into the list, on the current source; past it to the other, and pick.
+    player.wait_ui("the source list", |ui| menu_at(ui, "sources", "Source A")).await;
     player.key("DOWN").await;
+    player.wait_ui("the cursor on Source B", |ui| menu_at(ui, "sources", "Source B")).await;
     player.key("ENTER").await;
     assert_eq!(player.event("choose").await, json!({"menu": "source", "value": "b"}));
     player.wait_ui("the menu to close", |ui| ui["menu"].is_null()).await;
@@ -830,6 +853,36 @@ async fn a_pick_in_the_drawn_menu_is_reported_as_choose() {
     player.wait_ui("the root", |ui| ui["menu"] == "root").await;
     player.key("ESC").await;
     player.wait_ui("closed", |ui| ui["menu"].is_null()).await;
+    player.finish().await;
+}
+
+/// The host rewrites the menus while one is open (here the episode list arrives, a row above
+/// the cursor): the cursor stays on the row it was on, not on whatever moved into its place.
+#[tokio::test]
+async fn a_rewritten_menu_keeps_the_cursor_on_its_row() {
+    require_mpv!();
+    let mut player = Player::start(None, &["--script-opts-append=anistream-uosc=yes"]).await;
+    let mut without_episodes = sample_menus();
+    without_episodes["episodes"] = json!([]);
+    player.state("menus", without_episodes).await;
+    player.binding("menu").await;
+    player
+        .wait_ui("the root with the host's lists", |ui| {
+            ui["menu"] == "root" && menu_lists(ui, "Sources")
+        })
+        .await;
+    // Sources first, then Sub / Dub.
+    player.key("HOME").await;
+    player.wait_ui("the cursor on Sources", |ui| menu_at(ui, "root", "Sources")).await;
+    player.key("DOWN").await;
+    player.wait_ui("the cursor on Sub / Dub", |ui| menu_at(ui, "root", "Sub / Dub")).await;
+    // Episodes now come first, a row above.
+    player.state("menus", sample_menus()).await;
+    let ui =
+        player.wait_ui("the episode list in the root", |ui| menu_lists(ui, "Episodes")).await;
+    assert_eq!(ui["menu_focus"], "Sub / Dub", "the cursor moved off its row: {ui}");
+    player.key("ENTER").await;
+    player.wait_ui("the translation list", |ui| ui["menu"] == "translation").await;
     player.finish().await;
 }
 
