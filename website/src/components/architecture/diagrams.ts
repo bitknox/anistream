@@ -56,8 +56,8 @@ const TYPE: Record<TextRole, { size: number; weight: number; mono?: boolean; cap
 };
 
 export const sitePaint: Paint = {
-	shape: (role) => `class="ad-${role}"`,
-	text: (role) => `class="ad-t ad-${role}"`,
+	shape: (role) => `class="arch-${role}"`,
+	text: (role) => `class="arch-t arch-${role}"`,
 };
 
 export function staticPaint(p: Palette): Paint {
