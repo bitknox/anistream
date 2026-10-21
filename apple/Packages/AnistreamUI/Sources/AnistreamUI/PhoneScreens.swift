@@ -105,6 +105,7 @@ struct PhoneHero: View {
                     CoverArt(entry: entry, width: 88)
                         .matchedTransitionSourceIfAvailable(id: item.id)
                         .onTapGesture { navigator.openTitle(item.id) }
+                        .accessibilityHidden(true)
                     titleBlock(entry)
                 }
             } else {
@@ -115,6 +116,7 @@ struct PhoneHero: View {
                     // Where the player zooms out of when this plays (T2).
                     .playerZoomSource(item.id)
                     .onTapGesture { navigator.openTitle(item.id) }
+                    .accessibilityHidden(true)
                 titleBlock(entry)
                     .padding(.top, 8)
             }
@@ -128,6 +130,8 @@ struct PhoneHero: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
+                // The title above says how far, in words.
+                .accessibilityHidden(true)
                 Button {
                     store.send(.play(id: item.id, episode: String(item.episode)))
                 } label: {
@@ -156,6 +160,9 @@ struct PhoneHero: View {
                 .font(.system(size: 15))
                 .foregroundStyle(.haze)
         }
+        .titleElement(entry, value: item.spokenProgress) { QueueMenu(item: item) }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction { navigator.openTitle(item.id) }
     }
 }
 
@@ -206,7 +213,7 @@ struct PhoneCard: View {
             .frame(width: 208, alignment: .leading)
         }
         .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
+        .titleElement(entry, value: item.spokenProgress) { QueueMenu(item: item) }
         .contextMenu { QueueMenu(item: item) }
         // The cards on screen only: a still stands in for a missing banner.
         .onScrollVisibilityChange(threshold: 0.3) { visible in
@@ -251,7 +258,7 @@ struct PhoneNewRow: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
+        .titleElement(item.entry, value: item.spokenProgress) { QueueMenu(item: item) }
         .contextMenu { QueueMenu(item: item) }
     }
 }
@@ -264,6 +271,7 @@ struct PhoneCalendar: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
     @State private var chosen = Calendar.current.startOfDay(for: .now)
+    @Namespace private var rotor
 
     var body: some View {
         @Bindable var navigator = navigator
@@ -285,6 +293,7 @@ struct PhoneCalendar: View {
                             let today = broadcasts.filter { Calendar.current.isDate($0.airs, inSameDayAs: day) }
                             VStack(alignment: .leading, spacing: 0) {
                                 PhoneHeading(dayHeading(day))
+                                    .accessibilityRotorEntry(id: day, in: rotor)
                                 if today.isEmpty {
                                     Text("Nothing airing")
                                         .font(.system(size: 15))
@@ -308,6 +317,7 @@ struct PhoneCalendar: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 24)
         }
+        .daysRotor(days.filter { $0 >= chosen }, broadcasts: broadcasts, in: rotor)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Picker("Show", selection: $navigator.calendarMine) {
@@ -402,7 +412,7 @@ struct PhoneBroadcastRow: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
+        .titleElement(broadcast.entry, value: broadcast.spoken(now: now)) { TitleActions(entry: broadcast.entry) }
         .contextMenu { TitleMenu(entry: broadcast.entry) }
     }
 }

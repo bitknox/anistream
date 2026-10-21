@@ -206,7 +206,7 @@ struct QueueRow: View {
         }
         .buttonStyle(.plain)
         // The tint moves at once, as in any Mac list (M2).
-        .accessibilityElement(children: .combine)
+        .titleElement(item.entry, value: item.spokenProgress) { QueueMenu(item: item) }
         .accessibilityAddTraits(selected ? .isSelected : [])
         .contextMenu { QueueMenu(item: item) }
     }

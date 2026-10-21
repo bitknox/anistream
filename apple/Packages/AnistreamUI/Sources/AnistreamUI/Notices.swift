@@ -11,6 +11,7 @@ import SwiftUI
 struct NoticeCapsule: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
+    @AccessibilityFocusState private var focused: Bool
 
     /// How long a notice stays up.
     static func duration(_ item: NoticeItem) -> Duration {
@@ -39,15 +40,21 @@ struct NoticeCapsule: View {
                 .chromeGlass(in: .capsule)
                 .frame(maxWidth: 520)
                 .transition(.opacity)
-                .accessibilityLabel(item.notice.text)
+                .accessibilityLabel(item.notice.text.capitalizedSentence)
                 .accessibilityHint("Opens Messages")
+                .accessibilityFocused($focused)
                 .task(id: item.id) {
                     try? await Task.sleep(for: Self.duration(item))
+                    // It stays while VoiceOver is on it.
+                    while focused, !Task.isCancelled {
+                        try? await Task.sleep(for: .seconds(1))
+                    }
                     withAnimation(.fadeOut) { store.notices.dismiss(item) }
                 }
             }
         }
         .animation(.fadeIn, value: store.notices.current?.id)
+        .modifier(NoticeAnnouncer())
     }
 }
 

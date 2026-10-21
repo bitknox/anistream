@@ -63,6 +63,7 @@ struct TitlePage: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
     @Environment(\.bannerSpace) private var bannerSpace
+    @Namespace private var rotor
     let id: AnilistId
 
     var body: some View {
@@ -79,7 +80,7 @@ struct TitlePage: View {
                         .padding(.top, 20)
                 }
                 HStack(alignment: .top, spacing: 32) {
-                    EpisodeList(entry: entry)
+                    EpisodeList(entry: entry, rotor: rotor)
                     TitleDetails(entry: entry)
                         .frame(width: 260)
                 }
@@ -103,6 +104,7 @@ struct TitlePage: View {
         .scrollIndicators(.never)
         .ignoresSafeArea(edges: .top)
         .background(.ground)
+        .unwatchedRotor(store.titles.episodes[id] ?? [], in: rotor)
         .task(id: id) {
             navigator.focusedTitle = id
             if !store.titles.detailed.contains(id) { store.loadDetail(id) }
@@ -236,6 +238,7 @@ struct TitleFamilyRow: View {
             if !family.seasons.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Seasons").groupHeaderStyle().padding(.horizontal, 4)
+                        .accessibilityAddTraits(.isHeader)
                     HStack(spacing: 8) {
                         ForEach(Array(family.seasons.enumerated()), id: \.element.id) { index, season in
                             familyCell(
@@ -252,6 +255,7 @@ struct TitleFamilyRow: View {
             if !family.related.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Related").groupHeaderStyle().padding(.horizontal, 4)
+                        .accessibilityAddTraits(.isHeader)
                     HStack(spacing: 8) {
                         ForEach(family.related, id: \.id) { related in
                             familyCell(
@@ -324,6 +328,8 @@ struct EpisodeList: View {
     @AppStorage("anistream.spoilerProtection") private var spoilers = true
     @State private var unwatchedOnly = false
     let entry: Entry
+    /// Where the page's Unwatched episodes rotor finds the rows.
+    let rotor: Namespace.ID
 
     var body: some View {
         let rows = episodeRows
@@ -345,6 +351,7 @@ struct EpisodeList: View {
             }
             ForEach(rows, id: \.number) { row in
                 EpisodeRowView(entry: entry, row: row, spoilers: spoilers)
+                    .accessibilityRotorEntry(id: row.number, in: rotor)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -418,7 +425,9 @@ struct EpisodeRowView: View {
             .contentShape(.rect(cornerRadius: 8))
         }
         .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
+        .episodeElement(row, value: row.spokenValue(entry, current: current, upcoming: upcoming)) {
+            EpisodeMenu(entry: entry, number: number, row: row)
+        }
         .contextMenu { EpisodeMenu(entry: entry, number: number, row: row) }
     }
 

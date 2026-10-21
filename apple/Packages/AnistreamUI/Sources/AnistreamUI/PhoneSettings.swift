@@ -383,6 +383,7 @@ struct PhoneSubtitlesPicker: View {
 struct PhoneDownloadsPage: View {
     @Environment(AppStore.self) private var store
     @State private var confirmDelete = false
+    @Namespace private var rotor
 
     var body: some View {
         let watched = WatchedDownloads(store)
@@ -391,6 +392,7 @@ struct PhoneDownloadsPage: View {
                 Section {
                     ForEach(group.rows, id: \.id) { row in
                         PhoneDownloadRow(row: row)
+                            .accessibilityRotorEntry(id: row.id, in: rotor)
                     }
                 } header: {
                     PhoneSectionHeader(store.titles[group.id]?.showTitle ?? group.title)
@@ -414,6 +416,7 @@ struct PhoneDownloadsPage: View {
                      + (FreeSpace.bytes.map { ". \(Wording.bytes($0)) free on this iPhone." } ?? "."))
             }
         }
+        .inProgressRotor(store.downloads.groups, titles: store.titles, in: rotor)
         .navigationTitle("Downloads")
         .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog("Delete \(Wording.plural(watched.rows.count, "watched download"))?", isPresented: $confirmDelete) {
@@ -450,6 +453,7 @@ struct PhoneDownloadRow: View {
             }
         }
         .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
         .listRowBackground(Palette.raised)
         .swipeActions(edge: .trailing) {
             switch row.state {

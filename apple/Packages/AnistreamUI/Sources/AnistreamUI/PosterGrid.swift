@@ -66,7 +66,9 @@ struct PosterCell: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .accessibilityElement(children: .combine)
+        .titleElement(entry, value: [detail, fresh].compactMap { $0 }.joined(separator: ", ")) {
+            TitleActions(entry: entry)
+        }
         .contextMenu { TitleMenu(entry: entry) }
     }
 }

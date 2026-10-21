@@ -207,6 +207,7 @@ struct StorageAside: View {
         let total = store.downloads.bytesOnDisk
         let unwatched = total - min(watched, total)
         Text("Storage").groupHeaderStyle().fixedLineHeight(14)
+            .accessibilityAddTraits(.isHeader)
         GeometryReader { proxy in
             HStack(spacing: 2) {
                 if total > 0 {

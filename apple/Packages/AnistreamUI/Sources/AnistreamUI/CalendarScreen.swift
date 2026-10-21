@@ -112,6 +112,7 @@ func weekDays(offset: Int, now: Date = .now) -> [Date] {
 struct CalendarScreen: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
+    @Namespace private var rotor
 
     var body: some View {
         let days = weekDays(offset: navigator.calendarWeek)
@@ -123,11 +124,13 @@ struct CalendarScreen: View {
                     DayColumn(
                         day: day,
                         broadcasts: broadcasts.filter { Calendar.current.isDate($0.airs, inSameDayAs: day) },
-                        now: now
+                        now: now,
+                        rotor: rotor
                     )
                 }
             }
             .padding(EdgeInsets(top: 4, leading: 12, bottom: 12, trailing: 16))
+            .daysRotor(days, broadcasts: broadcasts, in: rotor)
         } empty: {
             QuietLine("Nothing airing")
         }
@@ -149,6 +152,8 @@ struct DayColumn: View {
     let day: Date
     let broadcasts: [Broadcast]
     let now: Date
+    /// Where the Days rotor finds this day's heading.
+    let rotor: Namespace.ID
 
     var body: some View {
         let today = Calendar.current.isDateInToday(day)
@@ -174,6 +179,7 @@ struct DayColumn: View {
             .overlay(alignment: .bottom) { Rectangle().fill(.faintRule).frame(height: 1) }
             .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isHeader)
+            .accessibilityRotorEntry(id: day, in: rotor)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
@@ -260,7 +266,7 @@ struct BroadcastCell: View {
         }
         .buttonStyle(.plain)
         .contentShape(.rect(cornerRadius: 8))
-        .accessibilityElement(children: .combine)
+        .titleElement(broadcast.entry, value: broadcast.spoken(now: now)) { TitleActions(entry: broadcast.entry) }
         .contextMenu { TitleMenu(entry: broadcast.entry) }
     }
 }

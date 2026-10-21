@@ -73,6 +73,7 @@ struct StoreList: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Joined")
                     .groupHeaderStyle()
+                    .accessibilityAddTraits(.isHeader)
                     .fixedLineHeight(14)
                     .padding(EdgeInsets(top: 10, leading: 12, bottom: 8, trailing: 12))
                 ForEach(stores, id: \.id) { row in
@@ -181,6 +182,7 @@ struct StoreDetail: View {
                 }
                 Text("Plugins")
                     .groupHeaderStyle()
+                    .accessibilityAddTraits(.isHeader)
                     .fixedLineHeight(14)
                     .padding(EdgeInsets(top: 28, leading: 18, bottom: 8, trailing: 0))
                 VStack(spacing: 0) {

@@ -202,6 +202,7 @@ struct SettingsAside: View {
     @ViewBuilder
     private func aside(_ title: String, _ text: String) -> some View {
         Text(title).groupHeaderStyle().fixedLineHeight(14)
+            .accessibilityAddTraits(.isHeader)
         Text(text)
             .font(.system(size: 13))
             .fixedLineHeight(18)
@@ -309,6 +310,7 @@ struct UpscalingPreview: View {
     var body: some View {
         let mode = store.settings.row(.upscaling)?.option?.label ?? "natural · ArtCNN"
         Text("Upscaling").groupHeaderStyle().fixedLineHeight(14)
+            .accessibilityAddTraits(.isHeader)
         GeometryReader { proxy in
             let half = proxy.size.width / 2
             ZStack(alignment: .leading) {
@@ -373,6 +375,7 @@ struct AdvancedPane: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text("mpv options").groupHeaderStyle().fixedLineHeight(14).padding(.leading, 14)
+                .accessibilityAddTraits(.isHeader)
             VStack(spacing: 0) {
                 HStack(spacing: 0) {
                     Text("Option").frame(width: 344, alignment: .leading)

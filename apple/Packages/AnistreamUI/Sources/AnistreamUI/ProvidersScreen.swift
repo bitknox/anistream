@@ -90,6 +90,7 @@ struct SourceOrderList: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text("Source order")
                     .groupHeaderStyle()
+                    .accessibilityAddTraits(.isHeader)
                     .fixedLineHeight(14)
                     .padding(EdgeInsets(top: 10, leading: 18, bottom: 8, trailing: 0))
                 if store.providers.rebuilding {

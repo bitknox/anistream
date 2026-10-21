@@ -11,6 +11,7 @@ struct PhoneTitle: View {
     @Environment(Navigator.self) private var navigator
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("anistream.spoilerProtection") private var spoilers = true
+    @Namespace private var rotor
     let id: AnilistId
 
     var body: some View {
@@ -95,6 +96,9 @@ struct PhoneTitle: View {
                             .fixedLineHeight(21)
                             .foregroundStyle(.haze)
                             .id(entry.id)
+                            // Read after the episodes: title, metadata, the main button,
+                            // progress, episodes, then the synopsis.
+                            .accessibilitySortPriority(-1)
                     }
 
                     let family = TitleFamily(entry)
@@ -133,8 +137,9 @@ struct PhoneTitle: View {
                         }
                     }
 
-                    PhoneEpisodes(entry: entry, spoilers: spoilers)
+                    PhoneEpisodes(entry: entry, spoilers: spoilers, rotor: rotor)
                 }
+                .accessibilityElement(children: .contain)
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
                 .padding(.bottom, 32)
@@ -143,6 +148,7 @@ struct PhoneTitle: View {
         .ignoresSafeArea(edges: art.isCompact ? [] : .top)
         .scrollIndicators(.never)
         .background(.ground)
+        .unwatchedRotor(store.titles.episodes[id] ?? [], in: rotor)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -188,6 +194,8 @@ struct PhoneEpisodes: View {
     @Environment(AppStore.self) private var store
     let entry: Entry
     let spoilers: Bool
+    /// Where the page's Unwatched episodes rotor finds the rows.
+    let rotor: Namespace.ID
 
     var body: some View {
         let rows = store.titles.episodes[entry.id] ?? []
@@ -240,7 +248,10 @@ struct PhoneEpisodes: View {
                     .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
-                .accessibilityElement(children: .combine)
+                .episodeElement(row, value: row.spokenValue(entry, current: current, upcoming: false)) {
+                    EpisodeMenu(entry: entry, number: number, row: row)
+                }
+                .accessibilityRotorEntry(id: row.number, in: rotor)
                 .contextMenu { EpisodeMenu(entry: entry, number: number, row: row) }
             }
         }

@@ -156,6 +156,7 @@ struct PaletteOverlay: View {
         if !items.isEmpty {
             Text(name)
                 .groupHeaderStyle()
+                .accessibilityAddTraits(.isHeader)
                 .padding(EdgeInsets(top: 10, leading: 28, bottom: 6, trailing: 28))
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                 PaletteRow(item: item, selected: offset + index == selected) {

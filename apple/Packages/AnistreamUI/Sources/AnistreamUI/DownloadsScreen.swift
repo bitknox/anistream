@@ -8,6 +8,7 @@ import SwiftUI
 
 struct DownloadsScreen: View {
     @Environment(AppStore.self) private var store
+    @Namespace private var rotor
 
     var body: some View {
         let groups = store.downloads.groups
@@ -27,7 +28,7 @@ struct DownloadsScreen: View {
                     VStack(alignment: .leading, spacing: 0) {
                         ForEach(Array(groups.enumerated()), id: \.element.id) { index, group in
                             if index > 0 { Rectangle().fill(.faintRule).frame(height: 1) }
-                            DownloadGroupView(group: group)
+                            DownloadGroupView(group: group, rotor: rotor)
                         }
                         if !store.downloads.seeding.isEmpty {
                             Rectangle().fill(.faintRule).frame(height: 1).padding(.top, 8)
@@ -37,6 +38,7 @@ struct DownloadsScreen: View {
                     .padding(EdgeInsets(top: 4, leading: 12, bottom: 24, trailing: 16))
                 }
                 .scrollIndicators(.never)
+                .inProgressRotor(groups, titles: store.titles, in: rotor)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -56,6 +58,8 @@ func downloadsSubtitle(_ store: AppStore) -> String {
 struct DownloadGroupView: View {
     @Environment(AppStore.self) private var store
     let group: DownloadGroup
+    /// Where the In progress rotor finds the episodes.
+    let rotor: Namespace.ID
 
     var body: some View {
         let entry = store.titles[group.id]
@@ -88,6 +92,7 @@ struct DownloadGroupView: View {
             .padding(.vertical, 12)
             ForEach(group.rows, id: \.id) { row in
                 DownloadLine(row: row)
+                    .accessibilityRotorEntry(id: row.id, in: rotor)
             }
         }
         .padding(.bottom, 8)
@@ -259,6 +264,7 @@ struct SeedingList: View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Seeding after watching")
                 .groupHeaderStyle()
+                .accessibilityAddTraits(.isHeader)
                 .fixedLineHeight(14)
                 .padding(EdgeInsets(top: 16, leading: 0, bottom: 8, trailing: 0))
             ForEach(Array(store.downloads.seeding.enumerated()), id: \.offset) { _, row in
