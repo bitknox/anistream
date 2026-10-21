@@ -68,6 +68,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -221,6 +223,7 @@ private fun QueueRow(item: ContinueItem, selected: Boolean, onSelect: (ContinueI
     val store = LocalAppStore.current
     val navigator = LocalNavigator.current
     var menu by remember { mutableStateOf(false) }
+    val haptics = LocalHapticFeedback.current
     // The fill leaves the old row and arrives on the new one on quick (AT2).
     val fill by animateColorAsState(
         if (selected) colors.primaryContainer else colors.primaryContainer.copy(alpha = 0f),
@@ -286,7 +289,12 @@ private fun QueueRow(item: ContinueItem, selected: Boolean, onSelect: (ContinueI
                 DropdownMenuItem(
                     text = { Text("Mark E${item.episode} watched") },
                     leadingIcon = { Icon(Icons.Check, contentDescription = null) },
-                    onClick = { menu = false; store.setWatched(item.id, listOf(item.episode.toString())) },
+                    onClick = {
+                        menu = false
+                        // Marked watched from the queue plays T9's toggle, as from the title page.
+                        haptics.performHapticFeedback(HapticFeedbackType.ToggleOn)
+                        store.setWatched(item.id, listOf(item.episode.toString()))
+                    },
                 )
                 DropdownMenuItem(
                     text = { Text("Go to title") },
