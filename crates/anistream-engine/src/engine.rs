@@ -139,6 +139,7 @@ impl Engine {
             http,
             store,
             player_theme,
+            app_clients,
             sources: given,
             background,
             #[cfg(feature = "testing")]
@@ -202,6 +203,7 @@ impl Engine {
                 slot: Default::default(),
                 prefetch: Default::default(),
                 player_theme,
+                app_clients: Default::default(),
                 host,
             },
             None => Services::build(&config, paths, http, store, registry, player_theme, host)
@@ -211,6 +213,8 @@ impl Engine {
         let services =
             Services::build(&config, paths, http, store, registry, player_theme, host)
                 .map_err(|reason| EngineError::PluginStores { reason })?;
+        // The app's own sign-in clients, where signing in will read them (E6).
+        let services = Services { app_clients, ..services };
 
         // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
         let (arrivals_tx, arrivals) = mpsc::unbounded_channel();

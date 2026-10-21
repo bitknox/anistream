@@ -27,6 +27,9 @@ pub struct EngineOptions {
     pub store: Store,
     /// How the player's own interface is dressed: the front end's choice, from its palette.
     pub player_theme: PlayerTheme,
+    /// The sign-in clients a native app ships with, none for the terminal app, whose user
+    /// registers their own in the config.
+    pub app_clients: AppClients,
     /// The source chain, whole, for an engine that is not to build its own: a still frame
     /// waits for every source before it starts, and a test brings sources of its own.
     ///
@@ -61,12 +64,28 @@ impl EngineOptions {
             http,
             store,
             player_theme,
+            app_clients: AppClients::default(),
             sources: None,
             background: Background::default(),
             #[cfg(feature = "testing")]
             parts: None,
         }
     }
+}
+
+/// The OAuth clients a native app registered for itself and ships with, each redirecting to the
+/// app's own URL scheme: AniList's for its implicit grant, which needs no secret, and MAL's for
+/// PKCE. Unlike `trackers.*.client_id`, which a user registers for the loopback sign-in, these
+/// are the app's, so they are never written to the config.
+///
+/// TODO(E6): nothing reads these yet. Native sign-in will: AniList's `flow = "implicit"` with
+/// [`Self::anilist`], and MAL's PKCE with [`Self::mal`] through the app's custom scheme.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct AppClients {
+    /// The app's AniList client id.
+    pub anilist: Option<String>,
+    /// The app's MyAnimeList client id.
+    pub mal: Option<String>,
 }
 
 /// The work the engine does on its own beside the commands, each piece on its own switch.

@@ -1,0 +1,291 @@
+# The Xcode project, for XcodeGen: `cd apple && xcodegen generate` writes Anistream.xcodeproj,
+# which git ignores. See apple/README.md.
+#
+# Two apps from the same sources:
+#
+# - Anistream: the app, on the release engine.
+# - Anistream Fixtures: the same app on the testing engine (fake AniList, fixture titles, nothing
+#   leaving the machine), compiled with FIXTURES, for tests and screenshots only.
+#
+# Each package under Packages/ is compiled here as a framework, twice: once for each app, against
+# its engine. The two of a pair have the same product and module name, so the app's code imports
+# AnistreamKit whichever engine is beneath it; the Fixtures app's frameworks, the app and its
+# tests build into a products directory of their own (`<configuration>-fixtures`), so neither app
+# ever sees the other's.
+
+name: Anistream
+
+options:
+  bundleIdPrefix: tv.anistream
+  deploymentTarget:
+    macOS: "26.0"
+    iOS: "26.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+configFiles:
+  Debug: Config/Base.xcconfig
+  Release: Config/Base.xcconfig
+
+settings:
+  base:
+    # The engine slice for the platform being built, which the frameworks check is current.
+    ANISTREAM_SLICE[sdk=macosx*]: macos
+    ANISTREAM_SLICE[sdk=iphonesimulator*]: ios-sim
+    ANISTREAM_SLICE[sdk=iphoneos*]: ios
+    MARKETING_VERSION: "1.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEAD_CODE_STRIPPING: true
+  configs:
+    # The cargo profile engine.sh builds the engine with: app-dev to develop, release to keep.
+    Debug:
+      ANISTREAM_ENGINE_PROFILE: app-dev
+    Release:
+      ANISTREAM_ENGINE_PROFILE: release
+
+targetTemplates:
+  # A package's sources as a framework, for Mac, iPad and iPhone.
+  Framework:
+    type: framework
+    supportedDestinations: [macOS, iOS]
+    settings:
+      base:
+        PRODUCT_NAME: ${module}
+        PRODUCT_MODULE_NAME: ${module}
+        PRODUCT_BUNDLE_IDENTIFIER: tv.anistream.${module}
+        GENERATE_INFOPLIST_FILE: true
+        DEFINES_MODULE: true
+        SKIP_INSTALL: true
+        ENABLE_MODULE_VERIFIER: false
+
+  # The engine's bindings over its XCFramework, with the model helpers beside them. A first build
+  # phase checks the engine is current for the slice being built: the scheme's pre-action builds
+  # it, and this fails the build plainly when that did not happen.
+  Engine:
+    templates: [Framework]
+    sources:
+      - path: .engine/${flavour}/Swift/anistream_core.swift
+        optional: true
+        group: Packages/AnistreamKit/Generated
+      - path: .engine/${flavour}/Swift/anistream_model.swift
+        optional: true
+        group: Packages/AnistreamKit/Generated
+      - path: .engine/${flavour}/Swift/anistream_ffi.swift
+        optional: true
+        group: Packages/AnistreamKit/Generated
+      - path: Packages/AnistreamKit/Sources/AnistreamKit/Model.swift
+        group: Packages/AnistreamKit
+    dependencies:
+      - framework: .engine/${flavour}/AnistreamEngine.xcframework
+        embed: false
+      # What the Rust library links against, as `cargo rustc -p anistream-ffi --lib --
+      # --print native-static-libs` lists it.
+      - sdk: CoreFoundation.framework
+      - sdk: Security.framework
+      - sdk: SystemConfiguration.framework
+      - sdk: libc++.tbd
+      - sdk: libiconv.tbd
+    preBuildScripts:
+      - name: Check the engine
+        script: |
+          "$PROJECT_DIR/scripts/engine.sh" --check ${flavour} "$ANISTREAM_SLICE"
+        basedOnDependencyAnalysis: false
+    settings:
+      base:
+        # The check reads the Rust sources, which no input file list could name.
+        ENABLE_USER_SCRIPT_SANDBOXING: false
+
+  Design:
+    templates: [Framework]
+    sources:
+      - path: Packages/AnistreamDesign/Sources/AnistreamDesign
+        excludes: ["Fonts"]
+      - path: Packages/AnistreamDesign/Sources/AnistreamDesign/Fonts
+        type: folder
+        buildPhase: resources
+
+  # The Fixtures app's flavour: the testing engine's starts, and products of its own.
+  Fixtures:
+    settings:
+      base:
+        CONFIGURATION_BUILD_DIR: $(BUILD_DIR)/$(CONFIGURATION)-fixtures$(EFFECTIVE_PLATFORM_NAME)
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) FIXTURES
+
+  App:
+    type: application
+    supportedDestinations: [macOS, iOS]
+    sources:
+      - path: App
+        excludes: ["Info.plist"]
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.entertainment
+        INFOPLIST_KEY_UILaunchScreen_Generation: true
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: true
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        # Not sandboxed on the Mac, so it reads the terminal app's directories, and no
+        # hardened runtime for local builds, which the plugins' compiler needs.
+        ENABLE_APP_SANDBOX: false
+        ENABLE_HARDENED_RUNTIME: false
+        LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]: $(inherited) @executable_path/../Frameworks
+        LD_RUNPATH_SEARCH_PATHS[sdk=iphone*]: $(inherited) @executable_path/Frameworks
+
+  Tests:
+    type: bundle.unit-test
+    supportedDestinations: [macOS, iOS]
+    templates: [Fixtures]
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+        PRODUCT_BUNDLE_IDENTIFIER: tv.anistream.tests.${target_name}
+
+targets:
+  # The app's frameworks, against the release engine.
+  AnistreamKit:
+    templates: [Engine]
+    templateAttributes: { module: AnistreamKit, flavour: release }
+  AnistreamDesign:
+    templates: [Design]
+    templateAttributes: { module: AnistreamDesign }
+  AnistreamStore:
+    templates: [Framework]
+    templateAttributes: { module: AnistreamStore }
+    sources: [Packages/AnistreamStore/Sources/AnistreamStore]
+    dependencies:
+      - target: AnistreamKit
+        embed: false
+  AnistreamUI:
+    templates: [Framework]
+    templateAttributes: { module: AnistreamUI }
+    sources: [Packages/AnistreamUI/Sources/AnistreamUI]
+    dependencies:
+      - target: AnistreamStore
+        embed: false
+      - target: AnistreamDesign
+        embed: false
+
+  # The same, against the testing engine, for the Fixtures app and the tests.
+  AnistreamKitFixtures:
+    templates: [Engine, Fixtures]
+    templateAttributes: { module: AnistreamKit, flavour: testing }
+  AnistreamDesignFixtures:
+    templates: [Design, Fixtures]
+    templateAttributes: { module: AnistreamDesign }
+  AnistreamStoreFixtures:
+    templates: [Framework, Fixtures]
+    templateAttributes: { module: AnistreamStore }
+    sources: [Packages/AnistreamStore/Sources/AnistreamStore]
+    dependencies:
+      - target: AnistreamKitFixtures
+        embed: false
+  AnistreamUIFixtures:
+    templates: [Framework, Fixtures]
+    templateAttributes: { module: AnistreamUI }
+    sources: [Packages/AnistreamUI/Sources/AnistreamUI]
+    dependencies:
+      - target: AnistreamStoreFixtures
+        embed: false
+      - target: AnistreamDesignFixtures
+        embed: false
+
+  Anistream:
+    templates: [App]
+    settings:
+      base:
+        PRODUCT_NAME: Anistream
+        PRODUCT_BUNDLE_IDENTIFIER: tv.anistream.app
+        INFOPLIST_KEY_CFBundleDisplayName: anistream
+        # The anistream:// links the app opens.
+        INFOPLIST_FILE: App/Info.plist
+    dependencies:
+      - target: AnistreamKit
+      - target: AnistreamDesign
+      - target: AnistreamStore
+      - target: AnistreamUI
+
+  Anistream Fixtures:
+    templates: [App, Fixtures]
+    settings:
+      base:
+        PRODUCT_NAME: Anistream Fixtures
+        PRODUCT_BUNDLE_IDENTIFIER: tv.anistream.fixtures
+        INFOPLIST_KEY_CFBundleDisplayName: anistream fixtures
+    dependencies:
+      - target: AnistreamKitFixtures
+      - target: AnistreamDesignFixtures
+      - target: AnistreamStoreFixtures
+      - target: AnistreamUIFixtures
+
+  # Each package's tests, on the testing engine.
+  AnistreamKitTests:
+    templates: [Tests]
+    sources: [Packages/AnistreamKit/Tests/AnistreamKitTests]
+    dependencies:
+      - target: AnistreamKitFixtures
+  AnistreamDesignTests:
+    templates: [Tests]
+    sources: [Packages/AnistreamDesign/Tests/AnistreamDesignTests]
+    dependencies:
+      - target: AnistreamDesignFixtures
+  AnistreamStoreTests:
+    templates: [Tests]
+    sources: [Packages/AnistreamStore/Tests/AnistreamStoreTests]
+    dependencies:
+      - target: AnistreamStoreFixtures
+      - target: AnistreamKitFixtures
+  AnistreamUITests:
+    templates: [Tests]
+    sources: [Packages/AnistreamUI/Tests/AnistreamUITests]
+    dependencies:
+      - target: AnistreamUIFixtures
+      - target: AnistreamStoreFixtures
+      - target: AnistreamKitFixtures
+
+schemes:
+  Anistream:
+    build:
+      targets:
+        Anistream: all
+      # Build the release engine for the platform being built, before Xcode plans the build
+      # that links it. Its output is in .engine/release.log; the frameworks' check says when it
+      # did not work.
+      preActions:
+        - name: Build the engine
+          settingsTarget: Anistream
+          script: |
+            mkdir -p "$PROJECT_DIR/.engine"
+            "$PROJECT_DIR/scripts/engine.sh" release "$ANISTREAM_SLICE" > "$PROJECT_DIR/.engine/release.log" 2>&1
+    run:
+      config: Debug
+    archive:
+      config: Release
+
+  Anistream Fixtures:
+    build:
+      targets:
+        Anistream Fixtures: all
+        AnistreamKitTests: [test]
+        AnistreamDesignTests: [test]
+        AnistreamStoreTests: [test]
+        AnistreamUITests: [test]
+      preActions:
+        - name: Build the engine
+          settingsTarget: Anistream Fixtures
+          script: |
+            mkdir -p "$PROJECT_DIR/.engine"
+            "$PROJECT_DIR/scripts/engine.sh" testing "$ANISTREAM_SLICE" > "$PROJECT_DIR/.engine/testing.log" 2>&1
+    run:
+      config: Debug
+      commandLineArguments:
+        "-AnistreamScene watching": true
+    test:
+      config: Debug
+      targets:
+        - AnistreamKitTests
+        - AnistreamDesignTests
+        - AnistreamStoreTests
+        - AnistreamUITests

@@ -20,19 +20,24 @@
 //! UniFFI types in it: `anistream_core`, `anistream_model` and this crate's `anistream_ffi`. For
 //! Swift that is a source file and a C header with its module map each, compiled into one Swift
 //! module; for Kotlin, a package each. Only what a start needs is this crate's own: [`FfiDirs`],
-//! [`FfiBackground`], [`FfiError`] and the [`FfiHost`] callback interface.
+//! [`FfiBackground`], [`FfiStart`] with [`FfiPlatform`] and [`SecretsMode`], [`FfiError`] and the
+//! [`FfiHost`] callback interface.
 
 uniffi::setup_scaffolding!();
 
 mod engine;
 mod host;
+#[cfg(feature = "testing")]
+mod scenes;
 mod start;
 #[cfg(feature = "testing")]
 mod testing;
 
 pub use engine::FfiEngine;
 pub use host::FfiHost;
-pub use start::{FfiBackground, FfiDirs, FfiError};
+#[cfg(feature = "testing")]
+pub use scenes::FfiScene;
+pub use start::{FfiBackground, FfiDirs, FfiError, FfiPlatform, FfiStart, SecretsMode};
 
 /// Each command and event, written as the bindings write it and read back: what a front end sends
 /// is what the engine receives, and what the engine says is what the front end reads. The Swift
@@ -47,6 +52,7 @@ mod tests {
         media::Translation,
         settings::SettingValue,
     };
+    use anistream_model::playback::PlayerTheme;
     use anistream_model::{
         catalog::{
             Aired, ContentFor, ContentList, Entry, ResumePoint, SearchFilters, TitleAired,
@@ -62,7 +68,7 @@ mod tests {
     };
     use uniffi::{Lift, Lower};
 
-    use crate::UniFfiTag;
+    use crate::{FfiPlatform, FfiStart, SecretsMode, UniFfiTag};
 
     /// `value`, written into a buffer as the bindings write it and read back out of it whole.
     fn crossed<T: Lower<UniFfiTag> + Lift<UniFfiTag>>(value: T) -> T {
@@ -103,6 +109,33 @@ mod tests {
         ];
         for command in commands {
             assert_eq!(crossed(command.clone()), command);
+        }
+    }
+
+    #[test]
+    fn a_start_crosses_with_everything_the_app_says_of_itself() {
+        let start = FfiStart {
+            theme: Some(PlayerTheme {
+                text: "#F4F1EA".into(),
+                dim: "#8A8F9E".into(),
+                obi: "#E8A33D".into(),
+                state: "#6FB8C9".into(),
+                alert: "#D9634C".into(),
+                ground: "#12141F".into(),
+                font: "Zen Kaku Gothic New".into(),
+            }),
+            platform: Some(FfiPlatform::IpadOs),
+            anilist_client_id: Some("4242".into()),
+            mal_client_id: Some("a-mal-client".into()),
+            secrets: Some(SecretsMode::FollowConfig),
+        };
+        assert_eq!(crossed(start.clone()), start);
+        assert_eq!(crossed(FfiStart::default()), FfiStart::default());
+        for platform in [FfiPlatform::MacOs, FfiPlatform::Ios, FfiPlatform::IpadOs] {
+            assert_eq!(crossed(platform), platform);
+        }
+        for mode in [SecretsMode::Host, SecretsMode::FollowConfig] {
+            assert_eq!(crossed(mode), mode);
         }
     }
 
