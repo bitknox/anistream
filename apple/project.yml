@@ -176,6 +176,8 @@ targetTemplates:
         # The font check reads apple/.fonts, which no input file list names.
         ENABLE_USER_SCRIPT_SANDBOXING: false
         GENERATE_INFOPLIST_FILE: true
+        # Amber, the brief's accent: the system draws the focus ring and its own controls in it.
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.entertainment
         INFOPLIST_KEY_UILaunchScreen_Generation: true
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: true

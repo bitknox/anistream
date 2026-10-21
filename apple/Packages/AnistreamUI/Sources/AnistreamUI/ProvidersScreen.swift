@@ -128,7 +128,7 @@ struct SourceOrderList: View {
         .scrollIndicators(.never)
         .focusable()
         .focused($focused)
-        .focusEffectDisabled()
+        .listFocusEffect()
         .onKeyPress(keys: [.upArrow, .downArrow], phases: .down) { press in
             let up = press.key == .upArrow
             guard let id = current else { return .ignored }

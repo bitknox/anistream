@@ -240,7 +240,7 @@ struct Sidebar: View {
         .padding(EdgeInsets(top: 0, leading: 10, bottom: 12, trailing: 10))
         .focusable()
         .focused($focused)
-        .focusEffectDisabled()
+        .listFocusEffect()
         .onKeyPress(.upArrow) { step(-1) }
         .onKeyPress(.downArrow) { step(1) }
         .accessibilityElement(children: .contain)

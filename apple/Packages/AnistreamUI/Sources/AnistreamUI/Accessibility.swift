@@ -163,6 +163,32 @@ extension View {
     }
 }
 
+extension View {
+    /// For a list that moves its own selection with the arrow keys: no focus ring, since the
+    /// selection says where the keys are, except with Full Keyboard Access on, where the system's
+    /// ring, in the accent colour, shows which part of the window has them (ux_part3: never
+    /// hidden).
+    func listFocusEffect() -> some View {
+        #if os(macOS)
+        focusEffectDisabled(!NSApplication.shared.isFullKeyboardAccessEnabled)
+        #else
+        focusEffectDisabled()
+        #endif
+    }
+}
+
+extension View {
+    /// Esc closes a sheet whose one button is Done, as Cancel closes the others (ux_part3: every
+    /// sheet has a default button on Return and a cancel on Esc).
+    func closesOnEscape(_ close: @escaping () -> Void) -> some View {
+        #if os(macOS)
+        onExitCommand(perform: close)
+        #else
+        self
+        #endif
+    }
+}
+
 /// One entry of a custom rotor: what it reads, and the view it moves to.
 struct RotorItem<ID: Hashable>: Identifiable {
     let id: ID

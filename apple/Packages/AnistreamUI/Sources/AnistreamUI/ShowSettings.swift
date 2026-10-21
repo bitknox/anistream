@@ -114,6 +114,7 @@ struct ShowSettingsSheet: View {
         .padding(30)
         .frame(width: 500)
         .background(.raised)
+        .closesOnEscape { dismiss() }
         // The pinned source comes with the title's detail.
         .task { store.loadDetail(entry.id) }
     }

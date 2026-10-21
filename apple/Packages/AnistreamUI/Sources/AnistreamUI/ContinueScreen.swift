@@ -138,7 +138,7 @@ struct QueueColumn: View {
         .frame(width: opensOnTap ? nil : 360)
         .frame(maxWidth: opensOnTap ? 600 : nil, alignment: .leading)
         .focusable()
-        .focusEffectDisabled()
+        .listFocusEffect()
         .onKeyPress(.upArrow) { step(-1) }
         .onKeyPress(.downArrow) { step(1) }
     }

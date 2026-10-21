@@ -165,6 +165,7 @@ struct ConflictsSheet: View {
         .padding(24)
         .sheetWidth(560)
         .background(.raised)
+        .closesOnEscape { dismiss() }
         .onChange(of: store.accounts.conflicts.isEmpty) { _, empty in if empty { dismiss() } }
     }
 }

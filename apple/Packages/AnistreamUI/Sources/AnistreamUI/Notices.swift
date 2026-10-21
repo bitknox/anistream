@@ -96,10 +96,12 @@ struct MessagesView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
+                        .keyboardShortcut(.defaultAction)
                 }
             }
         }
         .frame(minWidth: 480, minHeight: 360)
+        .closesOnEscape { dismiss() }
     }
 }
 
