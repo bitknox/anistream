@@ -101,6 +101,9 @@ local CORNER = { stall, skipped, up_next, skip }
 ---------------------------------------------------------------------------------------------
 
 local last_ui = nil
+-- Whether the controls were up for activity at the last refresh, the volume's row with them.
+-- Kept from the refresh rather than read at publishing, so it matches where the fades were sent.
+local controls_up = false
 
 local function publish()
     local menu_items, menu_focus = menu_view.rows()
@@ -128,8 +131,14 @@ local function publish()
         keys = help.is_open(),
         keys_listed = help.is_open() and help.listed() or nil,
         timeline = overlay.visible(timeline),
+        -- Whether the controls are up. The seek bar needs a duration besides, so under load
+        -- the controls can come and go with `timeline` false throughout.
+        controls = controls_up,
         -- Which form the volume control last drew, "row" or "pill": what a fade showed.
         volume = volume.drawn(),
+        -- Whether anything is mid-fade. Published again as the last fade lands, so `false`
+        -- with the rest is what the screen came to rest on.
+        fading = overlay.fading(),
     }
     local json = util.format_json(ui)
     if json ~= last_ui then
@@ -188,6 +197,7 @@ local function refresh()
     overlay.show(help, help.wants())
     -- The controls give way to anything that takes the middle of the window.
     local covered = menu_view.is_open() or help.is_open() or loading.card_visible()
+    controls_up = timeline.awake()
     local seekbar = timeline.wants() and not covered
     overlay.show(timeline, seekbar)
     timeline.observe(seekbar)
@@ -227,6 +237,8 @@ local function refresh()
 end
 
 app.changed = refresh
+-- The form a fade drew is only known once it has drawn, so the screen at rest is said too.
+overlay.on_settle(publish)
 
 ---------------------------------------------------------------------------------------------
 -- Host state

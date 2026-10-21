@@ -1013,12 +1013,16 @@ async fn the_volume_pill_does_not_flash_as_the_controls_leave() {
     )
     .await;
     player.set("pause", json!(false)).await;
-    player.wait_ui("the bar", |ui| ui["timeline"] == true).await;
-    player.wait_ui("the bar to leave", |ui| ui["timeline"] == false).await;
-    // Past the fade, then any change republishes what the last frame drew.
-    tokio::time::sleep(Duration::from_millis(400)).await;
-    player.message("toast", json!({"text": "ping", "level": "info", "duration": 1})).await;
-    let ui = player.wait_ui("a republish", |ui| ui["toast"] == "ping").await;
+    // The controls were drawn: the form is kept once drawn. Not the bar, which needs the
+    // duration besides and may never come up in the controls' few hundred milliseconds.
+    player.wait_ui("the row", |ui| ui["volume"] == "row").await;
+    // The screen at rest with the controls gone is published as the last fade lands, so its
+    // `volume` is the fade-out's last frame.
+    let ui = player
+        .wait_ui("the controls to leave and the screen to settle", |ui| {
+            ui["controls"] == false && ui["fading"] == false
+        })
+        .await;
     assert_eq!(ui["volume"], "row", "the fade-out drew the pill: {ui}");
 
     // A change while the controls are down is what the pill is for.
