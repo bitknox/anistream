@@ -31,12 +31,27 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <!-- Where the AniList and MyAnimeList sign-ins send the browser back:
-                 anistream://auth/anilist and anistream://auth/mal. Sign-in itself comes with A2. -->
+                 anistream://auth/anilist and anistream://auth/mal. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="anistream" android:host="auth" android:pathPrefix="/" />
+            </intent-filter>
+            <!-- Plugin store invites, which open the join sheet with the link in it:
+                 anistream://join?link=<the store's https invite>, and the store's own
+                 https://<host>/join/<code>#<key> with anistream:// in place of https://. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="anistream" android:host="join" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="anistream" android:host="*" android:pathPrefix="/join/" />
             </intent-filter>
         </activity>
     </application>

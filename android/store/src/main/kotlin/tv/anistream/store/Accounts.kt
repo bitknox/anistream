@@ -9,6 +9,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import tv.anistream.engine.model.ConflictRow
 import tv.anistream.engine.model.DeviceCodePrompt
 import tv.anistream.engine.model.DownloadRow
+import tv.anistream.engine.model.InviteLinkView
+import tv.anistream.engine.model.InvitePreview
+import tv.anistream.engine.model.InvitedStore
+import tv.anistream.engine.model.StorePluginRow
+import tv.anistream.engine.model.StorePluginStatus
 import tv.anistream.engine.model.JobId
 import tv.anistream.engine.model.StoreRow
 import tv.anistream.engine.model.SyncState
@@ -131,8 +136,29 @@ class AccountsModel(private val clock: () -> Long = { System.currentTimeMillis()
     }
 }
 
-/** The plugin stores, as the engine last said them. */
+/** The plugin stores, as the engine last said them, and an invite link being checked or spent. */
 class StoresModel {
+    /** What a pasted invite link leads to. */
+    sealed interface Preview {
+        /** Being checked against the store it names. */
+        data class Checking(val link: String) : Preview
+
+        /** The store, checked against the key the link carries. */
+        data class Store(val store: InvitedStore) : Preview
+
+        /** Why it leads nowhere, in words to show in its place. */
+        data class Failed(val reason: String) : Preview
+    }
+
+    /** What a store screen waits on, by the job the engine runs it as. */
+    sealed interface Work {
+        data object Join : Work
+        data class Leave(val store: String) : Work
+        data class Install(val store: String, val plugin: String) : Work
+        data class Remove(val plugin: String) : Work
+        data class Invite(val store: String) : Work
+    }
+
     private val _stores = MutableStateFlow<List<StoreRow>>(emptyList())
 
     /** Every joined store, in the order the engine lists them. */
@@ -143,10 +169,140 @@ class StoresModel {
     /** Whether the engine has said the stores at all. */
     val loaded: StateFlow<Boolean> = _loaded.asStateFlow()
 
+    private val _preview = MutableStateFlow<Preview?>(null)
+
+    /** The invite link being checked, and what it leads to. */
+    val preview: StateFlow<Preview?> = _preview.asStateFlow()
+
+    private val _joined = MutableStateFlow<String?>(null)
+
+    /** The store just joined, for the screen to move into, until it is shown. */
+    val joined: StateFlow<String?> = _joined.asStateFlow()
+
+    private val _invite = MutableStateFlow<InviteLinkView?>(null)
+
+    /** An invite link to show and send: another device of yours, from a store's page. */
+    val invite: StateFlow<InviteLinkView?> = _invite.asStateFlow()
+
+    private val _joining = MutableStateFlow<String?>(null)
+
+    /**
+     * The invite link the join sheet is open with: `""` for an empty sheet, a link for one the
+     * app was opened with, `null` while it is closed.
+     */
+    val joining: StateFlow<String?> = _joining.asStateFlow()
+
+    private val _working = MutableStateFlow<Map<JobId, Work>>(emptyMap())
+
+    /** What is under way. */
+    val working: StateFlow<Map<JobId, Work>> = _working.asStateFlow()
+
     internal fun apply(rows: List<StoreRow>) {
         _stores.value = rows
         _loaded.value = true
     }
+
+    internal fun checking(link: String) {
+        _preview.value = Preview.Checking(link)
+    }
+
+    internal fun previewed(answer: InvitePreview) {
+        _preview.value = when (answer) {
+            is InvitePreview.Store -> Preview.Store(answer.v1)
+            is InvitePreview.Failed -> Preview.Failed(answer.reason)
+        }
+    }
+
+    internal fun joined(store: String) {
+        _joined.value = store
+        _preview.value = null
+        _joining.value = null
+    }
+
+    internal fun invited(link: InviteLinkView) {
+        _invite.value = link
+    }
+
+    internal fun started(work: Work, job: JobId?) {
+        job ?: return
+        _working.value = _working.value + (job to work)
+    }
+
+    internal fun done(job: JobId) {
+        if (job in _working.value) _working.value = _working.value - job
+    }
+
+    /** Open the join sheet, with [link] in it when the app was handed one. */
+    fun openJoin(link: String = "") {
+        _joining.value = link
+    }
+
+    /** Forget the link being checked: the field no longer holds an invite. */
+    fun clearPreview() {
+        _preview.value = null
+    }
+
+    /** The join sheet closed: forget the link being checked. */
+    fun closeJoin() {
+        _joining.value = null
+        _preview.value = null
+    }
+
+    /** The store just joined has been shown. */
+    fun clearJoined() {
+        _joined.value = null
+    }
+
+    /** The invite link has been shown and closed. */
+    fun clearInvite() {
+        _invite.value = null
+    }
+
+    fun isWorking(working: Map<JobId, Work>, work: Work): Boolean = work in working.values
+
+    fun store(id: String): StoreRow? = _stores.value.firstOrNull { it.id == id }
+}
+
+/** Updates waiting in this store. `StoreRow::updates`. */
+val StoreRow.updates: Int get() = plugins.count { it.status is StorePluginStatus.Update }
+
+/** What a plugin may contact, in a line: "Contacts open-archive.example and 1 more". */
+val StorePluginRow.contactsLine: String
+    get() {
+        val first = hosts.firstOrNull() ?: return "Contacts no hosts"
+        return if (hosts.size > 1) "Contacts $first and ${hosts.size - 1} more" else "Contacts $first"
+    }
+
+/** The version installed here: the one an update replaces, or the store's own. */
+val StorePluginRow.installedVersion: String
+    get() = (status as? StorePluginStatus.Update)?.from ?: version
+
+/** What an invite link the app was handed holds: the store's own `https://…/join/{code}#{key}`. */
+object InviteLinks {
+    /**
+     * The https invite in [url], when it is one: an https link as the store makes it, or one the
+     * app was opened with, `anistream://join?link=<the https link>`, or the https link with the
+     * app's scheme in front of its host, `anistream://plugins.example/join/{code}#{key}`.
+     */
+    fun invite(url: String): String? {
+        val uri = runCatching { java.net.URI(url.trim()) }.getOrNull() ?: return null
+        return when (uri.scheme?.lowercase()) {
+            "https" -> url.trim().takeIf { (uri.rawPath ?: "").contains("/join/") }
+            "anistream" -> when (uri.host) {
+                "join" -> uri.rawQuery?.split('&')
+                    ?.firstOrNull { it.startsWith("link=") }
+                    ?.removePrefix("link=")
+                    ?.let { java.net.URLDecoder.decode(it, Charsets.UTF_8) }
+                    ?.let(::invite)
+                "auth", null -> null
+                else -> invite("https" + url.trim().substring("anistream".length))
+            }
+            else -> null
+        }
+    }
+
+    /** Whether pasted [text] reads as an invite link, before the engine checks it. */
+    fun looksLikeInvite(text: String): Boolean = invite(text) != null
 }
 
 /** The downloads, as the engine last said them: the Library's Downloads row reads their size. */

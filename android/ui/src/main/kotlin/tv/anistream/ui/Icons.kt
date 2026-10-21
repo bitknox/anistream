@@ -134,6 +134,9 @@ internal object Icons {
     val Reorder = stroked("Reorder", "M8 19 V5 M4 9 L8 5 L12 9 M16 5 V19 M12 15 L16 19 L20 15")
     val DragHandle = stroked("DragHandle", "M5 9.5 H19 M5 14.5 H19")
 
+    /** A store's key matching its invite. */
+    val Shield = stroked("Shield", "M12 3 L19 6 V11 C19 15.5 16 19 12 21 C8 19 5 15.5 5 11 V6 Z", "M9 12 L11.2 14.2 L15.5 9.8")
+
     /** A menu row's indicator: the filled triangle of a dropdown. */
     val DropDown = ImageVector.Builder(
         name = "DropDown", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f,

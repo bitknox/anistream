@@ -40,6 +40,7 @@ import tv.anistream.store.LibraryModel
 import tv.anistream.store.ProvidersModel
 import tv.anistream.store.SettingsCatalog
 import tv.anistream.store.Wording
+import tv.anistream.store.updates
 
 /** The focus keys of the rows a tablet's column shows the effect of. */
 internal const val FOCUS_UPSCALING = "upscaling"
@@ -324,9 +325,12 @@ internal fun SourcesPane(actions: AppActions) {
     val view by store.settings.view.collectAsStateWithLifecycle()
     val providers by store.providers.rows.collectAsStateWithLifecycle()
     val stores by store.stores.stores.collectAsStateWithLifecycle()
-    LaunchedEffect(Unit) { store.checkProviders() }
+    LaunchedEffect(Unit) {
+        store.checkProviders()
+        store.loadStores()
+    }
     val torrents = store.settings.isOn(SettingKey.TORRENTS, view)
-    val updates = stores.sumOf { store -> store.plugins.count { it.status is StorePluginStatus.Update } }
+    val updates = stores.sumOf { it.updates }
     Pane {
         SettingsGroup(
             rows = listOf(
@@ -334,7 +338,19 @@ internal fun SourcesPane(actions: AppActions) {
                     val navigator = LocalNavigator.current
                     InfoRow(place, "Source order", Wording.plural(providers.size, "source"), onClick = { navigator.open(PROVIDERS_ROUTE) })
                 },
-                { place -> InfoRow(place, "Plugin stores", if (updates > 0) "${stores.size} · ${Wording.plural(updates, "update")}" else "${stores.size}") },
+                { place ->
+                    val navigator = LocalNavigator.current
+                    InfoRow(
+                        place,
+                        "Plugin stores",
+                        when {
+                            stores.isEmpty() -> "None joined"
+                            updates > 0 -> "${stores.size} · ${Wording.plural(updates, "update")}"
+                            else -> "${stores.size}"
+                        },
+                        onClick = { navigator.open(STORES_ROUTE) },
+                    )
+                },
             ),
         )
         SettingsGroup(

@@ -359,12 +359,34 @@ class AppStore(
 
     /** Install [plugin] from [store], or update it. */
     fun installPlugin(store: String, plugin: String) {
-        send(Command.InstallPlugin(store, plugin))
+        stores.started(StoresModel.Work.Install(store, plugin), send(Command.InstallPlugin(store, plugin)))
     }
 
     /** Delete an installed plugin from this device. */
     fun removePlugin(plugin: String) {
-        send(Command.RemovePlugin(plugin))
+        stores.started(StoresModel.Work.Remove(plugin), send(Command.RemovePlugin(plugin)))
+    }
+
+    /** Check a pasted invite link against the store it names, before spending it. */
+    fun previewStore(link: String) {
+        val trimmed = link.trim()
+        stores.checking(trimmed)
+        send(Command.PreviewStore(trimmed))
+    }
+
+    /** Spend an invite link for a token and join. */
+    fun joinStore(link: String) {
+        stores.started(StoresModel.Work.Join, send(Command.JoinStore(link.trim())))
+    }
+
+    /** Forget [store] and revoke this device's token there. */
+    fun leaveStore(store: String) {
+        stores.started(StoresModel.Work.Leave(store), send(Command.LeaveStore(store)))
+    }
+
+    /** An invite link: for someone new with a [name], for another device of yours without. */
+    fun createInvite(store: String, name: String?) {
+        stores.started(StoresModel.Work.Invite(store), send(Command.CreateInvite(store, name)))
     }
 
     /** Pin [provider] as the source for title [id], or give the title back to automatic with `null`. */
@@ -420,6 +442,7 @@ class AppStore(
             is Event.JobDone -> {
                 jobs.done(event.v1)
                 accounts.done(event.v1)
+                stores.done(event.v1)
                 detailDone(event.v1)
             }
 
@@ -451,6 +474,9 @@ class AppStore(
             is Event.Vpn -> providers.guardSaid(event.v1)
             is Event.ProviderPreference -> providers.preference(event.v1)
             is Event.Stores -> stores.apply(event.v1)
+            is Event.StorePreview -> stores.previewed(event.v1)
+            is Event.StoreJoined -> stores.joined(event.store)
+            is Event.InviteLink -> stores.invited(event.v1)
             is Event.Downloads -> downloads.apply(event.v1)
             is Event.ShowSettings -> showSettings.apply(event.v1)
 

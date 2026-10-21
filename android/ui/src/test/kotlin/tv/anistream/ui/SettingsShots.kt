@@ -33,7 +33,13 @@ import org.robolectric.annotation.GraphicsMode
 import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.model.DeviceCodePrompt
 import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.InvitePreview
+import tv.anistream.engine.model.InvitedStore
 import tv.anistream.engine.model.ProviderOrigin
+import tv.anistream.engine.model.StorePluginRow
+import tv.anistream.engine.model.StorePluginStatus
+import tv.anistream.engine.model.StoreRow
+import tv.anistream.engine.model.StoreState
 import tv.anistream.engine.model.ProviderRow
 import tv.anistream.engine.model.ProviderUpdate
 import tv.anistream.store.AppClock
@@ -128,6 +134,25 @@ class SettingsShots {
     @Config(qualifiers = PHONE)
     fun phone_provider() = shoot("phone-provider", providerRoute("mukashi")) { it.apply(listOf(Event.Providers(PROVIDERS))) }
 
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_store() = shoot("phone-store", storeRoute("hotaru")) { it.apply(listOf(Event.Stores(listOf(HOTARU)))) }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_stores() = shoot("phone-stores", STORES_ROUTE) { it.apply(listOf(Event.Stores(listOf(HOTARU)))) }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_join_store() = shoot("phone-join-store", settingsRoute(SettingsPane.Sources), screen = true) { store ->
+        store.stores.openJoin(INVITE)
+        store.apply(listOf(Event.StorePreview(InvitePreview.Store(InvitedStore(INVITE, "Hotaru Plugins", "https://plugins.hotaru.example", "plugins.hotaru.example", "9f3c 1a2b 77de 0c41", alreadyJoined = false)))))
+    }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_store_update() = shoot("phone-store-update", storeRoute("hotaru"), tap = "Update") { it.apply(listOf(Event.Stores(listOf(HOTARU)))) }
+
     /**
      * [scene] replayed into a store, the app drawn with [page] open over Continue, and captured
      * once the art has landed. [tap] taps the node with that text first ([tapIndex] of them), and
@@ -170,6 +195,7 @@ class SettingsShots {
             if (screen) captureScreenRoboImage(file) else compose.onRoot().captureRoboImage(file)
             return
         }
+        compose.waitForIdle()
         val nodes = if (byDescription) compose.onAllNodesWithContentDescription(tap) else compose.onAllNodesWithText(tap)
         nodes[tapIndex].performClick()
         compose.mainClock.advanceTimeBy(1_000)
@@ -234,6 +260,20 @@ class SettingsShots {
             id = id, kind = kind, state = if (usable) "ready" else "down", latencyMs = if (usable) 240uL else null,
             lastError = if (usable) null else "timed out", usable = usable && !disabled, heldBack = false, name = name,
             version = if (kind == "plugin") "1.4.0" else null, hosts = hosts, origin = origin, disabled = disabled, update = update,
+        )
+
+        const val INVITE = "https://plugins.hotaru.example/join/4kq2v9#9f3c1a2b77de0c41"
+
+        /** The boards' store, AndroidStore's: three plugins installed, one with an update, one to install. */
+        val HOTARU = StoreRow(
+            id = "hotaru", name = "Hotaru Plugins", url = "https://plugins.hotaru.example", host = "plugins.hotaru.example",
+            fingerprint = "9f3c 1a2b 77de 0c41", member = "Mika", owner = false, state = StoreState.Ready, checkedAt = null,
+            plugins = listOf(
+                StorePluginRow("archive", "Hotaru Open Archive", "2.3.0", listOf("open-archive.hotaru.example", "media.open-archive.hotaru.example"), StorePluginStatus.Installed),
+                StorePluginRow("mukashi", "Mukashi Archive", "1.5.0", listOf("mukashi-archive.example", "media2.mukashi-archive.example"), StorePluginStatus.Update("1.4.0", listOf("media2.mukashi-archive.example"))),
+                StorePluginRow("kobunko", "Kōbunko Film Library", "0.9.1", listOf("films.kobunko.example"), StorePluginStatus.Installed),
+                StorePluginRow("shorts", "Atelier Hotaru Shorts", "1.0.2", listOf("shorts.atelier-hotaru.example"), StorePluginStatus.Available),
+            ),
         )
 
         /** The boards' sources: four plugins and the built-in torrent source, last. */
