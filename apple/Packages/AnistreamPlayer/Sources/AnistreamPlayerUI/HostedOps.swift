@@ -109,12 +109,13 @@ extension PlayerReport {
         }
     }
 
-    /// The display as the engine reads it.
+    /// The display as the engine reads it. libmpv renders through libplacebo on Metal (by way
+    /// of MoltenVK's Vulkan), which runs compute shaders, so ArtCNN can run.
     init(_ display: DisplayInfo) {
         self = .display(
             width: UInt32(clamping: display.width), height: UInt32(clamping: display.height),
             scale: display.scale, refreshHz: display.refreshRate > 0 ? display.refreshRate : nil,
-            edrHeadroom: display.edrPotential > 1 ? display.edrHeadroom : nil)
+            edrHeadroom: display.edrPotential > 1 ? display.edrHeadroom : nil, compute: true)
     }
 }
 

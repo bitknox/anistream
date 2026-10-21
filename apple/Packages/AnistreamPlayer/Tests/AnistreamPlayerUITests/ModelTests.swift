@@ -124,7 +124,7 @@ struct ReportTests {
         rig.model.surfaceDisplay(
             DisplayInfo(width: 3024, height: 1964, scale: 2, refreshRate: 120, edrHeadroom: 4, edrPotential: 16))
         try await until("mpv told") { !rig.mpv.state.withLock { $0.displays.isEmpty } }
-        #expect(rig.reports.last! == (1, .display(width: 3024, height: 1964, scale: 2, refreshHz: 120, edrHeadroom: 4)))
+        #expect(rig.reports.last! == (1, .display(width: 3024, height: 1964, scale: 2, refreshHz: 120, edrHeadroom: 4, compute: true)))
     }
 
     @Test func theFirstReportsSayWhatTheDeviceRunsOn() async throws {
