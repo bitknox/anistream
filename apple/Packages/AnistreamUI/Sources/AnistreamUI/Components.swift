@@ -135,26 +135,37 @@ struct PrimaryCapsuleStyle: ButtonStyle {
             .font(.system(size: fontSize, weight: .semibold))
             .monospacedDigit()
             .foregroundStyle(.ground)
-            .padding(.horizontal, 18)
+            .lineLimit(1)
+            .padding(.horizontal, height < 34 ? 14 : 18)
             .frame(height: height)
             .background(.amber.opacity(configuration.isPressed ? 0.85 : 1), in: .capsule)
             .contentShape(.capsule)
     }
 }
 
-/// A secondary action: a raised capsule with a hairline edge.
+/// A secondary action: a raised capsule with a hairline edge on the ground, or the selected
+/// raised colour on a raised surface.
 struct SecondaryCapsuleStyle: ButtonStyle {
     var height: CGFloat = 28
+    /// Whether it sits on a raised surface, such as the setup card.
+    var raisedSurface = false
+    var fontSize: CGFloat = 13
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 13))
+            .font(.system(size: fontSize))
             .foregroundStyle(.silk)
+            .lineLimit(1)
             .padding(.horizontal, 14)
             .frame(height: height)
-            .background(configuration.isPressed ? Palette.raisedSelected : Palette.raised, in: .capsule)
-            .overlay(Capsule().strokeBorder(.faintRule, lineWidth: 1))
+            .background(background(pressed: configuration.isPressed), in: .capsule)
+            .overlay(Capsule().strokeBorder(raisedSurface ? .clear : Palette.faintRule, lineWidth: 1))
             .contentShape(.capsule)
+    }
+
+    private func background(pressed: Bool) -> Color {
+        if raisedSurface { return pressed ? Palette.rule : Palette.raisedSelected }
+        return pressed ? Palette.raisedSelected : Palette.raised
     }
 }
 

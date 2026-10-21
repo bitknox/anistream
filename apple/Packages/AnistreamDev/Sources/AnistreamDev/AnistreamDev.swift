@@ -25,17 +25,20 @@ struct AnistreamDev: App {
         Window("anistream", id: "main") {
             RootView()
                 .environment(delegate.store)
+                .environment(delegate.navigator)
                 .frame(minWidth: 960, minHeight: 600)
                 .task { await delegate.run() }
         }
         .defaultSize(width: options.width, height: options.height)
         .windowResizability(.contentMinSize)
+        .commands { AnistreamCommands(store: delegate.store, navigator: delegate.navigator) }
     }
 }
 
 @MainActor
 final class Delegate: NSObject, NSApplicationDelegate {
     let store = AppStore()
+    let navigator = Navigator()
     private var temporary: URL?
 
     func applicationDidFinishLaunching(_ notification: Notification) {

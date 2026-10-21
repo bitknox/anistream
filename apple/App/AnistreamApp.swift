@@ -25,16 +25,19 @@ struct AnistreamApp: App {
         }
         .defaultSize(width: 1280, height: 800)
         .windowResizability(.contentMinSize)
+        .commands { AnistreamCommands(store: delegate.store, navigator: delegate.navigator) }
         #else
         WindowGroup {
             content
         }
+        .commands { AnistreamCommands(store: delegate.store, navigator: delegate.navigator) }
         #endif
     }
 
     private var content: some View {
         RootView()
             .environment(delegate.store)
+            .environment(delegate.navigator)
             #if os(macOS)
             .frame(minWidth: 960, minHeight: 600)
             #endif

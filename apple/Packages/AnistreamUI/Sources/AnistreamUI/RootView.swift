@@ -5,6 +5,8 @@ import AnistreamStore
 import SwiftUI
 
 /// What the app's window shows, over the store in the environment.
+///
+/// The app hands it the store and a `Navigator` in the environment.
 public struct RootView: View {
     @Environment(AppStore.self) private var store
 

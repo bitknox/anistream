@@ -1,38 +1,150 @@
-// The Mac's main window: the sidebar, the toolbar with the sync capsule and search, and the
-// section on screen.
+// The Mac's main window: the sidebar, the toolbar each section dresses, the section on screen and
+// a title's page over it, the palette and the notice capsule.
 
 #if os(macOS)
 import AnistreamDesign
+import AnistreamKit
 import AnistreamStore
 import SwiftUI
 
 struct MacShell: View {
     @Environment(AppStore.self) private var store
-    @State private var section: AppSection = LaunchRoute.current.section
-    @State private var query = ""
+    @Environment(Navigator.self) private var navigator
+    @Namespace private var bannerSpace
 
     var body: some View {
+        @Bindable var navigator = navigator
         NavigationSplitView {
-            Sidebar(selection: $section)
+            Sidebar(selection: $navigator.section)
                 .navigationSplitViewColumnWidth(220)
                 .toolbar(removing: .sidebarToggle)
         } detail: {
-            SectionView(section: section)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .background(.ground)
-                .navigationTitle(section.title)
-                .toolbar {
+            ZStack {
+                SectionView(section: navigator.section)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .background(.ground)
+                if let id = navigator.titleOnMac {
+                    TitlePage(id: id)
+                        .transition(.opacity)
+                        .zIndex(1)
+                }
+            }
+            .environment(\.bannerSpace, bannerSpace)
+            .navigationTitle(navigator.titleOnMac == nil ? navigator.section.title : "")
+            .navigationSubtitle(subtitle)
+            .toolbar {
+                if let id = navigator.titleOnMac {
+                    TitleToolbar(store: store, navigator: navigator, id: id)
+                } else {
+                    SectionToolbar(section: navigator.section)
                     ToolbarItem(placement: .primaryAction) {
-                        SyncCapsule { section = .settings }
+                        SyncCapsule { navigator.open(.settings) }
                     }
                 }
-                .searchable(text: $query, placement: .toolbar, prompt: "Search titles")
-                .onSubmit(of: .search) {
-                    store.search(query)
-                    section = .search
-                }
+            }
+            .toolbarBackgroundVisibility(navigator.titleOnMac == nil ? .automatic : .hidden, for: .windowToolbar)
+            .searchable(text: $navigator.query, placement: .toolbar, prompt: "Search titles")
+            .onSubmit(of: .search) { navigator.search(navigator.query, in: store) }
         }
         .containerBackground(Palette.ground, for: .window)
+        .overlay {
+            if navigator.paletteShown {
+                PaletteOverlay()
+            }
+        }
+        .overlay(alignment: .bottom) {
+            NoticeCapsule().padding(.bottom, 20)
+        }
+        .sheet(isPresented: $navigator.messagesShown) {
+            MessagesView()
+        }
+    }
+
+    /// What the toolbar says under the section's name.
+    private var subtitle: String {
+        guard navigator.titleOnMac == nil else { return "" }
+        switch navigator.section {
+        case .continue:
+            return store.continuing.list.state == .empty ? "Nothing watched yet" : ""
+        case .calendar:
+            return CalendarWords.range(weekDays(offset: navigator.calendarWeek))
+        case .seasonal:
+            return store.seasonName ?? ""
+        default:
+            return ""
+        }
+    }
+}
+
+/// The toolbar items a section adds beside the sync capsule and search.
+struct SectionToolbar: ToolbarContent {
+    let section: AppSection
+
+    var body: some ToolbarContent {
+        switch section {
+        case .calendar:
+            ToolbarItem(placement: .primaryAction) { CalendarToolbar() }
+        case .library:
+            ToolbarItem(placement: .primaryAction) {
+                HStack(spacing: 8) {
+                    LibrarySegments()
+                    LibraryMenus()
+                }
+            }
+        default:
+            ToolbarItem(placement: .primaryAction) { EmptyView() }
+        }
+    }
+}
+
+/// The Library's lists, with how many titles each holds.
+struct LibrarySegments: View {
+    @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
+
+    var body: some View {
+        @Bindable var navigator = navigator
+        if store.accounts.summary.state != .signedOut {
+            Picker("List", selection: $navigator.librarySegment) {
+                ForEach(LibraryModel.order, id: \.self) { segment in
+                    let count = store.library.segment(segment).state.ids.count
+                    Text("\(segment.label.capitalizedSentence) \(count)").tag(segment)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+        }
+    }
+}
+
+/// The Library's order, and More: Sync Now and Export.
+struct LibraryMenus: View {
+    @Environment(AppStore.self) private var store
+    @AppStorage("anistream.librarySort") private var sort: LibrarySort = .lastWatched
+
+    var body: some View {
+        if store.accounts.summary.state != .signedOut {
+            HStack(spacing: 8) {
+                Menu {
+                    Picker("Order", selection: $sort) {
+                        ForEach(LibrarySort.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .pickerStyle(.inline)
+                } label: {
+                    Text(sort.rawValue)
+                }
+                .fixedSize()
+                Menu {
+                    Button("Sync Now") { store.send(.syncNow) }
+                    Divider()
+                    Button("Export…") {}
+                        .disabled(true)
+                } label: {
+                    Label("More", systemImage: "ellipsis")
+                }
+            }
+        }
     }
 }
 
@@ -68,7 +180,10 @@ struct Sidebar: View {
     private func row(_ section: AppSection) -> some View {
         let selected = selection == section
         return Button {
-            selection = section
+            // M1: a section changes at once, with no animation.
+            var instant = Transaction()
+            instant.disablesAnimations = true
+            withTransaction(instant) { selection = section }
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: section.symbol)
@@ -104,10 +219,12 @@ struct SectionView: View {
 
     var body: some View {
         switch section {
-        case .continue:
-            ContinueScreen()
-        default:
-            NotBuiltYet(section: section)
+        case .continue: ContinueScreen()
+        case .calendar: CalendarScreen()
+        case .seasonal: SeasonalScreen()
+        case .search: SearchScreen()
+        case .library: LibraryScreen()
+        default: NotBuiltYet(section: section)
         }
     }
 }

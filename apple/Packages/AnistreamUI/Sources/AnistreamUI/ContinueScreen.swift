@@ -9,6 +9,7 @@ import SwiftUI
 /// the selected title with the one amber action, what it plays.
 struct ContinueScreen: View {
     @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
     @State private var selection: AnilistId? = LaunchRoute.current.selected
 
     var body: some View {
@@ -19,7 +20,11 @@ struct ContinueScreen: View {
                 QueueColumn(queue: nil, selection: $selection)
                     .frame(maxWidth: .infinity, alignment: .leading)
             case .empty:
-                NothingWatched()
+                ScrollView {
+                    WelcomeContinue()
+                        .padding(EdgeInsets(top: 4, leading: 12, bottom: 24, trailing: 16))
+                }
+                .scrollIndicators(.never)
             case .failed(let reason):
                 ListFailed(reason: reason)
             case .loaded:
@@ -51,6 +56,7 @@ struct ContinueScreen: View {
         .onChange(of: selection, initial: true) { _, id in
             // The page's fields (where else it streams) and the episode's name.
             guard let id else { return }
+            navigator.focusedTitle = id
             if !store.titles.detailed.contains(id) { store.loadDetail(id) }
             if store.titles.episodes[id] == nil { store.loadEpisodes(id) }
         }
@@ -172,6 +178,7 @@ struct QueueRow: View {
 /// disabled, rather than missing.
 struct QueueMenu: View {
     @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
     let item: ContinueItem
 
     var body: some View {
@@ -182,8 +189,7 @@ struct QueueMenu: View {
             store.send(.setWatched(id: item.id, episodes: [String(item.episode)], watched: true))
         }
         Divider()
-        Button("Go to Title") {}
-            .disabled(true)
+        Button("Go to Title") { navigator.openTitle(item.id, fromPreview: true) }
         Divider()
         Button("Hide from Continue") {
             store.hideFromContinue(item.id)
@@ -217,15 +223,25 @@ struct PlaceholderRow: View {
 /// action, and the synopsis.
 struct ContinuePreview: View {
     @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
+    @Environment(\.bannerSpace) private var bannerSpace
     let item: ContinueItem
 
     var body: some View {
         let entry = store.titles[item.id] ?? item.entry
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                BannerArt(entry: entry)
-                    .frame(height: 290)
-                    .clipShape(.rect(cornerRadius: ArtShape.bannerRadius))
+                Group {
+                    if navigator.titleOnMac == entry.id {
+                        Color.clear
+                    } else {
+                        BannerArt(entry: entry)
+                            .clipShape(.rect(cornerRadius: ArtShape.bannerRadius))
+                            .modifier(BannerMatch(id: entry.id, space: bannerSpace))
+                            .onTapGesture { navigator.openTitle(entry.id, fromPreview: true) }
+                    }
+                }
+                .frame(height: 290)
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text(entry.showTitle)
@@ -269,7 +285,7 @@ struct ContinuePreview: View {
                     }
                     .buttonStyle(PrimaryCapsuleStyle())
                     .keyboardShortcut(.defaultAction)
-                    Button("Episodes") {}
+                    Button("Episodes") { navigator.openTitle(entry.id, fromPreview: true) }
                         .buttonStyle(SecondaryCapsuleStyle())
                 }
 

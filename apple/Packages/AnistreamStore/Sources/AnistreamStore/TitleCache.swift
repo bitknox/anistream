@@ -84,4 +84,9 @@ public final class TitleCache {
     func episodes(id: AnilistId, rows: [EpisodeRow]) {
         episodes[id] = rows
     }
+
+    /// A title put on a list here, ahead of the tracker's word.
+    public func setStatus(_ id: AnilistId, _ segment: LibrarySegment) {
+        entries[id]?.listStatus = segment
+    }
 }

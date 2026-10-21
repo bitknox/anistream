@@ -12,12 +12,14 @@ import Foundation
 ///     -AnistreamTitle 900001        a title's page, over the section
 ///     -AnistreamQuery hoshikuzu     what Search searches for
 ///     -AnistreamLibrary planning    the Library's list
+///     -AnistreamPalette hoshi       the ⌘K palette, open on these words
 public struct LaunchRoute: Equatable, Sendable {
     public var section: AppSection = .continue
     public var selected: AnilistId?
     public var title: AnilistId?
     public var query: String?
     public var library: LibrarySegment?
+    public var palette: String?
 
     public init() {}
 
@@ -31,6 +33,7 @@ public struct LaunchRoute: Equatable, Sendable {
         selected = value("-AnistreamSelect").flatMap { AnilistId($0) }
         title = value("-AnistreamTitle").flatMap { AnilistId($0) }
         query = value("-AnistreamQuery")
+        palette = value("-AnistreamPalette")
         library = value("-AnistreamLibrary").flatMap { name in
             LibraryModelOrder.segments.first { "\($0)" == name }
         }

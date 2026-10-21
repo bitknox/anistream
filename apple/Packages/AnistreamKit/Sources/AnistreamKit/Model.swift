@@ -90,3 +90,16 @@ public enum Wording {
         count == 1 ? "1 \(noun)" : "\(count) \(noun)s"
     }
 }
+
+extension LibrarySegment {
+    /// The list's name in lower case: "watching". `LibrarySegment::label`.
+    public var label: String {
+        switch self {
+        case .watching: "watching"
+        case .planning: "planning"
+        case .completed: "completed"
+        case .paused: "paused"
+        case .dropped: "dropped"
+        }
+    }
+}

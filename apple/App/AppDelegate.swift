@@ -2,6 +2,7 @@
 
 import AnistreamKit
 import AnistreamStore
+import AnistreamUI
 import Foundation
 #if os(macOS)
 import AppKit
@@ -12,6 +13,7 @@ import UIKit
 @MainActor
 final class AppDelegate: NSObject {
     let store = AppStore()
+    let navigator = Navigator()
     private var started = false
     /// The Fixtures app's directory for this launch, removed at quit.
     private var temporary: URL?
