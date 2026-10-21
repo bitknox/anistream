@@ -156,28 +156,32 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: cargo clippy -p anistream-model --features ffi --all-targets -- -D warnings
 
-  # Swift drives a real engine through the generated bindings: apple/build.sh builds the FFI
-  # library with the test kit in it, generates each crate's Swift bindings from the built library,
-  # and runs the Swift package's tests, which start the engine on a fake AniList and send it the
-  # model's own commands.
+  # Swift drives a real engine through the generated bindings. apple/scripts/test.sh builds the
+  # testing engine for macOS with apple/scripts/engine.sh (the static library as an XCFramework, and
+  # each crate's Swift bindings generated from it) and runs every Swift package's tests on it: the
+  # bindings, the design tokens, and the app's store over a real engine on the fake AniList.
   swift:
-    runs-on: macos-latest
+    runs-on: macos-26
     env:
-      # The Swift package's minimum, as apple/build.sh sets it, so the Rust tests share its build.
-      MACOSX_DEPLOYMENT_TARGET: "14.0"
+      # engine.sh builds with these; the Rust tests below share its build only with them too.
+      MACOSX_DEPLOYMENT_TARGET: "26.0"
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
     steps:
       - uses: actions/checkout@v5
       - run: rustup toolchain install
-      # Its own cache: this build has features and a deployment target no other job's has.
+      # Its own cache: this build has features, a profile and a deployment target no other job's
+      # has.
       - uses: Swatinem/rust-cache@v2
         with:
           key: swift
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: swift --version
       - name: Rust tests
-        run: cargo test -p anistream-ffi --features testing,cli
+        run: >-
+          cargo test -p anistream-ffi --no-default-features --features testing
+          --target aarch64-apple-darwin --profile app-dev
       - name: Swift tests
-        run: apple/build.sh
+        run: apple/scripts/test.sh
 
   # The engine and its FFI library as an iPhone builds them: without the desktop feature, so
   # without mpv, Syncplay, the loopback sign-in and the keychain crate, and with plugins run by

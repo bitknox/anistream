@@ -1,0 +1,15 @@
+# What apple/scripts/engine.sh builds: the engine's XCFramework and Swift bindings per flavour.
+/.engine/
+# What it links into the AnistreamKit package from there.
+/Packages/AnistreamKit/Engine/
+/Packages/AnistreamKit/Sources/AnistreamKit/Generated/
+# SwiftPM's own, in each package.
+/Packages/*/.build/
+/Packages/*/.swiftpm/
+/Packages/*/Package.resolved
+# XcodeGen's output: project.yml is the source.
+/Anistream.xcodeproj/
+# The signing team, which is each developer's own: see Config/Local.xcconfig.example.
+/Config/Local.xcconfig
+# The dev harness's and shots.sh's screenshots.
+/.shots/
