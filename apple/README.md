@@ -12,7 +12,7 @@ generates for `crates/anistream-ffi`.
 | `Packages/AnistreamKit` | The bindings over the engine's XCFramework, and ports of the model's helpers |
 | `Packages/AnistreamDesign` | The Obi & Silk tokens, motion, the show-title face, Nagare, the cover plate |
 | `Packages/AnistreamStore` | The app's state over the engine: the client, the store and its feature models |
-| `Packages/AnistreamUI` | The screens: the Mac's split view, the tab bar on iPad and iPhone, Continue |
+| `Packages/AnistreamUI` | The screens: the Mac's split view and menu bar, the tabs on iPad and iPhone |
 | `Packages/AnistreamDev` | The Mac dev harness, `swift run AnistreamDev` |
 | `App/` | The app's entry point, shared by both apps |
 | `project.yml`, `Config/` | The Xcode project, for XcodeGen |
@@ -94,7 +94,9 @@ engine in temporary directories, and keep secrets in memory.
   settings and the trackers' sync. Artwork is asked for once per URL (`FetchArtwork`), and
   `ArtworkReady` is downsampled with ImageIO off the main thread into an `NSCache`.
   `EngineLaunch` holds what a start takes, `FfiStart` among it.
-- **AnistreamUI**: the screens over the store.
+- **AnistreamUI**: the screens over the store: Continue (with the setup card on a first launch),
+  Calendar, Seasonal, Search, the Library and a title's page, the Mac's menu bar and ⌘K palette,
+  the notice capsule and Messages. A `Navigator` holds where the app is.
 - **AnistreamDev**: the dev harness, below.
 
 ## The Xcode project
@@ -166,15 +168,23 @@ touches your own data.
 ## Screenshots
 
 ```sh
-apple/scripts/shots.sh mac watching fresh
-apple/scripts/shots.sh iphone
+apple/scripts/shots.sh mac watching watching:calendar watching:title=900001 fresh
+apple/scripts/shots.sh iphone watching:library watching:query=hoshi
 apple/scripts/shots.sh ipad
 ```
 
-They go to `apple/.shots/`, which git ignores. Mac shots come from the dev harness. iPhone and iPad
-shots build Anistream Fixtures, run it on a Simulator device of its own (made on first use), with
-the status bar at 19:30 and the dark appearance, and are taken once the app prints
-`ANISTREAM_READY`, which it does when its store has settled.
+A shot is a scene, `watching` (signed in to the fake AniList, Continue filled) or `fresh` (a first
+launch), and after a colon the screen: a section (`calendar`, `seasonal`, `search`, `library`),
+`title=<id>`, `select=<id>`, `query=<words>` or `palette=<words>`. They go to `apple/.shots/`, which
+git ignores. Mac shots come from the dev harness. iPhone and iPad shots build Anistream Fixtures,
+run it on a Simulator device of its own (made on first use), with the status bar at 19:30 and the
+dark appearance, and are taken once the app prints `ANISTREAM_READY`, which it does when its store
+has settled.
+
+The screen comes from launch arguments the app and the harness both read, which also serve for
+coming back to a screen while working on it: `-AnistreamSection calendar`, `-AnistreamSelect
+900005`, `-AnistreamTitle 900001`, `-AnistreamQuery hoshikuzu`, `-AnistreamLibrary planning` and
+`-AnistreamPalette hoshi`, beside `-AnistreamScene`.
 
 ## What is generated
 
@@ -227,9 +237,11 @@ The engine object is `FfiEngine`:
   terminal app does, with the work the engine does on its own switched as `FfiBackground` says
   (every switch on by default);
 - `startTesting(dirs:host:start:)` and `startScene(dirs:host:scene:start:)` exist only in a
-  `testing` build. A scene seeds the database before the engine starts on it, and has the fake
-  AniList answer at the real time: `.watching` leaves four titles under way (two left part-way, one
-  with its next episode waiting, one with an episode out since 19 hours ago), `.fresh` nothing;
+  `testing` build. Both have the fake AniList serve the fixture titles' art, so covers, banners
+  and stills arrive as real images. A scene seeds the database before the engine starts on it, and
+  has the fake answer at the real time: `.watching` is signed in to the fake AniList, whose library
+  fills the Library, and leaves four titles under way (two left part-way, one with its next
+  episode waiting, one with an episode out since 19 hours ago); `.fresh` is a first launch;
 - `FfiStart` is what the app says of itself, every field optional and `FfiStart()` the default:
   the player's `theme` (the terminal's palette without one), its `platform`, the sign-in clients
   it ships with, and `secrets`, where tokens are kept: `.host`, the default, is always the app's
@@ -250,7 +262,4 @@ trackers' and plugin stores' tokens for it, in the keychain: `secretGet`, `secre
 
 - Playback: a play is answered with a notice until the engine can hand a stream to the app's own
   player.
-- Covers carry no colour of their own yet, so every plate is the raised colour until the engine
-  sends `Entry.cover_color`. The fixtures' art is on a host nothing resolves, so the Fixtures app
-  shows plates where the boards show art.
-- Every section but Continue says it comes in a later build.
+- Downloads, Providers, Plugin Stores and Settings say they come in a later build.
