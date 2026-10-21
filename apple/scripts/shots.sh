@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 # Screenshots of the Fixtures app, for comparing with the design boards.
 #
-#   apple/scripts/shots.sh <mac|iphone|ipad> [scene…]
+#   apple/scripts/shots.sh <mac|iphone|ipad> [shot…]
 #
-# The scenes are the testing engine's: watching (Continue filled; the default) and fresh (a first
-# launch). Each shot goes to apple/.shots/<device>-<scene>.png, which git ignores.
+# A shot is a scene, and optionally a screen: watching (Continue filled, signed in; the default)
+# or fresh (a first launch), then after a colon a section (calendar, seasonal, search, library) or
+# title=<id>, select=<id>, query=<words> or palette=<words>:
+#
+#   apple/scripts/shots.sh mac watching watching:calendar watching:title=900001 fresh
+#
+# Each goes to apple/.shots/<device>-<shot>.png, ":" and "=" made "-", which git ignores.
 #
 # - mac: the dev harness (apple/Packages/AnistreamDev) renders its own window once the store has
 #   settled. It needs no Screen Recording permission.
@@ -18,28 +23,52 @@ set -euo pipefail
 shopt -s inherit_errexit 2>/dev/null || true
 
 usage() {
-  echo "usage: apple/scripts/shots.sh <mac|iphone|ipad> [watching|fresh]…" >&2
+  echo "usage: apple/scripts/shots.sh <mac|iphone|ipad> [<watching|fresh>[:<section|key=value>]]…" >&2
   exit 2
 }
 
 device="${1:-}"
 case "$device" in mac | iphone | ipad) ;; *) usage ;; esac
 shift
-scenes=("$@")
-(( ${#scenes[@]} )) || scenes=(watching)
-for scene in "${scenes[@]}"; do
-  case "$scene" in watching | fresh) ;; *) usage ;; esac
+shots=("$@")
+(( ${#shots[@]} )) || shots=(watching)
+for shot in "${shots[@]}"; do
+  case "${shot%%:*}" in watching | fresh) ;; *) usage ;; esac
 done
 
+# The launch arguments for a shot: the scene, and the screen it names.
+arguments() {
+  local shot="$1" scene="${1%%:*}" screen=""
+  [[ "$shot" == *:* ]] && screen="${shot#*:}"
+  printf '%s\n' -AnistreamScene "$scene"
+  case "$screen" in
+    "") ;;
+    title=*) printf '%s\n' -AnistreamTitle "${screen#title=}" ;;
+    select=*) printf '%s\n' -AnistreamSelect "${screen#select=}" ;;
+    query=*) printf '%s\n' -AnistreamSection search -AnistreamQuery "${screen#query=}" ;;
+    palette=*) printf '%s\n' -AnistreamPalette "${screen#palette=}" ;;
+    *) printf '%s\n' -AnistreamSection "$screen" ;;
+  esac
+}
+
+# A shot's file name.
+name() {
+  local name="${1//:/-}"
+  echo "${name//=/-}"
+}
+
 apple="$(cd "$(dirname "$0")/.." && pwd)"
-shots="$apple/.shots"
-mkdir -p "$shots"
+out="$apple/.shots"
+mkdir -p "$out"
 
 if [[ "$device" == mac ]]; then
   "$apple/scripts/engine.sh" testing macos
-  for scene in "${scenes[@]}"; do
+  for shot in "${shots[@]}"; do
+    args=()
+    while IFS= read -r arg; do args+=("$arg"); done < <(arguments "$shot")
+    # The harness takes the scene as --scene, and passes the rest to the app.
     (cd "$apple/Packages/AnistreamDev" &&
-      swift run AnistreamDev --scene "$scene" --snapshot "$shots/mac-$scene.png")
+      swift run AnistreamDev --scene "${shot%%:*}" "${args[@]:2}" --snapshot "$out/mac-$(name "$shot").png")
   done
   exit 0
 fi
@@ -89,13 +118,14 @@ xcrun simctl status_bar "$udid" override --time 19:30 --dataNetwork wifi --wifiM
   --wifiBars 3 --cellularMode active --cellularBars 4 --batteryState charged --batteryLevel 100
 xcrun simctl install "$udid" "$app"
 
-for scene in "${scenes[@]}"; do
+for shot in "${shots[@]}"; do
   log="$(mktemp -t anistream-shot)"
+  args=()
+  while IFS= read -r arg; do args+=("$arg"); done < <(arguments "$shot")
   xcrun simctl terminate "$udid" tv.anistream.fixtures 2>/dev/null || true
   # Attached to the app's console, which ends when the app is terminated: the app's output
   # reaches a file this way, where --stdout leaves it empty.
-  xcrun simctl launch --console-pty "$udid" tv.anistream.fixtures -AnistreamScene "$scene" \
-    >"$log" 2>&1 &
+  xcrun simctl launch --console-pty "$udid" tv.anistream.fixtures "${args[@]}" >"$log" 2>&1 &
   ready=0
   for _ in $(seq 1 120); do
     if grep -q ANISTREAM_READY "$log"; then ready=1; break; fi
@@ -104,8 +134,8 @@ for scene in "${scenes[@]}"; do
   (( ready )) || echo "shots.sh: the app did not say it was ready; taking the shot anyway" >&2
   # The art's and the preview's fade-ins.
   sleep 0.5
-  xcrun simctl io "$udid" screenshot --type=png "$shots/$device-$scene.png" >/dev/null
-  echo "shots.sh: wrote $shots/$device-$scene.png"
+  xcrun simctl io "$udid" screenshot --type=png "$out/$device-$(name "$shot").png" >/dev/null
+  echo "shots.sh: wrote $out/$device-$(name "$shot").png"
   xcrun simctl terminate "$udid" tv.anistream.fixtures 2>/dev/null || true
   wait
   rm -f "$log"

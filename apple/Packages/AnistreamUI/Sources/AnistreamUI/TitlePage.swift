@@ -439,6 +439,7 @@ struct EpisodeStill: View {
     let row: EpisodeRow
     let hidden: Bool
     let unaired: Bool
+    var size = CGSize(width: 64, height: 36)
 
     var body: some View {
         Group {
@@ -458,7 +459,7 @@ struct EpisodeStill: View {
                 ArtworkView(url: row.thumbnail ?? entry.bannerUrl, color: entry.plateColor, maxPixelSize: 128)
             }
         }
-        .frame(width: 64, height: 36)
+        .frame(width: size.width, height: size.height)
         .clipShape(.rect(cornerRadius: 6))
     }
 }

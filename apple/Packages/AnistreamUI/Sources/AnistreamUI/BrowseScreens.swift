@@ -10,12 +10,14 @@ import SwiftUI
 /// This season's most popular titles.
 struct SeasonalScreen: View {
     @Environment(AppStore.self) private var store
+    /// The narrowest a column of covers may be.
+    var minimum: CGFloat = 128
 
     var body: some View {
         ScrollView {
-            ListStates(state: store.seasonal.state) { ids in
-                PosterGrid(entries: ids.compactMap { store.titles[$0] }) { entry in
-                    PosterCell(entry: entry, detail: entry.genres.first)
+            ListStates(state: store.seasonal.state, placeholder: AnyView(PosterGridPlaceholder(minimum: minimum))) { ids in
+                PosterGrid(entries: ids.compactMap { store.titles[$0] }, minimum: minimum, spacing: minimum < 128 ? 12 : 20) { entry in
+                    PosterCell(entry: entry, detail: entry.genres.first, width: minimum)
                 }
             } empty: {
                 QuietLine("Nothing is airing this season yet")
@@ -53,27 +55,25 @@ enum LibrarySort: String, CaseIterable, Identifiable {
 struct LibraryScreen: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    private var narrow: Bool { sizeClass == .compact }
+    #else
+    private var narrow: Bool { false }
+    #endif
     @AppStorage("anistream.librarySort") private var sort: LibrarySort = .lastWatched
+    /// Just the grid, inside a screen of its own, as the iPhone's Library has it.
+    var embedded = false
 
     var body: some View {
         Group {
-            if store.accounts.summary.state == .signedOut {
+            if embedded {
+                grid
+            } else if store.accounts.summary.state == .signedOut {
                 SignedOutLibrary()
             } else {
                 ScrollView {
-                    ListStates(state: store.library.segment(navigator.librarySegment).state) { ids in
-                        PosterGrid(entries: sorted(ids.compactMap { store.titles[$0] })) { entry in
-                            PosterCell(
-                                entry: entry,
-                                detail: libraryLine(entry, in: navigator.librarySegment),
-                                fresh: freshLine(entry),
-                                fraction: meter(entry, in: navigator.librarySegment)
-                            )
-                        }
-                    } empty: {
-                        QuietLine("Nothing on this list")
-                    }
-                    .padding(EdgeInsets(top: 8, leading: 12, bottom: 24, trailing: 16))
+                    grid.padding(EdgeInsets(top: 8, leading: 12, bottom: 24, trailing: 16))
                 }
                 .scrollIndicators(.never)
             }
@@ -82,6 +82,27 @@ struct LibraryScreen: View {
             for segment in LibraryModel.order where store.library.segment(segment).state == .idle {
                 store.loadLibrary(segment)
             }
+        }
+    }
+
+    private var grid: some View {
+        let minimum: CGFloat = narrow ? 100 : 128
+        return ListStates(
+            state: store.library.segment(navigator.librarySegment).state,
+            placeholder: AnyView(PosterGridPlaceholder(minimum: minimum))
+        ) { ids in
+            PosterGrid(entries: sorted(ids.compactMap { store.titles[$0] }), minimum: minimum,
+                       spacing: minimum < 128 ? 12 : 20) { entry in
+                PosterCell(
+                    entry: entry,
+                    detail: libraryLine(entry, in: navigator.librarySegment),
+                    fresh: freshLine(entry),
+                    fraction: meter(entry, in: navigator.librarySegment),
+                    width: minimum
+                )
+            }
+        } empty: {
+            QuietLine("Nothing on this list")
         }
     }
 
@@ -193,12 +214,14 @@ let searchGenres = [
 struct SearchScreen: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
+    /// The iPhone's: sentence case, larger type, three columns.
+    var compact = false
 
     var body: some View {
         ScrollView {
             Group {
                 if store.search.submitted == nil {
-                    SearchStart()
+                    SearchStart(compact: compact)
                 } else {
                     VStack(alignment: .leading, spacing: 16) {
                         if let caption = searchCaption {
@@ -206,9 +229,11 @@ struct SearchScreen: View {
                                 .font(.system(size: 13))
                                 .foregroundStyle(.haze)
                         }
-                        ListStates(state: store.search.list.state) { ids in
-                            PosterGrid(entries: ids.compactMap { store.titles[$0] }) { entry in
-                                PosterCell(entry: entry, detail: searchLine(entry))
+                        ListStates(state: store.search.list.state,
+                                   placeholder: AnyView(PosterGridPlaceholder(minimum: compact ? 100 : 128))) { ids in
+                            PosterGrid(entries: ids.compactMap { store.titles[$0] }, minimum: compact ? 100 : 128,
+                                       spacing: compact ? 12 : 20) { entry in
+                                PosterCell(entry: entry, detail: searchLine(entry), width: compact ? 100 : 128)
                             }
                         } empty: {
                             QuietLine("Nothing found for \u{201c}\(store.search.submitted?.query ?? "")\u{201d}")
@@ -216,7 +241,8 @@ struct SearchScreen: View {
                     }
                 }
             }
-            .padding(EdgeInsets(top: 8, leading: 12, bottom: 24, trailing: 16))
+            .padding(compact ? EdgeInsets(top: 8, leading: 16, bottom: 24, trailing: 16)
+                             : EdgeInsets(top: 8, leading: 12, bottom: 24, trailing: 16))
         }
         .scrollIndicators(.never)
         .task {
@@ -247,13 +273,14 @@ struct SearchStart: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
     private let recents = RecentSearches.shared
+    var compact = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 28) {
             if !recents.queries.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        SectionHeading("Recent Searches")
+                        SectionHeading(compact ? "Recent searches" : "Recent Searches", compact: compact)
                         Spacer()
                         Button("Clear") { recents.clear() }
                             .buttonStyle(.plain)
@@ -285,26 +312,37 @@ struct SearchStart: View {
             if !season.isEmpty {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(alignment: .firstTextBaseline) {
-                        SectionHeading("This Season")
+                        SectionHeading(compact ? "This season" : "This Season", compact: compact)
                         Spacer()
                         if let name = store.seasonName {
-                            Text(name).font(.system(size: 13)).foregroundStyle(.haze)
+                            Text(name).font(.system(size: compact ? 15 : 13)).foregroundStyle(.haze)
                         }
                     }
-                    PosterGrid(entries: season) { entry in
-                        PosterCell(entry: entry, detail: entry.genres.first)
+                    if compact {
+                        ScrollView(.horizontal) {
+                            HStack(alignment: .top, spacing: 12) {
+                                ForEach(season, id: \.id) { PosterCell(entry: $0, width: 124).frame(width: 124) }
+                            }
+                            .padding(.horizontal, 16)
+                        }
+                        .scrollIndicators(.never)
+                        .padding(.horizontal, -16)
+                    } else {
+                        PosterGrid(entries: season) { entry in
+                            PosterCell(entry: entry, detail: entry.genres.first)
+                        }
                     }
                 }
             }
             VStack(alignment: .leading, spacing: 12) {
-                SectionHeading("Genres")
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 8)], spacing: 8) {
+                SectionHeading("Genres", compact: compact)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: compact ? 100 : 140), spacing: 8)], spacing: 8) {
                     ForEach(searchGenres, id: \.self) { genre in
                         Button(genre.capitalizedSentence) {
                             navigator.section = .search
                             store.search("", filter: SearchFilters(genre: genre))
                         }
-                        .buttonStyle(ChipStyle())
+                        .buttonStyle(ChipStyle(height: compact ? 44 : 32, fontSize: compact ? 17 : 13))
                     }
                 }
             }
@@ -315,14 +353,16 @@ struct SearchStart: View {
 /// A heading over a group on a screen: 15 semibold on the Mac.
 struct SectionHeading: View {
     let text: String
+    var compact = false
 
-    init(_ text: String) {
+    init(_ text: String, compact: Bool = false) {
         self.text = text
+        self.compact = compact
     }
 
     var body: some View {
         Text(text)
-            .font(.system(size: 15, weight: .semibold))
+            .font(.system(size: compact ? 20 : 15, weight: .semibold))
             .foregroundStyle(.silk)
             .accessibilityAddTraits(.isHeader)
     }
@@ -331,13 +371,15 @@ struct SectionHeading: View {
 /// A raised capsule with a hairline edge, filling its cell: a genre, a filter.
 struct ChipStyle: ButtonStyle {
     var selected = false
+    var height: CGFloat = 32
+    var fontSize: CGFloat = 13
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 13))
+            .font(.system(size: fontSize))
             .foregroundStyle(selected ? .amber : .silk)
             .frame(maxWidth: .infinity)
-            .frame(height: 32)
+            .frame(height: height)
             .background(
                 selected ? Palette.selection : configuration.isPressed ? Palette.raisedSelected : Palette.raised,
                 in: .capsule
