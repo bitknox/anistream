@@ -28,9 +28,17 @@ public struct EngineLaunch: Sendable {
     public var secrets: SecretsMode
     /// How mpv's interface is dressed once the player is the app's: the palette's hexes.
     public var theme: PlayerTheme
-    /// The client ids that ship with the app, for the native sign-in. None are registered yet.
+    /// The client ids that ship with the app, for the native sign-in: `app`'s registered ones,
+    /// none for the Fixtures app, whose trackers are the fake's.
     public var anilistClientID: String?
     public var malClientID: String?
+
+    /// anistream's AniList client: implicit grant, redirecting to `anistream://auth/anilist`.
+    /// Not a secret; it ships in the app.
+    public static let anilistClient = "54537"
+    /// anistream's MyAnimeList client: type "other", PKCE, redirecting to `anistream://auth/mal`.
+    /// Not a secret either.
+    public static let malClient = "0ccc4725381aca9513f26d32107a94cd"
 
     public init(
         engine: Engine,
@@ -59,7 +67,9 @@ public struct EngineLaunch: Sendable {
             engine: .app,
             home: home,
             platform: platform,
-            secrets: platform == .macOs ? .followConfig : .host
+            secrets: platform == .macOs ? .followConfig : .host,
+            anilistClientID: anilistClient,
+            malClientID: malClient
         )
     }
 

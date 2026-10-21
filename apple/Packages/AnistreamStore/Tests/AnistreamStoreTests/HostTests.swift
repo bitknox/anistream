@@ -86,7 +86,13 @@ struct HomeTests {
             home: .override(root: URL(filePath: "/tmp/anistream-home", directoryHint: .isDirectory)),
             platform: .macOs
         )
+        // The registered clients, on every platform.
+        #expect(launch.record.anilistClientId == "54537")
+        #expect(launch.record.malClientId == "0ccc4725381aca9513f26d32107a94cd")
+        let phone = EngineLaunch.app(home: launch.home, platform: .ios)
+        #expect(phone.record.anilistClientId == "54537" && phone.record.malClientId == EngineLaunch.malClient)
         launch.anilistClientID = "4242"
+        launch.malClientID = nil
         let record = launch.record
         #expect(record.platform == .macOs)
         #expect(record.secrets == .followConfig)
