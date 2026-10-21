@@ -140,6 +140,15 @@ class ReportTest {
     }
 
     @Test
+    fun theDisplayIsSaidAsThePlayerOpensBeforeAnySurface() = runTest {
+        val rig = Rig(this, display = DisplayInfo(2400, 1080, 2.625, 60.0))
+        rig.opened()
+        val display = rig.reports.indexOfFirst { it.second is PlayerReport.Display }
+        val loaded = rig.reports.indexOfFirst { it.second == PlayerReport.FileLoaded }
+        assertTrue("the display before the file", display in 0 until loaded)
+    }
+
+    @Test
     fun theFirstReportsSayWhatTheDeviceRunsOn() = runTest {
         val rig = Rig(this)
         rig.opened()

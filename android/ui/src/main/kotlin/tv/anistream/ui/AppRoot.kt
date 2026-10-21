@@ -211,7 +211,8 @@ fun AppRoot(
         Scaffold(
             containerColor = MaterialTheme.colorScheme.surface,
             contentWindowInsets = WindowInsets(0),
-            snackbarHost = { SnackbarHost(snackbars.host) },
+            // The player says its own notices on the video; the snackbars wait for it to close.
+            snackbarHost = { if (!onPlayer) SnackbarHost(snackbars.host) },
             bottomBar = { if (!wide && !onPage && !onPlayer) PhoneBar(current ?: start, navigator::go) },
         ) { padding ->
             Row(Modifier.padding(padding).consumeWindowInsets(padding)) {

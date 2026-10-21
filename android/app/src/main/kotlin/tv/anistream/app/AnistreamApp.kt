@@ -6,6 +6,8 @@ import android.app.Application
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.graphics.Bitmap
+import android.hardware.display.DisplayManager
+import android.view.Display
 import android.net.Uri
 import android.util.Log
 import android.net.ConnectivityManager
@@ -46,6 +48,10 @@ class AnistreamApp : Application(), PlayerHost {
             backend = { MpvBackend(this) },
             scope = scope,
             power = { Device.power(this) },
+            display = {
+                getSystemService(DisplayManager::class.java)?.getDisplay(Display.DEFAULT_DISPLAY)
+                    ?.let { Device.display(it, resources.displayMetrics.density) }
+            },
         ).also { player ->
             store.onPlayback = player::apply
             PlayerConnection(this, player, scope)

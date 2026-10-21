@@ -71,6 +71,12 @@ class PlayerModel(
     private val power: () -> PowerState = { PowerState(onBattery = false, lowPower = false) },
     /** The hardware decoding mpv starts with: none in the emulator (AS5). */
     private val hwdec: String = MpvSetup.defaultHwdec,
+    /**
+     * The screen the player is on, as the window has it before any surface: said as the player
+     * opens, so the engine's first upscaling chain is chosen for it, and no compute shaders on
+     * GLES, rather than stepped down from a guess a moment later.
+     */
+    private val display: () -> DisplayInfo? = { null },
 ) {
     // Wiring
 
@@ -440,6 +446,7 @@ class PlayerModel(
             this.fullScreen = fullScreen
             start(hwdec)
             report(PlayerReport.Power(power().onBattery, power().lowPower))
+            display()?.let(::surfaceDisplay)
         }
         speed?.let { enqueue(MpvCall.Set("speed", MpvValue.Real(it))) }
         volume?.let { enqueue(MpvCall.Set("volume", MpvValue.Real(it))) }
