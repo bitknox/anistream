@@ -851,7 +851,8 @@ fn an_episode_yet_to_air_fails_at_once_without_asking_a_source() {
     app.engine.send(Command::LoadEpisodes(AIRING));
     app.until("the table", |event| matches!(event, Event::Episodes { .. }).then_some(()));
     let listed = asked.load(std::sync::atomic::Ordering::SeqCst);
-    // The airing fixture's next episode is 6, two days out; 7 comes after it.
+    // The airing fixture's next episode is 6, two days out, and 7 is on its schedule after it.
+    // Past the schedule, the next one is what can be said.
     let picked = Command::PlaySource {
         id: AIRING,
         episode: "7".into(),
@@ -860,7 +861,11 @@ fn an_episode_yet_to_air_fails_at_once_without_asking_a_source() {
     };
     for (play, said) in [
         (Command::Play { id: AIRING, episode: "6".into() }, "episode 6 airs "),
-        (picked, "episode 7 hasn't aired yet; episode 6 airs "),
+        (picked, "episode 7 airs "),
+        (
+            Command::Play { id: AIRING, episode: "99".into() },
+            "episode 99 hasn't aired yet; episode 6 airs ",
+        ),
     ] {
         app.engine.send(play);
         let refusal = app.until("the refusal", |event| match event {

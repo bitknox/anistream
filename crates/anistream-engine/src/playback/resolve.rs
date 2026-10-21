@@ -17,9 +17,10 @@ const NO_SOURCES: &str = "no sources configured — see the Providers screen";
 /// Why `episode` of `media` cannot be played yet, when its schedule says it has not aired.
 ///
 /// Asked for, every source would be tried in turn for an episode none of them can have, and
-/// the play would fail in the end as a missing one. Only an episode the schedule rules out:
-/// the next to air while its time is still ahead, and any after it. A label that is not a
-/// number, or a title with no schedule, is looked up as ever.
+/// the play would fail in the end as a missing one. Only an episode the schedule rules out: one
+/// whose own broadcast is still ahead, said by its own time, or, past the broadcasts the title
+/// carries, one after the next to air while that is still ahead. A label that is not a number,
+/// or a title with no schedule, is looked up as ever.
 pub(crate) fn not_aired(media: &anistream_meta::Media, episode: &str) -> Option<String> {
     not_aired_in(media, episode, &jiff::tz::TimeZone::system())
 }
@@ -31,18 +32,26 @@ fn not_aired_in(
     zone: &jiff::tz::TimeZone,
 ) -> Option<String> {
     let number: u32 = episode.trim().parse().ok()?;
-    let next = media.next_airing_episode.as_ref()?;
-    if next.time_until_airing <= 0 || number < next.episode {
-        return None;
+    let next = media.next_airing_episode.as_ref();
+    // Now as the answer had it, so what is ahead and the day it falls on are counted by the
+    // clock its countdown was; a title with nothing to come has only the wall clock.
+    let now = next.map_or_else(now_epoch, |next| next.airing_at - next.time_until_airing);
+    match media.air_times().get(&number) {
+        Some(&at) if at > now => {
+            Some(format!("episode {number} airs {}", airs_when(at, now, zone)?))
+        }
+        Some(_) => None,
+        // Not among the broadcasts the title carries: ruled out only by coming after the next.
+        None => {
+            let next =
+                next.filter(|next| next.time_until_airing > 0 && number > next.episode)?;
+            let when = airs_when(next.airing_at, now, zone)?;
+            Some(format!(
+                "episode {number} hasn't aired yet; episode {} airs {when}",
+                next.episode
+            ))
+        }
     }
-    // Now as the answer had it, so the day is counted by the clock the countdown was.
-    let now = next.airing_at - next.time_until_airing;
-    let when = airs_when(next.airing_at, now, zone)?;
-    Some(if number == next.episode {
-        format!("episode {number} airs {when}")
-    } else {
-        format!("episode {number} hasn't aired yet; episode {} airs {when}", next.episode)
-    })
 }
 
 /// When a broadcast at `at` is, as someone in `zone` says it at `now`: "today 18:30",
@@ -348,6 +357,39 @@ mod tests {
             said(4, saturday, " 6").as_deref(),
             Some("episode 6 hasn't aired yet; episode 4 airs Saturday 18:30")
         );
+    }
+
+    #[test]
+    fn an_episode_further_out_is_said_by_its_own_broadcast() {
+        let now = local("2026-10-21T10:00");
+        let saturday = local("2026-10-24T18:30");
+        // The next is episode 4 on Saturday; 5 and 6 are on the schedule the weeks after.
+        let media: anistream_meta::Media = serde_json::from_value(serde_json::json!({
+            "id": 154_587,
+            "nextAiringEpisode": {
+                "episode": 4,
+                "airingAt": saturday,
+                "timeUntilAiring": saturday - now,
+            },
+            "upcoming": { "nodes": [
+                { "episode": 4, "airingAt": saturday },
+                { "episode": 5, "airingAt": saturday + 7 * 24 * HOUR },
+                { "episode": 6, "airingAt": saturday + 14 * 24 * HOUR },
+            ] },
+            "aired": [{ "episode": 3, "airingAt": saturday - 7 * 24 * HOUR }],
+        }))
+        .unwrap();
+        let said = |episode| not_aired_in(&media, episode, &zone());
+        assert_eq!(said("4").as_deref(), Some("episode 4 airs Saturday 18:30"));
+        assert_eq!(said("5").as_deref(), Some("episode 5 airs Saturday 31 October 18:30"));
+        assert_eq!(said("6").as_deref(), Some("episode 6 airs Saturday 7 November 18:30"));
+        // Past what the schedule carries, the next one is what can be said.
+        assert_eq!(
+            said("9").as_deref(),
+            Some("episode 9 hasn't aired yet; episode 4 airs Saturday 18:30")
+        );
+        // Out already.
+        assert_eq!(said("3"), None);
     }
 
     #[test]
