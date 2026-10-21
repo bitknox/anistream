@@ -104,6 +104,14 @@ public final class PlayerModel {
     public private(set) var thumbnails: String?
     /// Every playback up to this one is over: its ops are refused.
     @ObservationIgnored private var closedThrough: PlaybackId?
+    /// The viewer closed the player: every op is refused until the engine stages a playback
+    /// again, so one it was still finding cannot bring the player back up.
+    @ObservationIgnored private var closedByViewer = false
+    /// A playback has been staged that has said nothing yet: the one on screen, if any, is older,
+    /// and stopping is for the staged one, which only a Stop for whatever plays reaches.
+    @ObservationIgnored private var stagedAhead = false
+    /// The playbacks the engine has been told this player closed for.
+    @ObservationIgnored private var closedSaid: Set<PlaybackId> = []
 
     // MARK: What the engine says
 
@@ -222,6 +230,8 @@ public final class PlayerModel {
             apply(ui, for: playback)
         case .playbackStaged(let id, let title, let episode, let episodeTitle, _):
             since = .now
+            closedByViewer = false
+            stagedAhead = true
             failure = nil
             choosingSource = false
             sourceChoices = nil
@@ -256,7 +266,8 @@ public final class PlayerModel {
 
     func apply(_ op: PlayerOp, for playback: PlaybackId) {
         guard accepts(playback) else {
-            Self.note(.warn, "#\(playback) refused \(Self.describe(op)): that playback is over")
+            Self.note(.warn, "#\(playback) refused \(Self.describe(op)): \(closedByViewer ? "the viewer closed the player" : "that playback is over")")
+            sayClosed(playback)
             return
         }
         enter(playback)
@@ -287,7 +298,10 @@ public final class PlayerModel {
     }
 
     func apply(_ ui: PlayerUi, for playback: PlaybackId) {
-        guard accepts(playback) else { return }
+        guard accepts(playback) else {
+            sayClosed(playback)
+            return
+        }
         enter(playback)
         let now = ContinuousClock.now
         switch ui {
@@ -345,16 +359,28 @@ public final class PlayerModel {
         }
     }
 
-    /// Whether ops and interface for `playback` are still taken: not once it is over.
+    /// Whether ops and interface for `playback` are still taken: not once it is over, nor any
+    /// at all once the viewer has closed the player, until a playback is staged again.
     private func accepts(_ playback: PlaybackId) -> Bool {
+        guard !closedByViewer else { return false }
         guard let closedThrough else { return true }
         return playback > closedThrough
+    }
+
+    /// Tell the engine this player is closed for `playback`, once: what it says to a player that
+    /// is gone is refused, and a playback that opened one here, as the next episode found after
+    /// the viewer closed it can, ends as closed rather than waiting on it.
+    private func sayClosed(_ playback: PlaybackId) {
+        guard closedSaid.insert(playback).inserted else { return }
+        Self.logReport(.closed, for: playback)
+        send(.playerReport(playback: playback, report: .closed))
     }
 
     /// The engine speaks of `playback`: a newer one starts with none of the last one's cards.
     private func enter(_ playback: PlaybackId) {
         guard self.playback.map({ playback > $0 }) ?? true else { return }
         self.playback = playback
+        stagedAhead = false
         skip = nil
         undo = nil
         upNext = nil
@@ -452,8 +478,13 @@ public final class PlayerModel {
     }
 
     /// The viewer closed the player: its close button, the swipe down, the window's close.
+    ///
+    /// Nothing the engine says brings it back up until it stages another playback: a playback
+    /// still being found, the first or the next after Play Now or an Episodes pick, is stopped,
+    /// and should its player open all the same, it is told the player closed.
     public func viewerClosed() {
         input()
+        closedByViewer = true
         if failure != nil {
             // Nothing is playing: the screen only said so.
             dismiss()
@@ -462,12 +493,25 @@ public final class PlayerModel {
         guard backend != nil else {
             if isPresented {
                 // Nothing opened yet: stop what is being found.
-                control(.stop)
+                stopFinding()
                 dismiss()
             }
             return
         }
         close(reporting: true)
+        // The file on screen is closed; the next one staged since is still being found.
+        if stagedAhead { send(.player(.stop)) }
+    }
+
+    /// Stop what the engine is finding for this player: aimed at the playback on screen, unless
+    /// one has been staged since that has said nothing yet. Aimed at the one before, a Stop would
+    /// miss it, so it goes to whatever plays, which is the one staged last.
+    private func stopFinding() {
+        if stagedAhead || playback == nil {
+            send(.player(.stop))
+        } else {
+            control(.stop)
+        }
     }
 
     /// Close mpv and the player. `reporting`: say the file ended by quitting, and that the
@@ -720,6 +764,7 @@ public final class PlayerModel {
             Self.note(.debug, "no playback to report \(report) for")
             return
         }
+        if report == .closed { closedSaid.insert(target) }
         Self.logReport(report, for: target)
         send(.playerReport(playback: target, report: report))
     }
