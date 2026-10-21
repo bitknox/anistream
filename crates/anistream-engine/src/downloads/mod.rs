@@ -504,6 +504,25 @@ where
     outcome
 }
 
+/// Which version of an episode a download asks for: the translation, and the resolution its
+/// streams are ranked toward.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Wanted {
+    pub translation: Translation,
+    pub resolution: u32,
+}
+
+impl Wanted {
+    /// What a download asks for under `config`: playback's translation, and its quality or,
+    /// for downloads in higher quality, the best a source has.
+    pub fn of(config: &anistream_core::config::Config) -> Self {
+        Self {
+            translation: config.playback.translation,
+            resolution: config.downloads.quality.resolution(config.playback.quality),
+        }
+    }
+}
+
 /// Queue an episode, resolving a magnet for it first.
 ///
 /// Resolution happens here rather than in the manager because it needs the provider chain and the
@@ -514,8 +533,9 @@ pub async fn enqueue(
     meta: &anistream_meta::Meta,
     anilist_id: AnilistId,
     episode: &str,
-    translation: Translation,
+    wanted: Wanted,
 ) -> Result<(Download, Queued), Refusal> {
+    let Wanted { translation, resolution } = wanted;
     // Already queued or finished: report that instead of resolving again.
     if let Ok(Some(existing)) = store.download_for(anilist_id, episode)
         && existing.state != DownloadState::Failed
@@ -550,6 +570,10 @@ pub async fn enqueue(
         }
         anistream_providers::Answer::Unanswered { .. } => Vec::new(),
     };
+    // Toward the quality asked for, as playback ranks them: the first torrent after that is the
+    // one taken, and among equals the source's own order stands.
+    let mut streams = streams;
+    streams.sort_by_key(|s| s.quality_rank(resolution));
     // Only a torrent can be downloaded. An HLS stream would need remuxing a live playlist, and a
     // deep link is somebody else's player — saying so is better than a mystery failure.
     let magnet = streams
@@ -577,6 +601,17 @@ mod tests {
 
     fn episodes(n: u32) -> Vec<String> {
         (1..=n).map(|n| n.to_string()).collect()
+    }
+
+    #[test]
+    fn a_download_asks_for_what_its_quality_setting_says() {
+        use anistream_core::config::{Config, DownloadQuality};
+        let mut config = Config::default();
+        config.playback.quality = 720;
+        let standard = Wanted::of(&config);
+        assert_eq!((standard.translation, standard.resolution), (Translation::Sub, 720));
+        config.downloads.quality = DownloadQuality::Higher;
+        assert_eq!(Wanted::of(&config).resolution, u32::MAX, "the best a source has");
     }
 
     #[tokio::test]

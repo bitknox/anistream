@@ -55,6 +55,20 @@ pub fn write_key(
     key: &str,
     value: SettingValue,
 ) -> Result<(), crate::Error> {
+    write_keys(paths, vec![(table, key, value)])
+}
+
+/// Write several keys as one change: all of them or, when the file would not load with all of
+/// them in it, none. [`write_key`] for each, with the rest of the document left alone just the
+/// same.
+///
+/// One write rather than several because some settings only make sense together: the torrent
+/// source's protection is a mode, a proxy and an acknowledgement, and a file holding the mode
+/// without the acknowledgement it needs is one the app would refuse to load.
+pub fn write_keys(
+    paths: &Paths,
+    edits: Vec<(&[&str], &str, SettingValue)>,
+) -> Result<(), crate::Error> {
     let path = &paths.config_file;
     let existing = match std::fs::read_to_string(path) {
         Ok(src) => src,
@@ -82,7 +96,27 @@ pub fn write_key(
     let mut doc = existing.parse::<toml_edit::DocumentMut>().map_err(|e| {
         crate::Error::Config(format!("{} is not valid TOML: {e}", path.display()))
     })?;
+    for (table, key, value) in edits {
+        set_in(&mut doc, path, table, key, value)?;
+    }
 
+    let rendered = doc.to_string();
+
+    // Validate before writing rather than after. A config the app refuses to load is much worse
+    // than a setting that did not stick, and this is the last point where it can be caught.
+    crate::config::Config::from_toml(&rendered)?;
+
+    write_atomically(path, rendered.as_bytes())
+}
+
+/// Set `table`.`key` to `value` in `doc`, the document at `path`, creating any tables it needs.
+fn set_in(
+    doc: &mut toml_edit::DocumentMut,
+    path: &Path,
+    table: &[&str],
+    key: &str,
+    value: SettingValue,
+) -> Result<(), crate::Error> {
     // Walk down to the containing table, creating implicit tables on the way. `set_implicit`
     // keeps `[providers]` from being written as an empty header when only `[providers.torrent]`
     // has any keys in it.
@@ -121,13 +155,7 @@ pub fn write_key(
         }
     }
 
-    let rendered = doc.to_string();
-
-    // Validate before writing rather than after. A config the app refuses to load is much worse
-    // than a setting that did not stick, and this is the last point where it can be caught.
-    crate::config::Config::from_toml(&rendered)?;
-
-    write_atomically(path, rendered.as_bytes())
+    Ok(())
 }
 
 /// Write via a temporary file in the same directory, then rename.
@@ -381,6 +409,83 @@ mod tests {
         assert_eq!(mode, 0o640, "the target's mode was not kept");
         let strays: Vec<_> = std::fs::read_dir(&dotfiles).unwrap().flatten().collect();
         assert_eq!(strays.len(), 1, "a temporary file was left behind: {strays:?}");
+    }
+
+    #[test]
+    fn a_file_with_the_native_apps_keys_loads_and_survives_a_terminal_write() {
+        // On a Mac the apps and the terminal share one config.toml. The terminal shows none of
+        // these, and has to load a file holding them and write next to them without loss.
+        let dir = temp_dir("native-keys");
+        let paths = paths_in(&dir);
+        let before = "\
+# written by the app
+[playback]
+quality = 1080
+up_next_countdown = 5  # shorter
+spoiler_protection = false
+
+[downloads]
+quality = \"higher\"
+keep_next = 3
+on_cellular = true
+
+[providers.torrent]
+on_cellular = true
+
+[providers.torrent.vpn]
+on_leak = \"warn\"
+i_understand_a_failed_check_keeps_torrents_running = true
+";
+        std::fs::write(&paths.config_file, before).unwrap();
+
+        let config = crate::config::Config::load(&paths).unwrap();
+        assert_eq!(config.playback.up_next_countdown, 5);
+        assert!(!config.playback.spoiler_protection);
+        assert_eq!(config.downloads.quality, crate::config::DownloadQuality::Higher);
+        assert_eq!(config.downloads.keep_next, 3);
+        assert!(config.downloads.on_cellular && config.providers.torrent.on_cellular);
+        assert_eq!(config.providers.torrent.vpn.on_leak, crate::config::LeakAction::Warn);
+
+        write_key(&paths, &["playback"], "quality", SettingValue::Int(720)).unwrap();
+        let after = std::fs::read_to_string(&paths.config_file).unwrap();
+        assert_eq!(after, before.replace("quality = 1080", "quality = 720"), "only that line");
+    }
+
+    #[test]
+    fn several_keys_are_written_together_or_not_at_all() {
+        let dir = temp_dir("batch");
+        let paths = paths_in(&dir);
+        std::fs::write(&paths.config_file, "[providers.torrent]\nenabled = false\n").unwrap();
+        let vpn: &[&str] = &["providers", "torrent", "vpn"];
+
+        // Each alone would be a file that does not load once torrents are on; together they are
+        // one that does.
+        write_keys(
+            &paths,
+            vec![
+                (vpn, "on_leak", SettingValue::Str("warn".into())),
+                (
+                    vpn,
+                    "i_understand_a_failed_check_keeps_torrents_running",
+                    SettingValue::Bool(true),
+                ),
+            ],
+        )
+        .unwrap();
+        let config = crate::config::Config::load(&paths).unwrap();
+        assert_eq!(config.providers.torrent.vpn.on_leak, crate::config::LeakAction::Warn);
+
+        // Torrents on with no indexer: refused whole, the key that would have loaded included.
+        let before = std::fs::read_to_string(&paths.config_file).unwrap();
+        let refused = write_keys(
+            &paths,
+            vec![
+                (vpn, "mode", SettingValue::Str("external".into())),
+                (&["providers", "torrent"], "enabled", SettingValue::Bool(true)),
+            ],
+        );
+        assert!(refused.is_err());
+        assert_eq!(std::fs::read_to_string(&paths.config_file).unwrap(), before);
     }
 
     #[test]
