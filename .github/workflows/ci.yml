@@ -176,6 +176,10 @@ jobs:
       - run: swift --version
       - name: Rust tests
         run: cargo test -p anistream-ffi --features testing,cli
+      # The apps build the engine without the desktop feature, so its hosted player has to pass
+      # its contract in that build too.
+      - name: Rust tests, the apps' build
+        run: cargo test -p anistream-ffi --no-default-features --features testing
       - name: Swift tests
         run: apple/build.sh
 
