@@ -25,11 +25,14 @@ public class Pairs {
         new Pair("phone-welcome", "AndroidWelcome", "Fresh scene", 1500),
         new Pair("phone-home", "AndroidHome", "Watching scene", 1500),
         new Pair("phone-title", "AndroidTitle", "Watching scene, title 900001", 1500),
+        new Pair("phone-title", "AndroidTitleMeta", "Watching scene, title 900001", 1500),
+        new Pair("phone-more-about", "AndroidMoreAbout", "Watching scene, title 900001, More about this show", 1500),
         new Pair("phone-calendar", "AndroidCalendar", "Watching scene, My list", 1500),
         new Pair("phone-search", "AndroidSearch", "Watching scene, query hoshi", 1500),
         new Pair("phone-library", "AndroidLibrary", "Watching scene, signed in to the fake AniList", 1500),
         new Pair("tablet-home", "AndroidTabletHome", "Watching scene", 800),
         new Pair("tablet-title", "AndroidTabletTitle", "Watching scene, title 900001", 800),
+        new Pair("tablet-more-about", "AndroidTabletMoreAbout", "Watching scene, title 900001, More about this show", 800),
     };
 
     static final Color GROUND = new Color(0x0d0f1b);

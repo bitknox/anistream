@@ -85,6 +85,7 @@ internal object Icons {
         }
     }.build()
     val Down = stroked("Down", "M7 10 L12 15 L17 10")
+    val Chevron = stroked("Chevron", "M10 7 L15 12 L10 17")
     val Check = stroked("Check", "M5 12.5 L10 17.5 L19 7")
     val Trailer = stroked("Trailer", "M8 6.5 V17.5 L17 12 Z")
     val Hidden = stroked(

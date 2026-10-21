@@ -13,14 +13,15 @@ import tv.anistream.store.airing
 import tv.anistream.store.clock
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.EpisodeRow
 import tv.anistream.engine.model.RelatedTitle
 import tv.anistream.engine.model.ResumePoint
 
 /**
- * The title as the screens head it: the romaji when AniList has an English title beside it, as the
- * boards set it ("Hoshikuzu no Tabibito"), and the one title there is otherwise.
+ * The title as the screens head it: the form the engine names it by, following the title-language
+ * setting, which the app shows as it gets it.
  */
-val Entry.showTitle: String get() = secondary ?: title
+val Entry.showTitle: String get() = title
 
 /** The first genre, in sentence case as the boards write it: "Slice of life". */
 val Entry.genreLine: String?
@@ -45,8 +46,8 @@ fun List<Broadcast>.today(now: Instant = AppClock.now(), zone: ZoneId = AppClock
     return filter { LocalDate.ofInstant(it.airs, zone) == today }
 }
 
-/** The other title, beneath the first: the English one ("Stardust Wayfarer"). */
-val Entry.alternateTitle: String? get() = if (secondary == null) null else title
+/** The other forms beneath the title, joined: "Stardust Wayfarer · 星屑の旅人". */
+val Entry.alternateTitle: String? get() = otherForms().joinToString(" \u00b7 ").ifEmpty { null }
 
 /**
  * The metadata line on a title page, set in capitals by its style: "TV · 24 EP · SUMMER 2026 ·
@@ -64,28 +65,61 @@ val Entry.metadataLine: String
     }
 
 /** The episode a title's action plays, and how it says so. */
-data class TitleAction(val episode: UInt, val resume: ResumePoint?, val airing: EpisodeAiring) {
+data class TitleAction(val episode: UInt, val resume: ResumePoint?, val airing: EpisodeAiring, val airsAt: Long? = null) {
     /** Whether there is an episode to play: never one still to air, which nothing could find. */
     val playable: Boolean get() = airing.hasAired
 
-    /**
-     * "Resume E7 · 10:06", "Start E8", or with the episode still to air, the status in the
-     * button's place: "Airs Thursday 16:30", or "E8 is not out yet" when the schedule has no date.
-     */
+    /** "Resume E7 · 10:06", "Start E8": what the amber action says. */
     val label: String
         get() = when {
             resume != null -> "Resume E$episode · ${resume.clock()}"
-            !playable -> airing.airs()?.let { "Airs $it" } ?: "E$episode is not out yet"
             else -> "Start E$episode"
         }
 
+    /**
+     * Caught up, the next episode still to air: "Episode 10 airs Thursday 16:30", a haze line
+     * with a water dot in the action's place, or "Episode 10 is not out yet" undated.
+     */
+    fun caughtUp(context: android.content.Context): String =
+        airsAt?.let { "Episode $episode airs ${airsWords(context, Instant.ofEpochSecond(it))}" }
+            ?: airing.airs()?.let { "Episode $episode airs $it" }
+            ?: "Episode $episode is not out yet"
+
     companion object {
-        fun of(entry: Entry): TitleAction {
+        fun of(entry: Entry, now: Long = AppClock.now().epochSecond): TitleAction {
             val episode = entry.progress?.next ?: 1u
             val resume = entry.resume
-            return TitleAction(episode, resume, if (resume == null) entry.airing(episode) else EpisodeAiring.Aired)
+            if (resume != null) return TitleAction(episode, resume, EpisodeAiring.Aired)
+            // The schedule says when the very episode airs, where AniList has one.
+            val scheduled = entry.detail?.schedule?.firstOrNull { it.episode == episode }
+            if (scheduled != null) {
+                return if (scheduled.airsAt > now) {
+                    TitleAction(episode, null, EpisodeAiring.Upcoming(scheduled.airsAt - now), scheduled.airsAt)
+                } else {
+                    TitleAction(episode, null, EpisodeAiring.Aired)
+                }
+            }
+            return TitleAction(episode, null, entry.airing(episode))
         }
     }
+}
+
+/**
+ * The episode rows a page lists: every row that has aired (or has no date, which counts as
+ * aired), and of those still to air only the next, built from the schedule when the source has no
+ * row for it.
+ */
+fun Entry.listedEpisodes(rows: List<EpisodeRow>, now: Long = AppClock.now().epochSecond): List<EpisodeRow> {
+    val aired = rows.filter { (it.airsAt ?: 0) <= now }
+    val next = nextUnaired(rows, now) ?: return aired
+    if (aired.any { it.number == next.number.toString() }) return aired
+    val row = rows.firstOrNull { it.number == next.number.toString() }?.copy(airsAt = next.airsAt)
+        ?: EpisodeRow(
+            number = next.number.toString(), title = null, thumbnail = null, description = null,
+            durationSecs = null, watched = 0.0, completed = false, kind = null, skippable = false,
+            airsAt = next.airsAt,
+        )
+    return aired + row
 }
 
 /**

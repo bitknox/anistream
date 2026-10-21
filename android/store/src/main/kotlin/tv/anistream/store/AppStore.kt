@@ -180,7 +180,19 @@ class AppStore(
     }
 
     fun loadDetail(id: AnilistId) {
-        send(Command.LoadDetail(id))
+        titles.detailAsked(id)
+        detailPending += id
+        send(Command.LoadDetail(id))?.let { detailJobs[it] = id }
+    }
+
+    /** Each title page's fetch by the job that carries it, to tell an answer from none. */
+    private val detailJobs = mutableMapOf<JobId, AnilistId>()
+    private val detailPending = mutableSetOf<AnilistId>()
+
+    /** A page's fetch ended: without the title, AniList did not answer. */
+    private fun detailDone(job: JobId) {
+        val id = detailJobs.remove(job) ?: return
+        if (detailPending.remove(id)) titles.detailFailed(id)
     }
 
     /**
@@ -276,13 +288,19 @@ class AppStore(
         when (event) {
             is Event.JobStarted -> jobs.started(event.job, event.activity)
             is Event.JobNote -> jobs.note(event.job, event.note, event.wait?.toMillis())
-            is Event.JobDone -> jobs.done(event.v1)
+            is Event.JobDone -> {
+                jobs.done(event.v1)
+                detailDone(event.v1)
+            }
 
             is Event.Content -> content(event.content, event.view)
             is Event.Caption -> caption(event.text, event.view)
             is Event.CalendarWindow -> calendar.window(event.anchor, event.pages, event.morePast)
             is Event.CalendarBackfill -> calendar.backfill(event.page, event.entries, event.morePast, titles)
-            is Event.Detail -> titles.merge(detail = event.v1)
+            is Event.Detail -> {
+                detailPending -= event.v1.id
+                titles.merge(detail = event.v1)
+            }
             is Event.TitlesChanged -> titlesChanged()
             is Event.Progress -> titles.progress(event.id, event.progress, event.resume, event.episodes)
             is Event.LastAired -> titles.lastAired(event.v1)
