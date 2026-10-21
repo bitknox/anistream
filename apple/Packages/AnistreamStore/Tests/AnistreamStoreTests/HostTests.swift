@@ -4,6 +4,7 @@
 @testable import AnistreamStore
 import AnistreamKit
 import Foundation
+import Security
 import Testing
 
 struct HostTests {
@@ -30,6 +31,21 @@ struct HostTests {
 
     @Test func theKeychainIsTheTerminalsService() {
         #expect(KeychainSecrets().service == "anistream")
+    }
+
+    /// On iOS a token is read while the phone is locked, through an episode's audio in the
+    /// background: kept for after the first unlock, and an item kept with the system's default,
+    /// readable only while unlocked, kept again so. The Mac's items stay as the terminal makes them.
+    @Test func onIOSATokenIsReadableWhileLockedAndAnOldOneIsKeptAgain() {
+        let phone = KeychainSecrets.protection(phone: true)
+        #expect(phone[kSecAttrAccessible] as? String == kSecAttrAccessibleAfterFirstUnlock as String)
+        #expect(KeychainSecrets.protection(phone: false).isEmpty)
+
+        let old: [CFString: Any] = [kSecAttrAccessible: kSecAttrAccessibleWhenUnlocked]
+        #expect(KeychainSecrets.keptAgain(old, phone: true))
+        #expect(KeychainSecrets.keptAgain([:], phone: true), "nothing said is the default")
+        #expect(!KeychainSecrets.keptAgain(phone, phone: true), "once is enough")
+        #expect(!KeychainSecrets.keptAgain(old, phone: false))
     }
 }
 
