@@ -461,10 +461,14 @@ empty=
         let bundle = Bundle::materialize(cache.path()).unwrap();
         let record = cache.path().join("child-args");
         let fake = cache.path().join("fake-mpv");
+        // Each start written in one append, its arguments and then the marker, so starts made
+        // close together cannot interleave. Written in pieces, a start the test read part-way
+        // through looked like a whole one with its arguments cut short.
         fs::write(
             &fake,
             format!(
-                "#!/bin/sh\n{{ printf '%s\\n' \"$@\"; echo '<end>'; }} >> '{}'\n",
+                "#!/bin/sh\nrecord=\"$(printf '%s\\n' \"$@\" '<end>')\"\n\
+                 printf '%s\\n' \"$record\" >> '{}'\n",
                 record.display()
             ),
         )
@@ -509,9 +513,13 @@ empty=
             let line = serde_json::json!({ "command": command }).to_string() + "\n";
             ipc.write_all(line.as_bytes()).unwrap();
         };
+        // The starts recorded whole: up to the last marker, and never a start still being
+        // written after it.
         let invocations = || -> Vec<Vec<String>> {
             let text = fs::read_to_string(&record).unwrap_or_default();
-            text.split_terminator("<end>\n")
+            let whole = text.rfind("<end>\n").map_or("", |end| &text[..end + "<end>\n".len()]);
+            whole
+                .split_terminator("<end>\n")
                 .map(|chunk| chunk.lines().map(str::to_owned).collect())
                 .collect()
         };
