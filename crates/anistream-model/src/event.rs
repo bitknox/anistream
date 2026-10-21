@@ -229,6 +229,13 @@ pub enum Event {
         id: AnilistId,
         rows: Vec<EpisodeRow>,
     },
+    /// How far title `id`'s dub goes, as the source a play would use lists it: its last
+    /// episode in the dub, "Dub to episode 6", or `None` when that source has no dub of it or
+    /// could not say. A dub that has caught up names the same episode as the sub.
+    DubbedTo {
+        id: AnilistId,
+        episode: Option<String>,
+    },
     /// Where a title stands now, whole, after something moved it: a mark, the playhead of an
     /// episode playing, or how one ended. Sent ahead of the event that moved it, when an event
     /// did, so that whatever that event brings up shows the title as it now stands.

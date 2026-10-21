@@ -44,7 +44,7 @@ use crate::{
     },
     state::EngineState,
     titles::{
-        episodes::{list_episodes, set_watched},
+        episodes::{dubbed_to, list_episodes, set_watched},
         matching::{clear_match, fix_match, manual_search, set_provider_preference},
     },
     tracking::{
@@ -140,6 +140,7 @@ pub(crate) fn dispatch(
         Command::OpenExternal { url } => open_external(url, services, tx),
 
         // A title's episodes, and the source match they come from.
+        Command::LoadDubbedTo(id) => spawn(job, services, tx, move |lent| dubbed_to(lent, id)),
         Command::LoadEpisodes(id) => {
             spawn(job, services, tx, move |lent| list_episodes(lent, id))
         }
