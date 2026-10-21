@@ -118,9 +118,12 @@ local function entries(style)
     for _, source in ipairs(util.tbl(m.sources) or {}) do
         local id = util.str(source.id)
         if id then
+            -- A server that has been failing says so beside what the stream is: "failed the
+            -- last 2 times · 12 min ago". The host sends no `health` for the rest.
+            local detail, health = util.str(source.detail), util.str(source.health)
             sources[#sources + 1] = {
                 title = util.str(source.label) or id,
-                hint = util.str(source.detail),
+                hint = health and (detail and (detail .. " · " .. health) or health) or detail,
                 current = source.current == true,
                 choose = { menu = "source", value = id },
             }

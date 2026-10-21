@@ -24,7 +24,10 @@ use anistream_ffi::{FfiDirs, FfiEngine, FfiHost};
 use anistream_model::{
     command::{AppState, Command, PlayerCommand},
     event::Event,
-    hosted::{MpvOption, MpvValue, PlayerEnd, PlayerOp, PlayerReport, PlayerUi, TrackKind},
+    hosted::{
+        MpvOption, MpvValue, PlayerChoice, PlayerEnd, PlayerOp, PlayerReport, PlayerUi,
+        TrackKind,
+    },
     playback::{Ending, PlaybackId, SkipKind},
 };
 use anistream_providers::ProviderRegistry;
@@ -873,6 +876,89 @@ fn a_web_stream_comes_mended_and_its_subtitles_fetched_ahead() {
     assert!(std::path::Path::new(&url).is_file(), "written out: {url}");
     assert!(std::fs::read_to_string(&url).unwrap().contains("The star road"));
     app.tick(load.playback, 0, 2);
+    app.stop();
+    app.shutdown();
+}
+
+/// A stream of episode 12 from a server that keeps failing, and one from a server that plays.
+const FAILING: &str = "https://cdn-a.example/stardust-wayfarer/12.mp4";
+const HEALTHY: &str = "https://cdn-b.example/stardust-wayfarer/12.mp4";
+
+/// The two, as the source lists them: the failing one first.
+fn two_servers() -> Vec<Stream> {
+    vec![stream(FAILING, StreamKind::Mp4), stream(HEALTHY, StreamKind::Mp4)]
+}
+
+/// Play episode 12 with its first stream failing before a frame and the next one playing.
+fn fails_then_plays(app: &mut App) {
+    app.play(FINISHED, "12");
+    let first = app.load();
+    assert_eq!(first.url, FAILING);
+    app.report(first.playback, PlayerReport::FileLoaded);
+    app.report(first.playback, PlayerReport::Ended { reason: PlayerEnd::Error });
+    let next = app.load();
+    assert_eq!(next.url, HEALTHY);
+    app.opened(next.playback, &[]);
+    app.tick(next.playback, 0, 2);
+    app.stop();
+}
+
+#[test]
+fn a_server_that_keeps_failing_is_tried_after_the_one_that_plays() {
+    let mut app = App::start(with_streams(two_servers()), "");
+    fails_then_plays(&mut app);
+    fails_then_plays(&mut app);
+
+    // Failed twice running: the third play tries the server that has been playing first, and
+    // the Sources menu says why the other is second.
+    app.play(FINISHED, "12");
+    let (_, menus) = app.ui("the menus", |ui| matches!(ui, PlayerUi::Menus { .. }));
+    let PlayerUi::Menus { sources, .. } = menus else { unreachable!() };
+    let rows: Vec<(Option<&str>, Option<&str>)> =
+        sources.iter().map(|s| (s.detail.as_deref(), s.health.as_deref())).collect();
+    assert_eq!(
+        rows,
+        [
+            (Some("direct · cdn-b"), None),
+            (Some("direct · cdn-a"), Some("failed the last 2 times · just now")),
+        ]
+    );
+    let first = app.load();
+    assert_eq!(first.url, HEALTHY);
+    app.opened(first.playback, &[]);
+    app.tick(first.playback, 0, 2);
+
+    // Picked from the menu, the failing server plays all the same, and playing gives it its
+    // place back.
+    app.control(PlayerCommand::Choose(PlayerChoice::Source("1".into())));
+    let picked = app.load();
+    assert_eq!(picked.url, FAILING);
+    app.opened(picked.playback, &[]);
+    app.tick(picked.playback, 2, 4);
+    app.stop();
+
+    app.play(FINISHED, "12");
+    assert_eq!(app.load().url, FAILING, "one success restores it");
+    app.stop();
+    app.shutdown();
+}
+
+#[test]
+fn a_release_picked_by_hand_plays_its_servers_as_it_lists_them() {
+    let provider = sources::provider()
+        .with_streams_for(sources::key(FINISHED), two_servers())
+        .with_source_streams("release", two_servers());
+    let mut app = App::start(ProviderRegistry::new(vec![provider.arc()]), "");
+    fails_then_plays(&mut app);
+    fails_then_plays(&mut app);
+
+    app.engine.send(Command::PlaySource {
+        id: FINISHED,
+        episode: "12".into(),
+        provider_id: sources::PROVIDER_ID.into(),
+        source_id: "release".into(),
+    });
+    assert_eq!(app.load().url, FAILING, "never reordered, however its servers have done");
     app.stop();
     app.shutdown();
 }

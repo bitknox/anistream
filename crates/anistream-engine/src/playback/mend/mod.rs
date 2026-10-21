@@ -75,6 +75,7 @@ const CACHE_BYTES: usize = 200 * 1024 * 1024;
 pub struct MendServer {
     url: String,
     thumbnail_url: String,
+    upstream: Arc<Upstream>,
     /// The listener and its accept loop, which a phone's app binds again on the same port when
     /// it comes back from the background: see `anistream_net::loopback`.
     _listener: Arc<anistream_net::loopback::Loopback>,
@@ -90,6 +91,12 @@ impl MendServer {
     /// [`Class::Thumbnail`]'s rules.
     pub fn thumbnail_url(&self) -> &str {
         &self.thumbnail_url
+    }
+
+    /// The last error status the host answered playback's requests with, if it has: what a
+    /// stream that never showed a frame failed of, for the server's record.
+    pub fn refused(&self) -> Option<u16> {
+        *lock(&self.upstream.refused)
     }
 }
 
@@ -158,6 +165,9 @@ struct Upstream {
     /// request refused, with when. See [`Upstream::refused_successor`].
     successors: Mutex<HashMap<String, String>>,
     last_refused: Mutex<Option<(String, Instant)>>,
+    /// The last `4xx` or `5xx` the host answered a playback request with. Only playback's: a
+    /// thumbnail refused says nothing of whether the stream plays.
+    refused: Mutex<Option<u16>>,
 }
 
 impl Upstream {
@@ -176,6 +186,14 @@ impl Upstream {
             thumbnail_newest: AtomicU64::new(0),
             successors: Mutex::new(HashMap::new()),
             last_refused: Mutex::new(None),
+            refused: Mutex::new(None),
+        }
+    }
+
+    /// Note the status the host answered a playback request with, when it was an error.
+    fn answered(&self, status: u16) {
+        if (400..600).contains(&status) {
+            *lock(&self.refused) = Some(status);
         }
     }
 
@@ -270,10 +288,15 @@ pub async fn serve(
     let proxy = Arc::new(Upstream::new(http, headers, token, listener.port()));
     let entry = proxy.proxied(url, Class::Playback);
     let thumbnail_entry = proxy.proxied(url, Class::Thumbnail);
-    let _ = upstream.set(proxy);
+    let _ = upstream.set(Arc::clone(&proxy));
 
     tracing::info!(%entry, "mending proxy listening on loopback");
-    Ok(MendServer { url: entry, thumbnail_url: thumbnail_entry, _listener: listener })
+    Ok(MendServer {
+        url: entry,
+        thumbnail_url: thumbnail_entry,
+        upstream: proxy,
+        _listener: listener,
+    })
 }
 
 async fn handle_connection(socket: TcpStream, upstream: Arc<Upstream>) -> std::io::Result<()> {
@@ -413,7 +436,11 @@ async fn relay_range(
 ) -> std::io::Result<()> {
     let relayed = async {
         let response = match class {
-            Class::Playback => send(upstream, url, Some(range)).await?,
+            Class::Playback => {
+                let response = send(upstream, url, Some(range)).await?;
+                upstream.answered(response.status().as_u16());
+                response
+            }
             // Never held, as for a whole thumbnail segment; see `Class`.
             Class::Thumbnail => {
                 if upstream.cooling_down() {
@@ -533,6 +560,12 @@ impl Menders {
     pub fn thumbnail_url(&self, url: &str) -> Option<String> {
         self.0.get(url).map(|server| server.thumbnail_url().to_owned())
     }
+
+    /// The error status the host answered the mender fronting `url` with, if it did: see
+    /// [`MendServer::refused`].
+    pub fn refused(&self, url: &str) -> Option<u16> {
+        self.0.get(url).and_then(MendServer::refused)
+    }
 }
 
 #[cfg(test)]
@@ -598,6 +631,54 @@ mod tests {
         let mut raw = Vec::new();
         socket.read_to_end(&mut raw).await.unwrap();
         assert!(String::from_utf8_lossy(&raw).starts_with("HTTP/1.1 404"));
+    }
+
+    /// Ask `server`'s playback entry for what it fronts, and return the status line it answered.
+    async fn ask(server: &MendServer) -> String {
+        let authority =
+            server.url().trim_start_matches("http://").split('/').next().unwrap().to_owned();
+        let path = &server.url()[server.url().find("/m/").unwrap()..];
+        let mut socket = TcpStream::connect(&authority).await.unwrap();
+        socket
+            .write_all(format!("GET {path} HTTP/1.1\r\nHost: {authority}\r\n\r\n").as_bytes())
+            .await
+            .unwrap();
+        let mut raw = Vec::new();
+        socket.read_to_end(&mut raw).await.unwrap();
+        String::from_utf8_lossy(&raw).lines().next().unwrap_or_default().to_owned()
+    }
+
+    #[tokio::test]
+    async fn the_status_a_host_refused_playback_with_is_kept_for_its_record() {
+        // A host answering `502` reaches mpv as the mender's own `502`, which says nothing of
+        // the host; the server's record needs the host's status, so the mender keeps it.
+        let host = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
+        let address = host.local_addr().unwrap();
+        tokio::spawn(async move {
+            for answer in ["502 Bad Gateway", "200 OK"] {
+                let Ok((mut socket, _)) = host.accept().await else { break };
+                let mut request = [0u8; 4096];
+                let _ = socket.read(&mut request).await;
+                let head = format!(
+                    "HTTP/1.1 {answer}\r\nContent-Type: video/mp2t\r\nContent-Length: 0\r\n\
+                     Connection: close\r\n\r\n"
+                );
+                let _ = socket.write_all(head.as_bytes()).await;
+            }
+        });
+
+        let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
+        let failing = serve(http.clone(), &format!("http://{address}/a.ts"), Vec::new(), "tok")
+            .await
+            .unwrap();
+        assert_eq!(failing.refused(), None, "nothing asked yet");
+        assert!(ask(&failing).await.starts_with("HTTP/1.1 502"));
+        assert_eq!(failing.refused(), Some(502));
+
+        let fine =
+            serve(http, &format!("http://{address}/b.ts"), Vec::new(), "tok").await.unwrap();
+        assert!(ask(&fine).await.starts_with("HTTP/1.1 200"));
+        assert_eq!(fine.refused(), None);
     }
 
     #[tokio::test]

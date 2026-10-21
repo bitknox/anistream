@@ -32,6 +32,8 @@ pub struct MockProvider {
     episodes_for: HashMap<ProviderKey, Vec<Episode>>,
     streams_for: HashMap<ProviderKey, Vec<Stream>>,
     sources: Vec<SourceCandidate>,
+    /// What each release in `sources` resolves to, by its id, for a pick by hand.
+    source_streams: HashMap<String, Vec<Stream>>,
     error: Option<ProviderError>,
     unavailable: Option<String>,
     calls: Arc<AtomicUsize>,
@@ -56,6 +58,7 @@ impl MockProvider {
             episodes_for: HashMap::new(),
             streams_for: HashMap::new(),
             sources: Vec::new(),
+            source_streams: HashMap::new(),
             error: None,
             unavailable: None,
             calls: Arc::new(AtomicUsize::new(0)),
@@ -102,6 +105,13 @@ impl MockProvider {
     /// Fail every call with this error.
     pub fn with_sources(mut self, sources: Vec<SourceCandidate>) -> Self {
         self.sources = sources;
+        self
+    }
+
+    /// Answer `resolve_source` for the release `source_id` with these, whatever the key and the
+    /// episode. A release not named here is refused, as the trait's default refuses every one.
+    pub fn with_source_streams(mut self, source_id: &str, streams: Vec<Stream>) -> Self {
+        self.source_streams.insert(source_id.to_owned(), streams);
         self
     }
 
@@ -189,6 +199,17 @@ impl Provider for MockProvider {
     ) -> Result<Vec<SourceCandidate>, ProviderError> {
         self.record().await?;
         Ok(self.sources.clone())
+    }
+
+    async fn resolve_source(
+        &self,
+        _key: &ProviderKey,
+        _episode: &str,
+        _translation: Translation,
+        source_id: &str,
+    ) -> Result<Vec<Stream>, ProviderError> {
+        self.record().await?;
+        self.source_streams.get(source_id).cloned().ok_or(ProviderError::NotFound)
     }
 
     fn is_available(&self) -> Result<(), ProviderError> {
