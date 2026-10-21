@@ -464,14 +464,8 @@ struct DownloadsRow: View {
 /// Search on iPhone and iPad: recent searches, this season and the genres before anything is
 /// typed, the titles found after, with the search field the tab bar gives it.
 struct PhoneSearch: View {
-    @Environment(AppStore.self) private var store
-    @Environment(Navigator.self) private var navigator
-
     var body: some View {
-        @Bindable var navigator = navigator
         SearchScreen(compact: true)
-            .searchable(text: $navigator.query, prompt: "Search titles")
-            .onSubmit(of: .search) { navigator.search(navigator.query, in: store) }
     }
 }
 #endif

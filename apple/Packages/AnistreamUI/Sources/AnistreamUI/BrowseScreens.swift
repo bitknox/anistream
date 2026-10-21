@@ -224,6 +224,7 @@ struct SearchScreen: View {
                     SearchStart(compact: compact)
                 } else {
                     VStack(alignment: .leading, spacing: 16) {
+                        SearchFilterBar(compact: compact)
                         if let caption = searchCaption {
                             Text(caption)
                                 .font(.system(size: 13))
@@ -265,6 +266,68 @@ struct SearchScreen: View {
             return status.label + watching
         }
         return [entry.format, entry.year.map(String.init)].compactMap { $0 }.joined(separator: " · ")
+    }
+}
+
+/// The filters over Search's results: format, season, genre and status, each a capsule menu,
+/// amber where it is set. Changing one searches again.
+struct SearchFilterBar: View {
+    @Environment(AppStore.self) private var store
+    var compact = false
+
+    private static let formats = [("TV", "TV"), ("Movie", "MOVIE"), ("OVA", "OVA"), ("ONA", "ONA"), ("Special", "SPECIAL")]
+    private static let seasons = [("Winter", "WINTER"), ("Spring", "SPRING"), ("Summer", "SUMMER"), ("Fall", "FALL")]
+    private static let statuses = [("Airing", "RELEASING"), ("Finished", "FINISHED"), ("Not yet aired", "NOT_YET_RELEASED")]
+
+    var body: some View {
+        let submitted = store.search.submitted
+        let filter = submitted?.filter ?? SearchFilters()
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                menu("Format", Self.formats, filter.format) { $0.format = $1 }
+                menu("Season", Self.seasons, filter.season) { $0.season = $1 }
+                menu("Genre", searchGenres.map { ($0.capitalizedSentence, $0) }, filter.genre) { $0.genre = $1 }
+                menu("Status", Self.statuses, filter.status) { $0.status = $1 }
+            }
+        }
+        .scrollIndicators(.never)
+    }
+
+    private func menu(
+        _ name: String,
+        _ options: [(String, String)],
+        _ current: String?,
+        _ set: @escaping (inout SearchFilters, String?) -> Void
+    ) -> some View {
+        let label = options.first { $0.1 == current }?.0 ?? name
+        return Menu {
+            Button("Any") { apply(set, nil) }
+            Divider()
+            ForEach(options, id: \.1) { option in
+                Button(option.0) { apply(set, option.1) }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text(label)
+                Image(systemName: "chevron.down").font(.system(size: compact ? 11 : 9, weight: .semibold))
+            }
+            .font(.system(size: compact ? 17 : 13))
+            .foregroundStyle(current == nil ? .silk : .amber)
+            .padding(.horizontal, compact ? 16 : 12)
+            .frame(height: compact ? 40 : 28)
+            .background(current == nil ? .clear : Palette.selection, in: .capsule)
+            .overlay(Capsule().strokeBorder(current == nil ? Palette.faintRule : .clear))
+        }
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .fixedSize()
+    }
+
+    private func apply(_ set: (inout SearchFilters, String?) -> Void, _ value: String?) {
+        let query = store.search.submitted?.query ?? ""
+        var filter = store.search.submitted?.filter ?? SearchFilters()
+        set(&filter, value)
+        store.search(query, filter: filter)
     }
 }
 

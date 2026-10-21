@@ -13,8 +13,17 @@ struct TabShell: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
+        // The sidebar on a wide iPad; on iPhone the system's own tab bar, with Search apart.
+        if sizeClass == .regular {
+            tabs.tabViewStyle(.sidebarAdaptable)
+        } else {
+            tabs
+        }
+    }
+
+    private var tabs: some View {
         @Bindable var navigator = navigator
-        TabView(selection: $navigator.section) {
+        return TabView(selection: $navigator.section) {
             ForEach([AppSection.continue, .calendar, .seasonal, .library]) { section in
                 Tab(section.title, systemImage: section.symbol, value: section) {
                     TabStack(section: section) { screen(section) }
@@ -36,9 +45,10 @@ struct TabShell: View {
             }
             Tab(value: AppSection.search, role: .search) {
                 TabStack(section: .search) { PhoneSearch() }
+                    .searchable(text: $navigator.query, prompt: "Search titles")
+                    .onSubmit(of: .search) { navigator.search(navigator.query, in: store) }
             }
         }
-        .tabViewStyle(.sidebarAdaptable)
         .tabBarMinimizeBehavior(.onScrollDown)
         .overlay(alignment: .top) {
             NoticeCapsule().padding(.top, 8)
