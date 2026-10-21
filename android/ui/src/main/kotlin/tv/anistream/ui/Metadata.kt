@@ -256,3 +256,16 @@ fun airsWords(
 /** [airsWords] in the device's own time format. */
 fun airsWords(context: android.content.Context, at: Instant): String =
     airsWords(at, twentyFourHour = DateFormat.is24HourFormat(context))
+
+/** The flat rect a cover or character waits in: #1F2440 until a cover's own colour is known. */
+val NoArtPlate = androidx.compose.ui.graphics.Color(0xFF1F2440)
+
+/**
+ * A linked title's plate while its cover loads: AniList's cover colour at 40 % over the ground,
+ * #161A2E (T8), or [NoArtPlate] without one.
+ */
+fun LinkedTitle.plate(): androidx.compose.ui.graphics.Color {
+    val hex = coverColor?.removePrefix("#")?.takeIf { it.length == 6 }?.toLongOrNull(16) ?: return NoArtPlate
+    val cover = androidx.compose.ui.graphics.Color(0xFF000000 or hex)
+    return androidx.compose.ui.graphics.lerp(androidx.compose.ui.graphics.Color(0xFF161A2E), cover, 0.4f)
+}

@@ -5,6 +5,9 @@
 package tv.anistream.ui
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -34,7 +37,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -205,11 +207,11 @@ private fun RelatedRail(related: List<tv.anistream.engine.model.LinkedTitle>) {
         ) {
             items(related, key = { it.id.toLong() }) { linked ->
                 Row(
-                    Modifier.clickable { navigator.openTitle(linked.id, "related") },
+                    itemMotion().clickable { navigator.openTitle(linked.id, "related") },
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    ArtworkImage(linked.coverUrl, plate = androidx.compose.ui.graphics.Color(0xFF1F2440), maxPixelSize = 120, modifier = Modifier.size(40.dp, 60.dp).clip(ArtShape.cover(40.dp)))
+                    ArtworkImage(linked.coverUrl, plate = linked.plate(), maxPixelSize = 120, modifier = Modifier.size(40.dp, 60.dp).clip(ArtShape.cover(40.dp)))
                     Column {
                         Text(linked.title, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp))
                         Text(linked.cardLine(), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 1)
@@ -300,7 +302,7 @@ private fun TitleTopBar(entry: Entry, onBack: () -> Unit, modifier: Modifier = M
         Spacer(Modifier.weight(1f))
         Box {
             CircleIconButton(Icons.More, "More", { more = true })
-            DropdownMenu(expanded = more, onDismissRequest = { more = false }) {
+            Menu(expanded = more, onDismissRequest = { more = false }) {
                 DropdownMenuItem(
                     text = { Text("Settings for this show") },
                     leadingIcon = { Icon(Icons.Settings, null) },
@@ -367,11 +369,16 @@ private fun TitleActions(entry: Entry, actions: AppActions) {
             var open by remember { mutableStateOf(false) }
             Box(Modifier.weight(1f)) {
                 FilledTonalButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(entry.listStatus?.label?.replaceFirstChar { it.uppercase() } ?: "Add to list")
+                    // After a pick the label crossfades on quick, and the button keeps its size (T7).
+                    androidx.compose.animation.AnimatedContent(
+                        entry.listStatus?.label?.replaceFirstChar { it.uppercase() } ?: "Add to list",
+                        transitionSpec = { fadeIn(Motion.quick()) togetherWith fadeOut(Motion.quick()) },
+                        label = "list",
+                    ) { Text(it) }
                     Spacer(Modifier.width(8.dp))
                     Icon(Icons.Down, contentDescription = null, modifier = Modifier.size(18.dp))
                 }
-                DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                Menu(expanded = open, onDismissRequest = { open = false }) {
                     for (segment in LibraryModel.order) {
                         DropdownMenuItem(
                             text = { Text(segment.label.replaceFirstChar { it.uppercase() }) },
@@ -518,7 +525,7 @@ private fun LazyListScope.episodeRows(entry: Entry, episodes: List<EpisodeRow>?,
     }
     val next = entry.progress?.next ?: 1u
     items(entry.listedEpisodes(episodes), key = { "episode-${it.number}" }) { row ->
-        EpisodeRowView(entry, row, next, actions)
+        Box(itemMotion()) { EpisodeRowView(entry, row, next, actions) }
     }
 }
 
@@ -647,7 +654,7 @@ private fun TabletTitle(
                     val listed = entry.listedEpisodes(episodes)
                     items(listed.size, key = { "episode-${listed[it].number}" }) { index ->
                         val row = listed[index]
-                        Box(Modifier.clip(MaterialTheme.shapes.large)) { EpisodeRowView(entry, row, next, actions) }
+                        Box(itemMotion().clip(MaterialTheme.shapes.large)) { EpisodeRowView(entry, row, next, actions) }
                     }
                 }
             }
@@ -709,11 +716,15 @@ private fun TabletActions(entry: Entry, actions: AppActions, modifier: Modifier 
         }
         Box {
             FilledTonalButton(onClick = { open = true }, contentPadding = PaddingValues(start = 16.dp, end = 12.dp)) {
-                Text(entry.listStatus?.label?.replaceFirstChar { it.uppercase() } ?: "Add to list")
+                androidx.compose.animation.AnimatedContent(
+                    entry.listStatus?.label?.replaceFirstChar { it.uppercase() } ?: "Add to list",
+                    transitionSpec = { fadeIn(Motion.quick()) togetherWith fadeOut(Motion.quick()) },
+                    label = "list",
+                ) { Text(it) }
                 Spacer(Modifier.width(8.dp))
                 Icon(Icons.Down, contentDescription = null, modifier = Modifier.size(18.dp))
             }
-            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            Menu(expanded = open, onDismissRequest = { open = false }) {
                 for (segment in LibraryModel.order) {
                     DropdownMenuItem(
                         text = { Text(segment.label.replaceFirstChar { it.uppercase() }) },

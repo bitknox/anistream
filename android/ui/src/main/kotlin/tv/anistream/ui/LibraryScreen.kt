@@ -25,7 +25,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -97,7 +96,7 @@ fun LibraryScreen(actions: AppActions) {
                     androidx.compose.material3.IconButton(onClick = { sorting = true }) {
                         Icon(Icons.Sort, contentDescription = "Sort: ${sort.label}")
                     }
-                    DropdownMenu(expanded = sorting, onDismissRequest = { sorting = false }) {
+                    Menu(expanded = sorting, onDismissRequest = { sorting = false }) {
                         for (each in LibrarySort.entries) {
                             DropdownMenuItem(
                                 text = { Text(each.label) },
@@ -150,7 +149,7 @@ fun LibraryScreen(actions: AppActions) {
                     Quiet("Nothing on your ${segment.label} list")
                 }
                 is ListState.Loaded -> items(entries, key = { it.id.toLong() }) { entry ->
-                    PosterCell(entry, from = "library", detail = libraryDetail(entry), fresh = hasNew(entry))
+                    PosterCell(entry, itemMotion(), from = "library", detail = libraryDetail(entry), fresh = hasNew(entry))
                 }
                 else -> items(9) { AfterWait { PosterPlaceholder() } }
             }

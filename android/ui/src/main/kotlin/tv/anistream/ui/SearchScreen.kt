@@ -30,7 +30,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExpandedFullScreenSearchBar
@@ -231,7 +230,7 @@ private fun SearchStart(recent: List<String>, onRecent: (String) -> Unit, onGenr
             item(span = { GridItemSpan(maxLineSpan) }, key = "season-heading") { StartHeading("This season") }
             item(span = { GridItemSpan(maxLineSpan) }, key = "season") {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(13.dp)) {
-                    items(season, key = { it.id.toLong() }) { PosterCell(it, Modifier.width(104.dp), from = "search-season") }
+                    items(season, key = { it.id.toLong() }) { PosterCell(it, itemMotion().width(104.dp), from = "search-season") }
                 }
             }
         }
@@ -291,7 +290,7 @@ private fun Filters(filters: SearchFilters, onChange: (SearchFilters) -> Unit) {
                     Text(chosen ?: filter.label, style = MaterialTheme.typography.labelMedium, color = content)
                     Icon(Icons.Down, contentDescription = null, tint = content, modifier = Modifier.size(18.dp))
                 }
-                DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                Menu(expanded = open, onDismissRequest = { open = false }) {
                     DropdownMenuItem(text = { Text("Any") }, onClick = { open = false; onChange(filter.with(filters, null)) })
                     for ((key, label) in filter.choices) {
                         DropdownMenuItem(
@@ -323,7 +322,7 @@ private fun Results(query: String) {
             is ListState.Loaded -> {
                 val (yours, rest) = list.ids.mapNotNull { titles[it] }.partition { it.listStatus != null }
                 PosterGrid(grid) {
-                    items(yours + rest, key = { it.id.toLong() }) { PosterCell(it, from = "search", detail = searchDetail(it)) }
+                    items(yours + rest, key = { it.id.toLong() }) { PosterCell(it, itemMotion(), from = "search", detail = searchDetail(it)) }
                 }
             }
             is ListState.Failed -> Quiet(list.reason)

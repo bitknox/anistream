@@ -28,7 +28,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -275,7 +274,7 @@ internal fun EpisodeMenu(entry: Entry, row: EpisodeRow, expanded: Boolean, onDis
     val store = LocalAppStore.current
     val marks = LocalUserMarks.current
     val snackbars = LocalSnackbars.current
-    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+    Menu(expanded = expanded, onDismissRequest = onDismiss) {
         val watched = row.completed
         DropdownMenuItem(
             text = { Text(if (watched) "Mark as unwatched" else "Mark as watched") },
