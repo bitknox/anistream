@@ -34,7 +34,7 @@ pub mod trakt;
 
 pub use anilist::AniListTracker;
 pub use auth::{AuthError, Flow};
-pub use device::{DeviceCode, DeviceEndpoints, DeviceError};
+pub use device::{DeviceCode, DeviceEndpoints, DeviceError, DeviceFlow};
 pub use kitsu::KitsuTracker;
 pub use mal::MalTracker;
 pub use merge::{Conflict, Field, LocalState, Merged};
