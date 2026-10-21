@@ -273,7 +273,9 @@ mod tests {
         use anistream_model::{
             notifications::NewEpisode,
             show::ShowSettingKey,
-            widgets::{WIDGET_DATA_VERSION, WidgetAiring, WidgetContinue, WidgetData},
+            widgets::{
+                WIDGET_DATA_VERSION, WidgetAiring, WidgetContinue, WidgetData, WidgetNextAiring,
+            },
         };
         let id = AnilistId::new(900_002);
         let commands = [
@@ -324,6 +326,15 @@ mod tests {
                 episodes: Some(12),
                 fraction: Some(0.42),
                 cover_url: Some("https://img.example/stardust-poster.png".into()),
+                episode_title: Some("The Lantern Market".into()),
+                resume: true,
+                position_secs: Some(606),
+                duration_secs: Some(1_440),
+                minutes_left: Some(14),
+                next_airing: None,
+                next_airing_episode: None,
+                banner_url: Some("https://img.example/banner/900001.jpg".into()),
+                cover_color: Some("#e4a15d".into()),
             }],
             airing_today: vec![WidgetAiring {
                 id,
@@ -332,7 +343,20 @@ mod tests {
                 airs_at: 1_792_163_730,
                 on_list: true,
                 cover_url: None,
+                watched: false,
+                translation: Some(Translation::Dub),
+                banner_url: None,
+                cover_color: Some("#5d9be4".into()),
             }],
+            signed_in: true,
+            tracker: Some("anilist".into()),
+            next_airing: Some(WidgetNextAiring {
+                id,
+                title: "The Library Above the Clouds".into(),
+                episode: 6,
+                airs_at: 1_792_163_730,
+            }),
+            next_days: Vec::new(),
         };
         assert_eq!(crossed(data.clone()), data);
         crosses_intact(Event::WidgetSnapshot(data));

@@ -18,7 +18,7 @@ use anistream_model::{
     notifications::NewEpisode,
     settings::SettingKey,
     show::ShowSettingKey,
-    widgets::{WIDGET_DATA_VERSION, WidgetAiring, WidgetData},
+    widgets::{WIDGET_DATA_VERSION, WidgetAiring, WidgetData, WidgetNextAiring},
 };
 use anistream_testkit::fixtures::{self, AIRING, AIRING_NO_MAL, FINISHED, ONA};
 
@@ -358,31 +358,70 @@ fn nothing_is_asked_while_the_cache_shows_nothing_can_have_aired() {
     engine.shutdown();
 }
 
-/// The start of the day `at` is in, and of the next, in the zone the engine reads days in: the
-/// system's.
-fn day_of(at: i64) -> (i64, i64) {
+/// The starts of the day `at` is in, of the next, and of the day a week on, in the zone the
+/// engine reads days in: the system's.
+fn days_of(at: i64) -> (i64, i64, i64) {
     let zone = jiff::tz::TimeZone::system();
     let date = jiff::Timestamp::from_second(at).unwrap().to_zoned(zone.clone()).date();
-    let start = |date: jiff::civil::Date| date.to_zoned(zone.clone()).unwrap().timestamp();
-    (start(date).as_second(), start(date.tomorrow().unwrap()).as_second())
+    let start =
+        |date: jiff::civil::Date| date.to_zoned(zone.clone()).unwrap().timestamp().as_second();
+    let mut week_end = date;
+    for _ in 0..7 {
+        week_end = week_end.tomorrow().unwrap();
+    }
+    (start(date), start(date.tomorrow().unwrap()), start(week_end))
+}
+
+/// A broadcast as the record shows it, its art left out: the show, its title, the episode, when
+/// it airs, whether the show is followed, and whether the episode was watched here.
+type Shown = (AnilistId, String, u32, i64, bool, bool);
+
+fn shown(rows: &[WidgetAiring]) -> Vec<Shown> {
+    rows.iter()
+        .map(|row| {
+            (row.id, row.title.clone(), row.episode, row.airs_at, row.on_list, row.watched)
+        })
+        .collect()
+}
+
+/// Every fixture broadcast from `from` to `to`, moved by `shift`, in the order they air, as the
+/// record should show them.
+fn broadcasts(
+    shift: i64,
+    (from, to): (i64, i64),
+    on_list: fn(AnilistId) -> bool,
+    watched: fn(AnilistId, u32) -> bool,
+) -> Vec<Shown> {
+    fixtures::schedule()
+        .into_iter()
+        .map(|b| (b.media.id, b.episode, b.airing_at + shift))
+        .filter(|(_, _, at)| (from..to).contains(at))
+        .map(|(id, episode, at)| {
+            (id, fixtures::title(id), episode, at, on_list(id), watched(id, episode))
+        })
+        .collect()
+}
+
+/// What the Watching scene has watched.
+fn seeded(id: AnilistId, episode: u32) -> bool {
+    (id == AIRING && episode <= 3) || (id == AIRING_NO_MAL && episode <= 7)
 }
 
 #[test]
 fn the_widgets_record_for_the_watching_scene() {
     let (engine, _root) = watching();
     let shift = shift(&engine);
-    // The middle of the day Natsukaze Relay's episode 9 airs on, so it is today's whatever
-    // the hour the test runs at.
-    let (day, next_day) = day_of(fixture_airs(AIRING_NO_MAL, 9) + shift);
-    let midday = day + (next_day - day) / 2;
-    engine.testing_advance_clock(midday - now());
 
     let (data, asked) = snapshot(&engine);
     assert_eq!(data.version, WIDGET_DATA_VERSION);
-    assert!((data.generated_at - midday).abs() < MINUTE, "{} {midday}", data.generated_at);
+    assert!((data.generated_at - now()).abs() < MINUTE, "{}", data.generated_at);
+    assert_eq!((data.signed_in, data.tracker.as_deref()), (true, Some("anilist")));
+    // The one title the cache lacked, and the week's broadcasts, a page of them.
+    assert_eq!(asked, ["Many", "Schedule"]);
+
     // Continue's four, most recent first, each where Continue has it.
-    let continuing: Vec<_> = data
-        .continue_watching
+    let rows = &data.continue_watching;
+    let continuing: Vec<_> = rows
         .iter()
         .map(|row| {
             (row.id, row.title.as_str(), row.episode, row.watched, row.episodes, row.fraction)
@@ -397,43 +436,107 @@ fn the_widgets_record_for_the_watching_scene() {
             (AIRING_NO_MAL, "Summer Wind Relay", 8, 7, Some(12), None),
         ]
     );
-    for row in &data.continue_watching {
+    // Resumed or started, and how much is left: "E7 · 14 min left".
+    let left: Vec<_> = rows
+        .iter()
+        .map(|row| (row.resume, row.position_secs, row.duration_secs, row.minutes_left))
+        .collect();
+    assert_eq!(
+        left,
+        [
+            (true, Some(606), Some(1_440), Some(14)),
+            (true, Some(810), Some(1_080), Some(5)),
+            (false, None, Some(23 * 60), Some(23)),
+            (false, None, Some(24 * 60), Some(24)),
+        ]
+    );
+    // When the next episode airs, for "caught up": the two airing.
+    let next: Vec<_> =
+        rows.iter().map(|row| (row.next_airing, row.next_airing_episode)).collect();
+    assert_eq!(
+        next,
+        [
+            (None, None),
+            (None, None),
+            (Some(fixture_airs(AIRING, 6) + shift), Some(6)),
+            (Some(fixture_airs(AIRING_NO_MAL, 9) + shift), Some(9)),
+        ]
+    );
+    // The episode's name, where the cache has the title's episodes: its page was opened.
+    let names: Vec<_> = rows.iter().map(|row| row.episode_title.clone()).collect();
+    let fourth = fixtures::media(AIRING).episode_titles().remove(&4);
+    assert!(fourth.is_some(), "the fixture names episode 4");
+    assert_eq!(names, [None, None, fourth, None]);
+    // The poster, the banner where the title has one, and the cover's colour.
+    let art: Vec<_> =
+        rows.iter().map(|row| (row.banner_url.is_some(), row.cover_color.as_deref())).collect();
+    assert_eq!(
+        art,
+        [
+            (true, Some("#e4a15d")),
+            (false, Some("#7ac47f")),
+            (true, Some("#5d9be4")),
+            (false, None)
+        ]
+    );
+    for row in rows {
         let cover = row.cover_url.as_deref().unwrap_or_default();
         assert!(cover.starts_with("http://127.0.0.1:"), "{}: {cover}", row.id);
     }
 
-    // Today's broadcasts, in the order they air: every fixture broadcast that falls on it, each
-    // of a show being watched.
-    let today = |on_list: fn(AnilistId) -> bool| -> Vec<(AnilistId, String, u32, i64, bool)> {
-        fixtures::schedule()
-            .into_iter()
-            .map(|b| (b.media.id, b.episode, b.airing_at + shift))
-            .filter(|(_, _, at)| (day..next_day).contains(at))
-            .map(|(id, episode, at)| (id, fixtures::title(id), episode, at, on_list(id)))
-            .collect()
-    };
-    let shown = |rows: &[WidgetAiring]| -> Vec<(AnilistId, String, u32, i64, bool)> {
-        rows.iter()
-            .map(|row| (row.id, row.title.clone(), row.episode, row.airs_at, row.on_list))
-            .collect()
-    };
-    let expected = today(|_| true);
-    assert!(
-        expected.iter().any(|row| (row.0, row.2) == (AIRING_NO_MAL, 9)),
-        "episode 9 is today's: {expected:?}"
+    // The week's broadcasts from the start of today, today's apart: every fixture broadcast
+    // that falls in it, each of a show being watched.
+    let (today, tomorrow, week_end) = days_of(data.generated_at);
+    let followed = |_| true;
+    assert_eq!(
+        shown(&data.airing_today),
+        broadcasts(shift, (today, tomorrow), followed, seeded)
     );
-    assert_eq!(shown(&data.airing_today), expected);
-    assert!(data.airing_today.iter().all(|row| row.cover_url.is_some()));
-    // The one title the cache lacked, and today's broadcasts: a request each.
-    assert_eq!(asked, ["Many", "Schedule"]);
+    assert_eq!(
+        shown(&data.next_days),
+        broadcasts(shift, (tomorrow, week_end), followed, seeded)
+    );
+    let week: Vec<_> = data.airing_today.iter().chain(&data.next_days).collect();
+    assert!(week.iter().any(|row| (row.id, row.episode) == (AIRING, 6)), "{week:?}");
+    assert!(week.iter().all(|row| row.cover_url.is_some() && row.translation.is_none()));
+    // The next broadcast due of a show followed, for "Nothing airing today".
+    let ep6 = WidgetNextAiring {
+        id: AIRING,
+        title: "The Library Above the Clouds".into(),
+        episode: 6,
+        airs_at: fixture_airs(AIRING, 6) + shift,
+    };
+    assert_eq!(data.next_airing, Some(ep6));
 
     // Taken off Continue, Natsukaze Relay is no longer followed. Asked again at once, the
-    // record comes from the cache and today's broadcasts as they were just fetched.
+    // record comes from the cache and the week's broadcasts as they were just fetched.
     assert_eq!(engine.send(Command::HideFromContinue { id: AIRING_NO_MAL }), None);
     let (data, asked) = snapshot(&engine);
     let ids: Vec<_> = data.continue_watching.iter().map(|row| row.id).collect();
     assert_eq!(ids, [FINISHED, ONA, AIRING]);
-    assert_eq!(shown(&data.airing_today), today(|id| id != AIRING_NO_MAL));
+    let not_relay = |id| id != AIRING_NO_MAL;
+    assert_eq!(
+        shown(&data.airing_today),
+        broadcasts(shift, (today, tomorrow), not_relay, seeded)
+    );
+    assert_eq!(
+        shown(&data.next_days),
+        broadcasts(shift, (tomorrow, week_end), not_relay, seeded)
+    );
+    let week: Vec<_> = data.airing_today.iter().chain(&data.next_days).collect();
+    assert!(week.iter().any(|row| !row.on_list), "one of its broadcasts is this week's");
     assert_eq!(asked, Vec::<String>::new(), "nothing asked again within minutes");
+
+    // Episode 6 marked watched: its broadcast says so, and Continue moves on past it.
+    let mark = Command::SetWatched { id: AIRING, episodes: vec!["6".into()], watched: true };
+    assert_eq!(engine.send(mark), None);
+    let (data, asked) = snapshot(&engine);
+    let week: Vec<_> = data.airing_today.iter().chain(&data.next_days).collect();
+    let sixth = week.iter().find(|row| (row.id, row.episode) == (AIRING, 6));
+    assert!(sixth.is_some_and(|row| row.watched), "{week:?}");
+    let first = data.continue_watching.first().map(|row| (row.id, row.episode));
+    assert_eq!(first, Some((AIRING, 7)));
+    // The mark is pushed to the tracker; the record asks nothing.
+    assert!(!asked.iter().any(|op| op == "Many" || op == "Schedule"), "{asked:?}");
     engine.shutdown();
 }
