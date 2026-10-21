@@ -23,9 +23,7 @@ use serde::Serialize;
 
 use crate::protocol::Command;
 
-mod shared;
-
-pub use shared::*;
+pub use anistream_playback::companion::*;
 
 /// The protocol revision, published so a script from another build can tell it is mismatched.
 pub const PROTOCOL: u32 = 1;

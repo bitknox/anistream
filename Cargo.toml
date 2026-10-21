@@ -23,6 +23,7 @@ anistream-model = { path = "crates/anistream-model" }
 # does, and a phone's build of the FFI does not. See the engine's `desktop` feature.
 anistream-engine = { path = "crates/anistream-engine", default-features = false }
 anistream-player = { path = "crates/anistream-player" }
+anistream-playback = { path = "crates/anistream-playback" }
 anistream-plugin = { path = "crates/anistream-plugin", default-features = false }
 anistream-plugin-store = { path = "crates/anistream-plugin-store" }
 anistream-store-core = { path = "crates/anistream-store-core" }

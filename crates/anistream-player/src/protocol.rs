@@ -4,9 +4,7 @@
 //! any mpv the engine drives, and are re-exported here. What is defined here belongs to the
 //! child process alone: its command line, and the version its banner reports.
 
-mod shared;
-
-pub use shared::*;
+pub use anistream_playback::protocol::*;
 
 /// mpv's version, as far as the player's choices depend on it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

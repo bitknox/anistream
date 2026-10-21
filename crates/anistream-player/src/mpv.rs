@@ -25,7 +25,6 @@ use tokio::{
     sync::{Mutex, mpsc},
 };
 
-pub use crate::event::PlaybackEvent;
 use crate::{
     bundle::Bundle,
     companion,
@@ -35,6 +34,7 @@ use crate::{
         session_args,
     },
 };
+pub use anistream_playback::PlaybackEvent;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PlayerError {
