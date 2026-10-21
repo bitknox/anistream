@@ -26,6 +26,10 @@ pub struct StoreRow {
     pub checked_at: Option<i64>,
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub plugins: Vec<StorePluginRow>,
+    /// Who runs it, the longest-standing owner first: "Run by …". Empty from a store that does
+    /// not say.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub owners: Vec<String>,
 }
 
 impl StoreRow {
@@ -102,6 +106,16 @@ pub struct InvitedStore {
     pub fingerprint: String,
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub already_joined: bool,
+    /// Who runs it, the longest-standing owner first: "Run by …".
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub owners: Vec<String>,
+    /// What it offers, each with the hosts it contacts and where it stands here: "4 plugins",
+    /// before anything is joined or installed. From the store's signed list, checked against the
+    /// key the link carries.
+    ///
+    /// Both empty from a store that predates the preview, which the link joins all the same.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
+    pub plugins: Vec<StorePluginRow>,
 }
 
 /// A freshly made invite link.

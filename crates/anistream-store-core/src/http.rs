@@ -13,8 +13,9 @@ use crate::{
     inspect::Inspector,
     protocol::{
         AdminLink, AdminLogin, AdminOverview, ClaimRequest, Claimed, ErrorBody, InviteCreated,
-        InviteRequest, Me, Member, MemberChange, MemberList, PART_SIZE, PublishRequest,
-        RedeemRequest, RedeemResponse, Role, StoreInfo, UploadRequest, UploadStarted,
+        InviteRequest, Me, Member, MemberChange, MemberList, PART_SIZE, PreviewRequest,
+        PublishRequest, RedeemRequest, RedeemResponse, Role, StoreInfo, UploadRequest,
+        UploadStarted,
     },
     store::{NewInvite, SESSION_SECS, Store, StoreError},
 };
@@ -187,6 +188,7 @@ impl<D: Database, B: Blobs> Service<D, B> {
                 Ok(Response::new(200, "text/plain; charset=utf-8", b"ok".to_vec()))
             }
             ("POST", ["v1", "redeem"]) => self.redeem(request).await,
+            ("POST", ["v1", "preview"]) => self.preview(request).await,
             ("POST", ["v1", "setup"]) => self.claim(request).await,
             ("GET", ["v1", "me"]) => {
                 let (member, device) = self.member(request).await?;
@@ -349,6 +351,22 @@ impl<D: Database, B: Blobs> Service<D, B> {
                 tracing::info!(member = %member.name, role = member.role.as_str(), "joined");
                 json(200, &RedeemResponse { token, member })
             }
+            Err(StoreError::InviteUnusable) => {
+                self.store.fail(&request.client, request.now).await?;
+                Err(StoreError::InviteUnusable.into())
+            }
+            Err(e) => Err(e.into()),
+        }
+    }
+
+    /// What an invite leads to, for its confirmation: the signed index, to whoever holds an
+    /// invite that would join. Spends nothing, and a code that would not join counts toward the
+    /// same limit as a failed redeem.
+    async fn preview(&self, request: &Request) -> Result<Response, Failure> {
+        self.limited(request, "invites").await?;
+        let body: PreviewRequest = read_json(request)?;
+        match self.store.check_invite(&body.invite, request.now).await {
+            Ok(()) => json(200, &self.store.signed_index().await?),
             Err(StoreError::InviteUnusable) => {
                 self.store.fail(&request.client, request.now).await?;
                 Err(StoreError::InviteUnusable.into())
