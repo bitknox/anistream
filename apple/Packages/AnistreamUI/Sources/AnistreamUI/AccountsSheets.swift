@@ -221,6 +221,10 @@ public struct SystemWebSignIn: WebSignIn {
             }
             session.prefersEphemeralWebBrowserSession = true
             session.presentationContextProvider = anchor
+            // Held until it answers: the system keeps no session of its own, and one let go of
+            // closes its sheet, or never answers at all. Its presentation context is a weak
+            // reference, held the same way.
+            answer.keep(session, anchor)
             if !session.start() {
                 answer.resume(.failure(ASWebAuthenticationSessionError(.presentationContextInvalid)))
             }
@@ -228,21 +232,33 @@ public struct SystemWebSignIn: WebSignIn {
     }
 }
 
-/// A continuation resumed once, whichever of the session's answers comes first.
-private final class Once: @unchecked Sendable {
+/// A continuation resumed once, whichever of the session's answers comes first, and what has to
+/// live until then.
+final class Once: @unchecked Sendable {
     private let lock = NSLock()
     private var continuation: CheckedContinuation<URL, any Error>?
+    private var kept: [AnyObject] = []
 
     init(_ continuation: CheckedContinuation<URL, any Error>) {
         self.continuation = continuation
+    }
+
+    /// Hold `objects` until the continuation is resumed, then let go of them.
+    func keep(_ objects: AnyObject...) {
+        lock.lock()
+        if continuation != nil { kept.append(contentsOf: objects) }
+        lock.unlock()
     }
 
     func resume(_ result: Result<URL, any Error>) {
         lock.lock()
         let continuation = self.continuation
         self.continuation = nil
+        let kept = self.kept
+        self.kept = []
         lock.unlock()
         continuation?.resume(with: result)
+        withExtendedLifetime(kept) {}
     }
 }
 
