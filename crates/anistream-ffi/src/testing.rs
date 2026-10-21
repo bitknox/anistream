@@ -47,7 +47,7 @@ impl FfiEngine {
         host: Arc<dyn FfiHost>,
         start: FfiStart,
     ) -> Result<Arc<Self>, FfiError> {
-        Self::start_testing_from(dirs, host, start, None)
+        Self::start_testing_from(dirs, host, start, None, true)
     }
 }
 
@@ -68,20 +68,23 @@ impl FfiEngine {
 
 impl FfiEngine {
     /// [`FfiEngine::start_testing`] with `sources` in place of the fixture provider alone, for a
-    /// Rust test that scripts the streams an episode has. Not in the bindings.
+    /// Rust test that scripts the streams an episode has. Not in the bindings. The fake serves
+    /// no art here: the titles' art stays at the fixtures' own addresses, which a test reads.
     pub fn start_testing_with(
         dirs: FfiDirs,
         host: Arc<dyn FfiHost>,
         sources: ProviderRegistry,
     ) -> Result<Arc<Self>, FfiError> {
-        Self::start_testing_from(dirs, host, FfiStart::default(), Some(sources))
+        Self::start_testing_from(dirs, host, FfiStart::default(), Some(sources), false)
     }
 
+    /// `art`: have the fake serve the fixtures' art, for an app that shows it.
     fn start_testing_from(
         dirs: FfiDirs,
         host: Arc<dyn FfiHost>,
         start: FfiStart,
         sources: Option<ProviderRegistry>,
+        art: bool,
     ) -> Result<Arc<Self>, FfiError> {
         let opened = Opened::open(&dirs)?;
         // The test's token files are the trackers' and the stores' own, so the host's keychain
@@ -91,6 +94,9 @@ impl FfiEngine {
         let started = runtime.block_on(async {
             // The fake answers on the engine's runtime, for as long as the engine holds it.
             let server = FakeAniList::start().await;
+            if art {
+                server.serve_art();
+            }
             let options = options(opened, &server, &start, sources)?;
             Ok::<_, FfiError>((Self::launch(options, host).await?, server))
         });
@@ -111,8 +117,6 @@ pub(crate) fn options(
     sources: Option<ProviderRegistry>,
 ) -> Result<EngineOptions, FfiError> {
     let Opened { paths, config, store } = opened;
-    // The fixtures' covers, banners and stills, from the fake, for an app that shows them.
-    server.serve_art();
     let http =
         HttpClient::offline(&NetworkConfig { timeout_secs: 5, ..config.network.clone() })
             .map_err(|e| FfiError::Client { reason: e.to_string() })?;
