@@ -178,7 +178,11 @@ engine in temporary directories, and keep secrets in memory.
   parsers. `updateDisplay(_:)` tells mpv and the engine about the screen, which mpv cannot read
   for itself here. `MpvLayer` and `PlayerSurface` (an NSViewRepresentable or UIViewRepresentable)
   host the picture, keep it the view's size and wake mpv after a resize, which it would otherwise
-  not see while paused. `screenshot()` is mpv's own render as a `CGImage`. Its tests render for
+  not see while paused. `screenshot()` is mpv's own render as a `CGImage`. On the Mac,
+  `PictureFeed` copies each frame mpv presents (after the shaders, with the subtitles) into an
+  IOSurface-backed pixel buffer and enqueues it on an `AVSampleBufferDisplayLayer`, for Picture
+  in Picture: the layer's `nextDrawable` is tapped while it runs, each copy is made once the
+  frame is presented, on the GPU, and nothing runs while it is off. Its tests render for
   real into a layer in no window, on media `scripts/player-media.sh` makes, which `test.sh` runs.
 - **AnistreamPlayerUI**, in the same package: the player the app hosts for the engine, and its
   screens. `PlayerModel` carries out the engine's `PlayerOps` on an mpv, one op to one call, on a
@@ -201,8 +205,17 @@ engine in temporary directories, and keep secrets in memory.
   Scrubbing shows the frame under the finger from a second, hidden mpv (`SeekPreview`, off in
   Low Power Mode) with the time and the chapter, slows to half and quarter speed as the finger
   lifts (⌥ on the Mac), and ticks across opening and ending marks; on the Mac hovering the seek
-  line shows it too. The Mac's mini player (⌥⌘M) moves the video into a floating panel a
-  quarter of the screen wide in the bottom right corner while the window goes back to browsing;
+  line shows it too. Picture in Picture (the button, ⌥⌘P, the Window menu, or by itself when
+  the window is minimised or the app hidden while it plays) puts the same playback in the
+  system's floating window, which has play and pause and 10 s either way: the picture's layer
+  leaves the main window, which browses meanwhile, and renders unseen at the floating window's
+  size and the video's shape while `PictureFeed` hands its frames over. Returning puts it back
+  in the main window's player, out of the Dock or out of hiding; closing the floating window
+  stops the playback as the player's own close does. `PictureInPictureMachine` holds the steps,
+  and the display layer sits in a plain window of its own while it runs, as AVKit adds a view
+  beside it that a SwiftUI hosting view does not take. The Mac's mini player (⌥⌘M) moves the
+  video into a floating panel a quarter of the screen wide in the bottom right corner while the
+  window goes back to browsing;
   Expand brings it back. One mpv throughout: its layer moves between them. Both set
   Now Playing and the remote commands and
   keep the display awake while playing. `View.hostsPlayer(_:)` opens either with the model. Its

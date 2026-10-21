@@ -30,7 +30,7 @@ struct AnistreamDev: App {
                 .environment(delegate.store)
                 .environment(delegate.navigator)
                 .frame(minWidth: 960, minHeight: 600)
-                .focusedSceneValue(\.playerInFront, delegate.player.isPresented && !delegate.player.miniPlayer)
+                .focusedSceneValue(\.playerInFront, delegate.player.inMainWindow)
                 .task { await delegate.run() }
         }
         .defaultSize(width: options.width, height: options.height)
@@ -41,12 +41,13 @@ struct AnistreamDev: App {
             AnistreamCommands(
                 store: delegate.store, navigator: delegate.navigator,
                 playerBack: .init(
-                    isUp: { [player = delegate.player] in player.isPresented && !player.miniPlayer },
+                    isUp: { [player = delegate.player] in player.inMainWindow },
                     back: { [player = delegate.player] in player.requestBack() })
             ) {
                 PlaybackMenu(model: delegate.player)
             } playerWindowItems: {
                 MiniPlayerMenuItem(model: delegate.player)
+                PictureInPictureMenuItem(model: delegate.player)
             }
         }
     }
@@ -120,6 +121,16 @@ final class Delegate: NSObject, NSApplicationDelegate {
             } else {
                 try Snapshot.write(window, to: url)
             }
+            if options.playerShot == .pictureInPicture {
+                // The system's floating window is another process's: what it shows is the frame
+                // the feed gave it, written beside the main window's shot.
+                guard let frame = player.pictureInPictureFrame?() else { throw Snapshot.Problem.noWindow }
+                let file = url.deletingPathExtension().appendingPathExtension("frame.png")
+                let bitmap = NSBitmapImageRep(cgImage: frame)
+                try bitmap.representation(using: .png, properties: [:])?.write(to: file)
+                print("AnistreamDev: wrote \(file.path) (\(frame.width)×\(frame.height))")
+                await pictureInPictureRoundTrips(window: window, url: url)
+            }
             print("AnistreamDev: wrote \(url.path)")
         } catch {
             FileHandle.standardError.write(Data("AnistreamDev: \(error)\n".utf8))
@@ -154,6 +165,48 @@ final class Delegate: NSObject, NSApplicationDelegate {
                 print("AnistreamDev: wrote \(file.path) at \(ms) ms")
             }
         }
+    }
+
+    /// Picture in Picture's ways back and in, for real on AVKit: the toggle back into the window,
+    /// then the window minimised and the app hidden while it plays, each restored. Each step says
+    /// whether it got there; the window is shot once the picture is back in it.
+    private func pictureInPictureRoundTrips(window: NSWindow, url: URL) async {
+        func waited(_ what: String, _ condition: @MainActor () -> Bool) async -> Bool {
+            let deadline = ContinuousClock.now + .seconds(10)
+            while !condition() {
+                guard ContinuousClock.now < deadline else {
+                    print("AnistreamDev: picture in picture did not \(what)")
+                    return false
+                }
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+            print("AnistreamDev: picture in picture did \(what)")
+            return true
+        }
+        let before = player.position
+        player.togglePictureInPicture()
+        if await waited("return to the window", { self.player.pictureInPicturePhase == .inline && self.player.inMainWindow }) {
+            try? await Task.sleep(for: .seconds(1))
+            let back = url.deletingPathExtension().appendingPathExtension("restored.png")
+            try? Snapshot.write(window, to: back)
+            print("AnistreamDev: wrote \(back.path); played on from \(Int(before)) s to \(Int(player.position)) s")
+        }
+        window.miniaturize(nil)
+        _ = await waited("start as the window was minimised", { self.player.pictureInPicturePhase == .active })
+        player.togglePictureInPicture()
+        _ = await waited("bring the window back from the Dock", { self.player.inMainWindow && !window.isMiniaturized })
+        // Only an app in the Dock can be hidden, so the snapshot's accessory app is one for this
+        // step: its icon shows a moment, and it takes no focus.
+        let policy = NSApp.activationPolicy()
+        NSApp.setActivationPolicy(.regular)
+        try? await Task.sleep(for: .milliseconds(500))
+        NSApp.hide(nil)
+        if await waited("start as the app was hidden", { self.player.pictureInPicturePhase == .active }) {
+            player.togglePictureInPicture()
+            _ = await waited("bring the app back from hiding", { self.player.inMainWindow && !NSApp.isHidden })
+        }
+        NSApp.setActivationPolicy(policy)
+        print("AnistreamDev: one playback throughout: \(player.isPresented), at \(Int(player.position)) s")
     }
 
     private func exitAfterSnapshot() {

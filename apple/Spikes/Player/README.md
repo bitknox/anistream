@@ -240,9 +240,32 @@ next one from `CTFontCopyDefaultCascadeListForLanguages`. That is now
 Screenshots: `apple/.shots/player/subs-ass-cjk.png`, and `ios/sim-subs-natural.png` with the
 controls.
 
-### S9
+### S9: Mac Picture in Picture
 
-Out of scope here; it is decided in N4.
+**Neither `vo=avfoundation` nor a second mpv: the frames mpv already draws, copied.** mpv 0.41
+has no `vo=avfoundation` (only `ao_avfoundation`), and a second player would read the stream
+twice and start late. So the one mpv keeps rendering through MoltenVK, and `PictureFeed` copies
+each presented frame into an IOSurface-backed pixel buffer for an `AVSampleBufferDisplayLayer`,
+which `AVPictureInPictureController` shows (macOS 12 and later). Measured on the M4 Pro, under
+other builds' load:
+
+- MoltenVK takes every drawable through `MpvLayer.nextDrawable`, and each one's presented
+  handler fires, also with the layer in no window. The drawables are `bgr10a2Unorm` and readable.
+- The copy, converted to 8-bit BGRA with MPS's bilinear scale: 0.17 to 0.25 ms of GPU a 720p
+  frame, 0 of about 95 dropped, 1 to 2 % of a core more for the process. Off, a lock a frame.
+- What it copies is mpv's own picture: within 4 levels of `screenshot-raw window`, with the
+  subtitles and the shaders in it.
+
+While the floating window is up, the picture's layer leaves the main window and renders at the
+floating window's size and the video's shape, so the subtitles are drawn for it and nothing
+larger is copied. Entering and leaving reload nothing: in the dev harness the episode played on
+from 0:31 to 0:36 through Picture in Picture and back.
+
+What AVKit needed: frames shown before `startPictureInPicture()` (with none, it computes a NaN
+frame and AppKit traps), and the display layer in a plain window's view (AVKit adds a view beside
+it, at the window's root, which a SwiftUI hosting view does not take).
+
+Shots and frame captures are in `apple/.shots/pip/`.
 
 ## Other findings
 
