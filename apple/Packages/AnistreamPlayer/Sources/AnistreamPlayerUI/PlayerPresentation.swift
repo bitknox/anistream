@@ -1,5 +1,6 @@
-// Where the player shows: in the main window on the Mac, where the browsing was (M4), or in the
-// mini player's panel; a full-screen cover zooming out of the banner on iPhone and iPad (T2).
+// Where the player shows: in the main window on the Mac, where the browsing was (M4), in the
+// mini player's panel, or in the system's Picture in Picture window; a full-screen cover zooming
+// out of the banner on iPhone and iPad (T2).
 
 import AnistreamDesign
 import AnistreamStore
@@ -24,9 +25,10 @@ struct HostsPlayer: ViewModifier {
     #if os(macOS)
     @Environment(\.openWindow) private var openWindow
     @State private var mini = MiniPlayerPanel()
+    @State private var pip: PictureInPicture?
 
-    /// The player has the main window: up, and not in the mini player.
-    private var inWindow: Bool { model.isPresented && !model.miniPlayer }
+    /// The player has the main window: up, and in neither the mini player nor Picture in Picture.
+    private var inWindow: Bool { model.inMainWindow }
     #endif
 
     func body(content: Content) -> some View {
@@ -49,12 +51,32 @@ struct HostsPlayer: ViewModifier {
                     mini.show(model, store: store)
                 } else if mini.isShown {
                     mini.hide()
-                    if model.isPresented {
+                    if model.isPresented && !model.pictureInPicture {
                         // Expand: back into the main window, which comes to the front.
                         openWindow(id: "main")
                         NSApp.activate()
                     }
                 }
+            }
+            .onAppear {
+                guard pip == nil else { return }
+                let pip = PictureInPicture(model: model)
+                pip.bringBackWindow = { [openWindow] in
+                    // Out of the Dock and out of hiding, in front.
+                    NSApp.unhide(nil)
+                    for window in NSApp.windows where window.isMiniaturized { window.deminiaturize(nil) }
+                    openWindow(id: "main")
+                    NSApp.activate()
+                }
+                self.pip = pip
+            }
+            // Leaving the window while it plays takes the picture into Picture in Picture.
+            .onReceive(NotificationCenter.default.publisher(for: NSApplication.willHideNotification)) { _ in
+                pip?.leaving()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSWindow.willMiniaturizeNotification)) { note in
+                guard (note.object as? NSWindow)?.identifier?.rawValue != "mini-player", model.inMainWindow else { return }
+                pip?.leaving()
             }
             .onChange(of: store.home?.cache, initial: true) { _, cache in
                 model.shaderCache = cache?.appending(path: "mpv-shaders", directoryHint: .isDirectory)

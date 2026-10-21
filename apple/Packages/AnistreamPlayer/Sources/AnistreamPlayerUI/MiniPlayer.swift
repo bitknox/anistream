@@ -118,8 +118,11 @@ struct MiniPlayerView: View {
             ])
             .allowsHitTesting(false)
             VStack(spacing: 0) {
-                HStack {
+                HStack(spacing: 0) {
                     Spacer()
+                    if model.pictureInPictureAvailable {
+                        button("pip.enter", "Picture in Picture") { model.togglePictureInPicture() }
+                    }
                     button("arrow.up.left.and.arrow.down.right", "Exit Mini Player") { model.miniPlayer = false }
                 }
                 .padding(.top, 6)

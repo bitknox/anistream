@@ -26,6 +26,9 @@ public enum PlayerShot: String, CaseIterable, Sendable {
     /// The Mac's mini player, in the corner of the screen over the main window, browsing. The
     /// same as playing elsewhere.
     case miniPlayer = "mini-player"
+    /// The Mac's Picture in Picture: the main window browsing, and the frame the system's
+    /// floating window shows, as the feed copied it.
+    case pictureInPicture = "picture-in-picture"
     /// "Couldn't play episode 7", with Choose source and Close.
     case couldntPlay = "couldnt-play"
 
@@ -104,6 +107,13 @@ extension PlayerModel {
             #else
             pinnedControls = true
             #endif
+        case .pictureInPicture:
+            seek(to: 31)
+            there = await waited(10) { self.position >= 31.5 }
+            togglePictureInPicture()
+            there = await waited(10) { self.pictureInPicturePhase == .active } && there
+            // The floating window's first frames at its own size.
+            try? await Task.sleep(for: .seconds(1.5))
         }
         // The fades.
         try? await Task.sleep(for: .milliseconds(700))

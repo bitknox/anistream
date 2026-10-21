@@ -135,3 +135,23 @@ public struct MiniPlayerMenuItem: View {
             .disabled(!model.isPresented)
     }
 }
+
+/// Picture in Picture, in the Window menu beside the mini player: ⌥⌘P.
+public struct PictureInPictureMenuItem: View {
+    let model: PlayerModel
+
+    public init(model: PlayerModel) {
+        self.model = model
+    }
+
+    public var body: some View {
+        Toggle(
+            "Picture in Picture",
+            isOn: Binding(
+                get: { model.pictureInPicturePhase != .inline },
+                set: { _ in model.togglePictureInPicture() })
+        )
+        .keyboardShortcut("p", modifiers: [.command, .option])
+        .disabled(!model.pictureInPictureAvailable && model.pictureInPicturePhase == .inline)
+    }
+}
