@@ -169,6 +169,8 @@ struct PhoneTitle: View {
                     .foregroundStyle(season.isThis ? .amber : .silk)
                 if season.isThis, let done = entry.progress?.done, let of = entry.progressOf {
                     Text("\(done) / \(of.total)").foregroundStyle(.haze)
+                        .contentTransition(.numericText(value: Double(done)))
+                        .animation(.standard, value: done)
                 }
             }
             .font(.system(size: 15))
@@ -205,6 +207,7 @@ struct PhoneEpisodes: View {
                             .font(.system(size: 15, weight: current ? .semibold : .regular))
                             .monospacedDigit()
                             .foregroundStyle(current ? .amber : .haze)
+                            .animation(.quick, value: current)
                             .frame(width: 22, alignment: .trailing)
                         EpisodeStill(entry: entry, row: row, hidden: spoilers && number > next && !row.completed,
                                      unaired: false, size: CGSize(width: 72, height: 40))
@@ -215,13 +218,14 @@ struct PhoneEpisodes: View {
                                     .font(.system(size: 17))
                                     .foregroundStyle(row.completed ? .haze : .silk)
                                     .lineLimit(1)
+                                    .animation(.quick, value: row.completed)
                                 if row.kind == .filler { Text("Filler").groupHeaderStyle() }
                             }
                             if current, let resume = entry.resume, let fraction = resume.fraction, fraction > 0 {
                                 HStack(spacing: 8) {
-                                    Meter(fraction: fraction, height: 3).frame(width: 88)
+                                    Held(value: fraction) { Meter(fraction: $0, height: 3).frame(width: 88) }
                                     let left = max(1, Int(((resume.position / fraction - resume.position) / 60).rounded()))
-                                    Text("\(left) min left").font(.system(size: 15)).foregroundStyle(.haze)
+                                    Held(value: left) { MinutesLeft(minutes: $0, size: 15) }
                                 }
                             } else if let seconds = row.durationSecs {
                                 Text("\(max(1, Int((Double(seconds) / 60).rounded()))) min")
@@ -230,12 +234,7 @@ struct PhoneEpisodes: View {
                             }
                         }
                         Spacer(minLength: 0)
-                        if row.completed {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(.haze)
-                                .accessibilityLabel("Watched")
-                        }
+                        WatchedCheck(watched: row.completed, size: 15)
                     }
                     .frame(minHeight: 56)
                     .contentShape(.rect)

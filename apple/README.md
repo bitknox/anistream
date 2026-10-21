@@ -64,9 +64,13 @@ phase or scheme action the environment holds Xcode's `SDKROOT` and architectures
 beneath BoringSSL, SQLite and the rest would otherwise pick up and build for the wrong platform.
 
 It builds with the `app-dev` profile (opt-level 1, line tables only), or the one
-`ANISTREAM_ENGINE_PROFILE` names, `release` for a build to keep. `CARGO_TARGET_DIR` defaults to
-`~/anistream-target-apple`, one directory for every worktree that builds the engine, and
-`CARGO_INCREMENTAL` to 0, since disk is what runs out.
+`ANISTREAM_ENGINE_PROFILE` names, `release` for a build to keep. The Xcode project sets it per
+configuration: `app-dev` for Debug, `release` for Release. The stamp records the profile, so an
+engine built in one is never current for the other. Build scripts and proc macros are never
+stripped: a proc macro built for macOS 12 or later and then stripped, as cargo's release profile
+does by default, is one rustc cannot load (`can't find crate for thiserror_impl`).
+`CARGO_TARGET_DIR` defaults to `~/anistream-target-apple`, one directory for every worktree that
+builds the engine, and `CARGO_INCREMENTAL` to 0, since disk is what runs out.
 
 ## libmpv
 
@@ -229,7 +233,9 @@ Each scheme's pre-action builds its engine for the platform being built, before 
 build, into `apple/.engine/<flavour>.log`. The engine frameworks' first build phase runs
 `engine.sh --check`, so a build whose engine is missing or stale fails and says which command to
 run. The **Anistream Fixtures** scheme tests every package: `xcodebuild -scheme "Anistream Fixtures"
--destination platform=macOS test`.
+-destination platform=macOS test`. A build to keep is the Release configuration, on the engine in
+cargo's release profile: `xcodebuild -scheme Anistream -configuration Release -destination
+platform=macOS build`, or Product › Archive.
 
 Signing is automatic. Copy `Config/Local.xcconfig.example` to `Config/Local.xcconfig`, which git
 ignores, and put your team id in it (Xcode › Settings › Accounts shows it). Without one, a Mac build

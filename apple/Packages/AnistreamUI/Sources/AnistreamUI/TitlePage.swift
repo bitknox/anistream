@@ -113,11 +113,13 @@ struct TitlePage: View {
 
 /// The banner's part in the Mac's morph from Continue's preview into the title page (M3).
 struct BannerMatch: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let id: AnilistId
     let space: Namespace.ID?
 
+    /// Under Reduce Motion the banner does not travel: the page crossfades in (M3).
     func body(content: Content) -> some View {
-        if let space {
+        if let space, !reduceMotion {
             content.matchedGeometryEffect(id: "banner-\(id)", in: space)
         } else {
             content
@@ -297,6 +299,9 @@ struct TitleFamilyRow: View {
                         .fixedLineHeight(16)
                         .foregroundStyle(.haze)
                         .lineLimit(1)
+                        // "6 / 12" to "7 / 12", the changed digit rolling (T9).
+                        .contentTransition(.numericText())
+                        .animation(.standard, value: detail)
                     if let fraction {
                         Meter(fraction: fraction, height: 3).frame(width: 112).padding(.top, 6)
                     }
@@ -379,6 +384,7 @@ struct EpisodeRowView: View {
                     .font(.system(size: 13, weight: current ? .semibold : .regular))
                     .monospacedDigit()
                     .foregroundStyle(current ? .amber : .haze)
+                    .animation(.quick, value: current)
                     .frame(width: 22, alignment: .trailing)
                 EpisodeStill(
                     entry: entry, row: row,
@@ -391,27 +397,19 @@ struct EpisodeRowView: View {
                         Text(row.title ?? "Episode \(row.number)")
                             .foregroundStyle(row.completed || upcoming ? .haze : .silk)
                             .lineLimit(1)
+                            .animation(.quick, value: row.completed)
                         if row.kind == .filler {
                             Text("Filler").groupHeaderStyle()
                         }
                     }
                     if current, let fraction = entry.resume?.fraction {
-                        Meter(fraction: fraction, height: 3).frame(width: 200)
+                        Held(value: fraction) { Meter(fraction: $0, height: 3).frame(width: 200) }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 trailing(current: current, upcoming: upcoming)
-                Group {
-                    if row.completed {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.haze)
-                            .accessibilityLabel("Watched")
-                    } else {
-                        Color.clear
-                    }
-                }
-                .frame(width: 14)
+                WatchedCheck(watched: row.completed, size: 11)
+                    .frame(width: 14)
             }
             .font(.system(size: 13))
             .padding(.horizontal, 8)
@@ -433,7 +431,7 @@ struct EpisodeRowView: View {
     private func trailing(current: Bool, upcoming: Bool) -> some View {
         if current, let resume = entry.resume, let fraction = resume.fraction, fraction > 0 {
             let left = max(1, Int(((resume.position / fraction - resume.position) / 60).rounded()))
-            Text("\(left) min left").foregroundStyle(.haze)
+            Held(value: left) { MinutesLeft(minutes: $0) }
         } else if upcoming, let when = nextAiring(entry) {
             HStack(spacing: 6) {
                 Circle().fill(.water).frame(width: 6, height: 6)

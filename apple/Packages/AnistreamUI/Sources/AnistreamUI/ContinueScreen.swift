@@ -14,14 +14,40 @@ struct ContinueScreen: View {
     /// When the selection last moved, and whether that was quick on the heels of the one before:
     /// a run of arrow keys changes the preview at once, without the fade (M2).
     @State private var movedAt = ContinuousClock.now
-    @State private var running = false
+    /// The width the screen has: below 900 points, as on an iPad in portrait or a narrow Stage
+    /// Manager window, the list stands alone and a row opens its title.
+    @State private var width: CGFloat = 1_000
+
+    /// Whether the preview fits beside the list.
+    private var previewFits: Bool {
+        #if os(macOS)
+        true
+        #else
+        width >= 900
+        #endif
+    }
+
+    /// The selection as the list moves it: the preview fades in (M2), but not when the last
+    /// move was under 0.15 s before, so a held arrow key runs through the list at once. The
+    /// first step of a run fades; the next step cuts it.
+    private var moving: Binding<AnilistId?> {
+        Binding(
+            get: { selection },
+            set: { id in
+                let now = ContinuousClock.now
+                let fast = now - movedAt < .milliseconds(150)
+                movedAt = now
+                withAnimation(fast ? nil : .fadeIn) { selection = id }
+            }
+        )
+    }
 
     var body: some View {
         let queue = store.continuing.queue(store.titles)
         Group {
             switch store.continuing.list.state {
             case .idle, .loading:
-                QueueColumn(queue: nil, selection: $selection)
+                QueueColumn(queue: nil, selection: moving)
                     .frame(maxWidth: .infinity, alignment: .leading)
             case .empty:
                 ScrollView {
@@ -36,8 +62,8 @@ struct ContinueScreen: View {
                     NothingToContinue()
                 } else {
                     HStack(alignment: .top, spacing: 0) {
-                        QueueColumn(queue: queue, selection: $selection)
-                        if let item = queue.all.first(where: { $0.id == selection }) ?? queue.all.first {
+                        QueueColumn(queue: queue, selection: moving, opensOnTap: !previewFits)
+                        if previewFits, let item = queue.all.first(where: { $0.id == selection }) ?? queue.all.first {
                             ContinuePreview(item: item)
                                 .id(item.id)
                                 .transition(.opacity)
@@ -57,10 +83,11 @@ struct ContinueScreen: View {
                 selection = ids.first
             }
         }
-        .animation(running ? nil : .fadeIn, value: selection)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { width = $0 }
+        .onChange(of: navigator.continueSelection) { _, id in
+            if let id { moving.wrappedValue = id; navigator.continueSelection = nil }
+        }
         .onChange(of: selection, initial: true) { _, id in
-            running = ContinuousClock.now - movedAt < .milliseconds(150)
-            movedAt = .now
             // The page's fields (where else it streams) and the episode's name.
             guard let id else { return }
             navigator.focusedTitle = id
@@ -76,6 +103,8 @@ struct QueueColumn: View {
     /// `nil` while the list loads: placeholder rows, static, no shimmer.
     let queue: ContinueQueue?
     @Binding var selection: AnilistId?
+    /// Whether a row opens its title rather than selecting it: when there is no preview.
+    var opensOnTap = false
 
     var body: some View {
         ScrollView {
@@ -83,11 +112,11 @@ struct QueueColumn: View {
                 if let queue {
                     if !queue.inProgress.isEmpty {
                         GroupHeader(title: "In progress", first: true)
-                        ForEach(queue.inProgress) { QueueRow(item: $0, selection: $selection) }
+                        ForEach(queue.inProgress) { QueueRow(item: $0, selection: $selection, opensOnTap: opensOnTap) }
                     }
                     if !queue.newThisWeek.isEmpty {
                         GroupHeader(title: "New this week", first: queue.inProgress.isEmpty)
-                        ForEach(queue.newThisWeek) { QueueRow(item: $0, selection: $selection) }
+                        ForEach(queue.newThisWeek) { QueueRow(item: $0, selection: $selection, opensOnTap: opensOnTap) }
                     }
                 } else {
                     GroupHeader(title: "In progress", first: true)
@@ -97,7 +126,8 @@ struct QueueColumn: View {
             .padding(EdgeInsets(top: 4, leading: 4, bottom: 16, trailing: 8))
         }
         .scrollIndicators(.never)
-        .frame(width: 360)
+        .frame(width: opensOnTap ? nil : 360)
+        .frame(maxWidth: opensOnTap ? 600 : nil, alignment: .leading)
         .focusable()
         .focusEffectDisabled()
         .onKeyPress(.upArrow) { step(-1) }
@@ -130,13 +160,15 @@ struct GroupHeader: View {
 /// far into the episode.
 struct QueueRow: View {
     @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
     let item: ContinueItem
     @Binding var selection: AnilistId?
+    var opensOnTap = false
 
     var body: some View {
-        let selected = selection == item.id
+        let selected = selection == item.id && !opensOnTap
         Button {
-            selection = item.id
+            if opensOnTap { navigator.openTitle(item.id) } else { selection = item.id }
         } label: {
             HStack(spacing: 12) {
                 ArtworkView(url: item.entry.coverUrl, color: item.entry.plateColor, maxPixelSize: 108)
@@ -160,9 +192,8 @@ struct QueueRow: View {
                     .foregroundStyle(.haze)
                     .lineLimit(1)
                     .padding(.top, 2)
-                    if let fraction = item.fraction {
-                        Meter(fraction: fraction, height: 3)
-                            .padding(.top, 6)
+                    Held(value: item.fraction) { fraction in
+                        if let fraction { Meter(fraction: fraction, height: 3).padding(.top, 6) }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -174,7 +205,7 @@ struct QueueRow: View {
             .contentShape(.rect(cornerRadius: 10))
         }
         .buttonStyle(.plain)
-        .animation(.quick, value: selected)
+        // The tint moves at once, as in any Mac list (M2).
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(selected ? .isSelected : [])
         .contextMenu { QueueMenu(item: item) }
@@ -266,13 +297,13 @@ struct ContinuePreview: View {
                         Text(item.episodeLine(store.titles))
                             .foregroundStyle(.silk)
                         Spacer()
-                        if let left = item.timeLeft {
-                            Text(left).foregroundStyle(.haze)
+                        Held(value: item.minutesLeft) { minutes in
+                            if let minutes { MinutesLeft(minutes: minutes) }
                         }
                     }
                     .font(.system(size: 13))
-                    if let fraction = item.fraction {
-                        Meter(fraction: fraction, height: 4)
+                    Held(value: item.fraction) { fraction in
+                        if let fraction { Meter(fraction: fraction, height: 4) }
                     }
                 }
 

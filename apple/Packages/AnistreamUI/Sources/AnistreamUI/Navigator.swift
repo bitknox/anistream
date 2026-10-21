@@ -48,6 +48,8 @@ public final class Navigator {
     public var launchSheet: String?
     /// The title whose own settings are up in a sheet.
     public var showSettings: AnilistId?
+    /// A selection asked of Continue's list from outside it, as the list itself would move it.
+    public var continueSelection: AnilistId?
 
     public init(route: LaunchRoute = .current) {
         section = route.section
