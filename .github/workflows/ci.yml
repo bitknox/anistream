@@ -256,6 +256,14 @@ jobs:
         run: >-
           xcodebuild -project apple/Anistream.xcodeproj -scheme Anistream
           -destination "generic/platform=iOS Simulator" build CODE_SIGNING_ALLOWED=NO
+      # Once in Release, as the app is kept: the engine in cargo's release profile beneath it.
+      # Last, since that engine takes the place of the app-dev one the builds above link.
+      - name: The release engine
+        run: ANISTREAM_ENGINE_PROFILE=release apple/scripts/engine.sh release macos
+      - name: Build the app for the Mac in Release
+        run: >-
+          xcodebuild -project apple/Anistream.xcodeproj -scheme Anistream -configuration Release
+          -destination platform=macOS build CODE_SIGNING_ALLOWED=NO
 
   # The same for an Android phone, with the runner's NDK through cargo-ndk, which points every
   # C build at the NDK's clang for API level 24. Cross-compiled only.
