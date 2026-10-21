@@ -32,6 +32,19 @@ class TitleCache {
     var detailed: Set<AnilistId> = emptySet()
         private set
 
+    private val _failed = MutableStateFlow<Set<AnilistId>>(emptySet())
+
+    /** The titles whose page was asked for and did not come: what "AniList did not answer" says. */
+    val failed: StateFlow<Set<AnilistId>> = _failed.asStateFlow()
+
+    internal fun detailFailed(id: AnilistId) {
+        _failed.value = _failed.value + id
+    }
+
+    internal fun detailAsked(id: AnilistId) {
+        if (id in _failed.value) _failed.value = _failed.value - id
+    }
+
     operator fun get(id: AnilistId): Entry? = _entries.value[id]
 
     private fun update(change: (MutableMap<AnilistId, Entry>) -> Unit) {
@@ -76,6 +89,7 @@ class TitleCache {
             )
         }
         detailed = detailed + detail.id
+        if (detail.id in _failed.value) _failed.value = _failed.value - detail.id
     }
 
     /** Where a title stands after something moved it. */

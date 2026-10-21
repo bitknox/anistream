@@ -13,6 +13,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.model.Aired
 import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.ContentFor
@@ -24,6 +25,9 @@ import tv.anistream.engine.model.Notice
 import tv.anistream.engine.model.NoticeKind
 import tv.anistream.engine.model.ResumePoint
 import tv.anistream.engine.model.SearchFilters
+import tv.anistream.engine.model.ShowSettingKey
+import tv.anistream.engine.model.ShowSettingRow
+import tv.anistream.engine.model.ShowSettingsView
 import tv.anistream.engine.model.TitleAired
 import tv.anistream.engine.model.TitleLanguage
 import tv.anistream.engine.model.TitleProgress
@@ -150,6 +154,29 @@ class ReducerTest {
         // What was answered is asked for again; the calendar and the library never were.
         assertEquals(
             listOf(Command.Search("kumo", SearchFilters()), Command.LoadContinue, Command.LoadSeasonal, Command.Search("kumo", SearchFilters())),
+            store.waiting,
+        )
+    }
+
+    @Test
+    fun a_shows_sheet_lands_by_show_and_its_changes_go_to_the_engine() {
+        val sheet = ShowSettingsView(
+            id = 900001u,
+            rows = listOf(ShowSettingRow(ShowSettingKey.SKIP_OPENING, own = null, value = "on", default = "on")),
+            remembered = emptyList(),
+            source = null,
+        )
+        store.apply(Event.ShowSettings(sheet))
+        assertEquals(sheet, store.showSettings.sheets.value[900001u])
+        store.setShowSetting(900001u, ShowSettingKey.SKIP_OPENING, SettingValue.Bool(false))
+        store.setShowSetting(900001u, ShowSettingKey.SKIP_OPENING, null)
+        store.resetShowSettings(900001u)
+        assertEquals(
+            listOf(
+                Command.SetShowSetting(900001u, ShowSettingKey.SKIP_OPENING, SettingValue.Bool(false)),
+                Command.SetShowSetting(900001u, ShowSettingKey.SKIP_OPENING, null),
+                Command.ResetShowSettings(900001u),
+            ),
             store.waiting,
         )
     }
