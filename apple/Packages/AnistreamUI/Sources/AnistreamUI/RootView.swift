@@ -27,6 +27,7 @@ public struct RootView: View {
         }
         .tint(.amber)
         .preferredColorScheme(.dark)
+        .modifier(SpotlightResults())
     }
 }
 
