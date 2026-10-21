@@ -167,6 +167,8 @@ public final class SpotlightIndexer {
     private var defaultsObserver: (any NSObjectProtocol)?
     /// The newest watch on the store.
     private var generation = 0
+    /// Called after Spotlight was told of a change to the shelf.
+    public var onUpdate: (@MainActor () -> Void)?
 
     /// - Parameters:
     ///   - file: where the shelf is saved; `nil` keeps nothing between launches.
@@ -277,6 +279,7 @@ public final class SpotlightIndexer {
                     cleared = true
                     saved = nil
                     if let file { Shelf.remove(file) }
+                    onUpdate?()
                 } catch {
                     AppLog.error("spotlight", "could not clear the index: \(error.localizedDescription)")
                 }
@@ -332,6 +335,7 @@ public final class SpotlightIndexer {
             if let file { try shelf.save(file) }
             if !items.isEmpty || !gone.isEmpty {
                 AppLog.info("spotlight", "indexed \(items.count), removed \(gone.count), \(shelf.titles.count) in all")
+                onUpdate?()
             }
         } catch {
             AppLog.error("spotlight", "could not update the index: \(error.localizedDescription)")
