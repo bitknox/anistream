@@ -5,8 +5,8 @@
 mpv = { max-threads = 2 }
 
 # Each test is named by its full path in its crate, so a test that moves module leaves the
-# group, and CI's mpv job stops running it. tools/check-mpv-group.sh holds the group's size to
-# tools/mpv-test-count, which catches that.
+# group, and CI's mpv job stops running it. After moving one, check that
+# `cargo nextest list -E 'group(mpv)'` still lists it.
 [[profile.default.overrides]]
 filter = '''
 binary(companion) | binary(binge)
