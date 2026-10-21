@@ -154,8 +154,9 @@ done
 # Cargo in a clean environment. Run from an Xcode build phase or scheme action, the environment
 # holds Xcode's SDKROOT, its architectures and its deployment targets, which the cc and cmake
 # builds beneath BoringSSL, SQLite and the rest pick up and then build for the wrong platform.
-# So only PATH, HOME, rustup's and cargo's own variables and the deployment targets go through,
-# and an iOS slice also gets the Xcode its SDK is in.
+# So only PATH, HOME, rustup's and cargo's own variables (CARGO_BUILD_JOBS among them), a compiler
+# cache's (RUSTC_WRAPPER and sccache's SCCACHE_*) and the deployment targets go through, and an
+# iOS slice also gets the Xcode its SDK is in.
 #
 # Build scripts and proc macros are not stripped. In a profile without debug info, release among
 # them, cargo strips them by default, and a proc macro built for a deployment target of macOS 12 or
@@ -172,7 +173,7 @@ cargo_clean() {
   local name
   while IFS= read -r name; do
     pass+=("$name=${!name}")
-  done < <(compgen -e | grep -E '^(CARGO|RUSTUP)_' || true)
+  done < <(compgen -e | grep -E '^((CARGO|RUSTUP|SCCACHE)_|RUSTC_WRAPPER$)' || true)
   [[ -n "$developer" ]] && pass+=(DEVELOPER_DIR="$developer")
   (cd "$root" && env -i "${pass[@]}" cargo "$@")
 }
