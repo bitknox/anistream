@@ -25,6 +25,13 @@ public protocol PlayerBackend: AnyObject, Sendable {
     func end() async
 }
 
+/// The layer as a task on the main actor hands it to `begin(on:)`. `MpvLayer` is `Sendable`, but
+/// Swift 6.4's optimised builds (Xcode 27.1, in Release) still fail capturing one in such a task
+/// and passing it on as a data race; carried in this, it builds in every configuration.
+struct HandedLayer: Sendable {
+    let layer: MpvLayer
+}
+
 extension MpvClient: PlayerBackend {
     public func begin(on layer: MpvLayer) throws {
         try start(on: layer)

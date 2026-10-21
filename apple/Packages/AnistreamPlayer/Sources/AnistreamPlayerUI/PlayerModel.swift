@@ -400,9 +400,10 @@ public final class PlayerModel {
             }
             let (stream, continuation) = AsyncStream.makeStream(of: Work.self)
             work = continuation
+            let handed = HandedLayer(layer: layer)
             worker = Task { @MainActor [weak self] in
                 do {
-                    try await backend.begin(on: layer)
+                    try await backend.begin(on: handed.layer)
                 } catch {
                     Self.note(.error, "mpv did not start: \(error)")
                     self?.failed(backend)
