@@ -1,0 +1,46 @@
+[package]
+name = "anistream-cast"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Casting spike: the Cast v2 protocol, a LAN proxy for the receiver, ASS to WebVTT and an MKV to HLS fMP4 remuxer"
+publish = false
+
+[lib]
+doctest = false
+
+# Nothing links this crate yet. The spike's command lines are behind `probe`, so a plain build of
+# the workspace compiles only the library.
+[features]
+default = []
+probe = ["dep:tracing-subscriber"]
+# A Cast device on loopback, for the tests of whatever drives one.
+fake = []
+
+[dependencies]
+# What a player reports, as the session reads it: the cast player reports in the same words.
+anistream-playback.workspace = true
+tokio.workspace = true
+# The Cast channel is TLS to the device's self-signed certificate, with the provider rustls
+# already builds for the engine's torrent client and the plugin store.
+tokio-rustls = { version = "0.26", default-features = false, features = ["aws_lc_rs", "tls12"] }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+# The LAN proxy's per-session token.
+rand = "0.10"
+# mDNS: the query goes out on the LAN interface, not the default route, which may be a VPN.
+socket2 = "0.6"
+tracing-subscriber = { workspace = true, optional = true }
+
+[dev-dependencies]
+tempfile = "3"
+
+[[example]]
+name = "cast_probe"
+required-features = ["probe"]
+
+[lints]
+workspace = true
