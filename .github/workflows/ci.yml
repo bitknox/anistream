@@ -213,11 +213,9 @@ jobs:
   # The Apple app itself, from the XcodeGen project: the Fixtures app's tests run on the Mac
   # (Swift Testing over the testing engine, signed to run locally), and the app is built for the
   # iOS Simulator with signing off. The Xcode is named outright, since the runner's default
-  # moves. Allowed to fail until it has passed here once: the runner's Xcode and XcodeGen have
-  # not built this project yet.
+  # moves.
   apple:
     runs-on: macos-26
-    continue-on-error: true
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
       CARGO_TARGET_DIR: ${{ github.workspace }}/target
