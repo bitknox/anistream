@@ -36,19 +36,13 @@ struct LayoutTests {
         #expect(size(of: ZStack { Color.black; FilledArt(image: Self.banner) }, in: phone) == phone)
     }
 
-    @Test func thePlayerWindowOpensAt16By9WithinTheScreen() {
+    @Test func theMiniPlayerIsAQuarterOfTheScreenWideInTheBottomRightCorner() {
         // A MacBook's built-in display, 1512 × 982 pt, under its menu bar.
         let visible = CGRect(x: 0, y: 0, width: 1512, height: 945)
-        let frame = PlayerWindowFrame.initial(in: visible)
-        #expect(frame.width <= visible.width * 0.7 && frame.height <= visible.height * 0.7)
+        let frame = MiniPlayerFrame.frame(in: visible)
+        #expect(frame == CGRect(x: 1118, y: 16, width: 378, height: 213))
         #expect(abs(frame.width / frame.height - 16 / 9) < 0.01)
         #expect(visible.contains(frame))
-        #expect(frame == CGRect(x: 227, y: 175, width: 1058, height: 595))
-        // A large screen: the video's usual size.
-        #expect(PlayerWindowFrame.initial(in: CGRect(x: 0, y: 0, width: 3008, height: 1667)).size == CGSize(width: 1280, height: 720))
-        // Last time's frame, when it still fits; a 3420 pt one never does.
-        #expect(PlayerWindowFrame.restored(CGRect(x: 100, y: 100, width: 800, height: 450), on: visible) != nil)
-        #expect(PlayerWindowFrame.restored(CGRect(x: 0, y: 0, width: 3420, height: 720), on: visible) == nil)
     }
 }
 #endif

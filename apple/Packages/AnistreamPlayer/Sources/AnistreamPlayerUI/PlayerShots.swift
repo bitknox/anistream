@@ -23,7 +23,8 @@ public enum PlayerShot: String, CaseIterable, Sendable {
     /// Scrubbing at half speed, with the frame there from the hidden mpv, the time and the
     /// chapter.
     case scrubbing
-    /// The Mac's mini player, in the corner of the screen. The same as playing elsewhere.
+    /// The Mac's mini player, in the corner of the screen over the main window, browsing. The
+    /// same as playing elsewhere.
     case miniPlayer = "mini-player"
     /// "Couldn't play episode 7", with Choose source and Close.
     case couldntPlay = "couldnt-play"
@@ -98,9 +99,11 @@ extension PlayerModel {
             there = await waited(10) { self.position >= 31.5 }
             #if os(macOS)
             miniPlayer = true
-            try? await Task.sleep(for: .seconds(1))
-            #endif
             pinnedControls = true
+            try? await Task.sleep(for: .seconds(1.5))
+            #else
+            pinnedControls = true
+            #endif
         }
         // The fades.
         try? await Task.sleep(for: .milliseconds(700))
