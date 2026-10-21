@@ -70,6 +70,23 @@ public final class MpvLayer: CAMetalLayer, @unchecked Sendable {
     private func setExtendedDynamicRange(_ on: Bool) {
         super.wantsExtendedDynamicRangeContent = on
     }
+
+    private let tapLock = NSLock()
+    nonisolated(unsafe) private var tap: (@Sendable (CAMetalDrawable) -> Void)?
+
+    /// Called with each drawable mpv's renderer takes from the layer, on mpv's render thread,
+    /// while set: how Picture in Picture sees the frames mpv draws. Nil, the default, costs one
+    /// lock per frame.
+    public func tapDrawables(_ tap: (@Sendable (CAMetalDrawable) -> Void)?) {
+        tapLock.withLock { self.tap = tap }
+    }
+
+    /// MoltenVK asks the layer for each frame's drawable here.
+    public override func nextDrawable() -> CAMetalDrawable? {
+        let drawable = super.nextDrawable()
+        if let drawable, let tap = tapLock.withLock({ tap }) { tap(drawable) }
+        return drawable
+    }
 }
 
 private struct MainThreadOnly: @unchecked Sendable {
