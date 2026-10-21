@@ -14,3 +14,9 @@
 # The dev harness's and shots.sh's screenshots, and shots.sh's builds.
 /.shots/
 /.derived/
+# What apple/scripts/mpv.sh builds and caches: libmpv's XCFramework, downloads, tools, builds.
+/.mpv/
+# Its link into the AnistreamPlayer package.
+/Packages/AnistreamPlayer/Mpv/
+# What apple/scripts/fonts.sh fetches: the CJK subtitle font the iOS app bundles.
+/.fonts/

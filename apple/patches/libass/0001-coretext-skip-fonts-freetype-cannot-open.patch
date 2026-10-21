@@ -1,0 +1,230 @@
+coretext: skip fonts FreeType cannot open, and fall back down Core Text's cascade
+
+Since macOS 15 and iOS 18 Apple ships PingFang, Core Text's fallback for Han, in a format
+FreeType cannot parse (libass#828, freetype#1281). libass asked Core Text for a fallback,
+got PingFang, failed to open it, and drew a box for every Han glyph whose style's font had
+none: a Han-only line in a Latin font, or a simplified character no other loaded font had.
+
+The provider now keeps the renderer's FT_Library and tries each font file before offering
+the font. A font that will not open is never added, and when Core Text's pick for a glyph
+will not open, the fallback is the first font down CTFontCopyDefaultCascadeListForLanguages
+that has the glyph and does open: Hiragino Sans, Hiragino Sans GB, Apple SD Gothic Neo. A code
+point no usable font has is remembered (the last 64), since libass asks again every frame.
+
+For anistream's Apple app (apple/scripts/mpv.sh), against libass 0.17.5. LGPL-compatible:
+libass is ISC.
+
+diff --git a/libass/ass_coretext.c b/libass/ass_coretext.c
+index 030ff8e..f8916a7 100644
+--- a/libass/ass_coretext.c
++++ b/libass/ass_coretext.c
+@@ -30,6 +30,11 @@
+ 
+ #include "ass_coretext.h"
+ 
++#include <stdlib.h>
++#include <string.h>
++#include <ft2build.h>
++#include FT_FREETYPE_H
++
+ #if __has_builtin(__builtin_available)
+ #define CHECK_AVAILABLE(sym, ...) __builtin_available(__VA_ARGS__)
+ #else
+@@ -40,6 +45,42 @@
+ 
+ #define SAFE_CFRelease(x) do { if (x) CFRelease(x); } while (0)
+ 
++/*
++ * The provider's state: the renderer's FreeType library, to try each font file before the
++ * font is offered. Since macOS 15 and iOS 18, Core Text's own fallback for Han, PingFang,
++ * is in a format FreeType cannot parse, so a font Core Text vouches for may not open; such
++ * a font is skipped, and the fallback for a glyph is taken further down Core Text's cascade
++ * list (Hiragino Sans, Hiragino Sans GB, Apple SD Gothic Neo and so on).
++ */
++typedef struct {
++    FT_Library ftlib;
++    char *last_path;
++    bool last_usable;
++    // Code points no usable font has. libass does not remember a failed fallback, and asks
++    // again each time it shapes the line, every frame; the cascade walk is not free.
++    uint32_t misses[64];
++    unsigned miss_count;
++    unsigned miss_next;
++} CoreTextPriv;
++
++static bool known_miss(CoreTextPriv *priv, uint32_t codepoint)
++{
++    for (unsigned i = 0; priv && i < priv->miss_count; i++)
++        if (priv->misses[i] == codepoint)
++            return true;
++    return false;
++}
++
++static void remember_miss(CoreTextPriv *priv, uint32_t codepoint)
++{
++    if (!priv)
++        return;
++    priv->misses[priv->miss_next] = codepoint;
++    priv->miss_next = (priv->miss_next + 1) % 64;
++    if (priv->miss_count < 64)
++        priv->miss_count++;
++}
++
+ static const ASS_FontMapping font_substitutions[] = {
+     {"sans-serif", "Helvetica"},
+     {"serif", "Times"},
+@@ -83,6 +124,35 @@ static bool check_glyph(void *priv, uint32_t code)
+     return CFCharacterSetIsLongCharacterMember(set, code);
+ }
+ 
++// Whether FreeType opens the file; the last answer is kept, since a family's faces mostly
++// share one file. With no FreeType library to ask, every file is taken as before.
++static bool font_file_usable(CoreTextPriv *priv, const char *path)
++{
++    if (!priv || !priv->ftlib || !path || !*path)
++        return true;
++    if (priv->last_path && !strcmp(priv->last_path, path))
++        return priv->last_usable;
++
++    FT_Face face;
++    bool usable = !FT_New_Face(priv->ftlib, path, 0, &face);
++    if (usable)
++        FT_Done_Face(face);
++
++    free(priv->last_path);
++    priv->last_path = strdup(path);
++    priv->last_usable = usable;
++    return usable;
++}
++
++static void destroy_provider(void *priv)
++{
++    CoreTextPriv *ct = priv;
++    if (!ct)
++        return;
++    free(ct->last_path);
++    free(ct);
++}
++
+ static char *get_font_file(CTFontDescriptorRef fontd)
+ {
+     CFURLRef url = NULL;
+@@ -153,7 +223,8 @@ static bool get_font_info_ct(CTFontDescriptorRef fontd,
+     return true;
+ }
+ 
+-static void process_descriptors(ASS_FontProvider *provider, CFArrayRef fontsd)
++static void process_descriptors(CoreTextPriv *priv, ASS_FontProvider *provider,
++                                CFArrayRef fontsd)
+ {
+     if (!fontsd)
+         return;
+@@ -164,7 +235,7 @@ static void process_descriptors(ASS_FontProvider *provider, CFArrayRef fontsd)
+         int index = -1;
+ 
+         char *path = NULL;
+-        if (get_font_info_ct(fontd, &path, &meta)) {
++        if (get_font_info_ct(fontd, &path, &meta) && font_file_usable(priv, path)) {
+             CFCharacterSetRef set =
+                 CTFontDescriptorCopyAttribute(fontd, kCTFontCharacterSetAttribute);
+             ass_font_provider_add_font(provider, &meta, path, index, (void*)set);
+@@ -238,7 +309,7 @@ static void match_fonts(void *priv, ASS_Library *lib, ASS_FontProvider *provider
+     if (!fontsd)
+         goto cleanup;
+ 
+-    process_descriptors(provider, fontsd);
++    process_descriptors(priv, provider, fontsd);
+ 
+ cleanup:
+     SAFE_CFRelease(fontsd);
+@@ -254,6 +325,9 @@ cleanup:
+ static char *get_fallback(void *priv, ASS_Library *lib,
+                           const char *family, uint32_t codepoint)
+ {
++    if (known_miss(priv, codepoint))
++        return NULL;
++
+     CFStringRef name = CFStringCreateWithBytes(
+         0, (UInt8 *)family, strlen(family), kCFStringEncodingUTF8, false);
+     if (!name)
+@@ -275,19 +349,48 @@ static char *get_fallback(void *priv, ASS_Library *lib,
+     }
+ 
+     CTFontRef fb = CTFontCreateForString(font, r, CFRangeMake(0, 1));
+-    CFRelease(font);
+     CFRelease(r);
+-    if (!fb)
+-        return NULL;
+ 
+-    CFStringRef cffamily = CTFontCopyFamilyName(fb);
+-    CFRelease(fb);
+-    if (!cffamily)
+-        return NULL;
++    char *res_family = NULL;
++    if (fb) {
++        CTFontDescriptorRef fbd = CTFontCopyFontDescriptor(fb);
++        char *path = fbd ? get_font_file(fbd) : NULL;
++        if (font_file_usable(priv, path)) {
++            CFStringRef cffamily = CTFontCopyFamilyName(fb);
++            if (cffamily) {
++                res_family = cfstr2buf(cffamily);
++                CFRelease(cffamily);
++            }
++        }
++        free(path);
++        SAFE_CFRelease(fbd);
++        CFRelease(fb);
++    }
+ 
+-    char *res_family = cfstr2buf(cffamily);
+-    CFRelease(cffamily);
++    // Core Text's pick will not open: take the first font down its cascade list that has the
++    // glyph and does.
++    if (!res_family) {
++        CFArrayRef cascade = CTFontCopyDefaultCascadeListForLanguages(font, NULL);
++        CFIndex count = cascade ? CFArrayGetCount(cascade) : 0;
++        for (CFIndex i = 0; i < count && !res_family; i++) {
++            CTFontDescriptorRef fontd = CFArrayGetValueAtIndex(cascade, i);
++            CFCharacterSetRef set =
++                CTFontDescriptorCopyAttribute(fontd, kCTFontCharacterSetAttribute);
++            bool has = set && CFCharacterSetIsLongCharacterMember(set, codepoint);
++            SAFE_CFRelease(set);
++            if (!has)
++                continue;
++            char *path = get_font_file(fontd);
++            if (path && *path && font_file_usable(priv, path))
++                res_family = get_name(fontd, kCTFontFamilyNameAttribute);
++            free(path);
++        }
++        SAFE_CFRelease(cascade);
++        if (!res_family)
++            remember_miss(priv, codepoint);
++    }
+ 
++    CFRelease(font);
+     return res_family;
+ }
+ 
+@@ -300,6 +403,7 @@ static void get_substitutions(void *priv, const char *name,
+ 
+ static ASS_FontProviderFuncs coretext_callbacks = {
+     .check_glyph        = check_glyph,
++    .destroy_provider   = destroy_provider,
+     .destroy_font       = destroy_font,
+     .match_fonts        = match_fonts,
+     .get_substitutions  = get_substitutions,
+@@ -310,5 +414,13 @@ ASS_FontProvider *
+ ass_coretext_add_provider(ASS_Library *lib, ASS_FontSelector *selector,
+                           const char *config, FT_Library ftlib)
+ {
+-    return ass_font_provider_new(selector, &coretext_callbacks, NULL);
++    CoreTextPriv *priv = calloc(1, sizeof(*priv));
++    if (!priv)
++        return NULL;
++    priv->ftlib = ftlib;
++    ASS_FontProvider *provider =
++        ass_font_provider_new(selector, &coretext_callbacks, priv);
++    if (!provider)
++        destroy_provider(priv);
++    return provider;
+ }
