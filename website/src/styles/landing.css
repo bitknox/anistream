@@ -114,13 +114,57 @@ body.landing {
 	}
 }
 
-/* ── Nav: solid ground, not sticky ──────────────────────────────────────── */
+/* ── Nav: over the scene's sky, solid ground once the scene has gone ───── */
+.landing {
+	--nav-h: 0px;
+}
+
 .l-nav {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
 	height: 64px;
 	padding-inline: var(--gutter);
+}
+
+/* Without the script there is no scene, so the nav stays a plain bar above the copy. */
+html.js .landing {
+	--nav-h: 64px;
+}
+
+html.js .l-nav {
+	position: fixed;
+	inset: 0 0 auto;
+	z-index: 20;
+	/* Over the scene, which is dusk in either theme. */
+	color: #e4e0d6;
+	background-color: transparent;
+	box-shadow: inset 0 -1px 0 transparent;
+	transition:
+		color var(--ani-standard) var(--ani-spring),
+		background-color var(--ani-standard) var(--ani-spring),
+		box-shadow var(--ani-standard) var(--ani-spring);
+}
+
+/* Dims the stars behind the links, in the sky's own colour. */
+html.js .l-nav::before {
+	content: '';
+	position: absolute;
+	inset: 0 0 -16px;
+	z-index: -1;
+	background: linear-gradient(rgb(22 26 46 / 0.85), rgb(22 26 46 / 0));
+	pointer-events: none;
+	transition: opacity var(--ani-standard) var(--ani-spring);
+}
+
+html.js .l-nav.is-solid {
+	color: var(--ani-text);
+	background-color: var(--ani-ground);
+	box-shadow: inset 0 -1px 0 var(--ani-rule-faint);
+}
+
+html.js .l-nav.is-solid::before {
+	opacity: 0;
 }
 
 .l-brand {
@@ -163,6 +207,10 @@ body.landing {
 		height: 56px;
 	}
 
+	html.js .landing {
+		--nav-h: 56px;
+	}
+
 	.l-brand {
 		font-size: 18px;
 	}
@@ -188,7 +236,8 @@ body.landing {
 /* ── Hero: the scene, full width, then the copy under it ────────────────── */
 .scene {
 	position: relative;
-	height: 560px;
+	/* The nav sits over the top of the sky, so the scene is that much taller. */
+	height: calc(560px + var(--nav-h));
 	overflow: hidden;
 	/* The scene is a picture and keeps its dusk ground in either theme. */
 	background: #161a2e;
@@ -252,7 +301,7 @@ html:not(.js) .scene {
 
 @media (max-width: 899px) {
 	.scene {
-		height: 420px;
+		height: calc(420px + var(--nav-h));
 	}
 
 	.hero-copy {

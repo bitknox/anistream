@@ -54,7 +54,10 @@ function drawScene(): Scene | null {
 		const cell = isPhone() ? 6 : 8;
 		const width = box.clientWidth;
 		const W = Math.ceil(width / cell);
-		const key = `${W}:${cell}`;
+		// The nav sits over the top of the scene, so the art starts below it.
+		const nav = $('.l-nav');
+		const lift = nav && getComputedStyle(nav).position === 'fixed' ? nav.offsetHeight : 0;
+		const key = `${W}:${cell}:${lift}`;
 		if (key === drawnFor) return;
 		drawnFor = key;
 		const cfg = sceneConfig(W);
@@ -66,7 +69,7 @@ function drawScene(): Scene | null {
 			c.style.height = `${c.height * cell}px`;
 			c.style.left = `${left}px`;
 			// The sky extends above the frame by the rows it may sink, so no gap opens.
-			c.style.top = p === 'sky' ? `${-cfg.extra * cell}px` : '0px';
+			c.style.top = `${(p === 'sky' ? -cfg.extra * cell : 0) + lift}px`;
 		}
 		scene.cell = cell;
 		scene.extra = cfg.extra;
@@ -376,6 +379,26 @@ function reduced() {
 	const track = $('.band-track');
 	if (track) track.style.transform = 'none';
 }
+
+/* ── Nav: clear over the scene, solid once the scene has scrolled away ───── */
+function navOverScene() {
+	const nav = $('.l-nav');
+	const scene = $('[data-scene]');
+	if (!nav || !scene) return;
+	let observer: IntersectionObserver | null = null;
+	const watch = () => {
+		observer?.disconnect();
+		observer = new IntersectionObserver(
+			([entry]) => nav.classList.toggle('is-solid', !entry.isIntersecting),
+			{ rootMargin: `-${nav.offsetHeight}px 0px 0px 0px` }
+		);
+		observer.observe(scene);
+	};
+	watch();
+	// The nav is 56 px on a phone and 64 px wider, so the line it watches moves with it.
+	window.matchMedia('(max-width: 599px)').addEventListener('change', watch);
+}
+navOverScene();
 
 const mm = gsap.matchMedia();
 mm.add('(prefers-reduced-motion: no-preference)', full);
