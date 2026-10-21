@@ -56,6 +56,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavType
@@ -293,6 +296,21 @@ private fun DestinationIcon(destination: Destination, selected: Boolean) {
     )
 }
 
+/** A navigation bar label on one line, shrinking to fit as the text grows. */
+@Composable
+private fun BarLabel(text: String) {
+    val style = LocalTextStyle.current
+    Text(
+        text,
+        maxLines = 1,
+        softWrap = false,
+        autoSize = androidx.compose.foundation.text.TextAutoSize.StepBased(
+            minFontSize = 8.sp,
+            maxFontSize = if (style.fontSize.isSpecified) style.fontSize else 12.sp,
+        ),
+    )
+}
+
 /**
  * The phone's navigation bar: the Expressive short bar on surfaceContainer, the selected
  * destination in a primaryContainer pill with an amber label. It never moves and never takes part
@@ -309,7 +327,9 @@ private fun PhoneBar(current: Destination, go: (Destination) -> Unit) {
                 selected = selected,
                 onClick = { go(destination) },
                 icon = { DestinationIcon(destination, selected) },
-                label = { Text(destination.label) },
+                // One line however large the text: five labels share the width, so each shrinks
+                // to fit before it would break mid-word.
+                label = { BarLabel(destination.label) },
                 colors = ShortNavigationBarItemDefaults.colors(
                     selectedIconColor = colors.onPrimaryContainer,
                     selectedTextColorTopIconPosition = colors.primary,

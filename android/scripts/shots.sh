@@ -57,6 +57,17 @@ adb="$sdk/platform-tools/adb"
 emulator="$sdk/emulator/emulator"
 serial="emulator-$port"
 out="$android/.shots/${ANISTREAM_SHOTS_PHASE:-a0}"
+
+# The screen that is on, for screencap on a device with more than one, a foldable's inner and
+# outer: without one it warns into the PNG and takes whichever it finds first.
+lit_display() {
+  local ids on
+  ids="$("$adb" -s "$serial" shell dumpsys SurfaceFlinger --display-id 2>/dev/null | awk '/^Display [0-9]+/ { print $2 }')"
+  (( $(wc -w <<<"$ids") > 1 )) || return 0
+  on="$("$adb" -s "$serial" shell dumpsys display 2>/dev/null |
+    grep -o "isActive=true, displayId=[0-9]*, uniqueId='local:[0-9]*'" | grep -o 'local:[0-9]*' | head -1 | cut -d: -f2)"
+  [[ -n "$on" ]] && echo "-d $on"
+}
 mkdir -p "$out"
 
 # The intent extras for a shot: the scene, and the screen it names.
@@ -183,7 +194,7 @@ for shot in "${shots[@]}"; do
   # The content's crossfade and the art's fade-in, which a busy machine slows.
   sleep 1.5
   file="$out/$device-$(name "$shot").png"
-  "$adb" -s "$serial" exec-out screencap -p >"$file"
+  "$adb" -s "$serial" exec-out screencap -p $(lit_display) >"$file"
   echo "shots.sh: wrote $file"
   shell am force-stop "$package"
 done

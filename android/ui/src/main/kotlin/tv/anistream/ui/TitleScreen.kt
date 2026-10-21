@@ -5,6 +5,9 @@
 package tv.anistream.ui
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,7 +38,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -44,6 +46,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -114,7 +117,17 @@ fun TitleScreen(id: AnilistId, actions: AppActions) {
     val art = HeroArt.of(entry, episodes)
     val list = rememberLazyListState()
     val inset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    if (wideWindow()) {
+    val wide = wideWindow()
+    // A page a fold opened goes back to the list and detail once the window is wide again (AT3).
+    LaunchedEffect(wide) {
+        if (wide && navigator.openedByFold == id) {
+            navigator.openedByFold = null
+            navigator.back()
+        }
+    }
+    // Left any other way, by Back or for another page, the fold's page is the viewer's own.
+    DisposableEffect(id) { onDispose { if (navigator.openedByFold == id) navigator.openedByFold = null } }
+    if (wide) {
         TabletTitle(entry, episodes, art, actions)
         return
     }
@@ -190,8 +203,8 @@ private fun MoreAboutRow(onOpen: () -> Unit) {
         Modifier
             .padding(top = 4.dp)
             .fillMaxWidth()
-            .height(48.dp)
-            .clickable(onClick = onOpen)
+            .heightIn(min = 48.dp)
+            .clickable(onClickLabel = "Open the sheet", onClick = onOpen)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -214,11 +227,11 @@ private fun RelatedRail(related: List<tv.anistream.engine.model.LinkedTitle>) {
         ) {
             items(related, key = { it.id.toLong() }) { linked ->
                 Row(
-                    Modifier.clickable { navigator.openTitle(linked.id, "related") },
+                    itemMotion().clickable(onClickLabel = "Open title") { navigator.openTitle(linked.id, "related") },
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    ArtworkImage(linked.coverUrl, plate = androidx.compose.ui.graphics.Color(0xFF1F2440), maxPixelSize = 120, modifier = Modifier.size(40.dp, 60.dp).clip(ArtShape.cover(40.dp)))
+                    ArtworkImage(linked.coverUrl, plate = linked.plate(), maxPixelSize = 120, modifier = Modifier.size(40.dp, 60.dp).clip(ArtShape.cover(40.dp)))
                     Column {
                         Text(linked.title, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp))
                         Text(linked.cardLine(), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 1)
@@ -233,7 +246,7 @@ private fun RelatedRail(related: List<tv.anistream.engine.model.LinkedTitle>) {
 @Composable
 private fun TitleHeader(entry: Entry, modifier: Modifier = Modifier) {
     Row(
-        modifier.padding(horizontal = 16.dp).height(120.dp),
+        modifier.padding(horizontal = 16.dp).heightIn(min = 120.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
@@ -309,7 +322,7 @@ private fun TitleTopBar(entry: Entry, onBack: () -> Unit, modifier: Modifier = M
         Spacer(Modifier.weight(1f))
         Box {
             CircleIconButton(Icons.More, "More", { more = true })
-            DropdownMenu(expanded = more, onDismissRequest = { more = false }) {
+            Menu(expanded = more, onDismissRequest = { more = false }) {
                 DropdownMenuItem(
                     text = { Text("Settings for this show") },
                     leadingIcon = { Icon(Icons.Settings, null) },
@@ -359,7 +372,7 @@ private fun TitleActions(entry: Entry, actions: AppActions) {
         if (action.playable) {
             Button(
                 onClick = { actions.play(entry.id, action.episode.toString()) },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
             ) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
@@ -370,17 +383,22 @@ private fun TitleActions(entry: Entry, actions: AppActions) {
             }
         } else {
             // Caught up: when the next one airs, in the action's place, and no amber on the page.
-            CaughtUp(action, Modifier.height(56.dp))
+            CaughtUp(action, Modifier.heightIn(min = 56.dp))
         }
-        Row(Modifier.padding(top = 4.dp).height(48.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(top = 4.dp).heightIn(min = 48.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             var open by remember { mutableStateOf(false) }
             Box(Modifier.weight(1f)) {
                 FilledTonalButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(entry.listStatus?.label?.replaceFirstChar { it.uppercase() } ?: "Add to list")
+                    // After a pick the label crossfades on quick, and the button keeps its size (T7).
+                    androidx.compose.animation.AnimatedContent(
+                        entry.listStatus?.label?.replaceFirstChar { it.uppercase() } ?: "Add to list",
+                        transitionSpec = { fadeIn(Motion.quick()) togetherWith fadeOut(Motion.quick()) },
+                        label = "list",
+                    ) { Text(it) }
                     Spacer(Modifier.width(8.dp))
                     Icon(Icons.Down, contentDescription = null, modifier = Modifier.size(18.dp))
                 }
-                DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                Menu(expanded = open, onDismissRequest = { open = false }) {
                     for (segment in LibraryModel.order) {
                         DropdownMenuItem(
                             text = { Text(segment.label.replaceFirstChar { it.uppercase() }) },
@@ -476,7 +494,7 @@ private fun Seasons(entry: Entry, family: TitleFamily, inset: Boolean = true) {
     val navigator = LocalNavigator.current
     val colors = MaterialTheme.colorScheme
     Row(
-        Modifier.padding(horizontal = if (inset) 16.dp else 0.dp).fillMaxWidth().height(48.dp),
+        Modifier.padding(horizontal = if (inset) 16.dp else 0.dp).fillMaxWidth().heightIn(min = 48.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -492,7 +510,7 @@ private fun Seasons(entry: Entry, family: TitleFamily, inset: Boolean = true) {
             Row(
                 Modifier
                     .weight(if (season.isThis) 1.4f else 1f)
-                    .height(40.dp)
+                    .heightIn(min = 40.dp)
                     .clip(shape)
                     .background(if (season.isThis) colors.primaryContainer else colors.surfaceContainer)
                     .clickable(enabled = !season.isThis) { navigator.openTitle(season.id, "season-picker") },
@@ -539,11 +557,11 @@ private fun LazyListScope.episodeRows(
     val folded = entry.foldedEpisodes(listed)
     if (folded.isNotEmpty()) {
         val anchor = episodeKey(listed[folded.size])
-        item(key = WATCHED_FOLD) { WatchedFoldRow(folded, unfolded, Modifier.padding(horizontal = 16.dp)) { onFold(anchor) } }
+        item(key = WATCHED_FOLD) { WatchedFoldRow(folded, unfolded, itemMotion().padding(horizontal = 16.dp)) { onFold(anchor) } }
     }
     val shown = if (folded.isNotEmpty() && !unfolded) listed.drop(folded.size) else listed
     items(shown, key = ::episodeKey) { row ->
-        EpisodeRowView(entry, row, next, actions)
+        Box(itemMotion()) { EpisodeRowView(entry, row, next, actions) }
     }
 }
 
@@ -609,7 +627,7 @@ private fun WatchedFoldRow(folded: List<EpisodeRow>, unfolded: Boolean, modifier
     Row(
         modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .heightIn(min = 56.dp)
             .clickable(onClickLabel = if (unfolded) "Hide watched episodes" else "Show watched episodes", onClick = onToggle)
             .semantics { stateDescription = if (unfolded) "Expanded" else "Collapsed" },
         verticalAlignment = Alignment.CenterVertically,
@@ -773,7 +791,7 @@ private fun TabletTitle(
                     val shown = if (folded.isNotEmpty() && entry.id !in unfolded) listed.drop(folded.size) else listed
                     items(shown.size, key = { episodeKey(shown[it]) }) { index ->
                         val row = shown[index]
-                        Box(Modifier.clip(MaterialTheme.shapes.large)) { EpisodeRowView(entry, row, next, actions) }
+                        Box(itemMotion().clip(MaterialTheme.shapes.large)) { EpisodeRowView(entry, row, next, actions) }
                     }
                 }
             }
@@ -801,7 +819,7 @@ private fun AboutPane(entry: Entry, onClose: () -> Unit, onOpenTitle: (AnilistId
             .clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceContainer),
     ) {
-        Row(Modifier.height(64.dp).padding(start = 24.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.heightIn(min = 64.dp).padding(start = 24.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("More about this show", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).semantics { heading() })
             IconButton(onClick = onClose, modifier = Modifier.semantics { contentDescription = "Close" }) {
                 Icon(Icons.Clear, contentDescription = null)
@@ -821,9 +839,9 @@ private fun TabletActions(entry: Entry, actions: AppActions, modifier: Modifier 
     val store = LocalAppStore.current
     val action = TitleAction.of(entry)
     var open by remember { mutableStateOf(false) }
-    Row(modifier.height(56.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier.heightIn(min = 56.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         if (action.playable) {
-            Button(onClick = { actions.play(entry.id, action.episode.toString()) }, modifier = Modifier.height(56.dp), contentPadding = PaddingValues(horizontal = 24.dp)) {
+            Button(onClick = { actions.play(entry.id, action.episode.toString()) }, modifier = Modifier.heightIn(min = 56.dp), contentPadding = PaddingValues(horizontal = 24.dp)) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
                 Crossfade(action.label, animationSpec = Motion.standard(), label = "action") {
@@ -835,11 +853,15 @@ private fun TabletActions(entry: Entry, actions: AppActions, modifier: Modifier 
         }
         Box {
             FilledTonalButton(onClick = { open = true }, contentPadding = PaddingValues(start = 16.dp, end = 12.dp)) {
-                Text(entry.listStatus?.label?.replaceFirstChar { it.uppercase() } ?: "Add to list")
+                androidx.compose.animation.AnimatedContent(
+                    entry.listStatus?.label?.replaceFirstChar { it.uppercase() } ?: "Add to list",
+                    transitionSpec = { fadeIn(Motion.quick()) togetherWith fadeOut(Motion.quick()) },
+                    label = "list",
+                ) { Text(it) }
                 Spacer(Modifier.width(8.dp))
                 Icon(Icons.Down, contentDescription = null, modifier = Modifier.size(18.dp))
             }
-            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            Menu(expanded = open, onDismissRequest = { open = false }) {
                 for (segment in LibraryModel.order) {
                     DropdownMenuItem(
                         text = { Text(segment.label.replaceFirstChar { it.uppercase() }) },
