@@ -6,6 +6,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Locale
+import tv.anistream.store.AppClock
 import tv.anistream.store.CalendarModel
 import tv.anistream.store.EpisodeAiring
 import tv.anistream.store.airing
@@ -29,7 +30,7 @@ val Entry.genreLine: String?
 data class Broadcast(val entry: Entry, val episode: UInt, val airs: Instant)
 
 /** The calendar's broadcasts, each dated against the window's anchor. */
-fun CalendarModel.Window.broadcasts(now: Instant = Instant.now()): List<Broadcast> {
+fun CalendarModel.Window.broadcasts(now: Instant = AppClock.now()): List<Broadcast> {
     val anchor = anchor?.let(Instant::ofEpochSecond) ?: now
     return rows.mapNotNull { row ->
         val airingIn = row.airingIn ?: return@mapNotNull null
@@ -39,7 +40,7 @@ fun CalendarModel.Window.broadcasts(now: Instant = Instant.now()): List<Broadcas
 }
 
 /** The broadcasts that air on [now]'s date where the phone is. */
-fun List<Broadcast>.today(now: Instant = Instant.now(), zone: ZoneId = ZoneId.systemDefault()): List<Broadcast> {
+fun List<Broadcast>.today(now: Instant = AppClock.now(), zone: ZoneId = AppClock.zone): List<Broadcast> {
     val today = LocalDate.ofInstant(now, zone)
     return filter { LocalDate.ofInstant(it.airs, zone) == today }
 }

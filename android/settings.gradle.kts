@@ -21,3 +21,5 @@ rootProject.name = "anistream"
 // The modules follow the Apple app's packages: the engine's bindings and library, the store that
 // holds the engine and its state, the design system, the screens, the player, and the app.
 include(":engine", ":store", ":design", ":ui", ":player", ":app")
+// What the tests share: the engine's events recorded as scenes, and the fixture titles' art.
+include(":testkit")
