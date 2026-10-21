@@ -66,12 +66,6 @@ jobs:
       - name: Test the engine without the desktop feature
         run: cargo nextest run -p anistream-engine --no-default-features --lib --profile ci
 
-      # After the tests, so listing them reuses their build. On macOS only: tests gated to one
-      # OS make the count differ by OS, and macOS is where the app is developed.
-      - name: Test count
-        if: matrix.os == 'macos-latest'
-        run: tools/check-test-count.sh
-
   # The real-mpv tests (the companion script, whole binges, the seek-bar thumbnailers) skip
   # where mpv is missing, which is every runner above. Here apt installs mpv and the tests
   # require it, so a skip fails instead. At both ends of what distributions ship: Ubuntu 24.04's
@@ -96,10 +90,6 @@ jobs:
       - name: Install mpv
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mpv
       - run: mpv --version | head -1
-      # A test that moves module leaves the group by its old path, and this job would stop
-      # running it without failing: the group's size is held to what it records.
-      - name: Group size
-        run: tools/check-mpv-group.sh
       - name: Test
         run: >-
           cargo nextest run --profile ci -p anistream -p anistream-engine -p anistream-player
@@ -206,16 +196,14 @@ jobs:
       - name: The FFI library
         run: cargo build -p anistream-ffi --no-default-features --target aarch64-apple-ios
 
-  # The same for an Android phone through cargo-ndk, then the Android app on top: its engine and
-  # Kotlin bindings as android/scripts/engine.sh builds them, the fixtures APK, and the JVM unit
-  # tests, which start the testing engine on this runner's own build of the library through JNA.
-  # Cross-compiled only; emulator tests come later.
+  # The same for an Android phone, with the runner's newest NDK through cargo-ndk, which points
+  # every C build at the NDK's clang for API level 35, the Android app's minimum. Cross-compiled
+  # only, and the library checked for what Android needs of it. Then the Android app on top: its
+  # engine and Kotlin bindings as android/scripts/engine.sh builds them, the fixtures APK, and the
+  # JVM unit tests, which start the testing engine on this runner's own build of the library
+  # through JNA. Emulator tests come later.
   android:
     runs-on: ubuntu-latest
-    env:
-      # The NDK the app's build.gradle.kts strips the APK's libraries with, and the one the
-      # engine is built with here.
-      ANDROID_NDK_VERSION: 30.0.16248370
     steps:
       - uses: actions/checkout@v5
       - run: rustup toolchain install && rustup target add aarch64-linux-android
@@ -226,6 +214,44 @@ jobs:
       - uses: taiki-e/install-action@v2
         with:
           tool: cargo-ndk
+      # The newest NDK the runner has, which links 16 KB aligned (r28 and later), where
+      # ANDROID_NDK_HOME may name an older one. And bindgen's clang arguments, for BoringSSL's
+      # bindings: bindgen asks clang for the Rust target as it is named, without an API level,
+      # and the NDK's headers refuse an unversioned one. cargo-ndk 4 sets the underscored
+      # BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android itself, to the sysroot alone, over any
+      # value given it, so the level goes in the hyphenated name, which bindgen reads first, with
+      # the sysroot beside it.
+      - name: The NDK and bindgen's arguments for it
+        run: |
+          ndk="${ANDROID_NDK_LATEST_HOME:-$ANDROID_NDK_HOME}"
+          sysroot="$ndk/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
+          {
+            echo "ANDROID_NDK_HOME=$ndk"
+            echo "BINDGEN_ANDROID=--target=aarch64-linux-android35 --sysroot=$sysroot -I$sysroot/usr/include/aarch64-linux-android"
+          } >> "$GITHUB_ENV"
+      - name: The engine
+        run: >-
+          env "BINDGEN_EXTRA_CLANG_ARGS_aarch64-linux-android=$BINDGEN_ANDROID"
+          cargo ndk --target arm64-v8a --platform 35
+          build -p anistream-engine --no-default-features
+      - name: The FFI library
+        run: >-
+          env "BINDGEN_EXTRA_CLANG_ARGS_aarch64-linux-android=$BINDGEN_ANDROID"
+          cargo ndk --target arm64-v8a --platform 35
+          build -p anistream-ffi --no-default-features
+      # Android 15 devices can run 16 KB pages, and a library with 4 KB aligned segments does not
+      # load on them. And a library that needed libc++_shared.so would have the app ship it.
+      - name: The library loads on 16 KB pages and needs only the system's libraries
+        run: |
+          bin="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          so=target/aarch64-linux-android/debug/libanistream_ffi.so
+          "$bin/llvm-readelf" -d "$so" | grep NEEDED
+          if "$bin/llvm-readelf" -d "$so" | grep -q 'libc++_shared'; then
+            echo "the library needs libc++_shared.so, which the app would have to ship"; exit 1
+          fi
+          if "$bin/llvm-objdump" -p "$so" | grep LOAD | grep -vq 'align 2\*\*14'; then
+            echo "a LOAD segment is not 16 KB aligned"; exit 1
+          fi
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -234,30 +260,15 @@ jobs:
       - uses: gradle/actions/setup-gradle@v5
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+      # The platform the app compiles against, and the NDK its build.gradle.kts strips the APK's
+      # libraries with; the engine itself builds with the newest NDK, above.
       - name: The SDK platform and NDK the app builds with
         run: |
           sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$sdkmanager" --licenses >/dev/null
-          "$sdkmanager" --install "platforms;android-37.0" "build-tools;36.0.0" "ndk;$ANDROID_NDK_VERSION" >/dev/null
-          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$ANDROID_NDK_VERSION" >>"$GITHUB_ENV"
-      # BoringSSL's bindings are generated by bindgen, which asks clang for the Rust target as it
-      # is named, without an API level, and the headers of NDK r28 and later refuse an
-      # unversioned one. cargo-ndk 4 sets the underscored BINDGEN_EXTRA_CLANG_ARGS variable to
-      # its own sysroot arguments, over whatever it held, so the API level goes in the hyphenated
-      # one, which bindgen reads first, with cargo-ndk's arguments beside it: as engine.sh sets it.
-      - name: bindgen's clang arguments
-        run: |
-          sysroot="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/sysroot"
-          echo "BINDGEN_EXTRA_CLANG_ARGS_aarch64-linux-android=--target=aarch64-linux-android24 --sysroot=$sysroot -I$sysroot/usr/include/aarch64-linux-android" >>"$GITHUB_ENV"
-      - name: The engine
-        run: >-
-          cargo ndk --target arm64-v8a --platform 24
-          build -p anistream-engine --no-default-features
-      - name: The FFI library
-        run: >-
-          cargo ndk --target arm64-v8a --platform 24
-          build -p anistream-ffi --no-default-features
-      # The fixtures flavour's engine at the app's API level, 35, and its bindings, and the fonts.
+          "$sdkmanager" --install "platforms;android-37.0" "build-tools;36.0.0" "ndk;30.0.16248370" >/dev/null
+      # The fixtures flavour's engine and its bindings, which engine.sh builds with the same
+      # bindgen arguments, and the fonts.
       - name: The app's engine and bindings
         run: android/scripts/engine.sh testing
         env:

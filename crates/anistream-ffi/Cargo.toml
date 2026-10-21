@@ -38,8 +38,10 @@ testing = [
     "dep:anistream-providers",
     "dep:anistream-track",
 ]
-# The `uniffi-bindgen` binary.
-cli = ["uniffi/cli"]
+# The `uniffi-bindgen` binary. With cargo metadata, which is how it finds each crate's own
+# `uniffi.toml`: the workspace takes uniffi without its default features, and without this the
+# Kotlin bindings came out under uniffi's default packages whatever the files said.
+cli = ["uniffi/cli", "uniffi/cargo-metadata"]
 
 # No terminal crate, not even transitively: tools/check-boundaries.sh holds it to that in CI.
 [dependencies]
