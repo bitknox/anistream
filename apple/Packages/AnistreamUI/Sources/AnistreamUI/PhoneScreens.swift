@@ -170,7 +170,6 @@ struct PhoneHero: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(entry.showTitle)
                 .font(.showTitle(size: 22, relativeTo: .title2))
-                .fixedLineHeight(28, relativeTo: .title2)
                 .foregroundStyle(.silk)
                 .lineLimit(4)
                 .dynamicTypeSize(...DynamicTypeSize.accessibility3)

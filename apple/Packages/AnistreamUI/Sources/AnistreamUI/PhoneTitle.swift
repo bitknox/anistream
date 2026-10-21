@@ -10,6 +10,7 @@ struct PhoneTitle: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
     @AppStorage("anistream.spoilerProtection") private var spoilers = true
     @Namespace private var rotor
     let id: AnilistId
@@ -42,7 +43,6 @@ struct PhoneTitle: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(entry.showTitle)
                             .font(.showTitle(size: 22, relativeTo: .title2))
-                            .fixedLineHeight(28, relativeTo: .title2)
                             .foregroundStyle(.silk)
                             // As large as `.accessibility3`, in four lines at most.
                             .lineLimit(4)
@@ -58,7 +58,9 @@ struct PhoneTitle: View {
                     .padding(.bottom, 4)
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, art.isCompact ? 8 : -60)
+                // Over the art's foot, except at the accessibility sizes, where the title would
+                // grow up into the art and lose its contrast.
+                .padding(.top, art.isCompact || typeSize.isAccessibilitySize ? 8 : -60)
 
                 VStack(alignment: .leading, spacing: 16) {
                     if action.playable {
@@ -67,7 +69,9 @@ struct PhoneTitle: View {
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "play.fill").font(.ui(13))
+                                // Whole on one line, which it fits; wrapped at the accessibility sizes.
                                 Text(action.sentence)
+                                    .fixedSize(horizontal: !typeSize.isAccessibilitySize, vertical: false)
                             }
                             .frame(maxWidth: .infinity)
                         }

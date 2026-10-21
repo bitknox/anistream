@@ -175,13 +175,14 @@ struct AirsStatus: View {
     }
 }
 
-/// A capsule's text: one line, and two at the accessibility sizes, where one would be cut off.
+/// A capsule's text: one line, and up to three at the accessibility sizes, where one would be
+/// cut off.
 struct CapsuleLines: ViewModifier {
     @Environment(\.dynamicTypeSize) private var typeSize
 
     func body(content: Content) -> some View {
         content
-            .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
+            .lineLimit(typeSize.isAccessibilitySize ? 3 : 1)
             .multilineTextAlignment(.center)
             .padding(.vertical, typeSize.isAccessibilitySize ? 8 : 0)
     }
