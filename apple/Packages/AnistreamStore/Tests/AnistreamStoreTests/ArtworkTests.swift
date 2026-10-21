@@ -54,6 +54,55 @@ struct ArtworkTests {
         #expect(image.height == 126)
     }
 
+    @Test func aLargerAskDecodesAgainWhereTheFileHasMore() async throws {
+        // Johan's blurry banner: a list row decoded a cover at 108 pixels, and the preview's
+        // banner, the same URL for a title with no banner, stretched that decode.
+        let asked = Box(0)
+        let artwork = ArtworkStore { _ in asked.value += 1; return true }
+        let url = "https://img.example/cover/900005-xl.jpg"
+        let bytes = png(width: 460, height: 690)
+        artwork.request(url, maxPixelSize: 108)
+        artwork.ready(url: url, bytes: bytes)
+        try await waitFor { artwork.image(url) != nil }
+        #expect(artwork.image(url)?.height == 108)
+
+        artwork.request(url, maxPixelSize: 1800)
+        #expect(asked.value == 2, "asked again, for the larger decode")
+        #expect(artwork.image(url)?.height == 108, "the small one shows meanwhile")
+        artwork.ready(url: url, bytes: bytes)
+        try await waitFor { artwork.image(url)?.height == 690 }
+        // The file has no more than that, so a larger ask still asks nothing.
+        artwork.request(url, maxPixelSize: 2400)
+        #expect(asked.value == 2)
+    }
+
+    @Test func aSmallerAskUsesTheLargerDecode() async throws {
+        let asked = Box(0)
+        let artwork = ArtworkStore { _ in asked.value += 1; return true }
+        let url = "https://img.example/banner/900001.jpg"
+        artwork.request(url, maxPixelSize: 600)
+        artwork.ready(url: url, bytes: png(width: 1600, height: 900))
+        try await waitFor { artwork.image(url) != nil }
+        artwork.request(url, maxPixelSize: 108)
+        #expect(asked.value == 1)
+        #expect(artwork.image(url)?.width == 600)
+    }
+
+    @Test func anAskThatGrowsWhileTheBytesDecodeIsAskedAgain() async throws {
+        let asked = Box(0)
+        let artwork = ArtworkStore { _ in asked.value += 1; return true }
+        let url = "https://img.example/cover/900002-xl.jpg"
+        let bytes = png(width: 460, height: 690)
+        artwork.request(url, maxPixelSize: 108)
+        artwork.ready(url: url, bytes: bytes)
+        // Before those bytes have decoded at 108.
+        artwork.request(url, maxPixelSize: 1800)
+        #expect(asked.value == 1, "the first is still on its way")
+        try await waitFor { asked.value == 2 }
+        artwork.ready(url: url, bytes: bytes)
+        try await waitFor { artwork.image(url)?.height == 690 }
+    }
+
     @Test func aURLThatFailedWaitsBeforeItIsAskedForAgain() {
         let clock = SteppedClock()
         var asked = 0

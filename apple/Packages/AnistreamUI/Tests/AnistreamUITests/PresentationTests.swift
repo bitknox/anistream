@@ -8,7 +8,7 @@ func entry(_ change: (inout Entry) -> Void) -> Entry {
     var entry = Entry(
         id: 900_001, title: "Stardust Wayfarer", secondary: "Hoshikuzu no Tabibito", format: "TV",
         episodes: 12, year: 2024, score: 82, studio: "Kujaku Animation Works", synopsis: "",
-        coverUrl: nil, bannerUrl: nil, genres: [], availableOn: [], progress: nil, airingIn: nil,
+        coverUrl: nil, coverColor: nil, bannerUrl: nil, genres: [], availableOn: [], progress: nil, airingIn: nil,
         airingEpisode: nil, nextEpisode: nil, nextAiringIn: nil, lastAired: nil, resume: nil,
         related: [], recommended: [], trailerUrl: nil, listStatus: nil
     )

@@ -7,13 +7,28 @@ import Foundation
 import ImageIO
 import Observation
 
-/// A decoded cover or banner.
+/// A decoded cover or banner, and what it was decoded from.
 public final class Artwork: @unchecked Sendable {
     // A CGImage is immutable once made; the class carries it across actors and into NSCache.
     public let image: CGImage
+    /// The long side the file was decoded down to at most: the largest any screen had asked for.
+    let decodedFor: Int
+    /// The long side of the image in the file.
+    let sourceLongSide: Int
 
-    init(_ image: CGImage) {
+    init(_ image: CGImage, decodedFor: Int, sourceLongSide: Int) {
         self.image = image
+        self.decodedFor = decodedFor
+        self.sourceLongSide = sourceLongSide
+    }
+
+    /// The long side as decoded.
+    var longSide: Int { max(image.width, image.height) }
+
+    /// Whether this decode is enough for a screen that needs `size` pixels: it was decoded for at
+    /// least that many, or the file has no more to give.
+    func covers(_ size: Int) -> Bool {
+        decodedFor >= size || longSide >= sourceLongSide
     }
 
     /// What it costs to keep: its pixels.
@@ -23,11 +38,15 @@ public final class Artwork: @unchecked Sendable {
 /// The artwork the screens show.
 ///
 /// A screen asks with `request(_:maxPixelSize:)` when art comes on screen and reads it with
-/// `image(_:)`. Each URL is fetched once: a second ask while the first is on its way, or once the
-/// art is here, sends nothing. The engine answers with the file's bytes (`ArtworkReady`), which
-/// are downsampled with ImageIO to the largest size any screen asked for, off the main thread, and
-/// kept in an `NSCache`. A URL that failed is asked for again only after `retryAfter`; its plate
-/// stays meanwhile.
+/// `image(_:)`. The engine answers with the file's bytes (`ArtworkReady`), which are downsampled
+/// with ImageIO to the largest size any screen has asked for, off the main thread, and kept in an
+/// `NSCache`, one decode per URL, the largest.
+///
+/// A URL is asked of the engine once while it is on its way, and not again while its decode is
+/// enough. A larger ask than the decode answers, where the file is larger too, asks again (the
+/// engine has the file on disk by then), and the smaller decode shows until the larger lands: a
+/// cover a list row decoded at 108 pixels is never what a banner stretches across 1,200 points.
+/// A URL that failed is asked for again only after `retryAfter`; its plate stays meanwhile.
 @Observable @MainActor
 public final class ArtworkStore {
     /// How long a URL that failed waits before it is asked for again.
@@ -67,7 +86,13 @@ public final class ArtworkStore {
     /// Ask for `url`'s art, decoded to at most `maxPixelSize` pixels on its long side.
     public func request(_ url: String, maxPixelSize: Int) {
         sizes[url] = max(sizes[url] ?? 0, maxPixelSize)
-        guard cache.object(forKey: url as NSString) == nil, !inFlight.contains(url) else { return }
+        if let cached = cache.object(forKey: url as NSString), cached.covers(maxPixelSize) { return }
+        ask(url)
+    }
+
+    /// Ask the engine for `url`, unless it is on its way or failed a moment ago.
+    private func ask(_ url: String) {
+        guard !inFlight.contains(url) else { return }
         if let at = failed[url], now() - at < Self.retryAfter { return }
         if fetch(url) {
             inFlight.insert(url)
@@ -87,8 +112,8 @@ public final class ArtworkStore {
     func ready(url: String, bytes: Data) {
         let size = sizes[url] ?? 1024
         Task.detached(priority: .utility) { [weak self] in
-            let image = Self.decode(bytes, maxPixelSize: size)
-            await self?.decoded(url: url, image: image)
+            let decoded = Self.decodeWithSource(bytes, maxPixelSize: size)
+            await self?.decoded(url: url, size: size, decoded: decoded)
         }
     }
 
@@ -97,21 +122,37 @@ public final class ArtworkStore {
         failed[url] = now()
     }
 
-    private func decoded(url: String, image: CGImage?) {
+    private func decoded(url: String, size: Int, decoded: (image: CGImage, sourceLongSide: Int)?) {
         inFlight.remove(url)
-        guard let image else {
-            failed[url] = now()
+        let cached = cache.object(forKey: url as NSString)
+        guard let decoded else {
+            if cached == nil { failed[url] = now() }
             return
         }
         failed[url] = nil
-        let artwork = Artwork(image)
-        cache.setObject(artwork, forKey: url as NSString, cost: artwork.cost)
-        arrivals[url, default: 0] += 1
+        let artwork = Artwork(decoded.image, decodedFor: size, sourceLongSide: decoded.sourceLongSide)
+        // The largest decode is the one kept: a smaller one answering late changes nothing.
+        if cached.map({ $0.longSide < artwork.longSide }) ?? true {
+            cache.setObject(artwork, forKey: url as NSString, cost: artwork.cost)
+            arrivals[url, default: 0] += 1
+        }
+        // A screen asked for more while these bytes were decoding.
+        if let wanted = sizes[url], !(cache.object(forKey: url as NSString)?.covers(wanted) ?? false) {
+            ask(url)
+        }
     }
 
     /// `bytes` decoded and downsampled to at most `maxPixelSize` on the long side, with the
     /// file's orientation applied; `nil` when they are not an image.
     public nonisolated static func decode(_ bytes: Data, maxPixelSize: Int) -> CGImage? {
+        decodeWithSource(bytes, maxPixelSize: maxPixelSize)?.image
+    }
+
+    /// The same, with the long side of the image in the file.
+    nonisolated static func decodeWithSource(
+        _ bytes: Data,
+        maxPixelSize: Int
+    ) -> (image: CGImage, sourceLongSide: Int)? {
         let source = CGImageSourceCreateWithData(
             bytes as CFData, [kCGImageSourceShouldCache: false] as CFDictionary
         )
@@ -122,6 +163,11 @@ public final class ArtworkStore {
             kCGImageSourceShouldCacheImmediately: true,
             kCGImageSourceThumbnailMaxPixelSize: max(1, maxPixelSize),
         ]
-        return CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
+        guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary)
+        else { return nil }
+        let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+        let width = properties?[kCGImagePropertyPixelWidth] as? Int ?? image.width
+        let height = properties?[kCGImagePropertyPixelHeight] as? Int ?? image.height
+        return (image, max(width, height))
     }
 }

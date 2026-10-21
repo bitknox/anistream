@@ -111,7 +111,7 @@ final class Recorder {
 @MainActor
 @Suite(.timeLimit(.minutes(1)))
 struct SettleTests {
-    @Test func aStoreSettlesOnceContinueHasLoadedAndTheArtHasBeenAnswered() async throws {
+    @Test func aStoreSettlesOnceContinueHasLoadedAndTheArtHasArrived() async throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }
         let store = AppStore()
@@ -124,12 +124,14 @@ struct SettleTests {
         #expect(!store.isSettled)
         #expect(await store.settle(quiet: .milliseconds(300), timeout: .seconds(20)))
         #expect(store.continuing.queue(store.titles).all.count == 4)
-        // The fixtures' art is on a host nothing resolves, so each cover is answered with a
-        // failure and its plate stays.
-        let cover = try #require(store.titles[900_001]?.coverUrl)
+        // The testing engine's fake serves the fixtures' art, so a cover arrives as an image, in
+        // the cover's own colour beneath it until then.
+        let entry = try #require(store.titles[900_001])
+        #expect(entry.coverColor == "#e4a15d")
+        let cover = try #require(entry.coverUrl)
         store.artwork.request(cover, maxPixelSize: 108)
         #expect(await store.settle(quiet: .milliseconds(300), timeout: .seconds(20)))
-        #expect(store.artwork.image(cover) == nil)
+        #expect(store.artwork.image(cover)?.height == 108)
     }
 }
 
