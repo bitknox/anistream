@@ -21,6 +21,8 @@ let package = Package(
     name: "PlayerSpike",
     platforms: [.macOS(.v26), .iOS(.v26)],
     products: [.library(name: "SpikePlayer", targets: ["SpikePlayer"])],
-    dependencies: framework ? [] : [.package(url: "https://github.com/mpvkit/MPVKit", exact: "1.1.0-n9.0.2")],
+    // Declared in both modes: scripts/relink.sh reads MPVKit's artifacts, and a package that
+    // loses its only dependency has SwiftPM delete Package.resolved.
+    dependencies: [.package(url: "https://github.com/mpvkit/MPVKit", exact: "1.1.0-n9.0.2")],
     targets: targets
 )

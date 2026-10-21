@@ -33,6 +33,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.titlebarAppearsTransparent = true
         window.collectionBehavior.insert(.fullScreenPrimary)
         window.contentView = NSHostingView(rootView: PlayerScreen(player: player))
+        // For checks by hand (moving between displays): say what the surface is doing.
+        player.onDrawableSize = { [weak window] size in
+            let screen = window?.screen
+            FileHandle.standardError.write(Data(
+                "surface: drawable \(Int(size.width))x\(Int(size.height)) on \(screen?.localizedName ?? "?") (scale \(screen?.backingScaleFactor ?? 0), EDR \(screen?.maximumExtendedDynamicRangeColorComponentValue ?? 0) of \(screen?.maximumPotentialExtendedDynamicRangeColorComponentValue ?? 0))\n".utf8))
+        }
         window.center()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate()
