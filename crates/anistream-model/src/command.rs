@@ -347,6 +347,13 @@ pub enum Command {
     RemovePlugin {
         plugin: String,
     },
+    /// Switch the plugin `id` off, or back on, without removing it: it keeps its place and its
+    /// row, and is not tried while off. Answered with the settings, the Providers rows and a
+    /// notice; anything but a plugin is refused in words.
+    DisablePlugin {
+        id: String,
+        disabled: bool,
+    },
     /// Make an invite link: for someone new with a name, for another device of yours without.
     CreateInvite {
         store: String,
