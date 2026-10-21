@@ -276,6 +276,26 @@ const MIGRATIONS: &[(&str, &str)] = &[
     );
     "#,
     ),
+    (
+        "0006_show_settings",
+        r#"
+    -- What a show sets for itself over the Settings screen's own: sub or dub, quality, the
+    -- opening and filler skipped or not, spoiler protection. One row per setting a show sets;
+    -- a setting with no row follows Settings, so a new default reaches every show that never
+    -- chose otherwise.
+    --
+    -- The value is text, as the model's rules for each setting write and read it, and the
+    -- setting is named by the model's stable name for it. A name this build no longer knows,
+    -- or a value it no longer reads, is passed over rather than refused.
+    CREATE TABLE show_setting (
+        anilist_id INTEGER NOT NULL,
+        setting    TEXT    NOT NULL,
+        value      TEXT    NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (anilist_id, setting)
+    );
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.
@@ -389,6 +409,7 @@ mod tests {
             "episode_meta",
             "provider_preference",
             "track_memory",
+            "show_setting",
         ] {
             let found: bool = conn
                 .query_row(

@@ -43,6 +43,7 @@ mod tests {
     use std::time::Duration;
 
     use anistream_core::{
+        config::Config,
         ids::{AnilistId, ProviderKey},
         media::Translation,
         settings::SettingValue,
@@ -111,6 +112,65 @@ mod tests {
         for command in commands {
             assert_eq!(crossed(command.clone()), command);
         }
+    }
+
+    #[test]
+    fn the_native_apps_settings_cross_intact() {
+        use anistream_model::{
+            protection::{FailedCheck, TorrentProtection, TorrentProxy},
+            settings::SettingsView,
+            show::{RememberedSubtitles, RememberedTrack, RememberedTracks, ShowSettingKey},
+        };
+        let id = AnilistId::new(900_001);
+        let commands = [
+            Command::SetTorrentProtection {
+                mode: TorrentProtection::Proxy,
+                proxy: Some(TorrentProxy {
+                    host: "10.64.0.1".into(),
+                    port: 1080,
+                    user: Some("nagare".into()),
+                    password: Some(Secret("lantern".into())),
+                }),
+                on_failure: FailedCheck::Warn,
+                acknowledged: true,
+            },
+            Command::LoadShowSettings { id },
+            Command::SetShowSetting {
+                id,
+                key: ShowSettingKey::SpoilerProtection,
+                value: Some(SettingValue::Bool(false)),
+            },
+            Command::SetShowSetting { id, key: ShowSettingKey::Quality, value: None },
+            Command::ResetShowSettings { id },
+            Command::SetSetting {
+                key: SettingKey::UpNextCountdown,
+                value: SettingValue::Int(5),
+            },
+        ];
+        for command in commands {
+            assert_eq!(crossed(command.clone()), command);
+        }
+
+        let config = Config::default();
+        let remembered = vec![RememberedTracks {
+            translation: Translation::Sub,
+            audio: None,
+            subtitles: Some(RememberedSubtitles::Track {
+                track: RememberedTrack {
+                    language: Some("eng".into()),
+                    title: "signs".into(),
+                    forced: true,
+                    hearing_impaired: false,
+                },
+            }),
+            sub_delay: Some(0.4),
+        }];
+        let own = [(ShowSettingKey::SkipFiller, SettingValue::Bool(true))];
+        let sheet = anistream_model::show::view(id, &config, &own, remembered, None);
+        assert_eq!(crossed(sheet.clone()), sheet);
+        crosses_intact(Event::ShowSettings(sheet));
+        let view = SettingsView::default();
+        assert_eq!(crossed(view.clone()), view);
     }
 
     #[test]
