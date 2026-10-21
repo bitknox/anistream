@@ -240,7 +240,8 @@ public final class PlayerModel {
             present()
         case .playbackEnded(_, let ending, let rollingOn):
             if rollingOn {
-                rollPending = true
+                // Not when the viewer sought into the ending: someone was there.
+                rollPending = !(upNext?.sought ?? false)
             } else if backend == nil, ending == .failed, isPresented, let episode = startingEpisode {
                 // It never played: no stream was found, or none showed a frame. Say so where the
                 // viewer is looking, with another source to choose, rather than vanish.
@@ -272,6 +273,9 @@ public final class PlayerModel {
         }
         enter(playback)
         Self.note(Self.loud(op) ? .info : .debug, "#\(playback) \(Self.describe(op))\(elapsed)")
+        if case .seek(let seconds, let absolute) = op {
+            restartCountdown(at: absolute ? seconds : playhead + seconds)
+        }
         switch HostedStep(op) {
         case .open(let fullScreen, let speed, let volume):
             open(for: playback, fullScreen: fullScreen, speed: speed, volume: volume)
@@ -335,6 +339,8 @@ public final class PlayerModel {
             if let before = upNext, before.next.number == next.number {
                 card.cancelled = before.cancelled
                 card.played = before.played
+                card.restartedAt = before.restartedAt
+                card.sought = before.sought
             }
             upNext = card
         case .upNextCleared:
@@ -720,14 +726,17 @@ public final class PlayerModel {
         }
     }
 
-    /// The playhead moved: the cards that run on playback time.
+    /// The playhead moved: the cards that run on playback time. Not Up Next's countdown while
+    /// the viewer scrubs, whose keyframe seeks move the playhead under the finger.
     private func played() {
-        if var card = upNext, !card.played,
+        if scrubbing == nil, var card = upNext, !card.played,
             let left = card.remaining(at: playhead, duration: duration), left <= 0
         {
             card.played = true
             upNext = card
-            rollPending = true
+            // Asked for by someone there when they sought into the ending: not one in a row
+            // with nobody watching.
+            rollPending = !card.sought
             control(.playNext)
         }
         if var note = undo {
@@ -741,6 +750,21 @@ public final class PlayerModel {
         if let note = resume, playhead >= note.position + PlayerTiming.resumePlayback || playhead < note.position - 1 {
             resume = nil
         }
+    }
+
+    /// A seek, the viewer's or the engine's, to `target`: an Up Next countdown it lands in or past
+    /// runs again from its full length there, rather than playing the next episode at once.
+    private func restartCountdown(at target: Double) {
+        guard var card = upNext, !card.played, let start = card.showsAt(duration: duration) else { return }
+        card.restartedAt = target >= start ? target : nil
+        upNext = card
+    }
+
+    /// The viewer sought: Up Next, if it is up, plays next for someone who is there.
+    private func sought() {
+        guard var card = upNext, !card.played else { return }
+        card.sought = true
+        upNext = card
     }
 
     // MARK: Commands
@@ -1062,11 +1086,13 @@ public final class PlayerModel {
 
     public func seek(by seconds: Double) {
         input()
+        sought()
         control(.seek(seconds))
     }
 
     public func seek(to seconds: Double) {
         input()
+        sought()
         control(.seekTo(seconds))
     }
 
@@ -1135,6 +1161,7 @@ public final class PlayerModel {
 
     public func takeSkip() {
         input()
+        sought()
         skipsTaken += 1
         skip = nil
         control(.takeSkip)

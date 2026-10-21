@@ -343,6 +343,42 @@ struct CardTests {
         #expect(rig.model.upNextShown)
     }
 
+    @Test func aSeekPastTheEndingRunsTheCountdownAgainRatherThanPlayingNext() async throws {
+        let rig = Rig()
+        try await rig.opened()
+        upNext(rig)
+        try await rig.playhead(44)
+        #expect(rig.model.countdown?.seconds == 8)
+        // Well past where the countdown would have run out: it runs again, all ten seconds.
+        rig.model.seek(to: 80)
+        rig.ops(1, [.seek(seconds: 80, absolute: true)])
+        try await rig.playhead(80)
+        #expect(!rig.controls.contains(.playNext))
+        #expect(rig.model.countdown?.seconds == 10)
+        try await rig.playhead(89)
+        #expect(!rig.controls.contains(.playNext))
+        try await rig.playhead(90)
+        #expect(rig.controls.filter { $0 == .playNext }.count == 1)
+    }
+
+    @Test func scrubbingPastTheEndingPlaysNothingUntilTheCountdownRunsAgain() async throws {
+        let rig = Rig()
+        try await rig.opened()
+        upNext(rig)
+        try await rig.playhead(43)
+        // The keyframe seeks under the finger move the playhead past the countdown's end.
+        rig.model.scrub(to: 70)
+        try await rig.playhead(70)
+        #expect(!rig.controls.contains(.playNext), "not while scrubbing")
+        rig.model.endScrub()
+        rig.ops(1, [.seek(seconds: 70, absolute: true)])
+        try await rig.playhead(71)
+        #expect(!rig.controls.contains(.playNext))
+        #expect(rig.model.countdown?.seconds == 9)
+        try await rig.playhead(80)
+        #expect(rig.controls.filter { $0 == .playNext }.count == 1)
+    }
+
     @Test func aCancelledUpNextNeverPlaysNext() async throws {
         let rig = Rig()
         try await rig.opened()
@@ -487,6 +523,30 @@ struct CardTests {
             #expect(rig.model.stillWatching == (playback == 3), "after \(playback - 1) in a row")
         }
         #expect(rig.model.stillWatchingAfter == 2)
+    }
+
+    @Test func anEpisodePlayedNextAfterASeekIsNotOneInARowWithNobodyThere() async throws {
+        let rig = Rig()
+        try await rig.opened(1)
+        for playback: PlaybackId in 2...4 {
+            rig.ui(playback - 1, .upNext(next: NextEpisode(number: "\(playback + 6)", title: nil, thumbnail: nil), auto: true, endingAt: 42, countdown: 10, stillWatchingAfter: 2))
+            if playback == 3 {
+                // The viewer seeks into the ending, and the countdown runs out after it.
+                rig.model.seek(to: 45)
+                rig.ops(playback - 1, [.seek(seconds: 45, absolute: true)])
+                try await rig.playhead(55)
+            } else {
+                try await rig.playhead(52)
+            }
+            rig.ops(playback, [.load(url: "/media/\(playback).mkv", options: [])])
+            try await until("the load") { rig.mpv.calls.filter { if case .load = $0 { true } else { false } }.count == Int(playback) }
+            rig.mpv.emit(.startFile)
+            rig.mpv.emit(.playbackRestart)
+            try await rig.playhead(0.5)
+        }
+        // Two rolled on with nobody there would ask; the one after the seek is not among them.
+        #expect(rig.controls.filter { $0 == .playNext }.count == 3)
+        #expect(!rig.model.stillWatching)
     }
 
     @Test func anyInputStartsTheCountAgain() async throws {
