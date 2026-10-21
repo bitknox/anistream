@@ -130,3 +130,56 @@ struct HandoffStartTests {
         #expect(sent(store, since: next) == ["play", "playerReport"])
     }
 }
+
+/// The episode playing as an activity of the app's own: offered while it plays, read when the
+/// system asks, and told when another device takes it over.
+@MainActor
+struct PlayingActivityTests {
+    let types = HandoffTypes(bundleIdentifier: "tv.anistream.app")
+
+    @MainActor
+    final class Playback {
+        var now: (handoff: Handoff, title: String)?
+        var continued = 0
+
+        func at(_ position: Double) {
+            now = (.playing(900_001, episode: "7", position: position), "Hoshikuzu no Tabibito · Episode 7")
+        }
+    }
+
+    @Test func whatPlaysIsOfferedAndItsPlaceReadWhenTheSystemAsks() throws {
+        let playback = Playback()
+        let playing = PlayingActivity(types: types, playing: { playback.now }, continued: { playback.continued += 1 })
+        playing.update()
+        #expect(playing.activity == nil, "nothing plays")
+
+        playback.at(100)
+        playing.update()
+        let offered = try #require(playing.activity)
+        #expect(offered.activityType == "tv.anistream.playing")
+        #expect(offered.isEligibleForHandoff)
+        #expect(offered.title == "Hoshikuzu no Tabibito · Episode 7")
+
+        playback.at(104)
+        playing.update()
+        #expect(playing.activity === offered, "the same activity, marked again")
+        offered.delegate?.userActivityWillSave?(offered)
+        #expect(Handoff(offered, types: types) == .playing(900_001, episode: "7", position: 104), "as it is when asked")
+
+        playback.now = nil
+        playing.update()
+        #expect(playing.activity == nil, "no longer offered once nothing plays")
+    }
+
+    @Test func takenOverElsewhereItSaysSo() async throws {
+        let playback = Playback()
+        playback.at(760)
+        let playing = PlayingActivity(types: types, playing: { playback.now }, continued: { playback.continued += 1 })
+        playing.update()
+        let offered = try #require(playing.activity)
+        offered.delegate?.userActivityWasContinued?(offered)
+        let deadline = ContinuousClock.now + .seconds(2)
+        while playback.continued == 0, ContinuousClock.now < deadline { try await Task.sleep(for: .milliseconds(5)) }
+        #expect(playback.continued == 1)
+    }
+}

@@ -3,6 +3,7 @@
 
 import AnistreamKit
 import Foundation
+import Observation
 
 /// What one device hands another.
 public enum Handoff: Equatable, Sendable {
@@ -126,6 +127,88 @@ public struct HandoffTypes: Equatable, Sendable {
 
     /// This app's.
     public static let app = HandoffTypes(bundleIdentifier: Bundle.main.bundleIdentifier)
+}
+
+/// The episode playing, as an activity the app keeps itself rather than through SwiftUI's
+/// `userActivity`, so it hears when another device takes the episode over: then this one pauses
+/// (native-spec/native-layer.md, Handoff). Its place is read when the system asks for it, and the
+/// activity is marked to be read again every `every` seconds of playback.
+@MainActor
+public final class PlayingActivity: NSObject, NSUserActivityDelegate {
+    /// What plays: the episode at its place, and its name as the system shows it.
+    public typealias Playing = @MainActor () -> (handoff: Handoff, title: String)?
+
+    /// How far the place moves before the activity is marked to be read again.
+    public static let every: Double = 10
+
+    private let types: HandoffTypes
+    private let playing: Playing
+    private let continued: @MainActor () -> Void
+    /// The activity while something plays.
+    public private(set) var activity: NSUserActivity?
+    /// The episode and place it was last marked at.
+    private var marked: (id: AnilistId, episode: String, position: Double)?
+
+    /// - Parameters:
+    ///   - playing: what plays now, or `nil`; read again whenever what it reads changes.
+    ///   - continued: another device took the episode over.
+    public init(types: HandoffTypes = .app, playing: @escaping Playing, continued: @escaping @MainActor () -> Void) {
+        self.types = types
+        self.playing = playing
+        self.continued = continued
+        super.init()
+    }
+
+    /// Look again at what plays: offer it, mark it to be read again, or stop offering it.
+    public func update() {
+        guard let now = playing(), case .playing(let id, let episode, let position, _) = now.handoff else {
+            activity?.invalidate()
+            activity = nil
+            marked = nil
+            return
+        }
+        guard let activity else {
+            let activity = NSUserActivity(activityType: now.handoff.activityType(types))
+            activity.delegate = self
+            now.handoff.describe(activity, title: now.title)
+            self.activity = activity
+            marked = (id, episode, position)
+            activity.becomeCurrent()
+            return
+        }
+        if let marked, marked.id == id, marked.episode == episode, abs(position - marked.position) < Self.every { return }
+        marked = (id, episode, position)
+        activity.needsSave = true
+    }
+
+    /// Update now and whenever what `playing` reads changes.
+    public func follow() {
+        withObservationTracking {
+            _ = playing()
+        } onChange: { [weak self] in
+            Task { @MainActor in self?.follow() }
+        }
+        update()
+    }
+
+    /// The system is about to send the activity, which is this one's own: what plays, as it is
+    /// now.
+    private func fill() {
+        guard let activity, let now = playing() else { return }
+        now.handoff.describe(activity, title: now.title)
+    }
+
+    public nonisolated func userActivityWillSave(_ userActivity: NSUserActivity) {
+        if Thread.isMainThread {
+            MainActor.assumeIsolated { fill() }
+        } else {
+            DispatchQueue.main.sync { MainActor.assumeIsolated { fill() } }
+        }
+    }
+
+    public nonisolated func userActivityWasContinued(_ userActivity: NSUserActivity) {
+        Task { @MainActor in self.continued() }
+    }
 }
 
 /// An episode handed over from another device, offered on its title's page: "Resume Episode 7 ·

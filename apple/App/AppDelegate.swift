@@ -20,11 +20,15 @@ final class AppDelegate: NSObject {
     private var started = false
     /// The Fixtures app's directory for this launch, removed at quit.
     private var temporary: URL?
+    /// The episode playing, handed off to your other devices; it pauses here when one takes it.
+    private let playing: PlayingActivity
 
     override init() {
         let store = AppStore()
         self.store = store
-        player = PlayerModel(send: { [weak store] command in store?.send(command) })
+        let player = PlayerModel(send: { [weak store] command in store?.send(command) })
+        self.player = player
+        playing = player.playingActivity { [weak store] id in store?.titles[id]?.showTitle }
         super.init()
         store.onPlayback = { [weak player = self.player] event in player?.apply(event) }
     }

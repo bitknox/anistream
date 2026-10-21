@@ -1014,6 +1014,13 @@ public final class PlayerModel {
         control(.togglePause)
     }
 
+    /// Pause the playing session, if it plays: another device took the episode over. Nothing
+    /// while paused already, where a toggle would play it.
+    public func pause() {
+        guard isPresented, !paused else { return }
+        control(.togglePause)
+    }
+
     public func seek(by seconds: Double) {
         input()
         control(.seek(seconds))
