@@ -176,6 +176,8 @@ jobs:
           key: swift
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: swift --version
+      # The player's tests play media apple/scripts/player-media.sh makes with ffmpeg.
+      - run: brew install ffmpeg
       - name: Rust tests
         run: cargo test -p anistream-ffi --features testing,cli
       # The apps build the engine without the desktop feature, so its hosted player has to pass
