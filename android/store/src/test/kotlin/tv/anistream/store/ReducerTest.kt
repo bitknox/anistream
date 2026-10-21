@@ -55,6 +55,8 @@ class ReducerTest {
         genres = listOf("Fantasy"), availableOn = emptyList(), progress = null, airingIn = null,
         airingEpisode = null, nextEpisode = null, nextAiringIn = null, lastAired = null, resume = null,
         related = emptyList(), recommended = emptyList(), trailerUrl = null, listStatus = null,
+        titleRomaji = title, titleEnglish = null, titleNative = null, season = null, startDate = null,
+        endDate = null, source = null, adult = false, detail = null,
     )
 
     @Test
