@@ -56,6 +56,8 @@ mod companion_state;
 mod controls;
 mod events;
 mod presence;
+#[cfg(test)]
+mod scripted;
 mod skips;
 mod subtitles;
 mod upscaling;

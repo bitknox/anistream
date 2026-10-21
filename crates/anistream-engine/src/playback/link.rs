@@ -28,6 +28,8 @@ use anistream_playback::{
 use async_trait::async_trait;
 use tokio::sync::mpsc::UnboundedReceiver;
 
+#[cfg(test)]
+pub(crate) mod fake;
 #[cfg(feature = "desktop")]
 mod mpv;
 
