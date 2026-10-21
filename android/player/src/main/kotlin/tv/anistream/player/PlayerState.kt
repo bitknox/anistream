@@ -137,6 +137,13 @@ data class UpNextCard(
     val cancelled: Boolean = false,
     /** PlayNext has been sent, once. */
     val played: Boolean = false,
+    /**
+     * Where the countdown runs from since a seek landed in or past it: its full length again from
+     * there, where the ending alone would have it already over.
+     */
+    val restartedAt: Double? = null,
+    /** The viewer sought while it was up: what it plays next does not count toward "Still watching?". */
+    val sought: Boolean = false,
 ) {
     /** Where the card shows and its countdown starts: the ending, or near the end of the file. */
     fun showsAt(duration: Double?): Double? {
@@ -152,7 +159,8 @@ data class UpNextCard(
     /** Seconds left on the countdown at [position], while it runs: never with no countdown. */
     fun remaining(position: Double, duration: Double?): Double? {
         if (!auto || cancelled || countdown <= 0) return null
-        val start = showsAt(duration) ?: return null
+        val shows = showsAt(duration) ?: return null
+        val start = maxOf(shows, restartedAt ?: shows)
         if (position < start) return null
         return maxOf(0.0, countdown - (position - start))
     }

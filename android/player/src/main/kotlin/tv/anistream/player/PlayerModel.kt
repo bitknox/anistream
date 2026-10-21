@@ -323,7 +323,8 @@ class PlayerModel(
                 changed()
             }
             is Event.PlaybackEnded -> when {
-                event.rollingOn -> rollPending = true
+                // Not when the viewer sought into the ending: someone was there.
+                event.rollingOn -> rollPending = upNext?.sought != true
                 mpv == null && event.ending == Ending.Failed && isPresented && startingEpisode != null -> {
                     // It never played: no stream was found, or none showed a frame. Say so where the
                     // viewer is looking, with another source to choose, rather than vanish.
@@ -352,6 +353,7 @@ class PlayerModel(
         }
         enter(playback)
         if (loud(op)) note("#$playback ${describe(op)}")
+        if (op is PlayerOp.Seek) restartCountdown(if (op.absolute) op.seconds else playhead + op.seconds)
         when (val step = HostedStep.of(op)) {
             is HostedStep.Open -> open(playback, step.fullScreen, step.speed, step.volume)
             is HostedStep.Call -> {
@@ -409,6 +411,8 @@ class PlayerModel(
                     ui.next, ui.auto, ui.endingAt, ui.countdown.toDouble(), ui.stillWatchingAfter.toInt(),
                     cancelled = before?.next?.number == ui.next.number && before.cancelled,
                     played = before?.next?.number == ui.next.number && before.played,
+                    restartedAt = before?.takeIf { it.next.number == ui.next.number }?.restartedAt,
+                    sought = before?.next?.number == ui.next.number && before.sought,
                 )
             }
             PlayerUi.UpNextCleared -> upNext = null
@@ -765,14 +769,19 @@ class PlayerModel(
         }
     }
 
-    /** The playhead moved: the cards that run on playback time. */
+    /**
+     * The playhead moved: the cards that run on playback time. Not Up Next's countdown while the
+     * viewer scrubs, whose keyframe seeks move the playhead under the finger.
+     */
     private fun played() {
         val card = upNext
-        if (card != null && !card.played && !assisted) {
+        if (card != null && !card.played && !assisted && scrubbing == null) {
             val left = card.remaining(playhead, duration)
             if (left != null && left <= 0) {
                 upNext = card.copy(played = true)
-                rollPending = true
+                // Asked for by someone there when they sought into the ending: not one in a row with
+                // nobody watching.
+                rollPending = !card.sought
                 control(PlayerCommand.PlayNext)
             }
         }
@@ -787,6 +796,23 @@ class PlayerModel(
         resume?.let { note ->
             if (playhead >= note.position + PlayerTiming.RESUME_PLAYBACK || playhead < note.position - 1) resume = null
         }
+    }
+
+    /**
+     * A seek, the viewer's or the engine's, to [target]: an Up Next countdown it lands in or past runs
+     * again from its full length there, rather than playing the next episode at once.
+     */
+    private fun restartCountdown(target: Double) {
+        val card = upNext ?: return
+        if (card.played) return
+        val start = card.showsAt(duration) ?: return
+        upNext = card.copy(restartedAt = target.takeIf { it >= start })
+    }
+
+    /** The viewer sought: Up Next, if it is up, plays next for someone who is there. */
+    private fun sought() {
+        val card = upNext ?: return
+        if (!card.played) upNext = card.copy(sought = true)
     }
 
     // The decoder watchdog
@@ -1074,11 +1100,13 @@ class PlayerModel(
 
     fun seekBy(seconds: Double) {
         input()
+        sought()
         control(PlayerCommand.Seek(seconds))
     }
 
     fun seekTo(seconds: Double) {
         input()
+        sought()
         control(PlayerCommand.SeekTo(seconds))
     }
 
@@ -1120,6 +1148,7 @@ class PlayerModel(
 
     fun takeSkip() {
         input()
+        sought()
         skipsTaken += 1
         skip = null
         control(PlayerCommand.TakeSkip)

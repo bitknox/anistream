@@ -396,6 +396,44 @@ class CardTest {
     }
 
     @Test
+    fun aSeekPastTheEndingRunsTheCountdownAgainRatherThanPlayingNext() = runTest {
+        val rig = Rig(this)
+        rig.opened()
+        upNext(rig)
+        rig.playhead(44.0)
+        assertEquals(8, rig.model.countdown?.first)
+        // Well past where the countdown would have run out: it runs again, all ten seconds.
+        rig.model.seekTo(80.0)
+        rig.ops(1u, PlayerOp.Seek(80.0, true))
+        rig.playhead(80.0)
+        assertFalse(PlayerCommand.PlayNext in rig.controls)
+        assertEquals(10, rig.model.countdown?.first)
+        rig.playhead(89.0)
+        assertFalse(PlayerCommand.PlayNext in rig.controls)
+        rig.playhead(90.0)
+        assertEquals(1, rig.controls.count { it == PlayerCommand.PlayNext })
+    }
+
+    @Test
+    fun scrubbingPastTheEndingPlaysNothingUntilTheCountdownRunsAgain() = runTest {
+        val rig = Rig(this)
+        rig.opened()
+        upNext(rig)
+        rig.playhead(43.0)
+        // The keyframe seeks under the finger move the playhead past the countdown's end.
+        rig.model.scrub(70.0)
+        rig.playhead(70.0)
+        assertFalse("not while scrubbing", PlayerCommand.PlayNext in rig.controls)
+        rig.model.endScrub()
+        rig.ops(1u, PlayerOp.Seek(70.0, true))
+        rig.playhead(71.0)
+        assertFalse(PlayerCommand.PlayNext in rig.controls)
+        assertEquals(9, rig.model.countdown?.first)
+        rig.playhead(80.0)
+        assertEquals(1, rig.controls.count { it == PlayerCommand.PlayNext })
+    }
+
+    @Test
     fun aCancelledUpNextNeverPlaysNext() = runTest {
         val rig = Rig(this)
         rig.opened()
@@ -550,6 +588,46 @@ class CardTest {
             assertEquals(playback == 3uL, rig.model.stillWatching)
         }
         assertEquals(2, rig.model.stillWatchingAfter)
+    }
+
+    @Test
+    fun anEpisodePlayedNextAfterASeekIsNotOneInARowWithNobodyThere() = runTest {
+        val rig = Rig(this)
+        rig.opened(1u)
+        for (playback in 2uL..4uL) {
+            upNext(rig, after = 2u, playback = playback - 1u)
+            if (playback == 3uL) {
+                // The viewer seeks into the ending, and the countdown runs out after it.
+                rig.model.seekTo(45.0)
+                rig.ops(playback - 1u, PlayerOp.Seek(45.0, true))
+                rig.playhead(55.0)
+            } else {
+                rig.playhead(52.0)
+            }
+            rig.ops(playback, PlayerOp.Load("/media/$playback.mkv", emptyList()))
+            rig.emit(MpvEvent.of(MpvNative.Event.START_FILE))
+            rig.emit(MpvEvent.of(MpvNative.Event.PLAYBACK_RESTART))
+            rig.playhead(0.5)
+        }
+        // Two rolled on with nobody there would ask; the one after the seek is not among them.
+        assertEquals(3, rig.controls.count { it == PlayerCommand.PlayNext })
+        assertFalse(rig.model.stillWatching)
+    }
+
+    @Test
+    fun stillWatchingGoesOnceAnsweredOrTheViewerCloses() = runTest {
+        val rig = Rig(this)
+        rig.opened(1u)
+        rig.emit(MpvEvent.of(MpvNative.Event.PLAYBACK_RESTART))
+        for (playback in 2uL..3uL) rollOn(rig, playback, after = 2u)
+        assertTrue(rig.model.stillWatching)
+        rig.model.continueWatching()
+        assertFalse("answered", rig.model.stillWatching)
+        // Asked again, and the player closed under it, by the back gesture.
+        rig.model.askStillWatching()
+        rig.model.viewerClosed()
+        assertFalse("closed", rig.model.stillWatching)
+        assertFalse(rig.model.isPresented)
     }
 
     @Test
