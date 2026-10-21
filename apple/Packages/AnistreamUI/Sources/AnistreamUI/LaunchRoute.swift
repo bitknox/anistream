@@ -15,6 +15,7 @@ import Foundation
 ///     -AnistreamPalette hoshi       the ⌘K palette, open on these words
 ///     -AnistreamPane accounts       Settings' pane, or on iPhone the Settings sheet at its page
 ///     -AnistreamSheet torrent       a sheet over the screen: torrent, join, kitsu, update, show
+///     -AnistreamFold open           the title page's watched episodes, opened
 ///     -AnistreamShowcase stores     invented rows beside the testing engine's: see `Showcase`
 public struct LaunchRoute: Equatable, Sendable {
     public var section: AppSection = .continue
@@ -25,6 +26,7 @@ public struct LaunchRoute: Equatable, Sendable {
     public var palette: String?
     public var pane: String?
     public var sheet: String?
+    public var fold: String?
 
     public init() {}
 
@@ -41,6 +43,7 @@ public struct LaunchRoute: Equatable, Sendable {
         palette = value("-AnistreamPalette")
         pane = value("-AnistreamPane")
         sheet = value("-AnistreamSheet")
+        fold = value("-AnistreamFold")
         library = value("-AnistreamLibrary").flatMap { name in
             LibraryModelOrder.segments.first { "\($0)" == name }
         }
