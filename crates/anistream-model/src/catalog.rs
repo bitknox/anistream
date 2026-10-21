@@ -22,6 +22,9 @@ pub struct Entry {
     pub studio: Option<String>,
     pub synopsis: String,
     pub cover_url: Option<String>,
+    /// The cover's own colour, as AniList gives it (`#e4a15d`): what a front end paints where the
+    /// cover has not arrived, so a placeholder is never a grey box.
+    pub cover_color: Option<String>,
     pub banner_url: Option<String>,
     pub genres: Vec<String>,
     /// Services carrying this title, from AniList's external links.
@@ -139,6 +142,7 @@ impl Entry {
             studio: None,
             synopsis: String::new(),
             cover_url: None,
+            cover_color: None,
             banner_url: None,
             genres: Vec::new(),
             available_on: Vec::new(),

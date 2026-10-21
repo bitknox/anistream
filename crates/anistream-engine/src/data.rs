@@ -54,6 +54,7 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
         studio: media.main_studio().map(str::to_owned),
         synopsis: media.plain_description(),
         cover_url: media.cover_image.best().map(str::to_owned),
+        cover_color: media.cover_image.color.clone(),
         banner_url: media.banner_image.clone(),
         genres: media.genres.clone(),
         // One mention per service. AniList lists a link per region or per language, so the
@@ -471,7 +472,7 @@ mod tests {
             "seasonYear": 2023,
             "averageScore": 91,
             "description": "<p>A lamplighter.</p>",
-            "coverImage": {"extraLarge": "https://s4.anilist.co/cover.jpg"},
+            "coverImage": {"extraLarge": "https://s4.anilist.co/cover.jpg", "color": "#e4a15d"},
             "bannerImage": "https://s4.anilist.co/banner.jpg",
             "genres": ["Adventure"],
             "externalLinks": [
@@ -492,6 +493,7 @@ mod tests {
         assert_eq!(e.format.as_deref(), Some("TV"));
         assert_eq!(e.synopsis, "A lamplighter.", "html must be stripped for the terminal");
         assert!(e.cover_url.is_some() && e.banner_url.is_some());
+        assert_eq!(e.cover_color.as_deref(), Some("#e4a15d"), "the placeholder's colour");
     }
 
     #[test]
