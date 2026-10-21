@@ -21,6 +21,8 @@
     <string name="shortcut_search_long">Search titles</string>
     <string name="shortcut_downloads">Downloads</string>
     <string name="shortcut_unavailable">This shortcut is no longer available.</string>
-    <!-- The Continue shortcut: the title alone where the launcher has little room, and in full. -->
-    <string name="shortcut_continue_long">Continue %1$s</string>
+    <!-- The Continue shortcut: "Continue" where the launcher has little room; its show and episode
+         in full are worked out as it is published. -->
+    <string name="shortcut_continue">Continue</string>
+    <string name="shortcut_nothing_to_continue">Nothing to continue</string>
 </resources>

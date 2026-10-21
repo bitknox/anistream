@@ -253,7 +253,7 @@ class NewEpisodesTest {
         val play = notification.actions.single()
         assertEquals("Play", play.title.toString())
         // Play starts episode 8; marking 10 watched would skip the two between.
-        assertEquals(AppLink.Play(900001u, "8"), AppLink.parse(shadowOf(play.actionIntent).savedIntent.dataString))
+        assertEquals(AppLink.Play(900001u, "8"), shadowOf(play.actionIntent).savedIntent.appLink())
     }
 
     // The actions
@@ -266,7 +266,7 @@ class NewEpisodesTest {
 
         val open = shadowOf(notification.contentIntent)
         assertTrue(open.isActivityIntent)
-        assertEquals(AppLink.Title(900001u), AppLink.parse(open.savedIntent.dataString))
+        assertEquals(AppLink.Title(900001u), open.savedIntent.appLink())
         assertEquals(MainActivity::class.java.name, open.savedIntent.component?.className)
         assertTrue(open.savedIntent.flags and Intent.FLAG_ACTIVITY_NEW_TASK != 0)
         assertEquals(tag(wayfarer), open.savedIntent.getStringExtra(EpisodeNotifier.EXTRA_NOTIFICATION))
@@ -275,14 +275,14 @@ class NewEpisodesTest {
         assertEquals("Play", play.title.toString())
         val playing = shadowOf(play.actionIntent)
         assertTrue(playing.isActivityIntent)
-        assertEquals(AppLink.Play(900001u, "8"), AppLink.parse(playing.savedIntent.dataString))
+        assertEquals(AppLink.Play(900001u, "8"), playing.savedIntent.appLink())
 
         assertEquals("Mark watched", mark.title.toString())
         val marking = shadowOf(mark.actionIntent)
         assertTrue(marking.isBroadcastIntent)
         assertEquals(EpisodeNotifier.ACTION_MARK_WATCHED, marking.savedIntent.action)
         assertEquals(EpisodeActionReceiver::class.java.name, marking.savedIntent.component?.className)
-        assertEquals(900001u to 8u, EpisodeNotifier.watchedOf(marking.savedIntent.dataString))
+        assertEquals(900001u to 8u, EpisodeNotifier.watchedOf(marking.savedIntent))
 
         // Each episode's actions are intents of their own, by their data.
         val other = shadowOf(posted(tag(relay)).actions[0].actionIntent).savedIntent
@@ -310,12 +310,12 @@ class NewEpisodesTest {
     }
 
     @Test
-    fun a_mark_watched_uri_names_its_episode_and_nothing_else_does() {
-        assertEquals(900001u to 8u, EpisodeNotifier.watchedOf(EpisodeNotifier.watchedUri(900001u, 8u).toString()))
-        assertNull(EpisodeNotifier.watchedOf("anistream://open/title/900001"))
-        assertNull(EpisodeNotifier.watchedOf("anistream://watched/900001"))
-        assertNull(EpisodeNotifier.watchedOf("anistream://watched/900001/8/9"))
-        assertNull(EpisodeNotifier.watchedOf(null))
+    fun a_mark_watched_intent_names_its_episode_and_nothing_else_does() {
+        assertEquals(900001u to 8u, EpisodeNotifier.watchedOf(EpisodeNotifier.watchedIntent(context, 900001u, 8u)))
+        assertNull(EpisodeNotifier.watchedOf(context.linkIntent(AppLink.Title(900001u))))
+        assertNull(EpisodeNotifier.watchedOf(Intent(EpisodeNotifier.ACTION_MARK_WATCHED)))
+        // Two episodes' intents are two intents to the system.
+        assertFalse(EpisodeNotifier.watchedIntent(context, 900001u, 8u).filterEquals(EpisodeNotifier.watchedIntent(context, 900001u, 9u)))
     }
 
     private fun tag(episode: NewEpisode) = EpisodePlan.tagOf(episode)
