@@ -5,6 +5,9 @@ package tv.anistream.app
 import android.app.Application
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.graphics.Bitmap
+import android.hardware.display.DisplayManager
+import android.view.Display
 import android.net.Uri
 import android.util.Log
 import android.net.ConnectivityManager
@@ -45,10 +48,24 @@ class AnistreamApp : Application(), PlayerHost {
             backend = { MpvBackend(this) },
             scope = scope,
             power = { Device.power(this) },
+            display = {
+                getSystemService(DisplayManager::class.java)?.getDisplay(Display.DEFAULT_DISPLAY)
+                    ?.let { Device.display(it, resources.displayMetrics.density) }
+            },
         ).also { player ->
             store.onPlayback = player::apply
             PlayerConnection(this, player, scope)
+            SystemPhases(store, player).start()
         }
+    }
+
+    override val notificationIcon: Int get() = R.drawable.ic_launcher_monochrome
+
+    /** The art the screens have decoded, for the notification; asked for when it has not come yet. */
+    override fun artwork(url: String): Bitmap? {
+        store.artwork.image(url)?.let { return it.image }
+        store.artwork.request(url, NOTIFICATION_ART)
+        return null
     }
 
     val notifier: Notifier by lazy { Notifier(this) }
@@ -127,5 +144,8 @@ class AnistreamApp : Application(), PlayerHost {
 
     companion object {
         const val TAG = "anistream"
+
+        /** The notification's art, on its long side. */
+        private const val NOTIFICATION_ART = 512
     }
 }

@@ -6,6 +6,8 @@ package tv.anistream.player.ui
 
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
@@ -34,10 +36,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.unit.Constraints
+import kotlin.math.roundToInt
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.RoundRect
@@ -66,6 +81,7 @@ import tv.anistream.design.ShowTitle
 import tv.anistream.design.tabular
 import tv.anistream.player.PlayerClock
 import tv.anistream.player.PlayerModel
+import tv.anistream.player.SeekPreview
 import tv.anistream.player.SeekSegment
 
 /** The 1 dp shadow the board puts under the controls' text and icons, for a bright frame. */
@@ -77,6 +93,8 @@ fun PlayerChrome(
     onClose: () -> Unit,
     onTracks: () -> Unit = {},
     onEpisodes: () -> Unit = {},
+    /** The frames under the scrubbing finger, when there are to be any. */
+    preview: SeekPreview? = null,
 ) {
     Box(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxSize().background(ObiSilk.Ground.copy(alpha = 0.35f)))
@@ -86,6 +104,7 @@ fun PlayerChrome(
         )
         BottomBar(
             model,
+            preview,
             Modifier.align(Alignment.BottomStart).padding(start = 48.dp, end = 48.dp, bottom = 28.dp).fillMaxWidth().height(48.dp),
         )
     }
@@ -111,13 +130,13 @@ private fun TopBar(model: PlayerModel, onClose: () -> Unit, onTracks: () -> Unit
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        ControlButton(PlayerIcons.Subtitles, "Subtitles and audio", onClick = onTracks)
+        ControlButton(PlayerIcons.Subtitles, "Subtitles, audio and picture", onClick = onTracks)
         ControlButton(PlayerIcons.Episodes, "Episodes", onClick = onEpisodes)
     }
 }
 
 @Composable
-private fun BottomBar(model: PlayerModel, modifier: Modifier) {
+private fun BottomBar(model: PlayerModel, preview: SeekPreview?, modifier: Modifier) {
     val time = MaterialTheme.typography.labelLarge.tabular().copy(shadow = ControlShadow)
     val duration = model.duration ?: 0.0
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
@@ -130,7 +149,7 @@ private fun BottomBar(model: PlayerModel, modifier: Modifier) {
         StepButton(PlayerIcons.Forward, "Forward 10 seconds") { model.seekBy(10.0) }
         Spacer(Modifier.width(8.dp))
         Text(PlayerClock.label(model.position), style = time, color = ObiSilk.Silk, modifier = Modifier.width(44.dp))
-        SeekSlider(model, Modifier.weight(1f).padding(horizontal = 12.dp))
+        SeekSlider(model, preview, Modifier.weight(1f).padding(horizontal = 12.dp))
         Text(
             PlayerClock.remaining(maxOf(0.0, duration - model.position)),
             style = time,
@@ -172,7 +191,7 @@ private fun StepButton(icon: ImageVector, label: String, onClick: () -> Unit) {
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SeekSlider(model: PlayerModel, modifier: Modifier) {
+private fun SeekSlider(model: PlayerModel, preview: SeekPreview?, modifier: Modifier) {
     val haptics = LocalHapticFeedback.current
     val touch = remember { MutableInteractionSource() }
     val pressed by touch.collectIsPressedAsState()
@@ -198,15 +217,42 @@ private fun SeekSlider(model: PlayerModel, modifier: Modifier) {
     SideEffect {
         if (!state.isDragging && model.scrubbing == null) state.value = model.position.toFloat().coerceIn(0f, duration.toFloat())
     }
+    // The pair over the handle while it moves: the frame there, and its time and stretch (T4).
+    val scrubbing = model.scrubbing
+    var sliderLeft by remember { mutableFloatStateOf(0f) }
+    var sliderWidth by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
+    Box(modifier.onGloballyPositioned { sliderLeft = it.positionInWindow().x; sliderWidth = it.size.width }) {
+    if (active && scrubbing != null) {
+        val handle = (scrubbing / duration).toFloat().coerceIn(0f, 1f) * sliderWidth
+        val window = with(density) { LocalConfiguration.current.screenWidthDp.dp.toPx() }
+        val pairWidth = with(density) { 160.dp.toPx() }
+        val min = with(density) { 48.dp.toPx() }
+        val left = (sliderLeft + handle - pairWidth / 2).coerceIn(min, maxOf(min, window - min - pairWidth)) - sliderLeft
+        PreviewPair(
+            frame = preview?.frame,
+            label = buildString {
+                append(PlayerClock.label(scrubbing))
+                model.chapter(scrubbing)?.takeIf { model.segments.any { s -> s.kind != SeekSegment.Kind.Plain && scrubbing >= s.start && scrubbing < s.end } }
+                    ?.let { append(" · $it") }
+            },
+            // Measured free of the slider's 48 dp, and set with its foot 12 dp above the handle's top.
+            modifier = Modifier.layout { measurable, _ ->
+                val pair = measurable.measure(Constraints())
+                layout(0, 0) { pair.place(left.roundToInt(), (2.dp - 12.dp).roundToPx() - pair.height) }
+            },
+        )
+    }
     Slider(
         state = state,
         onValueChange = { value ->
             state.value = value
             model.scrub(value.toDouble())
+            model.previewSource?.let { source -> preview?.show(value.toDouble(), source) }
         },
         onValueChangeFinished = { model.endScrub() },
         interactionSource = touch,
-        modifier = modifier.height(48.dp).semantics {
+        modifier = Modifier.fillMaxWidth().height(48.dp).semantics {
             contentDescription = "Position"
             stateDescription = label
         },
@@ -215,6 +261,33 @@ private fun SeekSlider(model: PlayerModel, modifier: Modifier) {
         },
         track = { SeekTrack(it, segments, duration, trackHeight) },
     )
+    }
+}
+
+/** The 160 × 90 frame at corners 12 with a silk outline at 24 %, and under it, 4 apart, the time pill. */
+@Composable
+private fun PreviewPair(frame: android.graphics.Bitmap?, label: String, modifier: Modifier) {
+    Column(modifier.width(160.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier
+                .size(160.dp, 90.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(ObiSilk.Ground)
+                .border(1.dp, ObiSilk.Silk.copy(alpha = 0.24f), RoundedCornerShape(12.dp)),
+        ) {
+            if (frame != null) {
+                val image = remember(frame) { frame.asImageBitmap() }
+                Image(image, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+            }
+        }
+        Spacer(Modifier.height(4.dp))
+        Box(
+            Modifier.height(24.dp).clip(RoundedCornerShape(12.dp)).background(ObiSilk.Raised).padding(horizontal = 10.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(label, style = MaterialTheme.typography.labelMedium.tabular(), color = ObiSilk.Silk, maxLines = 1)
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

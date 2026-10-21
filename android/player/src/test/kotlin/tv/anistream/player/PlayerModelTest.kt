@@ -140,6 +140,15 @@ class ReportTest {
     }
 
     @Test
+    fun theDisplayIsSaidAsThePlayerOpensBeforeAnySurface() = runTest {
+        val rig = Rig(this, display = DisplayInfo(2400, 1080, 2.625, 60.0))
+        rig.opened()
+        val display = rig.reports.indexOfFirst { it.second is PlayerReport.Display }
+        val loaded = rig.reports.indexOfFirst { it.second == PlayerReport.FileLoaded }
+        assertTrue("the display before the file", display in 0 until loaded)
+    }
+
+    @Test
     fun theFirstReportsSayWhatTheDeviceRunsOn() = runTest {
         val rig = Rig(this)
         rig.opened()
@@ -291,6 +300,20 @@ class CardTest {
             rig.model.playNext()
             assertEquals(PlayerCommand.PlayNext, rig.controls.last())
         }
+    }
+
+    @Test
+    fun withTalkBackUpNextWaitsAndTheControlsStay() = runTest {
+        val rig = Rig(this)
+        rig.opened()
+        rig.model.assisted = true
+        upNext(rig)
+        rig.playhead(60.0)
+        assertTrue(rig.model.upNextShown)
+        assertNull(rig.model.countdown)
+        assertFalse(PlayerCommand.PlayNext in rig.controls)
+        advanceTimeBy(10_000)
+        assertTrue(rig.model.controlsVisible)
     }
 
     @Test
@@ -530,6 +553,35 @@ class ViewerTest {
     }
 
     @Test
+    fun theBufferingLineShowsAfterASecondOfWaitingAndGoesWithIt() = runTest {
+        val rig = Rig(this)
+        rig.opened()
+        rig.emit(MpvEvent.of(MpvNative.Event.PLAYBACK_RESTART))
+        rig.emit(MpvEvent.property("paused-for-cache", MpvValue.Flag(true)))
+        advanceTimeBy(900)
+        assertFalse("not before a second", rig.model.showsBuffering)
+        advanceTimeBy(400)
+        assertTrue(rig.model.showsBuffering)
+        rig.emit(MpvEvent.property("paused-for-cache", MpvValue.Flag(false)))
+        assertFalse("gone the moment it plays on", rig.model.showsBuffering)
+        // The engine's stall says it too, whatever mpv's cache says now.
+        rig.ui(1u, PlayerUi.Stall(8u))
+        assertTrue(rig.model.showsBuffering)
+        rig.ui(1u, PlayerUi.StallCleared)
+        assertFalse(rig.model.showsBuffering)
+    }
+
+    @Test
+    fun theStartingScreenSaysItsOwnWait() = runTest {
+        val rig = Rig(this)
+        rig.ui(1u, PlayerUi.Starting(900_001u, "Stardust Wayfarer", "7", null, null, null))
+        rig.opened()
+        rig.emit(MpvEvent.property("paused-for-cache", MpvValue.Flag(true)))
+        advanceTimeBy(2_000)
+        assertFalse(rig.model.showsBuffering)
+    }
+
+    @Test
     fun theControlsHideAfterThreeSecondsUnlessHeld() = runTest {
         val rig = Rig(this)
         rig.opened()
@@ -555,6 +607,26 @@ class ViewerTest {
         rig.model.backgrounded(false)
         rig.settle()
         assertEquals(listOf(MpvCall.Set("vid", MpvValue.Text("no")), MpvCall.Set("vid", MpvValue.Text("auto"))), rig.mpv.calls.takeLast(2))
+    }
+
+    @Test
+    fun aPlayerOpenedInTheBackgroundPlaysTheAudioAlone() = runTest {
+        val rig = Rig(this)
+        rig.model.backgrounded(true)
+        rig.opened()
+        assertTrue(MpvCall.Set("vid", MpvValue.Text("no")) in rig.mpv.calls)
+    }
+
+    @Test
+    fun theTitlesArtStaysForTheSessionAfterTheStart() = runTest {
+        val rig = Rig(this)
+        rig.ui(1u, PlayerUi.Starting(900_001u, "Stardust Wayfarer", "7", null, "http://art.example/c.png", "http://art.example/b.png"))
+        rig.opened()
+        rig.emit(MpvEvent.of(MpvNative.Event.PLAYBACK_RESTART))
+        assertNull(rig.model.starting)
+        assertEquals("http://art.example/c.png", rig.model.coverUrl)
+        rig.model.viewerClosed()
+        assertNull(rig.model.coverUrl)
     }
 
     @Test

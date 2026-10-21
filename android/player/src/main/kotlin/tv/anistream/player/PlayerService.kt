@@ -7,10 +7,14 @@ import android.app.PendingIntent
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.util.Log
 import androidx.compose.runtime.snapshotFlow
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.common.Player
+import androidx.media3.session.CommandButton
+import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaController
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
@@ -23,6 +27,12 @@ import kotlinx.coroutines.launch
 /** What the process holds the player in: the application, for as long as the process. */
 interface PlayerHost {
     val player: PlayerModel
+
+    /** The art at [url], decoded, when the app has it: for the notification and the lock screen. */
+    fun artwork(url: String): Bitmap? = null
+
+    /** The notification's small icon, the app's monochrome mark, or 0 for Media3's own. */
+    val notificationIcon: Int get() = 0
 }
 
 /**
@@ -40,9 +50,27 @@ class PlayerService : MediaSessionService() {
         val open = packageManager.getLaunchIntentForPackage(packageName)
             ?.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
             ?.let { PendingIntent.getActivity(this, 0, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT) }
-        session = MediaSession.Builder(this, SessionPlayer(model))
+        val host = application as PlayerHost
+        // Back and forward 10 s either side of play and pause, on the notification and the lock screen.
+        val steps = listOf(
+            CommandButton.Builder(CommandButton.ICON_SKIP_BACK_10)
+                .setDisplayName("Back 10 seconds")
+                .setPlayerCommand(Player.COMMAND_SEEK_BACK)
+                .setSlots(CommandButton.SLOT_BACK)
+                .build(),
+            CommandButton.Builder(CommandButton.ICON_SKIP_FORWARD_10)
+                .setDisplayName("Forward 10 seconds")
+                .setPlayerCommand(Player.COMMAND_SEEK_FORWARD)
+                .setSlots(CommandButton.SLOT_FORWARD)
+                .build(),
+        )
+        session = MediaSession.Builder(this, SessionPlayer(model, host::artwork))
             .apply { open?.let(::setSessionActivity) }
+            .setMediaButtonPreferences(steps)
             .build()
+        if (host.notificationIcon != 0) {
+            setMediaNotificationProvider(DefaultMediaNotificationProvider.Builder(this).build().apply { setSmallIcon(host.notificationIcon) })
+        }
         Log.i(PlayerModel.TAG, "the media session is up")
     }
 

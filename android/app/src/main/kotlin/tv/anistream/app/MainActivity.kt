@@ -5,6 +5,7 @@ package tv.anistream.app
 import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.app.PictureInPictureUiState
 import android.content.pm.ActivityInfo
 import android.content.pm.ApplicationInfo
 import android.content.res.Configuration
@@ -112,6 +113,25 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         signIn.resumed()
+    }
+
+    /**
+     * Into Picture in Picture, or out of it: the window shows the video alone while in. Closed
+     * from its window, the activity is already stopped when this says so, and the player closes,
+     * keeping the place; expanded, the controls come up and hide after 3 s.
+     */
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        val player = app.player
+        player.inPip = isInPictureInPictureMode
+        if (isInPictureInPictureMode) return
+        if (lifecycle.currentState == Lifecycle.State.CREATED) player.viewerClosed() else player.poke()
+    }
+
+    /** On the way into the window the overlays go at once, before the system moves the video. */
+    override fun onPictureInPictureUiStateChanged(pipState: PictureInPictureUiState) {
+        super.onPictureInPictureUiStateChanged(pipState)
+        if (pipState.isTransitioningToPip) app.player.inPip = true
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

@@ -243,4 +243,22 @@ class HostedPlaybackTest {
         main { model.viewerClosed() }
         until("the player down") { !model.isPresented }
     }
+
+    /**
+     * A finished download plays from its file through the same player (Command::PlayLocal), with
+     * no network: the scene's own stream is an address that never answers.
+     */
+    @Test
+    fun aDownloadPlaysFromItsFileWithNoNetwork() {
+        start("http://127.0.0.1:9/nothing-here.mkv")
+        val file = episode()
+        main { store.send(Command.PlayLocal(finished, "7", "Hoshikuzu no Tabibito", file.path)) }
+        until("the player") { model.isPresented }
+        until("the first frame", 30_000) { model.hasPicture && model.starting == null }
+        until("playing on", 10_000) { model.playhead > 1.0 }
+        assertEquals(60.0, main { model.duration!! }, 0.5)
+        assertTrue("the file itself, not a stream", main { model.previewSource?.url } == file.path)
+        main { model.viewerClosed() }
+        until("the player down") { !model.isPresented }
+    }
 }
