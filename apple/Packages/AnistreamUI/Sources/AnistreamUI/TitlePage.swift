@@ -124,6 +124,8 @@ struct TitlePage: View {
             navigator.focusedTitle = id
             if !store.titles.detailed.contains(id) { store.loadDetail(id) }
             if store.titles.episodes[id] == nil { store.loadEpisodes(id) }
+            // What the show sets for itself, its spoiler protection among it: from the database.
+            store.loadShowSettings(id)
         }
     }
 }
@@ -384,7 +386,6 @@ struct TitleFamilyRow: View {
 /// The episodes: a row each, the next one marked, stills of what comes after it blurred.
 struct EpisodeList: View {
     @Environment(AppStore.self) private var store
-    @AppStorage("anistream.spoilerProtection") private var spoilers = true
     @State private var unwatchedOnly = false
     let entry: Entry
     /// Where the page's Unwatched episodes rotor finds the rows.
@@ -409,7 +410,7 @@ struct EpisodeList: View {
                 QuietLine(unwatchedOnly ? "Every episode is watched" : "No episodes yet")
             }
             ForEach(rows, id: \.number) { row in
-                EpisodeRowView(entry: entry, row: row, spoilers: spoilers)
+                EpisodeRowView(entry: entry, row: row, spoilers: store.spoilerProtection(for: entry.id))
                     .accessibilityRotorEntry(id: row.number, in: rotor)
             }
         }

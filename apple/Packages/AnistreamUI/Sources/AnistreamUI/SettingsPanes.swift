@@ -16,9 +16,11 @@ struct DownloadsPane: View {
             SettingsRow(title: SettingKey.downloadDir.title, note: DownloadFolder.note(store)) {
                 DownloadFolderMenu()
             }
-            // E8: `DownloadQuality` is not a setting the engine has yet.
-            SettingsRow(title: "Quality", note: "Higher takes the best version a source offers, and more space.") {
-                DeferredMenu(text: "Standard", waitsOn: "E8")
+            SettingsRow(title: SettingKey.downloadQuality.title, note: "Higher takes the best version a source offers, and more space.") {
+                SettingMenu(key: .downloadQuality)
+            }
+            SettingsRow(title: SettingKey.keepNextEpisodes.title, note: "Downloads the episodes after the one you are on, for each show you watch.") {
+                SettingMenu(key: .keepNextEpisodes)
             }
             SettingsRow(title: SettingKey.mergeSubtitles.title, note: "Subtitles stay with the episode wherever the file goes.") {
                 SettingSwitch(key: .mergeSubtitles)
@@ -269,8 +271,7 @@ struct SourcesPane: View {
             Button {
                 navigator.open(.providers)
             } label: {
-                // "Overridden for 1 show" waits on E8's override counts.
-                SettingsRow(title: SettingKey.sourceOrder.title) {
+                SettingsRow(title: SettingKey.sourceOrder.title, note: store.settings.overriddenNote(.sourceOrder)) {
                     HStack(spacing: 8) {
                         Text(Wording.plural(store.providers.rows.count, "source"))
                             .font(.mac(13))
@@ -302,25 +303,16 @@ struct SourcesPane: View {
                 .labelsHidden()
             }
             if on {
-                // E9: the torrent index's address, `rss_url`, is not in the protocol yet.
-                SettingsRow(title: "Torrent index", note: "The RSS search address anistream asks for torrents. anistream ships none.") {
-                    TextField("Torrent index", text: .constant(""), prompt: Text("https://…/?q={query}"))
-                        .textFieldStyle(.plain)
-                        .font(.mac(13, design: .monospaced))
+                SettingsRow(title: SettingKey.torrentIndex.title, note: "The RSS search address anistream asks for torrents. anistream ships none.") {
+                    TorrentIndexField()
                         .padding(.horizontal, 10)
                         .frame(width: 280, height: 28)
                         .background(.ground, in: .rect(cornerRadius: 6))
                         .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Palette.glassRule, lineWidth: 1))
-                        .disabled(true)
-                        .help("Comes with engine step E9")
                 }
-                // E8: `SetTorrentProtection` changes this; the file's own choice shows meanwhile.
-                SettingsRow(title: "Protect with") {
-                    DeferredMenu(text: Protection.label(store.settings.value(.vpnMode)), waitsOn: "E8")
-                }
+                SettingsRow(title: "Protect with") { ProtectionMenu() }
                 GuardRow()
-                // E8: `VpnOnFailure` is not a setting the engine has yet.
-                SettingsRow(title: "If a check fails") { DeferredMenu(text: "Pause torrents", waitsOn: "E8") }
+                SettingsRow(title: SettingKey.vpnOnFailure.title) { FailedCheckMenu() }
             }
         }
         if on {
@@ -333,18 +325,6 @@ struct SourcesPane: View {
         Color.clear.frame(height: 0)
             .sheet(isPresented: $turningOn) { TorrentSheet() }
             .onLaunchSheet("torrent", navigator) { turningOn = true }
-    }
-}
-
-/// What protects torrent traffic, in the words the turn-on sheet gives each choice.
-enum Protection {
-    static func label(_ mode: String?) -> String {
-        switch mode {
-        case "socks5": "SOCKS5 proxy"
-        case "external": "VPN on this device"
-        case "none": "No protection"
-        default: "–"
-        }
     }
 }
 

@@ -64,6 +64,7 @@ public final class ProvidersModel {
 extension ProviderRow {
     /// How it stands, as the Providers list says it beside the name.
     public var standing: ProviderStanding {
+        if disabled { return .off }
         if heldBack { return .heldBack }
         if !usable || state == "down" { return .failing }
         if state == "degraded" { return .slow }
@@ -74,6 +75,8 @@ extension ProviderRow {
 /// How a provider stands, in the words and the dot the Providers list gives it.
 public enum ProviderStanding: Equatable, Sendable {
     case working, slow, failing, heldBack
+    /// Switched off by name: kept, and not tried until it is on again.
+    case off
 }
 
 extension GuardView {

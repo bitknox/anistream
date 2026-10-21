@@ -247,33 +247,29 @@ enum Device {
 struct PlaybackPane: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
-    @AppStorage("anistream.spoilerProtection") private var spoilers = true
 
     var body: some View {
+        let overridden = store.settings.overriddenNote
         SettingsGroup(title: "Language") {
             TitleLanguageRow()
-            // "Overridden for 3 shows" waits on E8's override counts.
-            SettingsRow(title: SettingKey.translation.title) { SettingMenu(key: .translation) }
+            SettingsRow(title: SettingKey.translation.title, note: overridden(.translation)) { SettingMenu(key: .translation) }
             SettingsRow(title: SettingKey.subtitles.title) { SubtitlesMenu() }
-            SettingsRow(title: SettingKey.quality.title) { SettingMenu(key: .quality) }
+            SettingsRow(title: SettingKey.quality.title, note: overridden(.quality)) { SettingMenu(key: .quality) }
         }
         SettingsGroup(title: "Episodes") {
             SettingsRow(title: SettingKey.autoNext.title) { SettingSwitch(key: .autoNext) }
-            // E8: `UpNextCountdown` is not a setting the engine has yet.
-            SettingsRow(title: "Up Next countdown") { DeferredMenu(text: "10 s", waitsOn: "E8") }
+            SettingsRow(title: SettingKey.upNextCountdown.title) { SettingMenu(key: .upNextCountdown) }
+                .disabled(!store.settings.isOn(.autoNext))
                 .opacity(store.settings.isOn(.autoNext) ? 1 : 0.45)
-            SettingsRow(title: SettingKey.skipOpening.title) { SettingSwitch(key: .skipOpening) }
-            SettingsRow(title: SettingKey.skipFiller.title) { SettingSwitch(key: .skipFiller) }
+            SettingsRow(title: SettingKey.skipOpening.title, note: overridden(.skipOpening)) { SettingSwitch(key: .skipOpening) }
+            SettingsRow(title: SettingKey.skipFiller.title, note: overridden(.skipFiller)) { SettingSwitch(key: .skipFiller) }
             SettingsRow(title: SettingKey.markChapters.title) { SettingSwitch(key: .markChapters) }
             SettingsRow(title: SettingKey.commitThreshold.title, note: "Or when the ending starts, if it is marked.") {
                 SettingMenu(key: .commitThreshold)
             }
-            // Kept on this device until E8's `SpoilerProtection` moves it into the engine.
-            SettingsRow(title: "Spoiler protection", note: "Blurs stills of unwatched episodes after the next one.") {
-                Toggle("Spoiler protection", isOn: $spoilers)
-                    .toggleStyle(.switch)
-                    .tint(.amber)
-                    .labelsHidden()
+            SettingsRow(title: SettingKey.spoilerProtection.title,
+                        note: "Blurs stills of unwatched episodes after the next one.") {
+                SettingSwitch(key: .spoilerProtection)
             }
         }
         SettingsGroup(title: "Picture and sound") {

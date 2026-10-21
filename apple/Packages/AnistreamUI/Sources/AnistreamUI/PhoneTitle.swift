@@ -11,7 +11,6 @@ struct PhoneTitle: View {
     @Environment(Navigator.self) private var navigator
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var typeSize
-    @AppStorage("anistream.spoilerProtection") private var spoilers = true
     @Namespace private var rotor
     let id: AnilistId
 
@@ -178,7 +177,7 @@ struct PhoneTitle: View {
                         }
                     }
 
-                    PhoneEpisodes(entry: entry, spoilers: spoilers, rotor: rotor)
+                    PhoneEpisodes(entry: entry, spoilers: store.spoilerProtection(for: id), rotor: rotor)
                 }
                 .accessibilityElement(children: .contain)
                 .padding(.horizontal, 16)
@@ -204,6 +203,8 @@ struct PhoneTitle: View {
             navigator.focusedTitle = id
             if !store.titles.detailed.contains(id) { store.loadDetail(id) }
             if store.titles.episodes[id] == nil { store.loadEpisodes(id) }
+            // What the show sets for itself, its spoiler protection among it: from the database.
+            store.loadShowSettings(id)
         }
     }
 
