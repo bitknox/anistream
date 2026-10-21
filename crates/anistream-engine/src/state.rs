@@ -86,8 +86,6 @@ impl EngineState {
     }
 
     /// The next playback, of `episode` of `id`, numbered, and the record told it is starting.
-    /// Only the desktop's player starts one.
-    #[cfg_attr(not(feature = "desktop"), allow(dead_code))]
     pub(crate) fn next_playback(&mut self, id: AnilistId, episode: &str) -> Played {
         self.playbacks += 1;
         let played =

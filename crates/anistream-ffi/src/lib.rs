@@ -52,10 +52,15 @@ mod tests {
         catalog::{
             Aired, ContentFor, ContentList, Entry, ResumePoint, SearchFilters, TitleAired,
         },
-        command::Command,
+        command::{Command, PlayerCommand},
         event::Event,
+        hosted::{
+            MenuChoice, MenuChoices, MpvOption, MpvValue, PlayerChoice, PlayerEnd, PlayerOp,
+            PlayerReport, PlayerUi,
+        },
         jobs::JobId,
-        playback::{PlayableStream, PlaybackId},
+        notice::NoticeKind,
+        playback::{NextEpisode, PlayableStream, PlaybackId, SkipKind},
         progress::TitleProgress,
         settings::SettingKey,
         sources::MatchCandidate,
@@ -158,6 +163,108 @@ mod tests {
     fn a_job_crosses_as_its_number() {
         assert_eq!(<JobId as Lower<UniFfiTag>>::lower(JobId::new(7)), 7);
         assert_eq!(<JobId as Lift<UniFfiTag>>::try_lift(7).ok(), Some(JobId::new(7)));
+    }
+
+    #[test]
+    fn what_a_hosted_player_is_told_crosses_intact() {
+        let playback = PlaybackId::new(3);
+        crosses_intact(Event::PlayerOps {
+            playback,
+            ops: vec![
+                PlayerOp::Open { fullscreen: true, speed: Some(1.25), volume: None },
+                PlayerOp::Load {
+                    url: "http://127.0.0.1:45001/mend/abc/master.m3u8".into(),
+                    options: vec![MpvOption { name: "start".into(), value: "600".into() }],
+                },
+                PlayerOp::Set { property: "aid".into(), value: MpvValue::Int(2) },
+                PlayerOp::Set { property: "speed".into(), value: MpvValue::Double(1.5) },
+                PlayerOp::Set {
+                    property: "tone-mapping".into(),
+                    value: MpvValue::String("bt.2390".into()),
+                },
+                PlayerOp::Set {
+                    property: "chapter-list".into(),
+                    value: MpvValue::Node(r#"[{"title":"Opening","time":0.0}]"#.into()),
+                },
+                PlayerOp::Seek { seconds: 30.0, absolute: true },
+                PlayerOp::Close,
+            ],
+        });
+        crosses_intact(Event::PlayerUi {
+            playback,
+            ui: PlayerUi::UpNext {
+                next: NextEpisode {
+                    number: "2".into(),
+                    title: Some("A Town Without Night".into()),
+                    thumbnail: Some("https://img.example/ep/900001/2.jpg".into()),
+                },
+                auto: true,
+                ending_at: Some(1_310.0),
+            },
+        });
+        crosses_intact(Event::PlayerUi {
+            playback,
+            ui: PlayerUi::Menus {
+                episodes: Vec::new(),
+                sources: Vec::new(),
+                translation: Translation::Sub,
+                upscaling: MenuChoices {
+                    current: "natural".into(),
+                    options: vec![MenuChoice {
+                        id: "natural".into(),
+                        label: "Natural".into(),
+                        hint: None,
+                    }],
+                },
+                tone_mapping: None,
+                night_mode: false,
+            },
+        });
+        crosses_intact(Event::PlayerUi {
+            playback,
+            ui: PlayerUi::AutoSkipped { kind: SkipKind::Opening, undo_to: 1.0 },
+        });
+        crosses_intact(Event::PlayerUi {
+            playback,
+            ui: PlayerUi::Alert {
+                text: "Already at the first episode".into(),
+                kind: NoticeKind::Info,
+            },
+        });
+    }
+
+    #[test]
+    fn what_a_hosted_player_says_crosses_intact() {
+        let playback = PlaybackId::new(3);
+        let reports = [
+            PlayerReport::FileLoaded,
+            PlayerReport::Property { name: "time-pos".into(), json: "12.5".into() },
+            PlayerReport::Ended { reason: PlayerEnd::Eof },
+            PlayerReport::Closed,
+            PlayerReport::Display {
+                width: 3_024,
+                height: 1_964,
+                scale: 2.0,
+                refresh_hz: Some(120.0),
+                edr_headroom: Some(16.0),
+            },
+            PlayerReport::Power { on_battery: true, low_power: false },
+        ];
+        for report in reports {
+            let command = Command::PlayerReport { playback, report };
+            assert_eq!(crossed(command.clone()), command);
+        }
+        for command in [
+            PlayerCommand::TakeSkip,
+            PlayerCommand::UndoSkip { to: 1.0 },
+            PlayerCommand::PlayNext,
+            PlayerCommand::Choose(PlayerChoice::Translation(Translation::Dub)),
+            PlayerCommand::NightMode(true),
+            PlayerCommand::Upscaling("sharp".into()),
+        ] {
+            let command = Command::Player(command);
+            assert_eq!(crossed(command.clone()), command);
+        }
     }
 
     #[test]

@@ -1,8 +1,12 @@
 //! Wiring playback to history.
 //!
-//! The policy lives in [`anistream_player::PlaybackTracker`], which is pure and tested. This is
-//! the part that talks to the world: it spawns mpv, feeds its events to the tracker, and turns
-//! the resulting actions into rows in the local database.
+//! The policy lives in [`anistream_playback::PlaybackTracker`], which is pure and tested. This
+//! is the part that talks to the world: it opens a player, feeds its events to the tracker, and
+//! turns the resulting actions into rows in the local database.
+//!
+//! The player is whatever the [`Machine`] opens, through a [`PlayerLink`]: mpv's child process
+//! on the desktop. So this runs in any build; without the `desktop` feature there is no player
+//! to open yet, and nothing starts a playback.
 //!
 //! History is written **before** anything is pushed anywhere. Local is the source of truth, so
 //! if a tracker push fails the watch is still recorded and the outbox can retry.
@@ -13,6 +17,8 @@
 //! in mpv, and the streams it tries in one window until one plays. One file's events, the
 //! viewer's controls, what the companion shows, the picture, what is written down of the watch,
 //! skipping, the subtitles fetched ahead and the Discord presence each have a file of their own.
+
+use std::sync::Arc;
 
 use anistream_core::{
     media::Translation,
@@ -29,17 +35,18 @@ use anistream_model::{
 // of a play, so they are the model's, and still named from here for whatever plays.
 pub use anistream_model::playback::{EpisodeEntry, NextEpisode};
 use anistream_net::HttpClient;
-use anistream_player::{
-    ExternalPlayer, Mpv, SkipInterval, TrackAction, TrackPreferences, companion,
-};
+use anistream_playback::{SkipInterval, TrackAction, TrackPreferences, companion};
 use anistream_store::Store;
 use tokio::sync::mpsc;
 
 use crate::{
+    host::Host,
     outbox::Outbox,
     playback::{
         PlaybackContext,
+        link::{LinkError, Overlay, PlayerLink, PlayerOpener},
         picture::HdrKind,
+        power::PowerSource,
         shaders::Look,
         slot::{Player, PlayerSlot},
     },
@@ -49,6 +56,8 @@ mod companion_state;
 mod controls;
 mod events;
 mod presence;
+#[cfg(test)]
+mod scripted;
 mod skips;
 mod subtitles;
 mod upscaling;
@@ -114,6 +123,27 @@ pub struct PlaySettings {
     pub party: bool,
 }
 
+/// What a playback runs on beside its stream: the player it opens a window in, the slot a window
+/// waits in between episodes, the host that opens a link the player cannot play, and what says
+/// whether the machine is on battery.
+#[derive(Clone)]
+pub struct Machine {
+    pub opener: Arc<dyn PlayerOpener>,
+    pub slot: PlayerSlot,
+    pub host: Arc<dyn Host>,
+    pub power: Arc<dyn PowerSource>,
+}
+
+#[cfg(feature = "desktop")]
+impl Machine {
+    /// A playback on the desktop, as the command line and the probes run one: in `mpv`'s
+    /// process, with `slot` for its window, links opened by `host`, and the system's word on
+    /// the battery.
+    pub fn desktop(mpv: anistream_player::Mpv, slot: PlayerSlot, host: Arc<dyn Host>) -> Self {
+        Self { opener: Arc::new(mpv), slot, host, power: Arc::new(super::power::SystemPower) }
+    }
+}
+
 /// How one file's playback came to an end.
 enum FileOutcome {
     /// mpv reached the end, the viewer closed it, or the stream failed.
@@ -146,9 +176,10 @@ enum FileOutcome {
 /// A stream that *played* and then ended never falls over to another, which would replay what
 /// was watched.
 ///
-/// The window is borrowed rather than owned. It comes from `slot` when the previous episode left
-/// one open, and goes back there when this episode ends with a successor expected — or when a
-/// newer playback takes over mid-episode — so a binge is one window from start to finish.
+/// The window is borrowed rather than owned. It comes from the machine's slot when the previous
+/// episode left one open, and goes back there when this episode ends with a successor expected
+/// — or when a newer playback takes over mid-episode — so a binge is one window from start to
+/// finish. A new one is opened by the machine's opener.
 ///
 /// Returns once playback has ended. Runs as its own task so the UI keeps rendering.
 #[allow(clippy::too_many_arguments)]
@@ -157,12 +188,12 @@ pub async fn play(
     context: PlaybackContext,
     store: Store,
     http: HttpClient,
-    mpv: Mpv,
+    machine: Machine,
     settings: PlaySettings,
-    slot: PlayerSlot,
     tx: Outbox,
     mut commands: mpsc::UnboundedReceiver<PlayerCommand>,
 ) {
+    let Machine { opener, slot, host, power } = machine;
     let Some(first) = streams.first() else {
         slot.release();
         let _ = tx.send(Event::playback_ended(false, Ending::Failed));
@@ -170,13 +201,12 @@ pub async fn play(
     };
 
     // A licensed stream cannot be decoded locally, so it is handed to whatever is licensed to
-    // play it. No progress is tracked, because we never see any.
+    // play it, through the host: the system's handler for the link. No progress is tracked,
+    // because we never see any.
     if first.kind == StreamKind::ExternalDeepLink {
-        use anistream_core::traits::Player as _;
         slot.release();
-        let player = ExternalPlayer::new();
-        let request = PlaybackRequest { title: context.title.clone(), ..Default::default() };
-        let update = match player.play(first, request).await {
+        tracing::info!(url = %first.url, "handing off to the system handler");
+        let update = match host.open_url(&first.url) {
             Ok(()) => Event::Toast(Notice::info("opened in your browser")),
             Err(e) => Event::Toast(Notice::alert(format!("could not open: {e}"))),
         };
@@ -192,7 +222,11 @@ pub async fn play(
     // episode. The torrent session stays alive underneath, serving the loopback URL.
     if settings.party {
         slot.release();
+        #[cfg(feature = "desktop")]
         hand_to_syncplay(&settings.syncplay, &first.url, &tx);
+        // Syncplay is a desktop program, and a phone has no other to hand a party to.
+        #[cfg(not(feature = "desktop"))]
+        let _ = tx.send(Event::Toast(Notice::alert(NO_PARTY)));
         let _ = tx.send(Event::playback_ended(false, Ending::Elsewhere));
         return;
     }
@@ -220,12 +254,13 @@ pub async fn play(
         episodes: context.episodes.clone(),
         next: context.next.clone(),
         http: http.clone(),
-        scratch: mpv.scratch_dir().to_path_buf(),
+        scratch: opener.scratch_dir().to_path_buf(),
+        power,
         still: None,
         // Fetched alongside everything else rather than before it: the card is minutes away
         // and the episode should not wait on a picture.
         still_fetch: context.next.as_ref().and_then(|n| n.thumbnail.clone()).map(|url| {
-            tokio::spawn(fetch_still(http.clone(), url, mpv.scratch_dir().to_path_buf()))
+            tokio::spawn(fetch_still(http.clone(), url, opener.scratch_dir().to_path_buf()))
         }),
     };
 
@@ -261,7 +296,7 @@ pub async fn play(
 
         // Before mpv opens the file, so the tracks are on disk by the time it asks for them.
         if !localised[index] {
-            localise_subtitles(&http, &mpv, &mut streams[index]).await;
+            localise_subtitles(&http, opener.scratch_dir(), &mut streams[index]).await;
             localised[index] = true;
         }
         let mut stream = streams[index].clone();
@@ -300,14 +335,14 @@ pub async fn play(
 
         // A window: the one this playback already has, the one the last episode left open,
         // or a new one.
-        if player.as_ref().is_none_or(|p| !p.session.is_alive()) {
+        if player.as_ref().is_none_or(|p| !p.link.is_alive()) {
             player = slot.take();
             run.night_applied = false;
         }
         if player.is_none() {
             let _ = tx.send(Event::Status("starting mpv…".into()));
-            match mpv.spawn(&request).await {
-                Ok((session, events)) => player = Some(Player::new(session, events)),
+            match opener.open(&request).await {
+                Ok((link, events)) => player = Some(Player::new(link, events)),
                 Err(e) if last => {
                     let _ = tx.send(Event::Toast(Notice::alert(format!("mpv: {e}"))));
                     // The player never existed, but the UI has Now Playing up and a control
@@ -324,6 +359,8 @@ pub async fn play(
             }
         }
         let Some(current) = player.as_mut() else { continue };
+        // This playback drives the window from here, the one it opened or the one it took.
+        current.link.attach(&tx);
 
         // The track policy belongs to the process; point it at this series before the file
         // loads, and settle what it still owed the previous one.
@@ -341,8 +378,8 @@ pub async fn play(
             }
         }
 
-        run.publish(&current.session, &streams, index).await;
-        if let Err(e) = current.session.load(&stream, &request).await {
+        run.publish(current.link.as_ref(), &streams, index).await;
+        if let Err(e) = load(current.link.as_ref(), &stream, &request).await {
             tracing::warn!(error = %e, "could not hand the stream to mpv");
         }
         let _ =
@@ -351,6 +388,7 @@ pub async fn play(
         // keeps it from looking like the episode began in the wrong place.
         if let Some(position) = resume_at {
             let _ = tx.send(Event::Resumed { position });
+            let _ = current.link.overlay(Overlay::Resumed { position }).await;
         }
 
         let outcome = run.file(current, &stream, &streams, index, &mut commands).await;
@@ -366,22 +404,23 @@ pub async fn play(
             }
             FileOutcome::Handover(successor) => {
                 if let Some(player) = player.take() {
-                    let _ = player
-                        .session
-                        .send(companion::state(
-                            "status",
-                            &companion::Status::loading(context.handing_to(&successor), None),
-                        ))
-                        .await;
+                    let card = companion::Status::loading(context.handing_to(&successor), None);
+                    let starting = Overlay::Starting {
+                        card,
+                        title: successor.title.clone(),
+                        episode: successor.episode.clone(),
+                        episode_title: None,
+                    };
+                    let _ = player.link.overlay(starting).await;
                     // Silence what was playing while the next stream is found.
-                    let _ = player.session.stop().await;
+                    let _ = player.link.stop().await;
                     slot.park(player);
                 }
                 return;
             }
             FileOutcome::Ended { watched, complete, exited, stopped, quit, no_frames } => {
                 let reported = match (&player, no_frames) {
-                    (Some(p), true) => p.session.diagnostics().most_relevant().await,
+                    (Some(p), true) => p.link.diagnostics().await,
                     _ => None,
                 };
 
@@ -409,19 +448,20 @@ pub async fn play(
                 let next = run.next.as_ref().filter(|_| rolls_on);
                 if let Some(player) = player.take() {
                     if let Some(next) = next {
-                        let _ = player
-                            .session
-                            .send(companion::state(
-                                "status",
-                                &companion::Status::loading(
-                                    format!("Up next · {}", next.label()),
-                                    Some("Finding sources…".into()),
-                                ),
-                            ))
-                            .await;
+                        let card = companion::Status::loading(
+                            format!("Up next · {}", next.label()),
+                            Some("Finding sources…".into()),
+                        );
+                        let starting = Overlay::Starting {
+                            card,
+                            title: context.title.clone(),
+                            episode: next.number.clone(),
+                            episode_title: next.title.clone(),
+                        };
+                        let _ = player.link.overlay(starting).await;
                         slot.park(player);
                     } else {
-                        player.session.shutdown().await;
+                        player.link.shutdown().await;
                     }
                 }
 
@@ -462,6 +502,30 @@ pub async fn play(
     }
 }
 
+/// Open `stream` in the player, in place of whatever was playing.
+///
+/// Everything that belongs to the file travels with it, so the previous file's never leak into
+/// this one: headers, resume point, title and track languages as its options, and before them
+/// where the seek bar's thumbnails are read, so the thumbnailer sees the right address when it
+/// starts on this file. A torrent gives a second address that reads only what is already
+/// downloaded, so thumbnails never pull bandwidth away from the playhead. External subtitles are
+/// attached once the file has loaded.
+async fn load(
+    link: &dyn PlayerLink,
+    stream: &Stream,
+    request: &PlaybackRequest,
+) -> Result<(), LinkError> {
+    link.overlay(Overlay::ThumbnailUrl(stream.thumbnail_url.clone())).await?;
+    let options = anistream_playback::protocol::file_options(
+        &stream.headers,
+        request.start_at,
+        &request.title,
+        request.subtitle_language.as_deref(),
+        request.dub,
+    );
+    link.load(&stream.url, options).await
+}
+
 /// The next stream not yet tried, wrapping around; the current one when all have been.
 fn next_untried(tried: &[bool], current: usize) -> usize {
     (1..=tried.len())
@@ -470,7 +534,11 @@ fn next_untried(tried: &[bool], current: usize) -> usize {
         .unwrap_or(current)
 }
 
+/// What a party is answered with where there is no Syncplay to hand it to.
+pub const NO_PARTY: &str = "watch parties aren't built into this front end";
+
 /// Start a Syncplay party on a stream.
+#[cfg(feature = "desktop")]
 fn hand_to_syncplay(syncplay: &anistream_core::config::SyncplayConfig, url: &str, tx: &Outbox) {
     // Syncplay's no-gui mode refuses to start without a room, so asking first beats
     // spawning a process whose refusal we would have to fish out of its stderr.
@@ -549,6 +617,8 @@ struct Run<'a> {
     /// For fetching a still learned late, and where to write it.
     http: HttpClient,
     scratch: std::path::PathBuf,
+    /// What says whether the machine is on battery, which the upscaling chain goes by.
+    power: Arc<dyn PowerSource>,
 }
 
 #[cfg(test)]
