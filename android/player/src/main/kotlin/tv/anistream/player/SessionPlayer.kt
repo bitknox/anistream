@@ -3,7 +3,9 @@
 
 package tv.anistream.player
 
+import android.graphics.Bitmap
 import android.os.Looper
+import java.io.ByteArrayOutputStream
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -20,7 +22,13 @@ import com.google.common.util.concurrent.ListenableFuture
  * Lives with the media session, which lives with [PlayerService], not with the activity.
  */
 @OptIn(UnstableApi::class)
-class SessionPlayer(private val model: PlayerModel) : SimpleBasePlayer(Looper.getMainLooper()) {
+class SessionPlayer(
+    private val model: PlayerModel,
+    private val artwork: (String) -> Bitmap? = { null },
+) : SimpleBasePlayer(Looper.getMainLooper()) {
+    /** The art last encoded for the session, by its URL. */
+    private var art: Pair<String, ByteArray>? = null
+
     init {
         model.onSessionChange = { invalidateState() }
     }
@@ -44,6 +52,7 @@ class SessionPlayer(private val model: PlayerModel) : SimpleBasePlayer(Looper.ge
             .setDisplayTitle(model.episodeLine)
             .setSubtitle(model.showTitle)
             .setMediaType(MediaMetadata.MEDIA_TYPE_TV_SHOW)
+            .apply { artworkBytes()?.let { setArtworkData(it, MediaMetadata.PICTURE_TYPE_FRONT_COVER) } }
             .build()
         val id = "${model.titleId ?: 0u}-${model.startingEpisode ?: model.episode?.number ?: ""}"
         val item = MediaItem.Builder().setMediaId(id).setMediaMetadata(metadata).build()
@@ -62,6 +71,19 @@ class SessionPlayer(private val model: PlayerModel) : SimpleBasePlayer(Looper.ge
             .setContentPositionMs { (model.playhead * 1000).toLong() }
             .setPlaybackParameters(androidx.media3.common.PlaybackParameters(model.speed.toFloat()))
             .build()
+    }
+
+    /** The title's cover as the notification shows it, else its banner, encoded once. */
+    private fun artworkBytes(): ByteArray? {
+        val url = model.coverUrl ?: model.bannerUrl ?: return null
+        art?.let { (known, bytes) -> if (known == url) return bytes }
+        val bitmap = artwork(url) ?: return null
+        val bytes = ByteArrayOutputStream().use { out ->
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+            out.toByteArray()
+        }
+        art = url to bytes
+        return bytes
     }
 
     override fun handleSetPlayWhenReady(playWhenReady: Boolean): ListenableFuture<*> {

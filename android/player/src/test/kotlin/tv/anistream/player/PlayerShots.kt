@@ -23,6 +23,7 @@ import org.robolectric.annotation.GraphicsMode
 import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.core.Translation
 import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.NextEpisode
 import tv.anistream.engine.model.PlayerOp
 import tv.anistream.engine.model.PlayerUi
 import tv.anistream.engine.model.SkipKind
@@ -56,6 +57,19 @@ class PlayerShots {
     fun phone_player() = shoot("phone-player") { model, mpv ->
         mpv.emit(MpvEvent.property("time-pos", MpvValue.Real(151.0)))
         model.apply(Event.PlayerUi(1u, PlayerUi.Skip(SkipKind.OPENING, 220.0)))
+    }
+
+    /** AndroidPlayerUpNext: the ending under way at 21:33, Up Next two seconds into its countdown, the controls hidden. */
+    @Test
+    fun phone_player_up_next() = shoot("phone-player-up-next") { model, mpv ->
+        model.apply(
+            Event.PlayerUi(
+                1u,
+                PlayerUi.UpNext(NextEpisode("8", "A Town Without Night", "${FixtureArt.HOST}ep/900001/8.jpg"), true, 1291.0, 10u, 3u),
+            ),
+        )
+        mpv.emit(MpvEvent.property("time-pos", MpvValue.Real(1293.0)))
+        model.hideControls()
     }
 
     /** The starting screen (T2): the banner art under the dim, the indicator and its line, before the first frame. */
@@ -101,8 +115,8 @@ class PlayerShots {
             m.emit(MpvEvent.property("video-params", MpvValue.parse("""{"w":1920,"h":1080,"dw":1920,"dh":1080}""")!!))
             m.emit(MpvEvent.property("chapter-list", MpvValue.parse(CHAPTERS)!!))
             if (picture) m.emit(MpvEvent.of(MpvNative.Event.PLAYBACK_RESTART))
-            at(model, m)
             model.poke()
+            at(model, m)
         }
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()

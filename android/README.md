@@ -80,6 +80,13 @@ properties and events back; `PlayerService` is the media session around it, a `m
 foreground service. The emulator decodes in software: its MediaCodec stalls under FFmpeg, and a
 watchdog moves a decoder with no picture to software, or a stuck mpv to a new one.
 
+The player's screen is a destination of the frame's own (`PlayerSlot`), over the navigation bar,
+landscape on a phone. Going home while it plays takes the activity into Picture in Picture with
+the three actions; with the screen off the audio plays on with the video track off; the media
+notification and the lock screen carry back 10 s, play or pause and forward 10 s. The process's
+foreground and background, and the network it is on, go to the engine as `AppPhase` and
+`NetworkPath` (`app/SystemPhases.kt`).
+
 CI does not run mpv.sh: with `ANISTREAM_PLAYER_NATIVE=off` the player builds without libmpv and the
 shim, so its Kotlin compiles and its unit tests run, and that APK cannot play.
 

@@ -261,6 +261,24 @@ class PlayerModel(
         private set
     private var rollPending = false
 
+    /**
+     * TalkBack or Switch Access is on: the controls stay up, Up Next waits for the viewer rather
+     * than counting down, and the skip stays at full strength (T4, T5).
+     */
+    var assisted by mutableStateOf(false)
+
+    /** The title's art, from the starting screen, for the media session: the cover, and the banner. */
+    var coverUrl by mutableStateOf<String?>(null)
+        private set
+    var bannerUrl by mutableStateOf<String?>(null)
+        private set
+
+    /**
+     * The activity is in Picture in Picture, or on its way into it: the window shows the video
+     * alone, and the cards, the controls and the sheets are not drawn.
+     */
+    var inPip by mutableStateOf(false)
+
     /** The app is in the background, playing audio only. */
     var background = false
         private set
@@ -343,7 +361,10 @@ class PlayerModel(
             is PlayerUi.Starting -> {
                 note("#$playback starting episode ${ui.episode}")
                 starting = StartingScreen(playback, ui.id, ui.title, ui.episode, ui.episodeTitle, ui.coverUrl, ui.bannerUrl, now)
+                ui.coverUrl?.let { coverUrl = it }
+                ui.bannerUrl?.let { bannerUrl = it }
                 present()
+                changed()
             }
             is PlayerUi.Episode -> {
                 episode = EpisodeOnScreen(ui.number, ui.label, ui.title, ui.show, ui.translation)
@@ -422,6 +443,8 @@ class PlayerModel(
         }
         speed?.let { enqueue(MpvCall.Set("speed", MpvValue.Real(it))) }
         volume?.let { enqueue(MpvCall.Set("volume", MpvValue.Real(it))) }
+        // Opened with the app in the background: the audio alone until it comes back.
+        if (background) enqueue(MpvCall.Set("vid", MpvValue.Text("no")))
         present()
     }
 
@@ -573,6 +596,8 @@ class PlayerModel(
         resume = null
         alert = null
         stillWatching = false
+        coverUrl = null
+        bannerUrl = null
         resetFile()
         ticker?.cancel()
         ticker = null
@@ -682,7 +707,7 @@ class PlayerModel(
     /** The playhead moved: the cards that run on playback time. */
     private fun played() {
         val card = upNext
-        if (card != null && !card.played) {
+        if (card != null && !card.played && !assisted) {
             val left = card.remaining(playhead, duration)
             if (left != null && left <= 0) {
                 upNext = card.copy(played = true)
@@ -839,7 +864,7 @@ class PlayerModel(
 
     /** Whether the controls are up: after input, while paused, while something holds them. */
     val controlsVisible: Boolean
-        get() = paused || holds.isNotEmpty() || clock - lastInput < PlayerTiming.CONTROLS_HIDE
+        get() = paused || assisted || holds.isNotEmpty() || clock - lastInput < PlayerTiming.CONTROLS_HIDE
 
     /** The starting screen's line: "Starting episode 7", and after a while "Finding a source · 4 s". */
     fun startingLine(note: String? = null): String? = starting?.line(clock, note)
@@ -852,7 +877,7 @@ class PlayerModel(
         }
 
     /** The skip button has been up long enough to dim. */
-    val skipDimmed: Boolean get() = skip?.let { clock - it.since >= PlayerTiming.SKIP_DIMS } ?: false
+    val skipDimmed: Boolean get() = !assisted && skip?.let { clock - it.since >= PlayerTiming.SKIP_DIMS } ?: false
 
     /** Up Next is on screen: from the ending, unless cancelled. */
     val upNextShown: Boolean
@@ -866,7 +891,7 @@ class PlayerModel(
     /** "Plays in 8 s", while the countdown runs, and how far it has run, 0 to 1. */
     val countdown: Pair<Int, Float>?
         get() {
-            if (!upNextShown) return null
+            if (!upNextShown || assisted) return null
             val card = upNext ?: return null
             val left = card.remaining(position, duration) ?: return null
             val progress = 1 - left / maxOf(card.countdown, 1.0)
@@ -1126,6 +1151,7 @@ class PlayerModel(
         if (this.background == background) return
         this.background = background
         if (mpv == null) return
+        note(if (background) "in the background: the audio plays on, the video track off" else "back: the video track on")
         enqueue(MpvCall.Set("vid", MpvValue.Text(if (background) "no" else "auto")))
     }
 

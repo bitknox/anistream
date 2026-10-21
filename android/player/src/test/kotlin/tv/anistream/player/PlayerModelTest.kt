@@ -294,6 +294,20 @@ class CardTest {
     }
 
     @Test
+    fun withTalkBackUpNextWaitsAndTheControlsStay() = runTest {
+        val rig = Rig(this)
+        rig.opened()
+        rig.model.assisted = true
+        upNext(rig)
+        rig.playhead(60.0)
+        assertTrue(rig.model.upNextShown)
+        assertNull(rig.model.countdown)
+        assertFalse(PlayerCommand.PlayNext in rig.controls)
+        advanceTimeBy(10_000)
+        assertTrue(rig.model.controlsVisible)
+    }
+
+    @Test
     fun withoutEndingDataUpNextShowsNearTheEnd() = runTest {
         val rig = Rig(this)
         rig.opened()
@@ -555,6 +569,26 @@ class ViewerTest {
         rig.model.backgrounded(false)
         rig.settle()
         assertEquals(listOf(MpvCall.Set("vid", MpvValue.Text("no")), MpvCall.Set("vid", MpvValue.Text("auto"))), rig.mpv.calls.takeLast(2))
+    }
+
+    @Test
+    fun aPlayerOpenedInTheBackgroundPlaysTheAudioAlone() = runTest {
+        val rig = Rig(this)
+        rig.model.backgrounded(true)
+        rig.opened()
+        assertTrue(MpvCall.Set("vid", MpvValue.Text("no")) in rig.mpv.calls)
+    }
+
+    @Test
+    fun theTitlesArtStaysForTheSessionAfterTheStart() = runTest {
+        val rig = Rig(this)
+        rig.ui(1u, PlayerUi.Starting(900_001u, "Stardust Wayfarer", "7", null, "http://art.example/c.png", "http://art.example/b.png"))
+        rig.opened()
+        rig.emit(MpvEvent.of(MpvNative.Event.PLAYBACK_RESTART))
+        assertNull(rig.model.starting)
+        assertEquals("http://art.example/c.png", rig.model.coverUrl)
+        rig.model.viewerClosed()
+        assertNull(rig.model.coverUrl)
     }
 
     @Test
