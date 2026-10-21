@@ -86,6 +86,16 @@ public final class AppStore {
         }
     }
 
+    #if FIXTURES
+    /// Every command sent, by its case's name, for counting what an action costs. The Fixtures
+    /// app only.
+    @ObservationIgnored public private(set) var sentLog: [String] = []
+
+    /// What the fake AniList has been asked so far, an operation's name a request, in arrival
+    /// order.
+    public var anilistRequests: [String] { client?.engine.testingAnilistRequests() ?? [] }
+    #endif
+
     /// Read `engine`'s events from now on.
     public func attach(_ engine: FfiEngine) {
         client = EngineClient(
@@ -104,6 +114,9 @@ public final class AppStore {
     /// while it starts, the command waits and is sent once it has.
     @discardableResult
     public func send(_ command: Command) -> JobId? {
+        #if FIXTURES
+        sentLog.append(String(String(describing: command).prefix { $0 != "(" }))
+        #endif
         guard let client else {
             if phase == .starting { early.append(command) }
             return nil

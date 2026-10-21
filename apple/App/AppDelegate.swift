@@ -64,6 +64,12 @@ final class AppDelegate: NSObject {
             fflush(stdout)
             motion.run(navigator: navigator, store: store)
         }
+        #if FIXTURES
+        // What the screens cost against AniList's rate limit, step by step.
+        if RequestAudit.requested {
+            await RequestAudit.run(navigator: navigator, store: store)
+        }
+        #endif
     }
 
     private func quit() {
