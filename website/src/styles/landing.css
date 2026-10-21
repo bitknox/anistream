@@ -238,15 +238,36 @@ html.js .l-nav.is-solid::before {
 	}
 }
 
-/* ── Hero: the scene, full width, then the copy under it ────────────────── */
+/* ── Hero: the scene, full width, with the copy standing on its rooftop ─── */
+.landing {
+	/* One scene pixel in CSS pixels: 6 to 8, as many as keep the scene near half the window's
+	   height. The script draws with the same value. */
+	--cell: clamp(6px, round(down, 50vh / 70, 1px), 8px);
+}
+
+/* The hero is a picture, dusk in either theme, so the copy on its rooftop reads in both. */
+.hero {
+	--ani-ground: #161a2e;
+	--ani-text: #e4e0d6;
+	--ani-dim: #9298b5;
+	--ani-obi: #f2a64b;
+	--ani-rule: #434653;
+	--ani-rule-faint: #2f3242;
+	--ani-raised: #222638;
+	--ani-raised-selected: #343a57;
+	--ani-obi-fill: #f2a64b;
+	--ani-obi-fill-hover: #f5b467;
+	--ani-on-obi: #161a2e;
+	background: var(--ani-ground);
+	color: var(--ani-text);
+}
+
 .scene {
 	position: relative;
-	/* 70 scene pixels of 6 to 8 CSS pixels each, as many as keep it near half the window's
-	   height (the script draws to the same size), plus the nav that sits over the sky. */
+	/* 70 scene pixels, plus the nav that sits over the sky. */
 	height: calc(560px + var(--nav-h));
-	height: calc(70 * clamp(6px, round(down, 50vh / 70, 1px), 8px) + var(--nav-h));
+	height: calc(70 * var(--cell) + var(--nav-h));
 	overflow: hidden;
-	/* The scene is a picture and keeps its dusk ground in either theme. */
 	background: #161a2e;
 }
 
@@ -269,14 +290,25 @@ html:not(.js) .scene {
 }
 
 .hero-copy {
-	display: grid;
-	grid-template-columns: minmax(0, 792fr) minmax(0, 384fr);
-	column-gap: 24px;
-	align-items: start;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
 	padding-top: 40px;
+	padding-bottom: 72px;
+}
+
+/* The copy starts on the rooftop, 14 scene pixels above the scene's foot, under the railing. */
+@media (min-width: 900px) {
+	html.js .hero-copy {
+		margin-top: calc(var(--cell) * -14 + 16px);
+		padding-top: 0;
+	}
 }
 
 .hero-copy h1 {
+	/* Clear of Nagare, who stands about 69% of the way across. */
+	max-width: min(800px, calc(69vw - max(var(--pad), (100vw - 1200px) / 2) - 64px));
 	font-family: var(--ani-font-display);
 	font-size: 52px;
 	font-weight: 700;
@@ -287,7 +319,8 @@ html:not(.js) .scene {
 .hero-side {
 	display: flex;
 	flex-direction: column;
-	padding-top: 6px;
+	max-width: 560px;
+	margin-top: 20px;
 }
 
 .hero-sub {
@@ -296,7 +329,7 @@ html:not(.js) .scene {
 }
 
 .hero-side .actions {
-	margin-top: 22px;
+	margin-top: 24px;
 }
 
 .hero-note {
@@ -307,27 +340,23 @@ html:not(.js) .scene {
 }
 
 @media (max-width: 899px) {
-	.scene {
-		height: calc(420px + var(--nav-h));
+	.landing {
+		--cell: 6px;
 	}
 
 	.hero-copy {
-		display: flex;
-		flex-direction: column;
 		padding-top: 24px;
+		padding-bottom: 48px;
 	}
 
 	.hero-copy h1 {
+		max-width: none;
 		font-size: 34px;
 		line-height: 40px;
 		letter-spacing: 0;
 	}
 
 	.hero-side {
-		padding-top: 0;
-	}
-
-	.hero-sub {
 		margin-top: 16px;
 	}
 
