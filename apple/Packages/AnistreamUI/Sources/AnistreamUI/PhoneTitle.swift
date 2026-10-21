@@ -177,18 +177,6 @@ struct PhoneTitle: View {
     }
 }
 
-extension Entry {
-    /// The metadata line on an iPhone's page: "TV · 12 EP · 2024 · 82%".
-    var phoneMetadata: String {
-        var parts: [String] = []
-        if let format { parts.append(format) }
-        if let episodes, episodes > 0, format != "MOVIE" { parts.append("\(episodes) ep") }
-        if let year { parts.append(String(year)) }
-        if let score { parts.append("\(score)%") }
-        return parts.joined(separator: " · ")
-    }
-}
-
 /// The episodes on an iPhone's page: a row each, the next one marked, stills after it blurred.
 struct PhoneEpisodes: View {
     @Environment(AppStore.self) private var store

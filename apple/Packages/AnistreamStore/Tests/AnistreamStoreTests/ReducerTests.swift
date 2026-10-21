@@ -188,4 +188,25 @@ struct ReducerTests {
         store.apply(.sync(anilist))
         #expect(store.accounts.summary.text == "Sign in to AniList again")
     }
+
+    @Test func offlineSaysWhatWaitsQuietly() {
+        let store = AppStore()
+        store.apply(.sync(SyncState(
+            tracker: "anilist", connected: true, user: "Mika", storage: "keychain",
+            storageDegraded: false, outbox: 0, deferred: 0, needsReauth: false, last: nil,
+            pullError: nil
+        )))
+        let down = MetaSourceRow(
+            source: "anilist", state: "unreachable", healthy: false, active: false, detail: nil, retryAt: nil
+        )
+        store.apply(.metaStatus([down]))
+        #expect(store.accounts.summary == SyncSummary(text: "Offline", state: .waiting, tracker: "anilist"))
+        store.apply(.progressQueued)
+        #expect(store.accounts.summary.text == "1 change waiting to sync")
+        var up = down
+        up.healthy = true
+        store.apply(.metaStatus([up]))
+        #expect(store.accounts.summary.text == "1 change waiting to sync")
+        #expect(!store.accounts.offline)
+    }
 }

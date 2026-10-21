@@ -11,6 +11,10 @@ struct ContinueScreen: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
     @State private var selection: AnilistId? = LaunchRoute.current.selected
+    /// When the selection last moved, and whether that was quick on the heels of the one before:
+    /// a run of arrow keys changes the preview at once, without the fade (M2).
+    @State private var movedAt = ContinuousClock.now
+    @State private var running = false
 
     var body: some View {
         let queue = store.continuing.queue(store.titles)
@@ -36,7 +40,7 @@ struct ContinueScreen: View {
                         if let item = queue.all.first(where: { $0.id == selection }) ?? queue.all.first {
                             ContinuePreview(item: item)
                                 .id(item.id)
-                                .transition(.opacity.animation(.fadeIn))
+                                .transition(.opacity)
                         }
                     }
                     #if os(iOS)
@@ -53,7 +57,10 @@ struct ContinueScreen: View {
                 selection = ids.first
             }
         }
+        .animation(running ? nil : .fadeIn, value: selection)
         .onChange(of: selection, initial: true) { _, id in
+            running = ContinuousClock.now - movedAt < .milliseconds(150)
+            movedAt = .now
             // The page's fields (where else it streams) and the episode's name.
             guard let id else { return }
             navigator.focusedTitle = id

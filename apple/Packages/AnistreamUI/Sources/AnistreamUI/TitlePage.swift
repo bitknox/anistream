@@ -196,6 +196,16 @@ extension Entry {
         return line
     }
 
+    /// The metadata line on an iPhone's page: "TV · 12 EP · 2024 · 82%".
+    var phoneMetadata: String {
+        var parts: [String] = []
+        if let format { parts.append(format) }
+        if let episodes, episodes > 0, format != "MOVIE" { parts.append("\(episodes) ep") }
+        if let year { parts.append(String(year)) }
+        if let score { parts.append("\(score)%") }
+        return parts.joined(separator: " · ")
+    }
+
     /// An entry for a page whose title has not arrived yet.
     static func placeholder(_ id: AnilistId) -> Entry {
         Entry(

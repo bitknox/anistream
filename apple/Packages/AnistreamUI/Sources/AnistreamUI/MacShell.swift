@@ -36,6 +36,8 @@ struct MacShell: View {
                 if let id = navigator.titleOnMac {
                     TitleToolbar(store: store, navigator: navigator, id: id)
                 } else {
+                    // What has run past 600 ms, quietly, beside the section's own items.
+                    ToolbarItem(placement: .primaryAction) { ActivityIndicator() }
                     SectionToolbar(section: navigator.section)
                     ToolbarItem(placement: .primaryAction) {
                         SyncCapsule { navigator.open(.settings) }

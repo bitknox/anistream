@@ -221,6 +221,8 @@ public final class AppStore {
             accounts.conflicts(rows)
         case .deviceCode(let prompt):
             accounts.deviceCode(prompt)
+        case .metaStatus(let rows):
+            accounts.metaStatus(rows)
 
         case .artworkReady(let url, let bytes):
             artwork.ready(url: url, bytes: bytes)

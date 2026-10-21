@@ -33,6 +33,9 @@ public final class AccountsModel {
     public private(set) var deviceCode: DeviceCodePrompt?
     /// Progress queued for sync since the trackers last said their outboxes.
     public private(set) var queued = 0
+    /// Whether AniList is out of reach, as the metadata ladder last said: the app is showing
+    /// what it has, and changes wait.
+    public private(set) var offline = false
 
     public init() {}
 
@@ -61,6 +64,10 @@ public final class AccountsModel {
         deviceCode = prompt
     }
 
+    func metaStatus(_ rows: [MetaSourceRow]) {
+        offline = rows.first { $0.source.lowercased() == "anilist" }.map { !$0.healthy } ?? false
+    }
+
     /// What the toolbar's sync capsule says, and how.
     public var summary: SyncSummary {
         // AniList first, the tracker the catalogue comes from; any other signed in otherwise.
@@ -68,12 +75,17 @@ public final class AccountsModel {
         guard let main = signedIn.first(where: { $0.tracker == "anilist" }) ?? signedIn.first
         else { return SyncSummary(text: "Not connected", state: .signedOut, tracker: nil) }
         let name = Self.name(main.tracker)
+        let pending = Int(signedIn.reduce(0) { $0 + $1.outbox }) + queued
+        if offline {
+            // Quiet, as the brief has it: what waits, or only that AniList is out of reach.
+            let text = pending > 0 ? "\(Wording.plural(pending, "change")) waiting to sync" : "Offline"
+            return SyncSummary(text: text, state: .waiting, tracker: main.tracker)
+        }
         if main.needsReauth {
             return SyncSummary(text: "Sign in to \(name) again", state: .problem, tracker: main.tracker)
         }
-        let waiting = Int(signedIn.reduce(0) { $0 + $1.outbox }) + queued
-        if waiting > 0 {
-            let changes = Wording.plural(waiting, "change")
+        if pending > 0 {
+            let changes = Wording.plural(pending, "change")
             return SyncSummary(text: "\(changes) waiting to sync", state: .waiting, tracker: main.tracker)
         }
         if main.pullError != nil {
