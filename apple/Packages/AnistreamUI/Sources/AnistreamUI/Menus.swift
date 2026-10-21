@@ -61,7 +61,7 @@ struct TitleMoreItems: View {
         .disabled(entry.trailerUrl == nil)
         Button("Open on AniList") { store.openOnAniList(entry.id) }
         Divider()
-        Button("Settings for This Show…") { navigator.showSettings = entry.id }
+        Button("Show Settings for This Show…") { navigator.showSettings = entry.id }
     }
 }
 

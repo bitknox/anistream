@@ -738,6 +738,18 @@ struct PublishSheet: View {
 
 /// The system pasteboard.
 enum Pasteboard {
+    /// The invite link on the pasteboard, when there is one.
+    @MainActor
+    static var invite: String? {
+        #if os(macOS)
+        let text = NSPasteboard.general.string(forType: .string)
+        #else
+        let text = UIPasteboard.general.string
+        #endif
+        return text.flatMap { URL(string: $0.trimmingCharacters(in: .whitespacesAndNewlines)) }
+            .flatMap(InviteLinks.invite(in:))
+    }
+
     @MainActor
     static func copy(_ text: String) {
         #if os(macOS)

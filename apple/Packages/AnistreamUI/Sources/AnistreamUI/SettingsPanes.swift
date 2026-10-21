@@ -76,6 +76,14 @@ enum DownloadFolder {
         return path.hasPrefix(home) ? "~" + path.dropFirst(home.count) : path
     }
 
+    #if os(macOS)
+    /// Show the folder in the Finder, when one is set.
+    static func show(_ store: AppStore) {
+        guard let path = store.settings.row(.downloadDir)?.typedText, !path.isEmpty else { return }
+        NSWorkspace.shared.open(URL(fileURLWithPath: path))
+    }
+    #endif
+
     /// The folder's own name, for the menu.
     static func name(_ store: AppStore) -> String {
         guard let path = store.settings.row(.downloadDir)?.typedText, !path.isEmpty else { return "Default" }

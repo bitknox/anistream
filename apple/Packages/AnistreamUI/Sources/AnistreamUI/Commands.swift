@@ -5,32 +5,45 @@ import AnistreamKit
 import AnistreamStore
 import SwiftUI
 
-/// The app's menus beside the system's.
-public struct AnistreamCommands: Commands {
+/// The app's menus beside the system's. The Playback menu's items and Window's player item come
+/// from the player the app hosts, which this package does not know.
+public struct AnistreamCommands<Playback: View, PlayerWindowItems: View>: Commands {
     let store: AppStore
     let navigator: Navigator
+    let playback: Playback
+    let playerWindowItems: PlayerWindowItems
 
-    public init(store: AppStore, navigator: Navigator) {
+    public init(
+        store: AppStore,
+        navigator: Navigator,
+        @ViewBuilder playback: () -> Playback,
+        @ViewBuilder playerWindowItems: () -> PlayerWindowItems
+    ) {
         self.store = store
         self.navigator = navigator
+        self.playback = playback()
+        self.playerWindowItems = playerWindowItems()
     }
 
     public var body: some Commands {
         CommandGroup(replacing: .appSettings) {
-            Button("Settings…") { navigator.open(.settings) }
+            Button("Settings…") { navigator.openSettings(navigator.settingsPane) }
                 .keyboardShortcut(",", modifiers: .command)
         }
 
         // File.
         CommandGroup(replacing: .newItem) {
-            Button("Join Store…") { navigator.open(.pluginStores) }
-            Button("Open Invite Link") {}
-                .disabled(true)
+            Button("Join Store…") { navigator.invite = "" }
+            // The invite link on the pasteboard, into the join sheet.
+            Button("Open Invite Link") { navigator.invite = Pasteboard.invite ?? "" }
             Divider()
+            // Exporting lists and history has no engine command yet.
             Button("Export Lists and History…") {}
                 .disabled(true)
-            Button("Show in Finder") {}
-                .disabled(true)
+            #if os(macOS)
+            Button("Show in Finder") { DownloadFolder.show(store) }
+                .disabled((store.settings.row(.downloadDir)?.typedText ?? "").isEmpty)
+            #endif
         }
 
         CommandMenu("Library") {
@@ -55,41 +68,13 @@ public struct AnistreamCommands: Commands {
                 .keyboardShortcut("r", modifiers: .command)
                 .disabled(store.accounts.summary.state == .signedOut)
             Divider()
-            Button("Pause All Downloads") {}
-                .disabled(true)
-            Button("Clear Finished Downloads") { store.send(.downloadClearCompleted) }
+            Button("Pause All Downloads") { store.pauseAllDownloads() }
+                .disabled(!store.downloads.rows.contains { $0.state == .active || $0.state == .queued })
+            Button("Clear Finished Downloads") { store.clearCompletedDownloads() }
         }
 
-        // Nothing plays inside the app yet, so all of Playback is dimmed.
         CommandMenu("Playback") {
-            Button("Play") {}.keyboardShortcut(.space, modifiers: []).disabled(true)
-            Divider()
-            Button("Skip Forward 10 Seconds") {}.keyboardShortcut(.rightArrow, modifiers: []).disabled(true)
-            Button("Skip Back 10 Seconds") {}.keyboardShortcut(.leftArrow, modifiers: []).disabled(true)
-            Divider()
-            Button("Next Episode") {}.keyboardShortcut(.rightArrow, modifiers: .command).disabled(true)
-            Button("Previous Episode") {}.keyboardShortcut(.leftArrow, modifiers: .command).disabled(true)
-            Button("Skip Opening") {}.keyboardShortcut("s", modifiers: []).disabled(true)
-            Divider()
-            Menu("Speed") {
-                Button("Slower") {}.keyboardShortcut("[", modifiers: []).disabled(true)
-                Button("Faster") {}.keyboardShortcut("]", modifiers: []).disabled(true)
-                Divider()
-                ForEach(["0.5×", "0.75×", "Normal", "1.25×", "1.5×", "2×"], id: \.self) { speed in
-                    Button(speed) {}.disabled(true)
-                }
-            }
-            Menu("Subtitles and Audio") {
-                Button("Audio") {}.disabled(true)
-                Button("Subtitles") {}.disabled(true)
-            }
-            Divider()
-            Button("Volume Up") {}.keyboardShortcut(.upArrow, modifiers: []).disabled(true)
-            Button("Volume Down") {}.keyboardShortcut(.downArrow, modifiers: []).disabled(true)
-            Button("Mute") {}.keyboardShortcut("m", modifiers: []).disabled(true)
-            Divider()
-            Button("Enter Full Screen") {}.keyboardShortcut("f", modifiers: [.command, .control]).disabled(true)
-            Button("Picture in Picture") {}.keyboardShortcut("p", modifiers: [.command, .option]).disabled(true)
+            playback
         }
 
         CommandMenu("Episode") {
@@ -100,8 +85,7 @@ public struct AnistreamCommands: Commands {
             sectionButton(.providers, "6")
             sectionButton(.pluginStores, "7")
             Divider()
-            Button("Check for Updates") {}
-                .disabled(true)
+            Button("Check for Updates") { store.loadStores() }
         }
 
         CommandGroup(after: .windowArrangement) {
@@ -109,6 +93,7 @@ public struct AnistreamCommands: Commands {
             #if os(macOS)
             MainWindowButton()
             #endif
+            playerWindowItems
             Button("Messages") { navigator.messagesShown = true }
                 .keyboardShortcut("l", modifiers: [.command, .option])
         }
@@ -129,6 +114,28 @@ public struct AnistreamCommands: Commands {
 
     private func withAnimationIfPossible(_ change: () -> Void) {
         withAnimation(.standard, change)
+    }
+}
+
+extension AnistreamCommands where Playback == DimmedPlayback, PlayerWindowItems == EmptyView {
+    /// The menus with nothing that plays: Playback dimmed throughout.
+    public init(store: AppStore, navigator: Navigator) {
+        self.init(store: store, navigator: navigator, playback: { DimmedPlayback() }, playerWindowItems: { EmptyView() })
+    }
+}
+
+/// The Playback menu where there is no player: every item, dimmed in place.
+public struct DimmedPlayback: View {
+    public var body: some View {
+        Group {
+            Button("Play") {}.keyboardShortcut(.space, modifiers: [])
+            Button("Skip Forward 10 Seconds") {}
+            Button("Skip Back 10 Seconds") {}
+            Button("Next Episode") {}
+            Button("Previous Episode") {}
+            Button("Skip Opening") {}
+        }
+        .disabled(true)
     }
 }
 
@@ -197,8 +204,10 @@ struct EpisodeCommands: View {
             .disabled(entry == nil)
         }
         Divider()
-        Button("Show Settings for This Show…") {}
-            .keyboardShortcut("i", modifiers: .command)
-            .disabled(true)
+        Button("Show Settings for This Show…") {
+            if let entry { navigator.showSettings = entry.id }
+        }
+        .keyboardShortcut("i", modifiers: .command)
+        .disabled(entry == nil)
     }
 }

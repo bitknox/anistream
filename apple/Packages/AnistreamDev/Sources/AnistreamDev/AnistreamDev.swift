@@ -35,11 +35,18 @@ struct AnistreamDev: App {
         // A frame AppKit saved from an earlier run would win over --size otherwise.
         .restorationBehavior(.disabled)
         .windowResizability(.contentMinSize)
-        .commands { AnistreamCommands(store: delegate.store, navigator: delegate.navigator) }
+        .commands {
+            AnistreamCommands(store: delegate.store, navigator: delegate.navigator) {
+                PlaybackMenu(model: delegate.player)
+            } playerWindowItems: {
+                MiniPlayerMenuItem(model: delegate.player)
+            }
+        }
 
         Window("Player", id: PlayerWindow.id) {
             PlayerWindow(model: delegate.player)
                 .environment(delegate.store)
+                .focusedSceneValue(\.playerInFront, true)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1280, height: 720)

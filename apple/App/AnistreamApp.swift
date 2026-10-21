@@ -26,12 +26,19 @@ struct AnistreamApp: App {
         }
         .defaultSize(width: 1280, height: 800)
         .windowResizability(.contentMinSize)
-        .commands { AnistreamCommands(store: delegate.store, navigator: delegate.navigator) }
+        .commands {
+            AnistreamCommands(store: delegate.store, navigator: delegate.navigator) {
+                PlaybackMenu(model: delegate.player)
+            } playerWindowItems: {
+                MiniPlayerMenuItem(model: delegate.player)
+            }
+        }
 
         // The player, in a window of its own that keeps its size and place (M4).
         Window("Player", id: PlayerWindow.id) {
             PlayerWindow(model: delegate.player)
                 .environment(delegate.store)
+                .focusedSceneValue(\.playerInFront, true)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultSize(width: 1280, height: 720)
@@ -41,8 +48,16 @@ struct AnistreamApp: App {
         #else
         WindowGroup {
             content
+                // The player covers the window it plays in, so it is in front while it shows.
+                .focusedSceneValue(\.playerInFront, delegate.player.isPresented)
         }
-        .commands { AnistreamCommands(store: delegate.store, navigator: delegate.navigator) }
+        .commands {
+            AnistreamCommands(store: delegate.store, navigator: delegate.navigator) {
+                PlaybackMenu(model: delegate.player)
+            } playerWindowItems: {
+                EmptyView()
+            }
+        }
         #endif
     }
 
