@@ -19,6 +19,10 @@
 //!   was minutes ago or the metadata cache shows nothing can have aired since;
 //! - the ask is cut off at [`ASK_FOR`], and a check cut off says nothing and keeps its place, so
 //!   the next one looks again from there.
+//!
+//! Each episode said carries how far behind the viewer is, the translation they watch the show
+//! in and its banner, for the notification's words and picture. [`coming`] lists the same shows'
+//! episodes of the next week, for the settings.
 
 use std::{
     collections::{HashMap, HashSet},
@@ -26,12 +30,18 @@ use std::{
     time::Duration,
 };
 
-use anistream_core::{ids::AnilistId, media::MediaStatus};
+use anistream_core::{config::Config, ids::AnilistId, media::MediaStatus};
 use anistream_meta::{Media, Meta, anilist::AiringEntry, titles::Titles};
-use anistream_model::{event::Event, notifications::NewEpisode, show::ShowSettingKey};
+use anistream_model::{
+    event::Event,
+    notifications::{ComingEpisode, NewEpisode},
+    show::ShowSettingKey,
+};
 use anistream_store::{EpisodeNotice, Store};
 
-use crate::{clock::Clock, outbox::Outbox, services::Services, state::EngineState};
+use crate::{
+    clock::Clock, data, outbox::Outbox, services::Services, show_settings, state::EngineState,
+};
 
 const HOUR: i64 = 3_600;
 const DAY: i64 = 24 * HOUR;
@@ -65,6 +75,12 @@ const PLANNING: &str = "PLANNING";
 /// The statuses that say a show is not being watched, whatever history says.
 const SET_ASIDE: [&str; 2] = ["DROPPED", "PAUSED"];
 
+/// How far ahead [`coming`] lists.
+const COMING_FOR: i64 = 7 * DAY;
+
+/// Pages of fifty at most that [`coming`] reads: a week of the shows followed is rarely one.
+const COMING_PAGES: usize = 4;
+
 /// Run a check, off the actor, and say what it found as [`Event::NewEpisodes`]: once, empty
 /// when there is nothing to say. With notifications off it asks nothing, and forgets what it
 /// kept, so the first check after they are turned on again is a first check.
@@ -75,6 +91,7 @@ pub(crate) fn check(engine: &EngineState, services: &Services, tx: &Outbox) {
         meta: services.meta.clone(),
         signed_in: list_signed_in(services),
         clock: services.clock.clone(),
+        config: engine.config.effective().clone(),
     };
     let (turn, tx) = (Arc::clone(&engine.episode_check), tx.clone());
     tokio::spawn(async move {
@@ -136,23 +153,105 @@ pub(crate) fn followed(
         .collect()
 }
 
+/// The shows that switched notifications on, or off, for themselves: `value` is the switch's
+/// stored word, `"true"` or `"false"`.
+fn switched(store: &Store, value: &str) -> Vec<AnilistId> {
+    store.shows_setting(ShowSettingKey::NotifyNewEpisodes.name(), value).unwrap_or_else(
+        |error| {
+            tracing::warn!(%error, "could not read the shows' own notification switches");
+            Vec::new()
+        },
+    )
+}
+
 /// The shows a check looks at, as of `now`: those [`followed`], planned ones left out, and every
 /// show switched on for itself, whatever the list says of it; but none switched off.
 fn notified(store: &Store, signed_in: bool, now: i64) -> Vec<AnilistId> {
-    let name = ShowSettingKey::NotifyNewEpisodes.name();
-    let switched = |value| {
-        store.shows_setting(name, value).unwrap_or_else(|error| {
-            tracing::warn!(%error, "could not read the shows' own notification switches");
-            Vec::new()
-        })
-    };
-    let off: HashSet<AnilistId> = switched("false").into_iter().collect();
+    let off: HashSet<AnilistId> = switched(store, "false").into_iter().collect();
     let mut seen = HashSet::new();
     followed(store, signed_in, now, false)
         .into_iter()
-        .chain(switched("true"))
+        .chain(switched(store, "true"))
         .filter(|id| !off.contains(id) && seen.insert(*id))
         .collect()
+}
+
+/// List the episodes the shows a check follows air in the next week, off the actor, and say
+/// them as [`Event::ComingEpisodes`]: once, soonest first, empty when AniList could not be asked.
+/// Whether notifications are on or not, so the settings can show what they would follow.
+pub(crate) fn coming(engine: &EngineState, services: &Services, tx: &Outbox) {
+    let config = engine.config.effective().clone();
+    let (store, meta, clock) =
+        (services.store.clone(), services.meta.clone(), services.clock.clone());
+    let signed_in = list_signed_in(services);
+    let tx = tx.clone();
+    tokio::spawn(async move {
+        let now = clock.now();
+        let shows = notified(&store, signed_in, now);
+        let on: HashSet<AnilistId> = switched(&store, "true").into_iter().collect();
+        let aired =
+            match tokio::time::timeout(ASK_FOR, airing(&meta, &shows, now, now + COMING_FOR))
+                .await
+            {
+                Ok(Ok(rows)) => rows,
+                Ok(Err(error)) => {
+                    tracing::warn!(%error, "the episodes coming up were not found");
+                    Vec::new()
+                }
+                Err(_) => {
+                    tracing::warn!("gave up waiting for the episodes coming up");
+                    Vec::new()
+                }
+            };
+        let titles = meta.titles();
+        let coming = aired
+            .iter()
+            .map(|row| ComingEpisode {
+                id: row.media.id,
+                title: titles.pick(&row.media.title).to_owned(),
+                episode: row.episode,
+                airs_at: row.airing_at,
+                cover_url: row.media.cover_image.best().map(str::to_owned),
+                switched_on: on.contains(&row.media.id),
+                translation: Some(translation(&config, &store, row.media.id)),
+            })
+            .collect();
+        let _ = tx.send(Event::ComingEpisodes(coming));
+    });
+}
+
+/// What `ids` air strictly inside `from`..`to`, oldest first: a page of fifty at a time, each
+/// carried on from the last one's broadcast, [`COMING_PAGES`] at most.
+async fn airing(
+    meta: &Meta,
+    ids: &[AnilistId],
+    from: i64,
+    to: i64,
+) -> Result<Vec<AiringEntry>, anistream_meta::source::MetaError> {
+    let mut rows: Vec<AiringEntry> = Vec::new();
+    let mut after = from;
+    for _ in 0..COMING_PAGES {
+        let page = meta.aired_since(ids, after, to).await?;
+        let last = page.items.last().map(|row| row.airing_at);
+        rows.extend(page.items);
+        match last {
+            Some(last) if page.has_next && last > after => after = last - 1,
+            _ => break,
+        }
+    }
+    // A page carried on from a broadcast can list it again.
+    let mut seen = HashSet::new();
+    rows.retain(|row| seen.insert((row.media.id, row.episode)));
+    Ok(rows)
+}
+
+/// The translation the viewer watches `id` in: its own setting, or Settings'.
+fn translation(
+    config: &Config,
+    store: &Store,
+    id: AnilistId,
+) -> anistream_core::media::Translation {
+    show_settings::for_show(config, store, id).playback.translation
 }
 
 /// What one check works with.
@@ -161,6 +260,8 @@ struct Check {
     meta: Meta,
     signed_in: bool,
     clock: Clock,
+    /// Settings, for the translation each show is watched in.
+    config: Config,
 }
 
 impl Check {
@@ -271,12 +372,17 @@ impl Check {
             if self.watched(id, row.episode) {
                 continue;
             }
+            // The episode Continue offers next, when it is before this one.
+            let next = data::standing(&self.store, id, row.media.episodes).0.map(|p| p.next);
             said.push(NewEpisode {
                 id,
                 title: titles.pick(&row.media.title).to_owned(),
                 episode: row.episode,
                 aired_at: row.airing_at,
                 cover_url: row.media.cover_image.best().map(str::to_owned),
+                next_for_you: next.filter(|next| *next < row.episode),
+                translation: Some(translation(&self.config, &self.store, id)),
+                banner_url: row.media.banner_image.clone(),
             });
         }
         said
@@ -390,8 +496,13 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         let http = anistream_net::HttpClient::offline(&NetworkConfig::default()).unwrap();
         let meta = Meta::new(AniList::new(http, 30), None, store.clone());
-        let check =
-            Check { store: store.clone(), meta, signed_in: false, clock: Clock::default() };
+        let check = Check {
+            store: store.clone(),
+            meta,
+            signed_in: false,
+            clock: Clock::default(),
+            config: Config::default(),
+        };
         let since = NOW - DAY;
         let mut notices = HashMap::from([
             (LISTED, EpisodeNotice { anilist_id: LISTED, episode: 5, since }),

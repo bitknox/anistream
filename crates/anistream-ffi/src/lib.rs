@@ -266,7 +266,7 @@ mod tests {
     #[test]
     fn notifications_and_the_widgets_record_cross_intact() {
         use anistream_model::{
-            notifications::NewEpisode,
+            notifications::{ComingEpisode, NewEpisode},
             show::ShowSettingKey,
             widgets::{
                 WIDGET_DATA_VERSION, WidgetAiring, WidgetContinue, WidgetData, WidgetNextAiring,
@@ -275,6 +275,7 @@ mod tests {
         let id = AnilistId::new(900_002);
         let commands = [
             Command::CheckNewEpisodes,
+            Command::ComingEpisodes,
             Command::WidgetSnapshot,
             Command::SetSetting {
                 key: SettingKey::EpisodeNotifications,
@@ -297,6 +298,9 @@ mod tests {
                 episode: 6,
                 aired_at: 1_792_163_730,
                 cover_url: Some("https://img.example/library-poster.png".into()),
+                next_for_you: Some(4),
+                translation: Some(Translation::Dub),
+                banner_url: Some("https://img.example/library-banner.png".into()),
             },
             NewEpisode {
                 id: AnilistId::new(900_006),
@@ -304,11 +308,25 @@ mod tests {
                 episode: 9,
                 aired_at: 1_792_515_630,
                 cover_url: None,
+                next_for_you: None,
+                translation: None,
+                banner_url: None,
             },
         ];
         assert_eq!(crossed(said[0].clone()), said[0]);
         crosses_intact(Event::NewEpisodes(said));
         crosses_intact(Event::NewEpisodes(Vec::new()));
+        let coming = ComingEpisode {
+            id,
+            title: "The Library Above the Clouds".into(),
+            episode: 7,
+            airs_at: 1_792_768_530,
+            cover_url: Some("https://img.example/library-poster.png".into()),
+            switched_on: true,
+            translation: Some(Translation::Sub),
+        };
+        assert_eq!(crossed(coming.clone()), coming);
+        crosses_intact(Event::ComingEpisodes(vec![coming]));
 
         let data = WidgetData {
             version: WIDGET_DATA_VERSION,
