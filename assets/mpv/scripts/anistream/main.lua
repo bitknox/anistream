@@ -302,6 +302,9 @@ end)
 mp.observe_property("duration", "number", function(_, value)
     p.duration = value
     up_next.evaluate()
+    -- The bar needs it as well as the controls being up. Woken before it arrived, they came up
+    -- without the bar, and the bar waited for the next activity to be drawn.
+    refresh()
 end)
 
 mp.observe_property("speed", "number", function(_, value)
