@@ -260,7 +260,7 @@ final class SystemPictureInPicture: NSObject, PictureInPictureSystem {
     /// passing clicks through, behind the main window and at its frame, where the floating window
     /// grows from and shrinks back to.
     private func setStage() {
-        let main = NSApp.windows.first { $0.isVisible && !($0 is NSPanel) && $0 !== stage }
+        let main = NSApp.windows.first { $0.isVisible && !($0 is NSPanel) && $0 !== self.stage }
         let frame = main?.frame ?? NSScreen.main?.visibleFrame ?? CGRect(x: 0, y: 0, width: 960, height: 540)
         let stage = self.stage ?? {
             let window = NSWindow(contentRect: frame, styleMask: [.borderless], backing: .buffered, defer: false)
