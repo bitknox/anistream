@@ -18,6 +18,7 @@ struct AnistreamApp: App {
     #else
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     #endif
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         #if os(macOS)
@@ -66,5 +67,13 @@ struct AnistreamApp: App {
             .frame(minWidth: 960, minHeight: 600)
             #endif
             .task { await delegate.start() }
+            // Where the app is, for the engine: in the background its torrents wait.
+            .onChange(of: scenePhase, initial: true) { _, phase in
+                switch phase {
+                case .active: delegate.phases.scene(.active)
+                case .background: delegate.phases.scene(.background)
+                default: delegate.phases.scene(.inactive)
+                }
+            }
     }
 }
