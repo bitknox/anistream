@@ -11,5 +11,6 @@
 /Anistream.xcodeproj/
 # The signing team, which is each developer's own: see Config/Local.xcconfig.example.
 /Config/Local.xcconfig
-# The dev harness's and shots.sh's screenshots.
+# The dev harness's and shots.sh's screenshots, and shots.sh's builds.
 /.shots/
+/.derived/

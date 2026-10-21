@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- What Xcode does not generate from the INFOPLIST_KEY settings: the anistream:// links the
+	     app opens, for store invites and the trackers' sign-in. The Fixtures app has none. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>tv.anistream.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>anistream</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

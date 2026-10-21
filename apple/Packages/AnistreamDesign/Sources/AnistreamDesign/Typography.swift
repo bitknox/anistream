@@ -24,7 +24,7 @@ public enum ShowTitleFace {
     }
 
     private static let registered: Bool = {
-        guard let url = Bundle.module.url(
+        guard let url = resources.url(
             forResource: "ZenKakuGothicNew-Bold", withExtension: "ttf", subdirectory: "Fonts"
         ) else { return false }
         var error: Unmanaged<CFError>?
@@ -34,6 +34,15 @@ public enum ShowTitleFace {
             .postScriptName == postScriptName
     }()
 }
+
+/// Where the font is: SwiftPM's resource bundle for the package, and the framework itself when
+/// the Xcode project builds these sources as one.
+#if SWIFT_PACKAGE
+private let resources = Bundle.module
+#else
+private final class BundleToken {}
+private let resources = Bundle(for: BundleToken.self)
+#endif
 
 private extension CTFont {
     var postScriptName: String { CTFontCopyPostScriptName(self) as String }

@@ -2,7 +2,7 @@
 # Builds the engine for the Apple app: anistream-ffi as a static library for each slice, packaged
 # as one XCFramework, with the Swift bindings generated from it.
 #
-#   apple/scripts/engine.sh <release|testing> [macos] [ios] [ios-sim]
+#   apple/scripts/engine.sh [--check] <release|testing> [macos] [ios] [ios-sim]
 #
 #   release   the engine the app ships: --no-default-features, so without mpv's child process
 #   testing   the same, plus the test kit's fake AniList and fixture source (`startTesting`), for
@@ -17,17 +17,23 @@
 #   apple/.engine/<flavour>/stamp                          what the build was made from
 #
 # Nothing is built when the stamp says the sources, Cargo.lock and the slices asked for are what
-# the last build was made from. ANISTREAM_ENGINE_PROFILE picks the cargo profile, app-dev unless
+# the last build was made from. With --check, nothing is built at all: it says whether the build
+# is current, and fails when it is not, which is what the Xcode project's frameworks check. ANISTREAM_ENGINE_PROFILE picks the cargo profile, app-dev unless
 # it says otherwise (`release` for a build to keep).
 set -euo pipefail
 # Bash 4.4 and newer only. macOS's own /bin/bash is 3.2, which CI's macOS runner finds first.
 shopt -s inherit_errexit 2>/dev/null || true
 
 usage() {
-  echo "usage: apple/scripts/engine.sh <release|testing> [macos] [ios] [ios-sim]" >&2
+  echo "usage: apple/scripts/engine.sh [--check] <release|testing> [macos] [ios] [ios-sim]" >&2
   exit 2
 }
 
+check=0
+if [[ "${1:-}" == --check ]]; then
+  check=1
+  shift
+fi
 flavour="${1:-}"
 case "$flavour" in
   release) features="" ;;
@@ -113,10 +119,15 @@ if [[ -f "$out/stamp" && -d "$out/AnistreamEngine.xcframework" && -d "$out/Swift
     [[ "$stamped" == *" $slice "* ]] || fresh=0
   done
   if (( fresh )); then
-    link_package
+    (( check )) || link_package
     echo "engine.sh: the $flavour engine is up to date in $out"
     exit 0
   fi
+fi
+if (( check )); then
+  echo "error: the $flavour engine for ${slices[*]} is missing or older than the Rust sources." >&2
+  echo "error: run apple/scripts/engine.sh $flavour ${slices[*]}" >&2
+  exit 1
 fi
 
 # An Xcode for the iOS SDKs and for packaging the XCFramework: the one DEVELOPER_DIR names, the
@@ -227,7 +238,9 @@ args=()
 for slice in "${slices[@]}"; do
   args+=(-library "$stage/libs/$slice/libanistream_ffi.a" -headers "$stage/headers")
 done
-DEVELOPER_DIR="$xcode" xcodebuild -create-xcframework "${args[@]}" \
+# Clean too: in an Xcode pre-action the environment is full of build settings, which xcodebuild
+# reads as overrides.
+env -i PATH="$PATH" HOME="$HOME" DEVELOPER_DIR="$xcode" xcodebuild -create-xcframework "${args[@]}" \
   -output "$stage/AnistreamEngine.xcframework" >/dev/null
 
 {
