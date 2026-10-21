@@ -46,6 +46,43 @@ struct DownloadsScreen: View {
     }
 }
 
+/// Downloads' title in the Mac's toolbar: the name, and beneath it the storage meter, what
+/// downloads take against what is free, beside what it says in words.
+struct DownloadsTitle: View {
+    @Environment(AppStore.self) private var store
+
+    var body: some View {
+        let used = Double(store.downloads.bytesOnDisk)
+        let free = FreeSpace.bytes.map { Double($0) }
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Downloads")
+                .font(.mac(15, weight: .semibold))
+                .foregroundStyle(.silk)
+            HStack(spacing: 8) {
+                if let free, used + free > 0 {
+                    Capsule().fill(.rule)
+                        .overlay(alignment: .leading) {
+                            GeometryReader { proxy in
+                                Capsule().fill(.haze).frame(width: proxy.size.width * used / (used + free))
+                            }
+                        }
+                        .frame(width: 80, height: 4)
+                }
+                Text(downloadsSubtitle(store))
+                    .font(.mac(11))
+                    .monospacedDigit()
+                    .foregroundStyle(.haze)
+                    .lineLimit(1)
+            }
+        }
+        .fixedSize()
+        .padding(.leading, 4)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Downloads")
+        .accessibilityValue(downloadsSubtitle(store).replacingOccurrences(of: " · ", with: ", "))
+    }
+}
+
 /// What the toolbar says under Downloads: what is free, and what downloads take.
 @MainActor
 func downloadsSubtitle(_ store: AppStore) -> String {

@@ -30,12 +30,18 @@ struct MacShell: View {
                 }
             }
             .environment(\.bannerSpace, bannerSpace)
-            .navigationTitle(navigator.titleOnMac == nil ? navigator.section.title : "")
-            .navigationSubtitle(subtitle)
+            // Downloads says its own, with the storage meter beside the line (MacDownloads).
+            .navigationTitle(navigator.titleOnMac == nil && navigator.section != .downloads ? navigator.section.title : "")
+            .navigationSubtitle(navigator.section == .downloads ? "" : subtitle)
             .toolbar {
                 if let id = navigator.titleOnMac {
                     TitleToolbar(store: store, navigator: navigator, id: id)
                 } else {
+                    if navigator.section == .downloads {
+                        // The title on the toolbar itself, as a title is, not in a glass capsule.
+                        ToolbarItem(placement: .navigation) { DownloadsTitle() }
+                            .sharedBackgroundVisibility(.hidden)
+                    }
                     // What has run past 600 ms, quietly, beside the section's own items.
                     ToolbarItem(placement: .primaryAction) { ActivityIndicator() }
                     SectionToolbar(section: navigator.section)
