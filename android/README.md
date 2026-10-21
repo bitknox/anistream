@@ -15,7 +15,7 @@ anistream ships no sources of its own and hosts no content. Every source is exte
 | `:store` | `EngineClient`, `AppStore` and its feature models, `EngineLaunch`, `AppHost` and the keystore-sealed secrets | AnistreamStore |
 | `:design` | The Obi & Silk colour scheme, type, shapes, motion tokens, Nagare, the cover plate | AnistreamDesign |
 | `:ui` | The navigation bar and the screens | AnistreamUI |
-| `:player` | The player, once the Player track brings it over from its spike | AnistreamPlayer |
+| `:player` | libmpv behind the engine's hosted player protocol: the JNI shim, `MpvClient`, `PlayerModel`, the media session | AnistreamPlayer |
 | `:app` | The activity, the application, and each flavour's launch | the app target |
 | `:testkit` | For tests only: the engine's scenes recorded as JSON, and the fixture titles' art | – |
 
@@ -68,6 +68,28 @@ need `engine.sh` again; Gradle never builds Rust itself.
 
 `ANISTREAM_ENGINE_PROFILE` picks the cargo profile: `app-dev` (opt-level 1, line tables) unless it
 says otherwise, `release` for a build to keep.
+
+## The player
+
+The player is libmpv, built by us as LGPL with `android/scripts/mpv.sh` into `android/.mpv` (about
+6 minutes on an idle Mac; `--check` says whether it is current, which every build asks first). The
+JNI shim in `player/src/main/cpp` is built by CMake against it. `PlayerModel` lives for the
+process, in the application, so a rotation, a fold or Picture in Picture only lends mpv a new
+surface. It carries out the engine's `PlayerOps`, keeps its `PlayerUi`, and reports mpv's
+properties and events back; `PlayerService` is the media session around it, a `mediaPlayback`
+foreground service. The emulator decodes in software: its MediaCodec stalls under FFmpeg, and a
+watchdog moves a decoder with no picture to software, or a stuck mpv to a new one.
+
+CI does not run mpv.sh: with `ANISTREAM_PLAYER_NATIVE=off` the player builds without libmpv and the
+shim, so its Kotlin compiles and its unit tests run, and that APK cannot play.
+
+The instrumented tests drive the protocol on the testing engine's Playing scene against a real mpv
+in the emulator, with the episode `android/scripts/player-media.sh` makes:
+
+```sh
+android/scripts/player-media.sh
+cd android && ./gradlew :player:connectedFixturesDebugAndroidTest
+```
 
 ## Running
 
@@ -172,3 +194,9 @@ them from github.com/google/fonts at a pinned commit by SHA-256, and their licen
 under `assets/licences/`. JNA is used under the Apache License 2.0. The tests alone also use
 Robolectric (MIT), Roborazzi, kotlinx.serialization and kotlin-reflect (Apache License 2.0), none
 of which ships in the APK.
+
+libmpv (LGPL-2.1-or-later) and FFmpeg's libraries (LGPL-3.0-or-later, for mbedTLS) are separate
+shared libraries the app loads, built from the pinned sources in `scripts/mpv.sh`; their licences,
+and those of what is linked into libmpv, ship under `assets/licences/player/`. The JNI shim is
+adapted from mpv-android (MIT), credited in `player/NOTICE` and `mpv/NOTICE`. Media3 is used under
+the Apache License 2.0.

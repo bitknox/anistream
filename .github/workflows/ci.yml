@@ -402,9 +402,13 @@ jobs:
         with:
           path: ~/.m2/repository/org/robolectric
           key: robolectric-${{ hashFiles('android/gradle/libs.versions.toml') }}
+      # libmpv is built by android/scripts/mpv.sh on a developer's Mac, not here: the player module
+      # builds without it and its JNI shim, so its Kotlin compiles and its unit tests run.
       - name: The fixtures APK and the unit tests
         working-directory: android
         run: ./gradlew --console=plain assembleFixturesDebug testFixturesDebugUnitTest -Proborazzi.test.record=true
+        env:
+          ANISTREAM_PLAYER_NATIVE: "off"
       # The screenshot tests' captures, each board's screen drawn from a recorded scene, to look
       # at beside the boards.
       - uses: actions/upload-artifact@v7
