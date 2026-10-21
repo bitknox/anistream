@@ -56,6 +56,8 @@ public final class AppStore {
     public private(set) var home: EngineHome?
     /// When the last play was sent, for the log's timings.
     @ObservationIgnored private var playSent: ContinuousClock.Instant?
+    /// A play that starts at a place of its own, handed over from another device.
+    @ObservationIgnored private var startAt: StartAt?
     /// The playback's events, for the player the app hosts: its ops and interface, and the
     /// playback around them (AnistreamPlayerUI's `PlayerModel.apply(_:)`).
     @ObservationIgnored public var onPlayback: (@MainActor (Event) -> Void)?
@@ -135,10 +137,14 @@ public final class AppStore {
         switch command {
         case .play(let id, let episode):
             playSent = .now
+            startAt = nil
             AppLog.info("store", "play \(id) episode \(episode)")
         case .playSource(let id, let episode, _, _):
             playSent = .now
+            startAt = nil
             AppLog.info("store", "play \(id) episode \(episode) from a chosen source")
+        case .playLocal, .playParty:
+            startAt = nil
         default:
             break
         }
@@ -146,7 +152,20 @@ public final class AppStore {
             if phase == .starting { early.append(command) }
             return nil
         }
-        return client.send(command)
+        let job = client.send(command)
+        if let then = startAt?.after(command) {
+            startAt = nil
+            send(then)
+        }
+        return job
+    }
+
+    /// Play `episode` of `id` from `position`, as a Handoff from another device asks: played as
+    /// any other, then moved there once its file is open.
+    /// Any other play sent after it gives the place up.
+    public func play(_ id: AnilistId, episode: String, at position: Double) {
+        send(.play(id: id, episode: episode))
+        startAt = StartAt(id: id, episode: episode, position: position)
     }
 
     /// Stop the engine, waiting while it winds down: at quit.
@@ -388,6 +407,7 @@ public final class AppStore {
             artwork.failed(url: url)
 
         case .playbackStaged(let id, _, let episode, _, _):
+            if startAt?.staged(id: id, episode: episode) == false { startAt = nil }
             let after = playSent.map { " \(AppLog.ms(since: $0)) ms after play" } ?? ""
             AppLog.info("store", "staged \(id) episode \(episode)\(after)")
             onPlayback?(event)

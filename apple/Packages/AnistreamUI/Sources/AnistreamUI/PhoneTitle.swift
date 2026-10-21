@@ -17,7 +17,7 @@ struct PhoneTitle: View {
 
     var body: some View {
         let entry = store.titles[id] ?? Entry.placeholder(id)
-        let action = TitleAction(entry)
+        let action = TitleAction(entry, handedOff: navigator.handedOff)
         let art = store.heroArt(entry)
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -63,7 +63,7 @@ struct PhoneTitle: View {
                 VStack(alignment: .leading, spacing: 16) {
                     if action.playable {
                         Button {
-                            store.send(.play(id: entry.id, episode: String(action.episode)))
+                            action.play(entry.id, store: store, navigator: navigator)
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "play.fill").font(.ui(13))
@@ -190,6 +190,7 @@ struct PhoneTitle: View {
         .scrollIndicators(.never)
         .background(.ground)
         .unwatchedRotor(store.titles.episodes[id] ?? [], in: rotor)
+        .handsOff(title: entry)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {

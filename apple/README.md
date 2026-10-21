@@ -174,6 +174,12 @@ engine in temporary directories, and keep secrets in memory.
   settings and the trackers' sync. Artwork is asked for once per URL (`FetchArtwork`), and
   `ArtworkReady` is downsampled with ImageIO off the main thread into an `NSCache`.
   `EngineLaunch` holds what a start takes, `FfiStart` among it.
+  Handoff: the title page on screen, and while the player is up the episode at its place, are
+  the app's activities (`Handoff`, `tv.anistream.title` and `tv.anistream.playing`, which
+  Info.plist lists; the Fixtures app's are `tv.anistream.fixtures.*`, so they never reach the
+  app). Continued on another device, either opens the title's page; an episode is offered there
+  as "Resume Episode 7 · 12:40", never started by itself, and played from that place
+  (`AppStore.play(_:episode:at:)` moves the player there once the file is open).
 - **AnistreamUI**: the screens over the store: Continue (with the setup card on a first launch),
   Calendar, Seasonal, Search, the Library and a title's page with AniList's metadata and its More
   About This Show sheet, the Mac's menu bar and ⌘K palette, the notice capsule and Messages;

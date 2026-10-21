@@ -11,11 +11,32 @@ struct TitleAction: Equatable {
     let resume: ResumePoint?
     /// Whether the episode is out, by the title's broadcasts.
     let airing: EpisodeAvailability
+    /// The episode another device handed over, which the action resumes where it was there.
+    let handedOff: HandedOff?
 
-    init(_ entry: Entry) {
+    init(_ entry: Entry, handedOff: HandedOff? = nil) {
+        if let handedOff, handedOff.id == entry.id, let number = UInt32(handedOff.episode) {
+            episode = number
+            resume = ResumePoint(position: handedOff.position, fraction: nil)
+            airing = .aired
+            self.handedOff = handedOff
+            return
+        }
         episode = entry.progress?.next ?? 1
         resume = entry.resume
         airing = resume == nil ? entry.airing(of: episode) : .aired
+        self.handedOff = nil
+    }
+
+    /// Play it: from the handed-over place, which is then used up, or as the engine would.
+    @MainActor
+    func play(_ id: AnilistId, store: AppStore, navigator: Navigator) {
+        if let handedOff {
+            store.play(id, episode: handedOff.episode, at: handedOff.position)
+            navigator.handedOff = nil
+        } else {
+            store.send(.play(id: id, episode: String(episode)))
+        }
     }
 
     /// Whether there is an episode to play: never one still to air, which nothing could find.
@@ -120,6 +141,7 @@ struct TitlePage: View {
         .ignoresSafeArea(edges: .top)
         .background(.ground)
         .unwatchedRotor(store.titles.episodes[id] ?? [], in: rotor)
+        .handsOff(title: entry)
         .task(id: id) {
             navigator.focusedTitle = id
             if !store.titles.detailed.contains(id) { store.loadDetail(id) }
@@ -159,10 +181,11 @@ extension EnvironmentValues {
 /// The cover, the title block and the actions.
 struct TitleHero: View {
     @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
     let entry: Entry
 
     var body: some View {
-        let action = TitleAction(entry)
+        let action = TitleAction(entry, handedOff: navigator.handedOff)
         HStack(alignment: .bottom, spacing: 28) {
             ArtworkView(url: entry.coverUrl, color: entry.plateColor, maxPixelSize: 460)
                 .frame(width: 150, height: 225)
@@ -184,7 +207,7 @@ struct TitleHero: View {
                 HStack(spacing: 10) {
                     if action.playable {
                         Button {
-                            store.send(.play(id: entry.id, episode: String(action.episode)))
+                            action.play(entry.id, store: store, navigator: navigator)
                         } label: {
                             HStack(spacing: 8) {
                                 Image(systemName: "play.fill").font(.mac(10))

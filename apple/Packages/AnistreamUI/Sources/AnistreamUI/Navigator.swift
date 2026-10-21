@@ -54,6 +54,8 @@ public final class Navigator {
     public var moreAbout: AnilistId?
     /// The Playback pane's row the column beside it is about.
     public var playbackFocus: PlaybackFocus = .upscaling
+    /// An episode handed over from another device, which its title's page offers to resume.
+    public var handedOff: HandedOff?
 
     public init(route: LaunchRoute = .current) {
         section = route.section

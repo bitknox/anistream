@@ -21,5 +21,12 @@
 	<array>
 		<string>audio</string>
 	</array>
+	<!-- Handoff: a title's page, and the episode playing (native-spec/native-layer.md). The
+	     Fixtures app has types of its own, so it and the app never take each other's. -->
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>tv.anistream.title</string>
+		<string>tv.anistream.playing</string>
+	</array>
 </dict>
 </plist>
