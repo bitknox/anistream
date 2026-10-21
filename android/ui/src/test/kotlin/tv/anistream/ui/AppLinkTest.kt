@@ -10,6 +10,8 @@ class AppLinkTest {
         val links = listOf(
             AppLink.Search,
             AppLink.Downloads,
+            AppLink.Calendar,
+            AppLink.Accounts,
             AppLink.Title(900001u),
             AppLink.Continue(900002u),
             AppLink.Play(900003u, "7"),
@@ -29,6 +31,12 @@ class AppLinkTest {
     }
 
     @Test
+    fun the_widgets_links_name_the_calendar_and_accounts() {
+        assertEquals("anistream://open/calendar", AppLink.Calendar.uri)
+        assertEquals("anistream://open/settings/accounts", AppLink.Accounts.uri)
+    }
+
+    @Test
     fun links_that_are_not_the_apps_own_are_left_alone() {
         val others = listOf(
             null,
@@ -39,6 +47,8 @@ class AppLinkTest {
             "https://anistream.tv/open/search",
             "anistream://open/",
             "anistream://open/settings",
+            "anistream://open/settings/playback",
+            "anistream://open/calendar/today",
             "anistream://open/title/",
             "anistream://open/title/not-a-number",
             "anistream://open/title/900001/extra",

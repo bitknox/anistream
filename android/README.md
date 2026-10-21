@@ -16,6 +16,7 @@ anistream ships no sources of its own and hosts no content. Every source is exte
 | `:design` | The Obi & Silk colour scheme, type, shapes, motion tokens, Nagare, the cover plate | AnistreamDesign |
 | `:ui` | The navigation bar and the screens | AnistreamUI |
 | `:player` | The player, once the Player track brings it over from its spike | AnistreamPlayer |
+| `:widgets` | The home-screen widgets, Continue watching and Airing today, in Glance | the widget extension |
 | `:app` | The activity, the application, and each flavour's launch | the app target |
 | `:testkit` | For tests only: the engine's scenes recorded as JSON, and the fixture titles' art | – |
 
@@ -84,7 +85,9 @@ open, by id), `query` (a search to run), `page` (a page over the destination, by
 several titles joined by `/`), `downloads` (any value: three downloads seeded, see below), `notify`
 (any value: two new-episode notifications posted, with the fixtures' covers), `check` (seconds: the
 new-episode check run once that many seconds on, as the periodic work runs it; kill the app first
-for it to start an engine of its own), and
+for it to start an engine of its own), `widgets` (`continue-small`, `continue-wide`,
+`airing-small`, `airing-wide`, joined by commas: those widgets offered to the launcher to pin, and
+their record made at once), and
 `sheet` and `player` for the screens that take them in later phases. A scene is the engine's
 own (`start_scene`): the fake AniList at the real time, with its art, and for `watching` and
 `playing` a history seeded first. Each launch starts the testing engine in a new directory of its
@@ -147,6 +150,20 @@ the shade:
 ```sh
 adb shell pm grant tv.anistream.fixtures android.permission.POST_NOTIFICATIONS
 adb shell am start -n tv.anistream.fixtures/tv.anistream.app.MainActivity --es notify 1
+```
+
+The home-screen widgets, Continue watching and Airing today (`:widgets`), are Glance's, drawn
+from that record in the app's own process. The app keeps the record's art beside it in
+`files/widgets/art/`, fetched through the engine like every other picture, and makes the record
+again each time it leaves the screen while a widget is placed. Each record written draws both
+widgets again, and a `widgets-redraw` work redraws them at the next moment what they show changes on
+its own: a broadcast airing, the record turning a day old, midnight. A widget with no record for
+today asks for one (`widgets-record`). The picker offers each at 2 × 2 and 4 × 2, with previews the
+app generates. `./gradlew :widgets:recordRoborazziFixturesDebug` draws them on the JVM at the
+boards' sizes, into `.shots/roborazzi/widget-*.png`.
+
+```sh
+adb shell am start -n tv.anistream.fixtures/tv.anistream.app.MainActivity --es widgets continue-wide,airing-wide
 ```
 
 ## Tests

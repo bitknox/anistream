@@ -98,7 +98,9 @@ class WidgetRecord(private val file: File) {
 
         fun decode(json: JSONObject): WidgetData? {
             val version = json.getLong("version").toUInt()
-            if (version != READS) return null
+            // The first shape reads too, from a build before the second: what it lacks takes its
+            // default, and the version stays, for the widgets to know what it could not say.
+            if (version !in 1u..READS) return null
             return WidgetData(
                 version = version,
                 generatedAt = json.getLong("generated_at"),

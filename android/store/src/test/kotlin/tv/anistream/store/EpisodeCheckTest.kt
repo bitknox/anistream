@@ -69,7 +69,7 @@ class EpisodeCheckTest {
         val records = mutableListOf<WidgetData>()
         val check = EngineEpisodeCheck(
             BackgroundEngine(running = { store }, launch = { error("the app's engine runs") }, host = { error("the app's engine runs") }),
-            widgets = { records += it },
+            widgets = { _, data -> records += data },
         )
         withTimeout(60_000) {
             withContext(main) { store.setSwitch(SettingKey.EPISODE_NOTIFICATIONS, true) }
@@ -101,7 +101,7 @@ class EpisodeCheckTest {
     fun without_the_app_the_check_runs_on_a_quiet_engine_of_its_own_and_stops_it() = runBlocking {
         val records = mutableListOf<WidgetData>()
         val background = BackgroundEngine(running = { null }, launch = { watching("background") }, host = { AppHost(MemorySecrets()) })
-        val check = EngineEpisodeCheck(background, widgets = { records += it })
+        val check = EngineEpisodeCheck(background, widgets = { _, data -> records += data })
         withTimeout(60_000) {
             // Off by default: nothing to say, and the widgets' record made all the same.
             assertEquals(emptyList<NewEpisode>(), check.newEpisodes())
