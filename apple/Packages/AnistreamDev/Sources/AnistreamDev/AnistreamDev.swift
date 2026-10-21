@@ -30,6 +30,8 @@ struct AnistreamDev: App {
                 .task { await delegate.run() }
         }
         .defaultSize(width: options.width, height: options.height)
+        // A frame AppKit saved from an earlier run would win over --size otherwise.
+        .restorationBehavior(.disabled)
         .windowResizability(.contentMinSize)
         .commands { AnistreamCommands(store: delegate.store, navigator: delegate.navigator) }
     }
@@ -71,6 +73,10 @@ final class Delegate: NSObject, NSApplicationDelegate {
         )
         await store.start(launch, host: host)
 
+        // The saved frame can still win over the default size, so a snapshot sets its own.
+        if options.snapshot != nil, let window = Snapshot.window {
+            window.setContentSize(NSSize(width: options.width, height: options.height))
+        }
         let settled = await store.settle()
         print(settled ? "ANISTREAM_READY" : "AnistreamDev: did not settle; going on")
         guard let url = options.snapshot else { return }
