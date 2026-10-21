@@ -33,7 +33,10 @@ public final class PlayerModel {
     @ObservationIgnored private var worker: Task<Void, Never>?
     @ObservationIgnored private var listener: Task<Void, Never>?
     @ObservationIgnored private var ticker: Task<Void, Never>?
-    @ObservationIgnored private let log = Logger(subsystem: "tv.anistream", category: "player")
+    /// When the playback on screen was staged or started, for the log's timings.
+    @ObservationIgnored private var since: ContinuousClock.Instant?
+    /// What mpv has warned of for this file, said once each.
+    @ObservationIgnored private var mpvSaid: Set<String> = []
     @ObservationIgnored let nowPlaying = NowPlaying()
     @ObservationIgnored private let awake = KeepAwake()
     @ObservationIgnored private let lowPower: @MainActor () -> Bool
@@ -171,6 +174,7 @@ public final class PlayerModel {
         case .playerUi(let playback, let ui):
             apply(ui, for: playback)
         case .playbackStaged(let id, let title, let episode, let episodeTitle, _):
+            since = .now
             staged = StagedPlayback(id: id, title: title, episode: episode, episodeTitle: episodeTitle)
             present()
         case .playbackEnded(_, _, let rollingOn):
@@ -190,16 +194,17 @@ public final class PlayerModel {
 
     func apply(_ op: PlayerOp, for playback: PlaybackId) {
         guard accepts(playback) else {
-            log.debug("refused \(String(describing: op)) for playback \(playback), which is over")
+            Self.note(.warn, "#\(playback) refused \(Self.describe(op)): that playback is over")
             return
         }
         enter(playback)
+        Self.note(Self.loud(op) ? .info : .debug, "#\(playback) \(Self.describe(op))\(elapsed)")
         switch HostedStep(op) {
         case .open(let fullScreen, let speed, let volume):
             open(for: playback, fullScreen: fullScreen, speed: speed, volume: volume)
         case .call(let call):
             guard backend != nil else {
-                log.error("refused \(String(describing: op)) with no player open")
+                Self.note(.warn, "#\(playback) refused \(Self.describe(op)): no player is open")
                 return
             }
             if case .load(let url, let options) = call {
@@ -223,6 +228,8 @@ public final class PlayerModel {
         let now = ContinuousClock.now
         switch ui {
         case .starting(let title, let episode, let episodeTitle):
+            if since == nil || self.playback.map({ playback > $0 }) == true { since = now }
+            Self.note(.info, "#\(playback) starting episode \(episode)\(elapsed)")
             starting = StartingScreen(
                 playback: playback, title: title, episode: episode, episodeTitle: episodeTitle, since: now)
             present()
@@ -234,12 +241,14 @@ public final class PlayerModel {
                 episodes: episodes, sources: sources, translation: translation, upscaling: upscaling,
                 toneMapping: toneMapping, nightMode: nightMode)
         case .skip(let kind, let to):
+            Self.note(.info, "#\(playback) skip \(kind) offered, to \(Int(to)) s")
             skip = SkipOffer(kind: kind, to: to, since: now)
         case .skipCleared:
             skip = nil
         case .autoSkipped(let kind, let undoTo):
             undo = UndoOffer(kind: kind, undoTo: undoTo, from: nil, since: now)
         case .upNext(let next, let auto, let endingAt):
+            Self.note(.info, "#\(playback) up next: episode \(next.number), auto \(auto), from \(endingAt.map { "\(Int($0)) s" } ?? "near the end")")
             var card = UpNextCard(next: next, auto: auto, endingAt: endingAt)
             if let before = upNext, before.next.number == next.number {
                 card.cancelled = before.cancelled
@@ -249,6 +258,7 @@ public final class PlayerModel {
         case .upNextCleared:
             upNext = nil
         case .stall(let seconds):
+            Self.note(.info, "#\(playback) stalled \(seconds) s\(stallWaived ? ", waived" : "")")
             if !stallWaived { stall = StallCard(seconds: seconds, since: now) }
         case .stallCleared:
             stall = nil
@@ -262,6 +272,7 @@ public final class PlayerModel {
             if url != thumbnails { preview.close() }
             thumbnails = url
         case .alert(let text, let kind):
+            Self.note(kind == .alert ? .warn : .info, "#\(playback) alert: \(text)")
             alert = PlayerAlert(text: text, kind: kind, since: now)
         }
     }
@@ -318,14 +329,15 @@ public final class PlayerModel {
             }
             let (stream, continuation) = AsyncStream.makeStream(of: Work.self)
             work = continuation
-            worker = Task { @MainActor [weak self, log] in
+            worker = Task { @MainActor [weak self] in
                 do {
                     try await backend.begin(on: layer)
                 } catch {
-                    log.error("mpv did not start: \(String(describing: error))")
+                    Self.note(.error, "mpv did not start: \(error)")
                     self?.failed(backend)
                     return
                 }
+                if let self { Self.note(.info, "mpv started\(self.elapsed)") }
                 for await item in stream {
                     do {
                         switch item {
@@ -337,7 +349,7 @@ public final class PlayerModel {
                             await backend.resized()
                         }
                     } catch {
-                        log.error("mpv refused \(String(describing: item)): \(String(describing: error))")
+                        Self.note(.warn, "mpv refused \(Self.describe(item)): \(error)")
                     }
                 }
             }
@@ -372,6 +384,7 @@ public final class PlayerModel {
     /// Close mpv and the player. `reporting`: say the file ended by quitting, and that the
     /// player closed, first.
     private func close(reporting: Bool) {
+        Self.note(.info, reporting ? "closing: the file ended by quitting" : "closing: the playback is over")
         if reporting {
             report(.ended(reason: .quit))
             report(.closed)
@@ -382,6 +395,7 @@ public final class PlayerModel {
     /// mpv went away by itself.
     private func ended(_ backend: any PlayerBackend) {
         guard backend === self.backend else { return }
+        Self.note(.warn, "mpv went away by itself")
         report(.closed)
         teardown()
     }
@@ -462,7 +476,9 @@ public final class PlayerModel {
         guard backend === self.backend else { return }
         switch event {
         case .startFile:
+            mpvSaid = []
             if !loads.isEmpty { current = loads.removeFirst() }
+            Self.note(.info, "#\(current.map(String.init) ?? "?") mpv started the file\(elapsed)")
             // Another file: its previews are another file's too.
             preview.close()
             let keepPause = paused
@@ -470,6 +486,17 @@ public final class PlayerModel {
             paused = keepPause
         case .playbackRestart:
             if !hasPicture { firstFrame() }
+        case .fileLoaded:
+            Self.note(.info, "#\(current.map(String.init) ?? "?") file loaded\(elapsed)")
+        case .endFile(let end):
+            Self.note(end.reason == "error" ? .warn : .info,
+                "#\(current.map(String.init) ?? "?") file ended: \(end.reason)\(end.error.map { ", \($0)" } ?? "")")
+        case .log(let line) where ["fatal", "error", "warn"].contains(line.level):
+            // mpv's warnings and errors, each said once a file: a stream can repeat one per segment.
+            let text = "\(line.prefix): \(line.text)"
+            if mpvSaid.insert(text).inserted {
+                Self.note(line.level == "warn" ? .info : .warn, "mpv \(line.level) \(text)")
+            }
         case .property(let name, let value):
             update(name, value)
         default:
@@ -481,6 +508,8 @@ public final class PlayerModel {
     /// The file's first picture is up: the starting screen fades from it.
     private func firstFrame() {
         hasPicture = true
+        let size = layer.map { "\(Int($0.drawableSize.width))×\(Int($0.drawableSize.height))" } ?? "no layer"
+        Self.note(.info, "#\(current.map(String.init) ?? "?") first frame, drawn at \(size)\(elapsed)")
         if let starting, current.map({ $0 >= starting.playback }) ?? true {
             self.starting = nil
         }
@@ -514,12 +543,19 @@ public final class PlayerModel {
             chapters = value.array.map { Chapter(title: $0["title"].string ?? "", time: $0["time"].double ?? 0) }
         case "track-list":
             tracks = value.array.compactMap(Track.init(mpv:))
+            Self.note(.debug, "tracks: \(audioTracks.count) audio, \(subtitleTracks.count) subtitles")
+        case "video-params":
+            if value["w"].int != nil {
+                Self.note(.info, "video \(value["w"].int ?? 0)×\(value["h"].int ?? 0) \(value["pixelformat"].string ?? "")")
+            }
         case "aid":
             audioTrack = value.int
         case "sid":
             subtitleTrack = value.int
         case "paused-for-cache":
             let waiting = value.bool ?? false
+            if waiting, bufferingSince == nil { Self.note(.info, "buffering at \(Int(playhead)) s") }
+            if !waiting, let since = bufferingSince { Self.note(.info, "buffered after \(AppLog.ms(since: since)) ms") }
             bufferingSince = waiting ? (bufferingSince ?? .now) : nil
         case "seeking":
             if value.bool == false {
@@ -558,12 +594,17 @@ public final class PlayerModel {
 
     /// Tell the engine, for the playback whose file mpv has.
     private func report(_ report: PlayerReport) {
-        guard let target = current ?? opened else { return }
+        guard let target = current ?? opened else {
+            Self.note(.debug, "no playback to report \(report) for")
+            return
+        }
+        Self.logReport(report, for: target)
         send(.playerReport(playback: target, report: report))
     }
 
     private func reportPower() {
         let power = PowerState.now()
+        Self.note(.info, "power: \(power.onBattery ? "battery" : "mains")\(power.lowPower ? ", low power mode" : "")")
         report(.power(onBattery: power.onBattery, lowPower: power.lowPower))
     }
 
@@ -579,6 +620,8 @@ public final class PlayerModel {
     /// The screen the surface is on.
     public func surfaceDisplay(_ display: DisplayInfo) {
         guard backend != nil else { return }
+        let size = layer.map { "\(Int($0.drawableSize.width))×\(Int($0.drawableSize.height))" } ?? "none"
+        Self.note(.info, "display \(display.width)×\(display.height) at \(display.scale)×, \(Int(display.refreshRate)) Hz, EDR \(display.edrPotential); surface \(size)")
         enqueue(.display(display))
         report(PlayerReport(display))
     }
@@ -589,6 +632,79 @@ public final class PlayerModel {
 
     private func enqueue(_ item: Work) {
         work?.yield(item)
+    }
+
+    // MARK: The log
+
+    /// "+412 ms" since the playback was staged, for the log's timings.
+    private var elapsed: String {
+        since.map { ", +\(AppLog.ms(since: $0)) ms" } ?? ""
+    }
+
+    nonisolated static func note(_ level: Level, _ message: String) {
+        switch level {
+        case .error: AppLog.error("player", message)
+        case .warn: AppLog.warn("player", message)
+        case .info: AppLog.info("player", message)
+        case .debug: AppLog.debug("player", message)
+        }
+    }
+
+    enum Level { case error, warn, info, debug }
+
+    /// What the log says of a report back to the engine: each one but the playhead's and the
+    /// other properties that change every frame, values cut short.
+    private static func logReport(_ report: PlayerReport, for playback: PlaybackId) {
+        switch report {
+        case .property(let name, let json):
+            guard !["time-pos", "frame-drop-count", "seeking", "paused-for-cache"].contains(name) else { return }
+            let value = json.count > 120 ? json.prefix(120) + "…" : Substring(json)
+            note(.info, "#\(playback) report \(name) = \(value)")
+        case .display, .power:
+            note(.debug, "#\(playback) report \(report)")
+        default:
+            note(.info, "#\(playback) report \(report)")
+        }
+    }
+
+    /// The ops worth a line at info: the ones that change what plays.
+    static func loud(_ op: PlayerOp) -> Bool {
+        switch op {
+        case .open, .load, .stop, .quit, .close, .shaders: true
+        default: false
+        }
+    }
+
+    /// An op as the log says it: names, never header values, paths or queries.
+    static func describe(_ op: PlayerOp) -> String {
+        switch op {
+        case .open(let fullscreen, let speed, let volume):
+            "open\(fullscreen ? " full screen" : "")\(speed.map { ", speed \($0)" } ?? "")\(volume.map { ", volume \(Int($0))" } ?? "")"
+        case .load(let url, let options):
+            "load \(AppLog.address(url)) with \(options.map(\.name).sorted().joined(separator: ", "))"
+        case .addSubtitle(_, _, let language): "add a subtitle track (\(language ?? "no language"))"
+        case .set(let property, _): "set \(property)"
+        case .cycle(let property): "cycle \(property)"
+        case .add(let property, let delta): "add \(delta) to \(property)"
+        case .seek(let seconds, let absolute): absolute ? "seek to \(Int(seconds)) s" : "seek by \(Int(seconds)) s"
+        case .shaders(let paths): paths.isEmpty ? "shaders off" : "shaders: \(paths.map { ($0 as NSString).lastPathComponent }.joined(separator: ", "))"
+        case .audioFilter(let add, _): add ? "add an audio filter" : "remove an audio filter"
+        case .restateChapters: "restate the chapters"
+        case .stop: "stop"
+        case .quit: "quit"
+        case .close: "close"
+        }
+    }
+
+    private static func describe(_ item: Work) -> String {
+        switch item {
+        case .call(.load(let url, _)): "load \(AppLog.address(url))"
+        case .call(.addSubtitle): "add a subtitle track"
+        case .call(.set(let property, _)): "set \(property)"
+        case .call(let call): "\(call)".prefix(80).description
+        case .display: "the display"
+        case .resized: "a resize"
+        }
     }
 
     // MARK: The clock
