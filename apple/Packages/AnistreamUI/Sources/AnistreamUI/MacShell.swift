@@ -8,7 +8,7 @@ import SwiftUI
 
 struct MacShell: View {
     @Environment(AppStore.self) private var store
-    @State private var section: AppSection = .continue
+    @State private var section: AppSection = LaunchRoute.current.section
     @State private var query = ""
 
     var body: some View {

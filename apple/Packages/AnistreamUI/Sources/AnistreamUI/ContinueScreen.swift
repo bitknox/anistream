@@ -9,7 +9,7 @@ import SwiftUI
 /// the selected title with the one amber action, what it plays.
 struct ContinueScreen: View {
     @Environment(AppStore.self) private var store
-    @State private var selection: AnilistId?
+    @State private var selection: AnilistId? = LaunchRoute.current.selected
 
     var body: some View {
         let queue = store.continuing.queue(store.titles)
@@ -43,7 +43,8 @@ struct ContinueScreen: View {
         }
         .task { store.loadContinue() }
         .onChange(of: queue.all.map(\.id), initial: true) { _, ids in
-            if selection == nil || !ids.contains(where: { $0 == selection }) {
+            // Kept while the queue loads, so a selection made before it arrived survives.
+            if !ids.isEmpty, selection == nil || !ids.contains(where: { $0 == selection }) {
                 selection = ids.first
             }
         }
@@ -278,8 +279,8 @@ struct ContinuePreview: View {
                         .fixedLineHeight(20)
                         .foregroundStyle(.haze)
                         .frame(maxWidth: 620, alignment: .leading)
-                }
                         .id(entry.id)
+                }
                 if let alsoOn = entry.alsoOn {
                     Text(alsoOn)
                         .font(.system(size: 12))

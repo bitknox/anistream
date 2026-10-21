@@ -8,7 +8,7 @@ import SwiftUI
 
 struct TabShell: View {
     @Environment(\.horizontalSizeClass) private var sizeClass
-    @State private var section: AppSection = .continue
+    @State private var section: AppSection = LaunchRoute.current.section
 
     var body: some View {
         TabView(selection: $section) {
