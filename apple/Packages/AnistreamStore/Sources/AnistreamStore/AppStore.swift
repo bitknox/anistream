@@ -75,6 +75,9 @@ public final class AppStore {
         if case .fixtures = launch.engine { testing = true }
         #endif
         AppLog.start(cache: launch.home.cache)
+        #if os(macOS)
+        AppLog.info("store", "helper tools are looked for on \(HelperPath.extend())")
+        #endif
         let began = ContinuousClock.now
         do {
             let engine = try await Task.detached(priority: .userInitiated) {
