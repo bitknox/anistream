@@ -56,7 +56,7 @@ class ReducerTest {
 
     private fun entry(id: UInt, title: String) = Entry(
         id = id, title = title, secondary = null, format = "TV", episodes = 12u, year = 2026u, score = null,
-        studio = null, synopsis = "", coverUrl = "https://img.example/cover/$id.jpg", bannerUrl = null,
+        studio = null, synopsis = "", coverUrl = "https://img.example/cover/$id.jpg", coverColor = null, bannerUrl = null,
         genres = listOf("Fantasy"), availableOn = emptyList(), progress = null, airingIn = null,
         airingEpisode = null, nextEpisode = null, nextAiringIn = null, lastAired = null, resume = null,
         related = emptyList(), recommended = emptyList(), trailerUrl = null, listStatus = null,

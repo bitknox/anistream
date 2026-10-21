@@ -17,11 +17,14 @@ pub struct StoreRow {
     pub fingerprint: String,
     /// Who this machine joined as.
     pub member: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub owner: bool,
     pub state: StoreState,
     /// When its plugin list was last fetched and verified, as a Unix time: "checked 2 min
     /// ago". `None` before the first.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub checked_at: Option<i64>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub plugins: Vec<StorePluginRow>,
 }
 
@@ -51,6 +54,7 @@ pub struct StorePluginRow {
     pub name: String,
     pub version: String,
     /// What the plugin may contact. Shown before anything is installed.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub hosts: Vec<String>,
     pub status: StorePluginStatus,
 }
@@ -96,6 +100,7 @@ pub struct InvitedStore {
     /// The host the store answers at, from its URL.
     pub host: String,
     pub fingerprint: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub already_joined: bool,
 }
 
@@ -106,6 +111,7 @@ pub struct InviteLinkView {
     pub store: String,
     pub link: Secret,
     /// Who it is for. `None` is another device of your own.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub for_whom: Option<String>,
     pub expires_at: i64,
 }
@@ -116,9 +122,12 @@ pub struct InviteLinkView {
 pub struct StoreMemberRow {
     pub id: String,
     pub name: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub owner: bool,
     pub devices: u32,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub last_seen: Option<i64>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub you: bool,
 }
 
@@ -139,8 +148,10 @@ pub struct LocalPluginRow {
     pub id: String,
     pub name: String,
     pub version: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub hosts: Vec<String>,
     /// The version the store already offers, if it offers one.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub published: Option<String>,
 }
 

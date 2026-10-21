@@ -8,6 +8,7 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -47,6 +48,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -58,27 +60,30 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import tv.anistream.design.ArtShape
 import tv.anistream.design.Motion
 import tv.anistream.design.ObiSilk
 import tv.anistream.design.ShowTitle
 import tv.anistream.design.tabular
+import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.EpisodeRow
 import tv.anistream.store.AppClock
 import tv.anistream.store.HeroArt
 import tv.anistream.store.LibraryModel
 import tv.anistream.store.label
-import tv.anistream.engine.core.AnilistId
-import tv.anistream.engine.model.Entry
-import tv.anistream.engine.model.EpisodeRow
 
 /** The episodes past the next one hide their stills, unless the show says otherwise (A2). */
 private const val SPOILER_PROTECTION = true
@@ -86,7 +91,7 @@ private const val SPOILER_PROTECTION = true
 /** What a page shows before its title has arrived. */
 private fun placeholderEntry(id: AnilistId) = Entry(
     id = id, title = "", secondary = null, format = null, episodes = null, year = null, score = null,
-    studio = null, synopsis = "", coverUrl = null, bannerUrl = null, genres = emptyList(),
+    studio = null, synopsis = "", coverUrl = null, coverColor = null, bannerUrl = null, genres = emptyList(),
     availableOn = emptyList(), progress = null, airingIn = null, airingEpisode = null, nextEpisode = null,
     nextAiringIn = null, lastAired = null, resume = null, related = emptyList(), recommended = emptyList(),
     trailerUrl = null, listStatus = null, titleRomaji = null, titleEnglish = null, titleNative = null,
@@ -116,6 +121,8 @@ fun TitleScreen(id: AnilistId, actions: AppActions) {
 
     val marks = remember(id) { UserMarks() }
     var aboutOpen by rememberSaveable(id) { mutableStateOf(false) }
+    val unfolded by store.episodeFolds.unfolded.collectAsStateWithLifecycle()
+    val fold = rememberEpisodeFold(id, list)
     androidx.compose.runtime.CompositionLocalProvider(LocalUserMarks provides marks) {
     Box(Modifier.fillMaxSize().shared(Shared.Page, id).background(MaterialTheme.colorScheme.surface)) {
         LazyColumn(state = list, contentPadding = PaddingValues(bottom = 24.dp)) {
@@ -133,6 +140,8 @@ fun TitleScreen(id: AnilistId, actions: AppActions) {
                                 .fillMaxWidth()
                                 .height(inset + 156.dp)
                                 .graphicsLayer { translationY = scrolled * 0.5f }
+                                // The player grows out of the banner and closes back into it (T2, T3).
+                                .shared(Shared.Player, id)
                                 .shared(Shared.Art, id),
                         )
                     }
@@ -148,7 +157,7 @@ fun TitleScreen(id: AnilistId, actions: AppActions) {
             if (family.seasons.isNotEmpty()) item(key = "seasons") { Seasons(entry, family) }
             val related = entry.relatedCards()
             if (related.isNotEmpty()) item(key = "related") { RelatedRail(related) }
-            episodeRows(entry, episodes, actions)
+            episodeRows(entry, episodes, actions, unfolded = id in unfolded, onFold = fold)
         }
         TitleTopBar(entry, onBack = navigator::back, modifier = Modifier.padding(top = inset))
     }
@@ -510,15 +519,108 @@ private fun Seasons(entry: Entry, family: TitleFamily, inset: Boolean = true) {
     }
 }
 
-/** The episodes, a row each; plates in their place while the table loads. */
-private fun LazyListScope.episodeRows(entry: Entry, episodes: List<EpisodeRow>?, actions: AppActions) {
+/**
+ * The episodes, a row each, from the last one watched, the watched ones before it folded under
+ * one row; plates in their place while the table loads.
+ */
+private fun LazyListScope.episodeRows(
+    entry: Entry,
+    episodes: List<EpisodeRow>?,
+    actions: AppActions,
+    unfolded: Boolean,
+    onFold: (anchor: String) -> Unit,
+) {
     if (episodes == null) {
         items(4, key = { "placeholder-$it" }) { AfterWait { EpisodePlaceholder() } }
         return
     }
     val next = entry.progress?.next ?: 1u
-    items(entry.listedEpisodes(episodes), key = { "episode-${it.number}" }) { row ->
+    val listed = entry.listedEpisodes(episodes)
+    val folded = entry.foldedEpisodes(listed)
+    if (folded.isNotEmpty()) {
+        val anchor = episodeKey(listed[folded.size])
+        item(key = WATCHED_FOLD) { WatchedFoldRow(folded, unfolded, Modifier.padding(horizontal = 16.dp)) { onFold(anchor) } }
+    }
+    val shown = if (folded.isNotEmpty() && !unfolded) listed.drop(folded.size) else listed
+    items(shown, key = ::episodeKey) { row ->
         EpisodeRowView(entry, row, next, actions)
+    }
+}
+
+/** An episode row's key in the page's list. */
+internal fun episodeKey(row: EpisodeRow): String = "episode-${row.number}"
+
+/** The fold row's key in the page's list. */
+internal const val WATCHED_FOLD = "watched-fold"
+
+/**
+ * Fold or unfold [id]'s watched episodes, keeping the row named [anchor], the first shown while
+ * folded, where it stands on screen: the list grows or shrinks above it, and nothing jumps.
+ */
+@Composable
+private fun rememberEpisodeFold(id: AnilistId, list: androidx.compose.foundation.lazy.LazyListState): (String) -> Unit {
+    val store = LocalAppStore.current
+    val scope = rememberCoroutineScope()
+    return remember(id, list) {
+        { anchor ->
+            val before = list.layoutInfo.visibleItemsInfo.firstOrNull { it.key == anchor }?.offset
+            val count = list.layoutInfo.totalItemsCount
+            store.episodeFolds.toggle(id)
+            if (before != null) {
+                scope.launch {
+                    androidx.compose.runtime.snapshotFlow { list.layoutInfo }.first { it.totalItemsCount != count }
+                    val after = list.layoutInfo.visibleItemsInfo.firstOrNull { it.key == anchor }?.offset
+                    if (after != null) list.scrollBy((after - before).toFloat())
+                }
+            }
+        }
+    }
+}
+
+/** [rememberEpisodeFold] for the tablet's two columns of episodes. */
+@Composable
+private fun rememberEpisodeFold(id: AnilistId, grid: androidx.compose.foundation.lazy.grid.LazyGridState): (String) -> Unit {
+    val store = LocalAppStore.current
+    val scope = rememberCoroutineScope()
+    return remember(id, grid) {
+        { anchor ->
+            val before = grid.layoutInfo.visibleItemsInfo.firstOrNull { it.key == anchor }?.offset?.y
+            val count = grid.layoutInfo.totalItemsCount
+            store.episodeFolds.toggle(id)
+            if (before != null) {
+                scope.launch {
+                    androidx.compose.runtime.snapshotFlow { grid.layoutInfo }.first { it.totalItemsCount != count }
+                    val after = grid.layoutInfo.visibleItemsInfo.firstOrNull { it.key == anchor }?.offset?.y
+                    if (after != null) grid.scrollBy((after - before).toFloat())
+                }
+            }
+        }
+    }
+}
+
+/**
+ * "Episodes 1–5 watched" over the folded episodes, or "Hide watched episodes" once they show: a
+ * quiet one-line row with a chevron, not a button.
+ */
+@Composable
+private fun WatchedFoldRow(folded: List<EpisodeRow>, unfolded: Boolean, modifier: Modifier = Modifier, onToggle: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val turn by androidx.compose.animation.core.animateFloatAsState(if (unfolded) 180f else 0f, Motion.quick(), label = "fold")
+    Row(
+        modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .clickable(onClickLabel = if (unfolded) "Hide watched episodes" else "Show watched episodes", onClick = onToggle)
+            .semantics { stateDescription = if (unfolded) "Expanded" else "Collapsed" },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            if (unfolded) "Hide watched episodes" else watchedRangeWords(folded),
+            style = MaterialTheme.typography.bodyLarge,
+            color = colors.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(Icons.Down, contentDescription = null, tint = colors.onSurfaceVariant, modifier = Modifier.graphicsLayer { rotationZ = turn })
     }
 }
 
@@ -582,12 +684,17 @@ private fun TabletTitle(
     val family = TitleFamily.of(entry)
     val colors = MaterialTheme.colorScheme
     var aboutOpen by rememberSaveable(entry.id) { mutableStateOf(false) }
+    val store = LocalAppStore.current
+    val unfolded by store.episodeFolds.unfolded.collectAsStateWithLifecycle()
+    val grid = androidx.compose.foundation.lazy.grid.rememberLazyGridState()
+    val fold = rememberEpisodeFold(entry.id, grid)
     // Back, the gesture or the key, closes the pane before it leaves the page.
     androidx.activity.compose.BackHandler(enabled = aboutOpen) { aboutOpen = false }
     androidx.compose.runtime.CompositionLocalProvider(LocalUserMarks provides marks) {
         Row(Modifier.fillMaxSize().shared(Shared.Page, entry.id).background(colors.surface)) {
         Box(Modifier.weight(1f).fillMaxHeight()) {
             androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+                state = grid,
                 columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
                 contentPadding = PaddingValues(start = 8.dp, end = 24.dp, bottom = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(24.dp),
@@ -645,8 +752,17 @@ private fun TabletTitle(
                     items(4) { AfterWait { EpisodePlaceholder() } }
                 } else {
                     val listed = entry.listedEpisodes(episodes)
-                    items(listed.size, key = { "episode-${listed[it].number}" }) { index ->
-                        val row = listed[index]
+                    // Folded in pairs, so the last watched keeps its column.
+                    val folded = entry.foldedEpisodes(listed, columns = 2)
+                    if (folded.isNotEmpty()) {
+                        val anchor = episodeKey(listed[folded.size])
+                        fullWidth(WATCHED_FOLD) {
+                            WatchedFoldRow(folded, entry.id in unfolded, Modifier.padding(start = 16.dp)) { fold(anchor) }
+                        }
+                    }
+                    val shown = if (folded.isNotEmpty() && entry.id !in unfolded) listed.drop(folded.size) else listed
+                    items(shown.size, key = { episodeKey(shown[it]) }) { index ->
+                        val row = shown[index]
                         Box(Modifier.clip(MaterialTheme.shapes.large)) { EpisodeRowView(entry, row, next, actions) }
                     }
                 }

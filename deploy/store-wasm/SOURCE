@@ -135,4 +135,4 @@ crates/anistream-store-core/src/protocol.rs ee7bce7dcab51cc30f02742ac8c672a8d3b0
 crates/anistream-store-core/src/store.rs d08d38085420e9fa37596fb5b5e6a78e956b6649
 crates/anistream-store-wasm/Cargo.toml 5fe0b78c46877f0e2ac77d7f07edcbc14935d695
 crates/anistream-store-wasm/src/lib.rs f49b5f2404d75237bd836eb514e2116681426a08
-rust-toolchain.toml d280211429d5c685304e6b028181b4a616f83c9b
+rust-toolchain.toml e52259440c7b6494ac19c338ec616dc303368cdc

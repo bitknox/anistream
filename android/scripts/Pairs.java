@@ -43,6 +43,7 @@ public class Pairs {
         new Pair("phone-join-store", "AndroidJoinStore", "Watching scene, an invite checked", 1500),
         new Pair("phone-downloads", "AndroidDownloads", "Watching scene, the board's queue on the fixtures' titles", 1500),
         new Pair("tablet-more-about", "AndroidTabletMoreAbout", "Watching scene, title 900001, More about this show", 800),
+        new Pair("phone-player", "AndroidPlayer", "the player at 2:31 in the opening, controls up, mpv's picture as the title's art", 412),
     };
 
     static final Color GROUND = new Color(0x0d0f1b);

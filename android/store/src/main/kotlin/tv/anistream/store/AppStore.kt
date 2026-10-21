@@ -72,6 +72,7 @@ class AppStore(
     val settings = SettingsModel()
     val providers = ProvidersModel()
     val showSettings = ShowSettingsModel()
+    val episodeFolds = EpisodeFolds()
     val artwork = ArtworkStore(scope, decoder) { url ->
         val client = client
         val files = artworkWithoutEngine

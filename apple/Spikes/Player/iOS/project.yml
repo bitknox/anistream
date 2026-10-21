@@ -1,0 +1,38 @@
+# The spike's iOS app, for the Simulator: xcodegen generate --spec iOS/project.yml
+# (the .xcodeproj is generated and gitignored). See the README for building and running.
+name: PlayerSpike
+options:
+  bundleIdPrefix: anistream.spike
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+packages:
+  PlayerSpike:
+    path: ..
+targets:
+  PlayerSpikeiOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      # The engine's vendored shaders, as a folder named shaders in the bundle.
+      - path: ../../../../assets/shaders
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - package: PlayerSpike
+        product: SpikePlayer
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: anistream.spike.player
+        PRODUCT_NAME: PlayerSpike
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Player spike
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        MARKETING_VERSION: "0.1"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
