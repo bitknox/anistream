@@ -304,7 +304,11 @@ mod tests {
         // Kept for signing in, and never put in the config, which the terminal shares.
         assert_eq!(
             options.app_clients,
-            AppClients { anilist: Some("4242".into()), mal: Some("a-mal-client".into()) }
+            AppClients {
+                anilist: Some("4242".into()),
+                mal: Some("a-mal-client".into()),
+                ..AppClients::default()
+            }
         );
         assert_eq!(options.config.trackers.anilist.client_id, None);
         assert_eq!(options.config.trackers.mal.client_id, None);
