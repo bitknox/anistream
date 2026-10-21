@@ -150,7 +150,8 @@
           },
           "format": "TV",
           "coverImage": {
-            "large": "https://img.example/cover/900004.jpg"
+            "large": "https://img.example/cover/900004.jpg",
+            "color": "#d77f4a"
           },
           "season": "WINTER",
           "seasonYear": 2025
@@ -170,7 +171,8 @@
           },
           "format": "ONA",
           "coverImage": {
-            "large": "https://img.example/cover/900005.jpg"
+            "large": "https://img.example/cover/900005.jpg",
+            "color": "#7ac47f"
           },
           "season": "SUMMER",
           "seasonYear": 2023
@@ -186,7 +188,8 @@
           },
           "format": "MOVIE",
           "coverImage": {
-            "large": "https://img.example/cover/900003.jpg"
+            "large": "https://img.example/cover/900003.jpg",
+            "color": "#f1d97a"
           },
           "season": "SUMMER",
           "seasonYear": 2025

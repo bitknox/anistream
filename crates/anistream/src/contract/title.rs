@@ -376,3 +376,68 @@ async fn the_signed_in_viewers_title_language_is_said_when_asked() {
     let asked = h.server().requests_for(anistream_testkit::Operation::Viewer);
     assert_eq!(asked.len(), 1, "the viewer is looked up once and kept");
 }
+
+#[tokio::test]
+async fn a_title_says_where_it_is_in_its_run() {
+    use anistream_model::catalog::AiringStatus;
+    let mut h = Harness::new().await;
+    for (id, status) in [(AIRING, AiringStatus::Releasing), (FINISHED, AiringStatus::Finished)]
+    {
+        h.send(Command::LoadDetail(id));
+        let updates = h.settle().await;
+        let entry = updates.iter().find_map(|update| match update {
+            Event::Detail(entry) => Some(entry.clone()),
+            _ => None,
+        });
+        assert_eq!(entry.and_then(|e| e.status), Some(status), "{id}");
+    }
+}
+
+#[tokio::test]
+async fn related_cards_say_where_each_title_is_on_the_library_and_carry_its_colour() {
+    use anistream_model::catalog::LibrarySegment;
+    use anistream_testkit::fixtures::SEQUEL;
+    let mut h = Harness::with(Options {
+        config: Some(WITH_ANILIST.into()),
+        signed_in: vec!["anilist"],
+        ..Options::default()
+    })
+    .await;
+    let page = |updates: Vec<Event>| {
+        updates
+            .into_iter()
+            .find_map(|update| match update {
+                Event::Detail(entry) => entry.detail,
+                _ => None,
+            })
+            .expect("the page")
+    };
+
+    // Before anything is pulled, nothing is known of the library.
+    h.send(Command::LoadDetail(SEQUEL));
+    let detail = page(h.settle().await);
+    assert_eq!(detail.relations[0].list_status, None);
+    assert_eq!(detail.relations[0].cover_color.as_deref(), Some("#e4a15d"), "its own colour");
+
+    // A sync pulls the library, and its statuses are kept: the prequel was watched.
+    h.send(Command::SyncNow);
+    h.settle().await;
+    h.send(Command::LoadDetail(SEQUEL));
+    let detail = page(h.settle().await);
+    assert_eq!(detail.relations[0].list_status, Some(LibrarySegment::Completed));
+
+    // And a Library load keeps them too, every segment's: a recommendation is planned.
+    h.send(Command::LoadLibrary(LibrarySegment::Watching));
+    h.settle().await;
+    h.send(Command::LoadDetail(FINISHED));
+    let detail = page(h.settle().await);
+    let cards: Vec<_> =
+        detail.recommendations.iter().map(|card| (card.id, card.list_status)).collect();
+    assert_eq!(
+        cards,
+        [
+            (anistream_testkit::fixtures::ONA, None),
+            (anistream_testkit::fixtures::MOVIE, Some(LibrarySegment::Planning)),
+        ]
+    );
+}

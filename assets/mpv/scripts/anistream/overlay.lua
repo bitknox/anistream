@@ -43,6 +43,12 @@ function Ctx:px(value)
     return value * self.s
 end
 
+-- The same canvas at another scale. The control row's pieces draw at uosc's scale, which a
+-- small window does not shrink, so they stay level with its buttons.
+function Ctx:at_scale(s)
+    return setmetatable({ s = s }, { __index = self })
+end
+
 function Ctx:rect(x0, y0, x1, y1, color, opacity, radius, corners, clip)
     draw.rect(self.out, x0, y0, x1, y1, color, opacity * self.alpha, radius, corners, clip)
 end
@@ -305,7 +311,7 @@ function M.render()
     end
 
     local s = screen.scale()
-    local insets = screen.insets(s)
+    local insets = screen.insets()
     local now = mp.get_time()
     local out = {}
     zones = {}
