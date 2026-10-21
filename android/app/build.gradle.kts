@@ -36,6 +36,10 @@ android {
             if (signsReleases) signingConfig = signingConfigs.getByName("release")
         }
     }
+    testOptions {
+        // Robolectric reads the app's own resources: the shortcuts, the strings.
+        unitTests.isIncludeAndroidResources = true
+    }
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -47,6 +51,39 @@ android {
     }
 }
 
+/**
+ * The launcher's static shortcuts, res/xml/shortcuts.xml, written from shortcuts.xml beside this
+ * file with the variant's application id in it: the intents name the package that opens them, and
+ * the system reads that as written, not as a resource.
+ */
+abstract class ShortcutsXml : DefaultTask() {
+    @get:InputFile
+    @get:PathSensitive(PathSensitivity.NONE)
+    abstract val template: RegularFileProperty
+
+    @get:Input
+    abstract val applicationId: Property<String>
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun write() {
+        val xml = outputDir.get().dir("xml").asFile.apply { mkdirs() }.resolve("shortcuts.xml")
+        xml.writeText(template.get().asFile.readText().replace("\${applicationId}", applicationId.get()))
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        val shortcuts = tasks.register<ShortcutsXml>("write${variant.name.replaceFirstChar(Char::uppercase)}Shortcuts") {
+            template.set(layout.projectDirectory.file("shortcuts.xml"))
+            applicationId.set(variant.applicationId)
+        }
+        variant.sources.res?.addGeneratedSourceDirectory(shortcuts, ShortcutsXml::outputDir)
+    }
+}
+
 dependencies {
     implementation(project(":ui"))
     implementation(project(":player"))
@@ -54,4 +91,16 @@ dependencies {
     implementation(libs.core.ktx)
     implementation(libs.lifecycle.process)
     implementation(libs.browser)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.coroutines.test)
+}
+
+tasks.withType<Test>().configureEach {
+    // Robolectric's Android 16 reaches into the JDK's file descriptors, which the JDK keeps closed.
+    jvmArgs("--add-opens=java.base/jdk.internal.access=ALL-UNNAMED", "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
+    // No engine starts in these tests; HOME is still one of their own, never the user's.
+    environment("HOME", layout.buildDirectory.dir("test-home/$name").get().asFile.path)
+    environment("ANISTREAM_TOKEN_STORAGE", "file")
 }

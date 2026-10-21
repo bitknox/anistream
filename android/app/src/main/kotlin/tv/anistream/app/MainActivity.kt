@@ -16,14 +16,18 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.store.DownloadsModel
 import tv.anistream.store.InviteLinks
+import tv.anistream.ui.AppLink
 import tv.anistream.ui.AppRoot
 import tv.anistream.ui.Destination
 
@@ -36,6 +40,13 @@ class MainActivity : ComponentActivity() {
 
     /** AniList's and MyAnimeList's sign-in in a Custom Tab, and the redirect that ends it. */
     private val signIn by lazy { BrowserSignIn(this, app.store) }
+
+    /**
+     * The app links the activity is opened on, launcher shortcuts and notifications, kept until
+     * the frame is there to follow them.
+     */
+    private val links = Channel<AppLink>(Channel.BUFFERED)
+    private val linkFlow = links.receiveAsFlow()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Light icons on the dark ground, over bars the app draws itself.
@@ -65,13 +76,16 @@ class MainActivity : ComponentActivity() {
                     startTitle = title,
                     startQuery = query,
                     startPage = page,
+                    links = linkFlow,
                 )
             }
         }
         if (Flavour.FIXTURES || debuggable) announceReady()
         askForNotificationsWhenNeeded()
         signIn.start()
-        if (!signIn.handle(intent)) invite(intent)
+        // A restored activity, or one opened again from Recents, has its navigation already.
+        val fresh = savedInstanceState == null && intent.flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY == 0
+        if (!signIn.handle(intent) && !(fresh && follow(intent))) invite(intent)
         keepDownloadsRunning()
     }
 
@@ -89,6 +103,19 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    /**
+     * An app link the activity was opened on goes to the frame to follow: a shortcut's, which the
+     * launcher is told was used, or a notification's.
+     */
+    private fun follow(intent: Intent?): Boolean {
+        val link = AppLink.parse(intent?.data?.toString()) ?: return false
+        // Taken off the intent, so a recreated activity does not follow it again.
+        intent?.data = null
+        links.trySend(link)
+        ContinueShortcut.shortcutOf(link)?.let { ShortcutManagerCompat.reportShortcutUsed(this, it) }
+        return true
     }
 
     /** An invite link the app was opened with opens the join sheet with it, checked as it opens. */
@@ -155,7 +182,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         // The redirect a sign-in comes back with is the engine's, and is not kept as the
         // activity's intent.
-        if (signIn.handle(intent) || invite(intent)) return
+        if (signIn.handle(intent) || follow(intent) || invite(intent)) return
         setIntent(intent)
     }
 

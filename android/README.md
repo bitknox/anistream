@@ -118,6 +118,17 @@ its own VPN and index has:
    (`adb shell ls -l /sdcard/Android/data/tv.anistream.app/files/Movies`).
 8. In flight mode, play it from Downloads.
 
+Launcher shortcuts and notifications open the activity on an app link, on an explicit intent, in
+any build: `anistream://open/search`, `…/downloads`, `…/title/<id>`, `…/continue/<id>` (the title
+page, then the episode Continue would play) and `…/play/<id>/<episode>`. The frame follows each
+through the app's own navigation (`AppLinks.kt`). Search and Downloads are static shortcuts,
+written into each variant's resources from `app/shortcuts.xml` with its package; "Continue
+<title>" is published from the Continue queue as its first playable title changes.
+
+```sh
+adb shell am start -a android.intent.action.VIEW -d anistream://open/downloads -n tv.anistream.fixtures/tv.anistream.app.MainActivity
+```
+
 ## Tests
 
 ```sh

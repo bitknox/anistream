@@ -5,4 +5,11 @@
     <string name="notices_channel_description">Copies of the app\'s notices, for when anistream is in the background.</string>
     <string name="downloads_channel">Downloads</string>
     <string name="downloads_channel_description">How far the episodes being downloaded are.</string>
+    <!-- The launcher's shortcuts. -->
+    <string name="shortcut_search">Search</string>
+    <string name="shortcut_search_long">Search titles</string>
+    <string name="shortcut_downloads">Downloads</string>
+    <string name="shortcut_unavailable">This shortcut is no longer available.</string>
+    <!-- The Continue shortcut: the title alone where the launcher has little room, and in full. -->
+    <string name="shortcut_continue_long">Continue %1$s</string>
 </resources>

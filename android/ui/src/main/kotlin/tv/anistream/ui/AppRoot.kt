@@ -43,6 +43,9 @@ import androidx.compose.material3.rememberWideNavigationRailState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -63,6 +66,9 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import tv.anistream.design.Motion
 import tv.anistream.store.AppStore
@@ -129,10 +135,14 @@ fun AppRoot(
     startQuery: String? = null,
     /** A page to open over [start] as the app starts, by its route: the fixtures' `page` extra. */
     startPage: String? = null,
+    /** The links the system opens the app on, followed as they come: shortcuts, notifications. */
+    links: Flow<AppLink> = emptyFlow(),
 ) {
     val nav = rememberNavController()
     val navigator = remember(nav) { Navigator(nav, start) }
     val sheets = remember { AppSheets() }
+    // Whether Search is to open its field as it shows: a link to Search asked for it.
+    var searchOpening by remember { mutableStateOf(false) }
     val routed = remember(actions, navigator, store) {
         actions.copy(
             openSettings = { navigator.openSettings() },
@@ -170,6 +180,11 @@ fun AppRoot(
         androidx.compose.runtime.LaunchedEffect(startPage) {
             startPage?.let(navigator::open)
         }
+        val following by rememberUpdatedState(routed)
+        androidx.compose.runtime.LaunchedEffect(links, navigator) {
+            // A new link takes over from one still waiting to play.
+            links.collectLatest { link -> navigator.follow(link, store, following) { searchOpening = true } }
+        }
         Scaffold(
             containerColor = MaterialTheme.colorScheme.surface,
             contentWindowInsets = WindowInsets(0),
@@ -192,7 +207,7 @@ fun AppRoot(
                                 navigation(route = graphRoute(destination), startDestination = destination.route) {
                                     composable(destination.route) {
                                         CompositionLocalProvider(LocalPageAnimation provides this) {
-                                            DestinationScreen(destination, routed, startQuery)
+                                            DestinationScreen(destination, routed, startQuery, searchOpening) { searchOpening = false }
                                         }
                                     }
                                     composable(
@@ -219,7 +234,13 @@ fun AppRoot(
 }
 
 @Composable
-private fun DestinationScreen(destination: Destination, actions: AppActions, startQuery: String?) {
+private fun DestinationScreen(
+    destination: Destination,
+    actions: AppActions,
+    startQuery: String?,
+    searchOpening: Boolean,
+    searchOpened: () -> Unit,
+) {
     val navigator = LocalNavigator.current
     when (destination) {
         Destination.Continue -> ContinueScreen(
@@ -230,7 +251,7 @@ private fun DestinationScreen(destination: Destination, actions: AppActions, sta
         Destination.Calendar -> CalendarScreen()
         Destination.Seasonal -> SeasonalScreen()
         Destination.Library -> LibraryScreen(actions)
-        Destination.Search -> SearchScreen(startQuery)
+        Destination.Search -> SearchScreen(startQuery, open = searchOpening, opened = searchOpened)
     }
 }
 
