@@ -186,6 +186,7 @@ struct PhoneTitle: View {
                 .padding(.bottom, 32)
             }
         }
+        .nudgeableScroll()
         .ignoresSafeArea(edges: art.isCompact ? [] : .top)
         .scrollIndicators(.never)
         .background(.ground)
@@ -234,6 +235,7 @@ struct PhoneTitle: View {
 /// The episodes on an iPhone's page: a row each, the next one marked, stills after it blurred.
 struct PhoneEpisodes: View {
     @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
     let entry: Entry
     let spoilers: Bool
     /// Where the page's Unwatched episodes rotor finds the rows.
@@ -241,67 +243,92 @@ struct PhoneEpisodes: View {
 
     var body: some View {
         let rows = entry.episodeTable(store.titles.episodes[entry.id] ?? [])
-        let next = entry.progress?.next ?? 1
         VStack(alignment: .leading, spacing: 0) {
             if store.titles.episodes[entry.id] == nil {
                 ForEach(0..<4, id: \.self) { _ in EpisodePlaceholderRow() }
             }
-            ForEach(rows, id: \.number) { row in
-                let number = UInt32(row.number) ?? 0
-                let current = number == next
-                if row.isUnaired(), let airs = row.airsDate {
-                    PhoneUnairedRow(row: row, airs: airs)
-                        .accessibilityRotorEntry(id: row.number, in: rotor)
-                } else {
-                    Button {
-                        store.send(.play(id: entry.id, episode: row.number))
-                    } label: {
-                        HStack(spacing: 12) {
-                            Text(row.number)
-                                .font(.ui(15, weight: current ? .semibold : .regular))
-                                .monospacedDigit()
-                                .foregroundStyle(current ? .amber : .haze)
-                                .animation(.quick, value: current)
-                                .frame(width: 22, alignment: .trailing)
-                            EpisodeStill(entry: entry, row: row, hidden: spoilers && number > next && !row.completed,
-                                         unaired: false, size: CGSize(width: 72, height: 40))
-                                .opacity(row.completed ? 0.7 : 1)
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                    Text(row.title ?? "Episode \(row.number)")
-                                        .font(.ui(17))
-                                        .foregroundStyle(row.completed ? .haze : .silk)
-                                        .rowTitle()
-                                        .animation(.quick, value: row.completed)
-                                    if row.kind == .filler { Text("Filler").groupHeaderStyle() }
-                                }
-                                if current, let resume = entry.resume, let fraction = resume.fraction, fraction > 0 {
-                                    HStack(spacing: 8) {
-                                        Held(value: fraction) { Meter(fraction: $0, height: 3).frame(width: 88) }
-                                        let left = max(1, Int(((resume.position / fraction - resume.position) / 60).rounded()))
-                                        Held(value: left) { MinutesLeft(minutes: $0, size: 15) }
-                                    }
-                                } else if let seconds = row.durationSecs {
-                                    Text("\(max(1, Int((Double(seconds) / 60).rounded()))) min")
-                                        .font(.ui(15))
-                                        .foregroundStyle(.haze)
-                                }
-                            }
-                            Spacer(minLength: 0)
-                            WatchedCheck(watched: row.completed, size: 15)
-                        }
-                        .frame(minHeight: 56)
-                        .contentShape(.rect)
+            // The watched run folds away above the last episode watched.
+            let fold = WatchedFold(rows)
+            if let fold {
+                WatchedFoldSection(
+                    fold: fold, shown: navigator.watchedShown(entry.id), phone: true,
+                    toggle: { navigator.toggleWatched(entry.id) }
+                ) {
+                    ForEach(rows.prefix(fold.count), id: \.number) {
+                        PhoneEpisodeRow(entry: entry, row: $0, spoilers: spoilers, rotor: rotor)
                     }
-                    .buttonStyle(.plain)
-                    .pointerHover()
-                    .episodeElement(row, value: row.spokenValue(entry, current: current, upcoming: false)) {
-                        EpisodeMenu(entry: entry, number: number, row: row)
-                    }
-                    .accessibilityRotorEntry(id: row.number, in: rotor)
-                    .contextMenu { EpisodeMenu(entry: entry, number: number, row: row) }
                 }
             }
+            ForEach(rows.dropFirst(fold?.count ?? 0), id: \.number) {
+                PhoneEpisodeRow(entry: entry, row: $0, spoilers: spoilers, rotor: rotor)
+            }
+        }
+    }
+}
+
+/// One episode on an iPhone's page.
+struct PhoneEpisodeRow: View {
+    @Environment(AppStore.self) private var store
+    let entry: Entry
+    let row: EpisodeRow
+    let spoilers: Bool
+    let rotor: Namespace.ID
+
+    var body: some View {
+        let next = entry.progress?.next ?? 1
+        let number = UInt32(row.number) ?? 0
+        let current = number == next
+        if row.isUnaired(), let airs = row.airsDate {
+            PhoneUnairedRow(row: row, airs: airs)
+                .accessibilityRotorEntry(id: row.number, in: rotor)
+        } else {
+            Button {
+                store.send(.play(id: entry.id, episode: row.number))
+            } label: {
+                HStack(spacing: 12) {
+                    Text(row.number)
+                        .font(.ui(15, weight: current ? .semibold : .regular))
+                        .monospacedDigit()
+                        .foregroundStyle(current ? .amber : .haze)
+                        .animation(.quick, value: current)
+                        .frame(width: 22, alignment: .trailing)
+                    EpisodeStill(entry: entry, row: row, hidden: spoilers && number > next && !row.completed,
+                                 unaired: false, size: CGSize(width: 72, height: 40))
+                        .opacity(row.completed ? 0.7 : 1)
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(row.title ?? "Episode \(row.number)")
+                                .font(.ui(17))
+                                .foregroundStyle(row.completed ? .haze : .silk)
+                                .rowTitle()
+                                .animation(.quick, value: row.completed)
+                            if row.kind == .filler { Text("Filler").groupHeaderStyle() }
+                        }
+                        if current, let resume = entry.resume, let fraction = resume.fraction, fraction > 0 {
+                            HStack(spacing: 8) {
+                                Held(value: fraction) { Meter(fraction: $0, height: 3).frame(width: 88) }
+                                let left = max(1, Int(((resume.position / fraction - resume.position) / 60).rounded()))
+                                Held(value: left) { MinutesLeft(minutes: $0, size: 15) }
+                            }
+                        } else if let seconds = row.durationSecs {
+                            Text("\(max(1, Int((Double(seconds) / 60).rounded()))) min")
+                                .font(.ui(15))
+                                .foregroundStyle(.haze)
+                        }
+                    }
+                    Spacer(minLength: 0)
+                    WatchedCheck(watched: row.completed, size: 15)
+                }
+                .frame(minHeight: 56)
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .pointerHover()
+            .episodeElement(row, value: row.spokenValue(entry, current: current, upcoming: false)) {
+                EpisodeMenu(entry: entry, number: number, row: row)
+            }
+            .accessibilityRotorEntry(id: row.number, in: rotor)
+            .contextMenu { EpisodeMenu(entry: entry, number: number, row: row) }
         }
     }
 }
