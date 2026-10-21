@@ -263,6 +263,8 @@ jobs:
   # iOS Simulator with signing off. The Xcode is named outright, since the runner's default
   # moves.
   apple:
+    needs: changes
+    if: needs.changes.outputs.apple == 'true'
     runs-on: macos-26
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
