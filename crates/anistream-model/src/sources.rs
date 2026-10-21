@@ -86,6 +86,9 @@ pub struct ConfiguredSources {
     pub torrent: bool,
     /// Whether a remote source is set up.
     pub remote: bool,
+    /// The torrent index, `providers.torrent.rss_url`: the RSS search address the torrent
+    /// source asks, which anistream ships none of. `None` until one is set, torrents on or off.
+    pub index: Option<String>,
 }
 
 impl ConfiguredSources {
@@ -95,6 +98,13 @@ impl ConfiguredSources {
             disabled: providers.disabled.clone(),
             torrent: providers.torrent.enabled,
             remote: providers.remote_url.is_some(),
+            index: providers
+                .torrent
+                .rss_url
+                .as_deref()
+                .map(str::trim)
+                .filter(|url| !url.is_empty())
+                .map(str::to_owned),
         }
     }
 }

@@ -693,6 +693,18 @@ impl TorrentConfig {
 
 impl TorrentConfig {
     fn validate(&self) -> Result<(), crate::Error> {
+        // An indexer set is held to being one whether or not torrents are on: the native apps'
+        // torrent index is filled in before the source is turned on, and a typo kept until then
+        // would be refused only by the switch, which says nothing of the address.
+        let indexer = self.rss_url.as_deref().map(str::trim).filter(|url| !url.is_empty());
+        if let Some(url) = indexer
+            && !url.starts_with("http://")
+            && !url.starts_with("https://")
+        {
+            return Err(crate::Error::Config(
+                "providers.torrent.rss_url must be an http or https URL".into(),
+            ));
+        }
         if !self.enabled {
             return Ok(());
         }
@@ -700,18 +712,10 @@ impl TorrentConfig {
         // silently inert. Say so instead — in words, and short: it is what the Settings toggle
         // answers with in one toast line, which cut the dotted keys it used to quote before the
         // part that said what to do.
-        match self.rss_url.as_deref().map(str::trim) {
-            None | Some("") => {
-                return Err(crate::Error::Config(
-                    "torrents need an indexer; set rss_url under [providers.torrent]".into(),
-                ));
-            }
-            Some(url) if !url.starts_with("http://") && !url.starts_with("https://") => {
-                return Err(crate::Error::Config(
-                    "providers.torrent.rss_url must be an http or https URL".into(),
-                ));
-            }
-            Some(_) => {}
+        if indexer.is_none() {
+            return Err(crate::Error::Config(
+                "torrents need an indexer; set rss_url under [providers.torrent]".into(),
+            ));
         }
         match self.vpn.mode {
             VpnMode::Socks5 => {
@@ -1205,6 +1209,22 @@ mod tests {
         )
         .expect_err("only http(s) is transport");
         assert!(err.to_string().contains("http"), "got: {err}");
+    }
+
+    #[test]
+    fn an_indexer_set_is_checked_with_torrents_off_and_none_is_no_indexer() {
+        // Filled in on the native apps' torrent sheet before the source is turned on.
+        let off =
+            |url: &str| Config::from_toml(&format!("[providers.torrent]\nrss_url = {url:?}\n"));
+        let err = off("indexer.example/rss").expect_err("not an address").to_string();
+        assert!(err.contains("http or https"), "got: {err}");
+        assert!(off("https://indexer.example/rss?q={query}").is_ok());
+        // Blank is unset, with torrents off as with them on.
+        assert!(off("  ").is_ok());
+        let on = "[providers.torrent]\nenabled = true\nrss_url = \" \"\n\
+                  [providers.torrent.vpn]\nmode = \"external\"\n";
+        let err = Config::from_toml(on).expect_err("no indexer").to_string();
+        assert!(err.contains("torrents need an indexer"), "got: {err}");
     }
 
     #[test]
