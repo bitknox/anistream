@@ -11,6 +11,7 @@ use crate::{
     hosted::{PlayerOp, PlayerUi},
     jobs::JobId,
     notice::Notice,
+    notifications::NewEpisode,
     playback::{Ending, PlaybackId, SkipKind},
     progress::{EpisodeProgress, TitleProgress},
     settings::SettingsView,
@@ -20,6 +21,7 @@ use crate::{
         InviteLinkView, InvitePreview, LocalPluginRow, StoreInviteRow, StoreMemberRow, StoreRow,
     },
     sync::{ConflictRow, DeviceCodePrompt, SyncState},
+    widgets::WidgetData,
 };
 
 /// A computed change, applied on the UI thread.
@@ -314,6 +316,15 @@ pub enum Event {
         store: String,
         plugins: Vec<LocalPluginRow>,
     },
+    /// What [`Command::CheckNewEpisodes`] found: the episodes to notify of, in the order they
+    /// aired, each said once and never again. Empty when there is nothing new.
+    ///
+    /// [`Command::CheckNewEpisodes`]: crate::command::Command::CheckNewEpisodes
+    NewEpisodes(Vec<NewEpisode>),
+    /// The home-screen widgets' record, in answer to
+    /// [`Command::WidgetSnapshot`](crate::command::Command::WidgetSnapshot): for the app to
+    /// write where its widgets read it.
+    WidgetSnapshot(WidgetData),
 }
 
 impl Event {

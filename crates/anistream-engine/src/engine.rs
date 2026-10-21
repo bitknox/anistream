@@ -219,6 +219,7 @@ impl Engine {
                     player_theme,
                     app_clients: Default::default(),
                     host,
+                    clock: parts.clock,
                 }
             }
             None => Services::build(&tracked, paths, http, store, registry, player_theme, host)
