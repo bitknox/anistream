@@ -30,10 +30,6 @@ on:
         required: true
       ANDROID_RELEASE_KEY_PASSWORD:
         required: true
-  # TEMPORARY: dry runs of release/apps before this workflow is on main, where a dispatch needs
-  # it to be. Removed before the branch is merged.
-  push:
-    branches: [release/apps]
   pull_request:
     paths:
       - .github/workflows/apps-release.yml
@@ -187,7 +183,7 @@ jobs:
       - name: The engine
         run: android/scripts/engine.sh release
       - name: Keep the engine
-        if: steps.engine.outputs.cache-hit != 'true' && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/release/apps')
+        if: steps.engine.outputs.cache-hit != 'true' && github.event_name == 'workflow_dispatch'
         uses: actions/cache/save@v6
         with:
           path: ${{ env.ANISTREAM_ENGINE_CACHE }}
@@ -252,7 +248,7 @@ jobs:
           if [[ -f "$built/app-app-release.apk" ]]; then
             cp "$built/app-app-release.apk" "dist/$name.apk"
           elif [[ -n "${KEYSTORE_FILE:-}" ]]; then
-            "$tools/apksigner" sign --alignment-preserved \
+            "$tools/apksigner" sign --alignment-preserved --v4-signing-enabled false \
               --ks "$KEYSTORE_FILE" --ks-type PKCS12 --ks-key-alias "$KEY_ALIAS" \
               --ks-pass env:STORE_PASSWORD --key-pass env:KEY_PASSWORD \
               --out "dist/$name.apk" "$built/app-app-release-unsigned.apk"
@@ -378,7 +374,7 @@ jobs:
       - name: The engine
         run: apple/scripts/engine.sh release macos ios
       - name: Keep the engine
-        if: steps.engine.outputs.cache-hit != 'true' && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/release/apps')
+        if: steps.engine.outputs.cache-hit != 'true' && github.event_name == 'workflow_dispatch'
         uses: actions/cache/save@v6
         with:
           path: ${{ env.ANISTREAM_ENGINE_CACHE }}
