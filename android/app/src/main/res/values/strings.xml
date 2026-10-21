@@ -3,4 +3,6 @@
     <string name="app_name">anistream</string>
     <string name="notices_channel">Notices</string>
     <string name="notices_channel_description">Copies of the app\'s notices, for when anistream is in the background.</string>
+    <string name="downloads_channel">Downloads</string>
+    <string name="downloads_channel_description">How far the episodes being downloaded are.</string>
 </resources>

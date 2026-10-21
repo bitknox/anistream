@@ -209,6 +209,7 @@ fun AppRoot(
                             settingsPages(routed)
                             providerPages(routed)
                             storePages()
+                            downloadPages(routed)
                         }
                     }
                 }
@@ -275,10 +276,10 @@ private fun PhoneBar(current: Destination, go: (Destination) -> Unit) {
 
 /**
  * The drawer's pages beyond the five destinations (AT1): Downloads, then Providers and Plugin
- * stores under a Sources header. Each opens the page closest to it in this build.
+ * stores under a Sources header.
  */
 internal enum class DrawerPage(val label: String, val icon: ImageVector, val route: String) {
-    Downloads("Downloads", Icons.DownloadsPage, settingsRoute(SettingsPane.Downloads)),
+    Downloads("Downloads", Icons.DownloadsPage, DOWNLOADS_ROUTE),
     Providers("Providers", Icons.Providers, PROVIDERS_ROUTE),
     Stores("Plugin stores", Icons.Stores, STORES_ROUTE),
 }

@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import tv.anistream.engine.model.ConflictRow
 import tv.anistream.engine.model.DeviceCodePrompt
 import tv.anistream.engine.model.DownloadRow
+import tv.anistream.engine.model.DownloadState
+import tv.anistream.engine.model.SeedRow
 import tv.anistream.engine.model.InviteLinkView
 import tv.anistream.engine.model.InvitePreview
 import tv.anistream.engine.model.InvitedStore
@@ -305,19 +307,87 @@ object InviteLinks {
     fun looksLikeInvite(text: String): Boolean = invite(text) != null
 }
 
-/** The downloads, as the engine last said them: the Library's Downloads row reads their size. */
-class DownloadsModel {
+/**
+ * The downloads, as the engine last said them: the queue, what is still seeding, and each running
+ * download's speed, worked out from how far it moved between two updates. The Library's Downloads
+ * row reads their size.
+ */
+class DownloadsModel(private val clock: () -> Long = { System.currentTimeMillis() }) {
     private val _rows = MutableStateFlow<List<DownloadRow>>(emptyList())
+
+    /** The queue, in the engine's order. */
     val rows: StateFlow<List<DownloadRow>> = _rows.asStateFlow()
 
     private val _loaded = MutableStateFlow(false)
     val loaded: StateFlow<Boolean> = _loaded.asStateFlow()
 
+    private val _seeding = MutableStateFlow<List<SeedRow>>(emptyList())
+
+    /** Watched episodes still seeding. */
+    val seeding: StateFlow<List<SeedRow>> = _seeding.asStateFlow()
+
+    private val _rates = MutableStateFlow<Map<Long, Double>>(emptyMap())
+
+    /** Bytes a second for each running download, by its id. */
+    val rates: StateFlow<Map<Long, Double>> = _rates.asStateFlow()
+
+    private var last: Map<Long, Pair<ULong, Long>> = emptyMap()
+
     /** The bytes the downloads take on this device. */
-    fun bytes(rows: List<DownloadRow>): Long = rows.sumOf { it.downloaded.toLong() }
+    fun bytes(rows: List<DownloadRow>): Long = rows.sumOf { it.bytesOnDisk.toLong() }
 
     internal fun apply(rows: List<DownloadRow>) {
+        val now = clock()
+        val rates = mutableMapOf<Long, Double>()
+        val seen = mutableMapOf<Long, Pair<ULong, Long>>()
+        for (row in rows.filter { it.state == DownloadState.ACTIVE }) {
+            seen[row.id] = row.downloaded to now
+            val before = last[row.id] ?: continue
+            val seconds = (now - before.second) / 1000.0
+            if (seconds <= 0.2 || row.downloaded < before.first) {
+                _rates.value[row.id]?.let { rates[row.id] = it }
+                seen[row.id] = before
+                continue
+            }
+            val rate = (row.downloaded - before.first).toDouble() / seconds
+            // Half the last reading and half this one: steady enough to read, quick to follow.
+            rates[row.id] = _rates.value[row.id]?.let { (it + rate) / 2 } ?: rate
+        }
+        last = seen
+        _rates.value = rates
         _rows.value = rows
         _loaded.value = true
     }
+
+    internal fun seeding(rows: List<SeedRow>) {
+        _seeding.value = rows
+    }
+
+    /** Seconds until a running download finishes, at its speed. */
+    fun secondsLeft(row: DownloadRow, rates: Map<Long, Double>): Long? {
+        if (row.state != DownloadState.ACTIVE || row.total <= row.downloaded) return null
+        val rate = rates[row.id]?.takeIf { it > 0 } ?: return null
+        return kotlin.math.ceil((row.total - row.downloaded).toDouble() / rate).toLong()
+    }
+
+    companion object {
+        /** The queue by title, each title where its first row is. */
+        fun groups(rows: List<DownloadRow>): List<DownloadGroup> =
+            rows.groupBy { it.anilistId }.map { (id, rows) -> DownloadGroup(id, rows) }
+
+        /** Whether anything waits or runs: what keeps the download job going. */
+        fun busy(rows: List<DownloadRow>): Boolean =
+            rows.any { it.state == DownloadState.ACTIVE || it.state == DownloadState.QUEUED }
+    }
 }
+
+/** One title's downloads. */
+data class DownloadGroup(val id: tv.anistream.engine.core.AnilistId, val rows: List<DownloadRow>) {
+    /** The title, as the queue names it. */
+    val title: String get() = rows.firstOrNull()?.title.orEmpty()
+
+    val bytesOnDisk: Long get() = rows.sumOf { it.bytesOnDisk.toLong() }
+}
+
+/** What a download takes on disk now: a finished one's size, and what the rest have so far. */
+val DownloadRow.bytesOnDisk: ULong get() = if (state == DownloadState.DONE) maxOf(total, downloaded) else downloaded

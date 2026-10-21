@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +24,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -293,8 +296,21 @@ internal fun DownloadsPane(actions: AppActions) {
     val downloads by store.downloads.rows.collectAsStateWithLifecycle()
     val torrents = store.settings.isOn(SettingKey.TORRENTS, view)
     Pane {
+        val free = freeBytes()
+        val used = store.downloads.bytes(downloads)
         SettingsGroup(
-            rows = listOf({ place -> InfoRow(place, "Storage", storageLine(store.downloads.bytes(downloads))) }),
+            rows = listOf(
+                { place -> StorageRow(place, used, free) },
+                { place ->
+                    val navigator = LocalNavigator.current
+                    InfoRow(
+                        place,
+                        "Downloads",
+                        if (downloads.isEmpty()) "None yet" else Wording.plural(downloads.size, "episode"),
+                        onClick = { navigator.open(DOWNLOADS_ROUTE) },
+                    )
+                },
+            ),
         )
         SettingsGroup(
             title = "New downloads",
@@ -306,6 +322,31 @@ internal fun DownloadsPane(actions: AppActions) {
                 if (torrents) @Composable { place: Place -> SettingSwitch(place, SettingKey.KEEP_SEEDING, "Keep seeding") } else null,
             ),
         )
+    }
+}
+
+/**
+ * What the downloads take beside what is free, as a bar: amber for the downloads' share of what
+ * the app could use, on the rule.
+ */
+@Composable
+private fun StorageRow(place: Place, used: Long, free: Long?) {
+    val colors = MaterialTheme.colorScheme
+    RowFrame(place, onClick = null, modifier = Modifier.heightIn(min = 88.dp)) {
+        Column(Modifier.fillMaxWidth()) {
+            Text("Storage", style = MaterialTheme.typography.titleMedium)
+            Text(storageWords(used, free), style = MaterialTheme.typography.bodyMedium.tabular(), color = colors.onSurfaceVariant)
+            val share = if (free != null && used + free > 0) used.toFloat() / (used + free) else 0f
+            androidx.compose.material3.LinearProgressIndicator(
+                progress = { share.coerceIn(0f, 1f) },
+                modifier = Modifier.padding(top = 8.dp).fillMaxWidth().height(4.dp)
+                    .semantics { contentDescription = "Downloads take ${Wording.bytes(used)}" },
+                color = colors.primary,
+                trackColor = colors.outline,
+                gapSize = if (share > 0f) 4.dp else 0.dp,
+                drawStopIndicator = {},
+            )
+        }
     }
 }
 

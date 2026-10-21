@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Asked for the first time a notice is posted as a notification, never at launch. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Downloads run as a user-initiated data transfer job, which Android 15's six-hour cap on
+         dataSync foreground services does not reach. -->
+    <uses-permission android:name="android.permission.RUN_USER_INITIATED_JOBS" />
 
     <!-- No backup: the tokens are sealed with a key that never leaves this device's keystore, so a
          restored copy could not open them, and everything else comes back from AniList and the stores. -->
@@ -63,5 +66,11 @@
                 <data android:scheme="anistream" android:host="*" android:pathPrefix="/join/" />
             </intent-filter>
         </activity>
+        <!-- The download job: it keeps the process going while episodes download, with the
+             system's progress notification. -->
+        <service
+            android:name=".DownloadJob"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
     </application>
 </manifest>

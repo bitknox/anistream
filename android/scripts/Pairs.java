@@ -41,6 +41,7 @@ public class Pairs {
         new Pair("phone-providers", "AndroidProviders", "Watching scene, the boards' five sources", 1500),
         new Pair("phone-store", "AndroidStore", "Watching scene, the boards' store", 1500),
         new Pair("phone-join-store", "AndroidJoinStore", "Watching scene, an invite checked", 1500),
+        new Pair("phone-downloads", "AndroidDownloads", "Watching scene, the board's queue on the fixtures' titles", 1500),
         new Pair("tablet-more-about", "AndroidTabletMoreAbout", "Watching scene, title 900001, More about this show", 800),
     };
 

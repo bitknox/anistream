@@ -257,6 +257,53 @@ class AppStore(
         send(Command.LoadDownloads)
     }
 
+    /** Queue [episode] of [id] for download. */
+    fun downloadEpisode(id: AnilistId, episode: String) {
+        send(Command.DownloadEpisode(id, episode))
+    }
+
+    /** Pause a download, or resume it. */
+    fun toggleDownload(id: Long) {
+        send(Command.DownloadPause(id))
+    }
+
+    /** Take a download off the queue, keeping a finished file. */
+    fun cancelDownload(id: Long) {
+        send(Command.DownloadCancel(id))
+    }
+
+    /** Take a download off the queue and delete its file. */
+    fun deleteDownload(id: Long) {
+        send(Command.DownloadDelete(id))
+    }
+
+    fun clearCompletedDownloads() {
+        send(Command.DownloadClearCompleted)
+    }
+
+    /** Pause every download that runs or waits. */
+    fun pauseAllDownloads() {
+        for (row in downloads.rows.value) {
+            if (row.state == tv.anistream.engine.model.DownloadState.ACTIVE || row.state == tv.anistream.engine.model.DownloadState.QUEUED) toggleDownload(row.id)
+        }
+    }
+
+    /** Resume every paused download. */
+    fun resumeAllDownloads() {
+        for (row in downloads.rows.value) if (row.state == tv.anistream.engine.model.DownloadState.PAUSED) toggleDownload(row.id)
+    }
+
+    /** Play a finished download from its file, with the history, resume and sync a stream has. */
+    fun playDownload(row: tv.anistream.engine.model.DownloadRow) {
+        val path = row.path ?: return
+        send(Command.PlayLocal(row.anilistId, row.episode, row.title, path))
+    }
+
+    /** The device's network, as the system says it: cellular, and Data Saver as constrained. */
+    fun networkPath(cellular: Boolean, constrained: Boolean) {
+        send(Command.NetworkPath(cellular, constrained))
+    }
+
     /** Take a title off Continue: the row goes at once, and the engine keeps it hidden. */
     fun hideFromContinue(id: AnilistId) {
         continuing.hide(id)
@@ -493,6 +540,7 @@ class AppStore(
             is Event.StoreJoined -> stores.joined(event.store)
             is Event.InviteLink -> stores.invited(event.v1)
             is Event.Downloads -> downloads.apply(event.v1)
+            is Event.Seeding -> downloads.seeding(event.v1)
             is Event.ShowSettings -> showSettings.apply(event.v1)
 
             is Event.ArtworkReady -> artwork.ready(event.url, event.bytes)

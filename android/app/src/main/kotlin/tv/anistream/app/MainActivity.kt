@@ -21,6 +21,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
 import tv.anistream.design.AnistreamTheme
+import tv.anistream.engine.model.SettingKey
 import tv.anistream.store.InviteLinks
 import tv.anistream.ui.AppRoot
 import tv.anistream.ui.Destination
@@ -70,6 +71,22 @@ class MainActivity : ComponentActivity() {
         askForNotificationsWhenNeeded()
         signIn.start()
         if (!signIn.handle(intent)) invite(intent)
+        keepDownloadsRunning()
+    }
+
+    /**
+     * While the app is in front, ask for the download job whenever an episode waits or runs: a
+     * user-initiated job is asked for from a screen the person is using.
+     */
+    private fun keepDownloadsRunning() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                app.store.downloads.rows.collect { rows ->
+                    val wifiOnly = !app.store.settings.isOn(SettingKey.DOWNLOADS_ON_CELLULAR)
+                    DownloadJob.ensure(this@MainActivity, rows, wifiOnly)
+                }
+            }
+        }
     }
 
     /** An invite link the app was opened with opens the join sheet with it, checked as it opens. */

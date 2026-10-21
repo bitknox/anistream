@@ -32,6 +32,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.model.DeviceCodePrompt
+import tv.anistream.engine.model.DownloadRow
+import tv.anistream.engine.model.DownloadState
 import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.InvitePreview
 import tv.anistream.engine.model.InvitedStore
@@ -152,6 +154,10 @@ class SettingsShots {
     @Test
     @Config(qualifiers = PHONE)
     fun phone_store_update() = shoot("phone-store-update", storeRoute("hotaru"), tap = "Update") { it.apply(listOf(Event.Stores(listOf(HOTARU)))) }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_downloads() = shoot("phone-downloads", DOWNLOADS_ROUTE) { it.apply(listOf(Event.Downloads(DOWNLOADS))) }
 
     /**
      * [scene] replayed into a store, the app drawn with [page] open over Continue, and captured
@@ -274,6 +280,23 @@ class SettingsShots {
                 StorePluginRow("kobunko", "Kōbunko Film Library", "0.9.1", listOf("films.kobunko.example"), StorePluginStatus.Installed),
                 StorePluginRow("shorts", "Atelier Hotaru Shorts", "1.0.2", listOf("shorts.atelier-hotaru.example"), StorePluginStatus.Available),
             ),
+        )
+
+        private fun download(id: Long, title: UInt, name: String, episode: String, state: DownloadState, downloaded: ULong, total: ULong, error: String? = null) =
+            DownloadRow(
+                id = id, anilistId = title, title = name, episode = episode, state = state,
+                fraction = if (total > 0uL) downloaded.toDouble() / total.toDouble() else 0.0,
+                downloaded = downloaded, total = total, error = error, path = if (state == DownloadState.DONE) "/files/$id.mkv" else null,
+            )
+
+        /** AndroidDownloads' queue, on the fixtures' titles. */
+        val DOWNLOADS = listOf(
+            download(1, 900001u, "Hoshikuzu", "8", DownloadState.DONE, 1_400_000_000uL, 1_400_000_000uL),
+            download(2, 900001u, "Hoshikuzu", "9", DownloadState.ACTIVE, 300_000_000uL, 1_400_000_000uL),
+            download(3, 900001u, "Hoshikuzu", "10", DownloadState.QUEUED, 0uL, 0uL),
+            download(4, 900002u, "Kumo", "3", DownloadState.DONE, 460_000_000uL, 460_000_000uL),
+            download(5, 900002u, "Kumo", "4", DownloadState.FAILED, 130_000_000uL, 480_000_000uL, error = "the source stopped responding at 130 MB"),
+            download(6, 900003u, "Tsukiakari", "5", DownloadState.PAUSED, 210_000_000uL, 480_000_000uL),
         )
 
         /** The boards' sources: four plugins and the built-in torrent source, last. */
