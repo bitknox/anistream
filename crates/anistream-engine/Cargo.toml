@@ -17,10 +17,10 @@ doctest = false
 default = ["desktop"]
 # What a desktop has and a phone has not: the mpv child process each playback runs, the Syncplay
 # party a play can be handed to, the browser redirect AniList and MyAnimeList sign in through,
-# notifications through osascript and notify-send, and pmset's word on the battery. Without it
-# none of these is built, nor are `anistream-player` and `open`. The crate docs say what a front
-# end without it gets instead.
-desktop = ["dep:anistream-player", "dep:open"]
+# notifications through osascript and notify-send, pmset's word on the battery, and the OS
+# keychain through `keyring`. Without it none of these is built, nor are `anistream-player`,
+# `open` and `keyring`. The crate docs say what a front end without it gets instead.
+desktop = ["dep:anistream-player", "dep:open", "anistream-track/keychain"]
 # What a test stands the engine up with instead of what it builds, and what only a test wants to
 # hear from it: see `options::Parts` and `engine::Traced`. Never on in a build that ships: the
 # binary turns it on for its own tests alone, as a dev-dependency.
@@ -32,6 +32,9 @@ anistream-meta.workspace = true
 anistream-model.workspace = true
 anistream-net.workspace = true
 anistream-player = { workspace = true, optional = true }
+# The pure half of playback, which the session drives any player with: the policy, the tracks,
+# skips, and what a player reports and is shown. Allowed in a phone's build.
+anistream-playback.workspace = true
 anistream-plugin = { workspace = true, features = ["fetch"] }
 anistream-plugin-store.workspace = true
 anistream-store-server.workspace = true
@@ -76,6 +79,10 @@ required-features = ["desktop"]
 
 [[test]]
 name = "binge"
+required-features = ["desktop"]
+
+[[test]]
+name = "link_golden"
 required-features = ["desktop"]
 
 [lints]

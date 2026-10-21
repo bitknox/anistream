@@ -31,7 +31,13 @@ default = ["desktop"]
 desktop = ["anistream-engine/desktop"]
 # `FfiEngine::start_testing`: the engine on a fake AniList, the test kit's fixture source and a
 # client that cannot leave the machine, for the Swift package's tests. Never on in an app.
-testing = ["anistream-engine/testing", "dep:anistream-testkit", "dep:anistream-meta", "dep:anistream-track"]
+testing = [
+    "anistream-engine/testing",
+    "dep:anistream-testkit",
+    "dep:anistream-meta",
+    "dep:anistream-providers",
+    "dep:anistream-track",
+]
 # The `uniffi-bindgen` binary.
 cli = ["uniffi/cli"]
 
@@ -50,11 +56,14 @@ uniffi.workspace = true
 # What `start_testing` builds the engine's parts from.
 anistream-meta = { workspace = true, optional = true }
 anistream-testkit = { workspace = true, optional = true }
+anistream-providers = { workspace = true, optional = true }
 anistream-track = { workspace = true, optional = true }
 
 [dev-dependencies]
 # Polls `next_events` on the test's own thread, outside the engine's runtime, as Swift does.
 futures.workspace = true
+# The hosted player's properties, in mpv's own JSON.
+serde_json.workspace = true
 tempfile = "3"
 
 [lints]

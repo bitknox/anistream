@@ -15,7 +15,7 @@ use anistream_core::{
     config::{Config, Paths},
     ids::AnilistId,
 };
-use anistream_model::command::PlayerCommand;
+use anistream_model::{command::PlayerCommand, playback::PlaybackId};
 use anistream_providers::{torrent::TorrentSession, vpn::VpnGuard};
 use tokio::sync::mpsc;
 
@@ -86,11 +86,10 @@ impl EngineState {
     }
 
     /// The next playback, of `episode` of `id`, numbered, and the record told it is starting.
-    /// Only the desktop's player starts one.
-    #[cfg_attr(not(feature = "desktop"), allow(dead_code))]
     pub(crate) fn next_playback(&mut self, id: AnilistId, episode: &str) -> Played {
         self.playbacks += 1;
-        let played = Played { serial: self.playbacks, id, episode: episode.to_owned() };
+        let played =
+            Played { serial: PlaybackId::new(self.playbacks), id, episode: episode.to_owned() };
         self.cache.started(&played);
         played
     }

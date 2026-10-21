@@ -58,7 +58,7 @@ impl FfiEngine {
         let started = runtime.block_on(async {
             let server = FakeAniList::start().await;
             server.set_now(now);
-            let options = testing::options(opened, &server, &start)?;
+            let options = testing::options(opened, &server, &start, anistream_testkit::sources::registry())?;
             Ok::<_, FfiError>((Self::launch(options, host).await?, server))
         });
         match started {

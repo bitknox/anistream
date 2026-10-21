@@ -27,13 +27,14 @@ use tokio::{
 
 use crate::{
     bundle::Bundle,
-    companion::{self, ScriptEvent},
+    companion,
     ipc::{self, IpcStream},
     protocol::{
-        Command, EndReason, Event, MpvVersion, base_args, file_options, observed, parse_line,
-        session_args,
+        Command, EndReason, Event, MpvVersion, Reader, base_args, file_options, observed,
+        parse_line, session_args,
     },
 };
+pub use anistream_playback::PlaybackEvent;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PlayerError {
@@ -48,56 +49,6 @@ pub enum PlayerError {
 
     #[error("mpv exited before playback began")]
     ExitedEarly,
-}
-
-/// What the UI needs to know about playback.
-///
-/// A narrowed projection of the protocol events: the raw stream carries a lot that only
-/// matters internally, and passing it all to the UI would invite decisions being made in the
-/// wrong layer.
-#[derive(Debug, Clone, PartialEq)]
-pub enum PlaybackEvent {
-    /// Position and, once known, duration.
-    Progress {
-        position: f64,
-        duration: Option<f64>,
-    },
-    Paused(bool),
-    Speed(f64),
-    Volume(f64),
-    /// The file's chapter markers arrived: `(title, start_seconds)`.
-    Chapters(Vec<(String, f64)>),
-    /// The file finished loading. Until this, property reports describe no file at all.
-    Loaded,
-    /// The viewer did something inside the player — a key, a button, a menu pick.
-    Script(ScriptEvent),
-    /// The decoded picture's parameters, raw.
-    VideoParams(serde_json::Value),
-    /// The video track's description, raw.
-    VideoTrack(serde_json::Value),
-    /// The file's tracks, raw.
-    TrackList(serde_json::Value),
-    Aid(Option<i64>),
-    Sid(Option<i64>),
-    SubDelay(f64),
-    /// Playback is held waiting for data, or has resumed.
-    Buffering(bool),
-    /// Running total of frames the video output dropped.
-    FrameDrops(u64),
-    Seeking(bool),
-    /// The display the window is on, once mpv knows it.
-    Display {
-        width: u32,
-        height: u32,
-    },
-    /// The file was replaced by our own `loadfile`. The player is still there.
-    Replaced,
-    /// Playback of the file ended. `complete` is true only when mpv reached the end of it.
-    ///
-    /// The window outlives this: whether the player closes now is the playback loop's call.
-    Ended {
-        complete: bool,
-    },
 }
 
 /// What mpv said on stderr.
@@ -213,6 +164,12 @@ impl Drop for MpvSession {
 }
 
 impl MpvSession {
+    /// Whether this mpv takes the index argument `loadfile` gained in 0.38: the shape a load is
+    /// sent in.
+    pub fn loadfile_index(&self) -> bool {
+        self.loadfile_index
+    }
+
     /// What mpv reported on stderr.
     pub fn diagnostics(&self) -> &Diagnostics {
         &self.diagnostics
@@ -700,10 +657,8 @@ fn spawn_reader(
 ) {
     tokio::spawn(async move {
         let mut lines = BufReader::new(read_half).lines();
-        // Duration arrives separately from position, so it is remembered and attached.
-        let mut duration: Option<f64> = None;
-        // Display size arrives as two properties; reported once both are known.
-        let mut display: (Option<u32>, Option<u32>) = (None, None);
+        // What the session reads of it: positions with their duration, the display whole.
+        let mut reader = Reader::default();
 
         loop {
             let line = match lines.next_line().await {
@@ -722,50 +677,18 @@ fn spawn_reader(
             };
 
             let forwarded = match event {
-                Event::TimePos(position) => {
-                    Some(PlaybackEvent::Progress { position, duration })
-                }
-                Event::Duration(seconds) => {
-                    duration = Some(seconds);
-                    None
-                }
-                Event::Paused(paused) => Some(PlaybackEvent::Paused(paused)),
-                Event::Speed(speed) => Some(PlaybackEvent::Speed(speed)),
-                Event::Volume(volume) => Some(PlaybackEvent::Volume(volume)),
-                Event::Chapters(chapters) => Some(PlaybackEvent::Chapters(chapters)),
+                // The companion, speaking for the viewer: mpv's own.
                 Event::ClientMessage(args) => {
                     companion::parse_event(&args).map(PlaybackEvent::Script)
                 }
-                Event::EndFile(EndReason::Stop) => Some(PlaybackEvent::Replaced),
-                Event::EndFile(reason) => {
-                    // The next file's duration is its own.
-                    duration = None;
+                event => {
                     // Before the ending is sent, so whoever reads it already knows the window
                     // is going with it.
-                    if reason == EndReason::Quit {
+                    if event == Event::EndFile(EndReason::Quit) {
                         quit.store(true, Ordering::Relaxed);
                     }
-                    Some(PlaybackEvent::Ended { complete: reason.is_complete() })
+                    reader.read(event)
                 }
-                Event::FileLoaded => Some(PlaybackEvent::Loaded),
-                Event::VideoParams(value) => Some(PlaybackEvent::VideoParams(value)),
-                Event::VideoTrack(value) => Some(PlaybackEvent::VideoTrack(value)),
-                Event::TrackList(value) => Some(PlaybackEvent::TrackList(value)),
-                Event::Aid(id) => Some(PlaybackEvent::Aid(id)),
-                Event::Sid(id) => Some(PlaybackEvent::Sid(id)),
-                Event::SubDelay(delay) => Some(PlaybackEvent::SubDelay(delay)),
-                Event::Buffering(held) => Some(PlaybackEvent::Buffering(held)),
-                Event::FrameDrops(count) => Some(PlaybackEvent::FrameDrops(count)),
-                Event::Seeking(seeking) => Some(PlaybackEvent::Seeking(seeking)),
-                Event::DisplayWidth(width) => {
-                    display.0 = Some(width);
-                    display_event(display)
-                }
-                Event::DisplayHeight(height) => {
-                    display.1 = Some(height);
-                    display_event(display)
-                }
-                Event::Seek | Event::Reply { .. } | Event::Ignored => None,
             };
 
             if let Some(event) = forwarded
@@ -776,10 +699,6 @@ fn spawn_reader(
             }
         }
     });
-}
-
-fn display_event((width, height): (Option<u32>, Option<u32>)) -> Option<PlaybackEvent> {
-    Some(PlaybackEvent::Display { width: width?, height: height? })
 }
 
 #[cfg(test)]

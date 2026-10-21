@@ -134,6 +134,7 @@ dependencies = [
  "anistream-meta",
  "anistream-model",
  "anistream-net",
+ "anistream-playback",
  "anistream-player",
  "anistream-plugin",
  "anistream-plugin-store",
@@ -165,10 +166,12 @@ dependencies = [
  "anistream-meta",
  "anistream-model",
  "anistream-net",
+ "anistream-providers",
  "anistream-store",
  "anistream-testkit",
  "anistream-track",
  "futures",
+ "serde_json",
  "tempfile",
  "thiserror 2.0.19",
  "tokio",
@@ -214,11 +217,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "anistream-playback"
+version = "1.1.0"
+dependencies = [
+ "anistream-core",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "anistream-player"
 version = "1.1.0"
 dependencies = [
  "anistream-core",
  "anistream-net",
+ "anistream-playback",
  "async-trait",
  "open",
  "serde",

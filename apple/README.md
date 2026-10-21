@@ -321,6 +321,26 @@ trackers' and plugin stores' tokens for it, in the keychain: `secretGet`, `secre
 `secretDelete`, by id. The engine calls it on its own threads. With `.followConfig` and
 `token_storage = "file"` the host is never asked.
 
+The app hosts the player, libmpv embedded, and the engine drives it as it drives the terminal's
+mpv, in mpv's own vocabulary:
+
+- `Event.playerOps(playback:ops:)` is what the player is to do, in order: `.open`, `.load` with
+  the file's own options, `.addSubtitle`, `.set` with an `MpvValue`, `.seek`, `.shaders`,
+  `.audioFilter`, `.stop`, `.quit`, `.close`. Each goes to libmpv as it is.
+- `Event.playerUi(playback:ui:)` is what the player's own interface shows: the starting screen,
+  the episode, the menus, the skip button and its undo, Up Next, the stall prompt, the picture's
+  badges, alerts. Up Next's countdown is the app's: it starts at `endingAt`, and at zero the app
+  sends `PlayerCommand.playNext`.
+- `Command.playerReport(playback:report:)` is what the player says: `.fileLoaded`, each observed
+  property by name with its value as JSON, `.ended(reason:)`, `.closed`, the display and the
+  power it runs on. A report is taken in at once, not queued behind other commands.
+- What the viewer does in the player goes back as `Command.player(_:)`: `.takeSkip`,
+  `.undoSkip(to:)`, `.playNext`, `.cancelNext`, `.choose(_:)`, `.stallSwitch`, `.stallWait`,
+  `.nightMode(_:)`, `.upscaling(_:)`, and the transport controls the terminal's keys send.
+
+Each names its playback: one player can carry a binge, and the playback driving it changes as an
+episode rolls on to the next. See `anistream_model::hosted` for the whole protocol.
+
 ## Not yet
 
 - Playback: a play is answered with a notice until the engine can hand a stream to the app's own

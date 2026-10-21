@@ -21,7 +21,10 @@ use std::{
 };
 
 /// The keyring service name. Stable, because changing it would orphan every stored token.
-#[cfg_attr(any(test, target_os = "ios", target_os = "android"), allow(dead_code))]
+#[cfg_attr(
+    any(test, not(feature = "keychain"), target_os = "ios", target_os = "android"),
+    allow(dead_code)
+)]
 const SERVICE: &str = "anistream";
 
 #[derive(Debug, thiserror::Error)]
@@ -176,7 +179,8 @@ impl Backend {
 ///
 /// A phone's keychain belongs to the app, not to a library reaching for it, so on iOS and Android
 /// this has no keychain to ask and keeps the file alone: a front end there offers the platform's
-/// own store through its host.
+/// own store through its host. So does a build without the `keychain` feature, a native app's on
+/// macOS among them.
 #[derive(Debug, Clone)]
 pub struct LocalSecrets {
     dir: PathBuf,
@@ -370,7 +374,7 @@ impl SecretStore for LocalSecrets {
 /// The OS credential store, as `keyring` reaches it: the macOS keychain, Windows' credential
 /// manager, or the Secret Service over D-Bus. Each call is best effort, and a keychain that does
 /// not answer is one that is not there.
-#[cfg(not(any(test, target_os = "ios", target_os = "android")))]
+#[cfg(all(feature = "keychain", not(any(test, target_os = "ios", target_os = "android"))))]
 mod keychain {
     use super::SERVICE;
 
@@ -391,8 +395,12 @@ mod keychain {
 }
 
 /// No keychain on a phone: there the system's belongs to the app, which offers it through the
-/// host it runs the engine on, so [`LocalSecrets`] keeps the file alone.
-#[cfg(all(not(test), any(target_os = "ios", target_os = "android")))]
+/// host it runs the engine on, so [`LocalSecrets`] keeps the file alone. The same without the
+/// `keychain` feature, which a native app's build leaves off on the desktop too.
+#[cfg(all(
+    not(test),
+    any(not(feature = "keychain"), target_os = "ios", target_os = "android")
+))]
 mod keychain {
     pub(super) fn get(_: &str) -> Option<String> {
         None

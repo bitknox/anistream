@@ -177,6 +177,10 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: swift --version
       - name: Rust tests
+        run: cargo test -p anistream-ffi --features testing,cli
+      # The apps build the engine without the desktop feature, so its hosted player has to pass
+      # its contract in that build too, with the target and profile apple/scripts/engine.sh uses.
+      - name: Rust tests, the apps' build
         run: >-
           cargo test -p anistream-ffi --no-default-features --features testing
           --target aarch64-apple-darwin --profile app-dev

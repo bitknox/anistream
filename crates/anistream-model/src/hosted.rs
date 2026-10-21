@@ -1,0 +1,249 @@
+//! The player a front end hosts: what the engine tells it to do, what its own interface shows,
+//! and what it reports back.
+//!
+//! The terminal plays in mpv's child process. A native app plays in a player of its own, libmpv
+//! embedded, and the engine drives it the same way, through one protocol in mpv's own vocabulary:
+//!
+//! - [`PlayerOp`]s, on `Event::PlayerOps`, are what the player is to do, each one call of the
+//!   engine's, in order: load a file with its options, set a property, seek. The app hands them
+//!   to libmpv as they are.
+//! - [`PlayerUi`], on `Event::PlayerUi`, is what the player's own interface shows: the starting
+//!   screen, the skip button, Up Next, the menus, the stall prompt. The app draws it in place of
+//!   the companion script mpv wears in the terminal.
+//! - [`PlayerReport`]s, on `Command::PlayerReport`, are what the player says: each property it
+//!   observes as mpv reports it, the file loading and ending, the display it plays on, and the
+//!   power it runs on. The engine reads them exactly as it reads mpv's.
+//!
+//! Each names the playback it belongs to, a [`PlaybackId`]: one window can carry a binge, so the
+//! playback driving it changes as one episode rolls on to the next. What the viewer does in the
+//! player's own interface, taking a skip or picking from a menu, goes back as player commands,
+//! as the terminal's keys do.
+//!
+//! [`PlaybackId`]: crate::playback::PlaybackId
+
+use anistream_core::media::Translation;
+
+use crate::{
+    notice::NoticeKind,
+    playback::{NextEpisode, SkipKind},
+};
+
+/// One thing a hosted player is to do, as mpv would be told it. In order: a later one may
+/// depend on an earlier, as a seek does on the file loaded before it.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum PlayerOp {
+    /// Show the player, with nothing in it yet: what follows loads into it. `speed` and `volume`
+    /// are where the viewer left them, when the settings keep them.
+    Open { fullscreen: bool, speed: Option<f64>, volume: Option<f64> },
+    /// Open `url` in place of whatever is playing, with `options` that belong to this file
+    /// alone, as `loadfile`'s per-file options: the headers, the resume point as `start`, the
+    /// title and the track languages. A web stream may come as a loopback address the engine
+    /// serves, which mends what its host sends.
+    Load { url: String, options: Vec<MpvOption> },
+    /// Add an external subtitle track to the loaded file without selecting it, as `sub-add` with
+    /// the `auto` flag. `url` may be a local path the engine wrote the track to.
+    AddSubtitle { url: String, title: Option<String>, language: Option<String> },
+    /// Set a property.
+    Set { property: String, value: MpvValue },
+    /// Flip a flag, as `cycle`: `pause`, `fullscreen`.
+    Cycle { property: String },
+    /// Step a number by `delta`, as `add`: `speed`, `volume`. The player clamps it.
+    Add { property: String, delta: f64 },
+    /// Seek to `seconds`, or by them when not `absolute`; exactly, as `absolute+exact` and
+    /// `relative+exact`.
+    Seek { seconds: f64, absolute: bool },
+    /// Replace the upscaling chain with these shader files, all at once, as `glsl-shaders`.
+    /// Empty turns upscaling off.
+    Shaders { paths: Vec<String> },
+    /// Add or remove one labelled audio filter, as `af add` and `af remove`.
+    AudioFilter { add: bool, filter: String },
+    /// Report `chapter-list` again, as it stands now: the file has loaded, and whether it brought
+    /// chapters of its own decides whether the engine marks some.
+    RestateChapters,
+    /// Stop the file and keep the player, for the next one.
+    Stop,
+    /// The viewer stopped playback: close the player, and report how the file ended.
+    Quit,
+    /// Close the player: the playback is over and nothing more will be said to it.
+    Close,
+}
+
+/// One per-file option of `loadfile`, as mpv takes them: strings, lists already joined.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct MpvOption {
+    pub name: String,
+    pub value: String,
+}
+
+/// A property's value in mpv's own formats, for `mpv_set_property`.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum MpvValue {
+    Flag(bool),
+    Int(i64),
+    Double(f64),
+    String(String),
+    /// A node, a list or a map, as JSON text: `chapter-list`'s entries, the shader paths.
+    Node(String),
+}
+
+/// What a hosted player's own interface is to show: a state it keeps until told otherwise, or a
+/// moment to show.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum PlayerUi {
+    /// The starting screen: an episode is being found or opened, this one or the one that
+    /// follows it in the same player. It stays until the player has a picture.
+    Starting { title: String, episode: String, episode_title: Option<String> },
+    /// The episode on screen.
+    Episode {
+        number: String,
+        label: String,
+        title: Option<String>,
+        show: String,
+        translation: Translation,
+    },
+    /// What the player's menus list, whole.
+    Menus {
+        episodes: Vec<MenuEpisode>,
+        sources: Vec<MenuSource>,
+        translation: Translation,
+        upscaling: MenuChoices,
+        /// `None` while the picture is not HDR: the choice means nothing then.
+        tone_mapping: Option<MenuChoices>,
+        night_mode: bool,
+    },
+    /// The playhead entered a segment that can be skipped: offer to skip to `to`.
+    Skip { kind: SkipKind, to: f64 },
+    /// The segment on offer has passed.
+    SkipCleared,
+    /// A segment was skipped by itself: offer to undo it, back to `undo_to`.
+    AutoSkipped { kind: SkipKind, undo_to: f64 },
+    /// The Up Next card for `next`, whose `thumbnail` is the still to show. Its countdown is the
+    /// app's: it starts at `ending_at`, where the ending begins, or near the end when that is not
+    /// known, and when it reaches zero the app sends `PlayNext`. `auto` is whether the episode
+    /// rolls on by itself at the end when nobody does.
+    UpNext { next: NextEpisode, auto: bool, ending_at: Option<f64> },
+    /// Nothing plays next.
+    UpNextCleared,
+    /// The stream has been held waiting for data for `seconds`, mid-episode: offer another
+    /// stream, or to keep waiting.
+    Stall { seconds: u64 },
+    /// The stall is over.
+    StallCleared,
+    /// The file opened at `position`, where the viewer left it.
+    Resumed { position: f64 },
+    /// What the picture is and what is done to it, for its badges: the upscaler running, and the
+    /// HDR format.
+    Picture { upscaler: Option<String>, hdr: Option<String> },
+    /// Where the seek bar's previews are read from instead of the stream, when that differs: a
+    /// torrent's, which reads only what has downloaded.
+    Thumbnails { url: Option<String> },
+    /// A message on the video.
+    Alert { text: String, kind: NoticeKind },
+}
+
+/// One row of the player's Episodes menu.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct MenuEpisode {
+    pub number: String,
+    pub label: String,
+    pub title: Option<String>,
+    pub watched: bool,
+    pub filler: bool,
+    /// The episode playing.
+    pub current: bool,
+}
+
+/// One row of the player's Sources menu: a stream found for the episode, `id` being what
+/// `PlayerChoice::Source` picks it by.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct MenuSource {
+    pub id: String,
+    pub label: String,
+    pub detail: Option<String>,
+    /// The stream playing.
+    pub current: bool,
+}
+
+/// A menu of named choices with one current, the upscaling looks and the HDR curves.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct MenuChoices {
+    pub current: String,
+    pub options: Vec<MenuChoice>,
+}
+
+/// One choice in a [`MenuChoices`].
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct MenuChoice {
+    pub id: String,
+    pub label: String,
+    pub hint: Option<String>,
+}
+
+/// What a hosted player says of the playback it plays.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum PlayerReport {
+    /// The file opened: mpv's `file-loaded`.
+    FileLoaded,
+    /// An observed property changed: its name and its value as JSON, in mpv's own form, the
+    /// way `mpv_observe_property` with `MPV_FORMAT_NODE` gives it. The engine reads `time-pos`,
+    /// `duration`, `pause`, `speed`, `volume`, `chapter-list`, `video-params`,
+    /// `current-tracks/video`, `track-list`, `aid`, `sid`, `sub-delay`, `paused-for-cache`,
+    /// `frame-drop-count` and `seeking`.
+    Property { name: String, json: String },
+    /// The file ended: mpv's `end-file`, with its reason.
+    Ended { reason: PlayerEnd },
+    /// The player is gone: the viewer closed it, or it failed. Nothing more is said to it.
+    Closed,
+    /// The display the player is on, in pixels, with its scale, refresh rate and the EDR
+    /// headroom an HDR picture has above SDR white.
+    Display {
+        width: u32,
+        height: u32,
+        scale: f64,
+        refresh_hz: Option<f64>,
+        edr_headroom: Option<f64>,
+    },
+    /// What the device runs on: the upscaling chain starts one step lighter on battery, or in
+    /// low power mode.
+    Power { on_battery: bool, low_power: bool },
+}
+
+/// Why a file ended, as mpv's `end-file` says.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum PlayerEnd {
+    /// Played through to the end.
+    Eof,
+    /// The viewer closed it, or the player was told to quit.
+    Quit,
+    /// Replaced by the next `Load`.
+    Stop,
+    /// Moved on to another file in a playlist.
+    Redirect,
+    /// It could not play.
+    Error,
+    Unknown,
+}
+
+/// A pick in a hosted player's menus.
+#[derive(Debug, Clone, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum PlayerChoice {
+    /// An episode, by number, from the Episodes menu.
+    Episode(String),
+    /// A stream, by its [`MenuSource`] id.
+    Source(String),
+    /// The other translation.
+    Translation(Translation),
+    /// An HDR curve, by id.
+    ToneMapping(String),
+}
