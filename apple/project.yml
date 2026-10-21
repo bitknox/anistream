@@ -105,6 +105,26 @@ targetTemplates:
         type: folder
         buildPhase: resources
 
+  # libmpv's client and the surface it draws into, over the Mpv.xcframework that
+  # scripts/mpv.sh builds into .mpv/current. A first build phase checks it is current for the
+  # slice being built, as the engine's frameworks check theirs. The app embeds Mpv.framework
+  # when it takes this framework on (N3).
+  Player:
+    templates: [Framework]
+    sources: [Packages/AnistreamPlayer/Sources/AnistreamPlayer]
+    dependencies:
+      - framework: .mpv/current/Mpv.xcframework
+        embed: false
+    preBuildScripts:
+      - name: Check libmpv
+        script: |
+          "$PROJECT_DIR/scripts/mpv.sh" --check "$ANISTREAM_SLICE"
+        basedOnDependencyAnalysis: false
+    settings:
+      base:
+        # The check reads the script and the patches, which no input file list names.
+        ENABLE_USER_SCRIPT_SANDBOXING: false
+
   # The Fixtures app's flavour: the testing engine's starts, and products of its own.
   Fixtures:
     settings:
@@ -158,6 +178,9 @@ targets:
     dependencies:
       - target: AnistreamKit
         embed: false
+  AnistreamPlayer:
+    templates: [Player]
+    templateAttributes: { module: AnistreamPlayer }
   AnistreamUI:
     templates: [Framework]
     templateAttributes: { module: AnistreamUI }
@@ -182,6 +205,9 @@ targets:
     dependencies:
       - target: AnistreamKitFixtures
         embed: false
+  AnistreamPlayerFixtures:
+    templates: [Player, Fixtures]
+    templateAttributes: { module: AnistreamPlayer }
   AnistreamUIFixtures:
     templates: [Framework, Fixtures]
     templateAttributes: { module: AnistreamUI }

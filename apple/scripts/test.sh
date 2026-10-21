@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Builds the testing engine for macOS and runs every Swift package's tests with SwiftPM, under
-# Xcode or the Command Line Tools alone.
+# Builds the testing engine for macOS, and libmpv with its test media when AnistreamPlayer is
+# among the packages, and runs every Swift package's tests with SwiftPM, under Xcode or the
+# Command Line Tools alone.
 #
 #   apple/scripts/test.sh                 every package under apple/Packages
 #   apple/scripts/test.sh AnistreamStore  the ones named
@@ -19,6 +20,13 @@ if (( ! ${#packages[@]} )); then
 fi
 
 "$root/apple/scripts/engine.sh" testing macos
+# AnistreamPlayer's tests play real files through libmpv: its framework and their media.
+case " ${packages[*]} " in
+  *" AnistreamPlayer "*)
+    "$root/apple/scripts/mpv.sh" macos
+    "$root/apple/scripts/player-media.sh"
+    ;;
+esac
 
 flags=()
 # Swift Testing ships with the Command Line Tools, but outside where SwiftPM looks for it when
