@@ -23,6 +23,10 @@ rules=(
   "anistream-providers|$terminal"
   "anistream-track|$terminal"
   "anistream-player|$terminal"
+  "anistream-playback|$terminal"
+  # Pure: no process, no socket, no network and no mpv, so any front end's player can be driven
+  # by it. The child process, the IPC and the opener are anistream-player's.
+  "anistream-playback|^(anistream-player|anistream-net|tokio|open|keyring) "
   "anistream-plugin|$terminal"
   "anistream-plugin-store|$terminal"
   "anistream-model|$terminal"
@@ -55,13 +59,15 @@ for rule in "${rules[@]}"; do
   fi
 done
 
-# A phone's build: the engine and the FFI without the desktop feature, resolved for each phone
-# target on its own, since the keychain crate is left out by target rather than by feature.
-# Neither may reach the crate that runs mpv, the desktop's opener or the keychain crate: on a
-# phone the player, the browser and the keychain are the app's, reached through its host.
+# A native app's build: the engine and the FFI without the desktop feature, resolved for each
+# target on its own, since the keychain crate is left out by target on a phone and by feature
+# on a Mac. None may reach the crate that runs mpv, the desktop's opener or the keychain crate:
+# in a native app the player, the browser and the keychain are the app's, reached through its
+# host. The Mac app is built this way too, with no desktop feature. anistream-playback, the pure
+# half of playback, is allowed, and held to the same rule itself.
 phone='^(anistream-player|open|keyring) '
-for crate in anistream-engine anistream-ffi; do
-  for target in aarch64-apple-ios aarch64-linux-android; do
+for crate in anistream-playback anistream-engine anistream-ffi; do
+  for target in aarch64-apple-ios aarch64-linux-android aarch64-apple-darwin; do
     tree="$(cargo tree --quiet --color never -p "$crate" --no-default-features -e normal \
       --target "$target" --prefix none | sed 's/ (\*)$//' | sort -u)"
     found="$(grep -E "$phone" <<<"$tree" || true)"
