@@ -49,7 +49,7 @@ class AnistreamApp : Application(), PlayerHost {
         ).also { player ->
             store.onPlayback = player::apply
             PlayerConnection(this, player, scope)
-            SystemPhases(this, store, player).start()
+            SystemPhases(store, player).start()
         }
     }
 
