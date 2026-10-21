@@ -1,0 +1,48 @@
+# Every version the Android app builds with, pinned. Each was the latest stable release on
+# 2026-10-21; Media3 is pinned ahead of the player that will use it.
+[versions]
+agp = "9.4.1"
+kotlin = "2.4.21"
+compose-bom = "2026.09.00"
+# Not the 1.4.0 the BOM picks: in that stable release the Expressive APIs the design is built on
+# (MaterialExpressiveTheme, MotionScheme, ShortNavigationBar, LargeFlexibleTopAppBar, ButtonGroup)
+# are internal. 1.5.0-beta01 is the newest release that has them, on the BOM's Compose 1.12.
+material3 = "1.5.0-beta01"
+activity = "1.13.0"
+lifecycle = "2.11.0"
+navigation = "2.10.2"
+core = "1.19.1"
+coroutines = "1.11.0"
+media3 = "1.11.1"
+# 5.17 is the first with 16 KB aligned Android libraries.
+jna = "5.19.1"
+junit = "4.13.2"
+# The NDK the APK's native libraries are stripped with: the one android/scripts/engine.sh builds with.
+ndk = "30.0.16248370"
+
+[libraries]
+android-gradle-plugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
+kotlin-gradle-plugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+compose-gradle-plugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
+
+compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
+compose-foundation = { module = "androidx.compose.foundation:foundation" }
+compose-ui = { module = "androidx.compose.ui:ui" }
+compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
+compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
+compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
+activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity" }
+lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
+lifecycle-process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycle" }
+navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigation" }
+core-ktx = { module = "androidx.core:core-ktx", version.ref = "core" }
+coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+media3-session = { module = "androidx.media3:media3-session", version.ref = "media3" }
+media3-common = { module = "androidx.media3:media3-common", version.ref = "media3" }
+# The Android build, its native libraries for every ABI inside the AAR.
+jna-aar = { module = "net.java.dev.jna:jna", version.ref = "jna" }
+# The JVM build, with this Mac's native library, for the unit tests.
+jna-jvm = { module = "net.java.dev.jna:jna", version.ref = "jna" }
+junit = { module = "junit:junit", version.ref = "junit" }

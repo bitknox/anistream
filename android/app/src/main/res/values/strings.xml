@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">anistream</string>
+    <string name="notices_channel">Notices</string>
+    <string name="notices_channel_description">Copies of the app\'s notices, for when anistream is in the background.</string>
+</resources>
