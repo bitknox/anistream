@@ -201,6 +201,40 @@ pub struct DownloadsConfig {
     /// (each live swarm holds dozens of sockets, and file descriptors are finite). This key
     /// only decides whether a *finished download* keeps seeding.
     pub keep_seeding: bool,
+    /// Which version of an episode a download takes: the one playback would stream, or the
+    /// best a source offers. Read by the native apps' Downloads settings and by every download
+    /// queued, the terminal's included.
+    pub quality: DownloadQuality,
+    /// How many of a show's next episodes a download keeps on the device, `0` for none. A
+    /// native app's setting: the terminal reads and keeps it, and acts on nothing it says.
+    pub keep_next: u32,
+    /// Whether downloads run over a cellular connection. Off by default, so a phone does not
+    /// spend a data plan on its own. Only the native apps know which network they are on; the
+    /// terminal keeps it as it is.
+    pub on_cellular: bool,
+}
+
+/// Which version of an episode a download takes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DownloadQuality {
+    /// The quality playback asks for, `playback.quality`: what the episode would stream at.
+    #[default]
+    Standard,
+    /// The best version a source offers, and more space.
+    Higher,
+}
+
+impl DownloadQuality {
+    /// The vertical resolution a download ranks its streams toward, with `playback` being
+    /// what playback asks for: [`crate::stream::Stream::quality_rank`] puts the highest first
+    /// when nothing is too high.
+    pub const fn resolution(self, playback: u32) -> u32 {
+        match self {
+            Self::Standard => playback,
+            Self::Higher => u32::MAX,
+        }
+    }
 }
 
 /// The Discord application a presence appears under when none is configured.
@@ -263,7 +297,15 @@ impl Default for PresenceConfig {
 
 impl Default for DownloadsConfig {
     fn default() -> Self {
-        Self { directory: None, merge_subtitles: true, keep_seeding: false, on_complete: None }
+        Self {
+            directory: None,
+            merge_subtitles: true,
+            keep_seeding: false,
+            on_complete: None,
+            quality: DownloadQuality::Standard,
+            keep_next: 0,
+            on_cellular: false,
+        }
     }
 }
 
@@ -456,6 +498,14 @@ pub struct PlaybackConfig {
     pub persisted_volume: Option<f64>,
     pub skip_opening: bool,
     pub skip_filler: bool,
+    /// How many seconds Up Next counts down before the next episode plays, `0` for no
+    /// countdown: the card waits for Play now. The native apps' player reads it; the terminal's
+    /// companion keeps its own ten seconds.
+    pub up_next_countdown: u32,
+    /// Blur the stills of unwatched episodes after the next one; titles and synopses stay. On by
+    /// default, and a show can say otherwise. The native apps draw it; the terminal shows no
+    /// stills.
+    pub spoiler_protection: bool,
     /// Put the opening and ending on the seek bar as chapter markers, where the stream carries
     /// no chapters of its own.
     ///
@@ -520,6 +570,8 @@ impl Default for PlaybackConfig {
             skip_opening: true,
             mark_chapters: true,
             skip_filler: false,
+            up_next_countdown: 10,
+            spoiler_protection: true,
             fullscreen: false,
             players: vec!["mpv".into(), "external".into()],
             mpv_binary: "mpv".into(),
@@ -622,6 +674,9 @@ pub struct TorrentConfig {
     /// goes oldest first, at launch and while the app runs. Downloads count toward it but are
     /// never removed by it. `0` keeps nothing that is not in use.
     pub cache_limit_gb: u32,
+    /// Whether torrents run over a cellular connection. Off by default. Only the native apps
+    /// know which network they are on; the terminal keeps it as it is.
+    pub on_cellular: bool,
 }
 
 impl Default for TorrentConfig {
@@ -637,6 +692,7 @@ impl Default for TorrentConfig {
             // Room for a dozen episodes at 1080p: enough that resuming or rewatching last
             // night's episodes is instant, small enough that nobody's disk fills over a season.
             cache_limit_gb: 20,
+            on_cellular: false,
         }
     }
 }
@@ -733,6 +789,16 @@ impl TorrentConfig {
                 }
             }
         }
+        if self.vpn.on_leak == LeakAction::Warn
+            && !self.vpn.i_understand_a_failed_check_keeps_torrents_running
+        {
+            return Err(crate::Error::Config(
+                "providers.torrent.vpn.on_leak is \"warn\": set \
+                 i_understand_a_failed_check_keeps_torrents_running = true to confirm, or \
+                 choose pause or stop"
+                    .into(),
+            ));
+        }
         Ok(())
     }
 }
@@ -766,6 +832,9 @@ pub struct VpnConfig {
     pub on_leak: LeakAction,
     /// Required when `mode = "none"`. Named to be impossible to set by accident.
     pub i_understand_my_ip_is_exposed: bool,
+    /// Required when `on_leak = "warn"`, for the same reason: a failed check then leaves
+    /// torrents running on a connection that may be your own.
+    pub i_understand_a_failed_check_keeps_torrents_running: bool,
 }
 
 impl Default for VpnConfig {
@@ -778,6 +847,7 @@ impl Default for VpnConfig {
             verify_interval_secs: 60,
             on_leak: LeakAction::Pause,
             i_understand_my_ip_is_exposed: false,
+            i_understand_a_failed_check_keeps_torrents_running: false,
         }
     }
 }
@@ -815,6 +885,10 @@ pub enum LeakAction {
     Pause,
     /// Tear the session down entirely.
     Stop,
+    /// Keep torrents running and say the check failed. Requires
+    /// `i_understand_a_failed_check_keeps_torrents_running`, as `mode = "none"` requires its
+    /// own acknowledgement.
+    Warn,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -1046,6 +1120,38 @@ mod tests {
         );
         assert_eq!(cfg.theme.mode, ThemeMode::Adaptive);
         assert!(!cfg.theme.nerd_font);
+    }
+
+    #[test]
+    fn the_native_apps_settings_default_to_what_their_boards_show() {
+        let cfg = Config::default();
+        assert_eq!(cfg.playback.up_next_countdown, 10, "Up Next counts down from ten");
+        assert!(cfg.playback.spoiler_protection, "on by default");
+        assert_eq!(cfg.downloads.quality, DownloadQuality::Standard);
+        assert_eq!(cfg.downloads.keep_next, 0, "nothing kept unasked");
+        assert!(!cfg.downloads.on_cellular && !cfg.providers.torrent.on_cellular);
+        assert_eq!(cfg.providers.torrent.vpn.on_leak, LeakAction::Pause);
+        assert_eq!(DownloadQuality::Standard.resolution(720), 720);
+        assert_eq!(DownloadQuality::Higher.resolution(720), u32::MAX);
+    }
+
+    #[test]
+    fn warning_on_a_failed_check_needs_its_own_acknowledgement() {
+        // As `mode = "none"` does: a failed check then leaves torrents running.
+        let on = r#"
+            [providers.torrent]
+            enabled = true
+            rss_url = "https://indexer.example/rss?q={query}"
+            [providers.torrent.vpn]
+            mode = "external"
+            on_leak = "warn"
+        "#;
+        let err = Config::from_toml(on).unwrap_err().to_string();
+        assert!(err.contains("i_understand_a_failed_check_keeps_torrents_running"), "{err}");
+        let acknowledged =
+            format!("{on}i_understand_a_failed_check_keeps_torrents_running = true\n");
+        let cfg = Config::from_toml(&acknowledged).unwrap();
+        assert_eq!(cfg.providers.torrent.vpn.on_leak, LeakAction::Warn);
     }
 
     #[test]
