@@ -70,8 +70,7 @@ internal class BrowserSignIn(private val activity: ComponentActivity, private va
      */
     fun handle(intent: Intent?): Boolean {
         val data = intent?.data ?: return false
-        if (data.scheme != SCHEME || data.host != "auth") return false
-        val tracker = data.pathSegments.firstOrNull() ?: return true
+        val tracker = trackerOf(data) ?: return false
         val request = open?.takeIf { it.tracker == tracker } ?: store.accounts.signIn.value?.takeIf { it.tracker == tracker }
         open = null
         away = false
@@ -99,8 +98,23 @@ internal class BrowserSignIn(private val activity: ComponentActivity, private va
         }
     }
 
-    private companion object {
-        const val SCHEME = "anistream"
-        const val CLOSE_GRACE_MILLIS = 400L
+    companion object {
+        private const val SCHEME = "anistream"
+        private const val CLOSE_GRACE_MILLIS = 400L
+
+        /**
+         * The tracker a sign-in's redirect is for: anistream://auth/<tracker>, or the App Link
+         * https://anistream.tv/auth/<tracker>. `null` for any other link.
+         */
+        fun trackerOf(data: Uri): String? {
+            val segments = data.pathSegments
+            return when {
+                data.scheme == SCHEME && data.host == "auth" -> segments.firstOrNull()
+                data.scheme == "https" && data.host == APP_LINK_HOST && segments.firstOrNull() == "auth" -> segments.getOrNull(1)
+                else -> null
+            }?.takeIf { it.isNotEmpty() }
+        }
+
+        private const val APP_LINK_HOST = "anistream.tv"
     }
 }

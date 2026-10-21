@@ -30,13 +30,22 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Where the AniList and MyAnimeList sign-ins send the browser back:
-                 anistream://auth/anilist and anistream://auth/mal. -->
+            <!-- Where the MyAnimeList sign-in sends the browser back, anistream://auth/mal, and
+                 AniList's while its Android client is not registered, anistream://auth/anilist. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="anistream" android:host="auth" android:pathPrefix="/" />
+            </intent-filter>
+            <!-- AniList's sign-in on Android comes back on a verified App Link, which no other app
+                 can claim: its implicit grant puts the token in the redirect. Verified against
+                 https://anistream.tv/.well-known/assetlinks.json. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="anistream.tv" android:pathPrefix="/auth/anilist" />
             </intent-filter>
             <!-- Plugin store invites, which open the join sheet with the link in it:
                  anistream://join?link=<the store's https invite>, and the store's own
