@@ -157,6 +157,8 @@ public final class PlayerModel {
     public var pinnedControls = false
     /// The Mac's mini player: the window small in a corner, floating, with the essentials.
     public var miniPlayer = false
+    /// The pointer over the seek line on the Mac, at this time: the bubble shows there.
+    public private(set) var hovering: Double?
     /// How fast scrubbing moves now: 1, ½ or ¼.
     public private(set) var scrubPace: Double = 1
     /// Where `sub-pos` is headed, lifting the subtitles above the controls.
@@ -468,6 +470,7 @@ public final class PlayerModel {
         ticker = nil
         holds = []
         scrubbing = nil
+        hovering = nil
         nowPlaying.clear()
         awake.update(playing: false)
         PlaybackSession.end()
@@ -894,6 +897,15 @@ public final class PlayerModel {
         if let sent = scrubSent, abs(sent - seconds) < 0.5 { return }
         scrubSent = seconds
         enqueue(.call(.seek(seconds: seconds, mode: .keyframe)))
+    }
+
+    /// The pointer over the seek line at `seconds`, or off it: the time, the chapter and the
+    /// frame there show above it, as the terminal's thumbnails do. The preview opens on the first
+    /// hover of a file.
+    public func hover(at seconds: Double?) {
+        hovering = seconds
+        guard let seconds else { return }
+        if !lowPower(), let source = previewSource { preview.show(seconds, of: source) }
     }
 
     public func endScrub() {

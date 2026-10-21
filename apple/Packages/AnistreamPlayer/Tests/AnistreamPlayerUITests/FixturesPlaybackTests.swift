@@ -155,6 +155,12 @@ struct FixturesPlaybackTests {
         #expect(model.duration.map { abs($0 - 60) < 1 } == true)
         model.poke()
         #expect(model.controlsVisible)
+        // Hovering the seek line: the hidden mpv reads the mended stream, from the engine's
+        // thumbnails address through the mender, and shows a frame.
+        model.hover(at: 9)
+        try await until("the preview's frame", timeout: .seconds(15)) { model.preview.ready }
+        #expect(model.thumbnails?.hasPrefix("http://127.0.0.1:") == true)
+        model.hover(at: nil)
         let requests = server.requests
         let refused = requests.filter { !$0.allowed }.map(\.path)
         #expect(!requests.isEmpty)

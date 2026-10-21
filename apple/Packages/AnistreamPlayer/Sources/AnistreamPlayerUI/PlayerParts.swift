@@ -168,8 +168,21 @@ struct SeekLine: View {
                         model.endScrub()
                     }
             )
+            .onContinuousHover { phase in
+                #if os(macOS)
+                // The Mac's pointer shows the bubble without a click; a finger only by dragging.
+                guard showsPreview, duration > 0 else { return }
+                switch phase {
+                case .active(let location):
+                    let fraction = min(1, max(0, location.x / max(proxy.size.width, 1)))
+                    model.hover(at: fraction * duration)
+                case .ended:
+                    model.hover(at: nil)
+                }
+                #endif
+            }
             .overlay(alignment: .topLeading) {
-                if showsPreview, let time = model.scrubbing, duration > 0 {
+                if showsPreview, let time = model.scrubbing ?? model.hovering, duration > 0 {
                     let width = ScrubBubble.width
                     let x = proxy.size.width * time / duration - width / 2
                     ScrubBubble(model: model, time: time)
