@@ -20,6 +20,7 @@ pub mod outbox;
 pub mod preference;
 pub mod schema;
 pub mod server_health;
+pub mod show_setting;
 pub mod state;
 pub mod stats;
 pub mod track_memory;

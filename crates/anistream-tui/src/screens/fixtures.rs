@@ -81,6 +81,7 @@ pub(super) fn provider(
         last_error: None,
         usable,
         held_back: held,
+        ..Default::default()
     }
 }
 

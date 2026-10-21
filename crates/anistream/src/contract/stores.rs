@@ -102,7 +102,7 @@ async fn an_invite_is_previewed_then_joined() {
     assert!(matches!(
         &updates[0],
         Event::StorePreview(InvitePreview::Store(preview))
-            if preview.name == "Ours" && !preview.already_joined
+            if preview.name == "Ours" && !preview.already_joined && preview.host == "127.0.0.1"
     ));
     ends(&updates, job);
 
@@ -119,6 +119,10 @@ async fn an_invite_is_previewed_then_joined() {
     let updates = h.settle().await;
     assert_eq!(names(&updates), ["Stores", "Stores", "JobDone"]);
     assert!(matches!(&updates[1], Event::Stores(rows) if rows[0].state == StoreState::Ready));
+    // Named by its host, and checked as it was joined and again just now.
+    let Event::Stores(rows) = &updates[1] else { unreachable!() };
+    assert_eq!(rows[0].host, "127.0.0.1");
+    assert!(rows[0].checked_at.is_some(), "checked");
     ends(&updates, job);
 }
 

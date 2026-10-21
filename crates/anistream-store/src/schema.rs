@@ -277,6 +277,26 @@ const MIGRATIONS: &[(&str, &str)] = &[
     "#,
     ),
     (
+        "0006_show_settings",
+        r#"
+    -- What a show sets for itself over the Settings screen's own: sub or dub, quality, the
+    -- opening and filler skipped or not, spoiler protection. One row per setting a show sets;
+    -- a setting with no row follows Settings, so a new default reaches every show that never
+    -- chose otherwise.
+    --
+    -- The value is text, as the model's rules for each setting write and read it, and the
+    -- setting is named by the model's stable name for it. A name this build no longer knows,
+    -- or a value it no longer reads, is passed over rather than refused.
+    CREATE TABLE show_setting (
+        anilist_id INTEGER NOT NULL,
+        setting    TEXT    NOT NULL,
+        value      TEXT    NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (anilist_id, setting)
+    );
+    "#,
+    ),
+    (
         "0007_server_health",
         r#"
     -- How each server a provider streams from has fared lately, so one that keeps failing is
@@ -285,9 +305,6 @@ const MIGRATIONS: &[(&str, &str)] = &[
     -- A server is the provider and the origin of its stream's address, `scheme://host[:port]`,
     -- never the path or query: a stream address carries signed tokens, and this table must hold
     -- nothing that could be replayed or that names what was watched.
-    --
-    -- Numbered after 0006, which another change takes for per-show settings. Migrations are
-    -- applied by name, so either may land first.
     CREATE TABLE server_health (
         provider_id          TEXT    NOT NULL,
         origin               TEXT    NOT NULL,
@@ -422,6 +439,7 @@ mod tests {
             "episode_meta",
             "provider_preference",
             "track_memory",
+            "show_setting",
             "server_health",
         ] {
             let found: bool = conn

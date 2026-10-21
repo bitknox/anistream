@@ -190,6 +190,8 @@ impl Engine {
                 (registry, Some(loading))
             }
         };
+        // A chain given whole too: a plugin switched off by name is in it, and not tried.
+        registry.set_disabled(config.providers.disabled.iter().cloned());
 
         // What every task is lent, built around that chain, or from a test's parts.
         #[cfg(feature = "testing")]
@@ -230,6 +232,8 @@ impl Engine {
         let (arrivals_tx, arrivals) = mpsc::unbounded_channel();
         // The engine side's own state, on the config the app was launched with.
         let mut state = EngineState::new(config, saved, &services.paths, arrivals_tx);
+        // With the counts of shows that set each setting for themselves, which the rows say.
+        state.config.set_overridden(crate::show_settings::counts(&services.store));
         let mut launch = VecDeque::new();
         // The settings first: everything after is drawn under the config they say.
         launch.push_back(Event::Settings(state.config.view()));
@@ -248,7 +252,8 @@ impl Engine {
         };
         // A chain given whole is final, so its rows are what launch says of it.
         if !own_chain {
-            launch.push_back(Event::Providers(data::provider_rows(&services.registry)));
+            let rows = data::provider_rows(&services.registry, &services.stores);
+            launch.push_back(Event::Providers(rows));
         }
 
         // Background work reports through this, each piece holding its own sender, and the
@@ -785,7 +790,15 @@ impl Actor {
             prefetch(*id, episode.clone(), &self.state, &self.services);
             return Vec::new();
         }
-        let skip_filler = self.state.config.effective().playback.skip_filler;
+        // As the show that ended has it: a show can skip filler, or not, for itself.
+        let effective = self.state.config.effective();
+        let skip_filler = match &finished {
+            Some(staged) => {
+                let store = &self.services.store;
+                crate::show_settings::for_show(effective, store, staged.id).playback.skip_filler
+            }
+            None => effective.playback.skip_filler,
+        };
         let (mut said, follow) = autonext::follow(
             event,
             finished,
@@ -1220,6 +1233,221 @@ mod tests {
         let row = view.rows.iter().find(|row| row.key == SettingKey::Translation).unwrap();
         assert_eq!(row.value, "sub · dub this session");
         assert!(!dir.path().join("config.toml").exists(), "the file is the saved choice's");
+    }
+
+    #[tokio::test]
+    async fn a_show_sets_a_setting_for_itself_and_the_settings_count_it() {
+        use anistream_core::settings::SettingValue;
+        use anistream_model::{
+            settings::{SettingKey, SettingOverride},
+            show::ShowSettingKey,
+        };
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        let launch = events.launch().await;
+        let Some(Event::Settings(view)) = launch.first() else { panic!("{launch:?}") };
+        assert!(view.overridden.is_empty(), "no show sets anything yet");
+        let id = anistream_core::ids::AnilistId::new(900_001);
+
+        let key = ShowSettingKey::SkipOpening;
+        engine.send(Command::SetShowSetting {
+            id,
+            key,
+            value: Some(SettingValue::Bool(false)),
+        });
+        let seen = until(&mut events, |e| matches!(e, Event::Settings(_))).await;
+        let [Event::ShowSettings(sheet), Event::Settings(view)] = &seen[..] else {
+            panic!("the sheet, then the settings: {seen:?}")
+        };
+        assert_eq!(sheet.id, id);
+        let row = sheet.rows.iter().find(|row| row.key == key).unwrap();
+        assert_eq!(row.own, Some(SettingValue::Bool(false)));
+        assert_eq!((row.value.as_str(), row.default.as_str()), ("off", "on"));
+        assert_eq!(
+            view.overridden,
+            [SettingOverride { key: SettingKey::SkipOpening, shows: 1 }]
+        );
+        assert!(!dir.path().join("config.toml").exists(), "Settings' own value is untouched");
+
+        // Asked for again, as a sheet opening does.
+        engine.send(Command::LoadShowSettings { id });
+        let seen = until(&mut events, |e| matches!(e, Event::ShowSettings(_))).await;
+        let [Event::ShowSettings(again)] = &seen[..] else {
+            panic!("the sheet alone: {seen:?}")
+        };
+        assert_eq!(again, sheet);
+
+        engine.send(Command::SetShowSetting { id, key, value: None });
+        let seen = until(&mut events, |e| matches!(e, Event::Settings(_))).await;
+        let [Event::ShowSettings(sheet), Event::Settings(view)] = &seen[..] else {
+            panic!("the sheet, then the settings: {seen:?}")
+        };
+        assert!(sheet.rows.iter().all(|row| row.own.is_none()), "following Settings again");
+        assert!(view.overridden.is_empty());
+    }
+
+    #[tokio::test]
+    async fn a_value_a_show_setting_does_not_take_is_refused_in_words() {
+        use anistream_core::settings::SettingValue;
+        use anistream_model::{notice::NoticeKind, show::ShowSettingKey};
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        events.launch().await;
+        let id = anistream_core::ids::AnilistId::new(900_001);
+
+        let value = Some(SettingValue::Str("hd".into()));
+        engine.send(Command::SetShowSetting { id, key: ShowSettingKey::Quality, value });
+        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        let [Event::Toast(refusal)] = &seen[..] else { panic!("the refusal alone: {seen:?}") };
+        assert_eq!(refusal.kind, NoticeKind::Alert);
+        assert_eq!(refusal.text, "not saved: \u{201c}hd\u{201d} is not a quality");
+    }
+
+    #[tokio::test]
+    async fn a_reset_puts_the_show_back_on_settings_with_the_source_it_kept() {
+        use anistream_core::settings::SettingValue;
+        use anistream_model::{settings::SettingKey, show::ShowSettingKey};
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        events.launch().await;
+        let id = anistream_core::ids::AnilistId::new(900_001);
+
+        let dub = Some(SettingValue::Str("dub".into()));
+        engine.send(Command::SetShowSetting {
+            id,
+            key: ShowSettingKey::Translation,
+            value: dub,
+        });
+        until(&mut events, |e| matches!(e, Event::Settings(_))).await;
+        engine.send(Command::SetProviderPreference { id, provider: Some("yamabiko".into()) });
+        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        let [Event::Settings(view), Event::Toast(_)] = &seen[..] else {
+            panic!("the settings, counted again, then the notice: {seen:?}")
+        };
+        let counted: Vec<_> = view.overridden.iter().map(|o| (o.key, o.shows)).collect();
+        assert_eq!(counted, [(SettingKey::SourceOrder, 1), (SettingKey::Translation, 1)]);
+        engine.send(Command::LoadShowSettings { id });
+        let seen = until(&mut events, |e| matches!(e, Event::ShowSettings(_))).await;
+        let [Event::ShowSettings(sheet)] = &seen[..] else { panic!("{seen:?}") };
+        assert_eq!(sheet.source.as_deref(), Some("yamabiko"));
+
+        engine.send(Command::ResetShowSettings { id });
+        let seen = until(&mut events, |e| matches!(e, Event::Settings(_))).await;
+        let [Event::ShowSettings(sheet), Event::Settings(view)] = &seen[..] else {
+            panic!("the sheet, then the settings: {seen:?}")
+        };
+        assert!(sheet.rows.iter().all(|row| row.own.is_none()));
+        assert_eq!(sheet.source, None, "back to trying the sources in order");
+        assert!(sheet.remembered.is_empty());
+        assert!(view.overridden.is_empty());
+    }
+
+    #[tokio::test]
+    async fn a_proxy_is_written_as_one_change_and_its_password_kept_apart() {
+        use anistream_model::{
+            protection::{
+                FailedCheck, PROXY_SECRET, ProxyView, TorrentProtection, TorrentProxy,
+            },
+            stores::Secret,
+        };
+        let dir = tempfile::tempdir().unwrap();
+        let kept = Arc::new(Kept::default());
+        let (engine, mut events) = engine_on(dir.path(), Arc::new(Keeping(kept.clone()))).await;
+        events.launch().await;
+
+        let proxy = TorrentProxy {
+            host: "10.64.0.1".into(),
+            port: 1080,
+            user: Some("mika".into()),
+            password: Some(Secret("lantern".into())),
+        };
+        engine.send(Command::SetTorrentProtection {
+            mode: TorrentProtection::Proxy,
+            proxy: Some(proxy.clone()),
+            on_failure: FailedCheck::Stop,
+            acknowledged: false,
+        });
+        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        let [Event::Settings(view), Event::Toast(saved)] = &seen[..] else {
+            panic!("the settings, then the notice: {seen:?}")
+        };
+        assert_eq!(view.refused, None);
+        assert_eq!(saved.text, "saved · torrent protection");
+        assert_eq!(view.torrent.protection, TorrentProtection::Proxy);
+        assert_eq!(view.torrent.on_failure, FailedCheck::Stop);
+        let user = Some("mika".to_owned());
+        let shown = ProxyView { host: "10.64.0.1".into(), port: 1080, user };
+        assert_eq!(view.torrent.proxy, Some(shown));
+        let file = std::fs::read_to_string(dir.path().join("config.toml")).unwrap();
+        assert!(file.contains("socks_url = \"socks5://mika@10.64.0.1:1080\""), "{file}");
+        assert!(file.contains("on_leak = \"stop\""), "{file}");
+        assert!(!file.contains("lantern"), "the password stays out of the file:\n{file}");
+        assert_eq!(kept.get(PROXY_SECRET).unwrap().as_deref(), Some("lantern"));
+
+        // The VPN on this device: the proxy's password is not kept for nothing.
+        engine.send(Command::SetTorrentProtection {
+            mode: TorrentProtection::Device,
+            proxy: None,
+            on_failure: FailedCheck::Pause,
+            acknowledged: false,
+        });
+        until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        assert_eq!(kept.get(PROXY_SECRET).unwrap(), None);
+    }
+
+    #[tokio::test]
+    async fn what_needs_confirming_is_refused_unconfirmed_and_nothing_written() {
+        use anistream_core::settings::SettingValue;
+        use anistream_model::{
+            notice::NoticeKind,
+            protection::{FailedCheck, TorrentProtection},
+            settings::SettingKey,
+        };
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, mut events) = quiet_engine(dir.path()).await;
+        events.launch().await;
+
+        engine.send(Command::SetTorrentProtection {
+            mode: TorrentProtection::None,
+            proxy: None,
+            on_failure: FailedCheck::Pause,
+            acknowledged: false,
+        });
+        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        let [Event::Settings(view), Event::Toast(refusal)] = &seen[..] else {
+            panic!("the settings, then the notice: {seen:?}")
+        };
+        assert_eq!(view.refused, Some(SettingKey::VpnMode));
+        assert_eq!(view.torrent.protection, TorrentProtection::Proxy, "as the file has it");
+        assert_eq!(refusal.kind, NoticeKind::Alert);
+        assert_eq!(refusal.text, "not saved: no protection needs your confirmation first");
+
+        // Warn only, as a setting, which cannot carry the confirmation.
+        let warn = SettingValue::Str("warn".into());
+        engine.send(Command::SetSetting { key: SettingKey::VpnOnFailure, value: warn });
+        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        let [Event::Settings(view), Event::Toast(refusal)] = &seen[..] else {
+            panic!("the settings, then the notice: {seen:?}")
+        };
+        assert_eq!(view.refused, Some(SettingKey::VpnOnFailure));
+        assert_eq!(refusal.text, "not saved: warn only needs your confirmation first");
+        assert!(!dir.path().join("config.toml").exists(), "nothing written");
+
+        // Confirmed, it is.
+        engine.send(Command::SetTorrentProtection {
+            mode: TorrentProtection::None,
+            proxy: None,
+            on_failure: FailedCheck::Warn,
+            acknowledged: true,
+        });
+        let seen = until(&mut events, |e| matches!(e, Event::Toast(_))).await;
+        let [Event::Settings(view), Event::Toast(_)] = &seen[..] else { panic!("{seen:?}") };
+        assert_eq!(view.torrent.protection, TorrentProtection::None);
+        let row = view.native_rows.iter().find(|r| r.key == SettingKey::VpnOnFailure).unwrap();
+        assert_eq!(row.value, "warn only");
+        let file = std::fs::read_to_string(dir.path().join("config.toml")).unwrap();
+        assert!(file.contains("i_understand_my_ip_is_exposed = true"), "{file}");
+        assert!(file.contains("i_understand_a_failed_check_keeps_torrents_running = true"));
     }
 
     #[cfg(not(feature = "desktop"))]

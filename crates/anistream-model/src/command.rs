@@ -7,7 +7,9 @@ use crate::{
     episodes::EpisodeRow,
     hosted::{PlayerChoice, PlayerReport},
     playback::{PlaybackId, Successor},
+    protection::{FailedCheck, TorrentProtection, TorrentProxy},
     settings::SettingKey,
+    show::ShowSettingKey,
     stores::Secret,
 };
 
@@ -268,6 +270,39 @@ pub enum Command {
     SetTranslation {
         translation: anistream_core::media::Translation,
     },
+    /// Protect torrent traffic with `mode`, through `proxy` when it is one, and have a failed
+    /// connection check do `on_failure`: written to the file as one change, the proxy's
+    /// password to the host's secret store and never to the file. No protection and warn only
+    /// need `acknowledged`, the viewer having confirmed it, unless the file holds that choice
+    /// already; asked for without it, nothing is written and a notice says why.
+    ///
+    /// Answered as [`Command::SetSetting`] is, with the torrent source brought back up on what
+    /// was written.
+    SetTorrentProtection {
+        mode: TorrentProtection,
+        proxy: Option<TorrentProxy>,
+        on_failure: FailedCheck,
+        acknowledged: bool,
+    },
+    /// Read one show's settings sheet: answered with
+    /// [`Event::ShowSettings`](crate::event::Event::ShowSettings).
+    LoadShowSettings {
+        id: AnilistId,
+    },
+    /// Set `key` for show `id` to `value`, or with `None` have it follow Settings again.
+    /// Answered with the show's sheet, and the settings with their counts of shows that set
+    /// each; a value the setting does not take changes nothing and is said.
+    SetShowSetting {
+        id: AnilistId,
+        key: ShowSettingKey,
+        value: Option<anistream_core::settings::SettingValue>,
+    },
+    /// Put show `id` back on Settings: everything it sets for itself, the source it keeps and
+    /// the tracks the player remembers for it, forgotten. Answered as
+    /// [`Command::SetShowSetting`] is.
+    ResetShowSettings {
+        id: AnilistId,
+    },
     /// Steer the playback `playback`, and only it: a command for one that is no longer the
     /// playback the engine started last is let go. What a hosted player sends, which names the
     /// playback its interface shows, so a Play Now or an Undo that arrives as one episode rolls
@@ -298,6 +333,13 @@ pub enum Command {
     /// Delete an installed plugin from this machine.
     RemovePlugin {
         plugin: String,
+    },
+    /// Switch the plugin `id` off, or back on, without removing it: it keeps its place and its
+    /// row, and is not tried while off. Answered with the settings, the Providers rows and a
+    /// notice; anything but a plugin is refused in words.
+    DisablePlugin {
+        id: String,
+        disabled: bool,
     },
     /// Make an invite link: for someone new with a name, for another device of yours without.
     CreateInvite {

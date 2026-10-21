@@ -5,7 +5,7 @@
 //! does, so the screen leaves its loading state whatever happened.
 
 use anistream_core::{media::SearchHit, traits::SourceCandidate};
-use anistream_model::{command::Command, event::Event};
+use anistream_model::{command::Command, event::Event, settings::SettingKey};
 use anistream_providers::{MockProvider, ProviderRegistry};
 use anistream_store::ResolutionRung;
 use anistream_testkit::{
@@ -37,6 +37,13 @@ fn unsure() -> ProviderRegistry {
 
 async fn harness(registry: ProviderRegistry) -> Harness {
     Harness::with(Options { registry: Some(registry), ..Options::default() }).await
+}
+
+/// How many shows keep a source of their own, as settings say it under the source order.
+fn kept_sources(update: &Event) -> u32 {
+    let Event::Settings(view) = update else { panic!("not the settings: {update:?}") };
+    let order = view.overridden.iter().find(|o| o.key == SettingKey::SourceOrder);
+    order.map_or(0, |o| o.shows)
 }
 
 /// The episode numbers a table holds.
@@ -71,14 +78,21 @@ async fn a_pin_written_inline_is_what_the_next_task_reads() {
     let updates = h.settle().await;
 
     assert!(pinned.is_none(), "a write nobody waits on");
-    assert_eq!(names(&updates), ["Toast", "ProviderPreference", "Detail", "JobDone"]);
+    // The settings first, with the shows that keep a source of their own counted again.
+    assert_eq!(
+        names(&updates),
+        ["Settings", "Toast", "ProviderPreference", "Detail", "JobDone"]
+    );
+    assert_eq!(kept_sources(&updates[0]), 1);
     assert_eq!(toasts(&updates), ["info: alt will be used for this title"]);
-    assert!(matches!(&updates[1], Event::ProviderPreference(Some(p)) if p == "alt"));
+    assert!(matches!(&updates[2], Event::ProviderPreference(Some(p)) if p == "alt"));
     ends(&updates, job);
     assert_eq!(h.store().provider_preference(FINISHED).unwrap().as_deref(), Some("alt"));
 
     h.send(Command::SetProviderPreference { id: FINISHED, provider: None });
     let updates = h.settle().await;
+    assert_eq!(names(&updates), ["Settings", "Toast"]);
+    assert_eq!(kept_sources(&updates[0]), 0);
     assert_eq!(toasts(&updates), ["info: back to automatic source selection"]);
     assert_eq!(h.store().provider_preference(FINISHED).unwrap(), None);
 }
@@ -181,15 +195,15 @@ async fn a_pinned_source_lists_its_own_episodes() {
     h.send(Command::SetProviderPreference { id: FINISHED, provider: Some("alt".into()) });
     let job = h.send(Command::LoadEpisodes(FINISHED));
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["Toast", "Episodes", "JobDone"]);
-    assert_eq!(numbers(&updates[1]), ["1", "2", "3"], "alt's numbering, which Enter plays");
+    assert_eq!(names(&updates), ["Settings", "Toast", "Episodes", "JobDone"]);
+    assert_eq!(numbers(&updates[2]), ["1", "2", "3"], "alt's numbering, which Enter plays");
     ends(&updates, job);
 
     h.send(Command::SetProviderPreference { id: FINISHED, provider: None });
     h.send(Command::LoadEpisodes(FINISHED));
     let updates = h.settle().await;
-    assert_eq!(names(&updates), ["Toast", "Episodes", "JobDone"]);
-    assert_eq!(numbers(&updates[1]).len(), 12, "the first source in the chain again");
+    assert_eq!(names(&updates), ["Settings", "Toast", "Episodes", "JobDone"]);
+    assert_eq!(numbers(&updates[2]).len(), 12, "the first source in the chain again");
 }
 
 #[tokio::test]

@@ -33,9 +33,15 @@ use crate::{
     outbox::{Internal, Outbox},
     playback::{prefetch::prefetch, resolve::load_sources},
     plugin_stores::tasks::{StoreTaskContext, store_task},
+    protection::set_torrent_protection,
     services::Services,
     settings::{set_setting, set_translation, step_setting},
-    sources::{self, commands::check_providers, torrent::reload_sources},
+    show_settings::{load_show_settings, reset_show_settings, set_show_setting},
+    sources::{
+        self,
+        commands::{check_providers, disable_plugin},
+        torrent::reload_sources,
+    },
     state::EngineState,
     titles::{
         episodes::{list_episodes, set_watched},
@@ -53,6 +59,8 @@ pub struct Lent {
     pub meta: Meta,
     pub store: Store,
     pub registry: ProviderRegistry,
+    /// The plugin stores joined, which say where each plugin came from.
+    pub stores: crate::plugin_stores::Stores,
     pub tx: Outbox,
 }
 
@@ -66,6 +74,7 @@ where
     let meta = services.meta.clone();
     let store = services.store.clone();
     let registry = services.registry.clone();
+    let stores = services.stores.clone();
     let tx = tx.clone();
 
     tokio::spawn(async move {
@@ -88,7 +97,7 @@ where
                 }
             }
         }
-        work(Lent { meta, store, registry, tx }).await;
+        work(Lent { meta, store, registry, stores, tx }).await;
     });
 }
 
@@ -143,7 +152,7 @@ pub(crate) fn dispatch(
             manual_search(id, query, job, engine, services, tx)
         }
         Command::SetProviderPreference { id, provider } => {
-            set_provider_preference(id, provider, services, tx)
+            set_provider_preference(id, provider, engine, services, tx)
         }
 
         // Playback.
@@ -203,6 +212,14 @@ pub(crate) fn dispatch(
         Command::StepSetting { key, delta } => step_setting(key, delta, engine, services, tx),
         Command::SetSetting { key, value } => set_setting(key, value, engine, services, tx),
         Command::SetTranslation { translation } => set_translation(translation, engine, tx),
+        Command::SetTorrentProtection { mode, proxy, on_failure, acknowledged } => {
+            set_torrent_protection(mode, proxy, on_failure, acknowledged, engine, services, tx)
+        }
+        Command::LoadShowSettings { id } => load_show_settings(id, engine, services, tx),
+        Command::SetShowSetting { id, key, value } => {
+            set_show_setting(id, key, value, engine, services, tx)
+        }
+        Command::ResetShowSettings { id } => reset_show_settings(id, engine, services, tx),
 
         // Off the loop, with no job: covers report back on their own.
         Command::FetchArtwork { url } => artwork::spawn_fetch(
@@ -232,6 +249,9 @@ pub(crate) fn dispatch(
         }
         Command::RemovePlugin { plugin } => {
             store_task(job, engine, services, tx, move |context| context.remove_plugin(plugin))
+        }
+        Command::DisablePlugin { id, disabled } => {
+            disable_plugin(id, disabled, engine, services, tx)
         }
         Command::CreateInvite { store, name } => {
             store_task(job, engine, services, tx, move |context| {
@@ -325,7 +345,10 @@ pub(crate) async fn handle_internal(
         // Only the order changed: the chain as it stands is put in it, with no rebuild.
         Internal::SourcesReordered => {
             sources::arrange(&services.registry, engine.config.effective());
-            said.push(Event::Providers(data::provider_rows(&services.registry)));
+            said.push(Event::Providers(data::provider_rows(
+                &services.registry,
+                &services.stores,
+            )));
         }
         // Awaited rather than spawned: this owns the session and the guard, and two
         // rebuilds racing would leave one of their sessions running with nothing holding
