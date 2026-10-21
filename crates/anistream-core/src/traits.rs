@@ -80,15 +80,21 @@ pub struct SourceCandidate {
     /// The release title as listed at the source.
     pub title: String,
     /// Vertical resolution, when the listing states one.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub quality: Option<u32>,
     /// Seeders, for swarm-backed sources. `None` where the concept does not apply.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub seeders: Option<u32>,
     /// Payload size as listed at the source, already human-readable (`"1.4 GiB"`).
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub size: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub dual_audio: bool,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub dubbed: bool,
     /// Whether automatic resolution would pick this one, so the list can say which
     /// release the user is currently getting.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub auto_pick: bool,
 }
 
