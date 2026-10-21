@@ -119,22 +119,18 @@ pub async fn finish(
     let params = auth::callback_params(&callback);
     let param = |name: &str| params.iter().find(|(n, _)| n == name).map(|(_, v)| v.as_str());
     // A redirect for some other request, or one replayed: not this sign-in's to finish, and
-    // not one to end it either, so the sheet's own redirect can still arrive. One with no
-    // state at all is taken only from AniList's implicit grant, with its token: its docs do not
-    // promise to carry the state back, and refusing every real sign-in over that would be no
-    // safety at all. It is said in the log, to be checked against the registered client.
-    let implicit_token = tracker == "anilist" && param("access_token").is_some();
-    match param("state") {
-        Some(state) if state == pending.state => {}
-        None if implicit_token => {
-            tracing::warn!(%tracker, "a sign-in redirect with no state, taken for its token");
-        }
-        _ => {
-            sync.pending.put(&tracker, pending);
-            return alert(format!(
-                "that sign-in to {tracker} did not come back from this request"
-            ));
-        }
+    // not one to end it either, so the sheet's own redirect can still arrive. Every request
+    // asks with a state, so a redirect without one is refused too, AniList's implicit grant
+    // with a token in it included, which carries the state back in the fragment beside the
+    // token: taken, a token anyone's page sent the app to would sign it in to their account.
+    if param("state") != Some(pending.state.as_str()) {
+        tracing::warn!(
+            %tracker,
+            stated = param("state").is_some(),
+            "a sign-in redirect that does not carry this request's state, refused"
+        );
+        sync.pending.put(&tracker, pending);
+        return alert(format!("that sign-in to {tracker} did not come back from this request"));
     }
     if let Some(error) = param("error") {
         let reason = param("error_description").unwrap_or(error);

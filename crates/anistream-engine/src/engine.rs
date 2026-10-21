@@ -1116,7 +1116,7 @@ mod tests {
         assert!(url.contains("redirect_uri=anistream%3A%2F%2Fauth%2Fmal"), "{url}");
         let state = url.split("&state=").nth(1).expect("a state");
 
-        // A code with no state is not this sign-in's: only AniList's token is taken without.
+        // A code with no state is not this sign-in's, as nothing without one is.
         let bare = Secret("anistream://auth/mal?code=a-code".into());
         engine.send(Command::FinishSignIn { tracker: "mal".into(), callback: bare });
         let refused = said(&until(&mut events, |e| matches!(e, Event::JobDone(_))).await);
