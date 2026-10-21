@@ -214,12 +214,20 @@ targets:
   AnistreamDesign:
     templates: [Design]
     templateAttributes: { module: AnistreamDesign }
+  # The widgets' snapshot, links and play intent (apple/Packages/AnistreamWidgets), which the
+  # store writes and the widget extension reads. It knows no engine.
+  AnistreamWidgetData:
+    templates: [Framework]
+    templateAttributes: { module: AnistreamWidgetData }
+    sources: [Packages/AnistreamWidgets/Sources/AnistreamWidgetData]
   AnistreamStore:
     templates: [Framework]
     templateAttributes: { module: AnistreamStore }
     sources: [Packages/AnistreamStore/Sources/AnistreamStore]
     dependencies:
       - target: AnistreamKit
+        embed: false
+      - target: AnistreamWidgetData
         embed: false
   AnistreamPlayer:
     templates: [Player]
@@ -243,6 +251,8 @@ targets:
         embed: false
       - target: AnistreamDesign
         embed: false
+      - target: AnistreamWidgetData
+        embed: false
 
   # The same, against the testing engine, for the Fixtures app and the tests.
   AnistreamKitFixtures:
@@ -251,12 +261,18 @@ targets:
   AnistreamDesignFixtures:
     templates: [Design, Fixtures]
     templateAttributes: { module: AnistreamDesign }
+  AnistreamWidgetDataFixtures:
+    templates: [Framework, Fixtures]
+    templateAttributes: { module: AnistreamWidgetData }
+    sources: [Packages/AnistreamWidgets/Sources/AnistreamWidgetData]
   AnistreamStoreFixtures:
     templates: [Framework, Fixtures]
     templateAttributes: { module: AnistreamStore }
     sources: [Packages/AnistreamStore/Sources/AnistreamStore]
     dependencies:
       - target: AnistreamKitFixtures
+        embed: false
+      - target: AnistreamWidgetDataFixtures
         embed: false
   AnistreamPlayerFixtures:
     templates: [Player, Fixtures]
@@ -280,6 +296,8 @@ targets:
         embed: false
       - target: AnistreamDesignFixtures
         embed: false
+      - target: AnistreamWidgetDataFixtures
+        embed: false
 
   Anistream:
     templates: [App]
@@ -288,8 +306,9 @@ targets:
         PRODUCT_NAME: Anistream
         PRODUCT_BUNDLE_IDENTIFIER: tv.anistream.app
         INFOPLIST_KEY_CFBundleDisplayName: anistream
-        # The anistream:// links the app opens.
+        # The anistream:// links the app opens, and the widgets' App Group.
         INFOPLIST_FILE: App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/Anistream.entitlements
     dependencies:
       - target: AnistreamKit
       - target: AnistreamDesign
@@ -297,6 +316,8 @@ targets:
       - target: AnistreamPlayer
       - target: AnistreamPlayerUI
       - target: AnistreamUI
+      - target: AnistreamWidgetData
+      - target: AnistreamWidgets
 
   Anistream Fixtures:
     templates: [App, Fixtures]
@@ -314,6 +335,7 @@ targets:
       - target: AnistreamPlayerFixtures
       - target: AnistreamPlayerUIFixtures
       - target: AnistreamUIFixtures
+      - target: AnistreamWidgetDataFixtures
 
   # Each package's tests, on the testing engine.
   AnistreamKitTests:
@@ -332,6 +354,7 @@ targets:
     dependencies:
       - target: AnistreamStoreFixtures
       - target: AnistreamKitFixtures
+      - target: AnistreamWidgetDataFixtures
   AnistreamUITests:
     templates: [Tests]
     sources: [Packages/AnistreamUI/Tests/AnistreamUITests]
@@ -339,6 +362,50 @@ targets:
       - target: AnistreamUIFixtures
       - target: AnistreamStoreFixtures
       - target: AnistreamKitFixtures
+      - target: AnistreamWidgetDataFixtures
+
+  # The home-screen widgets, Continue watching and Airing today, which the app embeds on the Mac,
+  # iPad and iPhone (apple/Packages/AnistreamWidgets: AnistreamWidgetUI's sources are compiled
+  # in here). They read the snapshot the app writes into the App Group, ANISTREAM_APP_GROUP, link
+  # no engine, and are sandboxed on the Mac.
+  AnistreamWidgets:
+    type: app-extension
+    supportedDestinations: [macOS, iOS]
+    sources:
+      - path: Widgets
+        excludes: ["Info.plist", "*.entitlements"]
+      - path: Packages/AnistreamWidgets/Sources/AnistreamWidgetUI
+      # The show-title face, bundled in the extension, whose process may not read the app's
+      # frameworks, and its licence.
+      - path: Packages/AnistreamDesign/Sources/AnistreamDesign/Fonts/ZenKakuGothicNew-Bold.ttf
+        buildPhase: resources
+        group: Widgets
+      - path: Packages/AnistreamDesign/Sources/AnistreamDesign/Fonts/OFL.txt
+        buildPhase: resources
+        group: Widgets
+    dependencies:
+      # Both embedded by the app, whose Frameworks the extension finds them in.
+      - target: AnistreamWidgetData
+        embed: false
+      - target: AnistreamDesign
+        embed: false
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+    settings:
+      base:
+        PRODUCT_NAME: AnistreamWidgets
+        PRODUCT_BUNDLE_IDENTIFIER: tv.anistream.app.widgets
+        GENERATE_INFOPLIST_FILE: true
+        INFOPLIST_FILE: Widgets/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: anistream
+        CODE_SIGN_ENTITLEMENTS: Widgets/AnistreamWidgets.entitlements
+        # The Mac's: sandboxed, with outgoing connections for AniList's public schedule.
+        ENABLE_APP_SANDBOX: true
+        ENABLE_OUTGOING_NETWORK_CONNECTIONS: true
+        ENABLE_HARDENED_RUNTIME: false
+        SKIP_INSTALL: true
+        LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]: $(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks
+        LD_RUNPATH_SEARCH_PATHS[sdk=iphone*]: $(inherited) @executable_path/Frameworks @executable_path/../../Frameworks
 
   # The accessibility audit (ux_part3): XCUITest's performAccessibilityAudit() over the Fixtures
   # app's main screens on an iPhone Simulator, at the default text size and at the largest.

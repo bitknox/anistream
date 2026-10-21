@@ -271,6 +271,31 @@ ignores, and put your team id in it (Xcode › Settings › Accounts shows it). 
 is signed to run locally and a Simulator build needs nothing. The Mac app is not sandboxed, so it
 reads the terminal's directories, and has no hardened runtime, which the plugins' compiler needs.
 
+## The widgets
+
+Continue watching and Airing today, on the Home Screen, the Lock Screen and the Mac desktop, are
+the **AnistreamWidgets** extension, which the app embeds on every platform. Its sources are in
+`Packages/AnistreamWidgets`:
+
+- **AnistreamWidgetData**: the snapshot and its files, the stale rules, the timelines' dates, what
+  each size shows in each state, the `anistream://` links, the small widget's play intent and
+  AniList's public schedule. It knows no engine, so the store and the extension both link it.
+- **AnistreamWidgetUI**: the layouts and the timeline providers, compiled into the extension.
+- **WidgetShots**: `swift run WidgetShots <dir>` draws every size and state from fixture snapshots.
+
+The app asks the engine for `Command::WidgetSnapshot` two seconds after Continue, the Calendar, a
+playback or a sync last changed, and `WidgetFeed` writes the answer, as `widgets/snapshot.json`
+with the art as small JPEGs in `widgets/art/`, into the App Group container, then reloads the
+widgets. A background task writes its own the same way, with `store.widgets.write(data, art:)`.
+The file keeps the engine record's field names and version, and the widgets read versions 1 and 2.
+With no snapshot, Airing today asks AniList's public schedule itself, at most every three hours.
+
+The App Group is one setting, `ANISTREAM_APP_GROUP` in `Config/Base.xcconfig`: `group.tv.anistream`
+on iPhone and iPad, and `<team>.tv.anistream` on the Mac, which signs with no provisioning profile.
+Without a team the Mac's has no group, and nothing is written. The Fixtures app names no group, so
+it never writes over the app's. Taps open `anistream://title/<id>`, `anistream://play/<id>/<episode>`,
+`anistream://calendar` and `anistream://settings/accounts`, which `opensWidgetLinks()` routes.
+
 ## Where the app keeps its data
 
 - **Mac**: the terminal app's own directories, so both apps share one config, one database and one
