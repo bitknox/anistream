@@ -251,6 +251,7 @@ pub(crate) fn dispatch(
         // with no job, each answered with one event.
         Command::CheckNewEpisodes => crate::new_episodes::check(engine, services, tx),
         Command::WidgetSnapshot => crate::widgets::snapshot(engine, services, tx),
+        Command::UpcomingNotices => crate::upcoming::answer(engine, services, tx),
 
         // The plugin stores.
         Command::LoadStores => {

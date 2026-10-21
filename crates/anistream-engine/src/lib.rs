@@ -112,6 +112,7 @@ pub(crate) mod state;
 pub mod title_language;
 pub mod titles;
 pub mod tracking;
+pub mod upcoming;
 pub mod updates;
 pub mod widgets;
 

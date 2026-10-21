@@ -763,6 +763,7 @@ pub fn name(update: &Event) -> &'static str {
         Event::LocalPlugins { .. } => "LocalPlugins",
         Event::NewEpisodes(_) => "NewEpisodes",
         Event::WidgetSnapshot(_) => "WidgetSnapshot",
+        Event::UpcomingNotices(_) => "UpcomingNotices",
     }
 }
 
@@ -905,5 +906,6 @@ fn copy(update: &Event) -> Event {
         }
         Event::NewEpisodes(episodes) => Event::NewEpisodes(episodes.clone()),
         Event::WidgetSnapshot(data) => Event::WidgetSnapshot(data.clone()),
+        Event::UpcomingNotices(week) => Event::UpcomingNotices(week.clone()),
     }
 }

@@ -15,7 +15,7 @@ use anistream_ffi::{FfiDirs, FfiEngine, FfiHost, FfiScene, FfiStart};
 use anistream_model::{
     command::Command,
     event::Event,
-    notifications::NewEpisode,
+    notifications::{NewEpisode, NoticeReason, UpcomingNotices},
     settings::SettingKey,
     show::ShowSettingKey,
     widgets::{WIDGET_DATA_VERSION, WidgetAiring, WidgetData, WidgetNextAiring},
@@ -174,6 +174,18 @@ fn snapshot(engine: &Arc<FfiEngine>) -> (WidgetData, Vec<String>) {
     let mut asked = asked_since(engine, before);
     asked.sort();
     (data.expect("the record"), asked)
+}
+
+/// The notifications' week: what it holds, and what it asked AniList.
+fn upcoming(engine: &Arc<FfiEngine>) -> (UpcomingNotices, Vec<String>) {
+    let before = engine.testing_anilist_requests().len();
+    assert_eq!(engine.send(Command::UpcomingNotices), None, "the week is not a job");
+    let read = read_until(engine, |event| matches!(event, Event::UpcomingNotices(_)));
+    let week = read.into_iter().find_map(|event| match event {
+        Event::UpcomingNotices(week) => Some(week),
+        _ => None,
+    });
+    (week.expect("the week"), asked_since(engine, before))
 }
 
 /// When episode `episode` of `id` airs at the fixtures' moment.
@@ -538,5 +550,53 @@ fn the_widgets_record_for_the_watching_scene() {
     assert_eq!(first, Some((AIRING, 7)));
     // The mark is pushed to the tracker; the record asks nothing.
     assert!(!asked.iter().any(|op| op == "Many" || op == "Schedule"), "{asked:?}");
+    engine.shutdown();
+}
+
+#[test]
+fn the_notifications_week_for_the_watching_scene() {
+    let (engine, _root) = watching();
+    let shift = shift(&engine);
+
+    // Off by default: the week is still said, for the pane to show what turning it on would do.
+    let (week, asked) = upcoming(&engine);
+    assert!(!week.enabled);
+    assert_eq!(asked, ["Schedule"], "the week's broadcasts, a page of them");
+    let rows: Vec<_> = week
+        .airings
+        .iter()
+        .map(|row| (row.id, row.episode, row.airs_at, row.reason, row.next_to_watch))
+        .collect();
+    // The two airing shows of the four under way, each behind: Kumo no Ue no Toshokan is at
+    // episode 4, Natsukaze Relay at 8. Each episode the week has of them, in the order they air.
+    let airs = |id, episode| fixture_airs(id, episode) + shift;
+    let expected: Vec<_> = fixtures::schedule()
+        .into_iter()
+        .filter(|b| [AIRING, AIRING_NO_MAL].contains(&b.media.id))
+        .map(|b| (b.media.id, b.episode, b.airing_at + shift))
+        .filter(|(_, _, at)| *at > week.generated_at && *at < days_of(week.generated_at).2)
+        .map(|(id, episode, at)| {
+            let next = if id == AIRING { 4 } else { 8 };
+            (id, episode, at, NoticeReason::Watching, next)
+        })
+        .collect();
+    assert!(expected.contains(&(AIRING, 6, airs(AIRING, 6), NoticeReason::Watching, 4)));
+    assert_eq!(rows, expected);
+    assert_eq!(week.overrides, 0);
+    for id in [AIRING, AIRING_NO_MAL] {
+        assert!(week.watching.contains(&id), "{id:?} is being watched");
+    }
+
+    // Switched off for itself, a show stays in the week, saying so, and is counted; asked again
+    // at once, the week fetched a moment ago answers.
+    notifications(&engine, true);
+    assert_eq!(notify_show(&engine, AIRING, Some(false)), "off");
+    let (week, asked) = upcoming(&engine);
+    assert!(week.enabled);
+    assert_eq!(asked, Vec::<String>::new());
+    assert_eq!(week.overrides, 1);
+    let reasons: Vec<_> =
+        week.airings.iter().filter(|row| row.id == AIRING).map(|row| row.reason).collect();
+    assert!(!reasons.is_empty() && reasons.iter().all(|r| *r == NoticeReason::SwitchedOff));
     engine.shutdown();
 }
