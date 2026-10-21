@@ -30,6 +30,7 @@ struct PhoneSettingsSheet: View {
                 }
         }
         .onAppear { if start != .root, path.isEmpty { path = [start] } }
+        .modifier(DeviceCodePresenter(here: true))
         .tint(.amber)
         .preferredColorScheme(.dark)
     }
