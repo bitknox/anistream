@@ -25,7 +25,7 @@ public enum SettingsPane: String, CaseIterable, Identifiable, Hashable, Sendable
 
 /// A page of the iPhone's Settings sheet.
 public enum PhoneSettingsPage: Hashable, Sendable {
-    case root, playback, downloads, sources, accounts, providers, stores
+    case root, playback, downloads, sources, accounts, providers, stores, about, acknowledgements
     case store(String)
     case plugin(String)
 
@@ -37,6 +37,7 @@ public enum PhoneSettingsPage: Hashable, Sendable {
         case "sources": .sources
         case "accounts": .accounts
         case "providers": .providers
+        case "about": .about
         case "stores", "pluginStores": .stores
         // The showcase's own, for screenshots.
         case "store": .store("hotaru")

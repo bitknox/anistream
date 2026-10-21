@@ -46,6 +46,8 @@ extension PhoneSettingsPage {
         case .accounts: PhoneAccountsPage()
         case .providers: PhoneProvidersPage()
         case .stores: PhoneStoresPage()
+        case .about: PhoneAboutPage()
+        case .acknowledgements: PhoneAcknowledgementsPage()
         case .store(let id): PhoneStorePage(id: id)
         case .plugin(let id): PhonePluginPage(id: id)
         }
@@ -243,15 +245,7 @@ struct PhoneSettingsRoot: View {
                 link(.accounts, "Accounts", "person", value: anilist?.connected == true ? "AniList" : "None")
             }
             Section {
-                HStack {
-                    Label("About", systemImage: "info.circle")
-                        .font(.ui(17))
-                        .foregroundStyle(.silk)
-                    Spacer()
-                    Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
-                        .foregroundStyle(.haze)
-                }
-                .listRowBackground(Palette.raised)
+                link(.about, "About", "info.circle", value: AppVersion.short)
             } footer: {
                 Text("anistream ships no sources of its own and hosts no content. Every source is external.")
             }
