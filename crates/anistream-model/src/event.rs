@@ -14,6 +14,7 @@ use crate::{
     playback::{Ending, PlaybackId, SkipKind},
     progress::{EpisodeProgress, TitleProgress},
     settings::SettingsView,
+    show::ShowSettingsView,
     sources::{GuardView, MatchCandidate, MetaSourceRow, ProviderRow},
     stores::{
         InviteLinkView, InvitePreview, LocalPluginRow, StoreInviteRow, StoreMemberRow, StoreRow,
@@ -84,6 +85,8 @@ pub enum Event {
     /// The config, as a front end shows it, whenever any of it changed: a setting written or
     /// refused, a session's choice, or what the player changed on its own.
     Settings(SettingsView),
+    /// One show's settings sheet: asked for, or changed.
+    ShowSettings(ShowSettingsView),
     /// The sources are being rebuilt, because a setting changed which ones should exist. Sent
     /// once the torrent stack is stood down and the chain swapped, ahead of what the rebuild
     /// reports: whatever reloads them has done so, and the screen only has to say it.

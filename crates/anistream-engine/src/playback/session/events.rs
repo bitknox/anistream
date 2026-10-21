@@ -8,11 +8,13 @@ use anistream_core::stream::Stream;
 use anistream_model::{
     command::PlayerCommand,
     event::Event,
+    hosted::TrackKind as TrackChoice,
     notice::{Notice, NoticeHint},
 };
 use anistream_playback::{
     Action, Choice, PlaybackEvent, PlaybackTracker, ScriptEvent, SkipKind, TrackInput,
 };
+use anistream_store::ServerFailure;
 use tokio::sync::mpsc;
 
 use super::{
@@ -21,6 +23,7 @@ use super::{
     controls::apply_command,
     presence::Rpc,
     skips::{offered, skip_target},
+    subtitles::LateSubtitles,
     upscaling::read_source,
 };
 use crate::playback::{
@@ -50,11 +53,15 @@ impl Run<'_> {
         streams: &[Stream],
         index: usize,
         commands: &mut mpsc::UnboundedReceiver<PlayerCommand>,
+        // Subtitle tracks still being fetched as the file opened, added as each arrives.
+        mut late: Option<LateSubtitles>,
     ) -> FileOutcome {
         let context = self.context;
         let settings = self.settings;
         let tx = self.tx;
         let link = player.link.as_ref();
+        // The file is loading: the time to its first frame is counted from here.
+        self.servers.begin();
 
         let mut tracker =
             PlaybackTracker::new(settings.threshold, self.skips.clone(), settings.auto_skip)
@@ -108,6 +115,10 @@ impl Run<'_> {
         player.picture.governor.new_file();
         self.hdr = None;
 
+        // Whether the file has loaded, which a track has to wait for before it can be added.
+        let mut loaded = false;
+        let mut waiting: Vec<anistream_core::stream::Subtitle> = Vec::new();
+
         let outcome = loop {
             // Controls and events are interleaved rather than polled in turn: a keystroke must
             // not wait on the next position tick, and a position tick must not wait on a
@@ -138,6 +149,7 @@ impl Run<'_> {
                     // killing it would turn a wait into a failure; the user now knows and can
                     // stop it.
                     warned = true;
+                    self.servers.late();
                     continue;
                 }
                 fetched = async { still_fetch.as_mut().expect("guarded").await },
@@ -184,6 +196,21 @@ impl Run<'_> {
                     }
                     continue;
                 }
+                // A subtitle track that arrived after the file opened: given to the player now,
+                // or as the file loads, which it has to be loaded for.
+                subtitle = async {
+                    match late.as_mut() {
+                        Some(late) => late.next().await,
+                        None => None,
+                    }
+                }, if late.is_some() => {
+                    match subtitle {
+                        Some(subtitle) if loaded => add_subtitle(link, &subtitle).await,
+                        Some(subtitle) => waiting.push(subtitle),
+                        None => late = None,
+                    }
+                    continue;
+                }
                 command = commands.recv(), if self.controls_open => {
                     match command {
                         Some(PlayerCommand::Handover(successor)) => {
@@ -220,6 +247,25 @@ impl Run<'_> {
                         }
                         Some(PlayerCommand::Step(delta)) => {
                             self.step(delta, link, true).await;
+                            continue;
+                        }
+                        // A pick in a hosted player's own menus: the engine selects it and
+                        // keeps it, rather than waiting to read it back.
+                        Some(PlayerCommand::ChooseTrack { kind, id }) => {
+                            let kind = match kind {
+                                TrackChoice::Audio => anistream_playback::tracks::TrackKind::Audio,
+                                TrackChoice::Subtitle => anistream_playback::tracks::TrackKind::Sub,
+                            };
+                            for action in player.tracks.viewer_chose(kind, id) {
+                                self.apply_track(action, link).await;
+                            }
+                            continue;
+                        }
+                        Some(PlayerCommand::SubtitleDelay { seconds }) => {
+                            let now = std::time::Instant::now();
+                            for action in player.tracks.viewer_delay(seconds, now) {
+                                self.apply_track(action, link).await;
+                            }
                             continue;
                         }
                         // What the viewer did in a hosted player's own interface: read as the
@@ -347,6 +393,8 @@ impl Run<'_> {
                             let _ = link.overlay(Overlay::StallCleared).await;
                         }
                         ScriptEvent::StallSwitch if streams.len() > 1 => {
+                            let stalled = ServerFailure::Stalled;
+                            self.servers.failed(self.store, &streams[index], stalled).await;
                             break FileOutcome::Switch {
                                 to: (index + 1) % streams.len(),
                                 at: tracker.position(),
@@ -361,6 +409,10 @@ impl Run<'_> {
                         add_subtitles(link, stream, settings.subtitle_language.as_deref()).await
                     {
                         tracing::debug!(error = %e, "could not attach external subtitles");
+                    }
+                    loaded = true;
+                    for subtitle in waiting.drain(..) {
+                        add_subtitle(link, &subtitle).await;
                     }
                 }
                 PlaybackEvent::Buffering(held) => {
@@ -382,6 +434,7 @@ impl Run<'_> {
                     if !ever_played {
                         ever_played = true;
                         let _ = link.overlay(Overlay::Playing).await;
+                        self.servers.served(self.store, &streams[index]).await;
                     }
                     // Mirror position to the UI so Now Playing can render without querying mpv —
                     // but only when the rendered value would actually change. mpv reports
@@ -497,6 +550,14 @@ fn from_the_player(command: PlayerCommand) -> Result<ScriptEvent, PlayerCommand>
         }),
         other => return Err(other),
     })
+}
+
+/// Attach one external subtitle track that arrived late to the loaded file.
+async fn add_subtitle(link: &dyn PlayerLink, subtitle: &anistream_core::stream::Subtitle) {
+    let language = (!subtitle.language.is_empty()).then(|| subtitle.language.clone());
+    if let Err(e) = link.add_subtitle(&subtitle.url, language.clone(), language).await {
+        tracing::debug!(error = %e, "could not attach a late subtitle");
+    }
 }
 
 /// Attach a stream's external subtitle tracks to the loaded file, the preferred language first:

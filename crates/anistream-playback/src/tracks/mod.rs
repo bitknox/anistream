@@ -284,6 +284,42 @@ impl TrackPolicy {
         actions
     }
 
+    /// The viewer picked track `id` of `kind` in a player's own menu, or with `None` turned
+    /// the subtitles off: select it, and remember it for the series at once, as a pick made
+    /// with mpv's own keys is once it is reported. Its report coming back is then mpv agreeing,
+    /// and nothing more. A track the list does not have, audio turned off, or a pick before the
+    /// file has loaded, does nothing.
+    pub fn viewer_chose(&mut self, kind: TrackKind, id: Option<i64>) -> Vec<TrackAction> {
+        let mut actions = Vec::new();
+        if !self.loaded || id.is_some_and(|id| self.find(kind, id).is_none()) {
+            return actions;
+        }
+        let set = match (kind, id) {
+            (TrackKind::Audio, Some(id)) => TrackAction::SetAid(id),
+            (TrackKind::Sub, id) => TrackAction::SetSid(id),
+            _ => return actions,
+        };
+        let slot = self.slot(kind);
+        slot.current = Some(id);
+        slot.expect = None;
+        actions.push(set);
+        self.remember_selection(kind, id, &mut actions);
+        actions
+    }
+
+    /// The viewer set the subtitle delay to `seconds` in a player's own controls: set it, and
+    /// remember it once it has sat still, as a delay moved with mpv's own keys is. Its report
+    /// coming back changes nothing.
+    pub fn viewer_delay(&mut self, seconds: f64, now: Instant) -> Vec<TrackAction> {
+        if !self.loaded || !self.chosen {
+            return Vec::new();
+        }
+        self.sub_delay = Some(seconds);
+        self.expect_delay = None;
+        self.delay_moved = Some(now);
+        vec![TrackAction::SetSubDelay(seconds)]
+    }
+
     fn has_selection(&self) -> bool {
         self.tracks.iter().any(|t| t.selected)
     }
@@ -425,6 +461,37 @@ mod tests {
         let late = session.feed_all(vec![TrackInput::Aid(Some(2)), TrackInput::Sid(Some(2))]);
         assert!(late.is_empty(), "{late:?}");
         assert!(session.policy.memory().is_empty());
+    }
+
+    #[test]
+    fn a_pick_in_a_hosted_players_menu_is_selected_and_remembered_at_once() {
+        let mut session = Session::new(sub_watcher(), None);
+        session.load(dual_audio(), Some(2), Some(2));
+        // Inside the settle window, where a report alone would be read as mpv settling: the
+        // pick is the viewer's because the viewer made it.
+        let actions = session.viewer_picks(TrackKind::Sub, Some(3));
+        assert_eq!(sets(&actions), [&TrackAction::SetSid(Some(3))]);
+        assert_eq!(remembered(&actions).len(), 1, "once, and not again as mpv agrees");
+        assert_eq!(remembered_track(&actions).title, "english sdh");
+        assert_eq!(session.selection(), (Some(2), Some(3)));
+
+        let off = session.viewer_picks(TrackKind::Sub, None);
+        assert_eq!(remembered_subtitles(&off).choice, SubtitleChoice::Off);
+        // Nothing to pick: a track the file does not have, and audio turned off.
+        assert!(session.viewer_picks(TrackKind::Sub, Some(42)).is_empty());
+        assert!(session.viewer_picks(TrackKind::Audio, None).is_empty());
+    }
+
+    #[test]
+    fn a_delay_set_in_a_hosted_player_is_remembered_once_it_sits_still() {
+        let mut session = Session::new(sub_watcher(), None);
+        session.load(dual_audio(), Some(2), Some(2));
+        let set = session.viewer_sets_delay(0.4);
+        assert_eq!(sets(&set), [&TrackAction::SetSubDelay(0.4)]);
+        assert!(remembered(&set).is_empty(), "not while it may still move");
+        session.wait(2.0);
+        let quiet = session.feed(TrackInput::Tick);
+        assert_eq!(remembered(&quiet).last().and_then(|m| m.sub_delay), Some(0.4));
     }
 
     #[test]

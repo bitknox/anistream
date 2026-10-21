@@ -172,17 +172,20 @@ pub(super) async fn apply_command(link: &dyn PlayerLink, command: PlayerCommand)
             let _ = link.add("volume", delta).await;
         }
         PlayerCommand::Fullscreen => {
-            let _ = link.cycle("fullscreen").await;
+            let _ = link.toggle_fullscreen().await;
         }
         PlayerCommand::Alert(text) => {
             let _ = link.overlay(Overlay::Toast { text, level: companion::Level::Alert }).await;
         }
         // Detaching is purely a UI move — mpv is untouched, which is the whole point.
         PlayerCommand::Detach => {}
-        // Handled by the playback loop itself, which owns the window and what it shows.
+        // Handled by the playback loop itself, which owns the window and what it shows, and the
+        // track policy, which owns the tracks.
         PlayerCommand::Handover(_)
         | PlayerCommand::Episodes { .. }
-        | PlayerCommand::Step(_) => {}
+        | PlayerCommand::Step(_)
+        | PlayerCommand::ChooseTrack { .. }
+        | PlayerCommand::SubtitleDelay { .. } => {}
         // What a player's own interface reports, read by the loop as the companion's word.
         PlayerCommand::TakeSkip
         | PlayerCommand::UndoSkip { .. }

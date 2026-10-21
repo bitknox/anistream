@@ -44,6 +44,7 @@ use crate::{
     outbox::Outbox,
     playback::{
         PlaybackContext,
+        health::Servers,
         link::{LinkError, Overlay, PlayerLink, PlayerOpener},
         picture::HdrKind,
         power::PowerSource,
@@ -67,7 +68,7 @@ pub use skips::{fetch_skips, offered};
 pub use upscaling::PictureState;
 
 use companion_state::fetch_still;
-use subtitles::{localise_subtitles, sanitise};
+use subtitles::{SUBTITLE_WAIT, localise_subtitles, sanitise};
 use watch::remember_tracks;
 
 /// An unguessable-enough path token for one playback attempt's mender.
@@ -121,7 +122,19 @@ pub struct PlaySettings {
     /// Whether this play joins the party — from the `y` key, or `[syncplay] enabled`
     /// sending every play there.
     pub party: bool,
+    /// How many seconds a hosted player's Up Next counts down before it plays the next
+    /// episode, `0` for none: [`UP_NEXT_COUNTDOWN`] until the config keeps one. The terminal's
+    /// companion keeps its own ten.
+    pub up_next_countdown: u32,
 }
+
+/// How many seconds Up Next counts down, the design's ten: what every playback says until the
+/// config has a setting for it.
+pub const UP_NEXT_COUNTDOWN: u32 = 10;
+
+/// How many episodes in a row play with no input from the viewer before a hosted player asks
+/// "Still watching?". The app counts; the engine says how far.
+pub const STILL_WATCHING_AFTER: u32 = 3;
 
 /// What a playback runs on beside its stream: the player it opens a window in, the slot a window
 /// waits in between episodes, the host that opens a link the player cannot play, and what says
@@ -262,6 +275,7 @@ pub async fn play(
         still_fetch: context.next.as_ref().and_then(|n| n.thumbnail.clone()).map(|url| {
             tokio::spawn(fetch_still(http.clone(), url, opener.scratch_dir().to_path_buf()))
         }),
+        servers: Servers::load(&store, &streams).await,
     };
 
     // Read once: every stream this playback tries is the same series in the same translation.
@@ -294,9 +308,12 @@ pub async fn play(
         tried[index] = true;
         let last = tried.iter().all(|t| *t);
 
-        // Before mpv opens the file, so the tracks are on disk by the time it asks for them.
+        // Before mpv opens the file, so the tracks are on disk by the time it asks for them,
+        // but no longer than a moment: the tracks still on their way follow as they arrive.
+        let mut late = None;
         if !localised[index] {
-            localise_subtitles(&http, opener.scratch_dir(), &mut streams[index]).await;
+            let scratch = opener.scratch_dir();
+            late = localise_subtitles(&http, scratch, &mut streams[index], SUBTITLE_WAIT).await;
             localised[index] = true;
         }
         let mut stream = streams[index].clone();
@@ -391,7 +408,7 @@ pub async fn play(
             let _ = current.link.overlay(Overlay::Resumed { position }).await;
         }
 
-        let outcome = run.file(current, &stream, &streams, index, &mut commands).await;
+        let outcome = run.file(current, &stream, &streams, index, &mut commands, late).await;
 
         match outcome {
             FileOutcome::Switch { to, at } => {
@@ -405,11 +422,25 @@ pub async fn play(
             FileOutcome::Handover(successor) => {
                 if let Some(player) = player.take() {
                     let card = companion::Status::loading(context.handing_to(&successor), None);
+                    // Art the record of the titles did not have, this playback's when it is the
+                    // same title's.
+                    let ours = |art: &Option<String>| {
+                        (successor.id == context.anilist_id).then(|| art.clone()).flatten()
+                    };
                     let starting = Overlay::Starting {
                         card,
+                        id: successor.id,
                         title: successor.title.clone(),
                         episode: successor.episode.clone(),
                         episode_title: None,
+                        cover_url: successor
+                            .cover_url
+                            .clone()
+                            .or_else(|| ours(&context.cover_url)),
+                        banner_url: successor
+                            .banner_url
+                            .clone()
+                            .or_else(|| ours(&context.banner_url)),
                     };
                     let _ = player.link.overlay(starting).await;
                     // Silence what was playing while the next stream is found.
@@ -423,6 +454,14 @@ pub async fn play(
                     (Some(p), true) => p.link.diagnostics().await,
                     _ => None,
                 };
+                // What the attempt says of its server, written down before anything else is
+                // decided, so the next play knows which server to try first.
+                if no_frames {
+                    let refused = menders.refused(&streams[index].url);
+                    run.servers
+                        .unplayed(&store, &streams[index], stopped || quit, refused)
+                        .await;
+                }
 
                 if no_frames && !stopped && !exited && !last {
                     // The point of carrying alternates: whether segments actually decode is
@@ -454,9 +493,12 @@ pub async fn play(
                         );
                         let starting = Overlay::Starting {
                             card,
+                            id: context.anilist_id,
                             title: context.title.clone(),
                             episode: next.number.clone(),
                             episode_title: next.title.clone(),
+                            cover_url: context.cover_url.clone(),
+                            banner_url: context.banner_url.clone(),
                         };
                         let _ = player.link.overlay(starting).await;
                         slot.park(player);
@@ -619,6 +661,8 @@ struct Run<'a> {
     scratch: std::path::PathBuf,
     /// What says whether the machine is on battery, which the upscaling chain goes by.
     power: Arc<dyn PowerSource>,
+    /// How the servers of the streams tried have fared, and the attempt under way.
+    servers: Servers,
 }
 
 #[cfg(test)]
@@ -640,6 +684,8 @@ mod tests {
             volume: None,
             next: None,
             episodes: Vec::new(),
+            cover_url: None,
+            banner_url: None,
         }
     }
 
@@ -651,6 +697,8 @@ mod tests {
             title: title.into(),
             episode: episode.into(),
             translation,
+            cover_url: None,
+            banner_url: None,
         };
         let sub = Translation::Sub;
         assert_eq!(now.handing_to(&to(1, "A Show", "7", sub)), "Opening the next episode…");
@@ -683,6 +731,8 @@ mod tests {
             volume: Some(80.0),
             next: None,
             episodes: Vec::new(),
+            cover_url: None,
+            banner_url: None,
         };
         assert_eq!(context.mal_id, Some(52_991));
         assert_eq!(context.resume_at, Some(600.0));

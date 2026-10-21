@@ -31,6 +31,9 @@ pub struct PlaybackContext {
     pub next: Option<NextEpisode>,
     /// The episode table, for the player's Episodes menu. Empty when it was not loaded.
     pub episodes: Vec<EpisodeEntry>,
+    /// The title's art by URL, where the engine knows it, for the player's starting screen.
+    pub cover_url: Option<String>,
+    pub banner_url: Option<String>,
 }
 
 impl PlaybackContext {

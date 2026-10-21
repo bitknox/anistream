@@ -277,6 +277,28 @@ impl Session {
         self.feed_all(reports)
     }
 
+    /// The viewer picks a track in a hosted player's own menu, which the engine carries out:
+    /// the policy's answer is done to mpv, and mpv's reports of it fed back.
+    pub(super) fn viewer_picks(
+        &mut self,
+        kind: TrackKind,
+        id: Option<i64>,
+    ) -> Vec<TrackAction> {
+        let mut actions = self.policy.viewer_chose(kind, id);
+        let reports: Vec<_> = actions.iter().flat_map(|a| self.mpv.carry_out(a)).collect();
+        actions.extend(self.feed_all(reports));
+        actions
+    }
+
+    /// The viewer sets the delay in a hosted player's own controls.
+    pub(super) fn viewer_sets_delay(&mut self, seconds: f64) -> Vec<TrackAction> {
+        let now = self.now();
+        let mut actions = self.policy.viewer_delay(seconds, now);
+        let reports: Vec<_> = actions.iter().flat_map(|a| self.mpv.carry_out(a)).collect();
+        actions.extend(self.feed_all(reports));
+        actions
+    }
+
     pub(super) fn viewer_moves_delay(&mut self, by: f64) -> Vec<TrackAction> {
         let reports = self.mpv.set_delay(self.mpv.delay + by);
         self.feed_all(reports)

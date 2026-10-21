@@ -20,8 +20,22 @@
 //! as the terminal's keys do.
 //!
 //! [`PlaybackId`]: crate::playback::PlaybackId
+//!
+//! # Closing
+//!
+//! A player closes one of two ways, and the playback ends differently for each:
+//!
+//! - The viewer closes it, with the window's close button or a swipe down. The player reports
+//!   `Ended { reason: Quit }` for the file, then `Closed`. Nothing told it to: the playback ends
+//!   as `Ending::Closed`, what mpv's window going away is.
+//! - The engine stops it: the front end asked for `PlayerCommand::Stop`. The player is sent
+//!   `PlayerOp::Quit`, reports `Ended { reason: Quit }` and then `Closed`, and the playback ends
+//!   as `Ending::Stopped`.
+//!
+//! Either way `Closed` is the player's last word, and nothing more is said to it: a
+//! `PlayerOp::Close` that crosses it is let go by the player.
 
-use anistream_core::media::Translation;
+use anistream_core::{ids::AnilistId, media::Translation};
 
 use crate::{
     notice::NoticeKind,
@@ -46,8 +60,11 @@ pub enum PlayerOp {
     AddSubtitle { url: String, title: Option<String>, language: Option<String> },
     /// Set a property.
     Set { property: String, value: MpvValue },
-    /// Flip a flag, as `cycle`: `pause`, `fullscreen`.
+    /// Flip a flag, as `cycle`: `pause`.
     Cycle { property: String },
+    /// Take the window into full screen, or out of it: the host's window, which mpv inside it
+    /// knows nothing of. Never sent as a `fullscreen` property.
+    ToggleFullscreen,
     /// Step a number by `delta`, as `add`: `speed`, `volume`. The player clamps it.
     Add { property: String, delta: f64 },
     /// Seek to `seconds`, or by them when not `absolute`; exactly, as `absolute+exact` and
@@ -95,8 +112,17 @@ pub enum MpvValue {
 #[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 pub enum PlayerUi {
     /// The starting screen: an episode is being found or opened, this one or the one that
-    /// follows it in the same player. It stays until the player has a picture.
-    Starting { title: String, episode: String, episode_title: Option<String> },
+    /// follows it in the same player. It stays until the player has a picture. `id` is the
+    /// title's, and its art is by URL where the engine knows it, so the screen needs nothing
+    /// remembered from `Event::PlaybackStaged`.
+    Starting {
+        id: AnilistId,
+        title: String,
+        episode: String,
+        episode_title: Option<String>,
+        cover_url: Option<String>,
+        banner_url: Option<String>,
+    },
     /// The episode on screen.
     Episode {
         number: String,
@@ -123,9 +149,17 @@ pub enum PlayerUi {
     AutoSkipped { kind: SkipKind, undo_to: f64 },
     /// The Up Next card for `next`, whose `thumbnail` is the still to show. Its countdown is the
     /// app's: it starts at `ending_at`, where the ending begins, or near the end when that is not
-    /// known, and when it reaches zero the app sends `PlayNext`. `auto` is whether the episode
-    /// rolls on by itself at the end when nobody does.
-    UpNext { next: NextEpisode, auto: bool, ending_at: Option<f64> },
+    /// known, runs `countdown` seconds, and when it reaches zero the app sends `PlayNext`; `0`
+    /// is no countdown, and the card waits. `auto` is whether the episode rolls on by itself at
+    /// the end when nobody does. `still_watching_after` is how many episodes in a row with no
+    /// input from the viewer the app plays before it pauses to ask "Still watching?".
+    UpNext {
+        next: NextEpisode,
+        auto: bool,
+        ending_at: Option<f64>,
+        countdown: u32,
+        still_watching_after: u32,
+    },
     /// Nothing plays next.
     UpNextCleared,
     /// The stream has been held waiting for data for `seconds`, mid-episode: offer another
@@ -168,6 +202,10 @@ pub struct MenuSource {
     pub detail: Option<String>,
     /// The stream playing.
     pub current: bool,
+    /// A short note on how the stream's server has fared lately, when it has been failing:
+    /// `failed the last 3 times · 12 min ago`. `None` for a server with nothing against it. A
+    /// server that keeps failing is listed after the others of its quality; this says why.
+    pub health: Option<String>,
 }
 
 /// A menu of named choices with one current, the upscaling looks and the HDR curves.
@@ -232,6 +270,14 @@ pub enum PlayerEnd {
     /// It could not play.
     Error,
     Unknown,
+}
+
+/// Which kind of track a viewer picks: the audio, or the subtitles.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum TrackKind {
+    Audio,
+    Subtitle,
 }
 
 /// A pick in a hosted player's menus.

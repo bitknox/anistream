@@ -285,6 +285,7 @@ mod tests {
             last_error: None,
             usable: true,
             held_back: false,
+            ..Default::default()
         };
         app.apply(anistream_model::event::Event::Providers(vec![row("alpha")]));
         let hints = status_hints(&app);

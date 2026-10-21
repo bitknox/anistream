@@ -69,6 +69,10 @@ pub struct Successor {
     pub title: String,
     pub episode: String,
     pub translation: anistream_core::media::Translation,
+    /// The title's art by URL, where the engine knows it, for the starting screen the window
+    /// shows while the successor is found.
+    pub cover_url: Option<String>,
+    pub banner_url: Option<String>,
 }
 
 /// The episode that follows, as the Up Next card names it.
