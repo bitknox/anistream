@@ -152,6 +152,8 @@ prune_cache() {
 if [[ -f "$entry/stamp" && -d "$entry/kotlin" && -d "$entry/host" ]]; then
   stage="$out.partial"
   rm -rf "$stage"
+  # A new worktree has no android/.engine yet.
+  mkdir -p "$(dirname "$out")"
   cp -R "$entry" "$stage"
   rm -rf "$out"
   mv "$stage" "$out"
