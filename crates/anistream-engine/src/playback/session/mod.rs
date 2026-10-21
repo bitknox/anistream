@@ -121,7 +121,19 @@ pub struct PlaySettings {
     /// Whether this play joins the party — from the `y` key, or `[syncplay] enabled`
     /// sending every play there.
     pub party: bool,
+    /// How many seconds a hosted player's Up Next counts down before it plays the next
+    /// episode, `0` for none: [`UP_NEXT_COUNTDOWN`] until the config keeps one. The terminal's
+    /// companion keeps its own ten.
+    pub up_next_countdown: u32,
 }
+
+/// How many seconds Up Next counts down, the design's ten: what every playback says until the
+/// config has a setting for it.
+pub const UP_NEXT_COUNTDOWN: u32 = 10;
+
+/// How many episodes in a row play with no input from the viewer before a hosted player asks
+/// "Still watching?". The app counts; the engine says how far.
+pub const STILL_WATCHING_AFTER: u32 = 3;
 
 /// What a playback runs on beside its stream: the player it opens a window in, the slot a window
 /// waits in between episodes, the host that opens a link the player cannot play, and what says
@@ -405,11 +417,25 @@ pub async fn play(
             FileOutcome::Handover(successor) => {
                 if let Some(player) = player.take() {
                     let card = companion::Status::loading(context.handing_to(&successor), None);
+                    // Art the record of the titles did not have, this playback's when it is the
+                    // same title's.
+                    let ours = |art: &Option<String>| {
+                        (successor.id == context.anilist_id).then(|| art.clone()).flatten()
+                    };
                     let starting = Overlay::Starting {
                         card,
+                        id: successor.id,
                         title: successor.title.clone(),
                         episode: successor.episode.clone(),
                         episode_title: None,
+                        cover_url: successor
+                            .cover_url
+                            .clone()
+                            .or_else(|| ours(&context.cover_url)),
+                        banner_url: successor
+                            .banner_url
+                            .clone()
+                            .or_else(|| ours(&context.banner_url)),
                     };
                     let _ = player.link.overlay(starting).await;
                     // Silence what was playing while the next stream is found.
@@ -454,9 +480,12 @@ pub async fn play(
                         );
                         let starting = Overlay::Starting {
                             card,
+                            id: context.anilist_id,
                             title: context.title.clone(),
                             episode: next.number.clone(),
                             episode_title: next.title.clone(),
+                            cover_url: context.cover_url.clone(),
+                            banner_url: context.banner_url.clone(),
                         };
                         let _ = player.link.overlay(starting).await;
                         slot.park(player);
@@ -640,6 +669,8 @@ mod tests {
             volume: None,
             next: None,
             episodes: Vec::new(),
+            cover_url: None,
+            banner_url: None,
         }
     }
 
@@ -651,6 +682,8 @@ mod tests {
             title: title.into(),
             episode: episode.into(),
             translation,
+            cover_url: None,
+            banner_url: None,
         };
         let sub = Translation::Sub;
         assert_eq!(now.handing_to(&to(1, "A Show", "7", sub)), "Opening the next episode…");
@@ -683,6 +716,8 @@ mod tests {
             volume: Some(80.0),
             next: None,
             episodes: Vec::new(),
+            cover_url: None,
+            banner_url: None,
         };
         assert_eq!(context.mal_id, Some(52_991));
         assert_eq!(context.resume_at, Some(600.0));

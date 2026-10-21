@@ -33,7 +33,7 @@ use tokio::sync::mpsc;
 use super::{LinkError, Opened, Overlay, PlaybackEvent, PlayerLink, PlayerOpener};
 use crate::{
     outbox::Outbox,
-    playback::{offered, power::ReportedPower},
+    playback::{STILL_WATCHING_AFTER, offered, power::ReportedPower},
 };
 
 /// The windows a front end hosts, by the playbacks driving them, and where what they report
@@ -247,6 +247,11 @@ impl PlayerLink for HostedLink {
         self.op(PlayerOp::Cycle { property: property.to_owned() })
     }
 
+    async fn toggle_fullscreen(&self) -> Result<(), LinkError> {
+        // The host's window, not a property of the mpv inside it.
+        self.op(PlayerOp::ToggleFullscreen)
+    }
+
     async fn add(&self, property: &'static str, delta: f64) -> Result<(), LinkError> {
         self.op(PlayerOp::Add { property: property.to_owned(), delta })
     }
@@ -306,9 +311,9 @@ impl PlayerLink for HostedLink {
 /// what the player itself knows.
 fn ui(overlay: Overlay) -> Option<PlayerUi> {
     Some(match overlay {
-        Overlay::Starting { title, episode, episode_title, .. } => {
-            PlayerUi::Starting { title, episode, episode_title }
-        }
+        Overlay::Starting {
+            id, title, episode, episode_title, cover_url, banner_url, ..
+        } => PlayerUi::Starting { id, title, episode, episode_title, cover_url, banner_url },
         Overlay::Playing => return None,
         Overlay::Episode(info) => PlayerUi::Episode {
             number: info.number,
@@ -317,10 +322,12 @@ fn ui(overlay: Overlay) -> Option<PlayerUi> {
             show: info.show,
             translation: translation(info.translation),
         },
-        Overlay::Next { card: Some(card), still } => PlayerUi::UpNext {
+        Overlay::Next { card: Some(card), still, countdown } => PlayerUi::UpNext {
             next: NextEpisode { number: card.number, title: card.title, thumbnail: still },
             auto: card.auto,
             ending_at: card.at,
+            countdown,
+            still_watching_after: STILL_WATCHING_AFTER,
         },
         Overlay::Next { card: None, .. } => PlayerUi::UpNextCleared,
         Overlay::Resumed { position } => PlayerUi::Resumed { position },
