@@ -16,7 +16,7 @@ use anistream_core::{
 };
 use anistream_providers::{MockProvider, ProviderRegistry};
 
-use crate::fixtures::{self, AIRING, AIRING_NO_MAL, FINISHED, MOVIE, SEQUEL};
+use crate::fixtures::{self, AIRING, AIRING_NO_MAL, FINISHED, MOVIE, ONA, SEQUEL};
 
 /// The fixture provider's id.
 pub const PROVIDER_ID: &str = "fixture";
@@ -58,8 +58,9 @@ pub fn episode_count(id: AnilistId) -> u32 {
 /// A title's episodes as the source lists them.
 ///
 /// [`FINISHED`]'s are the full set: titles, still frames, air dates and a synopsis for the
-/// first. [`SEQUEL`] claims episode [`FILLER_EPISODE`] is filler. The rest are bare numbers
-/// and a runtime, as most sources list them.
+/// first. [`ONA`]'s have stills and nothing else, so a title with no banner still has wide art
+/// a front end can show. [`SEQUEL`] claims episode [`FILLER_EPISODE`] is filler. The rest are
+/// bare numbers and a runtime, as most sources list them.
 pub fn episodes(id: AnilistId) -> Vec<Episode> {
     let runtime = Duration::from_secs_f64(fixtures::runtime_secs(id));
     (1..=episode_count(id))
@@ -68,7 +69,7 @@ pub fn episodes(id: AnilistId) -> Vec<Episode> {
             match id {
                 FINISHED => Episode {
                     title: Some(FINISHED_TITLES[n as usize - 1].to_owned()),
-                    thumbnail: Some(format!("{}ep/{}/{n}.jpg", fixtures::ART_HOST, id.get())),
+                    thumbnail: Some(still(id, n)),
                     // Weekly from Saturday 2024-04-06.
                     air_date: Some(air_date(n)),
                     description: (n == 1).then(|| {
@@ -77,12 +78,18 @@ pub fn episodes(id: AnilistId) -> Vec<Episode> {
                     }),
                     ..bare
                 },
+                ONA => Episode { thumbnail: Some(still(id, n)), ..bare },
                 MOVIE => Episode { title: Some(fixtures::title(MOVIE)), ..bare },
                 SEQUEL => Episode { filler: (n == FILLER_EPISODE).then_some(true), ..bare },
                 _ => bare,
             }
         })
         .collect()
+}
+
+/// Where an episode's still is, under [`fixtures::ART_HOST`].
+fn still(id: AnilistId, n: u32) -> String {
+    format!("{}ep/{}/{n}.jpg", fixtures::ART_HOST, id.get())
 }
 
 fn air_date(n: u32) -> String {
@@ -229,6 +236,15 @@ mod tests {
             .await
             .expect("the finished title's episodes");
         assert_eq!(plain[2].thumbnail.as_deref(), Some("https://img.example/ep/900001/3.jpg"));
+    }
+
+    /// The two titles with no banner: one has stills to show in its place, the other nothing.
+    #[test]
+    fn of_the_bannerless_titles_one_has_stills_and_one_has_none() {
+        let ona = episodes(ONA);
+        assert_eq!(ona[0].thumbnail.as_deref(), Some("https://img.example/ep/900005/1.jpg"));
+        assert!(ona.iter().all(|e| e.thumbnail.is_some()));
+        assert!(episodes(AIRING_NO_MAL).iter().all(|e| e.thumbnail.is_none()));
     }
 
     #[test]
