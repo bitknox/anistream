@@ -71,6 +71,7 @@ import tv.anistream.design.Motion
 import tv.anistream.design.ObiSilk
 import tv.anistream.design.ShowTitle
 import tv.anistream.design.tabular
+import tv.anistream.store.AirTime
 import tv.anistream.store.HeroArt
 import tv.anistream.store.LibraryModel
 import tv.anistream.store.label
@@ -106,6 +107,10 @@ fun TitleScreen(id: AnilistId, actions: AppActions) {
     val art = HeroArt.of(entry, episodes)
     val list = rememberLazyListState()
     val inset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    if (wideWindow()) {
+        TabletTitle(entry, episodes, art, titles, actions)
+        return
+    }
 
     val marks = remember(id) { UserMarks() }
     androidx.compose.runtime.CompositionLocalProvider(LocalUserMarks provides marks) {
@@ -361,11 +366,11 @@ private fun Synopsis(text: String) {
 
 /** The seasons as a connected group: this one selected with its count, the others a tap away. */
 @Composable
-private fun Seasons(entry: Entry, family: TitleFamily) {
+private fun Seasons(entry: Entry, family: TitleFamily, inset: Boolean = true) {
     val navigator = LocalNavigator.current
     val colors = MaterialTheme.colorScheme
     Row(
-        Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(48.dp),
+        Modifier.padding(horizontal = if (inset) 16.dp else 0.dp).fillMaxWidth().height(48.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -410,11 +415,11 @@ private fun Seasons(entry: Entry, family: TitleFamily) {
 
 /** Films, OVAs and specials, each an outlined chip with where it stands. */
 @Composable
-private fun Related(family: TitleFamily, titles: Map<AnilistId, Entry>) {
+private fun Related(family: TitleFamily, titles: Map<AnilistId, Entry>, inset: Boolean = true) {
     val navigator = LocalNavigator.current
     val colors = MaterialTheme.colorScheme
     Row(
-        Modifier.padding(horizontal = 16.dp).height(48.dp),
+        Modifier.padding(horizontal = if (inset) 16.dp else 0.dp).height(48.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -494,5 +499,174 @@ private fun EpisodeRowView(entry: Entry, row: EpisodeRow, next: UInt, actions: A
             onMenu = { menu = true },
         )
         EpisodeMenu(entry, row, expanded = menu, onDismiss = { menu = false }, actions = actions)
+    }
+}
+
+/**
+ * A title's page on a tablet, as AndroidTabletTitle draws it: the banner across the content, the
+ * poster beside the title and its actions, the details to the right, the seasons and what is
+ * related in one row, and the episodes in two columns.
+ */
+@Composable
+private fun TabletTitle(
+    entry: Entry,
+    episodes: List<EpisodeRow>?,
+    art: HeroArt,
+    titles: Map<AnilistId, Entry>,
+    actions: AppActions,
+) {
+    val navigator = LocalNavigator.current
+    val marks = remember(entry.id) { UserMarks() }
+    val inset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val next = entry.progress?.next ?: 1u
+    val family = TitleFamily.of(entry)
+    val colors = MaterialTheme.colorScheme
+    androidx.compose.runtime.CompositionLocalProvider(LocalUserMarks provides marks) {
+        Box(Modifier.fillMaxSize().shared(Shared.Page, entry.id).background(colors.surface)) {
+            androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+                columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+                contentPadding = PaddingValues(start = 8.dp, end = 24.dp, bottom = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+            ) {
+                fullWidth("head") {
+                    Box {
+                        if (art != HeroArt.Compact) {
+                            ArtworkImage(
+                                art.url,
+                                plate = null,
+                                maxPixelSize = 1600,
+                                modifier = Modifier.fillMaxWidth().height(inset + 208.dp).shared(Shared.Art, entry.id),
+                            )
+                        }
+                        Row(
+                            Modifier.padding(top = inset + if (art == HeroArt.Compact) 64.dp else 135.dp).padding(start = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(24.dp),
+                            verticalAlignment = Alignment.Bottom,
+                        ) {
+                            ArtworkImage(
+                                entry.coverUrl,
+                                plate = null,
+                                maxPixelSize = 500,
+                                modifier = Modifier
+                                    .size(150.dp, 225.dp)
+                                    .shared(Shared.Cover, entry.id)
+                                    .clip(ArtShape.cover(150.dp))
+                                    .border(1.dp, ObiSilk.Silk.copy(alpha = 0.1f), ArtShape.cover(150.dp)),
+                            )
+                            Column(Modifier.weight(1f).padding(bottom = 0.dp)) {
+                                Text(entry.showTitle, style = ShowTitle.page, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.semantics { heading() })
+                                entry.alternateTitle?.let {
+                                    Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, maxLines = 1)
+                                }
+                                if (entry.metadataLine.isNotEmpty()) {
+                                    Text(entry.metadataLine, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+                                }
+                                TabletActions(entry, actions, Modifier.padding(top = 4.dp))
+                            }
+                            TitleFacts(entry, Modifier.width(376.dp))
+                        }
+                    }
+                }
+                if (family.seasons.isNotEmpty() || family.related.isNotEmpty()) {
+                    fullWidth("family") {
+                        Row(Modifier.padding(start = 16.dp, top = 24.dp), horizontalArrangement = Arrangement.spacedBy(32.dp), verticalAlignment = Alignment.CenterVertically) {
+                            if (family.seasons.isNotEmpty()) Box(Modifier.width(520.dp)) { Seasons(entry, family, inset = false) }
+                            if (family.related.isNotEmpty()) Related(family, titles, inset = false)
+                        }
+                    }
+                }
+                fullWidth("gap") { Spacer(Modifier.height(16.dp)) }
+                if (episodes == null) {
+                    items(4) { EpisodePlaceholder() }
+                } else {
+                    items(episodes.size, key = { "episode-${episodes[it].number}" }) { index ->
+                        val row = episodes[index]
+                        Box(Modifier.clip(MaterialTheme.shapes.large)) { EpisodeRowView(entry, row, next, actions) }
+                    }
+                }
+            }
+            TitleTopBar(entry, onBack = navigator::back, modifier = Modifier.padding(top = inset))
+        }
+    }
+}
+
+private fun androidx.compose.foundation.lazy.grid.LazyGridScope.fullWidth(key: String, content: @Composable () -> Unit) {
+    item(key = key, span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) { content() }
+}
+
+/** The tablet's actions in one row: the amber action sized to its words, the list, the trailer. */
+@Composable
+private fun TabletActions(entry: Entry, actions: AppActions, modifier: Modifier = Modifier) {
+    val store = LocalAppStore.current
+    val action = TitleAction.of(entry)
+    var open by remember { mutableStateOf(false) }
+    Row(modifier.height(56.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (action.playable) {
+            Button(onClick = { actions.play(entry.id, action.episode.toString()) }, modifier = Modifier.height(56.dp), contentPadding = PaddingValues(horizontal = 24.dp)) {
+                Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
+                Spacer(Modifier.width(8.dp))
+                Crossfade(action.label, animationSpec = Motion.standard(), label = "action") {
+                    Text(it, style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1)
+                }
+            }
+        } else {
+            Text(action.label, style = MaterialTheme.typography.titleMedium.tabular(), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp))
+        }
+        Box {
+            FilledTonalButton(onClick = { open = true }, contentPadding = PaddingValues(start = 16.dp, end = 12.dp)) {
+                Text(entry.listStatus?.label?.replaceFirstChar { it.uppercase() } ?: "Add to list")
+                Spacer(Modifier.width(8.dp))
+                Icon(Icons.Down, contentDescription = null, modifier = Modifier.size(18.dp))
+            }
+            DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+                for (segment in LibraryModel.order) {
+                    DropdownMenuItem(
+                        text = { Text(segment.label.replaceFirstChar { it.uppercase() }) },
+                        leadingIcon = {
+                            Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                                if (entry.listStatus == segment) Icon(Icons.Check, contentDescription = "Current")
+                            }
+                        },
+                        onClick = {
+                            open = false
+                            store.setStatus(entry.id, segment)
+                        },
+                    )
+                }
+            }
+        }
+        entry.trailerUrl?.let { trailer ->
+            OutlinedButton(onClick = { store.openExternal(trailer) }, contentPadding = PaddingValues(start = 16.dp, end = 24.dp)) {
+                Icon(Icons.Trailer, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Trailer")
+            }
+        }
+    }
+}
+
+/** The synopsis, and the studio, the next episode and where else it streams, beside the title. */
+@Composable
+private fun TitleFacts(entry: Entry, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    Column(modifier) {
+        if (entry.synopsis.isNotEmpty()) {
+            Text(entry.synopsis, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, maxLines = 4, overflow = TextOverflow.Ellipsis)
+        }
+        val facts = listOfNotNull(
+            entry.studio?.let { "STUDIO" to it },
+            entry.nextAiringIn?.let { "NEXT EPISODE" to AirTime.words(java.time.Instant.now().plusSeconds(it)) },
+            entry.availableOn.takeIf { it.isNotEmpty() }?.let { "ALSO ON" to it.joinToString(", ") },
+        )
+        if (facts.isNotEmpty()) {
+            Row(Modifier.padding(top = 20.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                for ((label, value) in facts) {
+                    Column(Modifier.weight(1f)) {
+                        Text(label, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+                        Text(value, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        }
     }
 }

@@ -132,12 +132,7 @@ fun LibraryScreen(actions: AppActions) {
                 LibrarySort.Score -> list.sortedByDescending { it.score ?: 0u }
             }
         }
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = padding.calculateTopPadding(), bottom = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(13.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
+        PosterGrid(PaddingValues(start = 16.dp, end = 16.dp, top = padding.calculateTopPadding(), bottom = 24.dp)) {
             item(span = { GridItemSpan(maxLineSpan) }, key = "downloads") {
                 DownloadsRow(storageLine(store.downloads.bytes(downloads)), inset = false)
             }

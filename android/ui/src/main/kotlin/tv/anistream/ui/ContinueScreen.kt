@@ -83,9 +83,19 @@ fun ContinueScreen(actions: AppActions, openCalendar: () -> Unit, openSeasonal: 
     LaunchedEffect(Unit) { store.loadContinue() }
     val empty = state == ListState.Empty
     val user = trackers.values.firstOrNull { it.connected }?.user
+    // A tablet with something under way: the queue beside the selected title.
+    if (wideWindow() && state is ListState.Loaded) {
+        val queue = store.continuing.queue(titles)
+        if (!queue.isEmpty) {
+            TabletQueue(queue, actions)
+            return
+        }
+    }
+    // The engine's status, when it has one: offline, or changes waiting to sync.
+    val status by store.notices.status.collectAsStateWithLifecycle()
     ScreenFrame(
         title = "Continue",
-        subtitle = if (empty) "Nothing watched yet" else null,
+        subtitle = status ?: if (empty) "Nothing watched yet" else null,
         account = Account(user, actions.openSettings),
     ) { padding ->
         LazyColumn(contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = 24.dp)) {
@@ -438,11 +448,11 @@ private fun ThisSeason(openSeasonal: () -> Unit) {
     val state by store.seasonal.state.collectAsStateWithLifecycle()
     val titles by store.titles.entries.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { store.loadSeasonal() }
-    val season = state.ids.mapNotNull { titles[it] }.take(6)
+    val season = state.ids.mapNotNull { titles[it] }.take(if (wideWindow()) 12 else 6)
     if (season.isEmpty()) return
     Column(Modifier.padding(top = 16.dp)) {
         SectionHeading("This season", "Show this season in Seasonal", openSeasonal)
-        PosterRows(season, columns = 3)
+        PosterRows(season, columns = if (wideWindow()) 6 else 3)
     }
 }
 

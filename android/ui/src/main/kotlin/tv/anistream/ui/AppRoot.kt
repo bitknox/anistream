@@ -111,6 +111,8 @@ fun AppRoot(
     actions: AppActions = AppActions(),
     /** A title page to open on [start] as the app starts: the fixtures' `title` extra. */
     startTitle: AnilistId? = null,
+    /** A search to run on Search as the app starts: the fixtures' `query` extra. */
+    startQuery: String? = null,
 ) {
     val nav = rememberNavController()
     val navigator = remember(nav) { Navigator(nav, start) }
@@ -151,7 +153,7 @@ fun AppRoot(
                                 navigation(route = graphRoute(destination), startDestination = destination.route) {
                                     composable(destination.route) {
                                         CompositionLocalProvider(LocalPageAnimation provides this) {
-                                            DestinationScreen(destination, actions)
+                                            DestinationScreen(destination, actions, startQuery)
                                         }
                                     }
                                     composable(
@@ -174,7 +176,7 @@ fun AppRoot(
 }
 
 @Composable
-private fun DestinationScreen(destination: Destination, actions: AppActions) {
+private fun DestinationScreen(destination: Destination, actions: AppActions, startQuery: String?) {
     val navigator = LocalNavigator.current
     when (destination) {
         Destination.Continue -> ContinueScreen(
@@ -185,7 +187,7 @@ private fun DestinationScreen(destination: Destination, actions: AppActions) {
         Destination.Calendar -> CalendarScreen()
         Destination.Seasonal -> SeasonalScreen()
         Destination.Library -> LibraryScreen(actions)
-        Destination.Search -> SearchScreen()
+        Destination.Search -> SearchScreen(startQuery)
     }
 }
 

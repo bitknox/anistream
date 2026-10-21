@@ -44,14 +44,17 @@ fun SeasonalScreen() {
     }
 }
 
-/** Posters three to a row, 13 apart across and 16 down. */
+/**
+ * Posters three to a row on a phone, 13 apart across and 16 down; as many as fit at 140 dp or
+ * more on a tablet.
+ */
 @Composable
 internal fun PosterGrid(
     padding: PaddingValues,
     content: androidx.compose.foundation.lazy.grid.LazyGridScope.() -> Unit,
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
+        columns = if (wideWindow()) GridCells.Adaptive(140.dp) else GridCells.Fixed(3),
         contentPadding = padding,
         horizontalArrangement = Arrangement.spacedBy(13.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),

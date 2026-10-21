@@ -67,8 +67,9 @@ adb shell am start -n tv.anistream.fixtures/tv.anistream.app.MainActivity --es s
 
 The fixtures flavour takes intent extras under the names of the Apple app's `-Anistream*`
 arguments: `scene` (`watching`, `fresh` or `playing`), `section` (`continue`, `calendar`,
-`seasonal`, `library`, `search`), `watched` (`900006:8`, or several titles joined by `/`), and
-`title`, `sheet` and `player` for the screens that take them in later phases. Until the engine's
+`seasonal`, `library`, `search`), `title` (a title page to open, by id), `query` (a search to
+run), `watched` (`900006:8`, or several titles joined by `/`), and `sheet` and `player` for the
+screens that take them in later phases. Until the engine's
 scenes reach main, every scene starts as `fresh`. Each launch starts the testing engine in a new
 directory of its own. A debug build of either flavour says `ANISTREAM_READY` in the log, tag
 `anistream`, once its screens have what they asked for.
@@ -95,7 +96,8 @@ android/scripts/shots.sh tablet fresh
 on a port of its own (5560 to 5566) unless it is running, installs, and for each shot clears the
 app, starts it with the shot's extras, waits for `ANISTREAM_READY` and takes a screencap, with the
 status bar in demo mode at 19:30. A shot is `watching`, `fresh` or `app` (the app flavour on the
-real AniList), then optionally `:` and a section or `key=value`s joined by `+`. Shots go to
+real AniList), then optionally `:` and a section or `key=value`s joined by `+`
+(`fresh:title=900001`, `fresh:query=hoshi`, `fresh:watched=900001:1,2,3`). Shots go to
 `android/.shots/a0/` (`ANISTREAM_SHOTS_PHASE` names another), which git ignores. Shots of the app
 flavour show AniList's real catalogue, so they stay there and are never committed.
 

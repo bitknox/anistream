@@ -13,6 +13,8 @@ dependencies {
     api(project(":store"))
     api(project(":design"))
     implementation(libs.navigation.compose)
+    implementation(libs.adaptive.layout)
+    implementation(libs.adaptive.navigation)
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.activity.compose)
 }

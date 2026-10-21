@@ -6,6 +6,7 @@
 //   watched   episodes to mark watched once the engine is up: 900006:8, or 900001:1,2,3, with more
 //             titles joined by / (900006:1,2/900002:1), oldest first
 //   title     a title page to open, by id
+//   query     a search to run, on Search
 //   sheet     a sheet to open: torrent, join, kitsu, update or show (from A2)
 //   player    a player state to shoot (from A3)
 

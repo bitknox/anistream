@@ -6,8 +6,9 @@
 # A shot is a scene, and optionally a screen: watching (the default) or fresh, the fixtures
 # flavour's scenes on the testing engine, or app, the app flavour on the real AniList; then after a
 # colon a section (continue, calendar, seasonal, library, search) or key=value, with more joined by
-# +: watched=<id>:<episodes> marks episodes watched as the shot starts, and title=<id>, sheet=<name>
-# and player=<state> are passed on for the screens that take them in later phases:
+# +: watched=<id>:<episodes> marks episodes watched as the shot starts, title=<id> opens a title
+# page, query=<words> searches, and sheet=<name> and player=<state> are passed on for the screens
+# that take them in later phases:
 #
 #   android/scripts/shots.sh phone fresh fresh:seasonal app:seasonal
 #   android/scripts/shots.sh tablet fresh:watched=900001:1,2,3
@@ -65,6 +66,7 @@ extras() {
   for screen in $screens; do
     case "$screen" in
       "") ;;
+      query=*) printf '%s\n' --es section search --es query "${screen#query=}" ;;
       *=*) printf '%s\n' --es "${screen%%=*}" "${screen#*=}" ;;
       *) printf '%s\n' --es section "$screen" ;;
     esac
@@ -134,6 +136,9 @@ setting() {
 }
 shell input keyevent KEYCODE_WAKEUP
 shell wm dismiss-keyguard
+# An emulator starved by a busy machine reports the system as not responding; no dialog of its
+# own belongs in a shot.
+setting global hide_error_dialogs 1
 shell svc power stayon true
 shell cmd uimode night yes >/dev/null
 # The boards' clock reads 19:30, on a 24-hour clock.
@@ -158,6 +163,7 @@ for shot in "${shots[@]}"; do
   args=()
   while IFS= read -r arg; do args+=("$arg"); done < <(extras "$shot")
   demo_mode
+  shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null 2>&1 || true
   # Every shot from a first launch: no setup card hidden, no permission asked.
   shell pm clear "$package" >/dev/null
   "$adb" -s "$serial" logcat -c

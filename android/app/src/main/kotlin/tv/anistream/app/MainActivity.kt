@@ -48,10 +48,11 @@ class MainActivity : ComponentActivity() {
         val start = intent.getStringExtra(SECTION)?.takeIf { steerable }
             ?.let(Destination::named) ?: Destination.Continue
         val title = intent.getStringExtra(TITLE)?.takeIf { steerable }?.toUIntOrNull()
+        val query = intent.getStringExtra(QUERY)?.takeIf { steerable }
 
         setContent {
             AnistreamTheme {
-                AppRoot(app.store, start, startTitle = title)
+                AppRoot(app.store, if (query != null) Destination.Search else start, startTitle = title, startQuery = query)
             }
         }
         if (Flavour.FIXTURES || debuggable) announceReady()
@@ -118,6 +119,9 @@ class MainActivity : ComponentActivity() {
 
         /** A title page to open there, by its AniList id. */
         const val TITLE = "title"
+
+        /** A search to run, on Search. */
+        const val QUERY = "query"
 
         private const val NOTIFICATIONS_ASKED = "notificationsAsked"
     }

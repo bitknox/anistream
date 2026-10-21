@@ -123,7 +123,7 @@ private fun searchDetail(entry: Entry): String? {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchScreen() {
+fun SearchScreen(startQuery: String? = null) {
     val store = LocalAppStore.current
     val context = LocalContext.current
     val recents = remember { RecentSearches(context) }
@@ -143,6 +143,13 @@ fun SearchScreen() {
         }
         store.search(query.trim(), with)
         scope.launch { bar.animateToCollapsed() }
+    }
+
+    LaunchedEffect(startQuery) {
+        if (startQuery != null && submitted == null) {
+            text.setTextAndPlaceCursorAtEnd(startQuery)
+            search(startQuery)
+        }
     }
 
     val input = @Composable {
