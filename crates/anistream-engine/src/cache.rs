@@ -23,7 +23,7 @@ use anistream_model::{
     catalog::{ContentList, Entry, ResumePoint},
     episodes::EpisodeRow,
     event::Event,
-    playback::{EpisodeEntry, NextEpisode},
+    playback::{EpisodeEntry, NextEpisode, PlaybackId},
     progress::{self, EpisodeProgress, TitleProgress, Watch},
 };
 
@@ -68,7 +68,7 @@ pub struct TitleCache {
     announced: Option<(AnilistId, String)>,
     /// Each playback started, by its number: where it last said it was. Kept once it has
     /// ended, a few bytes each, so that what it says after is known for a straggler.
-    playbacks: HashMap<u64, Playhead>,
+    playbacks: HashMap<PlaybackId, Playhead>,
 }
 
 /// One title, as the record holds it.
@@ -304,7 +304,7 @@ impl TitleCache {
 
     /// Whether playback `serial` has started playing and not ended: it has said how long its
     /// episode is, which it does from its first frames, and not yet how it ended.
-    pub(crate) fn under_way(&self, serial: u64) -> bool {
+    pub(crate) fn under_way(&self, serial: PlaybackId) -> bool {
         self.playbacks
             .get(&serial)
             .is_some_and(|playhead| playhead.duration.is_some() && !playhead.ended)
@@ -602,7 +602,7 @@ mod tests {
     /// A playback of `episode` of the first title, started.
     fn play(cache: &mut TitleCache, episode: &str) -> Played {
         let played = Played {
-            serial: cache.playbacks.len() as u64 + 1,
+            serial: PlaybackId::new(cache.playbacks.len() as u64 + 1),
             id: SHOW,
             episode: episode.into(),
         };
@@ -770,7 +770,7 @@ mod tests {
         // episode finished, so it looked as though nothing had been recorded.
         let mut cache = at_episodes(None, &[]);
         // Nothing is playing yet, so a tick is ignored rather than inventing state.
-        let stray = Played { serial: 99, id: SHOW, episode: "1".into() };
+        let stray = Played { serial: PlaybackId::new(99), id: SHOW, episode: "1".into() };
         assert!(say(&mut cache, &stray, tick(0.0, 1_440.0)).is_none());
         assert_eq!(row_of(&cache, "1"), (0.0, false));
 

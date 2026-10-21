@@ -54,6 +54,7 @@ mod tests {
         command::Command,
         event::Event,
         jobs::JobId,
+        playback::PlaybackId,
         progress::TitleProgress,
         settings::SettingKey,
         sources::MatchCandidate,
@@ -121,6 +122,15 @@ mod tests {
     fn a_job_crosses_as_its_number() {
         assert_eq!(<JobId as Lower<UniFfiTag>>::lower(JobId::new(7)), 7);
         assert_eq!(<JobId as Lift<UniFfiTag>>::try_lift(7).ok(), Some(JobId::new(7)));
+    }
+
+    #[test]
+    fn a_playback_crosses_as_its_number() {
+        assert_eq!(<PlaybackId as Lower<UniFfiTag>>::lower(PlaybackId::new(12)), 12);
+        assert_eq!(
+            <PlaybackId as Lift<UniFfiTag>>::try_lift(12).ok(),
+            Some(PlaybackId::new(12))
+        );
     }
 
     #[test]

@@ -1,8 +1,30 @@
-//! Playback, as the work reports it: what a skip would seek past, how a playback came to an end,
-//! and what a newer one is about to play. Also what the player's Up Next card and Episodes menu
-//! show, and the theme a front end dresses the player in.
+//! Playback, as the work reports it: which playback it is, what a skip would seek past, how a
+//! playback came to an end, and what a newer one is about to play. Also what the player's Up Next
+//! card and Episodes menu show, and the theme a front end dresses the player in.
 
 use anistream_core::ids::AnilistId;
+
+/// One playback, numbered by the engine as it starts it, once each per run: two playbacks of
+/// one episode are two numbers. What a playback says is named with it, so whose it is never has
+/// to be guessed from what was started last.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct PlaybackId(u64);
+
+// The number itself on the far side of an FFI, under the type's name, as a job's is.
+#[cfg(feature = "ffi")]
+uniffi::custom_newtype!(PlaybackId, u64);
+
+impl PlaybackId {
+    /// The playback numbered `n`. The engine numbers them as it starts them.
+    pub const fn new(n: u64) -> Self {
+        Self(n)
+    }
+
+    /// The playback's number, for a front end that keys playbacks by a plain integer.
+    pub const fn get(self) -> u64 {
+        self.0
+    }
+}
 
 /// What a skip would seek past.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -103,5 +125,16 @@ impl PlayerTheme {
         .into_iter()
         .map(|(key, value)| (key.to_owned(), value.clone()))
         .collect()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_playback_is_its_number() {
+        assert_eq!(PlaybackId::new(3).get(), 3);
+        assert!(PlaybackId::new(2) < PlaybackId::new(3));
     }
 }
