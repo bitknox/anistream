@@ -104,7 +104,10 @@ extension PlayerTests {
             print("picture feed: process CPU \(String(format: "%.3f", off)) s without, \(String(format: "%.3f", on)) s with, over 4 s; \(counts.copied) frames copied, \(counts.dropped) dropped, GPU \(String(format: "%.3f", perFrame)) ms a frame")
             // At least half of the 96 frames: mpv draws fewer when the machine is busy.
             #expect(counts.copied >= 48, "\(counts)")
-            #expect(perFrame < 2)
+            // 0.17–0.25 ms a frame on an M4 Pro. CI's runners are virtual Macs with an emulated GPU,
+            // where the same copy measured 2.5 ms, so there the bound only catches a large regression.
+            let bound = ProcessInfo.processInfo.environment["CI"] == nil ? 2.0 : 10.0
+            #expect(perFrame < bound, "GPU \(perFrame) ms a frame")
         }
     }
 }
