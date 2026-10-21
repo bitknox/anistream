@@ -112,23 +112,44 @@ struct CalendarScreen: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
     @Namespace private var rotor
+    /// The page's height, and the headings', which the columns fill between them at least.
+    @State private var page: CGFloat = 0
+    @State private var heading: CGFloat = 0
 
     var body: some View {
         let days = weekDays(offset: navigator.calendarWeek)
         let broadcasts = store.broadcasts(mine: navigator.calendarMine)
         let now = Date.now
         ListStates(state: store.calendar.list.state, placeholder: AnyView(Color.clear)) { _ in
-            HStack(alignment: .top, spacing: 4) {
-                ForEach(days, id: \.self) { day in
-                    DayColumn(
-                        day: day,
-                        broadcasts: broadcasts.filter { Calendar.current.isDate($0.airs, inSameDayAs: day) },
-                        now: now,
-                        rotor: rotor
-                    )
+            // One page that scrolls, the days' headings pinned above it: each column as long as
+            // its day, and every one as long as the longest, or the window when that is longer.
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                    Section {
+                        HStack(alignment: .top, spacing: 4) {
+                            ForEach(days, id: \.self) { day in
+                                DayBroadcasts(
+                                    day: day,
+                                    broadcasts: broadcasts.filter { Calendar.current.isDate($0.airs, inSameDayAs: day) },
+                                    now: now,
+                                    minHeight: max(0, page - heading)
+                                )
+                            }
+                        }
+                        .fixedSize(horizontal: false, vertical: true)
+                    } header: {
+                        HStack(alignment: .top, spacing: 4) {
+                            ForEach(days, id: \.self) { day in
+                                DayHeading(day: day, rotor: rotor)
+                            }
+                        }
+                        .background(.ground)
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { heading = $0 }
+                    }
                 }
+                .padding(EdgeInsets(top: 4, leading: 12, bottom: 12, trailing: 16))
             }
-            .padding(EdgeInsets(top: 4, leading: 12, bottom: 12, trailing: 16))
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { page = $0 - 16 }
             .daysRotor(days, broadcasts: broadcasts, in: rotor)
         } empty: {
             QuietLine("Nothing airing")
@@ -146,58 +167,80 @@ struct CalendarScreen: View {
     }
 }
 
-/// One day: its name and date, then each broadcast, newest episodes with their art.
-struct DayColumn: View {
+/// A day's heading over its column: its name and date, today marked, on the raised colour that
+/// runs down today's column.
+struct DayHeading: View {
     let day: Date
-    let broadcasts: [Broadcast]
-    let now: Date
-    /// Where the Days rotor finds this day's heading.
+    /// Where the Days rotor finds this heading.
     let rotor: Namespace.ID
 
     var body: some View {
         let today = Calendar.current.isDateInToday(day)
         VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 0) {
-                Text(CalendarWords.weekday(day))
-                    .font(.system(size: 13, weight: today ? .bold : .semibold))
-                    .foregroundStyle(.silk)
-                HStack(spacing: 8) {
-                    Text(CalendarWords.dayMonth(day)).foregroundStyle(.haze)
-                    if today {
-                        HStack(spacing: 4) {
-                            Circle().fill(.amber).frame(width: 6, height: 6)
-                            Text("Today").fontWeight(.medium).foregroundStyle(.silk)
-                        }
-                    }
-                }
-                .font(.system(size: 12))
+            Text(CalendarWords.weekday(day))
+                .font(.system(size: 13, weight: today ? .bold : .semibold))
+                .foregroundStyle(.silk)
+            // Today beside the date, or beneath it in a column too narrow for both.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) { dayMonth; if today { todayMark } }
+                VStack(alignment: .leading, spacing: 0) { dayMonth; if today { todayMark } }
             }
-            .fixedLineHeight(16)
-            .padding(8)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(alignment: .bottom) { Rectangle().fill(.faintRule).frame(height: 1) }
-            .accessibilityElement(children: .combine)
-            .accessibilityAddTraits(.isHeader)
-            .accessibilityRotorEntry(id: day, in: rotor)
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 4) {
-                    if broadcasts.isEmpty {
-                        Text("Nothing airing")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.haze)
-                            .padding(4)
-                    }
-                    ForEach(broadcasts) { broadcast in
-                        BroadcastCell(broadcast: broadcast, now: now)
-                    }
-                }
-                .padding(4)
-            }
-            .scrollIndicators(.never)
+            .font(.system(size: 12))
+            .lineLimit(1)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(today ? Palette.raised.opacity(0.6) : .clear, in: .rect(cornerRadius: 12))
+        .fixedLineHeight(16)
+        .padding(8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .bottom) { Rectangle().fill(.faintRule).frame(height: 1) }
+        .background(
+            today ? Palette.raised.opacity(0.6) : .clear,
+            in: UnevenRoundedRectangle(topLeadingRadius: 12, topTrailingRadius: 12)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+        .accessibilityRotorEntry(id: day, in: rotor)
+    }
+
+    private var dayMonth: some View {
+        Text(CalendarWords.dayMonth(day)).foregroundStyle(.haze)
+    }
+
+    private var todayMark: some View {
+        HStack(spacing: 4) {
+            Circle().fill(.amber).frame(width: 6, height: 6)
+            Text("Today").fontWeight(.medium).foregroundStyle(.silk)
+        }
+    }
+}
+
+/// A day's broadcasts, newest episodes with their art, in its column of the page.
+struct DayBroadcasts: View {
+    let day: Date
+    let broadcasts: [Broadcast]
+    let now: Date
+    /// At least this tall: the page below the headings, so today's colour runs to its foot.
+    var minHeight: CGFloat = 0
+
+    var body: some View {
+        let today = Calendar.current.isDateInToday(day)
+        VStack(alignment: .leading, spacing: 4) {
+            if broadcasts.isEmpty {
+                Text("Nothing airing")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.haze)
+                    .padding(4)
+            }
+            ForEach(broadcasts) { broadcast in
+                BroadcastCell(broadcast: broadcast, now: now)
+            }
+        }
+        .padding(4)
+        // As long as the longest day, which the row's fixed height makes every column.
+        .frame(maxWidth: .infinity, minHeight: minHeight, maxHeight: .infinity, alignment: .topLeading)
+        .background(
+            today ? Palette.raised.opacity(0.6) : .clear,
+            in: UnevenRoundedRectangle(bottomLeadingRadius: 12, bottomTrailingRadius: 12)
+        )
     }
 }
 
