@@ -131,8 +131,8 @@ local function publish()
         keys = help.is_open(),
         keys_listed = help.is_open() and help.listed() or nil,
         timeline = overlay.visible(timeline),
-        -- Whether the controls are up. The seek bar needs a duration besides, so under load
-        -- the controls can come and go with `timeline` false throughout.
+        -- Whether the controls are up. The seek bar needs a duration besides, so the controls
+        -- can come and go with `timeline` false throughout when the duration arrives after.
         controls = controls_up,
         -- Which form the volume control last drew, "row" or "pill": what a fade showed.
         volume = volume.drawn(),
@@ -300,8 +300,15 @@ mp.observe_property("idle-active", "bool", function(_, value)
 end)
 
 mp.observe_property("duration", "number", function(_, value)
+    local had = (p.duration or 0) > 0
     p.duration = value
     up_next.evaluate()
+    -- The seek bar needs a duration. One that arrives while the controls are up brings the bar
+    -- up with them; until it did, a wake before the script knew the duration (a file just
+    -- started, a machine under load) left the controls up without the bar until the next.
+    if ((value or 0) > 0) ~= had then
+        refresh()
+    end
 end)
 
 mp.observe_property("speed", "number", function(_, value)
