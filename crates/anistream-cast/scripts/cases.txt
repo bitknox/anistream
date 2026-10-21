@@ -1,0 +1,24 @@
+# The format matrix (C3), one cast per line: label | cast_probe play flags. Paths are under
+# .media/matrix. Each plays 10 s through one receiver session, then stops.
+hls-ts-h264       | --path hls-ts-h264/index.m3u8 --hls ts
+hls-fmp4-h264     | --path hls-fmp4-h264/index.m3u8 --hls fmp4 --video fmp4
+hls-fmp4-hevc     | --path hls-fmp4-hevc/index.m3u8 --hls fmp4 --video fmp4
+hls-fmp4-hevc10   | --path hls-fmp4-hevc10/index.m3u8 --hls fmp4 --video fmp4
+mp4-h264          | --path mp4-h264.mp4
+mp4-hevc          | --path mp4-hevc.mp4
+mp4-hevc10        | --path mp4-hevc10.mp4
+mkv-h264          | --path mkv-h264.mkv --type video/x-matroska
+mkv-h264-as-mp4   | --path mkv-h264.mkv --type video/mp4
+webm-vp9          | --path webm-vp9.webm
+hls-fmp4-a-aac    | --path hls-fmp4-a-aac/index.m3u8 --hls fmp4 --video fmp4
+hls-fmp4-a-opus   | --path hls-fmp4-a-opus/index.m3u8 --hls fmp4 --video fmp4
+hls-fmp4-a-flac   | --path hls-fmp4-a-flac/index.m3u8 --hls fmp4 --video fmp4
+hls-fmp4-a-ac3    | --path hls-fmp4-a-ac3/index.m3u8 --hls fmp4 --video fmp4
+hls-fmp4-a-eac3   | --path hls-fmp4-a-eac3/index.m3u8 --hls fmp4 --video fmp4
+mp4-a-aac         | --path mp4-a-aac.mp4
+mp4-a-opus        | --path mp4-a-opus.mp4
+mp4-a-flac        | --path mp4-a-flac.mp4
+mp4-a-ac3         | --path mp4-a-ac3.mp4
+mp4-a-eac3        | --path mp4-a-eac3.mp4
+mp4-h264-vtt      | --path mp4-h264.mp4 --vtt subs.vtt
+hls-ts-h264-vtt   | --path hls-ts-h264/index.m3u8 --hls ts --vtt subs.vtt

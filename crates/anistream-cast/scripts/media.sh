@@ -55,6 +55,9 @@ hls hls-fmp4-hevc fmp4 "${hevc[@]}" "${aac[@]}"
 hls hls-fmp4-hevc10 fmp4 "${hevc10[@]}" "${aac[@]}"
 mp4 mp4-h264.mp4 "${h264[@]}" "${aac[@]}"
 mp4 mp4-hevc.mp4 "${hevc[@]}" "${aac[@]}"
+# The throughput case: 40 Mbit/s, about twice a Blu-ray remux's average.
+mp4 mp4-h264-40m.mp4 -c:v libx264 -preset veryfast -b:v 40M -maxrate 40M -bufsize 80M -pix_fmt yuv420p \
+  -x264-params nal-hrd=cbr "${aac[@]}"
 mp4 mp4-hevc10.mp4 "${hevc10[@]}" "${aac[@]}"
 if need "$m/mkv-h264.mkv"; then
   "${ff[@]}" "${src[@]}" -map 0:v -map 1:a "${h264[@]}" "${aac[@]}" "$m/mkv-h264.mkv"

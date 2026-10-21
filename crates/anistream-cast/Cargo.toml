@@ -14,7 +14,7 @@ doctest = false
 # the workspace compiles only the library.
 [features]
 default = []
-probe = ["dep:tracing-subscriber"]
+probe = ["dep:tracing-subscriber", "fake"]
 # A Cast device on loopback, for the tests of whatever drives one.
 fake = []
 

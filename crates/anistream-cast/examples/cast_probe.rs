@@ -10,6 +10,8 @@
 //! cast_probe matrix <ip> --root DIR --cases FILE [--seconds N]
 //! cast_probe vtt <in.ass> <out.vtt>
 //! cast_probe remux <in.mkv> <out-dir>
+//! cast_probe fake                      # a device on loopback; the others take CAST_PORT
+//! cast_probe serve <dir>                # the proxy alone, on loopback
 //! ```
 //!
 //! A cast refuses to start while another app is running on the device, mutes the device for its
@@ -58,6 +60,27 @@ async fn main() -> Result<()> {
             }
         }
         Some("info") => info(ip(&args)?).await?,
+        // The LAN proxy alone, on loopback, serving a directory: for players on this machine.
+        Some("serve") => {
+            let root = PathBuf::from(args.get(1).ok_or("serve DIR")?);
+            let server = LanServer::start(Options {
+                bind: Ipv4Addr::LOCALHOST,
+                allow: None,
+                root: Some(root),
+                upstream_headers: Vec::new(),
+                dynamic: None,
+                cors: true,
+            })
+            .await?;
+            println!("{}/f/", server.base());
+            std::future::pending::<()>().await;
+        }
+        // A Cast device on loopback, for a dry run of the other commands with CAST_PORT.
+        Some("fake") => {
+            let device = anistream_cast::fake::FakeDevice::start(4.0, 20.0).await?;
+            println!("{}", device.address.port());
+            std::future::pending::<()>().await;
+        }
         Some("play") => {
             let report = play(ip(&args)?, &Flags::read(&args[2..])?).await?;
             println!("{}", serde_json::to_string_pretty(&report)?);
@@ -95,12 +118,17 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+/// The device's Cast port: 8009, or `CAST_PORT` for the fake device.
+fn port() -> u16 {
+    std::env::var("CAST_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(8009)
+}
+
 fn ip(args: &[String]) -> Result<Ipv4Addr> {
     Ok(args.get(1).ok_or("give the device's address")?.parse()?)
 }
 
 async fn info(ip: Ipv4Addr) -> Result<()> {
-    let (device, mut events) = Device::connect(SocketAddr::from((ip, 8009))).await?;
+    let (device, mut events) = Device::connect(SocketAddr::from((ip, port()))).await?;
     println!("receiver status: {}", device.status().await?);
     for (namespace, kind) in [
         ("urn:x-cast:com.google.cast.receiver.discovery", "GET_DEVICE_INFO"),
@@ -335,7 +363,7 @@ async fn wind_down(device: &Device, media: &Media, volume: Option<(f64, bool)>) 
 
 async fn prepare(ip: Ipv4Addr, keep_volume: bool) -> Result<(Device, UnboundedReceiver<Incoming>, Option<(f64, bool)>, Duration, Duration)> {
     let connecting = Instant::now();
-    let (device, events) = Device::connect(SocketAddr::from((ip, 8009))).await?;
+    let (device, events) = Device::connect(SocketAddr::from((ip, port()))).await?;
     let connected = connecting.elapsed();
     let status = device.status().await?;
     if let Some(app) = device.running().await?
@@ -526,6 +554,9 @@ async fn run(
         }
     }
     let final_status = media.status().await.ok().flatten();
+    // The proxy's guard, from a peer that is not the device (this machine, on the LAN address):
+    // the connection should be dropped before a byte is read.
+    let self_fetch = from_here(&load.url).await;
     let log = server.log();
     let first_request = log.first().map(|l| l.at.saturating_sub(since_server));
     let media_bytes: u64 = log.iter().map(|l| l.bytes).sum();
@@ -545,6 +576,7 @@ async fn run(
         "final": final_status.map(|s| json!({"state": s.state, "position": s.position,
             "idle": s.idle_reason, "tracks": s.active_tracks, "duration": s.duration})),
         "controls": controls,
+        "from_another_peer": self_fetch,
         "timeline": timeline.entries,
         "proxy": {
             "requests": log.len(),
@@ -563,6 +595,26 @@ async fn run(
                 "bytes": l.bytes, "ms": l.took.as_millis() as u64})).collect::<Vec<_>>(),
         },
     }))
+}
+
+/// Ask the proxy for `url` from this machine, which the allow-list should turn away.
+async fn from_here(url: &str) -> String {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+    let Some(rest) = url.strip_prefix("http://") else { return "not proxied".into() };
+    let (authority, path) = rest.split_at(rest.find('/').unwrap_or(rest.len()));
+    let Ok(Ok(mut socket)) =
+        tokio::time::timeout(Duration::from_secs(2), tokio::net::TcpStream::connect(authority)).await
+    else {
+        return "no connection".into();
+    };
+    let ask = format!("GET {path} HTTP/1.1\r\nHost: {authority}\r\nConnection: close\r\n\r\n");
+    let _ = socket.write_all(ask.as_bytes()).await;
+    let mut head = [0u8; 12];
+    match tokio::time::timeout(Duration::from_secs(2), socket.read(&mut head)).await {
+        Ok(Ok(0)) | Ok(Err(_)) => "dropped".into(),
+        Ok(Ok(n)) => String::from_utf8_lossy(&head[..n]).into_owned(),
+        Err(_) => "no answer".into(),
+    }
 }
 
 /// Every case in a file, one per line: `label | flags…`, through one receiver session.
