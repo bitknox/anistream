@@ -80,8 +80,10 @@ properties and events back; `PlayerService` is the media session around it, a `m
 foreground service. The emulator decodes in software: its MediaCodec stalls under FFmpeg, and a
 watchdog moves a decoder with no picture to software, or a stuck mpv to a new one.
 
-CI does not run mpv.sh: with `ANISTREAM_PLAYER_NATIVE=off` the player builds without libmpv and the
-shim, so its Kotlin compiles and its unit tests run, and that APK cannot play.
+CI's checks do not run mpv.sh: with `ANISTREAM_PLAYER_NATIVE=off` the player builds without libmpv
+and the shim, so its Kotlin compiles and its unit tests run, and that APK cannot play. A release
+does run it, on Linux (`.github/workflows/apps-release.yml`), where it also needs `gperf` and
+`python3-venv`.
 
 The instrumented tests drive the protocol on the testing engine's Playing scene against a real mpv
 in the emulator, with the episode `android/scripts/player-media.sh` makes:
