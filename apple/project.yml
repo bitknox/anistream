@@ -76,6 +76,10 @@ targetTemplates:
         group: Packages/AnistreamKit/Generated
       - path: Packages/AnistreamKit/Sources/AnistreamKit/Model.swift
         group: Packages/AnistreamKit
+      - path: Packages/AnistreamKit/Sources/AnistreamKit/Settings.swift
+        group: Packages/AnistreamKit
+      - path: Packages/AnistreamKit/Sources/AnistreamKit/Sources.swift
+        group: Packages/AnistreamKit
     dependencies:
       - framework: .engine/${flavour}/AnistreamEngine.xcframework
         embed: false
