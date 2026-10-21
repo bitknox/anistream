@@ -36,6 +36,8 @@ android {
     sourceSets["main"].apply {
         // libmpv.so and FFmpeg's libraries, from android/scripts/mpv.sh.
         jniLibs.directories += mpvDir.resolve("jniLibs").path
+        // -PengineLibs=<dir with arm64-v8a/libanistream_ffi.so>: the engine beside mpv (AS1).
+        providers.gradleProperty("engineLibs").orNull?.let { jniLibs.directories += it }
         // The engine's shaders, copied in by spikeShaders below.
         assets.directories += layout.buildDirectory.dir("generated/spikeAssets").get().asFile.path
     }

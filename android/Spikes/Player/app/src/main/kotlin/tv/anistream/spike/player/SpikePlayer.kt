@@ -45,7 +45,10 @@ object SpikePlayer {
     private var loadAt = 0L
 
     /** Starts mpv once. Later calls change nothing: options only apply at start. */
-    fun start(context: Context, hwdec: String, vo: String, gpuContext: String, extra: List<Pair<String, String>>) {
+    fun start(
+        context: Context, hwdec: String, vo: String, gpuContext: String,
+        extra: List<Pair<String, String>>, logLevel: String = "info",
+    ) {
         if (started) return
         started = true
         this.vo = vo
@@ -71,6 +74,7 @@ object SpikePlayer {
         mpv.start(
             options,
             MpvSetup.reportedProperties + listOf("hwdec-current", "video-out-params", "estimated-vf-fps"),
+            logLevel,
         )
     }
 
@@ -138,7 +142,8 @@ object SpikePlayer {
         val report = JSONObject()
         report.put("tag", tag)
         for (name in listOf(
-            "hwdec-current", "video-params", "video-out-params", "current-vo", "current-gpu-context",
+            "hwdec-current", "video-params", "video-out-params", "video-target-params", "current-vo",
+            "current-gpu-context",
             "estimated-vf-fps", "container-fps", "display-fps", "frame-drop-count",
             "decoder-frame-drop-count", "vo-delayed-frame-count", "time-pos", "duration", "pause",
             "glsl-shaders", "current-tracks/sub", "sub-text", "vo-passes", "android-surface-size",

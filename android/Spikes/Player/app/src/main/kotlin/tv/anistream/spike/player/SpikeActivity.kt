@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.PictureInPictureParams
 import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -38,13 +39,16 @@ import java.util.concurrent.Executors
  *   url       a URL, `lavfi`, or a file name in the app's files/media
  *   shaders   off | natural | sharp: the chain `choose()` gives for the source and the display
  *   chain     shader files to pin instead, comma-separated
- *   hwdec, vo, gpu-context, opts ("name=value;…")   mpv's, at the first start only
+ *   hwdec, vo, gpu-context, opts ("name=value;…"), log (mpv's log level)
+ *             mpv's, at the first start only
  *   cmd       mpv commands, `|`-separated, words split on spaces
  *   set       properties, "name=value;…"
  *   seconds   log a SPIKE_REPORT after this many seconds, with the CPU used from second 2
  *   report    log a SPIKE_REPORT now
  *   pip       enter picture in picture
  *   previews  make this many seek previews from a second mpv and log SPIKE_PREVIEWS (AS8)
+ *   landscape keep the display in landscape
+ *   engine    load the engine's libanistream_ffi.so first, when the APK carries it (AS1)
  *
  * This activity is recreated on rotation and resize, so mpv, which outlives it, gets a new
  * surface each time (AS9). [StableActivity] handles those changes itself instead (AS2).
@@ -59,13 +63,23 @@ open class SpikeActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // The emulator's launcher turns the display back to portrait between runs.
+        if (intent.getBooleanExtra("landscape", false)) {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        }
         val extras = intent
+        // AS1: the engine's library in the same process as mpv's, loaded first.
+        if (extras.getBooleanExtra("engine", false)) {
+            System.loadLibrary("anistream_ffi")
+            Log.i(SpikePlayer.TAG, "SPIKE_ENGINE loaded libanistream_ffi.so")
+        }
         SpikePlayer.start(
             this,
             hwdec = extras.getStringExtra("hwdec") ?: "mediacodec,mediacodec-copy",
             vo = extras.getStringExtra("vo") ?: "gpu-next",
             gpuContext = extras.getStringExtra("gpu-context") ?: "android",
             extra = pairs(extras.getStringExtra("opts")),
+            logLevel = extras.getStringExtra("log") ?: "info",
         )
         SpikePlayer.display = display()
         surface = SurfaceView(this)

@@ -211,8 +211,15 @@ static void *event_thread(void *arg) {
         }
         case MPV_EVENT_END_FILE: {
             mpv_event_end_file *end = event->data;
-            static const char *reasons[] = {"eof", "stop", "quit", "error", "redirect"};
-            const char *reason = end->reason >= 0 && end->reason <= 4 ? reasons[end->reason] : "unknown";
+            // The engine's PlayerEnd names; mpv's values skip 1.
+            const char *reason = "unknown";
+            switch (end->reason) {
+            case MPV_END_FILE_REASON_EOF: reason = "eof"; break;
+            case MPV_END_FILE_REASON_STOP: reason = "stop"; break;
+            case MPV_END_FILE_REASON_QUIT: reason = "quit"; break;
+            case MPV_END_FILE_REASON_ERROR: reason = "error"; break;
+            case MPV_END_FILE_REASON_REDIRECT: reason = "redirect"; break;
+            }
             buf_str(&data, "{\"reason\":");
             json_string(&data, reason);
             if (end->reason == MPV_END_FILE_REASON_ERROR) {
