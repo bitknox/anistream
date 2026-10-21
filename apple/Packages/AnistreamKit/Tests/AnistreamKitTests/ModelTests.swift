@@ -12,7 +12,7 @@ func entry(_ id: AnilistId = 1, _ title: String = "Hoshikuzu no Tabibito") -> En
         progress: nil, airingIn: nil, airingEpisode: nil, nextEpisode: nil, nextAiringIn: nil,
         lastAired: nil, resume: nil, related: [], recommended: [], trailerUrl: nil, listStatus: nil,
         titleRomaji: nil, titleEnglish: nil, titleNative: nil, season: nil, startDate: nil, endDate: nil,
-        source: nil, adult: false, detail: nil
+        source: nil, adult: false, detail: nil, status: nil, synopsisSpans: []
     )
 }
 

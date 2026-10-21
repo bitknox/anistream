@@ -236,9 +236,9 @@ extension Entry {
             studio: nil, synopsis: "", coverUrl: nil, coverColor: nil, bannerUrl: nil, genres: [],
             availableOn: [], progress: nil, airingIn: nil, airingEpisode: nil, nextEpisode: nil,
             nextAiringIn: nil, lastAired: nil, resume: nil, related: [], recommended: [],
-            trailerUrl: nil, listStatus: nil,
-        titleRomaji: nil, titleEnglish: nil, titleNative: nil, season: nil, startDate: nil, endDate: nil,
-        source: nil, adult: false, detail: nil
+            trailerUrl: nil, listStatus: nil, titleRomaji: nil, titleEnglish: nil, titleNative: nil,
+            season: nil, startDate: nil, endDate: nil, source: nil, adult: false, detail: nil, status: nil,
+            synopsisSpans: []
         )
     }
 }

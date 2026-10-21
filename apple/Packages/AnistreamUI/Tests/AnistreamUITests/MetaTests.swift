@@ -16,7 +16,8 @@ func detail(
 
 func linked(_ id: AnilistId, _ relation: RelationKind?, _ format: String, _ year: UInt16?) -> LinkedTitle {
     LinkedTitle(id: id, title: "Title \(id)", titleRomaji: "Romaji \(id)", titleEnglish: "Title \(id)",
-                titleNative: nil, relation: relation, format: format, coverUrl: nil, season: nil, year: year)
+                titleNative: nil, relation: relation, format: format, coverUrl: nil, coverColor: nil, season: nil,
+                year: year, listStatus: nil)
 }
 
 func tag(_ name: String, spoiler: Bool = false) -> TitleTag {
