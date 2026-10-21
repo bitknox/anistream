@@ -10,12 +10,12 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use anistream_core::{ids::AnilistId, settings::SettingValue};
+use anistream_core::{ids::AnilistId, media::Translation, settings::SettingValue};
 use anistream_ffi::{FfiDirs, FfiEngine, FfiHost, FfiScene, FfiStart};
 use anistream_model::{
     command::Command,
     event::Event,
-    notifications::NewEpisode,
+    notifications::{ComingEpisode, NewEpisode},
     settings::SettingKey,
     show::ShowSettingKey,
     widgets::{WIDGET_DATA_VERSION, WidgetAiring, WidgetData, WidgetNextAiring},
@@ -240,6 +240,12 @@ fn an_episode_that_airs_later_is_said_once_for_one_request() {
     );
     let cover = episode.cover_url.as_deref().unwrap_or_default();
     assert!(cover.starts_with("http://127.0.0.1:"), "the fixture's cover, served: {cover}");
+    // For the notification's words and picture: episodes 1 to 3 watched, so the viewer is up to
+    // episode 4; watched subtitled, as Settings has it; and the show's banner.
+    assert_eq!(episode.next_for_you, Some(4), "Next for you: episode 4");
+    assert_eq!(episode.translation, Some(Translation::Sub));
+    let banner = episode.banner_url.as_deref().unwrap_or_default();
+    assert!(banner.starts_with("http://127.0.0.1:"), "the fixture's banner, served: {banner}");
 
     // Asked again at once, the look a moment ago answers, and AniList is not asked.
     let (said, asked) = check(&engine);
@@ -273,6 +279,84 @@ fn a_show_not_being_watched_is_said_only_once_switched_on_for_itself() {
         assert_eq!(said, expected, "switched on: {switched_on}");
         engine.shutdown();
     }
+}
+
+#[test]
+fn a_show_watched_dubbed_says_so_and_one_caught_up_has_no_next_for_you() {
+    let (engine, _root) = watching();
+    notifications(&engine, true);
+    let dubbed = Command::SetShowSetting {
+        id: AIRING,
+        key: ShowSettingKey::Translation,
+        value: Some(SettingValue::Str("dub".into())),
+    };
+    assert_eq!(engine.send(dubbed), None);
+    read_until(&engine, |event| matches!(event, Event::ShowSettings(_)));
+    // Caught up to episode 5, the last aired before episode 6.
+    let mark = Command::SetWatched {
+        id: AIRING,
+        episodes: vec!["4".into(), "5".into()],
+        watched: true,
+    };
+    assert_eq!(engine.send(mark), None, "a mark is not a job");
+    read_until(
+        &engine,
+        |event| matches!(event, Event::Progress { id, progress: Some(progress), .. } if *id == AIRING && progress.next == 6),
+    );
+    assert_eq!(check(&engine).0, []);
+
+    engine.testing_advance_clock(PAST_EPISODE_6);
+    let said = check(&engine).0;
+    let [episode] = &said[..] else { panic!("one episode: {said:?}") };
+    assert_eq!((episode.id, episode.episode), (AIRING, 6));
+    assert_eq!(
+        episode.translation,
+        Some(Translation::Dub),
+        "its own translation, not Settings'"
+    );
+    assert_eq!(episode.next_for_you, None, "caught up: episode 6 is the next for them");
+    engine.shutdown();
+}
+
+/// List the week's episodes coming up: what they are, and what AniList was asked.
+fn coming(engine: &Arc<FfiEngine>) -> (Vec<ComingEpisode>, Vec<String>) {
+    let before = engine.testing_anilist_requests().len();
+    assert_eq!(engine.send(Command::ComingEpisodes), None, "the list is not a job");
+    let read = read_until(engine, |event| matches!(event, Event::ComingEpisodes(_)));
+    let coming = read.into_iter().find_map(|event| match event {
+        Event::ComingEpisodes(coming) => Some(coming),
+        _ => None,
+    });
+    (coming.expect("the list"), asked_since(engine, before))
+}
+
+#[test]
+fn the_week_coming_up_lists_the_shows_followed_with_their_own_switches() {
+    let (engine, _root) = watching();
+    let shift = shift(&engine);
+
+    // Notifications are off, and the list still says what they would follow: the two airing
+    // shows being watched, their episodes this week soonest first, for one request.
+    let (listed, asked) = coming(&engine);
+    assert_eq!(asked, ["AiredSince"]);
+    let shown: Vec<_> = listed.iter().map(|e| (e.id, e.episode, e.switched_on)).collect();
+    assert_eq!(shown, [(AIRING, 6, false), (AIRING_NO_MAL, 9, false)]);
+    assert_eq!(listed[0].airs_at, fixture_airs(AIRING, 6) + shift);
+    assert_eq!(listed[0].title, "The Library Above the Clouds");
+    assert_eq!(listed[0].translation, Some(Translation::Sub));
+    assert!(listed.iter().all(|e| e.airs_at > now() && e.airs_at < now() + 7 * DAY + HOUR));
+
+    // A show switched off is left out; one followed only by its own switch is listed, and says
+    // so.
+    notifications(&engine, true);
+    assert_eq!(notify_show(&engine, AIRING, Some(false)), "off");
+    assert_eq!(engine.send(Command::HideFromContinue { id: AIRING_NO_MAL }), None);
+    assert_eq!(coming(&engine).0, []);
+    assert_eq!(notify_show(&engine, AIRING_NO_MAL, Some(true)), "on");
+    let shown: Vec<_> =
+        coming(&engine).0.iter().map(|e| (e.id, e.episode, e.switched_on)).collect();
+    assert_eq!(shown, [(AIRING_NO_MAL, 9, true)]);
+    engine.shutdown();
 }
 
 #[test]

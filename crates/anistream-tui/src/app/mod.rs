@@ -425,7 +425,7 @@ impl App {
             Event::Authorize { .. } => {}
             // A native app's notifications and widgets, which the terminal never asks for: what
             // aired while it was closed is the digest's to say, at launch.
-            Event::NewEpisodes(_) | Event::WidgetSnapshot(_) => {}
+            Event::NewEpisodes(_) | Event::ComingEpisodes(_) | Event::WidgetSnapshot(_) => {}
             Event::Seeding(rows) => self.seeding = rows,
             Event::Downloads(rows) => self.apply_downloads(rows),
             Event::LastAired(rows) => self.apply_last_aired(rows),

@@ -446,6 +446,18 @@ pub enum Command {
     ///
     /// [`Event::NewEpisodes`]: crate::event::Event::NewEpisodes
     CheckNewEpisodes,
+    /// The episodes of the shows the new-episode check follows that air in the next week, for
+    /// the Notifications settings' "Coming up": answered with exactly one
+    /// [`Event::ComingEpisodes`], soonest first, and never with a job. Empty when there are none,
+    /// or when AniList could not be asked.
+    ///
+    /// The shows are the check's own, each show's switch taken into account: those being
+    /// watched, and any switched on for itself, none switched off. They are listed whether
+    /// [`SettingKey::EpisodeNotifications`] is on or not, so the settings can show what turning
+    /// it on would follow. One request to AniList for every show at once, cut off at 15 seconds.
+    ///
+    /// [`Event::ComingEpisodes`]: crate::event::Event::ComingEpisodes
+    ComingEpisodes,
     /// The record the home-screen widgets show: answered with one
     /// [`Event::WidgetSnapshot`](crate::event::Event::WidgetSnapshot), never with a job.
     ///

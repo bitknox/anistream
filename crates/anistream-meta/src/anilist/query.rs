@@ -201,8 +201,9 @@ pub const LAST_AIRED: &str = r"
 ///
 /// `mediaId_in` takes every title followed at once, so a check costs one request however long
 /// the list. Oldest first, so a window with more broadcasts than a page is carried on from where
-/// the page ended rather than losing its oldest. Each broadcast brings its title's forms and its
-/// cover, which a notification shows, and nothing heavier: no description, no schedule.
+/// the page ended rather than losing its oldest. Each broadcast brings its title's forms, its
+/// cover and banner, which a notification shows, and nothing heavier: no description, no
+/// schedule. A window ahead of now lists the broadcasts coming up the same way.
 pub const AIRED_SINCE: &str = r"
     query ($ids: [Int], $from: Int, $to: Int, $perPage: Int) {
         Page(perPage: $perPage) {
@@ -211,7 +212,10 @@ pub const AIRED_SINCE: &str = r"
                             sort: TIME) {
                 episode
                 airingAt
-                media { id title { romaji english native } coverImage { extraLarge large color } }
+                media {
+                    id title { romaji english native } coverImage { extraLarge large color }
+                    bannerImage
+                }
             }
         }
     }

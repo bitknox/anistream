@@ -464,8 +464,8 @@ impl AniList {
     }
 
     /// What aired for `ids` after `from` and before `to`, oldest first: a page of at most
-    /// fifty broadcasts, and whether there are more after it. Each carries its title's forms
-    /// and cover, and nothing else of the title.
+    /// fifty broadcasts, and whether there are more after it. Each carries its title's forms,
+    /// cover and banner, and nothing else of the title.
     ///
     /// One request for every title, however many: see [`query::AIRED_SINCE`].
     pub async fn aired_since(
