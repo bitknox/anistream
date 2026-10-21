@@ -7,7 +7,7 @@
  */
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { PLANE_RATES, renderScene, sceneConfig, type PlaneName } from './scene';
+import { PLANE_RATES, liveScene, renderScene, sceneConfig, type PlaneName, type SceneState } from './scene';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -36,7 +36,13 @@ function rng(seed: number) {
 const isPhone = () => window.matchMedia('(max-width: 899px)').matches;
 
 /* ── The hero scene ─────────────────────────────────────────────────────── */
-type Scene = { box: HTMLElement; canvases: Record<PlaneName, HTMLCanvasElement>; cell: number; extra: number };
+type Scene = {
+	box: HTMLElement;
+	canvases: Record<PlaneName, HTMLCanvasElement>;
+	cell: number;
+	extra: number;
+	state: SceneState | null;
+};
 
 function drawScene(): Scene | null {
 	const box = $('[data-scene]');
@@ -47,7 +53,7 @@ function drawScene(): Scene | null {
 	if (PLANES.some((p) => !canvases[p])) return null;
 
 	let drawnFor = '';
-	const scene: Scene = { box, canvases, cell: 8, extra: 0 };
+	const scene: Scene = { box, canvases, cell: 8, extra: 0, state: null };
 	const draw = () => {
 		// One scene pixel is a whole number of CSS pixels, so the art stays crisp: 6 on a phone, and
 		// on a wider screen as many as keep the scene to about half the window's height, from 6 to 8.
@@ -57,12 +63,21 @@ function drawScene(): Scene | null {
 		// The nav sits over the top of the scene, so the art starts below it.
 		const nav = $('.l-nav');
 		const lift = nav && getComputedStyle(nav).position === 'fixed' ? nav.offsetHeight : 0;
-		const key = `${W}:${cell}:${lift}`;
+		const left = Math.floor((width - W * cell) / 2);
+		const cfg = sceneConfig(W);
+		// From 1200 px the terminal stands beside the copy with its top on the rooftop's edge, and
+		// Nagare stands on it, a little right of its middle, rather than on the floor behind it.
+		const term = window.matchMedia('(min-width: 1200px)').matches ? $('.hero-term > .term') : null;
+		if (term) {
+			const t = term.getBoundingClientRect();
+			const from = t.left - box.getBoundingClientRect().left - left;
+			cfg.nagareX = Math.round((from + t.width * 0.62) / cell);
+			cfg.feetRow = cfg.roofY - 1;
+		}
+		const key = `${W}:${cell}:${lift}:${cfg.nagareX}:${cfg.feetRow}`;
 		if (key === drawnFor) return;
 		drawnFor = key;
-		const cfg = sceneConfig(W);
-		renderScene(cfg, canvases);
-		const left = Math.floor((width - W * cell) / 2);
+		scene.state = renderScene(cfg, canvases);
 		for (const p of PLANES) {
 			const c = canvases[p];
 			c.style.width = `${W * cell}px`;
@@ -218,9 +233,23 @@ function buildDemo() {
 }
 
 /* ── Full motion ────────────────────────────────────────────────────────── */
+let stopLive: (() => void) | null = null;
+
 function full() {
 	const scene = drawScene();
 	paintTermCover();
+
+	// While the scene is on screen it stays alive: stars breathe, a shooting star crosses now and
+	// then, and windows in the city switch on and off.
+	if (scene) {
+		const live = liveScene(() => scene.state);
+		const seen = new IntersectionObserver(([e]) => (e.isIntersecting ? live.start() : live.stop()));
+		seen.observe(scene.box);
+		stopLive = () => {
+			seen.disconnect();
+			live.stop();
+		};
+	}
 
 	// The scene's planes sink at their own rates inside the scene's box: the sky barely moves,
 	// the city sinks behind the rooftop, and the rooftop with Nagare moves with the page.
@@ -308,12 +337,6 @@ function full() {
 		);
 	}
 
-	// The terminal sinks slightly as it leaves.
-	gsap.to('.term', {
-		yPercent: 6,
-		ease: 'none',
-		scrollTrigger: { trigger: '.term', start: 'top 20%', end: 'bottom top', scrub: true },
-	});
 
 	// The band: a slow marquee that scrolling pulls a little faster.
 	const track = $('.band-track');
@@ -373,6 +396,8 @@ function full() {
 
 /* ── Reduced motion: the resting frame ──────────────────────────────────── */
 function reduced() {
+	stopLive?.();
+	stopLive = null;
 	drawScene();
 	paintTermCover();
 	for (const s of $$('.term .screen')) gsap.set(s, { autoAlpha: s.dataset.screen === 'home' ? 1 : 0 });
@@ -386,12 +411,15 @@ function navOverScene() {
 	const nav = $('.l-nav');
 	const scene = $('[data-scene]');
 	if (!nav || !scene) return;
+	// The nav turns solid while 160 px of the scene are still below it, so its links never sit over
+	// the last thin strip of the picture.
+	const SOLID_AT = 160;
 	let observer: IntersectionObserver | null = null;
 	const watch = () => {
 		observer?.disconnect();
 		observer = new IntersectionObserver(
 			([entry]) => nav.classList.toggle('is-solid', !entry.isIntersecting),
-			{ rootMargin: `-${nav.offsetHeight}px 0px 0px 0px` }
+			{ rootMargin: `-${nav.offsetHeight + SOLID_AT}px 0px 0px 0px` }
 		);
 		observer.observe(scene);
 	};
@@ -399,8 +427,8 @@ function navOverScene() {
 	// The nav is 56 px on a phone and 64 px wider, so the line it watches moves with it.
 	window.matchMedia('(max-width: 599px)').addEventListener('change', watch);
 
-	// Past the scene, the nav goes away while you scroll down and comes back as soon as you
-	// scroll up. Over the scene, or with focus inside it, it always shows.
+	// Once solid, the nav goes away while you scroll down and comes back as soon as you scroll up.
+	// Over the scene, or with focus inside it, it always shows.
 	let lastY = window.scrollY;
 	let queued = false;
 	const onScroll = () => {
@@ -409,7 +437,7 @@ function navOverScene() {
 		const dy = y - lastY;
 		if (Math.abs(dy) < 6) return;
 		lastY = y;
-		const past = scene.getBoundingClientRect().bottom <= nav.offsetHeight;
+		const past = scene.getBoundingClientRect().bottom <= nav.offsetHeight + SOLID_AT;
 		const hide = dy > 0 && past && !nav.matches(':focus-within');
 		nav.classList.toggle('is-hidden', hide);
 	};

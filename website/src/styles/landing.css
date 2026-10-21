@@ -289,13 +289,41 @@ html:not(.js) .scene {
 	opacity: 1;
 }
 
+/* On load the copy rises 12 px into place, once, and the terminal follows it. */
+@keyframes hero-in {
+	from {
+		opacity: 0;
+		transform: translateY(12px);
+	}
+}
+
+html.js .hero-text {
+	animation: hero-in 600ms var(--ani-spring) 120ms both;
+}
+
+html.js .hero-term > * {
+	animation: hero-in 600ms var(--ani-spring) 280ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	html.js .hero-text,
+	html.js .hero-term > * {
+		animation: none;
+	}
+}
+
 .hero-copy {
 	position: relative;
 	display: flex;
 	flex-direction: column;
-	align-items: flex-start;
 	padding-top: 40px;
 	padding-bottom: 72px;
+}
+
+.hero-text {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
 }
 
 /* The copy starts on the rooftop, 14 scene pixels above the scene's foot, under the railing. */
@@ -314,6 +342,11 @@ html:not(.js) .scene {
 	font-weight: 700;
 	line-height: 60px;
 	letter-spacing: 0.005em;
+}
+
+/* The claim in amber text. The Install button stays the only filled amber on the screen. */
+.hero-claim {
+	color: var(--ani-obi);
 }
 
 .hero-side {
@@ -365,30 +398,69 @@ html:not(.js) .scene {
 	}
 }
 
-/* ── The terminal demo: a dark terminal in either theme ─────────────────── */
-.term-sect {
-	display: grid;
-	grid-template-columns: minmax(0, 840fr) minmax(0, 336fr);
-	column-gap: 24px;
-	align-items: end;
-	padding-top: 72px;
+/* ── The terminal demo: below the copy, or beside it on a wide screen ──── */
+.hero-term {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	max-width: 840px;
+	margin-top: 56px;
 }
 
-@media (max-width: 1199px) {
-	.term-sect {
-		display: flex;
-		flex-direction: column;
-		align-items: stretch;
-		gap: 12px;
-		padding-top: 56px;
+/* From 1200 px the terminal stands beside the copy, its top on the rooftop's edge, where Nagare
+   stands on it. The caption sits under the copy, so both columns end together. The terminal's
+   82 columns need about 614 px. */
+@media (min-width: 1200px) {
+	.hero-copy {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(614px, 620px);
+		grid-template-rows: auto 1fr;
+		column-gap: 40px;
+		padding-bottom: 56px;
+	}
+
+	.hero-copy h1 {
+		max-width: none;
+		font-size: clamp(40px, 3.2vw, 48px);
+		line-height: 1.16;
+		text-wrap: balance;
+	}
+
+	.hero-text {
+		grid-column: 1;
+		grid-row: 1;
+	}
+
+	.hero-term {
+		display: contents;
+	}
+
+	.hero-term > .term {
+		grid-column: 2;
+		grid-row: 1 / span 2;
+		align-self: start;
+	}
+
+	html.js .hero-term > .term {
+		margin-top: -16px;
+	}
+
+	.hero-term > .caption {
+		grid-column: 1;
+		grid-row: 2;
+		align-self: end;
+		max-width: 480px;
+		margin-top: 32px;
 	}
 }
 
 @media (max-width: 899px) {
-	.term-sect {
-		padding-top: 40px;
+	.hero-term {
+		margin-top: 40px;
 	}
 }
+
+/* ── The terminal itself: a dark terminal in either theme ───────────────── */
 
 .term {
 	--t-ground: #10131f;

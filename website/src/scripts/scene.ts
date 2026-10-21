@@ -102,6 +102,9 @@ const mix = (a: RGB, b: RGB, k: number): RGB => [lerp(a[0], b[0], k), lerp(a[1],
 const GROUND: RGB = [22, 26, 46];
 const WATER: RGB = [127, 199, 217];
 const CORE: RGB = [240, 251, 253];
+const STAR: RGB = [210, 208, 204];
+/** A tower's wall, and a window that is off. */
+const WINDOW_OFF: RGB = [21, 24, 46];
 
 function skyAt(t: number): RGB {
 	const stops: [number, RGB][] = [
@@ -122,8 +125,27 @@ function skyAt(t: number): RGB {
 	return stops[stops.length - 1][1];
 }
 
+/** What the live layer needs from a drawn scene: the sky as drawn, its stars and the city's windows. */
+export interface SceneState {
+	cfg: SceneConfig;
+	sky: CanvasRenderingContext2D;
+	/** The sky as drawn, and a copy each frame's twinkles and shooting star are drawn into. */
+	base: ImageData;
+	work: ImageData;
+	near: CanvasRenderingContext2D;
+	stars: { i: number; dim: number; period: number; phase: number }[];
+	windows: { x: number; y: number; on: string; off: string; lit: boolean }[];
+}
+
+/** The shower's angle, which the shooting stars share. */
+const DX = 0.567;
+const DY = 0.824;
+
 /** Draws the four planes into the given canvases, sizing each to its plane first. */
-export function renderScene(cfg: SceneConfig, canvases: Record<PlaneName, HTMLCanvasElement>) {
+export function renderScene(
+	cfg: SceneConfig,
+	canvases: Record<PlaneName, HTMLCanvasElement>
+): SceneState | null {
 	const { W, H, extra } = cfg;
 	const r = rng(cfg.seed);
 	const plane = (canvas: HTMLCanvasElement, h: number) => {
@@ -137,7 +159,11 @@ export function renderScene(cfg: SceneConfig, canvases: Record<PlaneName, HTMLCa
 	const far = plane(canvases.far, H);
 	const near = plane(canvases.near, H);
 	const front = plane(canvases.front, H);
-	if (!sky || !far || !near || !front) return;
+	if (!sky || !far || !near || !front) return null;
+	const stars: SceneState['stars'] = [];
+	const windows: SceneState['windows'] = [];
+	const css = (c: RGB, dim: number) =>
+		`rgb(${Math.round(c[0] * dim)} ${Math.round(c[1] * dim)} ${Math.round(c[2] * dim)})`;
 
 	const put = (p: { img: ImageData }, x: number, y: number, col: RGB, dim = 1) => {
 		const i = (y * W + x) * 4;
@@ -176,7 +202,14 @@ export function renderScene(cfg: SceneConfig, canvases: Record<PlaneName, HTMLCa
 			}
 			if (glow > 0) col = mix(col, WATER, glow);
 			if (seed > 0.988 && y < cfg.horizon * 0.8) {
-				put(sky, x, yy, [210, 208, 204], 0.45 + 0.3 * r());
+				const dim = 0.45 + 0.3 * r();
+				put(sky, x, yy, STAR, dim);
+				stars.push({
+					i: (yy * W + x) * 4,
+					dim,
+					period: 2200 + 3400 * hash(x * 1.7 + yy * 9.1),
+					phase: 6.283 * hash(x * 5.3 + yy * 0.7),
+				});
 				continue;
 			}
 			put(sky, x, yy, col, 1 - 0.045 * seed);
@@ -198,10 +231,17 @@ export function renderScene(cfg: SceneConfig, canvases: Record<PlaneName, HTMLCa
 			if (y >= farTop(x)) put(far, x, y, [38, 44, 78], 1 - 0.04 * seed);
 			if (y >= nearTop(x)) {
 				const litSeed = hash(x * 13.37 + y * 71.7);
-				if (x % 3 === 1 && y % 3 === 1 && y > nearTop(x) + 1 && litSeed > 0.5) {
-					const warm = litSeed < 0.86;
-					put(near, x, y, warm ? [242, 166, 75] : WATER, 0.45 + 0.5 * hash(x * 3.1 + y));
-				} else put(near, x, y, [21, 24, 46], 1 - 0.05 * seed);
+				const unlit = 1 - 0.05 * seed;
+				if (x % 3 === 1 && y % 3 === 1 && y > nearTop(x) + 1) {
+					// Every window slot is kept, lit or not, so the live layer can switch it.
+					const lit = litSeed > 0.5;
+					const warm = lit ? litSeed < 0.86 : hash(x * 7.1 + y * 3.3) < 0.8;
+					const glow: RGB = warm ? [242, 166, 75] : WATER;
+					const bright = 0.45 + 0.5 * hash(x * 3.1 + y);
+					windows.push({ x, y, on: css(glow, bright), off: css(WINDOW_OFF, unlit), lit });
+					if (lit) put(near, x, y, glow, bright);
+					else put(near, x, y, WINDOW_OFF, unlit);
+				} else put(near, x, y, WINDOW_OFF, unlit);
 			}
 		}
 	}
@@ -234,4 +274,100 @@ export function renderScene(cfg: SceneConfig, canvases: Record<PlaneName, HTMLCa
 	}
 
 	for (const p of [sky, far, near, front]) p.ctx.putImageData(p.img, 0, 0);
+	const work = new ImageData(new Uint8ClampedArray(sky.img.data), W, H + extra);
+	return { cfg, sky: sky.ctx, base: sky.img, work, near: near.ctx, stars, windows };
+}
+
+/**
+ * Keeps the scene alive without changing its composition. One star in four breathes on its own
+ * slow cycle, a small shooting star crosses the upper sky every few seconds at the shower's angle,
+ * and now and then a window in the city switches on or off. It draws at the scene's own resolution,
+ * 30 times a second.
+ */
+export function liveScene(state: () => SceneState | null) {
+	let raf = 0;
+	let last = 0;
+	let nextShoot = 0;
+	let nextWindow = 0;
+	let turnOn = false;
+	let shoot: { x: number; y: number; t0: number; dur: number; travel: number } | null = null;
+	const TAIL = 8;
+
+	const frame = (now: number) => {
+		raf = requestAnimationFrame(frame);
+		if (now - last < 33) return;
+		last = now;
+		const s = state();
+		if (!s) return;
+		if (!nextShoot) {
+			nextShoot = now + 1400;
+			nextWindow = now + 2600;
+		}
+		const { W, H, extra, moon, horizon } = s.cfg;
+		const d = s.work.data;
+		d.set(s.base.data);
+
+		for (let k = 0; k < s.stars.length; k += 4) {
+			const st = s.stars[k];
+			const a = st.dim * (0.55 + 0.55 * (0.5 + 0.5 * Math.sin((now / st.period) * 6.283 + st.phase)));
+			d[st.i] = Math.min(255, STAR[0] * a);
+			d[st.i + 1] = Math.min(255, STAR[1] * a);
+			d[st.i + 2] = Math.min(255, STAR[2] * a);
+		}
+
+		if (!shoot && now >= nextShoot) {
+			let x = W * (0.06 + 0.88 * Math.random());
+			const y = extra + horizon * (0.02 + 0.3 * Math.random());
+			if (Math.hypot(x - moon.x, y - extra - moon.y) < moon.r + 12) x = (x + W * 0.4) % W;
+			shoot = { x, y, t0: now, dur: 600 + 250 * Math.random(), travel: 14 + 10 * Math.random() };
+		}
+		if (shoot) {
+			const p = (now - shoot.t0) / shoot.dur;
+			if (p >= 1) {
+				shoot = null;
+				nextShoot = now + 2800 + 5200 * Math.random();
+			} else {
+				const env = Math.min(1, p / 0.15) * Math.min(1, (1 - p) / 0.4);
+				const head = shoot.travel * p;
+				// The tail first, so the head is drawn last and brightest.
+				for (let k = TAIL; k >= 0; k--) {
+					const t = head - k;
+					if (t < 0) continue;
+					const px = Math.round(shoot.x + t * DX);
+					const py = Math.round(shoot.y + t * DY);
+					if (px < 0 || px >= W || py < 0 || py >= H + extra) continue;
+					const a = env * (1 - k / (TAIL + 1));
+					const c = mix(WATER, CORE, a);
+					const i = (py * W + px) * 4;
+					d[i] += (c[0] - d[i]) * a;
+					d[i + 1] += (c[1] - d[i + 1]) * a;
+					d[i + 2] += (c[2] - d[i + 2]) * a;
+				}
+			}
+		}
+		s.sky.putImageData(s.work, 0, 0);
+
+		if (now >= nextWindow && s.windows.length) {
+			// Off, then on, in turn, so the city stays as lit as it was drawn.
+			const pool = s.windows.filter((w) => w.lit !== turnOn);
+			const w = pool[Math.floor(Math.random() * pool.length)];
+			if (w) {
+				w.lit = turnOn;
+				s.near.fillStyle = w.lit ? w.on : w.off;
+				s.near.fillRect(w.x, w.y, 1, 1);
+			}
+			turnOn = !turnOn;
+			nextWindow = now + 1600 + 3400 * Math.random();
+		}
+	};
+
+	return {
+		start() {
+			if (!raf) raf = requestAnimationFrame(frame);
+		},
+		stop() {
+			cancelAnimationFrame(raf);
+			raf = 0;
+		},
+	};
 }

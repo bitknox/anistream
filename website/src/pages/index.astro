@@ -142,30 +142,31 @@ const platforms: [string, string, boolean][] = [
 				<canvas data-plane="front"></canvas>
 			</div>
 			<div class="wrap hero-copy">
-				<h1>Browse, watch, track and sync anime in one client.</h1>
-				<div class="hero-side">
-					<p class="hero-sub">
-						It runs in your terminal today, prebuilt for macOS, Linux and Windows. Native apps for
-						Mac, iPhone, iPad and Android are in development. Sources come from plugins, and
-						anistream ships none of its own.
-					</p>
-					<div class="actions">
-						<a class="btn btn-primary" href={INSTALL_GUIDE}>Install anistream</a>
-						<a class="btn" href="/docs/">Read the docs</a>
+				<div class="hero-text">
+					<h1>Browse, watch, track and sync anime <span class="hero-claim">in one client.</span></h1>
+					<div class="hero-side">
+						<p class="hero-sub">
+							It runs in your terminal today, prebuilt for macOS, Linux and Windows. Native apps for
+							Mac, iPhone, iPad and Android are in development. Sources come from plugins, and
+							anistream ships none of its own.
+						</p>
+						<div class="actions">
+							<a class="btn btn-primary" href={INSTALL_GUIDE}>Install anistream</a>
+							<a class="btn" href="/docs/">Read the docs</a>
+						</div>
+						<p class="hero-note">MIT licence · mpv and ffmpeg are installed separately</p>
 					</div>
-					<p class="hero-note">MIT licence · mpv and ffmpeg are installed separately</p>
+				</div>
+				<div class="hero-term">
+					<TerminalDemo />
+					<p class="caption">
+						The terminal app, going from the home screen to search, the episode list and playback.
+						Covers render as real images over the Kitty, Sixel and iTerm2 protocols, and as
+						halfblocks elsewhere.
+					</p>
 				</div>
 			</div>
 		</header>
-
-		<section class="wrap term-sect" aria-label="The terminal app">
-			<TerminalDemo />
-			<p class="caption">
-				The terminal app, going from the home screen to search, the episode list and playback.
-				Covers render as real images over the Kitty, Sixel and iTerm2 protocols, and as halfblocks
-				elsewhere.
-			</p>
-		</section>
 
 		<div class="band" role="note" aria-label={bandItems.join(', ')}>
 			<div class="band-track" aria-hidden="true">
