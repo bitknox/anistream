@@ -27,6 +27,7 @@ import tv.anistream.engine.model.SettingKey
 import tv.anistream.player.ui.PlayerFrame
 import tv.anistream.store.DownloadsModel
 import tv.anistream.store.InviteLinks
+import tv.anistream.store.traced
 import tv.anistream.ui.AppActions
 import tv.anistream.ui.AppRoot
 import tv.anistream.ui.Destination
@@ -52,7 +53,7 @@ class MainActivity : ComponentActivity() {
         window.isNavigationBarContrastEnforced = false
         holdPortraitOnPhones(resources.configuration)
 
-        app.start(Flavour.launch(this, intent))
+        traced("launch") { app.start(Flavour.launch(this, intent)) }
         Flavour.started(app.store, intent)
         val steerable = debuggable || Flavour.FIXTURES
         val start = intent.getStringExtra(SECTION)?.takeIf { steerable }
@@ -65,7 +66,7 @@ class MainActivity : ComponentActivity() {
         // stream and opens the player, which the frame then shows.
         val actions = AppActions(play = { id, episode -> app.store.send(Command.Play(id, episode)) })
         val player = PlayerFrame(app.player)
-        setContent {
+        traced("setContent") { setContent {
             AnistreamTheme {
                 AppRoot(
                     app.store,
@@ -77,7 +78,7 @@ class MainActivity : ComponentActivity() {
                     player = player,
                 )
             }
-        }
+        } }
         if (Flavour.FIXTURES || debuggable) announceReady()
         askForNotificationsWhenNeeded()
         signIn.start()

@@ -21,6 +21,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Anistream">
 
+        <!-- A release build can be traced from the shell (Perfetto, the baseline profile's
+             generator) as a debug build is, and nothing else changes. -->
+        <profileable android:shell="true" />
+
         <!-- A turn or a fold changes the configuration without recreating the activity, so the
              player, its surface and the shared state stay where they are. Going home while a video
              plays takes the activity into Picture in Picture, the same SurfaceView playing on. -->

@@ -106,12 +106,19 @@ class AppStore(
 
     // The engine
 
-    /** Start the engine [launch] describes with [host], off the main thread, and read its events. */
-    fun start(launch: EngineLaunch, host: FfiHost) {
+    /**
+     * Start the engine [launch] describes with [host], off the main thread, and read its events.
+     * [prepare] runs first, on the same thread: the first call into the engine's library, which
+     * loads it and JNA, so that never happens on the main thread.
+     */
+    fun start(launch: EngineLaunch, host: FfiHost, prepare: () -> Unit = {}) {
         _phase.value = Phase.Starting
         scope.launch {
             try {
-                val engine = withContext(Dispatchers.IO) { launch.start(host) }
+                val engine = withContext(Dispatchers.IO) {
+                    traced("prepare") { prepare() }
+                    traced("engine start") { launch.start(host) }
+                }
                 attach(engine)
             } catch (e: FfiException) {
                 _phase.value = Phase.Failed(e.reason)
@@ -492,7 +499,7 @@ class AppStore(
 
     // Applying
 
-    fun apply(events: List<Event>) {
+    fun apply(events: List<Event>) = traced("apply ${events.size} events") {
         for (event in events) apply(event)
         lastApplied = clock()
         onApplied?.invoke(events)

@@ -38,7 +38,10 @@ android {
     }
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8 shrinks and optimizes the app around the engine's bindings, which it keeps whole
+            // (proguard-rules.pro): Compose and the rest start much faster optimized.
+            isMinifyEnabled = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
     packaging {
