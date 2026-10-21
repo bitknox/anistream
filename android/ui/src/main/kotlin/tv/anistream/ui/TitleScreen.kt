@@ -91,6 +91,7 @@ private fun placeholderEntry(id: AnilistId) = Entry(
     nextAiringIn = null, lastAired = null, resume = null, related = emptyList(), recommended = emptyList(),
     trailerUrl = null, listStatus = null, titleRomaji = null, titleEnglish = null, titleNative = null,
     season = null, startDate = null, endDate = null, source = null, adult = false, detail = null,
+    status = null, synopsisSpans = emptyList(),
 )
 
 @Composable
