@@ -109,7 +109,7 @@ class AnistreamApp : Application(), PlayerHost, NewEpisodesHost {
         player
         // The engine's log first, a file a day under the cache, which never holds a token: the first
         // call into the engine's library, which loads it and JNA, off the main thread with the start.
-        val prepare = { traced("startLog") { startLog(launch.home.cache.path) } }
+        val prepare: () -> Unit = { traced("startLog") { startLog(launch.home.cache.path) } }
         if (background.busy) {
             // Background work has an engine of its own on the same files: it stops first.
             scope.launch {
