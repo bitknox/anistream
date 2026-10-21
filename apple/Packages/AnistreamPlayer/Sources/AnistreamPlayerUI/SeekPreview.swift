@@ -39,6 +39,7 @@ public final class SeekPreview {
     @ObservationIgnored private var source: PreviewSource?
     @ObservationIgnored private var listener: Task<Void, Never>?
     @ObservationIgnored private var busy = false
+    @ObservationIgnored private var ending: [Task<Void, Never>] = []
     @ObservationIgnored private var target: Double?
     @ObservationIgnored private let log = Logger(subsystem: "tv.anistream", category: "preview")
 
@@ -116,11 +117,18 @@ public final class SeekPreview {
         Task { await backend.resized() }
     }
 
+    /// Wait until every preview closed has shut down.
+    func finished() async {
+        let tasks = ending
+        ending = []
+        for task in tasks { await task.value }
+    }
+
     /// Done with this file, or with previews: mpv shuts down.
     func close() {
         listener?.cancel()
         listener = nil
-        if let backend { Task.detached { await backend.end() } }
+        if let backend { ending.append(Task.detached { await backend.end() }) }
         backend = nil
         layer = nil
         source = nil

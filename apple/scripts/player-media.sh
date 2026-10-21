@@ -15,6 +15,8 @@
 #   episode.mkv   the Fixtures app's episode: 1280×720, 60 s, chapters Prologue, Opening (5 s),
 #                 Part A (20 s), Ending (42 s) and Preview (56 s), Japanese and English tones,
 #                 and English Full and Signs & Songs subtitles
+#   episode-hls/  the same episode as HLS (master.m3u8 and 6 s MPEG-TS segments), video and the
+#                 Japanese audio, for the Playing scene's web stream through the engine's mender
 #
 # Needs ffmpeg with libx264 and libx265 (Homebrew's has both).
 set -euo pipefail
@@ -179,6 +181,14 @@ EOF
     -metadata:s:s:0 language=eng -metadata:s:s:0 title="Full" -disposition:s:0 default \
     -metadata:s:s:1 language=eng -metadata:s:s:1 title="Signs & Songs" \
     "$media/episode.mkv"
+fi
+
+if [[ $force == 1 || ! -f "$media/episode-hls/master.m3u8" ]]; then
+  rm -rf "$media/episode-hls"
+  mkdir -p "$media/episode-hls"
+  "${ff[@]}" -i "$media/episode.mkv" -map 0:v -map 0:a:0 -c copy -f hls -hls_time 6 \
+    -hls_playlist_type vod -hls_segment_filename "$media/episode-hls/segment%03d.ts" \
+    "$media/episode-hls/master.m3u8"
 fi
 
 echo "player-media.sh: media in $media"

@@ -35,6 +35,8 @@ public final class PlayerModel {
     @ObservationIgnored private var ticker: Task<Void, Never>?
     /// When the playback on screen was staged or started, for the log's timings.
     @ObservationIgnored private var since: ContinuousClock.Instant?
+    /// mpvs shutting down, off the main thread: what `finished()` waits for.
+    @ObservationIgnored private var ending: [Task<Void, Never>] = []
     /// What mpv has warned of for this file, said once each.
     @ObservationIgnored private var mpvSaid: Set<String> = []
     @ObservationIgnored let nowPlaying = NowPlaying()
@@ -415,7 +417,7 @@ public final class PlayerModel {
         worker = nil
         work = nil
         if let backend {
-            Task.detached { await backend.end() }
+            ending.append(Task.detached { await backend.end() })
         }
         backend = nil
         preview.close()
@@ -632,6 +634,15 @@ public final class PlayerModel {
 
     private func enqueue(_ item: Work) {
         work?.yield(item)
+    }
+
+    /// Wait until every mpv this player closed, the preview's too, has shut down: before a
+    /// process that played exits, so no mpv thread outlives it.
+    public func finished() async {
+        let tasks = ending
+        ending = []
+        for task in tasks { await task.value }
+        await preview.finished()
     }
 
     // MARK: The log
