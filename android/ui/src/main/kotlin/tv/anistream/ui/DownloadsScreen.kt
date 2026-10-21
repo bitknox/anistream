@@ -301,7 +301,7 @@ private fun StateLine(row: DownloadRow, secondsLeft: Long?, rate: Double?) {
         DownloadState.ACTIVE -> Text(
             listOfNotNull(
                 if (row.total > 0u) sizes else Wording.bytes(row.downloaded.toLong()),
-                rate?.let { "${Wording.bytes(it.toLong())}/s" },
+                rate?.takeIf { it >= 1 }?.let { "${Wording.bytes(it.toLong())}/s" },
                 secondsLeft?.let { "${countdownWords(it)} left" },
             ).joinToString(" · "),
             style = style,

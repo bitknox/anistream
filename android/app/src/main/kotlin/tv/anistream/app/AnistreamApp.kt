@@ -43,7 +43,8 @@ class AnistreamApp : Application() {
         Log.i(TAG, "starting the ${if (launch.engine == EngineLaunch.Engine.App) "app" else "testing"} engine")
         store.start(launch, host())
         watchNetwork()
-        keepDownloadsInAppSpace()
+        // The fixtures' downloads are seeded where they are; only the app's are kept here.
+        if (!Flavour.FIXTURES) keepDownloadsInAppSpace()
     }
 
     /**

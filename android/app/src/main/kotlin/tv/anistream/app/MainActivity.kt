@@ -22,6 +22,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
 import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.model.SettingKey
+import tv.anistream.store.DownloadsModel
 import tv.anistream.store.InviteLinks
 import tv.anistream.ui.AppRoot
 import tv.anistream.ui.Destination
@@ -83,6 +84,7 @@ class MainActivity : ComponentActivity() {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 app.store.downloads.rows.collect { rows ->
                     val wifiOnly = !app.store.settings.isOn(SettingKey.DOWNLOADS_ON_CELLULAR)
+                    if (DownloadsModel.busy(rows)) app.notifier.wantPermission()
                     DownloadJob.ensure(this@MainActivity, rows, wifiOnly)
                 }
             }
