@@ -116,7 +116,7 @@ private fun ShowSettingsContent(entry: Entry, view: ShowSettingsView?) {
         SheetNote("Spoiler protection blurs stills after the next episode.")
 
         SheetDivider()
-        InfoRow("Source", view?.source ?: "Automatic")
+        SourceRow(entry, view)
         SheetNote("Automatic tries your sources in order.")
 
         SheetDivider()
@@ -132,6 +132,38 @@ private fun ShowSettingsContent(entry: Entry, view: ShowSettingsView?) {
             Text("Also clears the remembered audio and subtitles.", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
         }
     }
+}
+
+/**
+ * The source the show keeps: Automatic, or one of the sources on, in the order failover tries
+ * them. Picking one pins it for this show; Automatic gives the show back to the order.
+ */
+@Composable
+private fun SourceRow(entry: Entry, view: ShowSettingsView?) {
+    val store = LocalAppStore.current
+    val rows by store.providers.rows.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) { if (rows.isEmpty()) store.checkProviders() }
+    val sources = store.orderedProviders().filter { !it.disabled }
+    fun name(id: String) = sources.firstOrNull { it.id == id }?.let(::sourceName) ?: id
+    ChoiceRow(
+        title = "Source",
+        value = view?.source?.let(::name) ?: "Automatic",
+        choices = listOf(Choice(null, "Automatic")) + sources.map { Choice(SettingValue.Str(it.id), sourceName(it)) },
+        current = view?.source?.let { SettingValue.Str(it) },
+        enabled = view != null && sources.isNotEmpty(),
+        currentIsDefault = view?.source == null,
+    ) { picked ->
+        store.setProviderPreference(entry.id, (picked as? SettingValue.Str)?.v1)
+        // The sheet says the show's source as the engine now keeps it.
+        store.loadShowSettings(entry.id)
+    }
+}
+
+/** A source as a person names it: the plugin's own name, or Torrents. */
+private fun sourceName(row: tv.anistream.engine.model.ProviderRow): String = when (row.kind) {
+    "torrent" -> "Torrents"
+    "remote" -> "Remote"
+    else -> row.name.ifEmpty { row.id }
 }
 
 /** A choice in a row's menu: the value it sets, and its words. */
