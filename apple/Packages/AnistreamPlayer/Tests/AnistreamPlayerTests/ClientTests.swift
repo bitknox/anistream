@@ -81,7 +81,7 @@ extension PlayerTests {
             try await client.set("pause", true)
             try await client.set("user-data/anistream/state", ["episode": 3, "title": "Ep 3"])
             #expect(await first(pause) { $0 == .property(name: "pause", json: "true") } != nil)
-            let expected = PlayerReport.property(
+            let expected = MpvReport.property(
                 name: "user-data/anistream/state", json: #"{"episode":3,"title":"Ep 3"}"#)
             #expect(await first(state) { $0 == expected } != nil)
             await client.shutdown()

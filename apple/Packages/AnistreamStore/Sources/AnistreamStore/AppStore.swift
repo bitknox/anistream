@@ -50,6 +50,9 @@ public final class AppStore {
     @ObservationIgnored private var testing = false
     /// Called after each batch is applied: what a screenshot run waits on.
     @ObservationIgnored public var onApplied: (@MainActor ([Event]) -> Void)?
+    /// The playback's events, for the player the app hosts: its ops and interface, and the
+    /// playback around them (AnistreamPlayerUI's `PlayerModel.apply(_:)`).
+    @ObservationIgnored public var onPlayback: (@MainActor (Event) -> Void)?
 
     public init(jobs: JobsModel = JobsModel(), notices: NoticesModel = NoticesModel()) {
         self.jobs = jobs
@@ -294,8 +297,11 @@ public final class AppStore {
         case .imageFailed(let url, _):
             artwork.failed(url: url)
 
+        case .playerOps, .playerUi, .playbackStaged, .playbackEnded, .playbackKept:
+            onPlayback?(event)
+
         default:
-            // Playback has no screen yet.
+            // Everything else is said in the events above, or has no screen.
             break
         }
     }

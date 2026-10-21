@@ -80,24 +80,32 @@ private struct MainThreadOnly: @unchecked Sendable {
 /// mpv after a resize, and tells it about the screen. The client must have started on `layer`.
 public struct PlayerSurface {
     let layer: MpvLayer
-    let client: MpvClient
+    private let onResize: @MainActor () -> Void
+    private let onDisplay: @MainActor (DisplayInfo) -> Void
 
     public init(layer: MpvLayer, client: MpvClient) {
+        self.init(
+            layer: layer,
+            resized: { Task { await client.surfaceResized() } },
+            display: { display in Task { try? await client.updateDisplay(display) } })
+    }
+
+    /// The layer, with what to do after it changed size and when it is on a screen, for a host
+    /// that holds the client itself: `MpvClient.surfaceResized()` and `updateDisplay(_:)`.
+    public init(
+        layer: MpvLayer, resized: @escaping @MainActor () -> Void,
+        display: @escaping @MainActor (DisplayInfo) -> Void
+    ) {
         self.layer = layer
-        self.client = client
+        self.onResize = resized
+        self.onDisplay = display
     }
 
     @MainActor
-    fileprivate func resized() {
-        let client = self.client
-        Task { await client.surfaceResized() }
-    }
+    fileprivate func resized() { onResize() }
 
     @MainActor
-    fileprivate func moved(to display: DisplayInfo) {
-        let client = self.client
-        Task { try? await client.updateDisplay(display) }
-    }
+    fileprivate func moved(to display: DisplayInfo) { onDisplay(display) }
 }
 
 #if os(macOS)

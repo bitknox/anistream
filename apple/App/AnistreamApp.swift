@@ -6,6 +6,7 @@
 
 import AnistreamDesign
 import AnistreamKit
+import AnistreamPlayerUI
 import AnistreamStore
 import AnistreamUI
 import SwiftUI
@@ -26,6 +27,17 @@ struct AnistreamApp: App {
         .defaultSize(width: 1280, height: 800)
         .windowResizability(.contentMinSize)
         .commands { AnistreamCommands(store: delegate.store, navigator: delegate.navigator) }
+
+        // The player, in a window of its own that keeps its size and place (M4).
+        Window("Player", id: PlayerWindow.id) {
+            PlayerWindow(model: delegate.player)
+                .environment(delegate.store)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 1280, height: 720)
+        .windowResizability(.contentMinSize)
+        .restorationBehavior(.disabled)
+        .defaultLaunchBehavior(.suppressed)
         #else
         WindowGroup {
             content
@@ -36,6 +48,7 @@ struct AnistreamApp: App {
 
     private var content: some View {
         RootView()
+            .hostsPlayer(delegate.player)
             .environment(delegate.store)
             .environment(delegate.navigator)
             #if os(macOS)

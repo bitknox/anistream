@@ -112,6 +112,8 @@ struct PhoneHero: View {
                     .aspectRatio(16 / 9, contentMode: .fit)
                     .clipShape(.rect(cornerRadius: ArtShape.bannerRadius))
                     .matchedTransitionSourceIfAvailable(id: item.id)
+                    // Where the player zooms out of when this plays (T2).
+                    .playerZoomSource(item.id)
                     .onTapGesture { navigator.openTitle(item.id) }
                 titleBlock(entry)
                     .padding(.top, 8)
@@ -183,6 +185,7 @@ struct PhoneCard: View {
                     }
                 }
                 .matchedTransitionSourceIfAvailable(id: item.id)
+                .playerZoomSource(item.id)
                 Group {
                     if let fraction = item.fraction {
                         Meter(fraction: fraction, height: 3)

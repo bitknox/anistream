@@ -1,6 +1,7 @@
 // What the app does at launch and at quit, around the store.
 
 import AnistreamKit
+import AnistreamPlayerUI
 import AnistreamStore
 import AnistreamUI
 import Foundation
@@ -12,11 +13,21 @@ import UIKit
 
 @MainActor
 final class AppDelegate: NSObject {
-    let store = AppStore()
+    let store: AppStore
     let navigator = Navigator()
+    /// The player the app hosts for the engine, fed the store's playback events.
+    let player: PlayerModel
     private var started = false
     /// The Fixtures app's directory for this launch, removed at quit.
     private var temporary: URL?
+
+    override init() {
+        let store = AppStore()
+        self.store = store
+        player = PlayerModel(send: { [weak store] command in store?.send(command) })
+        super.init()
+        store.onPlayback = { [weak player = self.player] event in player?.apply(event) }
+    }
 
     /// Start the engine, once, however many windows ask.
     func start() async {
@@ -34,8 +45,15 @@ final class AppDelegate: NSObject {
         await store.start(launch, host: AppHost(secrets: secrets, open: Self.open))
         // What apple/scripts/shots.sh waits for before it takes a screenshot, flushed because
         // the Simulator writes the app's output to a file, which would hold it back.
-        if await store.settle() {
-            store.applyShowcase()
+        var ready = await store.settle()
+        store.applyShowcase()
+        #if FIXTURES
+        // A screenshot of the player: play the Playing scene's episode to the state named.
+        if let shot = PlayerShot.named(in: ProcessInfo.processInfo.arguments) {
+            ready = await player.stage(shot, store: store)
+        }
+        #endif
+        if ready {
             print("ANISTREAM_READY")
             fflush(stdout)
         }
@@ -76,6 +94,13 @@ extension AppDelegate: NSApplicationDelegate {
 extension AppDelegate: UIApplicationDelegate {
     func applicationWillTerminate(_ application: UIApplication) {
         quit()
+    }
+
+    /// Landscape while the iPhone's player is up.
+    func application(
+        _ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?
+    ) -> UIInterfaceOrientationMask {
+        PlayerOrientation.mask
     }
 }
 #endif

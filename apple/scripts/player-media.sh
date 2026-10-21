@@ -12,6 +12,9 @@
 #                 Hangul, and a style in Dela Gothic One, which is attached and not installed
 #   extra.ass     an external subtitle file
 #   hdr10.mkv     1920×1080 HEVC Main10, PQ / BT.2020 with HDR10 metadata, 3 s
+#   episode.mkv   the Fixtures app's episode: 1280×720, 60 s, chapters Prologue, Opening (5 s),
+#                 Part A (20 s), Ending (42 s) and Preview (56 s), Japanese and English tones,
+#                 and English Full and Signs & Songs subtitles
 #
 # Needs ffmpeg with libx264 and libx265 (Homebrew's has both).
 set -euo pipefail
@@ -101,6 +104,81 @@ if need hdr10.mkv; then
     -x265-params "log-level=error:hdr10=1:repeat-headers=1:colorprim=bt2020:transfer=smpte2084:colormatrix=bt2020nc:range=limited:master-display=G(13250,34500)B(7500,3000)R(34000,16000)WP(15635,16450)L(10000000,1):max-cll=1000,400" \
     -color_primaries bt2020 -color_trc smpte2084 -colorspace bt2020nc -color_range tv \
     -c:a aac -b:a 96k "$media/hdr10.mkv"
+fi
+
+if need episode.mkv; then
+  cat >"$media/episode.chapters" <<'EOF'
+;FFMETADATA1
+[CHAPTER]
+TIMEBASE=1/1000
+START=0
+END=5000
+title=Prologue
+[CHAPTER]
+TIMEBASE=1/1000
+START=5000
+END=20000
+title=Opening
+[CHAPTER]
+TIMEBASE=1/1000
+START=20000
+END=42000
+title=Part A
+[CHAPTER]
+TIMEBASE=1/1000
+START=42000
+END=56000
+title=Ending
+[CHAPTER]
+TIMEBASE=1/1000
+START=56000
+END=60000
+title=Preview
+EOF
+  cat >"$media/episode-full.ass" <<'EOF'
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1280
+PlayResY: 720
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Helvetica Neue,44,&H00FFFFFF,&H000000FF,&H00141414,&H96000000,0,0,0,0,100,100,0,0,1,2.5,1,2,60,60,48,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:01.00,0:00:04.50,Default,,0,0,0,,The prologue of a test episode.
+Dialogue: 0,0:00:21.00,0:00:26.00,Default,,0,0,0,,Part A begins after the opening.
+Dialogue: 0,0:00:30.00,0:00:36.00,Default,,0,0,0,,A line of dialogue, in the full track.
+Dialogue: 0,0:00:57.00,0:00:59.50,Default,,0,0,0,,Next time: the second test episode.
+EOF
+  cat >"$media/episode-signs.ass" <<'EOF'
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1280
+PlayResY: 720
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Sign,Helvetica Neue,36,&H0000E6FF,&H000000FF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,2,0,8,60,60,40,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:06.00,0:00:19.00,Sign,,0,0,0,,A sign during the opening
+Dialogue: 0,0:00:43.00,0:00:55.00,Sign,,0,0,0,,A sign during the ending
+EOF
+  "${ff[@]}" -f lavfi -i "testsrc2=size=1280x720:rate=24:duration=60" \
+    -f lavfi -i "$(tone 60)" -f lavfi -i "sine=frequency=330:sample_rate=48000:duration=60,pan=stereo|c0=c0|c1=c0" \
+    -i "$media/episode-full.ass" -i "$media/episode-signs.ass" -i "$media/episode.chapters" \
+    -map 0:v -map 1:a -map 2:a -map 3:s -map 4:s -map_chapters 5 \
+    -c:v libx264 -preset veryfast -crf 26 -g 48 -pix_fmt yuv420p -c:a aac -b:a 64k -c:s ass \
+    -max_interleave_delta 0 \
+    -metadata:s:a:0 language=jpn -metadata:s:a:0 title="Japanese tone" \
+    -metadata:s:a:1 language=eng -metadata:s:a:1 title="English tone" \
+    -metadata:s:s:0 language=eng -metadata:s:s:0 title="Full" -disposition:s:0 default \
+    -metadata:s:s:1 language=eng -metadata:s:s:1 title="Signs & Songs" \
+    "$media/episode.mkv"
 fi
 
 echo "player-media.sh: media in $media"

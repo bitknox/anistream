@@ -1,6 +1,7 @@
 // What the harness was asked to do.
 
 import AnistreamKit
+import AnistreamPlayerUI
 import AnistreamStore
 import Foundation
 
@@ -8,6 +9,10 @@ import Foundation
 ///
 ///     swift run AnistreamDev                          the Watching scene, in a new temporary home
 ///     swift run AnistreamDev --scene fresh            a first launch
+///     swift run AnistreamDev --scene playing          Continue starts the generated episode
+///     swift run AnistreamDev --scene playing --player-shot up-next --snapshot shot.png
+///                                                     play it to a state, render the player
+///                                                     window, and quit
 ///     swift run AnistreamDev --snapshot shot.png      render the window once settled, and quit
 ///     swift run AnistreamDev --size 1440x900          another window size
 ///     swift run AnistreamDev --home <dir>             keep the files in <dir> instead
@@ -28,12 +33,15 @@ struct Options {
     var shared = false
     /// Where to write the snapshot, when one is asked for.
     var snapshot: URL?
+    /// The player state to play to, whose window the snapshot renders.
+    var playerShot: PlayerShot?
     var width: CGFloat = 1280
     var height: CGFloat = 800
 
     static let usage = """
-        usage: AnistreamDev [--scene watching|fresh | --real [--shared]] [--home <dir>]
-                            [--snapshot <file.png>] [--size <width>x<height>]
+        usage: AnistreamDev [--scene watching|fresh|playing | --real [--shared]] [--home <dir>]
+                            [--player-shot <state>] [--snapshot <file.png>] [--size <width>x<height>]
+        the player's states: \(PlayerShot.allCases.map(\.rawValue).joined(separator: ", "))
         """
 
     enum Problem: Error, CustomStringConvertible {
@@ -73,6 +81,10 @@ struct Options {
                 home = URL(filePath: try value(flag), directoryHint: .isDirectory)
             case "--snapshot":
                 snapshot = URL(filePath: try value(flag))
+            case "--player-shot":
+                let name = try value(flag)
+                guard let shot = PlayerShot(rawValue: name) else { throw Problem.bad(flag, name) }
+                playerShot = shot
             case "--size":
                 let size = try value(flag)
                 let parts = size.split(separator: "x").compactMap { Double($0) }

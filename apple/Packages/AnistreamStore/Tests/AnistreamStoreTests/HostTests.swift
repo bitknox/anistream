@@ -108,6 +108,11 @@ struct FixturesLaunchTests {
         #expect(EngineLaunch.scene(arguments: ["app"]) == .watching)
         #expect(EngineLaunch.scene(arguments: ["app", "-AnistreamScene", "fresh"]) == .fresh)
         #expect(EngineLaunch.scene(arguments: ["app", "-AnistreamScene", "elsewhere"]) == nil)
+        let playing = EngineLaunch.scene(arguments: ["app", "-AnistreamScene", "playing", "-AnistreamMedia", "/m.mkv"])
+        #expect(playing == .playing(media: "/m.mkv"))
+        let fixture = EngineLaunch.scene(arguments: ["app", "-AnistreamScene", "playing"])
+        #expect(fixture == .playing(media: EngineLaunch.fixtureEpisode.path(percentEncoded: false)))
+        #expect(EngineLaunch.fixtureEpisode.path().hasSuffix("apple/.mpv/media/episode.mkv"))
     }
 
     @Test func aFixturesLaunchNeverStartsOnTheSharedDirectories() {

@@ -14,6 +14,10 @@
 #
 # Each goes to apple/.shots/<device>-<shot>.png, ":" and "=" made "-", which git ignores.
 #
+# The player's states are shots too: player-starting, player-playing, player-skip, player-up-next,
+# player-still-watching and player-stall play the Playing scene's generated episode
+# (apple/scripts/player-media.sh) to that state and shoot the player; "player" is all of them.
+#
 # - mac: the dev harness (apple/Packages/AnistreamDev) renders its own window once the store has
 #   settled. It needs no Screen Recording permission.
 # - iphone, ipad: the Anistream Fixtures app, built for the Simulator and run on a device of its own
@@ -25,8 +29,10 @@ set -euo pipefail
 # Bash 4.4 and newer only. macOS's own /bin/bash is 3.2.
 shopt -s inherit_errexit 2>/dev/null || true
 
+players=(player-starting player-playing player-skip player-up-next player-still-watching player-stall)
+
 usage() {
-  echo "usage: apple/scripts/shots.sh <mac|iphone|ipad> [<watching|fresh>[:<section|key=value>]]…" >&2
+  echo "usage: apple/scripts/shots.sh <mac|iphone|ipad> [<watching|fresh>[:<section|key=value>]|player|player-<state>]…" >&2
   exit 2
 }
 
@@ -35,13 +41,24 @@ case "$device" in mac | iphone | ipad) ;; *) usage ;; esac
 shift
 shots=("$@")
 (( ${#shots[@]} )) || shots=(watching)
+# "player" is every player state.
+expanded=()
 for shot in "${shots[@]}"; do
-  case "${shot%%:*}" in watching | fresh) ;; *) usage ;; esac
+  if [[ "$shot" == player ]]; then expanded+=("${players[@]}"); else expanded+=("$shot"); fi
+done
+shots=("${expanded[@]}")
+for shot in "${shots[@]}"; do
+  case "${shot%%:*}" in watching | fresh) ;; player-*) ;; *) usage ;; esac
+  if [[ "$shot" == player-* && ! " ${players[*]} " == *" $shot "* ]]; then usage; fi
 done
 
 # The launch arguments for a shot: the scene, and the screen it names.
 arguments() {
   local shot="$1" scene="${1%%:*}" screens="" screen
+  if [[ "$shot" == player-* ]]; then
+    printf '%s\n' -AnistreamScene playing -AnistreamPlayerShot "${shot#player-}"
+    return
+  fi
   [[ "$shot" == *:* ]] && screens="${shot#*:}"
   printf '%s\n' -AnistreamScene "$scene"
   local IFS=+
@@ -70,10 +87,18 @@ name() {
 apple="$(cd "$(dirname "$0")/.." && pwd)"
 out="$apple/.shots"
 mkdir -p "$out"
+for shot in "${shots[@]}"; do
+  if [[ "$shot" == player-* ]]; then "$apple/scripts/player-media.sh" >/dev/null; break; fi
+done
 
 if [[ "$device" == mac ]]; then
   "$apple/scripts/engine.sh" testing macos
   for shot in "${shots[@]}"; do
+    if [[ "$shot" == player-* ]]; then
+      (cd "$apple/Packages/AnistreamDev" &&
+        swift run AnistreamDev --scene playing --player-shot "${shot#player-}" --snapshot "$out/mac-$shot.png")
+      continue
+    fi
     args=()
     while IFS= read -r arg; do args+=("$arg"); done < <(arguments "$shot")
     # The harness takes the scene as --scene, and passes the rest to the app.

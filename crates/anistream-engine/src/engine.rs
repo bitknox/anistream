@@ -224,9 +224,9 @@ impl Engine {
         let services =
             Services::build(&config, paths, http, store, registry, player_theme, host)
                 .map_err(|reason| EngineError::PluginStores { reason })?;
-        // The player a play opens: mpv's process, or the one the front end hosts; and the app's
-        // own sign-in clients, where signing in will read them (E6).
-        let services = Services { hosted_player, app_clients, ..services };
+        // The app's own sign-in clients, where signing in will read them (E6), and the player a
+        // play opens: mpv's process, or the one the front end hosts.
+        let services = Services { app_clients, hosted_player, ..services };
         let hosted = Arc::clone(&services.hosted);
 
         // Where the torrent source reports in once it is up, tagged with the bring-up it answers.

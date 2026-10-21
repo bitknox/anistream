@@ -114,8 +114,7 @@ targetTemplates:
 
   # libmpv's client and the surface it draws into, over the Mpv.xcframework that
   # scripts/mpv.sh builds into .mpv/current. A first build phase checks it is current for the
-  # slice being built, as the engine's frameworks check theirs. The app embeds Mpv.framework
-  # when it takes this framework on (N3).
+  # slice being built, as the engine's frameworks check theirs. The apps embed Mpv.framework.
   Player:
     templates: [Framework]
     sources: [Packages/AnistreamPlayer/Sources/AnistreamPlayer]
@@ -132,6 +131,12 @@ targetTemplates:
         # The check reads the script and the patches, which no input file list names.
         ENABLE_USER_SCRIPT_SANDBOXING: false
 
+  # The player the apps host for the engine, and its screens, over the player, the store and the
+  # design system.
+  PlayerUI:
+    templates: [Framework]
+    sources: [Packages/AnistreamPlayer/Sources/AnistreamPlayerUI]
+
   # The Fixtures app's flavour: the testing engine's starts, and products of its own.
   Fixtures:
     settings:
@@ -142,6 +147,11 @@ targetTemplates:
   App:
     type: application
     supportedDestinations: [macOS, iOS]
+    dependencies:
+      # libmpv, which AnistreamPlayer links and the app carries.
+      - framework: .mpv/current/Mpv.xcframework
+        embed: true
+        codeSign: true
     sources:
       - path: App
         excludes: ["Info.plist"]
@@ -206,6 +216,16 @@ targets:
   AnistreamPlayer:
     templates: [Player]
     templateAttributes: { module: AnistreamPlayer }
+  AnistreamPlayerUI:
+    templates: [PlayerUI]
+    templateAttributes: { module: AnistreamPlayerUI }
+    dependencies:
+      - target: AnistreamPlayer
+        embed: false
+      - target: AnistreamStore
+        embed: false
+      - target: AnistreamDesign
+        embed: false
   AnistreamUI:
     templates: [Framework]
     templateAttributes: { module: AnistreamUI }
@@ -233,6 +253,16 @@ targets:
   AnistreamPlayerFixtures:
     templates: [Player, Fixtures]
     templateAttributes: { module: AnistreamPlayer }
+  AnistreamPlayerUIFixtures:
+    templates: [PlayerUI, Fixtures]
+    templateAttributes: { module: AnistreamPlayerUI }
+    dependencies:
+      - target: AnistreamPlayerFixtures
+        embed: false
+      - target: AnistreamStoreFixtures
+        embed: false
+      - target: AnistreamDesignFixtures
+        embed: false
   AnistreamUIFixtures:
     templates: [Framework, Fixtures]
     templateAttributes: { module: AnistreamUI }
@@ -256,6 +286,8 @@ targets:
       - target: AnistreamKit
       - target: AnistreamDesign
       - target: AnistreamStore
+      - target: AnistreamPlayer
+      - target: AnistreamPlayerUI
       - target: AnistreamUI
 
   Anistream Fixtures:
@@ -269,6 +301,8 @@ targets:
       - target: AnistreamKitFixtures
       - target: AnistreamDesignFixtures
       - target: AnistreamStoreFixtures
+      - target: AnistreamPlayerFixtures
+      - target: AnistreamPlayerUIFixtures
       - target: AnistreamUIFixtures
 
   # Each package's tests, on the testing engine.

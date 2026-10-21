@@ -15,5 +15,11 @@
 			</array>
 		</dict>
 	</array>
+	<!-- iPhone and iPad: the episode's audio plays on when the screen locks or the app goes to
+	     the background, with the video track off meanwhile. Free signing allows this mode. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 </dict>
 </plist>

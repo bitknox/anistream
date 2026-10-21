@@ -11,6 +11,7 @@ let package = Package(
         .package(path: "../AnistreamUI"),
         .package(path: "../AnistreamStore"),
         .package(path: "../AnistreamDesign"),
+        .package(path: "../AnistreamPlayer"),
     ],
     targets: [
         .executableTarget(
@@ -19,6 +20,7 @@ let package = Package(
                 .product(name: "AnistreamUI", package: "AnistreamUI"),
                 .product(name: "AnistreamStore", package: "AnistreamStore"),
                 .product(name: "AnistreamDesign", package: "AnistreamDesign"),
+                .product(name: "AnistreamPlayerUI", package: "AnistreamPlayer"),
             ],
             swiftSettings: [.define("FIXTURES")]
         ),
