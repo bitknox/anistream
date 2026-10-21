@@ -12,6 +12,19 @@
   "episodes": 1,
   "duration": 108,
   "seasonYear": 2025,
+  "season": "SUMMER",
+  "startDate": {
+    "year": 2025,
+    "month": 8,
+    "day": 15
+  },
+  "endDate": {
+    "year": 2025,
+    "month": 8,
+    "day": 15
+  },
+  "source": "ORIGINAL",
+  "isAdult": false,
   "averageScore": 85,
   "genres": [
     "Drama",
@@ -48,7 +61,63 @@
             "english": "Stardust Wayfarer",
             "native": "星屑の旅人"
           },
-          "format": "TV"
+          "format": "TV",
+          "coverImage": {
+            "large": "https://img.example/cover/900001.jpg"
+          },
+          "season": "SPRING",
+          "seasonYear": 2024
+        }
+      }
+    ]
+  },
+  "tags": [
+    {
+      "name": "Trains",
+      "rank": 88,
+      "isMediaSpoiler": false,
+      "isGeneralSpoiler": false,
+      "category": "Setting-Scene"
+    }
+  ],
+  "upcoming": {
+    "nodes": []
+  },
+  "aired": [],
+  "rankings": [],
+  "characters": {
+    "edges": [
+      {
+        "role": "MAIN",
+        "node": {
+          "name": {
+            "full": "Tsuki Hanamura"
+          },
+          "image": {
+            "medium": "https://img.example/people/tsuki-hanamura.jpg"
+          }
+        },
+        "voiceActors": [
+          {
+            "name": {
+              "full": "Tsuki's voice"
+            },
+            "image": {
+              "medium": "https://img.example/people/voice-tsuki.jpg"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "staff": {
+    "edges": [
+      {
+        "role": "Director",
+        "node": {
+          "name": {
+            "full": "Director of Moonlit Platform"
+          }
         }
       }
     ]

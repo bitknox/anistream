@@ -9,6 +9,11 @@
 //! | [`ONA`] 900005 | Hagane no Niwashi / The Steel Gardener | ONA, finished, 10 episodes; no banner |
 //! | [`AIRING_NO_MAL`] 900006 | Natsukaze Relay / Summer Wind Relay | TV, releasing, 8 of 12 aired; no MAL id, no score, no studio |
 //!
+//! Each title also carries what its page shows beside that: a season, dates, what it was adapted
+//! from, tags, every broadcast the calendar agrees with, rankings, and a cast and crew. All of it
+//! invented, and the people are named for their part ("Ren's voice", "Director of Stardust
+//! Wayfarer") so none can be taken for someone real.
+//!
 //! The JSON under `fixtures/anilist/` is AniList's own wire shape, so the fake server can hand
 //! it out unchanged and what a test decodes went through the same `serde` path as production.
 //! It is compiled in rather than read at run time, so a crate using the kit needs no path to
@@ -59,8 +64,23 @@ pub const VIEWER_ID: u32 = 5150;
 /// Fields AniList only sends with the single-title query (`MEDIA_DETAIL_FIELDS` plus
 /// relations and recommendations). A list answer leaves them out, as the real one does, so a
 /// screen that wrongly relies on them in a list fails here too.
-pub(crate) const DETAIL_ONLY: [&str; 5] =
-    ["externalLinks", "streamingEpisodes", "trailer", "relations", "recommendations"];
+///
+/// `aired` is not a field of AniList's `Media`: the single-title query asks for it beside the
+/// title, and the fake moves it there. The fixtures keep it on the title because that is where
+/// the app's `Media` holds it once read.
+pub(crate) const DETAIL_ONLY: [&str; 11] = [
+    "externalLinks",
+    "streamingEpisodes",
+    "trailer",
+    "relations",
+    "recommendations",
+    "tags",
+    "upcoming",
+    "aired",
+    "rankings",
+    "characters",
+    "staff",
+];
 
 static WIRE: LazyLock<Vec<Value>> = LazyLock::new(|| {
     [
@@ -189,6 +209,48 @@ mod tests {
                 "{id}'s next episode is in the schedule"
             );
         }
+    }
+
+    #[test]
+    fn every_schedule_agrees_with_the_calendar_and_the_countdown() {
+        // Three places say when an episode airs: the title's own schedule, its countdown and the
+        // calendar. A disagreement would mark an episode unaired on one screen and out on another.
+        for id in ALL {
+            let full = media(id);
+            assert!(full.aired.iter().all(|b| b.airing_at <= FIXTURE_NOW), "{id} aired ahead");
+            assert!(full.upcoming.nodes.iter().all(|b| b.airing_at > FIXTURE_NOW), "{id}");
+            assert!(full.aired.windows(2).all(|w| w[0].episode > w[1].episode), "newest first");
+            if let Some(next) = full.next_airing_episode {
+                let first =
+                    full.upcoming.nodes.first().expect("an airing title has more to come");
+                assert_eq!((first.episode, first.airing_at), (next.episode, next.airing_at));
+            }
+            let times = full.air_times();
+            for row in schedule().into_iter().filter(|row| row.media.id == id) {
+                assert_eq!(
+                    times.get(&row.episode),
+                    Some(&row.airing_at),
+                    "{id} ep {}",
+                    row.episode
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn the_title_page_fields_stay_out_of_list_answers() {
+        for id in ALL {
+            let list = listed(id);
+            assert!(list.tags.is_empty() && list.characters.edges.is_empty(), "{id}");
+            assert!(list.aired.is_empty() && list.upcoming.nodes.is_empty(), "{id}");
+            assert!(list.rankings.is_empty() && list.staff.edges.is_empty(), "{id}");
+            // What every list carries stays.
+            assert_eq!(list.season, media(id).season, "{id}");
+            assert_eq!(list.start_date, media(id).start_date, "{id}");
+        }
+        assert!(
+            !media(FINISHED).tags.is_empty() && !media(FINISHED).characters.edges.is_empty()
+        );
     }
 
     #[test]

@@ -5,7 +5,7 @@ use std::time::Duration;
 use anistream_core::{ids::AnilistId, traits::SourceCandidate};
 
 use crate::{
-    catalog::{ContentFor, ContentList, Entry, ResumePoint, TitleAired},
+    catalog::{ContentFor, ContentList, Entry, ResumePoint, TitleAired, TitleLanguage},
     downloads::{DownloadRow, SeedRow},
     episodes::EpisodeRow,
     hosted::{PlayerOp, PlayerUi},
@@ -77,6 +77,10 @@ pub enum Event {
         more_past: bool,
     },
     Detail(Box<Entry>),
+    /// The title language the signed-in AniList viewer reads in, in answer to
+    /// [`Command::LoadTitleLanguage`](crate::command::Command::LoadTitleLanguage). `None` when
+    /// nobody is signed in to AniList, or AniList did not say.
+    ViewerTitleLanguage(Option<TitleLanguage>),
     Status(String),
     Toast(Notice),
     Providers(Vec<ProviderRow>),
