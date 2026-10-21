@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use anistream_ffi::{FfiBackground, FfiDirs, FfiEngine, FfiError, FfiHost};
+use anistream_ffi::{FfiBackground, FfiDirs, FfiEngine, FfiError, FfiHost, FfiStart};
 
 struct Quiet;
 
@@ -38,9 +38,12 @@ fn a_config_that_does_not_load_is_refused_with_the_file_and_the_line() {
     std::fs::create_dir_all(root.path().join("config")).unwrap();
     std::fs::write(root.path().join("config/config.toml"), "[playback]\nbogus = 1\n").unwrap();
 
-    let Err(FfiError::Config { reason }) =
-        FfiEngine::start(dirs(root.path()), Arc::new(Quiet), FfiBackground::default())
-    else {
+    let Err(FfiError::Config { reason }) = FfiEngine::start(
+        dirs(root.path()),
+        Arc::new(Quiet),
+        FfiBackground::default(),
+        FfiStart::default(),
+    ) else {
         panic!("a config that does not load is refused");
     };
     assert!(reason.contains("config.toml, line 2:"), "{reason}");
@@ -53,9 +56,12 @@ fn a_directory_that_cannot_be_made_is_refused() {
     // A file where the data directory should go.
     std::fs::write(root.path().join("data"), "").unwrap();
 
-    let Err(FfiError::Dirs { reason }) =
-        FfiEngine::start(dirs(root.path()), Arc::new(Quiet), FfiBackground::default())
-    else {
+    let Err(FfiError::Dirs { reason }) = FfiEngine::start(
+        dirs(root.path()),
+        Arc::new(Quiet),
+        FfiBackground::default(),
+        FfiStart::default(),
+    ) else {
         panic!("a data directory that cannot be made is refused");
     };
     assert!(reason.contains("data"), "{reason}");

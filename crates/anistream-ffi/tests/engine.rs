@@ -10,7 +10,7 @@ use std::{
 };
 
 use anistream_core::ids::AnilistId;
-use anistream_ffi::{FfiDirs, FfiEngine, FfiHost};
+use anistream_ffi::{FfiDirs, FfiEngine, FfiHost, FfiStart};
 use anistream_model::{
     catalog::{ContentFor, ContentList, Entry, SearchFilters},
     command::Command,
@@ -49,7 +49,8 @@ fn started() -> (Arc<FfiEngine>, tempfile::TempDir) {
     let root = tempfile::tempdir().expect("a temporary directory");
     let dir = |name: &str| root.path().join(name).display().to_string();
     let dirs = FfiDirs { config: dir("config"), data: dir("data"), cache: dir("cache") };
-    let engine = FfiEngine::start_testing(dirs, Arc::new(Quiet)).expect("the engine starts");
+    let engine = FfiEngine::start_testing(dirs, Arc::new(Quiet), FfiStart::default())
+        .expect("the engine starts");
     (engine, root)
 }
 
