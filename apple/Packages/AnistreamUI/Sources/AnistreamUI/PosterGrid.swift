@@ -5,8 +5,11 @@ import AnistreamKit
 import AnistreamStore
 import SwiftUI
 
-/// One title in a grid: its cover at 2:3, its title in two lines at most, a line beneath, and,
-/// where it is under way, a meter.
+/// One title in a grid: its cover at 2:3, its title in two lines, a line beneath, and, where it
+/// is under way, a meter.
+///
+/// The title always takes two lines' room, a one-line title too, so every caption is one height
+/// and the episode lines and meters run level across a row.
 struct PosterCell: View {
     @Environment(Navigator.self) private var navigator
     let entry: Entry
@@ -32,7 +35,7 @@ struct PosterCell: View {
                     .font(.showTitle(size: 14))
                     .fixedLineHeight(18)
                     .foregroundStyle(.silk)
-                    .lineLimit(2)
+                    .lineLimit(2, reservesSpace: true)
                     .padding(.top, 8)
                 if let detail {
                     Text(detail)
