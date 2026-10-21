@@ -25,10 +25,37 @@ enum Snapshot {
         NSApp.windows.first { $0.isVisible && !($0 is NSPanel) }
     }
 
-    /// The player's window, by its scene's id.
+    /// The mini player's panel, while it is up.
     @MainActor
-    static var playerWindow: NSWindow? {
-        NSApp.windows.first { $0.isVisible && $0.identifier?.rawValue.hasPrefix("player") == true }
+    static var miniPlayer: NSWindow? {
+        NSApp.windows.first { $0.isVisible && $0.identifier?.rawValue == "mini-player" }
+    }
+
+    /// `windows` as the window server composites each, drawn where each is on screen over black,
+    /// later ones in front: the app's own windows together, and nothing else of the screen's.
+    @MainActor
+    static func write(_ windows: [NSWindow], to url: URL) throws {
+        let shots = windows.compactMap { window in composited(window).map { (window.frame, $0) } }
+        guard let first = shots.first else { throw Problem.noWindow }
+        let scale = windows[0].backingScaleFactor
+        let union = shots.dropFirst().reduce(first.0) { $0.union($1.0) }
+        guard let context = CGContext(
+            data: nil, width: Int(union.width * scale), height: Int(union.height * scale), bitsPerComponent: 8,
+            bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        else { throw Problem.noBitmap }
+        context.setFillColor(CGColor(gray: 0, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: union.width * scale, height: union.height * scale))
+        for (frame, image) in shots {
+            context.draw(image, in: CGRect(
+                x: (frame.minX - union.minX) * scale, y: (frame.minY - union.minY) * scale,
+                width: frame.width * scale, height: frame.height * scale))
+        }
+        guard let image = context.makeImage(),
+              let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+        else { throw Problem.noPNG }
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try png.write(to: url)
     }
 
     /// `CGWindowListCreateImage`, which the SDK marks unavailable in favour of ScreenCaptureKit

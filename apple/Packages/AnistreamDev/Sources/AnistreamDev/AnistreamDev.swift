@@ -30,6 +30,7 @@ struct AnistreamDev: App {
                 .environment(delegate.store)
                 .environment(delegate.navigator)
                 .frame(minWidth: 960, minHeight: 600)
+                .focusedSceneValue(\.playerInFront, delegate.player.isPresented && !delegate.player.miniPlayer)
                 .task { await delegate.run() }
         }
         .defaultSize(width: options.width, height: options.height)
@@ -37,23 +38,17 @@ struct AnistreamDev: App {
         .restorationBehavior(.disabled)
         .windowResizability(.contentMinSize)
         .commands {
-            AnistreamCommands(store: delegate.store, navigator: delegate.navigator) {
+            AnistreamCommands(
+                store: delegate.store, navigator: delegate.navigator,
+                playerBack: .init(
+                    isUp: { [player = delegate.player] in player.isPresented && !player.miniPlayer },
+                    back: { [player = delegate.player] in player.requestBack() })
+            ) {
                 PlaybackMenu(model: delegate.player)
             } playerWindowItems: {
                 MiniPlayerMenuItem(model: delegate.player)
             }
         }
-
-        Window("Player", id: PlayerWindow.id) {
-            PlayerWindow(model: delegate.player)
-                .environment(delegate.store)
-                .focusedSceneValue(\.playerInFront, true)
-        }
-        .windowStyle(.hiddenTitleBar)
-        .defaultSize(width: 1280, height: 720)
-        .windowResizability(.contentMinSize)
-        .restorationBehavior(.disabled)
-        .defaultLaunchBehavior(.suppressed)
     }
 }
 
@@ -117,9 +112,13 @@ final class Delegate: NSObject, NSApplicationDelegate {
             await frames(of: motion, in: window, to: url)
         }
         do {
-            let window = options.playerShot == nil ? Snapshot.window : Snapshot.playerWindow
-            guard let window else { throw Snapshot.Problem.noWindow }
-            try Snapshot.write(window, to: url)
+            guard let window = Snapshot.window else { throw Snapshot.Problem.noWindow }
+            if options.playerShot == .miniPlayer, let panel = Snapshot.miniPlayer {
+                // The mini player over the main window, browsing, each where it is on screen.
+                try Snapshot.write([window, panel], to: url)
+            } else {
+                try Snapshot.write(window, to: url)
+            }
             print("AnistreamDev: wrote \(url.path)")
         } catch {
             FileHandle.standardError.write(Data("AnistreamDev: \(error)\n".utf8))

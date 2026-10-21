@@ -79,8 +79,6 @@ public final class PlayerModel {
     /// Where mpv keeps its compiled shaders: `<cache>/mpv-shaders`, once the app's cache is known.
     @ObservationIgnored public var shaderCache: URL?
 
-    /// The Mac player window's frame when it last closed, to open it there again.
-    @ObservationIgnored public var windowFrame: CGRect?
 
     // MARK: The player
 
@@ -407,6 +405,18 @@ public final class PlayerModel {
     /// The engine's Quit: the viewer stopped, so the file ended by quitting and the player closes.
     private func quit() {
         close(reporting: true)
+    }
+
+    /// Back from the player, asked from outside it (Library › Back): the Mac's player shrinks
+    /// into its banner and stops. Counted, for the player's view to answer.
+    public private(set) var backRequests = 0
+
+    public func requestBack() {
+        if miniPlayer || !isPresented {
+            viewerClosed()
+        } else {
+            backRequests += 1
+        }
     }
 
     /// The viewer closed the player: its close button, the swipe down, the window's close.

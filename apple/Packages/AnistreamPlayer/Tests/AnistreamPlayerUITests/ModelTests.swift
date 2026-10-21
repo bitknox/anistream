@@ -141,6 +141,20 @@ struct ClosingTests {
         #expect(!rig.model.isPresented)
     }
 
+    @Test func backFromOutsideThePlayerAsksItsViewOrClosesTheMiniPlayer() async throws {
+        let rig = Rig()
+        try await rig.opened()
+        // In the window: the view answers, shrinking into the banner before it stops.
+        rig.model.requestBack()
+        #expect(rig.model.backRequests == 1)
+        #expect(rig.model.isPresented)
+        // In the mini player there is no banner to go back into: it stops at once.
+        rig.model.miniPlayer = true
+        rig.model.requestBack()
+        #expect(!rig.model.isPresented)
+        #expect(rig.reports.suffix(2).map(\.1) == [.ended(reason: .quit), .closed])
+    }
+
     @Test func theEnginesQuitReportsHowTheFileEnded() async throws {
         let rig = Rig()
         try await rig.opened()

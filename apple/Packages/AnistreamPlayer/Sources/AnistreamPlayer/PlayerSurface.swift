@@ -166,6 +166,9 @@ public final class PlayerHostView: NSView {
     }
 
     private func resizeLayer() {
+        // The layer moves between hosts (the main window's player and the mini player's panel);
+        // only the host that has it now sizes it.
+        guard mpvLayer.superlayer === layer else { return }
         let scale = window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2
         let before = mpvLayer.drawableSize
         mpvLayer.resize(to: bounds.size, scale: scale)
@@ -230,6 +233,7 @@ public final class PlayerHostView: UIView {
 
     public override func layoutSubviews() {
         super.layoutSubviews()
+        guard mpvLayer.superlayer === layer else { return }
         let scale = window?.windowScene?.screen.nativeScale ?? traitCollection.displayScale
         let before = mpvLayer.drawableSize
         mpvLayer.resize(to: bounds.size, scale: scale)

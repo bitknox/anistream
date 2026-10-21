@@ -1,4 +1,6 @@
-// The Mac's player, in a window of its own (M4): the MacPlayer board, its keys and its pointer.
+// The Mac's player, in the main window (M4): the MacPlayer board, its keys and its pointer. The
+// video fills the window's content where the sidebar, the toolbar and the list were, and Back
+// returns to the title page.
 
 #if os(macOS)
 import AnistreamDesign
@@ -8,18 +10,24 @@ import AnistreamStore
 import AppKit
 import SwiftUI
 
-/// The player window's content. The controls fade in on pointer movement or a key, and out 2 s
+/// The player in the main window. The controls fade in on pointer movement or a key, and out 2 s
 /// after (M5), never while the pointer is over the bar, while scrubbing or while a menu is open.
+/// It grows out of the banner the play started from, and shrinks back into it on Back.
 public struct MacPlayerView: View {
     let model: PlayerModel
     @State private var panel: Panel?
     @State private var overBar = false
     @State private var window: NSWindow?
     @State private var height: CGFloat = 0
-    /// The window's frame before the mini player, to go back to exactly.
-    @State private var fullFrame: NSRect?
+    /// How the main window looked before the player took it over, to give it back.
+    @State private var saved: SavedWindow?
+    /// Full screen was the player's doing, and ends with it.
+    @State private var enteredFullScreen = false
+    /// Grown to the window from the banner; false while it is the banner's size.
+    @State private var grown = false
     @FocusState private var focused: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.playerZoom) private var zoom
     private let metrics = PlayerMetrics.mac
 
     enum Panel: Equatable { case tracks, episodes, more }
@@ -44,13 +52,11 @@ public struct MacPlayerView: View {
             if model.showsSpinner {
                 ProgressView().controlSize(.regular).tint(.silk).environment(\.colorScheme, .dark)
             }
-            Group {
-                if model.miniPlayer { miniChrome } else { chrome }
-            }
-            .opacity(visible ? 1 : 0)
-            .animation(visible ? .fadeIn : .fadeOut, value: visible)
-            .allowsHitTesting(visible)
-            if !model.miniPlayer { cards }
+            chrome
+                .opacity(visible ? 1 : 0)
+                .animation(visible ? .fadeIn : .fadeOut, value: visible)
+                .allowsHitTesting(visible)
+            cards
             if model.stillWatching {
                 Palette.controlsDim
                 StillWatchingDialog(model: model, metrics: metrics)
@@ -58,6 +64,8 @@ public struct MacPlayerView: View {
         }
         .foregroundStyle(.silk)
         .font(.system(size: 13))
+        .clipShape(.rect(cornerRadius: grown ? 0 : ArtShape.bannerRadius))
+        .modifier(GrowFromBanner(id: model.staged?.id, zoom: reduceMotion ? nil : zoom, grown: grown))
         .ignoresSafeArea()
         .background(WindowReader { window = $0 })
         .background(ScrollMonitor(model: model))
@@ -78,8 +86,8 @@ public struct MacPlayerView: View {
         .onAppear { focused = true }
         .onChange(of: model.fullScreen) { _, on in fullScreen(on) }
         .onChange(of: visible, initial: true) { _, on in titleBar(on) }
-        .onChange(of: model.miniPlayer) { _, on in mini(on) }
         .onChange(of: window) { _, window in if let window { opened(window) } }
+        .onChange(of: model.backRequests) { back() }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { note in
             guard let window, (note.object as? NSWindow) === window else { return }
             PlayerModel.note(.info, "player window full screen, \(Self.describe(window))")
@@ -88,9 +96,7 @@ public struct MacPlayerView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { note in
             guard let window, (note.object as? NSWindow) === window else { return }
             PlayerModel.note(.info, "player window out of full screen, \(Self.describe(window))")
-            if model.fullScreen && !model.miniPlayer { model.fullScreen = false }
-            // Asked for the mini player in full screen: it follows once full screen has ended.
-            if model.miniPlayer, fullFrame == nil { mini(true) }
+            if model.fullScreen { model.fullScreen = false }
         }
         .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { height = $0 }
         .onChange(of: SubtitleLift(visible: visible, height: height), initial: true) { _, lift in
@@ -98,21 +104,19 @@ public struct MacPlayerView: View {
             // above the mini player's.
             model.liftSubtitles(lift.visible ? metrics.subtitleLift / max(lift.height, 1) : 0, animated: !reduceMotion)
         }
+        .onAppear {
+            // From the banner's frame to the window's, on the standard spring.
+            withAnimation(.standard) { grown = true }
+        }
         .onDisappear {
-            // The window closed: ⌘W, its close button, or the model closing it. Closed small, it
-            // opens next time as it was before the mini player.
-            if let fullFrame, let window {
-                window.level = .normal
-                window.setFrame(fullFrame, display: false)
-                self.fullFrame = nil
-            }
-            if let window, !window.styleMask.contains(.fullScreen) { model.windowFrame = window.frame }
-            model.viewerClosed()
+            // Back to browsing: the player stopped, or moved into the mini player. The main window
+            // is given back as it was.
+            if let window { restore(window) }
         }
         .preferredColorScheme(.dark)
     }
 
-    /// The cards over the video, which the mini player leaves out.
+    /// The cards over the video.
     @ViewBuilder
     private var cards: some View {
         CornerCard(model: model, metrics: metrics)
@@ -129,76 +133,6 @@ public struct MacPlayerView: View {
             .animation(.standard, value: model.alert)
         if let panel {
             panelLayer(panel)
-        }
-    }
-
-    // MARK: The mini player
-
-    /// The mini player's controls: play and pause, the seek line and the volume, and the way back.
-    private var miniChrome: some View {
-        ZStack {
-            LinearGradient(
-                stops: [
-                    .init(color: Palette.ground.opacity(0), location: 0.35),
-                    .init(color: Palette.ground.opacity(0.72), location: 1),
-                ],
-                startPoint: .top, endPoint: .bottom
-            )
-            .allowsHitTesting(false)
-            VStack(spacing: 0) {
-                HStack {
-                    Spacer()
-                    icon("arrow.up.left.and.arrow.down.right", "Exit Mini Player") { model.miniPlayer = false }
-                }
-                .padding(.top, 6)
-                .padding(.trailing, 6)
-                Spacer(minLength: 0)
-                HStack(spacing: 4) {
-                    icon(model.paused ? "play.fill" : "pause.fill", model.paused ? "Play" : "Pause") { model.togglePause() }
-                    SeekLine(model: model, metrics: metrics, showsPreview: false)
-                        .padding(.horizontal, 4)
-                    Button { model.toggleMute() } label: {
-                        Image(systemName: model.muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
-                            .font(.system(size: 12))
-                            .frame(width: 18, height: 28)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(model.muted ? "Unmute" : "Mute")
-                    VolumeLine(model: model, width: 56)
-                }
-                .padding(.horizontal, 8)
-                .padding(.bottom, 6)
-                .onHover { overBar = $0 }
-            }
-            .overVideoText()
-        }
-    }
-
-    /// The window shrinks to a quarter of the screen's width in the bottom right corner and
-    /// floats over other windows; leaving puts it back exactly where it was.
-    private func mini(_ on: Bool) {
-        guard let window else { return }
-        if on {
-            guard fullFrame == nil else { return }
-            if window.styleMask.contains(.fullScreen) {
-                model.fullScreen = false
-                return
-            }
-            guard let screen = window.screen ?? NSScreen.main else { return }
-            fullFrame = window.frame
-            panel = nil
-            let visible = screen.visibleFrame
-            let width = (visible.width / 4).rounded()
-            let size = NSSize(width: width, height: (width * 9 / 16).rounded())
-            window.contentMinSize = NSSize(width: 240, height: 135)
-            window.level = .floating
-            window.setFrame(
-                NSRect(x: visible.maxX - size.width - 16, y: visible.minY + 16, width: size.width, height: size.height),
-                display: true, animate: !reduceMotion)
-        } else {
-            window.level = .normal
-            if let fullFrame { window.setFrame(fullFrame, display: true, animate: !reduceMotion) }
-            fullFrame = nil
         }
     }
 
@@ -252,9 +186,10 @@ public struct MacPlayerView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 20) {
-            // The window's own buttons sit here.
-            Color.clear.frame(width: 52, height: 12)
+        HStack(spacing: 12) {
+            // The window's own buttons sit here, outside full screen.
+            Color.clear.frame(width: model.fullScreen ? 0 : 60, height: 12)
+            icon("chevron.backward", "Back") { back() }
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(model.showTitle)
                     .font(.showTitle(size: 15))
@@ -422,8 +357,6 @@ public struct MacPlayerView: View {
         case .escape:
             if panel != nil {
                 panel = nil
-            } else if model.miniPlayer {
-                model.miniPlayer = false
             } else if model.corner == .upNext {
                 model.cancelNext()
             } else if model.corner == .stall {
@@ -431,7 +364,7 @@ public struct MacPlayerView: View {
             } else if model.fullScreen {
                 model.fullScreen = false
             } else {
-                return .ignored
+                back()
             }
         case .delete:
             model.setSpeed(1)
@@ -449,6 +382,7 @@ public struct MacPlayerView: View {
             case "n": model.step(shift ? -1 : 1)
             case "f" where !command: model.fullScreen.toggle()
             case "e": toggle(.episodes)
+            case "[" where command: back()
             case "]": model.setSpeed(min(4, model.speed * 1.1))
             case "[": model.setSpeed(max(0.25, model.speed / 1.1))
             case ".":
@@ -464,22 +398,55 @@ public struct MacPlayerView: View {
 
     // MARK: The window
 
-    /// The window is there: where it was last time or a 16:9 one within the screen, and full
-    /// screen when the player was asked to open that way before the window existed.
+    /// The player has the main window: its title bar clear over the video, dark, moved by its
+    /// background, and full screen when the player was asked to open that way.
     private func opened(_ window: NSWindow) {
-        if !window.styleMask.contains(.fullScreen), let screen = window.screen ?? NSScreen.main {
-            let frame = model.windowFrame.flatMap { PlayerWindowFrame.restored($0, on: screen.visibleFrame) }
-                ?? PlayerWindowFrame.initial(in: screen.visibleFrame)
-            window.setFrame(frame, display: true)
-        }
-        PlayerModel.note(.info, "player window open, \(Self.describe(window)), asked for full screen \(model.fullScreen)")
+        if saved == nil { saved = SavedWindow(window) }
+        // The toolbar gives way to the video; the window's own buttons stay, over it, and fade
+        // with the controls.
+        window.toolbar?.isVisible = false
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.styleMask.insert(.fullSizeContentView)
+        window.isMovableByWindowBackground = true
+        window.backgroundColor = .black
+        // The player is dark whatever the system's appearance: AppKit's own controls in it, the
+        // spinner among them, draw for a dark window.
+        window.appearance = NSAppearance(named: .darkAqua)
+        PlayerModel.note(.info, "player in the main window, \(Self.describe(window)), asked for full screen \(model.fullScreen)")
         if model.fullScreen, !window.styleMask.contains(.fullScreen) {
+            enteredFullScreen = true
             // Once the window is on screen: a window still ordering in will not go full screen.
             DispatchQueue.main.async { [weak window] in
                 guard let window, model.fullScreen, !window.styleMask.contains(.fullScreen) else { return }
                 window.toggleFullScreen(nil)
             }
         }
+    }
+
+    /// The main window as it was before the player, and out of the full screen the player put it
+    /// in.
+    private func restore(_ window: NSWindow) {
+        saved?.restore(window)
+        saved = nil
+        for kind in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {
+            window.standardWindowButton(kind)?.alphaValue = 1
+        }
+        if enteredFullScreen, window.styleMask.contains(.fullScreen) { window.toggleFullScreen(nil) }
+        enteredFullScreen = false
+        PlayerModel.note(.info, "main window back to browsing, \(Self.describe(window))")
+    }
+
+    /// Back to the title page: the video shrinks into the banner it came from, and the playback
+    /// stops with its place saved.
+    private func back() {
+        PlayerModel.note(.info, "back from the player")
+        guard zoom != nil, !reduceMotion else {
+            model.viewerClosed()
+            return
+        }
+        withAnimation(.standard) { grown = false }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { model.viewerClosed() }
     }
 
     /// "1058×595 pt at (227, 175), screen 1512×945 pt at 2.0×, full screen no", for the log.
@@ -494,6 +461,7 @@ public struct MacPlayerView: View {
 
     private func fullScreen(_ on: Bool) {
         guard let window, window.styleMask.contains(.fullScreen) != on else { return }
+        if on { enteredFullScreen = true }
         window.toggleFullScreen(nil)
     }
 
@@ -506,25 +474,6 @@ public struct MacPlayerView: View {
                 window.standardWindowButton(kind)?.animator().alphaValue = visible ? 1 : 0
             }
         }
-    }
-}
-
-/// Where the player window opens on a screen's visible frame.
-enum PlayerWindowFrame {
-    /// The first time: 16:9 at the video's usual size, 1280 × 720, at most 70% of the screen
-    /// either way, in the middle of it.
-    static func initial(in visible: CGRect) -> CGRect {
-        let width = min(1280, visible.width * 0.7, visible.height * 0.7 * 16 / 9).rounded()
-        let size = CGSize(width: width, height: (width * 9 / 16).rounded())
-        return CGRect(
-            x: (visible.midX - size.width / 2).rounded(), y: (visible.midY - size.height / 2).rounded(),
-            width: size.width, height: size.height)
-    }
-
-    /// Where it was last, when that is still on this screen and fits it.
-    static func restored(_ frame: CGRect, on visible: CGRect) -> CGRect? {
-        guard frame.width <= visible.width, frame.height <= visible.height, visible.contains(frame) else { return nil }
-        return frame
     }
 }
 
@@ -558,6 +507,57 @@ struct VolumeLine: View {
     }
 }
 
+/// What the player changes about the main window, as it was, to put back.
+struct SavedWindow {
+    let transparentTitleBar: Bool
+    let titleVisibility: NSWindow.TitleVisibility
+    let fullSizeContent: Bool
+    let movableByBackground: Bool
+    let backgroundColor: NSColor
+    let appearance: NSAppearance?
+    let toolbarVisible: Bool?
+
+    @MainActor
+    init(_ window: NSWindow) {
+        toolbarVisible = window.toolbar?.isVisible
+        transparentTitleBar = window.titlebarAppearsTransparent
+        titleVisibility = window.titleVisibility
+        fullSizeContent = window.styleMask.contains(.fullSizeContentView)
+        movableByBackground = window.isMovableByWindowBackground
+        backgroundColor = window.backgroundColor
+        appearance = window.appearance
+    }
+
+    @MainActor
+    func restore(_ window: NSWindow) {
+        window.titlebarAppearsTransparent = transparentTitleBar
+        window.titleVisibility = titleVisibility
+        if fullSizeContent { window.styleMask.insert(.fullSizeContentView) } else { window.styleMask.remove(.fullSizeContentView) }
+        window.isMovableByWindowBackground = movableByBackground
+        window.backgroundColor = backgroundColor
+        window.appearance = appearance
+        if let toolbarVisible { window.toolbar?.isVisible = toolbarVisible }
+    }
+}
+
+/// The player at the banner's frame until it has grown: matched to the banner the play started
+/// from while `grown` is false, its own frame once it is. Nothing without a namespace, as under
+/// Reduce Motion, where it crossfades instead.
+struct GrowFromBanner: ViewModifier {
+    let id: AnilistId?
+    let zoom: Namespace.ID?
+    let grown: Bool
+
+    func body(content: Content) -> some View {
+        if let zoom, let id {
+            content.matchedGeometryEffect(
+                id: grown ? AnyHashable("player") : AnyHashable(id), in: zoom, properties: .frame, isSource: false)
+        } else {
+            content
+        }
+    }
+}
+
 /// The NSWindow a view is in.
 struct WindowReader: NSViewRepresentable {
     let found: (NSWindow?) -> Void
@@ -574,14 +574,6 @@ struct WindowReader: NSViewRepresentable {
         required init?(coder: NSCoder) { fatalError("not used") }
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
-            if let window {
-                window.isMovableByWindowBackground = true
-                window.titlebarAppearsTransparent = true
-                window.backgroundColor = .black
-                // The player is dark whatever the system's appearance: AppKit's own controls in
-                // it, the spinner among them, draw for a dark window.
-                window.appearance = NSAppearance(named: .darkAqua)
-            }
             found(window)
         }
     }

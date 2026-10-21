@@ -1,9 +1,10 @@
-// Where the iPhone's and iPad's player zooms out of (T2): the banner a play started from.
+// Where the player grows out of: the banner a play started from. The iPhone's and iPad's cover
+// zooms out of it (T2); on the Mac the banner morphs into the video in the main window (M4).
 
 import SwiftUI
 
 extension EnvironmentValues {
-    /// The namespace the player's full-screen cover zooms in, which the app's shell provides.
+    /// The namespace the player grows in from a banner, which the player's host provides.
     @Entry public var playerZoom: Namespace.ID? = nil
 }
 
@@ -20,7 +21,11 @@ struct PlayerZoomSource<ID: Hashable>: ViewModifier {
 
     func body(content: Content) -> some View {
         if let zoom {
+            #if os(macOS)
+            content.matchedGeometryEffect(id: id, in: zoom, properties: .frame, isSource: true)
+            #else
             content.matchedTransitionSource(id: id, in: zoom)
+            #endif
         } else {
             content
         }
