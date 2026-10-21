@@ -185,10 +185,14 @@ pub enum PlayerUi {
 pub struct MenuEpisode {
     pub number: String,
     pub label: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub title: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub watched: bool,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub filler: bool,
     /// The episode playing.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub current: bool,
 }
 
@@ -199,12 +203,15 @@ pub struct MenuEpisode {
 pub struct MenuSource {
     pub id: String,
     pub label: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub detail: Option<String>,
     /// The stream playing.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub current: bool,
     /// A short note on how the stream's server has fared lately, when it has been failing:
     /// `failed the last 3 times · 12 min ago`. `None` for a server with nothing against it. A
     /// server that keeps failing is listed after the others of its quality; this says why.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub health: Option<String>,
 }
 
@@ -213,6 +220,7 @@ pub struct MenuSource {
 #[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct MenuChoices {
     pub current: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub options: Vec<MenuChoice>,
 }
 
@@ -222,6 +230,7 @@ pub struct MenuChoices {
 pub struct MenuChoice {
     pub id: String,
     pub label: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub hint: Option<String>,
 }
 

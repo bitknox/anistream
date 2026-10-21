@@ -19,8 +19,10 @@ pub struct DownloadRow {
     pub total: u64,
     /// Why it failed, when it did. Kept on the row because a toast lasts seconds and the reason
     /// still matters afterwards.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub error: Option<String>,
     /// Where the file is, once it exists — so a finished download can be played.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub path: Option<String>,
 }
 

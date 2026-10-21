@@ -12,6 +12,7 @@ pub struct Notice {
     pub text: String,
     /// What the user can do about it, for the front end to say with its own keys or buttons.
     /// The text reads whole without it.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub hint: Option<NoticeHint>,
 }
 

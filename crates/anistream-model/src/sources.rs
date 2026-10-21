@@ -11,24 +11,31 @@ pub struct ProviderRow {
     pub id: String,
     pub kind: String,
     pub state: String,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub latency_ms: Option<u64>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub last_error: Option<String>,
     /// Whether resolution will actually try this source: not while it is switched off.
     pub usable: bool,
     /// Withheld by local policy rather than broken — a failing VPN guard, say.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub held_back: bool,
     /// The name it goes by: the plugin's own, or the built-in source's.
     pub name: String,
     /// A plugin's version. `None` for a source built into anistream.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub version: Option<String>,
     /// The hosts it may contact, and no others: a plugin's allowlist, which the host enforces
     /// on every request it makes.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub hosts: Vec<String>,
     /// Where it came from.
     pub origin: ProviderOrigin,
     /// Switched off by name, `providers.disabled`: kept, and not tried until it is on again.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub disabled: bool,
     /// A newer version the store it came from offers, when there is one.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub update: Option<ProviderUpdate>,
 }
 
@@ -53,6 +60,7 @@ pub struct ProviderUpdate {
     pub version: String,
     /// The hosts the newer version may contact that this one may not: "This update also
     /// contacts …".
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub new_hosts: Vec<String>,
 }
 
@@ -116,15 +124,20 @@ pub fn only_reorders(before: &[String], after: &[String]) -> bool {
 #[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct ConfiguredSources {
     /// The order failover walks them in.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub order: Vec<String>,
     /// Those switched off by name.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub disabled: Vec<String>,
     /// Whether the torrent source is switched on.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub torrent: bool,
     /// Whether a remote source is set up.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub remote: bool,
     /// The torrent index, `providers.torrent.rss_url`: the RSS search address the torrent
     /// source asks, which anistream ships none of. `None` until one is set, torrents on or off.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub index: Option<String>,
 }
 
@@ -249,10 +262,13 @@ pub struct MetaSourceRow {
     pub state: String,
     pub healthy: bool,
     /// The rung that answered the most recent request.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub active: bool,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub detail: Option<String>,
     /// While the rung is being skipped, when it is next tried, in Unix seconds. Said at draw
     /// time: a countdown built when the status was sent stood still on an idle screen.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub retry_at: Option<i64>,
 }
 
@@ -272,6 +288,7 @@ pub struct MatchCandidate {
     /// Title-match similarity, 0..1.
     pub similarity: f64,
     /// Why the ladder ruled it out, when it did.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub rejected: Option<String>,
 }
 
