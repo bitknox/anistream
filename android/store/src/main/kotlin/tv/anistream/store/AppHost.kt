@@ -2,7 +2,7 @@
 
 package tv.anistream.store
 
-import uniffi.anistream_ffi.FfiHost
+import tv.anistream.engine.ffi.FfiHost
 
 /**
  * The app's [FfiHost]: links opened, notifications posted and secrets kept, each through what the

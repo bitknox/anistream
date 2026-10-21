@@ -15,7 +15,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
-import uniffi.anistream_model.NoticeHint
+import tv.anistream.engine.model.NoticeHint
 
 /**
  * How long a snackbar stays: 4 s, 8 s with a button, plus 1 s for every 10 words past 12, so a

@@ -5,8 +5,8 @@ package tv.anistream.store
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import uniffi.anistream_model.Notice
-import uniffi.anistream_model.NoticeKind
+import tv.anistream.engine.model.Notice
+import tv.anistream.engine.model.NoticeKind
 
 /** One notice as the app keeps it: when it came, and a number to tell it from one with the same words. */
 data class NoticeItem(val id: Int, val notice: Notice, val at: Long) {

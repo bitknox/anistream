@@ -13,19 +13,19 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import uniffi.anistream_model.Aired
-import uniffi.anistream_model.Command
-import uniffi.anistream_model.ContentFor
-import uniffi.anistream_model.ContentList
-import uniffi.anistream_model.Entry
-import uniffi.anistream_model.Event
-import uniffi.anistream_model.LibrarySegment
-import uniffi.anistream_model.Notice
-import uniffi.anistream_model.NoticeKind
-import uniffi.anistream_model.ResumePoint
-import uniffi.anistream_model.SearchFilters
-import uniffi.anistream_model.TitleAired
-import uniffi.anistream_model.TitleProgress
+import tv.anistream.engine.model.Aired
+import tv.anistream.engine.model.Command
+import tv.anistream.engine.model.ContentFor
+import tv.anistream.engine.model.ContentList
+import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.LibrarySegment
+import tv.anistream.engine.model.Notice
+import tv.anistream.engine.model.NoticeKind
+import tv.anistream.engine.model.ResumePoint
+import tv.anistream.engine.model.SearchFilters
+import tv.anistream.engine.model.TitleAired
+import tv.anistream.engine.model.TitleProgress
 
 /** The store fed scripted event lists, as the engine sends them: no engine, no native code. */
 @OptIn(ExperimentalCoroutinesApi::class)

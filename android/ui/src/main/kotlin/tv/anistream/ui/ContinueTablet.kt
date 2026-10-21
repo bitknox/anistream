@@ -66,7 +66,7 @@ import tv.anistream.design.ShowTitle
 import tv.anistream.design.tabular
 import tv.anistream.store.ContinueItem
 import tv.anistream.store.ContinueQueue
-import uniffi.anistream_model.LibrarySegment
+import tv.anistream.engine.model.LibrarySegment
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable

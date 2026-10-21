@@ -6,14 +6,14 @@ package tv.anistream.store
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import uniffi.anistream_core.AnilistId
-import uniffi.anistream_model.Entry
-import uniffi.anistream_model.EpisodeProgress
-import uniffi.anistream_model.EpisodeRow
-import uniffi.anistream_model.LibrarySegment
-import uniffi.anistream_model.ResumePoint
-import uniffi.anistream_model.TitleAired
-import uniffi.anistream_model.TitleProgress
+import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.EpisodeProgress
+import tv.anistream.engine.model.EpisodeRow
+import tv.anistream.engine.model.LibrarySegment
+import tv.anistream.engine.model.ResumePoint
+import tv.anistream.engine.model.TitleAired
+import tv.anistream.engine.model.TitleProgress
 
 /**
  * The titles by id, merged from every list, page and progress the engine sends. Lists hold ids

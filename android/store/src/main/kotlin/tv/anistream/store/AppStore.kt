@@ -10,17 +10,17 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import uniffi.anistream_core.AnilistId
-import uniffi.anistream_ffi.FfiEngine
-import uniffi.anistream_ffi.FfiException
-import uniffi.anistream_ffi.FfiHost
-import uniffi.anistream_model.Command
-import uniffi.anistream_model.ContentFor
-import uniffi.anistream_model.ContentList
-import uniffi.anistream_model.Event
-import uniffi.anistream_model.JobId
-import uniffi.anistream_model.LibrarySegment
-import uniffi.anistream_model.SearchFilters
+import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.ffi.FfiEngine
+import tv.anistream.engine.ffi.FfiException
+import tv.anistream.engine.ffi.FfiHost
+import tv.anistream.engine.model.Command
+import tv.anistream.engine.model.ContentFor
+import tv.anistream.engine.model.ContentList
+import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.JobId
+import tv.anistream.engine.model.LibrarySegment
+import tv.anistream.engine.model.SearchFilters
 
 /**
  * Where the app's state lives, on the main thread.

@@ -9,10 +9,10 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import uniffi.anistream_ffi.FfiEngine
-import uniffi.anistream_model.Command
-import uniffi.anistream_model.Event
-import uniffi.anistream_model.JobId
+import tv.anistream.engine.ffi.FfiEngine
+import tv.anistream.engine.model.Command
+import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.JobId
 
 /**
  * Owns the [FfiEngine] and the one coroutine that loops over `nextEvents()`, handing each batch to

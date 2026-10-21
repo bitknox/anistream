@@ -4,10 +4,10 @@ package tv.anistream.store
 
 import java.io.File
 import java.util.UUID
-import uniffi.anistream_ffi.FfiDirs
-import uniffi.anistream_ffi.FfiEngine
-import uniffi.anistream_ffi.FfiHost
-import uniffi.anistream_ffi.FfiStart
+import tv.anistream.engine.ffi.FfiDirs
+import tv.anistream.engine.ffi.FfiEngine
+import tv.anistream.engine.ffi.FfiHost
+import tv.anistream.engine.ffi.FfiStart
 
 /** The testing engine on [scene]. */
 internal fun startFixtures(scene: FixtureScene, dirs: FfiDirs, host: FfiHost, start: FfiStart): FfiEngine =

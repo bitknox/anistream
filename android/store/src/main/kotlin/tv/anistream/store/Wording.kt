@@ -9,10 +9,10 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
-import uniffi.anistream_ffi.FfiDirs
-import uniffi.anistream_model.Entry
-import uniffi.anistream_model.LibrarySegment
-import uniffi.anistream_model.ResumePoint
+import tv.anistream.engine.ffi.FfiDirs
+import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.LibrarySegment
+import tv.anistream.engine.model.ResumePoint
 
 /** `12:30`, or `1:02:03` past the hour: the position as a viewer thinks of it. `ResumePoint::clock`. */
 fun ResumePoint.clock(): String {

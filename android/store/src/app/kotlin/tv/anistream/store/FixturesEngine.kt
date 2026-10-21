@@ -2,11 +2,11 @@
 
 package tv.anistream.store
 
-import uniffi.anistream_ffi.FfiDirs
-import uniffi.anistream_ffi.FfiEngine
-import uniffi.anistream_ffi.FfiException
-import uniffi.anistream_ffi.FfiHost
-import uniffi.anistream_ffi.FfiStart
+import tv.anistream.engine.ffi.FfiDirs
+import tv.anistream.engine.ffi.FfiEngine
+import tv.anistream.engine.ffi.FfiException
+import tv.anistream.engine.ffi.FfiHost
+import tv.anistream.engine.ffi.FfiStart
 
 internal fun startFixtures(scene: FixtureScene, dirs: FfiDirs, host: FfiHost, start: FfiStart): FfiEngine =
     throw FfiException.Engine("this build has no testing engine")

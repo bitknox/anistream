@@ -62,8 +62,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import tv.anistream.store.ListState
 import tv.anistream.store.label
-import uniffi.anistream_model.Entry
-import uniffi.anistream_model.SearchFilters
+import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.SearchFilters
 
 /** AniList's genres, as the filter and the start of Search offer them. */
 private val GENRES = listOf(
@@ -114,7 +114,7 @@ private fun searchDetail(entry: Entry): String? {
     entry.listStatus?.let { status ->
         val label = status.label.replaceFirstChar { it.uppercase() }
         val next = entry.progress?.next
-        return if (next != null && status == uniffi.anistream_model.LibrarySegment.WATCHING) "$label · Ep $next" else label
+        return if (next != null && status == tv.anistream.engine.model.LibrarySegment.WATCHING) "$label · Ep $next" else label
     }
     val season = listOfNotNull(entry.season?.name?.lowercase()?.replaceFirstChar { it.uppercase() }, entry.year?.toString())
         .joinToString(" ").ifEmpty { null }

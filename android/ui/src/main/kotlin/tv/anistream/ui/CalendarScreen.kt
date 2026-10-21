@@ -60,9 +60,9 @@ import tv.anistream.design.tabular
 import tv.anistream.store.AirTime
 import tv.anistream.store.ListState
 import tv.anistream.store.Wording
-import uniffi.anistream_model.Command
-import uniffi.anistream_model.Entry
-import uniffi.anistream_model.LibrarySegment
+import tv.anistream.engine.model.Command
+import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.LibrarySegment
 
 /** Whether a title is yours: under way here, or on your Watching or Planning list. */
 fun Entry.isMine(): Boolean =

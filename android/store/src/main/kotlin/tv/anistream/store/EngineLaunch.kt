@@ -3,14 +3,14 @@
 package tv.anistream.store
 
 import java.io.File
-import uniffi.anistream_ffi.FfiBackground
-import uniffi.anistream_ffi.FfiDirs
-import uniffi.anistream_ffi.FfiEngine
-import uniffi.anistream_ffi.FfiHost
-import uniffi.anistream_ffi.FfiPlatform
-import uniffi.anistream_ffi.FfiStart
-import uniffi.anistream_ffi.SecretsMode
-import uniffi.anistream_model.PlayerTheme
+import tv.anistream.engine.ffi.FfiBackground
+import tv.anistream.engine.ffi.FfiDirs
+import tv.anistream.engine.ffi.FfiEngine
+import tv.anistream.engine.ffi.FfiHost
+import tv.anistream.engine.ffi.FfiPlatform
+import tv.anistream.engine.ffi.FfiStart
+import tv.anistream.engine.ffi.SecretsMode
+import tv.anistream.engine.model.PlayerTheme
 
 /**
  * The engine's three directories: config.toml and the plugins, the database, and what can be
@@ -127,11 +127,8 @@ data class EngineLaunch(
     }
 }
 
-/**
- * What the engine is told the app runs on. `FfiPlatform` has no Android yet (the engine's EA1 adds
- * it), and nothing in the engine differs by it, so the app names none until then.
- */
-fun enginePlatform(): FfiPlatform? = null
+/** What the engine is told the app runs on: informational, since nothing in it differs by it. */
+fun enginePlatform(): FfiPlatform? = FfiPlatform.ANDROID
 
 /**
  * What a fixtures launch puts in the database before the engine starts: the Apple app's

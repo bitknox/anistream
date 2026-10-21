@@ -64,7 +64,7 @@ import tv.anistream.store.ContinueItem
 import tv.anistream.store.ContinueQueue
 import tv.anistream.store.ListState
 import tv.anistream.store.Wording
-import uniffi.anistream_model.Entry
+import tv.anistream.engine.model.Entry
 
 /** The legal line, everywhere it appears. */
 const val LEGAL_LINE = "anistream ships no sources of its own and hosts no content. Every source is external."

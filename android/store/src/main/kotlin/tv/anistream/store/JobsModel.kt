@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import uniffi.anistream_model.JobId
+import tv.anistream.engine.model.JobId
 
 /** One job, from the `JobStarted` that names it to the `JobDone` that ends it. */
 data class RunningJob(

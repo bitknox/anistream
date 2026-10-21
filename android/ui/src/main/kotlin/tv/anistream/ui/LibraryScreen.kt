@@ -51,8 +51,8 @@ import tv.anistream.store.LibraryModel
 import tv.anistream.store.ListState
 import tv.anistream.store.label
 import tv.anistream.store.latestAired
-import uniffi.anistream_model.Entry
-import uniffi.anistream_model.LibrarySegment
+import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.LibrarySegment
 
 /** How the Library orders a list. */
 private enum class LibrarySort(val label: String) {

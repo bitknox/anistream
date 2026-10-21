@@ -5,10 +5,10 @@ package tv.anistream.store
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import uniffi.anistream_core.AnilistId
-import uniffi.anistream_model.ContentList
-import uniffi.anistream_model.Entry
-import uniffi.anistream_model.ResumePoint
+import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.model.ContentList
+import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.ResumePoint
 
 /** One row of the queue: a title and the episode it plays next. */
 data class ContinueItem(

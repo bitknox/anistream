@@ -58,8 +58,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import tv.anistream.design.Motion
 import tv.anistream.store.AppStore
-import uniffi.anistream_core.AnilistId
-import uniffi.anistream_model.NoticeHint
+import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.model.NoticeHint
 
 /** The top-level destinations, in the navigation bar's order. */
 enum class Destination(val route: String, val label: String, val icon: ImageVector, val selectedIcon: ImageVector) {

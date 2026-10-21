@@ -22,7 +22,7 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import tv.anistream.design.Motion
-import uniffi.anistream_core.AnilistId
+import tv.anistream.engine.core.AnilistId
 
 /** A title page's route inside [destination]'s back stack. */
 internal fun titleRoute(destination: Destination, id: AnilistId) = "${destination.route}/title/$id"

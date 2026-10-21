@@ -64,9 +64,9 @@ import tv.anistream.design.CoverPlate
 import tv.anistream.design.Motion
 import tv.anistream.design.tabular
 import tv.anistream.store.AirTime
-import uniffi.anistream_model.Entry
-import uniffi.anistream_model.EpisodeKind
-import uniffi.anistream_model.EpisodeRow
+import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.EpisodeKind
+import tv.anistream.engine.model.EpisodeRow
 
 /**
  * The episodes the user marked or unmarked on this page, until their row has shown the change:
@@ -190,7 +190,7 @@ internal fun EpisodeLine(
 }
 
 /** "E7 · 14 min left", "E6 · 24 min", or "E10 · Airs Thursday 16:30" for one still to air. */
-private fun episodeDetail(row: EpisodeRow, resume: uniffi.anistream_model.ResumePoint?, unaired: Boolean): String {
+private fun episodeDetail(row: EpisodeRow, resume: tv.anistream.engine.model.ResumePoint?, unaired: Boolean): String {
     val number = "E${row.number}"
     if (unaired) {
         val airs = row.airsAt?.let { AirTime.words(java.time.Instant.ofEpochSecond(it)) }

@@ -75,9 +75,9 @@ import tv.anistream.store.AirTime
 import tv.anistream.store.HeroArt
 import tv.anistream.store.LibraryModel
 import tv.anistream.store.label
-import uniffi.anistream_core.AnilistId
-import uniffi.anistream_model.Entry
-import uniffi.anistream_model.EpisodeRow
+import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.EpisodeRow
 
 /** The episodes past the next one hide their stills, unless the show says otherwise (A2). */
 private const val SPOILER_PROTECTION = true

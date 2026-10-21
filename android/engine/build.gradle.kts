@@ -21,6 +21,8 @@ dependencies {
     // The bindings call into the library through JNA, and await its async calls as coroutines.
     api("net.java.dev.jna:jna:${libs.versions.jna.get()}@aar")
     api(libs.coroutines.core)
+    // The bindings free what they hold through Android's SystemCleaner, behind @RequiresApi.
+    implementation(libs.annotation)
 }
 
 // Every build of a flavour checks first that its engine is current, and fails, saying what to

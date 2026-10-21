@@ -4,8 +4,8 @@
 
 package tv.anistream.store
 
-import uniffi.anistream_model.Entry
-import uniffi.anistream_model.EpisodeRow
+import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.EpisodeRow
 
 sealed interface HeroArt {
     data class Banner(override val url: String) : HeroArt

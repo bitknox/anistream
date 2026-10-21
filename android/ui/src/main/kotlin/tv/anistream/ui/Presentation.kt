@@ -10,10 +10,10 @@ import tv.anistream.store.CalendarModel
 import tv.anistream.store.EpisodeAiring
 import tv.anistream.store.airing
 import tv.anistream.store.clock
-import uniffi.anistream_core.AnilistId
-import uniffi.anistream_model.Entry
-import uniffi.anistream_model.RelatedTitle
-import uniffi.anistream_model.ResumePoint
+import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.RelatedTitle
+import tv.anistream.engine.model.ResumePoint
 
 /**
  * The title as the screens head it: the romaji when AniList has an English title beside it, as the

@@ -6,9 +6,9 @@ package tv.anistream.store
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import uniffi.anistream_model.DownloadRow
-import uniffi.anistream_model.StoreRow
-import uniffi.anistream_model.SyncState
+import tv.anistream.engine.model.DownloadRow
+import tv.anistream.engine.model.StoreRow
+import tv.anistream.engine.model.SyncState
 
 /** Each tracker's sync, as the engine last said it. */
 class AccountsModel {

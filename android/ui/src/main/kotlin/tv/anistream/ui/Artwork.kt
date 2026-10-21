@@ -30,7 +30,7 @@ import tv.anistream.design.ArtShape
 import tv.anistream.design.CoverPlate
 import tv.anistream.design.Motion
 import tv.anistream.store.AppStore
-import uniffi.anistream_model.Entry
+import tv.anistream.engine.model.Entry
 
 /** The store the screens read and send through. */
 val LocalAppStore = staticCompositionLocalOf<AppStore> { error("no AppStore in this composition") }

@@ -2,9 +2,9 @@ package tv.anistream.store
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
-import uniffi.anistream_model.Entry
-import uniffi.anistream_model.EpisodeRow
-import uniffi.anistream_model.TitleProgress
+import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.EpisodeRow
+import tv.anistream.engine.model.TitleProgress
 
 /** The wide art a title's page and hero show, by the Apple app's rule. */
 class HeroArtTest {
