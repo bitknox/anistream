@@ -82,6 +82,7 @@ public struct PlayerSurface {
     let layer: MpvLayer
     private let onResize: @MainActor () -> Void
     private let onDisplay: @MainActor (DisplayInfo) -> Void
+    private let onPointer: @MainActor () -> Void
 
     public init(layer: MpvLayer, client: MpvClient) {
         self.init(
@@ -91,15 +92,22 @@ public struct PlayerSurface {
     }
 
     /// The layer, with what to do after it changed size and when it is on a screen, for a host
-    /// that holds the client itself: `MpvClient.surfaceResized()` and `updateDisplay(_:)`.
+    /// that holds the client itself: `MpvClient.surfaceResized()` and `updateDisplay(_:)`. On
+    /// the Mac, `pointer` is told each time the pointer moves over the picture, whichever window
+    /// is key: what brings a player's controls up.
     public init(
         layer: MpvLayer, resized: @escaping @MainActor () -> Void,
-        display: @escaping @MainActor (DisplayInfo) -> Void
+        display: @escaping @MainActor (DisplayInfo) -> Void,
+        pointer: @escaping @MainActor () -> Void = {}
     ) {
         self.layer = layer
         self.onResize = resized
         self.onDisplay = display
+        self.onPointer = pointer
     }
+
+    @MainActor
+    fileprivate func pointed() { onPointer() }
 
     @MainActor
     fileprivate func resized() { onResize() }
@@ -114,6 +122,7 @@ public final class PlayerHostView: NSView {
     let mpvLayer: MpvLayer
     var onResize: (() -> Void)?
     var onScreen: ((NSScreen) -> Void)?
+    var onPointer: (() -> Void)?
     private var observers: [NSObjectProtocol] = []
 
     init(layer mpvLayer: MpvLayer) {
@@ -127,6 +136,24 @@ public final class PlayerHostView: NSView {
     required init?(coder: NSCoder) { fatalError("not used") }
 
     public override var isOpaque: Bool { true }
+
+    /// Clicks pass through the picture to the SwiftUI around it, where the player's gestures
+    /// are: as the deepest view under the pointer it would otherwise take them, and AppKit would
+    /// hand SwiftUI none.
+    public override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    /// The pointer over the picture, as a tracking area of the view's own reports it: SwiftUI's
+    /// hover does not see through to the picture beneath it.
+    public override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        for area in trackingAreas { removeTrackingArea(area) }
+        addTrackingArea(NSTrackingArea(
+            rect: .zero, options: [.mouseMoved, .mouseEnteredAndExited, .activeAlways, .inVisibleRect],
+            owner: self, userInfo: nil))
+    }
+
+    public override func mouseMoved(with event: NSEvent) { onPointer?() }
+    public override func mouseEntered(with event: NSEvent) { onPointer?() }
 
     public override func layout() {
         super.layout()
@@ -174,6 +201,7 @@ extension PlayerSurface: NSViewRepresentable {
         let view = PlayerHostView(layer: layer)
         view.onResize = { resized() }
         view.onScreen = { screen in moved(to: DisplayInfo(screen: screen)) }
+        view.onPointer = { pointed() }
         return view
     }
 
@@ -193,6 +221,8 @@ public final class PlayerHostView: UIView {
         super.init(frame: .zero)
         backgroundColor = .black
         isOpaque = true
+        // Touches belong to the player's gestures around the picture.
+        isUserInteractionEnabled = false
         layer.addSublayer(mpvLayer)
     }
 

@@ -44,7 +44,8 @@ struct PlayerPicture: View {
             PlayerSurface(
                 layer: layer,
                 resized: { [weak model] in model?.surfaceResized() },
-                display: { [weak model] display in model?.surfaceDisplay(display) })
+                display: { [weak model] display in model?.surfaceDisplay(display) },
+                pointer: { [weak model] in model?.poke() })
         }
     }
 }
