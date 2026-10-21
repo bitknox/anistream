@@ -171,7 +171,9 @@ impl Make {
             }
         };
         let followed: HashSet<AnilistId> =
-            new_episodes::followed(&self.store, self.signed_in, now).into_iter().collect();
+            new_episodes::followed(&self.store, self.signed_in, now, true)
+                .into_iter()
+                .collect();
         let titles = self.meta.titles();
         rows.iter()
             .map(|row| WidgetAiring {

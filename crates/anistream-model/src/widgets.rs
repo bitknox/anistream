@@ -63,8 +63,8 @@ pub struct WidgetAiring {
     /// When it airs, or aired, in seconds since the Unix epoch.
     pub airs_at: i64,
     /// Whether the show is one being followed: on the signed-in tracker's list as watching,
-    /// rewatching or planning, or watched here in the last few weeks. The shows the new-episode
-    /// check follows, whatever their own notification setting.
+    /// rewatching or planning, or watched here in the last few weeks. Planned shows count here,
+    /// though the new-episode check leaves them out unless they are switched on for themselves.
     #[cfg_attr(feature = "ffi", uniffi(default))]
     pub on_list: bool,
     #[cfg_attr(feature = "ffi", uniffi(default))]

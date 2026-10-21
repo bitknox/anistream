@@ -80,9 +80,10 @@ pub enum SettingKey {
     ///
     /// [`Command::SetTorrentProtection`]: crate::command::Command::SetTorrentProtection
     VpnOnFailure,
-    /// Whether the app notifies of new episodes of the shows followed, from
-    /// [`Command::CheckNewEpisodes`]. Off by default. A show can turn it off for itself, with
-    /// [`ShowSettingKey::NotifyNewEpisodes`]; with this off, no show is notified of.
+    /// Whether the app notifies of new episodes of the shows being watched, from
+    /// [`Command::CheckNewEpisodes`]. Off by default. A show can turn it off for itself, or on
+    /// when it is only planned, with [`ShowSettingKey::NotifyNewEpisodes`]; with this off, no
+    /// show is notified of.
     ///
     /// [`Command::CheckNewEpisodes`]: crate::command::Command::CheckNewEpisodes
     /// [`ShowSettingKey::NotifyNewEpisodes`]: crate::show::ShowSettingKey::NotifyNewEpisodes

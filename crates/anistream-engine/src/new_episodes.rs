@@ -7,6 +7,10 @@
 //! does: nothing that aired before it is ever said, so turning notifications on, or adding a
 //! show to the list, never fires a backlog.
 //!
+//! The shows it follows are those being watched: on the list as watching or rewatching, or
+//! watched here lately. A show switched on for itself is followed whatever the list says of it,
+//! one planned among them, and one switched off is not.
+//!
 //! It is written for a background task's few seconds, on an engine that does nothing else:
 //!
 //! - the shows followed are read from the database, the list as its last pull left it, and
@@ -51,8 +55,12 @@ const REUSE_FOR: i64 = anistream_meta::source::REUSE_FOR.as_secs() as i64;
 /// The longest the ask may take, inside a background task's thirty seconds with room to spare.
 const ASK_FOR: Duration = Duration::from_secs(15);
 
-/// The tracker statuses of a show followed: watching, rewatching or planning.
-const FOLLOWED: [&str; 3] = ["CURRENT", "REPEATING", "PLANNING"];
+/// The tracker statuses of a show being watched: watching or rewatching.
+const WATCHING: [&str; 2] = ["CURRENT", "REPEATING"];
+
+/// The status of a show planned, which the widgets count as on the list and the check does not
+/// follow unless the show is switched on for itself.
+const PLANNING: &str = "PLANNING";
 
 /// The statuses that say a show is not being watched, whatever history says.
 const SET_ASIDE: [&str; 2] = ["DROPPED", "PAUSED"];
@@ -88,10 +96,16 @@ pub(crate) fn list_signed_in(services: &Services) -> bool {
     services.sync.trackers.first().is_some_and(|tracker| tracker.is_authenticated())
 }
 
-/// The shows followed, as of `now`: on the list as watching, rewatching or planning, when the
-/// list is a signed-in tracker's, and watched here in the last [`WATCHED_WITHIN`], unless the
-/// list has them dropped or paused. The list's first, then history's, each once.
-pub(crate) fn followed(store: &Store, signed_in: bool, now: i64) -> Vec<AnilistId> {
+/// The shows followed, as of `now`: on the list as watching or rewatching, and as planning too
+/// when `planning` says so, when the list is a signed-in tracker's; and watched here in the last
+/// [`WATCHED_WITHIN`], unless the list has them dropped or paused. The list's first, then
+/// history's, each once.
+pub(crate) fn followed(
+    store: &Store,
+    signed_in: bool,
+    now: i64,
+    planning: bool,
+) -> Vec<AnilistId> {
     let statuses = if signed_in {
         store.library_statuses().unwrap_or_else(|error| {
             tracing::warn!(%error, "could not read the list for the new-episode check");
@@ -107,7 +121,9 @@ pub(crate) fn followed(store: &Store, signed_in: bool, now: i64) -> Vec<AnilistI
         .collect();
     let listed = statuses
         .iter()
-        .filter(|(_, status)| FOLLOWED.contains(&status.as_str()))
+        .filter(|(_, status)| {
+            WATCHING.contains(&status.as_str()) || (planning && status == PLANNING)
+        })
         .map(|(id, _)| *id);
     let watched = store.watched_since(now - WATCHED_WITHIN).unwrap_or_else(|error| {
         tracing::warn!(%error, "could not read history for the new-episode check");
@@ -117,6 +133,25 @@ pub(crate) fn followed(store: &Store, signed_in: bool, now: i64) -> Vec<AnilistI
     listed
         .chain(watched.into_iter().filter(|id| !set_aside.contains(id)))
         .filter(|id| seen.insert(*id))
+        .collect()
+}
+
+/// The shows a check looks at, as of `now`: those [`followed`], planned ones left out, and every
+/// show switched on for itself, whatever the list says of it; but none switched off.
+fn notified(store: &Store, signed_in: bool, now: i64) -> Vec<AnilistId> {
+    let name = ShowSettingKey::NotifyNewEpisodes.name();
+    let switched = |value| {
+        store.shows_setting(name, value).unwrap_or_else(|error| {
+            tracing::warn!(%error, "could not read the shows' own notification switches");
+            Vec::new()
+        })
+    };
+    let off: HashSet<AnilistId> = switched("false").into_iter().collect();
+    let mut seen = HashSet::new();
+    followed(store, signed_in, now, false)
+        .into_iter()
+        .chain(switched("true"))
+        .filter(|id| !off.contains(id) && seen.insert(*id))
         .collect()
 }
 
@@ -133,16 +168,7 @@ impl Check {
     /// module's docs. What it finds is kept before it is said.
     async fn run(&self) -> Vec<NewEpisode> {
         let now = self.clock.now();
-        let off: HashSet<AnilistId> = self
-            .store
-            .shows_setting(ShowSettingKey::NotifyNewEpisodes.name(), "false")
-            .unwrap_or_default()
-            .into_iter()
-            .collect();
-        let shows: Vec<AnilistId> = followed(&self.store, self.signed_in, now)
-            .into_iter()
-            .filter(|id| !off.contains(id))
-            .collect();
+        let shows = notified(&self.store, self.signed_in, now);
 
         let kept: HashMap<AnilistId, EpisodeNotice> = match self.store.episode_notices() {
             Ok(kept) => kept.into_iter().map(|notice| (notice.anilist_id, notice)).collect(),
@@ -333,10 +359,21 @@ mod tests {
         // Watched, but too long ago to count as following it.
         watch(&store, AnilistId::new(900_005), 1, NOW - WATCHED_WITHIN - DAY);
 
-        // The list's, then history's, a show dropped on the list left out whatever history says.
-        assert_eq!(followed(&store, true, NOW), [LISTED, PLANNED, DONE, WATCHED]);
+        // The list's being watched, then history's, a show dropped on the list left out
+        // whatever history says. A show planned is followed only where planning counts.
+        assert_eq!(followed(&store, true, NOW, false), [LISTED, DONE, WATCHED]);
+        assert_eq!(followed(&store, true, NOW, true), [LISTED, PLANNED, DONE, WATCHED]);
         // Signed out, the list kept here is not the viewer's any more.
-        assert_eq!(followed(&store, false, NOW), [DROPPED, DONE, WATCHED]);
+        assert_eq!(followed(&store, false, NOW, false), [DROPPED, DONE, WATCHED]);
+
+        // A check leaves planned shows out, but takes in any show switched on for itself, and
+        // leaves out any switched off.
+        assert_eq!(notified(&store, true, NOW), [LISTED, DONE, WATCHED]);
+        let name = ShowSettingKey::NotifyNewEpisodes.name();
+        store.set_show_setting(PLANNED, name, Some("true"), NOW).unwrap();
+        store.set_show_setting(DROPPED, name, Some("true"), NOW).unwrap();
+        store.set_show_setting(WATCHED, name, Some("false"), NOW).unwrap();
+        assert_eq!(notified(&store, true, NOW), [LISTED, DONE, PLANNED, DROPPED]);
     }
 
     fn broadcast(id: AnilistId, episode: u32, airing_at: i64) -> AiringEntry {

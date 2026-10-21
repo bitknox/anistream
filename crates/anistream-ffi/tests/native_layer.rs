@@ -253,6 +253,29 @@ fn an_episode_that_airs_later_is_said_once_for_one_request() {
 }
 
 #[test]
+fn a_show_not_being_watched_is_said_only_once_switched_on_for_itself() {
+    for switched_on in [false, true] {
+        let (engine, _root) = watching();
+        notifications(&engine, true);
+        // Taken off Continue, and on no list as watching: not followed, as a planned show is
+        // not.
+        assert_eq!(engine.send(Command::HideFromContinue { id: AIRING_NO_MAL }), None);
+        if switched_on {
+            assert_eq!(notify_show(&engine, AIRING_NO_MAL, Some(true)), "on");
+        }
+        assert_eq!(check(&engine).0, []);
+
+        // A week on, Kumo no Ue no Toshokan's episode 6 has aired, and Natsukaze Relay's 9.
+        engine.testing_advance_clock(7 * DAY);
+        let said: Vec<_> = check(&engine).0.into_iter().map(|e| (e.id, e.episode)).collect();
+        let expected =
+            if switched_on { vec![(AIRING, 6), (AIRING_NO_MAL, 9)] } else { vec![(AIRING, 6)] };
+        assert_eq!(said, expected, "switched on: {switched_on}");
+        engine.shutdown();
+    }
+}
+
+#[test]
 fn a_show_switched_off_is_not_said_nor_what_aired_while_it_was() {
     let (engine, _root) = watching();
     notifications(&engine, true);
