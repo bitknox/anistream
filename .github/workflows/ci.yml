@@ -183,19 +183,21 @@ jobs:
       - name: Swift tests
         run: apple/scripts/test.sh
 
-  # The engine and its FFI library as an iPhone builds them: without the desktop feature, so
-  # without mpv, Syncplay, the loopback sign-in and the keychain crate, and with plugins run by
-  # wasmtime's interpreter. Cross-compiled only, since nothing here runs iOS. The part that can
-  # break is the C beneath it, built with the runner's Xcode for the iOS SDK: BoringSSL (cmake
-  # and bindgen), aws-lc, SQLite, zstd and wasmtime's own helpers.
+  # The engine and its FFI library as an iPhone and the iOS Simulator build them: without the
+  # desktop feature, so without mpv, Syncplay, the loopback sign-in and the keychain crate, and with
+  # plugins run by wasmtime's interpreter. Cross-compiled only, since nothing here runs iOS. The
+  # part that can break is the C beneath it, built with the runner's Xcode for the iOS SDKs:
+  # BoringSSL (cmake and bindgen), aws-lc, SQLite, zstd and wasmtime's own helpers. The app's
+  # minimum, iOS 26, is the deployment target, as apple/scripts/engine.sh builds it.
   ios:
-    runs-on: macos-latest
+    runs-on: macos-26
     env:
-      IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+      IPHONEOS_DEPLOYMENT_TARGET: "26.0"
     steps:
       - uses: actions/checkout@v5
-      - run: rustup toolchain install && rustup target add aarch64-apple-ios
-      # Its own cache: nothing else here builds for this target.
+      # rust-toolchain.toml lists both iOS targets.
+      - run: rustup toolchain install
+      # Its own cache: nothing else here builds for these targets.
       - uses: Swatinem/rust-cache@v2
         with:
           key: ios
@@ -205,6 +207,45 @@ jobs:
       # The static library an app links, and the dynamic one, both linked against the SDK.
       - name: The FFI library
         run: cargo build -p anistream-ffi --no-default-features --target aarch64-apple-ios
+      - name: The FFI library for the Simulator
+        run: cargo build -p anistream-ffi --no-default-features --target aarch64-apple-ios-sim
+
+  # The Apple app itself, from the XcodeGen project: the Fixtures app's tests run on the Mac
+  # (Swift Testing over the testing engine, signed to run locally), and the app is built for the
+  # iOS Simulator with signing off. The Xcode is named outright, since the runner's default
+  # moves. Allowed to fail until it has passed here once: the runner's Xcode and XcodeGen have
+  # not built this project yet.
+  apple:
+    runs-on: macos-26
+    continue-on-error: true
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: apple
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: xcodebuild -version
+      - run: brew install xcodegen
+      # The schemes' pre-actions build these too, but quietly, into a log; built here, a failure
+      # says why in the job.
+      - name: The engines
+        run: |
+          apple/scripts/engine.sh testing macos
+          apple/scripts/engine.sh release macos ios-sim
+      - name: The project
+        run: cd apple && xcodegen generate
+      - name: Test the Fixtures app on the Mac
+        run: >-
+          xcodebuild -project apple/Anistream.xcodeproj -scheme "Anistream Fixtures"
+          -destination platform=macOS test
+      - name: Build the app for the iOS Simulator
+        run: >-
+          xcodebuild -project apple/Anistream.xcodeproj -scheme Anistream
+          -destination "generic/platform=iOS Simulator" build CODE_SIGNING_ALLOWED=NO
 
   # The same for an Android phone, with the runner's NDK through cargo-ndk, which points every
   # C build at the NDK's clang for API level 24. Cross-compiled only.
