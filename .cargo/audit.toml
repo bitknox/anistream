@@ -5,5 +5,10 @@
 # `enable_upnp_port_forwarding: false` and no inbound listener — so the vulnerable XML
 # parser has no input path in this binary. librqbit 8.x pins quick-xml ^0.37; drop these
 # ignores the moment a stable librqbit release moves past it (9.0 is at rc as of Jul 2026).
+#
+# RUSTSEC-2026-0383 (distrusted emSign intermediates in the bundled roots) is fixed in
+# webpki-root-certs 1.0.10, which Cargo.lock now uses. The advisory also names 0.26.11, which
+# wreq 5.3.0 pins; that version carries no certificates of its own and only re-exports 1.x, so
+# it serves the fixed 1.0.10 set. Drop this ignore once wreq depends on webpki-root-certs 1.x.
 [advisories]
-ignore = ["RUSTSEC-2026-0194", "RUSTSEC-2026-0195"]
+ignore = ["RUSTSEC-2026-0194", "RUSTSEC-2026-0195", "RUSTSEC-2026-0383"]
