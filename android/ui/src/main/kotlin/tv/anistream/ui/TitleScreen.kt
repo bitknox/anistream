@@ -85,7 +85,7 @@ private const val SPOILER_PROTECTION = true
 /** What a page shows before its title has arrived. */
 private fun placeholderEntry(id: AnilistId) = Entry(
     id = id, title = "", secondary = null, format = null, episodes = null, year = null, score = null,
-    studio = null, synopsis = "", coverUrl = null, bannerUrl = null, genres = emptyList(),
+    studio = null, synopsis = "", coverUrl = null, coverColor = null, bannerUrl = null, genres = emptyList(),
     availableOn = emptyList(), progress = null, airingIn = null, airingEpisode = null, nextEpisode = null,
     nextAiringIn = null, lastAired = null, resume = null, related = emptyList(), recommended = emptyList(),
     trailerUrl = null, listStatus = null, titleRomaji = null, titleEnglish = null, titleNative = null,
