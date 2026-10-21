@@ -17,15 +17,15 @@ extension Entry {
         secondary == nil ? nil : title
     }
 
-    /// The metadata line under the title, set in spaced capitals: "TV · 12 episodes · 2024 ·
-    /// Kujaku Animation Works".
+    /// The metadata line under the title, set in spaced capitals: "TV · 24 episodes · Summer 2026 ·
+    /// Atelier Hotaru", with "18+" first for a title AniList marks adult.
     public var metadataLine: String {
-        var parts: [String] = []
-        if let format { parts.append(format) }
+        var parts: [String] = adult ? ["18+"] : []
+        if let format { parts.append(TitleWords.format(format)) }
         if let episodes, episodes > 0, format != "MOVIE" {
             parts.append(Wording.plural(Int(episodes), "episode"))
         }
-        if let year { parts.append(String(year)) }
+        if let seasonWords { parts.append(seasonWords) }
         if let studio { parts.append(studio) }
         return parts.joined(separator: " · ")
     }

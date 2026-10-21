@@ -7,7 +7,7 @@
 # or fresh (a first launch), then after a colon a section (calendar, seasonal, search, library,
 # downloads, providers, pluginStores, settings) or title=<id>, select=<id>, query=<words> or
 # palette=<words>, with more joined by +: pane=<Settings pane>, sheet=<torrent|join|kitsu|update|
-# show>, showcase=<sources|stores|downloads|invite|all>, the invented rows of `Showcase`, and
+# show|about>, showcase=<sources|stores|downloads|invite|all>, the invented rows of `Showcase`, and
 # watched=<id>:<episodes>, episodes marked watched as the shot starts (900006:8 is caught up):
 #
 #   apple/scripts/shots.sh mac watching watching:calendar watching:title=900001 fresh

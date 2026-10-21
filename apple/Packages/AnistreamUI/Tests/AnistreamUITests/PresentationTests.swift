@@ -31,7 +31,8 @@ struct PresentationTests {
     @Test func theMetadataLineSaysWhatIsKnown() {
         #expect(entry { _ in }.metadataLine == "TV · 12 episodes · 2024 · Kujaku Animation Works")
         #expect(entry { $0.episodes = 1; $0.studio = nil }.metadataLine == "TV · 1 episode · 2024")
-        #expect(entry { $0.format = "MOVIE"; $0.episodes = 1 }.metadataLine == "MOVIE · 2024 · Kujaku Animation Works")
+        #expect(entry { $0.format = "MOVIE"; $0.episodes = 1 }.metadataLine == "Movie · 2024 · Kujaku Animation Works")
+        #expect(entry { $0.adult = true; $0.season = .spring }.metadataLine.hasPrefix("18+ · TV · 12 episodes · Spring 2024"))
     }
 
     @Test func whereElseItStreamsIsSaidOnce() {

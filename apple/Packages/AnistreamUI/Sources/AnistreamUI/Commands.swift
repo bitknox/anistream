@@ -221,6 +221,11 @@ struct EpisodeCommands: View {
                 if let entry, let trailer = entry.trailerUrl { store.send(.playTrailer(url: trailer, title: entry.title)) }
             }
             .disabled(entry?.trailerUrl == nil)
+            Button("More About This Show…") {
+                if let entry { navigator.moreAbout = entry.id }
+            }
+            .keyboardShortcut("i", modifiers: .command)
+            .disabled(entry == nil)
             Button("Open on AniList") {
                 if let entry { store.openOnAniList(entry.id) }
             }
@@ -230,7 +235,8 @@ struct EpisodeCommands: View {
         Button("Show Settings for This Show…") {
             if let entry { navigator.showSettings = entry.id }
         }
-        .keyboardShortcut("i", modifiers: .command)
+        // ⌘I is More About This Show (native-spec/metadata.md).
+        .keyboardShortcut("i", modifiers: [.command, .option])
         .disabled(entry == nil)
     }
 }

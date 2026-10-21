@@ -191,8 +191,9 @@ public final class AppStore {
         send(.loadLibrary(segment))
     }
 
-    public func loadDetail(_ id: AnilistId) {
-        guard ask(.detail(id)) else { return }
+    /// A title's page. `force` asks again however recently it was asked: Try Again.
+    public func loadDetail(_ id: AnilistId, force: Bool = false) {
+        guard ask(.detail(id)) || force else { return }
         send(.loadDetail(id))
     }
 

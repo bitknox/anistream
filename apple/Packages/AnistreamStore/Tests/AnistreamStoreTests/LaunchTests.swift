@@ -88,7 +88,7 @@ struct LaunchTests {
         let item = try #require(store.continuing.queue(store.titles).all.first { $0.id == 900_006 })
         #expect(!item.playable)
         #expect(item.action.hasPrefix("Caught up · E9 "), "\(item.action)")
-        #expect(item.buttonTitle.hasPrefix("Airs "), "\(item.buttonTitle)")
+        #expect(item.buttonTitle.hasPrefix("Episode 9 airs "), "\(item.buttonTitle)")
         #expect(!item.isNew)
         // The others still play.
         let others = store.continuing.queue(store.titles).all.filter { $0.id != 900_006 }

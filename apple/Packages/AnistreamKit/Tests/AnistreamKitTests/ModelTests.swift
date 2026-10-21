@@ -54,17 +54,33 @@ struct ModelTests {
         #expect(e.airing(of: 4) == .aired)
     }
 
+    @Test func thePagesScheduleDatesAnEpisode() {
+        var e = entry()
+        e.nextEpisode = 4
+        e.nextAiringIn = 3600
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        e.detail = TitleDetail(tags: [], schedule: [
+            EpisodeAiring(episode: 4, airsAt: 1_800_000_000 - 60),
+            EpisodeAiring(episode: 5, airsAt: 1_800_000_000 + 7200),
+        ], relations: [], recommendations: [], rankings: [], characters: [], staff: [])
+        #expect(e.airing(of: 4, now: now) == .aired, "the schedule says it is out")
+        #expect(e.airing(of: 5, now: now) == .upcoming(inSeconds: 7200))
+        #expect(e.airing(of: 6, now: now) == .upcoming(inSeconds: nil), "after the next broadcast, undated")
+    }
+
     @Test func anAirTimeIsTheDayAndTheTimeWithinTheWeek() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = .current
         // Wednesday 21 October 2026, at noon where the test runs.
         let now = calendar.date(from: DateComponents(year: 2026, month: 10, day: 21, hour: 12))!
         let saturday = calendar.date(from: DateComponents(year: 2026, month: 10, day: 24, hour: 18, minute: 30))!
-        #expect(AirTime.words(saturday, now: now) == "Saturday 18:30")
+        #expect(AirTime.words(saturday, now: now) == "Saturday \(AirTime.clock(saturday))")
         let later = calendar.date(from: DateComponents(year: 2026, month: 11, day: 2, hour: 9, minute: 5))!
-        #expect(AirTime.words(later, now: now) == "2 November 09:05")
+        #expect(AirTime.words(later, now: now) == "2 Nov, \(AirTime.clock(later))")
+        let tonight = calendar.date(from: DateComponents(year: 2026, month: 10, day: 21, hour: 20))!
+        #expect(AirTime.words(tonight, now: now).hasPrefix("today "))
         let seconds = Int64(saturday.timeIntervalSince(now))
-        #expect(EpisodeAvailability.upcoming(inSeconds: seconds).airs(now: now) == "Saturday 18:30")
+        #expect(EpisodeAvailability.upcoming(inSeconds: seconds).airs(now: now) == "Saturday \(AirTime.clock(saturday))")
         #expect(EpisodeAvailability.upcoming(inSeconds: nil).airs(now: now) == nil)
         #expect(EpisodeAvailability.aired.airs(now: now) == nil)
     }

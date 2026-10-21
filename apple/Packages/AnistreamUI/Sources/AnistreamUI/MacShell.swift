@@ -79,6 +79,7 @@ struct MacShell: View {
         )) { item in
             ShowSettingsSheet(entry: item.entry)
         }
+        .moreAboutSheet(navigator)
     }
 
     /// What the toolbar says under the section's name.

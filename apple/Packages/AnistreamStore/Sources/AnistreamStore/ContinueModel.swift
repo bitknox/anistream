@@ -37,10 +37,10 @@ public struct ContinueItem: Identifiable, Equatable, Sendable {
     }
 
     /// The same, as a Mac button says it, in title case: "Resume Episode 7 · 10:06". With nothing
-    /// out to play it is no button but a status: "Airs Saturday 18:30".
+    /// out to play it is no button but a line: "Episode 9 airs Saturday 18:30".
     public var buttonTitle: String {
         if let resume { return "Resume Episode \(episode) · \(resume.clock)" }
-        if !playable { return airing.airs().map { "Airs \($0)" } ?? "Not out yet" }
+        if !playable { return "Episode \(episode) " + (airing.airs().map { "airs \($0)" } ?? "is not out yet") }
         return "Start Episode \(episode)"
     }
 

@@ -50,6 +50,8 @@ public final class Navigator {
     public var showSettings: AnilistId?
     /// A selection asked of Continue's list from outside it, as the list itself would move it.
     public var continueSelection: AnilistId?
+    /// The title whose "More about this show" sheet is open.
+    public var moreAbout: AnilistId?
 
     public init(route: LaunchRoute = .current) {
         section = route.section
@@ -62,6 +64,7 @@ public final class Navigator {
         launchSheet = route.sheet
         if route.sheet == "join" { invite = "https://plugins.hotaru.example/join/fixture#key" }
         if route.sheet == "show" { showSettings = route.title }
+        if route.sheet == "about" { moreAbout = route.title }
         #if os(iOS)
         if UIDevice.current.userInterfaceIdiom == .phone, route.section == .settings {
             phoneSettings = route.pane.flatMap(PhoneSettingsPage.named) ?? .root

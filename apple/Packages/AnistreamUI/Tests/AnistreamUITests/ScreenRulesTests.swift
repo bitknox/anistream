@@ -55,7 +55,7 @@ struct ScreenRulesTests {
         }
         let action = TitleAction(caughtUp)
         #expect(!action.playable)
-        #expect(action.title.hasPrefix("Airs "), "\(action.title)")
+        #expect(action.title.hasPrefix("Episode 4 airs "), "\(action.title)")
         #expect(action.sentence == action.title)
         let undated = entry {
             $0.progress = TitleProgress(done: 3, next: 5)

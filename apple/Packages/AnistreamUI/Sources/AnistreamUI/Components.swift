@@ -13,13 +13,15 @@ struct ArtworkView: View {
     var color: Color? = nil
     /// The most pixels the art needs on its long side.
     let maxPixelSize: Int
+    /// A flat plate in place of the cover's colour, muted: the metadata's placeholder.
+    var flat: Color? = nil
 
     var body: some View {
         let image = url.flatMap { store.artwork.image($0) }
         Color.clear
             .overlay {
                 ZStack {
-                    CoverPlate(color: color)
+                    if let flat { Rectangle().fill(flat) } else { CoverPlate(color: color) }
                     if let image {
                         Image(decorative: image, scale: 1)
                             .resizable()
@@ -151,8 +153,9 @@ struct PrimaryCapsuleStyle: ButtonStyle {
     }
 }
 
-/// In the main button's place when nothing out is left to play: when the next episode airs, as a
-/// status and not a control, with the water dot upcoming episodes have ("Airs Saturday 18:30").
+/// In the main button's place when nothing out is left to play: when the next episode airs, a
+/// haze line with the water dot upcoming episodes have, and no amber on the page
+/// ("Episode 10 airs Thursday 16:30").
 struct AirsStatus: View {
     let text: String
     var height: CGFloat = 34
@@ -163,15 +166,13 @@ struct AirsStatus: View {
     var body: some View {
         HStack(spacing: 8) {
             Circle().fill(.water).frame(width: 6, height: 6)
-            Text(text).foregroundStyle(.water)
+            Text(text).foregroundStyle(.haze)
         }
-        .font(.board(fontSize, weight: .medium))
+        .font(.board(fontSize))
         .monospacedDigit()
-        .lineLimit(1)
-        .padding(.horizontal, height < 34 ? 14 : 18)
-        .frame(maxWidth: fills ? .infinity : nil)
+        .lineLimit(2)
+        .frame(maxWidth: fills ? .infinity : nil, alignment: .leading)
         .frame(minHeight: height)
-        .overlay(Capsule().strokeBorder(Palette.faintRule))
         .accessibilityElement(children: .combine)
     }
 }

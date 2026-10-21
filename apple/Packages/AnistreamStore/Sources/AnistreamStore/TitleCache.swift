@@ -29,7 +29,7 @@ public final class TitleCache {
                 continue
             }
             let related = kept.related, recommended = kept.recommended
-            let trailer = kept.trailerUrl, availableOn = kept.availableOn
+            let trailer = kept.trailerUrl, availableOn = kept.availableOn, detail = kept.detail
             let status = kept.listStatus, lastAired = kept.lastAired
             kept = entry
             if detailed.contains(entry.id) {
@@ -37,6 +37,7 @@ public final class TitleCache {
                 kept.recommended = recommended
                 kept.trailerUrl = trailer
                 kept.availableOn = availableOn
+                kept.detail = detail
             }
             kept.listStatus = entry.listStatus ?? status
             // A list arrives ahead of the broadcast line its own follow-up brings.

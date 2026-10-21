@@ -43,6 +43,34 @@ struct AppSheets: ViewModifier {
 }
 
 /// A title as the per-show sheet's item.
+/// The title whose "More about this show" sheet is open, as a sheet's item.
+struct MoreAboutItem: Identifiable {
+    let id: AnilistId
+}
+
+extension View {
+    /// The "More about this show" sheet, for whichever title the navigator names: a window sheet
+    /// 880 wide on the Mac, a page sheet on iPad, the large detent on iPhone.
+    func moreAboutSheet(_ navigator: Navigator) -> some View {
+        sheet(item: Binding<MoreAboutItem?>(
+            get: { navigator.moreAbout.map(MoreAboutItem.init) },
+            set: { navigator.moreAbout = $0?.id }
+        )) { item in
+            #if os(macOS)
+            MoreAboutSheet(id: item.id)
+                .frame(width: 880)
+                .frame(minHeight: 480, idealHeight: 760)
+            #else
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                MoreAboutSheet(id: item.id).presentationDetents([.large])
+            } else {
+                MoreAboutSheet(id: item.id).presentationSizing(.page)
+            }
+            #endif
+        }
+    }
+}
+
 struct ShowItem: Identifiable {
     let entry: Entry
     var id: AnilistId { entry.id }

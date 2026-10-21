@@ -65,6 +65,7 @@ struct TabShell: View {
         )) { item in
             PhoneShowSettingsSheet(entry: item.entry)
         }
+        .moreAboutSheet(navigator)
         .modifier(AppSheets())
     }
 
@@ -81,6 +82,32 @@ struct TabShell: View {
         case .pluginStores: PluginStoresScreen().toolbar { IPadStoresToolbar() }
         case .settings: SettingsScreen()
         default: NotBuiltYet(section: section)
+        }
+    }
+}
+
+/// A title page's toolbar on iPad: the list it is on, and More.
+struct PadTitleToolbar: ToolbarContent {
+    @Environment(AppStore.self) private var store
+    let id: AnilistId
+
+    var body: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Menu {
+                StatusItems(id: id)
+            } label: {
+                HStack(spacing: 6) {
+                    Text(store.titles[id]?.listStatus.map { $0.label.capitalizedSentence } ?? "Add to list")
+                    Image(systemName: "chevron.up.chevron.down").font(.mac(11, weight: .semibold))
+                }
+            }
+        }
+        ToolbarItem(placement: .topBarTrailing) {
+            Menu {
+                if let entry = store.titles[id] { TitleMoreItems(entry: entry) }
+            } label: {
+                Label("More", systemImage: "ellipsis")
+            }
         }
     }
 }
@@ -128,6 +155,7 @@ struct IPadDownloadsToolbar: ToolbarContent {
 /// opened it.
 struct TabStack<Screen: View>: View {
     @Environment(Navigator.self) private var navigator
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @Namespace private var zoom
     let section: AppSection
     @ViewBuilder let screen: () -> Screen
@@ -141,8 +169,16 @@ struct TabStack<Screen: View>: View {
                 .navigationTitle(section.title.capitalizedSentence)
                 .background(.ground)
                 .navigationDestination(for: AnilistId.self) { id in
-                    PhoneTitle(id: id)
-                        .navigationTransition(.zoom(sourceID: id, in: zoom))
+                    // A wide iPad has the Mac's page (PadTitleMeta); an iPhone and a narrow
+                    // window, the iPhone's.
+                    Group {
+                        if sizeClass == .regular {
+                            TitlePage(id: id).toolbar { PadTitleToolbar(id: id) }
+                        } else {
+                            PhoneTitle(id: id)
+                        }
+                    }
+                    .navigationTransition(.zoom(sourceID: id, in: zoom))
                 }
         }
         .environment(\.zoomNamespace, zoom)

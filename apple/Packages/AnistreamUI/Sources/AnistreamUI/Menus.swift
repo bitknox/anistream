@@ -62,6 +62,13 @@ struct TitleMoreItems: View {
         }
         .disabled(entry.trailerUrl == nil)
         Button("Open on AniList") { store.openOnAniList(entry.id) }
+        #if os(macOS)
+        Button("More About This Show…") { navigator.moreAbout = entry.id }
+        #else
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            Button("More about this show") { navigator.moreAbout = entry.id }
+        }
+        #endif
         Divider()
         Button("Show Settings for This Show…") { navigator.showSettings = entry.id }
     }

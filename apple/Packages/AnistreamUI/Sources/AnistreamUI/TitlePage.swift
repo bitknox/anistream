@@ -36,9 +36,9 @@ struct TitleAction: Equatable {
         return "Start episode \(episode)"
     }
 
-    /// "Airs Saturday 18:30", or "Episode 4 is not out yet" when the schedule has no date.
+    /// "Episode 10 airs Thursday 16:30", or "Episode 10 is not out yet" when nothing dates it.
     private var airsLine: String {
-        airing.airs().map { "Airs \($0)" } ?? "Episode \(episode) is not out yet"
+        "Episode \(episode) " + (airing.airs().map { "airs \($0)" } ?? "is not out yet")
     }
 }
 
@@ -175,13 +175,8 @@ struct TitleHero: View {
                     .foregroundStyle(.silk)
                     .lineLimit(2)
                     .accessibilityAddTraits(.isHeader)
-                if let alternate = entry.alternateTitle {
-                    Text(alternate)
-                        .font(.mac(15))
-                        .macLineHeight(20)
-                        .foregroundStyle(.haze)
-                        .padding(.top, 6)
-                }
+                OtherTitlesLine(entry: entry)
+                    .padding(.top, 6)
                 Text(entry.titleMetadata)
                     .groupHeaderStyle()
                     .macLineHeight(14)
@@ -223,12 +218,13 @@ extension Entry {
         return line
     }
 
-    /// The metadata line on an iPhone's page: "TV · 12 EP · 2024 · 82%".
+    /// The metadata line on an iPhone's page: "TV · 24 EP · SUMMER 2026 · 79%", "18+" first for an
+    /// adult title.
     var phoneMetadata: String {
-        var parts: [String] = []
-        if let format { parts.append(format) }
+        var parts: [String] = adult ? ["18+"] : []
+        if let format { parts.append(TitleWords.format(format)) }
         if let episodes, episodes > 0, format != "MOVIE" { parts.append("\(episodes) ep") }
-        if let year { parts.append(String(year)) }
+        if let seasonWords { parts.append(seasonWords) }
         if let score { parts.append("\(score)%") }
         return parts.joined(separator: " · ")
     }
@@ -254,6 +250,15 @@ struct TitleFamilyRow: View {
     let entry: Entry
     let family: TitleFamily
 
+    /// A related card's cover: 36 by 54 on the Mac, 40 by 60 on iPad.
+    static var cover: CGSize {
+        #if os(macOS)
+        CGSize(width: 36, height: 54)
+        #else
+        CGSize(width: 40, height: 60)
+        #endif
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 32) {
             if !family.seasons.isEmpty {
@@ -273,7 +278,26 @@ struct TitleFamilyRow: View {
                     }
                 }
             }
-            if !family.related.isEmpty {
+            if entry.detail != nil {
+                let cards = entry.relatedCards(excluding: Set(family.seasons.map(\.id)))
+                if !cards.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Related").groupHeaderStyle().padding(.horizontal, 4)
+                            .accessibilityAddTraits(.isHeader)
+                        // A row that scrolls sideways, its last card cut by the edge to say so.
+                        ScrollView(.horizontal) {
+                            HStack(spacing: 8) {
+                                ForEach(cards, id: \.id) { linked in
+                                    RelatedCard(linked: linked, cover: Self.cover)
+                                        .frame(height: 62)
+                                }
+                            }
+                        }
+                        .scrollIndicators(.never)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            } else if !family.related.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Related").groupHeaderStyle().padding(.horizontal, 4)
                         .accessibilityAddTraits(.isHeader)
@@ -298,7 +322,11 @@ struct TitleFamilyRow: View {
         if season.isThis, let done = entry.progress?.done, let of = entry.progressOf {
             return "\(done) / \(of.total)"
         }
-        if let known = store.titles[season.id], let year = known.year { return String(year) }
+        if let known = store.titles[season.id], let words = known.seasonWords { return words }
+        // The page's relations date a season the app has not loaded: "Spring 2027".
+        if let linked = entry.detail?.relations.first(where: { $0.id == season.id }), let year = linked.year {
+            return linked.season.map { "\(TitleWords.season($0)) \(year)" } ?? String(year)
+        }
         return season.isThis ? "This season" : "TV"
     }
 
@@ -310,7 +338,8 @@ struct TitleFamilyRow: View {
         } label: {
             HStack(spacing: 10) {
                 let known = store.titles[id]
-                ArtworkView(url: known?.coverUrl, color: known?.plateColor, maxPixelSize: 108)
+                let linked = entry.detail?.relations.first { $0.id == id }
+                ArtworkView(url: known?.coverUrl ?? linked?.coverUrl, color: known?.plateColor, maxPixelSize: 108)
                     .frame(width: 36, height: 54)
                     .clipShape(.rect(cornerRadius: 6))
                 VStack(alignment: .leading, spacing: 0) {
@@ -340,7 +369,8 @@ struct TitleFamilyRow: View {
         }
         .buttonStyle(.plain)
         .pointerHover()
-        .task { if store.titles[id] == nil { store.loadDetail(id) } }
+        // The cover, where the page's relations do not carry it.
+        .task { if store.titles[id] == nil, entry.detail?.relations.contains(where: { $0.id == id }) != true { store.loadDetail(id) } }
     }
 }
 
@@ -379,16 +409,10 @@ struct EpisodeList: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// The table, with the next broadcast after it when the source does not have it yet.
+    /// The table, dated by the schedule, with the next episode still to air at its end.
     private var episodeRows: [EpisodeRow] {
-        var rows = store.titles.episodes[entry.id] ?? []
-        if let next = entry.nextEpisode, !rows.contains(where: { $0.number == String(next) }),
-           store.titles.episodes[entry.id] != nil {
-            rows.append(EpisodeRow(
-                number: String(next), title: nil, thumbnail: nil, description: nil,
-                durationSecs: nil, watched: 0, completed: false, kind: nil, skippable: false, airsAt: nil
-            ))
-        }
+        guard let loaded = store.titles.episodes[entry.id] else { return [] }
+        let rows = entry.episodeTable(loaded)
         return unwatchedOnly ? rows.filter { !$0.completed } : rows
     }
 }
@@ -401,11 +425,21 @@ struct EpisodeRowView: View {
     let spoilers: Bool
 
     var body: some View {
+        if row.isUnaired(), let date = row.airsDate {
+            UnairedEpisodeRow(row: row, airs: date)
+        } else {
+            airedRow
+                #if os(macOS)
+                .help(row.airsDate.map(AirsWords.aired) ?? "")
+                #endif
+        }
+    }
+
+    private var airedRow: some View {
         let number = UInt32(row.number) ?? 0
         let next = entry.progress?.next ?? 1
         let current = number == next
-        let upcoming = entry.nextEpisode == number && !hasAired(number)
-        Button {
+        return Button {
             store.send(.play(id: entry.id, episode: row.number))
         } label: {
             HStack(spacing: 14) {
@@ -418,13 +452,13 @@ struct EpisodeRowView: View {
                 EpisodeStill(
                     entry: entry, row: row,
                     hidden: spoilers && number > next && !row.completed,
-                    unaired: upcoming
+                    unaired: false
                 )
                 .opacity(row.completed ? 0.7 : 1)
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
                         Text(row.title ?? "Episode \(row.number)")
-                            .foregroundStyle(row.completed || upcoming ? .haze : .silk)
+                            .foregroundStyle(row.completed ? .haze : .silk)
                             .lineLimit(1)
                             .animation(.quick, value: row.completed)
                         if row.kind == .filler {
@@ -436,7 +470,7 @@ struct EpisodeRowView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                trailing(current: current, upcoming: upcoming)
+                trailing(current: current)
                 WatchedCheck(watched: row.completed, size: 11)
                     .frame(width: 14)
             }
@@ -448,31 +482,52 @@ struct EpisodeRowView: View {
         }
         .buttonStyle(.plain)
         .pointerHover()
-        .episodeElement(row, value: row.spokenValue(entry, current: current, upcoming: upcoming)) {
+        .episodeElement(row, value: row.spokenValue(entry, current: current, upcoming: false)) {
             EpisodeMenu(entry: entry, number: number, row: row)
         }
         .contextMenu { EpisodeMenu(entry: entry, number: number, row: row) }
     }
 
-    private func hasAired(_ number: UInt32) -> Bool {
-        (entry.latestAired?.episode ?? 0) >= number || store.titles.episodes[entry.id]?
-            .contains(where: { $0.number == String(number) }) == true
-    }
-
     @ViewBuilder
-    private func trailing(current: Bool, upcoming: Bool) -> some View {
+    private func trailing(current: Bool) -> some View {
         if current, let resume = entry.resume, let fraction = resume.fraction, fraction > 0 {
             let left = max(1, Int(((resume.position / fraction - resume.position) / 60).rounded()))
             Held(value: left) { MinutesLeft(minutes: $0) }
-        } else if upcoming, let when = nextAiring(entry) {
-            HStack(spacing: 6) {
-                Circle().fill(.water).frame(width: 6, height: 6)
-                Text(when)
-            }
-            .foregroundStyle(.water)
         } else if let seconds = row.durationSecs {
             Text("\(max(1, Int((Double(seconds) / 60).rounded()))) min").foregroundStyle(.haze)
         }
+    }
+}
+
+/// The next episode still to air: no button, since nothing can play it; the flat placeholder for
+/// its still, its title in haze, and when it airs in water ("Airs Thursday 16:30").
+struct UnairedEpisodeRow: View {
+    let row: EpisodeRow
+    let airs: Date
+
+    var body: some View {
+        let title = row.title ?? "Episode \(row.number)"
+        let when = AirsWords.airs(airs)
+        HStack(spacing: 14) {
+            Text(row.number)
+                .monospacedDigit()
+                .foregroundStyle(.haze)
+                .frame(width: 22, alignment: .trailing)
+            RoundedRectangle(cornerRadius: 6).fill(Palette.artPlaceholder).frame(width: 64, height: 36)
+            Text(title).foregroundStyle(.haze).lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 6) {
+                Circle().fill(.water).frame(width: 6, height: 6)
+                Text(when).monospacedDigit()
+            }
+            .foregroundStyle(.water)
+            Color.clear.frame(width: 14)
+        }
+        .font(.mac(13))
+        .padding(.horizontal, 8)
+        .frame(height: 44)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Episode \(row.number)" + (row.title.map { ", \($0)" } ?? "") + ". \(when), not out yet")
     }
 }
 
@@ -527,38 +582,31 @@ struct EpisodePlaceholderRow: View {
     }
 }
 
-/// The synopsis and the facts beside the episodes.
+/// The synopsis, the facts and the sheet's opener beside the episodes: the synopsis whole on the
+/// Mac, three lines on iPad with "More" to show the rest in place.
 struct TitleDetails: View {
     let entry: Entry
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            if !entry.synopsis.isEmpty {
-                ClampedText(text: entry.synopsis, lines: 8)
+            let synopsis = entry.shownSynopsis
+            if !synopsis.isEmpty {
+                #if os(macOS)
+                Text(synopsis)
                     .font(.mac(13))
                     .macLineHeight(20)
                     .foregroundStyle(.haze)
+                    .fixedSize(horizontal: false, vertical: true)
+                #else
+                InlineMoreText(text: synopsis, lines: 3, font: .mac(13))
                     .id(entry.id)
+                #endif
             }
-            Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
-                fact("Studio", entry.studio)
-                fact("Season", entry.year.map(String.init))
-                fact("Next episode", nextAiring(entry))
-                fact("Also on", entry.availableOn.isEmpty ? nil : ListFormatter.localizedString(byJoining: entry.availableOn))
-            }
-            .font(.mac(12))
+            MetaFactsGrid(entry: entry)
+            MoreAboutButton(entry: entry)
+                .padding(.top, 4)
         }
         .padding(.top, 4)
-    }
-
-    @ViewBuilder
-    private func fact(_ name: String, _ value: String?) -> some View {
-        if let value {
-            GridRow {
-                Text(name).foregroundStyle(.haze).frame(width: 124, alignment: .leading)
-                Text(value).foregroundStyle(.silk)
-            }
-        }
     }
 }
 

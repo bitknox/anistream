@@ -48,9 +48,7 @@ struct PhoneTitle: View {
                             .lineLimit(4)
                             .dynamicTypeSize(...DynamicTypeSize.accessibility3)
                             .accessibilityAddTraits(.isHeader)
-                        if let alternate = entry.alternateTitle {
-                            Text(alternate).font(.ui(15)).foregroundStyle(.haze)
-                        }
+                        OtherTitlesLine(entry: entry, phone: true)
                         Text(entry.phoneMetadata)
                             .groupHeaderStyle()
                             .padding(.top, 2)
@@ -102,15 +100,27 @@ struct PhoneTitle: View {
                         }
                     }
 
-                    if !entry.synopsis.isEmpty {
-                        ClampedText(text: entry.synopsis, lines: 2)
-                            .font(.ui(15))
-                            .fixedLineHeight(21)
-                            .foregroundStyle(.haze)
-                            .id(entry.id)
-                            // Read after the episodes: title, metadata, the main button,
-                            // progress, episodes, then the synopsis.
-                            .accessibilitySortPriority(-1)
+                    VStack(alignment: .leading, spacing: 12) {
+                        if !entry.shownSynopsis.isEmpty {
+                            // Two lines, and "More" shows the rest in place.
+                            InlineMoreText(text: entry.shownSynopsis, lines: 2, font: .ui(15))
+                                .id(entry.id)
+                                // Read after the episodes: title, metadata, the main button,
+                                // progress, episodes, then the synopsis.
+                                .accessibilitySortPriority(-1)
+                        }
+                        // The facts and the top tags, a line each, cut at the end.
+                        VStack(alignment: .leading, spacing: 4) {
+                            if let facts = entry.factsLine() {
+                                Text(facts).lineLimit(1)
+                            }
+                            if !entry.topTags.isEmpty {
+                                Text(entry.topTags.joined(separator: " · ")).lineLimit(1)
+                            }
+                        }
+                        .font(.ui(15))
+                        .foregroundStyle(.haze)
+                        MoreAboutRow(entry: entry)
                     }
 
                     let family = TitleFamily(entry)
@@ -126,7 +136,25 @@ struct PhoneTitle: View {
                         .scrollIndicators(.never)
                         .padding(.horizontal, -16)
                     }
-                    if !family.related.isEmpty {
+                    if entry.detail != nil {
+                        let cards = entry.relatedCards(excluding: Set(family.seasons.map(\.id)))
+                        if !cards.isEmpty {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Related").font(.ui(15)).foregroundStyle(.haze)
+                                    .accessibilityAddTraits(.isHeader)
+                                ScrollView(.horizontal) {
+                                    HStack(spacing: 4) {
+                                        ForEach(cards, id: \.id) { linked in
+                                            RelatedCard(linked: linked, cover: CGSize(width: 40, height: 60), phone: true)
+                                        }
+                                    }
+                                    .padding(.horizontal, 12)
+                                }
+                                .scrollIndicators(.never)
+                                .padding(.horizontal, -16)
+                            }
+                        }
+                    } else if !family.related.isEmpty {
                         HStack(spacing: 8) {
                             Text("Related").font(.ui(13)).foregroundStyle(.haze)
                             ForEach(family.related, id: \.id) { related in
@@ -212,7 +240,7 @@ struct PhoneEpisodes: View {
     let rotor: Namespace.ID
 
     var body: some View {
-        let rows = store.titles.episodes[entry.id] ?? []
+        let rows = entry.episodeTable(store.titles.episodes[entry.id] ?? [])
         let next = entry.progress?.next ?? 1
         VStack(alignment: .leading, spacing: 0) {
             if store.titles.episodes[entry.id] == nil {
@@ -221,55 +249,92 @@ struct PhoneEpisodes: View {
             ForEach(rows, id: \.number) { row in
                 let number = UInt32(row.number) ?? 0
                 let current = number == next
-                Button {
-                    store.send(.play(id: entry.id, episode: row.number))
-                } label: {
-                    HStack(spacing: 12) {
-                        Text(row.number)
-                            .font(.ui(15, weight: current ? .semibold : .regular))
-                            .monospacedDigit()
-                            .foregroundStyle(current ? .amber : .haze)
-                            .animation(.quick, value: current)
-                            .frame(width: 22, alignment: .trailing)
-                        EpisodeStill(entry: entry, row: row, hidden: spoilers && number > next && !row.completed,
-                                     unaired: false, size: CGSize(width: 72, height: 40))
-                            .opacity(row.completed ? 0.7 : 1)
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                Text(row.title ?? "Episode \(row.number)")
-                                    .font(.ui(17))
-                                    .foregroundStyle(row.completed ? .haze : .silk)
-                                    .rowTitle()
-                                    .animation(.quick, value: row.completed)
-                                if row.kind == .filler { Text("Filler").groupHeaderStyle() }
-                            }
-                            if current, let resume = entry.resume, let fraction = resume.fraction, fraction > 0 {
-                                HStack(spacing: 8) {
-                                    Held(value: fraction) { Meter(fraction: $0, height: 3).frame(width: 88) }
-                                    let left = max(1, Int(((resume.position / fraction - resume.position) / 60).rounded()))
-                                    Held(value: left) { MinutesLeft(minutes: $0, size: 15) }
+                if row.isUnaired(), let airs = row.airsDate {
+                    PhoneUnairedRow(row: row, airs: airs)
+                        .accessibilityRotorEntry(id: row.number, in: rotor)
+                } else {
+                    Button {
+                        store.send(.play(id: entry.id, episode: row.number))
+                    } label: {
+                        HStack(spacing: 12) {
+                            Text(row.number)
+                                .font(.ui(15, weight: current ? .semibold : .regular))
+                                .monospacedDigit()
+                                .foregroundStyle(current ? .amber : .haze)
+                                .animation(.quick, value: current)
+                                .frame(width: 22, alignment: .trailing)
+                            EpisodeStill(entry: entry, row: row, hidden: spoilers && number > next && !row.completed,
+                                         unaired: false, size: CGSize(width: 72, height: 40))
+                                .opacity(row.completed ? 0.7 : 1)
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                    Text(row.title ?? "Episode \(row.number)")
+                                        .font(.ui(17))
+                                        .foregroundStyle(row.completed ? .haze : .silk)
+                                        .rowTitle()
+                                        .animation(.quick, value: row.completed)
+                                    if row.kind == .filler { Text("Filler").groupHeaderStyle() }
                                 }
-                            } else if let seconds = row.durationSecs {
-                                Text("\(max(1, Int((Double(seconds) / 60).rounded()))) min")
-                                    .font(.ui(15))
-                                    .foregroundStyle(.haze)
+                                if current, let resume = entry.resume, let fraction = resume.fraction, fraction > 0 {
+                                    HStack(spacing: 8) {
+                                        Held(value: fraction) { Meter(fraction: $0, height: 3).frame(width: 88) }
+                                        let left = max(1, Int(((resume.position / fraction - resume.position) / 60).rounded()))
+                                        Held(value: left) { MinutesLeft(minutes: $0, size: 15) }
+                                    }
+                                } else if let seconds = row.durationSecs {
+                                    Text("\(max(1, Int((Double(seconds) / 60).rounded()))) min")
+                                        .font(.ui(15))
+                                        .foregroundStyle(.haze)
+                                }
                             }
+                            Spacer(minLength: 0)
+                            WatchedCheck(watched: row.completed, size: 15)
                         }
-                        Spacer(minLength: 0)
-                        WatchedCheck(watched: row.completed, size: 15)
+                        .frame(minHeight: 56)
+                        .contentShape(.rect)
                     }
-                    .frame(minHeight: 56)
-                    .contentShape(.rect)
+                    .buttonStyle(.plain)
+                    .pointerHover()
+                    .episodeElement(row, value: row.spokenValue(entry, current: current, upcoming: false)) {
+                        EpisodeMenu(entry: entry, number: number, row: row)
+                    }
+                    .accessibilityRotorEntry(id: row.number, in: rotor)
+                    .contextMenu { EpisodeMenu(entry: entry, number: number, row: row) }
                 }
-                .buttonStyle(.plain)
-                .pointerHover()
-                .episodeElement(row, value: row.spokenValue(entry, current: current, upcoming: false)) {
-                    EpisodeMenu(entry: entry, number: number, row: row)
-                }
-                .accessibilityRotorEntry(id: row.number, in: rotor)
-                .contextMenu { EpisodeMenu(entry: entry, number: number, row: row) }
             }
         }
+    }
+}
+
+/// The next episode still to air on an iPhone's page: no button; the flat placeholder, its title
+/// in haze and "Airs Thursday 16:30" in water.
+struct PhoneUnairedRow: View {
+    let row: EpisodeRow
+    let airs: Date
+
+    var body: some View {
+        let when = AirsWords.airs(airs)
+        HStack(spacing: 12) {
+            Text(row.number)
+                .font(.ui(15))
+                .monospacedDigit()
+                .foregroundStyle(.haze)
+                .frame(width: 22, alignment: .trailing)
+            RoundedRectangle(cornerRadius: 6).fill(Palette.artPlaceholder).frame(width: 72, height: 40)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(row.title ?? "Episode \(row.number)").font(.ui(17)).foregroundStyle(.haze).rowTitle()
+                HStack(spacing: 6) {
+                    Circle().fill(.water).frame(width: 6, height: 6)
+                    Text(when).monospacedDigit()
+                }
+                .font(.ui(15))
+                .foregroundStyle(.water)
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(minHeight: 56)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Episode \(row.number)" + (row.title.map { ", \($0)" } ?? "") + ". \(when), not out yet")
     }
 }
 #endif

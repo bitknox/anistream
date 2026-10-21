@@ -49,7 +49,12 @@ extension Entry {
     /// Whether `episode` has aired, by the title's broadcasts: out when it is no later than the
     /// newest one known to be out; not out when it is the next broadcast or after, and that
     /// broadcast is still ahead; out otherwise, as every episode of a finished title is.
-    public func airing(of episode: UInt32) -> EpisodeAvailability {
+    public func airing(of episode: UInt32, now: Date = .now) -> EpisodeAvailability {
+        // The page's schedule dates the episode when it has it.
+        if let at = detail?.schedule.first(where: { $0.episode == episode })?.airsAt {
+            let left = at - Int64(now.timeIntervalSince1970)
+            return left > 0 ? .upcoming(inSeconds: left) : .aired
+        }
         if let aired = latestAired, episode <= aired.episode { return .aired }
         guard let next = nextEpisode, episode >= next else { return .aired }
         if episode == next {
@@ -90,17 +95,35 @@ public enum EpisodeAvailability: Equatable, Sendable {
     }
 }
 
-/// A broadcast's time as the screens say it, in English on a 24-hour clock as the boards set it:
-/// "Saturday 18:30" within the week, "22 October 18:30" further off.
+/// A broadcast's time as the screens say it (native-spec/metadata.md): "today 16:30", "tomorrow
+/// 16:30", "Thursday 16:30" within six days, "29 Oct, 16:30" later. English words, day before
+/// month, on the device's own clock.
 public enum AirTime {
     public static let locale = Locale(identifier: "en_GB")
 
-    public static func words(_ date: Date, now: Date = .now) -> String {
+    public static func words(_ date: Date, now: Date = .now, calendar: Calendar = .current) -> String {
+        let time = clock(date)
+        if calendar.isDate(date, inSameDayAs: now) { return "today \(time)" }
+        if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now), calendar.isDate(date, inSameDayAs: tomorrow) {
+            return "tomorrow \(time)"
+        }
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: calendar.startOfDay(for: date)).day ?? 0
         let style = Date.FormatStyle(locale: locale)
-        let time = date.formatted(style.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
-        let days = date.timeIntervalSince(now) / 86_400
-        let day = days < 6 ? date.formatted(style.weekday(.wide)) : date.formatted(style.day().month(.wide))
-        return "\(day) \(time)"
+        if (0...6).contains(days) { return "\(date.formatted(style.weekday(.wide))) \(time)" }
+        return "\(date.formatted(style.day().month(.abbreviated))), \(time)"
+    }
+
+    /// The time on the device's own clock: "16:30", or "4:30 PM" where it keeps twelve hours.
+    public static func clock(_ date: Date) -> String {
+        let twelve = DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: .current)?.contains("a") ?? false
+        let style = Date.FormatStyle(locale: Locale(identifier: twelve ? "en_US" : "en_GB"))
+        return date.formatted(style.hour(.defaultDigits(amPM: .abbreviated)).minute(.twoDigits))
+    }
+
+    /// "Thursday 15 October 2026", a day in full.
+    public static func day(_ date: Date) -> String {
+        let style = Date.FormatStyle(locale: locale)
+        return "\(date.formatted(style.weekday(.wide))) \(date.formatted(style.day().month(.wide).year()))"
     }
 }
 

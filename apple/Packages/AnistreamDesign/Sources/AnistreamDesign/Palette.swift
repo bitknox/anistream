@@ -67,6 +67,9 @@ public enum Palette {
     public static let ground = Color(rgb: 0x161A2E)
     /// Secondary buttons, the segmented track, grouped rows.
     public static let raised = Color(rgb: 0x222638)
+    /// Where a related or recommended cover, a character's art or an unaired still has not come:
+    /// flat, until the engine gives those a colour of their own.
+    public static let artPlaceholder = Color(rgb: 0x1F2440)
     /// The segmented control's selection, and a secondary button on a raised surface.
     public static let raisedSelected = Color(rgb: 0x343A57)
     /// A progress track. Lifted to #5C6073 under Increase Contrast.
