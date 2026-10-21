@@ -43,4 +43,14 @@ public enum AppLog {
         guard let host = parts.host else { return "\(scheme):" }
         return parts.port.map { "\(scheme)://\(host):\($0)" } ?? "\(scheme)://\(host)"
     }
+
+    /// `text` with every address in it said as `address(_:)` says one: what a library logs, mpv
+    /// among them, can name a stream with its signed token in the path or the query, which no
+    /// line of the log or the unified log may keep.
+    public static func redacting(_ text: String) -> String {
+        text.replacing(addresses) { address(String(text[$0.range])) }
+    }
+
+    /// An address in running text: a scheme and `://`, and everything up to a space or a quote.
+    nonisolated(unsafe) private static let addresses = try! Regex(#"[A-Za-z][A-Za-z0-9+.\-]*://[^\s"'<>]+"#)
 }

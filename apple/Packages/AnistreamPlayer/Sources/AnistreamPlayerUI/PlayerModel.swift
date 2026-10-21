@@ -453,7 +453,7 @@ public final class PlayerModel {
                             await backend.resized()
                         }
                     } catch {
-                        Self.note(.warn, "mpv refused \(Self.describe(item)): \(error)")
+                        Self.note(.warn, "mpv refused \(Self.describe(item)): \(AppLog.redacting("\(error)"))")
                     }
                 }
             }
@@ -646,10 +646,10 @@ public final class PlayerModel {
             Self.note(.info, "#\(current.map(String.init) ?? "?") file loaded\(elapsed)")
         case .endFile(let end):
             Self.note(end.reason == "error" ? .warn : .info,
-                "#\(current.map(String.init) ?? "?") file ended: \(end.reason)\(end.error.map { ", \($0)" } ?? "")")
+                "#\(current.map(String.init) ?? "?") file ended: \(end.reason)\(end.error.map { ", \(AppLog.redacting($0))" } ?? "")")
         case .log(let line) where ["fatal", "error", "warn"].contains(line.level):
             // mpv's warnings and errors, each said once a file: a stream can repeat one per segment.
-            let text = "\(line.prefix): \(line.text)"
+            let text = Self.said(line)
             if mpvSaid.insert(text).inserted {
                 Self.note(line.level == "warn" ? .info : .warn, "mpv \(line.level) \(text)")
             }
@@ -856,6 +856,12 @@ public final class PlayerModel {
     }
 
     enum Level { case error, warn, info, debug }
+
+    /// One of mpv's lines as the log says it: its addresses as `AppLog.address` says them, scheme
+    /// and host, since a stream's carries its signed token in the path or the query.
+    nonisolated static func said(_ line: MpvLogLine) -> String {
+        "\(line.prefix): \(AppLog.redacting(line.text))"
+    }
 
     /// What the log says of a report back to the engine: each one but the playhead's and the
     /// other properties that change every frame, values cut short.

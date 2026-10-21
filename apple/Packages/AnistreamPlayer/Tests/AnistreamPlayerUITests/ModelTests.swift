@@ -643,3 +643,12 @@ struct ViewerTests {
         #expect(PlayerClock.label(3729) == "1:02:09")
     }
 }
+
+struct LogLineTests {
+    @Test func mpvsLinesAreLoggedWithoutTheTokensInTheirAddresses() {
+        let line = MpvLogLine(
+            prefix: "ffmpeg", level: "error",
+            text: "https: HTTP error 403 for https://cdn.example/hls/7/seg-12.ts?token=s3cret&expires=1")
+        #expect(PlayerModel.said(line) == "ffmpeg: https: HTTP error 403 for https://cdn.example")
+    }
+}
