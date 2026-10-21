@@ -74,7 +74,7 @@ class ScriptedMpv : PlayerBackend {
 }
 
 /** A model on scripted mpvs, and what it sends the engine. */
-class Rig(private val test: TestScope, hwdec: String = "no") {
+class Rig(private val test: TestScope, hwdec: String = "no", display: DisplayInfo? = null) {
     val sent = mutableListOf<Command>()
     val made = mutableListOf<ScriptedMpv>()
     val model = PlayerModel(
@@ -83,6 +83,7 @@ class Rig(private val test: TestScope, hwdec: String = "no") {
         scope = test.backgroundScope,
         now = { test.testScheduler.currentTime },
         hwdec = hwdec,
+        display = { display },
     )
 
     val mpv: ScriptedMpv get() = made.last()
