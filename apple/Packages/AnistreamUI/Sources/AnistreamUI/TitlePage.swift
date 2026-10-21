@@ -116,6 +116,7 @@ struct TitlePage: View {
                 }
             }
         }
+        .nudgeableScroll()
         .scrollIndicators(.never)
         .ignoresSafeArea(edges: .top)
         .background(.ground)
@@ -377,6 +378,7 @@ struct TitleFamilyRow: View {
 /// The episodes: a row each, the next one marked, stills of what comes after it blurred.
 struct EpisodeList: View {
     @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
     @AppStorage("anistream.spoilerProtection") private var spoilers = true
     @State private var unwatchedOnly = false
     let entry: Entry
@@ -401,12 +403,24 @@ struct EpisodeList: View {
             } else if rows.isEmpty {
                 QuietLine(unwatchedOnly ? "Every episode is watched" : "No episodes yet")
             }
-            ForEach(rows, id: \.number) { row in
-                EpisodeRowView(entry: entry, row: row, spoilers: spoilers)
-                    .accessibilityRotorEntry(id: row.number, in: rotor)
+            // The watched run folds away above the last episode watched; Unwatched has none.
+            let fold = unwatchedOnly ? nil : WatchedFold(rows)
+            if let fold {
+                WatchedFoldSection(
+                    fold: fold, shown: navigator.watchedShown(entry.id), phone: false,
+                    toggle: { navigator.toggleWatched(entry.id) }
+                ) {
+                    ForEach(rows.prefix(fold.count), id: \.number) { row($0) }
+                }
             }
+            ForEach(rows.dropFirst(fold?.count ?? 0), id: \.number) { row($0) }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func row(_ row: EpisodeRow) -> some View {
+        EpisodeRowView(entry: entry, row: row, spoilers: spoilers)
+            .accessibilityRotorEntry(id: row.number, in: rotor)
     }
 
     /// The table, dated by the schedule, with the next episode still to air at its end.
