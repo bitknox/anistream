@@ -338,9 +338,12 @@ impl Run<'_> {
                     }
                     continue;
                 }
-                PlaybackEvent::Display { width, height } => {
-                    player.picture.display =
-                        Some(shaders::Display { width: *width, height: *height });
+                PlaybackEvent::Display { width, height, compute } => {
+                    player.picture.display = Some(shaders::Display {
+                        width: *width,
+                        height: *height,
+                        compute: *compute,
+                    });
                     self.apply_picture(
                         &mut player.picture,
                         link,
@@ -356,6 +359,37 @@ impl Run<'_> {
                     drops = *count;
                     continue;
                 }
+                // The renderer gave up on a hook of the chain: the chain does not run as chosen,
+                // so it steps down as the governor steps it, once for the chain that failed. A
+                // hook of a chain that has been replaced since is late news, and changes nothing;
+                // one no shader here describes cannot be placed in a chain, and eases only once.
+                PlaybackEvent::HookDisabled(hook) => {
+                    let picture = &mut player.picture;
+                    let running = |file: &str| {
+                        picture.applied.iter().any(|path| {
+                            std::path::Path::new(path).file_name().is_some_and(|n| n == file)
+                        })
+                    };
+                    let ours = match shaders::hook_file(hook) {
+                        Some(file) => running(file),
+                        None => !picture.applied.is_empty() && picture.failed.is_none(),
+                    };
+                    let failed = ours && picture.failed.as_ref() != Some(&picture.applied);
+                    if failed && picture.governor.step_down().is_some() {
+                        tracing::warn!(%hook, "the renderer disabled a shader hook; easing");
+                        picture.failed = Some(picture.applied.clone());
+                        self.apply_picture(
+                            &mut player.picture,
+                            link,
+                            source.as_ref(),
+                            streams,
+                            index,
+                            true,
+                        )
+                        .await;
+                    }
+                    continue;
+                }
                 PlaybackEvent::Seeking(now) => {
                     seeking = *now;
                     continue;
@@ -365,6 +399,7 @@ impl Run<'_> {
                         self.look = look;
                         // A new look starts at full budget; the governor earns its steps again.
                         player.picture.governor.reset();
+                        player.picture.failed = None;
                         self.apply_picture(
                             &mut player.picture,
                             link,

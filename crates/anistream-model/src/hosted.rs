@@ -242,14 +242,22 @@ pub enum PlayerReport {
     /// The player is gone: the viewer closed it, or it failed. Nothing more is said to it.
     Closed,
     /// The display the player is on, in pixels, with its scale, refresh rate and the EDR
-    /// headroom an HDR picture has above SDR white.
+    /// headroom an HDR picture has above SDR white; and whether the player's renderer runs
+    /// compute shaders. libplacebo has none on OpenGL ES, which is Android's GL path, so ArtCNN
+    /// cannot run there; Metal and Vulkan have them.
     Display {
         width: u32,
         height: u32,
         scale: f64,
         refresh_hz: Option<f64>,
         edr_headroom: Option<f64>,
+        compute: bool,
     },
+    /// A shader hook the renderer gave up on: libplacebo disables a hook that does not compile
+    /// or run ("Failed executing hook …, disabling" in mpv's log), and the picture plays on
+    /// without it. `hook` is the hook as the log names it. The chain steps down, rather than
+    /// being taken for running.
+    HookDisabled { hook: String },
     /// What the device runs on: the upscaling chain starts one step lighter on battery, or in
     /// low power mode.
     Power { on_battery: bool, low_power: bool },

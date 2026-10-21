@@ -363,7 +363,9 @@ mod tests {
                 scale: 2.0,
                 refresh_hz: Some(120.0),
                 edr_headroom: Some(16.0),
+                compute: true,
             },
+            PlayerReport::HookDisabled { hook: "AniSD (luma)".into() },
             PlayerReport::Power { on_battery: true, low_power: false },
         ];
         for report in reports {

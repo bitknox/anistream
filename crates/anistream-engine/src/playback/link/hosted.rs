@@ -152,9 +152,10 @@ impl Window {
                 }
                 self.read(protocol::Event::EndFile(reason))
             }
-            PlayerReport::Display { width, height, .. } => {
-                Some(PlaybackEvent::Display { width, height })
+            PlayerReport::Display { width, height, compute, .. } => {
+                Some(PlaybackEvent::Display { width, height, compute })
             }
+            PlayerReport::HookDisabled { hook } => Some(PlaybackEvent::HookDisabled(hook)),
             PlayerReport::Closed | PlayerReport::Power { .. } => None,
         };
         if let Some(event) = read
