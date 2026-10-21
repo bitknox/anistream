@@ -3,6 +3,7 @@
 
 import AnistreamKit
 import AnistreamPlayer
+import AnistreamStore
 import Foundation
 import Observation
 import os
@@ -35,6 +36,9 @@ public final class PlayerModel {
     @ObservationIgnored private let log = Logger(subsystem: "tv.anistream", category: "player")
     @ObservationIgnored let nowPlaying = NowPlaying()
     @ObservationIgnored private let awake = KeepAwake()
+    @ObservationIgnored private let lowPower: @MainActor () -> Bool
+    /// The frame under the scrubbing finger.
+    public let preview: SeekPreview
 
     private enum Work: Sendable {
         case call(MpvCall)
@@ -42,13 +46,18 @@ public final class PlayerModel {
         case resized
     }
 
-    /// `send` hands the engine a command; `backend` makes the mpv for each player opened.
+    /// `send` hands the engine a command; `backend` makes the mpv for each player opened, and
+    /// `preview` the hidden one for seek previews, which are off while `lowPower` says so.
     public init(
         send: @escaping Send,
-        backend: @escaping @MainActor () -> any PlayerBackend = { PlayerModel.mpv() }
+        backend: @escaping @MainActor () -> any PlayerBackend = { PlayerModel.mpv() },
+        preview: @escaping @MainActor () -> any PlayerBackend = { SeekPreview.mpv() },
+        lowPower: @escaping @MainActor () -> Bool = { ProcessInfo.processInfo.isLowPowerModeEnabled }
     ) {
         self.send = send
         self.makeBackend = backend
+        self.preview = SeekPreview(make: preview)
+        self.lowPower = lowPower
         nowPlaying.model = self
     }
 
@@ -74,6 +83,10 @@ public final class PlayerModel {
     @ObservationIgnored private var loads: [PlaybackId] = []
     /// The playback whose file mpv has now.
     @ObservationIgnored private var current: PlaybackId?
+    /// What each playback's Load opened, for the seek preview to open too.
+    @ObservationIgnored private var sources: [PlaybackId: PreviewSource] = [:]
+    /// Where previews are read from instead of the stream, when the engine says so.
+    public private(set) var thumbnails: String?
     /// Every playback up to this one is over: its ops are refused.
     @ObservationIgnored private var closedThrough: PlaybackId?
 
@@ -126,6 +139,13 @@ public final class PlayerModel {
     public private(set) var holds: Set<String> = []
     /// Up for a screenshot, whatever else says.
     public var pinnedControls = false
+    /// The Mac's mini player: the window small in a corner, floating, with the essentials.
+    public var miniPlayer = false
+    /// How fast scrubbing moves now: 1, ½ or ¼.
+    public private(set) var scrubPace: Double = 1
+    /// Where `sub-pos` is headed, lifting the subtitles above the controls.
+    @ObservationIgnored private(set) var subtitlePosition: Double = 100
+    @ObservationIgnored private var subtitleTween: Task<Void, Never>?
     /// The starting screen held over the picture, for a screenshot of it.
     public var holdsCurtain = false
     /// Scrubbing, at this time: the seek line follows the finger, not mpv.
@@ -182,8 +202,9 @@ public final class PlayerModel {
                 log.error("refused \(String(describing: op)) with no player open")
                 return
             }
-            if case .load = call {
+            if case .load(let url, let options) = call {
                 loads.append(playback)
+                sources[playback] = PreviewSource(url: url, options: PreviewSource.reaching(options))
                 hasPicture = false
             }
             enqueue(.call(call))
@@ -237,9 +258,9 @@ public final class PlayerModel {
         case .picture(let upscaler, let hdr):
             self.upscaler = upscaler
             self.hdr = hdr
-        case .thumbnails:
-            // Seek previews come with a second, hidden mpv, which the player does not have yet.
-            break
+        case .thumbnails(let url):
+            if url != thumbnails { preview.close() }
+            thumbnails = url
         case .alert(let text, let kind):
             alert = PlayerAlert(text: text, kind: kind, since: now)
         }
@@ -383,10 +404,13 @@ public final class PlayerModel {
             Task.detached { await backend.end() }
         }
         backend = nil
+        preview.close()
         closedThrough = [playback, current, opened, loads.max()].compactMap { $0 }.max()
         opened = nil
         current = nil
         loads = []
+        sources = [:]
+        thumbnails = nil
         dismiss()
     }
 
@@ -395,6 +419,9 @@ public final class PlayerModel {
         isPresented = false
         layer = nil
         fullScreen = false
+        miniPlayer = false
+        subtitleTween?.cancel()
+        subtitlePosition = 100
         staged = nil
         starting = nil
         episode = nil
@@ -436,6 +463,8 @@ public final class PlayerModel {
         switch event {
         case .startFile:
             if !loads.isEmpty { current = loads.removeFirst() }
+            // Another file: its previews are another file's too.
+            preview.close()
             let keepPause = paused
             resetFile()
             paused = keepPause
@@ -542,6 +571,7 @@ public final class PlayerModel {
     public func powerChanged() {
         guard backend != nil else { return }
         reportPower()
+        if lowPower() { preview.close() }
     }
 
     // MARK: The surface
@@ -588,13 +618,21 @@ public final class PlayerModel {
     }
 
     /// The starting screen's line: "Starting episode 7", and after a while "Finding a source · 4 s".
-    public var startingLine: String? {
+    public var startingLine: String? { startingLine(note: nil) }
+
+    /// The same, with the engine's note on the job that starts the episode in place of "Finding
+    /// a source" when it has one: what the wait is on.
+    public func startingLine(note: String?) -> String? {
         guard let starting else {
             return holdsCurtain ? staged.map { "Starting episode \($0.episode)" } : nil
         }
-        let waited = clock - starting.since
-        guard waited >= PlayerTiming.startingWaits else { return "Starting episode \(starting.episode)" }
-        return "Finding a source · \(waited.components.seconds) s"
+        return starting.line(at: clock, note: note)
+    }
+
+    /// The note on the job starting `episode`, the newest such, from the store's jobs: the engine
+    /// calls a play's job "starting ep 7".
+    public static func startingNote(in jobs: [Job], episode: String) -> String? {
+        jobs.last { $0.activity == "starting ep \(episode)" }?.note
     }
 
     /// Buffering long enough to show a spinner.
@@ -634,6 +672,21 @@ public final class PlayerModel {
 
     /// The seek line's stretches, from the file's chapters.
     public var segments: [SeekSegment] { seekSegments(chapters: chapters, duration: duration) }
+
+    /// What the seek preview opens: the `Thumbnails` address, or the stream playing.
+    public var previewSource: PreviewSource? {
+        let stream = current.flatMap { sources[$0] }
+        if let thumbnails { return PreviewSource(url: thumbnails, options: stream?.options ?? [:]) }
+        return stream
+    }
+
+    /// Whether scrubbing shows frames: not in Low Power Mode.
+    public var previewsOn: Bool { !lowPower() }
+
+    /// The chapter at `seconds`, by its name.
+    public func chapter(at seconds: Double) -> String? {
+        chapters.sorted { $0.time < $1.time }.last { $0.time <= seconds }.map(\.title).flatMap { $0.isEmpty ? nil : $0 }
+    }
 
     public var audioTracks: [Track] { tracks.filter { $0.kind == .audio } }
     public var subtitleTracks: [Track] { tracks.filter { $0.kind == .sub } }
@@ -689,10 +742,12 @@ public final class PlayerModel {
 
     /// The finger or pointer on the seek line: keyframe seeks while it moves, an exact one on
     /// release.
-    public func scrub(to seconds: Double) {
+    public func scrub(to seconds: Double, pace: Double = 1) {
         if scrubbing == nil { hold("scrub", true) }
         scrubbing = seconds
+        scrubPace = pace
         position = seconds
+        if !lowPower(), let source = previewSource { preview.show(seconds, of: source) }
         // A keyframe seek each half second of movement: mpv drops the ones it cannot keep up with
         // anyway, and the line follows the finger meanwhile.
         if let sent = scrubSent, abs(sent - seconds) < 0.5 { return }
@@ -704,6 +759,7 @@ public final class PlayerModel {
         guard let seconds = scrubbing else { return }
         scrubbing = nil
         scrubSent = nil
+        scrubPace = 1
         hold("scrub", false)
         seek(to: seconds)
     }
@@ -826,6 +882,35 @@ public final class PlayerModel {
         enqueue(.call(.set(property: "panscan", value: .double(fill ? 1 : 0))))
     }
 
+    /// Lift the subtitles by `fraction` of the picture's height, above the controls while they
+    /// are up, and back down with them: `sub-pos`, which libass applies to the dialogue at the
+    /// bottom of ASS subtitles and leaves signs where they are. Eased over the controls' fade, or
+    /// at once.
+    public func liftSubtitles(_ fraction: Double, animated: Bool) {
+        let target = (100 - min(0.5, max(0, fraction)) * 100).rounded(toPlaces: 1)
+        guard target != subtitlePosition else { return }
+        let from = subtitlePosition
+        subtitlePosition = target
+        subtitleTween?.cancel()
+        guard animated else {
+            enqueue(.call(.set(property: "sub-pos", value: .double(target))))
+            return
+        }
+        // The standard spring's 0.3 s, as eight steps on an ease-out.
+        subtitleTween = Task { @MainActor [weak self] in
+            let steps = 8
+            for step in 1...steps {
+                let t = Double(step) / Double(steps)
+                let eased = 1 - pow(1 - t, 3)
+                let value = (from + (target - from) * eased).rounded(toPlaces: 1)
+                self?.enqueue(.call(.set(property: "sub-pos", value: .double(value))))
+                guard step < steps else { break }
+                try? await Task.sleep(for: .milliseconds(300 / steps))
+                if Task.isCancelled { return }
+            }
+        }
+    }
+
     /// The app went to the background, or came back: the audio plays on, the video track is off
     /// meanwhile.
     public func backgrounded(_ background: Bool) {
@@ -838,6 +923,13 @@ public final class PlayerModel {
         stillWatching = true
     }
     #endif
+}
+
+extension Double {
+    func rounded(toPlaces places: Int) -> Double {
+        let scale = pow(10, Double(places))
+        return (self * scale).rounded() / scale
+    }
 }
 
 extension Track {

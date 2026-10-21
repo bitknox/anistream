@@ -69,7 +69,7 @@ public struct PlayerWindow: View {
 
     public var body: some View {
         MacPlayerView(model: model)
-            .frame(minWidth: 480, minHeight: 270)
+            .frame(minWidth: model.miniPlayer ? 240 : 480, minHeight: model.miniPlayer ? 135 : 270)
     }
 }
 #endif

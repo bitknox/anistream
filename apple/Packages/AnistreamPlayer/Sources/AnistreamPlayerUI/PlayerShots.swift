@@ -20,6 +20,11 @@ public enum PlayerShot: String, CaseIterable, Sendable {
     case stillWatching = "still-watching"
     /// The stall prompt, counting up.
     case stall
+    /// Scrubbing at half speed, with the frame there from the hidden mpv, the time and the
+    /// chapter.
+    case scrubbing
+    /// The Mac's mini player, in the corner of the screen. The same as playing elsewhere.
+    case miniPlayer = "mini-player"
 
     /// The launch argument that names one: `-AnistreamPlayerShot up-next`.
     public static let argument = "-AnistreamPlayerShot"
@@ -71,6 +76,20 @@ extension PlayerModel {
             there = await waited(10) { self.position >= 33.5 }
             if let playback { apply(.playerUi(playback: playback, ui: .stall(seconds: 9))) }
             hideControls()
+        case .scrubbing:
+            seek(to: 24)
+            there = await waited(10) { self.position >= 24.5 }
+            // The finger held over the line, slowed to half speed: never let go.
+            scrub(to: 9, pace: 0.5)
+            there = await waited(10) { self.preview.ready } && there
+        case .miniPlayer:
+            seek(to: 31)
+            there = await waited(10) { self.position >= 31.5 }
+            #if os(macOS)
+            miniPlayer = true
+            try? await Task.sleep(for: .seconds(1))
+            #endif
+            pinnedControls = true
         }
         // The fades.
         try? await Task.sleep(for: .milliseconds(700))

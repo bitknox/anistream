@@ -7,6 +7,9 @@ import AnistreamKit
 import AnistreamPlayer
 import AnistreamStore
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
 /// The sizes that differ between the Mac's player and the iPhone's.
 struct PlayerMetrics {
@@ -17,6 +20,9 @@ struct PlayerMetrics {
     var cardRadius: CGFloat { touch ? 20 : 16 }
     var still: CGSize { touch ? CGSize(width: 96, height: 54) : CGSize(width: 112, height: 63) }
     /// The corner card's distance from the trailing and bottom edges.
+    /// How far the subtitles lift while the controls are up, as the boards draw them: from
+    /// 18 pt above the bottom to 78 on the iPhone, from 34 to 62 on the Mac.
+    var subtitleLift: CGFloat { touch ? 60 : 28 }
     var cornerInset: EdgeInsets {
         touch ? EdgeInsets(top: 0, leading: 0, bottom: 84, trailing: 56) : EdgeInsets(top: 0, leading: 0, bottom: 160, trailing: 16)
     }
@@ -55,6 +61,7 @@ struct StartingCurtain: View {
         let entry = model.staged.flatMap { store.titles[$0.id] }
         let url = entry?.bannerUrl ?? entry?.coverUrl
         let image = url.flatMap { store.artwork.image($0) }
+        let note = model.starting.flatMap { PlayerModel.startingNote(in: store.jobs.running, episode: $0.episode) }
         ZStack {
             Palette.ground
             if let image {
@@ -69,7 +76,7 @@ struct StartingCurtain: View {
                     .controlSize(.small)
                     .tint(.silk)
                     .environment(\.colorScheme, .dark)
-                Text(model.startingLine ?? "")
+                Text(model.startingLine(note: note) ?? "")
                     .font(.system(size: metrics.body, weight: .medium))
                     .monospacedDigit()
                     .foregroundStyle(.silk)
@@ -89,11 +96,16 @@ struct StartingCurtain: View {
 // MARK: The seek line
 
 /// The playhead across the file: played time amber, openings and endings water, the rest silk at
-/// 22%. Dragging scrubs, with keyframe seeks as it moves and an exact one on release.
+/// 22%. Dragging scrubs, with keyframe seeks as it moves and an exact one on release; the frame
+/// under the thumb shows above it with the time and the chapter. Moving the finger up slows the
+/// scrub to half speed past 48 pt and a quarter past 96 pt, as ⌥ does on the Mac, and crossing
+/// an opening or ending mark gives a selection tick.
 struct SeekLine: View {
     let model: PlayerModel
     let metrics: PlayerMetrics
+    var showsPreview = true
     @State private var touched = false
+    @State private var pace = ScrubPace()
 
     private var lineHeight: CGFloat { metrics.touch ? 6 : (touched ? 6 : 4) }
 
@@ -123,19 +135,47 @@ struct SeekLine: View {
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { value in
-                        touched = true
                         guard duration > 0 else { return }
-                        let fraction = min(1, max(0, value.location.x / max(proxy.size.width, 1)))
-                        model.scrub(to: fraction * duration)
+                        let width = proxy.size.width
+                        if !touched {
+                            touched = true
+                            model.scrub(to: pace.start(at: value.startLocation.x, width: width, duration: duration))
+                        }
+                        let lifted = max(0, proxy.size.height / 2 - value.location.y)
+                        let time = pace.time(
+                            at: value.location.x, lifted: lifted, option: Self.optionHeld, width: width,
+                            duration: duration, current: model.scrubbing ?? model.position)
+                        model.scrub(to: time, pace: pace.factor)
                     }
                     .onEnded { _ in
                         touched = false
                         model.endScrub()
                     }
             )
+            .overlay(alignment: .topLeading) {
+                if showsPreview, let time = model.scrubbing, duration > 0 {
+                    let width = ScrubBubble.width
+                    let x = proxy.size.width * time / duration - width / 2
+                    ScrubBubble(model: model, time: time)
+                        .frame(width: width, alignment: .bottom)
+                        .offset(
+                            x: min(max(x, -16), proxy.size.width - width + 16),
+                            y: proxy.size.height / 2 - lineHeight - 8 - ScrubBubble.height(model))
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                }
+            }
         }
         .frame(height: metrics.touch ? 44 : 28)
         .animation(.quick, value: touched)
+        .sensoryFeedback(trigger: markUnderThumb) { old, new in
+            guard let old, let new, old != new else { return nil }
+            #if os(iOS)
+            return .selection
+            #else
+            return .alignment
+            #endif
+        }
         .accessibilityElement()
         .accessibilityLabel("Position")
         .accessibilityValue(
@@ -143,6 +183,22 @@ struct SeekLine: View {
         .accessibilityAdjustableAction { direction in
             model.seek(by: direction == .increment ? 10 : -10)
         }
+    }
+
+    /// While scrubbing, the opening or ending under the thumb, or none: a change is a mark crossed.
+    private var markUnderThumb: Int? {
+        guard let time = model.scrubbing else { return nil }
+        let segments = model.segments
+        guard let index = segments.firstIndex(where: { time >= $0.start && time < $0.end }) else { return nil }
+        return segments[index].kind == .plain ? -1 : index
+    }
+
+    private static var optionHeld: Bool {
+        #if os(macOS)
+        NSEvent.modifierFlags.contains(.option)
+        #else
+        false
+        #endif
     }
 
     private func segments(_ duration: Double) -> [SeekSegment] {
@@ -155,6 +211,57 @@ struct SeekLine: View {
         switch kind {
         case .plain: Palette.silk.opacity(0.22)
         case .opening, .ending: Palette.water.opacity(0.72)
+        }
+    }
+}
+
+/// Above the scrubbing thumb: the pace when it is slowed, the frame there from the hidden mpv
+/// (none in Low Power Mode), and the time with the chapter's name.
+struct ScrubBubble: View {
+    let model: PlayerModel
+    let time: Double
+
+    static let width: CGFloat = 220
+
+    /// Its height as it is drawn now: the labels, and the frame when there is one.
+    @MainActor
+    static func height(_ model: PlayerModel) -> CGFloat {
+        var height: CGFloat = 22
+        if ScrubPace.label(model.scrubPace) != nil { height += 22 + 6 }
+        if model.previewsOn, model.preview.layer != nil { height += SeekPreview.size.height + 6 }
+        return height
+    }
+
+    var body: some View {
+        VStack(spacing: 6) {
+            if let pace = ScrubPace.label(model.scrubPace) {
+                Text(pace)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.silk)
+                    .padding(.horizontal, 8)
+                    .frame(height: 22)
+                    .background(Palette.ground.opacity(0.72), in: .capsule)
+            }
+            if model.previewsOn, let layer = model.preview.layer {
+                ZStack {
+                    Palette.ground
+                    PlayerSurface(
+                        layer: layer,
+                        resized: { [weak model] in model?.preview.resized() },
+                        display: { _ in })
+                        .opacity(model.preview.ready ? 1 : 0)
+                }
+                .frame(width: SeekPreview.size.width, height: SeekPreview.size.height)
+                .clipShape(.rect(cornerRadius: 6))
+                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Palette.glassOverArtEdge, lineWidth: 1))
+            }
+            Text(model.chapter(at: time).map { "\(PlayerClock.label(time)) · \($0)" } ?? PlayerClock.label(time))
+                .font(.system(size: 13, weight: .semibold))
+                .monospacedDigit()
+                .foregroundStyle(.silk)
+                .padding(.horizontal, 8)
+                .frame(height: 22)
+                .background(Palette.ground.opacity(0.72), in: .capsule)
         }
     }
 }

@@ -47,6 +47,17 @@ public struct StartingScreen: Equatable, Sendable {
     public var since: ContinuousClock.Instant
 }
 
+extension StartingScreen {
+    /// "Starting episode 7", and from 3 s on what the wait is on, "Finding a source" or the
+    /// engine's note, with the seconds: "Finding a source · 4 s".
+    public func line(at now: ContinuousClock.Instant, note: String?) -> String {
+        let waited = now - since
+        guard waited >= PlayerTiming.startingWaits else { return "Starting episode \(episode)" }
+        let what = note.flatMap { $0.isEmpty ? nil : $0.prefix(1).uppercased() + $0.dropFirst() } ?? "Finding a source"
+        return "\(what) · \(waited.components.seconds) s"
+    }
+}
+
 /// The episode on screen, for the header and Now Playing.
 public struct EpisodeOnScreen: Equatable, Sendable {
     public var number: String
@@ -217,4 +228,10 @@ public func seekSegments(chapters: [Chapter], duration: Double?) -> [SeekSegment
     }
     if at < duration { segments.append(SeekSegment(kind: .plain, start: at, end: duration)) }
     return segments
+}
+
+/// The controls' state and the picture's height, which the subtitles' lift follows.
+struct SubtitleLift: Equatable {
+    var visible: Bool
+    var height: CGFloat
 }

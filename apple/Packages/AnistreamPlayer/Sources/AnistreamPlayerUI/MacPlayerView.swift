@@ -15,7 +15,11 @@ public struct MacPlayerView: View {
     @State private var panel: Panel?
     @State private var overBar = false
     @State private var window: NSWindow?
+    @State private var height: CGFloat = 0
+    /// The window's frame before the mini player, to go back to exactly.
+    @State private var fullFrame: NSRect?
     @FocusState private var focused: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let metrics = PlayerMetrics.mac
 
     enum Panel: Equatable { case tracks, episodes, more }
@@ -40,25 +44,13 @@ public struct MacPlayerView: View {
             if model.showsSpinner {
                 ProgressView().controlSize(.regular).tint(.silk).environment(\.colorScheme, .dark)
             }
-            chrome
-                .opacity(visible ? 1 : 0)
-                .animation(visible ? .fadeIn : .fadeOut, value: visible)
-                .allowsHitTesting(visible)
-            CornerCard(model: model, metrics: metrics)
-                .padding(metrics.cornerInset)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-            ResumeNoteView(model: model, metrics: metrics)
-                .padding(.top, 60)
-                .padding(.leading, 20)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .animation(.standard, value: model.resume)
-            PlayerAlertView(model: model, metrics: metrics)
-                .padding(.top, 60)
-                .frame(maxHeight: .infinity, alignment: .top)
-                .animation(.standard, value: model.alert)
-            if let panel {
-                panelLayer(panel)
+            Group {
+                if model.miniPlayer { miniChrome } else { chrome }
             }
+            .opacity(visible ? 1 : 0)
+            .animation(visible ? .fadeIn : .fadeOut, value: visible)
+            .allowsHitTesting(visible)
+            if !model.miniPlayer { cards }
             if model.stillWatching {
                 Palette.controlsDim
                 StillWatchingDialog(model: model, metrics: metrics)
@@ -78,6 +70,7 @@ public struct MacPlayerView: View {
             TapGesture(count: 2).onEnded { model.fullScreen.toggle() }
                 .exclusively(before: TapGesture().onEnded { model.togglePause() })
         )
+        .contextMenu { contextMenu }
         .focusable()
         .focusEffectDisabled()
         .focused($focused)
@@ -85,11 +78,136 @@ public struct MacPlayerView: View {
         .onAppear { focused = true }
         .onChange(of: model.fullScreen) { _, on in fullScreen(on) }
         .onChange(of: visible) { _, on in titleBar(on) }
+        .onChange(of: model.miniPlayer) { _, on in mini(on) }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { note in
+            // Asked for the mini player in full screen: it follows once full screen has ended.
+            if model.miniPlayer, fullFrame == nil, (note.object as? NSWindow) === window { mini(true) }
+        }
+        .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { height = $0 }
+        .onChange(of: SubtitleLift(visible: visible, height: height), initial: true) { _, lift in
+            // The subtitles rise above the control row while it is up, as MacPlayer has them, and
+            // above the mini player's.
+            model.liftSubtitles(lift.visible ? metrics.subtitleLift / max(lift.height, 1) : 0, animated: !reduceMotion)
+        }
         .onDisappear {
-            // The window closed: ⌘W, its close button, or the model closing it.
+            // The window closed: ⌘W, its close button, or the model closing it. Closed small, it
+            // opens next time as it was before the mini player.
+            if let fullFrame, let window {
+                window.level = .normal
+                window.setFrame(fullFrame, display: false)
+                self.fullFrame = nil
+            }
             model.viewerClosed()
         }
         .preferredColorScheme(.dark)
+    }
+
+    /// The cards over the video, which the mini player leaves out.
+    @ViewBuilder
+    private var cards: some View {
+        CornerCard(model: model, metrics: metrics)
+            .padding(metrics.cornerInset)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+        ResumeNoteView(model: model, metrics: metrics)
+            .padding(.top, 60)
+            .padding(.leading, 20)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .animation(.standard, value: model.resume)
+        PlayerAlertView(model: model, metrics: metrics)
+            .padding(.top, 60)
+            .frame(maxHeight: .infinity, alignment: .top)
+            .animation(.standard, value: model.alert)
+        if let panel {
+            panelLayer(panel)
+        }
+    }
+
+    // MARK: The mini player
+
+    /// The mini player's controls: play and pause, the seek line and the volume, and the way back.
+    private var miniChrome: some View {
+        ZStack {
+            LinearGradient(
+                stops: [
+                    .init(color: Palette.ground.opacity(0), location: 0.35),
+                    .init(color: Palette.ground.opacity(0.72), location: 1),
+                ],
+                startPoint: .top, endPoint: .bottom
+            )
+            .allowsHitTesting(false)
+            VStack(spacing: 0) {
+                HStack {
+                    Spacer()
+                    icon("arrow.up.left.and.arrow.down.right", "Exit Mini Player") { model.miniPlayer = false }
+                }
+                .padding(.top, 6)
+                .padding(.trailing, 6)
+                Spacer(minLength: 0)
+                HStack(spacing: 4) {
+                    icon(model.paused ? "play.fill" : "pause.fill", model.paused ? "Play" : "Pause") { model.togglePause() }
+                    SeekLine(model: model, metrics: metrics, showsPreview: false)
+                        .padding(.horizontal, 4)
+                    Button { model.toggleMute() } label: {
+                        Image(systemName: model.muted ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                            .font(.system(size: 12))
+                            .frame(width: 18, height: 28)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(model.muted ? "Unmute" : "Mute")
+                    VolumeLine(model: model, width: 56)
+                }
+                .padding(.horizontal, 8)
+                .padding(.bottom, 6)
+                .onHover { overBar = $0 }
+            }
+            .overVideoText()
+        }
+    }
+
+    /// The window shrinks to a quarter of the screen's width in the bottom right corner and
+    /// floats over other windows; leaving puts it back exactly where it was.
+    private func mini(_ on: Bool) {
+        guard let window else { return }
+        if on {
+            guard fullFrame == nil else { return }
+            if window.styleMask.contains(.fullScreen) {
+                model.fullScreen = false
+                return
+            }
+            guard let screen = window.screen ?? NSScreen.main else { return }
+            fullFrame = window.frame
+            panel = nil
+            let visible = screen.visibleFrame
+            let width = (visible.width / 4).rounded()
+            let size = NSSize(width: width, height: (width * 9 / 16).rounded())
+            window.contentMinSize = NSSize(width: 240, height: 135)
+            window.level = .floating
+            window.setFrame(
+                NSRect(x: visible.maxX - size.width - 16, y: visible.minY + 16, width: size.width, height: size.height),
+                display: true, animate: !reduceMotion)
+        } else {
+            window.level = .normal
+            if let fullFrame { window.setFrame(fullFrame, display: true, animate: !reduceMotion) }
+            fullFrame = nil
+        }
+    }
+
+    // MARK: The context menu
+
+    @ViewBuilder
+    private var contextMenu: some View {
+        Button(model.paused ? "Play" : "Pause") { model.togglePause() }
+        if let skip = model.skip {
+            Button(skip.label.capitalized) { model.takeSkip() }
+        }
+        Divider()
+        Button("Subtitles…") { toggle(.tracks) }
+        Button("Audio…") { toggle(.tracks) }
+        Button("Episodes…") { toggle(.episodes) }
+        Divider()
+        Button(model.miniPlayer ? "Exit Mini Player" : "Mini Player") { model.miniPlayer.toggle() }
+        Button("Picture in Picture") {}
+            .disabled(true)
     }
 
     // MARK: Chrome
@@ -294,6 +412,8 @@ public struct MacPlayerView: View {
         case .escape:
             if panel != nil {
                 panel = nil
+            } else if model.miniPlayer {
+                model.miniPlayer = false
             } else if model.corner == .upNext {
                 model.cancelNext()
             } else if model.corner == .stall {
@@ -314,6 +434,7 @@ public struct MacPlayerView: View {
                 return .handled
             case "z" where command, "u":
                 model.undoSkip()
+            case "m" where command && option: model.miniPlayer.toggle()
             case "m": model.toggleMute()
             case "n": model.step(shift ? -1 : 1)
             case "f" where !command: model.fullScreen.toggle()
@@ -353,6 +474,7 @@ public struct MacPlayerView: View {
 /// The volume as a 72 pt line, silk over silk at 22%; dragging steps it.
 struct VolumeLine: View {
     let model: PlayerModel
+    var width: CGFloat = 72
 
     var body: some View {
         GeometryReader { proxy in
@@ -371,7 +493,7 @@ struct VolumeLine: View {
                     }
                 )
         }
-        .frame(width: 72, height: 28)
+        .frame(width: width, height: 28)
         .accessibilityElement()
         .accessibilityLabel("Volume")
         .accessibilityValue("\(Int(model.volume))%")
