@@ -197,6 +197,26 @@ pub const LAST_AIRED: &str = r"
     }
 ";
 
+/// What aired for the titles being followed in a window: the new-episode check.
+///
+/// `mediaId_in` takes every title followed at once, so a check costs one request however long
+/// the list. Oldest first, so a window with more broadcasts than a page is carried on from where
+/// the page ended rather than losing its oldest. Each broadcast brings its title's forms and its
+/// cover, which a notification shows, and nothing heavier: no description, no schedule.
+pub const AIRED_SINCE: &str = r"
+    query ($ids: [Int], $from: Int, $to: Int, $perPage: Int) {
+        Page(perPage: $perPage) {
+            pageInfo { hasNextPage }
+            airingSchedules(mediaId_in: $ids, airingAt_greater: $from, airingAt_lesser: $to,
+                            sort: TIME) {
+                episode
+                airingAt
+                media { id title { romaji english native } coverImage { extraLarge large color } }
+            }
+        }
+    }
+";
+
 /// The authenticated user's lists.
 pub fn user_library() -> String {
     format!(
@@ -274,6 +294,7 @@ mod tests {
             ("seasonal", seasonal()),
             ("airing_schedule", airing_schedule()),
             ("last_aired", LAST_AIRED.to_string()),
+            ("aired_since", AIRED_SINCE.to_string()),
             ("user_library", user_library()),
             ("viewer", VIEWER.to_string()),
             ("save_progress", SAVE_PROGRESS.to_string()),
@@ -328,6 +349,23 @@ mod tests {
             ] {
                 assert!(!doc.contains(field), "{field} leaked into {name}");
             }
+        }
+    }
+
+    #[test]
+    fn the_new_episode_check_asks_for_what_a_notification_shows_and_no_more() {
+        // Every title followed at once, and only the broadcasts of the window, oldest first.
+        for wanted in ["mediaId_in: $ids", "airingAt_greater: $from", "sort: TIME"] {
+            assert!(AIRED_SINCE.contains(wanted), "{wanted} missing:\n{AIRED_SINCE}");
+        }
+        assert!(AIRED_SINCE.contains("hasNextPage"), "a full page is carried on from");
+        // Every form of the title, for the title setting to pick from, and the cover.
+        for wanted in ["romaji", "english", "native", "coverImage"] {
+            assert!(AIRED_SINCE.contains(wanted), "{wanted} missing:\n{AIRED_SINCE}");
+        }
+        // Not the title's description or schedule, nor any episode's name.
+        for heavy in ["description", "streamingEpisodes", "nextAiringEpisode", "MEDIA_FIELDS"] {
+            assert!(!AIRED_SINCE.contains(heavy), "{heavy} in:\n{AIRED_SINCE}");
         }
     }
 

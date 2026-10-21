@@ -460,24 +460,31 @@ impl AniList {
                 }),
             )
             .await?;
+        Ok(airing_page(&data["Page"]))
+    }
 
-        let page_node = &data["Page"];
-        let items = page_node["airingSchedules"]
-            .as_array()
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|entry| {
-                        Some(AiringEntry {
-                            episode: entry.get("episode")?.as_u64()? as u32,
-                            airing_at: entry.get("airingAt")?.as_i64()?,
-                            media: serde_json::from_value(entry.get("media")?.clone()).ok()?,
-                        })
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
-
-        Ok(Page { items, has_next: has_next_page(page_node) })
+    /// What aired for `ids` after `from` and before `to`, oldest first: a page of at most
+    /// fifty broadcasts, and whether there are more after it. Each carries its title's forms
+    /// and cover, and nothing else of the title.
+    ///
+    /// One request for every title, however many: see [`query::AIRED_SINCE`].
+    pub async fn aired_since(
+        &self,
+        ids: &[AnilistId],
+        from: i64,
+        to: i64,
+    ) -> Result<Page<AiringEntry>> {
+        if ids.is_empty() {
+            return Ok(Page { items: Vec::new(), has_next: false });
+        }
+        let raw: Vec<i64> = ids.iter().map(|id| i64::from(id.get())).collect();
+        let data: serde_json::Value = self
+            .execute(
+                query::AIRED_SINCE,
+                serde_json::json!({ "ids": raw, "from": from, "to": to, "perPage": 50 }),
+            )
+            .await?;
+        Ok(airing_page(&data["Page"]))
     }
 
     /// When each of these titles last aired an episode.
@@ -687,6 +694,26 @@ fn decode_media_page(page: &serde_json::Value) -> Result<Page<Media>> {
         })
         .unwrap_or_default();
     Ok(Page { items, has_next: has_next_page(page) })
+}
+
+/// A page of broadcasts, each with its title as far as the query asked for it. A row that does
+/// not read is passed over rather than failing the page.
+fn airing_page(page: &serde_json::Value) -> Page<AiringEntry> {
+    let items = page["airingSchedules"]
+        .as_array()
+        .map(|rows| {
+            rows.iter()
+                .filter_map(|entry| {
+                    Some(AiringEntry {
+                        episode: entry.get("episode")?.as_u64()? as u32,
+                        airing_at: entry.get("airingAt")?.as_i64()?,
+                        media: serde_json::from_value(entry.get("media")?.clone()).ok()?,
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    Page { items, has_next: has_next_page(page) }
 }
 
 fn has_next_page(page: &serde_json::Value) -> bool {

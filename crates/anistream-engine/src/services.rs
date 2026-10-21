@@ -69,6 +69,9 @@ pub struct Services {
     /// The machine the engine runs on, as the front end offers it: where a link is opened and a
     /// notification shown.
     pub host: Arc<dyn Host>,
+    /// The time the new-episode check and the widgets' record go by: the system's, except in a
+    /// test that moves it on.
+    pub clock: crate::clock::Clock,
 }
 
 impl Services {
@@ -114,6 +117,7 @@ impl Services {
             player_theme,
             app_clients: AppClients::default(),
             host,
+            clock: Default::default(),
         })
     }
 }
