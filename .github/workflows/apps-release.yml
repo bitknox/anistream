@@ -30,28 +30,22 @@ on:
         required: true
       ANDROID_RELEASE_KEY_PASSWORD:
         required: true
+  # What decides how a release is built and packaged. CI's own jobs already build the apps for
+  # everything else, in Debug and for the Simulator. The patches and libmpv.map count as mpv's
+  # build script, which reads them.
   pull_request:
     paths:
       - .github/workflows/apps-release.yml
       - .github/workflows/release.yml
-      - packaging/apps/**
-      - rust-toolchain.toml
+      - packaging/**
       - apple/project.yml
-      - apple/Config/**
       - apple/scripts/engine.sh
       - apple/scripts/mpv.sh
-      - apple/scripts/fonts.sh
       - apple/patches/**
-      - apple/ThirdParty/**
-      - android/*.gradle.kts
-      - android/*/build.gradle.kts
-      - android/gradle.properties
-      - android/gradle/**
-      - android/build-logic/**
-      - android/player/src/main/cpp/CMakeLists.txt
+      - android/app/build.gradle.kts
+      - android/gradle/libs.versions.toml
       - android/scripts/engine.sh
       - android/scripts/mpv.sh
-      - android/scripts/fonts.sh
       - android/mpv/**
   workflow_dispatch:
     inputs:

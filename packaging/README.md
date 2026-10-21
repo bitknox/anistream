@@ -68,8 +68,10 @@ A release carries the apps beside the terminal binaries: `anistream-<version>-an
 `anistream-<version>-macos.dmg` and `anistream-<version>-ios-unsigned.ipa`, each with a `.sha256`,
 and `anistream-<version>-apps-third-party.zip`. `.github/workflows/apps-release.yml` builds them,
 and `release.yml` calls it on a tag and adds what it built to the draft release after the
-terminal builds. A pull request that changes how the apps are built, and a dispatch of
-apps-release.yml, build them all without publishing anything.
+terminal builds. A pull request that changes the release workflows, this directory,
+`apple/project.yml`, `android/app/build.gradle.kts`, the version catalog or the mpv and engine
+scripts builds them all without publishing anything, and so does a dispatch of apps-release.yml.
+CI's own jobs build the apps for everything else.
 
 - `apps/version.sh` — the version from the tag, with the build number Android and Apple need,
   which grows with it (`v1.2.0` is 1020099, `v1.2.0-rc.2` 1020062). Gradle takes them as the
