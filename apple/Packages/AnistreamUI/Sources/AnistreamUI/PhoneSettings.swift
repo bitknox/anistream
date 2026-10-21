@@ -297,6 +297,7 @@ struct Avatar: View {
 struct PhonePlaybackPage: View {
     @Environment(AppStore.self) private var store
     @AppStorage("anistream.spoilerProtection") private var spoilers = true
+    @AppStorage(DevicePreferences.followSystemCaptions) private var followCaptions = true
 
     var body: some View {
         PhoneList {
@@ -305,6 +306,14 @@ struct PhonePlaybackPage: View {
                 // "Overridden for 3 shows" waits on E8's override counts.
                 PhoneSettingPicker(key: .translation)
                 PhoneSubtitlesPicker()
+                // Kept on this device: the style it follows is this device's.
+                Toggle(isOn: $followCaptions) {
+                    PhoneRowTitle(
+                        title: "Subtitles follow your system caption style",
+                        note: "Font, size, colours and edges from Accessibility › Subtitles & Captioning. Styled subtitles keep their own look.")
+                }
+                .tint(.amber)
+                .listRowBackground(Palette.raised)
                 PhoneSettingPicker(key: .quality)
             } header: {
                 PhoneSectionHeader("Language")

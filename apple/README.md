@@ -216,6 +216,17 @@ engine in temporary directories, and keep secrets in memory.
   T2 to T5): tap, double tap, long press for 2×, pinch, swipe down to close, landscape on iPhone,
   the audio on in the background with `vid=no`. While the controls are up the subtitles rise
   above them (`sub-pos`, which libass applies to ASS dialogue and not to placed signs).
+  Plain-text subtitles (SRT, WebVTT and the rest) follow the system's caption style while
+  Settings › Playback › "Subtitles follow your system caption style" is on, as it is unless the
+  viewer turns it off (kept on the device, `DevicePreferences`): `CaptionStyle` reads
+  MediaAccessibility's font, size, colours, background, the box behind the lines and the edge,
+  and maps them to mpv's `sub-*` options, at mpv's start and again whenever the system says the
+  style changed. ASS subtitles keep their own look: mpv applies those options only to subtitles
+  without a style at its default `sub-ass-override=scale`, which the player leaves as it is (`no`
+  would also stop `sub-pos` lifting ASS dialogue). The system's own interface font has no name
+  libass can find, so the default caption style keeps the player's font. On iOS that is the
+  bundled CJK font; a caption font the viewer picks takes its place, and simplified-only Han
+  characters then come out as boxes, as iOS has no other font with them.
   Scrubbing shows the frame under the finger from a second, hidden mpv (`SeekPreview`, off in
   Low Power Mode) with the time and the chapter, slows to half and quarter speed as the finger
   lifts (⌥ on the Mac), and ticks across opening and ending marks; on the Mac hovering the seek
