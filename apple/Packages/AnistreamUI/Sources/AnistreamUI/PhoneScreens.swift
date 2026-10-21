@@ -235,6 +235,7 @@ struct PhoneCard: View {
             .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         }
         .buttonStyle(.plain)
+        .pointerHover()
         .titleElement(entry, value: item.spokenProgress) { QueueMenu(item: item) }
         .contextMenu { QueueMenu(item: item) }
         // The cards on screen only: a still stands in for a missing banner.
@@ -280,6 +281,7 @@ struct PhoneNewRow: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        .pointerHover()
         .titleElement(item.entry, value: item.spokenProgress) { QueueMenu(item: item) }
         .contextMenu { QueueMenu(item: item) }
     }
@@ -384,6 +386,7 @@ struct PhoneCalendar: View {
             .contentShape(.capsule)
         }
         .buttonStyle(.plain)
+        .pointerHover()
         .accessibilityLabel("\(CalendarWords.weekday(day)) \(CalendarWords.dayMonth(day))")
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
@@ -440,6 +443,7 @@ struct PhoneBroadcastRow: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        .pointerHover()
         .titleElement(broadcast.entry, value: broadcast.spoken(now: now)) { TitleActions(entry: broadcast.entry) }
         .contextMenu { TitleMenu(entry: broadcast.entry) }
     }
@@ -489,6 +493,7 @@ struct PhoneLibrary: View {
                                         .overlay(Capsule().strokeBorder(selected ? .clear : Palette.faintRule))
                                     }
                                     .buttonStyle(.plain)
+                                    .pointerHover()
                                 }
                             }
                             .padding(.horizontal, 16)
@@ -530,6 +535,7 @@ struct DownloadsRow: View {
             .background(.raised, in: .rect(cornerRadius: 16))
         }
         .buttonStyle(.plain)
+        .pointerHover()
     }
 }
 

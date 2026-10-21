@@ -214,6 +214,7 @@ struct QueueRow: View {
             .contentShape(.rect(cornerRadius: 10))
         }
         .buttonStyle(.plain)
+        .pointerHover()
         // The tint moves at once, as in any Mac list (M2).
         .titleElement(item.entry, value: item.spokenProgress) { QueueMenu(item: item) }
         .accessibilityAddTraits(selected ? .isSelected : [])

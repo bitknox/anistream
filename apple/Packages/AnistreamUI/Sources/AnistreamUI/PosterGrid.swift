@@ -65,6 +65,7 @@ struct PosterCell: View {
             }
         }
         .buttonStyle(.plain)
+        .pointerHover()
         .titleElement(entry, value: [detail, fresh].compactMap { $0 }.joined(separator: ", ")) {
             TitleActions(entry: entry)
         }

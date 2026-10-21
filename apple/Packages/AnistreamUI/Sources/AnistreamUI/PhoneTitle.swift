@@ -145,6 +145,7 @@ struct PhoneTitle: View {
                                     .overlay(Capsule().strokeBorder(.faintRule))
                                 }
                                 .buttonStyle(.plain)
+                                .pointerHover()
                             }
                         }
                     }
@@ -198,6 +199,7 @@ struct PhoneTitle: View {
             .overlay(Capsule().strokeBorder(season.isThis ? .clear : Palette.faintRule))
         }
         .buttonStyle(.plain)
+        .pointerHover()
     }
 }
 
@@ -260,6 +262,7 @@ struct PhoneEpisodes: View {
                     .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
+                .pointerHover()
                 .episodeElement(row, value: row.spokenValue(entry, current: current, upcoming: false)) {
                     EpisodeMenu(entry: entry, number: number, row: row)
                 }

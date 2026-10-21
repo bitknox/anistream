@@ -337,6 +337,7 @@ struct TitleFamilyRow: View {
             .contentShape(.rect(cornerRadius: 10))
         }
         .buttonStyle(.plain)
+        .pointerHover()
         .task { if store.titles[id] == nil { store.loadDetail(id) } }
     }
 }
@@ -444,6 +445,7 @@ struct EpisodeRowView: View {
             .contentShape(.rect(cornerRadius: 8))
         }
         .buttonStyle(.plain)
+        .pointerHover()
         .episodeElement(row, value: row.spokenValue(entry, current: current, upcoming: upcoming)) {
             EpisodeMenu(entry: entry, number: number, row: row)
         }

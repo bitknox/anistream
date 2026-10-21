@@ -146,6 +146,7 @@ struct PrimaryCapsuleStyle: ButtonStyle {
             .frame(minHeight: height)
             .background(.amber.opacity(configuration.isPressed ? 0.85 : 1), in: .capsule)
             .contentShape(.capsule)
+            .pointerLift()
             .modifier(DimmedWhenDisabled())
     }
 }
@@ -188,6 +189,27 @@ struct CapsuleLines: ViewModifier {
     }
 }
 
+extension View {
+    /// The pointer's highlight on iPad over a row, a cell or a chip drawn plain. Nothing on the
+    /// Mac, whose rows show their own hover and selection.
+    func pointerHover() -> some View {
+        #if os(iOS)
+        hoverEffect(.highlight)
+        #else
+        self
+        #endif
+    }
+
+    /// The pointer's lift on iPad over a capsule button.
+    func pointerLift() -> some View {
+        #if os(iOS)
+        hoverEffect(.lift)
+        #else
+        self
+        #endif
+    }
+}
+
 /// A custom button's look when it cannot be pressed: faded, as the system fades its own.
 struct DimmedWhenDisabled: ViewModifier {
     @Environment(\.isEnabled) private var isEnabled
@@ -215,6 +237,7 @@ struct SecondaryCapsuleStyle: ButtonStyle {
             .background(background(pressed: configuration.isPressed), in: .capsule)
             .overlay(Capsule().strokeBorder(raisedSurface ? .clear : Palette.faintRule, lineWidth: 1))
             .contentShape(.capsule)
+            .pointerLift()
             .modifier(DimmedWhenDisabled())
     }
 

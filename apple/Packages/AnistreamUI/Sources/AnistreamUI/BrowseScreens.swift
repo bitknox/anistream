@@ -449,6 +449,7 @@ struct ChipStyle: ButtonStyle {
             )
             .overlay(Capsule().strokeBorder(.faintRule, lineWidth: 1))
             .contentShape(.capsule)
+            .pointerHover()
     }
 }
 

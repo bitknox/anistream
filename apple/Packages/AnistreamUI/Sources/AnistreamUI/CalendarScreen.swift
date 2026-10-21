@@ -307,6 +307,7 @@ struct BroadcastCell: View {
             }
         }
         .buttonStyle(.plain)
+        .pointerHover()
         .contentShape(.rect(cornerRadius: 8))
         .titleElement(broadcast.entry, value: broadcast.spoken(now: now)) { TitleActions(entry: broadcast.entry) }
         .contextMenu { TitleMenu(entry: broadcast.entry) }

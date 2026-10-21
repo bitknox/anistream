@@ -94,6 +94,7 @@ struct SetupCard: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Button("Hide", action: hide)
                         .buttonStyle(.plain)
+                        .pointerHover()
                         .font(.mac(13, weight: .semibold))
                         .foregroundStyle(.silk)
                         .accessibilityLabel("Hide setup")
@@ -116,6 +117,7 @@ struct SetupCard: View {
                         Spacer()
                         Button("Hide", action: hide)
                             .buttonStyle(.plain)
+                            .pointerHover()
                             .font(.mac(15, weight: .semibold))
                             .foregroundStyle(.silk)
                     }
@@ -179,6 +181,7 @@ struct AiringToday: View {
                     .frame(height: 28)
                 }
                 .buttonStyle(.plain)
+                .pointerHover()
                 .accessibilityLabel("Airing today, show in Calendar")
                 if compact {
                     ScrollView(.horizontal) {
@@ -235,6 +238,7 @@ struct AiringToday: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        .pointerHover()
         .titleElement(broadcast.entry, value: broadcast.spoken(now: now)) { TitleActions(entry: broadcast.entry) }
         .contextMenu { TitleMenu(entry: broadcast.entry) }
     }
@@ -263,6 +267,7 @@ struct ThisSeason: View {
                         .frame(height: 28)
                     }
                     .buttonStyle(.plain)
+                    .pointerHover()
                     if !compact, let name = store.seasonName {
                         Text(name).font(.mac(12)).foregroundStyle(.haze)
                     }
