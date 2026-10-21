@@ -48,6 +48,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import tv.anistream.design.ArtShape
+import tv.anistream.design.Motion
 import tv.anistream.design.Nagare
 import tv.anistream.design.ShowTitle
 import tv.anistream.engine.core.AnilistId
@@ -94,8 +95,16 @@ fun MoreAboutContent(
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         if (about) About(entry, heading)
-        when {
-            detail != null -> {
+        // Placeholders give way to the sections, or to the failure, in one crossfade (T8).
+        val phase = when {
+            detail != null -> 1
+            entry.id in failed -> 2
+            else -> 0
+        }
+        androidx.compose.animation.Crossfade(phase, animationSpec = Motion.standard(), label = "about") { shown ->
+        Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        when (shown) {
+            1 -> if (detail != null) {
                 val nothing = detail.rankings.isEmpty() && detail.characters.isEmpty() && detail.staff.isEmpty() &&
                     detail.recommendations.isEmpty() && detail.tags.isEmpty()
                 if (nothing) {
@@ -115,11 +124,13 @@ fun MoreAboutContent(
                     Tags(entry)
                 }
             }
-            entry.id in failed -> Column(Modifier.padding(horizontal = 16.dp)) {
+            2 -> Column(Modifier.padding(horizontal = 16.dp)) {
                 Text("AniList did not answer.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 TextButton(onClick = { store.loadDetail(entry.id) }, modifier = Modifier.padding(start = 0.dp)) { Text("Try again") }
             }
             else -> AboutPlaceholders()
+        }
+        }
         }
     }
 }
@@ -183,7 +194,7 @@ private fun Rankings(entry: Entry) {
         for (ranking in rankings) {
             Text(
                 buildAnnotatedString {
-                    withStyle(SpanStyle(fontWeight = FontWeight.Medium, fontFeatureSettings = "tnum")) { append("#${ranking.rank}") }
+                    withStyle(SpanStyle(fontWeight = FontWeight.SemiBold, fontFeatureSettings = "tnum")) { append("#${ranking.rank}") }
                     append(" ")
                     withStyle(SpanStyle(color = colors.onSurfaceVariant)) { append(ranking.words()) }
                 },
