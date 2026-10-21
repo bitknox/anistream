@@ -1,7 +1,7 @@
 // The one rule for a title's wide art.
 
 import AnistreamKit
-@testable import AnistreamUI
+@testable import AnistreamStore
 import Testing
 
 struct HeroArtTests {
@@ -16,10 +16,10 @@ struct HeroArtTests {
         }
     }
 
-    let bannerless = entry { $0.bannerUrl = nil }
+    let bannerless = entry(900_005, "Hagane no Niwashi") { $0.bannerUrl = nil }
 
     @Test func theBannerWins() {
-        let titled = entry { $0.bannerUrl = "banner/900001.jpg" }
+        let titled = entry(900_005, "Hagane no Niwashi") { $0.bannerUrl = "banner/900001.jpg" }
         #expect(HeroArt.resolve(titled, episodes: rows(12, completed: 6)) == .banner("banner/900001.jpg"))
         #expect(HeroArt.resolve(titled, episodes: nil) == .banner("banner/900001.jpg"))
     }
@@ -29,7 +29,7 @@ struct HeroArtTests {
     }
 
     @Test func whatTheTrackerCountsAsDoneIsWatchedToo() {
-        let tracked = entry {
+        let tracked = entry(900_005, "Hagane no Niwashi") {
             $0.bannerUrl = nil
             $0.progress = TitleProgress(done: 4, next: 5)
         }
