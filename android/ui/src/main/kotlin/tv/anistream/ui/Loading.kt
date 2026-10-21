@@ -100,3 +100,17 @@ fun TextPlaceholder(fraction: Float, lineHeight: Dp = 20.dp, modifier: Modifier 
         )
     }
 }
+
+/**
+ * [content] only once 600 ms have passed, fading in: for placeholders that sit inside a list,
+ * where [Loading] cannot wrap them, so a fast answer never shows them at all.
+ */
+@Composable
+fun AfterWait(content: @Composable () -> Unit) {
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(PLACEHOLDERS_AFTER)
+        shown = true
+    }
+    AnimatedVisibility(shown, enter = fadeIn(Motion.fadeIn()), exit = ExitTransition.None) { content() }
+}

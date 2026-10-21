@@ -152,7 +152,7 @@ fun LibraryScreen(actions: AppActions) {
                 is ListState.Loaded -> items(entries, key = { it.id.toLong() }) { entry ->
                     PosterCell(entry, from = "library", detail = libraryDetail(entry), fresh = hasNew(entry))
                 }
-                else -> items(9) { PosterPlaceholder() }
+                else -> items(9) { AfterWait { PosterPlaceholder() } }
             }
         }
     }

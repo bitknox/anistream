@@ -452,7 +452,7 @@ private fun Related(family: TitleFamily, titles: Map<AnilistId, Entry>, inset: B
 /** The episodes, a row each; plates in their place while the table loads. */
 private fun LazyListScope.episodeRows(entry: Entry, episodes: List<EpisodeRow>?, actions: AppActions) {
     if (episodes == null) {
-        items(4, key = { "placeholder-$it" }) { EpisodePlaceholder() }
+        items(4, key = { "placeholder-$it" }) { AfterWait { EpisodePlaceholder() } }
         return
     }
     val next = entry.progress?.next ?: 1u
@@ -577,7 +577,7 @@ private fun TabletTitle(
                 }
                 fullWidth("gap") { Spacer(Modifier.height(16.dp)) }
                 if (episodes == null) {
-                    items(4) { EpisodePlaceholder() }
+                    items(4) { AfterWait { EpisodePlaceholder() } }
                 } else {
                     items(episodes.size, key = { "episode-${episodes[it].number}" }) { index ->
                         val row = episodes[index]
