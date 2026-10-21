@@ -531,6 +531,43 @@ pub struct Studio {
     pub name: String,
 }
 
+/// A run of a description: plain text, and whether AniList marks it a spoiler.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DescriptionSpan {
+    pub text: String,
+    pub spoiler: bool,
+}
+
+/// AniList's HTML as plain text: tags out, the entities it uses put back, every run of
+/// whitespace one space.
+fn plain_text(raw: &str) -> String {
+    let mut out = String::with_capacity(raw.len());
+    let mut in_tag = false;
+    for ch in raw.chars() {
+        match ch {
+            '<' => in_tag = true,
+            '>' => {
+                in_tag = false;
+                // A closed tag was acting as a separator; keep one space so words do not run
+                // together where markup was doing the spacing.
+                if !out.ends_with(' ') && !out.is_empty() {
+                    out.push(' ');
+                }
+            }
+            c if !in_tag => out.push(c),
+            _ => {}
+        }
+    }
+    out.replace("&amp;", "&")
+        .replace("&quot;", "\"")
+        .replace("&#039;", "'")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 /// The most recent broadcast of one title.
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -601,39 +638,49 @@ impl Media {
         }
     }
 
-    /// Strip AniList's HTML description down to plain text for the terminal.
+    /// Strip AniList's HTML description down to plain text for the terminal, with what AniList
+    /// marks a spoiler left out: [`Self::description_spans`]' text that is not a spoiler, a
+    /// space between.
     ///
     /// Descriptions contain `<br>`, `<i>` and occasional `<a>`, none of which a TUI can
-    /// render. Left in place they would show as literal tag soup in the synopsis panel.
+    /// render. Left in place they would show as literal tag soup in the synopsis panel. And
+    /// `~!…!~` around a spoiler, which showed as it was, spoiler and markers both.
     pub fn plain_description(&self) -> String {
-        let Some(raw) = &self.description else {
-            return String::new();
-        };
-        let mut out = String::with_capacity(raw.len());
-        let mut in_tag = false;
-        for ch in raw.chars() {
-            match ch {
-                '<' => in_tag = true,
-                '>' => {
-                    in_tag = false;
-                    // A closed tag was acting as a separator; keep one space so words do
-                    // not run together where markup was doing the spacing.
-                    if !out.ends_with(' ') && !out.is_empty() {
-                        out.push(' ');
-                    }
-                }
-                c if !in_tag => out.push(c),
-                _ => {}
+        let shown: Vec<String> = self
+            .description_spans()
+            .into_iter()
+            .filter(|span| !span.spoiler)
+            .map(|span| span.text)
+            .collect();
+        shown.join(" ")
+    }
+
+    /// The description as plain text, in runs, each marked whether AniList's `~!…!~` says it
+    /// gives the story away. A front end shows the runs one after another with a space between,
+    /// and hides the spoilers.
+    ///
+    /// A spoiler left open runs to the end, hidden: guessing where it was meant to stop would
+    /// show what it was meant to hide.
+    pub fn description_spans(&self) -> Vec<DescriptionSpan> {
+        let Some(raw) = &self.description else { return Vec::new() };
+        let mut spans = Vec::new();
+        let mut rest = raw.as_str();
+        let mut spoiler = false;
+        loop {
+            let marker = if spoiler { "!~" } else { "~!" };
+            let (run, next) = match rest.find(marker) {
+                Some(at) => (&rest[..at], Some(&rest[at + marker.len()..])),
+                None => (rest, None),
+            };
+            let text = plain_text(run);
+            if !text.is_empty() {
+                spans.push(DescriptionSpan { text, spoiler });
             }
+            let Some(next) = next else { break };
+            rest = next;
+            spoiler = !spoiler;
         }
-        out.replace("&amp;", "&")
-            .replace("&quot;", "\"")
-            .replace("&#039;", "'")
-            .replace("&lt;", "<")
-            .replace("&gt;", ">")
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ")
+        spans
     }
 
     /// Every title string a provider search should try, widest first.
@@ -1107,6 +1154,40 @@ mod tests {
         assert!(!text.contains("&amp;"));
         assert!(text.starts_with("The lamplighter"));
         assert!(text.contains("(Source: Hikari Stream)"));
+    }
+
+    #[test]
+    fn a_spoiler_is_its_own_run_and_left_out_of_the_plain_text() {
+        let m: Media = serde_json::from_value(serde_json::json!({
+            "id": 1,
+            "description": "The lamplighter walks on.<br><br>~!She was the lantern all along.!~ \
+                            The road goes <i>on</i>."
+        }))
+        .unwrap();
+        let spans: Vec<_> =
+            m.description_spans().into_iter().map(|s| (s.text, s.spoiler)).collect();
+        assert_eq!(
+            spans,
+            [
+                ("The lamplighter walks on.".into(), false),
+                ("She was the lantern all along.".into(), true),
+                ("The road goes on .".into(), false),
+            ]
+        );
+        assert_eq!(
+            m.plain_description(),
+            "The lamplighter walks on. The road goes on .",
+            "no spoiler, and no markers"
+        );
+
+        // Left open, the rest is the spoiler: never shown for want of a closing mark.
+        let open: Media = serde_json::from_value(serde_json::json!({
+            "id": 1, "description": "Before. ~!The twist, and the end"
+        }))
+        .unwrap();
+        assert_eq!(open.plain_description(), "Before.");
+        assert_eq!(open.description_spans().last().map(|s| s.spoiler), Some(true));
+        assert!(hoshikuzu().description_spans().iter().all(|s| !s.spoiler), "none marked");
     }
 
     #[test]

@@ -15,6 +15,7 @@ pub mod cache;
 pub mod dataset;
 pub mod download;
 pub mod history;
+pub mod library_status;
 pub mod mapping;
 pub mod outbox;
 pub mod preference;

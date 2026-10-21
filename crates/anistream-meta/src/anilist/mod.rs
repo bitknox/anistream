@@ -18,8 +18,8 @@ use anistream_net::{HttpClient, RateLimiter, ratelimit::parse_rate_headers};
 use serde::de::DeserializeOwned;
 
 pub use model::{
-    Broadcast, ExternalLink, FuzzyDate, LastAired, Media, Ranking, Relation, SourceMaterial,
-    StreamingEpisode, Tag, Title, TitleLanguage, Viewer,
+    Broadcast, DescriptionSpan, ExternalLink, FuzzyDate, LastAired, Media, Ranking, Relation,
+    SourceMaterial, StreamingEpisode, Tag, Title, TitleLanguage, Viewer,
 };
 
 const ENDPOINT: &str = "https://graphql.anilist.co";

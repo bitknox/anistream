@@ -392,6 +392,14 @@ pub async fn load_library(
 
     match anilist.library().await {
         Ok(entries) => {
+            // The whole list, every segment's, kept for the cards that say "Watched".
+            let statuses: Vec<_> =
+                entries.iter().map(|e| (e.media.id, e.status.as_str())).collect();
+            if let Err(e) =
+                store.replace_library_statuses("anilist", &statuses, anistream_store::now())
+            {
+                tracing::debug!(error = %e, "could not keep the library's statuses");
+            }
             let wanted = segment.wire();
             let mut rows = Vec::new();
             for entry in entries.iter().filter(|e| e.status == wanted) {
@@ -422,6 +430,33 @@ pub async fn load_library(
 ///
 /// Both run forever. The drain is cheap when idle — one indexed count against SQLite — so it can
 /// tick often; a pull costs a real request out of thirty a minute, so it does not.
+/// Keep where each title is on `tracker`'s list, as the tracker's words for it, in place of
+/// what was kept: see `anistream_store::library_status`.
+fn keep_statuses(
+    store: &Store,
+    tracker: &str,
+    remote: &[anistream_core::traits::TrackedEntry],
+    now: i64,
+) {
+    use anistream_core::traits::WatchStatus as W;
+    let statuses: Vec<_> = remote
+        .iter()
+        .map(|entry| {
+            let status = match entry.status {
+                W::Current | W::Repeating => "CURRENT",
+                W::Planning => "PLANNING",
+                W::Completed => "COMPLETED",
+                W::Paused => "PAUSED",
+                W::Dropped => "DROPPED",
+            };
+            (entry.anilist_id, status)
+        })
+        .collect();
+    if let Err(e) = store.replace_library_statuses(tracker, &statuses, now) {
+        tracing::debug!(error = %e, "could not keep the library's statuses");
+    }
+}
+
 pub fn spawn_loops(sync: Sync, tx: Outbox) {
     if sync.trackers.is_empty() {
         return;
@@ -542,6 +577,10 @@ pub async fn pull_once(sync: &Sync, tx: &Outbox) {
         let last_pull =
             sync.store.get_meta_i64(&pull_key(tracker.id())).unwrap_or(None).unwrap_or(0);
         let reconciled = library.and_then(|remote| {
+            // The Library's own tracker's list, kept for the cards that say "Watched".
+            if sync.trackers.first().is_some_and(|first| first.id() == tracker.id()) {
+                keep_statuses(&sync.store, tracker.id(), &remote, now);
+            }
             sync::reconcile(&sync.store, tracker.id(), &remote, now, last_pull)
         });
 

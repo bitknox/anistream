@@ -460,9 +460,9 @@ mod tests {
     fn a_titles_page_crosses_with_everything_only_it_fetches() {
         use anistream_model::{
             catalog::{
-                CastMember, CastRole, FuzzyDate, LinkedTitle, Person, Ranking, RankingKind,
-                RelationKind, Season, SourceMaterial, StaffCredit, TitleDetail, TitleLanguage,
-                TitleTag,
+                AiringStatus, CastMember, CastRole, FuzzyDate, LibrarySegment, LinkedTitle,
+                Person, Ranking, RankingKind, RelationKind, Season, SourceMaterial,
+                StaffCredit, SynopsisSpan, TitleDetail, TitleLanguage, TitleTag,
             },
             episodes::{EpisodeAiring, EpisodeRow},
         };
@@ -473,6 +473,11 @@ mod tests {
         entry.start_date = Some(FuzzyDate { year: 2024, month: Some(4), day: None });
         entry.source = Some(SourceMaterial::WebNovel);
         entry.adult = true;
+        entry.status = Some(AiringStatus::Hiatus);
+        entry.synopsis_spans = vec![
+            SynopsisSpan { text: "The lamplighter walks on.".into(), spoiler: false },
+            SynopsisSpan { text: "She was the lantern all along.".into(), spoiler: true },
+        ];
         entry.detail = Some(TitleDetail {
             tags: vec![TitleTag {
                 name: "The Last Lantern".into(),
@@ -491,8 +496,10 @@ mod tests {
                 relation: Some(RelationKind::Sequel),
                 format: Some("TV".into()),
                 cover_url: Some("https://img.example/cover/900004.jpg".into()),
+                cover_color: Some("#d77f4a".into()),
                 season: Some(Season::Winter),
                 year: Some(2025),
+                list_status: Some(LibrarySegment::Completed),
             }],
             recommendations: Vec::new(),
             rankings: vec![Ranking {

@@ -248,6 +248,8 @@ pub enum MediaStatus {
     NotYetReleased,
     Cancelled,
     Hiatus,
+    /// A status AniList adds later, read as this rather than failing the title over it.
+    #[serde(other)]
     Unknown,
 }
 

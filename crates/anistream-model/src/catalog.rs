@@ -90,6 +90,31 @@ pub struct Entry {
     /// What only the title page fetches: tags, the schedule, every relation, the cast and crew.
     /// `None` on every list fetch.
     pub detail: Option<TitleDetail>,
+    /// Whether it is airing, has finished, has yet to start, was cancelled or is on hiatus.
+    pub status: Option<AiringStatus>,
+    /// [`Self::synopsis`] in runs, with what AniList marks a spoiler as runs of their own, for a
+    /// front end that hides those. Shown one after another, a space between. [`Self::synopsis`]
+    /// is the same text with the spoilers left out, which is what the terminal shows.
+    pub synopsis_spans: Vec<SynopsisSpan>,
+}
+
+/// Where a title is in its run, as AniList says.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum AiringStatus {
+    Releasing,
+    Finished,
+    NotYetReleased,
+    Cancelled,
+    Hiatus,
+}
+
+/// One run of a synopsis: plain text, and whether AniList marks it a spoiler.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct SynopsisSpan {
+    pub text: String,
+    pub spoiler: bool,
 }
 
 /// The season a title premiered in.
@@ -197,8 +222,15 @@ pub struct LinkedTitle {
     /// `TV`, `MOVIE`, as [`Entry::format`].
     pub format: Option<String>,
     pub cover_url: Option<String>,
+    /// The cover's own colour, as AniList gives it (`#e4a15d`): what a card paints while the
+    /// cover is missing or on its way.
+    pub cover_color: Option<String>,
     pub season: Option<Season>,
     pub year: Option<u16>,
+    /// Where it is on the signed-in tracker's list, as the last library pull or Library load
+    /// found it, so a card can say "Watched" or "Planning". `None` when it is on no list, or
+    /// nothing has been pulled.
+    pub list_status: Option<LibrarySegment>,
 }
 
 /// How one title relates to another, as AniList names it. A relation AniList adds later reads
@@ -367,6 +399,8 @@ impl Entry {
             source: None,
             adult: false,
             detail: None,
+            status: None,
+            synopsis_spans: Vec::new(),
         }
     }
 
