@@ -11,7 +11,9 @@
 //!
 //! 1. The store a host offers, from [`Host::secrets`], is the only store: the engine reads no
 //!    setting and no environment variable over it. A phone's keychain is offered this way, and
-//!    a phone has no environment its user sets, and its keychain prompts nobody.
+//!    a phone has no environment its user sets, and its keychain prompts nobody. A native app
+//!    that shares the terminal app's data offers [`shared_secrets`] instead: the terminal's
+//!    rule, with the app's own reach into the keychain.
 //! 2. The [`DesktopHost`] offers the desktop's, chosen as it always was when the host is built:
 //!    `ANISTREAM_TOKEN_STORAGE` first, then `trackers.token_storage`. See [`desktop_secrets`].
 //! 3. A host that offers no store gets `0600` files under the data directory, the engine's
@@ -22,9 +24,9 @@ use std::sync::Arc;
 #[cfg(feature = "desktop")]
 use anistream_core::config::Config;
 use anistream_core::config::Paths;
-use anistream_track::secret::{Backend, LocalSecrets};
+use anistream_track::secret::LocalSecrets;
 
-pub use anistream_track::secret::{SecretError, SecretStore, Storage};
+pub use anistream_track::secret::{Backend, SecretError, SecretStore, Storage};
 
 /// The machine the engine runs on, as the front end offers it.
 ///
@@ -55,6 +57,29 @@ pub trait Host: Send + Sync {
 /// `paths` names, never a keychain.
 pub(crate) fn file_secrets(paths: &Paths) -> Arc<dyn SecretStore> {
     Arc::new(LocalSecrets::new(crate::tracking::token_dir(paths), Backend::File))
+}
+
+/// Where the terminal app keeps tokens under the data directory `paths` names, for a native app
+/// that shares its data, with `keychain` as the keychain: the app's own way into the system's,
+/// through its host, rather than `keyring`, which a native app does not link.
+///
+/// `backend` is what the terminal app goes by, [`Backend::from_env_or`] on
+/// `trackers.token_storage` as [`desktop_secrets`] reads it, so that one sign-in serves both
+/// apps:
+///
+/// - [`Backend::File`]: `0600` files under the data directory, the very files the terminal reads
+///   and writes. `keychain` is never asked.
+/// - [`Backend::Keychain`]: `keychain`, which on macOS keeps the items `keyring` keeps for the
+///   terminal, under service `anistream` and the token's id. The same files are the fallback
+///   where it refuses a token, and are read where it holds none, as on the desktop.
+pub fn shared_secrets(
+    backend: Backend,
+    paths: &Paths,
+    keychain: Arc<dyn SecretStore>,
+) -> Arc<dyn SecretStore> {
+    Arc::new(
+        LocalSecrets::new(crate::tracking::token_dir(paths), backend).with_keychain(keychain),
+    )
 }
 
 /// Where the desktop keeps tokens, under the data directory `paths` names: the one place that is
