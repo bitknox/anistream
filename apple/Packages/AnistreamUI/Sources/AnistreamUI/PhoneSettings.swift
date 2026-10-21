@@ -301,6 +301,7 @@ struct PhonePlaybackPage: View {
     var body: some View {
         PhoneList {
             Section {
+                PhoneTitleLanguageRow()
                 // "Overridden for 3 shows" waits on E8's override counts.
                 PhoneSettingPicker(key: .translation)
                 PhoneSubtitlesPicker()

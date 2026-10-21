@@ -21,6 +21,7 @@ struct SettingsPortTests {
         #expect(SettingKey.quality.options.map(\.label) == ["480p", "720p", "1080p", "2160p"])
         #expect(SettingKey.commitThreshold.options.map(\.label) == ["70%", "80%", "85%", "90%", "95%"])
         #expect(SettingKey.upscaling.options.map(\.label) == ["off", "natural · ArtCNN", "sharp · Anime4K"])
+        #expect(SettingKey.titles.options.map(\.label) == ["AniList's choice", "English", "Romaji"])
         #expect(SettingKey.seedRatio.options.map(\.label)
             == ["off", "until ratio 0.5", "until ratio 1.0", "until ratio 1.5", "until ratio 2.0"])
         #expect(SettingKey.seedHours.options.map(\.label) == ["1 h", "6 h", "12 h", "24 h", "72 h"])

@@ -30,6 +30,17 @@ struct AskingTests {
         #expect(store.sentLog == ["loadDetail", "loadEpisodes", "loadDetail"])
     }
 
+    @Test func titlesNamedAnotherWayAskAgainForWhatWasShown() {
+        let store = AppStore()
+        store.apply(.content(view: .continue, content: .entries([entry(900_001, "Stardust Wayfarer")])))
+        store.apply(.content(view: .library(.watching), content: .entries([entry(900_001, "Stardust Wayfarer")])))
+        store.loadDetail(900_001)
+        store.apply(.titlesChanged(.romaji))
+        #expect(store.sentLog == ["loadDetail", "loadContinue", "loadLibrary"], "Seasonal was never shown")
+        store.loadDetail(900_001)
+        #expect(store.sentLog.last == "loadDetail", "the page asks again")
+    }
+
     @Test func stillsAndTheEpisodesShareOneQuestion() {
         let store = AppStore()
         store.apply(.detail(entry(900_005, "The Steel Gardener")))

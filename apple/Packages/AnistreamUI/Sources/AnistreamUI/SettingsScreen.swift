@@ -38,6 +38,7 @@ public enum PhoneSettingsPage: Hashable, Sendable {
         case "accounts": .accounts
         case "providers": .providers
         case "about": .about
+        case "titles": .playback
         case "stores", "pluginStores": .stores
         // The showcase's own, for screenshots.
         case "store": .store("hotaru")
@@ -174,13 +175,14 @@ struct SettingsTabs: View {
 /// The column beside a pane: what the pane is about, or for Playback the upscaling preview.
 struct SettingsAside: View {
     @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
     let pane: SettingsPane
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             switch pane {
             case .playback:
-                UpscalingPreview()
+                if navigator.playbackFocus == .titleLanguage { TitleLanguagePreview() } else { UpscalingPreview() }
             case .downloads:
                 StorageAside()
             case .sources:
@@ -227,10 +229,12 @@ enum Device {
 
 struct PlaybackPane: View {
     @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
     @AppStorage("anistream.spoilerProtection") private var spoilers = true
 
     var body: some View {
         SettingsGroup(title: "Language") {
+            TitleLanguageRow()
             // "Overridden for 3 shows" waits on E8's override counts.
             SettingsRow(title: SettingKey.translation.title) { SettingMenu(key: .translation) }
             SettingsRow(title: SettingKey.subtitles.title) { SubtitlesMenu() }
@@ -256,7 +260,10 @@ struct PlaybackPane: View {
             }
         }
         SettingsGroup(title: "Picture and sound") {
-            SettingsRow(title: SettingKey.upscaling.title, selected: true) { SettingMenu(key: .upscaling) }
+            SettingsRow(title: SettingKey.upscaling.title, selected: navigator.playbackFocus == .upscaling) {
+                SettingMenu(key: .upscaling)
+            }
+            .onTapGesture { navigator.playbackFocus = .upscaling }
             SettingsRow(title: SettingKey.nightMode.title, note: "Evens out loud and quiet passages, so dialogue stays clear at low volume.") {
                 SettingSwitch(key: .nightMode)
             }

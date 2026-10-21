@@ -229,6 +229,19 @@ public final class AppStore {
         return true
     }
 
+    /// Every title is named another way now: the lists that have been shown are asked for again,
+    /// so they name their titles the new way, and a title page asks again when it next opens.
+    private func titlesChanged() {
+        asked.removeAll()
+        if continuing.list.answeredAt != nil { loadContinue(force: true) }
+        if seasonal.answeredAt != nil { loadSeasonal() }
+        if calendar.list.answeredAt != nil { loadCalendar() }
+        for segment in LibraryModel.order where library.segment(segment).answeredAt != nil {
+            loadLibrary(segment)
+        }
+        if let submitted = search.submitted { search(submitted.query, filter: submitted.filter) }
+    }
+
     /// Take a title off Continue: the row goes at once, and the engine keeps it hidden.
     public func hideFromContinue(_ id: AnilistId) {
         continuing.hide(id)
@@ -376,6 +389,11 @@ public final class AppStore {
             onPlayback?(event)
         case .playerOps, .playerUi, .playbackKept, .sources:
             onPlayback?(event)
+
+        case .viewerTitleLanguage(let language):
+            accounts.viewerTitleLanguage = language
+        case .titlesChanged:
+            titlesChanged()
 
         default:
             // Everything else is said in the events above, or has no screen.

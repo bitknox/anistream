@@ -52,6 +52,8 @@ public final class Navigator {
     public var continueSelection: AnilistId?
     /// The title whose "More about this show" sheet is open.
     public var moreAbout: AnilistId?
+    /// The Playback pane's row the column beside it is about.
+    public var playbackFocus: PlaybackFocus = .upscaling
 
     public init(route: LaunchRoute = .current) {
         section = route.section
@@ -61,6 +63,8 @@ public final class Navigator {
         librarySegment = route.library ?? .watching
         paletteShown = route.palette != nil
         settingsPane = route.pane.flatMap(SettingsPane.init(rawValue:)) ?? .playback
+        // "titles": Playback, its title-language row selected (MacSettingsTitles).
+        if route.pane == "titles" { playbackFocus = .titleLanguage }
         launchSheet = route.sheet
         if route.sheet == "join" { invite = "https://plugins.hotaru.example/join/fixture#key" }
         if route.sheet == "show" { showSettings = route.title }

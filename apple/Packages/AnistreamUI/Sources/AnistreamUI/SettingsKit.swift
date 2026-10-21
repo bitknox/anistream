@@ -221,6 +221,7 @@ extension SettingKey {
     /// "Counts as watched at".
     var title: String {
         switch self {
+        case .titles: "Title language"
         case .translation: "Translation"
         case .subtitles: "Subtitles"
         case .quality: "Quality"

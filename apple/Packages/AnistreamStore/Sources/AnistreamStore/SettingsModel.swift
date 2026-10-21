@@ -54,6 +54,9 @@ public final class AccountsModel {
     public private(set) var offline = false
     /// When each tracker last said a sync went through with nothing left to send.
     public private(set) var syncedAt: [String: Date] = [:]
+    /// The title language the signed-in viewer set on AniList, once asked
+    /// (`LoadTitleLanguage`): `nil` signed out, or when AniList did not say.
+    public internal(set) var viewerTitleLanguage: TitleLanguage?
     /// The sign-ins and syncs under way, by job: the tracker each is for.
     public private(set) var working: [JobId: String] = [:]
 

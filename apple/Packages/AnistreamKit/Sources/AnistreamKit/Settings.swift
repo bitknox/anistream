@@ -32,7 +32,8 @@ extension SettingKey {
 
     /// The values a stepped setting takes, in the order its arrows walk them, each with its
     /// words: `step`'s ladders, the two choices of theme, sub or dub and the player interface,
-    /// and off then on for a switch. Empty for one that is typed, read-only or the source order.
+    /// the three forms of title, and off then on for a switch. Empty for one that is typed,
+    /// read-only or the source order.
     public var options: [SettingOption] {
         switch self {
         case .quality:
@@ -61,6 +62,9 @@ extension SettingKey {
             ["sub", "dub"].map { SettingOption(value: .str($0), label: $0) }
         case .theme:
             ["adaptive", "immersive"].map { SettingOption(value: .str($0), label: $0) }
+        case .titles:
+            [("anilist", "AniList's choice"), ("english", "English"), ("romaji", "Romaji")]
+                .map { SettingOption(value: .str($0.0), label: $0.1) }
         case .playerUi:
             [("anistream", "anistream"), ("mpv", "your mpv setup")]
                 .map { SettingOption(value: .str($0.0), label: $0.1) }
