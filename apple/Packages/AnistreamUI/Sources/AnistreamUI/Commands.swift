@@ -161,12 +161,14 @@ struct EpisodeCommands: View {
         let next = entry?.progress?.next ?? 1
         let name = entry.flatMap { store.titles.episodes[$0.id]?.first { $0.number == String(next) }?.title }
         let watched = entry.flatMap { store.titles.episodes[$0.id]?.first { $0.number == String(next) }?.completed } ?? false
+        // An episode still to air cannot be watched yet.
+        let aired = entry?.airing(of: next).hasAired ?? true
         Section(entry == nil ? "No Episode Selected" : name.map { "Episode \(next) · \($0)" } ?? "Episode \(next)") {
             Button("Mark Watched") {
                 if let entry { store.send(.setWatched(id: entry.id, episodes: [String(next)], watched: true)) }
             }
             .keyboardShortcut("u", modifiers: [.command, .shift])
-            .disabled(entry == nil || watched)
+            .disabled(entry == nil || watched || !aired)
             Button("Mark Unwatched") {
                 if let entry { store.send(.setWatched(id: entry.id, episodes: [String(next)], watched: false)) }
             }

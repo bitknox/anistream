@@ -9,22 +9,36 @@ import SwiftUI
 struct TitleAction: Equatable {
     let episode: UInt32
     let resume: ResumePoint?
+    /// Whether the episode is out, by the title's broadcasts.
+    let airing: EpisodeAiring
 
     init(_ entry: Entry) {
         episode = entry.progress?.next ?? 1
         resume = entry.resume
+        airing = resume == nil ? entry.airing(of: episode) : .aired
     }
 
-    /// "Resume Episode 7 · 10:06", "Start Episode 4": title case, as a Mac button says it.
+    /// Whether there is an episode to play: never one still to air, which nothing could find.
+    var playable: Bool { airing.hasAired }
+
+    /// "Resume Episode 7 · 10:06", "Start Episode 4": title case, as a Mac button says it. With
+    /// the episode still to air, the status in the button's place: "Airs Saturday 18:30".
     var title: String {
         if let resume { return "Resume Episode \(episode) · \(resume.clock)" }
+        if !playable { return airsLine }
         return "Start Episode \(episode)"
     }
 
     /// The same in sentence case, as iPhone says it: "Resume episode 7 · 10:06".
     var sentence: String {
         if let resume { return "Resume episode \(episode) · \(resume.clock)" }
+        if !playable { return airsLine }
         return "Start episode \(episode)"
+    }
+
+    /// "Airs Saturday 18:30", or "Episode 4 is not out yet" when the schedule has no date.
+    private var airsLine: String {
+        airing.airs().map { "Airs \($0)" } ?? "Episode \(episode) is not out yet"
     }
 }
 
@@ -172,16 +186,20 @@ struct TitleHero: View {
                     .fixedLineHeight(14)
                     .padding(.top, 4)
                 HStack(spacing: 10) {
-                    Button {
-                        store.send(.play(id: entry.id, episode: String(action.episode)))
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "play.fill").font(.system(size: 10))
-                            Text(action.title)
+                    if action.playable {
+                        Button {
+                            store.send(.play(id: entry.id, episode: String(action.episode)))
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "play.fill").font(.system(size: 10))
+                                Text(action.title)
+                            }
                         }
+                        .buttonStyle(PrimaryCapsuleStyle())
+                        .keyboardShortcut(.defaultAction)
+                    } else {
+                        AirsStatus(text: action.title)
                     }
-                    .buttonStyle(PrimaryCapsuleStyle())
-                    .keyboardShortcut(.defaultAction)
                     if let trailer = entry.trailerUrl {
                         Button("Trailer") {
                             store.send(.playTrailer(url: trailer, title: entry.title))

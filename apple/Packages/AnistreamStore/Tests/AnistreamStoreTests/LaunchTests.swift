@@ -73,6 +73,28 @@ struct LaunchTests {
         #expect(queue.newThisWeek.first?.action.hasPrefix("Start E8 · out 19h") == true)
     }
 
+    @Test func aTitleWatchedUpToItsNextBroadcastIsCaughtUpAndOffersNothingToPlay() async throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let (store, _) = try await started(.watching, root: root)
+        defer { store.shutdown() }
+
+        // Natsukaze Relay's episode 8 is out and 9 airs in six days: watch 8, and it is caught up.
+        store.send(.setWatched(id: 900_006, episodes: ["8"], watched: true))
+        store.loadContinue(force: true)
+        try await waitFor {
+            store.continuing.queue(store.titles).all.first { $0.id == 900_006 }?.episode == 9
+        }
+        let item = try #require(store.continuing.queue(store.titles).all.first { $0.id == 900_006 })
+        #expect(!item.playable)
+        #expect(item.action.hasPrefix("Caught up · E9 "), "\(item.action)")
+        #expect(item.buttonTitle.hasPrefix("Airs "), "\(item.buttonTitle)")
+        #expect(!item.isNew)
+        // The others still play.
+        let others = store.continuing.queue(store.titles).all.filter { $0.id != 900_006 }
+        #expect(others.count == 3 && others.filter(\.playable).count == 3)
+    }
+
     @Test func shutdownStopsTheStore() async throws {
         let root = temporaryRoot()
         defer { try? FileManager.default.removeItem(at: root) }

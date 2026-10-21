@@ -135,18 +135,25 @@ struct PhoneHero: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 // The title above says how far, in words.
                 .accessibilityHidden(true)
-                Button {
-                    store.send(.play(id: item.id, episode: String(item.episode)))
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "play.fill").font(.system(size: 12))
-                        Text(item.action)
+                if item.playable {
+                    Button {
+                        store.send(.play(id: item.id, episode: String(item.episode)))
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "play.fill").font(.system(size: 12))
+                            Text(item.action)
+                        }
+                        .lineLimit(1)
+                        .fixedSize()
                     }
-                    .lineLimit(1)
-                    .fixedSize()
+                    .buttonStyle(PrimaryCapsuleStyle(height: 44, fontSize: 17))
+                    .layoutPriority(1)
+                } else {
+                    // Caught up: when the next one airs, in the button's place.
+                    AirsStatus(text: item.buttonTitle, height: 44, fontSize: 17)
+                        .fixedSize()
+                        .layoutPriority(1)
                 }
-                .buttonStyle(PrimaryCapsuleStyle(height: 44, fontSize: 17))
-                .layoutPriority(1)
             }
             .padding(.top, 8)
         }
@@ -209,9 +216,12 @@ struct PhoneCard: View {
                     .foregroundStyle(.silk)
                     .lineLimit(1)
                     .padding(.top, 6)
-                Text(item.timeLeft.map { "E\(item.episode) · \($0)" } ?? item.action)
-                    .font(.system(size: 15))
-                    .foregroundStyle(.haze)
+                HStack(spacing: 6) {
+                    if !item.playable { Circle().fill(.water).frame(width: 6, height: 6) }
+                    Text(item.timeLeft.map { "E\(item.episode) · \($0)" } ?? item.action)
+                }
+                .font(.system(size: 15))
+                .foregroundStyle(.haze)
             }
             .frame(width: 208, alignment: .leading)
         }

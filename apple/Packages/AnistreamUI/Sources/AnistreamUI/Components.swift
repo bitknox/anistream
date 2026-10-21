@@ -150,6 +150,31 @@ struct PrimaryCapsuleStyle: ButtonStyle {
     }
 }
 
+/// In the main button's place when nothing out is left to play: when the next episode airs, as a
+/// status and not a control, with the water dot upcoming episodes have ("Airs Saturday 18:30").
+struct AirsStatus: View {
+    let text: String
+    var height: CGFloat = 34
+    var fontSize: CGFloat = 13
+    /// Whether it spans its row, as the iPhone's main button does.
+    var fills = false
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Circle().fill(.water).frame(width: 6, height: 6)
+            Text(text).foregroundStyle(.water)
+        }
+        .font(.system(size: fontSize, weight: .medium))
+        .monospacedDigit()
+        .lineLimit(1)
+        .padding(.horizontal, height < 34 ? 14 : 18)
+        .frame(maxWidth: fills ? .infinity : nil)
+        .frame(height: height)
+        .overlay(Capsule().strokeBorder(Palette.faintRule))
+        .accessibilityElement(children: .combine)
+    }
+}
+
 /// A custom button's look when it cannot be pressed: faded, as the system fades its own.
 struct DimmedWhenDisabled: ViewModifier {
     @Environment(\.isEnabled) private var isEnabled

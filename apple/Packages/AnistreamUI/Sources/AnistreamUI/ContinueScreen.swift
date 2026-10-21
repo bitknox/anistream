@@ -190,7 +190,7 @@ struct QueueRow: View {
                         .foregroundStyle(selected ? .amber : .silk)
                         .lineLimit(1)
                     HStack(spacing: 6) {
-                        if item.isNew {
+                        if item.isNew || !item.playable {
                             Circle().fill(.water).frame(width: 6, height: 6)
                         }
                         Text(item.action)
@@ -229,11 +229,18 @@ struct QueueMenu: View {
     let item: ContinueItem
 
     var body: some View {
-        Button(item.resume == nil ? "Start Episode \(item.episode)" : "Resume Episode \(item.episode)") {
-            store.send(.play(id: item.id, episode: String(item.episode)))
-        }
-        Button("Mark Episode \(item.episode) as Watched") {
-            store.send(.setWatched(id: item.id, episodes: [String(item.episode)], watched: true))
+        if item.playable {
+            Button(item.resume == nil ? "Start Episode \(item.episode)" : "Resume Episode \(item.episode)") {
+                store.send(.play(id: item.id, episode: String(item.episode)))
+            }
+            Button("Mark Episode \(item.episode) as Watched") {
+                store.send(.setWatched(id: item.id, episodes: [String(item.episode)], watched: true))
+            }
+        } else {
+            // Nothing to play yet: when it airs, said and not offered.
+            Button(item.airing.airs().map { "Episode \(item.episode) Airs \($0)" }
+                   ?? "Episode \(item.episode) Is Not Out Yet") {}
+                .disabled(true)
         }
         Divider()
         Button("Go to Title") { navigator.openTitle(item.id, fromPreview: true) }
@@ -317,18 +324,26 @@ struct ContinuePreview: View {
                 }
 
                 HStack(spacing: 10) {
-                    Button {
-                        store.send(.play(id: item.id, episode: String(item.episode)))
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "play.fill").font(.system(size: 10))
-                            Text(item.buttonTitle)
+                    if item.playable {
+                        Button {
+                            store.send(.play(id: item.id, episode: String(item.episode)))
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "play.fill").font(.system(size: 10))
+                                Text(item.buttonTitle)
+                            }
                         }
+                        .buttonStyle(PrimaryCapsuleStyle())
+                        .keyboardShortcut(.defaultAction)
+                        Button("Episodes") { navigator.openTitle(entry.id, fromPreview: true) }
+                            .buttonStyle(SecondaryCapsuleStyle())
+                    } else {
+                        // Caught up: when the next episode airs, and the episodes to go back to.
+                        AirsStatus(text: item.buttonTitle)
+                        Button("Episodes") { navigator.openTitle(entry.id, fromPreview: true) }
+                            .buttonStyle(SecondaryCapsuleStyle())
+                            .keyboardShortcut(.defaultAction)
                     }
-                    .buttonStyle(PrimaryCapsuleStyle())
-                    .keyboardShortcut(.defaultAction)
-                    Button("Episodes") { navigator.openTitle(entry.id, fromPreview: true) }
-                        .buttonStyle(SecondaryCapsuleStyle())
                 }
 
                 if !entry.synopsis.isEmpty {

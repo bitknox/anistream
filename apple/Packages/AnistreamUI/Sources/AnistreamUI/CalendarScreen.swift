@@ -70,8 +70,7 @@ enum CalendarWords {
 
     /// "Thursday 16:30" for a time this week, "22 October 16:30" further away.
     static func weekdayTime(_ date: Date, now: Date = .now) -> String {
-        let days = date.timeIntervalSince(now) / 86_400
-        return days < 6 ? "\(weekday(date)) \(time(date))" : "\(dayMonth(date)) \(time(date))"
+        AirTime.words(date, now: now)
     }
 }
 

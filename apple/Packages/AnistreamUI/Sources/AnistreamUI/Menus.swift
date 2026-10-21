@@ -17,6 +17,8 @@ struct TitleMenu: View {
         Button(action.title) {
             store.send(.play(id: entry.id, episode: String(action.episode)))
         }
+        // Still to air: when, said and not offered.
+        .disabled(!action.playable)
         Button("Go to Title") { navigator.openTitle(entry.id) }
         Divider()
         Menu("Status") { StatusItems(id: entry.id) }

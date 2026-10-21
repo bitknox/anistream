@@ -45,6 +45,9 @@ enum Spoken {
 extension ContinueItem {
     /// Where it stands, in words: "Episode 7, 14 minutes left", "Episode 9, out 2 hours ago".
     var spokenProgress: String {
+        if !playable {
+            return "Caught up, episode \(episode) " + (airing.airs().map { "airs \($0)" } ?? "is not out yet")
+        }
         var parts = ["Episode \(episode)"]
         if let minutes = minutesLeft {
             parts.append(Wording.plural(minutes, "minute") + " left")
@@ -174,8 +177,10 @@ struct TitleActions: View {
 
     var body: some View {
         let action = TitleAction(entry)
-        Button(action.resume == nil ? "Start Episode \(action.episode)" : "Resume Episode \(action.episode)") {
-            store.send(.play(id: entry.id, episode: String(action.episode)))
+        if action.playable {
+            Button(action.resume == nil ? "Start Episode \(action.episode)" : "Resume Episode \(action.episode)") {
+                store.send(.play(id: entry.id, episode: String(action.episode)))
+            }
         }
         Button("Open on AniList") { store.openOnAniList(entry.id) }
     }

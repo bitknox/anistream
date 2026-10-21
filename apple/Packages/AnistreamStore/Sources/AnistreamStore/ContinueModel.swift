@@ -18,16 +18,29 @@ public struct ContinueItem: Identifiable, Equatable, Sendable {
     /// Whether this is a new episode rather than one under way.
     public var isNew: Bool { airedAgo != nil }
 
-    /// What the row says it plays: "Resume E7 · 10:06", "Start E4", "Start E9 · out 2h ago".
+    /// Whether the episode is out: one left part-way is, and otherwise the title's broadcasts say.
+    public var airing: EpisodeAiring {
+        resume == nil ? entry.airing(of: episode) : .aired
+    }
+
+    /// Whether the row has an episode to play: not when everything out is watched and the next
+    /// one is still to air.
+    public var playable: Bool { airing.hasAired }
+
+    /// What the row says it plays: "Resume E7 · 10:06", "Start E4", "Start E9 · out 2h ago", or
+    /// with nothing out to watch, "Caught up · E9 Saturday 18:30".
     public var action: String {
         if let resume { return "Resume E\(episode) · \(resume.clock)" }
+        if !playable { return "Caught up · E\(episode) " + (airing.airs() ?? "not out yet") }
         if let airedAgo { return "Start E\(episode) · out \(Wording.ago(airedAgo))" }
         return "Start E\(episode)"
     }
 
-    /// The same, as a Mac button says it, in title case: "Resume Episode 7 · 10:06".
+    /// The same, as a Mac button says it, in title case: "Resume Episode 7 · 10:06". With nothing
+    /// out to play it is no button but a status: "Airs Saturday 18:30".
     public var buttonTitle: String {
         if let resume { return "Resume Episode \(episode) · \(resume.clock)" }
+        if !playable { return airing.airs().map { "Airs \($0)" } ?? "Not out yet" }
         return "Start Episode \(episode)"
     }
 

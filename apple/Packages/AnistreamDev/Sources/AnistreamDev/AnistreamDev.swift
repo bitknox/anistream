@@ -97,6 +97,7 @@ final class Delegate: NSObject, NSApplicationDelegate {
             open: { NSWorkspace.shared.open($0) }
         )
         await store.start(launch, host: host)
+        store.applyWatchedArgument()
 
         // The saved frame can still win over the default size, so a snapshot sets its own.
         if options.snapshot != nil, let window = Snapshot.window {

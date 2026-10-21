@@ -64,4 +64,24 @@ extension EngineLaunch {
         return (launch, temporary)
     }
 }
+extension AppStore {
+    /// The launch argument that marks episodes watched once the engine is up, as if they had just
+    /// been watched: `-AnistreamWatched 900006:8`, the episodes joined by commas. For a shot of a
+    /// title caught up with its broadcasts.
+    public static let watchedArgument = "-AnistreamWatched"
+
+    /// Mark what `arguments` name watched.
+    public func applyWatchedArgument(_ arguments: [String] = ProcessInfo.processInfo.arguments) {
+        guard let index = arguments.firstIndex(of: Self.watchedArgument), arguments.indices.contains(index + 1)
+        else { return }
+        let parts = arguments[index + 1].split(separator: ":", maxSplits: 1)
+        guard parts.count == 2, let id = AnilistId(parts[0]) else { return }
+        send(.setWatched(id: id, episodes: parts[1].split(separator: ",").map(String.init), watched: true))
+        // Asked again after the mark, which the engine takes in order: what the screens asked for
+        // while it started went ahead of it, and says the title as it was.
+        continuing.list.asked()
+        send(.loadContinue)
+        send(.loadDetail(id))
+    }
+}
 #endif

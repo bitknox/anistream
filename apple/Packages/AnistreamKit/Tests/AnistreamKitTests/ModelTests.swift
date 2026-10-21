@@ -1,6 +1,7 @@
 // The model's helpers as the Swift side ports them, held to the Rust originals' own cases.
 
 import AnistreamKit
+import Foundation
 import Testing
 
 /// An entry with nothing but its id and title, as `Entry::new` makes one.
@@ -33,6 +34,37 @@ struct ModelTests {
         // One that agrees keeps its "ago".
         e.lastAired = Aired(episode: 5, ago: 7_200)
         #expect(e.latestAired?.episode == 5 && e.latestAired?.ago == 7_200)
+    }
+
+    @Test func anEpisodeHasAiredByTheTitlesBroadcasts() {
+        var e = entry()
+        #expect(e.airing(of: 4) == .aired, "nothing scheduled: a finished title has aired all it has")
+        e.nextEpisode = 4
+        e.nextAiringIn = 2 * 86_400
+        #expect(e.airing(of: 3) == .aired)
+        #expect(e.airing(of: 4) == .upcoming(inSeconds: 2 * 86_400), "the next broadcast is dated")
+        #expect(e.airing(of: 5) == .upcoming(inSeconds: nil), "the one after is not")
+        // A countdown that ran out since the schedule came, or a broadcast row that says it aired.
+        e.nextAiringIn = 0
+        #expect(e.airing(of: 4) == .aired)
+        e.nextAiringIn = 3600
+        e.lastAired = Aired(episode: 4, ago: 60)
+        #expect(e.airing(of: 4) == .aired)
+    }
+
+    @Test func anAirTimeIsTheDayAndTheTimeWithinTheWeek() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        // Wednesday 21 October 2026, at noon where the test runs.
+        let now = calendar.date(from: DateComponents(year: 2026, month: 10, day: 21, hour: 12))!
+        let saturday = calendar.date(from: DateComponents(year: 2026, month: 10, day: 24, hour: 18, minute: 30))!
+        #expect(AirTime.words(saturday, now: now) == "Saturday 18:30")
+        let later = calendar.date(from: DateComponents(year: 2026, month: 11, day: 2, hour: 9, minute: 5))!
+        #expect(AirTime.words(later, now: now) == "2 November 09:05")
+        let seconds = Int64(saturday.timeIntervalSince(now))
+        #expect(EpisodeAiring.upcoming(inSeconds: seconds).airs(now: now) == "Saturday 18:30")
+        #expect(EpisodeAiring.upcoming(inSeconds: nil).airs(now: now) == nil)
+        #expect(EpisodeAiring.aired.airs(now: now) == nil)
     }
 
     @Test func progressCountsAgainstTheLengthOrWhatHasAired() {

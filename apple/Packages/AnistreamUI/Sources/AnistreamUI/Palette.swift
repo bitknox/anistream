@@ -185,9 +185,10 @@ struct PaletteOverlay: View {
         case .title(let entry):
             if play, entry.progress == nil, entry.listStatus == nil {
                 store.setStatus(entry.id, .planning)
-            } else if play {
+            } else if play, TitleAction(entry).playable {
                 store.send(.play(id: entry.id, episode: String(TitleAction(entry).episode)))
             } else {
+                // ↩, or ⌘↩ with nothing out to play: the page, which says when the next one airs.
                 navigator.openTitle(entry.id)
             }
         case .command(_, _, _, let enabled, let action):

@@ -47,6 +47,31 @@ struct ScreenRulesTests {
         #expect(TitleAction(entry { _ in }).title == "Start Episode 1")
     }
 
+    @Test func anEpisodeStillToAirIsSaidAndNotOffered() {
+        let caughtUp = entry {
+            $0.progress = TitleProgress(done: 3, next: 4)
+            $0.nextEpisode = 4
+            $0.nextAiringIn = 3 * 86_400
+        }
+        let action = TitleAction(caughtUp)
+        #expect(!action.playable)
+        #expect(action.title.hasPrefix("Airs "), "\(action.title)")
+        #expect(action.sentence == action.title)
+        let undated = entry {
+            $0.progress = TitleProgress(done: 3, next: 5)
+            $0.nextEpisode = 4
+            $0.nextAiringIn = 3 * 86_400
+        }
+        #expect(TitleAction(undated).title == "Episode 5 is not out yet")
+        // Left part-way, it is out whatever the schedule says.
+        let resuming = entry {
+            $0.progress = TitleProgress(done: 3, next: 4)
+            $0.nextEpisode = 4
+            $0.resume = ResumePoint(position: 60, fraction: 0.05)
+        }
+        #expect(TitleAction(resuming).playable)
+    }
+
     @Test func seasonsAreTheSeriesInWatchOrderAndTheRestIsRelated() {
         let first = entry {
             $0.related = [

@@ -46,6 +46,20 @@ extension Entry {
         }
     }
 
+    /// Whether `episode` has aired, by the title's broadcasts: out when it is no later than the
+    /// newest one known to be out; not out when it is the next broadcast or after, and that
+    /// broadcast is still ahead; out otherwise, as every episode of a finished title is.
+    public func airing(of episode: UInt32) -> EpisodeAiring {
+        if let aired = latestAired, episode <= aired.episode { return .aired }
+        guard let next = nextEpisode, episode >= next else { return .aired }
+        if episode == next {
+            // The countdown ran out since the schedule came: it is out.
+            if let left = nextAiringIn, left <= 0 { return .aired }
+            return .upcoming(inSeconds: nextAiringIn)
+        }
+        return .upcoming(inSeconds: nil)
+    }
+
     /// What progress is counted against, and whether that is the season's length. `Entry::progress_of`.
     public var progressOf: (total: UInt32, isLength: Bool)? {
         if let episodes, episodes > 0 { return (episodes, true) }
@@ -56,6 +70,37 @@ extension Entry {
     public var watchedFraction: Double {
         guard let progress, let of = progressOf else { return 0 }
         return min(max(Double(progress.done) / Double(of.total), 0), 1)
+    }
+}
+
+/// Whether an episode can play yet, by its title's broadcasts.
+public enum EpisodeAiring: Equatable, Sendable {
+    /// It is out, and plays.
+    case aired
+    /// Not out yet: it airs in `inSeconds` when the schedule dates it, which it does for the next
+    /// broadcast only.
+    case upcoming(inSeconds: Int64?)
+
+    public var hasAired: Bool { self == .aired }
+
+    /// When it airs, as the screens say it: "Saturday 18:30", or `nil` when it is out or undated.
+    public func airs(now: Date = .now) -> String? {
+        guard case .upcoming(let seconds?) = self else { return nil }
+        return AirTime.words(now.addingTimeInterval(TimeInterval(seconds)), now: now)
+    }
+}
+
+/// A broadcast's time as the screens say it, in English on a 24-hour clock as the boards set it:
+/// "Saturday 18:30" within the week, "22 October 18:30" further off.
+public enum AirTime {
+    public static let locale = Locale(identifier: "en_GB")
+
+    public static func words(_ date: Date, now: Date = .now) -> String {
+        let style = Date.FormatStyle(locale: locale)
+        let time = date.formatted(style.hour(.twoDigits(amPM: .omitted)).minute(.twoDigits))
+        let days = date.timeIntervalSince(now) / 86_400
+        let day = days < 6 ? date.formatted(style.weekday(.wide)) : date.formatted(style.day().month(.wide))
+        return "\(day) \(time)"
     }
 }
 

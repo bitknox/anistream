@@ -7,7 +7,8 @@
 # or fresh (a first launch), then after a colon a section (calendar, seasonal, search, library,
 # downloads, providers, pluginStores, settings) or title=<id>, select=<id>, query=<words> or
 # palette=<words>, with more joined by +: pane=<Settings pane>, sheet=<torrent|join|kitsu|update|
-# show> and showcase=<sources|stores|downloads|invite|all>, the invented rows of `Showcase`:
+# show>, showcase=<sources|stores|downloads|invite|all>, the invented rows of `Showcase`, and
+# watched=<id>:<episodes>, episodes marked watched as the shot starts (900006:8 is caught up):
 #
 #   apple/scripts/shots.sh mac watching watching:calendar watching:title=900001 fresh
 #   apple/scripts/shots.sh mac watching:settings+pane=sources+showcase=sources
@@ -74,6 +75,7 @@ arguments() {
       pane=*) printf '%s\n' -AnistreamPane "${screen#pane=}" ;;
       sheet=*) printf '%s\n' -AnistreamSheet "${screen#sheet=}" ;;
       showcase=*) printf '%s\n' -AnistreamShowcase "${screen#showcase=}" ;;
+      watched=*) printf '%s\n' -AnistreamWatched "${screen#watched=}" ;;
       *) printf '%s\n' -AnistreamSection "$screen" ;;
     esac
   done

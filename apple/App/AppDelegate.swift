@@ -43,6 +43,9 @@ final class AppDelegate: NSObject {
         let secrets: any SecretBackend = KeychainSecrets()
         #endif
         await store.start(launch, host: AppHost(secrets: secrets, open: Self.open))
+        #if FIXTURES
+        store.applyWatchedArgument()
+        #endif
         // What apple/scripts/shots.sh waits for before it takes a screenshot, flushed because
         // the Simulator writes the app's output to a file, which would hold it back.
         var ready = await store.settle()

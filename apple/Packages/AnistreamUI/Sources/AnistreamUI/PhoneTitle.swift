@@ -58,16 +58,21 @@ struct PhoneTitle: View {
                 .padding(.top, art.isCompact ? 8 : -60)
 
                 VStack(alignment: .leading, spacing: 16) {
-                    Button {
-                        store.send(.play(id: entry.id, episode: String(action.episode)))
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "play.fill").font(.system(size: 13))
-                            Text(action.sentence)
+                    if action.playable {
+                        Button {
+                            store.send(.play(id: entry.id, episode: String(action.episode)))
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "play.fill").font(.system(size: 13))
+                                Text(action.sentence)
+                            }
+                            .frame(maxWidth: .infinity)
                         }
-                        .frame(maxWidth: .infinity)
+                        .buttonStyle(PrimaryCapsuleStyle(height: 50, fontSize: 17))
+                    } else {
+                        // Still to air: when, in the button's place.
+                        AirsStatus(text: action.sentence, height: 50, fontSize: 17, fills: true)
                     }
-                    .buttonStyle(PrimaryCapsuleStyle(height: 50, fontSize: 17))
 
                     HStack(spacing: 12) {
                         Menu {
