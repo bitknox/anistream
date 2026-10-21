@@ -599,7 +599,7 @@ struct InviteSheet: View {
             } else {
                 if !device {
                     TextField("Their name", text: $name)
-                        .textFieldStyle(.roundedBorder)
+                        .textFieldStyle(SheetFieldStyle())
                 }
                 HStack {
                     Spacer()

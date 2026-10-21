@@ -165,37 +165,33 @@ struct PhoneShowSettingsSheet: View {
         NavigationStack {
             PhoneList {
                 Section {
-                    HStack(spacing: 14) {
-                        CoverArt(entry: entry, width: 40)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(entry.showTitle).font(.showTitle(size: 17, relativeTo: .body)).foregroundStyle(.silk)
-                            Text("Settings for this show").font(.system(size: 15)).foregroundStyle(.haze)
-                        }
-                    }
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
-                }
-                Section {
                     // E8: the remembered tracks and the overrides.
                     PhoneDeferredRow(title: "Audio", value: "Use default", waitsOn: "E8")
-                    PhoneDeferredRow(title: "Subtitles", value: ShowDefaults.subtitles(store).capitalizedSentence, waitsOn: "E8")
+                    PhoneDeferredRow(title: "Subtitles", value: phone(ShowDefaults.subtitles(store)), waitsOn: "E8")
                 } header: {
                     PhoneSectionHeader("Audio and subtitles")
                 } footer: {
                     Text("Remembered from your last episode.")
                 }
                 Section {
-                    PhoneDeferredRow(title: "Skip opening", value: ShowDefaults.skipOpening(store).capitalizedSentence, waitsOn: "E8")
-                    PhoneDeferredRow(title: "Skip filler", value: ShowDefaults.skipFiller(store).capitalizedSentence, waitsOn: "E8")
+                    PhoneDeferredRow(title: "Skip opening", value: phone(ShowDefaults.skipOpening(store)), waitsOn: "E8")
+                    PhoneDeferredRow(title: "Skip filler", value: phone(ShowDefaults.skipFiller(store)), waitsOn: "E8")
                     PhoneDeferredRow(title: "Spoiler protection", note: "Blurs stills after the next episode",
-                                     value: ShowDefaults.spoilers(spoilers).capitalizedSentence, waitsOn: "E8")
+                                     value: phone(ShowDefaults.spoilers(spoilers)), waitsOn: "E8")
                 } header: {
                     PhoneSectionHeader("Episodes")
                 }
                 Section {
-                    ShowSourcePicker(id: entry.id) { PhoneRowTitle(title: "Source") }
-                        .pickerStyle(.menu)
-                        .listRowBackground(Palette.raised)
+                    HStack {
+                        Text("Source").font(.system(size: 17)).foregroundStyle(.silk)
+                        Spacer()
+                        Menu {
+                            ShowSourcePicker(id: entry.id) { EmptyView() }.pickerStyle(.inline)
+                        } label: {
+                            PhoneMenuValue(text: sourceName)
+                        }
+                    }
+                    .listRowBackground(Palette.raised)
                 } footer: {
                     Text("Automatic tries your sources in order.")
                 }
@@ -209,11 +205,34 @@ struct PhoneShowSettingsSheet: View {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() }.fontWeight(.semibold) }
+                ToolbarItem(placement: .topBarLeading) {
+                    HStack(spacing: 12) {
+                        CoverArt(entry: entry, width: 36)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(entry.showTitle).font(.showTitle(size: 17, relativeTo: .body)).foregroundStyle(.silk)
+                            Text("Settings for this show").font(.system(size: 15)).foregroundStyle(.haze)
+                        }
+                        .fixedSize()
+                    }
+                }
+                .sharedBackgroundVisibility(.hidden)
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }.fontWeight(.semibold).tint(.silk)
+                }
             }
         }
         .tint(.amber)
         .task { store.loadDetail(entry.id) }
+    }
+
+    /// The Mac's words as the iPhone writes them: "Use default · On".
+    private func phone(_ text: String) -> String {
+        text.replacingOccurrences(of: "Use Default", with: "Use default")
+    }
+
+    private var sourceName: String {
+        guard let id = store.providers.preference else { return "Automatic" }
+        return store.providers.row(id).map { store.info($0).name } ?? id
     }
 }
 #endif

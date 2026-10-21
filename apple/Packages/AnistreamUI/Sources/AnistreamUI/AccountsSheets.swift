@@ -38,7 +38,7 @@ struct KitsuSheet: View {
                     .textContentType(.password)
                     .onSubmit(signIn)
             }
-            .textFieldStyle(.roundedBorder)
+            .textFieldStyle(SheetFieldStyle())
             HStack(spacing: 10) {
                 Spacer()
                 if working { ProgressView().controlSize(.small) }
@@ -166,6 +166,19 @@ struct ConflictsSheet: View {
         .sheetWidth(560)
         .background(.raised)
         .onChange(of: store.accounts.conflicts.isEmpty) { _, empty in if empty { dismiss() } }
+    }
+}
+
+/// A text field in a sheet: on the ground, with a hairline edge.
+struct SheetFieldStyle: TextFieldStyle {
+    func _body(configuration: TextField<Self._Label>) -> some View {
+        configuration
+            .textFieldStyle(.plain)
+            .font(.system(size: 13))
+            .padding(.horizontal, 12)
+            .frame(height: 32)
+            .background(.ground, in: .rect(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Palette.glassRule, lineWidth: 1))
     }
 }
 

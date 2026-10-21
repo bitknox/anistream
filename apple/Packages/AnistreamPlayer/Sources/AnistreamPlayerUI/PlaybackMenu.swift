@@ -117,7 +117,7 @@ public struct PlaybackMenu: View {
 
     /// "Normal", "1.25×".
     static func name(_ speed: Double) -> String {
-        speed == 1 ? "Normal" : speed.formatted(.number.precision(.fractionLength(0...2))) + "×"
+        speed == 1 ? "Normal" : String(format: "%g×", speed)
     }
 }
 

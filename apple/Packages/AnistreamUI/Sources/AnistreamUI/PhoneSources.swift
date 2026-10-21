@@ -321,7 +321,7 @@ struct PhoneJoinStoreSheet: View {
             .navigationTitle("Join a plugin store")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() }.tint(.silk) }
             }
             .safeAreaInset(edge: .bottom) {
                 Button {
@@ -434,7 +434,7 @@ struct PhoneTorrentSheet: View {
             .navigationTitle("Turn on torrents")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() }.tint(.silk) }
             }
             .safeAreaInset(edge: .bottom) {
                 Button {
