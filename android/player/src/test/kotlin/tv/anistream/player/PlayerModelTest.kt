@@ -11,6 +11,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.Ending
 import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.MpvOption
@@ -237,6 +238,72 @@ class ClosingTest {
         rig.emit(MpvEvent.of(MpvNative.Event.SHUTDOWN))
         assertFalse(rig.model.isPresented)
         assertEquals(PlayerReport.Closed, rig.reports.last().second)
+    }
+
+    private fun staged(rig: Rig, episode: String) =
+        rig.model.apply(Event.PlaybackStaged(900_001u, "Stardust Wayfarer", episode, null, 1.0))
+
+    /** What the engine says to a player it opens for [playback]. */
+    private fun opening(rig: Rig, playback: ULong, episode: String) {
+        rig.ui(playback, PlayerUi.Starting(900_001u, "Stardust Wayfarer", episode, null, null, null))
+        rig.ops(playback, PlayerOp.Open(false, null, null), PlayerOp.Load("/media/$episode.mkv", emptyList()))
+    }
+
+    @Test
+    fun closingWhileThePlayIsFoundStopsItAndItsPlayerNeverComesUp() = runTest {
+        val rig = Rig(this)
+        // The playback the player showed before, long over: what it last heard of.
+        rig.opened(1u)
+        rig.model.viewerClosed()
+        staged(rig, "7")
+        assertTrue("the starting screen, finding a source", rig.model.isPresented)
+        rig.model.viewerClosed()
+        assertFalse(rig.model.isPresented)
+        assertEquals("for the play being found, not the playback before", Command.Player(PlayerCommand.Stop), rig.sent.last())
+
+        // Found all the same: its player is refused, and the engine told it closed, once.
+        opening(rig, 2u, "7")
+        rig.ops(2u, PlayerOp.Cycle("pause"))
+        assertFalse(rig.model.isPresented)
+        assertEquals(1, rig.made.size)
+        assertEquals(1, rig.reports.count { it == (2uL to PlayerReport.Closed) })
+
+        // A play after it is the viewer's again.
+        staged(rig, "8")
+        rig.opened(3u)
+        assertTrue(rig.model.isPresented)
+        assertEquals(2, rig.made.size)
+    }
+
+    /** The viewer closes the player on the next episode's starting screen, while it is found. */
+    private fun closedWhileTheNextIsFound(rig: Rig, ask: (PlayerModel) -> Unit) {
+        rig.opened(1u)
+        rig.emit(MpvEvent.of(MpvNative.Event.PLAYBACK_RESTART))
+        rig.ui(1u, PlayerUi.UpNext(NextEpisode("8", null, null), true, 42.0, 10u, 3u))
+        ask(rig.model)
+        staged(rig, "8")
+        // The window says what comes, as the playback driving it.
+        rig.ui(1u, PlayerUi.Starting(900_001u, "Stardust Wayfarer", "8", null, null, null))
+        rig.model.viewerClosed()
+        rig.settle()
+        assertEquals(listOf(PlayerReport.Ended(PlayerEnd.QUIT), PlayerReport.Closed), rig.reports.takeLast(2).map { it.second })
+        assertEquals("the next episode, still being found, stops too", Command.Player(PlayerCommand.Stop), rig.sent.last())
+        assertFalse(rig.model.isPresented)
+
+        opening(rig, 2u, "8")
+        assertFalse("no player comes back up for it", rig.model.isPresented)
+        assertEquals(1, rig.made.size)
+        assertEquals(2uL to PlayerReport.Closed, rig.reports.last())
+    }
+
+    @Test
+    fun closingAfterPlayNowBringsNoPlayerBack() = runTest {
+        closedWhileTheNextIsFound(Rig(this)) { it.playNext() }
+    }
+
+    @Test
+    fun closingAfterAnEpisodeIsPickedBringsNoPlayerBack() = runTest {
+        closedWhileTheNextIsFound(Rig(this)) { it.choose(PlayerChoice.Episode("8")) }
     }
 
     @Test

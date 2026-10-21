@@ -130,6 +130,21 @@ class PlayerModel(
     /** Every playback up to this one is over: its ops are refused. */
     private var closedThrough: ULong? = null
 
+    /**
+     * The viewer closed the player: every op is refused until the engine stages a playback again,
+     * so one it was still finding cannot bring the player back up.
+     */
+    private var closedByViewer = false
+
+    /**
+     * A playback has been staged that has said nothing yet: the one on screen, if any, is older,
+     * and stopping is for the staged one, which only a Stop for whatever plays reaches.
+     */
+    private var stagedAhead = false
+
+    /** The playbacks the engine has been told this player closed for. */
+    private val closedSaid = mutableSetOf<ULong>()
+
     /** The hardware decoding the mpv now open started with, or was moved to. */
     var decoding by mutableStateOf(hwdec)
         private set
@@ -297,6 +312,8 @@ class PlayerModel(
             is Event.PlayerOps -> for (op in event.ops) apply(op, event.playback)
             is Event.PlayerUi -> apply(event.ui, event.playback)
             is Event.PlaybackStaged -> {
+                closedByViewer = false
+                stagedAhead = true
                 failure = null
                 choosingSource = false
                 sourceChoices = null
@@ -329,7 +346,8 @@ class PlayerModel(
 
     internal fun apply(op: PlayerOp, playback: ULong) {
         if (!accepts(playback)) {
-            note("#$playback refused ${describe(op)}: that playback is over")
+            note("#$playback refused ${describe(op)}: ${if (closedByViewer) "the viewer closed the player" else "that playback is over"}")
+            sayClosed(playback)
             return
         }
         enter(playback)
@@ -360,7 +378,10 @@ class PlayerModel(
     }
 
     internal fun apply(ui: PlayerUi, playback: ULong) {
-        if (!accepts(playback)) return
+        if (!accepts(playback)) {
+            sayClosed(playback)
+            return
+        }
         enter(playback)
         val now = now()
         when (ui) {
@@ -409,13 +430,28 @@ class PlayerModel(
         }
     }
 
-    /** Whether ops and interface for [playback] are still taken: not once it is over. */
-    private fun accepts(playback: ULong): Boolean = closedThrough?.let { playback > it } ?: true
+    /**
+     * Whether ops and interface for [playback] are still taken: not once it is over, nor any at all
+     * once the viewer has closed the player, until a playback is staged again.
+     */
+    private fun accepts(playback: ULong): Boolean =
+        !closedByViewer && (closedThrough?.let { playback > it } ?: true)
+
+    /**
+     * Tell the engine this player is closed for [playback], once: what it says to a player that is
+     * gone is refused, and a playback that opened one here, as the next episode found after the
+     * viewer closed it can, ends as closed rather than waiting on it.
+     */
+    private fun sayClosed(playback: ULong) {
+        if (!closedSaid.add(playback)) return
+        send(Command.PlayerReport(playback, PlayerReport.Closed))
+    }
 
     /** The engine speaks of [playback]: a newer one starts with none of the last one's cards. */
     private fun enter(playback: ULong) {
         if (this.playback?.let { playback > it } == false) return
         this.playback = playback
+        stagedAhead = false
         skip = null
         undo = null
         upNext = null
@@ -509,9 +545,16 @@ class PlayerModel(
     private fun zeroCopy(hwdec: String): Boolean =
         hwdec.split(',').map(String::trim).any { it == "mediacodec" || it == "auto" || it == "yes" }
 
-    /** The viewer closed the player: its back arrow, the drag down, the back gesture. */
+    /**
+     * The viewer closed the player: its back arrow, the drag down, the back gesture.
+     *
+     * Nothing the engine says brings it back up until it stages another playback: a playback still
+     * being found, the first or the next after Play now or an Episodes pick, is stopped, and should
+     * its player open all the same, it is told the player closed.
+     */
     fun viewerClosed() {
         input()
+        closedByViewer = true
         if (failure != null) {
             // Nothing is playing: the screen only said so.
             dismiss()
@@ -520,12 +563,23 @@ class PlayerModel(
         if (mpv == null) {
             if (isPresented) {
                 // Nothing opened yet: stop what is being found.
-                control(PlayerCommand.Stop)
+                stopFinding()
                 dismiss()
             }
             return
         }
         close(reporting = true)
+        // The file on screen is closed; the next one staged since is still being found.
+        if (stagedAhead) send(Command.Player(PlayerCommand.Stop))
+    }
+
+    /**
+     * Stop what the engine is finding for this player: aimed at the playback on screen, unless one
+     * has been staged since that has said nothing yet. Aimed at the one before, a Stop would miss
+     * it, so it goes to whatever plays, which is the one staged last.
+     */
+    private fun stopFinding() {
+        if (stagedAhead || playback == null) send(Command.Player(PlayerCommand.Stop)) else control(PlayerCommand.Stop)
     }
 
     /** Close mpv and the player. [reporting]: say the file ended by quitting, and that the player closed, first. */
@@ -800,6 +854,7 @@ class PlayerModel(
     /** Tell the engine, for the playback whose file mpv has. */
     private fun report(report: PlayerReport) {
         val target = current ?: opened ?: return
+        if (report == PlayerReport.Closed) closedSaid += target
         send(Command.PlayerReport(target, report))
     }
 
