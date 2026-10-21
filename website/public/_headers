@@ -1,0 +1,7 @@
+/.well-known/assetlinks.json
+  Content-Type: application/json
+  Access-Control-Allow-Origin: *
+
+/auth/*
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
