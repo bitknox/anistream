@@ -4,6 +4,8 @@ plugins {
     id("anistream.android.library")
     id("anistream.android.compose")
     id("anistream.engine.flavours")
+    // The player's boards drawn on the JVM, as the screens' are.
+    id("anistream.screenshots")
 }
 
 // libmpv and FFmpeg's shared libraries, LGPL, from android/scripts/mpv.sh.
@@ -56,11 +58,23 @@ android {
 
 dependencies {
     implementation(project(":store"))
+    // The frame's player slot, the art and the page's shared transitions.
+    implementation(project(":ui"))
+    implementation(libs.activity.compose)
+    implementation(libs.lifecycle.runtime.compose)
+    implementation(libs.core.ktx)
     implementation(libs.media3.session)
     implementation(libs.media3.common)
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
+    testImplementation(project(":testkit"))
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
+    testImplementation(libs.compose.ui.test.manifest)
 
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.junit)

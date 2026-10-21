@@ -34,6 +34,7 @@ public class Pairs {
         new Pair("tablet-home", "AndroidTabletHome", "Watching scene", 800),
         new Pair("tablet-title", "AndroidTabletTitle", "Watching scene, title 900001", 800),
         new Pair("tablet-more-about", "AndroidTabletMoreAbout", "Watching scene, title 900001, More about this show", 800),
+        new Pair("phone-player", "AndroidPlayer", "the player at 2:31 in the opening, controls up, mpv's picture as the title's art", 412),
     };
 
     static final Color GROUND = new Color(0x0d0f1b);

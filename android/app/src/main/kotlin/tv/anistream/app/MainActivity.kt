@@ -21,6 +21,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
 import tv.anistream.design.AnistreamTheme
+import tv.anistream.engine.model.Command
+import tv.anistream.player.ui.PlayerFrame
+import tv.anistream.ui.AppActions
 import tv.anistream.ui.AppRoot
 import tv.anistream.ui.Destination
 
@@ -50,9 +53,20 @@ class MainActivity : ComponentActivity() {
         val title = intent.getStringExtra(TITLE)?.takeIf { steerable }?.toUIntOrNull()
         val query = intent.getStringExtra(QUERY)?.takeIf { steerable }
 
+        // Play from the title page, the Continue hero or an episode row: the engine finds the
+        // stream and opens the player, which the frame then shows.
+        val actions = AppActions(play = { id, episode -> app.store.send(Command.Play(id, episode)) })
+        val player = PlayerFrame(app.player)
         setContent {
             AnistreamTheme {
-                AppRoot(app.store, if (query != null) Destination.Search else start, startTitle = title, startQuery = query)
+                AppRoot(
+                    app.store,
+                    if (query != null) Destination.Search else start,
+                    actions = actions,
+                    startTitle = title,
+                    startQuery = query,
+                    player = player,
+                )
             }
         }
         if (Flavour.FIXTURES || debuggable) announceReady()
@@ -61,7 +75,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        holdPortraitOnPhones(newConfig)
+        // The player asks for landscape on a phone while it is up, and for portrait as it closes.
+        if (!app.player.isPresented) holdPortraitOnPhones(newConfig)
     }
 
     /**

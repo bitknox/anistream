@@ -133,6 +133,8 @@ fun TitleScreen(id: AnilistId, actions: AppActions) {
                                 .fillMaxWidth()
                                 .height(inset + 156.dp)
                                 .graphicsLayer { translationY = scrolled * 0.5f }
+                                // The player grows out of the banner and closes back into it (T2, T3).
+                                .shared(Shared.Player, id)
                                 .shared(Shared.Art, id),
                         )
                     }
