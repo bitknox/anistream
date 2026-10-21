@@ -127,6 +127,8 @@ mod tests {
             volume: None,
             next: None,
             episodes: Vec::new(),
+            cover_url: None,
+            banner_url: None,
         };
         let found = || (Vec::new(), context("6"));
         let prefetch = Prefetch::default();

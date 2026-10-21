@@ -19,6 +19,7 @@ use std::{path::Path, sync::Arc};
 
 use anistream_core::{
     config::{Config, Paths},
+    ids::AnilistId,
     traits::PlaybackRequest,
 };
 use anistream_model::playback::PlayerTheme;
@@ -82,6 +83,13 @@ pub trait PlayerLink: Send + Sync {
     /// Flip a boolean property, such as `pause`, without reading it first: a read could be
     /// stale by the time the write lands.
     async fn cycle(&self, property: &'static str) -> Result<(), LinkError>;
+
+    /// Take the player's window into full screen, or out of it. mpv's own window is mpv's
+    /// `fullscreen` property; a hosted player's is the host's window, which mpv inside it
+    /// knows nothing of.
+    async fn toggle_fullscreen(&self) -> Result<(), LinkError> {
+        self.cycle("fullscreen").await
+    }
 
     /// Step a numeric property, such as `speed`, by `delta`, clamped by the player.
     async fn add(&self, property: &'static str, delta: f64) -> Result<(), LinkError>;
@@ -165,15 +173,25 @@ pub fn opener(
 /// to show.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Overlay {
-    /// The loading card, for an episode being found or opened: `episode` of `title`, with the
-    /// card's own words in `card`.
-    Starting { card: Status, title: String, episode: String, episode_title: Option<String> },
+    /// The loading card, for an episode being found or opened: `episode` of `title`, the title
+    /// `id` names, with the card's own words in `card` and the title's art by URL where it is
+    /// known.
+    Starting {
+        card: Status,
+        id: AnilistId,
+        title: String,
+        episode: String,
+        episode_title: Option<String>,
+        cover_url: Option<String>,
+        banner_url: Option<String>,
+    },
     /// The file is playing: the loading card comes down.
     Playing,
     /// The episode on screen.
     Episode(EpisodeInfo),
     /// What plays next, for the Up Next card, with its still by URL; `None` when nothing does.
-    Next { card: Option<NextUp>, still: Option<String> },
+    /// `countdown` is how many seconds a hosted player's card counts down, `0` for none.
+    Next { card: Option<NextUp>, still: Option<String>, countdown: u32 },
     /// The file opened at `position`, where the viewer left it.
     Resumed { position: f64 },
     /// What the player's menus list.

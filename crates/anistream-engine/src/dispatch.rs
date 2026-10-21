@@ -10,7 +10,9 @@ use anistream_model::{command::Command, event::Event, notice::Notice};
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 
-use crate::playback::start::{control_player, play, play_local, play_party, play_source};
+use crate::playback::start::{
+    control_playback, control_player, play, play_local, play_party, play_source,
+};
 use crate::{
     artwork,
     catalog::{
@@ -164,6 +166,8 @@ pub(crate) fn dispatch(
         }
         // Nothing to steer where nothing plays: no playback has left its controls.
         Command::Player(command) => control_player(command, engine),
+        // The same, aimed: let go when another playback has followed the one it names.
+        Command::Control { playback, command } => control_playback(playback, command, engine),
         // Taken in as it is sent by `Engine::send`; one routed here all the same lands.
         Command::PlayerReport { playback, report } => services.hosted.report(playback, report),
 

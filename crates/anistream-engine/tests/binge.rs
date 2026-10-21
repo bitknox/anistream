@@ -70,6 +70,8 @@ fn context(episode: &str, next: Option<&str>) -> PlaybackContext {
         volume: None,
         next: next.map(|n| NextEpisode { number: n.into(), title: None, thumbnail: None }),
         episodes: Vec::new(),
+        cover_url: None,
+        banner_url: None,
     }
 }
 
@@ -90,6 +92,7 @@ fn settings(auto_next: bool) -> PlaySettings {
         presence: Default::default(),
         syncplay: Default::default(),
         party: false,
+        up_next_countdown: 10,
     }
 }
 
@@ -210,6 +213,8 @@ fn successor(episode: &str) -> Successor {
         title: "Test".into(),
         episode: episode.into(),
         translation: Translation::Sub,
+        cover_url: None,
+        banner_url: None,
     }
 }
 

@@ -6,6 +6,7 @@ use std::sync::Arc;
 use anistream_core::{config::Config, ids::AnilistId};
 use anistream_model::{
     command::PlayerCommand, episodes::EpisodeRow, event::Event, notice::Notice,
+    playback::PlaybackId,
 };
 use tokio::sync::mpsc;
 
@@ -180,14 +181,13 @@ fn play_staged(
     // What the show sets for itself, over the config in effect: sub or dub, quality, what is
     // skipped.
     let for_show = show_settings::for_show(engine.config.effective(), store, id);
-    let skip_filler = for_show.playback.skip_filler;
-    let PlayHints { title, next, episodes } =
-        hints_for(id, &episode, PlayKind::Staged, skip_filler, engine);
+    let hints =
+        hints_for(id, &episode, PlayKind::Staged, for_show.playback.skip_filler, engine);
     let EngineState { player_tx, .. } = engine;
     let config = &for_show;
     // A fresh channel per playback. The one playing gives up its window only once
     // this one has something to play — see `Handoff`.
-    let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
+    let (prx, handoff) = take_controls(player_tx, successor(id, &episode, &hints, config));
     // Never from the streams found ahead for a release picked by hand: the pick names its
     // own. Otherwise the same fresh channel, the same session-replacement semantics.
     let prefetched = match pick {
@@ -197,8 +197,7 @@ fn play_staged(
     // Tracker ids rather than trackers: playback only needs to know which queues to
     // append to, and passing the set would couple the player to the sync layer.
     let tracker_ids = signed_in_tracker_ids(sync);
-    let extras = (next, episodes);
-    if extras.1.is_empty() {
+    if hints.episodes.is_empty() {
         fill_episodes(id, &episode, services, player_tx);
     }
     spawn_playback(
@@ -212,7 +211,7 @@ fn play_staged(
         services,
         opener,
         tracker_ids,
-        extras,
+        hints,
         shader_dir(config, paths),
         prefetched,
         job,
@@ -242,16 +241,14 @@ pub fn play_party(
     let Services { paths, sync, store, .. } = services;
     let played = engine.next_playback(id, &episode);
     let for_show = show_settings::for_show(engine.config.effective(), store, id);
-    let skip_filler = for_show.playback.skip_filler;
-    let PlayHints { title, next, episodes } =
-        hints_for(id, &episode, PlayKind::Party, skip_filler, engine);
+    let hints =
+        hints_for(id, &episode, PlayKind::Party, for_show.playback.skip_filler, engine);
     let EngineState { player_tx, .. } = engine;
     let config = &for_show;
     // Same resolution as Play; the handoff at the end is the only difference.
-    let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
+    let (prx, handoff) = take_controls(player_tx, successor(id, &episode, &hints, config));
     let prefetched = None;
     let tracker_ids = signed_in_tracker_ids(sync);
-    let extras = (next, episodes);
     spawn_playback(
         id,
         episode,
@@ -263,7 +260,7 @@ pub fn play_party(
         services,
         opener,
         tracker_ids,
-        extras,
+        hints,
         shader_dir(config, paths),
         prefetched,
         job,
@@ -289,9 +286,8 @@ pub fn play_local(
     let Services { paths, http, store, sync, .. } = services;
     let played = engine.next_playback(id, &episode);
     let for_show = show_settings::for_show(engine.config.effective(), store, id);
-    let skip_filler = for_show.playback.skip_filler;
-    let PlayHints { next, episodes, .. } =
-        engine.cache.hints(id, &episode, skip_filler, PlayKind::Staged);
+    let hints =
+        engine.cache.hints(id, &episode, for_show.playback.skip_filler, PlayKind::Staged);
     // Named by the download it plays: the Downloads screen says what its rows are called.
     let staged =
         stage(&played, title.clone(), engine.cache.episode_title(id, &episode), engine);
@@ -303,8 +299,10 @@ pub fn play_local(
     // and syncs exactly like a streamed one. It used to go straight to mpv with no
     // context, which made downloads second-class in every way that matters.
     // Nothing to look up, so nothing can fail before it plays.
-    let (prx, handoff) =
-        take_controls(player_tx, successor(id, &episode, title.clone(), config));
+    // Named by the download, as it is staged.
+    let hints = PlayHints { title: title.clone(), ..hints };
+    let (prx, handoff) = take_controls(player_tx, successor(id, &episode, &hints, config));
+    let PlayHints { next, episodes, cover_url, banner_url, .. } = hints;
     handoff.now();
     let tracker_ids = signed_in_tracker_ids(sync);
     if episodes.is_empty() {
@@ -343,6 +341,8 @@ pub fn play_local(
             volume: playback.persist_volume.then_some(playback.persisted_volume).flatten(),
             next,
             episodes,
+            cover_url,
+            banner_url,
         };
         let settings = playback::PlaySettings {
             shader_dir: shaders,
@@ -370,6 +370,22 @@ pub fn control_player(command: PlayerCommand, engine: &EngineState) {
     }
 }
 
+/// Steer `playback`, when it is the playback started last, which holds the controls. A command
+/// aimed at one another has followed since is let go: a Play Now or an Undo that a hosted
+/// player sent as its episode rolled on to the next was meant for the episode it showed.
+pub fn control_playback(playback: PlaybackId, command: PlayerCommand, engine: &EngineState) {
+    if PlaybackId::new(engine.playbacks) != playback {
+        tracing::debug!(
+            playback = playback.get(),
+            current = engine.playbacks,
+            ?command,
+            "a command for a playback that is no longer current"
+        );
+        return;
+    }
+    control_player(command, engine);
+}
+
 /// Resolve a stream and start playing it.
 ///
 /// Everything slow happens inside the spawned task, behind the eyecatch: matching the title,
@@ -389,9 +405,9 @@ fn spawn_playback(
     services: &Services,
     opener: Arc<dyn PlayerOpener>,
     tracker_ids: Vec<String>,
-    // What the player's Up Next card and Episodes menu show, from the engine's record of the
-    // titles.
-    extras: (Option<playback::NextEpisode>, Vec<playback::EpisodeEntry>),
+    // What the player's Up Next card, its Episodes menu and its starting screen show, from the
+    // engine's record of the titles.
+    hints: PlayHints,
     shader_dir: Option<std::path::PathBuf>,
     // This episode's streams, found ahead while the previous one's ending played.
     prefetched: Option<Resolved>,
@@ -457,7 +473,11 @@ fn spawn_playback(
             }
         };
         let (streams, mut context) = context;
-        (context.next, context.episodes) = extras;
+        let PlayHints { next, episodes, cover_url, banner_url, .. } = hints;
+        (context.next, context.episodes) = (next, episodes);
+        // The art the title's lookup found, else what its page or a list showed.
+        context.cover_url = context.cover_url.or(cover_url);
+        context.banner_url = context.banner_url.or(banner_url);
         // Resolved: from here the wait is mpv opening, which Now Playing shows itself, and the
         // session lasts the episode — far too long to hold a "starting" job open for.
         drop(job);
@@ -499,6 +519,7 @@ pub fn play_settings(
         presence: config.presence.clone(),
         syncplay: config.syncplay.clone(),
         party,
+        up_next_countdown: playback::UP_NEXT_COUNTDOWN,
     }
 }
 
