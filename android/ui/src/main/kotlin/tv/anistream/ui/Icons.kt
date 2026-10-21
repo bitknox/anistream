@@ -115,6 +115,9 @@ internal object Icons {
 
     // Settings' pages, as AndroidSettings draws them.
     val PlaybackPage = stroked("PlaybackPage", CIRCLE_9, "M10 8.5 L15.5 12 L10 15.5 Z")
+
+    /** Notifications' bell. */
+    val NotificationsPage = stroked("NotificationsPage", "M18 16 V11 A6 6 0 0 0 6 11 V16 L4.5 18.5 H19.5 Z", "M10 21 H14")
     val DownloadsPage = stroked("DownloadsPage", "M12 4 V15 M7.5 10.5 L12 15 L16.5 10.5 M5 19.5 H19")
     val SourcesPage = stroked("SourcesPage", "M9 3 V7 M15 3 V7 M6 7 H18 V11 A6 6 0 0 1 6 11 Z M12 17 V21")
     val AccountsPage = stroked("AccountsPage", "M12 4 A4 4 0 1 1 11.99 4 Z", "M4.5 20 C5.5 15.5 18.5 15.5 19.5 20")

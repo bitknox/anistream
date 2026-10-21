@@ -131,13 +131,16 @@ adb shell am start -a android.intent.action.VIEW -d anistream://open/downloads -
 ```
 
 New-episode notifications come from a `WorkManager` job, `new-episodes`, about every six hours on
-a network with the battery not low, while Settings' "New episode notifications" is on; turning it
-on is the one time the app asks to post notifications. The job asks the engine for what aired
-(`CheckNewEpisodes`), on the app's engine when it runs and otherwise on one started for the job
-with every background switch off (`BackgroundEngine`), and posts one notification per episode on
-the "New episodes" channel, grouped under a summary when there are several, with Play (an app
-link) and Mark watched (the app's own receiver). Until the engine has the check, the row is left
-out and the job does nothing. The fixtures' `notify` extra posts two, for a look at the shade:
+a network with the battery not low, while Settings › Notifications' New episodes switch (the
+engine's `EpisodeNotifications`) is on; turning it on is the one time the app asks to post
+notifications, and each show can turn its own off in its settings sheet. The job asks the engine
+for what aired (`CheckNewEpisodes`), on the app's engine when it runs and otherwise on one started
+for the job with every background switch off (`BackgroundEngine`), fetches each episode's cover, and
+posts one notification per episode on the "New episodes" channel, grouped under a summary when
+there are several, with Play (an app link) and Mark watched (the app's own receiver). Then it asks
+for the widgets' record (`WidgetSnapshot`) and keeps it in `files/widgets/record.json`
+(`WidgetRecord`), where the widgets read it. The fixtures' `notify` extra posts two, for a look at
+the shade:
 
 ```sh
 adb shell pm grant tv.anistream.fixtures android.permission.POST_NOTIFICATIONS

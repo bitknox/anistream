@@ -123,6 +123,13 @@ object Wording {
     /** A count and its noun, singular at one: `1 episode`, `3 episodes`. */
     fun plural(count: Int, noun: String): String = if (count == 1) "1 $noun" else "$count ${noun}s"
 
+    /** Names in a sentence: "Kumo", "Kumo and Natsukaze", "Kumo, Hoshi and Natsukaze". */
+    fun list(names: List<String>): String = when (names.size) {
+        0 -> ""
+        1 -> names[0]
+        else -> names.dropLast(1).joinToString(", ") + " and " + names.last()
+    }
+
     /**
      * A size as people read it: `9.4 GB`, `140 MB`, `0 B`, in decimal units, one decimal below
      * ten and none above. `human_bytes`.

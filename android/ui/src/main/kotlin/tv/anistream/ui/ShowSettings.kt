@@ -45,7 +45,10 @@ import java.util.Locale
 import tv.anistream.design.ShowTitle
 import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.core.Translation
+import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.LibrarySegment
+import tv.anistream.store.SettingsCatalog
 import tv.anistream.engine.model.RememberedSubtitles
 import tv.anistream.engine.model.RememberedTrack
 import tv.anistream.engine.model.ShowSettingKey
@@ -116,6 +119,14 @@ private fun ShowSettingsContent(entry: Entry, view: ShowSettingsView?) {
         SheetNote("Spoiler protection blurs stills after the next episode.")
 
         SheetDivider()
+        // Whether this show's new episodes are notified of, while Settings has them on.
+        val continuing by store.continuing.list.state.collectAsStateWithLifecycle()
+        val notify = row(ShowSettingKey.NOTIFY_NEW_EPISODES)
+        SwitchChoiceRow("New episodes", notify, "On", "Off", default = notify?.let { notifyDefault(it, beingWatched(entry, continuing.ids)) }) {
+            set(ShowSettingKey.NOTIFY_NEW_EPISODES, it)
+        }
+
+        SheetDivider()
         InfoRow("Source", view?.source ?: "Automatic")
         SheetNote("Automatic tries your sources in order.")
 
@@ -142,9 +153,16 @@ private data class Choice(val value: SettingValue?, val label: String)
  * as a show sets it.
  */
 @Composable
-private fun SwitchChoiceRow(title: String, row: ShowSettingRow?, on: String, off: String, onPick: (SettingValue?) -> Unit) {
+private fun SwitchChoiceRow(
+    title: String,
+    row: ShowSettingRow?,
+    on: String,
+    off: String,
+    /** What following Settings means for this show, where it is not Settings' own value. */
+    default: String? = row?.default?.let(::defaultWords),
+    onPick: (SettingValue?) -> Unit,
+) {
     val own = (row?.own as? SettingValue.Bool)?.v1
-    val default = row?.default?.let(::defaultWords)
     ChoiceRow(
         title = title,
         value = when (own) {
@@ -249,6 +267,20 @@ private fun SheetDivider() {
 
 /** The audio a translation plays: Japanese for subtitled, English for dubbed. */
 internal fun audioWords(value: String): String = if (value.startsWith("dub")) "English" else "Japanese"
+
+/**
+ * Whether the show is being watched, as the new-episode check follows shows: on the list as
+ * watching, or under way here, on Continue.
+ */
+internal fun beingWatched(entry: Entry, continuing: List<AnilistId>): Boolean =
+    entry.listStatus == LibrarySegment.WATCHING || entry.id in continuing
+
+/**
+ * What following Settings means for new episodes: Settings' value for a show being watched, and
+ * off for one that is not, which only its own switch takes in: "Off · not watching".
+ */
+internal fun notifyDefault(row: ShowSettingRow, watching: Boolean): String =
+    if (SettingsCatalog.isOnWords(row.default) && !watching) "Off · not watching" else defaultWords(row.default)
 
 /** What following Settings means for a row: "Use default · On", from Settings' "on". */
 internal fun defaultWords(value: String): String =

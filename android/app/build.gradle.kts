@@ -97,6 +97,8 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.work.testing)
+    // The scenes the engine recorded, for the settings it says.
+    testImplementation(project(":testkit"))
 }
 
 tasks.withType<Test>().configureEach {

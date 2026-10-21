@@ -21,6 +21,7 @@ import tv.anistream.engine.ffi.startLog
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.store.AppHost
 import tv.anistream.store.BackgroundEngine
+import tv.anistream.store.EngineEpisodeCheck
 import tv.anistream.store.EpisodeCheck
 import tv.anistream.store.AppStore
 import tv.anistream.store.EngineLaunch
@@ -37,11 +38,14 @@ class AnistreamApp : Application(), NewEpisodesHost {
 
     override val episodeNotifier: EpisodeNotifier by lazy { EpisodeNotifier(this) }
 
-    /** The check for new episodes: none until this build's engine has `CheckNewEpisodes`. */
-    override val episodeCheck: EpisodeCheck? = null
+    /** What the home-screen widgets show, as the engine last made it. */
+    val widgets: WidgetRecord by lazy { WidgetRecord.of(filesDir) }
+
+    /** The check for new episodes, on the engine, with the widgets' record made after it. */
+    override val episodeCheck: EpisodeCheck by lazy { EngineEpisodeCheck(background, widgets::write) }
 
     /** The new-episode notifications switch, and the schedule it keeps. */
-    val episodeAlerts: EpisodeAlerts by lazy { EpisodeAlerts(this, episodeNotifier, available = episodeCheck != null) }
+    val episodeAlerts: EpisodeAlerts by lazy { EpisodeAlerts(this, store, episodeNotifier) }
 
     /**
      * The engine work in the background runs on: the app's own once it has started, or one of its
@@ -77,7 +81,7 @@ class AnistreamApp : Application(), NewEpisodesHost {
         } else {
             store.start(launch, host())
         }
-        episodeAlerts.reconcile()
+        episodeAlerts.follow(scope)
         ContinueShortcut(this).follow(store, scope)
         watchNetwork()
         // The fixtures' downloads are seeded where they are; only the app's are kept here.
