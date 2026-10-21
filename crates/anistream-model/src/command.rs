@@ -287,6 +287,19 @@ pub enum Command {
     SetTranslation {
         translation: anistream_core::media::Translation,
     },
+    /// The app moved to the foreground or the background, as the system says. In the
+    /// background torrents wait, but for the episode playing when `playing`; back in the
+    /// foreground the connection check runs again before they resume, a loopback server the
+    /// system took is bound again on its own port, and what plays is opened again where it was.
+    AppPhase {
+        phase: AppState,
+    },
+    /// The network the device uses now: `cellular`, and `constrained` for Low Data Mode. Either
+    /// one holds downloads and seeding until the device is back on a network that is neither.
+    NetworkPath {
+        cellular: bool,
+        constrained: bool,
+    },
     /// Protect torrent traffic with `mode`, through `proxy` when it is one, and have a failed
     /// connection check do `on_failure`: written to the file as one change, the proxy's
     /// password to the host's secret store and never to the file. No protection and warn only
@@ -475,6 +488,21 @@ pub enum PlayerCommand {
     SubtitleDelay {
         seconds: f64,
     },
+    /// Open the file again where it plays now: the loopback server it is read from was bound
+    /// again, after the system took it while the app was in the background.
+    Reload,
+}
+
+/// Where the app is, as the system has it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum AppState {
+    /// On screen.
+    #[default]
+    Foreground,
+    /// Off screen, still playing the episode on when `playing`: its audio, or a screen locked
+    /// on the player.
+    Background { playing: bool },
 }
 
 #[cfg(test)]

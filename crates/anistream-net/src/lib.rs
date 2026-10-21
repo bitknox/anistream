@@ -11,6 +11,7 @@
 
 pub mod client;
 pub mod fetch;
+pub mod loopback;
 pub mod ratelimit;
 
 pub use client::{HttpClient, NetError, Profile, trusted_roots};

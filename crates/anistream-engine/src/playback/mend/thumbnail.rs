@@ -144,6 +144,10 @@ impl Upstream {
 
 #[cfg(test)]
 mod tests {
+    use std::net::Ipv4Addr;
+
+    use tokio::net::TcpListener;
+
     use super::*;
     use crate::playback::mend::{tests::transport_stream, *};
 

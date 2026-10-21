@@ -22,7 +22,7 @@ use anistream_core::{
 };
 use anistream_ffi::{FfiDirs, FfiEngine, FfiHost};
 use anistream_model::{
-    command::{Command, PlayerCommand},
+    command::{AppState, Command, PlayerCommand},
     event::Event,
     hosted::{
         MpvOption, MpvValue, PlayerChoice, PlayerEnd, PlayerOp, PlayerReport, PlayerUi,
@@ -31,7 +31,10 @@ use anistream_model::{
     playback::{Ending, PlaybackId, SkipKind},
 };
 use anistream_providers::ProviderRegistry;
-use anistream_testkit::{fixtures::FINISHED, sources};
+use anistream_testkit::{
+    fixtures::{AIRING, FINISHED},
+    sources,
+};
 use serde_json::json;
 
 /// How long a test waits for what it is waiting on. Everything is on loopback, so only the
@@ -271,6 +274,14 @@ fn stream(url: &str, kind: StreamKind) -> Stream {
     Stream { provider_id: sources::PROVIDER_ID.into(), ..Stream::new(url, kind) }
 }
 
+/// Whether `url` is the fixture image at `path` as the testing engine's fake AniList serves it:
+/// on loopback, in place of the fixtures' own `img.example`, so an app shows real art.
+fn served(url: Option<&str>, path: &str) -> bool {
+    url.is_some_and(|url| {
+        url.starts_with("http://127.0.0.1:") && url.ends_with(&format!("/art/{path}"))
+    })
+}
+
 #[test]
 fn the_player_is_told_what_to_play_and_reports_the_episode_to_its_end() {
     let mut app = App::fixtures("[playback]\nskip_opening = false\n");
@@ -282,17 +293,17 @@ fn the_player_is_told_what_to_play_and_reports_the_episode_to_its_end() {
     let (_, starting) =
         app.ui("the starting screen", |ui| matches!(ui, PlayerUi::Starting { .. }));
     // The title and its art, as its lookup found them, so the screen needs nothing more.
+    let PlayerUi::Starting { id, title, episode, episode_title, cover_url, banner_url } =
+        starting
+    else {
+        unreachable!()
+    };
     assert_eq!(
-        starting,
-        PlayerUi::Starting {
-            id: FINISHED,
-            title: "Stardust Wayfarer".into(),
-            episode: "12".into(),
-            episode_title: None,
-            cover_url: Some("https://img.example/cover/900001-xl.jpg".into()),
-            banner_url: Some("https://img.example/banner/900001.jpg".into()),
-        }
+        (id, title.as_str(), episode.as_str(), episode_title),
+        (FINISHED, "Stardust Wayfarer", "12", None)
     );
+    assert!(served(cover_url.as_deref(), "cover/900001-xl.jpg"), "{cover_url:?}");
+    assert!(served(banner_url.as_deref(), "banner/900001.jpg"), "{banner_url:?}");
     let load = app.load();
     assert_eq!(load.url, sources::clip().url);
     assert_eq!(load.option("force-media-title"), Some("Stardust Wayfarer · Episode 12"));
@@ -416,7 +427,7 @@ fn play_next_hands_the_player_to_the_next_episode() {
     );
     let PlayerUi::Starting { id, banner_url, .. } = starting else { unreachable!() };
     assert_eq!(id, FINISHED);
-    assert_eq!(banner_url.as_deref(), Some("https://img.example/banner/900001.jpg"));
+    assert!(served(banner_url.as_deref(), "banner/900001.jpg"), "{banner_url:?}");
     app.op("the episode silenced", |op| *op == PlayerOp::Stop);
     let next = app.load();
     assert_ne!(next.playback, first, "the next episode is a playback of its own");
@@ -541,6 +552,47 @@ fn full_screen_is_the_hosts_window_and_never_an_mpv_property() {
         "{:?}",
         app.ops
     );
+    app.stop();
+    app.shutdown();
+}
+
+#[test]
+fn a_reload_opens_the_same_file_again_where_it_plays() {
+    // What follows a loopback server bound again after the background.
+    let mut app = App::fixtures("[playback]\nauto_next = false\n");
+    app.play(FINISHED, "12");
+    let first = app.load();
+    app.opened(first.playback, &[]);
+    app.tick(first.playback, 0, 30);
+    // Once the playback has read its playhead there: reports and commands come by two roads.
+    app.until("the playhead at 30", |event| match event {
+        Event::Playback { position, .. } if *position >= 30.0 => Some(()),
+        _ => None,
+    });
+    app.control(PlayerCommand::Reload);
+    let again = app.load();
+    assert_eq!((again.playback, again.url.as_str()), (first.playback, first.url.as_str()));
+    assert_eq!(again.option("start"), Some("30"));
+    app.stop();
+    app.shutdown();
+}
+
+#[test]
+fn coming_back_with_nothing_taken_opens_nothing_again() {
+    let mut app = App::fixtures("[playback]\nauto_next = false\n");
+    app.play(FINISHED, "12");
+    let playback = app.load().playback;
+    app.opened(playback, &[]);
+    app.tick(playback, 0, 5);
+    let phase = |phase| Command::AppPhase { phase };
+    app.engine.send(phase(AppState::Background { playing: true }));
+    app.engine.send(Command::NetworkPath { cellular: true, constrained: false });
+    app.engine.send(phase(AppState::Foreground));
+    // Every server still answers: the playback carries on as it was.
+    app.control(PlayerCommand::TogglePause);
+    app.op("the pause", |op| matches!(op, PlayerOp::Cycle { .. }));
+    let loads = app.ops.iter().filter(|(_, op)| matches!(op, PlayerOp::Load { .. })).count();
+    assert_eq!(loads, 1, "{:?}", app.ops);
     app.stop();
     app.shutdown();
 }
@@ -835,6 +887,66 @@ fn a_web_stream_comes_mended_and_its_subtitles_fetched_ahead() {
     assert!(std::path::Path::new(&url).is_file(), "written out: {url}");
     assert!(std::fs::read_to_string(&url).unwrap().contains("The star road"));
     app.tick(load.playback, 0, 2);
+    app.stop();
+    app.shutdown();
+}
+
+#[test]
+fn an_episode_yet_to_air_fails_at_once_without_asking_a_source() {
+    let provider = sources::provider();
+    let asked = provider.call_count();
+    let mut app = App::start(ProviderRegistry::new(vec![provider.arc()]), "");
+    // Its table open, as a play is asked for from: what aired, which the player's menu shows.
+    app.engine.send(Command::LoadEpisodes(AIRING));
+    app.until("the table", |event| matches!(event, Event::Episodes { .. }).then_some(()));
+    let listed = asked.load(std::sync::atomic::Ordering::SeqCst);
+    // The airing fixture's next episode is 6, two days out, and 7 is on its schedule after it.
+    // Past the schedule, the next one is what can be said.
+    let picked = Command::PlaySource {
+        id: AIRING,
+        episode: "7".into(),
+        provider_id: sources::PROVIDER_ID.into(),
+        source_id: "a".into(),
+    };
+    for (play, said) in [
+        (Command::Play { id: AIRING, episode: "6".into() }, "episode 6 airs "),
+        (picked, "episode 7 airs "),
+        (
+            Command::Play { id: AIRING, episode: "99".into() },
+            "episode 99 hasn't aired yet; episode 6 airs ",
+        ),
+    ] {
+        app.engine.send(play);
+        let refusal = app.until("the refusal", |event| match event {
+            Event::Toast(notice) if notice.text.contains("airs") => Some(notice.text.clone()),
+            _ => None,
+        });
+        assert!(refusal.starts_with(said), "{refusal}");
+        assert_eq!(app.ended(), Ending::Failed);
+    }
+    let looked_up = asked.load(std::sync::atomic::Ordering::SeqCst) - listed;
+    assert_eq!(looked_up, 0, "no source was asked for either");
+    assert!(!app.ops.iter().any(|(_, op)| matches!(op, PlayerOp::Load { .. })));
+    app.shutdown();
+}
+
+#[test]
+fn a_play_while_sources_are_still_loading_waits_for_them() {
+    // Plugins compiling at launch: none of the chain is in it yet.
+    let chain = ProviderRegistry::new(Vec::new());
+    chain.expect_arrivals();
+    let mut app = App::start(chain.clone(), "");
+    app.play(FINISHED, "1");
+    app.until("the wait, said", |event| match event {
+        Event::JobNote { note, .. } if note == "loading sources" => Some(()),
+        _ => None,
+    });
+
+    // They join, and the play goes on with them rather than failing for want of a source.
+    chain.extend(vec![sources::provider().arc()]);
+    chain.arrivals_done();
+    let load = app.load();
+    app.report(load.playback, PlayerReport::FileLoaded);
     app.stop();
     app.shutdown();
 }

@@ -163,16 +163,20 @@ pub fn rank(
 ///
 /// The chain is put in order once they have joined it, so where a plugin is tried is what
 /// `providers.order` says, whenever it finished compiling. See [`rank`].
+///
+/// The chain says they are on their way until they have joined it, or failed to, so a play
+/// asked for meanwhile can wait for them rather than look up the episode without them: see
+/// [`ProviderRegistry::expect_arrivals`].
 pub fn spawn_plugin_load(
     registry: ProviderRegistry,
     config: Config,
     http: HttpClient,
     paths: Paths,
 ) -> tokio::task::JoinHandle<Option<String>> {
+    // Said before the task is spawned, so a play sent the moment the engine is up sees it.
+    let arriving = plugins_enabled(&config).then(|| Arrivals::expected(&registry));
     tokio::spawn(async move {
-        if !plugins_enabled(&config) {
-            return None;
-        }
+        let _arriving = arriving?;
         let started = std::time::Instant::now();
         match load_plugins(&config, &http, &paths).await {
             Ok(loaded) => {
@@ -188,6 +192,42 @@ pub fn spawn_plugin_load(
             }
         }
     })
+}
+
+/// Sources on their way into a chain, said done when this is dropped: once they have joined it
+/// and it is in order, or the load failed, or its task was cut short.
+struct Arrivals(ProviderRegistry);
+
+impl Arrivals {
+    fn expected(registry: &ProviderRegistry) -> Self {
+        registry.expect_arrivals();
+        Self(registry.clone())
+    }
+}
+
+impl Drop for Arrivals {
+    fn drop(&mut self) {
+        self.0.arrivals_done();
+    }
+}
+
+/// How long a lookup waits for sources still on their way before it goes ahead without them.
+///
+/// Compiling a plugin takes under a second once its build is cached and a few the first time;
+/// past this, something is wrong with the load, and an answer from the rest of the chain is
+/// worth more than waiting on.
+pub const ARRIVALS_WAIT: Duration = Duration::from_secs(30);
+
+/// Wait for sources on their way into `registry`, for at most [`ARRIVALS_WAIT`], saying so with
+/// `note` while it waits.
+pub async fn arrived(registry: &ProviderRegistry, note: impl FnOnce()) {
+    if !registry.is_arriving() {
+        return;
+    }
+    note();
+    if !registry.arrivals(ARRIVALS_WAIT).await {
+        tracing::warn!(wait = ?ARRIVALS_WAIT, "sources still loading; going ahead without them");
+    }
 }
 
 /// The limits `[providers.plugins]` sets.

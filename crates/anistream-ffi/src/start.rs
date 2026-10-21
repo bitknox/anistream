@@ -135,6 +135,8 @@ pub enum FfiPlatform {
     MacOs,
     Ios,
     IpadOs,
+    /// An Android phone or tablet.
+    Android,
 }
 
 /// Where the engine keeps the trackers' and the plugin stores' tokens.

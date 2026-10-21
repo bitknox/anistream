@@ -36,6 +36,9 @@ pub struct ProviderRegistry {
     /// its row, its place and its compiled plugin, and turning one back on is instant; never
     /// tried, listed from or probed while off.
     disabled: Arc<std::sync::RwLock<std::collections::BTreeSet<String>>>,
+    /// Whether sources are still on their way into the chain: plugins compiling at launch.
+    /// See [`Self::expect_arrivals`].
+    arriving: Arc<tokio::sync::watch::Sender<bool>>,
 }
 
 impl std::fmt::Debug for ProviderRegistry {
@@ -121,6 +124,7 @@ impl ProviderRegistry {
             providers: Arc::new(std::sync::RwLock::new(providers)),
             health,
             disabled: Arc::default(),
+            arriving: Arc::new(tokio::sync::watch::Sender::new(false)),
         }
     }
 
@@ -133,6 +137,33 @@ impl ProviderRegistry {
     /// Whether the source `id` is switched off by name.
     pub fn is_disabled(&self, id: &str) -> bool {
         self.disabled.read().unwrap_or_else(|e| e.into_inner()).contains(id)
+    }
+
+    /// Say that sources are on their way into the chain, until [`Self::arrivals_done`].
+    ///
+    /// The chain as it stands meanwhile is only part of it: an episode looked up against it
+    /// would miss a source that is a moment from joining, or fail for having none at all.
+    /// What would rather wait for the rest says so with [`Self::arrivals`].
+    pub fn expect_arrivals(&self) {
+        self.arriving.send_replace(true);
+    }
+
+    /// Say that the sources on their way have joined the chain, or will not.
+    pub fn arrivals_done(&self) {
+        self.arriving.send_replace(false);
+    }
+
+    /// Whether sources are on their way into the chain.
+    pub fn is_arriving(&self) -> bool {
+        *self.arriving.borrow()
+    }
+
+    /// Wait for the sources on their way to join the chain, for at most `within`. Returns
+    /// whether none are still on their way.
+    pub async fn arrivals(&self, within: std::time::Duration) -> bool {
+        let mut arriving = self.arriving.subscribe();
+        let done = tokio::time::timeout(within, arriving.wait_for(|arriving| !arriving));
+        matches!(done.await, Ok(Ok(_)))
     }
 
     /// Add sources discovered after startup, keeping config order.
@@ -275,6 +306,7 @@ impl ProviderRegistry {
             providers: Arc::new(std::sync::RwLock::new(vec![provider])),
             health: self.health.clone(),
             disabled: self.disabled.clone(),
+            arriving: Arc::clone(&self.arriving),
         })
     }
 
@@ -490,6 +522,30 @@ mod tests {
 
     use super::*;
     use crate::mock::MockProvider;
+
+    #[tokio::test(start_paused = true)]
+    async fn sources_on_their_way_are_waited_for_as_long_as_asked() {
+        let registry = ProviderRegistry::new(Vec::new());
+        assert!(registry.arrivals(Duration::from_secs(1)).await, "nothing on its way");
+
+        registry.expect_arrivals();
+        assert!(registry.is_arriving());
+        let started = tokio::time::Instant::now();
+        assert!(!registry.arrivals(Duration::from_secs(30)).await, "still on its way");
+        assert_eq!(started.elapsed(), Duration::from_secs(30), "waited as long as asked");
+
+        // Joined partway through a wait: the wait ends then, with them in the chain.
+        let waiting = tokio::spawn({
+            let registry = registry.clone();
+            async move { registry.arrivals(Duration::from_secs(30)).await }
+        });
+        tokio::time::sleep(Duration::from_secs(2)).await;
+        registry.extend(vec![MockProvider::new("late").arc()]);
+        registry.arrivals_done();
+        assert!(waiting.await.unwrap());
+        assert_eq!(registry.ids(), ["late"]);
+        assert!(!registry.is_arriving());
+    }
 
     #[tokio::test(start_paused = true)]
     async fn every_provider_is_probed_at_once() {
