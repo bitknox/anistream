@@ -78,7 +78,12 @@ class MainActivity : ComponentActivity() {
     /** Say `ANISTREAM_READY` in the log once the screens have what they asked for: what shots.sh waits on. */
     private fun announceReady() {
         lifecycleScope.launch {
-            if (app.store.settle()) Log.i(AnistreamApp.TAG, READY) else Log.w(AnistreamApp.TAG, "the screens did not settle")
+            // Up to three minutes: an emulator on a machine busy with builds starts the engine slowly.
+            if (app.store.settle(timeoutMillis = 180_000)) {
+                Log.i(AnistreamApp.TAG, READY)
+            } else {
+                Log.w(AnistreamApp.TAG, "the screens did not settle")
+            }
         }
     }
 

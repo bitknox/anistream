@@ -124,12 +124,15 @@ demo() { shell am broadcast -a com.android.systemui.demo -e command "$@" >/dev/n
 shell cmd uimode night yes >/dev/null
 # The boards' clock reads 19:30, on a 24-hour clock.
 shell settings put system time_12_24 24
-shell settings put global sysui_demo_allowed 1
-demo enter
-demo clock -e hhmm 1930
-demo battery -e level 100 -e plugged false
-demo network -e wifi show -e level 4 -e mobile show -e datatype none -e level 4
-demo notifications -e visible false
+# Said again before every shot: a system still starting up after the boot drops the first.
+demo_mode() {
+  shell settings put global sysui_demo_allowed 1
+  demo enter
+  demo clock -e hhmm 1930
+  demo battery -e level 100 -e plugged false
+  demo network -e wifi show -e level 4 -e mobile hide
+  demo notifications -e visible false
+}
 
 for flavour in $(printf '%s\n' "${flavours[@]}" | sort -u); do
   lower="$(tr '[:upper:]' '[:lower:]' <<<"$flavour")"
@@ -140,6 +143,7 @@ for shot in "${shots[@]}"; do
   if [[ "${shot%%:*}" == app ]]; then package=tv.anistream.app; else package=tv.anistream.fixtures; fi
   args=()
   while IFS= read -r arg; do args+=("$arg"); done < <(extras "$shot")
+  demo_mode
   # Every shot from a first launch: no setup card hidden, no permission asked.
   shell pm clear "$package" >/dev/null
   "$adb" -s "$serial" logcat -c
@@ -147,7 +151,9 @@ for shot in "${shots[@]}"; do
   # This launch's marker, by its process, never one an earlier shot left in the log.
   pid="$(shell pidof "$package" | tr -d '\r')"
   ready=0
-  for _ in $(seq 1 120); do
+  # Up to three minutes, as long as the app waits: a machine busy with builds slows the
+  # emulator a long way.
+  for _ in $(seq 1 360); do
     if "$adb" -s "$serial" logcat -d --pid="$pid" -s anistream:I | grep -q ANISTREAM_READY; then ready=1; break; fi
     sleep 0.5
   done
