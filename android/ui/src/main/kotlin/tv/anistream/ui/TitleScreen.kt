@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -32,7 +34,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
@@ -71,7 +72,6 @@ import tv.anistream.design.Motion
 import tv.anistream.design.ObiSilk
 import tv.anistream.design.ShowTitle
 import tv.anistream.design.tabular
-import tv.anistream.store.AirTime
 import tv.anistream.store.AppClock
 import tv.anistream.store.HeroArt
 import tv.anistream.store.LibraryModel
@@ -109,11 +109,12 @@ fun TitleScreen(id: AnilistId, actions: AppActions) {
     val list = rememberLazyListState()
     val inset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     if (wideWindow()) {
-        TabletTitle(entry, episodes, art, titles, actions)
+        TabletTitle(entry, episodes, art, actions)
         return
     }
 
     val marks = remember(id) { UserMarks() }
+    var aboutOpen by rememberSaveable(id) { mutableStateOf(false) }
     androidx.compose.runtime.CompositionLocalProvider(LocalUserMarks provides marks) {
     Box(Modifier.fillMaxSize().shared(Shared.Page, id).background(MaterialTheme.colorScheme.surface)) {
         LazyColumn(state = list, contentPadding = PaddingValues(bottom = 24.dp)) {
@@ -138,14 +139,83 @@ fun TitleScreen(id: AnilistId, actions: AppActions) {
                 }
             }
             item(key = "actions") { TitleActions(entry, actions) }
-            if (entry.synopsis.isNotEmpty()) item(key = "synopsis") { Synopsis(entry.synopsis) }
+            val synopsis = synopsisWithoutSpoilers(entry.synopsis)
+            if (synopsis.isNotEmpty()) item(key = "synopsis") { Synopsis(synopsis) }
+            item(key = "facts") { FactsLines(entry) }
+            item(key = "more-about") { MoreAboutRow { aboutOpen = true } }
             val family = TitleFamily.of(entry)
             if (family.seasons.isNotEmpty()) item(key = "seasons") { Seasons(entry, family) }
-            if (family.related.isNotEmpty()) item(key = "related") { Related(family, titles) }
+            val related = entry.relatedCards()
+            if (related.isNotEmpty()) item(key = "related") { RelatedRail(related) }
             episodeRows(entry, episodes, actions)
         }
         TitleTopBar(entry, onBack = navigator::back, modifier = Modifier.padding(top = inset))
     }
+    if (aboutOpen) {
+        MoreAboutSheet(entry, onDismiss = { aboutOpen = false }) { other ->
+            aboutOpen = false
+            navigator.openTitle(other, "recommendation")
+        }
+    }
+    }
+}
+
+/** The facts on one line, then the top three tags on another, each cut at the end. */
+@Composable
+private fun FactsLines(entry: Entry) {
+    val facts = entry.factsLine()
+    val tags = entry.tagsLine()
+    if (facts == null && tags == null) return
+    Column(Modifier.padding(horizontal = 16.dp).padding(top = 4.dp)) {
+        for (line in listOfNotNull(facts, tags)) {
+            Text(line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+/** "More about this show", 48 high with a chevron, which opens the sheet. */
+@Composable
+private fun MoreAboutRow(onOpen: () -> Unit) {
+    Row(
+        Modifier
+            .padding(top = 4.dp)
+            .fillMaxWidth()
+            .height(48.dp)
+            .clickable(onClick = onOpen)
+            .padding(horizontal = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("More about this show", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+        Icon(Icons.Chevron, contentDescription = null, modifier = Modifier.size(20.dp))
+    }
+}
+
+/** Every other relation as a rail of cover cards: the cover, the title, and what it is. */
+@Composable
+private fun RelatedRail(related: List<tv.anistream.engine.model.LinkedTitle>) {
+    val navigator = LocalNavigator.current
+    val colors = MaterialTheme.colorScheme
+    Column(Modifier.padding(top = 8.dp)) {
+        Text("Related", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp).semantics { heading() })
+        androidx.compose.foundation.lazy.LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(top = 4.dp),
+        ) {
+            items(related, key = { it.id.toLong() }) { linked ->
+                Row(
+                    Modifier.clickable { navigator.openTitle(linked.id, "related") },
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ArtworkImage(linked.coverUrl, plate = androidx.compose.ui.graphics.Color(0xFF1F2440), maxPixelSize = 120, modifier = Modifier.size(40.dp, 60.dp).clip(ArtShape.cover(40.dp)))
+                    Column {
+                        Text(linked.title, style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 220.dp))
+                        Text(linked.cardLine(), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 1)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -175,25 +245,42 @@ private fun TitleHeader(entry: Entry, modifier: Modifier = Modifier) {
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.semantics { heading() },
             )
-            entry.alternateTitle?.let {
+            OtherForms(entry, Modifier.padding(top = 2.dp))
+            if (entry.capsLine.isNotEmpty()) {
                 Text(
-                    it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
-            if (entry.metadataLine.isNotEmpty()) {
-                Text(
-                    entry.metadataLine,
+                    entry.capsLine,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp),
                 )
             }
         }
+    }
+}
+
+/**
+ * The title's other forms under it, in haze: both when they fit on one line, else only the first,
+ * cut at the end.
+ */
+@Composable
+private fun OtherForms(entry: Entry, modifier: Modifier = Modifier) {
+    val forms = entry.otherForms()
+    if (forms.isEmpty()) return
+    val style = MaterialTheme.typography.bodyMedium
+    val measurer = rememberTextMeasurer()
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        val width = constraints.maxWidth
+        val both = forms.joinToString(" \u00b7 ")
+        val fits = remember(both, width) {
+            !measurer.measure(both, style, maxLines = 1, constraints = Constraints(maxWidth = width)).hasVisualOverflow
+        }
+        Text(
+            if (fits) both else forms.first(),
+            style = style,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -269,13 +356,8 @@ private fun TitleActions(entry: Entry, actions: AppActions) {
                 }
             }
         } else {
-            // Still to air: when, in the button's place, never amber.
-            Box(
-                Modifier.fillMaxWidth().height(56.dp).border(1.dp, colors.outline, RoundedCornerShape(28.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(action.label, style = MaterialTheme.typography.titleMedium.tabular(), color = colors.onSurfaceVariant)
-            }
+            // Caught up: when the next one airs, in the action's place, and no amber on the page.
+            CaughtUp(action, Modifier.height(56.dp))
         }
         Row(Modifier.padding(top = 4.dp).height(48.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             var open by remember { mutableStateOf(false) }
@@ -313,9 +395,19 @@ private fun TitleActions(entry: Entry, actions: AppActions) {
     }
 }
 
+/** "Episode 10 airs Thursday 16:30": a haze line with a water dot. */
+@Composable
+internal fun CaughtUp(action: TitleAction, modifier: Modifier = Modifier) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(6.dp).background(MaterialTheme.colorScheme.secondary, CircleShape))
+        Text(action.caughtUp(context), style = MaterialTheme.typography.bodyLarge.tabular(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
 /**
- * The synopsis in two lines, ending "… More" where there is more, which shows the rest; a tap on
- * the whole text toggles it.
+ * The synopsis in two lines, ending "… More" where there is more; a tap on it expands it in place,
+ * and it stays open.
  */
 @Composable
 private fun Synopsis(text: String) {
@@ -329,7 +421,7 @@ private fun Synopsis(text: String) {
             .padding(top = 4.dp)
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .clickable { expanded = !expanded }
+            .clickable(enabled = !expanded) { expanded = true }
             .padding(vertical = 4.dp),
     ) {
         val width = constraints.maxWidth
@@ -414,42 +506,6 @@ private fun Seasons(entry: Entry, family: TitleFamily, inset: Boolean = true) {
     }
 }
 
-/** Films, OVAs and specials, each an outlined chip with where it stands. */
-@Composable
-private fun Related(family: TitleFamily, titles: Map<AnilistId, Entry>, inset: Boolean = true) {
-    val navigator = LocalNavigator.current
-    val colors = MaterialTheme.colorScheme
-    Row(
-        Modifier.padding(horizontal = if (inset) 16.dp else 0.dp).height(48.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Related", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, modifier = Modifier.padding(end = 4.dp))
-        for (related in family.related.take(3)) {
-            val known = titles[related.id]
-            val state = when {
-                known?.progress == null -> related.relation.replaceFirstChar { it.uppercase() }
-                known.episodes != null && known.progress!!.done >= known.episodes!! -> "Watched"
-                known.progress!!.done == 0u -> "Not started"
-                else -> "In progress"
-            }
-            Row(
-                Modifier
-                    .height(32.dp)
-                    .clip(MaterialTheme.shapes.small)
-                    .border(1.dp, colors.outline, MaterialTheme.shapes.small)
-                    .clickable { navigator.openTitle(related.id, "related") }
-                    .padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(formatLabel(related.format) ?: related.title, style = MaterialTheme.typography.labelMedium, maxLines = 1)
-                Text(state, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Normal), color = colors.onSurfaceVariant, maxLines = 1)
-            }
-        }
-    }
-}
-
 /** The episodes, a row each; plates in their place while the table loads. */
 private fun LazyListScope.episodeRows(entry: Entry, episodes: List<EpisodeRow>?, actions: AppActions) {
     if (episodes == null) {
@@ -457,7 +513,7 @@ private fun LazyListScope.episodeRows(entry: Entry, episodes: List<EpisodeRow>?,
         return
     }
     val next = entry.progress?.next ?: 1u
-    items(episodes, key = { "episode-${it.number}" }) { row ->
+    items(entry.listedEpisodes(episodes), key = { "episode-${it.number}" }) { row ->
         EpisodeRowView(entry, row, next, actions)
     }
 }
@@ -513,7 +569,6 @@ private fun TabletTitle(
     entry: Entry,
     episodes: List<EpisodeRow>?,
     art: HeroArt,
-    titles: Map<AnilistId, Entry>,
     actions: AppActions,
 ) {
     val navigator = LocalNavigator.current
@@ -522,8 +577,12 @@ private fun TabletTitle(
     val next = entry.progress?.next ?: 1u
     val family = TitleFamily.of(entry)
     val colors = MaterialTheme.colorScheme
+    var aboutOpen by rememberSaveable(entry.id) { mutableStateOf(false) }
+    // Back, the gesture or the key, closes the pane before it leaves the page.
+    androidx.activity.compose.BackHandler(enabled = aboutOpen) { aboutOpen = false }
     androidx.compose.runtime.CompositionLocalProvider(LocalUserMarks provides marks) {
-        Box(Modifier.fillMaxSize().shared(Shared.Page, entry.id).background(colors.surface)) {
+        Row(Modifier.fillMaxSize().shared(Shared.Page, entry.id).background(colors.surface)) {
+        Box(Modifier.weight(1f).fillMaxHeight()) {
             androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
                 columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
                 contentPadding = PaddingValues(start = 8.dp, end = 24.dp, bottom = 24.dp),
@@ -557,14 +616,14 @@ private fun TabletTitle(
                             Column(Modifier.weight(1f).padding(bottom = 0.dp)) {
                                 Text(entry.showTitle, style = ShowTitle.page, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.semantics { heading() })
                                 entry.alternateTitle?.let {
-                                    Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, maxLines = 1)
+                                    Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
-                                if (entry.metadataLine.isNotEmpty()) {
-                                    Text(entry.metadataLine, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
+                                if (entry.capsLine.isNotEmpty()) {
+                                    Text(entry.capsLine, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
                                 }
                                 TabletActions(entry, actions, Modifier.padding(top = 4.dp))
                             }
-                            TitleFacts(entry, Modifier.width(376.dp))
+                            if (!aboutOpen) TitleFacts(entry, Modifier.width(376.dp)) { aboutOpen = true }
                         }
                     }
                 }
@@ -572,22 +631,53 @@ private fun TabletTitle(
                     fullWidth("family") {
                         Row(Modifier.padding(start = 16.dp, top = 24.dp), horizontalArrangement = Arrangement.spacedBy(32.dp), verticalAlignment = Alignment.CenterVertically) {
                             if (family.seasons.isNotEmpty()) Box(Modifier.width(520.dp)) { Seasons(entry, family, inset = false) }
-                            if (family.related.isNotEmpty()) Related(family, titles, inset = false)
                         }
                     }
                 }
+                val related = entry.relatedCards()
+                if (related.isNotEmpty()) fullWidth("related") { RelatedRail(related) }
                 fullWidth("gap") { Spacer(Modifier.height(16.dp)) }
                 if (episodes == null) {
                     items(4) { AfterWait { EpisodePlaceholder() } }
                 } else {
-                    items(episodes.size, key = { "episode-${episodes[it].number}" }) { index ->
-                        val row = episodes[index]
+                    val listed = entry.listedEpisodes(episodes)
+                    items(listed.size, key = { "episode-${listed[it].number}" }) { index ->
+                        val row = listed[index]
                         Box(Modifier.clip(MaterialTheme.shapes.large)) { EpisodeRowView(entry, row, next, actions) }
                     }
                 }
             }
             TitleTopBar(entry, onBack = navigator::back, modifier = Modifier.padding(top = inset))
         }
+        if (aboutOpen) {
+            AboutPane(entry, onClose = { aboutOpen = false }) { other ->
+                aboutOpen = false
+                navigator.openTitle(other, "recommendation")
+            }
+        }
+        }
+    }
+}
+
+/** The supporting pane, 384 wide in the details column's place: About and the sheet's sections. */
+@Composable
+private fun AboutPane(entry: Entry, onClose: () -> Unit, onOpenTitle: (AnilistId) -> Unit) {
+    val inset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    Column(
+        Modifier
+            .padding(top = inset, end = 24.dp, bottom = 24.dp)
+            .width(384.dp)
+            .fillMaxHeight()
+            .clip(MaterialTheme.shapes.large)
+            .background(MaterialTheme.colorScheme.surfaceContainer),
+    ) {
+        Row(Modifier.height(64.dp).padding(start = 24.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("More about this show", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).semantics { heading() })
+            IconButton(onClick = onClose, modifier = Modifier.semantics { contentDescription = "Close" }) {
+                Icon(Icons.Clear, contentDescription = null)
+            }
+        }
+        MoreAboutContent(entry, about = true, heading = false, onOpenTitle = onOpenTitle)
     }
 }
 
@@ -611,7 +701,7 @@ private fun TabletActions(entry: Entry, actions: AppActions, modifier: Modifier 
                 }
             }
         } else {
-            Text(action.label, style = MaterialTheme.typography.titleMedium.tabular(), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 8.dp))
+            CaughtUp(action, Modifier.padding(horizontal = 8.dp))
         }
         Box {
             FilledTonalButton(onClick = { open = true }, contentPadding = PaddingValues(start = 16.dp, end = 12.dp)) {
@@ -646,28 +736,43 @@ private fun TabletActions(entry: Entry, actions: AppActions, modifier: Modifier 
     }
 }
 
-/** The synopsis, and the studio, the next episode and where else it streams, beside the title. */
+/**
+ * The details column beside the title: the synopsis, the facts (Studio, Based on, the airing
+ * state, Also on), the top three tags, and "More about this show", which opens the pane.
+ */
 @Composable
-private fun TitleFacts(entry: Entry, modifier: Modifier = Modifier) {
+private fun TitleFacts(entry: Entry, modifier: Modifier = Modifier, onMore: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     Column(modifier) {
-        if (entry.synopsis.isNotEmpty()) {
-            Text(entry.synopsis, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, maxLines = 4, overflow = TextOverflow.Ellipsis)
+        val synopsis = synopsisWithoutSpoilers(entry.synopsis)
+        if (synopsis.isNotEmpty()) {
+            Text(synopsis, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, maxLines = 4, overflow = TextOverflow.Ellipsis)
         }
+        val airing = entry.airingState()
         val facts = listOfNotNull(
             entry.studio?.let { "STUDIO" to it },
-            entry.nextAiringIn?.let { "NEXT EPISODE" to AirTime.words(AppClock.now().plusSeconds(it)) },
-            entry.availableOn.takeIf { it.isNotEmpty() }?.let { "ALSO ON" to it.joinToString(", ") },
+            entry.source?.label()?.let { "BASED ON" to it },
+            airing?.let { it.label.uppercase() to it.value },
+            entry.alsoOn()?.let { "ALSO ON" to it },
         )
         if (facts.isNotEmpty()) {
-            Row(Modifier.padding(top = 20.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                for ((label, value) in facts) {
-                    Column(Modifier.weight(1f)) {
-                        Text(label, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
-                        Text(value, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Column(Modifier.padding(top = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                for (row in facts.chunked(3)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        for ((label, value) in row) {
+                            Column(Modifier.weight(1f)) {
+                                Text(label, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+                                Text(value, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
+                        repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
                     }
                 }
             }
         }
+        entry.tagsLine()?.let {
+            Text(it, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 12.dp))
+        }
+        FilledTonalButton(onClick = onMore, modifier = Modifier.padding(top = 12.dp)) { Text("More about this show") }
     }
 }
