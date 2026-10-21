@@ -553,18 +553,20 @@ h1#_top {
 	line-height: 1.375;
 }
 
+/* Links in prose are amber, so they stand out from the text around them, with a softer amber
+   underline that turns solid under the pointer. */
 .sl-markdown-content a:not(:where(.not-content *)) {
-	color: var(--ani-text);
+	color: var(--ani-obi);
 	text-decoration: underline;
 	text-decoration-thickness: 1px;
-	text-decoration-color: var(--ani-rule);
+	text-decoration-color: color-mix(in srgb, var(--ani-obi) 45%, transparent);
 	text-underline-offset: 3px;
 	transition: text-decoration-color var(--ani-quick) var(--ani-spring);
 }
 
 .sl-markdown-content a:hover:not(:where(.not-content *)) {
-	color: var(--ani-text);
-	text-decoration-color: var(--ani-text);
+	color: var(--ani-obi);
+	text-decoration-color: var(--ani-obi);
 }
 
 .sl-markdown-content strong {

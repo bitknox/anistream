@@ -289,29 +289,6 @@ html:not(.js) .scene {
 	opacity: 1;
 }
 
-/* On load the copy rises 12 px into place, once, and the terminal follows it. */
-@keyframes hero-in {
-	from {
-		opacity: 0;
-		transform: translateY(12px);
-	}
-}
-
-html.js .hero-text {
-	animation: hero-in 600ms var(--ani-spring) 120ms both;
-}
-
-html.js .hero-term > * {
-	animation: hero-in 600ms var(--ani-spring) 280ms both;
-}
-
-@media (prefers-reduced-motion: reduce) {
-	html.js .hero-text,
-	html.js .hero-term > * {
-		animation: none;
-	}
-}
-
 .hero-copy {
 	position: relative;
 	display: flex;
