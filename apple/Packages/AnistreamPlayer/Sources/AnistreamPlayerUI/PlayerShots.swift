@@ -23,8 +23,11 @@ public enum PlayerShot: String, CaseIterable, Sendable {
     /// Scrubbing at half speed, with the frame there from the hidden mpv, the time and the
     /// chapter.
     case scrubbing
-    /// The Mac's mini player, in the corner of the screen. The same as playing elsewhere.
+    /// The Mac's mini player, in the corner of the screen over the main window, browsing. The
+    /// same as playing elsewhere.
     case miniPlayer = "mini-player"
+    /// "Couldn't play episode 7", with Choose source and Close.
+    case couldntPlay = "couldnt-play"
 
     /// The launch argument that names one: `-AnistreamPlayerShot up-next`.
     public static let argument = "-AnistreamPlayerShot"
@@ -40,6 +43,13 @@ extension PlayerModel {
     /// `shot`. False when it did not get there in time.
     public func stage(_ shot: PlayerShot, store: AppStore) async -> Bool {
         guard let item = store.continuing.queue(store.titles).all.first else { return false }
+        if shot == .couldntPlay {
+            // As the engine says it when no source answered: staged, then ended, failed.
+            apply(.playbackStaged(id: item.id, title: item.entry.title, episode: String(item.episode), episodeTitle: nil, speed: 1))
+            apply(.playbackEnded(watched: false, ending: .failed, rollingOn: false))
+            try? await Task.sleep(for: .seconds(1.5))
+            return failure != nil
+        }
         holdsCurtain = shot == .starting
         store.send(.play(id: item.id, episode: String(item.episode)))
         guard await waited(30, { self.isPresented && self.hasPicture && self.duration != nil }) else { return false }
@@ -48,6 +58,8 @@ extension PlayerModel {
         case .starting:
             // The banner's art.
             try? await Task.sleep(for: .seconds(1))
+        case .couldntPlay:
+            break
         case .playing:
             seek(to: 31)
             there = await waited(10) { self.position >= 31.5 }
@@ -87,9 +99,11 @@ extension PlayerModel {
             there = await waited(10) { self.position >= 31.5 }
             #if os(macOS)
             miniPlayer = true
-            try? await Task.sleep(for: .seconds(1))
-            #endif
             pinnedControls = true
+            try? await Task.sleep(for: .seconds(1.5))
+            #else
+            pinnedControls = true
+            #endif
         }
         // The fades.
         try? await Task.sleep(for: .milliseconds(700))

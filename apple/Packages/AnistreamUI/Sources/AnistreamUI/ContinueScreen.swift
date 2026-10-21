@@ -301,6 +301,7 @@ struct ContinuePreview: View {
                             HeroArtView(art: art, entry: entry)
                                 .clipShape(.rect(cornerRadius: ArtShape.bannerRadius))
                                 .modifier(BannerMatch(id: entry.id, space: bannerSpace))
+                                .playerZoomSource(entry.id)
                                 .onTapGesture { navigator.openTitle(entry.id, fromPreview: true) }
                         }
                     }

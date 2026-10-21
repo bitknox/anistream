@@ -28,6 +28,10 @@ public enum PlayerTiming {
     public static let controlsHideMac: Duration = .seconds(2)
     /// An alert on the video stays this long.
     public static let alertStays: Duration = .seconds(4)
+    /// A start that has shown nothing this long offers another source, and to stop.
+    public static let startingOffers: Duration = .seconds(20)
+    /// How long a player closed before its first frame waits for the playback's verdict.
+    public static let verdictWait: Duration = .seconds(3)
 }
 
 /// The playback Now Playing shows, as the engine staged it.
@@ -47,7 +51,25 @@ public struct StartingScreen: Equatable, Sendable {
     public var since: ContinuousClock.Instant
 }
 
+/// A playback that never played, for "Couldn't play episode 7".
+public struct PlaybackFailure: Equatable, Sendable {
+    public var id: AnilistId?
+    public var episode: String
+}
+
 extension StartingScreen {
+    /// What the wait is on, from 3 s in: "Finding a source · 4 s", or the engine's note in its
+    /// place. Nothing before.
+    public func wait(at now: ContinuousClock.Instant, note: String?) -> String? {
+        guard now - since >= PlayerTiming.startingWaits else { return nil }
+        return line(at: now, note: note)
+    }
+
+    /// Whether it has waited long enough to offer another source, and to stop.
+    public func offersChoice(at now: ContinuousClock.Instant) -> Bool {
+        now - since >= PlayerTiming.startingOffers
+    }
+
     /// "Starting episode 7", and from 3 s on what the wait is on, "Finding a source" or the
     /// engine's note, with the seconds: "Finding a source · 4 s".
     public func line(at now: ContinuousClock.Instant, note: String?) -> String {

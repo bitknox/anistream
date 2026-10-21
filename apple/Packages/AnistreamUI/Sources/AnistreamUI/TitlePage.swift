@@ -112,6 +112,7 @@ struct TitlePage: View {
                             Palette.ground.frame(height: 96)
                         }
                         .modifier(BannerMatch(id: entry.id, space: bannerSpace))
+                        .playerZoomSource(entry.id)
                 }
             }
         }

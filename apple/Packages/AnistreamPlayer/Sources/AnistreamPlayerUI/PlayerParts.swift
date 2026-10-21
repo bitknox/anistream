@@ -9,6 +9,8 @@ import AnistreamStore
 import SwiftUI
 #if os(macOS)
 import AppKit
+#else
+import UIKit
 #endif
 
 /// The sizes that differ between the Mac's player and the iPhone's.
@@ -44,52 +46,239 @@ struct PlayerPicture: View {
             PlayerSurface(
                 layer: layer,
                 resized: { [weak model] in model?.surfaceResized() },
-                display: { [weak model] display in model?.surfaceDisplay(display) })
+                display: { [weak model] display in model?.surfaceDisplay(display) },
+                pointer: { [weak model] in model?.poke() })
         }
     }
 }
 
-/// From the playback staged to the first frame, the title's banner holds the screen behind a
-/// small spinner and "Starting episode 7"; the first frame fades in over it. Between episodes the
-/// last frame fades through the ground colour, never black.
+/// From the playback staged to the first frame: the title's wide art at the screen's full size
+/// under a calm ground scrim (the banner, else a still already seen, else the ground alone),
+/// the title, "Starting episode 7" over a thin amber line that sweeps while it waits, and what
+/// the wait is on below. After 20 s it offers another source, and to stop. When the playback
+/// never played, it says so: "Couldn't play episode 7", with Choose source and Close. Between
+/// episodes the last frame fades through the ground colour, never black.
 struct StartingCurtain: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let model: PlayerModel
     let metrics: PlayerMetrics
 
     var body: some View {
         let entry = model.staged.flatMap { store.titles[$0.id] }
-        let url = entry?.bannerUrl ?? entry?.coverUrl
+        let art = entry.map { store.heroArt($0) }
+        let url = art?.url
         let image = url.flatMap { store.artwork.image($0) }
-        let note = model.starting.flatMap { PlayerModel.startingNote(in: store.jobs.running, episode: $0.episode) }
-        ZStack {
-            Palette.ground
-            if let image {
-                Image(decorative: image, scale: 1)
-                    .resizable()
-                    .scaledToFill()
-                    .transition(.opacity)
-                Palette.controlsDim
-            }
-            VStack(spacing: 12) {
-                ProgressView()
-                    .controlSize(.small)
-                    .tint(.silk)
-                    .environment(\.colorScheme, .dark)
-                Text(model.startingLine(note: note) ?? "")
-                    .font(.system(size: metrics.body, weight: .medium))
-                    .monospacedDigit()
-                    .foregroundStyle(.silk)
-                    .shadow(color: .black.opacity(0.6), radius: 1, y: 1)
-                    .contentTransition(.opacity)
+        GeometryReader { proxy in
+            ZStack {
+                Palette.ground
+                if let image {
+                    FilledArt(image: image)
+                        .transition(.opacity)
+                    Palette.ground.opacity(0.55)
+                }
+                block
+                    .frame(width: min(520, max(0, proxy.size.width - 2 * (metrics.touch ? 56 : 48))), alignment: .leading)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
         .animation(.fadeIn, value: image != nil)
         .clipped()
         .task(id: url) {
-            if let url { store.artwork.request(url, maxPixelSize: 1800) }
+            // As sharp as the screen, which the player may come to fill.
+            if let url { store.artwork.request(url, maxPixelSize: ScreenPixels.longSide) }
         }
-        .accessibilityElement(children: .combine)
+        .task(id: entry?.id) {
+            // A title with no banner shows a still already seen, which the episode list has.
+            if let entry, entry.bannerUrl == nil, store.titles.episodes[entry.id] == nil {
+                store.loadEpisodes(entry.id)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var block: some View {
+        let episode = model.startingEpisode ?? ""
+        VStack(alignment: .leading, spacing: 0) {
+            Text(model.showTitle)
+                .font(.showTitle(size: metrics.touch ? 22 : 30))
+                .lineLimit(2)
+            if model.failure != nil {
+                Text("Couldn't play episode \(episode)")
+                    .font(.system(size: metrics.touch ? 17 : 15, weight: .semibold))
+                    .padding(.top, 10)
+                Text("No source had a stream that played. Another may.")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.haze)
+                    .padding(.top, 4)
+                HStack(spacing: 8) {
+                    Button(metrics.label("Choose source", mac: "Choose Source")) { model.chooseSource() }
+                        .buttonStyle(PillButtonStyle(kind: .primary, metrics: metrics))
+                        .keyboardShortcut(.defaultAction)
+                    Button("Close") { model.viewerClosed() }
+                        .buttonStyle(PillButtonStyle(kind: .secondary, metrics: metrics))
+                        .keyboardShortcut(.cancelAction)
+                }
+                .padding(.top, 16)
+            } else {
+                let starting = model.starting
+                let note = starting.flatMap { PlayerModel.startingNote(in: store.jobs.running, episode: $0.episode) }
+                Text("Starting episode \(episode)")
+                    .font(.system(size: metrics.touch ? 17 : 15, weight: .medium))
+                    .padding(.top, 8)
+                LoaderLine(reduceMotion: reduceMotion)
+                    .frame(height: 2)
+                    .padding(.top, 12)
+                // Its place kept while there is nothing to say, so nothing moves when there is.
+                Text(starting?.wait(at: model.clock, note: note) ?? " ")
+                    .font(.system(size: 13))
+                    .monospacedDigit()
+                    .foregroundStyle(.haze)
+                    .contentTransition(.opacity)
+                    .padding(.top, 10)
+                if starting?.offersChoice(at: model.clock) == true {
+                    HStack(spacing: 8) {
+                        Button(metrics.label("Choose source", mac: "Choose Source")) { model.chooseSource() }
+                            .buttonStyle(PillButtonStyle(kind: .secondary, metrics: metrics))
+                        Button("Stop") { model.viewerClosed() }
+                            .buttonStyle(PillButtonStyle(kind: .quiet, metrics: metrics))
+                    }
+                    .padding(.top, 16)
+                    .transition(.opacity)
+                }
+            }
+            if model.choosingSource {
+                SourceList(model: model, metrics: metrics)
+                    .padding(.top, 16)
+                    .transition(.opacity)
+            }
+        }
+        .foregroundStyle(.silk)
+        .shadow(color: Color(rgb: 0x0A0C18, opacity: 0.5), radius: 1, y: 1)
+        .animation(.standard, value: model.failure)
+        .animation(.standard, value: model.choosingSource)
+        .accessibilityElement(children: .contain)
+    }
+}
+
+/// Indeterminate progress as a thin amber line: a stretch of amber easing across a faint track,
+/// back and forth, calm. Still, with Reduce Motion.
+struct LoaderLine: View {
+    let reduceMotion: Bool
+    @State private var across = false
+
+    var body: some View {
+        GeometryReader { proxy in
+            let stretch = proxy.size.width * 0.32
+            ZStack(alignment: .leading) {
+                Capsule().fill(Palette.silk.opacity(0.14))
+                if reduceMotion {
+                    Capsule().fill(Palette.amber.opacity(0.8))
+                } else {
+                    Capsule()
+                        .fill(Palette.amber)
+                        .frame(width: stretch)
+                        .offset(x: across ? proxy.size.width - stretch : 0)
+                }
+            }
+        }
+        .onAppear {
+            guard !reduceMotion else { return }
+            // The standard spring's shape, slowed to a calm sweep; never a bounce.
+            withAnimation(.spring(duration: 1.4, bounce: 0).repeatForever(autoreverses: true)) { across = true }
+        }
+        .accessibilityElement()
+        .accessibilityLabel("Starting")
+        .accessibilityAddTraits(.updatesFrequently)
+    }
+}
+
+/// The episode's releases, to play one instead: the engine's list, best first.
+struct SourceList: View {
+    let model: PlayerModel
+    let metrics: PlayerMetrics
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Text("Sources").font(.system(size: 13, weight: .semibold)).foregroundStyle(.haze)
+                Spacer()
+                Button("Cancel") { model.cancelChoosingSource() }
+                    .buttonStyle(.plain)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.haze)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            if let choices = model.sourceChoices {
+                if choices.isEmpty {
+                    Text("No releases found for this episode.")
+                        .font(.system(size: 13)).foregroundStyle(.haze)
+                        .padding(10)
+                } else {
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(choices, id: \.id) { candidate in
+                                MenuRow(
+                                    title: candidate.title, detail: Self.detail(candidate), checked: candidate.autoPick,
+                                    metrics: metrics
+                                ) { model.play(candidate) }
+                            }
+                        }
+                        .padding(.horizontal, 5)
+                        .padding(.bottom, 5)
+                    }
+                    .frame(maxHeight: metrics.touch ? 180 : 220)
+                }
+            } else {
+                Text("Finding releases…").font(.system(size: 13)).foregroundStyle(.haze).padding(10)
+            }
+        }
+        .overVideo(radius: 12)
+    }
+
+    /// "1080p · 120 seeders · 1.4 GB · lantern-archive".
+    static func detail(_ candidate: SourceCandidate) -> String {
+        var parts: [String] = []
+        if let quality = candidate.quality { parts.append("\(quality)p") }
+        if let seeders = candidate.seeders { parts.append("\(seeders) seeders") }
+        if let size = candidate.size { parts.append(size) }
+        if candidate.dubbed { parts.append("dub") } else if candidate.dualAudio { parts.append("dual audio") }
+        parts.append(candidate.providerId)
+        return parts.joined(separator: " · ")
+    }
+}
+
+/// The long side of the main screen in pixels, for art the player may come to fill.
+@MainActor
+enum ScreenPixels {
+    static var longSide: Int {
+        #if os(macOS)
+        let screen = NSScreen.main
+        let size = screen?.frame.size ?? CGSize(width: 1920, height: 1080)
+        return Int(max(size.width, size.height) * (screen?.backingScaleFactor ?? 2))
+        #else
+        let screen = UIApplication.shared.connectedScenes.compactMap { ($0 as? UIWindowScene)?.screen }.first
+        let size = screen?.nativeBounds.size ?? CGSize(width: 2796, height: 1290)
+        return Int(max(size.width, size.height))
+        #endif
+    }
+}
+
+/// Art filling the space it is given, cropped to it, and never asking for more: a banner is
+/// often 4.75:1, and filled into a 16:9 player as a plain `scaledToFill()` it would have made
+/// the player 4.75 times its height wide, with the picture and the controls laid out across it.
+struct FilledArt: View {
+    let image: CGImage
+
+    var body: some View {
+        Color.clear
+            .overlay {
+                Image(decorative: image, scale: 1)
+                    .resizable()
+                    .scaledToFill()
+            }
+            .clipped()
     }
 }
 
@@ -152,8 +341,21 @@ struct SeekLine: View {
                         model.endScrub()
                     }
             )
+            .onContinuousHover { phase in
+                #if os(macOS)
+                // The Mac's pointer shows the bubble without a click; a finger only by dragging.
+                guard showsPreview, duration > 0 else { return }
+                switch phase {
+                case .active(let location):
+                    let fraction = min(1, max(0, location.x / max(proxy.size.width, 1)))
+                    model.hover(at: fraction * duration)
+                case .ended:
+                    model.hover(at: nil)
+                }
+                #endif
+            }
             .overlay(alignment: .topLeading) {
-                if showsPreview, let time = model.scrubbing, duration > 0 {
+                if showsPreview, let time = model.scrubbing ?? model.hovering, duration > 0 {
                     let width = ScrubBubble.width
                     let x = proxy.size.width * time / duration - width / 2
                     ScrubBubble(model: model, time: time)
@@ -404,7 +606,7 @@ struct UpNextCardView: View {
         ZStack {
             CoverPlate(color: nil)
             if let image {
-                Image(decorative: image, scale: 1).resizable().scaledToFill().transition(.opacity)
+                FilledArt(image: image).transition(.opacity)
             }
         }
         .animation(.fadeIn, value: image != nil)

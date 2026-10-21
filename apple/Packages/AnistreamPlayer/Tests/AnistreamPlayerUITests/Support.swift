@@ -131,11 +131,13 @@ final class Rig {
         try await until("the load reported") { self.reports.contains { $0 == (playback, .fileLoaded) } }
     }
 
-    /// mpv's playhead at `seconds`, as an observed property.
+    /// mpv's playhead at `seconds`, as an observed property, once the model has taken it: its
+    /// own report, not just any, since mpv's events before it may still be on their way.
     func playhead(_ seconds: Double) async throws {
-        let before = sent.count
+        let report = PlayerReport.property(name: "time-pos", json: AnistreamPlayer.MpvValue.double(seconds).json)
+        let before = reports.filter { $0.1 == report }.count
         mpv.emit(.property(name: "time-pos", value: .double(seconds)))
-        try await until("time-pos \(seconds) reported") { self.sent.count > before }
+        try await until("time-pos \(seconds) reported") { self.reports.filter { $0.1 == report }.count > before }
     }
 }
 

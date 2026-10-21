@@ -12,15 +12,30 @@ public struct AnistreamCommands<Playback: View, PlayerWindowItems: View>: Comman
     let navigator: Navigator
     let playback: Playback
     let playerWindowItems: PlayerWindowItems
+    /// Library › Back while a player is up in the window: it returns from the player instead.
+    let playerBack: PlayerBack?
+
+    /// Whether a player has the window, and how it goes back to the page it came from.
+    public struct PlayerBack {
+        public let isUp: @MainActor () -> Bool
+        public let back: @MainActor () -> Void
+
+        public init(isUp: @escaping @MainActor () -> Bool, back: @escaping @MainActor () -> Void) {
+            self.isUp = isUp
+            self.back = back
+        }
+    }
 
     public init(
         store: AppStore,
         navigator: Navigator,
+        playerBack: PlayerBack? = nil,
         @ViewBuilder playback: () -> Playback,
         @ViewBuilder playerWindowItems: () -> PlayerWindowItems
     ) {
         self.store = store
         self.navigator = navigator
+        self.playerBack = playerBack
         self.playback = playback()
         self.playerWindowItems = playerWindowItems()
     }
@@ -61,9 +76,15 @@ public struct AnistreamCommands<Playback: View, PlayerWindowItems: View>: Comman
             Button("Command Palette") { navigator.paletteShown.toggle() }
                 .keyboardShortcut("k", modifiers: .command)
             Divider()
-            Button("Back") { withAnimationIfPossible { navigator.back() } }
-                .keyboardShortcut("[", modifiers: .command)
-                .disabled(!navigator.canGoBack)
+            Button("Back") {
+                if let playerBack, playerBack.isUp() {
+                    playerBack.back()
+                } else {
+                    withAnimationIfPossible { navigator.back() }
+                }
+            }
+            .keyboardShortcut("[", modifiers: .command)
+            .disabled(!navigator.canGoBack && playerBack?.isUp() != true)
             Button("Sync Now") { store.send(.syncNow) }
                 .keyboardShortcut("r", modifiers: .command)
                 .disabled(store.accounts.summary.state == .signedOut)

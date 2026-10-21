@@ -44,6 +44,23 @@ struct PreviewTests {
         #expect(rig.model.preview.layer == nil)
     }
 
+    @Test func hoveringTheSeekLineOpensThePreviewAndLeavesThePlaybackAlone() async throws {
+        let rig = Rig()
+        try await rig.opened()
+        let calls = rig.mpv.calls.count
+        rig.model.hover(at: 20)
+        #expect(rig.model.hovering == 20)
+        let preview = try #require(rig.previews.first)
+        try await until("the preview loaded") { !preview.calls.isEmpty }
+        rig.model.hover(at: 25)
+        try await until("the preview there") { preview.calls.last == .seek(seconds: 25, mode: .keyframe) }
+        #expect(rig.mpv.calls.count == calls, "the playback stays where it is")
+        #expect(rig.controls.isEmpty, "nothing for the engine")
+        rig.model.hover(at: nil)
+        #expect(rig.model.hovering == nil)
+        #expect(!preview.ended, "kept for the next hover")
+    }
+
     @Test func theEnginesThumbnailsAddressIsReadInsteadOfTheStream() async throws {
         let rig = Rig()
         try await rig.opened(url: "magnet:?xt=urn:btih:abc")

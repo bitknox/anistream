@@ -215,26 +215,47 @@ where
 {
     let mut reasons = Vec::new();
     let mut matched = false;
-    for provider_id in registry.usable_ids() {
+    let usable = registry.usable_ids();
+    let skipped: Vec<_> =
+        registry.ids().into_iter().filter(|id| !usable.contains(id)).collect();
+    if !skipped.is_empty() {
+        tracing::info!(?skipped, "sources resting after failures, not asked");
+    }
+    for provider_id in usable {
         let Some(source) = registry.pinned(&provider_id) else { continue };
+        let began = std::time::Instant::now();
+        let ms = |began: std::time::Instant| began.elapsed().as_millis() as u64;
         match resolve(store, &source, anilist_id, target, translation, now).await {
-            Resolution::Resolved { key, .. } => {
+            Resolution::Resolved { key, confidence, rung, .. } => {
                 matched = true;
+                tracing::info!(provider = %provider_id, ?rung, confidence, elapsed_ms = ms(began), "title matched");
+                let asked = std::time::Instant::now();
                 let attempt = ask(source, key.clone()).await;
                 let summary = attempt.summary();
                 match attempt.value {
-                    Some(value) => return Answer::Answered { provider_id, key, value },
-                    None => reasons.push(summary),
+                    Some(value) => {
+                        tracing::info!(provider = %provider_id, elapsed_ms = ms(asked), "source answered");
+                        return Answer::Answered { provider_id, key, value };
+                    }
+                    None => {
+                        tracing::info!(provider = %provider_id, reason = %summary, elapsed_ms = ms(asked), "source had no answer");
+                        reasons.push(summary)
+                    }
                 }
             }
             Resolution::Ambiguous { provider_id, candidates } => {
+                tracing::info!(provider = %provider_id, candidates = candidates.len(), elapsed_ms = ms(began), "title ambiguous; asking");
                 return Answer::Ambiguous { provider_id, candidates };
             }
             // Named once: a reason that already names its source keeps its own wording.
             Resolution::NotFound { reason } if reason.starts_with(&provider_id) => {
+                tracing::info!(provider = %provider_id, %reason, elapsed_ms = ms(began), "no match");
                 reasons.push(reason);
             }
-            Resolution::NotFound { reason } => reasons.push(format!("{provider_id}: {reason}")),
+            Resolution::NotFound { reason } => {
+                tracing::info!(provider = %provider_id, %reason, elapsed_ms = ms(began), "no match");
+                reasons.push(format!("{provider_id}: {reason}"))
+            }
         }
     }
     Answer::Unanswered { reasons, matched }

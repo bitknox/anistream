@@ -90,13 +90,83 @@ struct FixturesPlaybackTests {
         model.seek(to: 43)
         try await until("its Up Next", timeout: .seconds(10)) { model.upNextShown }
         model.cancelNext()
+        let endedBefore = Self.endings(events).count
         model.seek(to: 58)
-        try await until("the end", timeout: .seconds(20)) { !model.isPresented }
-        let ended = events.compactMap { event -> (Bool, Ending, Bool)? in
+        // The engine closes the player and then says how the playback ended, which can come in a
+        // later batch of events than the close: the ending is waited for, not assumed.
+        try await until("the ending", timeout: .seconds(20)) { Self.endings(events).count > endedBefore }
+        try await until("the player closed") { !model.isPresented }
+        let ended = try #require(Self.endings(events).last)
+        #expect(ended.ending == .complete(next: nil), "\(Self.endings(events))")
+        #expect(ended.watched, "watched")
+        store.shutdown()
+        await model.finished()
+    }
+
+    /// The `PlaybackEnded`s among `events`, in order.
+    static func endings(_ events: [Event]) -> [(watched: Bool, ending: Ending, rollingOn: Bool)] {
+        events.compactMap { event in
             if case .playbackEnded(let watched, let ending, let rollingOn) = event { (watched, ending, rollingOn) } else { nil }
         }
-        #expect(ended.last.map { $0.1 } == .complete(next: nil), "\(ended)")
-        #expect(ended.last?.0 == true, "watched")
+    }
+
+    /// The episode as HLS, which apple/scripts/player-media.sh makes beside it.
+    static func webEpisode() throws -> URL {
+        let directory = URL(fileURLWithPath: try episode()).deletingLastPathComponent().appending(path: "episode-hls")
+        try #require(FileManager.default.fileExists(atPath: directory.appending(path: "master.m3u8").path),
+            "run apple/scripts/player-media.sh")
+        return directory
+    }
+
+    /// A start from a config with the player full screen and natural upscaling, on a web
+    /// stream behind a referer lock that the engine's mender fetches: the first frame lifts the
+    /// starting screen, and the controls come up.
+    @Test func aWebStreamInFullScreenGetsPastTheStartingScreen() async throws {
+        let server = try StreamServer(directory: try Self.webEpisode(), referer: "https://lantern-archive.example/")
+        let port = try await server.start()
+        defer { server.stop() }
+        let root = FileManager.default.temporaryDirectory
+            .appending(path: "anistream-player-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root.appending(path: "config"), withIntermediateDirectories: true)
+        try Data("[playback]\nskip_opening = false\nfullscreen = true\nupscaling = \"natural\"\n".utf8)
+            .write(to: root.appending(path: "config/config.toml"))
+        let store = AppStore()
+        let model = PlayerModel(
+            send: { [weak store] command in store?.send(command) },
+            backend: {
+                var configuration = MpvConfiguration()
+                configuration.options["ao"] = "null"
+                return MpvClient(configuration: configuration)
+            })
+        store.onPlayback = { [weak model] event in model?.apply(event) }
+        await store.start(
+            EngineLaunch(
+                engine: .fixtures(.playing(media: "http://127.0.0.1:\(port)/master.m3u8")),
+                home: .override(root: root), platform: .macOs, secrets: .host),
+            host: AppHost(secrets: MemorySecrets(), open: { _ in false }))
+        #expect(store.phase == .running)
+
+        store.send(.play(id: Self.finished, episode: "7"))
+        try await until("the player", timeout: .seconds(20)) { model.isPresented }
+        try await until("full screen, as the config has it", timeout: .seconds(20)) { model.fullScreen }
+        try await until("the first frame", timeout: .seconds(30)) { model.hasPicture && model.starting == nil }
+        #expect(model.startingLine == nil)
+        #expect(model.duration.map { abs($0 - 60) < 1 } == true)
+        model.poke()
+        #expect(model.controlsVisible)
+        // Hovering the seek line: the hidden mpv reads the mended stream, from the engine's
+        // thumbnails address through the mender, and shows a frame.
+        model.hover(at: 9)
+        try await until("the preview's frame", timeout: .seconds(15)) { model.preview.ready }
+        #expect(model.thumbnails?.hasPrefix("http://127.0.0.1:") == true)
+        model.hover(at: nil)
+        let requests = server.requests
+        let refused = requests.filter { !$0.allowed }.map(\.path)
+        #expect(!requests.isEmpty)
+        #expect(refused.isEmpty, "every fetch carries the referer")
+        model.viewerClosed()
         store.shutdown()
+        await model.finished()
     }
 }

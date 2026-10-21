@@ -141,6 +141,20 @@ struct ClosingTests {
         #expect(!rig.model.isPresented)
     }
 
+    @Test func backFromOutsideThePlayerAsksItsViewOrClosesTheMiniPlayer() async throws {
+        let rig = Rig()
+        try await rig.opened()
+        // In the window: the view answers, shrinking into the banner before it stops.
+        rig.model.requestBack()
+        #expect(rig.model.backRequests == 1)
+        #expect(rig.model.isPresented)
+        // In the mini player there is no banner to go back into: it stops at once.
+        rig.model.miniPlayer = true
+        rig.model.requestBack()
+        #expect(!rig.model.isPresented)
+        #expect(rig.reports.suffix(2).map(\.1) == [.ended(reason: .quit), .closed])
+    }
+
     @Test func theEnginesQuitReportsHowTheFileEnded() async throws {
         let rig = Rig()
         try await rig.opened()
@@ -153,6 +167,7 @@ struct ClosingTests {
     @Test func theEnginesCloseSaysNothingMore() async throws {
         let rig = Rig()
         try await rig.opened()
+        rig.mpv.emit(.playbackRestart)
         rig.mpv.emit(.endFile(MpvEnd(reason: "eof", error: nil)))
         try await until("the end reported") { rig.reports.last?.1 == .ended(reason: .eof) }
         let sent = rig.sent.count
@@ -180,11 +195,11 @@ struct ClosingTests {
         #expect(rig.reports.last?.1 == .closed)
     }
 
-    @Test func aPlaybackThatNeverOpenedComesDownWhenItEnds() {
+    @Test func aPlaybackThatNeverOpenedComesDownWhenItPlaysElsewhere() {
         let rig = Rig()
         rig.model.apply(.playbackStaged(id: 900_001, title: "Stardust Wayfarer", episode: "7", episodeTitle: nil, speed: 1))
         #expect(rig.model.isPresented)
-        rig.model.apply(.playbackEnded(watched: false, ending: .failed, rollingOn: false))
+        rig.model.apply(.playbackEnded(watched: false, ending: .elsewhere, rollingOn: false))
         #expect(!rig.model.isPresented)
         #expect(rig.made.isEmpty)
     }

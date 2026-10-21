@@ -2,6 +2,7 @@
 
 import AnistreamKit
 import AnistreamPlayer
+import AnistreamStore
 import CoreGraphics
 import Foundation
 import Observation
@@ -39,8 +40,8 @@ public final class SeekPreview {
     @ObservationIgnored private var source: PreviewSource?
     @ObservationIgnored private var listener: Task<Void, Never>?
     @ObservationIgnored private var busy = false
+    @ObservationIgnored private var ending: [Task<Void, Never>] = []
     @ObservationIgnored private var target: Double?
-    @ObservationIgnored private let log = Logger(subsystem: "tv.anistream", category: "preview")
 
     init(make: @escaping @MainActor () -> any PlayerBackend) {
         self.make = make
@@ -50,7 +51,7 @@ public final class SeekPreview {
     public static func mpv() -> MpvClient {
         var configuration = MpvConfiguration()
         configuration.hdr = false
-        configuration.logLevel = "no"
+        configuration.logLevel = "error"
         configuration.subtitleFallback = nil
         configuration.options = [
             "aid": "no", "sid": "no", "ao": "null", "pause": "yes", "keep-open": "yes",
@@ -75,21 +76,33 @@ public final class SeekPreview {
         self.layer = layer
         self.source = source
         let events = backend.events()
+        let opened = ContinuousClock.now
+        AppLog.info("preview", "opening \(AppLog.address(source.url)) with \(source.options.keys.sorted().joined(separator: ", ")) at \(Int(seconds)) s")
         listener = Task { @MainActor [weak self] in
-            for await event in events where event == .playbackRestart {
+            for await event in events {
                 guard let self, self.backend === backend else { return }
-                self.ready = true
+                switch event {
+                case .playbackRestart where !self.ready:
+                    self.ready = true
+                    AppLog.info("preview", "first frame, \(AppLog.ms(since: opened)) ms after opening")
+                case .endFile(let end) where end.reason == "error":
+                    AppLog.warn("preview", "the preview could not open its file: \(end.error ?? "no reason given")")
+                case .log(let line) where line.level == "error" || line.level == "fatal":
+                    AppLog.warn("preview", "mpv \(line.prefix): \(line.text)")
+                default:
+                    break
+                }
             }
         }
         busy = true
-        Task { @MainActor [weak self, log] in
+        Task { @MainActor [weak self] in
             do {
                 try await backend.begin(on: layer)
                 var options = source.options
                 options["start"] = String(seconds)
                 _ = try await backend.perform(.load(url: source.url, options: options))
             } catch {
-                log.error("the preview did not open: \(String(describing: error))")
+                AppLog.warn("preview", "the preview did not open: \(error)")
             }
             guard let self, self.backend === backend else { return }
             self.busy = false
@@ -116,11 +129,18 @@ public final class SeekPreview {
         Task { await backend.resized() }
     }
 
+    /// Wait until every preview closed has shut down.
+    func finished() async {
+        let tasks = ending
+        ending = []
+        for task in tasks { await task.value }
+    }
+
     /// Done with this file, or with previews: mpv shuts down.
     func close() {
         listener?.cancel()
         listener = nil
-        if let backend { Task.detached { await backend.end() } }
+        if let backend { ending.append(Task.detached { await backend.end() }) }
         backend = nil
         layer = nil
         source = nil

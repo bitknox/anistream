@@ -52,6 +52,10 @@ public final class AppStore {
     @ObservationIgnored private var testing = false
     /// Called after each batch is applied: what a screenshot run waits on.
     @ObservationIgnored public var onApplied: (@MainActor ([Event]) -> Void)?
+    /// Where the engine started keeps its files: the cache is where the player keeps mpv's.
+    public private(set) var home: EngineHome?
+    /// When the last play was sent, for the log's timings.
+    @ObservationIgnored private var playSent: ContinuousClock.Instant?
     /// The playback's events, for the player the app hosts: its ops and interface, and the
     /// playback around them (AnistreamPlayerUI's `PlayerModel.apply(_:)`).
     @ObservationIgnored public var onPlayback: (@MainActor (Event) -> Void)?
@@ -74,15 +78,24 @@ public final class AppStore {
         #if FIXTURES
         if case .fixtures = launch.engine { testing = true }
         #endif
+        home = launch.home
+        AppLog.start(cache: launch.home.cache)
+        #if os(macOS)
+        AppLog.info("store", "helper tools are looked for on \(HelperPath.extend())")
+        #endif
+        let began = ContinuousClock.now
         do {
             let engine = try await Task.detached(priority: .userInitiated) {
                 try launch.start(host: host)
             }.value
+            AppLog.info("store", "engine started in \(AppLog.ms(since: began)) ms")
             attach(engine)
         } catch let error as FfiError {
+            AppLog.error("store", "engine did not start: \(error.reason)")
             phase = .failed(error.reason)
             early = []
         } catch {
+            AppLog.error("store", "engine did not start: \(error.localizedDescription)")
             phase = .failed(error.localizedDescription)
             early = []
         }
@@ -119,6 +132,16 @@ public final class AppStore {
         #if FIXTURES
         sentLog.append(String(String(describing: command).prefix { $0 != "(" }))
         #endif
+        switch command {
+        case .play(let id, let episode):
+            playSent = .now
+            AppLog.info("store", "play \(id) episode \(episode)")
+        case .playSource(let id, let episode, _, _):
+            playSent = .now
+            AppLog.info("store", "play \(id) episode \(episode) from a chosen source")
+        default:
+            break
+        }
         guard let client else {
             if phase == .starting { early.append(command) }
             return nil
@@ -343,7 +366,14 @@ public final class AppStore {
         case .imageFailed(let url, _):
             artwork.failed(url: url)
 
-        case .playerOps, .playerUi, .playbackStaged, .playbackEnded, .playbackKept:
+        case .playbackStaged(let id, _, let episode, _, _):
+            let after = playSent.map { " \(AppLog.ms(since: $0)) ms after play" } ?? ""
+            AppLog.info("store", "staged \(id) episode \(episode)\(after)")
+            onPlayback?(event)
+        case .playbackEnded(let watched, let ending, let rollingOn):
+            AppLog.info("store", "playback ended: \(ending), watched \(watched), rolling on \(rollingOn)")
+            onPlayback?(event)
+        case .playerOps, .playerUi, .playbackKept, .sources:
             onPlayback?(event)
 
         default:

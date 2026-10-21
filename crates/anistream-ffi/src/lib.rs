@@ -27,6 +27,7 @@ uniffi::setup_scaffolding!();
 
 mod engine;
 mod host;
+mod log;
 #[cfg(feature = "testing")]
 mod scenes;
 mod start;
@@ -35,6 +36,7 @@ mod testing;
 
 pub use engine::FfiEngine;
 pub use host::FfiHost;
+pub use log::{FfiLogLevel, log_line, start_log};
 #[cfg(feature = "testing")]
 pub use scenes::FfiScene;
 pub use start::{FfiBackground, FfiDirs, FfiError, FfiPlatform, FfiStart, SecretsMode};

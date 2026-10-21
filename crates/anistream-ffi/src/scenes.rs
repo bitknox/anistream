@@ -41,7 +41,9 @@ pub enum FfiScene {
     /// episode 7, and every episode of every title streams `media`, a local file or URL the
     /// app's own player can open (the test kit's own clip is a lavfi source, which the app's
     /// libmpv has no device for). Skipping the opening is off, so the skip is offered rather
-    /// than taken, unless the config says otherwise.
+    /// than taken, unless the config says otherwise. An address ending `.m3u8` is a web stream:
+    /// HLS behind a referer lock, as provider CDNs have them, which goes through the engine's
+    /// mender with its header ([`SCENE_REFERER`]).
     Playing { media: String },
 }
 
@@ -95,9 +97,12 @@ impl FfiEngine {
 /// [`FfiEngine::start_testing`] has it.
 fn scene_sources(scene: &FfiScene, art: &str) -> Option<ProviderRegistry> {
     let FfiScene::Playing { media } = scene else { return None };
+    let web = media.starts_with("http")
+        && media.split('?').next().is_some_and(|path| path.ends_with(".m3u8"));
     let stream = Stream {
         provider_id: sources::PROVIDER_ID.into(),
-        ..Stream::new(media, StreamKind::Mp4)
+        headers: if web { vec![("Referer".into(), SCENE_REFERER.into())] } else { Vec::new() },
+        ..Stream::new(media, if web { StreamKind::Hls } else { StreamKind::Mp4 })
     };
     let mut provider = sources::provider_with_art(art);
     for id in fixtures::ALL {
@@ -105,6 +110,9 @@ fn scene_sources(scene: &FfiScene, art: &str) -> Option<ProviderRegistry> {
     }
     Some(ProviderRegistry::new(vec![provider.arc()]))
 }
+
+/// The referer a Playing scene's web stream is locked to: an invented source's.
+pub const SCENE_REFERER: &str = "https://lantern-archive.example/";
 
 /// A config with AniList enabled, as a signed-in user's has it: the fixtures' client, and tokens
 /// in files. Left alone when there is a config already.

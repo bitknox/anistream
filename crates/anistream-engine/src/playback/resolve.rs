@@ -36,14 +36,24 @@ pub async fn resolve_for_playback(
             let _ = tx.send(Event::Status(text));
         }
     };
+    let began = std::time::Instant::now();
+    tracing::info!(
+        %id, episode, sources = ?registry.ids(), usable = ?registry.usable_ids(), picked = pick.is_some(),
+        "resolving a play"
+    );
     if registry.is_empty() {
+        tracing::warn!("no sources to resolve against");
         return Err("no sources configured — see the Providers screen".into());
     }
     // Phase-labelled, because the wait between Enter and mpv is where every tool in
     // this category earns its "is it frozen?" issues. The status line names the rung
     // being climbed; the eyecatch's own timer says how long it has taken.
     step("looking up the title".into());
-    let media = meta.media(id).await.map_err(|e| e.to_string())?;
+    let media = meta.media(id).await.map_err(|e| {
+        tracing::warn!(error = %e, elapsed_ms = began.elapsed().as_millis() as u64, "could not look up the title");
+        e.to_string()
+    })?;
+    tracing::info!(elapsed_ms = began.elapsed().as_millis() as u64, "title looked up");
     let now = now_epoch();
 
     // "Use this source for this series", applied *before* the title is matched.
@@ -65,7 +75,9 @@ pub async fn resolve_for_playback(
     if let Some(name) = &preference
         && pinned.is_none()
     {
-        tracing::debug!(provider = %name, "pinned source is not registered, using the chain");
+        tracing::info!(provider = %name, "pinned source is not registered, using the chain");
+    } else if let Some(name) = &preference {
+        tracing::info!(provider = %name, "the series is pinned to a source");
     }
     let registry = pinned.as_ref().unwrap_or(registry);
     let target = media.match_target();
@@ -131,7 +143,22 @@ pub async fn resolve_for_playback(
     // the next entry when a stream turns out not to decode.
     streams.sort_by_key(|s| s.quality_rank(playback.quality));
     if streams.is_empty() {
+        tracing::warn!(
+            elapsed_ms = began.elapsed().as_millis() as u64,
+            "the source answered with no stream"
+        );
         return Err("no playable stream".into());
+    }
+    if let Some(first) = streams.first() {
+        tracing::info!(
+            streams = streams.len(),
+            provider = %first.provider_id,
+            kind = ?first.kind,
+            quality = ?first.quality,
+            from = %crate::logged::address(&first.url),
+            elapsed_ms = began.elapsed().as_millis() as u64,
+            "streams found; the first is picked"
+        );
     }
 
     // Resume and skip data are both best-effort: a database hiccup or a missing MAL id must
