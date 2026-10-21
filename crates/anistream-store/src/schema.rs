@@ -344,6 +344,23 @@ const MIGRATIONS: &[(&str, &str)] = &[
     );
     "#,
     ),
+    (
+        "0009_episode_notices",
+        r#"
+    -- What the new-episode check has said of each show it follows, so each episode is said
+    -- once: the newest episode said, 0 before any, and when the show was first followed. An
+    -- episode that aired before then is never said, which is what keeps a first check, or a
+    -- show newly followed, from announcing a backlog.
+    --
+    -- How far the check has looked is kept in app_state, under `episode_check_through`.
+    CREATE TABLE episode_notice (
+        anilist_id INTEGER PRIMARY KEY,
+        episode    INTEGER NOT NULL,
+        since      INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+    );
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.
@@ -460,6 +477,7 @@ mod tests {
             "show_setting",
             "server_health",
             "library_status",
+            "episode_notice",
         ] {
             let found: bool = conn
                 .query_row(
