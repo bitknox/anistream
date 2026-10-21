@@ -103,6 +103,12 @@ impl TokenPair {
     pub fn needs_refresh(&self, now: i64, margin: i64) -> bool {
         self.refresh.is_some() && self.expires_at.is_some_and(|at| now + margin >= at)
     }
+
+    /// Whether the access token has run out. [`Self::needs_refresh`] is no for a pair with
+    /// nothing to renew it with, so a caller asks this too before sending a dead token.
+    pub fn is_expired(&self, now: i64) -> bool {
+        self.expires_at.is_some_and(|at| now >= at)
+    }
 }
 
 /// Somewhere secrets are kept by name: what a [`TokenStore`] reads and writes through.
@@ -964,5 +970,16 @@ mod tests {
         // keychain, so this is surfaced in the Accounts overlay.
         assert!(Storage::File.is_degraded());
         assert!(!Storage::Keychain.is_degraded());
+    }
+
+    #[test]
+    fn a_token_past_its_time_is_expired_whether_or_not_it_can_be_renewed() {
+        let dead = TokenPair { access: "a".into(), refresh: None, expires_at: Some(100) };
+        assert!(dead.is_expired(100));
+        assert!(!dead.is_expired(99));
+        let renewable = TokenPair { refresh: Some("r".into()), ..dead.clone() };
+        assert!(renewable.is_expired(101));
+        let open_ended = TokenPair { access: "a".into(), refresh: None, expires_at: None };
+        assert!(!open_ended.is_expired(i64::MAX));
     }
 }

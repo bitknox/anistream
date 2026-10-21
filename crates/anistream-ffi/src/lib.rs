@@ -141,7 +141,9 @@ mod tests {
         };
         assert_eq!(crossed(start.clone()), start);
         assert_eq!(crossed(FfiStart::default()), FfiStart::default());
-        for platform in [FfiPlatform::MacOs, FfiPlatform::Ios, FfiPlatform::IpadOs] {
+        for platform in
+            [FfiPlatform::MacOs, FfiPlatform::Ios, FfiPlatform::IpadOs, FfiPlatform::Android]
+        {
             assert_eq!(crossed(platform), platform);
         }
         for mode in [SecretsMode::Host, SecretsMode::FollowConfig] {

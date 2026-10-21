@@ -179,6 +179,11 @@ pub(crate) fn dispatch(
         Command::Player(command) => control_player(command, engine),
         // The same, aimed: let go when another playback has followed the one it names.
         Command::Control { playback, command } => control_playback(playback, command, engine),
+        // Where the app is and its network: which torrents wait.
+        Command::AppPhase { phase } => crate::phases::app_phase(phase, engine, tx),
+        Command::NetworkPath { cellular, constrained } => {
+            crate::phases::network_path(cellular, constrained, engine, tx)
+        }
         // Taken in as it is sent by `Engine::send`; one routed here all the same lands.
         Command::PlayerReport { playback, report } => services.hosted.report(playback, report),
 

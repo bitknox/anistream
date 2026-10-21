@@ -21,32 +21,8 @@ use anistream_store::Store;
 pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
     // Local history is the source of truth for progress, so it is read here rather than
     // taken from any remote list — this is what makes the app work with no account.
-    let progress = store.and_then(|s| {
-        let progress = s.progress(media.id).ok().flatten()?;
-        let completed = s.completed_episodes(media.id).unwrap_or_default();
-        Some(TitleProgress {
-            done: progress.episodes_done,
-            next: continue_from(&progress, &completed, media.episodes),
-        })
-    });
-
-    // Where an unfinished episode was left. Read for the *next* episode specifically, which is
-    // the one a part-watched title is sitting in the middle of.
-    let resume = store.and_then(|s| {
-        let next = progress.map_or(1, |p| p.next);
-        let episode = next.to_string();
-        let position = s.resume_position(media.id, &episode).ok().flatten()?;
-        let duration = s
-            .events_for(media.id, 50)
-            .ok()?
-            .into_iter()
-            .find(|e| e.episode == episode)
-            .and_then(|e| e.duration_secs);
-        Some(anistream_model::catalog::ResumePoint {
-            position,
-            fraction: duration.filter(|d| *d > 0.0).map(|d| (position / d).clamp(0.0, 1.0)),
-        })
-    });
+    let (progress, resume) =
+        store.map_or((None, None), |s| standing(s, media.id, media.episodes));
 
     Entry {
         secondary: media.title.secondary().map(str::to_owned),
@@ -300,6 +276,46 @@ pub fn date_episodes(rows: &mut [EpisodeRow], times: &std::collections::BTreeMap
         row.airs_at =
             row.number.trim().parse::<u32>().ok().and_then(|n| times.get(&n).copied());
     }
+}
+
+/// Where a title stands in local history: episodes done and the one Continue offers, of
+/// `total` when its episode count is known, and where that episode was left.
+pub fn standing(
+    store: &Store,
+    id: anistream_core::ids::AnilistId,
+    total: Option<u32>,
+) -> (Option<TitleProgress>, Option<anistream_model::catalog::ResumePoint>) {
+    let progress = store.progress(id).ok().flatten().map(|progress| {
+        let completed = store.completed_episodes(id).unwrap_or_default();
+        TitleProgress {
+            done: progress.episodes_done,
+            next: continue_from(&progress, &completed, total),
+        }
+    });
+
+    // Where an unfinished episode was left. Read for the *next* episode specifically, which is
+    // the one a part-watched title is sitting in the middle of.
+    let resume = resume_point(store, id, &progress.map_or(1, |p| p.next).to_string());
+    (progress, resume)
+}
+
+/// Where `episode` of `id` was left, and how far through it that is when its length is known.
+fn resume_point(
+    store: &Store,
+    id: anistream_core::ids::AnilistId,
+    episode: &str,
+) -> Option<anistream_model::catalog::ResumePoint> {
+    let position = store.resume_position(id, episode).ok().flatten()?;
+    let duration = store
+        .events_for(id, 50)
+        .ok()?
+        .into_iter()
+        .find(|e| e.episode == episode)
+        .and_then(|e| e.duration_secs);
+    Some(anistream_model::catalog::ResumePoint {
+        position,
+        fraction: duration.filter(|d| *d > 0.0).map(|d| (position / d).clamp(0.0, 1.0)),
+    })
 }
 
 /// The episode Continue offers, from where the viewer actually is rather than a count.

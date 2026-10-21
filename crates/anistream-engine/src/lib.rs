@@ -95,6 +95,7 @@ pub mod jobs;
 pub mod logged;
 pub mod options;
 pub mod outbox;
+pub mod phases;
 pub mod playback;
 pub mod plugin_stores;
 pub mod protection;

@@ -81,8 +81,6 @@ impl FfiEngine {
         let started = runtime.block_on(async {
             let server = FakeAniList::start().await;
             server.set_now(now);
-            // The fixtures' covers, banners and stills, from the fake, for the app that shows them.
-            server.serve_art();
             let sources = scene_sources(&scene, &server.art_base());
             let options = testing::options(opened, &server, &start, sources)?;
             Ok::<_, FfiError>((Self::launch(options, host).await?, server))
