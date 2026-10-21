@@ -54,12 +54,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.Instant
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import tv.anistream.design.ArtShape
 import tv.anistream.design.Nagare
 import tv.anistream.design.ShowTitle
 import tv.anistream.design.tabular
+import tv.anistream.store.AppClock
 import tv.anistream.store.ContinueItem
 import tv.anistream.store.ContinueQueue
 import tv.anistream.store.ListState
@@ -389,7 +389,7 @@ private fun AiringToday(openCalendar: () -> Unit) {
     val store = LocalAppStore.current
     val window by store.calendar.window.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { store.loadCalendar() }
-    val now = Instant.now()
+    val now = AppClock.now()
     val today = window.broadcasts(now).today(now)
     if (today.isEmpty()) return
     Column(Modifier.padding(top = 16.dp)) {
@@ -409,7 +409,7 @@ private val clock = DateTimeFormatter.ofPattern("HH:mm")
 private fun AiringCard(broadcast: Broadcast, now: Instant) {
     val colors = MaterialTheme.colorScheme
     val seconds = broadcast.airs.epochSecond - now.epochSecond
-    val time = clock.format(broadcast.airs.atZone(ZoneId.systemDefault()))
+    val time = clock.format(broadcast.airs.atZone(AppClock.zone))
     val out = seconds <= 0
     val line = "E${broadcast.episode} · $time · " + if (out) "out ${Wording.ago(-seconds)}" else "in ${Wording.countdown(seconds)}"
     val navigator = LocalNavigator.current
