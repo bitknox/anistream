@@ -95,7 +95,7 @@ public actor MpvClient {
     private var terminating = false
     private let eventThreadDone = DispatchSemaphore(value: 0)
     private nonisolated let eventHub = Hub<MpvEvent>()
-    private nonisolated let reportHub = Hub<PlayerReport>()
+    private nonisolated let reportHub = Hub<MpvReport>()
 
     public init(configuration: MpvConfiguration = .init()) {
         self.configuration = configuration
@@ -184,7 +184,7 @@ public actor MpvClient {
                 if raw.event_id == MPV_EVENT_NONE { continue }
                 if let event = MpvEvent(raw) {
                     events.yield(event)
-                    if let report = PlayerReport(event) { reports.yield(report) }
+                    if let report = MpvReport(event) { reports.yield(report) }
                 }
                 if raw.event_id == MPV_EVENT_SHUTDOWN { break }
             }
@@ -207,7 +207,7 @@ public actor MpvClient {
 
     /// The engine's reports from now on: observed properties as JSON, mpv's events by name, the
     /// end of each file, and the display when `updateDisplay(_:)` gives it.
-    public nonisolated func reports() -> AsyncStream<PlayerReport> { reportHub.stream() }
+    public nonisolated func reports() -> AsyncStream<MpvReport> { reportHub.stream() }
 
     // MARK: Calls
 
@@ -268,7 +268,7 @@ public actor MpvClient {
 
     // MARK: The engine's ops
 
-    public func apply(_ op: PlayerOp) throws {
+    public func apply(_ op: MpvOp) throws {
         switch op {
         case .load(let url, let options): try load(url, options: options)
         case .addSubtitle(let url, let title, let language, let select):
@@ -333,7 +333,7 @@ public actor MpvClient {
     func liveHandle() throws -> OpaquePointer { try live() }
 }
 
-extension PlayerReport {
+extension MpvReport {
     init?(_ event: MpvEvent) {
         switch event {
         case .property(let name, let value): self = .property(name: name, json: value.json)

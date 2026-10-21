@@ -1,6 +1,5 @@
-// The engine's hosted player protocol (E5) as this package speaks it: what the engine asks of
-// the player, and what the player reports back, in mpv's own vocabulary so the terminal's session
-// logic reads both the same way.
+// What a host asks of mpv and what mpv reports back, in mpv's own vocabulary. AnistreamPlayerUI
+// maps the engine's hosted player protocol (E5: `PlayerOp`, `PlayerReport`) onto these.
 
 import CoreGraphics
 import Foundation
@@ -11,9 +10,9 @@ import AppKit
 import UIKit
 #endif
 
-/// One of the engine's `PlayerOps`, one case each; `MpvClient.apply(_:)` carries it out.
-/// The engine's `Close` is `MpvClient.shutdown()`, since it ends the client.
-public enum PlayerOp: Sendable, Equatable {
+/// One thing for mpv to do; `MpvClient.apply(_:)` carries it out. The engine's own `PlayerOp`
+/// maps onto these one to one, and its `Close` is `MpvClient.shutdown()`.
+public enum MpvOp: Sendable, Equatable {
     /// Replace what is playing, with mpv options for this file only (`start`, `http-header-fields`).
     case load(url: String, options: [String: String])
     /// An external subtitle file, selected or only listed.
@@ -38,10 +37,10 @@ public enum SeekMode: String, Sendable, Equatable {
     case percent = "absolute-percent+exact"
 }
 
-/// What the player tells the engine, mirroring the engine's `PlaybackEvent`: a property as mpv
-/// names it with its value as JSON, which the engine's existing parsers read; one of mpv's
-/// events by its name; the end of a file; the display.
-public enum PlayerReport: Sendable, Equatable {
+/// What mpv says, for the engine's `PlayerReport`: a property as mpv names it with its value as
+/// JSON, which the engine's parsers read; one of mpv's events by its name; the end of a file;
+/// the display.
+public enum MpvReport: Sendable, Equatable {
     case property(name: String, json: String)
     case event(String)
     case ended(MpvEnd)
