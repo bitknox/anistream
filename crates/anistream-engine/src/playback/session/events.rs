@@ -14,6 +14,7 @@ use anistream_model::{
 use anistream_playback::{
     Action, Choice, PlaybackEvent, PlaybackTracker, ScriptEvent, SkipKind, TrackInput,
 };
+use anistream_store::ServerFailure;
 use tokio::sync::mpsc;
 
 use super::{
@@ -56,6 +57,8 @@ impl Run<'_> {
         let settings = self.settings;
         let tx = self.tx;
         let link = player.link.as_ref();
+        // The file is loading: the time to its first frame is counted from here.
+        self.servers.begin();
 
         let mut tracker =
             PlaybackTracker::new(settings.threshold, self.skips.clone(), settings.auto_skip)
@@ -139,6 +142,7 @@ impl Run<'_> {
                     // killing it would turn a wait into a failure; the user now knows and can
                     // stop it.
                     warned = true;
+                    self.servers.late();
                     continue;
                 }
                 fetched = async { still_fetch.as_mut().expect("guarded").await },
@@ -367,6 +371,8 @@ impl Run<'_> {
                             let _ = link.overlay(Overlay::StallCleared).await;
                         }
                         ScriptEvent::StallSwitch if streams.len() > 1 => {
+                            let stalled = ServerFailure::Stalled;
+                            self.servers.failed(self.store, &streams[index], stalled).await;
                             break FileOutcome::Switch {
                                 to: (index + 1) % streams.len(),
                                 at: tracker.position(),
@@ -402,6 +408,7 @@ impl Run<'_> {
                     if !ever_played {
                         ever_played = true;
                         let _ = link.overlay(Overlay::Playing).await;
+                        self.servers.served(self.store, &streams[index]).await;
                     }
                     // Mirror position to the UI so Now Playing can render without querying mpv —
                     // but only when the rendered value would actually change. mpv reports

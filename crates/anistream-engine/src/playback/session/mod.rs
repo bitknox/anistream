@@ -44,6 +44,7 @@ use crate::{
     outbox::Outbox,
     playback::{
         PlaybackContext,
+        health::Servers,
         link::{LinkError, Overlay, PlayerLink, PlayerOpener},
         picture::HdrKind,
         power::PowerSource,
@@ -274,6 +275,7 @@ pub async fn play(
         still_fetch: context.next.as_ref().and_then(|n| n.thumbnail.clone()).map(|url| {
             tokio::spawn(fetch_still(http.clone(), url, opener.scratch_dir().to_path_buf()))
         }),
+        servers: Servers::load(&store, &streams).await,
     };
 
     // Read once: every stream this playback tries is the same series in the same translation.
@@ -449,6 +451,14 @@ pub async fn play(
                     (Some(p), true) => p.link.diagnostics().await,
                     _ => None,
                 };
+                // What the attempt says of its server, written down before anything else is
+                // decided, so the next play knows which server to try first.
+                if no_frames {
+                    let refused = menders.refused(&streams[index].url);
+                    run.servers
+                        .unplayed(&store, &streams[index], stopped || quit, refused)
+                        .await;
+                }
 
                 if no_frames && !stopped && !exited && !last {
                     // The point of carrying alternates: whether segments actually decode is
@@ -648,6 +658,8 @@ struct Run<'a> {
     scratch: std::path::PathBuf,
     /// What says whether the machine is on battery, which the upscaling chain goes by.
     power: Arc<dyn PowerSource>,
+    /// How the servers of the streams tried have fared, and the attempt under way.
+    servers: Servers,
 }
 
 #[cfg(test)]

@@ -192,6 +192,7 @@ impl Run<'_> {
                     label: s.provider_id.clone(),
                     detail: Some(detail),
                     current: i == current,
+                    health: self.servers.note(s),
                 })
                 .collect(),
             translation: companion::TranslationMenu {

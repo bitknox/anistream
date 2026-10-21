@@ -10,8 +10,8 @@ use anistream_core::{
 };
 use anistream_model::{command::PlayerCommand, event::Event, playback::Ending};
 use anistream_net::HttpClient;
-use anistream_playback::{PlaybackEvent, SkipKind, companion};
-use anistream_store::Store;
+use anistream_playback::{PlaybackEvent, ScriptEvent, SkipKind, companion};
+use anistream_store::{ServerFailure, ServerHealth, ServerKey, Store};
 use serde_json::json;
 use tokio::sync::mpsc;
 
@@ -176,6 +176,16 @@ impl Rig {
         context: PlaybackContext,
         settings: PlaySettings,
     ) -> Vec<Event> {
+        self.play_all(vec![stream], context, settings).await
+    }
+
+    /// Play `streams`, best first, as resolution hands them over, and return what was said.
+    async fn play_all(
+        &self,
+        streams: Vec<Stream>,
+        context: PlaybackContext,
+        settings: PlaySettings,
+    ) -> Vec<Event> {
         let http =
             HttpClient::offline(&anistream_core::config::NetworkConfig::default()).unwrap();
         let machine = Machine {
@@ -187,7 +197,7 @@ impl Rig {
         let (tx, mut rx) = mpsc::unbounded_channel();
         let (_controls, commands) = mpsc::unbounded_channel::<PlayerCommand>();
         let playing = play(
-            vec![stream],
+            streams,
             context,
             self.store.clone(),
             http,
@@ -379,4 +389,77 @@ async fn the_chain_goes_by_what_the_power_source_says() {
         chain_for(false, dir.path()),
         "the battery lightens it"
     );
+}
+
+/// The fixture's stream, served from `host`.
+fn served_from(host: &str) -> Stream {
+    Stream {
+        url: format!("https://{host}/stardust-wayfarer/1.mp4?token=signed"),
+        ..stream(StreamKind::Mp4)
+    }
+}
+
+/// What the rig's store knows of `host`, as the fixture's provider streams from it.
+fn server(rig: &Rig, host: &str) -> Option<ServerHealth> {
+    let key = ServerKey::of("yamabiko", &format!("https://{host}")).unwrap();
+    rig.store.server_health(&key, anistream_store::now()).unwrap()
+}
+
+#[tokio::test]
+async fn each_attempt_is_written_down_against_its_server() {
+    // The first server's file ends in an error before a frame; the next one plays.
+    let failing = vec![PlaybackEvent::Loaded, PlaybackEvent::Ended { complete: false }];
+    let rig = Rig::new(vec![failing, file(&[], (1920, 1080))]);
+    let streams = vec![served_from("cdn-a.example"), served_from("cdn-b.example")];
+    let events = rig.play_all(streams, context("1", None), settings()).await;
+    assert_eq!(ending(&events), Some(Ending::Complete { next: None }));
+
+    let a = server(&rig, "cdn-a.example").expect("the server that failed has a record");
+    assert_eq!((a.successes, a.failures, a.consecutive_failures), (0, 1, 1));
+    assert_eq!(a.last_failure, Some(ServerFailure::Load));
+    let b = server(&rig, "cdn-b.example").expect("the server that played has a record");
+    assert_eq!((b.successes, b.failures, b.consecutive_failures), (1, 0, 0));
+    assert!(b.first_frame.is_some(), "with how long its first frame took");
+}
+
+#[tokio::test]
+async fn a_stall_the_viewer_switched_away_from_counts_against_its_server() {
+    // It played, then held waiting for data until the viewer took the stall prompt's offer.
+    let stalling = vec![
+        PlaybackEvent::Loaded,
+        PlaybackEvent::Progress { position: 0.0, duration: Some(RUNTIME) },
+        PlaybackEvent::Progress { position: 1.0, duration: Some(RUNTIME) },
+        PlaybackEvent::Buffering(true),
+        PlaybackEvent::Script(ScriptEvent::StallSwitch),
+    ];
+    let rig = Rig::new(vec![stalling, file(&[], (1920, 1080))]);
+    let streams = vec![served_from("cdn-a.example"), served_from("cdn-b.example")];
+    rig.play_all(streams, context("1", None), settings()).await;
+
+    let a = server(&rig, "cdn-a.example").unwrap();
+    assert_eq!((a.successes, a.failures, a.consecutive_failures), (1, 1, 1));
+    assert_eq!(a.last_failure, Some(ServerFailure::Stalled));
+    assert_eq!(server(&rig, "cdn-b.example").unwrap().successes, 1);
+}
+
+#[tokio::test]
+async fn the_sources_menu_says_which_server_has_been_failing() {
+    let rig = Rig::new(vec![file(&[], (1920, 1080))]);
+    let failing = ServerKey::of("yamabiko", "https://cdn-a.example").unwrap();
+    for _ in 0..2 {
+        rig.store
+            .record_server_failure(&failing, ServerFailure::Http(502), anistream_store::now())
+            .unwrap();
+    }
+    // As resolution hands them over: the server that has been failing last.
+    let streams = vec![served_from("cdn-b.example"), served_from("cdn-a.example")];
+    rig.play_all(streams, context("1", None), settings()).await;
+
+    let menus = rig.opener.calls().into_iter().find_map(|call| match call {
+        Call::Overlay(Overlay::Menus(menus)) => Some(menus),
+        _ => None,
+    });
+    let notes: Vec<Option<String>> =
+        menus.expect("the menus").sources.into_iter().map(|s| s.health).collect();
+    assert_eq!(notes, [None, Some("failed the last 2 times · just now".into())]);
 }

@@ -130,6 +130,9 @@ pub async fn resolve_for_playback(
     // returned rather than the winner: the sort is a preference, and playback falls over to
     // the next entry when a stream turns out not to decode.
     streams.sort_by_key(|s| s.quality_rank(playback.quality));
+    // Then, within one quality, the servers that keep failing after the ones that play. Never a
+    // release the user picked, which plays as it was picked.
+    playback::health::order(store, &mut streams, playback.quality, pick.is_some(), now);
     if streams.is_empty() {
         return Err("no playable stream".into());
     }

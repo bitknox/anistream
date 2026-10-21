@@ -202,6 +202,10 @@ pub struct MenuSource {
     pub detail: Option<String>,
     /// The stream playing.
     pub current: bool,
+    /// A short note on how the stream's server has fared lately, when it has been failing:
+    /// `failed the last 3 times · 12 min ago`. `None` for a server with nothing against it. A
+    /// server that keeps failing is listed after the others of its quality; this says why.
+    pub health: Option<String>,
 }
 
 /// A menu of named choices with one current, the upscaling looks and the HDR curves.
