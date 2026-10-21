@@ -17,6 +17,7 @@ anistream ships no sources of its own and hosts no content. Every source is exte
 | `:ui` | The navigation bar and the screens | AnistreamUI |
 | `:player` | The player, once the Player track brings it over from its spike | AnistreamPlayer |
 | `:app` | The activity, the application, and each flavour's launch | the app target |
+| `:testkit` | For tests only: the engine's scenes recorded as JSON, and the fixture titles' art | – |
 
 Two flavours, by the engine inside:
 
@@ -90,6 +91,42 @@ with HOME at the user's own; the Gradle test task sets its own HOME under `build
 
 ## Screenshots
 
+The screens are drawn on the JVM, with no emulator, at each board's size:
+
+```sh
+cd android && ./gradlew :ui:recordRoborazziFixturesDebug
+android/scripts/pairs.sh <boards> a2
+```
+
+`BoardShots` in `:ui` draws each board's screen with Robolectric's native graphics and captures it
+with Roborazzi, into `android/.shots/roborazzi/`, which git ignores: the phone at 412 × 915 dp
+and 420 dpi, the tablet at 1280 × 800 dp, each with a 24 dp status bar and gesture bar. The store
+is the app's own, fed a scene the testing engine recorded, with no engine behind it: the clock
+(`AppClock`) is held at the moment the scene was recorded, and art comes from the Rust test kit's
+files as the fake AniList serves it, so a run draws the same pixels every time.
+`verifyRoborazziFixturesDebug` compares a run with the last one recorded, and
+`compareRoborazziFixturesDebug` writes the differences. CI records them on every run and keeps
+them as the `android-screenshots` artifact.
+
+`pairs.sh <boards> [phase]` sets each capture beside its board, in
+`android/.shots/<phase>/pair-<board>.png`. `<boards>` is a directory of the boards rendered from
+the design canvas as PNGs, named as the canvas names them (`AndroidHome.png`).
+
+The scenes are in `android/testkit/src/main/resources/tv/anistream/testkit/scenes/`, as JSON:
+
+```sh
+android/scripts/scenes.sh
+```
+
+`scenes.sh` records them again: the store's `SceneRecorder` starts the testing engine on its
+`fresh` and `watching` scenes, asks for every screen's lists, the search the shots run and each
+fixture title's page and episodes, and writes every event it gets but art and the player's. Run it
+when the engine's events or the fixtures change; a scene recorded before a field the bindings now
+require fails to read, and says to.
+
+The emulator is for what needs a device: the engine on a real phone image, sign-in, the player,
+picture-in-picture and rotation.
+
 ```sh
 android/scripts/shots.sh phone fresh fresh:seasonal app:seasonal
 android/scripts/shots.sh tablet fresh
@@ -122,4 +159,6 @@ never leaves the device's keystore, so a restored copy could not open them.
 
 Roboto Flex and Zen Kaku Gothic New are under the SIL Open Font License 1.1; `fonts.sh` fetches
 them from github.com/google/fonts at a pinned commit by SHA-256, and their licences ship in the APK
-under `assets/licences/`. JNA is used under the Apache License 2.0.
+under `assets/licences/`. JNA is used under the Apache License 2.0. The tests alone also use
+Robolectric (MIT), Roborazzi, kotlinx.serialization and kotlin-reflect (Apache License 2.0), none
+of which ships in the APK.
