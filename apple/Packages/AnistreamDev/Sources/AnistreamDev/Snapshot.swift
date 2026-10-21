@@ -50,7 +50,7 @@ enum Snapshot {
     /// glass.
     @MainActor
     static func write(_ window: NSWindow, to url: URL) throws {
-        if let image = composited(window), image.width > 1 {
+        if let image = composited(window).flatMap({ withSheets($0, of: window) }), image.width > 1 {
             let bitmap = NSBitmapImageRep(cgImage: image)
             guard let png = bitmap.representation(using: .png, properties: [:]) else { throw Problem.noPNG }
             try FileManager.default.createDirectory(
@@ -60,6 +60,33 @@ enum Snapshot {
             return
         }
         try drawn(window, to: url)
+    }
+
+    /// `image` of `window` with the sheet over it, and that sheet's own, where the window server
+    /// draws them: a sheet is a window of its own, which a capture of one window leaves out.
+    @MainActor
+    static func withSheets(_ image: CGImage, of window: NSWindow) -> CGImage? {
+        var sheets: [NSWindow] = []
+        var next = window.attachedSheet
+        while let sheet = next {
+            sheets.append(sheet)
+            next = sheet.attachedSheet
+        }
+        guard !sheets.isEmpty else { return image }
+        let scale = window.backingScaleFactor
+        guard let context = CGContext(
+            data: nil, width: image.width, height: image.height, bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return image }
+        context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        for sheet in sheets {
+            guard let picture = composited(sheet) else { continue }
+            // Both in screen points, from the bottom left, as Core Graphics draws.
+            let x = (sheet.frame.minX - window.frame.minX) * scale
+            let y = (sheet.frame.minY - window.frame.minY) * scale
+            context.draw(picture, in: CGRect(x: x, y: y, width: CGFloat(picture.width), height: CGFloat(picture.height)))
+        }
+        return context.makeImage()
     }
 
     /// Render `window`, its toolbar and sidebar with it, at its backing scale, to `url`, as

@@ -44,6 +44,10 @@ public final class AppStore {
     @ObservationIgnored private var early: [Command] = []
     /// The titles whose episodes were asked for their stills.
     @ObservationIgnored private var stillsAsked: Set<AnilistId> = []
+    /// The kinds of the engine's events a showcase set aside, so its rows stay on screen.
+    @ObservationIgnored private var held: Set<String> = []
+    /// Whether the engine is the testing one, which a showcase needs.
+    @ObservationIgnored private var testing = false
     /// Called after each batch is applied: what a screenshot run waits on.
     @ObservationIgnored public var onApplied: (@MainActor ([Event]) -> Void)?
 
@@ -62,6 +66,7 @@ public final class AppStore {
     /// Start the engine `launch` describes with `host`, off the main thread, and read its events.
     public func start(_ launch: EngineLaunch, host: any FfiHost) async {
         phase = .starting
+        if case .fixtures = launch.engine { testing = true }
         do {
             let engine = try await Task.detached(priority: .userInitiated) {
                 try launch.start(host: host)
@@ -169,6 +174,16 @@ public final class AppStore {
         onApplied?(events)
     }
 
+    /// Show the invented rows the launch arguments ask for, on the testing engine only, and keep
+    /// the engine's own of those kinds off screen from then on. For screenshots.
+    public func applyShowcase(arguments: [String] = ProcessInfo.processInfo.arguments) {
+        guard testing, let showcase = Showcase.from(arguments: arguments) else { return }
+        let (events, held) = showcase.events(settings: settings.view)
+        self.held = []
+        for event in events { apply(event) }
+        self.held = held
+    }
+
     // MARK: Settling
 
     /// Whether the screens have what they asked for: the engine has started or failed, no list
@@ -197,6 +212,7 @@ public final class AppStore {
     }
 
     public func apply(_ event: Event) {
+        if !held.isEmpty, let kind = event.showcaseKind, held.contains(kind) { return }
         switch event {
         case .jobStarted(let job, let activity):
             jobs.started(job, activity: activity)

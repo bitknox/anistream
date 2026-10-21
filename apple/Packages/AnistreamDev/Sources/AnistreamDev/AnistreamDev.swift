@@ -78,6 +78,7 @@ final class Delegate: NSObject, NSApplicationDelegate {
             window.setContentSize(NSSize(width: options.width, height: options.height))
         }
         let settled = await store.settle()
+        store.applyShowcase()
         print(settled ? "ANISTREAM_READY" : "AnistreamDev: did not settle; going on")
         guard let url = options.snapshot else { return }
         // The art's and the preview's fade-ins.
@@ -90,5 +91,10 @@ final class Delegate: NSObject, NSApplicationDelegate {
             FileHandle.standardError.write(Data("AnistreamDev: \(error)\n".utf8))
         }
         NSApp.terminate(nil)
+        // A sheet with a field in it can hold the quit back; a snapshot run ends regardless.
+        try? await Task.sleep(for: .seconds(2))
+        store.shutdown()
+        if let temporary { try? FileManager.default.removeItem(at: temporary) }
+        exit(0)
     }
 }

@@ -4,10 +4,13 @@
 #   apple/scripts/shots.sh <mac|iphone|ipad> [shot…]
 #
 # A shot is a scene, and optionally a screen: watching (Continue filled, signed in; the default)
-# or fresh (a first launch), then after a colon a section (calendar, seasonal, search, library) or
-# title=<id>, select=<id>, query=<words> or palette=<words>:
+# or fresh (a first launch), then after a colon a section (calendar, seasonal, search, library,
+# downloads, providers, pluginStores, settings) or title=<id>, select=<id>, query=<words> or
+# palette=<words>, with more joined by +: pane=<Settings pane>, sheet=<torrent|join|kitsu|update|
+# show> and showcase=<sources|stores|downloads|invite|all>, the invented rows of `Showcase`:
 #
 #   apple/scripts/shots.sh mac watching watching:calendar watching:title=900001 fresh
+#   apple/scripts/shots.sh mac watching:settings+pane=sources+showcase=sources
 #
 # Each goes to apple/.shots/<device>-<shot>.png, ":" and "=" made "-", which git ignores.
 #
@@ -38,22 +41,29 @@ done
 
 # The launch arguments for a shot: the scene, and the screen it names.
 arguments() {
-  local shot="$1" scene="${1%%:*}" screen=""
-  [[ "$shot" == *:* ]] && screen="${shot#*:}"
+  local shot="$1" scene="${1%%:*}" screens="" screen
+  [[ "$shot" == *:* ]] && screens="${shot#*:}"
   printf '%s\n' -AnistreamScene "$scene"
-  case "$screen" in
-    "") ;;
-    title=*) printf '%s\n' -AnistreamTitle "${screen#title=}" ;;
-    select=*) printf '%s\n' -AnistreamSelect "${screen#select=}" ;;
-    query=*) printf '%s\n' -AnistreamSection search -AnistreamQuery "${screen#query=}" ;;
-    palette=*) printf '%s\n' -AnistreamPalette "${screen#palette=}" ;;
-    *) printf '%s\n' -AnistreamSection "$screen" ;;
-  esac
+  local IFS=+
+  for screen in $screens; do
+    case "$screen" in
+      "") ;;
+      title=*) printf '%s\n' -AnistreamTitle "${screen#title=}" ;;
+      select=*) printf '%s\n' -AnistreamSelect "${screen#select=}" ;;
+      query=*) printf '%s\n' -AnistreamSection search -AnistreamQuery "${screen#query=}" ;;
+      palette=*) printf '%s\n' -AnistreamPalette "${screen#palette=}" ;;
+      pane=*) printf '%s\n' -AnistreamPane "${screen#pane=}" ;;
+      sheet=*) printf '%s\n' -AnistreamSheet "${screen#sheet=}" ;;
+      showcase=*) printf '%s\n' -AnistreamShowcase "${screen#showcase=}" ;;
+      *) printf '%s\n' -AnistreamSection "$screen" ;;
+    esac
+  done
 }
 
 # A shot's file name.
 name() {
   local name="${1//:/-}"
+  name="${name//+/-}"
   echo "${name//=/-}"
 }
 
