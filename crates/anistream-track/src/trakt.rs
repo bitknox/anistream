@@ -154,12 +154,7 @@ impl Tracker for TraktTracker {
                 message: e.to_string(),
             })?;
 
-        if response.status().as_u16() == 401 {
-            return Err(anistream_core::Error::Auth("trakt rejected the token".into()));
-        }
-        let body: serde_json::Value = response.json().await.map_err(|e| {
-            anistream_core::Error::Tracker { tracker: "trakt".into(), message: e.to_string() }
-        })?;
+        let body = crate::page_json(response, "trakt", "trakt").await?;
 
         let mut entries = Vec::new();
         for item in body.as_array().into_iter().flatten() {
