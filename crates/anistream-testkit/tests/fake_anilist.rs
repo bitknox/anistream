@@ -69,6 +69,14 @@ async fn a_detail_lookup_carries_the_detail_fields() {
     assert_eq!(media.watch_order()[0].id, SEQUEL);
     assert_eq!(media.recommended().len(), 2);
     assert_eq!(media, fixtures::media(FINISHED), "what the server sent is the fixture");
+    // The richer page: the broadcasts asked for beside the title came back onto it, newest
+    // first, with the tags, the cast and crew, and covers on what it relates to.
+    assert_eq!(media.aired.len(), 12);
+    assert_eq!(media.aired.first().map(|b| b.episode), Some(12));
+    assert_eq!(media.season, Some(Season::Spring));
+    assert!(!media.tags.is_empty() && !media.characters.edges.is_empty());
+    assert!(!media.staff.edges.is_empty() && !media.rankings.is_empty());
+    assert!(media.relations.edges[0].node.cover_image.best().is_some());
 
     let asked = kit.server.requests_for(Operation::Detail);
     assert_eq!(asked[0].variables["id"], FINISHED.get());
@@ -91,11 +99,17 @@ async fn countdowns_follow_the_fakes_clock() {
     assert_eq!(next.airing_at, FIXTURE_NOW + next.time_until_airing);
 
     // Against another clock the schedule moves with it, the same distance away.
+    let before = kit.meta.media(AIRING).await.unwrap().air_times();
     let now = FIXTURE_NOW + 40 * DAY + 17;
     kit.server.set_now(now);
-    let moved = kit.meta.media(AIRING).await.unwrap().next_airing_episode.unwrap();
+    let moved_media = kit.meta.media(AIRING).await.unwrap();
+    let moved = moved_media.next_airing_episode.unwrap();
     assert_eq!(moved.airing_at, now + next.time_until_airing);
     assert_eq!(moved.time_until_airing, next.time_until_airing);
+    // Every broadcast with it, those out and those to come.
+    let after = moved_media.air_times();
+    assert_eq!(after.len(), before.len());
+    assert!(before.iter().all(|(episode, at)| after[episode] == at + (now - FIXTURE_NOW)));
 }
 
 #[tokio::test]
@@ -141,6 +155,8 @@ async fn signed_in_calls_send_the_token_and_read_the_library() {
     let server = FakeAniList::start().await;
     let anilist = server.anilist(&anistream_testkit::http()).with_token(Some("tok".into()));
     assert_eq!(anilist.viewer_id().await.unwrap(), fixtures::VIEWER_ID);
+    let viewer = anilist.viewer().await.unwrap();
+    assert_eq!(viewer.title_language, Some(anistream_meta::anilist::TitleLanguage::Romaji));
 
     let library = anilist.library(fixtures::VIEWER_ID).await.unwrap();
     let rows: Vec<_> =

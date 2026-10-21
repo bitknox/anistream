@@ -33,7 +33,7 @@ struct AccessibilityTests {
         }
         func row(_ number: String, title: String? = nil, completed: Bool = false, kind: EpisodeKind? = nil) -> EpisodeRow {
             EpisodeRow(number: number, title: title, thumbnail: nil, description: nil, durationSecs: 1440,
-                       watched: 0, completed: completed, kind: kind, skippable: false)
+                       watched: 0, completed: completed, kind: kind, skippable: false, airsAt: nil)
         }
         #expect(row("7", title: "The Lantern Road").spokenName == "Episode 7, The Lantern Road")
         #expect(row("7").spokenName == "Episode 7")

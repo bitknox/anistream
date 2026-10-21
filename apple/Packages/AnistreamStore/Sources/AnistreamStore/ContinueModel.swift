@@ -19,7 +19,7 @@ public struct ContinueItem: Identifiable, Equatable, Sendable {
     public var isNew: Bool { airedAgo != nil }
 
     /// Whether the episode is out: one left part-way is, and otherwise the title's broadcasts say.
-    public var airing: EpisodeAiring {
+    public var airing: EpisodeAvailability {
         resume == nil ? entry.airing(of: episode) : .aired
     }
 

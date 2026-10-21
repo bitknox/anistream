@@ -10,7 +10,7 @@ struct TitleAction: Equatable {
     let episode: UInt32
     let resume: ResumePoint?
     /// Whether the episode is out, by the title's broadcasts.
-    let airing: EpisodeAiring
+    let airing: EpisodeAvailability
 
     init(_ entry: Entry) {
         episode = entry.progress?.next ?? 1
@@ -240,7 +240,9 @@ extension Entry {
             studio: nil, synopsis: "", coverUrl: nil, coverColor: nil, bannerUrl: nil, genres: [],
             availableOn: [], progress: nil, airingIn: nil, airingEpisode: nil, nextEpisode: nil,
             nextAiringIn: nil, lastAired: nil, resume: nil, related: [], recommended: [],
-            trailerUrl: nil, listStatus: nil
+            trailerUrl: nil, listStatus: nil,
+        titleRomaji: nil, titleEnglish: nil, titleNative: nil, season: nil, startDate: nil, endDate: nil,
+        source: nil, adult: false, detail: nil
         )
     }
 }
@@ -384,7 +386,7 @@ struct EpisodeList: View {
            store.titles.episodes[entry.id] != nil {
             rows.append(EpisodeRow(
                 number: String(next), title: nil, thumbnail: nil, description: nil,
-                durationSecs: nil, watched: 0, completed: false, kind: nil, skippable: false
+                durationSecs: nil, watched: 0, completed: false, kind: nil, skippable: false, airsAt: nil
             ))
         }
         return unwatchedOnly ? rows.filter { !$0.completed } : rows

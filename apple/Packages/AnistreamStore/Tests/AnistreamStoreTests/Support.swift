@@ -10,7 +10,9 @@ func entry(_ id: AnilistId, _ title: String, _ change: (inout Entry) -> Void = {
         id: id, title: title, secondary: nil, format: nil, episodes: nil, year: nil, score: nil,
         studio: nil, synopsis: "", coverUrl: nil, coverColor: nil, bannerUrl: nil, genres: [], availableOn: [],
         progress: nil, airingIn: nil, airingEpisode: nil, nextEpisode: nil, nextAiringIn: nil,
-        lastAired: nil, resume: nil, related: [], recommended: [], trailerUrl: nil, listStatus: nil
+        lastAired: nil, resume: nil, related: [], recommended: [], trailerUrl: nil, listStatus: nil,
+        titleRomaji: nil, titleEnglish: nil, titleNative: nil, season: nil, startDate: nil, endDate: nil,
+        source: nil, adult: false, detail: nil
     )
     change(&entry)
     return entry

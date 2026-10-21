@@ -11,7 +11,7 @@ struct HeroArtTests {
             EpisodeRow(
                 number: String(n), title: nil, thumbnail: stills ? "ep/900005/\(n).jpg" : nil,
                 description: nil, durationSecs: 1440, watched: n <= completed ? 1 : 0,
-                completed: n <= completed, kind: nil, skippable: false
+                completed: n <= completed, kind: nil, skippable: false, airsAt: nil
             )
         }
     }

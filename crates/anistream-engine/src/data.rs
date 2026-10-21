@@ -4,10 +4,14 @@
 //! `anistream-core` only, so they build and test without a metadata backend. This module is
 //! the only place that knows both vocabularies.
 
-use anistream_meta::anilist::{AiringEntry, Media};
+use anistream_meta::anilist::{AiringEntry, Media, model::RelationNode};
 use anistream_model::{
-    catalog::Entry,
-    episodes::{EpisodeKind, EpisodeRow},
+    catalog::{
+        CastMember, CastRole, Entry, FuzzyDate, LinkedTitle, Person, Ranking, RankingKind,
+        RelationKind, Season, SourceMaterial, StaffCredit, TitleDetail, TitleLanguage,
+        TitleTag,
+    },
+    episodes::{EpisodeAiring, EpisodeKind, EpisodeRow},
     progress::TitleProgress,
     sources::ProviderRow,
 };
@@ -83,6 +87,14 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
             })
             .collect(),
         trailer_url: media.trailer_url(),
+        title_romaji: media.title.romaji.clone(),
+        title_english: media.title.english.clone(),
+        title_native: media.title.native.clone(),
+        season: media.season.map(season),
+        start_date: media.start_date.and_then(fuzzy_date),
+        end_date: media.end_date.and_then(fuzzy_date),
+        source: media.source.map(source_material),
+        adult: media.is_adult.unwrap_or(false),
         recommended: media
             .recommended()
             .into_iter()
@@ -95,6 +107,198 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
             })
             .collect(),
         ..Entry::new(media.id, media.title.display())
+    }
+}
+
+/// A title as its page shows it: [`entry_from`], with what only the single-title fetch brings.
+pub fn entry_with_detail(media: &Media, store: Option<&Store>) -> Entry {
+    Entry { detail: Some(detail_from(media)), ..entry_from(media, store) }
+}
+
+/// What only a title's page carries, from the detail fetch.
+fn detail_from(media: &Media) -> TitleDetail {
+    use anistream_core::media::MediaFormat;
+    TitleDetail {
+        tags: media
+            .tags
+            .iter()
+            .filter(|tag| !tag.name.is_empty())
+            .map(|tag| TitleTag {
+                name: tag.name.clone(),
+                rank: tag.rank,
+                media_spoiler: tag.is_media_spoiler,
+                general_spoiler: tag.is_general_spoiler,
+                category: tag.category.clone(),
+            })
+            .collect(),
+        schedule: media
+            .air_times()
+            .into_iter()
+            .map(|(episode, airs_at)| EpisodeAiring { episode, airs_at })
+            .collect(),
+        // Every anime among them. A manga or a novel is left out, as a recommended one is: the
+        // page it would open asks for an anime, and finds none.
+        relations: media
+            .relations
+            .edges
+            .iter()
+            .filter(|edge| !matches!(edge.node.format, Some(MediaFormat::Unknown)))
+            .map(|edge| linked(&edge.node, Some(relation_kind(edge.relation_type.as_deref()))))
+            .collect(),
+        recommendations: media
+            .recommended()
+            .into_iter()
+            .map(|node| linked(node, None))
+            .collect(),
+        rankings: media.rankings.iter().filter_map(ranking).collect(),
+        characters: media.characters.edges.iter().filter_map(cast_member).collect(),
+        staff: media
+            .staff
+            .edges
+            .iter()
+            .filter_map(|edge| {
+                Some(StaffCredit {
+                    name: edge.node.as_ref()?.name.full.clone()?,
+                    role: edge.role.clone().unwrap_or_default(),
+                })
+            })
+            .collect(),
+    }
+}
+
+/// A related or recommended title, as its card shows it.
+fn linked(node: &RelationNode, relation: Option<RelationKind>) -> LinkedTitle {
+    LinkedTitle {
+        id: node.id,
+        title: node.title.display().to_owned(),
+        title_romaji: node.title.romaji.clone(),
+        title_english: node.title.english.clone(),
+        title_native: node.title.native.clone(),
+        relation,
+        format: node.format.and_then(format_label),
+        cover_url: node.cover_image.best().map(str::to_owned),
+        season: node.season.map(season),
+        year: node.season_year,
+    }
+}
+
+/// AniList's `MediaRelation`, with anything newer as other.
+fn relation_kind(relation: Option<&str>) -> RelationKind {
+    match relation.unwrap_or_default() {
+        "PREQUEL" => RelationKind::Prequel,
+        "SEQUEL" => RelationKind::Sequel,
+        "PARENT" => RelationKind::Parent,
+        "SIDE_STORY" => RelationKind::SideStory,
+        "SPIN_OFF" => RelationKind::SpinOff,
+        "ALTERNATIVE" => RelationKind::Alternative,
+        "SUMMARY" => RelationKind::Summary,
+        "COMPILATION" => RelationKind::Compilation,
+        "CONTAINS" => RelationKind::Contains,
+        "SAME_UNIVERSE" => RelationKind::SameUniverse,
+        "CHARACTER" => RelationKind::Character,
+        "ADAPTATION" => RelationKind::Adaptation,
+        "SOURCE" => RelationKind::Source,
+        _ => RelationKind::Other,
+    }
+}
+
+/// A ranking with a place and a list this build knows; anything else is left out.
+fn ranking(ranking: &anistream_meta::anilist::Ranking) -> Option<Ranking> {
+    Some(Ranking {
+        rank: ranking.rank?,
+        kind: match ranking.kind.as_deref()? {
+            "RATED" => RankingKind::Rated,
+            "POPULAR" => RankingKind::Popular,
+            _ => return None,
+        },
+        context: ranking.context.clone().unwrap_or_default(),
+        all_time: ranking.all_time,
+        season: ranking.season.map(season),
+        year: ranking.year,
+    })
+}
+
+/// A character with a name, and their voices that have one.
+fn cast_member(edge: &anistream_meta::anilist::model::CharacterEdge) -> Option<CastMember> {
+    let node = edge.node.as_ref()?;
+    Some(CastMember {
+        name: node.name.full.clone()?,
+        image_url: node.image.as_ref().and_then(|i| i.medium.clone()),
+        role: match edge.role.as_deref() {
+            Some("MAIN") => CastRole::Main,
+            Some("BACKGROUND") => CastRole::Background,
+            _ => CastRole::Supporting,
+        },
+        voice_actors: edge
+            .voice_actors
+            .iter()
+            .filter_map(|voice| {
+                Some(Person {
+                    name: voice.name.full.clone()?,
+                    image_url: voice.image.as_ref().and_then(|i| i.medium.clone()),
+                })
+            })
+            .collect(),
+    })
+}
+
+fn season(season: anistream_meta::anilist::Season) -> Season {
+    use anistream_meta::anilist::Season as S;
+    match season {
+        S::Winter => Season::Winter,
+        S::Spring => Season::Spring,
+        S::Summer => Season::Summer,
+        S::Fall => Season::Fall,
+    }
+}
+
+/// A date with at least its year, and only the parts that are real dates.
+fn fuzzy_date(date: anistream_meta::anilist::FuzzyDate) -> Option<FuzzyDate> {
+    Some(FuzzyDate {
+        year: date.year?,
+        month: date.month.filter(|m| (1..=12).contains(m)),
+        day: date.day.filter(|d| (1..=31).contains(d)),
+    })
+}
+
+fn source_material(source: anistream_meta::anilist::SourceMaterial) -> SourceMaterial {
+    use anistream_meta::anilist::SourceMaterial as S;
+    match source {
+        S::Original => SourceMaterial::Original,
+        S::Manga => SourceMaterial::Manga,
+        S::LightNovel => SourceMaterial::LightNovel,
+        S::VisualNovel => SourceMaterial::VisualNovel,
+        S::VideoGame => SourceMaterial::VideoGame,
+        S::Novel => SourceMaterial::Novel,
+        S::Doujinshi => SourceMaterial::Doujinshi,
+        S::Anime => SourceMaterial::Anime,
+        S::WebNovel => SourceMaterial::WebNovel,
+        S::LiveAction => SourceMaterial::LiveAction,
+        S::Game => SourceMaterial::Game,
+        S::Comic => SourceMaterial::Comic,
+        S::MultimediaProject => SourceMaterial::MultimediaProject,
+        S::PictureBook => SourceMaterial::PictureBook,
+        S::Other => SourceMaterial::Other,
+    }
+}
+
+/// The title language AniList's viewer reads in, as the model has it.
+pub fn title_language(language: anistream_meta::anilist::TitleLanguage) -> TitleLanguage {
+    use anistream_meta::anilist::TitleLanguage as L;
+    match language {
+        L::Romaji => TitleLanguage::Romaji,
+        L::English => TitleLanguage::English,
+        L::Native => TitleLanguage::Native,
+    }
+}
+
+/// Date each row by AniList's schedule, where it has the episode: see [`EpisodeRow::airs_at`].
+/// Only whole numbers are dated; the schedule numbers episodes, and an "OVA" or a "12.5" is
+/// not one of them.
+pub fn date_episodes(rows: &mut [EpisodeRow], times: &std::collections::BTreeMap<u32, i64>) {
+    for row in rows {
+        row.airs_at =
+            row.number.trim().parse::<u32>().ok().and_then(|n| times.get(&n).copied());
     }
 }
 
@@ -347,6 +551,8 @@ pub fn episode_rows_with_filler(
                     || completed.iter().any(|e| e == episode.number.as_str()),
                 kind: classified.map(|(label, _)| label),
                 skippable: classified.is_some_and(|(_, skippable)| skippable),
+                // Dated from the schedule by the caller, which has the title: `date_episodes`.
+                airs_at: None,
             }
         })
         .collect()
@@ -510,6 +716,115 @@ mod tests {
         assert_eq!(e.synopsis, "A lamplighter.", "html must be stripped for the terminal");
         assert!(e.cover_url.is_some() && e.banner_url.is_some());
         assert_eq!(e.cover_color.as_deref(), Some("#e4a15d"), "the placeholder's colour");
+    }
+
+    /// A title page's answer with the richer fields, some of them in shapes to be passed over.
+    fn detailed() -> Media {
+        serde_json::from_value(serde_json::json!({
+            "id": 1,
+            "title": {"romaji": "Hoshikuzu no Tabibito", "english": "Stardust Wayfarer",
+                      "native": "星屑の旅人"},
+            "season": "SPRING",
+            "startDate": {"year": 2024, "month": 4, "day": 6},
+            "endDate": {"year": 2024, "month": 13, "day": null},
+            "source": "WEB_NOVEL",
+            "isAdult": true,
+            "tags": [{"name": "Travel", "rank": 94}, {"name": ""}],
+            "upcoming": {"nodes": [{"episode": 3, "airingAt": 300}]},
+            "aired": [{"episode": 2, "airingAt": 200}, {"episode": 1, "airingAt": 100}],
+            "rankings": [
+                {"rank": 4, "type": "RATED", "context": "highest rated", "season": "SPRING", "year": 2024},
+                {"rank": 1, "type": "TRENDING", "context": "a list this build does not know"}
+            ],
+            "characters": {"edges": [
+                {"role": "MAIN", "node": {"name": {"full": "Ren Amagiri"}},
+                 "voiceActors": [{"name": {"full": "Ren's voice"}}, {"name": {}}]},
+                {"role": "BACKGROUND", "node": {"name": {}}}
+            ]},
+            "staff": {"edges": [{"role": "Director", "node": {"name": {"full": "The Director"}}}]},
+            "relations": {"edges": [
+                {"relationType": "SEQUEL", "node": {"id": 2, "title": {"romaji": "Two"},
+                 "format": "TV", "coverImage": {"large": "https://img.example/2.jpg"},
+                 "season": "FALL", "seasonYear": 2025}},
+                {"relationType": "ADAPTATION", "node": {"id": 3, "title": {"romaji": "Three"},
+                 "format": "MANGA"}},
+                {"relationType": "SOMETHING_NEW", "node": {"id": 4, "title": {"romaji": "Four"}}}
+            ]}
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn a_titles_page_carries_its_detail_and_a_list_entry_does_not() {
+        use anistream_model::catalog as m;
+        let media = detailed();
+        let listed = entry_from(&media, None);
+        assert!(listed.detail.is_none(), "a list fetch has none of the page");
+        assert_eq!(listed.season, Some(m::Season::Spring));
+        assert_eq!(
+            listed.start_date,
+            Some(m::FuzzyDate { year: 2024, month: Some(4), day: Some(6) })
+        );
+        assert_eq!(
+            listed.end_date,
+            Some(m::FuzzyDate { year: 2024, month: None, day: None }),
+            "a thirteenth month is no month"
+        );
+        assert_eq!(listed.source, Some(m::SourceMaterial::WebNovel));
+        assert!(listed.adult);
+        assert_eq!(
+            (
+                listed.title_romaji.as_deref(),
+                listed.title_english.as_deref(),
+                listed.title_native.as_deref()
+            ),
+            (Some("Hoshikuzu no Tabibito"), Some("Stardust Wayfarer"), Some("星屑の旅人"))
+        );
+
+        let page = entry_with_detail(&media, None);
+        let detail = page.detail.expect("the page's own fields");
+        assert_eq!(page.title, listed.title, "the rest is the list entry's");
+        assert_eq!(detail.tags.len(), 1, "a nameless tag is passed over");
+        let schedule: Vec<_> = detail.schedule.iter().map(|b| (b.episode, b.airs_at)).collect();
+        assert_eq!(schedule, [(1, 100), (2, 200), (3, 300)], "in episode order");
+        assert_eq!(detail.rankings.len(), 1, "a list this build does not know is left out");
+        assert_eq!(detail.characters.len(), 1, "a nameless character is passed over");
+        assert_eq!(detail.characters[0].voice_actors.len(), 1);
+        assert_eq!(detail.staff[0].name, "The Director");
+        let relations: Vec<_> =
+            detail.relations.iter().map(|r| (r.id.get(), r.relation)).collect();
+        assert_eq!(
+            relations,
+            [(2, Some(m::RelationKind::Sequel)), (4, Some(m::RelationKind::Other))],
+            "the manga is not an anime to open"
+        );
+        assert_eq!(detail.relations[0].cover_url.as_deref(), Some("https://img.example/2.jpg"));
+        assert_eq!(
+            (detail.relations[0].season, detail.relations[0].year),
+            (Some(m::Season::Fall), Some(2025))
+        );
+    }
+
+    #[test]
+    fn episode_rows_are_dated_by_the_schedule_where_it_has_them() {
+        let mut rows: Vec<EpisodeRow> = ["1", "2", "OVA", "2.5", "9"]
+            .into_iter()
+            .map(|number| EpisodeRow {
+                number: number.into(),
+                title: None,
+                thumbnail: None,
+                description: None,
+                duration_secs: None,
+                watched: 0.0,
+                completed: false,
+                kind: None,
+                skippable: false,
+                airs_at: Some(1),
+            })
+            .collect();
+        date_episodes(&mut rows, &[(1, 100), (2, 200)].into_iter().collect());
+        let dated: Vec<_> = rows.iter().map(|row| row.airs_at).collect();
+        assert_eq!(dated, [Some(100), Some(200), None, None, None]);
     }
 
     #[test]

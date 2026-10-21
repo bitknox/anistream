@@ -49,7 +49,7 @@ extension Entry {
     /// Whether `episode` has aired, by the title's broadcasts: out when it is no later than the
     /// newest one known to be out; not out when it is the next broadcast or after, and that
     /// broadcast is still ahead; out otherwise, as every episode of a finished title is.
-    public func airing(of episode: UInt32) -> EpisodeAiring {
+    public func airing(of episode: UInt32) -> EpisodeAvailability {
         if let aired = latestAired, episode <= aired.episode { return .aired }
         guard let next = nextEpisode, episode >= next else { return .aired }
         if episode == next {
@@ -74,7 +74,7 @@ extension Entry {
 }
 
 /// Whether an episode can play yet, by its title's broadcasts.
-public enum EpisodeAiring: Equatable, Sendable {
+public enum EpisodeAvailability: Equatable, Sendable {
     /// It is out, and plays.
     case aired
     /// Not out yet: it airs in `inSeconds` when the schedule dates it, which it does for the next

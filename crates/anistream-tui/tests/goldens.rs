@@ -1123,6 +1123,7 @@ fn episode(number: u32, title: &str) -> EpisodeRow {
         completed: false,
         kind: None,
         skippable: false,
+        airs_at: None,
     }
 }
 

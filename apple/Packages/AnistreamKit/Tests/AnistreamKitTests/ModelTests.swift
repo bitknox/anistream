@@ -10,7 +10,9 @@ func entry(_ id: AnilistId = 1, _ title: String = "Hoshikuzu no Tabibito") -> En
         id: id, title: title, secondary: nil, format: nil, episodes: nil, year: nil, score: nil,
         studio: nil, synopsis: "", coverUrl: nil, coverColor: nil, bannerUrl: nil, genres: [], availableOn: [],
         progress: nil, airingIn: nil, airingEpisode: nil, nextEpisode: nil, nextAiringIn: nil,
-        lastAired: nil, resume: nil, related: [], recommended: [], trailerUrl: nil, listStatus: nil
+        lastAired: nil, resume: nil, related: [], recommended: [], trailerUrl: nil, listStatus: nil,
+        titleRomaji: nil, titleEnglish: nil, titleNative: nil, season: nil, startDate: nil, endDate: nil,
+        source: nil, adult: false, detail: nil
     )
 }
 
@@ -62,9 +64,9 @@ struct ModelTests {
         let later = calendar.date(from: DateComponents(year: 2026, month: 11, day: 2, hour: 9, minute: 5))!
         #expect(AirTime.words(later, now: now) == "2 November 09:05")
         let seconds = Int64(saturday.timeIntervalSince(now))
-        #expect(EpisodeAiring.upcoming(inSeconds: seconds).airs(now: now) == "Saturday 18:30")
-        #expect(EpisodeAiring.upcoming(inSeconds: nil).airs(now: now) == nil)
-        #expect(EpisodeAiring.aired.airs(now: now) == nil)
+        #expect(EpisodeAvailability.upcoming(inSeconds: seconds).airs(now: now) == "Saturday 18:30")
+        #expect(EpisodeAvailability.upcoming(inSeconds: nil).airs(now: now) == nil)
+        #expect(EpisodeAvailability.aired.airs(now: now) == nil)
     }
 
     @Test func progressCountsAgainstTheLengthOrWhatHasAired() {
