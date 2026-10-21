@@ -211,6 +211,19 @@ struct TitleHero: View {
                         }
                         .buttonStyle(SecondaryCapsuleStyle(height: Self.pad ? 48 : 28, fontSize: Self.pad ? 17 : 13))
                     }
+                    #if os(iOS)
+                    // The list's menu, in the header where a narrow window's bar has no room.
+                    Menu {
+                        StatusItems(id: entry.id)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text(entry.listStatus.map { $0.label.capitalizedSentence } ?? "Add to list")
+                            Image(systemName: "chevron.up.chevron.down").font(.ui(13, weight: .semibold))
+                        }
+                    }
+                    .menuStyle(.button)
+                    .buttonStyle(SecondaryCapsuleStyle(height: 48, fontSize: 17))
+                    #endif
                 }
                 .padding(.top, Self.pad ? 16 : 12)
             }

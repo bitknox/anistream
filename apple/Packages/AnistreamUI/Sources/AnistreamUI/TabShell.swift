@@ -92,18 +92,9 @@ struct PadTitleToolbar: ToolbarContent {
     let id: AnilistId
 
     var body: some ToolbarContent {
-        // One group, so a narrow window keeps the list's menu in the bar beside More rather than
-        // folding it into the overflow (PadTitleMeta).
-        ToolbarItemGroup(placement: .topBarTrailing) {
-            Menu {
-                StatusItems(id: id)
-            } label: {
-                HStack(spacing: 6) {
-                    Text(store.titles[id]?.listStatus.map { $0.label.capitalizedSentence } ?? "Add to list")
-                    Image(systemName: "chevron.up.chevron.down").font(.mac(11, weight: .semibold))
-                }
-                .fixedSize()
-            }
+        // The list's menu is in the page's header, beside Resume (PadTitleMeta): a narrow
+        // window's bar, with the tabs in it, folded it away.
+        ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 if let entry = store.titles[id] { TitleMoreItems(entry: entry) }
             } label: {
