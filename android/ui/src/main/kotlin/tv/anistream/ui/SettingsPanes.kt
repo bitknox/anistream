@@ -117,10 +117,12 @@ private fun Pane(content: @Composable () -> Unit) {
 // Notifications
 
 /**
- * Notifications: the New episodes group, its switch for this device with the shows that set
- * their own, and the system's settings for the channel. Turning the switch on goes through the
- * app, which asks for the permission to post then, and only then; where Android says no, the
- * switch stays off and its line says why.
+ * Notifications, as AndroidSettingsNotify draws it: the New episodes switch for this device on a
+ * card of its own, with the shows that set their own, and the note that the permission is asked
+ * then; then the system's settings for the channel. Turning the switch on goes through the app,
+ * which asks for the permission to post then, and only then; where Android says no, the switch
+ * stays off and its line says why. The board's "Coming up" list waits for the engine to say which
+ * shows' episodes the check follows.
  */
 @Composable
 internal fun NotificationsPane(actions: AppActions) {
@@ -132,10 +134,9 @@ internal fun NotificationsPane(actions: AppActions) {
     val refused = app?.refused?.collectAsStateWithLifecycle()?.value == true
     Pane {
         SettingsGroup(
-            title = "New episodes",
             footer = "anistream asks for permission the first time you turn this on.",
-            rows = listOfNotNull(
-                @Composable { place: Place ->
+            rows = listOf(
+                { place ->
                     SwitchRow(
                         place = place,
                         title = "New episodes",
@@ -147,21 +148,24 @@ internal fun NotificationsPane(actions: AppActions) {
                         enabled = SettingsCatalog.editable(row),
                     ) { on -> app?.turn?.invoke(on) ?: store.setSwitch(key, on) }
                 },
-                if (app != null) {
-                    @Composable { place: Place ->
+            ),
+        )
+        if (app != null) {
+            SettingsGroup(
+                modifier = Modifier.padding(top = 8.dp),
+                rows = listOf(
+                    { place ->
                         InfoRow(
                             place,
                             "Notification settings",
-                            "Sound, vibration and the lock screen, in Android’s settings",
+                            "Sound, vibration and the lock screen",
                             onClick = app.openSystemSettings,
                             trailing = { Icon(Icons.External, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                         )
-                    }
-                } else {
-                    null
-                },
-            ),
-        )
+                    },
+                ),
+            )
+        }
     }
 }
 

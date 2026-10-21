@@ -1,6 +1,6 @@
 {
  "scene": "fresh",
- "recordedAt": 1792613265941,
+ "recordedAt": 1792614784543,
  "events": [
   {
    "@type": "Settings",
@@ -452,118 +452,8 @@
    "text": "fall 2026"
   },
   {
-   "@type": "Content",
-   "view": {
-    "@type": "Seasonal"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": [
-     {
-      "id": "900002",
-      "title": "The Library Above the Clouds",
-      "secondary": "Kumo no Ue no Toshokan",
-      "format": "TV",
-      "episodes": "24",
-      "year": "2026",
-      "score": "77",
-      "studio": "Hanabishi Pictures",
-      "synopsis": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
-      "coverUrl": "https://img.example/cover/900002-xl.jpg",
-      "bannerUrl": "https://img.example/banner/900002.jpg",
-      "genres": [
-       "Fantasy",
-       "Mystery",
-       "Slice of Life"
-      ],
-      "availableOn": [],
-      "progress": null,
-      "airingIn": "184500",
-      "airingEpisode": null,
-      "nextEpisode": "6",
-      "nextAiringIn": "184500",
-      "lastAired": null,
-      "resume": null,
-      "related": [],
-      "recommended": [],
-      "trailerUrl": null,
-      "listStatus": null,
-      "titleRomaji": "Kumo no Ue no Toshokan",
-      "titleEnglish": "The Library Above the Clouds",
-      "titleNative": "雲の上の図書館",
-      "season": "FALL",
-      "startDate": {
-       "year": "2026",
-       "month": "9",
-       "day": "11"
-      },
-      "endDate": null,
-      "source": "LIGHT_NOVEL",
-      "adult": false,
-      "detail": null,
-      "status": "RELEASING",
-      "synopsisSpans": [
-       {
-        "text": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
-        "spoiler": false
-       }
-      ]
-     },
-     {
-      "id": "900006",
-      "title": "Summer Wind Relay",
-      "secondary": "Natsukaze Relay",
-      "format": "TV",
-      "episodes": "12",
-      "year": "2026",
-      "score": null,
-      "studio": null,
-      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
-      "coverUrl": "https://img.example/cover/900006-xl.jpg",
-      "bannerUrl": null,
-      "genres": [
-       "Comedy",
-       "Sports"
-      ],
-      "availableOn": [],
-      "progress": null,
-      "airingIn": "536400",
-      "airingEpisode": null,
-      "nextEpisode": "9",
-      "nextAiringIn": "536400",
-      "lastAired": null,
-      "resume": null,
-      "related": [],
-      "recommended": [],
-      "trailerUrl": null,
-      "listStatus": null,
-      "titleRomaji": "Natsukaze Relay",
-      "titleEnglish": "Summer Wind Relay",
-      "titleNative": "夏風リレー",
-      "season": "FALL",
-      "startDate": {
-       "year": "2026",
-       "month": "8",
-       "day": null
-      },
-      "endDate": null,
-      "source": null,
-      "adult": false,
-      "detail": null,
-      "status": "RELEASING",
-      "synopsisSpans": [
-       {
-        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
-        "spoiler": false
-       }
-      ]
-     }
-    ]
-   }
-  },
-  {
    "@type": "CalendarWindow",
-   "anchor": "1792613267",
+   "anchor": "1792614785",
    "pages": "1",
    "morePast": false
   },
@@ -930,6 +820,116 @@
    "v1": "3"
   },
   {
+   "@type": "Content",
+   "view": {
+    "@type": "Seasonal"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": [
+     {
+      "id": "900002",
+      "title": "The Library Above the Clouds",
+      "secondary": "Kumo no Ue no Toshokan",
+      "format": "TV",
+      "episodes": "24",
+      "year": "2026",
+      "score": "77",
+      "studio": "Hanabishi Pictures",
+      "synopsis": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+      "coverUrl": "https://img.example/cover/900002-xl.jpg",
+      "bannerUrl": "https://img.example/banner/900002.jpg",
+      "genres": [
+       "Fantasy",
+       "Mystery",
+       "Slice of Life"
+      ],
+      "availableOn": [],
+      "progress": null,
+      "airingIn": "184500",
+      "airingEpisode": null,
+      "nextEpisode": "6",
+      "nextAiringIn": "184500",
+      "lastAired": null,
+      "resume": null,
+      "related": [],
+      "recommended": [],
+      "trailerUrl": null,
+      "listStatus": null,
+      "titleRomaji": "Kumo no Ue no Toshokan",
+      "titleEnglish": "The Library Above the Clouds",
+      "titleNative": "雲の上の図書館",
+      "season": "FALL",
+      "startDate": {
+       "year": "2026",
+       "month": "9",
+       "day": "11"
+      },
+      "endDate": null,
+      "source": "LIGHT_NOVEL",
+      "adult": false,
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+        "spoiler": false
+       }
+      ]
+     },
+     {
+      "id": "900006",
+      "title": "Summer Wind Relay",
+      "secondary": "Natsukaze Relay",
+      "format": "TV",
+      "episodes": "12",
+      "year": "2026",
+      "score": null,
+      "studio": null,
+      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+      "coverUrl": "https://img.example/cover/900006-xl.jpg",
+      "bannerUrl": null,
+      "genres": [
+       "Comedy",
+       "Sports"
+      ],
+      "availableOn": [],
+      "progress": null,
+      "airingIn": "536400",
+      "airingEpisode": null,
+      "nextEpisode": "9",
+      "nextAiringIn": "536400",
+      "lastAired": null,
+      "resume": null,
+      "related": [],
+      "recommended": [],
+      "trailerUrl": null,
+      "listStatus": null,
+      "titleRomaji": "Natsukaze Relay",
+      "titleEnglish": "Summer Wind Relay",
+      "titleNative": "夏風リレー",
+      "season": "FALL",
+      "startDate": {
+       "year": "2026",
+       "month": "8",
+       "day": null
+      },
+      "endDate": null,
+      "source": null,
+      "adult": false,
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+        "spoiler": false
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
    "@type": "LastAired",
    "v1": [
     {
@@ -965,21 +965,6 @@
    "@type": "JobStarted",
    "job": "5",
    "activity": "loading your watching list"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "WATCHING"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "5"
   },
   {
    "@type": "Caption",
@@ -1128,6 +1113,21 @@
   {
    "@type": "JobDone",
    "v1": "4"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "WATCHING"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "5"
   },
   {
    "@type": "JobStarted",
@@ -1326,51 +1326,51 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1713049637"
+       "airsAt": "1713051155"
       },
       {
        "episode": "2",
-       "airsAt": "1713654437"
+       "airsAt": "1713655955"
       },
       {
        "episode": "3",
-       "airsAt": "1714259237"
+       "airsAt": "1714260755"
       },
       {
        "episode": "4",
-       "airsAt": "1714864037"
+       "airsAt": "1714865555"
       },
       {
        "episode": "5",
-       "airsAt": "1715468837"
+       "airsAt": "1715470355"
       },
       {
        "episode": "6",
-       "airsAt": "1716073637"
+       "airsAt": "1716075155"
       },
       {
        "episode": "7",
-       "airsAt": "1716678437"
+       "airsAt": "1716679955"
       },
       {
        "episode": "8",
-       "airsAt": "1717283237"
+       "airsAt": "1717284755"
       },
       {
        "episode": "9",
-       "airsAt": "1717888037"
+       "airsAt": "1717889555"
       },
       {
        "episode": "10",
-       "airsAt": "1718492837"
+       "airsAt": "1718494355"
       },
       {
        "episode": "11",
-       "airsAt": "1719097637"
+       "airsAt": "1719099155"
       },
       {
        "episode": "12",
-       "airsAt": "1719702437"
+       "airsAt": "1719703955"
       }
      ],
      "relations": [
@@ -1514,7 +1514,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1713049637"
+     "airsAt": "1713051155"
     },
     {
      "number": "2",
@@ -1526,7 +1526,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1713654437"
+     "airsAt": "1713655955"
     },
     {
      "number": "3",
@@ -1538,7 +1538,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1714259237"
+     "airsAt": "1714260755"
     },
     {
      "number": "4",
@@ -1550,7 +1550,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1714864037"
+     "airsAt": "1714865555"
     },
     {
      "number": "5",
@@ -1562,7 +1562,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1715468837"
+     "airsAt": "1715470355"
     },
     {
      "number": "6",
@@ -1574,7 +1574,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1716073637"
+     "airsAt": "1716075155"
     },
     {
      "number": "7",
@@ -1586,7 +1586,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1716678437"
+     "airsAt": "1716679955"
     },
     {
      "number": "8",
@@ -1598,7 +1598,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1717283237"
+     "airsAt": "1717284755"
     },
     {
      "number": "9",
@@ -1610,7 +1610,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1717888037"
+     "airsAt": "1717889555"
     },
     {
      "number": "10",
@@ -1622,7 +1622,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1718492837"
+     "airsAt": "1718494355"
     },
     {
      "number": "11",
@@ -1634,7 +1634,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1719097637"
+     "airsAt": "1719099155"
     },
     {
      "number": "12",
@@ -1646,7 +1646,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1719702437"
+     "airsAt": "1719703955"
     }
    ]
   },
@@ -1786,99 +1786,99 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1789773767"
+       "airsAt": "1789775285"
       },
       {
        "episode": "2",
-       "airsAt": "1790378567"
+       "airsAt": "1790380085"
       },
       {
        "episode": "3",
-       "airsAt": "1790983367"
+       "airsAt": "1790984885"
       },
       {
        "episode": "4",
-       "airsAt": "1791588167"
+       "airsAt": "1791589685"
       },
       {
        "episode": "5",
-       "airsAt": "1792192967"
+       "airsAt": "1792194485"
       },
       {
        "episode": "6",
-       "airsAt": "1792797767"
+       "airsAt": "1792799285"
       },
       {
        "episode": "7",
-       "airsAt": "1793402567"
+       "airsAt": "1793404085"
       },
       {
        "episode": "8",
-       "airsAt": "1794007367"
+       "airsAt": "1794008885"
       },
       {
        "episode": "9",
-       "airsAt": "1794612167"
+       "airsAt": "1794613685"
       },
       {
        "episode": "10",
-       "airsAt": "1795216967"
+       "airsAt": "1795218485"
       },
       {
        "episode": "11",
-       "airsAt": "1795821767"
+       "airsAt": "1795823285"
       },
       {
        "episode": "12",
-       "airsAt": "1796426567"
+       "airsAt": "1796428085"
       },
       {
        "episode": "13",
-       "airsAt": "1797031367"
+       "airsAt": "1797032885"
       },
       {
        "episode": "14",
-       "airsAt": "1797636167"
+       "airsAt": "1797637685"
       },
       {
        "episode": "15",
-       "airsAt": "1798240967"
+       "airsAt": "1798242485"
       },
       {
        "episode": "16",
-       "airsAt": "1798845767"
+       "airsAt": "1798847285"
       },
       {
        "episode": "17",
-       "airsAt": "1799450567"
+       "airsAt": "1799452085"
       },
       {
        "episode": "18",
-       "airsAt": "1800055367"
+       "airsAt": "1800056885"
       },
       {
        "episode": "19",
-       "airsAt": "1800660167"
+       "airsAt": "1800661685"
       },
       {
        "episode": "20",
-       "airsAt": "1801264967"
+       "airsAt": "1801266485"
       },
       {
        "episode": "21",
-       "airsAt": "1801869767"
+       "airsAt": "1801871285"
       },
       {
        "episode": "22",
-       "airsAt": "1802474567"
+       "airsAt": "1802476085"
       },
       {
        "episode": "23",
-       "airsAt": "1803079367"
+       "airsAt": "1803080885"
       },
       {
        "episode": "24",
-       "airsAt": "1803684167"
+       "airsAt": "1803685685"
       }
      ],
      "relations": [],
@@ -1965,7 +1965,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1789773767"
+     "airsAt": "1789775285"
     },
     {
      "number": "2",
@@ -1977,7 +1977,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1790378567"
+     "airsAt": "1790380085"
     },
     {
      "number": "3",
@@ -1989,7 +1989,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1790983367"
+     "airsAt": "1790984885"
     },
     {
      "number": "4",
@@ -2001,7 +2001,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1791588167"
+     "airsAt": "1791589685"
     },
     {
      "number": "5",
@@ -2013,7 +2013,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1792192967"
+     "airsAt": "1792194485"
     }
    ]
   },
@@ -2279,66 +2279,6 @@
    "activity": "loading episodes"
   },
   {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900004",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "NOTIFY_NEW_EPISODES",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
-  },
-  {
-   "@type": "JobStarted",
-   "job": "18",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "19",
-   "activity": "loading episodes"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
    "@type": "Detail",
    "v1": {
     "id": "900004",
@@ -2588,7 +2528,7 @@
   {
    "@type": "ShowSettings",
    "v1": {
-    "id": "900005",
+    "id": "900004",
     "rows": [
      {
       "key": "TRANSLATION",
@@ -2633,7 +2573,7 @@
   },
   {
    "@type": "JobStarted",
-   "job": "20",
+   "job": "18",
    "activity": "loading the title"
   },
   {
@@ -2642,8 +2582,89 @@
   },
   {
    "@type": "JobStarted",
-   "job": "21",
+   "job": "19",
    "activity": "loading episodes"
+  },
+  {
+   "@type": "Detail",
+   "v1": {
+    "id": "900005",
+    "title": "The Steel Gardener",
+    "secondary": "Hagane no Niwashi",
+    "format": "ONA",
+    "episodes": "10",
+    "year": "2023",
+    "score": "71",
+    "studio": "Studio Mokusei",
+    "synopsis": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
+    "coverUrl": "https://img.example/cover/900005-xl.jpg",
+    "bannerUrl": null,
+    "genres": [
+     "Sci-Fi",
+     "Slice of Life"
+    ],
+    "availableOn": [],
+    "progress": null,
+    "airingIn": null,
+    "airingEpisode": null,
+    "nextEpisode": null,
+    "nextAiringIn": null,
+    "lastAired": null,
+    "resume": null,
+    "related": [],
+    "recommended": [],
+    "trailerUrl": null,
+    "listStatus": null,
+    "titleRomaji": "Hagane no Niwashi",
+    "titleEnglish": "The Steel Gardener",
+    "titleNative": "鋼の庭師",
+    "season": "SUMMER",
+    "startDate": {
+     "year": "2023",
+     "month": "7",
+     "day": "1"
+    },
+    "endDate": {
+     "year": "2023",
+     "month": "9",
+     "day": "2"
+    },
+    "source": "WEB_NOVEL",
+    "adult": false,
+    "detail": {
+     "tags": [
+      {
+       "name": "Gardening",
+       "rank": "85",
+       "mediaSpoiler": false,
+       "generalSpoiler": false,
+       "category": "Theme-Slice of Life"
+      }
+     ],
+     "schedule": [],
+     "relations": [],
+     "recommendations": [],
+     "rankings": [],
+     "characters": [],
+     "staff": [
+      {
+       "name": "Director of The Steel Gardener",
+       "role": "Director"
+      }
+     ]
+    },
+    "status": "FINISHED",
+    "synopsisSpans": [
+     {
+      "text": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
+      "spoiler": false
+     }
+    ]
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "18"
   },
   {
    "@type": "Episodes",
@@ -2776,90 +2797,9 @@
    "v1": "19"
   },
   {
-   "@type": "Detail",
-   "v1": {
-    "id": "900005",
-    "title": "The Steel Gardener",
-    "secondary": "Hagane no Niwashi",
-    "format": "ONA",
-    "episodes": "10",
-    "year": "2023",
-    "score": "71",
-    "studio": "Studio Mokusei",
-    "synopsis": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
-    "coverUrl": "https://img.example/cover/900005-xl.jpg",
-    "bannerUrl": null,
-    "genres": [
-     "Sci-Fi",
-     "Slice of Life"
-    ],
-    "availableOn": [],
-    "progress": null,
-    "airingIn": null,
-    "airingEpisode": null,
-    "nextEpisode": null,
-    "nextAiringIn": null,
-    "lastAired": null,
-    "resume": null,
-    "related": [],
-    "recommended": [],
-    "trailerUrl": null,
-    "listStatus": null,
-    "titleRomaji": "Hagane no Niwashi",
-    "titleEnglish": "The Steel Gardener",
-    "titleNative": "鋼の庭師",
-    "season": "SUMMER",
-    "startDate": {
-     "year": "2023",
-     "month": "7",
-     "day": "1"
-    },
-    "endDate": {
-     "year": "2023",
-     "month": "9",
-     "day": "2"
-    },
-    "source": "WEB_NOVEL",
-    "adult": false,
-    "detail": {
-     "tags": [
-      {
-       "name": "Gardening",
-       "rank": "85",
-       "mediaSpoiler": false,
-       "generalSpoiler": false,
-       "category": "Theme-Slice of Life"
-      }
-     ],
-     "schedule": [],
-     "relations": [],
-     "recommendations": [],
-     "rankings": [],
-     "characters": [],
-     "staff": [
-      {
-       "name": "Director of The Steel Gardener",
-       "role": "Director"
-      }
-     ]
-    },
-    "status": "FINISHED",
-    "synopsisSpans": [
-     {
-      "text": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
-      "spoiler": false
-     }
-    ]
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "18"
-  },
-  {
    "@type": "ShowSettings",
    "v1": {
-    "id": "900006",
+    "id": "900005",
     "rows": [
      {
       "key": "TRANSLATION",
@@ -2901,6 +2841,20 @@
     "remembered": [],
     "source": null
    }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "20",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "JobStarted",
+   "job": "21",
+   "activity": "loading episodes"
   },
   {
    "@type": "Detail",
@@ -2949,51 +2903,51 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1788311267"
+       "airsAt": "1788312785"
       },
       {
        "episode": "2",
-       "airsAt": "1788916067"
+       "airsAt": "1788917585"
       },
       {
        "episode": "3",
-       "airsAt": "1789520867"
+       "airsAt": "1789522385"
       },
       {
        "episode": "4",
-       "airsAt": "1790125667"
+       "airsAt": "1790127185"
       },
       {
        "episode": "5",
-       "airsAt": "1790730467"
+       "airsAt": "1790731985"
       },
       {
        "episode": "6",
-       "airsAt": "1791335267"
+       "airsAt": "1791336785"
       },
       {
        "episode": "7",
-       "airsAt": "1791940067"
+       "airsAt": "1791941585"
       },
       {
        "episode": "8",
-       "airsAt": "1792544867"
+       "airsAt": "1792546385"
       },
       {
        "episode": "9",
-       "airsAt": "1793149667"
+       "airsAt": "1793151185"
       },
       {
        "episode": "10",
-       "airsAt": "1793754467"
+       "airsAt": "1793755985"
       },
       {
        "episode": "11",
-       "airsAt": "1794359267"
+       "airsAt": "1794360785"
       },
       {
        "episode": "12",
-       "airsAt": "1794964067"
+       "airsAt": "1794965585"
       }
      ],
      "relations": [],
@@ -3029,7 +2983,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1788311267"
+     "airsAt": "1788312785"
     },
     {
      "number": "2",
@@ -3041,7 +2995,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1788916067"
+     "airsAt": "1788917585"
     },
     {
      "number": "3",
@@ -3053,7 +3007,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1789520867"
+     "airsAt": "1789522385"
     },
     {
      "number": "4",
@@ -3065,7 +3019,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1790125667"
+     "airsAt": "1790127185"
     },
     {
      "number": "5",
@@ -3077,7 +3031,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1790730467"
+     "airsAt": "1790731985"
     },
     {
      "number": "6",
@@ -3089,7 +3043,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1791335267"
+     "airsAt": "1791336785"
     },
     {
      "number": "7",
@@ -3101,7 +3055,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1791940067"
+     "airsAt": "1791941585"
     },
     {
      "number": "8",
@@ -3113,13 +3067,59 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1792544867"
+     "airsAt": "1792546385"
     }
    ]
   },
   {
    "@type": "JobDone",
    "v1": "21"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900006",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
   }
  ]
 }

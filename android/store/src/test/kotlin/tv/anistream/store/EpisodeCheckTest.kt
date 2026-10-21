@@ -87,7 +87,7 @@ class EpisodeCheckTest {
 
             // The widgets' record after each check, of the shape the widgets read.
             assertEquals(2, records.size)
-            assertEquals(1u, records.last().version)
+            assertEquals(2u, records.last().version)
             assertTrue(records.last().continueWatching.isNotEmpty())
 
             // Said once.

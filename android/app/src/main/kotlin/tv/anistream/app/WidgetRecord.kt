@@ -1,4 +1,4 @@
-// What the home-screen widgets show: the engine's record of Continue and today's broadcasts
+// What the home-screen widgets show: the engine's record of Continue and the coming broadcasts
 // (`WidgetSnapshot`), kept in the app's own files for the widgets to read.
 
 package tv.anistream.app
@@ -9,9 +9,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
 import org.json.JSONObject
+import tv.anistream.engine.core.Translation
 import tv.anistream.engine.model.WidgetAiring
 import tv.anistream.engine.model.WidgetContinue
 import tv.anistream.engine.model.WidgetData
+import tv.anistream.engine.model.WidgetNextAiring
 
 /**
  * The widgets' repository. Android's widgets run in the app's process, so there is no file shared
@@ -42,8 +44,8 @@ class WidgetRecord(private val file: File) {
     fun read(): WidgetData? = runCatching { file.takeIf(File::isFile)?.readText()?.let { decode(JSONObject(it)) } }.getOrNull()
 
     companion object {
-        /** The shape of the record this build reads: the engine's `WIDGET_DATA_VERSION`. */
-        const val READS = 1u
+        /** The shape of the record this build reads and writes: the engine's `WIDGET_DATA_VERSION`. */
+        const val READS = 2u
 
         /** Where the app keeps it. */
         fun of(files: File): WidgetRecord = WidgetRecord(files.resolve("widgets/record.json"))
@@ -51,8 +53,12 @@ class WidgetRecord(private val file: File) {
         fun encode(data: WidgetData): JSONObject = JSONObject()
             .put("version", data.version.toLong())
             .put("generated_at", data.generatedAt)
+            .put("signed_in", data.signedIn)
+            .putOpt("tracker", data.tracker)
             .put("continue_watching", JSONArray(data.continueWatching.map(::encode)))
             .put("airing_today", JSONArray(data.airingToday.map(::encode)))
+            .put("next_days", JSONArray(data.nextDays.map(::encode)))
+            .putOpt("next_airing", data.nextAiring?.let(::encode))
 
         private fun encode(row: WidgetContinue): JSONObject = JSONObject()
             .put("id", row.id.toLong())
@@ -62,6 +68,15 @@ class WidgetRecord(private val file: File) {
             .putOpt("episodes", row.episodes?.toLong())
             .putOpt("fraction", row.fraction)
             .putOpt("cover_url", row.coverUrl)
+            .putOpt("episode_title", row.episodeTitle)
+            .put("resume", row.resume)
+            .putOpt("position_secs", row.positionSecs?.toLong())
+            .putOpt("duration_secs", row.durationSecs?.toLong())
+            .putOpt("minutes_left", row.minutesLeft?.toLong())
+            .putOpt("next_airing", row.nextAiring)
+            .putOpt("next_airing_episode", row.nextAiringEpisode?.toLong())
+            .putOpt("banner_url", row.bannerUrl)
+            .putOpt("cover_color", row.coverColor)
 
         private fun encode(row: WidgetAiring): JSONObject = JSONObject()
             .put("id", row.id.toLong())
@@ -70,6 +85,16 @@ class WidgetRecord(private val file: File) {
             .put("airs_at", row.airsAt)
             .put("on_list", row.onList)
             .putOpt("cover_url", row.coverUrl)
+            .put("watched", row.watched)
+            .putOpt("translation", row.translation?.name?.lowercase())
+            .putOpt("banner_url", row.bannerUrl)
+            .putOpt("cover_color", row.coverColor)
+
+        private fun encode(next: WidgetNextAiring): JSONObject = JSONObject()
+            .put("id", next.id.toLong())
+            .put("title", next.title)
+            .put("episode", next.episode.toLong())
+            .put("airs_at", next.airsAt)
 
         fun decode(json: JSONObject): WidgetData? {
             val version = json.getLong("version").toUInt()
@@ -77,34 +102,53 @@ class WidgetRecord(private val file: File) {
             return WidgetData(
                 version = version,
                 generatedAt = json.getLong("generated_at"),
-                continueWatching = json.optJSONArray("continue_watching").objects().map { row ->
-                    WidgetContinue(
-                        id = row.getLong("id").toUInt(),
-                        title = row.getString("title"),
-                        episode = row.getLong("episode").toUInt(),
-                        watched = row.optLong("watched").toUInt(),
-                        episodes = row.optLongOrNull("episodes")?.toUInt(),
-                        fraction = if (row.isNull("fraction")) null else row.getDouble("fraction"),
-                        coverUrl = row.optStringOrNull("cover_url"),
-                    )
+                continueWatching = json.optJSONArray("continue_watching").objects().map(::continueOf),
+                airingToday = json.optJSONArray("airing_today").objects().map(::airingOf),
+                signedIn = json.optBoolean("signed_in"),
+                tracker = json.string("tracker"),
+                nextAiring = json.optJSONObject("next_airing")?.let { next ->
+                    WidgetNextAiring(next.getLong("id").toUInt(), next.getString("title"), next.getLong("episode").toUInt(), next.getLong("airs_at"))
                 },
-                airingToday = json.optJSONArray("airing_today").objects().map { row ->
-                    WidgetAiring(
-                        id = row.getLong("id").toUInt(),
-                        title = row.getString("title"),
-                        episode = row.getLong("episode").toUInt(),
-                        airsAt = row.getLong("airs_at"),
-                        onList = row.optBoolean("on_list"),
-                        coverUrl = row.optStringOrNull("cover_url"),
-                    )
-                },
+                nextDays = json.optJSONArray("next_days").objects().map(::airingOf),
             )
         }
 
+        private fun continueOf(row: JSONObject) = WidgetContinue(
+            id = row.getLong("id").toUInt(),
+            title = row.getString("title"),
+            episode = row.getLong("episode").toUInt(),
+            watched = row.optLong("watched").toUInt(),
+            episodes = row.long("episodes")?.toUInt(),
+            fraction = if (row.isNull("fraction")) null else row.getDouble("fraction"),
+            coverUrl = row.string("cover_url"),
+            episodeTitle = row.string("episode_title"),
+            resume = row.optBoolean("resume"),
+            positionSecs = row.long("position_secs")?.toUInt(),
+            durationSecs = row.long("duration_secs")?.toUInt(),
+            minutesLeft = row.long("minutes_left")?.toUInt(),
+            nextAiring = row.long("next_airing"),
+            nextAiringEpisode = row.long("next_airing_episode")?.toUInt(),
+            bannerUrl = row.string("banner_url"),
+            coverColor = row.string("cover_color"),
+        )
+
+        private fun airingOf(row: JSONObject) = WidgetAiring(
+            id = row.getLong("id").toUInt(),
+            title = row.getString("title"),
+            episode = row.getLong("episode").toUInt(),
+            airsAt = row.getLong("airs_at"),
+            onList = row.optBoolean("on_list"),
+            coverUrl = row.string("cover_url"),
+            watched = row.optBoolean("watched"),
+            translation = row.string("translation")?.let { name -> Translation.entries.firstOrNull { it.name.equals(name, ignoreCase = true) } },
+            bannerUrl = row.string("banner_url"),
+            coverColor = row.string("cover_color"),
+        )
+
         private fun JSONArray?.objects(): List<JSONObject> = if (this == null) emptyList() else (0 until length()).map(::getJSONObject)
 
-        private fun JSONObject.optLongOrNull(name: String): Long? = if (isNull(name)) null else getLong(name)
+        private fun JSONObject.long(name: String): Long? = if (isNull(name)) null else getLong(name)
 
-        private fun JSONObject.optStringOrNull(name: String): String? = if (isNull(name)) null else getString(name)
+        private fun JSONObject.string(name: String): String? = if (isNull(name)) null else getString(name)
     }
 }
