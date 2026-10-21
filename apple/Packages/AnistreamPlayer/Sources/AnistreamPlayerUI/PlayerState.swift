@@ -45,10 +45,28 @@ public struct StagedPlayback: Equatable, Sendable {
 /// The starting screen: what is being found or opened, since when.
 public struct StartingScreen: Equatable, Sendable {
     public var playback: PlaybackId
+    /// The title's, and its art by URL where the engine knows it: what the screen is drawn on.
+    public var id: AnilistId?
     public var title: String
     public var episode: String
     public var episodeTitle: String?
+    public var coverUrl: String?
+    public var bannerUrl: String?
     public var since: ContinuousClock.Instant
+
+    public init(
+        playback: PlaybackId, id: AnilistId? = nil, title: String, episode: String, episodeTitle: String?,
+        coverUrl: String? = nil, bannerUrl: String? = nil, since: ContinuousClock.Instant
+    ) {
+        self.playback = playback
+        self.id = id
+        self.title = title
+        self.episode = episode
+        self.episodeTitle = episodeTitle
+        self.coverUrl = coverUrl
+        self.bannerUrl = bannerUrl
+        self.since = since
+    }
 }
 
 /// A playback that never played, for "Couldn't play episode 7".
@@ -129,10 +147,25 @@ public struct UpNextCard: Equatable, Sendable {
     public var next: NextEpisode
     public var auto: Bool
     public var endingAt: Double?
+    /// How long the countdown runs, as the engine says: `0` is none, and the card waits.
+    public var countdown: Double
+    /// How many episodes in a row with no input from the viewer play before "Still watching?".
+    public var stillWatchingAfter: Int
     /// The viewer cancelled it, for the rest of the episode.
     public var cancelled = false
     /// PlayNext has been sent, once.
     public var played = false
+
+    public init(
+        next: NextEpisode, auto: Bool, endingAt: Double?, countdown: Double = PlayerTiming.upNextCountdown,
+        stillWatchingAfter: Int = PlayerTiming.stillWatchingAfter
+    ) {
+        self.next = next
+        self.auto = auto
+        self.endingAt = endingAt
+        self.countdown = countdown
+        self.stillWatchingAfter = stillWatchingAfter
+    }
 
     /// Where the card shows and its countdown starts: the ending, or near the end of the file.
     public func showsAt(duration: Double?) -> Double? {
@@ -140,13 +173,15 @@ public struct UpNextCard: Equatable, Sendable {
         guard let duration, duration > 0 else { return nil }
         return duration > 120
             ? duration - PlayerTiming.upNextWithoutEnding
-            : max(0, duration - PlayerTiming.upNextCountdown)
+            : max(0, duration - (countdown > 0 ? countdown : PlayerTiming.upNextCountdown))
     }
 
-    /// Seconds left on the countdown at `position`, while it runs.
+    /// Seconds left on the countdown at `position`, while it runs: never with no countdown,
+    /// where the card waits for the viewer.
     public func remaining(at position: Double, duration: Double?) -> Double? {
-        guard auto, !cancelled, let start = showsAt(duration: duration), position >= start else { return nil }
-        return max(0, PlayerTiming.upNextCountdown - (position - start))
+        guard auto, !cancelled, countdown > 0, let start = showsAt(duration: duration), position >= start
+        else { return nil }
+        return max(0, countdown - (position - start))
     }
 }
 

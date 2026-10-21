@@ -116,8 +116,25 @@ final class Rig {
         }
     }
 
+    /// The commands sent to steer playback, aimed at a playback or at whatever plays.
     var controls: [PlayerCommand] {
-        sent.compactMap { if case .player(let command) = $0 { command } else { nil } }
+        sent.compactMap {
+            switch $0 {
+            case .player(let command), .control(_, let command): command
+            default: nil
+            }
+        }
+    }
+
+    /// The playbacks the commands were aimed at, `nil` for whatever plays.
+    var aims: [PlaybackId?] {
+        sent.compactMap {
+            switch $0 {
+            case .player: .some(nil)
+            case .control(let playback, _): .some(playback)
+            default: nil
+            }
+        }
     }
 
     /// Open a player for `playback` and load a file into it, which mpv starts.

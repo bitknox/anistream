@@ -65,9 +65,11 @@ struct StartingCurtain: View {
     let metrics: PlayerMetrics
 
     var body: some View {
-        let entry = model.staged.flatMap { store.titles[$0.id] }
-        let art = entry.map { store.heroArt($0) }
-        let url = art?.url
+        // The title the engine names with the starting screen, else the one staged: its art by
+        // the hero-art rule where the title is known here, else the banner the engine sends.
+        let id = model.starting?.id ?? model.staged?.id
+        let entry = id.flatMap { store.titles[$0] }
+        let url = entry.map { store.heroArt($0).url } ?? model.starting?.bannerUrl
         let image = url.flatMap { store.artwork.image($0) }
         GeometryReader { proxy in
             ZStack {
@@ -754,7 +756,7 @@ struct StillWatchingDialog: View {
         VStack(spacing: 0) {
             Text("Still watching?")
                 .font(.system(size: 17, weight: .semibold))
-            Text("Paused after \(PlayerTiming.stillWatchingAfter) episodes in a row.")
+            Text("Paused after \(model.stillWatchingAfter) episodes in a row.")
                 .font(.system(size: 15))
                 .foregroundStyle(.haze)
                 .padding(.top, 4)

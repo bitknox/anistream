@@ -62,6 +62,17 @@ struct OpsTests {
         #expect(!rig.mpv.calls.contains { if case .command(let c) = $0 { c.contains("fullscreen") } else { false } })
     }
 
+    @Test func theEnginesToggleFullscreenIsTheWindows() async throws {
+        #expect(HostedStep(.toggleFullscreen) == .fullScreen(nil))
+        let rig = Rig()
+        try await rig.opened()
+        rig.ops(1, [.toggleFullscreen])
+        #expect(rig.model.fullScreen)
+        rig.ops(1, [.toggleFullscreen])
+        #expect(!rig.model.fullScreen)
+        #expect(!rig.mpv.calls.contains { if case .command(let c) = $0 { c.contains("fullscreen") } else { false } })
+    }
+
     @Test func restatingTheChaptersReportsThemAsTheyStand() async throws {
         let rig = Rig()
         try await rig.opened()
@@ -134,9 +145,9 @@ struct ClosingTests {
         #expect(rig.model.layer == nil)
         try await until("mpv shut down") { rig.mpv.ended }
 
-        // The engine's answer to a player that is gone: refused, said to nothing.
+        // The engine's answer to a player that is gone, a Close among it: refused, said to nothing.
         let sent = rig.sent.count
-        rig.ops(1, [.cycle(property: "pause"), .quit])
+        rig.ops(1, [.cycle(property: "pause"), .quit, .close])
         #expect(rig.sent.count == sent)
         #expect(!rig.model.isPresented)
     }
@@ -230,6 +241,32 @@ struct CardTests {
         #expect(rig.controls.filter { $0 == .playNext }.count == 1, "once")
     }
 
+    @Test func upNextCountsDownAsLongAsTheEngineSays() async throws {
+        let rig = Rig()
+        try await rig.opened()
+        rig.ui(1, .upNext(next: NextEpisode(number: "8", title: nil, thumbnail: nil), auto: true, endingAt: 42,
+                          countdown: 5, stillWatchingAfter: 3))
+        try await rig.playhead(42)
+        #expect(rig.model.countdown?.seconds == 5)
+        try await rig.playhead(46)
+        #expect(!rig.controls.contains(.playNext))
+        try await rig.playhead(47)
+        #expect(rig.controls.filter { $0 == .playNext }.count == 1)
+    }
+
+    @Test func withNoCountdownUpNextWaitsForTheViewer() async throws {
+        let rig = Rig()
+        try await rig.opened()
+        rig.ui(1, .upNext(next: NextEpisode(number: "8", title: nil, thumbnail: nil), auto: true, endingAt: 42,
+                          countdown: 0, stillWatchingAfter: 3))
+        try await rig.playhead(60)
+        #expect(rig.model.upNextShown)
+        #expect(rig.model.countdown == nil)
+        #expect(!rig.controls.contains(.playNext))
+        rig.model.playNext()
+        #expect(rig.controls.last == .playNext)
+    }
+
     @Test func withoutEndingDataUpNextShowsNearTheEnd() async throws {
         let rig = Rig()
         try await rig.opened()
@@ -319,6 +356,17 @@ struct CardTests {
         #expect(rig.model.startingLine == "Starting episode 8")
     }
 
+    @Test func theStartingScreenCarriesTheTitleAndItsArt() {
+        let rig = Rig()
+        rig.ui(1, .starting(id: 900_001, title: "Stardust Wayfarer", episode: "7", episodeTitle: "Rain over Kiriya Pass",
+                            coverUrl: "http://art.example/cover/900001.png", bannerUrl: "http://art.example/banner/900001.png"))
+        let starting = rig.model.starting
+        #expect(starting?.id == 900_001)
+        #expect(starting?.bannerUrl == "http://art.example/banner/900001.png")
+        #expect(starting?.coverUrl == "http://art.example/cover/900001.png")
+        #expect(rig.model.isPresented, "nothing remembered from PlaybackStaged is needed")
+    }
+
     @Test func theStartingScreenStaysUntilTheNextFilesFirstFrame() async throws {
         let rig = Rig()
         try await rig.opened(1)
@@ -359,6 +407,23 @@ struct CardTests {
         #expect(rig.controls.last == .togglePause)
     }
 
+    @Test func stillWatchingAsksAfterAsManyAsTheEngineSays() async throws {
+        let rig = Rig()
+        try await rig.opened(1)
+        rig.mpv.emit(.playbackRestart)
+        for playback: PlaybackId in 2...3 {
+            rig.ui(playback - 1, .upNext(next: NextEpisode(number: "\(playback + 6)", title: nil, thumbnail: nil), auto: true, endingAt: 42, countdown: 10, stillWatchingAfter: 2))
+            try await rig.playhead(52)
+            rig.ops(playback, [.load(url: "/media/\(playback).mkv", options: [])])
+            try await until("the load") { rig.mpv.calls.filter { if case .load = $0 { true } else { false } }.count == Int(playback) }
+            rig.mpv.emit(.startFile)
+            rig.mpv.emit(.playbackRestart)
+            try await rig.playhead(0.5)
+            #expect(rig.model.stillWatching == (playback == 3), "after \(playback - 1) in a row")
+        }
+        #expect(rig.model.stillWatchingAfter == 2)
+    }
+
     @Test func anyInputStartsTheCountAgain() async throws {
         let rig = Rig()
         try await rig.opened(1)
@@ -378,7 +443,16 @@ struct CardTests {
 
 @MainActor
 struct ViewerTests {
-    @Test func picksGoToTheEngineAndTracksToMpv() async throws {
+    @Test func commandsAreAimedAtThePlaybackOnScreen() async throws {
+        let rig = Rig()
+        rig.model.togglePause()
+        try await rig.opened(3)
+        rig.model.togglePause()
+        rig.model.takeSkip()
+        #expect(rig.aims == [nil, 3, 3], "whatever plays until the engine names one")
+    }
+
+    @Test func picksAndTracksGoToTheEngine() async throws {
         let rig = Rig()
         try await rig.opened()
         rig.mpv.emit(.property(name: "speed", value: .double(1)))
@@ -395,11 +469,12 @@ struct ViewerTests {
         rig.model.setUpscaling("sharp")
         rig.model.setNightMode(true)
         rig.model.step(1)
-        try await until("the tracks set") { rig.mpv.calls.count == 3 }
-        #expect(rig.mpv.calls.suffix(2) == [
-            .set(property: "aid", value: .int(2)), .set(property: "sid", value: "no"),
+        // The engine selects the tracks, and keeps them for the series as the viewer's.
+        #expect(!rig.mpv.calls.contains { if case .set(let property, _) = $0 { ["aid", "sid"].contains(property) } else { false } })
+        #expect(rig.controls == [
+            .chooseTrack(kind: .audio, id: 2), .chooseTrack(kind: .subtitle, id: nil),
+            .speed(1.5), .choose(.episode("3")), .upscaling("sharp"), .nightMode(true), .step(1),
         ])
-        #expect(rig.controls == [.speed(1.5), .choose(.episode("3")), .upscaling("sharp"), .nightMode(true), .step(1)])
         #expect(rig.model.audioTracks.map(\.id) == [1, 2])
         #expect(rig.model.subtitleTracks.first?.title == "Full")
     }

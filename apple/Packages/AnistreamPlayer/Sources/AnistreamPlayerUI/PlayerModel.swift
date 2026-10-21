@@ -127,6 +127,9 @@ public final class PlayerModel {
     @ObservationIgnored private var verdictPending = false
     /// "Still watching?": the episodes rolled on in a row with nobody there, which pauses.
     public private(set) var stillWatching = false
+    /// After how many episodes in a row with nobody there it asks, as the engine last said: `0`
+    /// is never.
+    public private(set) var stillWatchingAfter = PlayerTiming.stillWatchingAfter
     /// Keep waiting was answered: no stall card until this stall ends.
     @ObservationIgnored private var stallWaived = false
 
@@ -264,11 +267,12 @@ public final class PlayerModel {
         enter(playback)
         let now = ContinuousClock.now
         switch ui {
-        case .starting(_, let title, let episode, let episodeTitle, _, _):
+        case .starting(let id, let title, let episode, let episodeTitle, let coverUrl, let bannerUrl):
             if since == nil || self.playback.map({ playback > $0 }) == true { since = now }
             Self.note(.info, "#\(playback) starting episode \(episode)\(elapsed)")
             starting = StartingScreen(
-                playback: playback, title: title, episode: episode, episodeTitle: episodeTitle, since: now)
+                playback: playback, id: id, title: title, episode: episode, episodeTitle: episodeTitle,
+                coverUrl: coverUrl, bannerUrl: bannerUrl, since: now)
             present()
         case .episode(let number, let label, let title, let show, let translation):
             episode = EpisodeOnScreen(number: number, label: label, title: title, show: show, translation: translation)
@@ -284,9 +288,12 @@ public final class PlayerModel {
             skip = nil
         case .autoSkipped(let kind, let undoTo):
             undo = UndoOffer(kind: kind, undoTo: undoTo, from: nil, since: now)
-        case .upNext(let next, let auto, let endingAt, _, _):
-            Self.note(.info, "#\(playback) up next: episode \(next.number), auto \(auto), from \(endingAt.map { "\(Int($0)) s" } ?? "near the end")")
-            var card = UpNextCard(next: next, auto: auto, endingAt: endingAt)
+        case .upNext(let next, let auto, let endingAt, let countdown, let stillWatchingAfter):
+            Self.note(.info, "#\(playback) up next: episode \(next.number), auto \(auto), from \(endingAt.map { "\(Int($0)) s" } ?? "near the end"), \(countdown) s")
+            var card = UpNextCard(
+                next: next, auto: auto, endingAt: endingAt, countdown: Double(countdown),
+                stillWatchingAfter: Int(stillWatchingAfter))
+            self.stillWatchingAfter = Int(stillWatchingAfter)
             if let before = upNext, before.next.number == next.number {
                 card.cancelled = before.cancelled
                 card.played = before.played
@@ -430,7 +437,7 @@ public final class PlayerModel {
         guard backend != nil else {
             if isPresented {
                 // Nothing opened yet: stop what is being found.
-                send(.player(.stop))
+                control(.stop)
                 dismiss()
             }
             return
@@ -587,9 +594,9 @@ public final class PlayerModel {
         if let starting, current.map({ $0 >= starting.playback }) ?? true {
             self.starting = nil
         }
-        if rolledOn >= PlayerTiming.stillWatchingAfter, !stillWatching {
+        if stillWatchingAfter > 0, rolledOn >= stillWatchingAfter, !stillWatching {
             stillWatching = true
-            if !paused { send(.player(.togglePause)) }
+            if !paused { control(.togglePause) }
         }
         nowPlaying.update()
     }
@@ -649,7 +656,7 @@ public final class PlayerModel {
             card.played = true
             upNext = card
             rollPending = true
-            send(.player(.playNext))
+            control(.playNext)
         }
         if var note = undo {
             if let from = note.from {
@@ -661,6 +668,19 @@ public final class PlayerModel {
         }
         if let note = resume, playhead >= note.position + PlayerTiming.resumePlayback || playhead < note.position - 1 {
             resume = nil
+        }
+    }
+
+    // MARK: Commands
+
+    /// Steer the playback the player shows, and only it (`Command::Control`): a Play Now or an
+    /// Undo sent as an episode rolls on cannot reach the next one. Before the engine has named
+    /// one, whatever plays.
+    private func control(_ command: PlayerCommand) {
+        if let playback {
+            send(.control(playback: playback, command: command))
+        } else {
+            send(.player(command))
         }
     }
 
@@ -856,7 +876,7 @@ public final class PlayerModel {
     /// "Plays in 8 s", while the countdown runs, and how far it has run, 0 to 1.
     public var countdown: (seconds: Int, progress: Double)? {
         guard upNextShown, let left = upNext?.remaining(at: position, duration: duration) else { return nil }
-        let progress = 1 - left / PlayerTiming.upNextCountdown
+        let progress = 1 - left / max(upNext?.countdown ?? PlayerTiming.upNextCountdown, 1)
         return (Int(left.rounded(.up)), min(1, max(0, progress)))
     }
 
@@ -959,17 +979,17 @@ public final class PlayerModel {
 
     public func togglePause() {
         input()
-        send(.player(.togglePause))
+        control(.togglePause)
     }
 
     public func seek(by seconds: Double) {
         input()
-        send(.player(.seek(seconds)))
+        control(.seek(seconds))
     }
 
     public func seek(to seconds: Double) {
         input()
-        send(.player(.seekTo(seconds)))
+        control(.seekTo(seconds))
     }
 
     /// The finger or pointer on the seek line: keyframe seeks while it moves, an exact one on
@@ -1009,12 +1029,12 @@ public final class PlayerModel {
     public func setSpeed(_ target: Double) {
         input()
         guard speed > 0, target > 0 else { return }
-        send(.player(.speed(target / speed)))
+        control(.speed(target / speed))
     }
 
     public func stepVolume(by points: Double) {
         input()
-        send(.player(.volume(points)))
+        control(.volume(points))
     }
 
     public func toggleMute() {
@@ -1023,29 +1043,29 @@ public final class PlayerModel {
         enqueue(.call(.set(property: "mute", value: .flag(muted))))
     }
 
-    /// An audio or subtitle track picked: mpv takes it, and the engine reads it back from
-    /// `aid` and `sid` to remember it for the series.
+    /// An audio or subtitle track picked, by its `track-list` id, or the subtitles off: the
+    /// engine selects it and keeps it for the series (`PlayerCommand::ChooseTrack`).
     public func selectAudio(_ id: Int64) {
         input()
-        enqueue(.call(.set(property: "aid", value: .int(id))))
+        control(.chooseTrack(kind: .audio, id: id))
     }
 
     public func selectSubtitle(_ id: Int64?) {
         input()
-        enqueue(.call(.set(property: "sid", value: id.map(AnistreamPlayer.MpvValue.int) ?? .string("no"))))
+        control(.chooseTrack(kind: .subtitle, id: id))
     }
 
     public func takeSkip() {
         input()
         skip = nil
-        send(.player(.takeSkip))
+        control(.takeSkip)
     }
 
     public func undoSkip() {
         input()
         guard let note = undo else { return }
         undo = nil
-        send(.player(.undoSkip(to: note.undoTo)))
+        control(.undoSkip(to: note.undoTo))
     }
 
     public func playNext() {
@@ -1053,7 +1073,7 @@ public final class PlayerModel {
         guard var card = upNext, !card.played else { return }
         card.played = true
         upNext = card
-        send(.player(.playNext))
+        control(.playNext)
     }
 
     public func cancelNext() {
@@ -1061,54 +1081,54 @@ public final class PlayerModel {
         guard var card = upNext else { return }
         card.cancelled = true
         upNext = card
-        send(.player(.cancelNext))
+        control(.cancelNext)
     }
 
     public func choose(_ choice: PlayerChoice) {
         input()
-        send(.player(.choose(choice)))
+        control(.choose(choice))
     }
 
     public func setUpscaling(_ id: String) {
         input()
-        send(.player(.upscaling(id)))
+        control(.upscaling(id))
     }
 
     public func setNightMode(_ on: Bool) {
         input()
-        send(.player(.nightMode(on)))
+        control(.nightMode(on))
     }
 
     /// The next (`1`) or previous (`-1`) episode.
     public func step(_ by: Int64) {
         input()
-        send(.player(.step(by)))
+        control(.step(by))
     }
 
     public func switchSource() {
         input()
         stall = nil
-        send(.player(.stallSwitch))
+        control(.stallSwitch)
     }
 
     public func keepWaiting() {
         input()
         stall = nil
         stallWaived = true
-        send(.player(.stallWait))
+        control(.stallWait)
     }
 
     public func startOver() {
         input()
         resume = nil
-        send(.player(.seekTo(0)))
+        control(.seekTo(0))
     }
 
     /// "Still watching?": Continue watching.
     public func continueWatching() {
         input()
         stillWatching = false
-        if paused { send(.player(.togglePause)) }
+        if paused { control(.togglePause) }
     }
 
     /// "Still watching?": Stop.
