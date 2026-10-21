@@ -27,6 +27,7 @@ public class Pairs {
         new Pair("phone-title", "AndroidTitle", "Watching scene, title 900001", 1500),
         new Pair("phone-title", "AndroidTitleMeta", "Watching scene, title 900001", 1500),
         new Pair("phone-more-about", "AndroidMoreAbout", "Watching scene, title 900001, More about this show", 1500),
+        new Pair("phone-show-settings", "AndroidShowSettings", "Watching scene, title 900001, Settings for this show", 1500),
         new Pair("phone-calendar", "AndroidCalendar", "Watching scene, My list", 1500),
         new Pair("phone-search", "AndroidSearch", "Watching scene, query hoshi", 1500),
         new Pair("phone-library", "AndroidLibrary", "Watching scene, signed in to the fake AniList", 1500),

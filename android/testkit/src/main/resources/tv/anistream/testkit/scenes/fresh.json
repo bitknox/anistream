@@ -1,6 +1,6 @@
 {
  "scene": "fresh",
- "recordedAt": 1792598784820,
+ "recordedAt": 1792601762738,
  "events": [
   {
    "@type": "Settings",
@@ -413,16 +413,6 @@
    "activity": "loading continue watching"
   },
   {
-   "@type": "JobStarted",
-   "job": "2",
-   "activity": "loading this season"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "3",
-   "activity": "loading the calendar"
-  },
-  {
    "@type": "Content",
    "view": {
     "@type": "Continue"
@@ -436,12 +426,18 @@
    "v1": "1"
   },
   {
-   "@type": "Downloads",
-   "v1": []
+   "@type": "JobStarted",
+   "job": "2",
+   "activity": "loading this season"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "3",
+   "activity": "loading the calendar"
   },
   {
    "@type": "CalendarWindow",
-   "anchor": "1792598784",
+   "anchor": "1792601765",
    "pages": "1",
    "morePast": false
   },
@@ -862,11 +858,6 @@
    }
   },
   {
-   "@type": "JobStarted",
-   "job": "4",
-   "activity": "searching “hoshi”"
-  },
-  {
    "@type": "LastAired",
    "v1": [
     {
@@ -888,6 +879,55 @@
   {
    "@type": "JobDone",
    "v1": "2"
+  },
+  {
+   "@type": "Downloads",
+   "v1": []
+  },
+  {
+   "@type": "JobStarted",
+   "job": "4",
+   "activity": "searching “hoshi”"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "5",
+   "activity": "loading your watching list"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "WATCHING"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "5"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "6",
+   "activity": "loading your planning list"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "PLANNING"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "6"
   },
   {
    "@type": "Caption",
@@ -1025,46 +1065,6 @@
   },
   {
    "@type": "JobStarted",
-   "job": "5",
-   "activity": "loading your watching list"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "WATCHING"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "5"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "6",
-   "activity": "loading your planning list"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "PLANNING"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "6"
-  },
-  {
-   "@type": "JobStarted",
    "job": "7",
    "activity": "loading your completed list"
   },
@@ -1135,20 +1135,6 @@
   {
    "@type": "JobStarted",
    "job": "11",
-   "activity": "loading episodes"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "12",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "JobStarted",
-   "job": "13",
    "activity": "loading episodes"
   },
   {
@@ -1254,51 +1240,51 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1713035154"
+       "airsAt": "1713038135"
       },
       {
        "episode": "2",
-       "airsAt": "1713639954"
+       "airsAt": "1713642935"
       },
       {
        "episode": "3",
-       "airsAt": "1714244754"
+       "airsAt": "1714247735"
       },
       {
        "episode": "4",
-       "airsAt": "1714849554"
+       "airsAt": "1714852535"
       },
       {
        "episode": "5",
-       "airsAt": "1715454354"
+       "airsAt": "1715457335"
       },
       {
        "episode": "6",
-       "airsAt": "1716059154"
+       "airsAt": "1716062135"
       },
       {
        "episode": "7",
-       "airsAt": "1716663954"
+       "airsAt": "1716666935"
       },
       {
        "episode": "8",
-       "airsAt": "1717268754"
+       "airsAt": "1717271735"
       },
       {
        "episode": "9",
-       "airsAt": "1717873554"
+       "airsAt": "1717876535"
       },
       {
        "episode": "10",
-       "airsAt": "1718478354"
+       "airsAt": "1718481335"
       },
       {
        "episode": "11",
-       "airsAt": "1719083154"
+       "airsAt": "1719086135"
       },
       {
        "episode": "12",
-       "airsAt": "1719687954"
+       "airsAt": "1719690935"
       }
      ],
      "relations": [
@@ -1416,8 +1402,202 @@
    "v1": "10"
   },
   {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900001",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "Episodes",
+   "id": "900001",
+   "rows": [
+    {
+     "number": "1",
+     "title": "The Lantern Road",
+     "thumbnail": "https://img.example/ep/900001/1.jpg",
+     "description": "A lamplighter wakes on the star road with a lantern and no name.",
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1713038135"
+    },
+    {
+     "number": "2",
+     "title": "A Town Without Night",
+     "thumbnail": "https://img.example/ep/900001/2.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1713642935"
+    },
+    {
+     "number": "3",
+     "title": "The Ferryman's Ledger",
+     "thumbnail": "https://img.example/ep/900001/3.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1714247735"
+    },
+    {
+     "number": "4",
+     "title": "Embers in the Snow",
+     "thumbnail": "https://img.example/ep/900001/4.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1714852535"
+    },
+    {
+     "number": "5",
+     "title": "What the Beacons Remember",
+     "thumbnail": "https://img.example/ep/900001/5.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1715457335"
+    },
+    {
+     "number": "6",
+     "title": "The Cartographer's Daughter",
+     "thumbnail": "https://img.example/ep/900001/6.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1716062135"
+    },
+    {
+     "number": "7",
+     "title": "Rain over Kiriya Pass",
+     "thumbnail": "https://img.example/ep/900001/7.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1716666935"
+    },
+    {
+     "number": "8",
+     "title": "A Letter Never Sent",
+     "thumbnail": "https://img.example/ep/900001/8.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1717271735"
+    },
+    {
+     "number": "9",
+     "title": "The Last Lamplighter",
+     "thumbnail": "https://img.example/ep/900001/9.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1717876535"
+    },
+    {
+     "number": "10",
+     "title": "Where the Roads Cross",
+     "thumbnail": "https://img.example/ep/900001/10.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1718481335"
+    },
+    {
+     "number": "11",
+     "title": "The Sky Archive",
+     "thumbnail": "https://img.example/ep/900001/11.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1719086135"
+    },
+    {
+     "number": "12",
+     "title": "Home, by Starlight",
+     "thumbnail": "https://img.example/ep/900001/12.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1719690935"
+    }
+   ]
+  },
+  {
+   "@type": "JobDone",
+   "v1": "11"
+  },
+  {
    "@type": "JobStarted",
-   "job": "14",
+   "job": "12",
    "activity": "loading the title"
   },
   {
@@ -1426,8 +1606,57 @@
   },
   {
    "@type": "JobStarted",
-   "job": "15",
+   "job": "13",
    "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900002",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "14",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
   },
   {
    "@type": "Detail",
@@ -1501,99 +1730,99 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1789759284"
+       "airsAt": "1789762265"
       },
       {
        "episode": "2",
-       "airsAt": "1790364084"
+       "airsAt": "1790367065"
       },
       {
        "episode": "3",
-       "airsAt": "1790968884"
+       "airsAt": "1790971865"
       },
       {
        "episode": "4",
-       "airsAt": "1791573684"
+       "airsAt": "1791576665"
       },
       {
        "episode": "5",
-       "airsAt": "1792178484"
+       "airsAt": "1792181465"
       },
       {
        "episode": "6",
-       "airsAt": "1792783284"
+       "airsAt": "1792786265"
       },
       {
        "episode": "7",
-       "airsAt": "1793388084"
+       "airsAt": "1793391065"
       },
       {
        "episode": "8",
-       "airsAt": "1793992884"
+       "airsAt": "1793995865"
       },
       {
        "episode": "9",
-       "airsAt": "1794597684"
+       "airsAt": "1794600665"
       },
       {
        "episode": "10",
-       "airsAt": "1795202484"
+       "airsAt": "1795205465"
       },
       {
        "episode": "11",
-       "airsAt": "1795807284"
+       "airsAt": "1795810265"
       },
       {
        "episode": "12",
-       "airsAt": "1796412084"
+       "airsAt": "1796415065"
       },
       {
        "episode": "13",
-       "airsAt": "1797016884"
+       "airsAt": "1797019865"
       },
       {
        "episode": "14",
-       "airsAt": "1797621684"
+       "airsAt": "1797624665"
       },
       {
        "episode": "15",
-       "airsAt": "1798226484"
+       "airsAt": "1798229465"
       },
       {
        "episode": "16",
-       "airsAt": "1798831284"
+       "airsAt": "1798834265"
       },
       {
        "episode": "17",
-       "airsAt": "1799436084"
+       "airsAt": "1799439065"
       },
       {
        "episode": "18",
-       "airsAt": "1800040884"
+       "airsAt": "1800043865"
       },
       {
        "episode": "19",
-       "airsAt": "1800645684"
+       "airsAt": "1800648665"
       },
       {
        "episode": "20",
-       "airsAt": "1801250484"
+       "airsAt": "1801253465"
       },
       {
        "episode": "21",
-       "airsAt": "1801855284"
+       "airsAt": "1801858265"
       },
       {
        "episode": "22",
-       "airsAt": "1802460084"
+       "airsAt": "1802463065"
       },
       {
        "episode": "23",
-       "airsAt": "1803064884"
+       "airsAt": "1803067865"
       },
       {
        "episode": "24",
-       "airsAt": "1803669684"
+       "airsAt": "1803672665"
       }
      ],
      "relations": [],
@@ -1658,158 +1887,119 @@
    "v1": "12"
   },
   {
+   "@type": "JobStarted",
+   "job": "15",
+   "activity": "loading episodes"
+  },
+  {
    "@type": "Episodes",
-   "id": "900001",
+   "id": "900002",
    "rows": [
     {
      "number": "1",
-     "title": "The Lantern Road",
-     "thumbnail": "https://img.example/ep/900001/1.jpg",
-     "description": "A lamplighter wakes on the star road with a lantern and no name.",
-     "durationSecs": "1440",
+     "title": "The Borrowed Sky",
+     "thumbnail": "https://img.example/ep/900002/1.jpg",
+     "description": null,
+     "durationSecs": "1380",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1713035154"
+     "airsAt": "1789762265"
     },
     {
      "number": "2",
-     "title": "A Town Without Night",
-     "thumbnail": "https://img.example/ep/900001/2.jpg",
+     "title": "Overdue by a Century",
+     "thumbnail": "https://img.example/ep/900002/2.jpg",
      "description": null,
-     "durationSecs": "1440",
+     "durationSecs": "1380",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1713639954"
+     "airsAt": "1790367065"
     },
     {
      "number": "3",
-     "title": "The Ferryman's Ledger",
-     "thumbnail": "https://img.example/ep/900001/3.jpg",
+     "title": "The Index of Winds",
+     "thumbnail": "https://img.example/ep/900002/3.jpg",
      "description": null,
-     "durationSecs": "1440",
+     "durationSecs": "1380",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1714244754"
+     "airsAt": "1790971865"
     },
     {
      "number": "4",
-     "title": "Embers in the Snow",
-     "thumbnail": "https://img.example/ep/900001/4.jpg",
+     "title": "A Reading Room for Storms",
+     "thumbnail": "https://img.example/ep/900002/4.jpg",
      "description": null,
-     "durationSecs": "1440",
+     "durationSecs": "1380",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1714849554"
+     "airsAt": "1791576665"
     },
     {
      "number": "5",
-     "title": "What the Beacons Remember",
-     "thumbnail": "https://img.example/ep/900001/5.jpg",
+     "title": "The Librarian Who Never Sleeps",
+     "thumbnail": "https://img.example/ep/900002/5.jpg",
      "description": null,
-     "durationSecs": "1440",
+     "durationSecs": "1380",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1715454354"
-    },
-    {
-     "number": "6",
-     "title": "The Cartographer's Daughter",
-     "thumbnail": "https://img.example/ep/900001/6.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1716059154"
-    },
-    {
-     "number": "7",
-     "title": "Rain over Kiriya Pass",
-     "thumbnail": "https://img.example/ep/900001/7.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1716663954"
-    },
-    {
-     "number": "8",
-     "title": "A Letter Never Sent",
-     "thumbnail": "https://img.example/ep/900001/8.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1717268754"
-    },
-    {
-     "number": "9",
-     "title": "The Last Lamplighter",
-     "thumbnail": "https://img.example/ep/900001/9.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1717873554"
-    },
-    {
-     "number": "10",
-     "title": "Where the Roads Cross",
-     "thumbnail": "https://img.example/ep/900001/10.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1718478354"
-    },
-    {
-     "number": "11",
-     "title": "The Sky Archive",
-     "thumbnail": "https://img.example/ep/900001/11.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1719083154"
-    },
-    {
-     "number": "12",
-     "title": "Home, by Starlight",
-     "thumbnail": "https://img.example/ep/900001/12.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1719687954"
+     "airsAt": "1792181465"
     }
    ]
   },
   {
    "@type": "JobDone",
-   "v1": "11"
+   "v1": "13"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900003",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
   },
   {
    "@type": "Detail",
@@ -1923,98 +2113,13 @@
    "activity": "loading the title"
   },
   {
-   "@type": "Episodes",
-   "id": "900002",
-   "rows": [
-    {
-     "number": "1",
-     "title": "The Borrowed Sky",
-     "thumbnail": "https://img.example/ep/900002/1.jpg",
-     "description": null,
-     "durationSecs": "1380",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1789759284"
-    },
-    {
-     "number": "2",
-     "title": "Overdue by a Century",
-     "thumbnail": "https://img.example/ep/900002/2.jpg",
-     "description": null,
-     "durationSecs": "1380",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1790364084"
-    },
-    {
-     "number": "3",
-     "title": "The Index of Winds",
-     "thumbnail": "https://img.example/ep/900002/3.jpg",
-     "description": null,
-     "durationSecs": "1380",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1790968884"
-    },
-    {
-     "number": "4",
-     "title": "A Reading Room for Storms",
-     "thumbnail": "https://img.example/ep/900002/4.jpg",
-     "description": null,
-     "durationSecs": "1380",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1791573684"
-    },
-    {
-     "number": "5",
-     "title": "The Librarian Who Never Sleeps",
-     "thumbnail": "https://img.example/ep/900002/5.jpg",
-     "description": null,
-     "durationSecs": "1380",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1792178484"
-    }
-   ]
-  },
-  {
-   "@type": "JobDone",
-   "v1": "13"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "17",
-   "activity": "loading episodes"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "18",
-   "activity": "loading the title"
-  },
-  {
    "@type": "ProviderPreference",
    "v1": null
   },
   {
    "@type": "JobStarted",
-   "job": "19",
+   "job": "17",
    "activity": "loading episodes"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "20",
-   "activity": "loading the title"
   },
   {
    "@type": "Episodes",
@@ -2039,37 +2144,27 @@
    "v1": "15"
   },
   {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "JobStarted",
-   "job": "21",
-   "activity": "loading episodes"
-  },
-  {
    "@type": "Detail",
    "v1": {
-    "id": "900005",
-    "title": "The Steel Gardener",
-    "secondary": "Hagane no Niwashi",
-    "format": "ONA",
-    "episodes": "10",
-    "year": "2023",
-    "score": "71",
-    "studio": "Studio Mokusei",
-    "synopsis": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
-    "coverUrl": "https://img.example/cover/900005-xl.jpg",
-    "bannerUrl": null,
+    "id": "900004",
+    "title": "Stardust Wayfarer Season 2",
+    "secondary": "Hoshikuzu no Tabibito 2nd Season",
+    "format": "TV",
+    "episodes": "12",
+    "year": "2025",
+    "score": "84",
+    "studio": "Kujaku Animation Works",
+    "synopsis": "The beacons are lit, and the roads lead somewhere new: to the city that sent the first lamplighters out.",
+    "coverUrl": "https://img.example/cover/900004-xl.jpg",
+    "bannerUrl": "https://img.example/banner/900004.jpg",
     "genres": [
-     "Sci-Fi",
-     "Slice of Life"
+     "Adventure",
+     "Drama",
+     "Fantasy"
     ],
-    "availableOn": [],
+    "availableOn": [
+     "Lantern Stream"
+    ],
     "progress": null,
     "airingIn": null,
     "airingEpisode": null,
@@ -2077,53 +2172,110 @@
     "nextAiringIn": null,
     "lastAired": null,
     "resume": null,
-    "related": [],
+    "related": [
+     {
+      "id": "900001",
+      "title": "Stardust Wayfarer",
+      "relation": "prequel",
+      "format": "TV"
+     }
+    ],
     "recommended": [],
     "trailerUrl": null,
     "listStatus": null,
-    "titleRomaji": "Hagane no Niwashi",
-    "titleEnglish": "The Steel Gardener",
-    "titleNative": "鋼の庭師",
-    "season": "SUMMER",
+    "titleRomaji": "Hoshikuzu no Tabibito 2nd Season",
+    "titleEnglish": "Stardust Wayfarer Season 2",
+    "titleNative": "星屑の旅人 第2期",
+    "season": "WINTER",
     "startDate": {
-     "year": "2023",
-     "month": "7",
-     "day": "1"
+     "year": "2025",
+     "month": "1",
+     "day": "11"
     },
     "endDate": {
-     "year": "2023",
-     "month": "9",
-     "day": "2"
+     "year": "2025",
+     "month": "3",
+     "day": "29"
     },
-    "source": "WEB_NOVEL",
+    "source": "MANGA",
     "adult": false,
     "detail": {
-     "tags": [
+     "tags": [],
+     "schedule": [],
+     "relations": [
       {
-       "name": "Gardening",
-       "rank": "85",
-       "mediaSpoiler": false,
-       "generalSpoiler": false,
-       "category": "Theme-Slice of Life"
+       "id": "900001",
+       "title": "Stardust Wayfarer",
+       "titleRomaji": "Hoshikuzu no Tabibito",
+       "titleEnglish": "Stardust Wayfarer",
+       "titleNative": "星屑の旅人",
+       "relation": "PREQUEL",
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/900001.jpg",
+       "season": "SPRING",
+       "year": "2024"
       }
      ],
-     "schedule": [],
-     "relations": [],
      "recommendations": [],
      "rankings": [],
      "characters": [],
-     "staff": [
-      {
-       "name": "Director of The Steel Gardener",
-       "role": "Director"
-      }
-     ]
+     "staff": []
     }
    }
   },
   {
    "@type": "JobDone",
-   "v1": "18"
+   "v1": "16"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900004",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "18",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "19",
+   "activity": "loading episodes"
   },
   {
    "@type": "Episodes",
@@ -2280,88 +2432,62 @@
    "v1": "17"
   },
   {
-   "@type": "Detail",
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "ShowSettings",
    "v1": {
-    "id": "900004",
-    "title": "Stardust Wayfarer Season 2",
-    "secondary": "Hoshikuzu no Tabibito 2nd Season",
-    "format": "TV",
-    "episodes": "12",
-    "year": "2025",
-    "score": "84",
-    "studio": "Kujaku Animation Works",
-    "synopsis": "The beacons are lit, and the roads lead somewhere new: to the city that sent the first lamplighters out.",
-    "coverUrl": "https://img.example/cover/900004-xl.jpg",
-    "bannerUrl": "https://img.example/banner/900004.jpg",
-    "genres": [
-     "Adventure",
-     "Drama",
-     "Fantasy"
-    ],
-    "availableOn": [
-     "Lantern Stream"
-    ],
-    "progress": null,
-    "airingIn": null,
-    "airingEpisode": null,
-    "nextEpisode": null,
-    "nextAiringIn": null,
-    "lastAired": null,
-    "resume": null,
-    "related": [
+    "id": "900005",
+    "rows": [
      {
-      "id": "900001",
-      "title": "Stardust Wayfarer",
-      "relation": "prequel",
-      "format": "TV"
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
      }
     ],
-    "recommended": [],
-    "trailerUrl": null,
-    "listStatus": null,
-    "titleRomaji": "Hoshikuzu no Tabibito 2nd Season",
-    "titleEnglish": "Stardust Wayfarer Season 2",
-    "titleNative": "星屑の旅人 第2期",
-    "season": "WINTER",
-    "startDate": {
-     "year": "2025",
-     "month": "1",
-     "day": "11"
-    },
-    "endDate": {
-     "year": "2025",
-     "month": "3",
-     "day": "29"
-    },
-    "source": "MANGA",
-    "adult": false,
-    "detail": {
-     "tags": [],
-     "schedule": [],
-     "relations": [
-      {
-       "id": "900001",
-       "title": "Stardust Wayfarer",
-       "titleRomaji": "Hoshikuzu no Tabibito",
-       "titleEnglish": "Stardust Wayfarer",
-       "titleNative": "星屑の旅人",
-       "relation": "PREQUEL",
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/900001.jpg",
-       "season": "SPRING",
-       "year": "2024"
-      }
-     ],
-     "recommendations": [],
-     "rankings": [],
-     "characters": [],
-     "staff": []
-    }
+    "remembered": [],
+    "source": null
    }
   },
   {
-   "@type": "JobDone",
-   "v1": "16"
+   "@type": "JobStarted",
+   "job": "20",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "JobStarted",
+   "job": "21",
+   "activity": "loading episodes"
   },
   {
    "@type": "Episodes",
@@ -2496,6 +2622,80 @@
   {
    "@type": "Detail",
    "v1": {
+    "id": "900005",
+    "title": "The Steel Gardener",
+    "secondary": "Hagane no Niwashi",
+    "format": "ONA",
+    "episodes": "10",
+    "year": "2023",
+    "score": "71",
+    "studio": "Studio Mokusei",
+    "synopsis": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
+    "coverUrl": "https://img.example/cover/900005-xl.jpg",
+    "bannerUrl": null,
+    "genres": [
+     "Sci-Fi",
+     "Slice of Life"
+    ],
+    "availableOn": [],
+    "progress": null,
+    "airingIn": null,
+    "airingEpisode": null,
+    "nextEpisode": null,
+    "nextAiringIn": null,
+    "lastAired": null,
+    "resume": null,
+    "related": [],
+    "recommended": [],
+    "trailerUrl": null,
+    "listStatus": null,
+    "titleRomaji": "Hagane no Niwashi",
+    "titleEnglish": "The Steel Gardener",
+    "titleNative": "鋼の庭師",
+    "season": "SUMMER",
+    "startDate": {
+     "year": "2023",
+     "month": "7",
+     "day": "1"
+    },
+    "endDate": {
+     "year": "2023",
+     "month": "9",
+     "day": "2"
+    },
+    "source": "WEB_NOVEL",
+    "adult": false,
+    "detail": {
+     "tags": [
+      {
+       "name": "Gardening",
+       "rank": "85",
+       "mediaSpoiler": false,
+       "generalSpoiler": false,
+       "category": "Theme-Slice of Life"
+      }
+     ],
+     "schedule": [],
+     "relations": [],
+     "recommendations": [],
+     "rankings": [],
+     "characters": [],
+     "staff": [
+      {
+       "name": "Director of The Steel Gardener",
+       "role": "Director"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "18"
+  },
+  {
+   "@type": "Detail",
+   "v1": {
     "id": "900006",
     "title": "Summer Wind Relay",
     "secondary": "Natsukaze Relay",
@@ -2540,51 +2740,51 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1788296784"
+       "airsAt": "1788299765"
       },
       {
        "episode": "2",
-       "airsAt": "1788901584"
+       "airsAt": "1788904565"
       },
       {
        "episode": "3",
-       "airsAt": "1789506384"
+       "airsAt": "1789509365"
       },
       {
        "episode": "4",
-       "airsAt": "1790111184"
+       "airsAt": "1790114165"
       },
       {
        "episode": "5",
-       "airsAt": "1790715984"
+       "airsAt": "1790718965"
       },
       {
        "episode": "6",
-       "airsAt": "1791320784"
+       "airsAt": "1791323765"
       },
       {
        "episode": "7",
-       "airsAt": "1791925584"
+       "airsAt": "1791928565"
       },
       {
        "episode": "8",
-       "airsAt": "1792530384"
+       "airsAt": "1792533365"
       },
       {
        "episode": "9",
-       "airsAt": "1793135184"
+       "airsAt": "1793138165"
       },
       {
        "episode": "10",
-       "airsAt": "1793739984"
+       "airsAt": "1793742965"
       },
       {
        "episode": "11",
-       "airsAt": "1794344784"
+       "airsAt": "1794347765"
       },
       {
        "episode": "12",
-       "airsAt": "1794949584"
+       "airsAt": "1794952565"
       }
      ],
      "relations": [],
@@ -2613,7 +2813,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1788296784"
+     "airsAt": "1788299765"
     },
     {
      "number": "2",
@@ -2625,7 +2825,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1788901584"
+     "airsAt": "1788904565"
     },
     {
      "number": "3",
@@ -2637,7 +2837,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1789506384"
+     "airsAt": "1789509365"
     },
     {
      "number": "4",
@@ -2649,7 +2849,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1790111184"
+     "airsAt": "1790114165"
     },
     {
      "number": "5",
@@ -2661,7 +2861,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1790715984"
+     "airsAt": "1790718965"
     },
     {
      "number": "6",
@@ -2673,7 +2873,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1791320784"
+     "airsAt": "1791323765"
     },
     {
      "number": "7",
@@ -2685,7 +2885,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1791925584"
+     "airsAt": "1791928565"
     },
     {
      "number": "8",
@@ -2697,13 +2897,53 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1792530384"
+     "airsAt": "1792533365"
     }
    ]
   },
   {
    "@type": "JobDone",
    "v1": "21"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900006",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
   }
  ]
 }

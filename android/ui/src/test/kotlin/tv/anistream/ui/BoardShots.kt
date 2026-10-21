@@ -3,6 +3,7 @@ package tv.anistream.ui
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -95,6 +96,14 @@ class BoardShots {
     @Test
     @Config(qualifiers = PHONE)
     fun phone_more_about() = shoot("phone-more-about", WATCHING, title = 900001u) { open("More about this show") }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_show_settings() = shoot("phone-show-settings", WATCHING, title = 900001u) {
+        compose.onNodeWithContentDescription("More").performClick()
+        compose.waitForIdle()
+        open("Settings for this show")
+    }
 
     @Test
     @Config(qualifiers = TABLET)

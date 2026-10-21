@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.ffi.FfiEngine
 import tv.anistream.engine.ffi.FfiException
 import tv.anistream.engine.ffi.FfiHost
@@ -21,6 +22,7 @@ import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.JobId
 import tv.anistream.engine.model.LibrarySegment
 import tv.anistream.engine.model.SearchFilters
+import tv.anistream.engine.model.ShowSettingKey
 
 /**
  * Where the app's state lives, on the main thread.
@@ -66,6 +68,7 @@ class AppStore(
     val accounts = AccountsModel()
     val stores = StoresModel()
     val downloads = DownloadsModel()
+    val showSettings = ShowSettingsModel()
     val artwork = ArtworkStore(scope, decoder) { url ->
         val client = client
         val files = artworkWithoutEngine
@@ -219,6 +222,21 @@ class AppStore(
 
     private val episodesAsked = mutableSetOf<AnilistId>()
 
+    /** [id]'s own settings sheet, answered with `ShowSettings`. */
+    fun loadShowSettings(id: AnilistId) {
+        send(Command.LoadShowSettings(id))
+    }
+
+    /** Set [key] for [id] alone, or with `null` have it follow Settings again. */
+    fun setShowSetting(id: AnilistId, key: ShowSettingKey, value: SettingValue?) {
+        send(Command.SetShowSetting(id, key, value))
+    }
+
+    /** Put [id] back on Settings: its own settings, the source it keeps and the remembered tracks. */
+    fun resetShowSettings(id: AnilistId) {
+        send(Command.ResetShowSettings(id))
+    }
+
     /** Put [id] on the tracker's [segment] list: shown at once, ahead of the tracker's word. */
     fun setStatus(id: AnilistId, segment: LibrarySegment) {
         titles.setStatus(id, segment)
@@ -312,6 +330,7 @@ class AppStore(
             is Event.Sync -> accounts.apply(event.v1)
             is Event.Stores -> stores.apply(event.v1)
             is Event.Downloads -> downloads.apply(event.v1)
+            is Event.ShowSettings -> showSettings.apply(event.v1)
 
             is Event.ArtworkReady -> artwork.ready(event.url, event.bytes)
             is Event.ImageFailed -> artwork.failed(event.url)
