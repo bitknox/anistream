@@ -8,7 +8,7 @@ import SwiftUI
 
 /// Settings' panes. Integrations stays out of v1.
 public enum SettingsPane: String, CaseIterable, Identifiable, Hashable, Sendable {
-    case playback, downloads, sources, accounts, advanced
+    case playback, downloads, sources, accounts, integrations, advanced
 
     public var id: String { rawValue }
 
@@ -18,8 +18,19 @@ public enum SettingsPane: String, CaseIterable, Identifiable, Hashable, Sendable
         case .downloads: "Downloads"
         case .sources: "Sources"
         case .accounts: "Accounts"
+        case .integrations: "Integrations"
         case .advanced: "Advanced"
         }
+    }
+
+    /// The panes this device shows. Integrations is the Mac's: Syncplay, Discord and the update
+    /// check are desktop programs, none of which an iPad or iPhone runs.
+    static var shown: [SettingsPane] {
+        #if os(macOS)
+        allCases
+        #else
+        allCases.filter { $0 != .integrations }
+        #endif
     }
 }
 
@@ -88,6 +99,7 @@ struct SettingsScreen: View {
             case .downloads: DownloadsPane()
             case .sources: SourcesPane()
             case .accounts: AccountsPane()
+            case .integrations: IntegrationsPane()
             case .advanced: AdvancedPane()
                 }
             }
@@ -115,8 +127,11 @@ struct SettingsResults: View {
         ("Seed after watching", .sources), ("Seed for at most", .sources), ("Upload limit", .sources),
         ("AniList", .accounts), ("MyAnimeList", .accounts), ("Kitsu", .accounts), ("Simkl", .accounts),
         ("Trakt", .accounts), ("Sync now", .accounts), ("Sign out", .accounts),
+        ("Syncplay parties", .integrations), ("Syncplay server", .integrations),
+        ("Syncplay room", .integrations), ("Discord presence", .integrations),
+        ("Presence shows the title", .integrations), ("Check for updates", .integrations),
         ("mpv options", .advanced),
-    ]
+    ].filter { SettingsPane.shown.contains($0.pane) }
 
     var body: some View {
         let words = query.lowercased().split(separator: " ")
@@ -150,7 +165,7 @@ struct SettingsTabs: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            ForEach(SettingsPane.allCases) { pane in
+            ForEach(SettingsPane.shown) { pane in
                 let selected = pane == selection
                 Button {
                     selection = pane
@@ -193,6 +208,8 @@ struct SettingsAside: View {
                 }
             case .accounts:
                 aside("Accounts", "anistream works without an account. Your watch history stays on this \(Device.name) when you sign out.")
+            case .integrations:
+                PresencePreview()
             case .advanced:
                 aside("Advanced", "An option here can undo a Playback setting, such as upscaling or night mode. Most people never need this pane.")
             }
