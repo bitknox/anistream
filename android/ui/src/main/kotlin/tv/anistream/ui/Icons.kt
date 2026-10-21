@@ -85,6 +85,11 @@ internal object Icons {
         }
     }.build()
     val Down = stroked("Down", "M7 10 L12 15 L17 10")
+
+    /** A menu's own arrow, the filled triangle a dropdown row ends with; tinted like the rest. */
+    val MenuArrow = ImageVector.Builder(
+        name = "MenuArrow", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f,
+    ).apply { addPath(pathData = addPathNodes("M7 10 L12 15 L17 10 Z"), fill = SolidColor(Color.Black)) }.build()
     val Chevron = stroked("Chevron", "M10 7 L15 12 L10 17")
     val Check = stroked("Check", "M5 12.5 L10 17.5 L19 7")
     val Trailer = stroked("Trailer", "M8 6.5 V17.5 L17 12 Z")

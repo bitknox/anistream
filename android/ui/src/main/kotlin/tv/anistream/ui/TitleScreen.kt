@@ -289,6 +289,8 @@ private fun OtherForms(entry: Entry, modifier: Modifier = Modifier) {
 private fun TitleTopBar(entry: Entry, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val store = LocalAppStore.current
     var more by remember { mutableStateOf(false) }
+    var showSettings by rememberSaveable(entry.id) { mutableStateOf(false) }
+    if (showSettings) ShowSettingsSheet(entry) { showSettings = false }
     Row(
         modifier.fillMaxWidth().height(64.dp).padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -298,12 +300,13 @@ private fun TitleTopBar(entry: Entry, onBack: () -> Unit, modifier: Modifier = M
         Box {
             CircleIconButton(Icons.More, "More", { more = true })
             DropdownMenu(expanded = more, onDismissRequest = { more = false }) {
-                // The show's own settings sheet comes with A2.
                 DropdownMenuItem(
                     text = { Text("Settings for this show") },
                     leadingIcon = { Icon(Icons.Settings, null) },
-                    onClick = { more = false },
-                    enabled = false,
+                    onClick = {
+                        more = false
+                        showSettings = true
+                    },
                 )
                 DropdownMenuItem(
                     text = { Text("Hide from Continue") },
