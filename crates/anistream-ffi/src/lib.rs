@@ -46,6 +46,7 @@ mod tests {
         ids::{AnilistId, ProviderKey},
         media::Translation,
         settings::SettingValue,
+        stream::{Stream, StreamKind, Subtitle},
     };
     use anistream_model::{
         catalog::{
@@ -54,7 +55,7 @@ mod tests {
         command::Command,
         event::Event,
         jobs::JobId,
-        playback::PlaybackId,
+        playback::{PlayableStream, PlaybackId},
         progress::TitleProgress,
         settings::SettingKey,
         sources::MatchCandidate,
@@ -131,6 +132,30 @@ mod tests {
             <PlaybackId as Lift<UniFfiTag>>::try_lift(12).ok(),
             Some(PlaybackId::new(12))
         );
+    }
+
+    #[test]
+    fn a_playable_stream_crosses_with_its_headers_and_subtitles() {
+        let stream = Stream {
+            provider_id: "yamabiko".into(),
+            subtitles: vec![Subtitle {
+                language: "en".into(),
+                url: "https://subs.example/ep2.vtt".into(),
+                hard: false,
+                format: Some("vtt".into()),
+            }],
+            thumbnail_url: Some("http://127.0.0.1:45001/thumb".into()),
+            ..Stream::new("http://127.0.0.1:45001/stream", StreamKind::TorrentHttp)
+                .with_quality(720)
+                .with_header("Referer", "https://player.example/")
+                .with_header("User-Agent", "Mozilla/5.0 (KHTML, like Gecko)")
+        };
+        let playable = PlayableStream::from(&stream);
+        assert_eq!(playable.label, "720p · torrent");
+        assert_eq!(crossed(playable.clone()), playable);
+        let bare =
+            PlayableStream::from(&Stream::new("https://cdn.example/a.mp4", StreamKind::Mp4));
+        assert_eq!(crossed(bare.clone()), bare);
     }
 
     #[test]
