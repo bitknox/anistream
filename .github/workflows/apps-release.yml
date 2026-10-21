@@ -30,6 +30,10 @@ on:
         required: true
       ANDROID_RELEASE_KEY_PASSWORD:
         required: true
+  # TEMPORARY: a dry run of release/apps, which a dispatch cannot make before this workflow is on
+  # main. Removed in the next commit.
+  push:
+    branches: [release/apps]
   # What decides how a release is built and packaged. CI's own jobs already build the apps for
   # everything else, in Debug and for the Simulator. The patches and libmpv.map count as mpv's
   # build script, which reads them.
@@ -79,6 +83,36 @@ env:
   ANISTREAM_ENGINE_PROFILE: release
 
 jobs:
+  # TEMPORARY: release.yml's new step, the terminal's Rust licences, on each OS its builds run on,
+  # without building the terminal. Removed in the next commit.
+  terminal-licences:
+    name: terminal licences (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: x86_64-unknown-linux-gnu }
+          - { os: macos-latest, target: aarch64-apple-darwin }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc }
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about@0.9.2
+      - name: The Rust crates' licences
+        shell: bash
+        run: bash packaging/rust-licences/generate.sh terminal target/THIRD-PARTY-rust.txt ${{ matrix.target }}
+      - name: For the release
+        if: runner.os == 'Linux'
+        shell: bash
+        run: >-
+          packaging/rust-licences/generate.sh terminal "dist/anistream-0.0.0-rust-licences.txt"
+          x86_64-unknown-linux-gnu aarch64-apple-darwin x86_64-apple-darwin x86_64-pc-windows-msvc
+      - run: ls -l target/THIRD-PARTY-rust.txt
+        shell: bash
+
   android:
     name: Android
     runs-on: ubuntu-latest
