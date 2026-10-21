@@ -32,6 +32,9 @@ public struct EngineLaunch: Sendable {
     /// none for the Fixtures app, whose trackers are the fake's.
     public var anilistClientID: String?
     public var malClientID: String?
+    /// The device sign-ins' clients: Simkl's, and Trakt's, which has no secret.
+    public var simklClientID: String?
+    public var traktClientID: String?
 
     /// anistream's AniList client: implicit grant, redirecting to `anistream://auth/anilist`.
     /// Not a secret; it ships in the app.
@@ -39,6 +42,10 @@ public struct EngineLaunch: Sendable {
     /// anistream's MyAnimeList client: type "other", PKCE, redirecting to `anistream://auth/mal`.
     /// Not a secret either.
     public static let malClient = "0ccc4725381aca9513f26d32107a94cd"
+    /// anistream's Simkl client, for its device-code sign-in. Not a secret.
+    public static let simklClient = "016a3721d77c54d04f5aa6f5a213fe76f047d83d3ae35b2c892074859b88be0b"
+    /// anistream's Trakt client, for its device-code sign-in, registered without a secret.
+    public static let traktClient = "p2yWSSGe7aVAlnHEMiQQh0RhiL6ivZfJNaubOJi4DZE"
 
     public init(
         engine: Engine,
@@ -48,7 +55,9 @@ public struct EngineLaunch: Sendable {
         secrets: SecretsMode,
         theme: PlayerTheme = EngineLaunch.theme,
         anilistClientID: String? = nil,
-        malClientID: String? = nil
+        malClientID: String? = nil,
+        simklClientID: String? = nil,
+        traktClientID: String? = nil
     ) {
         self.engine = engine
         self.home = home
@@ -58,6 +67,8 @@ public struct EngineLaunch: Sendable {
         self.theme = theme
         self.anilistClientID = anilistClientID
         self.malClientID = malClientID
+        self.simklClientID = simklClientID
+        self.traktClientID = traktClientID
     }
 
     /// The app's launch on this device: the Mac shares the terminal's directories and follows
@@ -69,7 +80,9 @@ public struct EngineLaunch: Sendable {
             platform: platform,
             secrets: platform == .macOs ? .followConfig : .host,
             anilistClientID: anilistClient,
-            malClientID: malClient
+            malClientID: malClient,
+            simklClientID: simklClient,
+            traktClientID: traktClient
         )
     }
 
@@ -85,13 +98,16 @@ public struct EngineLaunch: Sendable {
         font: "Zen Kaku Gothic New"
     )
 
-    /// What the engine is told of the app.
+    /// What the engine is told of the app. The sign-ins redirect to the app's own scheme,
+    /// `anistream://auth/<tracker>`, so the redirect fields stay unset.
     public var record: FfiStart {
         FfiStart(
             theme: theme,
             platform: platform,
             anilistClientId: anilistClientID,
             malClientId: malClientID,
+            simklClientId: simklClientID,
+            traktClientId: traktClientID,
             secrets: secrets
         )
     }
