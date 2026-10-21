@@ -11,12 +11,17 @@ pub struct StoreRow {
     pub id: String,
     pub name: String,
     pub url: String,
+    /// The host the store answers at, from its URL: "Run by … · plugins.example".
+    pub host: String,
     /// The store key's fingerprint, in groups of four.
     pub fingerprint: String,
     /// Who this machine joined as.
     pub member: String,
     pub owner: bool,
     pub state: StoreState,
+    /// When its plugin list was last fetched and verified, as a Unix time: "checked 2 min
+    /// ago". `None` before the first.
+    pub checked_at: Option<i64>,
     pub plugins: Vec<StorePluginRow>,
 }
 
@@ -88,6 +93,8 @@ pub struct InvitedStore {
     pub link: Secret,
     pub name: String,
     pub url: String,
+    /// The host the store answers at, from its URL.
+    pub host: String,
     pub fingerprint: String,
     pub already_joined: bool,
 }
@@ -137,6 +144,19 @@ pub struct LocalPluginRow {
     pub published: Option<String>,
 }
 
+/// The host a store's URL names, lowercase, without a user, a port or a path: what the store
+/// screens name it by beside its name. The URL itself when it names none.
+pub fn host(url: &str) -> String {
+    let rest = url.split_once("://").map_or(url, |(_, rest)| rest);
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or(rest);
+    let address = authority.rsplit('@').next().unwrap_or(authority);
+    let host = match address.strip_prefix('[') {
+        Some(bracketed) => bracketed.split(']').next().unwrap_or(bracketed),
+        None => address.split(':').next().unwrap_or(address),
+    };
+    if host.is_empty() { url.to_owned() } else { host.to_ascii_lowercase() }
+}
+
 /// A credential in transit.
 ///
 /// Exists for exactly one reason: `Command` derives `Debug` and the task router logs a task
@@ -154,5 +174,19 @@ uniffi::custom_newtype!(Secret, String);
 impl std::fmt::Debug for Secret {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("Secret(«redacted»)")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_store_is_named_by_its_host() {
+        assert_eq!(host("https://Plugins.Example/with/a/path"), "plugins.example");
+        assert_eq!(host("https://plugins.example:8443"), "plugins.example");
+        assert_eq!(host("http://owner@[fe80::1]:8080/store"), "fe80::1");
+        assert_eq!(host("plugins.example"), "plugins.example", "no scheme");
+        assert_eq!(host("https://"), "https://", "nothing to name it by");
     }
 }

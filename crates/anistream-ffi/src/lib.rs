@@ -144,6 +144,41 @@ mod tests {
     }
 
     #[test]
+    fn a_provider_row_crosses_with_where_it_came_from_and_its_update() {
+        use anistream_model::sources::{ProviderOrigin, ProviderRow, ProviderUpdate};
+        let command = Command::DisablePlugin { id: "mukashi".into(), disabled: true };
+        assert_eq!(crossed(command.clone()), command);
+        let rows = vec![
+            ProviderRow {
+                id: "mukashi".into(),
+                kind: "plugin".into(),
+                state: "ready".into(),
+                latency_ms: Some(320),
+                usable: true,
+                name: "Mukashi Archive".into(),
+                version: Some("1.4.0".into()),
+                hosts: vec!["mukashi-archive.example".into()],
+                origin: ProviderOrigin::Store {
+                    id: "9f3c1a2b".into(),
+                    name: Some("Hotaru Plugins".into()),
+                },
+                update: Some(ProviderUpdate {
+                    version: "1.5.0".into(),
+                    new_hosts: vec!["media2.mukashi-archive.example".into()],
+                }),
+                ..ProviderRow::default()
+            },
+            ProviderRow {
+                id: "machi".into(),
+                origin: ProviderOrigin::ByHand,
+                disabled: true,
+                ..ProviderRow::default()
+            },
+        ];
+        crosses_intact(Event::Providers(rows));
+    }
+
+    #[test]
     fn the_native_apps_settings_cross_intact() {
         use anistream_model::{
             protection::{FailedCheck, TorrentProtection, TorrentProxy},
@@ -399,6 +434,7 @@ mod tests {
             link: Secret("https://plugins.example/join/abc#key".into()),
             name: "Our plugins".into(),
             url: "https://plugins.example".into(),
+            host: "plugins.example".into(),
             fingerprint: "ab12 cd34".into(),
             already_joined: false,
         })));

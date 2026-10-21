@@ -241,8 +241,7 @@ pub fn play_party(
     let Services { paths, sync, store, .. } = services;
     let played = engine.next_playback(id, &episode);
     let for_show = show_settings::for_show(engine.config.effective(), store, id);
-    let hints =
-        hints_for(id, &episode, PlayKind::Party, for_show.playback.skip_filler, engine);
+    let hints = hints_for(id, &episode, PlayKind::Party, for_show.playback.skip_filler, engine);
     let EngineState { player_tx, .. } = engine;
     let config = &for_show;
     // Same resolution as Play; the handoff at the end is the only difference.
