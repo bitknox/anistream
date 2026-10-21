@@ -45,6 +45,7 @@ tracing.workspace = true
 keyring = { version = "4.1", optional = true }
 
 [dev-dependencies]
+http = "1"
 tempfile = "3"
 
 [lints]
