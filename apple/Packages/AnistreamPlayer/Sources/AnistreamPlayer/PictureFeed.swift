@@ -1,4 +1,4 @@
-// mpv's frames as sample buffers, for Picture in Picture on the Mac.
+// mpv's frames as sample buffers, for Picture in Picture on the Mac, iPhone and iPad.
 //
 // The system's Picture in Picture window shows an AVPlayerLayer or an AVSampleBufferDisplayLayer,
 // and mpv draws into neither: it renders through MoltenVK into the player's CAMetalLayer. While
@@ -7,9 +7,9 @@
 // with the subtitles and the OSD drawn in. Nothing runs while the feed is off.
 //
 // The frames go out as 8-bit BGRA, which every display layer takes, whatever the drawable is:
-// mpv's is 10-bit, so the copy converts as it samples (MPS's bilinear scale, at the same size).
+// mpv's is 10-bit, so the copy converts as it samples (MPS's bilinear scale), at the drawable's
+// size or within `maximumSize`.
 
-#if os(macOS)
 import AVFoundation
 import CoreMedia
 import CoreVideo
@@ -29,6 +29,10 @@ import QuartzCore
 /// - With the layer in no window, a drawable is presented only once later frames push it out,
 ///   about three frames behind, and a paused mpv draws no later frames: what it shows while
 ///   paused comes through `show(_:)`, from mpv's own screenshot of the window.
+/// - The iOS Simulator's drawables have no presented handler. There each is copied as mpv takes
+///   the next, by when mpv has submitted the frame; the copy's queue is not ordered after mpv's,
+///   so a copy can catch a frame still being drawn. The Simulator is for trying the steps, not
+///   for judging the picture.
 public final class PictureFeed: @unchecked Sendable {
     /// What the Picture in Picture window shows.
     nonisolated(unsafe) public let displayLayer: AVSampleBufferDisplayLayer
@@ -53,8 +57,16 @@ public final class PictureFeed: @unchecked Sendable {
     private var poolKey: PoolKey?
     private var format: CMVideoFormatDescription?
     private var pending = 0
+    private var limit: CGSize?
+    private var aspect: Double?
+    /// The scaler's transform is set for each copy, one copy at a time.
+    private let encodeLock = NSLock()
     private var tally = Counts()
     private var lastFrame: CVPixelBuffer?
+    #if targetEnvironment(simulator)
+    /// The drawable mpv took last, copied as it takes the next.
+    private var previous: CAMetalDrawable?
+    #endif
     private let enqueueing = DispatchQueue(label: "tv.anistream.picture-feed")
 
     private struct PoolKey: Equatable {
@@ -75,6 +87,39 @@ public final class PictureFeed: @unchecked Sendable {
 
     public var counts: Counts { lock.withLock { tally } }
 
+    /// The largest frame handed over, in pixels: a larger drawable is scaled down to fit inside
+    /// it, keeping its shape. Nil, the default: the drawable's own size. On iPhone and iPad the
+    /// feed runs while the player plays full screen, so the system can take the picture into
+    /// its floating window by itself, and there a smaller copy does.
+    public var maximumSize: CGSize? {
+        get { lock.withLock { limit } }
+        set { lock.withLock { limit = newValue } }
+    }
+
+    /// The picture's width over its height, when mpv draws it with bars into a drawable of
+    /// another shape (the player full screen or in its window): only that centred part is
+    /// copied, so the floating window opens at the video's shape. Nil, the default: the whole
+    /// drawable, which is the video's shape once the picture floats.
+    public var contentAspect: Double? {
+        get { lock.withLock { aspect } }
+        set { lock.withLock { aspect = newValue } }
+    }
+
+    /// The centred part of a `width` × `height` drawable at `aspect`, in pixels; all of it with
+    /// no aspect.
+    static func content(width: Int, height: Int, aspect: Double?) -> CGRect {
+        let whole = CGRect(x: 0, y: 0, width: width, height: height)
+        guard let aspect, aspect > 0, width > 0, height > 0 else { return whole }
+        let shape = Double(width) / Double(height)
+        if abs(shape - aspect) < 0.01 { return whole }
+        if shape > aspect {
+            let w = (Double(height) * aspect).rounded()
+            return CGRect(x: ((Double(width) - w) / 2).rounded(), y: 0, width: w, height: Double(height))
+        }
+        let h = (Double(width) / aspect).rounded()
+        return CGRect(x: 0, y: ((Double(height) - h) / 2).rounded(), width: Double(width), height: h)
+    }
+
     /// The last frame copied, for a capture of what the window shows.
     public var latestFrame: CVPixelBuffer? { lock.withLock { lastFrame } }
 
@@ -93,20 +138,38 @@ public final class PictureFeed: @unchecked Sendable {
             tally = Counts()
         }
         let feed = WeakFeed(feed: self)
+        #if targetEnvironment(simulator)
+        layer.tapDrawables { drawable in feed.feed?.taken(drawable) }
+        #else
         layer.tapDrawables { drawable in
             drawable.addPresentedHandler { presented in
                 guard let drawable = presented as? CAMetalDrawable else { return }
                 feed.feed?.copy(drawable)
             }
         }
+        #endif
         return true
     }
+
+    #if targetEnvironment(simulator)
+    private func taken(_ drawable: CAMetalDrawable) {
+        let last = lock.withLock { () -> CAMetalDrawable? in
+            let last = previous
+            previous = drawable
+            return last
+        }
+        if let last { copy(last) }
+    }
+    #endif
 
     /// Stop copying. What the display layer shows stays until it is flushed.
     public func stop() {
         let layer = lock.withLock { () -> MpvLayer? in
             let layer = self.layer
             self.layer = nil
+            #if targetEnvironment(simulator)
+            previous = nil
+            #endif
             return layer
         }
         layer?.tapDrawables(nil)
@@ -117,11 +180,25 @@ public final class PictureFeed: @unchecked Sendable {
         enqueueing.async { [self] in renderer.flush() }
     }
 
+    /// `width` × `height` scaled down to fit inside `limit`, keeping its shape; as it is when it
+    /// fits, or with no limit.
+    static func fitted(width: Int, height: Int, inside limit: CGSize?) -> (width: Int, height: Int) {
+        guard let limit, limit.width >= 2, limit.height >= 2,
+            Double(width) > limit.width || Double(height) > limit.height
+        else { return (width, height) }
+        let scale = min(limit.width / Double(width), limit.height / Double(height))
+        // Even sizes, which every video format takes.
+        func even(_ value: Double) -> Int { max(2, Int((value / 2).rounded()) * 2) }
+        return (even(Double(width) * scale), even(Double(height) * scale))
+    }
+
     private func copy(_ drawable: CAMetalDrawable) {
         let source = drawable.texture
-        let key = PoolKey(width: source.width, height: source.height, pixelFormat: kCVPixelFormatType_32BGRA)
-        let prepared: (MTLCommandQueue, MPSImageBilinearScale, CVPixelBufferPool)? = lock.withLock {
+        let prepared: (MTLCommandQueue, MPSImageBilinearScale, CVPixelBufferPool, PoolKey, CGRect)? = lock.withLock {
             guard layer != nil, let queue, let scaler else { return nil }
+            let part = Self.content(width: source.width, height: source.height, aspect: aspect)
+            let size = Self.fitted(width: Int(part.width), height: Int(part.height), inside: limit)
+            let key = PoolKey(width: size.width, height: size.height, pixelFormat: kCVPixelFormatType_32BGRA)
             guard pending < Self.maximumPending else {
                 tally.dropped += 1
                 return nil
@@ -133,9 +210,9 @@ public final class PictureFeed: @unchecked Sendable {
             }
             guard let pool else { return nil }
             pending += 1
-            return (queue, scaler, pool)
+            return (queue, scaler, pool, key, part)
         }
-        guard let (queue, scaler, pool) = prepared else { return }
+        guard let (queue, scaler, pool, key, part) = prepared else { return }
         var made: CVPixelBuffer?
         CVPixelBufferPoolCreatePixelBuffer(nil, pool, &made)
         let descriptor = MTLTextureDescriptor.texture2DDescriptor(
@@ -155,12 +232,25 @@ public final class PictureFeed: @unchecked Sendable {
         if let space = layerColorSpace() {
             CVBufferSetAttachment(pixels, kCVImageBufferCGColorSpaceKey, space, .shouldPropagate)
         }
-        if source.pixelFormat == .bgra8Unorm, let blit = buffer.makeBlitCommandEncoder() {
+        if source.pixelFormat == .bgra8Unorm, source.width == key.width, source.height == key.height,
+            let blit = buffer.makeBlitCommandEncoder()
+        {
             blit.copy(from: source, to: target)
             blit.endEncoding()
         } else {
-            // A different format (mpv's 10-bit drawable): converted as it is sampled.
-            scaler.encode(commandBuffer: buffer, sourceTexture: source, destinationTexture: target)
+            // A different format (mpv's 10-bit drawable), a part, or a smaller size: converted,
+            // cut and scaled as it is sampled. The transform maps the part onto the whole target.
+            let scaleX = Double(key.width) / part.width
+            let scaleY = Double(key.height) / part.height
+            var transform = MPSScaleTransform(
+                scaleX: scaleX, scaleY: scaleY, translateX: -part.minX * scaleX, translateY: -part.minY * scaleY)
+            encodeLock.withLock {
+                withUnsafePointer(to: &transform) { pointer in
+                    scaler.scaleTransform = pointer
+                    scaler.encode(commandBuffer: buffer, sourceTexture: source, destinationTexture: target)
+                    scaler.scaleTransform = nil
+                }
+            }
         }
         // The drawable and the target texture are held until the copy is done.
         let held = Held(drawable: drawable, texture: target, pixels: pixels)
@@ -172,8 +262,11 @@ public final class PictureFeed: @unchecked Sendable {
         buffer.commit()
     }
 
-    /// Show `image` as the next frame: mpv's screenshot of the paused picture.
-    public func show(_ image: CGImage) {
+    /// Show `image` as the next frame: mpv's screenshot of the paused picture, cut to the
+    /// video's part as the frames are.
+    public func show(_ whole: CGImage) {
+        let part = Self.content(width: whole.width, height: whole.height, aspect: contentAspect)
+        guard let image = whole.cropping(to: part) else { return }
         let key = PoolKey(width: image.width, height: image.height, pixelFormat: kCVPixelFormatType_32BGRA)
         let pool: CVPixelBufferPool? = lock.withLock {
             guard layer != nil else { return nil }
@@ -281,4 +374,3 @@ private struct Held: @unchecked Sendable {
 private struct WeakFeed: @unchecked Sendable {
     weak var feed: PictureFeed?
 }
-#endif
