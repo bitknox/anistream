@@ -843,6 +843,7 @@ impl Actor {
     /// The torrent source is up, or will not come up; only the latest bring-up counts.
     fn arrived(&mut self, generation: u64, outcome: Result<TorrentUp, String>) {
         let tx = self.inbox.sender();
+        let hold = crate::phases::hold_now(&self.state);
         let EngineState { torrent_tasks, vpn_guard, shared_config, .. } = &mut self.state;
         torrent_tasks.arrived(
             generation,
@@ -852,6 +853,14 @@ impl Actor {
             shared_config,
             &tx,
         );
+        // Up while the app is away or on a metered network: what waits, waits from the start.
+        if hold != anistream_providers::torrent::session::Hold::Nothing
+            && let Some((_, session)) = vpn_guard.clone()
+        {
+            tokio::spawn(async move {
+                let _ = session.set_hold(hold).await;
+            });
+        }
     }
 
     fn pass_on(&self, event: Event) {

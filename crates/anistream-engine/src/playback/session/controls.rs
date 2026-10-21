@@ -182,7 +182,8 @@ pub(super) async fn apply_command(link: &dyn PlayerLink, command: PlayerCommand)
         // Handled by the playback loop itself, which owns the window and what it shows.
         PlayerCommand::Handover(_)
         | PlayerCommand::Episodes { .. }
-        | PlayerCommand::Step(_) => {}
+        | PlayerCommand::Step(_)
+        | PlayerCommand::Reload => {}
         // What a player's own interface reports, read by the loop as the companion's word.
         PlayerCommand::TakeSkip
         | PlayerCommand::UndoSkip { .. }

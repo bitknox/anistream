@@ -268,6 +268,19 @@ pub enum Command {
     SetTranslation {
         translation: anistream_core::media::Translation,
     },
+    /// The app moved to the foreground or the background, as the system says. In the
+    /// background torrents wait, but for the episode playing when `playing`; back in the
+    /// foreground the connection check runs again before they resume, a loopback server the
+    /// system took is bound again on its own port, and what plays is opened again where it was.
+    AppPhase {
+        phase: AppState,
+    },
+    /// The network the device uses now: `cellular`, and `constrained` for Low Data Mode. Either
+    /// one holds downloads and seeding until the device is back on a network that is neither.
+    NetworkPath {
+        cellular: bool,
+        constrained: bool,
+    },
     /// Read the joined stores, then refresh each one's plugin list.
     LoadStores,
     /// Check a pasted invite link against the store it names, before spending it.
@@ -396,6 +409,21 @@ pub enum PlayerCommand {
     NightMode(bool),
     /// An upscaling look, by id: `off`, `natural` or `sharp`.
     Upscaling(String),
+    /// Open the file again where it plays now: the loopback server it is read from was bound
+    /// again, after the system took it while the app was in the background.
+    Reload,
+}
+
+/// Where the app is, as the system has it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum AppState {
+    /// On screen.
+    #[default]
+    Foreground,
+    /// Off screen, still playing the episode on when `playing`: its audio, or a screen locked
+    /// on the player.
+    Background { playing: bool },
 }
 
 #[cfg(test)]

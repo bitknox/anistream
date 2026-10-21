@@ -280,6 +280,25 @@ pub struct TorrentSession {
     seeding: Mutex<std::collections::VecDeque<Seeding>>,
     /// How long they seed for, as the settings last said.
     seed_goal: Mutex<SeedingConfig>,
+    /// Torrents paused for the app's sake rather than the viewer's: in the background, or on a
+    /// metered network. Resumed once that is over, and only these: a download the viewer paused
+    /// stays paused.
+    held: Mutex<std::collections::HashSet<usize>>,
+    /// What is held now.
+    hold: Mutex<Hold>,
+}
+
+/// Which torrents wait while the app cannot or should not use the network for them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Hold {
+    /// None: everything runs as the viewer left it.
+    #[default]
+    Nothing,
+    /// Everything but the episode streaming, and the next one fetched ahead of it: downloads
+    /// and seeding wait.
+    AllButStreaming,
+    /// Every torrent.
+    Everything,
 }
 
 /// One watched episode giving back.
@@ -408,6 +427,8 @@ impl TorrentSession {
             session,
             guard,
             active: Mutex::new(std::collections::VecDeque::new()),
+            held: Mutex::default(),
+            hold: Mutex::default(),
             token,
             output_dir: download_dir,
             stream_history: Mutex::new(std::collections::VecDeque::new()),
@@ -619,6 +640,10 @@ impl TorrentSession {
         }
         // Nor may the seeding pool, whose goal would otherwise forget it mid-download.
         self.seeding.lock().unwrap_or_else(|e| e.into_inner()).retain(|s| s.id != handle.id());
+        // Queued while torrents are held, it waits with them.
+        if self.hold() != Hold::Nothing && self.session.pause(&handle).await.is_ok() {
+            self.held.lock().unwrap_or_else(|e| e.into_inner()).insert(handle.id());
+        }
 
         Ok(DownloadHandle { id: handle.id(), name: file.name.clone(), total: file.length })
     }
@@ -651,9 +676,76 @@ impl TorrentSession {
     }
 
     /// Resume one torrent. Refuses if the guard is failing.
+    ///
+    /// One held for the app's sake stays paused, and this says it resumed: it does, once the
+    /// hold is over, and a download that read this as a refusal would mark itself paused.
     pub async fn resume_one(&self, id: usize) -> Result<(), ProviderError> {
         self.guard.permit()?;
+        if self.held.lock().unwrap_or_else(|e| e.into_inner()).contains(&id) {
+            return Ok(());
+        }
         self.for_one(id, false).await
+    }
+
+    /// Hold the torrents `hold` names, and let go of the others it held, resuming them.
+    ///
+    /// Only what runs is paused and remembered as held, so what the viewer had paused is left
+    /// as it was, and resumes with nothing. Letting go is refused while the guard is failing,
+    /// as any resume is: those stay held, for [`Self::resume`] to take back once it passes.
+    pub async fn set_hold(&self, hold: Hold) -> Result<(), ProviderError> {
+        *self.hold.lock().unwrap_or_else(|e| e.into_inner()) = hold;
+        let streaming: std::collections::HashSet<usize> = self
+            .active
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .iter()
+            .map(|active| active.key.0)
+            .collect();
+        let torrents = self.session.with_torrents(|torrents| {
+            torrents.map(|(id, handle)| (id, handle.clone())).collect::<Vec<_>>()
+        });
+        let wanted = |id: usize| match hold {
+            Hold::Nothing => false,
+            Hold::AllButStreaming => !streaming.contains(&id),
+            Hold::Everything => true,
+        };
+        let held: std::collections::HashSet<usize> =
+            self.held.lock().unwrap_or_else(|e| e.into_inner()).clone();
+        let permitted = self.guard.permit();
+        for (id, handle) in torrents {
+            match (wanted(id), held.contains(&id)) {
+                (true, false) if !handle.is_paused() => {
+                    if let Err(e) = self.session.pause(&handle).await {
+                        tracing::warn!(id, error = %e, "could not hold a torrent");
+                        continue;
+                    }
+                    self.held.lock().unwrap_or_else(|e| e.into_inner()).insert(id);
+                }
+                (false, true) if permitted.is_ok() => {
+                    if let Err(e) = self.session.unpause(&handle).await {
+                        tracing::warn!(id, error = %e, "could not let a held torrent go");
+                    }
+                    self.held.lock().unwrap_or_else(|e| e.into_inner()).remove(&id);
+                }
+                _ => {}
+            }
+        }
+        // Forgotten since it was held: nothing to let go.
+        let live: std::collections::HashSet<usize> =
+            self.session.with_torrents(|torrents| torrents.map(|(id, _)| id).collect());
+        self.held.lock().unwrap_or_else(|e| e.into_inner()).retain(|id| live.contains(id));
+        tracing::info!(?hold, held = self.held().len(), "torrents held");
+        permitted
+    }
+
+    /// What is held now, and the torrents held for it.
+    pub fn hold(&self) -> Hold {
+        *self.hold.lock().unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// The torrents held for the app's sake.
+    pub fn held(&self) -> std::collections::HashSet<usize> {
+        self.held.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
 
     async fn for_one(&self, id: usize, pause: bool) -> Result<(), ProviderError> {
@@ -909,13 +1001,19 @@ impl TorrentSession {
             ));
         }
 
+        // Not those the app holds: they wait for the hold to end, not for the guard.
         let handles = self.session.with_torrents(|torrents| {
-            torrents.map(|(_, handle)| handle.clone()).collect::<Vec<_>>()
+            torrents.map(|(id, handle)| (id, handle.clone())).collect::<Vec<_>>()
         });
-        for handle in handles {
+        let held = self.held();
+        for (_, handle) in handles.into_iter().filter(|(id, _)| !held.contains(id)) {
             if let Err(e) = self.session.unpause(&handle).await {
                 tracing::warn!(error = %e, "could not resume torrent");
             }
+        }
+        // A hold that ended while the guard was failing is let go of now.
+        if self.hold() == Hold::Nothing && !held.is_empty() {
+            let _ = self.set_hold(Hold::Nothing).await;
         }
         tracing::info!("vpn guard recovered: torrents resumed");
         Ok(())
@@ -1175,6 +1273,34 @@ mod tests {
             .unwrap();
         handle.wait_until_initialized().await.unwrap();
         (session, handle.id())
+    }
+
+    #[tokio::test]
+    async fn a_hold_pauses_what_runs_lets_go_of_only_that_and_outlasts_a_resume() {
+        let root = tempfile::tempdir().unwrap();
+        let (session, id) = session_with_local_torrent(root.path(), "Held Batch", &BATCH).await;
+        let paused = |session: &TorrentSession| session.progress_of(id).unwrap().paused;
+        session.resume_one(id).await.unwrap();
+        assert!(!paused(&session));
+
+        session.set_hold(Hold::Everything).await.unwrap();
+        assert!(paused(&session));
+        assert_eq!(session.held(), [id].into_iter().collect());
+        // A download's own resume while held: said to work, and left for the hold to end.
+        session.resume_one(id).await.unwrap();
+        assert!(paused(&session), "still held");
+
+        session.set_hold(Hold::Nothing).await.unwrap();
+        assert!(!paused(&session), "let go of");
+        assert!(session.held().is_empty());
+
+        // One the viewer paused is no hold's to let go of.
+        session.pause_one(id).await.unwrap();
+        session.set_hold(Hold::Everything).await.unwrap();
+        assert!(session.held().is_empty(), "already paused, so not held");
+        session.set_hold(Hold::Nothing).await.unwrap();
+        assert!(paused(&session), "as the viewer left it");
+        session.session.stop().await;
     }
 
     #[tokio::test]

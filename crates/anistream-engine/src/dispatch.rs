@@ -162,6 +162,11 @@ pub(crate) fn dispatch(
         }
         // Nothing to steer where nothing plays: no playback has left its controls.
         Command::Player(command) => control_player(command, engine),
+        // Where the app is and its network: which torrents wait.
+        Command::AppPhase { phase } => crate::phases::app_phase(phase, engine, tx),
+        Command::NetworkPath { cellular, constrained } => {
+            crate::phases::network_path(cellular, constrained, engine, tx)
+        }
         // Taken in as it is sent by `Engine::send`; one routed here all the same lands.
         Command::PlayerReport { playback, report } => services.hosted.report(playback, report),
 
