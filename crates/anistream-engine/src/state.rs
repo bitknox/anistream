@@ -60,6 +60,11 @@ pub struct EngineState {
     pub cache: TitleCache,
     /// Which playback Now Playing shows, and what it goes back to: see [`Staging`].
     pub staging: Staging,
+    /// Where the app is, as the front end last said: in the background torrents wait.
+    pub phase: anistream_model::command::AppState,
+    /// Whether the network is metered, cellular or Low Data Mode, as the front end last said:
+    /// downloads and seeding wait on one.
+    pub metered: bool,
 }
 
 impl EngineState {
@@ -82,6 +87,8 @@ impl EngineState {
             playbacks: 0,
             cache: TitleCache::default(),
             staging: Staging::default(),
+            phase: Default::default(),
+            metered: false,
         }
     }
 

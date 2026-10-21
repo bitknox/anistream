@@ -5,7 +5,8 @@
 //! nobody can clear. The queue goes out when the drain runs, never from the task itself.
 
 use anistream_model::{
-    catalog::LibrarySegment, command::Command, event::Event, sync::SyncState,
+    catalog::LibrarySegment, command::Command, event::Event, progress::TitleProgress,
+    sync::SyncState,
 };
 use anistream_testkit::{
     Operation,
@@ -54,7 +55,7 @@ async fn marking_watched_queues_progress_for_signed_in_trackers_only() {
     let updates = h.settle().await;
 
     assert!(job.is_none(), "written as it is asked");
-    assert_eq!(names(&updates), Vec::<&str>::new(), "no record of the title to say");
+    assert_eq!(names(&updates), ["Progress"], "answered, though nothing showed the title");
     assert_eq!(completed(&h), ["1", "2"]);
     assert_eq!(h.store().pending_progress("anilist", FINISHED).unwrap(), Some(2));
     assert_eq!(h.store().outbox_depth(Some("kitsu")).unwrap(), 0, "no account to queue for");
@@ -64,7 +65,7 @@ async fn marking_watched_queues_progress_for_signed_in_trackers_only() {
 async fn marking_watched_signed_out_records_history_and_queues_nothing() {
     let mut h = Harness::new().await;
     h.send(mark(&["1", "2"], true));
-    assert_eq!(names(&h.settle().await), Vec::<&str>::new());
+    assert_eq!(names(&h.settle().await), ["Progress"]);
 
     assert_eq!(completed(&h), ["1", "2"]);
     assert_eq!(h.store().outbox_depth(None).unwrap(), 0);
@@ -75,11 +76,33 @@ async fn unmarking_forgets_history_and_never_walks_progress_back() {
     let mut h = anilist_signed_in().await;
     h.send(mark(&["1", "2", "3"], true));
     h.send(mark(&["3"], false));
-    assert_eq!(names(&h.settle().await), Vec::<&str>::new());
+    assert_eq!(names(&h.settle().await), ["Progress", "Progress"]);
 
     assert_eq!(completed(&h), ["1", "2"]);
     assert_eq!(h.store().pending_progress("anilist", FINISHED).unwrap(), Some(3));
     assert_eq!(h.store().outbox_depth(Some("anilist")).unwrap(), 1, "one row, coalesced");
+}
+
+#[tokio::test]
+async fn a_mark_sent_before_anything_loaded_says_where_the_title_now_stands() {
+    // As a native app can: marked from a screen of its own before any list or page did.
+    let mut h = Harness::new().await;
+    h.send(mark(&["1", "2"], true));
+    let updates = h.settle().await;
+    let [Event::Progress { id, progress, resume, episodes }] = &updates[..] else {
+        panic!("the title's standing alone: {:?}", names(&updates))
+    };
+    assert_eq!(*id, FINISHED);
+    assert_eq!(*progress, Some(TitleProgress { done: 2, next: 3 }));
+    assert_eq!((resume, episodes.len()), (&None, 0), "no table loaded to say episodes of");
+
+    // And an unmark the same, from what the store now holds.
+    h.send(mark(&["2"], false));
+    let updates = h.settle().await;
+    let [Event::Progress { progress, .. }] = &updates[..] else {
+        panic!("the title's standing alone: {:?}", names(&updates))
+    };
+    assert_eq!(*progress, Some(TitleProgress { done: 1, next: 2 }));
 }
 
 #[tokio::test]
@@ -89,8 +112,8 @@ async fn a_mark_is_in_the_table_the_next_task_loads() {
     let job = h.send(Command::LoadEpisodes(FINISHED));
     let updates = h.settle().await;
 
-    assert_eq!(names(&updates), ["Episodes", "JobDone"]);
-    let Event::Episodes { rows, .. } = &updates[0] else { unreachable!() };
+    assert_eq!(names(&updates), ["Progress", "Episodes", "JobDone"]);
+    let Event::Episodes { rows, .. } = &updates[1] else { unreachable!() };
     let done: Vec<&str> =
         rows.iter().filter(|r| r.completed).map(|r| r.number.as_str()).collect();
     assert_eq!(done, ["1", "2", "3"]);
@@ -179,6 +202,7 @@ async fn keeping_your_side_of_a_conflict_queues_it() {
 async fn signing_out_says_what_was_kept_then_republishes_every_tracker() {
     let mut h = anilist_signed_in().await;
     h.send(mark(&["1"], true));
+    h.settle().await;
     let job = h.send(Command::Disconnect { tracker: "anilist".into() });
     let updates = h.settle().await;
 
