@@ -122,7 +122,7 @@ struct DownloadLine: View {
                 .foregroundStyle(.haze)
                 .frame(width: 80, alignment: .trailing)
             actions
-                .frame(width: 92, alignment: .trailing)
+                .frame(width: 120, alignment: .trailing)
         }
         .padding(.leading, 50)
         .frame(minHeight: 44)
@@ -295,7 +295,7 @@ struct SeedingList: View {
                     Image(systemName: "xmark")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.haze)
-                        .frame(width: 92, alignment: .trailing)
+                        .frame(width: 120, alignment: .trailing)
                         .opacity(0.45)
                         .help("Waits on an engine command to stop seeding one file")
                 }

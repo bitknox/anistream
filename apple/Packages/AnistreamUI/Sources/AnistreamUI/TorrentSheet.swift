@@ -73,7 +73,7 @@ struct TorrentSheet: View {
             .padding(.top, 20)
         }
         .padding(30)
-        .frame(width: 540)
+        .sheetWidth(540)
         .background(.raised)
     }
 

@@ -181,6 +181,7 @@ struct SourceLine: View {
 struct ProviderStandingLabel: View {
     let info: ProviderInfo
     var selected = false
+    var size: CGFloat = 12
 
     var body: some View {
         switch info.row.standing {
@@ -204,7 +205,7 @@ struct ProviderStandingLabel: View {
             } else if let dot {
                 Circle().fill(dot).frame(width: 6, height: 6)
             }
-            Text(text).font(.system(size: 12)).foregroundStyle(color)
+            Text(text).font(.system(size: size)).foregroundStyle(color)
         }
     }
 }

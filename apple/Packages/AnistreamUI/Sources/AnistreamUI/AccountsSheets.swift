@@ -52,7 +52,7 @@ struct KitsuSheet: View {
             }
         }
         .padding(24)
-        .frame(width: 420)
+        .sheetWidth(420)
         .background(.raised)
         .onChange(of: store.accounts.tracker("kitsu")?.connected) { _, connected in
             if connected == true { dismiss() }
@@ -110,7 +110,7 @@ struct DeviceCodeSheet: View {
             }
         }
         .padding(24)
-        .frame(width: 420)
+        .sheetWidth(420)
         .background(.raised)
     }
 
@@ -163,7 +163,7 @@ struct ConflictsSheet: View {
             }
         }
         .padding(24)
-        .frame(width: 560)
+        .sheetWidth(560)
         .background(.raised)
         .onChange(of: store.accounts.conflicts.isEmpty) { _, empty in if empty { dismiss() } }
     }

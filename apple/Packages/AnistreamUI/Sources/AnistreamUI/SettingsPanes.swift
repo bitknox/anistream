@@ -322,12 +322,7 @@ struct SourcesPane: View {
         }
         Color.clear.frame(height: 0)
             .sheet(isPresented: $turningOn) { TorrentSheet() }
-            .onAppear {
-                if navigator.launchSheet == "torrent" {
-                    navigator.launchSheet = nil
-                    turningOn = true
-                }
-            }
+            .onLaunchSheet("torrent", navigator) { turningOn = true }
     }
 }
 
@@ -367,8 +362,16 @@ struct GuardRow: View {
     }
 
     private func words(now: Date) -> (String, String, Color) {
-        let ago = store.providers.guardAt.map { Wording.ago(Int64(now.timeIntervalSince($0))) }
-        switch store.providers.guardView {
+        GuardWords.words(store.providers.guardView, at: store.providers.guardAt, now: now)
+    }
+}
+
+/// The VPN guard's verdict in words: where traffic left through and when, a word for how it
+/// stands, and the dot's colour.
+enum GuardWords {
+    static func words(_ view: GuardView?, at: Date?, now: Date = .now) -> (String, String, Color) {
+        let ago = at.map { Wording.ago(Int64(now.timeIntervalSince($0))) }
+        switch view {
         case .protected(let exit)?:
             return ("Leaving through \(exit)" + (ago.map { " · \($0)" } ?? ""), "Passed", .water)
         case .checking?:
@@ -434,12 +437,7 @@ struct AccountsPane: View {
                 case .conflicts: ConflictsSheet()
                 }
             }
-            .onAppear {
-                if navigator.launchSheet == "kitsu" {
-                    navigator.launchSheet = nil
-                    sheet = .kitsu
-                }
-            }
+            .onLaunchSheet("kitsu", navigator) { sheet = .kitsu }
     }
 }
 
@@ -530,14 +528,14 @@ enum AccountWords {
             let seconds = Int64(now.timeIntervalSince(at))
             return seconds < 60 ? "Synced just now" : "Synced \(Wording.ago(seconds))"
         }
-        return "Not synced yet"
+        // Nothing waiting and nothing failed, as the sync capsule says it.
+        return "Synced"
     }
 
     /// The dot beside the status: water once synced, vermilion when sync is failing.
     static func dot(_ state: SyncState, _ accounts: AccountsModel) -> SyncSummary.State {
         if state.needsReauth || state.pullError != nil { return .problem }
-        if accounts.syncedAt[state.tracker] != nil, state.outbox == 0 { return .synced }
-        return .waiting
+        return state.outbox == 0 && !accounts.isWorking("sync") ? .synced : .waiting
     }
 
     /// Where the sign-in tokens are kept, as the trackers say it.

@@ -145,6 +145,8 @@ struct DeferredSwitch: View {
 struct MenuCapsule: View {
     let text: String
     var symbol: String?
+    /// Whether it takes the width it is given, as a form's column of menus does.
+    var fill = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -155,6 +157,7 @@ struct MenuCapsule: View {
                 .font(.system(size: 13))
                 .monospacedDigit()
                 .lineLimit(1)
+            if fill { Spacer(minLength: 0) }
             Image(systemName: "chevron.up.chevron.down")
                 .font(.system(size: 9, weight: .semibold))
         }
@@ -254,6 +257,28 @@ extension SettingKey {
             }
         }
         return label.firstCapitalized
+    }
+}
+
+extension View {
+    /// A sheet's width on the Mac. On iPhone and iPad a sheet takes the width it is given.
+    func sheetWidth(_ width: CGFloat) -> some View {
+        #if os(macOS)
+        frame(width: width)
+        #else
+        frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        #endif
+    }
+
+    /// Run `open` once the window is up, for a sheet a launch argument asks for: a sheet asked
+    /// for while the window is still coming up is not shown.
+    func onLaunchSheet(_ name: String, _ navigator: Navigator, open: @escaping () -> Void) -> some View {
+        task {
+            guard navigator.launchSheet == name else { return }
+            try? await Task.sleep(for: .milliseconds(500))
+            navigator.launchSheet = nil
+            open()
+        }
     }
 }
 

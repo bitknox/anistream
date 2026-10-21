@@ -113,6 +113,7 @@ struct StoreList: View {
 struct StoreStanding: View {
     let row: StoreRow
     var selected = false
+    var size: CGFloat = 12
 
     var body: some View {
         switch row.state {
@@ -134,7 +135,7 @@ struct StoreStanding: View {
             } else if let dot {
                 Circle().fill(dot).frame(width: 6, height: 6)
             }
-            Text(text).font(.system(size: 12)).foregroundStyle(color)
+            Text(text).font(.system(size: size)).foregroundStyle(color)
         }
     }
 }
@@ -209,10 +210,8 @@ struct StoreDetail: View {
             case .publish: PublishSheet(store: row)
             }
         }
-        .onAppear {
-            if navigator.launchSheet == "update",
-               let plugin = row.plugins.first(where: { if case .update = $0.status { true } else { false } }) {
-                navigator.launchSheet = nil
+        .onLaunchSheet("update", navigator) {
+            if let plugin = row.plugins.first(where: { if case .update = $0.status { true } else { false } }) {
                 sheet = .update(plugin)
             }
         }
@@ -419,7 +418,7 @@ struct UpdatePluginSheet: View {
             .padding(.top, 20)
         }
         .padding(30)
-        .frame(width: 540)
+        .sheetWidth(540)
         .background(.raised)
     }
 
@@ -495,7 +494,7 @@ struct JoinStoreSheet: View {
             .padding(.top, 20)
         }
         .padding(30)
-        .frame(width: 600)
+        .sheetWidth(600)
         .background(.raised)
         .task(id: link) {
             // A pause while typing, then the link is checked.
@@ -616,7 +615,7 @@ struct InviteSheet: View {
             }
         }
         .padding(24)
-        .frame(width: 480)
+        .sheetWidth(480)
         .background(.raised)
         .onAppear { appStore.stores.clearInvite() }
     }
@@ -683,7 +682,7 @@ struct MembersSheet: View {
             }
         }
         .padding(24)
-        .frame(width: 480)
+        .sheetWidth(480)
         .background(.raised)
         .task { appStore.loadMembers(store.id) }
     }
@@ -731,7 +730,7 @@ struct PublishSheet: View {
             }
         }
         .padding(24)
-        .frame(width: 480)
+        .sheetWidth(480)
         .background(.raised)
         .task { appStore.loadLocalPlugins(for: store.id) }
     }
