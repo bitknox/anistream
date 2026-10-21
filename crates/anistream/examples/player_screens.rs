@@ -140,6 +140,8 @@ async fn main() -> anyhow::Result<()> {
             thumbnail: still,
         }),
         episodes,
+        cover_url: None,
+        banner_url: None,
     };
     let settings = PlaySettings {
         threshold: config.playback.commit_threshold,
@@ -157,6 +159,7 @@ async fn main() -> anyhow::Result<()> {
         presence: Default::default(),
         syncplay: Default::default(),
         party: false,
+        up_next_countdown: 10,
     };
     // Three ways to the same file, as a library server, a folder and a plugin would offer it.
     let streams = [("jellyfin", 1080), ("local files", 1080), ("example-rust", 720)]

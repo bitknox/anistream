@@ -93,14 +93,16 @@ impl Handoff {
 pub fn successor(
     id: anistream_core::ids::AnilistId,
     episode: &str,
-    title: String,
+    hints: &crate::cache::PlayHints,
     config: &Config,
 ) -> anistream_model::playback::Successor {
     anistream_model::playback::Successor {
         id,
-        title,
+        title: hints.title.clone(),
         episode: episode.to_owned(),
         translation: config.playback.translation,
+        cover_url: hints.cover_url.clone(),
+        banner_url: hints.banner_url.clone(),
     }
 }
 
@@ -118,6 +120,8 @@ mod tests {
             title: "A Show".into(),
             episode: "5".into(),
             translation: anistream_core::media::Translation::Sub,
+            cover_url: None,
+            banner_url: None,
         };
         let (controls, handoff) = take_controls(&mut player_tx, successor);
         assert!(handoff.live());

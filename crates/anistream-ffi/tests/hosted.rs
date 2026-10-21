@@ -17,13 +17,14 @@ use std::{
 
 use anistream_core::{
     ids::AnilistId,
+    media::Translation,
     stream::{Stream, StreamKind, Subtitle},
 };
 use anistream_ffi::{FfiDirs, FfiEngine, FfiHost};
 use anistream_model::{
     command::{Command, PlayerCommand},
     event::Event,
-    hosted::{MpvOption, MpvValue, PlayerEnd, PlayerOp, PlayerReport, PlayerUi},
+    hosted::{MpvOption, MpvValue, PlayerEnd, PlayerOp, PlayerReport, PlayerUi, TrackKind},
     playback::{Ending, PlaybackId, SkipKind},
 };
 use anistream_providers::ProviderRegistry;
@@ -175,6 +176,11 @@ impl App {
         self.engine.send(Command::Player(command));
     }
 
+    /// A command aimed at `playback`, as a hosted player sends what its interface shows.
+    fn aim(&self, playback: PlaybackId, command: PlayerCommand) {
+        self.engine.send(Command::Control { playback, command });
+    }
+
     fn report(&self, playback: PlaybackId, report: PlayerReport) {
         assert_eq!(self.engine.send(Command::PlayerReport { playback, report }), None);
     }
@@ -272,12 +278,16 @@ fn the_player_is_told_what_to_play_and_reports_the_episode_to_its_end() {
     assert_eq!(open, PlayerOp::Open { fullscreen: false, speed: None, volume: None });
     let (_, starting) =
         app.ui("the starting screen", |ui| matches!(ui, PlayerUi::Starting { .. }));
+    // The title and its art, as its lookup found them, so the screen needs nothing more.
     assert_eq!(
         starting,
         PlayerUi::Starting {
+            id: FINISHED,
             title: "Stardust Wayfarer".into(),
             episode: "12".into(),
             episode_title: None,
+            cover_url: Some("https://img.example/cover/900001-xl.jpg".into()),
+            banner_url: Some("https://img.example/banner/900001.jpg".into()),
         }
     );
     let load = app.load();
@@ -377,8 +387,13 @@ fn up_next(app: &mut App) -> PlaybackId {
     // Once both the list and the file's own ending are known, whichever came first.
     let (_, card) =
         app.ui("Up Next", |ui| matches!(ui, PlayerUi::UpNext { ending_at: Some(_), .. }));
-    let PlayerUi::UpNext { next, auto, ending_at } = card else { unreachable!() };
+    let PlayerUi::UpNext { next, auto, ending_at, countdown, still_watching_after } = card
+    else {
+        unreachable!()
+    };
     assert_eq!((next.number.as_str(), auto, ending_at), ("2", true, Some(100.0)));
+    // The app's countdown and when it asks whether anyone is still watching, both the engine's.
+    assert_eq!((countdown, still_watching_after), (10, 3));
     assert_eq!(next.title.as_deref(), Some("A Town Without Night"));
     assert_eq!(next.thumbnail.as_deref(), Some("https://img.example/ep/900001/2.jpg"));
     playback
@@ -396,7 +411,9 @@ fn play_next_hands_the_player_to_the_next_episode() {
         "the next episode starting",
         |ui| matches!(ui, PlayerUi::Starting { episode, .. } if episode == "2"),
     );
-    assert!(matches!(starting, PlayerUi::Starting { .. }));
+    let PlayerUi::Starting { id, banner_url, .. } = starting else { unreachable!() };
+    assert_eq!(id, FINISHED);
+    assert_eq!(banner_url.as_deref(), Some("https://img.example/banner/900001.jpg"));
     app.op("the episode silenced", |op| *op == PlayerOp::Stop);
     let next = app.load();
     assert_ne!(next.playback, first, "the next episode is a playback of its own");
@@ -405,6 +422,122 @@ fn play_next_hands_the_player_to_the_next_episode() {
     assert_eq!(opened, 1, "the same player");
     app.opened(next.playback, &[]);
     app.tick(next.playback, 0, 2);
+    app.stop();
+    app.shutdown();
+}
+
+#[test]
+fn a_late_command_for_the_episode_before_is_let_go() {
+    let mut app = App::fixtures("");
+    let first = up_next(&mut app);
+    app.tick(first, 31, 40);
+    app.aim(first, PlayerCommand::PlayNext);
+    let next = app.load();
+    assert_ne!(next.playback, first);
+    app.opened(next.playback, &[]);
+    app.tick(next.playback, 0, 2);
+
+    // A second Play Now from the card the first episode showed, crossing the roll-on: it was
+    // for the first episode, and the second plays on.
+    app.aim(first, PlayerCommand::PlayNext);
+    app.aim(first, PlayerCommand::TogglePause);
+    // Aimed at the episode playing, it lands.
+    app.aim(next.playback, PlayerCommand::TogglePause);
+    let (playback, _) = app.op("the pause", |op| matches!(op, PlayerOp::Cycle { .. }));
+    assert_eq!(playback, next.playback);
+    let pauses = app.ops.iter().filter(|(_, op)| matches!(op, PlayerOp::Cycle { .. })).count();
+    assert_eq!(pauses, 1, "only the aimed one: {:?}", app.ops);
+    assert!(!app.ops.iter().any(|(p, op)| *p == next.playback && *op == PlayerOp::Stop));
+    app.stop();
+    app.shutdown();
+}
+
+#[test]
+fn a_viewer_closing_the_player_ends_the_playback_as_closed() {
+    // The first of the two ways a hosted player closes: nobody told it to.
+    let mut app = App::fixtures("[playback]\nauto_next = false\n");
+    app.play(FINISHED, "12");
+    let playback = app.load().playback;
+    app.opened(playback, &[]);
+    app.tick(playback, 0, 5);
+    app.report(playback, PlayerReport::Ended { reason: PlayerEnd::Quit });
+    app.report(playback, PlayerReport::Closed);
+    assert_eq!(app.ended(), Ending::Closed);
+    assert!(!app.told(&PlayerOp::Quit), "nothing told it to quit: {:?}", app.ops);
+    app.shutdown();
+}
+
+#[test]
+fn the_engine_stopping_the_player_ends_the_playback_as_stopped() {
+    // The second: the front end asked, the player was told to quit, and said so.
+    let mut app = App::fixtures("[playback]\nauto_next = false\n");
+    app.play(FINISHED, "12");
+    let playback = app.load().playback;
+    app.opened(playback, &[]);
+    app.tick(playback, 0, 5);
+    app.stop();
+    assert!(app.told(&PlayerOp::Quit));
+    app.shutdown();
+}
+
+#[test]
+fn a_track_picked_in_the_player_is_selected_and_kept_for_the_series() {
+    let mut app = App::fixtures("[playback]\nauto_next = false\n");
+    app.play(FINISHED, "12");
+    let playback = app.load().playback;
+    app.opened(playback, &[]);
+    app.op(
+        "the audio corrected",
+        |op| matches!(op, PlayerOp::Set { property, .. } if property == "aid"),
+    );
+    app.tick(playback, 0, 1);
+
+    let pick = PlayerCommand::ChooseTrack { kind: TrackKind::Subtitle, id: None };
+    app.aim(playback, pick);
+    let off = PlayerOp::Set { property: "sid".into(), value: MpvValue::String("no".into()) };
+    app.op("the subtitles off", |op| *op == off);
+    app.aim(playback, PlayerCommand::SubtitleDelay { seconds: 0.5 });
+    let (_, delay) = app.op(
+        "the delay",
+        |op| matches!(op, PlayerOp::Set { property, .. } if property == "sub-delay"),
+    );
+    assert_eq!(
+        delay,
+        PlayerOp::Set { property: "sub-delay".into(), value: MpvValue::Double(0.5) }
+    );
+    app.stop();
+
+    // Kept for the series: the subtitles off at once, without the player having said a word
+    // of it, and the delay once the episode left it where it was.
+    let store =
+        anistream_store::Store::open(app.root.path().join("data/anistream.db")).unwrap();
+    let deadline = Instant::now() + PATIENCE;
+    let memory = loop {
+        let memory = store.track_memory(FINISHED, Translation::Sub).unwrap();
+        if memory.as_ref().is_some_and(|m| m.sub_delay.is_some()) || Instant::now() > deadline {
+            break memory.expect("kept for the series");
+        }
+        thread::sleep(Duration::from_millis(20));
+    };
+    let subtitles = memory.subtitles.expect("a subtitle choice");
+    assert_eq!(subtitles.choice, anistream_core::track_memory::SubtitleChoice::Off);
+    assert_eq!(memory.sub_delay, Some(0.5));
+    app.shutdown();
+}
+
+#[test]
+fn full_screen_is_the_hosts_window_and_never_an_mpv_property() {
+    let mut app = App::fixtures("[playback]\nauto_next = false\n");
+    app.play(FINISHED, "12");
+    let playback = app.load().playback;
+    app.opened(playback, &[]);
+    app.aim(playback, PlayerCommand::Fullscreen);
+    app.op("full screen", |op| *op == PlayerOp::ToggleFullscreen);
+    assert!(
+        !app.ops.iter().any(|(_, op)| matches!(op, PlayerOp::Cycle { property } | PlayerOp::Set { property, .. } if property == "fullscreen")),
+        "{:?}",
+        app.ops
+    );
     app.stop();
     app.shutdown();
 }
