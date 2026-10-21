@@ -145,6 +145,7 @@ impl Engine {
             store,
             player_theme,
             hosted_player,
+            app_clients,
             sources: given,
             background,
             #[cfg(feature = "testing")]
@@ -212,6 +213,7 @@ impl Engine {
                     slot: Default::default(),
                     prefetch: Default::default(),
                     player_theme,
+                    app_clients: Default::default(),
                     host,
                 }
             }
@@ -222,8 +224,9 @@ impl Engine {
         let services =
             Services::build(&config, paths, http, store, registry, player_theme, host)
                 .map_err(|reason| EngineError::PluginStores { reason })?;
-        // The player a play opens: mpv's process, or the one the front end hosts.
-        let services = Services { hosted_player, ..services };
+        // The player a play opens, mpv's process or the one the front end hosts, and the app's
+        // own sign-in clients, where signing in will read them (E6).
+        let services = Services { hosted_player, app_clients, ..services };
         let hosted = Arc::clone(&services.hosted);
 
         // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
