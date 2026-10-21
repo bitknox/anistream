@@ -20,6 +20,15 @@
 # the last build was made from. With --check, nothing is built at all: it says whether the build
 # is current, and fails when it is not, which is what the Xcode project's frameworks check.
 #
+# Every slice built is kept in a cache every worktree shares, by what it was made from: the
+# sources' hash, the flavour, the profile and the slice, under $ANISTREAM_ENGINE_CACHE/apple
+# (~/.cache/anistream-engine unless it says otherwise). A worktree whose sources some other
+# worktree has built already takes that slice from the cache and runs no cargo for it, which is
+# most app work, since it rarely changes crates/. Copies are APFS clones where the volume allows,
+# so the cache costs little disk. An entry is written whole and then renamed into place, so two
+# builds at once never leave half of one, and entries unused for 14 days are removed. Each slice
+# says "engine: reused <hash>" or "engine: built <hash>".
+#
 # ANISTREAM_ENGINE_PROFILE picks the cargo profile: app-dev unless it says otherwise, and release
 # for a build to keep. The Xcode project sets it per configuration, app-dev for Debug and release
 # for Release. The stamp records it, so a build in one profile is never current for the other:
@@ -182,6 +191,41 @@ stage="$out.partial"
 rm -rf "$stage"
 mkdir -p "$stage/Swift" "$stage/headers" "$stage/libs"
 
+# The shared cache: a slice's static library, and for macOS the generated bindings beside it.
+cache="${ANISTREAM_ENGINE_CACHE:-$HOME/.cache/anistream-engine}/apple"
+
+# A copy that shares its blocks with the original where APFS can, a plain one where it cannot.
+clone() {
+  cp -cR "$@" 2>/dev/null || cp -R "$@"
+}
+
+# Entries, and the leftovers of a store that was cut off, unused for 14 days.
+prune_cache() {
+  [[ -d "$cache" ]] || return 0
+  find "$cache" -mindepth 4 -maxdepth 4 -mtime +14 -prune -exec rm -rf {} + 2>/dev/null || true
+}
+
+# Whether the cache has `slice` for these sources, whole: its library, and for macOS its bindings.
+cached() {
+  local entry="$cache/$flavour/$profile/$1/$hash"
+  [[ -f "$entry/libanistream_ffi.a" ]] || return 1
+  [[ "$1" != macos || -d "$entry/generated" ]]
+}
+
+# Keep what was just built for `slice` for every worktree: written beside its place, then renamed
+# into it, which a reader sees whole or not at all. When another build stored the same sources
+# first, the rename fails on its entry and this copy goes.
+store() {
+  local slice="$1" entry="$cache/$flavour/$profile/$1/$hash"
+  mkdir -p "$(dirname "$entry")"
+  local copy
+  copy="$(mktemp -d "$(dirname "$entry")/.partial-$hash.XXXXXX")"
+  chmod 755 "$copy"
+  clone "$stage/libs/$slice/libanistream_ffi.a" "$copy/"
+  [[ "$slice" == macos ]] && clone "$stage/generated" "$copy/generated"
+  perl -e 'rename($ARGV[0], $ARGV[1]) or exit 1' "$copy" "$entry" 2>/dev/null || rm -rf "$copy"
+}
+
 feature_list() {
   local list="$features"
   [[ -n "$1" ]] && list="${list:+$list,}$1"
@@ -197,6 +241,16 @@ profile_dir() {
 
 failed_ios=()
 for slice in "${slices[@]}"; do
+  mkdir -p "$stage/libs/$slice"
+  if cached "$slice"; then
+    entry="$cache/$flavour/$profile/$slice/$hash"
+    clone "$entry/libanistream_ffi.a" "$stage/libs/$slice/"
+    [[ "$slice" == macos ]] && clone "$entry/generated" "$stage/generated"
+    # Used now, so kept another 14 days.
+    touch "$entry"
+    echo "engine: reused $hash ($flavour, $profile, $slice)"
+    continue
+  fi
   target="$(triple "$slice")"
   built="$CARGO_TARGET_DIR/$target/$(profile_dir)"
   echo "engine.sh: building the $flavour engine for $slice ($target, $profile)"
@@ -219,9 +273,11 @@ for slice in "${slices[@]}"; do
       continue
     fi
   fi
-  mkdir -p "$stage/libs/$slice"
-  cp "$built/libanistream_ffi.a" "$stage/libs/$slice/"
+  clone "$built/libanistream_ffi.a" "$stage/libs/$slice/"
+  store "$slice"
+  echo "engine: built $hash ($flavour, $profile, $slice)"
 done
+prune_cache
 
 if (( ${#failed_ios[@]} )); then
   rm -rf "$stage"
