@@ -344,6 +344,29 @@ class AppStore(
         send(Command.CheckProviders)
     }
 
+    /**
+     * Switch the plugin [id] off, or back on, without removing it: it keeps its place and its row,
+     * and is not tried while off.
+     */
+    fun disablePlugin(id: String, disabled: Boolean) {
+        send(Command.DisablePlugin(id, disabled))
+    }
+
+    /** Read the joined stores, then refresh each one's plugin list. */
+    fun loadStores() {
+        send(Command.LoadStores)
+    }
+
+    /** Install [plugin] from [store], or update it. */
+    fun installPlugin(store: String, plugin: String) {
+        send(Command.InstallPlugin(store, plugin))
+    }
+
+    /** Delete an installed plugin from this device. */
+    fun removePlugin(plugin: String) {
+        send(Command.RemovePlugin(plugin))
+    }
+
     /** Pin [provider] as the source for title [id], or give the title back to automatic with `null`. */
     fun setProviderPreference(id: AnilistId, provider: String?) {
         send(Command.SetProviderPreference(id, provider))

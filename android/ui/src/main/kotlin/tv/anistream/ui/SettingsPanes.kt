@@ -330,7 +330,10 @@ internal fun SourcesPane(actions: AppActions) {
     Pane {
         SettingsGroup(
             rows = listOf(
-                { place -> InfoRow(place, "Source order", Wording.plural(providers.size, "source")) },
+                { place ->
+                    val navigator = LocalNavigator.current
+                    InfoRow(place, "Source order", Wording.plural(providers.size, "source"), onClick = { navigator.open(PROVIDERS_ROUTE) })
+                },
                 { place -> InfoRow(place, "Plugin stores", if (updates > 0) "${stores.size} · ${Wording.plural(updates, "update")}" else "${stores.size}") },
             ),
         )
