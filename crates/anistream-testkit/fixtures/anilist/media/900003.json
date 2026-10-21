@@ -63,7 +63,8 @@
           },
           "format": "TV",
           "coverImage": {
-            "large": "https://img.example/cover/900001.jpg"
+            "large": "https://img.example/cover/900001.jpg",
+            "color": "#e4a15d"
           },
           "season": "SPRING",
           "seasonYear": 2024

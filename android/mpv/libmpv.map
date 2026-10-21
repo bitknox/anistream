@@ -1,0 +1,9 @@
+/* The version script android/scripts/mpv.sh links libmpv.so with: mpv's client API and nothing
+   else. libass, libplacebo, FreeType, HarfBuzz, fontconfig, libxml2 and libc++ are linked into
+   libmpv.so statically, and stay inside it. */
+{
+  global:
+    mpv_*;
+  local:
+    *;
+};

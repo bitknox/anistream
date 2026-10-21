@@ -1,0 +1,221 @@
+#!/usr/bin/env bash
+# Builds the engine for the Android app: anistream-ffi as a shared library for arm64 phones, with
+# the Kotlin bindings generated from it, and the same library built for this machine (a Mac, or
+# CI's Linux), which the JVM unit tests load through JNA.
+#
+#   android/scripts/engine.sh [--check] <release|testing>
+#
+#   release   the engine the app flavour ships: --no-default-features, so without mpv's child
+#             process
+#   testing   the same, plus the test kit's fake AniList and fixture source (`startTesting`), for
+#             the fixtures flavour and the unit tests
+#
+# The output, all of it generated and gitignored:
+#
+#   android/.engine/<flavour>/jniLibs/arm64-v8a/libanistream_ffi.so   what the APK carries
+#   android/.engine/<flavour>/kotlin/                                  the bindings, a package per crate
+#   android/.engine/<flavour>/host/libanistream_ffi.dylib              this machine's build, for the unit
+#                                                                      tests (.so on Linux, as in CI)
+#   android/.engine/<flavour>/stamp                                    what the build was made from
+#
+# Nothing is built when the stamp says the sources, Cargo.lock and the profile are what the last
+# build was made from. With --check, nothing is built at all: it says whether the build is current,
+# and fails when it is not, which is what Gradle's preBuild runs.
+#
+# The arm64 library needs the NDK (the newest under $ANDROID_HOME/ndk, or $ANDROID_NDK_HOME).
+# Without one the host library and the bindings are still built, so Gradle and the unit tests run,
+# and the APK has no engine in it; the stamp says so, and once an NDK is there the build is no
+# longer current.
+#
+# ANISTREAM_ENGINE_PROFILE picks the cargo profile: app-dev unless it says otherwise, and release
+# for a build to keep. The stamp records it, so a build in one profile is never current for the
+# other.
+set -euo pipefail
+# Bash 4.4 and newer only. macOS's own /bin/bash is 3.2.
+shopt -s inherit_errexit 2>/dev/null || true
+
+usage() {
+  echo "usage: android/scripts/engine.sh [--check] <release|testing>" >&2
+  exit 2
+}
+
+check=0
+flavour=""
+for arg in "$@"; do
+  case "$arg" in
+    --check) check=1 ;;
+    release | testing)
+      [[ -z "$flavour" ]] || usage
+      flavour="$arg"
+      ;;
+    *) usage ;;
+  esac
+done
+case "$flavour" in
+  release) features="" ;;
+  testing) features="testing" ;;
+  *) usage ;;
+esac
+
+root="$(cd "$(dirname "$0")/../.." && pwd)"
+out="$root/android/.engine/$flavour"
+profile="${ANISTREAM_ENGINE_PROFILE:-app-dev}"
+# The app's minimum, Android 15.
+api=35
+abi=arm64-v8a
+target=aarch64-linux-android
+# Shared by every worktree that builds the Android app's engine, since disk is what runs out.
+# Incremental compilation only adds to it, for builds that are mostly of dependencies.
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$HOME/anistream-target-android}"
+export CARGO_INCREMENTAL="${CARGO_INCREMENTAL:-0}"
+
+# The NDK: the one ANDROID_NDK_HOME names, else the newest whole one in the SDK. One still being
+# installed has no source.properties yet.
+ndk=""
+if [[ -n "${ANDROID_NDK_HOME:-}" && -f "$ANDROID_NDK_HOME/source.properties" ]]; then
+  ndk="$ANDROID_NDK_HOME"
+else
+  sdk="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-$HOME/Library/Android/sdk}}"
+  while IFS= read -r candidate; do
+    [[ -f "$candidate/source.properties" ]] && ndk="$candidate"
+  done < <(ls -d "$sdk"/ndk/*/ 2>/dev/null | sed 's:/$::' | sort -V)
+fi
+abis="none"
+[[ -n "$ndk" ]] && abis="$abi"
+
+# What the build is made from: every file under crates/ and wit/, tracked or not but not ignored,
+# the workspace's manifests and lock file, the toolchain pin and this script, each by its content.
+# A change anywhere in the workspace counts, which costs at most a build cargo finds up to date.
+sources_hash() {
+  (
+    cd "$root"
+    {
+      git ls-files -co --exclude-standard -- crates wit Cargo.toml Cargo.lock rust-toolchain.toml \
+        .cargo android/scripts/engine.sh |
+        LC_ALL=C sort -u |
+        while IFS= read -r file; do
+          [[ -f "$file" ]] && printf '%s\n' "$file"
+        done |
+        git hash-object --stdin-paths
+    } | shasum -a 256 | cut -d' ' -f1
+  )
+}
+
+hash="$(sources_hash)"
+if [[ -f "$out/stamp" && -d "$out/kotlin" && -d "$out/host" ]]; then
+  fresh=1
+  [[ "$(sed -n 's/^sources //p' "$out/stamp")" == "$hash" ]] || fresh=0
+  [[ "$(sed -n 's/^profile //p' "$out/stamp")" == "$profile" ]] || fresh=0
+  [[ "$(sed -n 's/^abis //p' "$out/stamp")" == "$abis" ]] || fresh=0
+  if (( fresh )); then
+    if [[ "$abis" == none ]]; then
+      echo "engine.sh: the $flavour engine ($profile profile) is up to date in $out, for this Mac only: no NDK, so the APK has no engine"
+    else
+      echo "engine.sh: the $flavour engine ($profile profile) is up to date in $out"
+    fi
+    exit 0
+  fi
+fi
+if (( check )); then
+  built="$(sed -n 's/^profile //p' "$out/stamp" 2>/dev/null || true)"
+  built_abis="$(sed -n 's/^abis //p' "$out/stamp" 2>/dev/null || true)"
+  if [[ -n "$built" && "$built" != "$profile" ]]; then
+    echo "error: the $flavour engine was built in the $built profile, and this build needs $profile." >&2
+  elif [[ "$built_abis" == none && "$abis" != none ]]; then
+    echo "error: the $flavour engine was built before the NDK was installed, so it has no $abi library." >&2
+  else
+    echo "error: the $flavour engine is missing or older than the Rust sources." >&2
+  fi
+  echo "error: run ANISTREAM_ENGINE_PROFILE=$profile android/scripts/engine.sh $flavour" >&2
+  exit 1
+fi
+
+# Cargo in a clean environment. Run from Gradle or Android Studio, the environment holds their
+# JAVA_HOME, their own variables and whatever the IDE was started with; the cc and cmake builds
+# beneath BoringSSL, SQLite and the rest read such things. So only PATH, HOME, rustup's and cargo's
+# own variables (CARGO_BUILD_JOBS among them), a compiler cache's (RUSTC_WRAPPER and sccache's),
+# and the NDK's, go through.
+#
+# Build scripts and proc macros are not stripped. In a profile without debug info, release among
+# them, cargo strips them by default, and a proc macro stripped on macOS is one rustc cannot load:
+# every crate that uses it fails with "can't find crate for `thiserror_impl`" (E0463). Nothing
+# built for the host ships, so they lose nothing.
+cargo_clean() {
+  local override
+  override="CARGO_PROFILE_$(tr '[:lower:]-' '[:upper:]_' <<<"$profile")_BUILD_OVERRIDE_STRIP"
+  local pass=(PATH="$PATH" HOME="$HOME" "$override=false")
+  local name
+  while IFS= read -r name; do
+    pass+=("$name=${!name}")
+  done < <(compgen -e | grep -E '^(CARGO|RUSTUP|SCCACHE)_|^RUSTC_WRAPPER$' || true)
+  if [[ -n "$ndk" ]]; then
+    # BoringSSL's bindings are generated by bindgen, which asks clang for the Rust target as it is
+    # named, without an API level, and the NDK's headers refuse an unversioned one. cargo-ndk 4
+    # sets the underscored variable to its sysroot arguments, over whatever it held, so the API
+    # level goes in the hyphenated one, which bindgen reads first, with cargo-ndk's own beside it.
+    local sysroot="$ndk/toolchains/llvm/prebuilt/$(uname -s | tr '[:upper:]' '[:lower:]')-x86_64/sysroot"
+    pass+=(ANDROID_NDK_HOME="$ndk"
+      BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android="--target=$target$api"
+      "BINDGEN_EXTRA_CLANG_ARGS_$target=--target=$target$api --sysroot=$sysroot -I$sysroot/usr/include/$target")
+  fi
+  (cd "$root" && env -i "${pass[@]}" "$@")
+}
+
+profile_dir() {
+  case "$profile" in
+    dev) echo debug ;;
+    *) echo "$profile" ;;
+  esac
+}
+
+# This machine's library, as the JVM tests load it: a .dylib on macOS, a .so on Linux, as in CI.
+case "$(uname -s)" in
+  Darwin) host_library=libanistream_ffi.dylib ;;
+  *) host_library=libanistream_ffi.so ;;
+esac
+
+host_feature_list() {
+  echo "${features:+$features,}cli"
+}
+
+stage="$out.partial"
+rm -rf "$stage"
+mkdir -p "$stage/kotlin" "$stage/host"
+host_built="$CARGO_TARGET_DIR/$(profile_dir)"
+android_built="$CARGO_TARGET_DIR/$target/$(profile_dir)"
+
+# This Mac's library and the bindings generator in one build, so the generator comes from the
+# same UniFFI release as the scaffolding, and turning `cli` on rebuilds nothing beneath it.
+echo "engine.sh: building the $flavour engine for this Mac ($profile)"
+cargo_clean cargo build -p anistream-ffi --no-default-features --features "$(host_feature_list)" \
+  --lib --bin uniffi-bindgen --profile "$profile"
+cp "$host_built/$host_library" "$stage/host/"
+
+library="$host_built/$host_library"
+if [[ -n "$ndk" ]]; then
+  echo "engine.sh: building the $flavour engine for $abi (Android $api, NDK $(basename "$ndk"), $profile)"
+  cargo_clean cargo ndk -t "$abi" --platform "$api" build -p anistream-ffi --no-default-features \
+    ${features:+--features "$features"} --lib --profile "$profile"
+  mkdir -p "$stage/jniLibs/$abi"
+  cp "$android_built/libanistream_ffi.so" "$stage/jniLibs/$abi/"
+  # The bindings from the library the APK carries.
+  library="$android_built/libanistream_ffi.so"
+else
+  echo "engine.sh: no NDK under ${sdk:-\$ANDROID_HOME}/ndk, so no $abi library: the APK will have no engine" >&2
+fi
+
+# Library mode: the interface is read from the built library. One package per crate with UniFFI
+# types in it: `anistream_core`, `anistream_model` and `anistream_ffi`, all loading the one
+# library, since the generated code of one crate uses another's types.
+(cd "$root" && "$host_built/uniffi-bindgen" generate --library "$library" \
+  --language kotlin --no-format --out-dir "$stage/kotlin")
+
+{
+  echo "sources $hash"
+  echo "profile $profile"
+  echo "abis $abis"
+} >"$stage/stamp"
+
+rm -rf "$out"
+mv "$stage" "$out"
+echo "engine.sh: wrote $out"

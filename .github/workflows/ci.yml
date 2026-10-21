@@ -317,7 +317,10 @@ jobs:
 
   # The same for an Android phone, with the runner's newest NDK through cargo-ndk, which points
   # every C build at the NDK's clang for API level 35, the Android app's minimum. Cross-compiled
-  # only, and the library checked for what Android needs of it.
+  # only, and the library checked for what Android needs of it. Then the Android app on top: its
+  # engine and Kotlin bindings as android/scripts/engine.sh builds them, the fixtures APK, and the
+  # JVM unit tests, which start the testing engine on this runner's own build of the library
+  # through JNA. Emulator tests come later.
   android:
     needs: changes
     if: needs.changes.outputs.android == 'true'
@@ -370,6 +373,33 @@ jobs:
           if "$bin/llvm-objdump" -p "$so" | grep LOAD | grep -vq 'align 2\*\*14'; then
             echo "a LOAD segment is not 16 KB aligned"; exit 1
           fi
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      # Gradle's caches and the wrapper's distribution, saved from main like the Rust cache.
+      - uses: gradle/actions/setup-gradle@v5
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+      # The platform the app compiles against, and the NDK its build.gradle.kts strips the APK's
+      # libraries with; the engine itself builds with the newest NDK, above.
+      - name: The SDK platform and NDK the app builds with
+        run: |
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$sdkmanager" --licenses >/dev/null
+          "$sdkmanager" --install "platforms;android-37.0" "build-tools;36.0.0" "ndk;30.0.16248370" >/dev/null
+      # The fixtures flavour's engine and its bindings, which engine.sh builds with the same
+      # bindgen arguments, and the fonts.
+      - name: The app's engine and bindings
+        run: android/scripts/engine.sh testing
+        env:
+          # The workspace's own, which the Rust cache keeps, rather than the script's default in HOME.
+          CARGO_TARGET_DIR: ${{ github.workspace }}/target
+      - name: The app's fonts
+        run: android/scripts/fonts.sh
+      - name: The fixtures APK and the unit tests
+        working-directory: android
+        run: ./gradlew --console=plain assembleFixturesDebug testFixturesDebugUnitTest
 
   # The plugin store's admin page is committed as built output, so building the server never
   # needs bun. This rebuilds it from source and fails if the two have drifted apart.

@@ -1,0 +1,18 @@
+# What android/scripts/engine.sh builds: the engine's libraries and Kotlin bindings per flavour.
+/.engine/
+# What android/scripts/fonts.sh fetches: the two typefaces and their licences.
+/.fonts/
+# What android/scripts/mpv.sh builds and caches: libmpv and FFmpeg's shared libraries, the
+# headers the JNI shim compiles against, downloads, tools and work trees.
+/.mpv/
+# Screenshots from the spikes and shots.sh.
+/.shots/
+# Gradle's and Android Studio's own, in each Gradle project.
+.gradle/
+.kotlin/
+build/
+.cxx/
+local.properties
+.idea/
+*.iml
+/captures/
