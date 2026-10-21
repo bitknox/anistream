@@ -122,14 +122,14 @@ pub(crate) fn options(
         store.clone(),
     );
     let tokens = TokenStore::with_backend(paths.data_dir.join("tokens"), Backend::File);
-    let mut sync = tracking::Sync::with_tokens(&config, &store, &http, tokens.clone());
-    // Signed in, as a scene can leave it: the tracker asks the fake rather than AniList itself,
-    // as the terminal's test harness builds it, so the Library is the fake's.
-    if let Ok(token) = tokens.get("anilist")
-        && let Some(at) = sync.trackers.iter().position(|t| t.id() == "anilist")
-    {
-        let tracker =
-            Arc::new(AniListTracker::new(server.anilist(&http).with_token(Some(token))));
+    // The trackers as the app's own sign-in clients turn them on, as the engine builds them.
+    let tracked = tracking::native::with_app_clients(&config, &start.app_clients());
+    let mut sync = tracking::Sync::with_tokens(&tracked, &store, &http, tokens.clone());
+    // AniList's on the fake rather than AniList itself, signed in or not: a scene can leave it
+    // signed in, so the Library is the fake's, and a sign-in from the app reaches the fake.
+    if let Some(at) = sync.trackers.iter().position(|t| t.id() == "anilist") {
+        let client = server.anilist(&http).with_token(tokens.get("anilist").ok());
+        let tracker = Arc::new(AniListTracker::new(client));
         sync.trackers[at] = tracker.clone();
         sync.anilist = Some(tracker);
     }

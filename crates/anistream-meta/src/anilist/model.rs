@@ -219,21 +219,40 @@ pub struct Title {
 }
 
 impl Title {
-    /// The form to show in the UI: English if there is one, else romaji.
+    /// The form to show in the UI: English if there is one, else romaji. What [`Self::shown`]
+    /// gives for English.
     pub fn display(&self) -> &str {
-        self.english
-            .as_deref()
-            .or(self.romaji.as_deref())
-            .or(self.native.as_deref())
-            .unwrap_or("Untitled")
+        self.shown(TitleLanguage::English)
     }
 
     /// The form to show as a subheading, when it differs from [`Self::display`].
     pub fn secondary(&self) -> Option<&str> {
-        match (&self.english, &self.romaji) {
-            (Some(en), Some(ro)) if en != ro => Some(ro),
-            _ => None,
-        }
+        self.beside(TitleLanguage::English)
+    }
+
+    /// The form to show when `language` is the one asked for: that form, else English, else
+    /// romaji, else native. An empty form is no form.
+    pub fn shown(&self, language: TitleLanguage) -> &str {
+        let chosen = match language {
+            TitleLanguage::Romaji => &self.romaji,
+            TitleLanguage::English => &self.english,
+            TitleLanguage::Native => &self.native,
+        };
+        [chosen, &self.english, &self.romaji, &self.native]
+            .into_iter()
+            .filter_map(|form| form.as_deref())
+            .find(|form| !form.is_empty())
+            .unwrap_or("Untitled")
+    }
+
+    /// The form to show beside [`Self::shown`] as a subheading: romaji under English or native,
+    /// English under romaji. `None` when it would only repeat the title.
+    pub fn beside(&self, language: TitleLanguage) -> Option<&str> {
+        let shown = self.shown(language);
+        [&self.romaji, &self.english]
+            .into_iter()
+            .filter_map(|form| form.as_deref())
+            .find(|form| !form.is_empty() && *form != shown)
     }
 
     /// Every distinct title, in the order provider search should try them.

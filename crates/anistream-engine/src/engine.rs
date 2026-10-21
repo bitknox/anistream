@@ -194,6 +194,8 @@ impl Engine {
         // A chain given whole too: a plugin switched off by name is in it, and not tried.
         registry.set_disabled(config.providers.disabled.iter().cloned());
 
+        // The trackers as an app's own sign-in clients turn them on; the file keeps none of it.
+        let tracked = crate::tracking::native::with_app_clients(&config, &app_clients);
         // What every task is lent, built around that chain, or from a test's parts.
         #[cfg(feature = "testing")]
         let trace = parts.is_some();
@@ -219,12 +221,12 @@ impl Engine {
                     host,
                 }
             }
-            None => Services::build(&config, paths, http, store, registry, player_theme, host)
+            None => Services::build(&tracked, paths, http, store, registry, player_theme, host)
                 .map_err(|reason| EngineError::PluginStores { reason })?,
         };
         #[cfg(not(feature = "testing"))]
         let services =
-            Services::build(&config, paths, http, store, registry, player_theme, host)
+            Services::build(&tracked, paths, http, store, registry, player_theme, host)
                 .map_err(|reason| EngineError::PluginStores { reason })?;
         // The player a play opens, mpv's process or the one the front end hosts, and the app's
         // own sign-in clients, where signing in will read them (E6).
@@ -293,6 +295,12 @@ impl Engine {
 
         for tracker in services.sync.initial_states() {
             launch.push_back(Event::Sync(Box::new(tracker)));
+        }
+        // How titles are named: the setting, and under `anilist` the signed-in viewer's own
+        // choice, which comes with the viewer lookup the library pull makes anyway.
+        services.meta.titles().choose(state.config.effective().meta.title_language);
+        if services.meta.titles().choice() == anistream_core::config::TitleChoice::Anilist {
+            crate::title_language::follow_viewer(&services, &inbox.sender());
         }
         if background.sync_loops {
             tracking::spawn_loops(services.sync.clone(), inbox.sender());
@@ -761,6 +769,8 @@ impl Actor {
     /// is said whole just before it, so that whatever the event brings up, the screen a
     /// finished episode drops back to among them, shows the title as it now stands.
     fn forward(&mut self, mut event: Event, played: Option<Played>) {
+        // Named as the titles are shown now, before the record takes the names in.
+        crate::title_language::retitle(&mut event, self.services.meta.titles().language());
         let Self { services, inbox, .. } = self;
         let said = receive(&event, services, || inbox.sender());
         said.into_iter().for_each(|said| self.pass_on(said));
@@ -879,7 +889,8 @@ impl Actor {
         }
     }
 
-    fn pass_on(&self, event: Event) {
+    fn pass_on(&self, mut event: Event) {
+        crate::title_language::retitle(&mut event, self.services.meta.titles().language());
         let _ = self.out.send(Out::Event(event));
     }
 
@@ -1068,6 +1079,57 @@ mod tests {
         fn storage_for(&self, _: &str) -> Storage {
             Storage::Keychain
         }
+    }
+
+    #[tokio::test]
+    async fn an_apps_own_mal_client_signs_in_through_its_sheet_with_pkce_and_a_state() {
+        use anistream_model::{notice::NoticeKind, stores::Secret};
+        let dir = tempfile::tempdir().unwrap();
+        let kept = Arc::new(Kept::default());
+        let clients =
+            crate::options::AppClients { anilist: None, mal: Some("a-mal-client".into()) };
+        let host = Arc::new(Keeping(kept.clone()));
+        let (engine, mut events) =
+            engine_with(dir.path(), host, |options| options.app_clients = clients).await;
+        let launch = launch_states(&mut events).await;
+        assert!(launch.iter().any(|state| state.tracker == "mal"), "turned on for the app");
+
+        // Each a job: what it says comes before it is done.
+        let said = |seen: &[Event]| {
+            let toast = seen.iter().find_map(|e| match e {
+                Event::Toast(notice) => Some(notice.clone()),
+                _ => None,
+            });
+            toast.expect("a notice")
+        };
+        engine.send(Command::Connect { tracker: "mal".into() });
+        let seen = until(&mut events, |e| matches!(e, Event::JobDone(_))).await;
+        let Some(Event::Authorize { tracker, url, callback_scheme }) =
+            seen.iter().find(|e| matches!(e, Event::Authorize { .. }))
+        else {
+            panic!("the sign-in sheet: {seen:?}")
+        };
+        assert_eq!((tracker.as_str(), callback_scheme.as_str()), ("mal", "anistream"));
+        assert!(url.starts_with("https://myanimelist.net/v1/oauth2/authorize?"), "{url}");
+        assert!(url.contains("client_id=a-mal-client"), "{url}");
+        assert!(url.contains("code_challenge_method=plain"), "{url}");
+        assert!(url.contains("redirect_uri=anistream%3A%2F%2Fauth%2Fmal"), "{url}");
+        let state = url.split("&state=").nth(1).expect("a state");
+
+        // A code with no state is not this sign-in's: only AniList's token is taken without.
+        let bare = Secret("anistream://auth/mal?code=a-code".into());
+        engine.send(Command::FinishSignIn { tracker: "mal".into(), callback: bare });
+        let refused = said(&until(&mut events, |e| matches!(e, Event::JobDone(_))).await);
+        assert_eq!(refused.text, "that sign-in to mal did not come back from this request");
+
+        // The code comes back with the state; its exchange, which asks MyAnimeList itself,
+        // cannot leave this test, and nothing is kept.
+        let callback = Secret(format!("anistream://auth/mal?code=a-code&state={state}"));
+        engine.send(Command::FinishSignIn { tracker: "mal".into(), callback });
+        let failed = said(&until(&mut events, |e| matches!(e, Event::JobDone(_))).await);
+        assert_eq!(failed.kind, NoticeKind::Alert);
+        assert!(failed.text.starts_with("token exchange failed"), "{}", failed.text);
+        assert_eq!(kept.get("mal").unwrap(), None);
     }
 
     #[tokio::test]

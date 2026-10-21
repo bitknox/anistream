@@ -247,7 +247,7 @@ pub async fn resolve_for_playback(
         // The name the terminal shows the title by, so the player's top bar, the window and
         // the terminal agree. The match target's first title is whichever the matcher tries
         // first, which is often the romaji one.
-        title: media.title.display().to_owned(),
+        title: meta.titles().pick(&media.title).to_owned(),
         translation: playback.translation,
         resume_at,
         runtime_secs: media.duration.map(|minutes| minutes * 60),

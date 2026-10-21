@@ -5,7 +5,7 @@
 //! a command and is told the outcome as a [`SettingsView`]: the config itself never crosses.
 
 use anistream_core::{
-    config::{Config, ThemeMode},
+    config::{Config, ThemeMode, TitleChoice},
     media::Translation,
     settings::SettingValue,
 };
@@ -24,6 +24,9 @@ use crate::sources::ConfiguredSources;
 pub enum SettingKey {
     Theme,
     Motion,
+    /// Which form of each title is shown: the signed-in AniList account's own choice, English
+    /// or romaji. One setting for every front end, which shows what the engine names.
+    Titles,
     Translation,
     Quality,
     Subtitles,
@@ -83,9 +86,10 @@ impl SettingKey {
     /// The Settings screen's rows, in display order. Grouped by [`Self::category`] — the
     /// renderer draws a heading each time the category changes, so rows of one category must
     /// be contiguous here.
-    pub const ROWS: [Self; 30] = [
+    pub const ROWS: [Self; 31] = [
         Self::Theme,
         Self::Motion,
+        Self::Titles,
         Self::Translation,
         Self::Quality,
         Self::Subtitles,
@@ -136,6 +140,7 @@ impl SettingKey {
         Some(match self {
             Self::Theme => (&["theme"], "mode"),
             Self::Motion => (&["theme"], "motion"),
+            Self::Titles => (&["meta"], "title_language"),
             Self::Translation => (&["playback"], "translation"),
             Self::Quality => (&["playback"], "quality"),
             Self::Subtitles => (&["playback"], "subtitle_language"),
@@ -208,6 +213,7 @@ impl SettingKey {
         match self {
             Self::Theme => to.theme.mode = from.theme.mode,
             Self::Motion => to.theme.motion = from.theme.motion,
+            Self::Titles => to.meta.title_language = from.meta.title_language,
             Self::Translation => dst.translation = src.translation,
             Self::Quality => dst.quality = src.quality,
             Self::Subtitles => dst.subtitle_language.clone_from(&src.subtitle_language),
@@ -269,7 +275,7 @@ impl SettingKey {
     /// whole list, so nothing is ever hidden behind a tab.
     pub const fn category(self) -> &'static str {
         match self {
-            Self::Theme | Self::Motion => "appearance",
+            Self::Theme | Self::Motion | Self::Titles => "appearance",
             Self::Translation
             | Self::Quality
             | Self::Subtitles
@@ -314,6 +320,7 @@ impl SettingKey {
         match self {
             Self::Theme => "theme",
             Self::Motion => "motion",
+            Self::Titles => "titles",
             Self::Translation => "translation",
             Self::Quality => "quality",
             Self::Subtitles => "subtitles",
@@ -546,6 +553,13 @@ pub fn step(
             .into(),
         ),
         SettingKey::Motion => V::Bool(!effective.theme.motion),
+        SettingKey::Titles => {
+            const LADDER: [TitleChoice; 3] =
+                [TitleChoice::Anilist, TitleChoice::English, TitleChoice::Romaji];
+            let current = effective.meta.title_language;
+            let at = LADDER.iter().position(|c| *c == current).unwrap_or(0) as i64;
+            V::Str(LADDER[(at + delta).clamp(0, 2) as usize].name().into())
+        }
         SettingKey::Translation => V::Str(
             match saved.playback.translation {
                 Translation::Sub => Translation::Dub,
@@ -662,6 +676,10 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
             };
         }
         (SettingKey::Motion, V::Bool(on)) => config.theme.motion = *on,
+        (SettingKey::Titles, V::Str(name)) => {
+            let Some(choice) = TitleChoice::from_name(name) else { return false };
+            config.meta.title_language = choice;
+        }
         (SettingKey::Translation, V::Str(name)) => {
             let Some(translation) =
                 [Translation::Sub, Translation::Dub].into_iter().find(|t| t.as_str() == name)
@@ -784,6 +802,12 @@ pub(crate) fn value(effective: &Config, saved: &Config, key: SettingKey) -> Stri
             format!("{:?}", effective.theme.mode).to_lowercase(),
         ),
         SettingKey::Motion => on_off(effective.theme.motion),
+        SettingKey::Titles => match effective.meta.title_language {
+            TitleChoice::Anilist => "AniList's choice",
+            TitleChoice::English => "English",
+            TitleChoice::Romaji => "Romaji",
+        }
+        .into(),
         SettingKey::Translation => session_marked(
             saved.playback.translation.to_string(),
             playback.translation.to_string(),
@@ -940,6 +964,7 @@ fn ladder_value(effective: &Config, key: SettingKey) -> Option<SettingValue> {
         S::Quality => V::Int(i64::from(playback.quality)),
         S::CommitThreshold => V::Float((playback.commit_threshold * 100.0).round() / 100.0),
         S::Upscaling => V::Str(playback.upscaling.name().into()),
+        S::Titles => V::Str(effective.meta.title_language.name().into()),
         S::SeedRatio => V::Float(seeding.ratio),
         S::SeedHours => V::Int(i64::from(seeding.hours)),
         S::UploadLimit => V::Int(i64::from(seeding.upload_limit_kib)),
@@ -1018,6 +1043,43 @@ fn step_through<T: Copy + PartialOrd>(ladder: &[T], current: T, delta: i64) -> T
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn titles_step_from_anilists_choice_to_english_to_romaji() {
+        let default = Config::default();
+        let titles = |config: &Config| value(config, config, SettingKey::Titles);
+        assert_eq!(titles(&default), "AniList's choice");
+        assert_eq!(SettingKey::at(&["meta"], "title_language"), Some(SettingKey::Titles));
+        assert_eq!(SettingKey::Titles.category(), "appearance");
+        let step_to = |config: &Config, delta| step(config, config, SettingKey::Titles, delta);
+        assert_eq!(step_to(&default, 1), Some(SettingValue::Str("english".into())));
+        assert_eq!(step_to(&default, -1), Some(SettingValue::Str("anilist".into())), "an end");
+        assert_eq!(
+            change(&default, &default, SettingKey::Titles),
+            SettingChange::Steps { back: false, forward: true }
+        );
+
+        let mut romaji = Config::default();
+        assert!(put(&mut romaji, SettingKey::Titles, &SettingValue::Str("romaji".into())));
+        assert_eq!(titles(&romaji), "Romaji");
+        assert_eq!(
+            step_to(&romaji, 1),
+            Some(SettingValue::Str("romaji".into())),
+            "the other end"
+        );
+        assert_eq!(
+            change(&romaji, &romaji, SettingKey::Titles),
+            SettingChange::Steps { back: true, forward: false }
+        );
+        assert!(put(&mut romaji, SettingKey::Titles, &SettingValue::Str("english".into())));
+        assert_eq!(titles(&romaji), "English");
+        assert!(!put(&mut romaji, SettingKey::Titles, &SettingValue::Str("native".into())));
+        assert_eq!(titles(&romaji), "English", "a value it does not take changes nothing");
+
+        let mut copied = Config::default();
+        SettingKey::Titles.copy(&romaji, &mut copied);
+        assert_eq!(titles(&copied), "English");
+    }
 
     #[test]
     fn every_setting_written_is_found_again_where_the_file_keeps_it() {

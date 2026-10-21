@@ -29,6 +29,17 @@
 //!
 //! [`Flow::Paste`] exists for machines a browser cannot reach: AniList's own PIN page displays
 //! the code, and the user pastes it for the same exchange.
+//!
+//! ## A native app: the implicit grant, after all
+//!
+//! The probe above sent `response_type=token` to the *token* endpoint, which is not where an
+//! implicit grant goes. AniList documents one at the *authorize* endpoint: `response_type=token`
+//! there, and the token comes back in the redirect's fragment. A loopback listener never sees a
+//! fragment, which is why the terminal keeps the code grant and its secret. A native app's own
+//! URL scheme does see it: the system's sign-in sheet hands the app the whole redirect, and
+//! [`implicit_url`] and [`callback_params`] are that flow's two ends, with the app's own client
+//! and no secret. Built to AniList's documentation and not yet tried against a client registered
+//! for it.
 
 use std::time::Duration;
 
@@ -58,7 +69,7 @@ pub enum AuthError {
     #[error("no client id configured — register an API client on AniList and set `client_id`")]
     NoClientId,
     #[error(
-        "no client secret configured — AniList only supports the authorization code grant, \
+        "no client secret configured — the terminal signs in with the authorization code grant, \
          so `client_secret` is required too"
     )]
     NoClientSecret,
@@ -100,13 +111,42 @@ pub fn authorize_url(client_id: &str, flow: Flow, port: u16) -> Result<String, A
         Flow::Loopback => redirect_uri(port),
         Flow::Paste => PIN_REDIRECT.to_owned(),
     };
-    // `response_type=code`, because `token` returns `unsupported_grant_type` — see the module
-    // docs. This is the only flow AniList has.
+    // `response_type=code`: the token of an implicit grant comes back in a fragment, which the
+    // loopback listener never sees. See the module docs.
     Ok(format!(
         "{AUTHORIZE}?client_id={}&redirect_uri={}&response_type=code",
         urlencode(client_id.trim()),
         urlencode(&redirect)
     ))
+}
+
+/// The URL a native app's sign-in sheet opens for AniList's implicit grant: the app's own
+/// `client_id`, no secret, and `state` to come back with the token.
+pub fn implicit_url(client_id: &str, state: &str) -> Result<String, AuthError> {
+    if client_id.trim().is_empty() {
+        return Err(AuthError::NoClientId);
+    }
+    Ok(format!(
+        "{AUTHORIZE}?client_id={}&response_type=token&state={}",
+        urlencode(client_id.trim()),
+        urlencode(state)
+    ))
+}
+
+/// The parameters a redirect came back with, decoded: those of its query and of its fragment,
+/// where an implicit grant puts the token. Repeated names are kept in order.
+pub fn callback_params(callback: &str) -> Vec<(String, String)> {
+    let (rest, fragment) = callback.split_once('#').unwrap_or((callback, ""));
+    let query = rest.split_once('?').map_or("", |(_, query)| query);
+    [query, fragment]
+        .into_iter()
+        .flat_map(|part| part.split('&'))
+        .filter(|pair| !pair.is_empty())
+        .map(|pair| {
+            let (name, value) = pair.split_once('=').unwrap_or((pair, ""));
+            (urldecode(name), urldecode(value))
+        })
+        .collect()
 }
 
 /// The redirect URI for a given port. This exact string is what the user registers.
@@ -411,12 +451,35 @@ mod tests {
 
     #[test]
     fn the_authorize_url_asks_for_a_code_not_a_token() {
-        // Measured: `response_type=token` returns `unsupported_grant_type`. AniList has exactly
-        // one flow, and a regression here would break sign-in entirely.
+        // The terminal's flows ask for a code: a token comes back in the redirect's fragment,
+        // which a loopback listener never sees, and a regression here would break sign-in.
         let url = authorize_url(CLIENT, Flow::Loopback, DEFAULT_PORT).unwrap();
         assert!(url.contains("response_type=code"), "{url}");
         assert!(!url.contains("response_type=token"), "{url}");
         assert!(url.contains("client_id=47071"), "{url}");
+    }
+
+    #[test]
+    fn a_native_app_asks_for_a_token_with_its_own_client_and_a_state() {
+        let url = implicit_url("4242", "s t/a").unwrap();
+        assert_eq!(
+            url,
+            "https://anilist.co/api/v2/oauth/authorize?client_id=4242&response_type=token&state=s%20t%2Fa"
+        );
+        assert!(!url.contains("secret"));
+        assert!(matches!(implicit_url(" ", "s"), Err(AuthError::NoClientId)));
+    }
+
+    #[test]
+    fn a_redirect_is_read_for_its_query_and_its_fragment() {
+        let back = "anistream://auth/anilist#access_token=a.b.c&token_type=Bearer&state=s%20t";
+        let params = callback_params(back);
+        let get = |name: &str| params.iter().find(|(n, _)| n == name).map(|(_, v)| v.as_str());
+        assert_eq!(get("access_token"), Some("a.b.c"));
+        assert_eq!(get("state"), Some("s t"));
+        let code = callback_params("anistream://auth/mal?code=xyz&state=1");
+        assert_eq!(code, [("code".into(), "xyz".into()), ("state".into(), "1".into())]);
+        assert!(callback_params("anistream://auth/anilist").is_empty());
     }
 
     #[test]

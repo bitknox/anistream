@@ -50,8 +50,8 @@ use crate::{
     tracking::{
         self,
         commands::{
-            connect, connect_kitsu, load_library, load_title_language, set_score, set_status,
-            sync_now,
+            cancel_sign_in, connect, connect_kitsu, finish_sign_in, load_library,
+            load_title_language, set_score, set_status, sync_now,
         },
     },
 };
@@ -193,10 +193,19 @@ pub(crate) fn dispatch(
         // The trackers.
         Command::SyncNow => sync_now(job, services, tx),
         Command::Connect { tracker } => connect(tracker, job, services, tx),
+        Command::FinishSignIn { tracker, callback } => {
+            finish_sign_in(tracker, callback, job, services, tx)
+        }
+        Command::CancelSignIn { tracker } => cancel_sign_in(tracker, services),
         Command::ConnectKitsu { username, password } => {
             connect_kitsu(username, password, job, services, tx)
         }
-        Command::Disconnect { tracker } => tracking::disconnect(&services.sync, &tracker, tx),
+        Command::Disconnect { tracker } => {
+            tracking::disconnect(&services.sync, &tracker, tx);
+            if tracker == "anilist" {
+                crate::title_language::signed_out(services, tx);
+            }
+        }
         Command::SetStatus { id, status } => set_status(id, status, services, tx),
         Command::SetScore { id, score } => set_score(id, score, services, tx),
         Command::ResolveConflict { id, keep_local } => {

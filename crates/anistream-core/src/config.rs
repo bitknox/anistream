@@ -406,18 +406,49 @@ impl Default for NotificationsConfig {
     }
 }
 
-/// The metadata failover.
+/// The metadata failover, and how its titles are shown.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct MetaConfig {
     /// Fall back to Tenrai — MyAnimeList's mirror — when AniList cannot answer, before
     /// resorting to cached data. Fresh first, always; the ladder only descends on failure.
     pub fallback: bool,
+    /// Which form of each title is shown: AniList's own choice for the signed-in account, or
+    /// English or romaji whoever is signed in. Every front end shows what this says.
+    pub title_language: TitleChoice,
 }
 
 impl Default for MetaConfig {
     fn default() -> Self {
-        Self { fallback: true }
+        Self { fallback: true, title_language: TitleChoice::default() }
+    }
+}
+
+/// Which form of a title to show, as `[meta] title_language` says.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TitleChoice {
+    /// As the signed-in AniList account reads AniList: romaji, English or native. English
+    /// first when nobody is signed in, which is how titles were always shown.
+    #[default]
+    Anilist,
+    English,
+    Romaji,
+}
+
+impl TitleChoice {
+    /// As the file writes it.
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Anilist => "anilist",
+            Self::English => "english",
+            Self::Romaji => "romaji",
+        }
+    }
+
+    /// Read back what [`Self::name`] wrote.
+    pub fn from_name(name: &str) -> Option<Self> {
+        [Self::Anilist, Self::English, Self::Romaji].into_iter().find(|c| c.name() == name)
     }
 }
 
@@ -963,7 +994,9 @@ pub struct AniListAuthConfig {
     /// port is part of what the user registers and cannot be chosen at runtime.
     pub redirect_port: u16,
     /// `"loopback"` catches the token automatically; `"paste"` sends you to AniList's PIN page
-    /// to copy it by hand, which needs no port and works over SSH.
+    /// to copy it by hand, which needs no port and works over SSH. `"implicit"` is the native
+    /// apps': their own client through the system's sign-in sheet, with no secret, which the
+    /// terminal cannot catch on a loopback port.
     pub flow: String,
 }
 
@@ -1046,14 +1079,16 @@ impl TrackersConfig {
     fn validate_anilist(&self) -> Result<(), crate::Error> {
         // Enabling a tracker you cannot possibly authenticate against would show up much later
         // as a mysteriously stuck outbox, so it is rejected at load.
-        if self.enabled.iter().any(|t| t == "anilist") {
+        // The implicit grant is a native app's, with the app's own client and no secret: none
+        // is asked of the file, whose client the terminal's code grant would need.
+        if self.enabled.iter().any(|t| t == "anilist") && self.anilist.flow != "implicit" {
             let blank =
                 |field: &Option<String>| field.as_deref().unwrap_or("").trim().is_empty();
             if blank(&self.anilist.client_id) || blank(&self.anilist.client_secret) {
                 return Err(crate::Error::Config(
                     "trackers.anilist needs both client_id and client_secret when \"anilist\" \
-                     is enabled — AniList supports only the authorization code grant, so the \
-                     secret is required. Register a client at \
+                     is enabled — the terminal signs in with the authorization code grant, which \
+                     needs the secret. Register a client at \
                      https://anilist.co/settings/developer"
                         .into(),
                 ));
@@ -1065,9 +1100,9 @@ impl TrackersConfig {
                 self.token_storage
             )));
         }
-        if !matches!(self.anilist.flow.as_str(), "loopback" | "paste") {
+        if !matches!(self.anilist.flow.as_str(), "loopback" | "paste" | "implicit") {
             return Err(crate::Error::Config(format!(
-                "trackers.anilist.flow must be \"loopback\" or \"paste\", got {:?}",
+                "trackers.anilist.flow must be \"loopback\", \"paste\" or \"implicit\", got {:?}",
                 self.anilist.flow
             )));
         }
@@ -1266,6 +1301,25 @@ mod tests {
         .unwrap_err()
         .to_string();
         assert!(err.contains("loopback"), "{err}");
+    }
+
+    #[test]
+    fn the_implicit_flow_asks_the_file_for_no_secret() {
+        // A native app's: its own client, through the system's sign-in sheet.
+        let cfg = Config::from_toml(
+            r#"
+            [trackers]
+            enabled = ["anilist"]
+            [trackers.anilist]
+            flow = "implicit"
+            "#,
+        )
+        .expect("no secret needed");
+        assert_eq!(cfg.trackers.anilist.flow, "implicit");
+        // The code grant still needs both halves.
+        let loopback =
+            "[trackers]\nenabled = [\"anilist\"]\n[trackers.anilist]\nclient_id = \"1\"\n";
+        assert!(Config::from_toml(loopback).unwrap_err().to_string().contains("client_secret"));
     }
 
     #[test]
