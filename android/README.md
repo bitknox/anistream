@@ -142,6 +142,32 @@ its own VPN and index has:
    (`adb shell ls -l /sdcard/Android/data/tv.anistream.app/files/Movies`).
 8. In flight mode, play it from Downloads.
 
+## On your own phone
+
+```sh
+android/scripts/install.sh
+```
+
+`install.sh` builds the app flavour's release, signed with the release key, installs it over the
+anistream already on the phone, keeping its data, and opens it. It ends by printing the version it
+installed and the signing certificate's SHA-256, which is public. The first run builds the engine
+in the release profile, which takes a while; later runs reuse it.
+
+- **The phone:** turn on Developer options (Settings › About phone, tap Build number seven times),
+  then Settings › System › Developer options › USB debugging. Connect it by USB and accept "Allow
+  USB debugging?" for this computer. The script takes the one phone `adb devices -l` lists,
+  emulators aside; with several, `ANDROID_SERIAL=<serial>` picks one. `--apk <file>` installs an
+  APK built already.
+- **The key:** the four `ANISTREAM_RELEASE_*` properties in `~/.gradle/gradle.properties` name the
+  keystore, its alias and their passwords. Without them the release is unsigned, and the script
+  stops before installing.
+- **Keep the release key backed up, somewhere other than this Mac.** An update installs only over
+  a build signed with the same key, and AniList's sign-in comes back on an App Link verified
+  against it. Losing it means uninstalling anistream from every phone that has it, which deletes
+  its downloads and sign-ins there, and verifying a new key for the App Link.
+- A phone with a build signed by another key, a debug build for instance, refuses the update. The
+  script says so, and leaves the uninstall to you.
+
 ## Tests
 
 ```sh
