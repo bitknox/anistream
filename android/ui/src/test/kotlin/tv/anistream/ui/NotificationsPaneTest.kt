@@ -28,6 +28,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.core.SettingValue
+import tv.anistream.engine.model.ComingEpisode
 import tv.anistream.engine.model.Command
 import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.SettingKey
@@ -87,6 +88,28 @@ class NotificationsPaneTest {
     fun where_android_said_no_the_line_says_so() {
         pane(AppActions(notifications = NotificationActions({}, MutableStateFlow(true)) {}))
         assertTrue(compose.onAllNodesWithText(NOTIFICATIONS_REFUSED, substring = true).fetchSemanticsNodes().isNotEmpty())
+    }
+
+    @Test
+    fun coming_up_lists_the_engines_episodes_and_says_which_a_show_switched_on_for_itself() {
+        pane(AppActions())
+        // The pane asks for the list as it opens.
+        assertTrue(Command.ComingEpisodes in store.waiting)
+        compose.runOnUiThread {
+            store.apply(
+                Event.ComingEpisodes(
+                    listOf(
+                        ComingEpisode(900002u, "The Library Above the Clouds", 6u, airsAt = 1_792_163_730),
+                        ComingEpisode(900006u, "Summer Wind Relay", 9u, airsAt = 1_792_515_630, switchedOn = true),
+                    ),
+                ),
+            )
+        }
+        compose.waitForIdle()
+        assertTrue(compose.onAllNodesWithText("Coming up · next 7 days").fetchSemanticsNodes().isNotEmpty())
+        assertTrue(compose.onAllNodesWithText("E6 · ", substring = true).fetchSemanticsNodes().isNotEmpty())
+        assertEquals(1, compose.onAllNodesWithText("On in this show’s settings", substring = true).fetchSemanticsNodes().size)
+        assertTrue(compose.onAllNodesWithText("A show opens its settings.").fetchSemanticsNodes().isNotEmpty())
     }
 
     @Test

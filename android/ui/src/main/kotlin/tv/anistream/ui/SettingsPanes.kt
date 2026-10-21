@@ -11,29 +11,36 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import java.time.Instant
 import java.util.Locale
 import tv.anistream.design.Nagare
 import tv.anistream.design.tabular
+import tv.anistream.engine.core.AnilistId
 import tv.anistream.engine.core.SettingValue
+import tv.anistream.engine.model.ComingEpisode
 import tv.anistream.engine.model.Entry
 import tv.anistream.engine.model.FailedCheck
 import tv.anistream.engine.model.GuardView
@@ -43,6 +50,7 @@ import tv.anistream.engine.model.TitleLanguage
 import tv.anistream.engine.model.TorrentProtection
 import tv.anistream.engine.model.TorrentProxy
 import tv.anistream.store.AccountsModel
+import tv.anistream.store.AirTime
 import tv.anistream.store.LibraryModel
 import tv.anistream.store.ProvidersModel
 import tv.anistream.store.SettingsCatalog
@@ -121,8 +129,9 @@ private fun Pane(content: @Composable () -> Unit) {
  * card of its own, with the shows that set their own, and the note that the permission is asked
  * then; then the system's settings for the channel. Turning the switch on goes through the app,
  * which asks for the permission to post then, and only then; where Android says no, the switch
- * stays off and its line says why. The board's "Coming up" list waits for the engine to say which
- * shows' episodes the check follows.
+ * stays off and its line says why. Under it, "Coming up · next 7 days": the episodes of the shows
+ * the check follows, dimmed while the switch is off, each opening its show's settings, where its
+ * own switch is.
  */
 @Composable
 internal fun NotificationsPane(actions: AppActions) {
@@ -132,6 +141,9 @@ internal fun NotificationsPane(actions: AppActions) {
     val row = store.settings.row(key, view)
     val app = actions.notifications
     val refused = app?.refused?.collectAsStateWithLifecycle()?.value == true
+    val coming by store.coming.episodes.collectAsStateWithLifecycle()
+    var opened by remember { mutableStateOf<AnilistId?>(null) }
+    LaunchedEffect(Unit) { store.loadComing() }
     Pane {
         SettingsGroup(
             footer = "anistream asks for permission the first time you turn this on.",
@@ -150,6 +162,15 @@ internal fun NotificationsPane(actions: AppActions) {
                 },
             ),
         )
+        coming?.let { episodes ->
+            SettingsGroup(
+                title = "Coming up · next 7 days",
+                footer = if (episodes.isEmpty()) "Nothing airs this week for the shows followed." else "A show opens its settings.",
+                rows = episodes.map { episode ->
+                    @Composable { place: Place -> ComingRow(place, episode, dimmed = !SettingsCatalog.isOn(row)) { opened = episode.id } }
+                },
+            )
+        }
         if (app != null) {
             SettingsGroup(
                 modifier = Modifier.padding(top = 8.dp),
@@ -167,6 +188,46 @@ internal fun NotificationsPane(actions: AppActions) {
             )
         }
     }
+
+    // A show's settings, over the pane; its own switch may change what is coming up.
+    opened?.let { id ->
+        val titles by store.titles.entries.collectAsStateWithLifecycle()
+        val entry = titles[id]
+        if (entry == null) {
+            LaunchedEffect(id) { store.loadDetail(id) }
+        } else {
+            ShowSettingsSheet(entry) {
+                opened = null
+                store.loadComing()
+            }
+        }
+    }
+}
+
+/**
+ * One episode coming up: the show's cover, its title, "E4 · Today 22:00", and "On in this show's
+ * settings" for a show followed by its own switch. Dimmed while new-episode notifications are off.
+ */
+@Composable
+private fun ComingRow(place: Place, episode: ComingEpisode, dimmed: Boolean, onClick: () -> Unit) {
+    val note = if (episode.switchedOn) "On in this show’s settings" else null
+    InfoRow(
+        place,
+        episode.title,
+        "E${episode.episode} · ${AirTime.coming(Instant.ofEpochSecond(episode.airsAt))}",
+        note = note,
+        onClick = onClick,
+        leading = {
+            ArtworkImage(
+                episode.coverUrl,
+                plate = null,
+                maxPixelSize = pixels(60.dp),
+                modifier = Modifier.size(width = 40.dp, height = 60.dp).clip(RoundedCornerShape(6.dp)),
+            )
+        },
+        trailing = { Icon(Icons.Chevron, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+        modifier = Modifier.alpha(if (dimmed) 0.4f else 1f),
+    )
 }
 
 /** What the switch's line says once Android has not let notifications go on. */

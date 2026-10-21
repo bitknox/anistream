@@ -235,6 +235,27 @@ class NewEpisodesTest {
         assertEquals("Summer Wind Relay and Stardust Wayfarer", beside.summary?.text)
     }
 
+    // The words
+
+    @Test
+    fun the_words_say_dubbed_and_the_next_one_for_a_viewer_behind_never_an_episode_name() {
+        assertEquals("Episode 9 is out.", EpisodePlan.textOf(relay.copy(episode = 9u)))
+        assertEquals("Episode 9 is out, dubbed.", EpisodePlan.textOf(relay.copy(episode = 9u, dubbed = true)))
+        assertEquals("Episode 10 is out. Next for you: episode 8.", EpisodePlan.textOf(wayfarer.copy(episode = 10u, nextForYou = 8u)))
+        assertEquals("Episode 10 is out, dubbed. Next for you: episode 8.", EpisodePlan.textOf(wayfarer.copy(episode = 10u, nextForYou = 8u, dubbed = true)))
+    }
+
+    @Test
+    fun a_viewer_behind_gets_play_for_their_next_and_no_mark_watched() {
+        host.episodeCheck = EpisodeCheck { listOf(wayfarer.copy(episode = 10u, nextForYou = 8u)) }
+        run()
+        val notification = manager.activeNotifications.single { it.id == EpisodeNotifier.EPISODE_ID }.notification
+        val play = notification.actions.single()
+        assertEquals("Play", play.title.toString())
+        // Play starts episode 8; marking 10 watched would skip the two between.
+        assertEquals(AppLink.Play(900001u, "8"), AppLink.parse(shadowOf(play.actionIntent).savedIntent.dataString))
+    }
+
     // The actions
 
     @Test
