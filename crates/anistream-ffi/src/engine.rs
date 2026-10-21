@@ -22,7 +22,7 @@ use tokio::runtime::{Handle, Runtime};
 
 use crate::{
     host::{Adapter, FfiHost},
-    start::{FfiBackground, FfiDirs, FfiError},
+    start::{FfiBackground, FfiDirs, FfiError, FfiStart},
 };
 
 /// The engine, started from a native app: where its commands go and where its events are read.
@@ -48,24 +48,27 @@ pub struct FfiEngine {
 impl FfiEngine {
     /// Stand the engine up on the app's directories, as the terminal app launches it: the
     /// sources the config names, and as much of the work the engine does on its own beside the
-    /// commands as `background` says. Tokens are kept in the host's keychain.
+    /// commands as `background` says. Tokens are kept where `start.secrets` says, the host's
+    /// keychain unless the app says otherwise, and the player dressed as `start.theme` says.
     ///
     /// Reads `config.toml` from `dirs.config`, or starts on the defaults when there is none, as
     /// on a first launch; the engine writes the file once a setting is saved. Opens the
     /// database in `dirs.data`. Blocks for as long as that takes, which is short: what is slow
     /// to come up, such as the plugins, comes up behind it.
-    #[uniffi::constructor]
+    #[uniffi::constructor(default(start))]
     pub fn start(
         dirs: FfiDirs,
         host: Arc<dyn FfiHost>,
         background: FfiBackground,
+        start: FfiStart,
     ) -> Result<Arc<Self>, FfiError> {
         let opened = Opened::open(&dirs)?;
+        let host = Adapter::new(host, start.secrets_mode(), &opened.config, &opened.paths);
         let runtime = runtime()?;
         let started = runtime.block_on(async {
             let http = HttpClient::new(&opened.config.network)
                 .map_err(|e| FfiError::Client { reason: e.to_string() })?;
-            let mut options = opened.options(http);
+            let mut options = opened.options(http, &start);
             options.background = background.into();
             Self::launch(options, host).await
         });
@@ -115,12 +118,12 @@ impl FfiEngine {
 }
 
 impl FfiEngine {
-    /// Start the engine from `options`, on the runtime this is polled in.
+    /// Start the engine from `options` on the app's `host`, on the runtime this is polled in.
     pub(crate) async fn launch(
         options: EngineOptions,
-        host: Arc<dyn FfiHost>,
+        host: Adapter,
     ) -> Result<(Engine, EventStream), FfiError> {
-        let host: Arc<dyn Host> = Arc::new(Adapter(host));
+        let host: Arc<dyn Host> = Arc::new(host);
         Engine::start(options, host)
             .await
             .map_err(|e| FfiError::Engine { reason: e.to_string() })
@@ -189,14 +192,16 @@ impl Opened {
         Ok(Self { paths, config, store })
     }
 
-    /// The options for the app's launch, with `http` for every request.
-    pub(crate) fn options(self, http: HttpClient) -> EngineOptions {
+    /// The options for the app's launch as `start` describes it, with `http` for every request.
+    pub(crate) fn options(self, http: HttpClient, start: &FfiStart) -> EngineOptions {
         let Self { paths, config, store } = self;
-        let mut options =
-            EngineOptions::new(paths, config.clone(), http, store, player_theme());
+        // `start.platform` is said for what comes later: nothing differs by it yet.
+        let theme = start.theme.clone().unwrap_or_else(player_theme);
+        let mut options = EngineOptions::new(paths, config.clone(), http, store, theme);
         // Nothing changes the config for one session here, as the terminal's flags can, so the
         // file's is the one in effect.
         options.saved = Some(config);
+        options.app_clients = start.app_clients();
         options
     }
 }
@@ -210,11 +215,10 @@ pub(crate) fn runtime() -> Result<Runtime, FfiError> {
         .map_err(|e| FfiError::Runtime { reason: e.to_string() })
 }
 
-/// How mpv's own interface is dressed: the terminal's immersive palette, so the player looks the
-/// same whichever front end starts it.
+/// How mpv's own interface is dressed when the app hands in no theme of its own: the terminal's
+/// immersive palette, so the player looks the same whichever front end starts it.
 ///
-/// Copied from the terminal front end's palette, which this crate may not depend on. A native
-/// front end hands in its own once playback crosses.
+/// Copied from the terminal front end's palette, which this crate may not depend on.
 fn player_theme() -> PlayerTheme {
     PlayerTheme {
         text: "#E4E0D6".into(),
@@ -251,5 +255,51 @@ impl<F: Future> Future for InRuntime<F> {
         let this = &mut *self;
         let _entered = this.handle.enter();
         this.future.as_mut().poll(cx)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use anistream_core::config::NetworkConfig;
+    use anistream_engine::options::AppClients;
+
+    use super::*;
+
+    /// What a start opens, in a new temporary directory kept beside it.
+    fn opened() -> (Opened, tempfile::TempDir) {
+        let root = tempfile::tempdir().unwrap();
+        let dir = |name: &str| root.path().join(name).display().to_string();
+        let dirs = FfiDirs { config: dir("config"), data: dir("data"), cache: dir("cache") };
+        (Opened::open(&dirs).expect("it opens"), root)
+    }
+
+    fn offline() -> HttpClient {
+        HttpClient::offline(&NetworkConfig::default()).unwrap()
+    }
+
+    #[test]
+    fn the_player_wears_the_apps_theme_and_the_terminals_without_one() {
+        let (files, _root) = opened();
+        let options = files.options(offline(), &FfiStart::default());
+        assert_eq!(options.player_theme, player_theme());
+        assert_eq!(options.app_clients, AppClients::default());
+
+        let theme = PlayerTheme { ground: "#0B0D17".into(), ..player_theme() };
+        let start = FfiStart {
+            theme: Some(theme.clone()),
+            anilist_client_id: Some("4242".into()),
+            mal_client_id: Some("a-mal-client".into()),
+            ..FfiStart::default()
+        };
+        let (files, _root) = opened();
+        let options = files.options(offline(), &start);
+        assert_eq!(options.player_theme, theme);
+        // Kept for signing in, and never put in the config, which the terminal shares.
+        assert_eq!(
+            options.app_clients,
+            AppClients { anilist: Some("4242".into()), mal: Some("a-mal-client".into()) }
+        );
+        assert_eq!(options.config.trackers.anilist.client_id, None);
+        assert_eq!(options.config.trackers.mal.client_id, None);
     }
 }
