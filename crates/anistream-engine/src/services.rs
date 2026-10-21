@@ -12,6 +12,7 @@ use anistream_track::TokenStore;
 
 use crate::{
     host::Host,
+    options::AppClients,
     playback::{
         link::hosted::HostedPlayers,
         power::{PowerSource, ReportedPower},
@@ -62,6 +63,9 @@ pub struct Services {
     /// How the player's own interface is dressed: the front end's choice, made once from its
     /// palette and the same for every playback.
     pub player_theme: PlayerTheme,
+    /// The sign-in clients a native app ships with, where signing in will read them.
+    /// TODO(E6): read by native sign-in; nothing reads them yet.
+    pub app_clients: AppClients,
     /// The machine the engine runs on, as the front end offers it: where a link is opened and a
     /// notification shown.
     pub host: Arc<dyn Host>,
@@ -108,6 +112,7 @@ impl Services {
             hosted_player: !cfg!(feature = "desktop"),
             prefetch: Prefetch::default(),
             player_theme,
+            app_clients: AppClients::default(),
             host,
         })
     }

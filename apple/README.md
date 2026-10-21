@@ -93,9 +93,14 @@ for event in await engine.nextEvents() {
 
 The engine object is `FfiEngine`:
 
-- `FfiEngine.start(dirs:host:background:)` stands it up on the app's directories, as the
+- `FfiEngine.start(dirs:host:background:start:)` stands it up on the app's directories, as the
   terminal app does, with the work the engine does on its own switched as `FfiBackground` says
-  (every switch on by default); `startTesting(dirs:host:)` exists only in a `testing` build;
+  (every switch on by default); `startTesting(dirs:host:start:)` exists only in a `testing` build;
+- `FfiStart` is what the app says of itself, every field optional and `FfiStart()` the default:
+  the player's `theme` (the terminal's palette without one), its `platform`, the sign-in clients
+  it ships with, and `secrets`, where tokens are kept: `.host`, the default, is always the app's
+  keychain, and `.followConfig` keeps them where the terminal app does, as
+  `trackers.token_storage` says, for a Mac app sharing its data;
 - `send(command:)` puts a `Command` on a channel and returns the `JobId` of the work it starts,
   when that is work someone waits on, so the main thread can call it;
 - `nextEvents()` is `async`, and returns the `Event`s there are once there is at least one, or an
@@ -104,7 +109,10 @@ The engine object is `FfiEngine`:
 
 The app hands the engine an `FfiHost`, which opens links, posts notifications and keeps the
 trackers' and plugin stores' tokens for it, in the keychain: `secretGet`, `secretSet` and
-`secretDelete`, by id. The engine calls it on its own threads.
+`secretDelete`, by id. The engine calls it on its own threads. With `.followConfig` and
+`token_storage = "keychain"`, the items to keep them as are the terminal's: generic passwords
+under service `anistream`, with the id as the account, in the login keychain, where the
+`keyring` crate keeps them on macOS. With `"file"` the host is never asked.
 
 The app hosts the player, libmpv embedded, and the engine drives it as it drives the terminal's
 mpv, in mpv's own vocabulary:
