@@ -22,7 +22,7 @@ use anistream_core::{
 };
 use anistream_ffi::{FfiDirs, FfiEngine, FfiHost};
 use anistream_model::{
-    command::{Command, PlayerCommand},
+    command::{AppState, Command, PlayerCommand},
     event::Event,
     hosted::{
         MpvOption, MpvValue, PlayerChoice, PlayerEnd, PlayerOp, PlayerReport, PlayerUi,
@@ -549,6 +549,47 @@ fn full_screen_is_the_hosts_window_and_never_an_mpv_property() {
         "{:?}",
         app.ops
     );
+    app.stop();
+    app.shutdown();
+}
+
+#[test]
+fn a_reload_opens_the_same_file_again_where_it_plays() {
+    // What follows a loopback server bound again after the background.
+    let mut app = App::fixtures("[playback]\nauto_next = false\n");
+    app.play(FINISHED, "12");
+    let first = app.load();
+    app.opened(first.playback, &[]);
+    app.tick(first.playback, 0, 30);
+    // Once the playback has read its playhead there: reports and commands come by two roads.
+    app.until("the playhead at 30", |event| match event {
+        Event::Playback { position, .. } if *position >= 30.0 => Some(()),
+        _ => None,
+    });
+    app.control(PlayerCommand::Reload);
+    let again = app.load();
+    assert_eq!((again.playback, again.url.as_str()), (first.playback, first.url.as_str()));
+    assert_eq!(again.option("start"), Some("30"));
+    app.stop();
+    app.shutdown();
+}
+
+#[test]
+fn coming_back_with_nothing_taken_opens_nothing_again() {
+    let mut app = App::fixtures("[playback]\nauto_next = false\n");
+    app.play(FINISHED, "12");
+    let playback = app.load().playback;
+    app.opened(playback, &[]);
+    app.tick(playback, 0, 5);
+    let phase = |phase| Command::AppPhase { phase };
+    app.engine.send(phase(AppState::Background { playing: true }));
+    app.engine.send(Command::NetworkPath { cellular: true, constrained: false });
+    app.engine.send(phase(AppState::Foreground));
+    // Every server still answers: the playback carries on as it was.
+    app.control(PlayerCommand::TogglePause);
+    app.op("the pause", |op| matches!(op, PlayerOp::Cycle { .. }));
+    let loads = app.ops.iter().filter(|(_, op)| matches!(op, PlayerOp::Load { .. })).count();
+    assert_eq!(loads, 1, "{:?}", app.ops);
     app.stop();
     app.shutdown();
 }
