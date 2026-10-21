@@ -216,6 +216,8 @@ final class SystemPictureInPicture: NSObject, PictureInPictureSystem {
     private weak var model: PlayerModel?
     private var controller: AVPictureInPictureController?
     private var waiting: Task<Void, Never>?
+    /// Started, and AVKit not yet asked: still waiting for the feed's first frames.
+    private var unasked = false
     private var stage: NSWindow?
 
     init(feed: PictureFeed, model: PlayerModel) {
@@ -227,6 +229,7 @@ final class SystemPictureInPicture: NSObject, PictureInPictureSystem {
         let controller = self.controller ?? make()
         setStage()
         waiting?.cancel()
+        unasked = true
         waiting = Task { @MainActor [weak self] in
             // AVKit sizes its window from the frames the display layer has shown, and with none
             // shown yet it computes a NaN frame, which AppKit traps on. So: frames first.
@@ -237,19 +240,33 @@ final class SystemPictureInPicture: NSObject, PictureInPictureSystem {
             guard let self, !Task.isCancelled else { return }
             guard self.feed.counts.copied >= 1, controller.isPictureInPicturePossible else {
                 PlayerModel.note(.error, "picture in picture: no frames, or not possible (\(controller.isPictureInPicturePossible))")
+                self.unasked = false
                 self.clearStage()
                 self.events?(.failedToStart)
                 return
             }
             // One more frame's time, for the display layer to put the last one up.
             try? await Task.sleep(for: .milliseconds(50))
+            guard !Task.isCancelled else { return }
             PlayerModel.note(.info, "picture in picture: asking the system, \(self.feed.counts.copied) frames in")
+            self.unasked = false
             controller.startPictureInPicture()
         }
     }
 
+    /// Close the floating window. Before AVKit was asked for it, there is none for AVKit to close
+    /// and say `stopped` of: the start is called off, and said to have failed, which ends the
+    /// feed and leaves the machine where it was before it started.
     func stop() {
         waiting?.cancel()
+        waiting = nil
+        guard !unasked else {
+            unasked = false
+            PlayerModel.note(.info, "picture in picture: called off before the system was asked")
+            clearStage()
+            events?(.failedToStart)
+            return
+        }
         controller?.stopPictureInPicture()
     }
 
