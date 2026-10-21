@@ -128,7 +128,11 @@ impl FakeDevice {
 
     /// The messages heard so far of `kind`, in any namespace.
     pub fn heard(&self, kind: &str) -> Vec<Value> {
-        lock(&self.heard).iter().filter(|(_, v)| v["type"] == kind).map(|(_, v)| v.clone()).collect()
+        lock(&self.heard)
+            .iter()
+            .filter(|(_, v)| v["type"] == kind)
+            .map(|(_, v)| v.clone())
+            .collect()
     }
 }
 
@@ -263,7 +267,9 @@ async fn serve(
     }
 }
 
-async fn read_frame<R: AsyncReadExt + Unpin>(read: &mut R) -> std::io::Result<Option<CastMessage>> {
+async fn read_frame<R: AsyncReadExt + Unpin>(
+    read: &mut R,
+) -> std::io::Result<Option<CastMessage>> {
     let mut len = [0u8; 4];
     if read.read_exact(&mut len).await.is_err() {
         return Ok(None);
@@ -443,7 +449,9 @@ mod tests {
         assert!(refused.to_string().contains("LOAD_FAILED"), "{refused}");
 
         // A guessed token is a 404, whatever the path.
-        let wrong = server.file_url("x").replace(&server.base()[server.base().len() - 32..], &"0".repeat(32));
+        let wrong = server
+            .file_url("x")
+            .replace(&server.base()[server.base().len() - 32..], &"0".repeat(32));
         assert_eq!(get(&wrong).await.unwrap().0, 404);
     }
 }

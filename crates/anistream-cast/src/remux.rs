@@ -169,7 +169,8 @@ impl Remuxer {
         keys.dedup_by_key(|key| key.0);
         if keys.is_empty() {
             return Err(RemuxError::Unsupported(
-                "no cues for the video: the segments would need a scan of the whole file".into(),
+                "no cues for the video: the segments would need a scan of the whole file"
+                    .into(),
             ));
         }
         if keys[0].0 != 0 {
@@ -241,7 +242,9 @@ impl Remuxer {
         match &self.audio {
             Some(a) => {
                 let audio = match a.codec {
-                    Codec::Aac => format!("mp4a.40.{}", a.private.first().map_or(2, |b| b >> 3)),
+                    Codec::Aac => {
+                        format!("mp4a.40.{}", a.private.first().map_or(2, |b| b >> 3))
+                    }
                     Codec::Opus => "opus".into(),
                     _ => "fLaC".into(),
                 };
@@ -272,9 +275,8 @@ impl Remuxer {
 
     /// The initialisation segment: `ftyp` and `moov`.
     pub fn init(&self) -> Result<Vec<u8>> {
-        let trex = |id: u32| {
-            full(b"trex", 0, 0, &[&id.to_be_bytes(), &1u32.to_be_bytes(), &[0; 12]])
-        };
+        let trex =
+            |id: u32| full(b"trex", 0, 0, &[&id.to_be_bytes(), &1u32.to_be_bytes(), &[0; 12]]);
         let mut traks = trak(&self.video)?;
         let mut trexes = trex(1);
         if let Some(audio) = &self.audio {
@@ -319,7 +321,9 @@ impl Remuxer {
             if block.track == self.video.number {
                 if block.key && block.timestamp >= end {
                     video_done = true;
-                } else if !video_done && (!video.is_empty() || (block.key && block.timestamp >= start)) {
+                } else if !video_done
+                    && (!video.is_empty() || (block.key && block.timestamp >= start))
+                {
                     video.push(block);
                 }
             } else if Some(block.track) == audio_number {
@@ -366,7 +370,8 @@ impl Remuxer {
         {
             let rate = u128::from(track.timescale);
             let scale = u128::from(self.scale);
-            let to_rate = |ticks: u64| (u128::from(ticks) * scale * rate / 1_000_000_000) as u64;
+            let to_rate =
+                |ticks: u64| (u128::from(ticks) * scale * rate / 1_000_000_000) as u64;
             let samples = audio
                 .iter()
                 .enumerate()
@@ -381,7 +386,11 @@ impl Remuxer {
                 })
                 .collect();
             payloads.extend(audio.iter().map(|f| f.data.as_slice()));
-            trafs.push((track.id, to_rate((audio[0].timestamp + shift).max(0) as u64), samples));
+            trafs.push((
+                track.id,
+                to_rate((audio[0].timestamp + shift).max(0) as u64),
+                samples,
+            ));
         }
         Ok(fragment(index as u32 + 1, &trafs, &payloads))
     }
@@ -443,8 +452,8 @@ fn fragment(sequence: u32, trafs: &[(u32, u64, Vec<Sample>)], payloads: &[&[u8]]
 }
 
 const MATRIX: [u8; 36] = [
-    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0x40, 0, 0, 0,
+    0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0x40, 0, 0, 0,
 ];
 
 fn bx(kind: &[u8; 4], parts: &[&[u8]]) -> Vec<u8> {
@@ -553,9 +562,10 @@ fn sample_entry(track: &Track) -> Result<Vec<u8>> {
     };
     // FLAC says its own sample size, and Chromium checks the entry against it.
     let bits = match track.codec {
-        Codec::Flac => track.private.get(8 + 12..8 + 14).map_or(16, |b| {
-            u16::from(((b[0] & 1) << 4) | (b[1] >> 4)) + 1
-        }),
+        Codec::Flac => track
+            .private
+            .get(8 + 12..8 + 14)
+            .map_or(16, |b| u16::from(((b[0] & 1) << 4) | (b[1] >> 4)) + 1),
         _ => 16,
     };
     let audio = |rate: u32, config: &[u8]| {
@@ -606,8 +616,9 @@ fn esds(asc: &[u8]) -> Vec<u8> {
 }
 
 fn asc_for(rate: u32, channels: u8) -> Vec<u8> {
-    const RATES: [u32; 13] =
-        [96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350];
+    const RATES: [u32; 13] = [
+        96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000, 11025, 8000, 7350,
+    ];
     let index = RATES.iter().position(|&r| r == rate).unwrap_or(4) as u16;
     let packed: u16 = (2 << 11) | (index << 7) | (u16::from(channels) << 3);
     packed.to_be_bytes().to_vec()

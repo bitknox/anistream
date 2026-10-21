@@ -62,12 +62,20 @@ impl Device {
     /// Stop the app `session_id` names, which ends any media in it.
     pub async fn stop(&self, app: &App) -> Result<(), CastError> {
         self.channel
-            .request(RECEIVER, NS_RECEIVER, json!({"type": "STOP", "sessionId": app.session_id}))
+            .request(
+                RECEIVER,
+                NS_RECEIVER,
+                json!({"type": "STOP", "sessionId": app.session_id}),
+            )
             .await
             .map(|_| ())
     }
 
-    pub async fn set_volume(&self, level: Option<f64>, muted: Option<bool>) -> Result<(), CastError> {
+    pub async fn set_volume(
+        &self,
+        level: Option<f64>,
+        muted: Option<bool>,
+    ) -> Result<(), CastError> {
         let mut volume = json!({});
         if let Some(level) = level {
             volume["level"] = json!(level);
@@ -207,7 +215,11 @@ impl Media {
         Ok(status)
     }
 
-    pub async fn command(&self, kind: &str, extra: Value) -> Result<Option<MediaStatus>, CastError> {
+    pub async fn command(
+        &self,
+        kind: &str,
+        extra: Value,
+    ) -> Result<Option<MediaStatus>, CastError> {
         let mut payload = json!({"type": kind, "mediaSessionId": self.session()?});
         if let (Value::Object(payload), Value::Object(extra)) = (&mut payload, extra) {
             payload.extend(extra);
@@ -279,7 +291,9 @@ impl MediaStatus {
             rate: status["playbackRate"].as_f64().unwrap_or(1.0),
             active_tracks: status["activeTrackIds"]
                 .as_array()
-                .map(|ids| ids.iter().filter_map(|id| id.as_u64().map(|id| id as u32)).collect())
+                .map(|ids| {
+                    ids.iter().filter_map(|id| id.as_u64().map(|id| id as u32)).collect()
+                })
                 .unwrap_or_default(),
             volume: status["volume"]["level"].as_f64(),
             muted: status["volume"]["muted"].as_bool(),

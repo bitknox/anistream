@@ -150,7 +150,8 @@ impl LanServer {
     /// Share one file, with byte ranges, and return its URL.
     pub fn share_file(&self, path: &Path) -> String {
         let id = format!("{:08x}", rand::random::<u32>());
-        let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+        let name =
+            path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         lock(&self.shared.files).insert(id.clone(), path.to_owned());
         format!("{}/s/{id}/{}", self.shared.base, encode(&name))
     }
@@ -396,7 +397,9 @@ fn parse_range(range: &str, size: u64) -> Option<(u64, u64)> {
             (size.saturating_sub(suffix), size.checked_sub(1)?)
         }
         (start, "") => (start.parse().ok()?, size.checked_sub(1)?),
-        (start, end) => (start.parse().ok()?, end.parse::<u64>().ok()?.min(size.checked_sub(1)?)),
+        (start, end) => {
+            (start.parse().ok()?, end.parse::<u64>().ok()?.min(size.checked_sub(1)?))
+        }
     };
     (start <= end && start < size).then_some((start, end))
 }
@@ -507,7 +510,8 @@ async fn upstream(
     let playlist = kind.contains("mpegurl") || body.starts_with(b"#EXTM3U");
     let body = if playlist && status == 200 {
         let text = String::from_utf8_lossy(&body);
-        rewrite_playlist(&text, url, &|u| format!("{}/u/{}", shared.base, encode(u))).into_bytes()
+        rewrite_playlist(&text, url, &|u| format!("{}/u/{}", shared.base, encode(u)))
+            .into_bytes()
     } else {
         body
     };
@@ -619,7 +623,8 @@ mod tests {
 
     #[test]
     fn playlist_uris_come_back_through_the_proxy() {
-        let text = "#EXTM3U\n#EXT-X-MAP:URI=\"init.mp4\"\n#EXTINF:4,\nseg0.m4s\n/abs/seg1.m4s\n";
+        let text =
+            "#EXTM3U\n#EXT-X-MAP:URI=\"init.mp4\"\n#EXTINF:4,\nseg0.m4s\n/abs/seg1.m4s\n";
         let out = rewrite_playlist(text, "http://cdn.test/a/b.m3u8", &|u| format!("P[{u}]"));
         assert!(out.contains("#EXT-X-MAP:URI=\"P[http://cdn.test/a/init.mp4]\""), "{out}");
         assert!(out.contains("\nP[http://cdn.test/a/seg0.m4s]\n"));

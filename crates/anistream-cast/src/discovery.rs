@@ -67,7 +67,11 @@ pub fn discover(wait: Duration) -> std::io::Result<Vec<CastDevice>> {
                     records.read(message);
                 }
             }
-            Err(e) if matches!(e.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut) => {}
+            Err(e)
+                if matches!(
+                    e.kind(),
+                    std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                ) => {}
             Err(e) => return Err(e),
         }
         // A device that answered without its address in the additional records: ask for it.
@@ -110,7 +114,8 @@ impl Records {
     }
 
     fn try_read(&mut self, message: &[u8]) -> Option<()> {
-        let count = |at: usize| Some(u16::from_be_bytes(message.get(at..at + 2)?.try_into().ok()?));
+        let count =
+            |at: usize| Some(u16::from_be_bytes(message.get(at..at + 2)?.try_into().ok()?));
         let questions = count(4)?;
         let records = count(6)? as usize + count(8)? as usize + count(10)? as usize;
         let mut at = 12;
@@ -149,7 +154,8 @@ impl Records {
                     self.texts.insert(name, entries);
                 }
                 1 if len == 4 => {
-                    self.addresses.insert(name, Ipv4Addr::new(data[0], data[1], data[2], data[3]));
+                    self.addresses
+                        .insert(name, Ipv4Addr::new(data[0], data[1], data[2], data[3]));
                 }
                 _ => {}
             }

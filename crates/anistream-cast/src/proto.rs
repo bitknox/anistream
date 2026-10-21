@@ -187,7 +187,10 @@ mod tests {
         );
         assert_eq!(CastMessage::decode(&message.encode()).unwrap(), message);
         let frame = message.frame();
-        assert_eq!(u32::from_be_bytes(frame[..4].try_into().unwrap()) as usize, frame.len() - 4);
+        assert_eq!(
+            u32::from_be_bytes(frame[..4].try_into().unwrap()) as usize,
+            frame.len() - 4
+        );
     }
 
     #[test]
@@ -197,7 +200,10 @@ mod tests {
         let message = CastMessage::text("a", "b", "n", "{}");
         assert_eq!(
             message.encode(),
-            [0x08, 0, 0x12, 1, b'a', 0x1a, 1, b'b', 0x22, 1, b'n', 0x28, 0, 0x32, 2, b'{', b'}']
+            [
+                0x08, 0, 0x12, 1, b'a', 0x1a, 1, b'b', 0x22, 1, b'n', 0x28, 0, 0x32, 2, b'{',
+                b'}'
+            ]
         );
     }
 

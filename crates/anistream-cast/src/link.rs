@@ -45,8 +45,8 @@ use tokio::{
 };
 
 use crate::{
-    App, CastError, DEFAULT_MEDIA_RECEIVER, Device, Incoming, LanServer, Load, Media, MediaStatus,
-    Options, TextTrack,
+    App, CastError, DEFAULT_MEDIA_RECEIVER, Device, Incoming, LanServer, Load, Media,
+    MediaStatus, Options, TextTrack,
     channel::{NS_CONNECTION, NS_MEDIA},
     discovery::local_address_towards,
     remux::Remuxer,
@@ -75,7 +75,8 @@ impl Dynamic for Resources {
                 )),
                 "r/init.mp4" => remuxer.init().ok().map(|b| ("video/mp4".into(), b)),
                 _ => {
-                    let index = path.strip_prefix("r/seg")?.strip_suffix(".m4s")?.parse().ok()?;
+                    let index =
+                        path.strip_prefix("r/seg")?.strip_suffix(".m4s")?.parse().ok()?;
                     let segment = tokio::task::spawn_blocking(move || remuxer.segment(index))
                         .await
                         .ok()?
@@ -139,7 +140,9 @@ impl CastPlayer {
         let bind = match address.ip() {
             IpAddr::V4(ip) if ip.is_loopback() => ip,
             IpAddr::V4(ip) => local_address_towards(ip)?,
-            IpAddr::V6(_) => return Err(CastError::Protocol("IPv6 devices are not tried".into())),
+            IpAddr::V6(_) => {
+                return Err(CastError::Protocol("IPv6 devices are not tried".into()));
+            }
         };
         let resources = Arc::new(Resources::default());
         let server = LanServer::start(Options {
@@ -156,7 +159,8 @@ impl CastPlayer {
         let media = Media::new(device.channel.clone(), app.clone());
         let (events, rx) = mpsc::unbounded_channel();
         let state = Arc::new(Mutex::new(State::default()));
-        let pump = tokio::spawn(pump(incoming, app.clone(), Arc::clone(&state), events.clone()));
+        let pump =
+            tokio::spawn(pump(incoming, app.clone(), Arc::clone(&state), events.clone()));
         let poll = {
             let (channel, state) = (device.channel.clone(), Arc::clone(&state));
             tokio::spawn(async move {
@@ -170,7 +174,11 @@ impl CastPlayer {
                     // The reply comes back as an event, with every other status.
                     if active
                         && channel
-                            .send(&app.transport_id, NS_MEDIA, &json!({"type": "GET_STATUS", "requestId": 1_000_000}))
+                            .send(
+                                &app.transport_id,
+                                NS_MEDIA,
+                                &json!({"type": "GET_STATUS", "requestId": 1_000_000}),
+                            )
                             .is_err()
                     {
                         break;
@@ -197,7 +205,8 @@ impl CastPlayer {
 
     /// Load `url` with mpv's per-file `options`, in place of whatever plays.
     pub async fn load(&self, url: &str, options: &[(String, String)]) -> Result<(), CastError> {
-        let option = |name: &str| options.iter().find(|(k, _)| k == name).map(|(_, v)| v.clone());
+        let option =
+            |name: &str| options.iter().find(|(k, _)| k == name).map(|(_, v)| v.clone());
         let headers = option("http-header-fields").map(|v| header_list(&v)).unwrap_or_default();
         let (cast_url, content_type) = self.serve(url, headers)?;
         let load = Load {
@@ -226,17 +235,28 @@ impl CastPlayer {
     }
 
     /// The URL the receiver fetches `url` by, and its content type.
-    fn serve(&self, url: &str, headers: Vec<(String, String)>) -> Result<(String, String), CastError> {
+    fn serve(
+        &self,
+        url: &str,
+        headers: Vec<(String, String)>,
+    ) -> Result<(String, String), CastError> {
         let path = url.strip_prefix("file://").unwrap_or(url);
         let kind = |p: &str| crate::serve::content_type(p).to_owned();
         if !url.contains("://") || url.starts_with("file://") {
             let path = PathBuf::from(path);
             if path.extension().is_some_and(|e| e.eq_ignore_ascii_case("mkv")) {
-                let remuxer = Remuxer::open(&path).map_err(|e| CastError::Protocol(e.to_string()))?;
+                let remuxer =
+                    Remuxer::open(&path).map_err(|e| CastError::Protocol(e.to_string()))?;
                 *lock(&self.resources.remuxer) = Some(Arc::new(remuxer));
-                return Ok((self.server.dynamic_url("r/index.m3u8"), "application/x-mpegurl".into()));
+                return Ok((
+                    self.server.dynamic_url("r/index.m3u8"),
+                    "application/x-mpegurl".into(),
+                ));
             }
-            return Ok((self.server.share_file(&path), kind(path.to_str().unwrap_or_default())));
+            return Ok((
+                self.server.share_file(&path),
+                kind(path.to_str().unwrap_or_default()),
+            ));
         }
         let bare = url.split('?').next().unwrap_or(url);
         let content_type = match kind(bare).as_str() {
@@ -316,7 +336,8 @@ impl CastPlayer {
                 self.device.set_volume(None, Some(value.as_bool().unwrap_or(false))).await?;
             }
             "sid" => {
-                let ids: Vec<u32> = value.as_u64().map(|id| vec![id as u32]).unwrap_or_default();
+                let ids: Vec<u32> =
+                    value.as_u64().map(|id| vec![id as u32]).unwrap_or_default();
                 media.active_tracks(&ids).await?;
             }
             // Shaders, tone mapping, audio filters and the companion's user data mean nothing to
@@ -405,9 +426,9 @@ async fn pump(
             && message.payload["type"] == "CLOSE"
             && message.source == app.transport_id)
             || (message.payload["type"] == "RECEIVER_STATUS"
-                && !message.payload["status"]["applications"]
-                    .as_array()
-                    .is_some_and(|apps| apps.iter().any(|a| a["sessionId"] == app.session_id.as_str())));
+                && !message.payload["status"]["applications"].as_array().is_some_and(|apps| {
+                    apps.iter().any(|a| a["sessionId"] == app.session_id.as_str())
+                }));
         if closed {
             let mut state = lock(&state);
             if !state.closed {
@@ -489,7 +510,9 @@ async fn pump(
             state.volume = Some(level);
             say(PlaybackEvent::Volume(level));
         }
-        if state.seeking && message.payload["requestId"].as_u64().is_some_and(|id| id != 1_000_000) {
+        if state.seeking
+            && message.payload["requestId"].as_u64().is_some_and(|id| id != 1_000_000)
+        {
             // The answer to the SEEK, or the first status after it.
             state.seeking = false;
             say(PlaybackEvent::Seeking(false));
@@ -541,7 +564,10 @@ mod tests {
     use super::*;
     use crate::fake::FakeDevice;
 
-    async fn next(rx: &mut mpsc::UnboundedReceiver<PlaybackEvent>, want: impl Fn(&PlaybackEvent) -> bool) -> PlaybackEvent {
+    async fn next(
+        rx: &mut mpsc::UnboundedReceiver<PlaybackEvent>,
+        want: impl Fn(&PlaybackEvent) -> bool,
+    ) -> PlaybackEvent {
         let deadline = tokio::time::Instant::now() + Duration::from_secs(8);
         loop {
             let event = tokio::time::timeout_at(deadline, rx.recv())
@@ -589,7 +615,10 @@ mod tests {
             false,
         );
         player.load(file.to_str().unwrap(), &options).await.unwrap();
-        assert_eq!(next(&mut events, |e| *e == PlaybackEvent::Loaded).await, PlaybackEvent::Loaded);
+        assert_eq!(
+            next(&mut events, |e| *e == PlaybackEvent::Loaded).await,
+            PlaybackEvent::Loaded
+        );
         let PlaybackEvent::Progress { position, duration } =
             next(&mut events, |e| matches!(e, PlaybackEvent::Progress { .. })).await
         else {
@@ -602,7 +631,14 @@ mod tests {
         assert_eq!(load["media"]["contentType"], "video/mp4");
 
         // A subtitle after the file loaded reloads it where it is, with the track on.
-        player.add_subtitle(subtitles.to_str().unwrap(), Some("English".into()), Some("en".into())).await.unwrap();
+        player
+            .add_subtitle(
+                subtitles.to_str().unwrap(),
+                Some("English".into()),
+                Some("en".into()),
+            )
+            .await
+            .unwrap();
         next(&mut events, |e| *e == PlaybackEvent::Loaded).await;
         // A new media session says it plays.
         next(&mut events, |e| *e == PlaybackEvent::Paused(false)).await;
@@ -612,11 +648,20 @@ mod tests {
         assert_eq!(reload["media"]["tracks"][0]["trackContentType"], "text/vtt");
 
         player.cycle("pause").await.unwrap();
-        assert_eq!(next(&mut events, |e| matches!(e, PlaybackEvent::Paused(_))).await, PlaybackEvent::Paused(true));
+        assert_eq!(
+            next(&mut events, |e| matches!(e, PlaybackEvent::Paused(_))).await,
+            PlaybackEvent::Paused(true)
+        );
         player.set("pause", json!(false)).await.unwrap();
-        assert_eq!(next(&mut events, |e| matches!(e, PlaybackEvent::Paused(_))).await, PlaybackEvent::Paused(false));
+        assert_eq!(
+            next(&mut events, |e| matches!(e, PlaybackEvent::Paused(_))).await,
+            PlaybackEvent::Paused(false)
+        );
         player.add("speed", 0.5).await.unwrap();
-        assert_eq!(next(&mut events, |e| matches!(e, PlaybackEvent::Speed(_))).await, PlaybackEvent::Speed(1.5));
+        assert_eq!(
+            next(&mut events, |e| matches!(e, PlaybackEvent::Speed(_))).await,
+            PlaybackEvent::Speed(1.5)
+        );
         player.seek(15.0, true).await.unwrap();
         next(&mut events, |e| *e == PlaybackEvent::Seeking(false)).await;
 
@@ -627,6 +672,9 @@ mod tests {
         );
         player.quit().await.unwrap();
         assert!(player.has_quit());
-        assert!(device.heard("STOP").iter().any(|m| m["sessionId"].is_string()), "the app stopped");
+        assert!(
+            device.heard("STOP").iter().any(|m| m["sessionId"].is_string()),
+            "the app stopped"
+        );
     }
 }

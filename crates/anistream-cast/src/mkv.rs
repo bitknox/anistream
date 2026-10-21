@@ -225,8 +225,13 @@ pub fn header<R: Read + Seek>(reader: &mut R) -> std::io::Result<Header> {
         return Err(invalid("no Segment"));
     }
     let segment = reader.stream_position()?;
-    let mut header =
-        Header { scale: 1_000_000, duration: 0, tracks: Vec::new(), cues: Vec::new(), first_cluster: 0 };
+    let mut header = Header {
+        scale: 1_000_000,
+        duration: 0,
+        tracks: Vec::new(),
+        cues: Vec::new(),
+        first_cluster: 0,
+    };
     let mut cues_at = None;
     let mut at = segment;
     loop {
@@ -362,7 +367,8 @@ fn block(data: &[u8], cluster: i64, key: Option<bool>) -> std::io::Result<Vec<Bl
                 for _ in 0..count - 1 {
                     let mut size = 0usize;
                     loop {
-                        let (&byte, tail) = rest.split_first().ok_or_else(|| invalid("a short lace"))?;
+                        let (&byte, tail) =
+                            rest.split_first().ok_or_else(|| invalid("a short lace"))?;
                         rest = tail;
                         size += usize::from(byte);
                         if byte != 255 {

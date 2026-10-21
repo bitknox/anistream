@@ -111,7 +111,9 @@ async fn main() -> Result<()> {
             );
         }
         _ => {
-            eprintln!("usage: cast_probe discover | info IP | play IP … | matrix IP … | vtt IN OUT | remux IN DIR");
+            eprintln!(
+                "usage: cast_probe discover | info IP | play IP … | matrix IP … | vtt IN OUT | remux IN DIR"
+            );
             std::process::exit(2);
         }
     }
@@ -231,7 +233,9 @@ async fn locked_cdn(root: PathBuf) -> Result<(u16, tokio::task::JoinHandle<()>)>
                         );
                         [head.into_bytes(), body].concat()
                     }
-                    (false, _) => b"HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n".to_vec(),
+                    (false, _) => {
+                        b"HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n".to_vec()
+                    }
                     (true, Err(_)) => {
                         b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n".to_vec()
                     }
@@ -260,9 +264,14 @@ impl Dynamic for Remuxed {
                     let index: usize =
                         path.strip_prefix("seg")?.strip_suffix(".m4s")?.parse().ok()?;
                     let started = Instant::now();
-                    let segment = tokio::task::block_in_place(|| remuxer.segment(index)).ok()?;
-                    tracing::info!(index, ms = started.elapsed().as_millis() as u64,
-                                   bytes = segment.len(), "remuxed a segment");
+                    let segment =
+                        tokio::task::block_in_place(|| remuxer.segment(index)).ok()?;
+                    tracing::info!(
+                        index,
+                        ms = started.elapsed().as_millis() as u64,
+                        bytes = segment.len(),
+                        "remuxed a segment"
+                    );
                     Some(("video/mp4".into(), segment))
                 }
             }
@@ -361,7 +370,10 @@ async fn wind_down(device: &Device, media: &Media, volume: Option<(f64, bool)>) 
     }
 }
 
-async fn prepare(ip: Ipv4Addr, keep_volume: bool) -> Result<(Device, UnboundedReceiver<Incoming>, Option<(f64, bool)>, Duration, Duration)> {
+async fn prepare(
+    ip: Ipv4Addr,
+    keep_volume: bool,
+) -> Result<(Device, UnboundedReceiver<Incoming>, Option<(f64, bool)>, Duration, Duration)> {
     let connecting = Instant::now();
     let (device, events) = Device::connect(SocketAddr::from((ip, port()))).await?;
     let connected = connecting.elapsed();
@@ -510,9 +522,22 @@ async fn run(
         .await;
         if flags.controls && timeline.advancing_at.is_some() {
             let step = |kind: &'static str| (kind, Instant::now());
-            for (kind, wait) in [("PAUSE", 3.0), ("PLAY", 2.0), ("SEEK", 3.0), ("TRACKS_OFF", 2.0),
-                                 ("TRACKS_ON", 2.0), ("RATE", 3.0)] {
-                pump(events, &mut timeline, epoch, Instant::now() + Duration::from_secs_f64(wait), |_| false).await;
+            for (kind, wait) in [
+                ("PAUSE", 3.0),
+                ("PLAY", 2.0),
+                ("SEEK", 3.0),
+                ("TRACKS_OFF", 2.0),
+                ("TRACKS_ON", 2.0),
+                ("RATE", 3.0),
+            ] {
+                pump(
+                    events,
+                    &mut timeline,
+                    epoch,
+                    Instant::now() + Duration::from_secs_f64(wait),
+                    |_| false,
+                )
+                .await;
                 let (kind, asked) = step(kind);
                 let answer = match kind {
                     "PAUSE" => media.pause().await,
@@ -603,7 +628,8 @@ async fn from_here(url: &str) -> String {
     let Some(rest) = url.strip_prefix("http://") else { return "not proxied".into() };
     let (authority, path) = rest.split_at(rest.find('/').unwrap_or(rest.len()));
     let Ok(Ok(mut socket)) =
-        tokio::time::timeout(Duration::from_secs(2), tokio::net::TcpStream::connect(authority)).await
+        tokio::time::timeout(Duration::from_secs(2), tokio::net::TcpStream::connect(authority))
+            .await
     else {
         return "no connection".into();
     };
@@ -619,12 +645,9 @@ async fn from_here(url: &str) -> String {
 
 /// Every case in a file, one per line: `label | flags…`, through one receiver session.
 async fn matrix(ip: Ipv4Addr, args: &[String]) -> Result<()> {
-    let base = Flags::read(&args.iter().take_while(|a| *a != "--cases").cloned().collect::<Vec<_>>())?;
-    let cases = args
-        .iter()
-        .skip_while(|a| *a != "--cases")
-        .nth(1)
-        .ok_or("--cases FILE")?;
+    let base =
+        Flags::read(&args.iter().take_while(|a| *a != "--cases").cloned().collect::<Vec<_>>())?;
+    let cases = args.iter().skip_while(|a| *a != "--cases").nth(1).ok_or("--cases FILE")?;
     let bind = discovery::local_address_towards(ip)?;
     let server = LanServer::start(Options {
         bind,

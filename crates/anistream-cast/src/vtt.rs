@@ -39,9 +39,10 @@ struct Style {
 /// Style names that mark typesetting and songs. Matched as words in the lowercased name.
 const SIGN_WORDS: &[&str] = &["sign", "signs", "title", "ts", "typeset", "caption"];
 const NOTE_WORDS: &[&str] = &["note", "notes", "tl"];
-const SONG_WORDS: &[&str] =
-    &["op", "ed", "song", "songs", "kara", "karaoke", "lyrics", "insert", "opening", "ending",
-      "romaji", "kanji", "eng-op", "eng-ed"];
+const SONG_WORDS: &[&str] = &[
+    "op", "ed", "song", "songs", "kara", "karaoke", "lyrics", "insert", "opening", "ending",
+    "romaji", "kanji", "eng-op", "eng-ed",
+];
 
 fn words(name: &str) -> Vec<String> {
     name.to_lowercase()
@@ -78,7 +79,10 @@ pub fn convert(ass: &str) -> (String, Tally) {
             ("[v4+ styles]" | "[v4 styles]", "Style") => {
                 let fields: Vec<&str> = rest.splitn(style_format.len().max(1), ',').collect();
                 let field = |name: &str| {
-                    style_format.iter().position(|f| f == name).and_then(|i| fields.get(i))
+                    style_format
+                        .iter()
+                        .position(|f| f == name)
+                        .and_then(|i| fields.get(i))
                         .map(|v| v.trim())
                 };
                 let flag = |name: &str| field(name).is_some_and(|v| v != "0");
@@ -95,10 +99,15 @@ pub fn convert(ass: &str) -> (String, Tally) {
                 tally.events += 1;
                 let fields: Vec<&str> = rest.splitn(event_format.len().max(1), ',').collect();
                 let field = |name: &str| {
-                    event_format.iter().position(|f| f == name).and_then(|i| fields.get(i))
-                        .copied().unwrap_or_default()
+                    event_format
+                        .iter()
+                        .position(|f| f == name)
+                        .and_then(|i| fields.get(i))
+                        .copied()
+                        .unwrap_or_default()
                 };
-                let (Some(start), Some(end)) = (time(field("start")), time(field("end"))) else {
+                let (Some(start), Some(end)) = (time(field("start")), time(field("end")))
+                else {
                     continue;
                 };
                 let style_name = field("style").trim();
@@ -219,7 +228,8 @@ fn drawing(tag: &str) -> bool {
 
 fn karaoke(tag: &str) -> bool {
     ["k", "K", "kf", "ko"].iter().any(|k| {
-        tag.strip_prefix(k).is_some_and(|n| !n.is_empty() && n.chars().all(|c| c.is_ascii_digit()))
+        tag.strip_prefix(k)
+            .is_some_and(|n| !n.is_empty() && n.chars().all(|c| c.is_ascii_digit()))
     })
 }
 
@@ -325,12 +335,8 @@ fn text_of(text: &str, style: &Style) -> (String, u8) {
         }
     }
     // A blank line would end the cue early.
-    let body = out
-        .lines()
-        .map(str::trim)
-        .filter(|l| !l.is_empty())
-        .collect::<Vec<_>>()
-        .join("\n");
+    let body =
+        out.lines().map(str::trim).filter(|l| !l.is_empty()).collect::<Vec<_>>().join("\n");
     (body, alignment)
 }
 
@@ -372,11 +378,21 @@ Comment: 0,0:00:06.00,0:00:08.00,Default,,0,0,0,,a comment\n";
                 empty: 0
             }
         );
-        assert!(vtt.starts_with("WEBVTT\n\n00:00:01.000 --> 00:00:03.500\nHello, <i>world</i>!\nSecond line\n"), "{vtt}");
-        assert!(vtt.contains("00:00:04.000 --> 00:00:05.000 line:5%\nAt the top &amp; &lt;here&gt;\n"));
+        assert!(
+            vtt.starts_with(
+                "WEBVTT\n\n00:00:01.000 --> 00:00:03.500\nHello, <i>world</i>!\nSecond line\n"
+            ),
+            "{vtt}"
+        );
+        assert!(vtt.contains(
+            "00:00:04.000 --> 00:00:05.000 line:5%\nAt the top &amp; &lt;here&gt;\n"
+        ));
         assert!(vtt.contains("\n<i>An inner voice</i>\n"));
         assert!(!vtt.contains("SHOP") && !vtt.contains("la la") && !vtt.contains("Rotated"));
-        assert!(vtt.contains("00:00:06.000 --> 00:00:07.000 line:5%\nPlaced at the top\n"), "{vtt}");
+        assert!(
+            vtt.contains("00:00:06.000 --> 00:00:07.000 line:5%\nPlaced at the top\n"),
+            "{vtt}"
+        );
     }
 
     #[test]

@@ -102,7 +102,8 @@ impl Channel {
             .with_no_client_auth();
         let connector = TlsConnector::from(Arc::new(config));
         let name = ServerName::IpAddress(address.ip().into());
-        let tls = connector.connect(name, tcp).await.map_err(|e| CastError::Tls(e.to_string()))?;
+        let tls =
+            connector.connect(name, tcp).await.map_err(|e| CastError::Tls(e.to_string()))?;
         let (read, write) = tokio::io::split(tls);
 
         let (writer, outgoing) = mpsc::unbounded_channel();
@@ -111,12 +112,8 @@ impl Channel {
         let sender = format!("sender-{:08x}", rand::random::<u32>());
         tokio::spawn(write_loop(write, outgoing));
         tokio::spawn(read_loop(read, writer.clone(), events, Arc::clone(&pending)));
-        let channel = Channel {
-            writer,
-            pending,
-            next_request: Arc::new(AtomicU64::new(1)),
-            sender,
-        };
+        let channel =
+            Channel { writer, pending, next_request: Arc::new(AtomicU64::new(1)), sender };
         channel.connect_to(RECEIVER)?;
         {
             let channel = channel.clone();
@@ -147,9 +144,18 @@ impl Channel {
     }
 
     /// Send a message that expects no reply.
-    pub fn send(&self, destination: &str, namespace: &str, payload: &Value) -> Result<(), CastError> {
-        let message =
-            CastMessage::text(self.sender.as_str(), destination, namespace, payload.to_string());
+    pub fn send(
+        &self,
+        destination: &str,
+        namespace: &str,
+        payload: &Value,
+    ) -> Result<(), CastError> {
+        let message = CastMessage::text(
+            self.sender.as_str(),
+            destination,
+            namespace,
+            payload.to_string(),
+        );
         tracing::trace!(%destination, %namespace, %payload, "cast →");
         self.writer.send(message).map_err(|_| CastError::Closed)
     }
@@ -169,10 +175,17 @@ impl Channel {
         self.send(destination, namespace, &payload)?;
         let reply = tokio::time::timeout(REPLY_TIMEOUT, rx).await;
         lock(&self.pending).remove(&id);
-        let reply = reply.map_err(|_| CastError::Timeout(kind))?.map_err(|_| CastError::Closed)?;
+        let reply =
+            reply.map_err(|_| CastError::Timeout(kind))?.map_err(|_| CastError::Closed)?;
         match reply["type"].as_str() {
-            Some("LOAD_FAILED" | "LOAD_CANCELLED" | "INVALID_REQUEST" | "LAUNCH_ERROR"
-                | "INVALID_PLAYER_STATE" | "ERROR") => Err(CastError::Refused(reply)),
+            Some(
+                "LOAD_FAILED"
+                | "LOAD_CANCELLED"
+                | "INVALID_REQUEST"
+                | "LAUNCH_ERROR"
+                | "INVALID_PLAYER_STATE"
+                | "ERROR",
+            ) => Err(CastError::Refused(reply)),
             _ => Ok(reply),
         }
     }
