@@ -1,5 +1,6 @@
 //! The Discord presence for one playback: connected for exactly as long as something plays,
-//! and nothing at all wherever it is turned off or Discord is not running.
+//! and nothing at all wherever it is turned off or Discord is not running, or the build has no
+//! `desktop` feature, Discord being a desktop program.
 
 use crate::playback::PlaybackContext;
 
@@ -8,11 +9,13 @@ use crate::playback::PlaybackContext;
 /// A wrapper rather than an `Option<Presence>` at every call site: presence is decoration, so every
 /// operation on it has to be a no-op when it is absent, and threading that check through the
 /// playback loop would put five `if let` blocks around something that cannot fail usefully.
+#[cfg(feature = "desktop")]
 pub(super) struct Rpc {
     inner: Option<anistream_player::Presence>,
     activity: anistream_player::Activity,
 }
 
+#[cfg(feature = "desktop")]
 impl Rpc {
     pub(super) async fn start(
         config: &anistream_core::config::PresenceConfig,
@@ -72,4 +75,22 @@ impl Rpc {
         }
         self.inner = None;
     }
+}
+
+/// No presence without the desktop feature: every call does nothing.
+#[cfg(not(feature = "desktop"))]
+pub(super) struct Rpc;
+
+#[cfg(not(feature = "desktop"))]
+impl Rpc {
+    pub(super) async fn start(
+        _: &anistream_core::config::PresenceConfig,
+        _: &PlaybackContext,
+    ) -> Self {
+        Self
+    }
+
+    pub(super) async fn update(&mut self, _: bool) {}
+
+    pub(super) async fn finish(&mut self) {}
 }

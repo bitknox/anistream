@@ -182,8 +182,10 @@ async fn main() -> anyhow::Result<()> {
             }
         }
     });
+    let host = std::sync::Arc::new(anistream_engine::host::DesktopHost::new(&config, &paths));
+    let machine = playback::Machine::desktop(mpv, slot, host);
     let play =
-        playback::play(streams, context, store, http, mpv, settings, slot, tx.into(), commands);
+        playback::play(streams, context, store, http, machine, settings, tx.into(), commands);
     tokio::time::timeout(Duration::from_secs(3600), play).await?;
     let _ = printer.await;
     // Finished with Up Next on, the window is parked for the next episode with its loading card

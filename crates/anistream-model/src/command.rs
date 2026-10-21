@@ -5,7 +5,8 @@ use anistream_core::ids::AnilistId;
 use crate::{
     catalog::{LibrarySegment, SearchFilters},
     episodes::EpisodeRow,
-    playback::Successor,
+    hosted::{PlayerChoice, PlayerReport},
+    playback::{PlaybackId, Successor},
     settings::SettingKey,
     stores::Secret,
 };
@@ -198,6 +199,12 @@ pub enum Command {
     },
     /// Something for the live mpv session.
     Player(PlayerCommand),
+    /// What the player a front end hosts says of `playback`: see [`crate::hosted`]. Taken in
+    /// as it is sent, ahead of the commands waiting, as mpv's reports are read off its socket.
+    PlayerReport {
+        playback: PlaybackId,
+        report: PlayerReport,
+    },
     /// Pin a title to a provider result the user picked, then load its episodes.
     FixMatch {
         id: AnilistId,
@@ -369,6 +376,26 @@ pub enum PlayerCommand {
     /// player could not be found, so the viewer, who is looking at the player, learns why the
     /// episode they were watching is still on.
     Alert(String),
+    /// Take the skip on offer.
+    TakeSkip,
+    /// Undo an automatic skip, back to `to`, where it started.
+    UndoSkip {
+        to: f64,
+    },
+    /// Play the next episode now: Up Next's button, and what a hosted player sends when its
+    /// countdown reaches zero.
+    PlayNext,
+    /// Do not roll on when this episode ends.
+    CancelNext,
+    /// A pick in the player's menus.
+    Choose(PlayerChoice),
+    /// The stall prompt's answers: another stream, or keep waiting.
+    StallSwitch,
+    StallWait,
+    /// Night mode on or off.
+    NightMode(bool),
+    /// An upscaling look, by id: `off`, `natural` or `sharp`.
+    Upscaling(String),
 }
 
 #[cfg(test)]

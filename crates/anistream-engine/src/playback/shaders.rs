@@ -457,6 +457,20 @@ fn digest() -> &'static str {
 /// Marker written last: its presence means every file before it is complete.
 const COMPLETE: &str = ".complete";
 
+/// Where the upscaling shaders were written, or `None` when anistream should leave
+/// `glsl-shaders` alone: the cache could not be written, or the user passes their own chain
+/// in `playback.mpv_args`, which our runtime writes would otherwise replace.
+pub fn shader_dir(
+    config: &anistream_core::config::Config,
+    paths: &anistream_core::config::Paths,
+) -> Option<std::path::PathBuf> {
+    let own_chain = config.playback.mpv_args.iter().any(|arg| arg.starts_with("--glsl-shader"));
+    if own_chain {
+        return None;
+    }
+    materialize(&paths.cache_dir)
+}
+
 /// Write every vendored shader to `<cache_dir>/shaders/<digest>/` and return that
 /// directory, or `None` when the cache cannot be written — playback without upscaling
 /// beats no playback.
