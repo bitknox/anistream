@@ -277,6 +277,9 @@ mod tests {
             Command::CheckNewEpisodes,
             Command::WidgetSnapshot,
             Command::UpcomingNotices,
+            Command::AppPhase {
+                phase: anistream_model::command::AppState::BackgroundDownloads,
+            },
             Command::SetSetting {
                 key: SettingKey::EpisodeNotifications,
                 value: SettingValue::Bool(true),

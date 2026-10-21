@@ -2,7 +2,8 @@
 //! what coming back to the foreground puts right.
 //!
 //! A phone's app runs while it is on screen, and for the episode playing with the screen
-//! locked. In the background its torrents wait, all but the episode playing when one plays.
+//! locked. In the background its torrents wait, all but the episode playing when one plays, and
+//! its downloads while the system gives it a window for them.
 //! Coming back, the connection check runs again before any of them resumes, since the network
 //! may have changed under the app while it was away, and a loopback server the system took is
 //! bound again on its own port, with what plays opened again from it. On a metered network,
@@ -28,6 +29,8 @@ pub fn hold_for(phase: AppState, metered: bool) -> Hold {
     match phase {
         AppState::Background { playing: false } => Hold::Everything,
         AppState::Background { playing: true } => Hold::AllButStreaming,
+        AppState::BackgroundDownloads if metered => Hold::AllButStreaming,
+        AppState::BackgroundDownloads => Hold::AllButDownloads,
         AppState::Foreground if metered => Hold::AllButStreaming,
         AppState::Foreground => Hold::Nothing,
     }
@@ -35,8 +38,13 @@ pub fn hold_for(phase: AppState, metered: bool) -> Hold {
 
 /// The app moved to `phase`.
 pub fn app_phase(phase: AppState, engine: &mut EngineState, tx: &Outbox) {
-    let back =
-        matches!(engine.phase, AppState::Background { .. }) && phase == AppState::Foreground;
+    let away = engine.phase != AppState::Foreground;
+    let back = away && phase == AppState::Foreground;
+    // What was held while away resumes only once the connection check passes again, on screen
+    // or in a downloads window: the network may have changed under the app meanwhile.
+    let checked = back
+        || (matches!(engine.phase, AppState::Background { .. })
+            && !matches!(phase, AppState::Background { .. }));
     engine.phase = phase;
     let hold = hold_for(phase, engine.metered);
     let torrents = engine.vpn_guard.clone();
@@ -46,7 +54,7 @@ pub fn app_phase(phase: AppState, engine: &mut EngineState, tx: &Outbox) {
         if back {
             come_back(controls).await;
         }
-        apply(hold, torrents, back, &tx).await;
+        apply(hold, torrents, checked, &tx).await;
     });
 }
 
@@ -111,5 +119,8 @@ mod tests {
         assert_eq!(hold_for(background(true), false), Hold::AllButStreaming);
         assert_eq!(hold_for(background(false), false), Hold::Everything);
         assert_eq!(hold_for(background(false), true), Hold::Everything);
+        // A downloads window: downloads and what plays go on, but not on a metered network.
+        assert_eq!(hold_for(AppState::BackgroundDownloads, false), Hold::AllButDownloads);
+        assert_eq!(hold_for(AppState::BackgroundDownloads, true), Hold::AllButStreaming);
     }
 }

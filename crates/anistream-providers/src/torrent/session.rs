@@ -297,6 +297,9 @@ pub enum Hold {
     /// Everything but the episode streaming, and the next one fetched ahead of it: downloads
     /// and seeding wait.
     AllButStreaming,
+    /// Everything but the download queue's torrents and what streams: seeding waits. A phone's
+    /// app in the background while the system lets its downloads go on.
+    AllButDownloads,
     /// Every torrent.
     Everything,
 }
@@ -640,8 +643,10 @@ impl TorrentSession {
         }
         // Nor may the seeding pool, whose goal would otherwise forget it mid-download.
         self.seeding.lock().unwrap_or_else(|e| e.into_inner()).retain(|s| s.id != handle.id());
-        // Queued while torrents are held, it waits with them.
-        if self.hold() != Hold::Nothing && self.session.pause(&handle).await.is_ok() {
+        // Queued while torrents are held, it waits with them, unless downloads are what run.
+        if !matches!(self.hold(), Hold::Nothing | Hold::AllButDownloads)
+            && self.session.pause(&handle).await.is_ok()
+        {
             self.held.lock().unwrap_or_else(|e| e.into_inner()).insert(handle.id());
         }
 
@@ -704,9 +709,11 @@ impl TorrentSession {
         let torrents = self.session.with_torrents(|torrents| {
             torrents.map(|(id, handle)| (id, handle.clone())).collect::<Vec<_>>()
         });
+        let downloads = self.download_ids.lock().unwrap_or_else(|e| e.into_inner()).clone();
         let wanted = |id: usize| match hold {
             Hold::Nothing => false,
             Hold::AllButStreaming => !streaming.contains(&id),
+            Hold::AllButDownloads => !streaming.contains(&id) && !downloads.contains(&id),
             Hold::Everything => true,
         };
         let held: std::collections::HashSet<usize> =
@@ -1011,9 +1018,10 @@ impl TorrentSession {
                 tracing::warn!(error = %e, "could not resume torrent");
             }
         }
-        // A hold that ended while the guard was failing is let go of now.
-        if self.hold() == Hold::Nothing && !held.is_empty() {
-            let _ = self.set_hold(Hold::Nothing).await;
+        // A hold that ended, or eased to downloads, while the guard was failing is let go of now.
+        let hold = self.hold();
+        if matches!(hold, Hold::Nothing | Hold::AllButDownloads) && !held.is_empty() {
+            let _ = self.set_hold(hold).await;
         }
         tracing::info!("vpn guard recovered: torrents resumed");
         Ok(())
@@ -1300,6 +1308,31 @@ mod tests {
         assert!(session.held().is_empty(), "already paused, so not held");
         session.set_hold(Hold::Nothing).await.unwrap();
         assert!(paused(&session), "as the viewer left it");
+        session.session.stop().await;
+    }
+
+    #[tokio::test]
+    async fn downloads_go_on_while_everything_else_waits() {
+        let root = tempfile::tempdir().unwrap();
+        let (session, id) =
+            session_with_local_torrent(root.path(), "Queued Batch", &BATCH).await;
+        let paused = |session: &TorrentSession| session.progress_of(id).unwrap().paused;
+        session.resume_one(id).await.unwrap();
+
+        // Not the queue's: it waits with the rest of what is not downloading.
+        session.set_hold(Hold::AllButDownloads).await.unwrap();
+        assert!(paused(&session), "not a download, so held");
+        assert_eq!(session.held(), [id].into_iter().collect());
+
+        // The queue's: let go of, and left running.
+        session.download_ids.lock().unwrap().insert(id);
+        session.set_hold(Hold::AllButDownloads).await.unwrap();
+        assert!(!paused(&session), "a download goes on");
+        assert!(session.held().is_empty());
+
+        // Every torrent waits again once the window ends.
+        session.set_hold(Hold::Everything).await.unwrap();
+        assert!(paused(&session));
         session.session.stop().await;
     }
 
