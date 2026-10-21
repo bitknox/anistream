@@ -4,23 +4,22 @@
 
 use anistream_core::{ids::AnilistId, media::Translation, stream::Stream};
 use anistream_model::event::Event;
-use anistream_player::{Action, MpvSession, PlaybackEvent, PlaybackTracker, TrackAction};
+use anistream_playback::{Action, PlaybackEvent, PlaybackTracker, TrackAction};
 use anistream_store::{Store, WatchEvent};
 
 use super::Run;
+use crate::playback::link::PlayerLink;
 
 impl Run<'_> {
     /// Carry out what the track policy decided.
-    pub(super) async fn apply_track(&self, action: TrackAction, session: &MpvSession) {
+    pub(super) async fn apply_track(&self, action: TrackAction, link: &dyn PlayerLink) {
         if let TrackAction::Remember(memory) = action {
             let key = (self.context.anilist_id, self.context.translation);
             remember_tracks(self.store, self.settings.remember_tracks, key, memory);
             return;
         }
         if let Some((name, value)) = action.property() {
-            let _ = session
-                .send(anistream_player::protocol::Command::SetProperty(name, value))
-                .await;
+            let _ = link.set(name, value).await;
         }
     }
 
@@ -29,7 +28,7 @@ impl Run<'_> {
         &self,
         action: Action,
         watched_secs: f64,
-        session: &MpvSession,
+        link: &dyn PlayerLink,
         stream: &Stream,
         committed: &mut bool,
         ending: &mut Option<bool>,
@@ -49,14 +48,22 @@ impl Run<'_> {
                 self.record(watch, completed, committed).await;
             }
             Action::ProbeChapters => {
-                if let Err(e) = session.restate_chapters().await {
+                if let Err(e) = link.restate_chapters().await {
                     tracing::debug!(error = %e, "could not ask for the chapter list");
                 }
             }
             Action::MarkChapters(marks) => {
                 // Best effort by design: a player that will not take them plays the
                 // episode exactly as it did before, and the skip prompt still works.
-                if let Err(e) = session.set_chapters(&marks).await {
+                // A write to `chapter-list` on a loaded file is what puts the markers on the seek
+                // bar and under chapter navigation, with no file to write and clean up. Markers
+                // past the runtime are dropped rather than refused, so an ending whose boundary
+                // runs off the end of a slightly short encode still lands.
+                let list: Vec<serde_json::Value> = marks
+                    .iter()
+                    .map(|(title, time)| serde_json::json!({ "title": title, "time": time }))
+                    .collect();
+                if let Err(e) = link.set("chapter-list", list.into()).await {
                     tracing::debug!(error = %e, "player would not take chapter markers");
                 }
             }

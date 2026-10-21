@@ -20,6 +20,7 @@ mod session;
 pub mod autonext;
 #[cfg(feature = "desktop")]
 pub mod handoff;
+pub mod link;
 pub mod mend;
 #[cfg(feature = "desktop")]
 pub mod picture;

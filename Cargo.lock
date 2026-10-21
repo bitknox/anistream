@@ -134,6 +134,7 @@ dependencies = [
  "anistream-meta",
  "anistream-model",
  "anistream-net",
+ "anistream-playback",
  "anistream-player",
  "anistream-plugin",
  "anistream-plugin-store",

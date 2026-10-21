@@ -164,6 +164,12 @@ impl Drop for MpvSession {
 }
 
 impl MpvSession {
+    /// Whether this mpv takes the index argument `loadfile` gained in 0.38: the shape a load is
+    /// sent in.
+    pub fn loadfile_index(&self) -> bool {
+        self.loadfile_index
+    }
+
     /// What mpv reported on stderr.
     pub fn diagnostics(&self) -> &Diagnostics {
         &self.diagnostics

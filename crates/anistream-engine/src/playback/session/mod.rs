@@ -29,9 +29,8 @@ use anistream_model::{
 // of a play, so they are the model's, and still named from here for whatever plays.
 pub use anistream_model::playback::{EpisodeEntry, NextEpisode};
 use anistream_net::HttpClient;
-use anistream_player::{
-    ExternalPlayer, Mpv, SkipInterval, TrackAction, TrackPreferences, companion,
-};
+use anistream_playback::{SkipInterval, TrackAction, TrackPreferences, companion};
+use anistream_player::{ExternalPlayer, Mpv};
 use anistream_store::Store;
 use tokio::sync::mpsc;
 
@@ -39,6 +38,7 @@ use crate::{
     outbox::Outbox,
     playback::{
         PlaybackContext,
+        link::{LinkError, Overlay, PlayerLink},
         picture::HdrKind,
         shaders::Look,
         slot::{Player, PlayerSlot},
@@ -300,14 +300,14 @@ pub async fn play(
 
         // A window: the one this playback already has, the one the last episode left open,
         // or a new one.
-        if player.as_ref().is_none_or(|p| !p.session.is_alive()) {
+        if player.as_ref().is_none_or(|p| !p.link.is_alive()) {
             player = slot.take();
             run.night_applied = false;
         }
         if player.is_none() {
             let _ = tx.send(Event::Status("starting mpv…".into()));
             match mpv.spawn(&request).await {
-                Ok((session, events)) => player = Some(Player::new(session, events)),
+                Ok((session, events)) => player = Some(Player::new(Box::new(session), events)),
                 Err(e) if last => {
                     let _ = tx.send(Event::Toast(Notice::alert(format!("mpv: {e}"))));
                     // The player never existed, but the UI has Now Playing up and a control
@@ -341,8 +341,8 @@ pub async fn play(
             }
         }
 
-        run.publish(&current.session, &streams, index).await;
-        if let Err(e) = current.session.load(&stream, &request).await {
+        run.publish(current.link.as_ref(), &streams, index).await;
+        if let Err(e) = load(current.link.as_ref(), &stream, &request).await {
             tracing::warn!(error = %e, "could not hand the stream to mpv");
         }
         let _ =
@@ -367,21 +367,21 @@ pub async fn play(
             FileOutcome::Handover(successor) => {
                 if let Some(player) = player.take() {
                     let _ = player
-                        .session
-                        .send(companion::state(
-                            "status",
-                            &companion::Status::loading(context.handing_to(&successor), None),
-                        ))
+                        .link
+                        .overlay(Overlay::Status(companion::Status::loading(
+                            context.handing_to(&successor),
+                            None,
+                        )))
                         .await;
                     // Silence what was playing while the next stream is found.
-                    let _ = player.session.stop().await;
+                    let _ = player.link.stop().await;
                     slot.park(player);
                 }
                 return;
             }
             FileOutcome::Ended { watched, complete, exited, stopped, quit, no_frames } => {
                 let reported = match (&player, no_frames) {
-                    (Some(p), true) => p.session.diagnostics().most_relevant().await,
+                    (Some(p), true) => p.link.diagnostics().await,
                     _ => None,
                 };
 
@@ -410,18 +410,15 @@ pub async fn play(
                 if let Some(player) = player.take() {
                     if let Some(next) = next {
                         let _ = player
-                            .session
-                            .send(companion::state(
-                                "status",
-                                &companion::Status::loading(
-                                    format!("Up next · {}", next.label()),
-                                    Some("Finding sources…".into()),
-                                ),
-                            ))
+                            .link
+                            .overlay(Overlay::Status(companion::Status::loading(
+                                format!("Up next · {}", next.label()),
+                                Some("Finding sources…".into()),
+                            )))
                             .await;
                         slot.park(player);
                     } else {
-                        player.session.shutdown().await;
+                        player.link.shutdown().await;
                     }
                 }
 
@@ -460,6 +457,30 @@ pub async fn play(
             }
         }
     }
+}
+
+/// Open `stream` in the player, in place of whatever was playing.
+///
+/// Everything that belongs to the file travels with it, so the previous file's never leak into
+/// this one: headers, resume point, title and track languages as its options, and before them
+/// where the seek bar's thumbnails are read, so the thumbnailer sees the right address when it
+/// starts on this file. A torrent gives a second address that reads only what is already
+/// downloaded, so thumbnails never pull bandwidth away from the playhead. External subtitles are
+/// attached once the file has loaded.
+async fn load(
+    link: &dyn PlayerLink,
+    stream: &Stream,
+    request: &PlaybackRequest,
+) -> Result<(), LinkError> {
+    link.overlay(Overlay::ThumbnailUrl(stream.thumbnail_url.clone())).await?;
+    let options = anistream_playback::protocol::file_options(
+        &stream.headers,
+        request.start_at,
+        &request.title,
+        request.subtitle_language.as_deref(),
+        request.dub,
+    );
+    link.load(&stream.url, options).await
 }
 
 /// The next stream not yet tried, wrapping around; the current one when all have been.
