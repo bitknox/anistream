@@ -78,6 +78,9 @@ struct ShowSettingsSheet: View {
                 row("Spoiler protection:") { deferred(ShowDefaults.spoilers(spoilers)) }
                 note("Blurs stills after the next episode.")
                 rule
+                row("New episodes:") { ShowNoticesMenu(id: entry.id, mac: true).frame(width: 270) }
+                note("A notification when an episode comes out.")
+                rule
                 row("Source:") {
                     Menu {
                         ShowSourcePicker(id: entry.id) { EmptyView() }
@@ -181,6 +184,18 @@ struct PhoneShowSettingsSheet: View {
                                      value: phone(ShowDefaults.spoilers(spoilers)), waitsOn: "E8")
                 } header: {
                     PhoneSectionHeader("Episodes")
+                }
+                Section {
+                    HStack {
+                        PhoneRowTitle(title: "New episodes")
+                        Spacer()
+                        ShowNoticesMenu(id: entry.id)
+                    }
+                    .listRowBackground(Palette.raised)
+                } header: {
+                    PhoneSectionHeader("Notifications")
+                } footer: {
+                    Text("When an episode of this show comes out")
                 }
                 Section {
                     HStack {

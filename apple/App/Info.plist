@@ -20,6 +20,18 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
+		<!-- The app refresh task that keeps new-episode notifications scheduled. -->
+		<string>fetch</string>
 	</array>
+	<!-- iPhone and iPad: the background refresh, which checks for new episodes, schedules the
+	     week's notifications and writes the widgets' record. -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>tv.anistream.refresh</string>
+	</array>
+	<!-- The App Group the app writes the widgets' record into, from ANISTREAM_APP_GROUP. The
+	     Fixtures app has none, so it never writes over the app's. -->
+	<key>AnistreamAppGroup</key>
+	<string>$(ANISTREAM_APP_GROUP)</string>
 </dict>
 </plist>

@@ -19,6 +19,8 @@ struct AnistreamApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     #endif
 
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some Scene {
         #if os(macOS)
         // The one window: browsing, and the player in its place while it plays (M4).
@@ -66,5 +68,12 @@ struct AnistreamApp: App {
             .frame(minWidth: 960, minHeight: 600)
             #endif
             .task { await delegate.start() }
+            .onChange(of: scenePhase) { _, phase in
+                switch phase {
+                case .active: delegate.notices.cameForward()
+                case .background: delegate.notices.wentAway()
+                default: break
+                }
+            }
     }
 }

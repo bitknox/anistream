@@ -26,7 +26,7 @@ public final class SettingsModel {
 
     /// One row: its value, and how it is changed.
     public func row(_ key: SettingKey) -> SettingRow? {
-        view?.rows.first { $0.key == key }
+        view?.rows.first { $0.key == key } ?? view?.nativeRows.first { $0.key == key }
     }
 
     /// Whether a switch is on.

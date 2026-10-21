@@ -8,7 +8,7 @@ import SwiftUI
 
 /// Settings' panes. Integrations stays out of v1.
 public enum SettingsPane: String, CaseIterable, Identifiable, Hashable, Sendable {
-    case playback, downloads, sources, accounts, advanced
+    case playback, downloads, notifications, sources, accounts, advanced
 
     public var id: String { rawValue }
 
@@ -16,6 +16,7 @@ public enum SettingsPane: String, CaseIterable, Identifiable, Hashable, Sendable
         switch self {
         case .playback: "Playback"
         case .downloads: "Downloads"
+        case .notifications: "Notifications"
         case .sources: "Sources"
         case .accounts: "Accounts"
         case .advanced: "Advanced"
@@ -25,15 +26,18 @@ public enum SettingsPane: String, CaseIterable, Identifiable, Hashable, Sendable
 
 /// A page of the iPhone's Settings sheet.
 public enum PhoneSettingsPage: Hashable, Sendable {
-    case root, playback, downloads, sources, accounts, providers, stores, about, acknowledgements
+    case root, playback, downloads, notifications, sources, accounts, providers, stores, about, acknowledgements
     case store(String)
     case plugin(String)
+    /// A show's own new-episode switch, from a row of the Notifications page's week.
+    case showNotices(AnilistId)
 
     /// The page a launch argument names: a Settings pane's name, or providers or stores.
     static func named(_ name: String) -> PhoneSettingsPage? {
         switch name {
         case "playback": .playback
         case "downloads": .downloads
+        case "notifications": .notifications
         case "sources": .sources
         case "accounts": .accounts
         case "providers": .providers
@@ -86,6 +90,7 @@ struct SettingsScreen: View {
                 switch navigator.settingsPane {
             case .playback: PlaybackPane()
             case .downloads: DownloadsPane()
+            case .notifications: NotificationsPane()
             case .sources: SourcesPane()
             case .accounts: AccountsPane()
             case .advanced: AdvancedPane()
@@ -110,6 +115,7 @@ struct SettingsResults: View {
         ("Start fullscreen", .playback),
         ("Download folder", .downloads), ("Download quality", .downloads), ("Merge subtitles in", .downloads),
         ("Keep seeding", .downloads), ("After each download", .downloads), ("Watched downloads", .downloads),
+        ("New episodes", .notifications), ("Notification settings", .notifications),
         ("Source order", .sources), ("Torrent source", .sources), ("Torrent index", .sources),
         ("Protect with", .sources), ("Last check", .sources), ("If a check fails", .sources),
         ("Seed after watching", .sources), ("Seed for at most", .sources), ("Upload limit", .sources),
@@ -185,6 +191,8 @@ struct SettingsAside: View {
                 if navigator.playbackFocus == .titleLanguage { TitleLanguagePreview() } else { UpscalingPreview() }
             case .downloads:
                 StorageAside()
+            case .notifications:
+                NotificationsAside()
             case .sources:
                 if store.settings.isOn(.torrents) {
                     aside("Connection check", "anistream checks where torrent traffic leaves from when a torrent starts and every minute while it runs, and pauses torrents if that check fails. Your VPN or proxy is what protects you.")
