@@ -31,6 +31,11 @@ struct PhoneSettingsSheet: View {
         }
         .onAppear { if start != .root, path.isEmpty { path = [start] } }
         .modifier(DeviceCodePresenter(here: true))
+        // What the engine says while Settings is open, a sign-in that failed among it: at the
+        // foot of the sheet, clear of its bar.
+        .overlay(alignment: .bottom) {
+            NoticeCapsule(opensMessages: false).padding(.horizontal, 16).padding(.bottom, 24)
+        }
         .tint(.amber)
         .preferredColorScheme(.dark)
     }

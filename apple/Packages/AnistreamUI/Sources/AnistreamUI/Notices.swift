@@ -12,6 +12,11 @@ struct NoticeCapsule: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
     @AccessibilityFocusState private var focused: Bool
+    /// Whether the notices show here: over the iPhone's Settings sheet they show on the sheet,
+    /// and not twice.
+    var here = true
+    /// Whether a tap opens Messages, which a sheet over the window cannot.
+    var opensMessages = true
 
     /// How long a notice stays up.
     static func duration(_ item: NoticeItem) -> Duration {
@@ -20,9 +25,9 @@ struct NoticeCapsule: View {
 
     var body: some View {
         ZStack {
-            if let item = store.notices.current {
+            if here, let item = store.notices.current {
                 Button {
-                    navigator.messagesShown = true
+                    if opensMessages { navigator.messagesShown = true }
                 } label: {
                     HStack(spacing: 8) {
                         if item.isAlert {
@@ -41,7 +46,7 @@ struct NoticeCapsule: View {
                 .frame(maxWidth: 520)
                 .transition(.opacity)
                 .accessibilityLabel(item.notice.text.capitalizedSentence)
-                .accessibilityHint("Opens Messages")
+                .accessibilityHint(opensMessages ? "Opens Messages" : "")
                 .accessibilityFocused($focused)
                 .task(id: item.id) {
                     try? await Task.sleep(for: Self.duration(item))
@@ -54,7 +59,7 @@ struct NoticeCapsule: View {
             }
         }
         .animation(.fadeIn, value: store.notices.current?.id)
-        .modifier(NoticeAnnouncer())
+        .modifier(NoticeAnnouncer(enabled: here))
     }
 }
 
