@@ -247,7 +247,7 @@ impl Harness {
         start.saved = Some(saved);
         start.sources = Some(registry.clone());
         start.background = Background::none();
-        start.parts = Some(Parts { meta, sync, stores });
+        start.parts = Some(Parts { meta, sync, stores, clock: Default::default() });
         let (engine, mut events) = Engine::start(start, host).await.expect("the engine starts");
         // What launch says, applied as the loop applies it before its first frame: the stores,
         // the chain and the trackers on their rows.
@@ -761,6 +761,8 @@ pub fn name(update: &Event) -> &'static str {
         Event::InviteLink(_) => "InviteLink",
         Event::StoreMembers { .. } => "StoreMembers",
         Event::LocalPlugins { .. } => "LocalPlugins",
+        Event::NewEpisodes(_) => "NewEpisodes",
+        Event::WidgetSnapshot(_) => "WidgetSnapshot",
     }
 }
 
@@ -901,5 +903,7 @@ fn copy(update: &Event) -> Event {
         Event::LocalPlugins { store, plugins } => {
             Event::LocalPlugins { store: store.clone(), plugins: plugins.clone() }
         }
+        Event::NewEpisodes(episodes) => Event::NewEpisodes(episodes.clone()),
+        Event::WidgetSnapshot(data) => Event::WidgetSnapshot(data.clone()),
     }
 }

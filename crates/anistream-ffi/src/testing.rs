@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use anistream_core::config::NetworkConfig;
 use anistream_engine::{
+    clock::Clock,
     options::{Background, EngineOptions, Parts},
     plugin_stores, tracking,
 };
@@ -58,12 +59,30 @@ impl FfiEngine {
     /// against AniList's rate limit. Empty on an engine that is not on the fake. Only in a build
     /// with the `testing` feature.
     pub fn testing_anilist_requests(&self) -> Vec<String> {
-        self.kept::<FakeAniList>()
-            .map(|server| {
-                server.requests().iter().map(|r| format!("{:?}", r.operation)).collect()
+        self.kept::<Testing>()
+            .map(|kept| {
+                kept.server.requests().iter().map(|r| format!("{:?}", r.operation)).collect()
             })
             .unwrap_or_default()
     }
+
+    /// Let `secs` pass, for the engine and the fake AniList alike: the broadcasts stay where
+    /// they are, so an episode due in an hour has aired once an hour is let pass. What the
+    /// new-episode check and the widgets' record are dated by moves on; nothing else in the
+    /// engine does. Does nothing on an engine that is not on the fake. Only in a build with the
+    /// `testing` feature.
+    pub fn testing_advance_clock(&self, secs: i64) {
+        if let Some(kept) = self.kept::<Testing>() {
+            kept.clock.advance(secs);
+            kept.server.advance(secs);
+        }
+    }
+}
+
+/// What a test's engine is kept beside: the fake AniList it asks, and the clock it goes by.
+pub(crate) struct Testing {
+    pub(crate) server: FakeAniList,
+    pub(crate) clock: Clock,
 }
 
 impl FfiEngine {
@@ -90,26 +109,28 @@ impl FfiEngine {
         let runtime = runtime()?;
         let started = runtime.block_on(async {
             // The fake answers on the engine's runtime, for as long as the engine holds it.
-            let server = FakeAniList::start().await;
-            let options = options(opened, &server, &start, sources)?;
-            Ok::<_, FfiError>((Self::launch(options, host).await?, server))
+            let testing =
+                Testing { server: FakeAniList::start().await, clock: Clock::default() };
+            let options = options(opened, &testing, &start, sources)?;
+            Ok::<_, FfiError>((Self::launch(options, host).await?, testing))
         });
         match started {
-            Ok((started, server)) => Self::hold(runtime, Ok(started), Some(Box::new(server))),
+            Ok((started, testing)) => Self::hold(runtime, Ok(started), Some(Box::new(testing))),
             Err(e) => Self::hold(runtime, Err(e), None),
         }
     }
 }
 
 /// The options [`FfiEngine::start_testing`] starts from: the harness's in the binary, on the
-/// app's directories rather than a temporary one.
+/// app's directories rather than a temporary one, asking `testing`'s fake and going by its clock.
 /// `sources` stands in for the fixture provider, whose stills the fake serves, when given.
 pub(crate) fn options(
     opened: Opened,
-    server: &FakeAniList,
+    testing: &Testing,
     start: &FfiStart,
     sources: Option<ProviderRegistry>,
 ) -> Result<EngineOptions, FfiError> {
+    let server = &testing.server;
     let Opened { paths, config, store } = opened;
     // The fixtures' covers, banners and stills, from the fake, for an app that shows them.
     server.serve_art();
@@ -143,6 +164,6 @@ pub(crate) fn options(
         }));
     options.background = Background::none();
     options.hosted_player = true;
-    options.parts = Some(Parts { meta, sync, stores });
+    options.parts = Some(Parts { meta, sync, stores, clock: testing.clock.clone() });
     Ok(options)
 }

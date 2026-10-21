@@ -82,11 +82,12 @@ impl FfiEngine {
             let server = FakeAniList::start().await;
             server.set_now(now);
             let sources = scene_sources(&scene, &server.art_base());
-            let options = testing::options(opened, &server, &start, sources)?;
-            Ok::<_, FfiError>((Self::launch(options, host).await?, server))
+            let testing = testing::Testing { server, clock: Default::default() };
+            let options = testing::options(opened, &testing, &start, sources)?;
+            Ok::<_, FfiError>((Self::launch(options, host).await?, testing))
         });
         match started {
-            Ok((started, server)) => Self::hold(runtime, Ok(started), Some(Box::new(server))),
+            Ok((started, testing)) => Self::hold(runtime, Ok(started), Some(Box::new(testing))),
             Err(e) => Self::hold(runtime, Err(e), None),
         }
     }

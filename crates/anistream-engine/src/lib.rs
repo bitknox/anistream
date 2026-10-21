@@ -68,6 +68,9 @@
 //!   [`host::Host::secrets`], since files are the fallback and are said to be less;
 //! - choose the background work its platform allows, in [`options::Background`]: the system
 //!   may not let a sync loop run while the app is away, and may run its own schedule instead;
+//! - run the new-episode check and refresh its widgets from the system's own background task,
+//!   on an engine started with none of that work: `Command::CheckNewEpisodes` says how, and
+//!   [`new_episodes`] what the check does;
 //! - not offer playback, or a sign-in to AniList or MyAnimeList, until the engine can hand it
 //!   a stream to play and a redirect to take.
 
@@ -84,6 +87,7 @@ pub mod artwork;
 pub mod background;
 pub mod cache;
 pub mod catalog;
+pub mod clock;
 pub mod config;
 pub mod data;
 pub(crate) mod dispatch;
@@ -92,6 +96,7 @@ pub mod engine;
 pub mod error;
 pub mod host;
 pub mod jobs;
+pub mod new_episodes;
 pub mod options;
 pub mod outbox;
 pub mod phases;
@@ -107,6 +112,7 @@ pub mod title_language;
 pub mod titles;
 pub mod tracking;
 pub mod updates;
+pub mod widgets;
 
 /// Now, in seconds since the Unix epoch, by the system clock: what the work dates and ages
 /// things by.
