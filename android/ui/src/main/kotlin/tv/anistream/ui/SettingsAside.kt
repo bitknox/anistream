@@ -64,6 +64,10 @@ internal fun SettingsAside(pane: SettingsPane, focus: String?) {
     ) {
         when (pane) {
             SettingsPane.Playback -> if (focus == FOCUS_TITLES) TitleLanguagePreview() else UpscalingPreview()
+            SettingsPane.Notifications -> Aside(
+                "New episodes",
+                "One notification when an episode of a show you follow comes out: the show and the episode's number, never its name. A show can turn its own off in its settings.",
+            )
             SettingsPane.Downloads -> Aside(
                 "Downloads",
                 "Downloads stay in anistream's own space on this device, which other apps cannot read. Removing the app removes them.",

@@ -86,6 +86,10 @@ class SettingsShots {
 
     @Test
     @Config(qualifiers = PHONE)
+    fun phone_settings_notifications() = shoot("phone-settings-notifications", settingsRoute(SettingsPane.Notifications))
+
+    @Test
+    @Config(qualifiers = PHONE)
     fun phone_settings_titles() = shoot("phone-settings-titles", settingsRoute(SettingsPane.Playback), tap = "Title language")
 
     @Test

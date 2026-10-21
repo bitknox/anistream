@@ -1,6 +1,6 @@
 {
  "scene": "fresh",
- "recordedAt": 1792601762738,
+ "recordedAt": 1792614784543,
  "events": [
   {
    "@type": "Settings",
@@ -356,6 +356,15 @@
        "back": false,
        "forward": true
       }
+     },
+     {
+      "key": "EPISODE_NOTIFICATIONS",
+      "value": "off",
+      "change": {
+       "@type": "Steps",
+       "back": false,
+       "forward": true
+      }
      }
     ],
     "overridden": [],
@@ -436,8 +445,15 @@
    "activity": "loading the calendar"
   },
   {
+   "@type": "Caption",
+   "view": {
+    "@type": "Seasonal"
+   },
+   "text": "fall 2026"
+  },
+  {
    "@type": "CalendarWindow",
-   "anchor": "1792601765",
+   "anchor": "1792614785",
    "pages": "1",
    "morePast": false
   },
@@ -490,7 +506,14 @@
       "endDate": null,
       "source": "LIGHT_NOVEL",
       "adult": false,
-      "detail": null
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+        "spoiler": false
+       }
+      ]
      },
      {
       "id": "900002",
@@ -533,7 +556,14 @@
       "endDate": null,
       "source": "LIGHT_NOVEL",
       "adult": false,
-      "detail": null
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+        "spoiler": false
+       }
+      ]
      },
      {
       "id": "900006",
@@ -575,7 +605,14 @@
       "endDate": null,
       "source": null,
       "adult": false,
-      "detail": null
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+        "spoiler": false
+       }
+      ]
      },
      {
       "id": "900002",
@@ -618,7 +655,14 @@
       "endDate": null,
       "source": "LIGHT_NOVEL",
       "adult": false,
-      "detail": null
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+        "spoiler": false
+       }
+      ]
      },
      {
       "id": "900006",
@@ -660,7 +704,14 @@
       "endDate": null,
       "source": null,
       "adult": false,
-      "detail": null
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+        "spoiler": false
+       }
+      ]
      },
      {
       "id": "900002",
@@ -703,7 +754,14 @@
       "endDate": null,
       "source": "LIGHT_NOVEL",
       "adult": false,
-      "detail": null
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+        "spoiler": false
+       }
+      ]
      },
      {
       "id": "900006",
@@ -745,7 +803,14 @@
       "endDate": null,
       "source": null,
       "adult": false,
-      "detail": null
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+        "spoiler": false
+       }
+      ]
      }
     ]
    }
@@ -753,13 +818,6 @@
   {
    "@type": "JobDone",
    "v1": "3"
-  },
-  {
-   "@type": "Caption",
-   "view": {
-    "@type": "Seasonal"
-   },
-   "text": "fall 2026"
   },
   {
    "@type": "Content",
@@ -810,7 +868,14 @@
       "endDate": null,
       "source": "LIGHT_NOVEL",
       "adult": false,
-      "detail": null
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+        "spoiler": false
+       }
+      ]
      },
      {
       "id": "900006",
@@ -852,7 +917,14 @@
       "endDate": null,
       "source": null,
       "adult": false,
-      "detail": null
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+        "spoiler": false
+       }
+      ]
      }
     ]
    }
@@ -893,41 +965,6 @@
    "@type": "JobStarted",
    "job": "5",
    "activity": "loading your watching list"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "WATCHING"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "5"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "6",
-   "activity": "loading your planning list"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "PLANNING"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "6"
   },
   {
    "@type": "Caption",
@@ -1007,7 +1044,14 @@
       },
       "source": "MANGA",
       "adult": false,
-      "detail": null
+      "detail": null,
+      "status": "FINISHED",
+      "synopsisSpans": [
+       {
+        "text": "A lamplighter with no memory of her home walks the old star roads, relighting the beacons that guide travellers between the towns. Each town she saves remembers a little of her, and she, a little less of herself.",
+        "spoiler": false
+       }
+      ]
      },
      {
       "id": "900004",
@@ -1054,7 +1098,14 @@
       },
       "source": "MANGA",
       "adult": false,
-      "detail": null
+      "detail": null,
+      "status": "FINISHED",
+      "synopsisSpans": [
+       {
+        "text": "The beacons are lit, and the roads lead somewhere new: to the city that sent the first lamplighters out.",
+        "spoiler": false
+       }
+      ]
      }
     ]
    }
@@ -1062,6 +1113,41 @@
   {
    "@type": "JobDone",
    "v1": "4"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "WATCHING"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "5"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "6",
+   "activity": "loading your planning list"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "PLANNING"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "6"
   },
   {
    "@type": "JobStarted",
@@ -1240,51 +1326,51 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1713038135"
+       "airsAt": "1713051155"
       },
       {
        "episode": "2",
-       "airsAt": "1713642935"
+       "airsAt": "1713655955"
       },
       {
        "episode": "3",
-       "airsAt": "1714247735"
+       "airsAt": "1714260755"
       },
       {
        "episode": "4",
-       "airsAt": "1714852535"
+       "airsAt": "1714865555"
       },
       {
        "episode": "5",
-       "airsAt": "1715457335"
+       "airsAt": "1715470355"
       },
       {
        "episode": "6",
-       "airsAt": "1716062135"
+       "airsAt": "1716075155"
       },
       {
        "episode": "7",
-       "airsAt": "1716666935"
+       "airsAt": "1716679955"
       },
       {
        "episode": "8",
-       "airsAt": "1717271735"
+       "airsAt": "1717284755"
       },
       {
        "episode": "9",
-       "airsAt": "1717876535"
+       "airsAt": "1717889555"
       },
       {
        "episode": "10",
-       "airsAt": "1718481335"
+       "airsAt": "1718494355"
       },
       {
        "episode": "11",
-       "airsAt": "1719086135"
+       "airsAt": "1719099155"
       },
       {
        "episode": "12",
-       "airsAt": "1719690935"
+       "airsAt": "1719703955"
       }
      ],
      "relations": [
@@ -1297,8 +1383,10 @@
        "relation": "SEQUEL",
        "format": "TV",
        "coverUrl": "https://img.example/cover/900004.jpg",
+       "coverColor": "#d77f4a",
        "season": "WINTER",
-       "year": "2025"
+       "year": "2025",
+       "listStatus": null
       }
      ],
      "recommendations": [
@@ -1311,8 +1399,10 @@
        "relation": null,
        "format": "ONA",
        "coverUrl": "https://img.example/cover/900005.jpg",
+       "coverColor": "#7ac47f",
        "season": "SUMMER",
-       "year": "2023"
+       "year": "2023",
+       "listStatus": null
       },
       {
        "id": "900003",
@@ -1323,8 +1413,10 @@
        "relation": null,
        "format": "MOVIE",
        "coverUrl": "https://img.example/cover/900003.jpg",
+       "coverColor": "#f1d97a",
        "season": "SUMMER",
-       "year": "2025"
+       "year": "2025",
+       "listStatus": null
       }
      ],
      "rankings": [
@@ -1394,12 +1486,173 @@
        "role": "Music"
       }
      ]
-    }
+    },
+    "status": "FINISHED",
+    "synopsisSpans": [
+     {
+      "text": "A lamplighter with no memory of her home walks the old star roads, relighting the beacons that guide travellers between the towns. Each town she saves remembers a little of her, and she, a little less of herself.",
+      "spoiler": false
+     }
+    ]
    }
   },
   {
    "@type": "JobDone",
    "v1": "10"
+  },
+  {
+   "@type": "Episodes",
+   "id": "900001",
+   "rows": [
+    {
+     "number": "1",
+     "title": "The Lantern Road",
+     "thumbnail": "https://img.example/ep/900001/1.jpg",
+     "description": "A lamplighter wakes on the star road with a lantern and no name.",
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1713051155"
+    },
+    {
+     "number": "2",
+     "title": "A Town Without Night",
+     "thumbnail": "https://img.example/ep/900001/2.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1713655955"
+    },
+    {
+     "number": "3",
+     "title": "The Ferryman's Ledger",
+     "thumbnail": "https://img.example/ep/900001/3.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1714260755"
+    },
+    {
+     "number": "4",
+     "title": "Embers in the Snow",
+     "thumbnail": "https://img.example/ep/900001/4.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1714865555"
+    },
+    {
+     "number": "5",
+     "title": "What the Beacons Remember",
+     "thumbnail": "https://img.example/ep/900001/5.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1715470355"
+    },
+    {
+     "number": "6",
+     "title": "The Cartographer's Daughter",
+     "thumbnail": "https://img.example/ep/900001/6.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1716075155"
+    },
+    {
+     "number": "7",
+     "title": "Rain over Kiriya Pass",
+     "thumbnail": "https://img.example/ep/900001/7.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1716679955"
+    },
+    {
+     "number": "8",
+     "title": "A Letter Never Sent",
+     "thumbnail": "https://img.example/ep/900001/8.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1717284755"
+    },
+    {
+     "number": "9",
+     "title": "The Last Lamplighter",
+     "thumbnail": "https://img.example/ep/900001/9.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1717889555"
+    },
+    {
+     "number": "10",
+     "title": "Where the Roads Cross",
+     "thumbnail": "https://img.example/ep/900001/10.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1718494355"
+    },
+    {
+     "number": "11",
+     "title": "The Sky Archive",
+     "thumbnail": "https://img.example/ep/900001/11.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1719099155"
+    },
+    {
+     "number": "12",
+     "title": "Home, by Starlight",
+     "thumbnail": "https://img.example/ep/900001/12.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1719703955"
+    }
+   ]
+  },
+  {
+   "@type": "JobDone",
+   "v1": "11"
   },
   {
    "@type": "ShowSettings",
@@ -1435,165 +1688,17 @@
       "own": null,
       "value": "on",
       "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
      }
     ],
     "remembered": [],
     "source": null
    }
-  },
-  {
-   "@type": "Episodes",
-   "id": "900001",
-   "rows": [
-    {
-     "number": "1",
-     "title": "The Lantern Road",
-     "thumbnail": "https://img.example/ep/900001/1.jpg",
-     "description": "A lamplighter wakes on the star road with a lantern and no name.",
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1713038135"
-    },
-    {
-     "number": "2",
-     "title": "A Town Without Night",
-     "thumbnail": "https://img.example/ep/900001/2.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1713642935"
-    },
-    {
-     "number": "3",
-     "title": "The Ferryman's Ledger",
-     "thumbnail": "https://img.example/ep/900001/3.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1714247735"
-    },
-    {
-     "number": "4",
-     "title": "Embers in the Snow",
-     "thumbnail": "https://img.example/ep/900001/4.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1714852535"
-    },
-    {
-     "number": "5",
-     "title": "What the Beacons Remember",
-     "thumbnail": "https://img.example/ep/900001/5.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1715457335"
-    },
-    {
-     "number": "6",
-     "title": "The Cartographer's Daughter",
-     "thumbnail": "https://img.example/ep/900001/6.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1716062135"
-    },
-    {
-     "number": "7",
-     "title": "Rain over Kiriya Pass",
-     "thumbnail": "https://img.example/ep/900001/7.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1716666935"
-    },
-    {
-     "number": "8",
-     "title": "A Letter Never Sent",
-     "thumbnail": "https://img.example/ep/900001/8.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1717271735"
-    },
-    {
-     "number": "9",
-     "title": "The Last Lamplighter",
-     "thumbnail": "https://img.example/ep/900001/9.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1717876535"
-    },
-    {
-     "number": "10",
-     "title": "Where the Roads Cross",
-     "thumbnail": "https://img.example/ep/900001/10.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1718481335"
-    },
-    {
-     "number": "11",
-     "title": "The Sky Archive",
-     "thumbnail": "https://img.example/ep/900001/11.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1719086135"
-    },
-    {
-     "number": "12",
-     "title": "Home, by Starlight",
-     "thumbnail": "https://img.example/ep/900001/12.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1719690935"
-    }
-   ]
-  },
-  {
-   "@type": "JobDone",
-   "v1": "11"
   },
   {
    "@type": "JobStarted",
@@ -1608,55 +1713,6 @@
    "@type": "JobStarted",
    "job": "13",
    "activity": "loading episodes"
-  },
-  {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900002",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
-  },
-  {
-   "@type": "JobStarted",
-   "job": "14",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
   },
   {
    "@type": "Detail",
@@ -1730,99 +1786,99 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1789762265"
+       "airsAt": "1789775285"
       },
       {
        "episode": "2",
-       "airsAt": "1790367065"
+       "airsAt": "1790380085"
       },
       {
        "episode": "3",
-       "airsAt": "1790971865"
+       "airsAt": "1790984885"
       },
       {
        "episode": "4",
-       "airsAt": "1791576665"
+       "airsAt": "1791589685"
       },
       {
        "episode": "5",
-       "airsAt": "1792181465"
+       "airsAt": "1792194485"
       },
       {
        "episode": "6",
-       "airsAt": "1792786265"
+       "airsAt": "1792799285"
       },
       {
        "episode": "7",
-       "airsAt": "1793391065"
+       "airsAt": "1793404085"
       },
       {
        "episode": "8",
-       "airsAt": "1793995865"
+       "airsAt": "1794008885"
       },
       {
        "episode": "9",
-       "airsAt": "1794600665"
+       "airsAt": "1794613685"
       },
       {
        "episode": "10",
-       "airsAt": "1795205465"
+       "airsAt": "1795218485"
       },
       {
        "episode": "11",
-       "airsAt": "1795810265"
+       "airsAt": "1795823285"
       },
       {
        "episode": "12",
-       "airsAt": "1796415065"
+       "airsAt": "1796428085"
       },
       {
        "episode": "13",
-       "airsAt": "1797019865"
+       "airsAt": "1797032885"
       },
       {
        "episode": "14",
-       "airsAt": "1797624665"
+       "airsAt": "1797637685"
       },
       {
        "episode": "15",
-       "airsAt": "1798229465"
+       "airsAt": "1798242485"
       },
       {
        "episode": "16",
-       "airsAt": "1798834265"
+       "airsAt": "1798847285"
       },
       {
        "episode": "17",
-       "airsAt": "1799439065"
+       "airsAt": "1799452085"
       },
       {
        "episode": "18",
-       "airsAt": "1800043865"
+       "airsAt": "1800056885"
       },
       {
        "episode": "19",
-       "airsAt": "1800648665"
+       "airsAt": "1800661685"
       },
       {
        "episode": "20",
-       "airsAt": "1801253465"
+       "airsAt": "1801266485"
       },
       {
        "episode": "21",
-       "airsAt": "1801858265"
+       "airsAt": "1801871285"
       },
       {
        "episode": "22",
-       "airsAt": "1802463065"
+       "airsAt": "1802476085"
       },
       {
        "episode": "23",
-       "airsAt": "1803067865"
+       "airsAt": "1803080885"
       },
       {
        "episode": "24",
-       "airsAt": "1803672665"
+       "airsAt": "1803685685"
       }
      ],
      "relations": [],
@@ -1836,8 +1892,10 @@
        "relation": null,
        "format": "TV",
        "coverUrl": "https://img.example/cover/900001.jpg",
+       "coverColor": "#e4a15d",
        "season": "SPRING",
-       "year": "2024"
+       "year": "2024",
+       "listStatus": null
       }
      ],
      "rankings": [
@@ -1879,17 +1937,19 @@
        "role": "Series Composition"
       }
      ]
-    }
+    },
+    "status": "RELEASING",
+    "synopsisSpans": [
+     {
+      "text": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+      "spoiler": false
+     }
+    ]
    }
   },
   {
    "@type": "JobDone",
    "v1": "12"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "15",
-   "activity": "loading episodes"
   },
   {
    "@type": "Episodes",
@@ -1905,7 +1965,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1789762265"
+     "airsAt": "1789775285"
     },
     {
      "number": "2",
@@ -1917,7 +1977,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1790367065"
+     "airsAt": "1790380085"
     },
     {
      "number": "3",
@@ -1929,7 +1989,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1790971865"
+     "airsAt": "1790984885"
     },
     {
      "number": "4",
@@ -1941,7 +2001,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1791576665"
+     "airsAt": "1791589685"
     },
     {
      "number": "5",
@@ -1953,7 +2013,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1792181465"
+     "airsAt": "1792194485"
     }
    ]
   },
@@ -1964,7 +2024,7 @@
   {
    "@type": "ShowSettings",
    "v1": {
-    "id": "900003",
+    "id": "900002",
     "rows": [
      {
       "key": "TRANSLATION",
@@ -1995,11 +2055,26 @@
       "own": null,
       "value": "on",
       "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
      }
     ],
     "remembered": [],
     "source": null
    }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "14",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
   },
   {
    "@type": "Detail",
@@ -2076,8 +2151,10 @@
        "relation": null,
        "format": "TV",
        "coverUrl": "https://img.example/cover/900001.jpg",
+       "coverColor": "#e4a15d",
        "season": "SPRING",
-       "year": "2024"
+       "year": "2024",
+       "listStatus": null
       }
      ],
      "rankings": [],
@@ -2100,7 +2177,14 @@
        "role": "Director"
       }
      ]
-    }
+    },
+    "status": "FINISHED",
+    "synopsisSpans": [
+     {
+      "text": "On the last night a rural station is open, two strangers wait for a train that only runs under a full moon.",
+      "spoiler": false
+     }
+    ]
    }
   },
   {
@@ -2109,16 +2193,7 @@
   },
   {
    "@type": "JobStarted",
-   "job": "16",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "JobStarted",
-   "job": "17",
+   "job": "15",
    "activity": "loading episodes"
   },
   {
@@ -2142,6 +2217,66 @@
   {
    "@type": "JobDone",
    "v1": "15"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900003",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "16",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "JobStarted",
+   "job": "17",
+   "activity": "loading episodes"
   },
   {
    "@type": "Detail",
@@ -2212,70 +2347,29 @@
        "relation": "PREQUEL",
        "format": "TV",
        "coverUrl": "https://img.example/cover/900001.jpg",
+       "coverColor": "#e4a15d",
        "season": "SPRING",
-       "year": "2024"
+       "year": "2024",
+       "listStatus": null
       }
      ],
      "recommendations": [],
      "rankings": [],
      "characters": [],
      "staff": []
-    }
+    },
+    "status": "FINISHED",
+    "synopsisSpans": [
+     {
+      "text": "The beacons are lit, and the roads lead somewhere new: to the city that sent the first lamplighters out.",
+      "spoiler": false
+     }
+    ]
    }
   },
   {
    "@type": "JobDone",
    "v1": "16"
-  },
-  {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900004",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
-  },
-  {
-   "@type": "JobStarted",
-   "job": "18",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "19",
-   "activity": "loading episodes"
   },
   {
    "@type": "Episodes",
@@ -2432,13 +2526,9 @@
    "v1": "17"
   },
   {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
    "@type": "ShowSettings",
    "v1": {
-    "id": "900005",
+    "id": "900004",
     "rows": [
      {
       "key": "TRANSLATION",
@@ -2469,6 +2559,12 @@
       "own": null,
       "value": "on",
       "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
      }
     ],
     "remembered": [],
@@ -2477,7 +2573,7 @@
   },
   {
    "@type": "JobStarted",
-   "job": "20",
+   "job": "18",
    "activity": "loading the title"
   },
   {
@@ -2486,8 +2582,89 @@
   },
   {
    "@type": "JobStarted",
-   "job": "21",
+   "job": "19",
    "activity": "loading episodes"
+  },
+  {
+   "@type": "Detail",
+   "v1": {
+    "id": "900005",
+    "title": "The Steel Gardener",
+    "secondary": "Hagane no Niwashi",
+    "format": "ONA",
+    "episodes": "10",
+    "year": "2023",
+    "score": "71",
+    "studio": "Studio Mokusei",
+    "synopsis": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
+    "coverUrl": "https://img.example/cover/900005-xl.jpg",
+    "bannerUrl": null,
+    "genres": [
+     "Sci-Fi",
+     "Slice of Life"
+    ],
+    "availableOn": [],
+    "progress": null,
+    "airingIn": null,
+    "airingEpisode": null,
+    "nextEpisode": null,
+    "nextAiringIn": null,
+    "lastAired": null,
+    "resume": null,
+    "related": [],
+    "recommended": [],
+    "trailerUrl": null,
+    "listStatus": null,
+    "titleRomaji": "Hagane no Niwashi",
+    "titleEnglish": "The Steel Gardener",
+    "titleNative": "鋼の庭師",
+    "season": "SUMMER",
+    "startDate": {
+     "year": "2023",
+     "month": "7",
+     "day": "1"
+    },
+    "endDate": {
+     "year": "2023",
+     "month": "9",
+     "day": "2"
+    },
+    "source": "WEB_NOVEL",
+    "adult": false,
+    "detail": {
+     "tags": [
+      {
+       "name": "Gardening",
+       "rank": "85",
+       "mediaSpoiler": false,
+       "generalSpoiler": false,
+       "category": "Theme-Slice of Life"
+      }
+     ],
+     "schedule": [],
+     "relations": [],
+     "recommendations": [],
+     "rankings": [],
+     "characters": [],
+     "staff": [
+      {
+       "name": "Director of The Steel Gardener",
+       "role": "Director"
+      }
+     ]
+    },
+    "status": "FINISHED",
+    "synopsisSpans": [
+     {
+      "text": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
+      "spoiler": false
+     }
+    ]
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "18"
   },
   {
    "@type": "Episodes",
@@ -2620,78 +2797,64 @@
    "v1": "19"
   },
   {
-   "@type": "Detail",
+   "@type": "ShowSettings",
    "v1": {
     "id": "900005",
-    "title": "The Steel Gardener",
-    "secondary": "Hagane no Niwashi",
-    "format": "ONA",
-    "episodes": "10",
-    "year": "2023",
-    "score": "71",
-    "studio": "Studio Mokusei",
-    "synopsis": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
-    "coverUrl": "https://img.example/cover/900005-xl.jpg",
-    "bannerUrl": null,
-    "genres": [
-     "Sci-Fi",
-     "Slice of Life"
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     }
     ],
-    "availableOn": [],
-    "progress": null,
-    "airingIn": null,
-    "airingEpisode": null,
-    "nextEpisode": null,
-    "nextAiringIn": null,
-    "lastAired": null,
-    "resume": null,
-    "related": [],
-    "recommended": [],
-    "trailerUrl": null,
-    "listStatus": null,
-    "titleRomaji": "Hagane no Niwashi",
-    "titleEnglish": "The Steel Gardener",
-    "titleNative": "鋼の庭師",
-    "season": "SUMMER",
-    "startDate": {
-     "year": "2023",
-     "month": "7",
-     "day": "1"
-    },
-    "endDate": {
-     "year": "2023",
-     "month": "9",
-     "day": "2"
-    },
-    "source": "WEB_NOVEL",
-    "adult": false,
-    "detail": {
-     "tags": [
-      {
-       "name": "Gardening",
-       "rank": "85",
-       "mediaSpoiler": false,
-       "generalSpoiler": false,
-       "category": "Theme-Slice of Life"
-      }
-     ],
-     "schedule": [],
-     "relations": [],
-     "recommendations": [],
-     "rankings": [],
-     "characters": [],
-     "staff": [
-      {
-       "name": "Director of The Steel Gardener",
-       "role": "Director"
-      }
-     ]
-    }
+    "remembered": [],
+    "source": null
    }
   },
   {
-   "@type": "JobDone",
-   "v1": "18"
+   "@type": "JobStarted",
+   "job": "20",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "JobStarted",
+   "job": "21",
+   "activity": "loading episodes"
   },
   {
    "@type": "Detail",
@@ -2740,51 +2903,51 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1788299765"
+       "airsAt": "1788312785"
       },
       {
        "episode": "2",
-       "airsAt": "1788904565"
+       "airsAt": "1788917585"
       },
       {
        "episode": "3",
-       "airsAt": "1789509365"
+       "airsAt": "1789522385"
       },
       {
        "episode": "4",
-       "airsAt": "1790114165"
+       "airsAt": "1790127185"
       },
       {
        "episode": "5",
-       "airsAt": "1790718965"
+       "airsAt": "1790731985"
       },
       {
        "episode": "6",
-       "airsAt": "1791323765"
+       "airsAt": "1791336785"
       },
       {
        "episode": "7",
-       "airsAt": "1791928565"
+       "airsAt": "1791941585"
       },
       {
        "episode": "8",
-       "airsAt": "1792533365"
+       "airsAt": "1792546385"
       },
       {
        "episode": "9",
-       "airsAt": "1793138165"
+       "airsAt": "1793151185"
       },
       {
        "episode": "10",
-       "airsAt": "1793742965"
+       "airsAt": "1793755985"
       },
       {
        "episode": "11",
-       "airsAt": "1794347765"
+       "airsAt": "1794360785"
       },
       {
        "episode": "12",
-       "airsAt": "1794952565"
+       "airsAt": "1794965585"
       }
      ],
      "relations": [],
@@ -2792,7 +2955,14 @@
      "rankings": [],
      "characters": [],
      "staff": []
-    }
+    },
+    "status": "RELEASING",
+    "synopsisSpans": [
+     {
+      "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+      "spoiler": false
+     }
+    ]
    }
   },
   {
@@ -2813,7 +2983,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1788299765"
+     "airsAt": "1788312785"
     },
     {
      "number": "2",
@@ -2825,7 +2995,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1788904565"
+     "airsAt": "1788917585"
     },
     {
      "number": "3",
@@ -2837,7 +3007,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1789509365"
+     "airsAt": "1789522385"
     },
     {
      "number": "4",
@@ -2849,7 +3019,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1790114165"
+     "airsAt": "1790127185"
     },
     {
      "number": "5",
@@ -2861,7 +3031,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1790718965"
+     "airsAt": "1790731985"
     },
     {
      "number": "6",
@@ -2873,7 +3043,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1791323765"
+     "airsAt": "1791336785"
     },
     {
      "number": "7",
@@ -2885,7 +3055,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1791928565"
+     "airsAt": "1791941585"
     },
     {
      "number": "8",
@@ -2897,7 +3067,7 @@
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1792533365"
+     "airsAt": "1792546385"
     }
    ]
   },
@@ -2939,6 +3109,12 @@
       "own": null,
       "value": "on",
       "default": "on"
+     },
+     {
+      "key": "NOTIFY_NEW_EPISODES",
+      "own": null,
+      "value": "off",
+      "default": "off"
      }
     ],
     "remembered": [],

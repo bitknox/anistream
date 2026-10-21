@@ -3,6 +3,15 @@
 package tv.anistream.store
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -102,6 +111,25 @@ class AppStore(
 
     /** The playback's events, for the player the app hosts: its ops and interface. */
     var onPlayback: ((Event) -> Unit)? = null
+
+    private val _answers = MutableSharedFlow<Event>(extraBufferCapacity = 8)
+
+    /**
+     * The events that answer a command once and with no job: the new-episode check's and the
+     * widgets' record, for the background work that asked, as [ask] waits for them.
+     */
+    val answers: SharedFlow<Event> = _answers.asSharedFlow()
+
+    /**
+     * Send [command] and wait for the event that answers it, the first [answer] takes, at most
+     * [timeoutMillis]; `null` when none came. Listening starts before the command goes, so an
+     * answer that comes at once is not missed.
+     */
+    suspend fun <T : Any> ask(command: Command, timeoutMillis: Long, answer: (Event) -> T?): T? = coroutineScope {
+        val answered = async(start = CoroutineStart.UNDISPATCHED) { answers.mapNotNull(answer).first() }
+        send(command)
+        withTimeoutOrNull(timeoutMillis) { answered.await() }.also { answered.cancel() }
+    }
 
     // The engine
 
@@ -542,6 +570,7 @@ class AppStore(
             is Event.Downloads -> downloads.apply(event.v1)
             is Event.Seeding -> downloads.seeding(event.v1)
             is Event.ShowSettings -> showSettings.apply(event.v1)
+            is Event.NewEpisodes, is Event.WidgetSnapshot -> _answers.tryEmit(event)
 
             is Event.ArtworkReady -> artwork.ready(event.url, event.bytes)
             is Event.ImageFailed -> artwork.failed(event.url)

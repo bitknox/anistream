@@ -33,7 +33,7 @@ import tv.anistream.store.InviteLinks
 import tv.anistream.ui.AppActions
 import tv.anistream.ui.AppLink
 import tv.anistream.ui.AppRoot
-import tv.anistream.ui.AppSwitch
+import tv.anistream.ui.NotificationActions
 import tv.anistream.ui.Destination
 
 class MainActivity : ComponentActivity() {
@@ -44,16 +44,12 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * The permission asked for as new-episode notifications are turned on: they go on with it.
-     * Without it, where the system will not ask again, its notification settings for the app open.
+     * The permission asked for as new-episode notifications are turned on: they go on with it,
+     * and without it stay off, the switch's line saying why.
      */
     private val askForEpisodes = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         app.notifier.asked()
-        if (granted) {
-            app.episodeAlerts.set(true)
-        } else if (!shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
-            openNotificationSettings()
-        }
+        if (granted) app.episodeAlerts.set(true) else app.episodeAlerts.refuse()
     }
 
     /** New-episode notifications, on Settings' switch: on only once they can show. */
@@ -63,13 +59,25 @@ class MainActivity : ComponentActivity() {
             EpisodeAlerts.Turn.Off -> app.episodeAlerts.set(false)
             EpisodeAlerts.Turn.On -> app.episodeAlerts.set(true)
             EpisodeAlerts.Turn.Ask -> askForEpisodes.launch(Manifest.permission.POST_NOTIFICATIONS)
-            EpisodeAlerts.Turn.SystemSettings -> openNotificationSettings()
+            EpisodeAlerts.Turn.SystemSettings -> {
+                app.episodeAlerts.refuse()
+                openNotificationSettings()
+            }
         }
     }
 
-    /** The system's notification settings for the app. */
+    /**
+     * The system's settings for the New episodes channel: its sound, vibration and the lock screen,
+     * and the app's notifications as a whole where those are off.
+     */
     private fun openNotificationSettings() {
-        startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
+        // The notifier makes the channel, which the page needs to be there.
+        app.episodeNotifier
+        startActivity(
+            Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                .putExtra(Settings.EXTRA_CHANNEL_ID, EpisodeNotifier.CHANNEL),
+        )
     }
 
     /** AniList's and MyAnimeList's sign-in in a Custom Tab, and the redirect that ends it. */
@@ -94,7 +102,7 @@ class MainActivity : ComponentActivity() {
         holdPortraitOnPhones(resources.configuration)
 
         app.start(Flavour.launch(this, intent))
-        Flavour.started(app.store, intent, app.episodeNotifier)
+        Flavour.started(this, app.store, intent, app.episodeNotifier)
         val steerable = debuggable || Flavour.FIXTURES
         val start = intent.getStringExtra(SECTION)?.takeIf { steerable }
             ?.let(Destination::named) ?: Destination.Continue
@@ -103,7 +111,11 @@ class MainActivity : ComponentActivity() {
         val page = intent.getStringExtra(PAGE)?.takeIf { steerable }
 
         val actions = AppActions(
-            episodeNotifications = if (app.episodeCheck != null) AppSwitch(app.episodeAlerts.on, ::setEpisodeNotifications) else null,
+            notifications = NotificationActions(
+                turn = ::setEpisodeNotifications,
+                refused = app.episodeAlerts.refused,
+                openSystemSettings = ::openNotificationSettings,
+            ),
         )
         setContent {
             AnistreamTheme {

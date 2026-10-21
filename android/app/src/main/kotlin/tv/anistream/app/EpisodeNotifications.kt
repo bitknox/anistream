@@ -11,12 +11,20 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Typeface
 import android.net.Uri
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.StyleSpan
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import tv.anistream.design.ObiSilk
 import tv.anistream.engine.core.AnilistId
 import tv.anistream.store.NewEpisode
+import tv.anistream.store.Wording
 import tv.anistream.ui.AppLink
 
 /**
@@ -30,15 +38,24 @@ data class EpisodePlan(val posts: List<Post>, val summary: Summary?) {
     /** One episode's notification. */
     data class Post(val episode: NewEpisode, val tag: String, val alert: Boolean)
 
+    /** An episode as the summary lists it: the show, then "Episode 8". */
+    data class Line(val title: String, val episode: UInt)
+
     /** The group's summary: how many, and a line for each, newest first. */
-    data class Summary(val count: Int, val lines: List<String>)
+    data class Summary(val count: Int, val lines: List<Line>) {
+        /** "3 new episodes". */
+        val title: String get() = if (count == 1) "1 new episode" else "$count new episodes"
+
+        /** The shows, as the collapsed summary names them: "Kazamachi Shokudo, Ame no Kajiya and Natsukaze Relay". */
+        val text: String get() = Wording.list(lines.map { it.title }.distinct())
+    }
 
     companion object {
         /**
          * The plan for [episodes] when [shown] are already posted: each by its tag, with the
          * line the summary gives it.
          */
-        fun of(episodes: List<NewEpisode>, shown: Map<String, String>): EpisodePlan {
+        fun of(episodes: List<NewEpisode>, shown: Map<String, Line>): EpisodePlan {
             val unique = episodes.distinctBy(::tagOf)
             var rung = false
             val posts = unique.map { episode ->
@@ -58,21 +75,23 @@ data class EpisodePlan(val posts: List<Post>, val summary: Summary?) {
 
         fun tagOf(id: AnilistId, episode: UInt): String = "episode/$id/$episode"
 
-        /** What the notification says under the title: "Episode 8 is out". */
-        fun textOf(episode: NewEpisode): String = "Episode ${episode.episode} is out"
+        /** What the notification says under the show's title: "Episode 9 is out." Never the episode's name. */
+        fun textOf(episode: NewEpisode): String = "Episode ${episode.episode} is out."
 
-        /** The summary's line for it: "Stardust Wayfarer · Episode 8". */
-        fun lineOf(episode: NewEpisode): String = "${episode.title} · Episode ${episode.episode}"
+        /** The summary's line for it. */
+        fun lineOf(episode: NewEpisode): Line = Line(episode.title, episode.episode)
 
-        /** The summary's title: "3 new episodes". */
-        fun summaryTitle(count: Int): String = if (count == 1) "1 new episode" else "$count new episodes"
+        /** What shows with previews hidden on the lock screen: the app's name, and this. */
+        const val HIDDEN_TEXT = "New episode"
     }
 }
 
 /**
  * Posts the new-episode notifications on their own channel, "New episodes", at the default
- * importance. The layout is a plain one until the design draws it: the show's title, "Episode 8 is
- * out", when it aired, and two actions, Play and Mark watched. A tap opens the show's page.
+ * importance, as NativeNotify draws them: the mark on an amber circle, the show's title, "Episode 9
+ * is out." and when it aired, the cover on the right, and expanded, the art in full with Play and
+ * Mark watched. A tap opens the show's page. With previews hidden, the lock screen says only "New
+ * episode".
  */
 class EpisodeNotifier(private val context: Context) {
     private val manager = context.getSystemService(NotificationManager::class.java)
@@ -116,45 +135,66 @@ class EpisodeNotifier(private val context: Context) {
         }
     }
 
-    /** The episodes' notifications on screen, each by its tag, with its summary line. */
-    private fun shown(): Map<String, String> = manager.activeNotifications
+    /** The episodes' notifications on screen, each by its tag, with its summary line, oldest first. */
+    private fun shown(): Map<String, EpisodePlan.Line> = manager.activeNotifications
         .filter { it.id == EPISODE_ID && it.tag != null && it.notification.group == GROUP }
         .sortedBy { it.notification.`when` }
-        .associate { it.tag to (it.notification.extras.getString(EXTRA_LINE) ?: it.tag) }
+        .associate { shown ->
+            val extras = shown.notification.extras
+            shown.tag to EpisodePlan.Line(extras.getString(EXTRA_SHOW).orEmpty(), extras.getInt(EXTRA_EPISODE).toUInt())
+        }
+
+    /** The notification's frame, the same for an episode and the summary: the mark on amber, the channel, the group. */
+    private fun builder(): NotificationCompat.Builder = NotificationCompat.Builder(context, CHANNEL)
+        .setSmallIcon(R.drawable.ic_launcher_monochrome)
+        .setColor(AMBER)
+        .setGroup(GROUP)
+        .setAutoCancel(true)
 
     private fun notification(post: EpisodePlan.Post): Notification {
         val episode = post.episode
         val tag = post.tag
-        return NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(R.drawable.ic_launcher_monochrome)
+        val builder = builder()
             .setContentTitle(episode.title)
             .setContentText(EpisodePlan.textOf(episode))
             .setWhen(episode.airedAt * 1000)
             .setShowWhen(true)
-            .setGroup(GROUP)
-            .setAutoCancel(true)
             .setSilent(!post.alert)
             .setOnlyAlertOnce(true)
-            .addExtras(android.os.Bundle().apply { putString(EXTRA_LINE, EpisodePlan.lineOf(episode)) })
+            .setPublicVersion(builder().setContentTitle(context.getString(R.string.app_name)).setContentText(EpisodePlan.HIDDEN_TEXT).build())
+            .addExtras(
+                android.os.Bundle().apply {
+                    putString(EXTRA_SHOW, episode.title)
+                    putInt(EXTRA_EPISODE, episode.episode.toInt())
+                },
+            )
             .setContentIntent(openIntent(context, AppLink.Title(episode.id), tag))
             .addAction(0, context.getString(R.string.episode_play), openIntent(context, AppLink.Play(episode.id, episode.episode.toString()), tag))
             .addAction(0, context.getString(R.string.episode_mark_watched), markWatchedIntent(context, episode.id, episode.episode))
-            .build()
+        // The cover on the right, and expanded, the art in full in its place.
+        episode.art?.let { art ->
+            builder.setLargeIcon(art).setStyle(NotificationCompat.BigPictureStyle().bigPicture(art).bigLargeIcon(null as Bitmap?))
+        }
+        return builder.build()
     }
 
     private fun summary(summary: EpisodePlan.Summary): Notification {
         val style = NotificationCompat.InboxStyle()
-        summary.lines.forEach(style::addLine)
-        return NotificationCompat.Builder(context, CHANNEL)
-            .setSmallIcon(R.drawable.ic_launcher_monochrome)
-            .setContentTitle(EpisodePlan.summaryTitle(summary.count))
-            .setContentText(summary.lines.joinToString(", "))
+        for (line in summary.lines) {
+            style.addLine(
+                SpannableStringBuilder()
+                    .append(line.title, StyleSpan(Typeface.BOLD), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                    .append("  Episode ${line.episode}"),
+            )
+        }
+        return builder()
+            .setContentTitle(summary.title)
+            .setContentText(summary.text)
             .setStyle(style)
-            .setGroup(GROUP)
+            .setPublicVersion(builder().setContentTitle(context.getString(R.string.app_name)).setContentText(summary.title).setGroupSummary(true).build())
             .setGroupSummary(true)
             // The episodes ring, as the plan says; the summary never does.
             .setGroupAlertBehavior(NotificationCompat.GROUP_ALERT_CHILDREN)
-            .setAutoCancel(true)
             .setContentIntent(
                 PendingIntent.getActivity(
                     context,
@@ -168,10 +208,10 @@ class EpisodeNotifier(private val context: Context) {
 
     companion object {
         /** The channel, "New episodes". */
-        const val CHANNEL = "new-episodes"
+        const val CHANNEL = "new_episodes"
 
         /** The group every episode's notification joins. */
-        const val GROUP = "tv.anistream.NEW_EPISODES"
+        const val GROUP = "new-episodes"
 
         /** Each episode's notification goes by its tag under this id; the summary by its own. */
         const val EPISODE_ID = 1
@@ -183,7 +223,12 @@ class EpisodeNotifier(private val context: Context) {
         /** The notification an app link came from, by its tag, to take away as it opens. */
         const val EXTRA_NOTIFICATION = "tv.anistream.extra.NOTIFICATION"
 
-        private const val EXTRA_LINE = "tv.anistream.extra.SUMMARY_LINE"
+        /** The show and the episode a notification is for, for the summary's lines. */
+        private const val EXTRA_SHOW = "tv.anistream.extra.SHOW"
+        private const val EXTRA_EPISODE = "tv.anistream.extra.EPISODE"
+
+        /** The small icon's circle: the palette's amber. */
+        private val AMBER = ObiSilk.Amber.toArgb()
 
         /**
          * The activity on [link], from [tag]'s notification. Each link is its own intent by its

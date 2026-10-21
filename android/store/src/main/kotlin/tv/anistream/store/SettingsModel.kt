@@ -51,7 +51,7 @@ object SettingsCatalog {
         SettingKey.MARK_CHAPTERS, SettingKey.FULLSCREEN, SettingKey.NIGHT_MODE, SettingKey.MERGE_SUBTITLES,
         SettingKey.KEEP_SEEDING, SettingKey.PRESENCE, SettingKey.PRESENCE_TITLE, SettingKey.TORRENTS,
         SettingKey.SYNCPLAY, SettingKey.UPDATE_CHECK, SettingKey.SPOILER_PROTECTION,
-        SettingKey.DOWNLOADS_ON_CELLULAR, SettingKey.TORRENTS_ON_CELLULAR,
+        SettingKey.DOWNLOADS_ON_CELLULAR, SettingKey.TORRENTS_ON_CELLULAR, SettingKey.EPISODE_NOTIFICATIONS,
     )
 
     /** The settings with two states, on and off, that a switch shows. */
@@ -106,6 +106,9 @@ object SettingsCatalog {
 
     /** Whether a switch's row says it is on. */
     fun isOn(row: SettingRow?): Boolean = row?.value == "on"
+
+    /** Whether a setting's words say it is on: "on", or a sheet's "Use Default · On". */
+    fun isOnWords(value: String): Boolean = value.substringAfterLast("· ").equals("on", ignoreCase = true)
 
     /** Whether the row can be changed from here at all: `SettingChange::editable`. */
     fun editable(row: SettingRow?): Boolean = row != null && row.change !is SettingChange.Fixed

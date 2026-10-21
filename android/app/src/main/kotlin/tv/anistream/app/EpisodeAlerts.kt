@@ -3,35 +3,53 @@
 package tv.anistream.app
 
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import tv.anistream.engine.model.SettingKey
+import tv.anistream.store.AppStore
 
 /**
- * The new-episode notifications switch, off until the person turns it on. Kept on the device
- * until this build's engine has `SettingKey::EpisodeNotifications`, which it then follows; the
- * periodic check runs while it is on.
+ * New-episode notifications on this device: the engine's `EpisodeNotifications` setting, off until
+ * the person turns it on. The periodic check runs while it is on and a notification can show; where
+ * one no longer can, the permission taken back or the channel turned off, it goes off, and Settings
+ * says why.
  */
-class EpisodeAlerts(private val context: Context, private val notifier: EpisodeNotifier, private val available: Boolean) {
-    private val preferences get() = context.getSharedPreferences("anistream", Context.MODE_PRIVATE)
+class EpisodeAlerts(private val context: Context, private val store: AppStore, private val notifier: EpisodeNotifier) {
+    private val _refused = MutableStateFlow(false)
 
-    private val _on = MutableStateFlow(available && preferences.getBoolean(KEY, false))
-    val on: StateFlow<Boolean> = _on.asStateFlow()
+    /** Whether it went off, or did not go on, because Android does not let anistream notify. */
+    val refused: StateFlow<Boolean> = _refused.asStateFlow()
 
-    /** Turn them on or off, and the check with them. The permission is the activity's to ask first. */
+    /** Turn them on, as the activity does once they can show, or off. */
     fun set(on: Boolean) {
-        val wanted = on && available
-        preferences.edit().putBoolean(KEY, wanted).apply()
-        _on.value = wanted
-        NewEpisodesSchedule.set(context, wanted)
+        if (on) _refused.value = false
+        store.setSwitch(KEY, on)
+        NewEpisodesSchedule.set(context, on)
+    }
+
+    /** They could not go on, or stay on: the permission declined, or notifications blocked. */
+    fun refuse() {
+        set(false)
+        _refused.value = true
     }
 
     /**
-     * At launch: the schedule as the switch says, and the switch off where notifications can no
-     * longer show, the permission taken back or the channel turned off.
+     * For the life of the process: the schedule as the setting says, asked again at each launch so
+     * it keeps its place and takes this version's constraints, and the setting off where
+     * notifications can no longer show.
      */
-    fun reconcile() {
-        set(_on.value && notifier.canPost)
+    fun follow(scope: CoroutineScope) {
+        scope.launch {
+            store.settings.view.filterNotNull().map { store.settings.isOn(KEY, it) }.distinctUntilChanged().collect { on ->
+                if (on && !notifier.canPost) refuse() else NewEpisodesSchedule.set(context, on)
+            }
+        }
     }
 
     /** What turning the switch takes. */
@@ -58,7 +76,7 @@ class EpisodeAlerts(private val context: Context, private val notifier: EpisodeN
         }
     }
 
-    private companion object {
-        const val KEY = "episodeNotifications"
+    companion object {
+        val KEY = SettingKey.EPISODE_NOTIFICATIONS
     }
 }
