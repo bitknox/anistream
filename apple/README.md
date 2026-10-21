@@ -9,7 +9,7 @@ generates for `crates/anistream-ffi`.
 | `scripts/engine.sh` | Builds the engine as an XCFramework, with its Swift bindings |
 | `scripts/mpv.sh` | Builds libmpv as Mpv.xcframework, from source with `patches/` |
 | `scripts/test.sh` | Runs every Swift package's tests with SwiftPM |
-| `scripts/player-media.sh` | Makes the player tests' synthetic media |
+| `scripts/player-media.sh` | Makes the player's synthetic media: the tests', and the Fixtures app's episode |
 | `scripts/fonts.sh` | Fetches the CJK subtitle font the iOS app bundles |
 | `scripts/notices.sh` | Writes `ThirdParty/NOTICES-libmpv.txt` and `NOTICES-fonts.txt` |
 | `scripts/shots.sh` | Screenshots of the Fixtures app, on the Mac and in the Simulator |
@@ -17,7 +17,7 @@ generates for `crates/anistream-ffi`.
 | `Packages/AnistreamDesign` | The Obi & Silk tokens, motion, the show-title face, Nagare, the cover plate |
 | `Packages/AnistreamStore` | The app's state over the engine: the client, the store and its feature models |
 | `Packages/AnistreamUI` | The screens: the Mac's split view, the tab bar on iPad and iPhone, Continue |
-| `Packages/AnistreamPlayer` | libmpv in the app's own view: the client, the surface, screenshots |
+| `Packages/AnistreamPlayer` | libmpv in the app's own view, and the player the app hosts for the engine |
 | `Packages/AnistreamDev` | The Mac dev harness, `swift run AnistreamDev` |
 | `App/` | The app's entry point, shared by both apps |
 | `project.yml`, `Config/` | The Xcode project, for XcodeGen |
@@ -170,6 +170,23 @@ engine in temporary directories, and keep secrets in memory.
   host the picture, keep it the view's size and wake mpv after a resize, which it would otherwise
   not see while paused. `screenshot()` is mpv's own render as a `CGImage`. Its tests render for
   real into a layer in no window, on media `scripts/player-media.sh` makes, which `test.sh` runs.
+- **AnistreamPlayerUI**, in the same package: the player the app hosts for the engine, and its
+  screens. `PlayerModel` carries out the engine's `PlayerOps` on an mpv, one op to one call, on a
+  task of its own that awaits each; turns mpv's events into `PlayerReport`s for the playback
+  whose file mpv has (a `Load` belongs to its playback from mpv's `start-file` on); keeps the
+  engine's `PlayerUi`; and sends the viewer's actions as `PlayerCommand`s. The viewer closing the
+  player, or the engine's `Quit`, reports `Ended { Quit }` then `Closed`; after that, or the
+  engine's `Close`, mpv shuts down and every op for those playbacks is refused. Up Next counts
+  down `PlayerTiming.upNextCountdown` seconds of playback from `endingAt` and sends `PlayNext` at
+  zero; three episodes rolled on in a row with nobody there pause behind "Still watching?". Audio
+  and subtitle picks go to mpv, and the engine reads them back from `aid` and `sid`.
+  `MacPlayerView` is the Mac's player window (MacPlayer, M4, M5): pointer, scroll wheel and the
+  companion's keys. `PhonePlayerView` is the iPhone's and iPad's full-screen cover (PhonePlayer,
+  T2 to T5): tap, double tap, long press for 2×, pinch, swipe down to close, landscape on iPhone,
+  the audio on in the background with `vid=no`. Both set Now Playing and the remote commands and
+  keep the display awake while playing. `View.hostsPlayer(_:)` opens either with the model. Its
+  tests run the model on a scripted mpv, and one plays the Fixtures app's episode end to end on
+  the testing engine and a real mpv.
 - **AnistreamDev**: the dev harness, below.
 
 ## The Xcode project
@@ -184,7 +201,11 @@ sources:
 - **Anistream** (`tv.anistream.app`): the app on the release engine. It opens `anistream://` links.
 - **Anistream Fixtures** (`tv.anistream.fixtures`): the same app on the testing engine, compiled with
   `FIXTURES`. It starts on a scene of the fixture titles (`-AnistreamScene watching`, the default,
-  or `fresh`) in a new temporary directory each launch, for tests and screenshots only.
+  `fresh`, or `playing`) in a new temporary directory each launch, for tests and screenshots only.
+  In the Playing scene Continue starts episode 7 of Hoshikuzu no Tabibito, and every episode
+  streams `.mpv/media/episode.mkv` from `scripts/player-media.sh` (or the file
+  `-AnistreamMedia <path>` names): a minute of ffmpeg's test pattern with chapters, so the
+  opening's skip, Up Next and the roll-on to the next episode all happen in it.
 
 Each package is compiled as a framework for each app: `AnistreamKit` against the release engine and
 `AnistreamKitFixtures` against the testing one, and so on for the others. The two of a pair share
@@ -226,6 +247,8 @@ cd apple/Packages/AnistreamDev
 swift run AnistreamDev                            # the Watching scene, in a temporary home
 swift run AnistreamDev --scene fresh              # a first launch
 swift run AnistreamDev --snapshot ../../.shots/mac.png
+swift run AnistreamDev --scene playing            # Continue plays the generated episode
+swift run AnistreamDev --scene playing --player-shot up-next --snapshot ../../.shots/up-next.png
 swift run AnistreamDev --real                     # the app's engine, on the real sources, in a temporary home
 swift run AnistreamDev --real --shared            # the app's engine on the terminal's data and keychain
 ```
@@ -244,7 +267,12 @@ touches your own data.
 apple/scripts/shots.sh mac watching fresh
 apple/scripts/shots.sh iphone
 apple/scripts/shots.sh ipad
+apple/scripts/shots.sh mac player                 # every player state; or player-up-next, …
 ```
+
+The player's states are `player-starting`, `player-playing`, `player-skip`, `player-up-next`,
+`player-still-watching` and `player-stall`: the Playing scene's episode played to that state
+(`PlayerShot`), the player window shot on the Mac and the screen in the Simulator.
 
 They go to `apple/.shots/`, which git ignores. Mac shots come from the dev harness. iPhone and iPad
 shots build Anistream Fixtures, run it on a Simulator device of its own (made on first use), with
@@ -326,7 +354,8 @@ mpv, in mpv's own vocabulary:
 
 - `Event.playerOps(playback:ops:)` is what the player is to do, in order: `.open`, `.load` with
   the file's own options, `.addSubtitle`, `.set` with an `MpvValue`, `.seek`, `.shaders`,
-  `.audioFilter`, `.stop`, `.quit`, `.close`. Each goes to libmpv as it is.
+  `.audioFilter`, `.stop`, `.quit`, `.close`. Each goes to libmpv as it is, but for `fullscreen`,
+  which is the window's: an mpv drawing into the app's view has no window of its own.
 - `Event.playerUi(playback:ui:)` is what the player's own interface shows: the starting screen,
   the episode, the menus, the skip button and its undo, Up Next, the stall prompt, the picture's
   badges, alerts. Up Next's countdown is the app's: it starts at `endingAt`, and at zero the app
@@ -343,9 +372,11 @@ episode rolls on to the next. See `anistream_model::hosted` for the whole protoc
 
 ## Not yet
 
-- Playback: a play is answered with a notice until the engine can hand a stream to the app's own
-  player (E5). `AnistreamPlayer` is built and compiled into the project as a framework pair, but
-  no app takes it on yet; when one does (N3), it embeds `Mpv.framework`.
+- The player: Picture in Picture and the Mac's mini player, seek previews from a second mpv,
+  Sync subtitles, the Playback menu in the menu bar, and the scrubbing haptics and half-speed
+  scrubbing. The iPhone's merged Audio and subtitles sheet also holds Speed, Upscaling, Night
+  mode and Sources, for want of a More menu on its board. Background audio is in the app's
+  Info.plist only, not the Fixtures app's.
 - Covers carry no colour of their own yet, so every plate is the raised colour until the engine
   sends `Entry.cover_color`. The fixtures' art is on a host nothing resolves, so the Fixtures app
   shows plates where the boards show art.
