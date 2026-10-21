@@ -89,28 +89,33 @@ struct PhoneHeading: View {
     }
 }
 
-/// The next episode: its banner, the title, the episode, how far into it and the amber action.
+/// The next episode: its wide art (see `HeroArt`), the title, the episode, how far into it and
+/// the amber action. With no wide art the cover stands beside the title instead.
 struct PhoneHero: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
     let item: ContinueItem
 
     var body: some View {
+        let entry = store.titles[item.id] ?? item.entry
+        let art = store.heroArt(entry)
         VStack(alignment: .leading, spacing: 0) {
-            BannerArt(entry: item.entry)
-                .aspectRatio(16 / 9, contentMode: .fit)
-                .clipShape(.rect(cornerRadius: ArtShape.bannerRadius))
-                .matchedTransitionSourceIfAvailable(id: item.id)
-                .onTapGesture { navigator.openTitle(item.id) }
-            Text(item.entry.showTitle)
-                .font(.showTitle(size: 22, relativeTo: .title2))
-                .fixedLineHeight(28, relativeTo: .title2)
-                .foregroundStyle(.silk)
-                .padding(.top, 8)
-            Text(item.episodeLine(store.titles))
-                .font(.system(size: 15))
-                .foregroundStyle(.haze)
-                .padding(.top, 2)
+            if art.isCompact {
+                HStack(alignment: .bottom, spacing: 14) {
+                    CoverArt(entry: entry, width: 88)
+                        .matchedTransitionSourceIfAvailable(id: item.id)
+                        .onTapGesture { navigator.openTitle(item.id) }
+                    titleBlock(entry)
+                }
+            } else {
+                HeroArtView(art: art, entry: entry)
+                    .aspectRatio(16 / 9, contentMode: .fit)
+                    .clipShape(.rect(cornerRadius: ArtShape.bannerRadius))
+                    .matchedTransitionSourceIfAvailable(id: item.id)
+                    .onTapGesture { navigator.openTitle(item.id) }
+                titleBlock(entry)
+                    .padding(.top, 8)
+            }
             HStack(spacing: 14) {
                 VStack(alignment: .leading, spacing: 6) {
                     if let fraction = item.fraction {
@@ -136,24 +141,48 @@ struct PhoneHero: View {
             }
             .padding(.top, 8)
         }
+        .task(id: item.id) { store.loadStills(item.id) }
+    }
+
+    private func titleBlock(_ entry: Entry) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(entry.showTitle)
+                .font(.showTitle(size: 22, relativeTo: .title2))
+                .fixedLineHeight(28, relativeTo: .title2)
+                .foregroundStyle(.silk)
+            Text(item.episodeLine(store.titles))
+                .font(.system(size: 15))
+                .foregroundStyle(.haze)
+        }
     }
 }
 
-/// A title under way in the rail: its banner, how far into the episode, the title and what is
-/// left.
+/// A title under way in the rail: its wide art (see `HeroArt`), how far into the episode, the
+/// title and what is left. With no wide art the cover stands in the art's place at its own 2:3,
+/// on the ground rather than a plate.
 struct PhoneCard: View {
+    @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
     let item: ContinueItem
 
     var body: some View {
+        let entry = store.titles[item.id] ?? item.entry
+        let art = store.heroArt(entry)
         Button {
             navigator.openTitle(item.id)
         } label: {
             VStack(alignment: .leading, spacing: 0) {
-                BannerArt(entry: item.entry)
-                    .frame(width: 208, height: 117)
-                    .clipShape(.rect(cornerRadius: ArtShape.bannerRadius))
-                    .matchedTransitionSourceIfAvailable(id: item.id)
+                Group {
+                    if art.isCompact {
+                        CoverArt(entry: entry, width: 78)
+                            .frame(width: 208, height: 117, alignment: .leading)
+                    } else {
+                        HeroArtView(art: art, entry: entry)
+                            .frame(width: 208, height: 117)
+                            .clipShape(.rect(cornerRadius: ArtShape.bannerRadius))
+                    }
+                }
+                .matchedTransitionSourceIfAvailable(id: item.id)
                 Group {
                     if let fraction = item.fraction {
                         Meter(fraction: fraction, height: 3)
@@ -162,7 +191,7 @@ struct PhoneCard: View {
                     }
                 }
                 .padding(.top, 6)
-                Text(item.entry.showTitle)
+                Text(entry.showTitle)
                     .font(.showTitle(size: 17, relativeTo: .body))
                     .foregroundStyle(.silk)
                     .lineLimit(1)
@@ -176,6 +205,10 @@ struct PhoneCard: View {
         .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
         .contextMenu { QueueMenu(item: item) }
+        // The cards on screen only: a still stands in for a missing banner.
+        .onScrollVisibilityChange(threshold: 0.3) { visible in
+            if visible { store.loadStills(item.id) }
+        }
     }
 }
 

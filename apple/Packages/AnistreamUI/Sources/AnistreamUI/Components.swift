@@ -36,19 +36,25 @@ struct ArtworkView: View {
     }
 }
 
-/// A title's wide art: its banner, filling the frame. A title with no banner shows its cover at the
-/// cover's own aspect, set against the leading edge of a plate in its own colour: a portrait
-/// cover stretched across a banner's frame is never the answer.
+/// A small card's wide art, in a grid that needs every card's frame, as Calendar's and This
+/// Season's are: the banner, else a seen still when the title's episodes are here already (see
+/// `HeroArt`; a calendar asks for no episodes). Else the cover at its own aspect against the
+/// leading edge of a plate in its colour: a portrait cover stretched across a banner's frame is
+/// never the answer. The heroes drop the frame instead, with `HeroArt`.
 struct BannerArt: View {
+    @Environment(AppStore.self) private var store
     @Environment(\.displayScale) private var scale
     let entry: Entry
 
     var body: some View {
         GeometryReader { proxy in
             let size = proxy.size
-            if let banner = entry.bannerUrl {
+            let wide = entry.bannerUrl ?? store.titles.episodes[entry.id].flatMap {
+                HeroArt.seenStill($0, done: entry.progress?.done ?? 0)
+            }
+            if let wide {
                 ArtworkView(
-                    url: banner, color: entry.plateColor,
+                    url: wide, color: entry.plateColor,
                     maxPixelSize: Int(max(size.width, size.height) * scale)
                 )
             } else {

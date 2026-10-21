@@ -67,9 +67,11 @@ struct TitlePage: View {
 
     var body: some View {
         let entry = store.titles[id] ?? Entry.placeholder(id)
+        let art = store.heroArt(entry)
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                Color.clear.frame(height: 96)
+                // With no wide art the page starts higher: under the toolbar, not under a banner.
+                Color.clear.frame(height: art.isCompact ? 64 : 96)
                 TitleHero(entry: entry)
                 let family = TitleFamily(entry)
                 if !family.seasons.isEmpty || !family.related.isEmpty {
@@ -85,15 +87,17 @@ struct TitlePage: View {
             }
             .padding(EdgeInsets(top: 0, leading: 24, bottom: 20, trailing: 28))
             .background(alignment: .top) {
-                // The banner, under the clear toolbar, with the ground over its lower part, where
-                // the cover and the title sit.
-                BannerArt(entry: entry)
-                    .frame(height: 280)
-                    .clipped()
-                    .overlay(alignment: .bottom) {
-                        Palette.ground.frame(height: 96)
-                    }
-                    .modifier(BannerMatch(id: entry.id, space: bannerSpace))
+                // The wide art, under the clear toolbar, with the ground over its lower part,
+                // where the cover and the title sit. None at all where there is none.
+                if !art.isCompact {
+                    HeroArtView(art: art, entry: entry)
+                        .frame(height: 280)
+                        .clipped()
+                        .overlay(alignment: .bottom) {
+                            Palette.ground.frame(height: 96)
+                        }
+                        .modifier(BannerMatch(id: entry.id, space: bannerSpace))
+                }
             }
         }
         .scrollIndicators(.never)

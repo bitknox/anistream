@@ -16,19 +16,23 @@ struct PhoneTitle: View {
     var body: some View {
         let entry = store.titles[id] ?? Entry.placeholder(id)
         let action = TitleAction(entry)
+        let art = store.heroArt(entry)
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                // The banner: it stretches when pulled down and scrolls at half speed (T1).
-                BannerArt(entry: entry)
-                    .frame(height: 250)
-                    .visualEffect { [reduceMotion] content, proxy in
-                        let y = proxy.frame(in: .scrollView(axis: .vertical)).minY
-                        let h = proxy.size.height
-                        return content
-                            .scaleEffect(reduceMotion || y <= 0 ? 1 : (h + y) / h, anchor: .bottom)
-                            .offset(y: reduceMotion || y >= 0 ? 0 : -y * 0.5)
-                    }
-                    .clipped()
+                // The wide art: it stretches when pulled down and scrolls at half speed (T1).
+                // With none, the page starts under the navigation bar, the cover beside the title.
+                if !art.isCompact {
+                    HeroArtView(art: art, entry: entry)
+                        .frame(height: 250)
+                        .visualEffect { [reduceMotion] content, proxy in
+                            let y = proxy.frame(in: .scrollView(axis: .vertical)).minY
+                            let h = proxy.size.height
+                            return content
+                                .scaleEffect(reduceMotion || y <= 0 ? 1 : (h + y) / h, anchor: .bottom)
+                                .offset(y: reduceMotion || y >= 0 ? 0 : -y * 0.5)
+                        }
+                        .clipped()
+                }
                 HStack(alignment: .bottom, spacing: 16) {
                     ArtworkView(url: entry.coverUrl, color: entry.plateColor, maxPixelSize: 400)
                         .frame(width: 100, height: 150)
@@ -50,7 +54,7 @@ struct PhoneTitle: View {
                     .padding(.bottom, 4)
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, -60)
+                .padding(.top, art.isCompact ? 8 : -60)
 
                 VStack(alignment: .leading, spacing: 16) {
                     Button {
@@ -136,7 +140,7 @@ struct PhoneTitle: View {
                 .padding(.bottom, 32)
             }
         }
-        .ignoresSafeArea(edges: .top)
+        .ignoresSafeArea(edges: art.isCompact ? [] : .top)
         .scrollIndicators(.never)
         .background(.ground)
         .toolbar {

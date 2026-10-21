@@ -226,8 +226,9 @@ struct PlaceholderRow: View {
     }
 }
 
-/// The selected title: the banner, the title block, the episode it plays and how far into it, the
-/// action, and the synopsis.
+/// The selected title: its wide art (see `HeroArt`), the title block, the episode it plays and
+/// how far into it, the action, and the synopsis. With no wide art the cover stands beside the
+/// title block instead.
 struct ContinuePreview: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
@@ -236,34 +237,28 @@ struct ContinuePreview: View {
 
     var body: some View {
         let entry = store.titles[item.id] ?? item.entry
+        let art = store.heroArt(entry)
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Group {
-                    if navigator.titleOnMac == entry.id {
-                        Color.clear
-                    } else {
-                        BannerArt(entry: entry)
-                            .clipShape(.rect(cornerRadius: ArtShape.bannerRadius))
-                            .modifier(BannerMatch(id: entry.id, space: bannerSpace))
+                if art.isCompact {
+                    HStack(alignment: .bottom, spacing: 20) {
+                        CoverArt(entry: entry, width: 120)
                             .onTapGesture { navigator.openTitle(entry.id, fromPreview: true) }
+                        titleBlock(entry)
                     }
-                }
-                .frame(height: 290)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(entry.showTitle)
-                        .font(.showTitle(size: 30, relativeTo: .largeTitle))
-                        .fixedLineHeight(38, relativeTo: .largeTitle)
-                        .foregroundStyle(.silk)
-                        .accessibilityAddTraits(.isHeader)
-                    if let alternate = entry.alternateTitle {
-                        Text(alternate)
-                            .font(.system(size: 15))
-                            .foregroundStyle(.haze)
+                } else {
+                    Group {
+                        if navigator.titleOnMac == entry.id {
+                            Color.clear
+                        } else {
+                            HeroArtView(art: art, entry: entry)
+                                .clipShape(.rect(cornerRadius: ArtShape.bannerRadius))
+                                .modifier(BannerMatch(id: entry.id, space: bannerSpace))
+                                .onTapGesture { navigator.openTitle(entry.id, fromPreview: true) }
+                        }
                     }
-                    Text(entry.metadataLine)
-                        .groupHeaderStyle()
-                        .padding(.top, 4)
+                    .frame(height: 290)
+                    titleBlock(entry)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -314,6 +309,26 @@ struct ContinuePreview: View {
         }
         .scrollIndicators(.never)
         .frame(maxWidth: .infinity, alignment: .topLeading)
+        // Only the selected title's: a still stands in for a missing banner.
+        .task(id: item.id) { store.loadStills(item.id) }
+    }
+
+    private func titleBlock(_ entry: Entry) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(entry.showTitle)
+                .font(.showTitle(size: 30, relativeTo: .largeTitle))
+                .fixedLineHeight(38, relativeTo: .largeTitle)
+                .foregroundStyle(.silk)
+                .accessibilityAddTraits(.isHeader)
+            if let alternate = entry.alternateTitle {
+                Text(alternate)
+                    .font(.system(size: 15))
+                    .foregroundStyle(.haze)
+            }
+            Text(entry.metadataLine)
+                .groupHeaderStyle()
+                .padding(.top, 4)
+        }
     }
 }
 
