@@ -107,6 +107,39 @@ internal object Icons {
     val Clear = stroked("Clear", "M6 6 L18 18 M18 6 L6 18")
     val Menu = stroked("Menu", "M4 7 H20 M4 12 H20 M4 17 H20")
 
+    // Settings' pages, as AndroidSettings draws them.
+    val PlaybackPage = stroked("PlaybackPage", CIRCLE_9, "M10 8.5 L15.5 12 L10 15.5 Z")
+    val DownloadsPage = stroked("DownloadsPage", "M12 4 V15 M7.5 10.5 L12 15 L16.5 10.5 M5 19.5 H19")
+    val SourcesPage = stroked("SourcesPage", "M9 3 V7 M15 3 V7 M6 7 H18 V11 A6 6 0 0 1 6 11 Z M12 17 V21")
+    val AccountsPage = stroked("AccountsPage", "M12 4 A4 4 0 1 1 11.99 4 Z", "M4.5 20 C5.5 15.5 18.5 15.5 19.5 20")
+    val About = ImageVector.Builder(
+        name = "About", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f,
+    ).apply {
+        addPath(addPathNodes(CIRCLE_9), stroke = SolidColor(Color.Black), strokeLineWidth = 2f)
+        addPath(addPathNodes("M12 11 V16.5"), stroke = SolidColor(Color.Black), strokeLineWidth = 2f, strokeLineCap = StrokeCap.Round)
+        addPath(addPathNodes("M12 6.65 A1.1 1.1 0 1 1 11.99 6.65 Z"), fill = SolidColor(Color.Black))
+    }.build()
+
+    /** The drawer's Providers and Plugin stores (AT1). */
+    val Providers = stroked("Providers", "M8.5 3 V7 M15.5 3 V7 M6 7 H18 V11 C18 14.5 15.3 17 12 17 C8.7 17 6 14.5 6 11 Z M12 17 V21")
+    val Stores = stroked("Stores", "M5 8 H19 L17.8 20 H6.2 Z M8.5 8 C8.5 3.5 15.5 3.5 15.5 8")
+
+    /** A menu row's indicator: the filled triangle of a dropdown. */
+    val DropDown = ImageVector.Builder(
+        name = "DropDown", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f,
+    ).apply {
+        addPath(
+            addPathNodes("M7.5 10 L12 14.5 L16.5 10 Z"),
+            fill = SolidColor(Color.Black),
+            stroke = SolidColor(Color.Black),
+            strokeLineWidth = 1.5f,
+            strokeLineJoin = StrokeJoin.Round,
+        )
+    }.build()
+
+    /** The rail's menu button while the drawer is open. */
+    val MenuOpen = stroked("MenuOpen", "M4 7 H15 M4 12 H12 M4 17 H15", "M20 9 L17 12 L20 15")
+
     val Account = stroked(
         "Account",
         CIRCLE_9,
