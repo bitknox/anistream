@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -220,7 +221,7 @@ private fun SearchStart(recent: List<String>, onRecent: (String) -> Unit, onGenr
                         Text(
                             query,
                             style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.fillMaxWidth().height(48.dp).clickable { onRecent(query) }.padding(vertical = 12.dp),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { onRecent(query) }.padding(vertical = 12.dp),
                         )
                     }
                 }
@@ -255,12 +256,12 @@ private fun StartHeading(text: String) {
 private fun OutlinedChip(text: String, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val shape = MaterialTheme.shapes.small
-    Box(Modifier.height(48.dp).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+    Box(Modifier.heightIn(min = 48.dp).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
         Text(
             text,
             style = MaterialTheme.typography.labelMedium,
             color = colors.onSurfaceVariant,
-            modifier = Modifier.height(32.dp).clip(shape).border(1.dp, colors.outline, shape).padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.heightIn(min = 32.dp).clip(shape).border(1.dp, colors.outline, shape).padding(horizontal = 16.dp, vertical = 8.dp),
         )
     }
 }
@@ -275,10 +276,10 @@ private fun Filters(filters: SearchFilters, onChange: (SearchFilters) -> Unit) {
             val value = filter.value(filters)
             val chosen = filter.choices.firstOrNull { it.first == value }?.second
             val shape = MaterialTheme.shapes.small
-            Box(Modifier.height(48.dp).clickable { open = true }.semantics { contentDescription = "${filter.label}: ${chosen ?: "any"}" }, contentAlignment = Alignment.Center) {
+            Box(Modifier.heightIn(min = 48.dp).clickable { open = true }.semantics { contentDescription = "${filter.label}: ${chosen ?: "any"}" }, contentAlignment = Alignment.Center) {
                 Row(
                     Modifier
-                        .height(32.dp)
+                        .heightIn(min = 32.dp)
                         .clip(shape)
                         .then(if (chosen != null) Modifier.background(colors.primaryContainer) else Modifier.border(1.dp, colors.outline, shape))
                         .padding(start = if (chosen != null) 8.dp else 16.dp, end = 8.dp),

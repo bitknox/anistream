@@ -45,6 +45,9 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.DayOfWeek
 import java.time.Instant
@@ -197,7 +200,7 @@ fun CalendarScreen() {
 @Composable
 internal fun ConnectedChoice(choices: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
-    Row(modifier.fillMaxWidth().height(48.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier.fillMaxWidth().heightIn(min = 48.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
         choices.forEachIndexed { index, choice ->
             val chosen = index == selected
             val shape = when {
@@ -210,7 +213,7 @@ internal fun ConnectedChoice(choices: List<String>, selected: Int, onSelect: (In
             Row(
                 Modifier
                     .weight(1f)
-                    .height(40.dp)
+                    .heightIn(min = 40.dp)
                     .clip(shape)
                     .background(if (chosen) colors.primaryContainer else colors.surfaceContainer)
                     .clickable { onSelect(index) },
@@ -240,7 +243,8 @@ private fun WeekStrip(week: List<LocalDate>, today: LocalDate, selected: LocalDa
             val name = day.dayOfWeek.getDisplayName(TextStyle.SHORT, AirTime.locale).uppercase(Locale.ROOT)
             Column(
                 Modifier
-                    .size(48.dp, 64.dp)
+                    .widthIn(min = 48.dp)
+                    .heightIn(min = 64.dp)
                     .clip(RoundedCornerShape(24.dp))
                     .background(if (chosen) colors.primaryContainer else androidx.compose.ui.graphics.Color.Transparent)
                     .clickable { onDay(day) }
@@ -251,7 +255,14 @@ private fun WeekStrip(week: List<LocalDate>, today: LocalDate, selected: LocalDa
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
             ) {
-                Text(name, style = MaterialTheme.typography.labelSmall, color = if (chosen) colors.onPrimaryContainer else colors.onSurfaceVariant)
+                // One line however large the text: the day's name shrinks to fit before it wraps.
+                Text(
+                    name,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (chosen) colors.onPrimaryContainer else colors.onSurfaceVariant,
+                    maxLines = 1,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 8.sp, maxFontSize = MaterialTheme.typography.labelSmall.fontSize),
+                )
                 Text(
                     day.dayOfMonth.toString(),
                     style = MaterialTheme.typography.bodyLarge.tabular(),
@@ -277,7 +288,7 @@ private fun BroadcastRow(broadcast: Broadcast, now: Instant, onOpen: () -> Unit)
         else -> "Episode ${broadcast.episode} in ${Wording.countdown(seconds)}"
     }
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 72.dp).clickable(onClick = onOpen).padding(start = 16.dp, end = 24.dp, top = 6.dp, bottom = 6.dp),
+        Modifier.fillMaxWidth().heightIn(min = 72.dp).clickable(onClickLabel = "Open title", onClick = onOpen).padding(start = 16.dp, end = 24.dp, top = 6.dp, bottom = 6.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

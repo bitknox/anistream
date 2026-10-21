@@ -273,7 +273,7 @@ private fun Recommendations(entry: Entry, onOpenTitle: (AnilistId) -> Unit) {
         SectionTitle("Recommendations", Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp))
         LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             items(recommendations, key = { it.id.toLong() }) { linked ->
-                Column(itemMotion().width(100.dp).clickable { onOpenTitle(linked.id) }) {
+                Column(itemMotion().width(100.dp).clickable(onClickLabel = "Open title") { onOpenTitle(linked.id) }) {
                     ArtworkImage(linked.coverUrl, plate = linked.plate(), maxPixelSize = 300, modifier = Modifier.size(100.dp, 150.dp).clip(ArtShape.cover(100.dp)))
                     Text(linked.title, style = ShowTitle.caption, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 8.dp))
                     Text(linked.recommendationLine(), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 1)

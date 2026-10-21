@@ -16,10 +16,12 @@ android {
     }
 }
 
-// Every build checks first that the fonts are there, and fails, saying what to run, when not.
+// Every build makes sure first that the fonts are there, and fails only if they cannot be had.
+// In a new worktree they are fetched first, from the cache every worktree shares or else from
+// google/fonts; once there it costs a checksum, and needs no network.
 val checkFonts = tasks.register<Exec>("checkFonts") {
-    description = "Checks that android/scripts/fonts.sh has fetched the fonts."
-    commandLine(rootDir.resolve("scripts/fonts.sh").path, "--check")
+    description = "Fetches the fonts with android/scripts/fonts.sh unless they are there."
+    commandLine(rootDir.resolve("scripts/fonts.sh").path)
 }
 tasks.configureEach {
     if (name == "preBuild") dependsOn(checkFonts)

@@ -46,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -184,32 +185,47 @@ private fun Hero(item: ContinueItem, actions: AppActions) {
         Column(
             Modifier
                 .shared(Shared.Page, item.id, "hero")
-                .clickable { navigator.openTitle(item.id, "hero") },
+                .clickable(onClickLabel = "Open title") { navigator.openTitle(item.id, "hero") },
         ) {
         BannerArt(item.entry, Modifier.fillMaxWidth().aspectRatio(16f / 9f).shared(Shared.Art, item.id, "hero").clip(ArtShape.banner))
         Text(item.entry.showTitle, style = ShowTitle.page, modifier = Modifier.padding(top = 8.dp))
         Text(episodeLine(item), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
         }
-        Row(
-            Modifier.padding(top = 12.dp).fillMaxWidth().height(56.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Side by side, or, with text large enough to crowd the button, the progress above it.
+        val stacked = LocalDensity.current.fontScale > 1.3f
+        val progress: @Composable (Modifier) -> Unit = { modifier ->
+            Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 item.fraction?.let { Meter(it) }
                 item.minutesLeft?.let {
                     Text("$it min left", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
                 }
             }
+        }
+        val play: @Composable (Modifier) -> Unit = { modifier ->
             Button(
                 onClick = { actions.play(item.id, item.episode.toString()) },
                 enabled = item.playable,
-                modifier = Modifier.height(56.dp),
+                modifier = modifier.heightIn(min = 56.dp),
                 contentPadding = PaddingValues(horizontal = 24.dp),
             ) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
                 Text(item.action, style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1)
+            }
+        }
+        if (stacked) {
+            Column(Modifier.padding(top = 12.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                progress(Modifier.fillMaxWidth())
+                play(Modifier.fillMaxWidth())
+            }
+        } else {
+            Row(
+                Modifier.padding(top = 12.dp).fillMaxWidth().heightIn(min = 56.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                progress(Modifier.weight(1f))
+                play(Modifier)
             }
         }
     }
@@ -236,7 +252,7 @@ private fun ProgressCard(item: ContinueItem) {
         Modifier
             .width(208.dp)
             .shared(Shared.Page, item.id, "rail")
-            .clickable { navigator.openTitle(item.id, "rail") },
+            .clickable(onClickLabel = "Open title") { navigator.openTitle(item.id, "rail") },
     ) {
         BannerArt(item.entry, Modifier.size(208.dp, 117.dp).shared(Shared.Art, item.id, "rail").clip(ArtShape.banner))
         Box(Modifier.padding(top = 8.dp).height(4.dp)) { item.fraction?.let { Meter(it) } }
@@ -264,8 +280,8 @@ private fun NewRow(item: ContinueItem) {
     Row(
         Modifier
             .fillMaxWidth()
-            .height(72.dp)
-            .clickable { navigator.openTitle(item.id, "new") }
+            .heightIn(min = 72.dp)
+            .clickable(onClickLabel = "Open title") { navigator.openTitle(item.id, "new") }
             .padding(start = 16.dp, end = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -319,7 +335,7 @@ private fun SetupCard(actions: AppActions, hide: () -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             Nagare(cell = 4)
             Column(Modifier.weight(1f)) {
-                Row(Modifier.height(40.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.heightIn(min = 40.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "Set up anistream",
                         style = type.titleMedium,
@@ -378,7 +394,7 @@ private fun SetupRow(name: String, note: String?, detail: String, action: @Compo
 @Composable
 private fun SectionHeading(title: String, open: String, onOpen: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().height(48.dp).padding(start = 16.dp, end = 4.dp),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).padding(start = 16.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f).semantics { heading() })
@@ -441,7 +457,7 @@ private fun AiringCard(broadcast: Broadcast, now: Instant) {
         Modifier
             .width(208.dp)
             .shared(Shared.Page, id, "airing")
-            .clickable { navigator.openTitle(id, "airing") },
+            .clickable(onClickLabel = "Open title") { navigator.openTitle(id, "airing") },
     ) {
         BannerArt(broadcast.entry, Modifier.size(208.dp, 117.dp).shared(Shared.Art, id, "airing").clip(ArtShape.banner))
         Text(
@@ -508,7 +524,7 @@ internal fun PosterCell(
     Column(
         modifier
             .shared(Shared.Page, entry.id, from)
-            .clickable { navigator.openTitle(entry.id, from) },
+            .clickable(onClickLabel = "Open title") { navigator.openTitle(entry.id, from) },
     ) {
         androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
             CoverArt(entry, maxWidth, Modifier.size(maxWidth, maxWidth * 1.5f).shared(Shared.Cover, entry.id, from))

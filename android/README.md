@@ -62,8 +62,10 @@ build in, in under a second and with no cargo, which is most app work: it rarely
 beside its place and renamed into it, so two builds at once never leave half of one, and entries
 unused for 14 days are removed; each takes about 370 MB.
 
-Every Gradle build checks first that its flavour's engine is current and that the fonts are there
-(`engine.sh --check`, `fonts.sh --check`), and fails saying what to run when not. Rust changes
+Every Gradle build checks first that its flavour's engine is current (`engine.sh --check`), and
+fails saying what to run when not, and fetches the fonts if they are not there yet (`fonts.sh`),
+from a copy every worktree shares in `~/.cache/anistream-fonts` or else from google/fonts, failing
+only if that fetch does. Rust changes
 need `engine.sh` again; Gradle never builds Rust itself.
 
 `ANISTREAM_ENGINE_PROFILE` picks the cargo profile: `app-dev` (opt-level 1, line tables) unless it

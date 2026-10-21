@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -51,6 +52,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -134,7 +141,7 @@ internal fun EpisodeLine(
     Row(
         Modifier
             .fillMaxWidth()
-            .height(72.dp)
+            .heightIn(min = 72.dp)
             // One still to air is no button: nothing plays from it.
             .then(
                 if (unaired) {
@@ -143,7 +150,14 @@ internal fun EpisodeLine(
                             (airs?.let { ". Airs $it, not out yet" } ?: ". Not out yet")
                     }
                 } else {
-                    Modifier.combinedClickable(onClick = onPlay, onLongClick = onMenu)
+                    Modifier
+                        .combinedClickable(onClickLabel = "Play", onLongClickLabel = "Episode options", onClick = onPlay, onLongClick = onMenu)
+                        // A keyboard opens the same menu with its menu key, or Shift and F10.
+                        .onPreviewKeyEvent { event ->
+                            val opens = event.key == Key.Menu || (event.key == Key.F10 && event.isShiftPressed)
+                            if (opens && event.type == KeyEventType.KeyUp) onMenu()
+                            opens
+                        }
                 },
             )
             .padding(start = 16.dp, end = 24.dp),
@@ -173,7 +187,7 @@ internal fun EpisodeLine(
                 }
             }
             val showsBar = (fraction != null || fill.isRunning) && !unaired && dim.value < 1f
-            Row(Modifier.height(20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.heightIn(min = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (showsBar) {
                     LinearProgressIndicator(
                         progress = { fill.value },

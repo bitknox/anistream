@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -66,6 +67,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -188,7 +190,7 @@ private fun QueueList(
 ) {
     LazyColumn(Modifier.fillMaxSize().padding(horizontal = 12.dp), state = list, contentPadding = PaddingValues(bottom = 24.dp)) {
         item(key = "title") {
-            Box(Modifier.height(64.dp).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+            Box(Modifier.heightIn(min = 64.dp).padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
                 Text("Continue", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
             }
         }
@@ -228,9 +230,12 @@ private fun QueueRow(item: ContinueItem, selected: Boolean, onSelect: (ContinueI
     Row(
         Modifier
             .fillMaxWidth()
-            .height(72.dp)
+            .heightIn(min = 72.dp)
             .clip(MaterialTheme.shapes.large)
             .background(fill)
+            // Arrow keys and a D-pad walk the selection with the focus (AT2); this watches the
+            // row's own focus, so it stands ahead of it.
+            .onFocusChanged { if (it.isFocused && !selected) onSelect(item) }
             .selectable(selected = selected, onClick = { onSelect(item) })
             .padding(start = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -338,26 +343,27 @@ private fun QueuePreview(item: ContinueItem, actions: AppActions) {
                 )
             }
         }
-        Row(Modifier.padding(top = 16.dp).height(56.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(top = 16.dp).heightIn(min = 56.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Button(
                 onClick = { actions.play(item.id, item.episode.toString()) },
                 enabled = item.playable,
-                modifier = Modifier.height(56.dp),
+                // The action gives way before Episodes does: it is cut at the end, never wrapped.
+                modifier = Modifier.weight(1f, fill = false).heightIn(min = 56.dp),
                 contentPadding = PaddingValues(horizontal = 24.dp),
             ) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(item.action, style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1)
+                Text(item.action, style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             FilledTonalButton(onClick = { navigator.openTitle(item.id, "preview") }, contentPadding = PaddingValues(horizontal = 24.dp)) {
-                Text("Episodes")
+                Text("Episodes", maxLines = 1, softWrap = false)
             }
         }
         upNext?.let { row ->
             HorizontalDivider(Modifier.padding(top = 8.dp), color = colors.outlineVariant)
             // The episode after the one under way: its still hidden, as the title page hides it.
             Row(
-                Modifier.height(80.dp).semantics(mergeDescendants = true) {},
+                Modifier.heightIn(min = 80.dp).semantics(mergeDescendants = true) {},
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

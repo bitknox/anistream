@@ -201,8 +201,8 @@ private fun MoreAboutRow(onOpen: () -> Unit) {
         Modifier
             .padding(top = 4.dp)
             .fillMaxWidth()
-            .height(48.dp)
-            .clickable(onClick = onOpen)
+            .heightIn(min = 48.dp)
+            .clickable(onClickLabel = "Open the sheet", onClick = onOpen)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -225,7 +225,7 @@ private fun RelatedRail(related: List<tv.anistream.engine.model.LinkedTitle>) {
         ) {
             items(related, key = { it.id.toLong() }) { linked ->
                 Row(
-                    itemMotion().clickable { navigator.openTitle(linked.id, "related") },
+                    itemMotion().clickable(onClickLabel = "Open title") { navigator.openTitle(linked.id, "related") },
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -244,7 +244,7 @@ private fun RelatedRail(related: List<tv.anistream.engine.model.LinkedTitle>) {
 @Composable
 private fun TitleHeader(entry: Entry, modifier: Modifier = Modifier) {
     Row(
-        modifier.padding(horizontal = 16.dp).height(120.dp),
+        modifier.padding(horizontal = 16.dp).heightIn(min = 120.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.Bottom,
     ) {
@@ -370,7 +370,7 @@ private fun TitleActions(entry: Entry, actions: AppActions) {
         if (action.playable) {
             Button(
                 onClick = { actions.play(entry.id, action.episode.toString()) },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
             ) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
@@ -381,9 +381,9 @@ private fun TitleActions(entry: Entry, actions: AppActions) {
             }
         } else {
             // Caught up: when the next one airs, in the action's place, and no amber on the page.
-            CaughtUp(action, Modifier.height(56.dp))
+            CaughtUp(action, Modifier.heightIn(min = 56.dp))
         }
-        Row(Modifier.padding(top = 4.dp).height(48.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(top = 4.dp).heightIn(min = 48.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             var open by remember { mutableStateOf(false) }
             Box(Modifier.weight(1f)) {
                 FilledTonalButton(onClick = { open = true }, modifier = Modifier.fillMaxWidth()) {
@@ -492,7 +492,7 @@ private fun Seasons(entry: Entry, family: TitleFamily, inset: Boolean = true) {
     val navigator = LocalNavigator.current
     val colors = MaterialTheme.colorScheme
     Row(
-        Modifier.padding(horizontal = if (inset) 16.dp else 0.dp).fillMaxWidth().height(48.dp),
+        Modifier.padding(horizontal = if (inset) 16.dp else 0.dp).fillMaxWidth().heightIn(min = 48.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -508,7 +508,7 @@ private fun Seasons(entry: Entry, family: TitleFamily, inset: Boolean = true) {
             Row(
                 Modifier
                     .weight(if (season.isThis) 1.4f else 1f)
-                    .height(40.dp)
+                    .heightIn(min = 40.dp)
                     .clip(shape)
                     .background(if (season.isThis) colors.primaryContainer else colors.surfaceContainer)
                     .clickable(enabled = !season.isThis) { navigator.openTitle(season.id, "season-picker") },
@@ -625,7 +625,7 @@ private fun WatchedFoldRow(folded: List<EpisodeRow>, unfolded: Boolean, modifier
     Row(
         modifier
             .fillMaxWidth()
-            .height(56.dp)
+            .heightIn(min = 56.dp)
             .clickable(onClickLabel = if (unfolded) "Hide watched episodes" else "Show watched episodes", onClick = onToggle)
             .semantics { stateDescription = if (unfolded) "Expanded" else "Collapsed" },
         verticalAlignment = Alignment.CenterVertically,
@@ -807,7 +807,7 @@ private fun AboutPane(entry: Entry, onClose: () -> Unit, onOpenTitle: (AnilistId
             .clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceContainer),
     ) {
-        Row(Modifier.height(64.dp).padding(start = 24.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.heightIn(min = 64.dp).padding(start = 24.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("More about this show", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f).semantics { heading() })
             IconButton(onClick = onClose, modifier = Modifier.semantics { contentDescription = "Close" }) {
                 Icon(Icons.Clear, contentDescription = null)
@@ -827,9 +827,9 @@ private fun TabletActions(entry: Entry, actions: AppActions, modifier: Modifier 
     val store = LocalAppStore.current
     val action = TitleAction.of(entry)
     var open by remember { mutableStateOf(false) }
-    Row(modifier.height(56.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier.heightIn(min = 56.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
         if (action.playable) {
-            Button(onClick = { actions.play(entry.id, action.episode.toString()) }, modifier = Modifier.height(56.dp), contentPadding = PaddingValues(horizontal = 24.dp)) {
+            Button(onClick = { actions.play(entry.id, action.episode.toString()) }, modifier = Modifier.heightIn(min = 56.dp), contentPadding = PaddingValues(horizontal = 24.dp)) {
                 Icon(Icons.Play, contentDescription = null, modifier = Modifier.size(24.dp))
                 Spacer(Modifier.width(8.dp))
                 Crossfade(action.label, animationSpec = Motion.standard(), label = "action") {
