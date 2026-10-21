@@ -30,7 +30,8 @@ struct PhoneSettingsSheet: View {
                 }
         }
         .onAppear { if start != .root, path.isEmpty { path = [start] } }
-        .tint(.amber)
+        // Silk for the bar's actions and links; switches set their own amber.
+        .tint(.silk)
         .preferredColorScheme(.dark)
     }
 }

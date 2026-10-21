@@ -92,7 +92,9 @@ struct PadTitleToolbar: ToolbarContent {
     let id: AnilistId
 
     var body: some ToolbarContent {
-        ToolbarItem(placement: .topBarTrailing) {
+        // One group, so a narrow window keeps the list's menu in the bar beside More rather than
+        // folding it into the overflow (PadTitleMeta).
+        ToolbarItemGroup(placement: .topBarTrailing) {
             Menu {
                 StatusItems(id: id)
             } label: {
@@ -100,9 +102,8 @@ struct PadTitleToolbar: ToolbarContent {
                     Text(store.titles[id]?.listStatus.map { $0.label.capitalizedSentence } ?? "Add to list")
                     Image(systemName: "chevron.up.chevron.down").font(.mac(11, weight: .semibold))
                 }
+                .fixedSize()
             }
-        }
-        ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 if let entry = store.titles[id] { TitleMoreItems(entry: entry) }
             } label: {

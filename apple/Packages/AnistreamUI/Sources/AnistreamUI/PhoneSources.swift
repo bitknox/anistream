@@ -335,7 +335,7 @@ struct PhoneJoinStoreSheet: View {
                 .padding(.bottom, 8)
             }
         }
-        .tint(.amber)
+        .tint(.silk)
         .task(id: link) {
             try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
