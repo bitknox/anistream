@@ -9,7 +9,7 @@ use anistream_core::{
     ids::AnilistId,
     traits::{TrackOp, TrackedEntry, Tracker, WatchStatus},
 };
-use anistream_meta::anilist::{AniList, AniListError, LibraryEntry};
+use anistream_meta::anilist::{AniList, AniListError, LibraryEntry, TitleLanguage, Viewer};
 
 /// AniList's `MediaListStatus` enum, as strings.
 ///
@@ -46,8 +46,9 @@ pub fn status_from_anilist(status: &str) -> WatchStatus {
 pub struct AniListTracker {
     client: AniList,
     /// Resolved on first use and cached — the library query needs a user id, and asking for it
-    /// on every pull would waste one of thirty requests a minute.
-    viewer: tokio::sync::Mutex<Option<u32>>,
+    /// on every pull would waste one of thirty requests a minute. The same answer carries the
+    /// title language the viewer reads in, so asking for that costs nothing more.
+    viewer: tokio::sync::Mutex<Option<Viewer>>,
     /// Set when the user signs out.
     ///
     /// The client holds its token from construction, and clearing the *stored* token does not
@@ -86,14 +87,24 @@ impl AniListTracker {
         self.client.delete_entry(entry_id).await.map_err(to_core)
     }
 
+    /// The title language the signed-in viewer reads AniList in: romaji, English or native.
+    /// `None` when AniList did not say.
+    pub async fn title_language(&self) -> Result<Option<TitleLanguage>, anistream_core::Error> {
+        Ok(self.viewer().await?.title_language)
+    }
+
     async fn viewer_id(&self) -> Result<u32, anistream_core::Error> {
+        Ok(self.viewer().await?.id)
+    }
+
+    async fn viewer(&self) -> Result<Viewer, anistream_core::Error> {
         let mut cached = self.viewer.lock().await;
-        if let Some(id) = *cached {
-            return Ok(id);
+        if let Some(viewer) = cached.as_ref() {
+            return Ok(viewer.clone());
         }
-        let id = self.client.viewer_id().await.map_err(to_core)?;
-        *cached = Some(id);
-        Ok(id)
+        let viewer = self.client.viewer().await.map_err(to_core)?;
+        *cached = Some(viewer.clone());
+        Ok(viewer)
     }
 }
 

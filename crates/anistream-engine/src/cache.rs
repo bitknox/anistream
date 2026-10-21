@@ -459,6 +459,7 @@ mod tests {
             completed: false,
             kind: None,
             skippable: false,
+            airs_at: None,
         }
     }
 

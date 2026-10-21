@@ -134,6 +134,7 @@ pub(super) fn app_at_episodes() -> App {
                     completed: false,
                     kind: None,
                     skippable: false,
+                    airs_at: None,
                     thumbnail: None,
                     description: None,
                 })

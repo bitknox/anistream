@@ -22,6 +22,8 @@ tokio.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
+# Only to hold the query documents to GraphQL's grammar in a test.
+graphql-parser = "0.4.1"
 tokio = { workspace = true, features = ["rt-multi-thread", "macros"] }
 reqwest.workspace = true
 anistream-net.workspace = true
