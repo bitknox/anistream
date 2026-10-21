@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
@@ -18,10 +19,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -30,16 +34,19 @@ import tv.anistream.design.Nagare
 import tv.anistream.design.tabular
 import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.FailedCheck
 import tv.anistream.engine.model.GuardView
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.StorePluginStatus
 import tv.anistream.engine.model.TitleLanguage
 import tv.anistream.engine.model.TorrentProtection
+import tv.anistream.engine.model.TorrentProxy
 import tv.anistream.store.AccountsModel
 import tv.anistream.store.LibraryModel
 import tv.anistream.store.ProvidersModel
 import tv.anistream.store.SettingsCatalog
 import tv.anistream.store.Wording
+import tv.anistream.store.updates
 
 /** The focus keys of the rows a tablet's column shows the effect of. */
 internal const val FOCUS_UPSCALING = "upscaling"
@@ -289,8 +296,21 @@ internal fun DownloadsPane(actions: AppActions) {
     val downloads by store.downloads.rows.collectAsStateWithLifecycle()
     val torrents = store.settings.isOn(SettingKey.TORRENTS, view)
     Pane {
+        val free = freeBytes()
+        val used = store.downloads.bytes(downloads)
         SettingsGroup(
-            rows = listOf({ place -> InfoRow(place, "Storage", storageLine(store.downloads.bytes(downloads))) }),
+            rows = listOf(
+                { place -> StorageRow(place, used, free) },
+                { place ->
+                    val navigator = LocalNavigator.current
+                    InfoRow(
+                        place,
+                        "Downloads",
+                        if (downloads.isEmpty()) "None yet" else Wording.plural(downloads.size, "episode"),
+                        onClick = { navigator.open(DOWNLOADS_ROUTE) },
+                    )
+                },
+            ),
         )
         SettingsGroup(
             title = "New downloads",
@@ -302,6 +322,31 @@ internal fun DownloadsPane(actions: AppActions) {
                 if (torrents) @Composable { place: Place -> SettingSwitch(place, SettingKey.KEEP_SEEDING, "Keep seeding") } else null,
             ),
         )
+    }
+}
+
+/**
+ * What the downloads take beside what is free, as a bar: amber for the downloads' share of what
+ * the app could use, on the rule.
+ */
+@Composable
+private fun StorageRow(place: Place, used: Long, free: Long?) {
+    val colors = MaterialTheme.colorScheme
+    RowFrame(place, onClick = null, modifier = Modifier.heightIn(min = 88.dp)) {
+        Column(Modifier.fillMaxWidth()) {
+            Text("Storage", style = MaterialTheme.typography.titleMedium)
+            Text(storageWords(used, free), style = MaterialTheme.typography.bodyMedium.tabular(), color = colors.onSurfaceVariant)
+            val share = if (free != null && used + free > 0) used.toFloat() / (used + free) else 0f
+            androidx.compose.material3.LinearProgressIndicator(
+                progress = { share.coerceIn(0f, 1f) },
+                modifier = Modifier.padding(top = 8.dp).fillMaxWidth().height(4.dp)
+                    .semantics { contentDescription = "Downloads take ${Wording.bytes(used)}" },
+                color = colors.primary,
+                trackColor = colors.outline,
+                gapSize = if (share > 0f) 4.dp else 0.dp,
+                drawStopIndicator = {},
+            )
+        }
     }
 }
 
@@ -324,9 +369,13 @@ internal fun SourcesPane(actions: AppActions) {
     val view by store.settings.view.collectAsStateWithLifecycle()
     val providers by store.providers.rows.collectAsStateWithLifecycle()
     val stores by store.stores.stores.collectAsStateWithLifecycle()
-    LaunchedEffect(Unit) { store.checkProviders() }
+    LaunchedEffect(Unit) {
+        store.checkProviders()
+        store.loadStores()
+    }
     val torrents = store.settings.isOn(SettingKey.TORRENTS, view)
-    val updates = stores.sumOf { store -> store.plugins.count { it.status is StorePluginStatus.Update } }
+    val updates = stores.sumOf { it.updates }
+    var sheet by rememberSaveable { mutableStateOf<TorrentSheetMode?>(null) }
     Pane {
         SettingsGroup(
             rows = listOf(
@@ -334,18 +383,40 @@ internal fun SourcesPane(actions: AppActions) {
                     val navigator = LocalNavigator.current
                     InfoRow(place, "Source order", Wording.plural(providers.size, "source"), onClick = { navigator.open(PROVIDERS_ROUTE) })
                 },
-                { place -> InfoRow(place, "Plugin stores", if (updates > 0) "${stores.size} · ${Wording.plural(updates, "update")}" else "${stores.size}") },
+                { place ->
+                    val navigator = LocalNavigator.current
+                    InfoRow(
+                        place,
+                        "Plugin stores",
+                        when {
+                            stores.isEmpty() -> "None joined"
+                            updates > 0 -> "${stores.size} · ${Wording.plural(updates, "update")}"
+                            else -> "${stores.size}"
+                        },
+                        onClick = { navigator.open(STORES_ROUTE) },
+                    )
+                },
             ),
         )
         SettingsGroup(
             title = "Torrents",
             footer = if (torrents) CHECK_NOTE else "Off by default. Turning this on asks how to protect your connection first.",
             rows = listOfNotNull(
-                @Composable { place: Place -> TorrentSourceRow(place, torrents) },
-                if (torrents) @Composable { place: Place -> InfoRow(place, "Torrent index", view?.sources?.index ?: "None set") } else null,
-                if (torrents) @Composable { place: Place -> InfoRow(place, "Protect with", protectionWords(view?.torrent?.protection)) } else null,
+                @Composable { place: Place -> TorrentSourceRow(place, torrents) { sheet = TorrentSheetMode.TurnOn } },
+                if (torrents) @Composable { place: Place ->
+                    InfoRow(place, "Torrent index", view?.sources?.index ?: "None set", onClick = { sheet = TorrentSheetMode.Change })
+                } else null,
+                if (torrents) @Composable { place: Place ->
+                    MenuRow(
+                        place,
+                        "Protect with",
+                        protectionWords(view?.torrent?.protection),
+                        listOf(TorrentProtection.PROXY, TorrentProtection.DEVICE, TorrentProtection.NONE).map { MenuChoice(it, protectionWords(it)) },
+                        view?.torrent?.protection,
+                    ) { picked -> if (picked != view?.torrent?.protection) sheet = TorrentSheetMode.Change }
+                } else null,
                 if (torrents) @Composable { place: Place -> LastCheckRow(place) } else null,
-                if (torrents) @Composable { place: Place -> SettingMenu(place, SettingKey.VPN_ON_FAILURE, "If a check fails") } else null,
+                if (torrents) @Composable { place: Place -> FailedCheckRow(place) } else null,
                 if (torrents) @Composable { place: Place -> SettingSwitch(place, SettingKey.TORRENTS_ON_CELLULAR, "Torrents on cellular") } else null,
             ),
         )
@@ -361,6 +432,7 @@ internal fun SourcesPane(actions: AppActions) {
             )
         }
     }
+    sheet?.let { mode -> TorrentSheet(mode) { sheet = null } }
 }
 
 /** What the connection check does, said wherever torrents are on. */
@@ -370,12 +442,55 @@ internal const val CHECK_NOTE =
 
 /** The torrent source's switch. Turning it off is a switch; turning it on asks for protection first. */
 @Composable
-private fun TorrentSourceRow(place: Place, on: Boolean) {
+private fun TorrentSourceRow(place: Place, on: Boolean, turnOn: () -> Unit) {
     val store = LocalAppStore.current
-    // Turning torrents on goes through the sheet that asks how to protect the connection, which
-    // is not in this build yet: until then only turning them off is offered here.
-    SwitchRow(place, "Torrent source", checked = on, enabled = on) { wanted ->
-        if (!wanted) store.setSwitch(SettingKey.TORRENTS, false)
+    SwitchRow(place, "Torrent source", checked = on) { wanted ->
+        if (wanted) turnOn() else store.setSwitch(SettingKey.TORRENTS, false)
+    }
+}
+
+/**
+ * If a check fails: pause or stop torrents as a setting, or warn only, which keeps them running
+ * on what may be the viewer's own address and so is confirmed first and asked for with the
+ * protection it goes with.
+ */
+@Composable
+private fun FailedCheckRow(place: Place) {
+    val store = LocalAppStore.current
+    val view by store.settings.view.collectAsStateWithLifecycle()
+    val torrent = view?.torrent
+    var warning by remember { mutableStateOf(false) }
+    val choices = listOf(
+        MenuChoice(FailedCheck.PAUSE, "Pause torrents"),
+        MenuChoice(FailedCheck.STOP, "Stop torrents"),
+        MenuChoice(FailedCheck.WARN, "Warn only"),
+    )
+    val current = torrent?.onFailure ?: FailedCheck.PAUSE
+    MenuRow(
+        place,
+        "If a check fails",
+        choices.firstOrNull { it.value == current }?.label,
+        choices,
+        current,
+        enabled = torrent != null,
+    ) { picked ->
+        when (picked) {
+            current -> {}
+            FailedCheck.WARN -> warning = true
+            FailedCheck.PAUSE -> store.setSetting(SettingKey.VPN_ON_FAILURE, SettingValue.Str("pause"))
+            FailedCheck.STOP -> store.setSetting(SettingKey.VPN_ON_FAILURE, SettingValue.Str("stop"))
+        }
+    }
+    if (warning && torrent != null) {
+        WarnOnlyDialog(onDismiss = { warning = false }) {
+            warning = false
+            store.setTorrentProtection(
+                torrent.protection,
+                proxy = torrent.proxy?.let { TorrentProxy(host = it.host, port = it.port, user = it.user, password = null) },
+                onFailure = FailedCheck.WARN,
+                acknowledged = true,
+            )
+        }
     }
 }
 

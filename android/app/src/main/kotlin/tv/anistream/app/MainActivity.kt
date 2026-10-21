@@ -22,7 +22,10 @@ import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
 import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.model.Command
+import tv.anistream.engine.model.SettingKey
 import tv.anistream.player.ui.PlayerFrame
+import tv.anistream.store.DownloadsModel
+import tv.anistream.store.InviteLinks
 import tv.anistream.ui.AppActions
 import tv.anistream.ui.AppRoot
 import tv.anistream.ui.Destination
@@ -77,7 +80,33 @@ class MainActivity : ComponentActivity() {
         if (Flavour.FIXTURES || debuggable) announceReady()
         askForNotificationsWhenNeeded()
         signIn.start()
-        signIn.handle(intent)
+        if (!signIn.handle(intent)) invite(intent)
+        keepDownloadsRunning()
+    }
+
+    /**
+     * While the app is in front, ask for the download job whenever an episode waits or runs: a
+     * user-initiated job is asked for from a screen the person is using.
+     */
+    private fun keepDownloadsRunning() {
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                app.store.downloads.rows.collect { rows ->
+                    val wifiOnly = !app.store.settings.isOn(SettingKey.DOWNLOADS_ON_CELLULAR)
+                    if (DownloadsModel.busy(rows)) app.notifier.wantPermission()
+                    DownloadJob.ensure(this@MainActivity, rows, wifiOnly)
+                }
+            }
+        }
+    }
+
+    /** An invite link the app was opened with opens the join sheet with it, checked as it opens. */
+    private fun invite(intent: Intent?): Boolean {
+        val link = intent?.data?.toString()?.let(InviteLinks::invite) ?: return false
+        app.store.stores.openJoin(link)
+        // Taken off the intent, so a recreated activity does not open the sheet again.
+        intent.data = null
+        return true
     }
 
     override fun onResume() {
@@ -136,7 +165,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         // The redirect a sign-in comes back with is the engine's, and is not kept as the
         // activity's intent.
-        if (signIn.handle(intent)) return
+        if (signIn.handle(intent) || invite(intent)) return
         setIntent(intent)
     }
 

@@ -709,11 +709,20 @@ private fun TabletTitle(
                                 modifier = Modifier.fillMaxWidth().height(inset + 208.dp).shared(Shared.Art, entry.id),
                             )
                         }
+                        // The cover overlaps the banner's foot, the title block sits level with
+                        // the cover's foot, and the details column starts below the banner, so it
+                        // grows down the page and never up over the art.
+                        val below = if (art == HeroArt.Compact) 0.dp else 208.dp - 135.dp + 24.dp
                         Row(
                             Modifier.padding(top = inset + if (art == HeroArt.Compact) 64.dp else 135.dp).padding(start = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(24.dp),
-                            verticalAlignment = Alignment.Bottom,
+                            verticalAlignment = Alignment.Top,
                         ) {
+                          Row(
+                            Modifier.weight(1f),
+                            horizontalArrangement = Arrangement.spacedBy(24.dp),
+                            verticalAlignment = Alignment.Bottom,
+                          ) {
                             ArtworkImage(
                                 entry.coverUrl,
                                 plate = null,
@@ -734,7 +743,8 @@ private fun TabletTitle(
                                 }
                                 TabletActions(entry, actions, Modifier.padding(top = 4.dp))
                             }
-                            if (!aboutOpen) TitleFacts(entry, Modifier.width(376.dp)) { aboutOpen = true }
+                          }
+                            if (!aboutOpen) TitleFacts(entry, Modifier.padding(top = below).width(376.dp)) { aboutOpen = true }
                         }
                     }
                 }

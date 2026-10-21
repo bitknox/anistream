@@ -102,12 +102,43 @@ The fixtures flavour takes intent extras under the names of the Apple app's `-An
 arguments: `scene` (`watching`, `fresh` or `playing`), `media` (what the playing scene streams),
 `section` (`continue`, `calendar`, `seasonal`, `library`, `search`), `title` (a title page to
 open, by id), `query` (a search to run), `page` (a page over the destination, by its route:
-`settings`, `settings/playback`, `settings/sources`), `watched` (`900006:8`, or several titles joined by `/`),
-and `sheet` and `player` for the screens that take them in later phases. A scene is the engine's
+`settings`, `settings/playback`, `settings/sources`, `downloads`), `watched` (`900006:8`, or
+several titles joined by `/`), `downloads` (any value: three downloads seeded, see below), and
+`sheet` and `player` for the screens that take them in later phases. A scene is the engine's
 own (`start_scene`): the fake AniList at the real time, with its art, and for `watching` and
 `playing` a history seeded first. Each launch starts the testing engine in a new directory of its
 own. A debug build of either flavour says `ANISTREAM_READY` in the log, tag
 `anistream`, once its screens have what they asked for.
+
+The engine downloads torrents only, and no fixture has one, so the `downloads` extra seeds the
+queue instead (`seed_fixture_downloads`): episode 6 of 900001 finished, its file the fixtures'
+clip (`app/src/fixtures/assets/fixture-download.mkv`, ffmpeg's test pattern from
+`scripts/fixture-clip.sh`) copied into the app's download folder, so it plays offline; episode 7
+running; episode 3 of 900002 waiting. `shots.sh phone watching:downloads=1+page=downloads` shoots
+the Downloads screen, and `page=settings/downloads` the storage meter.
+
+### Checking downloads on a phone
+
+The real transfer, the download job and Wi-Fi only need a torrent source, which only a phone with
+its own VPN and index has:
+
+1. Build and install the app flavour: `android/scripts/engine.sh release`, then
+   `cd android && ./gradlew assembleAppDebug` and
+   `adb install -r app/build/outputs/apk/app/debug/app-app-debug.apk`.
+2. With the phone's VPN on, open Settings › Sources, turn on Torrent source, pick VPN on this
+   device, enter the torrent index, and Turn on. Wait for Last check to say Passed.
+3. On a title page, long-press an episode and pick Download. Downloads lists it as Queued, then
+   running, with its speed and the time left.
+4. The download notification is up. `adb shell dumpsys jobscheduler | grep -A4 tv.anistream.app`
+   shows the job, user-initiated, running.
+5. Lock the phone for ten minutes, or switch to another app: the download goes on and the
+   notification moves.
+6. With Wi-Fi only on (Settings › Downloads), turn Wi-Fi off: the download waits. Turn it on: it
+   goes on.
+7. Once done, the row says Downloaded with its size, the job ends and its notification goes. The
+   file is under `/sdcard/Android/data/tv.anistream.app/files/Movies`
+   (`adb shell ls -l /sdcard/Android/data/tv.anistream.app/files/Movies`).
+8. In flight mode, play it from Downloads.
 
 ## Tests
 

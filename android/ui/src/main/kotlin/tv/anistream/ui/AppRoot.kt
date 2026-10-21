@@ -90,7 +90,7 @@ enum class Destination(val route: String, val label: String, val icon: ImageVect
 data class AppActions(
     /** Connect AniList: the engine's sign-in in a Custom Tab, which [AppRoot] starts itself. */
     val connectAniList: () -> Unit = {},
-    /** Join a plugin store: the join sheet, from A2. */
+    /** Join a plugin store: the join sheet, which [AppRoot] opens itself. */
     val addStore: () -> Unit = {},
     /** Accounts and settings: Settings, which [AppRoot] opens itself. */
     val openSettings: () -> Unit = {},
@@ -166,9 +166,11 @@ fun AppRoot(
         actions.copy(
             openSettings = { navigator.openSettings() },
             connectAniList = { store.connect("anilist") },
+            addStore = { store.stores.openJoin() },
             hint = { hint ->
                 when (hint) {
                     NoticeHint.KITSU_CREDENTIALS -> sheets.kitsu = true
+                    NoticeHint.OPEN_STORES -> navigator.open(STORES_ROUTE)
                     else -> actions.hint(hint)
                 }
             },
@@ -191,6 +193,7 @@ fun AppRoot(
     ) {
         EngineNotices(onHint = routed.hint)
         AccountSheets()
+        JoinStoreSheetHost()
         androidx.compose.runtime.LaunchedEffect(startTitle) {
             startTitle?.let { navigator.openTitle(it, "launch") }
         }
@@ -253,6 +256,8 @@ fun AppRoot(
                             }
                             settingsPages(routed)
                             providerPages(routed)
+                            storePages()
+                            downloadPages(routed)
                         }
                     }
                 }
@@ -319,12 +324,12 @@ private fun PhoneBar(current: Destination, go: (Destination) -> Unit) {
 
 /**
  * The drawer's pages beyond the five destinations (AT1): Downloads, then Providers and Plugin
- * stores under a Sources header. Each opens the page closest to it in this build.
+ * stores under a Sources header.
  */
 internal enum class DrawerPage(val label: String, val icon: ImageVector, val route: String) {
-    Downloads("Downloads", Icons.DownloadsPage, settingsRoute(SettingsPane.Downloads)),
+    Downloads("Downloads", Icons.DownloadsPage, DOWNLOADS_ROUTE),
     Providers("Providers", Icons.Providers, PROVIDERS_ROUTE),
-    Stores("Plugin stores", Icons.Stores, settingsRoute(SettingsPane.Sources)),
+    Stores("Plugin stores", Icons.Stores, STORES_ROUTE),
 }
 
 /**

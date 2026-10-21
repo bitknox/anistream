@@ -62,7 +62,11 @@ data class EngineLaunch(
     val theme: PlayerTheme = THEME,
     /** The sign-in clients that ship with the app. */
     val anilistClientId: String? = null,
+    /** Where the AniList client redirects; `null` for `anistream://auth/anilist`. */
+    val anilistRedirectUri: String? = null,
     val malClientId: String? = null,
+    val simklClientId: String? = null,
+    val traktClientId: String? = null,
 ) {
     /** Which engine. */
     sealed interface Engine {
@@ -82,7 +86,10 @@ data class EngineLaunch(
             theme = theme,
             platform = platform,
             anilistClientId = anilistClientId,
+            anilistRedirectUri = anilistRedirectUri,
             malClientId = malClientId,
+            simklClientId = simklClientId,
+            traktClientId = traktClientId,
             secrets = secrets,
         )
 
@@ -96,20 +103,52 @@ data class EngineLaunch(
     companion object {
         /**
          * The app's launch: the sandbox's directories, tokens through the host, and the sign-in
-         * clients anistream registered with AniList and MyAnimeList, which are not secret.
+         * clients anistream registered with AniList, MyAnimeList, Simkl and Trakt, which are not
+         * secret.
          */
-        fun app(home: EngineHome): EngineLaunch = EngineLaunch(
-            engine = Engine.App,
-            home = home,
-            anilistClientId = ANILIST_CLIENT_ID,
-            malClientId = MAL_CLIENT_ID,
-        )
+        fun app(home: EngineHome, androidAniListClientId: String? = ANDROID_ANILIST_CLIENT_ID): EngineLaunch {
+            val anilist = aniListClient(androidAniListClientId)
+            return EngineLaunch(
+                engine = Engine.App,
+                home = home,
+                anilistClientId = anilist.id,
+                anilistRedirectUri = anilist.redirect,
+                malClientId = MAL_CLIENT_ID,
+                simklClientId = SIMKL_CLIENT_ID,
+                traktClientId = TRAKT_CLIENT_ID,
+            )
+        }
+
+        /**
+         * The AniList client the app signs in with. AniList's implicit grant puts the token in the
+         * redirect, and any app can claim `anistream://`, so the Android client redirects to a
+         * verified App Link, [ANILIST_APP_LINK], once it is registered; until then the shared
+         * client and the app's scheme, as on Apple, whose sign-in sheet no other app can answer.
+         */
+        fun aniListClient(androidClientId: String?): AniListClient =
+            androidClientId?.takeIf { it.isNotBlank() }?.let { AniListClient(it, ANILIST_APP_LINK) }
+                ?: AniListClient(ANILIST_CLIENT_ID, null)
 
         /** anistream's AniList client: the implicit grant, redirecting to `anistream://auth/anilist`. */
         const val ANILIST_CLIENT_ID = "54537"
 
+        /**
+         * anistream's Android AniList client, redirecting to [ANILIST_APP_LINK]: `null` until it
+         * is registered.
+         */
+        val ANDROID_ANILIST_CLIENT_ID: String? = null
+
+        /** Where the Android AniList client redirects: the App Link the manifest verifies. */
+        const val ANILIST_APP_LINK = "https://anistream.tv/auth/anilist"
+
         /** anistream's MyAnimeList client: PKCE, redirecting to `anistream://auth/mal`. */
         const val MAL_CLIENT_ID = "0ccc4725381aca9513f26d32107a94cd"
+
+        /** anistream's Simkl client, for its device sign-in. */
+        const val SIMKL_CLIENT_ID = "016a3721d77c54d04f5aa6f5a213fe76f047d83d3ae35b2c892074859b88be0b"
+
+        /** anistream's Trakt client, for its device sign-in: a client with no secret. */
+        const val TRAKT_CLIENT_ID = "p2yWSSGe7aVAlnHEMiQQh0RhiL6ivZfJNaubOJi4DZE"
 
         /**
          * The palette as the player is dressed in it, the terminal's immersive one: silk text, haze
@@ -126,6 +165,9 @@ data class EngineLaunch(
         )
     }
 }
+
+/** An AniList client, and where it redirects: `null` for the app's scheme. */
+data class AniListClient(val id: String, val redirect: String?)
 
 /** What the engine is told the app runs on: informational, since nothing in it differs by it. */
 fun enginePlatform(): FfiPlatform? = FfiPlatform.ANDROID

@@ -14,6 +14,28 @@ android {
         versionName = "1.1.0"
         ndk { abiFilters += "arm64-v8a" }
     }
+    // The release key, from Gradle properties (~/.gradle/gradle.properties on the machine that
+    // signs). Where they are not set, as in CI, the release build is left unsigned rather than
+    // failing. The App Link AniList's sign-in comes back on is verified against this key.
+    val release = listOf("STORE_FILE", "STORE_PASSWORD", "KEY_ALIAS", "KEY_PASSWORD")
+        .associateWith { providers.gradleProperty("ANISTREAM_RELEASE_$it").orNull }
+    val signsReleases = release.values.all { !it.isNullOrBlank() }
+    signingConfigs {
+        if (signsReleases) {
+            create("release") {
+                storeFile = file(release.getValue("STORE_FILE")!!.replaceFirst("~", System.getProperty("user.home")))
+                storePassword = release.getValue("STORE_PASSWORD")
+                keyAlias = release.getValue("KEY_ALIAS")
+                keyPassword = release.getValue("KEY_PASSWORD")
+            }
+        }
+    }
+    productFlavors {
+        // The app flavour's release is the build to keep; the fixtures flavour is never for real use.
+        named("app") {
+            if (signsReleases) signingConfig = signingConfigs.getByName("release")
+        }
+    }
     buildTypes {
         release {
             isMinifyEnabled = false

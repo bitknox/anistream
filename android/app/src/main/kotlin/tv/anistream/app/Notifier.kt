@@ -52,6 +52,14 @@ class Notifier(private val context: Context) {
         manager.notify(ids.getAndIncrement(), notification)
     }
 
+    /**
+     * A notification is about to be needed, the download job's, which the system posts itself:
+     * ask for the permission now, as [post] would, when it is not there.
+     */
+    fun wantPermission() {
+        if (!allowed) _wantsPermission.value = true
+    }
+
     /** The permission was asked for, whatever the answer. */
     fun asked() {
         _wantsPermission.value = false

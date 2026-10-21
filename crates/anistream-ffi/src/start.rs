@@ -108,9 +108,27 @@ pub struct FfiStart {
     /// URL scheme. Not yet used: native sign-in (E6) reads it.
     #[uniffi(default = None)]
     pub anilist_client_id: Option<String>,
+    /// Where the AniList client redirects, as it was registered: an Android App Link such as
+    /// `https://anistream.tv/auth/anilist`, which no other app can claim, where the implicit
+    /// grant puts the token in the redirect. `None` for the app's scheme,
+    /// `anistream://auth/anilist`. `Event::Authorize`'s callback scheme follows it.
+    #[uniffi(default = None)]
+    pub anilist_redirect_uri: Option<String>,
     /// The MyAnimeList client the app registered and ships with, as `anilist_client_id`.
     #[uniffi(default = None)]
     pub mal_client_id: Option<String>,
+    /// Where the MyAnimeList client redirects, `None` for `anistream://auth/mal`.
+    #[uniffi(default = None)]
+    pub mal_redirect_uri: Option<String>,
+    /// The Simkl client the app registered and ships with, for its device sign-in.
+    #[uniffi(default = None)]
+    pub simkl_client_id: Option<String>,
+    /// The Trakt client the app registered and ships with, for its device sign-in.
+    #[uniffi(default = None)]
+    pub trakt_client_id: Option<String>,
+    /// The Trakt client's secret, for a client that has one; `None` signs in without.
+    #[uniffi(default = None)]
+    pub trakt_client_secret: Option<String>,
     /// Where the trackers' and the plugin stores' tokens are kept. `None` for
     /// [`SecretsMode::Host`].
     #[uniffi(default = None)]
@@ -125,7 +143,15 @@ impl FfiStart {
 
     /// The sign-in clients, as the engine is handed them.
     pub fn app_clients(&self) -> AppClients {
-        AppClients { anilist: self.anilist_client_id.clone(), mal: self.mal_client_id.clone() }
+        AppClients {
+            anilist: self.anilist_client_id.clone(),
+            anilist_redirect: self.anilist_redirect_uri.clone(),
+            mal: self.mal_client_id.clone(),
+            mal_redirect: self.mal_redirect_uri.clone(),
+            simkl: self.simkl_client_id.clone(),
+            trakt: self.trakt_client_id.clone(),
+            trakt_secret: self.trakt_client_secret.clone(),
+        }
     }
 }
 
@@ -199,7 +225,36 @@ mod tests {
             ..FfiStart::default()
         };
         assert_eq!(mac.secrets_mode(), SecretsMode::FollowConfig);
-        assert_eq!(mac.app_clients(), AppClients { anilist: Some("4242".into()), mal: None });
+        assert_eq!(
+            mac.app_clients(),
+            AppClients { anilist: Some("4242".into()), ..AppClients::default() }
+        );
+    }
+
+    #[test]
+    fn an_apps_redirects_and_device_clients_reach_the_engine_as_given() {
+        let android = FfiStart {
+            anilist_client_id: Some("4242".into()),
+            anilist_redirect_uri: Some("https://anistream.tv/auth/anilist".into()),
+            mal_client_id: Some("a-mal-client".into()),
+            simkl_client_id: Some("a-simkl-client".into()),
+            trakt_client_id: Some("a-trakt-client".into()),
+            ..FfiStart::default()
+        };
+        let clients = android.app_clients();
+        assert_eq!(
+            clients.anilist_redirect.as_deref(),
+            Some("https://anistream.tv/auth/anilist")
+        );
+        assert_eq!(clients.callback_scheme("anilist"), "https");
+        assert_eq!(
+            clients.redirect("mal"),
+            "anistream://auth/mal",
+            "MyAnimeList keeps its scheme"
+        );
+        assert_eq!(clients.simkl.as_deref(), Some("a-simkl-client"));
+        assert_eq!(clients.trakt.as_deref(), Some("a-trakt-client"));
+        assert_eq!(clients.trakt_secret, None);
     }
 
     #[test]
