@@ -23,6 +23,7 @@ import tv.anistream.engine.model.JobId
 import tv.anistream.engine.model.LibrarySegment
 import tv.anistream.engine.model.SearchFilters
 import tv.anistream.engine.model.SettingKey
+import tv.anistream.engine.model.ShowSettingKey
 
 /**
  * Where the app's state lives, on the main thread.
@@ -70,6 +71,7 @@ class AppStore(
     val downloads = DownloadsModel()
     val settings = SettingsModel()
     val providers = ProvidersModel()
+    val showSettings = ShowSettingsModel()
     val artwork = ArtworkStore(scope, decoder) { url ->
         val client = client
         val files = artworkWithoutEngine
@@ -184,7 +186,19 @@ class AppStore(
     }
 
     fun loadDetail(id: AnilistId) {
-        send(Command.LoadDetail(id))
+        titles.detailAsked(id)
+        detailPending += id
+        send(Command.LoadDetail(id))?.let { detailJobs[it] = id }
+    }
+
+    /** Each title page's fetch by the job that carries it, to tell an answer from none. */
+    private val detailJobs = mutableMapOf<JobId, AnilistId>()
+    private val detailPending = mutableSetOf<AnilistId>()
+
+    /** A page's fetch ended: without the title, AniList did not answer. */
+    private fun detailDone(job: JobId) {
+        val id = detailJobs.remove(job) ?: return
+        if (detailPending.remove(id)) titles.detailFailed(id)
     }
 
     /**
@@ -210,6 +224,21 @@ class AppStore(
     }
 
     private val episodesAsked = mutableSetOf<AnilistId>()
+
+    /** [id]'s own settings sheet, answered with `ShowSettings`. */
+    fun loadShowSettings(id: AnilistId) {
+        send(Command.LoadShowSettings(id))
+    }
+
+    /** Set [key] for [id] alone, or with `null` have it follow Settings again. */
+    fun setShowSetting(id: AnilistId, key: ShowSettingKey, value: SettingValue?) {
+        send(Command.SetShowSetting(id, key, value))
+    }
+
+    /** Put [id] back on Settings: its own settings, the source it keeps and the remembered tracks. */
+    fun resetShowSettings(id: AnilistId) {
+        send(Command.ResetShowSettings(id))
+    }
 
     /** Put [id] on the tracker's [segment] list: shown at once, ahead of the tracker's word. */
     fun setStatus(id: AnilistId, segment: LibrarySegment) {
@@ -334,13 +363,17 @@ class AppStore(
             is Event.JobDone -> {
                 jobs.done(event.v1)
                 accounts.done(event.v1)
+                detailDone(event.v1)
             }
 
             is Event.Content -> content(event.content, event.view)
             is Event.Caption -> caption(event.text, event.view)
             is Event.CalendarWindow -> calendar.window(event.anchor, event.pages, event.morePast)
             is Event.CalendarBackfill -> calendar.backfill(event.page, event.entries, event.morePast, titles)
-            is Event.Detail -> titles.merge(detail = event.v1)
+            is Event.Detail -> {
+                detailPending -= event.v1.id
+                titles.merge(detail = event.v1)
+            }
             is Event.TitlesChanged -> titlesChanged()
             is Event.Progress -> titles.progress(event.id, event.progress, event.resume, event.episodes)
             is Event.LastAired -> titles.lastAired(event.v1)
@@ -359,6 +392,7 @@ class AppStore(
             is Event.ProviderPreference -> providers.preference(event.v1)
             is Event.Stores -> stores.apply(event.v1)
             is Event.Downloads -> downloads.apply(event.v1)
+            is Event.ShowSettings -> showSettings.apply(event.v1)
 
             is Event.ArtworkReady -> artwork.ready(event.url, event.bytes)
             is Event.ImageFailed -> artwork.failed(event.url)

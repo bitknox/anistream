@@ -70,7 +70,7 @@ class SceneRecorder {
             store.onApplied = { batch -> events += batch.filter(::kept) }
             store.start(EngineLaunch(EngineLaunch.Engine.Fixtures(scene), EngineHome.override(home)), AppHost(MemorySecrets()))
             // What every screen asks for: the lists, the library's segments, the search the
-            // shots run, and each fixture title's page and episodes.
+            // shots run, and each fixture title's page, episodes and settings sheet.
             store.loadContinue()
             store.loadSeasonal()
             store.loadCalendar()
@@ -80,6 +80,7 @@ class SceneRecorder {
             for (id in FIXTURE_IDS) {
                 store.loadDetail(id)
                 store.loadEpisodes(id)
+                store.loadShowSettings(id)
             }
         }
         withTimeout(60_000) {

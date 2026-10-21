@@ -3,7 +3,11 @@ package tv.anistream.ui
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -90,8 +94,24 @@ class BoardShots {
     fun phone_library() = shoot("phone-library", WATCHING, start = Destination.Library)
 
     @Test
+    @Config(qualifiers = PHONE)
+    fun phone_more_about() = shoot("phone-more-about", WATCHING, title = 900001u) { open("More about this show") }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_show_settings() = shoot("phone-show-settings", WATCHING, title = 900001u) {
+        compose.onNodeWithContentDescription("More").performClick()
+        compose.waitForIdle()
+        open("Settings for this show")
+    }
+
+    @Test
     @Config(qualifiers = TABLET)
     fun tablet_home() = shoot("tablet-home", WATCHING)
+
+    @Test
+    @Config(qualifiers = TABLET)
+    fun tablet_more_about() = shoot("tablet-more-about", WATCHING, title = 900001u) { open("More about this show") }
 
     @Test
     @Config(qualifiers = TABLET)
@@ -107,6 +127,7 @@ class BoardShots {
         start: Destination = Destination.Continue,
         title: AnilistId? = null,
         query: String? = null,
+        then: (() -> Unit)? = null,
     ) {
         val recorded = Scene.named(scene)
         AppClock.clock = Clock.fixed(recorded.recordedAt, ZONE)
@@ -126,9 +147,21 @@ class BoardShots {
         // What the screens asked for as they opened is answered as the engine answered it.
         store.apply(events)
         awaitArt(store)
+        then?.let {
+            it()
+            compose.waitForIdle()
+            awaitArt(store)
+        }
         compose.mainClock.advanceTimeBy(3_000)
         compose.waitForIdle()
         compose.onRoot().captureRoboImage("${roborazziSystemPropertyOutputDirectory()}/$name.png")
+    }
+
+    /** Tap what [label] names, scrolled to first where it sits in a list. */
+    private fun open(label: String) {
+        val node = compose.onNodeWithText(label)
+        runCatching { node.performScrollTo() }
+        node.performClick()
     }
 
     /** Wait until the art has stopped landing: decoded off the main thread, then kept on it. */
