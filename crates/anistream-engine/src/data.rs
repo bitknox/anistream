@@ -7,9 +7,9 @@
 use anistream_meta::anilist::{AiringEntry, Media, model::RelationNode};
 use anistream_model::{
     catalog::{
-        CastMember, CastRole, Entry, FuzzyDate, LinkedTitle, Person, Ranking, RankingKind,
-        RelationKind, Season, SourceMaterial, StaffCredit, TitleDetail, TitleLanguage,
-        TitleTag,
+        AiringStatus, CastMember, CastRole, Entry, FuzzyDate, LibrarySegment, LinkedTitle,
+        Person, Ranking, RankingKind, RelationKind, Season, SourceMaterial, StaffCredit,
+        SynopsisSpan, TitleDetail, TitleLanguage, TitleTag,
     },
     episodes::{EpisodeAiring, EpisodeKind, EpisodeRow},
     progress::TitleProgress,
@@ -70,6 +70,12 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
         end_date: media.end_date.and_then(fuzzy_date),
         source: media.source.map(source_material),
         adult: media.is_adult.unwrap_or(false),
+        status: media.status.and_then(airing_status),
+        synopsis_spans: media
+            .description_spans()
+            .into_iter()
+            .map(|span| SynopsisSpan { text: span.text, spoiler: span.spoiler })
+            .collect(),
         recommended: media
             .recommended()
             .into_iter()
@@ -87,11 +93,18 @@ pub fn entry_from(media: &Media, store: Option<&Store>) -> Entry {
 
 /// A title as its page shows it: [`entry_from`], with what only the single-title fetch brings.
 pub fn entry_with_detail(media: &Media, store: Option<&Store>) -> Entry {
-    Entry { detail: Some(detail_from(media)), ..entry_from(media, store) }
+    Entry { detail: Some(detail_from(media, store)), ..entry_from(media, store) }
 }
 
-/// What only a title's page carries, from the detail fetch.
-fn detail_from(media: &Media) -> TitleDetail {
+/// What only a title's page carries, from the detail fetch, with where each title it links to
+/// is on the library, as `store` last kept it.
+fn detail_from(media: &Media, store: Option<&Store>) -> TitleDetail {
+    let linked = |node: &RelationNode, relation| LinkedTitle {
+        list_status: store
+            .and_then(|s| s.library_status(node.id).ok().flatten())
+            .and_then(|status| LibrarySegment::ALL.into_iter().find(|s| s.wire() == status)),
+        ..linked(node, relation)
+    };
     use anistream_core::media::MediaFormat;
     TitleDetail {
         tags: media
@@ -152,9 +165,25 @@ fn linked(node: &RelationNode, relation: Option<RelationKind>) -> LinkedTitle {
         relation,
         format: node.format.and_then(format_label),
         cover_url: node.cover_image.best().map(str::to_owned),
+        cover_color: node.cover_image.color.clone(),
         season: node.season.map(season),
         year: node.season_year,
+        list_status: None,
     }
+}
+
+/// Where a title is in its run, as the model has it; `None` for a status AniList has and this
+/// build does not know.
+fn airing_status(status: anistream_core::media::MediaStatus) -> Option<AiringStatus> {
+    use anistream_core::media::MediaStatus as S;
+    Some(match status {
+        S::Releasing => AiringStatus::Releasing,
+        S::Finished => AiringStatus::Finished,
+        S::NotYetReleased => AiringStatus::NotYetReleased,
+        S::Cancelled => AiringStatus::Cancelled,
+        S::Hiatus => AiringStatus::Hiatus,
+        S::Unknown => return None,
+    })
 }
 
 /// AniList's `MediaRelation`, with anything newer as other.
@@ -817,6 +846,65 @@ mod tests {
             (detail.relations[0].season, detail.relations[0].year),
             (Some(m::Season::Fall), Some(2025))
         );
+    }
+
+    #[test]
+    fn a_title_says_where_it_is_in_its_run_and_hides_what_it_marks_a_spoiler() {
+        use anistream_model::catalog as m;
+        let media: Media = serde_json::from_value(serde_json::json!({
+            "id": 1,
+            "status": "HIATUS",
+            "description": "A lamplighter walks on. ~!She was the lantern.!~ The road goes on."
+        }))
+        .unwrap();
+        let entry = entry_from(&media, None);
+        assert_eq!(entry.status, Some(m::AiringStatus::Hiatus));
+        assert_eq!(entry.synopsis, "A lamplighter walks on. The road goes on.", "hidden");
+        let spans: Vec<_> =
+            entry.synopsis_spans.iter().map(|s| (s.text.as_str(), s.spoiler)).collect();
+        assert_eq!(
+            spans,
+            [
+                ("A lamplighter walks on.", false),
+                ("She was the lantern.", true),
+                ("The road goes on.", false),
+            ]
+        );
+        let unknown: Media =
+            serde_json::from_value(serde_json::json!({"id": 1, "status": "SOMETHING_NEW"}))
+                .unwrap();
+        assert_eq!(entry_from(&unknown, None).status, None);
+    }
+
+    #[test]
+    fn a_card_has_its_covers_colour_and_where_it_is_on_the_library() {
+        use anistream_model::catalog as m;
+        let store = Store::open_in_memory().unwrap();
+        store
+            .replace_library_statuses("anilist", &[(AnilistId::new(2), "COMPLETED")], 10)
+            .unwrap();
+        let media: Media = serde_json::from_value(serde_json::json!({
+            "id": 1,
+            "relations": {"edges": [
+                {"relationType": "SEQUEL", "node": {"id": 2, "title": {"romaji": "Two"},
+                 "coverImage": {"large": "https://img.example/2.jpg", "color": "#d77f4a"}}},
+                {"relationType": "PREQUEL", "node": {"id": 3, "title": {"romaji": "Three"}}}
+            ]}
+        }))
+        .unwrap();
+        let detail = entry_with_detail(&media, Some(&store)).detail.expect("the page's own");
+        let cards: Vec<_> = detail
+            .relations
+            .iter()
+            .map(|card| (card.id.get(), card.cover_color.as_deref(), card.list_status))
+            .collect();
+        assert_eq!(
+            cards,
+            [(2, Some("#d77f4a"), Some(m::LibrarySegment::Completed)), (3, None, None)]
+        );
+        // With no store, nothing is known of the library.
+        let bare = entry_with_detail(&media, None).detail.unwrap();
+        assert_eq!(bare.relations[0].list_status, None);
     }
 
     #[test]

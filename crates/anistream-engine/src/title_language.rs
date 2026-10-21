@@ -144,8 +144,10 @@ mod tests {
             relation: None,
             format: None,
             cover_url: None,
+            cover_color: None,
             season: None,
             year: None,
+            list_status: None,
         }
     }
 

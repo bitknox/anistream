@@ -61,7 +61,7 @@ local function lift_points()
     if video_h <= 0 then
         return 0
     end
-    local s = screen.scale()
+    local s = screen.row_scale()
     local g = screen.timeline_geometry(s, w, h)
     local reach = (h - g.band_top) + GAP * s - dims.mb
     if reach <= 0 then

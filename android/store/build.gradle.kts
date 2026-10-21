@@ -20,6 +20,8 @@ dependencies {
     testImplementation(libs.coroutines.test)
     // JNA's JVM build, with this Mac's native library, for the tests that start the engine.
     testImplementation(libs.jna.jvm)
+    // The scenes the recorder writes, as the screenshot tests read them.
+    testImplementation(project(":testkit"))
 }
 
 // The unit tests start the engine on this Mac's build of it, android/.engine/<engine>/host, under
@@ -36,6 +38,11 @@ AnistreamSdk.engines.forEach { (flavour, engine) ->
         jvmArgs("--enable-native-access=ALL-UNNAMED")
         environment("HOME", home.path)
         environment("ANISTREAM_TOKEN_STORAGE", "file")
+        // android/scripts/scenes.sh: record the scenes into the test kit, every time it is run.
+        if (providers.gradleProperty("anistream.scenes").isPresent) {
+            systemProperty("anistream.scenes.out", rootDir.resolve("testkit/src/main/resources/tv/anistream/testkit/scenes").path)
+            outputs.upToDateWhen { false }
+        }
         doFirst {
             check(home.canonicalPath != File(userHome).canonicalPath) {
                 "the tests' HOME would be the user's own"

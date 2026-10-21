@@ -72,6 +72,7 @@ import tv.anistream.design.ObiSilk
 import tv.anistream.design.ShowTitle
 import tv.anistream.design.tabular
 import tv.anistream.store.AirTime
+import tv.anistream.store.AppClock
 import tv.anistream.store.HeroArt
 import tv.anistream.store.LibraryModel
 import tv.anistream.store.label
@@ -90,6 +91,7 @@ private fun placeholderEntry(id: AnilistId) = Entry(
     nextAiringIn = null, lastAired = null, resume = null, related = emptyList(), recommended = emptyList(),
     trailerUrl = null, listStatus = null, titleRomaji = null, titleEnglish = null, titleNative = null,
     season = null, startDate = null, endDate = null, source = null, adult = false, detail = null,
+    status = null, synopsisSpans = emptyList(),
 )
 
 @Composable
@@ -477,7 +479,7 @@ private fun EpisodePlaceholder() {
 }
 
 /** Seconds from now, as the rows compare a broadcast against it. */
-private fun nowSeconds() = System.currentTimeMillis() / 1000
+private fun nowSeconds() = AppClock.now().epochSecond
 
 @Composable
 private fun EpisodeRowView(entry: Entry, row: EpisodeRow, next: UInt, actions: AppActions) {
@@ -655,7 +657,7 @@ private fun TitleFacts(entry: Entry, modifier: Modifier = Modifier) {
         }
         val facts = listOfNotNull(
             entry.studio?.let { "STUDIO" to it },
-            entry.nextAiringIn?.let { "NEXT EPISODE" to AirTime.words(java.time.Instant.now().plusSeconds(it)) },
+            entry.nextAiringIn?.let { "NEXT EPISODE" to AirTime.words(AppClock.now().plusSeconds(it)) },
             entry.availableOn.takeIf { it.isNotEmpty() }?.let { "ALSO ON" to it.joinToString(", ") },
         )
         if (facts.isNotEmpty()) {

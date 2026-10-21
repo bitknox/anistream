@@ -72,7 +72,7 @@ sealed interface EpisodeAiring {
     val hasAired: Boolean get() = this == Aired
 
     /** When it airs, as the screens say it: "Saturday 18:30", or `null` when out or undated. */
-    fun airs(now: Instant = Instant.now(), zone: ZoneId = ZoneId.systemDefault()): String? {
+    fun airs(now: Instant = AppClock.now(), zone: ZoneId = AppClock.zone): String? {
         val seconds = (this as? Upcoming)?.inSeconds ?: return null
         return AirTime.words(now.plusSeconds(seconds), now, zone)
     }
@@ -87,7 +87,7 @@ object AirTime {
     private val time = DateTimeFormatter.ofPattern("HH:mm", locale)
     private val date = DateTimeFormatter.ofPattern("d MMMM", locale)
 
-    fun words(at: Instant, now: Instant = Instant.now(), zone: ZoneId = ZoneId.systemDefault()): String {
+    fun words(at: Instant, now: Instant = AppClock.now(), zone: ZoneId = AppClock.zone): String {
         val local = at.atZone(zone)
         val days = (at.epochSecond - now.epochSecond) / 86_400.0
         val day = if (days < 6) local.dayOfWeek.getDisplayName(TextStyle.FULL, locale) else date.format(local)

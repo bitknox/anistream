@@ -34,6 +34,9 @@ import tv.anistream.engine.model.SettingKey
  *
  * @param scope where the engine starts and its events are read: the application's, for as long as
  *   the process.
+ * @param artworkWithoutEngine where art comes from when there is no engine behind the store, as
+ *   in the screenshot tests: a URL's bytes, answered as the engine would answer them, or `null`
+ *   for none. Unset, art waits for the engine.
  */
 class AppStore(
     private val scope: CoroutineScope,
@@ -41,6 +44,7 @@ class AppStore(
     val notices: NoticesModel = NoticesModel(),
     decoder: ArtworkDecoder = BitmapDecoder,
     private val clock: () -> Long = { System.nanoTime() / 1_000_000 },
+    private val artworkWithoutEngine: ((String) -> ByteArray?)? = null,
 ) {
     /** Where the engine stands. */
     sealed interface Phase {
@@ -67,9 +71,20 @@ class AppStore(
     val settings = SettingsModel()
     val providers = ProvidersModel()
     val artwork = ArtworkStore(scope, decoder) { url ->
-        val client = client ?: return@ArtworkStore false
-        client.send(Command.FetchArtwork(url))
-        true
+        val client = client
+        val files = artworkWithoutEngine
+        when {
+            client != null -> {
+                client.send(Command.FetchArtwork(url))
+                true
+            }
+            files != null -> {
+                val bytes = files(url)
+                scope.launch { apply(listOf(if (bytes != null) Event.ArtworkReady(url, bytes) else Event.ImageFailed(url, offline = false))) }
+                true
+            }
+            else -> false
+        }
     }
 
     private var client: EngineClient? = null

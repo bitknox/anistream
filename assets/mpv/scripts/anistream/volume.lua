@@ -154,8 +154,13 @@ local function value_text()
 end
 
 function M.draw(ctx, _, _, w, h)
+    -- Both forms are placed by the control row, at uosc's scale; the row's form is drawn at it
+    -- too, and the pill at the cards' scale, which a small window shrinks.
+    local g = screen.timeline_geometry(screen.row_scale(), w, h)
+    if not pill and g.volume then
+        ctx = ctx:at_scale(screen.row_scale())
+    end
     local s = ctx.s
-    local g = screen.timeline_geometry(s, w, h)
     local value_font = ctx:font(config.TYPE.time)
     value_font.color = muted and config.color.dim or config.color.text
     value_font.outline = math.max(1, s)
