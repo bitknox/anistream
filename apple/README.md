@@ -162,10 +162,10 @@ engine in temporary directories, and keep secrets in memory.
   `ArtworkReady` is downsampled with ImageIO off the main thread into an `NSCache`.
   `EngineLaunch` holds what a start takes, `FfiStart` among it.
 - **AnistreamUI**: the screens over the store: Continue (with the setup card on a first launch),
-  Calendar, Seasonal, Search, the Library and a title's page, the Mac's menu bar and ⌘K palette,
-  the notice capsule and Messages; Settings (in the window on the Mac and iPad, a sheet on
-  iPhone), Providers, Plugin Stores, Downloads, a show's own settings, and the sign-in sheets. A
-  `Navigator` holds where the app is. Settings' menus offer the engine's own choices, from
+  Calendar, Seasonal, Search, the Library and a title's page with AniList's metadata and its More
+  About This Show sheet, the Mac's menu bar and ⌘K palette, the notice capsule and Messages;
+  Settings (in the window on the Mac and iPad, a sheet on iPhone), Providers, Plugin Stores,
+  Downloads, a show's own settings, and the sign-in sheets. A `Navigator` holds where the app is. Settings' menus offer the engine's own choices, from
   `AnistreamKit`'s ports of the setting ladders and their words, which a test holds to the
   engine's.
 - **AnistreamPlayer**: libmpv in the app's own view, on `Mpv.xcframework` (which mpv.sh links in
@@ -414,7 +414,8 @@ episode rolls on to the next. See `anistream_model::hosted` for the whole protoc
 
 ## Not yet
 
-- The player: Picture in Picture and Sync subtitles. The iPhone's merged Audio and subtitles
+- The player: Picture in Picture and Sync subtitles, and telling the engine of a shader hook
+  libplacebo gave up on (`HookDisabled`), so the upscaling chain does not yet step down for it. The iPhone's merged Audio and subtitles
   sheet also holds Speed, Upscaling, Night mode and Sources, for want of a More menu on its board.
 - Settings, Providers, Plugin Stores and Downloads: what the engine cannot set yet (E8's settings,
   E9's fields, `DisablePlugin`) is drawn as the boards have it and disabled.
