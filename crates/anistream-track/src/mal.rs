@@ -121,15 +121,25 @@ pub async fn exchange_code(
     redirect_uri: &str,
     now: i64,
 ) -> Result<TokenPair, crate::auth::AuthError> {
-    // Form-encoded, not JSON: MAL's token endpoint rejects a JSON body.
-    let form = [
+    post_token(http, &exchange_form(client_id, code, verifier, redirect_uri), now).await
+}
+
+/// What a code is exchanged with: the client, the code and its verifier, and nothing secret.
+/// A client registered as "other", as an app's is, has no secret to send; PKCE is what proves
+/// the code is this sign-in's. Form-encoded, not JSON: MAL's token endpoint rejects a JSON body.
+fn exchange_form<'a>(
+    client_id: &'a str,
+    code: &'a str,
+    verifier: &'a str,
+    redirect_uri: &'a str,
+) -> [(&'static str, &'a str); 5] {
+    [
         ("grant_type", "authorization_code"),
         ("client_id", client_id.trim()),
         ("code", code.trim()),
         ("code_verifier", verifier),
         ("redirect_uri", redirect_uri),
-    ];
-    post_token(http, &form, now).await
+    ]
 }
 
 /// Renew an access token.
@@ -532,6 +542,23 @@ mod tests {
         // Weaker than S256, and worth being explicit about rather than looking like an oversight.
         let pkce = Pkce::generate();
         assert_eq!(pkce.challenge(), pkce.verifier);
+    }
+
+    #[test]
+    fn a_code_is_exchanged_with_its_verifier_and_no_secret() {
+        let form =
+            exchange_form(" app-client ", "a-code", "a-verifier", "anistream://auth/mal");
+        assert_eq!(
+            form,
+            [
+                ("grant_type", "authorization_code"),
+                ("client_id", "app-client"),
+                ("code", "a-code"),
+                ("code_verifier", "a-verifier"),
+                ("redirect_uri", "anistream://auth/mal"),
+            ]
+        );
+        assert!(form.iter().all(|(name, _)| !name.contains("secret")));
     }
 
     #[test]
