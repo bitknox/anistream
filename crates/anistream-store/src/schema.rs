@@ -276,6 +276,39 @@ const MIGRATIONS: &[(&str, &str)] = &[
     );
     "#,
     ),
+    (
+        "0007_server_health",
+        r#"
+    -- How each server a provider streams from has fared lately, so one that keeps failing is
+    -- tried after the ones that play rather than first every time. See `server_health.rs`.
+    --
+    -- A server is the provider and the origin of its stream's address, `scheme://host[:port]`,
+    -- never the path or query: a stream address carries signed tokens, and this table must hold
+    -- nothing that could be replayed or that names what was watched.
+    --
+    -- Numbered after 0006, which another change takes for per-show settings. Migrations are
+    -- applied by name, so either may land first.
+    CREATE TABLE server_health (
+        provider_id          TEXT    NOT NULL,
+        origin               TEXT    NOT NULL,
+        successes            INTEGER NOT NULL DEFAULT 0,
+        -- Within the last week; older failures stop counting.
+        failures             INTEGER NOT NULL DEFAULT 0,
+        -- The run the server is on, ended by a success.
+        consecutive_failures INTEGER NOT NULL DEFAULT 0,
+        last_success_at      INTEGER,
+        last_failure_at      INTEGER,
+        -- `http-502`, `load`, `no-frames` or `stalled`.
+        last_failure         TEXT,
+        -- Smoothed over the plays it served.
+        first_frame_ms       REAL,
+        -- When it was last tried. A server not tried for 30 days is deleted.
+        seen_at              INTEGER NOT NULL,
+        PRIMARY KEY (provider_id, origin)
+    );
+    CREATE INDEX idx_server_health_seen ON server_health(seen_at);
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.
@@ -389,6 +422,7 @@ mod tests {
             "episode_meta",
             "provider_preference",
             "track_memory",
+            "server_health",
         ] {
             let found: bool = conn
                 .query_row(
