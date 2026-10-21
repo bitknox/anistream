@@ -8,6 +8,7 @@ use anistream_core::stream::Stream;
 use anistream_model::{
     command::PlayerCommand,
     event::Event,
+    hosted::TrackKind as TrackChoice,
     notice::{Notice, NoticeHint},
 };
 use anistream_playback::{
@@ -220,6 +221,25 @@ impl Run<'_> {
                         }
                         Some(PlayerCommand::Step(delta)) => {
                             self.step(delta, link, true).await;
+                            continue;
+                        }
+                        // A pick in a hosted player's own menus: the engine selects it and
+                        // keeps it, rather than waiting to read it back.
+                        Some(PlayerCommand::ChooseTrack { kind, id }) => {
+                            let kind = match kind {
+                                TrackChoice::Audio => anistream_playback::tracks::TrackKind::Audio,
+                                TrackChoice::Subtitle => anistream_playback::tracks::TrackKind::Sub,
+                            };
+                            for action in player.tracks.viewer_chose(kind, id) {
+                                self.apply_track(action, link).await;
+                            }
+                            continue;
+                        }
+                        Some(PlayerCommand::SubtitleDelay { seconds }) => {
+                            let now = std::time::Instant::now();
+                            for action in player.tracks.viewer_delay(seconds, now) {
+                                self.apply_track(action, link).await;
+                            }
                             continue;
                         }
                         // What the viewer did in a hosted player's own interface: read as the

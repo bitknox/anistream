@@ -58,7 +58,7 @@ mod tests {
         event::Event,
         hosted::{
             MenuChoice, MenuChoices, MpvOption, MpvValue, PlayerChoice, PlayerEnd, PlayerOp,
-            PlayerReport, PlayerUi,
+            PlayerReport, PlayerUi, TrackKind,
         },
         jobs::JobId,
         notice::NoticeKind,
@@ -194,8 +194,27 @@ mod tests {
                 },
                 auto: true,
                 ending_at: Some(1_310.0),
+                countdown: 10,
+                still_watching_after: 3,
             },
         });
+        crosses_intact(Event::PlayerUi {
+            playback,
+            ui: PlayerUi::Starting {
+                id: AnilistId::new(900_001),
+                title: "Stardust Wayfarer".into(),
+                episode: "2".into(),
+                episode_title: None,
+                cover_url: Some("https://img.example/cover/900001.jpg".into()),
+                banner_url: None,
+            },
+        });
+        let pick = PlayerCommand::ChooseTrack { kind: TrackKind::Subtitle, id: None };
+        let aimed = Command::Control { playback, command: pick };
+        assert_eq!(crossed(aimed.clone()), aimed);
+        let delay = Command::Player(PlayerCommand::SubtitleDelay { seconds: -0.4 });
+        assert_eq!(crossed(delay.clone()), delay);
+        crosses_intact(Event::PlayerOps { playback, ops: vec![PlayerOp::ToggleFullscreen] });
         crosses_intact(Event::PlayerUi {
             playback,
             ui: PlayerUi::Menus {

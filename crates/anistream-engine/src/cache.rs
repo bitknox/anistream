@@ -54,6 +54,10 @@ pub struct PlayHints {
     pub title: String,
     pub next: Option<NextEpisode>,
     pub episodes: Vec<EpisodeEntry>,
+    /// The title's art by URL, as its page or a list showed it, for the player's starting
+    /// screen.
+    pub cover_url: Option<String>,
+    pub banner_url: Option<String>,
 }
 
 /// The engine's record of the titles a front end shows. See the module.
@@ -80,6 +84,9 @@ struct Title {
     progress: Option<TitleProgress>,
     /// Where Continue resumes that episode.
     resume: Option<ResumePoint>,
+    /// Its art by URL, as its page or a list showed it.
+    cover_url: Option<String>,
+    banner_url: Option<String>,
     touched: u64,
 }
 
@@ -239,7 +246,8 @@ impl TitleCache {
                 filler: row.skippable,
             })
             .collect();
-        PlayHints { title: self.name_for(id, kind), next, episodes }
+        let (cover_url, banner_url) = self.art(id);
+        PlayHints { title: self.name_for(id, kind), next, episodes, cover_url, banner_url }
     }
 
     /// The name a play of `id` is announced by: the one its last playback went by, so an
@@ -360,16 +368,27 @@ impl TitleCache {
     /// Hold what a detail fetch or a list row says of a title, in place of what was held.
     fn know(&mut self, entry: &Entry) {
         let touched = self.touch();
+        // A row that carries no art keeps what an earlier one said.
+        let (cover_url, banner_url) = self.art(entry.id);
         self.titles.insert(
             entry.id,
             Title {
                 name: entry.title.clone(),
                 progress: entry.progress,
                 resume: entry.resume,
+                cover_url: entry.cover_url.clone().or(cover_url),
+                banner_url: entry.banner_url.clone().or(banner_url),
                 touched,
             },
         );
         self.let_go();
+    }
+
+    /// A title's art by URL, its cover and its banner, where it is known.
+    pub(crate) fn art(&self, id: AnilistId) -> (Option<String>, Option<String>) {
+        self.titles
+            .get(&id)
+            .map_or((None, None), |title| (title.cover_url.clone(), title.banner_url.clone()))
     }
 
     /// Hold a title's name alone, when nothing more is known of it.
@@ -378,7 +397,14 @@ impl TitleCache {
             return;
         }
         let touched = self.touch();
-        let title = Title { name: name.to_owned(), progress: None, resume: None, touched };
+        let title = Title {
+            name: name.to_owned(),
+            progress: None,
+            resume: None,
+            cover_url: None,
+            banner_url: None,
+            touched,
+        };
         self.titles.insert(id, title);
         self.let_go();
     }
@@ -445,6 +471,26 @@ mod tests {
         cache.observe(&Event::Content { view: ContentFor::Continue, content }, None);
     }
 
+    #[test]
+    fn a_play_takes_the_art_its_title_was_shown_with() {
+        let id = AnilistId::new(7);
+        let mut cache = TitleCache::default();
+        let mut entry = Entry::new(id, "Hoshikuzu no Tabibito");
+        entry.cover_url = Some("https://img.example/cover/7.jpg".into());
+        entry.banner_url = Some("https://img.example/banner/7.jpg".into());
+        cache.observe(&Event::Detail(Box::new(entry)), None);
+        // A list row of it that carries none keeps what the page said.
+        let bare = Entry::new(id, "Hoshikuzu no Tabibito");
+        let content = ContentList::Entries(vec![bare]);
+        cache.observe(&Event::Content { view: ContentFor::Continue, content }, None);
+
+        let hints = cache.hints(id, "1", false, PlayKind::Staged);
+        assert_eq!(hints.cover_url.as_deref(), Some("https://img.example/cover/7.jpg"));
+        assert_eq!(hints.banner_url.as_deref(), Some("https://img.example/banner/7.jpg"));
+        let unknown = cache.hints(AnilistId::new(8), "1", false, PlayKind::Staged);
+        assert_eq!((unknown.cover_url, unknown.banner_url), (None, None));
+    }
+
     /// Moved from the binary's seams, which worked this out from the screen: a play takes what
     /// the record knows of its title.
     #[test]
@@ -463,7 +509,7 @@ mod tests {
         table[0].completed = true;
         cache.observe(&Event::Episodes { id, rows: table }, None);
         for kind in [PlayKind::Staged, PlayKind::Party] {
-            let PlayHints { title, next, episodes } = cache.hints(id, "2", false, kind);
+            let PlayHints { title, next, episodes, .. } = cache.hints(id, "2", false, kind);
             assert_eq!(title, "Hoshikuzu no Tabibito");
             assert_eq!(next.map(|n| n.number).as_deref(), Some("3"));
             let listed: Vec<(&str, bool)> =

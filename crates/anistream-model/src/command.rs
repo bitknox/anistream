@@ -268,6 +268,14 @@ pub enum Command {
     SetTranslation {
         translation: anistream_core::media::Translation,
     },
+    /// Steer the playback `playback`, and only it: a command for one that is no longer the
+    /// playback the engine started last is let go. What a hosted player sends, which names the
+    /// playback its interface shows, so a Play Now or an Undo that arrives as one episode rolls
+    /// on to the next cannot reach the next one. [`Command::Player`] steers whatever plays.
+    Control {
+        playback: PlaybackId,
+        command: PlayerCommand,
+    },
     /// Read the joined stores, then refresh each one's plugin list.
     LoadStores,
     /// Check a pasted invite link against the store it names, before spending it.
@@ -396,6 +404,18 @@ pub enum PlayerCommand {
     NightMode(bool),
     /// An upscaling look, by id: `off`, `natural` or `sharp`.
     Upscaling(String),
+    /// The viewer picked a track by its id in the file's `track-list`, or with `None` turned
+    /// the subtitles off. The engine selects it and remembers it for the series, as it
+    /// remembers a pick made with mpv's own keys, without waiting for the player to report it.
+    ChooseTrack {
+        kind: crate::hosted::TrackKind,
+        id: Option<i64>,
+    },
+    /// The viewer set the subtitle delay to `seconds`. Remembered for the series once it stops
+    /// moving, as a delay set with mpv's own keys is.
+    SubtitleDelay {
+        seconds: f64,
+    },
 }
 
 #[cfg(test)]
