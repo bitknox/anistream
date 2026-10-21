@@ -258,3 +258,40 @@ async fn with_the_fallback_off_an_outage_names_every_rung() {
     assert_eq!(kit.meta.health()[0].state, "unreachable");
     assert!(kit.server.requests_for(Operation::Tenrai).is_empty());
 }
+
+/// The bytes at `url`, when it answers with a success.
+async fn fetch(url: &str) -> Option<Vec<u8>> {
+    let response = anistream_testkit::http().plain().get(url).send().await.ok()?;
+    response.status().is_success().then_some(())?;
+    Some(response.bytes().await.ok()?.to_vec())
+}
+
+#[tokio::test]
+async fn art_is_served_only_when_asked_and_then_every_image_points_at_it() {
+    let plain = MetaKit::start().await;
+    let media = plain.meta.media(FINISHED).await.unwrap();
+    assert_eq!(
+        media.cover_image.extra_large.as_deref(),
+        Some("https://img.example/cover/900001-xl.jpg"),
+        "the fixtures' own URLs, until the fake is asked to serve art"
+    );
+    let art = format!("{}cover/900001-xl.jpg", plain.server.art_base());
+    assert!(fetch(&art).await.is_none(), "no art until asked");
+
+    let kit = MetaKit::start().await;
+    kit.server.serve_art();
+    let media = kit.meta.media(FINISHED).await.unwrap();
+    let base = kit.server.art_base();
+    let cover = media.cover_image.extra_large.clone().unwrap();
+    let banner = media.banner_image.clone().unwrap();
+    let still = media.streaming_episodes[0].thumbnail.clone().unwrap();
+    for url in [&cover, &banner, &still] {
+        assert!(url.starts_with(&base), "{url} is under {base}");
+        let bytes = fetch(url).await.unwrap_or_else(|| panic!("{url} answers"));
+        assert!(bytes.starts_with(b"\x89PNG\r\n\x1a\n"), "{url} is a PNG");
+    }
+    assert_ne!(fetch(&cover).await, fetch(&banner).await, "a poster and a banner differ");
+    assert!(fetch(&format!("{base}cover/900999.jpg")).await.is_none());
+    // Art is not AniList's: nothing about it is recorded as a request.
+    assert!(kit.server.requests().iter().all(|r| !r.path.starts_with("/art/")));
+}
