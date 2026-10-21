@@ -26,16 +26,21 @@ pub enum ShowSettingKey {
     SkipOpening,
     SkipFiller,
     SpoilerProtection,
+    /// Whether the show's new episodes are notified of: on for every show while
+    /// [`SettingKey::EpisodeNotifications`] is on, and off for one that turns it off. A show
+    /// turning it on does not turn on the setting: with that off, nothing is notified of.
+    NotifyNewEpisodes,
 }
 
 impl ShowSettingKey {
     /// Every one, in the order the sheet shows them.
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 6] = [
         Self::Translation,
         Self::Quality,
         Self::SkipOpening,
         Self::SkipFiller,
         Self::SpoilerProtection,
+        Self::NotifyNewEpisodes,
     ];
 
     /// The name the database keeps it under. Stable: a renamed one would forget every show's.
@@ -46,6 +51,7 @@ impl ShowSettingKey {
             Self::SkipOpening => "skip_opening",
             Self::SkipFiller => "skip_filler",
             Self::SpoilerProtection => "spoiler_protection",
+            Self::NotifyNewEpisodes => "notify_new_episodes",
         }
     }
 
@@ -63,6 +69,7 @@ impl ShowSettingKey {
             Self::SkipOpening => SettingKey::SkipOpening,
             Self::SkipFiller => SettingKey::SkipFiller,
             Self::SpoilerProtection => SettingKey::SpoilerProtection,
+            Self::NotifyNewEpisodes => SettingKey::EpisodeNotifications,
         }
     }
 }
@@ -94,7 +101,8 @@ pub fn decode(key: ShowSettingKey, text: &str) -> Option<SettingValue> {
         ShowSettingKey::Quality => SettingValue::Int(text.parse().ok()?),
         ShowSettingKey::SkipOpening
         | ShowSettingKey::SkipFiller
-        | ShowSettingKey::SpoilerProtection => SettingValue::Bool(text.parse().ok()?),
+        | ShowSettingKey::SpoilerProtection
+        | ShowSettingKey::NotifyNewEpisodes => SettingValue::Bool(text.parse().ok()?),
     };
     settings::put(&mut Config::default(), key.setting(), &value).then_some(value)
 }
@@ -267,6 +275,31 @@ mod tests {
                 (ShowSettingKey::SkipFiller, SettingValue::Bool(true)),
             ]
         );
+    }
+
+    #[test]
+    fn a_show_turns_its_notifications_off_for_itself_and_otherwise_follows_settings() {
+        let key = ShowSettingKey::NotifyNewEpisodes;
+        assert_eq!(key.setting(), SettingKey::EpisodeNotifications);
+        assert_eq!(encode(key, &SettingValue::Bool(false)).as_deref(), Some("false"));
+        assert_eq!(encode(key, &SettingValue::Str("never".into())), None);
+        let off = [(key, SettingValue::Bool(false))];
+        assert_eq!(read(&[("notify_new_episodes".to_owned(), "false".to_owned())]), off);
+
+        let mut on = Config::default();
+        on.notifications.episodes = true;
+        let row = |config: &Config, own: &[(ShowSettingKey, SettingValue)]| {
+            let sheet = view(SHOW, config, own, Vec::new(), None);
+            sheet.rows.into_iter().find(|row| row.key == key).expect("the sheet's switch")
+        };
+        let following = row(&on, &[]);
+        assert_eq!(
+            (following.own, following.value.as_str(), following.default.as_str()),
+            (None, "on", "on")
+        );
+        let switched = row(&on, &off);
+        assert_eq!((switched.value.as_str(), switched.default.as_str()), ("off", "on"));
+        assert_eq!(row(&Config::default(), &[]).value, "off", "off with the setting");
     }
 
     #[test]
