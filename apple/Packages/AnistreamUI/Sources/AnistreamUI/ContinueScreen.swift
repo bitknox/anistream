@@ -10,6 +10,7 @@ import SwiftUI
 struct ContinueScreen: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
+    @Environment(\.playerUp) private var playerUp
     @State private var selection: AnilistId? = LaunchRoute.current.selected
     /// When the selection last moved, and whether that was quick on the heels of the one before:
     /// a run of arrow keys changes the preview at once, without the fade (M2).
@@ -77,6 +78,8 @@ struct ContinueScreen: View {
             }
         }
         .task { store.loadContinue() }
+        // A watch moves the queue on: asked again once the player has gone, fresh or not.
+        .onChange(of: playerUp) { _, up in if !up { store.loadContinue(force: true) } }
         .onChange(of: queue.all.map(\.id), initial: true) { _, ids in
             // Kept while the queue loads, so a selection made before it arrived survives.
             if !ids.isEmpty, selection == nil || !ids.contains(where: { $0 == selection }) {
@@ -88,9 +91,15 @@ struct ContinueScreen: View {
             if let id { moving.wrappedValue = id; navigator.continueSelection = nil }
         }
         .onChange(of: selection, initial: true) { _, id in
-            // The page's fields (where else it streams) and the episode's name.
-            guard let id else { return }
-            navigator.focusedTitle = id
+            if let id { navigator.focusedTitle = id }
+        }
+        .task(id: selection) {
+            // The page's fields (where else it streams), the episode's name and the stills for a
+            // missing banner, once the selection rests for the standard spring's 0.3 s: an arrow
+            // key held through the queue asks AniList nothing on the way.
+            guard let id = selection else { return }
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
             if !store.titles.detailed.contains(id) { store.loadDetail(id) }
             if store.titles.episodes[id] == nil { store.loadEpisodes(id) }
         }
@@ -340,8 +349,8 @@ struct ContinuePreview: View {
         }
         .scrollIndicators(.never)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        // Only the selected title's: a still stands in for a missing banner.
-        .task(id: item.id) { store.loadStills(item.id) }
+        // The selection's episodes, which Continue asks for once it rests, bring the stills that
+        // stand in for a missing banner.
     }
 
     private func titleBlock(_ entry: Entry) -> some View {

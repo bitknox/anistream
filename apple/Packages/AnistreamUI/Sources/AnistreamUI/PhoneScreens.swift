@@ -12,6 +12,7 @@ import SwiftUI
 /// banner cards, then New this week. With nothing watched, the setup card and what airs.
 struct PhoneContinue: View {
     @Environment(AppStore.self) private var store
+    @Environment(\.playerUp) private var playerUp
     @Environment(Navigator.self) private var navigator
 
     var body: some View {
@@ -64,6 +65,8 @@ struct PhoneContinue: View {
             }
         }
         .task { store.loadContinue() }
+        // A watch moves the queue on: asked again once the player has gone, fresh or not.
+        .onChange(of: playerUp) { _, up in if !up { store.loadContinue(force: true) } }
         .task(id: queue.inProgress.first?.id) {
             if let id = queue.inProgress.first?.id, store.titles.episodes[id] == nil {
                 store.loadEpisodes(id)

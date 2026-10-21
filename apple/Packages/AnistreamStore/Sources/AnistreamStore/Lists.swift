@@ -27,8 +27,16 @@ public final class ListModel {
     public internal(set) var state: ListState = .idle
     /// What the list is, said above it: which season Seasonal is, or that it stopped at a page.
     public internal(set) var caption: String?
+    /// When the engine last answered with the list, or that it is empty.
+    @ObservationIgnored public private(set) var answeredAt: ContinuousClock.Instant?
 
     public init() {}
+
+    /// Whether the list was answered less than `window` ago, so asking again would only spend a
+    /// request on what is on screen.
+    public func answered(within window: Duration) -> Bool {
+        answeredAt.map { ContinuousClock.now - $0 < window } ?? false
+    }
 
     /// The list has been asked for. Keeps what is on screen until the answer replaces it.
     func asked() {
@@ -42,11 +50,13 @@ public final class ListModel {
         switch content {
         case .empty:
             state = .empty
+            answeredAt = .now
         case .loading:
             state = .loading
         case .entries(let entries):
             titles.merge(entries)
             state = .loaded(entries.map(\.id))
+            answeredAt = .now
         case .failed(let reason):
             state = .failed(reason)
         }

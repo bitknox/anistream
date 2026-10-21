@@ -44,6 +44,8 @@ public final class AppStore {
     @ObservationIgnored private var early: [Command] = []
     /// The titles whose episodes were asked for their stills.
     @ObservationIgnored private var stillsAsked: Set<AnilistId> = []
+    /// When each question about a title last went out (see `ask`).
+    @ObservationIgnored private var asked: [TitleQuestion: ContinuousClock.Instant] = [:]
     /// The kinds of the engine's events a showcase set aside, so its rows stay on screen.
     @ObservationIgnored private var held: Set<String> = []
     /// Whether the engine is the testing one, which a showcase needs.
@@ -131,7 +133,17 @@ public final class AppStore {
 
     // MARK: Asking
 
-    public func loadContinue() {
+    /// How long a list's answer stands: showing it again within this asks for nothing, so going
+    /// back and forth between sections costs AniList nothing.
+    public static let listFresh: Duration = .seconds(60)
+
+    /// How long a question about a title stands once asked: the same one is not put again while
+    /// its answer is on its way, which a selection moving back and forth would otherwise do.
+    public static let askAgainAfter: Duration = .seconds(20)
+
+    /// What you were watching, unless it was answered within `listFresh`; `force` asks anyway.
+    public func loadContinue(force: Bool = false) {
+        guard force || !continuing.list.answered(within: Self.listFresh) else { return }
         continuing.list.asked()
         send(.loadContinue)
     }
@@ -157,11 +169,28 @@ public final class AppStore {
     }
 
     public func loadDetail(_ id: AnilistId) {
+        guard ask(.detail(id)) else { return }
         send(.loadDetail(id))
     }
 
     public func loadEpisodes(_ id: AnilistId) {
+        guard ask(.episodes(id)) else { return }
         send(.loadEpisodes(id))
+    }
+
+    /// A question about one title.
+    private enum TitleQuestion: Hashable {
+        case detail(AnilistId)
+        case episodes(AnilistId)
+    }
+
+    /// Whether `question` may go out now: not asked within `askAgainAfter`. Noted as asked when it
+    /// may.
+    private func ask(_ question: TitleQuestion) -> Bool {
+        let now = ContinuousClock.now
+        if let at = asked[question], now - at < Self.askAgainAfter { return false }
+        asked[question] = now
+        return true
     }
 
     /// Ask for a title's episodes for the stills that stand in for a missing banner. Once a
@@ -170,7 +199,7 @@ public final class AppStore {
     @discardableResult
     public func loadStills(_ id: AnilistId) -> Bool {
         guard titles[id]?.bannerUrl == nil, titles.episodes[id] == nil,
-              stillsAsked.insert(id).inserted
+              stillsAsked.insert(id).inserted, ask(.episodes(id))
         else { return false }
         send(.loadEpisodes(id))
         return true
