@@ -174,6 +174,11 @@ impl KitsuTracker {
             let Some(pair) = held.as_ref() else {
                 return Err(anistream_core::Error::Auth("not signed in to kitsu".into()));
             };
+            if pair.refresh.is_none() && pair.is_expired(now) {
+                return Err(anistream_core::Error::Auth(
+                    "kitsu token expired and there is no refresh token".into(),
+                ));
+            }
             if !pair.needs_refresh(now, REFRESH_MARGIN_SECS) {
                 return Ok(pair.access.clone());
             }
@@ -364,11 +369,7 @@ impl Tracker for KitsuTracker {
                 .send()
                 .await
                 .map_err(|e| tracker_error(e.to_string()))?;
-            if response.status() == reqwest::StatusCode::UNAUTHORIZED {
-                return Err(anistream_core::Error::Auth("kitsu rejected the token".into()));
-            }
-            let payload: serde_json::Value =
-                response.json().await.map_err(|e| tracker_error(e.to_string()))?;
+            let payload = crate::page_json(response, "kitsu", "kitsu").await?;
 
             for node in payload["data"].as_array().into_iter().flatten() {
                 let Some(kitsu_id) = node["relationships"]["anime"]["data"]["id"]
