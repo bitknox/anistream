@@ -24,9 +24,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,7 +61,7 @@ private val PLATE = Color(0xFF1F2440)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoreAboutSheet(entry: Entry, onDismiss: () -> Unit, onOpenTitle: (AnilistId) -> Unit) {
-    val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val state = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = state,
