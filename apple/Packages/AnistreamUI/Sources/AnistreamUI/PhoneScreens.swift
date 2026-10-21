@@ -120,11 +120,11 @@ struct PhoneHero: View {
             }
             HStack(spacing: 14) {
                 VStack(alignment: .leading, spacing: 6) {
-                    if let fraction = item.fraction {
-                        Meter(fraction: fraction, height: 4)
+                    Held(value: item.fraction) { fraction in
+                        if let fraction { Meter(fraction: fraction, height: 4) }
                     }
-                    if let left = item.timeLeft {
-                        Text(left).font(.system(size: 13)).foregroundStyle(.haze)
+                    Held(value: item.minutesLeft) { minutes in
+                        if let minutes { MinutesLeft(minutes: minutes) }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -186,8 +186,8 @@ struct PhoneCard: View {
                 }
                 .matchedTransitionSourceIfAvailable(id: item.id)
                 .playerZoomSource(item.id)
-                Group {
-                    if let fraction = item.fraction {
+                Held(value: item.fraction) { fraction in
+                    if let fraction {
                         Meter(fraction: fraction, height: 3)
                     } else {
                         Color.clear.frame(height: 3)

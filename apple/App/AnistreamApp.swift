@@ -64,6 +64,7 @@ struct AnistreamApp: App {
     private var content: some View {
         RootView()
             .hostsPlayer(delegate.player)
+            .environment(\.playerUp, delegate.player.isPresented)
             .environment(delegate.store)
             .environment(delegate.navigator)
             #if os(macOS)

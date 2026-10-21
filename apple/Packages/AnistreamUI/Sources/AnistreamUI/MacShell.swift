@@ -271,7 +271,7 @@ struct Sidebar: View {
             .contentShape(.rect(cornerRadius: 8))
         }
         .buttonStyle(.plain)
-        .animation(.quick, value: selected)
+        // Nothing moves on a section change (M1), the tint included.
         .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
