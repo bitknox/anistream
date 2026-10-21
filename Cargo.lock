@@ -392,6 +392,7 @@ dependencies = [
  "anistream-meta",
  "anistream-store",
  "async-trait",
+ "http",
  "keyring",
  "rand 0.10.2",
  "reqwest 0.13.1",
