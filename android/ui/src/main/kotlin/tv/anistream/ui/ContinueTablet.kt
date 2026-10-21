@@ -263,12 +263,24 @@ private fun QueuePreview(item: ContinueItem, actions: AppActions) {
         }
         upNext?.let { row ->
             HorizontalDivider(Modifier.padding(top = 8.dp), color = colors.outlineVariant)
-            Box(Modifier.height(72.dp), contentAlignment = Alignment.CenterStart) {
-                Text(
-                    listOfNotNull(row.title, "E${row.number} · Up next").joinToString("\n"),
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 2,
-                )
+            // The episode after the one under way: its still hidden, as the title page hides it.
+            Row(
+                Modifier.height(80.dp).semantics(mergeDescendants = true) {},
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.size(96.dp, 54.dp)) {
+                    EpisodeStill(item.entry, row, hidden = !row.completed, unaired = false)
+                }
+                Column {
+                    row.title?.let { Text(it, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                    Text(
+                        listOfNotNull("E${row.number}", "Up next", minutes(row)).joinToString(" · "),
+                        style = MaterialTheme.typography.bodyMedium.tabular(),
+                        color = colors.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
             }
             HorizontalDivider(color = colors.outlineVariant)
         }

@@ -158,7 +158,9 @@ fun CalendarScreen() {
             WeekStrip(week, today, selected, aired = byDay.keys) { day ->
                 headings[day]?.let { scope.launch { list.animateScrollToItem(it) } }
             }
-            LazyColumn(state = list, contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)) {
+            // The gap above the days is outside the list, so a day scrolled to the top leaves
+            // nothing of the one before it showing under the strip.
+            LazyColumn(state = list, modifier = Modifier.padding(top = 8.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
                 for (day in days) {
                     item(key = "day-$day") {
                         Text(

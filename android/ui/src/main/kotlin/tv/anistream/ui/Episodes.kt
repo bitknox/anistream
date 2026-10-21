@@ -87,7 +87,7 @@ class UserMarks {
 val LocalUserMarks = staticCompositionLocalOf { UserMarks() }
 
 /** "24 min", from the row's duration. */
-private fun minutes(row: EpisodeRow): String? = row.durationSecs?.let { "${maxOf(1, (it.toDouble() / 60).roundToInt())} min" }
+internal fun minutes(row: EpisodeRow): String? = row.durationSecs?.let { "${maxOf(1, (it.toDouble() / 60).roundToInt())} min" }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -226,7 +226,7 @@ private fun DrawnCheck(progress: Float, color: androidx.compose.ui.graphics.Colo
  * a plain plate before it airs. Hidden and clear crossfade on standard when the next episode moves.
  */
 @Composable
-private fun EpisodeStill(entry: Entry, row: EpisodeRow, hidden: Boolean, unaired: Boolean) {
+internal fun EpisodeStill(entry: Entry, row: EpisodeRow, hidden: Boolean, unaired: Boolean) {
     val url = row.thumbnail ?: entry.bannerUrl
     Box(Modifier.fillMaxSize().clip(ArtShape.cover(96.dp))) {
         if (unaired) {
