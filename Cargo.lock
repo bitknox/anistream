@@ -146,6 +146,7 @@ dependencies = [
  "async-trait",
  "futures",
  "image",
+ "jiff",
  "open",
  "rand 0.10.2",
  "serde_json",

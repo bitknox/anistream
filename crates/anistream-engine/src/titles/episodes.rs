@@ -27,10 +27,15 @@ pub async fn load_episodes(
     registry: &ProviderRegistry,
     id: anistream_core::ids::AnilistId,
 ) -> std::result::Result<EpisodeLoad, String> {
-    if registry.is_empty() {
+    if registry.is_empty() && !registry.is_arriving() {
         return Err("no sources configured".into());
     }
     let media = meta.media(id).await.map_err(|e| e.to_string())?;
+    // Numbered by the source a play would use, which may be one still compiling.
+    crate::sources::arrived(registry, || ()).await;
+    if registry.is_empty() {
+        return Err("no sources configured".into());
+    }
     let target = media.match_target();
     let now = now_epoch();
 
