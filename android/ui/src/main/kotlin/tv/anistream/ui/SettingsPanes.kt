@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -36,6 +37,7 @@ import tv.anistream.engine.model.StorePluginStatus
 import tv.anistream.engine.model.TitleLanguage
 import tv.anistream.engine.model.TorrentProtection
 import tv.anistream.store.AccountsModel
+import tv.anistream.store.DevicePreferences
 import tv.anistream.store.LibraryModel
 import tv.anistream.store.ProvidersModel
 import tv.anistream.store.SettingsCatalog
@@ -121,6 +123,7 @@ internal fun PlaybackPane() {
                 { place -> TitleLanguageRow(place) },
                 { place -> SettingMenu(place, SettingKey.TRANSLATION, "Translation", label = ::translationWords) },
                 { place -> SubtitlesRow(place) },
+                { place -> FollowCaptionsRow(place) },
                 { place -> SettingMenu(place, SettingKey.QUALITY, "Quality") },
             ),
         )
@@ -143,6 +146,22 @@ internal fun PlaybackPane() {
                 { place -> SettingSwitch(place, SettingKey.NIGHT_MODE, "Night mode", note = "Evens out loud and quiet passages, so dialogue stays clear at low volume") },
             ),
         )
+    }
+}
+
+/** Kept on this device (DevicePreferences): the caption style it follows is this device's. */
+@Composable
+private fun FollowCaptionsRow(place: Place) {
+    val context = LocalContext.current
+    var follow by remember { mutableStateOf(DevicePreferences.followsSystemCaptions(context)) }
+    SwitchRow(
+        place,
+        "Subtitles follow your system caption style",
+        follow,
+        note = "From Caption preferences in Accessibility, while captions are on there. Styled subtitles keep their own look",
+    ) {
+        follow = it
+        DevicePreferences.of(context).edit().putBoolean(DevicePreferences.FOLLOW_SYSTEM_CAPTIONS, it).apply()
     }
 }
 

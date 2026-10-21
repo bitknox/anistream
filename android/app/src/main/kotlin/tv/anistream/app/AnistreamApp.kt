@@ -9,6 +9,8 @@ import android.net.Uri
 import android.util.Log
 import kotlinx.coroutines.MainScope
 import tv.anistream.engine.ffi.startLog
+import tv.anistream.player.CaptionStyle
+import tv.anistream.player.CaptionStyleWatch
 import tv.anistream.player.Device
 import tv.anistream.player.MpvBackend
 import tv.anistream.player.PlayerConnection
@@ -36,11 +38,16 @@ class AnistreamApp : Application(), PlayerHost {
             backend = { MpvBackend(this) },
             scope = scope,
             power = { Device.power(this) },
+            systemCaptionStyle = { CaptionStyle.system(this) },
         ).also { player ->
             store.onPlayback = player::apply
             PlayerConnection(this, player, scope)
+            captions = CaptionStyleWatch(this, player)
         }
     }
+
+    /** The player's caption style, following the setting and the system's style. */
+    private var captions: CaptionStyleWatch? = null
 
     val notifier: Notifier by lazy { Notifier(this) }
 

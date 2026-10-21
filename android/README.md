@@ -80,6 +80,17 @@ properties and events back; `PlayerService` is the media session around it, a `m
 foreground service. The emulator decodes in software: its MediaCodec stalls under FFmpeg, and a
 watchdog moves a decoder with no picture to software, or a stuck mpv to a new one.
 
+Plain-text subtitles (SRT, WebVTT and the rest) follow the system's caption style while Settings ›
+Playback › "Subtitles follow your system caption style" is on, as it is unless the viewer turns it
+off (kept on the device, `DevicePreferences`), and while captions are on in Accessibility › Caption
+preferences: with them off, Android's style is its stock white-on-black preset, which nobody chose,
+so the player keeps its own look, as ExoPlayer does. `CaptionStyle` reads `CaptioningManager`'s
+typeface, size, colours, window and edge and maps them to mpv's `sub-*` options at mpv's start;
+`CaptionStyleWatch` sends them again when the style or the setting changes. ASS subtitles keep
+their own look: mpv applies those options only to subtitles without a style at its default
+`sub-ass-override=scale`, which the player leaves as it is (`no` would also stop `sub-pos` lifting
+ASS dialogue). fonts.conf names the caption settings' typefaces as Android's fonts.xml has them.
+
 CI does not run mpv.sh: with `ANISTREAM_PLAYER_NATIVE=off` the player builds without libmpv and the
 shim, so its Kotlin compiles and its unit tests run, and that APK cannot play.
 

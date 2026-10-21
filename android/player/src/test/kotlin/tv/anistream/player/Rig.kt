@@ -17,6 +17,8 @@ import tv.anistream.engine.model.PlayerUi
 class ScriptedMpv : PlayerBackend {
     val calls = mutableListOf<MpvCall>()
     var begun: String? = null
+    /** The options mpv was started with besides the player's own. */
+    var begunWith: Map<String, String> = emptyMap()
     var ended = false
     var attached = 0
     var detached = 0
@@ -32,8 +34,9 @@ class ScriptedMpv : PlayerBackend {
         listener?.invoke(event)
     }
 
-    override suspend fun begin(hwdec: String) {
+    override suspend fun begin(hwdec: String, options: Map<String, String>) {
         begun = hwdec
+        begunWith = options
     }
 
     override suspend fun perform(call: MpvCall): PlayerReport? {
@@ -77,12 +80,17 @@ class ScriptedMpv : PlayerBackend {
 class Rig(private val test: TestScope, hwdec: String = "no") {
     val sent = mutableListOf<Command>()
     val made = mutableListOf<ScriptedMpv>()
+
+    /** The system's caption style the model reads: none, as with captions off, unless a test sets one. */
+    var captionStyle: CaptionStyle? = null
+
     val model = PlayerModel(
         send = { sent += it },
         backend = { ScriptedMpv().also { made += it } },
         scope = test.backgroundScope,
         now = { test.testScheduler.currentTime },
         hwdec = hwdec,
+        systemCaptionStyle = { captionStyle },
     )
 
     val mpv: ScriptedMpv get() = made.last()
