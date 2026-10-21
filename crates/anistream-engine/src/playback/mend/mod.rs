@@ -570,6 +570,10 @@ impl Menders {
 
 #[cfg(test)]
 mod tests {
+    use std::net::Ipv4Addr;
+
+    use tokio::net::TcpListener;
+
     use super::*;
     use crate::playback::mend::segment::TS_PACKET;
 
