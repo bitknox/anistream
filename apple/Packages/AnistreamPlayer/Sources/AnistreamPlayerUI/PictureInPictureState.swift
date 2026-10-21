@@ -5,7 +5,7 @@ import Foundation
 
 /// Where the picture is, as Picture in Picture goes.
 public enum PictureInPicturePhase: Equatable, Sendable {
-    /// In the player (the main window or the mini player): no Picture in Picture.
+    /// In the main window's player: no Picture in Picture.
     case inline
     /// Asked for: the frames are being copied and the system's window is opening.
     case starting

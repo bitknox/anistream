@@ -1,5 +1,5 @@
-// The menu bar's Playback menu and Window › Mini Player, as MacMenuBar draws them, carried out on
-// the player the app hosts. The app's shell puts them in its menus.
+// The menu bar's Playback menu and Window › Picture in Picture, as MacMenuBar draws them, carried
+// out on the player the app hosts. The app's shell puts them in its menus.
 
 import AnistreamKit
 import SwiftUI
@@ -121,22 +121,7 @@ public struct PlaybackMenu: View {
     }
 }
 
-/// Window › Mini Player: the player shrunk to a corner, while a player window exists.
-public struct MiniPlayerMenuItem: View {
-    let model: PlayerModel
-
-    public init(model: PlayerModel) {
-        self.model = model
-    }
-
-    public var body: some View {
-        Toggle("Mini Player", isOn: Binding(get: { model.miniPlayer }, set: { model.miniPlayer = $0 }))
-            .keyboardShortcut("m", modifiers: [.command, .option])
-            .disabled(!model.isPresented)
-    }
-}
-
-/// Picture in Picture, in the Window menu beside the mini player: ⌥⌘P.
+/// Window › Picture in Picture: ⌥⌘P.
 public struct PictureInPictureMenuItem: View {
     let model: PlayerModel
 

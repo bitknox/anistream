@@ -219,18 +219,6 @@ struct PictureInPictureTests {
         #expect(CVPixelBufferGetWidth(frame) == 16)
     }
 
-    @Test func takesOverFromTheMiniPlayer() async throws {
-        let (rig, pip, system) = try await playing()
-        rig.model.miniPlayer = true
-        rig.model.togglePictureInPicture()
-        system.say(.started)
-        #expect(!rig.model.miniPlayer)
-        #expect(rig.model.pictureInPicture)
-        #expect(!rig.model.inMainWindow)
-        // The app holds it as long as the player's window; so does the test.
-        withExtendedLifetime(pip) {}
-    }
-
     @Test func aWindowThatNeverOpensLeavesThePictureWhereItWas() async throws {
         let (rig, pip, system) = try await playing()
         rig.model.togglePictureInPicture()

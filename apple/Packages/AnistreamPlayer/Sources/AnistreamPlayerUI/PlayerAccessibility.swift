@@ -53,7 +53,6 @@ extension View {
             "Subtitles and audio": "Subtitles",
             "Back 10 seconds": "Back",
             "Forward 10 seconds": "Forward",
-            "Exit Mini Player": "Full size",
         ]
         return accessibilityInputLabels(([label] + [short[label]].compactMap { $0 }).map { Text($0) })
     }

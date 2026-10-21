@@ -168,8 +168,6 @@ public final class PlayerModel {
     public private(set) var holds: Set<String> = []
     /// Up for a screenshot, whatever else says.
     public var pinnedControls = false
-    /// The Mac's mini player: the window small in a corner, floating, with the essentials.
-    public var miniPlayer = false
     /// The Mac's Picture in Picture: the picture in the system's floating window while the main
     /// window browses. Set by `PictureInPicture` as the picture leaves the window and returns.
     public internal(set) var pictureInPicture = false
@@ -180,9 +178,8 @@ public final class PlayerModel {
     /// The last frame Picture in Picture's window was given, for a capture of it.
     @ObservationIgnored public internal(set) var pictureInPictureFrame: (@MainActor () -> CGImage?)?
 
-    /// The player has the main window: up, and in neither the mini player nor Picture in
-    /// Picture.
-    public var inMainWindow: Bool { isPresented && !miniPlayer && !pictureInPicture }
+    /// The player has the main window: up, and not in Picture in Picture.
+    public var inMainWindow: Bool { isPresented && !pictureInPicture }
 
     /// Picture in Picture can be asked for: there is a picture to put in it.
     public var pictureInPictureAvailable: Bool { pictureInPictureToggle != nil && isPresented && hasPicture }
@@ -446,7 +443,7 @@ public final class PlayerModel {
     public private(set) var backRequests = 0
 
     public func requestBack() {
-        if miniPlayer || pictureInPicture || !isPresented {
+        if pictureInPicture || !isPresented {
             viewerClosed()
         } else {
             backRequests += 1
@@ -540,7 +537,6 @@ public final class PlayerModel {
         verdictPending = false
         layer = nil
         fullScreen = false
-        miniPlayer = false
         pictureInPicture = false
         subtitleTween?.cancel()
         subtitlePosition = 100

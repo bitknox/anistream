@@ -109,8 +109,6 @@ public final class PictureInPicture {
         case .stop, .dismiss:
             system.stop()
         case .leaveWindow:
-            // Out of the mini player too: Picture in Picture takes over from it.
-            model.miniPlayer = false
             model.pictureInPicture = true
             // The floating window has no controls of ours for the subtitles to rise above.
             model.liftSubtitles(0, animated: false)

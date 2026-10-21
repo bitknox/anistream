@@ -46,7 +46,6 @@ struct AnistreamDev: App {
             ) {
                 PlaybackMenu(model: delegate.player)
             } playerWindowItems: {
-                MiniPlayerMenuItem(model: delegate.player)
                 PictureInPictureMenuItem(model: delegate.player)
             }
         }
@@ -115,12 +114,7 @@ final class Delegate: NSObject, NSApplicationDelegate {
         }
         do {
             guard let window = Snapshot.window else { throw Snapshot.Problem.noWindow }
-            if options.playerShot == .miniPlayer, let panel = Snapshot.miniPlayer {
-                // The mini player over the main window, browsing, each where it is on screen.
-                try Snapshot.write([window, panel], to: url)
-            } else {
-                try Snapshot.write(window, to: url)
-            }
+            try Snapshot.write(window, to: url)
             if options.playerShot == .pictureInPicture {
                 // The system's floating window is another process's: what it shows is the frame
                 // the feed gave it, written beside the main window's shot.

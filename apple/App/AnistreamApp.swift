@@ -37,7 +37,6 @@ struct AnistreamApp: App {
             ) {
                 PlaybackMenu(model: delegate.player)
             } playerWindowItems: {
-                MiniPlayerMenuItem(model: delegate.player)
                 PictureInPictureMenuItem(model: delegate.player)
             }
         }

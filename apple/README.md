@@ -214,12 +214,9 @@ engine in temporary directories, and keep secrets in memory.
   in the main window's player, out of the Dock or out of hiding; closing the floating window
   stops the playback as the player's own close does. `PictureInPictureMachine` holds the steps,
   and the display layer sits in a plain window of its own while it runs, as AVKit adds a view
-  beside it that a SwiftUI hosting view does not take. The Mac's mini player (⌥⌘M) moves the
-  video into a floating panel a quarter of the screen wide in the bottom right corner while the
-  window goes back to browsing;
-  Expand brings it back. One mpv throughout: its layer moves between them. Both set
-  Now Playing and the remote commands and
-  keep the display awake while playing. `View.hostsPlayer(_:)` opens either with the model. Its
+  beside it that a SwiftUI hosting view does not take. One mpv throughout: its layer moves
+  between them. The player sets Now Playing and the remote commands and keeps the display awake
+  while playing. `View.hostsPlayer(_:)` opens it with the model. Its
   tests run the model on a scripted mpv, and one plays the Fixtures app's episode end to end on
   the testing engine and a real mpv.
 - **AnistreamDev**: the dev harness, below.
@@ -316,9 +313,10 @@ invented rows `Showcase` shows on the testing engine where it has none of its ow
 download queue, the VPN guard's verdict).
 
 The player's states are `player-starting`, `player-playing`, `player-skip`, `player-up-next`,
-`player-still-watching`, `player-stall`, `player-scrubbing` and `player-mini-player`: the Playing scene's episode played to that state
-(`PlayerShot`), the main window shot on the Mac (with the mini player's panel where it is on
-screen, for `player-mini-player`) and the screen in the Simulator.
+`player-still-watching`, `player-stall`, `player-scrubbing` and `player-picture-in-picture`: the
+Playing scene's episode played to that state (`PlayerShot`), the main window shot on the Mac (with
+the main window browsing while the video plays in the floating window, for
+`player-picture-in-picture`) and the screen in the Simulator.
 
 They go to `apple/.shots/`, which git ignores. Mac shots come from the dev harness. iPhone and iPad
 shots build Anistream Fixtures, run it on a Simulator device of its own (made on first use), with
