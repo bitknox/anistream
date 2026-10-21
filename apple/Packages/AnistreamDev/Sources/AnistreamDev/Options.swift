@@ -35,6 +35,9 @@ struct Options {
     var snapshot: URL?
     /// The player state to play to, whose window the snapshot renders.
     var playerShot: PlayerShot?
+    /// The milliseconds after the launch's motion demo (`-AnistreamMotion`) to snapshot at, each
+    /// to the snapshot's name with `-<ms>` before its extension.
+    var frames: [Int] = []
     var width: CGFloat = 1280
     var height: CGFloat = 800
 
@@ -81,6 +84,10 @@ struct Options {
                 home = URL(filePath: try value(flag), directoryHint: .isDirectory)
             case "--snapshot":
                 snapshot = URL(filePath: try value(flag))
+            case "--frames":
+                let list = try value(flag)
+                frames = list.split(separator: ",").compactMap { Int($0) }
+                guard !frames.isEmpty else { throw Problem.bad(flag, list) }
             case "--player-shot":
                 let name = try value(flag)
                 guard let shot = PlayerShot(rawValue: name) else { throw Problem.bad(flag, name) }

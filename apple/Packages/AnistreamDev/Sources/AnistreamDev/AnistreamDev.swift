@@ -26,6 +26,7 @@ struct AnistreamDev: App {
         Window("anistream", id: "main") {
             RootView()
                 .hostsPlayer(delegate.player)
+                .environment(\.playerUp, delegate.player.isPresented)
                 .environment(delegate.store)
                 .environment(delegate.navigator)
                 .frame(minWidth: 960, minHeight: 600)
@@ -112,6 +113,9 @@ final class Delegate: NSObject, NSApplicationDelegate {
         guard let url = options.snapshot else { return }
         // The art's and the preview's fade-ins.
         try? await Task.sleep(for: .milliseconds(400))
+        if let motion = MotionDemo.from(), !options.frames.isEmpty, let window = Snapshot.window {
+            await frames(of: motion, in: window, to: url)
+        }
         do {
             let window = options.playerShot == nil ? Snapshot.window : Snapshot.playerWindow
             guard let window else { throw Snapshot.Problem.noWindow }
@@ -124,7 +128,40 @@ final class Delegate: NSObject, NSApplicationDelegate {
             player.viewerClosed()
             try? await Task.sleep(for: .milliseconds(300))
         }
+        exitAfterSnapshot()
+    }
+
+    /// Run `motion` and snapshot the window at each of the frames' offsets after it starts: taken
+    /// into memory as it runs, and written once it has, so writing never delays the next frame.
+    private func frames(of motion: MotionDemo, in window: NSWindow, to url: URL) async {
+        var taken: [(offset: Int, at: Duration, image: CGImage)] = []
+        let start = ContinuousClock.now
+        motion.run(navigator: navigator, store: store)
+        for offset in options.frames.sorted() {
+            let at = start + .milliseconds(offset)
+            if at > .now { try? await Task.sleep(until: at) }
+            if let image = Snapshot.composited(window).flatMap({ Snapshot.withSheets($0, of: window) }) {
+                taken.append((offset, ContinuousClock.now - start, image))
+            }
+        }
+        for frame in taken {
+            let name = url.deletingPathExtension().lastPathComponent + "-\(frame.offset)"
+            let file = url.deletingLastPathComponent().appending(path: name).appendingPathExtension("png")
+            let bitmap = NSBitmapImageRep(cgImage: frame.image)
+            if let png = bitmap.representation(using: .png, properties: [:]) {
+                try? png.write(to: file)
+                let ms = frame.at.components.seconds * 1000 + frame.at.components.attoseconds / 1_000_000_000_000_000
+                print("AnistreamDev: wrote \(file.path) at \(ms) ms")
+            }
+        }
+    }
+
+    private func exitAfterSnapshot() {
         NSApp.terminate(nil)
+        Task { @MainActor in await self.end() }
+    }
+
+    private func end() async {
         // A sheet with a field in it can hold the quit back; a snapshot run ends regardless.
         try? await Task.sleep(for: .seconds(2))
         store.shutdown()

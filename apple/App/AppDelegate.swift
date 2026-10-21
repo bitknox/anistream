@@ -57,6 +57,13 @@ final class AppDelegate: NSObject {
             print("ANISTREAM_READY")
             fflush(stdout)
         }
+        // A transition for the motion audit's recordings, two seconds after the screen is up.
+        if let motion = MotionDemo.from() {
+            try? await Task.sleep(for: .seconds(2))
+            print("ANISTREAM_MOTION")
+            fflush(stdout)
+            motion.run(navigator: navigator, store: store)
+        }
     }
 
     private func quit() {
