@@ -102,7 +102,7 @@ class MainActivity : ComponentActivity() {
         holdPortraitOnPhones(resources.configuration)
 
         app.start(Flavour.launch(this, intent))
-        Flavour.started(app.store, intent, app.episodeNotifier)
+        Flavour.started(this, app.store, intent, app.episodeNotifier)
         val steerable = debuggable || Flavour.FIXTURES
         val start = intent.getStringExtra(SECTION)?.takeIf { steerable }
             ?.let(Destination::named) ?: Destination.Continue

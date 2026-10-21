@@ -82,7 +82,9 @@ arguments: `scene` (`watching`, `fresh` or `playing`), `media` (what the playing
 open, by id), `query` (a search to run), `page` (a page over the destination, by its route:
 `settings`, `settings/playback`, `settings/sources`, `downloads`), `watched` (`900006:8`, or
 several titles joined by `/`), `downloads` (any value: three downloads seeded, see below), `notify`
-(any value: two new-episode notifications posted), and
+(any value: two new-episode notifications posted, with the fixtures' covers), `check` (seconds: the
+new-episode check run once that many seconds on, as the periodic work runs it; kill the app first
+for it to start an engine of its own), and
 `sheet` and `player` for the screens that take them in later phases. A scene is the engine's
 own (`start_scene`): the fake AniList at the real time, with its art, and for `watching` and
 `playing` a history seeded first. Each launch starts the testing engine in a new directory of its
