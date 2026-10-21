@@ -255,8 +255,11 @@ impl Provider for TorrentProvider {
     /// Delegates to the VPN guard, which reports [`ProviderError::Unavailable`] — not a
     /// health error. A source held back by local policy is not a broken source, and the
     /// registry skips it without ever contacting it.
+    ///
+    /// And to the session, which refuses every torrent on a network they are not to run on.
     fn is_available(&self) -> Result<(), ProviderError> {
-        self.guard.permit()
+        self.guard.permit()?;
+        self.session.network_permit()
     }
 
     /// Torrent sites have no catalogue, so a "search hit" is a distinct show name seen in

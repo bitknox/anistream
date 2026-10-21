@@ -67,9 +67,12 @@ pub struct EngineState {
     pub staging: Staging,
     /// Where the app is, as the front end last said: in the background torrents wait.
     pub phase: anistream_model::command::AppState,
-    /// Whether the network is metered, cellular or Low Data Mode, as the front end last said:
-    /// downloads and seeding wait on one.
-    pub metered: bool,
+    /// The network the device uses, as the front end last said: on cellular only what the
+    /// settings let run there runs, and in Low Data Mode downloads and seeding wait.
+    pub network: crate::phases::Network,
+    /// What the torrent session was last told of it, for a setting saved to tell whether that
+    /// changed: see [`crate::phases::gate_for`].
+    pub gated: Option<crate::phases::Gate>,
 }
 
 impl EngineState {
@@ -94,7 +97,8 @@ impl EngineState {
             cache: TitleCache::default(),
             staging: Staging::default(),
             phase: Default::default(),
-            metered: false,
+            network: Default::default(),
+            gated: None,
         }
     }
 
