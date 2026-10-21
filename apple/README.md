@@ -7,15 +7,22 @@ generates for `crates/anistream-ffi`.
 | Path | What it is |
 | --- | --- |
 | `scripts/engine.sh` | Builds the engine as an XCFramework, with its Swift bindings |
+| `scripts/mpv.sh` | Builds libmpv as Mpv.xcframework, from source with `patches/` |
 | `scripts/test.sh` | Runs every Swift package's tests with SwiftPM |
+| `scripts/player-media.sh` | Makes the player tests' synthetic media |
+| `scripts/notices.sh` | Writes `ThirdParty/NOTICES-libmpv.txt` |
 | `scripts/shots.sh` | Screenshots of the Fixtures app, on the Mac and in the Simulator |
 | `Packages/AnistreamKit` | The bindings over the engine's XCFramework, and ports of the model's helpers |
 | `Packages/AnistreamDesign` | The Obi & Silk tokens, motion, the show-title face, Nagare, the cover plate |
 | `Packages/AnistreamStore` | The app's state over the engine: the client, the store and its feature models |
 | `Packages/AnistreamUI` | The screens: the Mac's split view, the tab bar on iPad and iPhone, Continue |
+| `Packages/AnistreamPlayer` | libmpv in the app's own view: the client, the surface, screenshots |
 | `Packages/AnistreamDev` | The Mac dev harness, `swift run AnistreamDev` |
 | `App/` | The app's entry point, shared by both apps |
 | `project.yml`, `Config/` | The Xcode project, for XcodeGen |
+| `patches/` | anistream's (and MPVKit's) changes to mpv and libass |
+| `ThirdParty/` | The notices for what the app bundles, which the app ships |
+| `Spikes/Player/` | The libmpv spike the player was decided on, with its answers |
 
 It needs Xcode 26 or later (the macOS and iOS 26 SDKs), the Rust toolchain `rust-toolchain.toml`
 pins, which installs the iOS targets with it, and [XcodeGen](https://github.com/yonaskolb/XcodeGen)
@@ -60,6 +67,47 @@ It builds with the `app-dev` profile (opt-level 1, line tables only), or the one
 `~/anistream-target-apple`, one directory for every worktree that builds the engine, and
 `CARGO_INCREMENTAL` to 0, since disk is what runs out.
 
+## libmpv
+
+```sh
+apple/scripts/mpv.sh                   # every slice: macos, ios, ios-sim
+apple/scripts/mpv.sh macos
+apple/scripts/mpv.sh --check ios-sim
+```
+
+The player is libmpv in the app's own view: `vo=gpu-next` on Vulkan through MoltenVK into a
+`CAMetalLayer`, VideoToolbox decoding mapped straight into the renderer, and EDR for HDR. The
+choices and their measurements are in `Spikes/Player/README.md`.
+
+mpv.sh builds it as one dynamic `Mpv.framework` per slice that exports only `_mpv_*`, packaged as
+`apple/.mpv/<pin>/Mpv.xcframework`, with `apple/.mpv/current` naming the pin's build. It follows
+MPVKit's LGPL configuration at the release it pins, and builds from source only what anistream
+patches:
+
+- **libass 0.17.5** with `patches/libass`. Since macOS 15 and iOS 18 Apple ships PingFang, Core
+  Text's fallback for Han, in a format FreeType cannot open, so libass drew boxes. The patch
+  skips fonts FreeType cannot open and falls back down Core Text's cascade instead: Hiragino Sans
+  and, for simplified characters, Hiragino Sans GB on the Mac. iOS has no such font for
+  simplified-only characters (简), so there the app bundles one (`MpvConfiguration.subtitleFallback`).
+- **mpv 0.41.0** with `patches/mpv`: MPVKit's own three, which add the `moltenvk` context, and
+  ours, which makes that context follow the layer's size. Without it mpv kept drawing at its first
+  size after a resize, full screen or rotation.
+
+Every other library is MPVKit's own prebuilt static build, from the releases MPVKit pins, checked
+against its SHA-256: FFmpeg, libplacebo, MoltenVK, shaderc, OpenSSL, GnuTLS and the rest. The link
+keeps them inside the framework, so the OpenSSL there never meets the engine's BoringSSL, and the
+framework stays dynamic, as the LGPL asks. `apple/.mpv/<pin>/contents` lists which libraries each
+slice took code from, and `ThirdParty/NOTICES-libmpv.txt`, which `scripts/notices.sh` writes and
+the app bundles, has their licences.
+
+meson, ninja and pkgconf come pinned in a Python venv of the script's own, in `apple/.mpv/tools`:
+nothing is installed on the machine. Downloads are cached in `apple/.mpv/downloads` (about 500
+MB). A build of all three slices takes about 70 s on an M4 Pro, peaks under 1 GB of disk, and
+deletes its intermediate trees when done; the XCFramework is about 86 MB (31 MB for the Mac, 28
+for iOS and for the Simulator). Like engine.sh, it builds nothing when its stamp says the script,
+the patches and the slices asked for are what the last build was made from, and runs its tools in
+a clean environment, so it works from an Xcode build phase too. `mpv.sh --clean` drops the cache.
+
 ## The Swift packages
 
 ```sh
@@ -95,6 +143,18 @@ engine in temporary directories, and keep secrets in memory.
   `ArtworkReady` is downsampled with ImageIO off the main thread into an `NSCache`.
   `EngineLaunch` holds what a start takes, `FfiStart` among it.
 - **AnistreamUI**: the screens over the store.
+- **AnistreamPlayer**: libmpv in the app's own view, on `Mpv.xcframework` (which mpv.sh links in
+  as `Mpv/`). `MpvClient` owns one mpv: every call runs on its own serial queue, so nothing waits
+  on mpv from the main thread (a screenshot or a reconfigure waits on mpv's render thread, which
+  hops to the main thread to switch EDR on), and from `shutdown()` on every call throws. Its
+  `events()` and `reports()` are `AsyncStream`s; `apply(_:)` carries out the engine's player ops
+  (load with per-file options, add a subtitle, set a property, seek, shaders, an audio filter,
+  stop), and the reports come back in mpv's own words, properties as JSON, for the engine's
+  parsers. `updateDisplay(_:)` tells mpv and the engine about the screen, which mpv cannot read
+  for itself here. `MpvLayer` and `PlayerSurface` (an NSViewRepresentable or UIViewRepresentable)
+  host the picture, keep it the view's size and wake mpv after a resize, which it would otherwise
+  not see while paused. `screenshot()` is mpv's own render as a `CGImage`. Its tests render for
+  real into a layer in no window, on media `scripts/player-media.sh` makes, which `test.sh` runs.
 - **AnistreamDev**: the dev harness, below.
 
 ## The Xcode project
@@ -249,7 +309,8 @@ trackers' and plugin stores' tokens for it, in the keychain: `secretGet`, `secre
 ## Not yet
 
 - Playback: a play is answered with a notice until the engine can hand a stream to the app's own
-  player.
+  player (E5). `AnistreamPlayer` is built and compiled into the project as a framework pair, but
+  no app takes it on yet; when one does (N3), it embeds `Mpv.framework`.
 - Covers carry no colour of their own yet, so every plate is the raised colour until the engine
   sends `Entry.cover_color`. The fixtures' art is on a host nothing resolves, so the Fixtures app
   shows plates where the boards show art.

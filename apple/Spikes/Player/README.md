@@ -14,8 +14,6 @@ Xcode 27.1, and MPVKit 1.1.0-n9.0.2 (mpv 0.41.0, FFmpeg n9.0.2, libplacebo 7.360
 | `Sources/SpikePlayer/` | The player, for macOS and iOS: the mpv client (`MPVClient`), the layer (`MPVMetalLayer`), the AppKit and UIKit views with their representables (`PlayerSurface`), the SwiftUI controls (`PlayerScreen`), the engine's shader chains (`Shaders`), screenshots (`Snapshot`). |
 | `Sources/PlayerSpike/` | The macOS runner: `swift run PlayerSpike <url-or-file> …`. |
 | `iOS/` | The iOS app for the Simulator (XcodeGen spec and one source file). |
-| `patches/context_moltenvk.m` | MPVKit's `gpu-context=moltenvk`, made to follow the layer's size. |
-| `scripts/relink.sh` | Builds `.mpv/Mpv.xcframework` from MPVKit's static libraries. |
 | `scripts/media.sh` | Makes the synthetic test media in `.media/`. |
 | `scripts/s3.sh`, `scripts/chains.sh` | The S3 measurements. |
 
@@ -28,8 +26,8 @@ cd apple/Spikes/Player
 scripts/media.sh                       # test media: subs.mkv, hdr10-4k.mkv, testsrc-*.mkv
 swift run PlayerSpike testsrc          # MPVKit's static build, interactive
 
-swift package resolve                  # once: relink.sh reads MPVKit's downloaded artifacts
-scripts/relink.sh macos                # Mpv.framework, with the moltenvk patch
+../../scripts/mpv.sh                   # Mpv.framework, built from source with apple/patches
+mkdir -p .mpv && ln -sfn ../../../.mpv/current/Mpv.xcframework .mpv/Mpv.xcframework
 PLAYER_SPIKE_MPV=framework swift run --scratch-path .build/framework \
   PlayerSpike .media/subs.mkv --shaders natural
 ```
@@ -60,6 +58,12 @@ xcrun simctl io booted screenshot ../../.shots/player/ios/now.png
 Leave out `PLAYER_SPIKE_MPV` to link MPVKit's static build. Put the app's arguments straight
 after the bundle id, with no `--`.
 
+The spike first re-linked MPVKit's binaries and swapped one patched object into libmpv (its
+`scripts/relink.sh` and `patches/`, in this branch's history). `apple/scripts/mpv.sh` replaced
+both: it builds mpv and libass from source with `apple/patches`, and the framework mode above uses
+its build. The answers below were measured on the re-linked build; S2 and S8 were checked again
+on the source build (`apple/.shots/player/compare/`).
+
 ## Answers
 
 ### S1: static libraries, and the re-linked framework
@@ -70,8 +74,8 @@ wrapped as a `.framework` in an xcframework.
 The engine's archive defines 272 libssl and 1,840 libcrypto symbols that MPVKit's OpenSSL
 defines too, so linking both statically into one image would clash.
 
-`scripts/relink.sh` links them into one `Mpv.framework` that exports only `_mpv_*`. It needs only
-`clang -dynamiclib`:
+The spike's `relink.sh` linked them into one `Mpv.framework` that exports only `_mpv_*`, as
+`apple/scripts/mpv.sh` now does. It needs only `clang -dynamiclib`:
 
 - `-force_load` keeps all of libmpv, and the other archives supply only what libmpv uses.
 - `-exported_symbols_list` holds just `_mpv_*`.
@@ -101,10 +105,10 @@ drawing into the old rectangle: cropped at 900×900, and in the corner in full s
 ([MPVKit#3](https://github.com/mpvkit/MPVKit/issues/3), still open). Rotation in the iOS
 Simulator shows the same bug, and the same fix.
 
-`patches/context_moltenvk.m` makes the context check the drawable on every
-`VOCTRL_CHECK_EVENTS` and report `VO_EVENT_RESIZE`. `relink.sh` compiles it against mpv
-v0.41.0's headers and swaps it into libmpv. The object imports and exports exactly the symbols
-MPVKit's does.
+`apple/patches/mpv/0004-moltenvk-follow-layer-size.patch` makes the context check the drawable
+on every `VOCTRL_CHECK_EVENTS` and report `VO_EVENT_RESIZE`. The spike first proved it by
+compiling the file against mpv v0.41.0's headers and swapping the object into MPVKit's libmpv;
+`apple/scripts/mpv.sh` now builds mpv from source with it.
 
 While paused, the VO thread sleeps, so it sees a new size only on the next redraw. After a
 resize, the host must wake it. A 1 ms `show-text _ 1` and an exact zero seek both work; an empty
@@ -220,9 +224,17 @@ Apple ships PingFang in a format FreeType cannot parse
 
 Setting `sub-font` does not help.
 
-The fix belongs in libass's CoreText `get_fallback`: skip a font FreeType cannot open, and take
-the next one from `CTFontCopyDefaultCascadeListForLanguages`, such as Hiragino Sans GB. It could
-be swapped in the same way as the moltenvk context; it has not been done.
+The fix is in libass's CoreText `get_fallback`: skip a font FreeType cannot open, and take the
+next one from `CTFontCopyDefaultCascadeListForLanguages`. That is now
+`apple/patches/libass/0001-coretext-skip-fonts-freetype-cannot-open.patch`, built by
+`apple/scripts/mpv.sh`.
+
+- **On the Mac,** every Han line renders: Hiragino Sans for Han, and Hiragino Sans GB for
+  simplified characters (`compare/s8-before-after.png`).
+- **On iOS 27,** the Helvetica Neue line now renders, but 简 is still a box
+  (`compare/s8-ios-before-after.png`). The only fonts iOS has with simplified-only characters are
+  PingFang's, so the app must bundle one (`MpvConfiguration.subtitleFallback`). Noto Sans SC
+  proved the route; a static Regular cut is about 16 MB.
 
 Screenshots: `apple/.shots/player/subs-ass-cjk.png`, and `ios/sim-subs-natural.png` with the
 controls.
@@ -274,7 +286,8 @@ upstream to MPVKit#3.
 
 1. **Moving between displays (S2).** Connect an external display, then:
    ```sh
-   cd apple/Spikes/Player && scripts/media.sh && swift package resolve && scripts/relink.sh macos
+   cd apple/Spikes/Player && scripts/media.sh && ../../scripts/mpv.sh macos
+   mkdir -p .mpv && ln -sfn ../../../.mpv/current/Mpv.xcframework .mpv/Mpv.xcframework
    PLAYER_SPIKE_MPV=framework swift run --scratch-path .build/framework PlayerSpike .media/subs.mkv --shaders natural
    ```
    Drag the window to the other display and back, and go full screen on each. Each `surface:`
