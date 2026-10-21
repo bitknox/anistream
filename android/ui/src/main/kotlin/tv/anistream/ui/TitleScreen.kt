@@ -43,6 +43,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -109,7 +110,17 @@ fun TitleScreen(id: AnilistId, actions: AppActions) {
     val art = HeroArt.of(entry, episodes)
     val list = rememberLazyListState()
     val inset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    if (wideWindow()) {
+    val wide = wideWindow()
+    // A page a fold opened goes back to the list and detail once the window is wide again (AT3).
+    LaunchedEffect(wide) {
+        if (wide && navigator.openedByFold == id) {
+            navigator.openedByFold = null
+            navigator.back()
+        }
+    }
+    // Left any other way, by Back or for another page, the fold's page is the viewer's own.
+    DisposableEffect(id) { onDispose { if (navigator.openedByFold == id) navigator.openedByFold = null } }
+    if (wide) {
         TabletTitle(entry, episodes, art, actions)
         return
     }

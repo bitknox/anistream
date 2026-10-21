@@ -83,11 +83,15 @@ fun ContinueScreen(actions: AppActions, openCalendar: () -> Unit, openSeasonal: 
     LaunchedEffect(Unit) { store.loadContinue() }
     val empty = state == ListState.Empty
     val user = trackers.values.firstOrNull { it.connected }?.user
+    // The queue's selection and scroll, held here so they outlive a fold (AT3).
+    val queueState = rememberQueueState()
+    val wide = wideWindow()
+    FoldFollowsSelection(wide, queueState)
     // A tablet with something under way: the queue beside the selected title.
-    if (wideWindow() && state is ListState.Loaded) {
+    if (wide && state is ListState.Loaded) {
         val queue = store.continuing.queue(titles)
         if (!queue.isEmpty) {
-            TabletQueue(queue, actions)
+            TabletQueue(queue, actions, queueState)
             return
         }
     }
@@ -381,6 +385,24 @@ private fun SectionHeading(title: String, open: String, onOpen: () -> Unit) {
         IconButton(onClick = onOpen, modifier = Modifier.semantics { contentDescription = open }) {
             Icon(Icons.Forward, contentDescription = null)
         }
+    }
+}
+
+/**
+ * Folding to one pane with a title picked shows that title's page (AT3); its page goes back to
+ * the list and detail when the window widens again.
+ */
+@Composable
+private fun FoldFollowsSelection(wide: Boolean, state: QueueState) {
+    val navigator = LocalNavigator.current
+    var was by remember { mutableStateOf(wide) }
+    LaunchedEffect(wide) {
+        val id = state.selected?.toUInt()
+        if (was && !wide && state.picked && id != null) {
+            navigator.openedByFold = id
+            navigator.openTitle(id, "fold")
+        }
+        was = wide
     }
 }
 

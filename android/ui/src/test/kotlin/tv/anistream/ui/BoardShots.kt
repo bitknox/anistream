@@ -2,12 +2,15 @@ package tv.anistream.ui
 
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -108,6 +111,28 @@ class BoardShots {
     @Test
     @Config(qualifiers = TABLET)
     fun tablet_home() = shoot("tablet-home", WATCHING)
+
+    /** AT2: the divider dragged past the middle settles on half the content. */
+    @Test
+    @Config(qualifiers = TABLET)
+    fun tablet_home_divider() = shoot("tablet-home-divider", WATCHING) {
+        // The handle stands where the list pane ends: the rail's 96 and the list's 380 in.
+        compose.onRoot().performTouchInput {
+            val handle = Offset(483.dp.toPx(), height / 2f)
+            down(handle)
+            moveBy(Offset(240.dp.toPx(), 0f), delayMillis = 200)
+            up()
+        }
+        compose.waitForIdle()
+    }
+
+    /** AT2: another title picked, its fill on the row and its preview beside the list. */
+    @Test
+    @Config(qualifiers = TABLET)
+    fun tablet_home_selected() = shoot("tablet-home-selected", WATCHING) {
+        compose.onNodeWithText("Resume E2", substring = true).performClick()
+        compose.waitForIdle()
+    }
 
     @Test
     @Config(qualifiers = TABLET)
