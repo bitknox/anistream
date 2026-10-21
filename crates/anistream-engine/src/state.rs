@@ -41,6 +41,11 @@ pub struct EngineState {
     /// The live player's control channel. Replaced on each new playback, so a stale sender
     /// from a finished episode can never steer the current one.
     pub player_tx: Option<mpsc::UnboundedSender<PlayerCommand>>,
+    /// The playback started last, while it finds its stream: a Stop that reaches it before it
+    /// opens a player sets this, and it opens none. Closed once it opens, so a Stop from then
+    /// on is the session's, read off `player_tx` as every other control is. `None` for a play
+    /// that opens at once.
+    pub finding: Option<tokio::sync::watch::Sender<bool>>,
     /// The copy of the config the background tasks read: the download manager, the seeding
     /// watch and the stream cache's. Brought up to `config` whenever a setting is written, so
     /// "saved" and "in effect" are the same moment.
@@ -81,6 +86,7 @@ impl EngineState {
             shared_config: Arc::new(RwLock::new(config.clone())),
             config: ConfigState::new(config, saved, paths),
             player_tx: None,
+            finding: None,
             torrent_tasks: TorrentTasks::default(),
             vpn_guard: None,
             arrivals,

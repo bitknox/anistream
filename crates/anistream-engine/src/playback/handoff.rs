@@ -58,6 +58,14 @@ impl Handoff {
         }
     }
 
+    /// The new playback was stopped before it found anything: the playback still in the
+    /// window, if one is, is stopped with it, since what the viewer stopped was on its screen.
+    pub fn stop(self) {
+        if let Some(previous) = self.previous {
+            let _ = previous.send(anistream_model::command::PlayerCommand::Stop);
+        }
+    }
+
     /// The new playback found nothing, so the old one keeps the window: say why on the video
     /// it is showing, and pass on the controls the terminal now sends to the new channel until
     /// the old playback ends. A later playback's handover reaches it the same way.
