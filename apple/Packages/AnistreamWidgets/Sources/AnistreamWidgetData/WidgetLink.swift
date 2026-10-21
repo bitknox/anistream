@@ -1,4 +1,4 @@
-// The links a widget opens the app with, through its anistream:// scheme.
+// The links a widget or the Live Activity opens the app with, through its anistream:// scheme.
 
 import Foundation
 
@@ -12,6 +12,8 @@ public enum WidgetLink: Sendable, Equatable {
     case calendar
     /// Settings › Accounts, to connect a tracker: `anistream://settings/accounts`.
     case accounts
+    /// The player, on a finished download: `anistream://download/42`.
+    case download(Int64)
 
     public static let scheme = "anistream"
 
@@ -30,6 +32,9 @@ public enum WidgetLink: Sendable, Equatable {
         case .accounts:
             components.host = "settings"
             components.path = "/accounts"
+        case .download(let id):
+            components.host = "download"
+            components.path = "/\(id)"
         }
         return components.url!
     }
@@ -49,6 +54,9 @@ public enum WidgetLink: Sendable, Equatable {
             self = .calendar
         case ("settings", 1) where parts[0] == "accounts":
             self = .accounts
+        case ("download", 1):
+            guard let id = Int64(parts[0]), id > 0 else { return nil }
+            self = .download(id)
         default:
             return nil
         }

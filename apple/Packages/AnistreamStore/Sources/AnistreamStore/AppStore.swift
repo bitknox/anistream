@@ -37,6 +37,8 @@ public final class AppStore {
     public let downloads = DownloadsModel()
     /// The home-screen widgets' snapshot, kept current as what they show changes.
     @ObservationIgnored public let widgets: WidgetFeed
+    /// The downloads' Live Activity on iPhone.
+    @ObservationIgnored public let downloadsActivity: DownloadsActivityFeed
     @ObservationIgnored public private(set) var artwork: ArtworkStore!
 
     @ObservationIgnored private var client: EngineClient?
@@ -63,11 +65,13 @@ public final class AppStore {
     @ObservationIgnored public var onPlayback: (@MainActor (Event) -> Void)?
 
     public init(
-        jobs: JobsModel = JobsModel(), notices: NoticesModel = NoticesModel(), widgets: WidgetFeed = WidgetFeed()
+        jobs: JobsModel = JobsModel(), notices: NoticesModel = NoticesModel(), widgets: WidgetFeed = WidgetFeed(),
+        downloadsActivity: DownloadsActivityFeed = DownloadsActivityFeed()
     ) {
         self.jobs = jobs
         self.notices = notices
         self.widgets = widgets
+        self.downloadsActivity = downloadsActivity
         artwork = ArtworkStore { [weak self] url in
             guard let client = self?.client else { return false }
             client.send(.fetchArtwork(url: url))
@@ -83,6 +87,10 @@ public final class AppStore {
         #if FIXTURES
         if case .fixtures = launch.engine { testing = true }
         #endif
+        // The Live Activity's Pause and Resume act on the whole queue.
+        downloadsActivity.takeControls(
+            pause: { [weak self] in self?.pauseAllDownloads() },
+            resume: { [weak self] in self?.resumeAllDownloads() })
         home = launch.home
         AppLog.start(cache: launch.home.cache)
         #if os(macOS)
@@ -388,6 +396,7 @@ public final class AppStore {
 
         case .downloads(let rows):
             downloads.apply(rows)
+            downloadsActivity.downloadsChanged(downloads, titles: titles, artwork: artwork)
         case .seeding(let rows):
             downloads.seeding(rows)
 

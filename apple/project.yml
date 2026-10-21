@@ -309,6 +309,8 @@ targets:
         # The anistream:// links the app opens, and the widgets' App Group.
         INFOPLIST_FILE: App/Info.plist
         CODE_SIGN_ENTITLEMENTS: App/Anistream.entitlements
+        # The downloads' Live Activity on iPhone, which the widget extension draws.
+        INFOPLIST_KEY_NSSupportsLiveActivities: true
     dependencies:
       - target: AnistreamKit
       - target: AnistreamDesign

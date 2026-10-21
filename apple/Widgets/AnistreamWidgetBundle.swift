@@ -1,5 +1,6 @@
-// The widget extension: Continue watching and Airing today, whose layouts, timelines and edit
-// sheet are in apple/Packages/AnistreamWidgets (AnistreamWidgetUI), compiled into this target.
+// The widget extension: Continue watching and Airing today, and on iPhone the downloads' Live
+// Activity, whose layouts, timelines and edit sheet are in apple/Packages/AnistreamWidgets
+// (AnistreamWidgetUI), compiled into this target.
 
 import AnistreamWidgetData
 import AppIntents
@@ -11,6 +12,9 @@ struct AnistreamWidgetBundle: WidgetBundle {
     var body: some Widget {
         ContinueWatchingWidget()
         AiringTodayWidget()
+        #if os(iOS)
+        DownloadsLiveActivity()
+        #endif
     }
 }
 

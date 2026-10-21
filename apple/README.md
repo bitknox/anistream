@@ -296,6 +296,15 @@ Without a team the Mac's has no group, and nothing is written. The Fixtures app 
 it never writes over the app's. Taps open `anistream://title/<id>`, `anistream://play/<id>/<episode>`,
 `anistream://calendar` and `anistream://settings/accounts`, which `opensWidgetLinks()` routes.
 
+On iPhone the extension also draws the downloads' Live Activity: one activity for the whole queue,
+on the Lock Screen and in the Dynamic Island. `DownloadsActivityFeed` starts it when a download
+starts, updates it every three seconds and at once on a pause, a new episode or a finish, and ends
+it four minutes after the last download finishes. Pause and Resume are `LiveActivityIntent`s that
+run in the app; Play on a finished download opens `anistream://download/<id>`. It shows only while
+the app runs the downloads: set `store.downloadsActivity.systemShowsProgress` while a
+continued-processing task shows the system's own progress, and it ends. Suspended with neither, it
+goes stale after 30 seconds and says the download continues when anistream is opened.
+
 ## Where the app keeps its data
 
 - **Mac**: the terminal app's own directories, so both apps share one config, one database and one
