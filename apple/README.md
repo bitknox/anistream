@@ -159,7 +159,11 @@ engine in temporary directories, and keep secrets in memory.
   `EngineLaunch` holds what a start takes, `FfiStart` among it.
 - **AnistreamUI**: the screens over the store: Continue (with the setup card on a first launch),
   Calendar, Seasonal, Search, the Library and a title's page, the Mac's menu bar and ⌘K palette,
-  the notice capsule and Messages. A `Navigator` holds where the app is.
+  the notice capsule and Messages; Settings (in the window on the Mac and iPad, a sheet on
+  iPhone), Providers, Plugin Stores, Downloads, a show's own settings, and the sign-in sheets. A
+  `Navigator` holds where the app is. Settings' menus offer the engine's own choices, from
+  `AnistreamKit`'s ports of the setting ladders and their words, which a test holds to the
+  engine's.
 - **AnistreamPlayer**: libmpv in the app's own view, on `Mpv.xcframework` (which mpv.sh links in
   as `Mpv/`). `MpvClient` owns one mpv: every call runs on its own serial queue, so nothing waits
   on mpv from the main thread (a screenshot or a reconfigure waits on mpv's render thread, which
