@@ -1,0 +1,97 @@
+anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▸ │  ←  Ginga Yuubinkyoku
+ ▤ │
+▌▦ │  NOTHING HAS AIRED YET
+ / │
+ ▥ │  ep 1 in 3d 7h
+ ↓ │
+ ◇ │
+ ◎ │
+ ⚙ │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+   │
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                                               ↵ play   u watched   q back   ? keys
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=text mod=BOLD
+r00 c84-94 fg=text-dim
+r00 c95-103 fg=state
+r00 c104-105 fg=text-dim
+r00 c106-106 fg=rule
+r00 c107-108 fg=text-dim
+r00 c109-119 fg=state
+r01 c00-119 fg=rule
+r02 c01-01 fg=text-dim
+r02 c03-03 fg=rule
+r02 c06-25 fg=text mod=BOLD
+r03 c01-01 fg=text-dim
+r03 c03-03 fg=rule
+r04 c00-00 fg=text-dim
+r04 c01-01 fg=text mod=BOLD
+r04 c03-03 fg=rule
+r04 c06-26 fg=text-dim
+r05 c01-01 fg=text-dim
+r05 c03-03 fg=rule
+r06 c01-01 fg=text-dim
+r06 c03-03 fg=rule
+r06 c06-18 fg=text-dim
+r07 c01-01 fg=text-dim
+r07 c03-03 fg=rule
+r08 c01-01 fg=text-dim
+r08 c03-03 fg=rule
+r09 c01-01 fg=text-dim
+r09 c03-03 fg=rule
+r10 c01-01 fg=text-dim
+r10 c03-03 fg=rule
+r11 c03-03 fg=rule
+r12 c03-03 fg=rule
+r13 c03-03 fg=rule
+r14 c03-03 fg=rule
+r15 c03-03 fg=rule
+r16 c03-03 fg=rule
+r17 c03-03 fg=rule
+r18 c03-03 fg=rule
+r19 c03-03 fg=rule
+r20 c03-03 fg=rule
+r21 c03-03 fg=rule
+r22 c03-03 fg=rule
+r23 c03-03 fg=rule
+r24 c03-03 fg=rule
+r25 c03-03 fg=rule
+r26 c03-03 fg=rule
+r27 c03-03 fg=rule
+r28 c03-03 fg=rule
+r29 c03-03 fg=rule
+r30 c03-03 fg=rule
+r31 c03-03 fg=rule
+r32 c00-119 fg=rule
+r33 c00-20 fg=text-dim
+r33 c84-84 fg=text
+r33 c85-92 fg=text-dim
+r33 c93-93 fg=text
+r33 c94-104 fg=text-dim
+r33 c105-105 fg=text
+r33 c106-113 fg=text-dim
+r33 c114-114 fg=text
+r33 c115-119 fg=text-dim

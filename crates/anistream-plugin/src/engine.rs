@@ -63,6 +63,27 @@ pub use self::exports::anistream::provider::provider::{
     Subtitle,
 };
 
+/// Whether plugins run in wasmtime's interpreter here, rather than as native code: always on iOS,
+/// and anywhere with the `interpret` feature.
+///
+/// iOS lets no app but Apple's make memory executable, so nothing Cranelift compiles to native
+/// code can run there. It compiles to Pulley instead, wasmtime's portable bytecode, and the
+/// interpreter built into wasmtime runs that. The sandbox is the same either way: the same
+/// limits, the same epoch deadline, which the bytecode checks as native code does, and the same
+/// capabilities. The compiled bytecode is cached as native code is.
+///
+/// What it costs is speed. Measured on a Mac in a release build, the Rust reference plugin's
+/// episode list and stream lookup took 155 µs interpreted against 70 µs as native code: about
+/// twice as long, and compiling it took about as long either way. A plugin is a parser that
+/// spends its time waiting on the requests it asks the host to make, so a lookup is slower by
+/// what parsing costs, not by its network time. Guest code that computes more pays more, and a
+/// plugin that embeds a whole language runtime, as the JavaScript reference does, pays the most:
+/// an interpreter interpreting an interpreter.
+///
+/// `cargo test -p anistream-plugin --features interpret` runs the conformance suite this way,
+/// the deadline and the memory ceiling included.
+pub const INTERPRETED: bool = cfg!(any(target_os = "ios", feature = "interpret"));
+
 /// How often the epoch advances.
 ///
 /// This is the deadline's granularity: a guest can overrun by up to one tick. 100ms keeps the
@@ -309,7 +330,7 @@ impl PluginHost {
         http: Option<crate::HttpClient>,
         cache_dir: Option<&Path>,
     ) -> Result<Self, PluginError> {
-        let mut config = Self::config();
+        let mut config = Self::config()?;
         if let Some(dir) = cache_dir {
             // Best-effort: a cache that will not initialise costs a slow start, never a failure,
             // so a bad path must not stop plugins from loading at all.
@@ -337,19 +358,26 @@ impl PluginHost {
     /// function at a time, for a few seconds more on an upload. Nothing is cached, because no
     /// upload is compiled twice. It cannot fetch.
     pub fn for_inspection(limits: Limits) -> Result<Self, PluginError> {
-        let mut config = Self::config();
+        let mut config = Self::config()?;
         config.parallel_compilation(false);
         Self::from_config(limits, None, &config)
     }
 
-    fn config() -> wasmtime::Config {
+    fn config() -> Result<wasmtime::Config, PluginError> {
         let mut config = wasmtime::Config::new();
         config
             .wasm_component_model(true)
             // The only mechanism that can stop a guest which never yields. Everything else here
             // is a default; async support is unconditional in wasmtime 47 and no longer a flag.
             .epoch_interruption(true);
-        config
+        if INTERPRETED {
+            // Pulley's 64-bit, little-endian form, which is what wasmtime runs on an arm64 phone.
+            config.target("pulley64").map_err(|e| PluginError::Load {
+                path: "engine".into(),
+                message: e.to_string(),
+            })?;
+        }
+        Ok(config)
     }
 
     fn from_config(
@@ -732,6 +760,15 @@ mod tests {
     fn a_trap_maps_to_a_failover_worthy_error() {
         let error = PluginError::Trap { plugin: "p".into(), message: "unreachable".into() };
         assert!(error.as_provider_error().should_failover());
+    }
+
+    #[test]
+    fn plugins_run_interpreted_exactly_where_they_must() {
+        // On iOS a JIT's output cannot run, so there, and only there unless asked, the engine
+        // compiles to Pulley and interprets it. Native code everywhere else, as before.
+        let host = PluginHost::new(Limits::default(), None).unwrap();
+        assert_eq!(host.engine.is_pulley(), INTERPRETED);
+        assert_eq!(INTERPRETED, cfg!(any(target_os = "ios", feature = "interpret")));
     }
 
     #[test]

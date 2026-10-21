@@ -140,10 +140,16 @@ desktop = false        # send the same line to the desktop too
 
 [meta]
 fallback = true        # when AniList cannot answer, ask Tenrai before using cached data
+title_language = "anilist"   # or "english" or "romaji"
 
 [updates]
 check = true           # ask GitHub once a day whether a new release exists
 ```
+
+`title_language` decides which form of each title is shown, everywhere: lists, title pages, the
+player and notifications. `anilist` follows the signed-in AniList account's own setting, native
+titles included; signed out it shows English first, falling back to romaji. The Settings screen's
+titles row changes it. Searching still finds a title by any of its names.
 
 The update check downloads nothing; `anistream --update` does that when you run it.
 

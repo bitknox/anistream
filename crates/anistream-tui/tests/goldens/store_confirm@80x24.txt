@@ -1,0 +1,71 @@
+anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────
+  ▸│  PLUGIN STORES
+  ▤│
+  ▦│    STORE                       PLUGINS   YOU       STATE
+────────────────────────────────────────────────────────────────────────────────
+▌ JOIN RIN'S SOURCES?
+────────────────────────────────────────────────────────────────────────────────
+  address   https://rin.example
+  key       0c41 77de 1a2b 9f3c  — matches the invite
+  already joined — joining again gives this device a new token
+
+  enter joins · esc cancels
+
+   │
+   │
+   │
+   │
+   │
+   │
+   │  ────────────────────────────────────────────────────────────────────────
+   │    paste the invite link a store's owner sent you
+────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                     ↵ confirm   esc cancel
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=rule mod=BOLD
+r00 c09-79 fg=rule
+r01 c00-79 fg=rule
+r02 c00-05 fg=rule
+r02 c06-18 fg=rule mod=BOLD
+r02 c19-79 fg=rule
+r03 c00-79 fg=rule
+r04 c00-79 fg=rule
+r05 c00-79 fg=rule bg=ground
+r06 c00-00 fg=obi bg=ground
+r06 c01-01 fg=rule bg=ground
+r06 c02-20 fg=text bg=ground mod=BOLD
+r06 c21-79 fg=rule bg=ground
+r07 c00-79 fg=rule bg=ground
+r08 c00-01 fg=rule bg=ground
+r08 c02-30 fg=text-dim bg=ground
+r08 c31-79 fg=rule bg=ground
+r09 c00-01 fg=rule bg=ground
+r09 c02-07 fg=text-dim bg=ground
+r09 c08-21 fg=text-dim bg=ground mod=BOLD
+r09 c22-52 fg=text-dim bg=ground
+r09 c53-79 fg=rule bg=ground
+r10 c00-01 fg=rule bg=ground
+r10 c02-61 fg=text-dim bg=ground
+r10 c62-79 fg=rule bg=ground
+r11 c00-79 fg=rule bg=ground
+r12 c00-01 fg=rule bg=ground
+r12 c02-26 fg=text-dim bg=ground
+r12 c27-79 fg=rule bg=ground
+r13 c00-79 fg=rule bg=ground
+r14 c00-79 fg=rule
+r15 c00-79 fg=rule
+r16 c00-79 fg=rule
+r17 c00-79 fg=rule
+r18 c00-79 fg=rule
+r19 c00-79 fg=rule
+r20 c00-79 fg=rule
+r21 c00-79 fg=rule
+r22 c00-79 fg=rule
+r23 c00-20 fg=text-dim
+r23 c21-57 fg=rule
+r23 c58-58 fg=text
+r23 c59-69 fg=text-dim
+r23 c70-72 fg=text
+r23 c73-79 fg=text-dim

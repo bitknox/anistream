@@ -1,0 +1,119 @@
+{
+  "id": 900006,
+  "idMal": null,
+  "title": {
+    "romaji": "Natsukaze Relay",
+    "english": "Summer Wind Relay",
+    "native": "夏風リレー"
+  },
+  "format": "TV",
+  "status": "RELEASING",
+  "description": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+  "episodes": 12,
+  "duration": 24,
+  "seasonYear": 2026,
+  "season": "FALL",
+  "startDate": {
+    "year": 2026,
+    "month": 8,
+    "day": null
+  },
+  "endDate": {
+    "year": null,
+    "month": null,
+    "day": null
+  },
+  "source": null,
+  "isAdult": false,
+  "averageScore": null,
+  "genres": [
+    "Comedy",
+    "Sports"
+  ],
+  "synonyms": [],
+  "coverImage": {
+    "extraLarge": "https://img.example/cover/900006-xl.jpg",
+    "large": "https://img.example/cover/900006.jpg",
+    "color": null
+  },
+  "bannerImage": null,
+  "nextAiringEpisode": {
+    "episode": 9,
+    "airingAt": 1792515630,
+    "timeUntilAiring": 536400
+  },
+  "studios": {
+    "nodes": []
+  },
+  "externalLinks": [],
+  "streamingEpisodes": [],
+  "trailer": null,
+  "relations": {
+    "edges": []
+  },
+  "recommendations": {
+    "nodes": []
+  },
+  "tags": [],
+  "upcoming": {
+    "nodes": [
+      {
+        "episode": 9,
+        "airingAt": 1792515630
+      },
+      {
+        "episode": 10,
+        "airingAt": 1793120430
+      },
+      {
+        "episode": 11,
+        "airingAt": 1793725230
+      },
+      {
+        "episode": 12,
+        "airingAt": 1794330030
+      }
+    ]
+  },
+  "aired": [
+    {
+      "episode": 8,
+      "airingAt": 1791910830
+    },
+    {
+      "episode": 7,
+      "airingAt": 1791306030
+    },
+    {
+      "episode": 6,
+      "airingAt": 1790701230
+    },
+    {
+      "episode": 5,
+      "airingAt": 1790096430
+    },
+    {
+      "episode": 4,
+      "airingAt": 1789491630
+    },
+    {
+      "episode": 3,
+      "airingAt": 1788886830
+    },
+    {
+      "episode": 2,
+      "airingAt": 1788282030
+    },
+    {
+      "episode": 1,
+      "airingAt": 1787677230
+    }
+  ],
+  "rankings": [],
+  "characters": {
+    "edges": []
+  },
+  "staff": {
+    "edges": []
+  }
+}

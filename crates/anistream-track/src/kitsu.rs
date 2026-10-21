@@ -174,6 +174,11 @@ impl KitsuTracker {
             let Some(pair) = held.as_ref() else {
                 return Err(anistream_core::Error::Auth("not signed in to kitsu".into()));
             };
+            if pair.refresh.is_none() && pair.is_expired(now) {
+                return Err(anistream_core::Error::Auth(
+                    "kitsu token expired and there is no refresh token".into(),
+                ));
+            }
             if !pair.needs_refresh(now, REFRESH_MARGIN_SECS) {
                 return Ok(pair.access.clone());
             }
@@ -364,11 +369,7 @@ impl Tracker for KitsuTracker {
                 .send()
                 .await
                 .map_err(|e| tracker_error(e.to_string()))?;
-            if response.status() == reqwest::StatusCode::UNAUTHORIZED {
-                return Err(anistream_core::Error::Auth("kitsu rejected the token".into()));
-            }
-            let payload: serde_json::Value =
-                response.json().await.map_err(|e| tracker_error(e.to_string()))?;
+            let payload = crate::page_json(response, "kitsu", "kitsu").await?;
 
             for node in payload["data"].as_array().into_iter().flatten() {
                 let Some(kitsu_id) = node["relationships"]["anime"]["data"]["id"]
@@ -494,7 +495,7 @@ fn tracker_error(message: String) -> anistream_core::Error {
 mod tests {
     use super::*;
 
-    const FRIEREN: AnilistId = AnilistId::new(154_587);
+    const HOSHIKUZU: AnilistId = AnilistId::new(154_587);
 
     #[test]
     fn every_status_survives_a_round_trip() {
@@ -524,14 +525,14 @@ mod tests {
     #[test]
     fn a_title_s_ops_coalesce_into_one_write() {
         let batched = coalesce(&[
-            TrackOp::SetProgress { anilist_id: FRIEREN, episode: 3 },
-            TrackOp::SetProgress { anilist_id: FRIEREN, episode: 7 },
-            TrackOp::SetStatus { anilist_id: FRIEREN, status: WatchStatus::Current, at: 1 },
-            TrackOp::SetScore { anilist_id: FRIEREN, score: 9.0, at: 2 },
+            TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 3 },
+            TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 7 },
+            TrackOp::SetStatus { anilist_id: HOSHIKUZU, status: WatchStatus::Current, at: 1 },
+            TrackOp::SetScore { anilist_id: HOSHIKUZU, score: 9.0, at: 2 },
         ]);
         assert_eq!(batched.len(), 1);
         let (id, attributes) = &batched[0];
-        assert_eq!(*id, FRIEREN);
+        assert_eq!(*id, HOSHIKUZU);
         // Progress is monotonic: the higher episode wins whatever order ops arrive in.
         assert_eq!(attributes["progress"], 7);
         assert_eq!(attributes["status"], "current");
@@ -542,7 +543,7 @@ mod tests {
     fn two_titles_stay_two_writes() {
         let other = AnilistId::new(1);
         let batched = coalesce(&[
-            TrackOp::SetProgress { anilist_id: FRIEREN, episode: 3 },
+            TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 3 },
             TrackOp::SetProgress { anilist_id: other, episode: 1 },
         ]);
         assert_eq!(batched.len(), 2);

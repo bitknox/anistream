@@ -10,17 +10,18 @@ description = "Tracker sync: the Tracker trait, AniList implementation, OAuth an
 # No doc example is written as a test, and rustdoc spends seconds per crate finding none.
 doctest = false
 
+[features]
+default = ["keychain"]
+# The OS credential store through `keyring`: the desktop's. Without it the keychain backend
+# keeps the 0600 file alone, as on a phone. A native app leaves it out, since it reaches its
+# keychain itself, through its host.
+keychain = ["dep:keyring"]
+
 [dependencies]
 anistream-core.workspace = true
 anistream-meta.workspace = true
 anistream-store.workspace = true
 async-trait.workspace = true
-# The OS credential store, with a 0600 file as the fallback. A token is a long-lived bearer
-# credential for someone's account, so plain text in the config is not acceptable.
-# Default `v1` feature set: macOS Keychain, Windows credential manager, and Secret Service
-# over zbus rather than the C library — so a Linux build needs no libdbus development package.
-# Machines with no D-Bus session fall through to the 0600 file.
-keyring = "4.1"
 rand = "0.10"
 # The plain client, for the token exchange. AniList has no bot protection, so fingerprint
 # emulation would only add handshake cost.
@@ -31,7 +32,20 @@ thiserror.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 
+# The OS credential store, with a 0600 file as the fallback. A token is a long-lived bearer
+# credential for someone's account, so plain text in the config is not acceptable.
+# Default `v1` feature set: macOS Keychain, Windows credential manager, and Secret Service
+# over zbus rather than the C library — so a Linux build needs no libdbus development package.
+# Machines with no D-Bus session fall through to the 0600 file.
+#
+# Not on a phone. Its `v1` set does not build for iOS, and a phone's keychain is the app's to
+# reach: a front end there offers it through its host, as `secret::SecretStore`. Nor without
+# the `keychain` feature, which a native app's build on macOS leaves off for the same reason.
+[target.'cfg(not(any(target_os = "ios", target_os = "android")))'.dependencies]
+keyring = { version = "4.1", optional = true }
+
 [dev-dependencies]
+http = "1"
 tempfile = "3"
 
 [lints]

@@ -151,17 +151,17 @@ mod tests {
       "totalItems": 1,
       "items": [{
         "alID": 154587,
-        "notes": "PMR is JPN BD Remux+LostYears properly synced to the BD",
-        "comparison": "https://slow.pics/c/oaWgjcac",
+        "notes": "Kumo-subs is JPN BD Remux+Yamabiko properly synced to the BD",
+        "comparison": "https://compare.example/c/oaWgjcac",
         "expand": {
           "trs": [
-            {"releaseGroup":"PMR","isBest":true,"dualAudio":true,
+            {"releaseGroup":"Kumo-subs","isBest":true,"dualAudio":true,
              "url":"https://indexer.example/view/1961373"},
-            {"releaseGroup":"PMR","isBest":true,"dualAudio":true,
+            {"releaseGroup":"Kumo-subs","isBest":true,"dualAudio":true,
              "url":"https://elsewhere.example/torrents.php?id=86576"},
-            {"releaseGroup":"LostYears","isBest":false,"dualAudio":true,
+            {"releaseGroup":"Yamabiko","isBest":false,"dualAudio":true,
              "url":"/torrents.php?id=86576&torrentid=1162986"},
-            {"releaseGroup":"LostYears","isBest":false,"dualAudio":true,
+            {"releaseGroup":"Yamabiko","isBest":false,"dualAudio":true,
              "url":"https://indexer.example/view/1998171"}
           ]
         }
@@ -218,14 +218,14 @@ mod tests {
     fn the_curators_best_pick_sorts_first() {
         let releases = parse(PAYLOAD, HOST);
         assert!(releases[0].is_best);
-        assert_eq!(releases[0].group, "PMR");
+        assert_eq!(releases[0].group, "Kumo-subs");
     }
 
     #[test]
     fn curator_notes_and_comparisons_survive_for_the_sources_overlay() {
         let releases = parse(PAYLOAD, HOST);
         assert!(releases[0].notes.as_deref().unwrap().contains("JPN BD Remux"));
-        assert!(releases[0].comparison.as_deref().unwrap().contains("slow.pics"));
+        assert!(releases[0].comparison.as_deref().unwrap().contains("compare.example"));
     }
 
     #[test]
@@ -248,8 +248,8 @@ mod tests {
         let releases = parse(PAYLOAD, HOST);
         // Everything here is dual-audio, so a sub preference still gets the best release
         // rather than nothing.
-        assert_eq!(best(&releases, true).unwrap().group, "PMR");
-        assert_eq!(best(&releases, false).unwrap().group, "PMR");
+        assert_eq!(best(&releases, true).unwrap().group, "Kumo-subs");
+        assert_eq!(best(&releases, false).unwrap().group, "Kumo-subs");
         assert!(best(&[], false).is_none());
     }
 

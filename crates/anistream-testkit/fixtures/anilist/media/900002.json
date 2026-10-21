@@ -1,0 +1,308 @@
+{
+  "id": 900002,
+  "idMal": 800002,
+  "title": {
+    "romaji": "Kumo no Ue no Toshokan",
+    "english": "The Library Above the Clouds",
+    "native": "雲の上の図書館"
+  },
+  "format": "TV",
+  "status": "RELEASING",
+  "description": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+  "episodes": 24,
+  "duration": 23,
+  "seasonYear": 2026,
+  "season": "FALL",
+  "startDate": {
+    "year": 2026,
+    "month": 9,
+    "day": 11
+  },
+  "endDate": {
+    "year": null,
+    "month": null,
+    "day": null
+  },
+  "source": "LIGHT_NOVEL",
+  "isAdult": false,
+  "averageScore": 77,
+  "genres": [
+    "Fantasy",
+    "Mystery",
+    "Slice of Life"
+  ],
+  "synonyms": [],
+  "coverImage": {
+    "extraLarge": "https://img.example/cover/900002-xl.jpg",
+    "large": "https://img.example/cover/900002.jpg",
+    "color": "#5d9be4"
+  },
+  "bannerImage": "https://img.example/banner/900002.jpg",
+  "nextAiringEpisode": {
+    "episode": 6,
+    "airingAt": 1792163730,
+    "timeUntilAiring": 184500
+  },
+  "studios": {
+    "nodes": [
+      {
+        "name": "Hanabishi Pictures"
+      }
+    ]
+  },
+  "externalLinks": [
+    {
+      "site": "Lantern Stream",
+      "url": "https://stream.example/series/kumo-toshokan",
+      "type": "STREAMING",
+      "language": "Japanese"
+    },
+    {
+      "site": "Official Site",
+      "url": "https://kumo-toshokan.example",
+      "type": "INFO",
+      "language": "Japanese"
+    }
+  ],
+  "streamingEpisodes": [
+    {
+      "title": "Episode 1 - The Borrowed Sky",
+      "url": "https://stream.example/watch/kumo-toshokan-1",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900002/1.jpg"
+    },
+    {
+      "title": "Episode 2 - Overdue by a Century",
+      "url": "https://stream.example/watch/kumo-toshokan-2",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900002/2.jpg"
+    },
+    {
+      "title": "Episode 3 - The Index of Winds",
+      "url": "https://stream.example/watch/kumo-toshokan-3",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900002/3.jpg"
+    },
+    {
+      "title": "Episode 4 - A Reading Room for Storms",
+      "url": "https://stream.example/watch/kumo-toshokan-4",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900002/4.jpg"
+    },
+    {
+      "title": "Episode 5 - The Librarian Who Never Sleeps",
+      "url": "https://stream.example/watch/kumo-toshokan-5",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900002/5.jpg"
+    }
+  ],
+  "trailer": null,
+  "relations": {
+    "edges": []
+  },
+  "recommendations": {
+    "nodes": [
+      {
+        "mediaRecommendation": {
+          "id": 900001,
+          "title": {
+            "romaji": "Hoshikuzu no Tabibito",
+            "english": "Stardust Wayfarer",
+            "native": "星屑の旅人"
+          },
+          "format": "TV",
+          "coverImage": {
+            "large": "https://img.example/cover/900001.jpg"
+          },
+          "season": "SPRING",
+          "seasonYear": 2024
+        }
+      }
+    ]
+  },
+  "tags": [
+    {
+      "name": "Libraries",
+      "rank": 90,
+      "isMediaSpoiler": false,
+      "isGeneralSpoiler": false,
+      "category": "Setting-Scene"
+    },
+    {
+      "name": "Weather Magic",
+      "rank": 76,
+      "isMediaSpoiler": false,
+      "isGeneralSpoiler": false,
+      "category": "Theme-Fantasy"
+    }
+  ],
+  "upcoming": {
+    "nodes": [
+      {
+        "episode": 6,
+        "airingAt": 1792163730
+      },
+      {
+        "episode": 7,
+        "airingAt": 1792768530
+      },
+      {
+        "episode": 8,
+        "airingAt": 1793373330
+      },
+      {
+        "episode": 9,
+        "airingAt": 1793978130
+      },
+      {
+        "episode": 10,
+        "airingAt": 1794582930
+      },
+      {
+        "episode": 11,
+        "airingAt": 1795187730
+      },
+      {
+        "episode": 12,
+        "airingAt": 1795792530
+      },
+      {
+        "episode": 13,
+        "airingAt": 1796397330
+      },
+      {
+        "episode": 14,
+        "airingAt": 1797002130
+      },
+      {
+        "episode": 15,
+        "airingAt": 1797606930
+      },
+      {
+        "episode": 16,
+        "airingAt": 1798211730
+      },
+      {
+        "episode": 17,
+        "airingAt": 1798816530
+      },
+      {
+        "episode": 18,
+        "airingAt": 1799421330
+      },
+      {
+        "episode": 19,
+        "airingAt": 1800026130
+      },
+      {
+        "episode": 20,
+        "airingAt": 1800630930
+      },
+      {
+        "episode": 21,
+        "airingAt": 1801235730
+      },
+      {
+        "episode": 22,
+        "airingAt": 1801840530
+      },
+      {
+        "episode": 23,
+        "airingAt": 1802445330
+      },
+      {
+        "episode": 24,
+        "airingAt": 1803050130
+      }
+    ]
+  },
+  "aired": [
+    {
+      "episode": 5,
+      "airingAt": 1791558930
+    },
+    {
+      "episode": 4,
+      "airingAt": 1790954130
+    },
+    {
+      "episode": 3,
+      "airingAt": 1790349330
+    },
+    {
+      "episode": 2,
+      "airingAt": 1789744530
+    },
+    {
+      "episode": 1,
+      "airingAt": 1789139730
+    }
+  ],
+  "rankings": [
+    {
+      "rank": 9,
+      "type": "RATED",
+      "context": "highest rated",
+      "allTime": false,
+      "season": "FALL",
+      "year": 2026
+    }
+  ],
+  "characters": {
+    "edges": [
+      {
+        "role": "MAIN",
+        "node": {
+          "name": {
+            "full": "Shiori Kumoi"
+          },
+          "image": {
+            "medium": "https://img.example/people/shiori-kumoi.jpg"
+          }
+        },
+        "voiceActors": [
+          {
+            "name": {
+              "full": "Shiori's voice"
+            },
+            "image": {
+              "medium": "https://img.example/people/voice-shiori.jpg"
+            }
+          }
+        ]
+      },
+      {
+        "role": "SUPPORTING",
+        "node": {
+          "name": {
+            "full": "The Night Librarian"
+          },
+          "image": {
+            "medium": "https://img.example/people/night-librarian.jpg"
+          }
+        },
+        "voiceActors": []
+      }
+    ]
+  },
+  "staff": {
+    "edges": [
+      {
+        "role": "Director",
+        "node": {
+          "name": {
+            "full": "Director of The Library Above the Clouds"
+          }
+        }
+      },
+      {
+        "role": "Series Composition",
+        "node": {
+          "name": {
+            "full": "Writer of The Library Above the Clouds"
+          }
+        }
+      }
+    ]
+  }
+}

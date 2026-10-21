@@ -50,7 +50,7 @@ mod tests {
     use super::*;
 
     fn stream(kind: StreamKind) -> Stream {
-        Stream::new("https://www.crunchyroll.com/watch/G2XU04E88", kind)
+        Stream::new("https://hikari.example/watch/G2XU04E88", kind)
     }
 
     #[test]

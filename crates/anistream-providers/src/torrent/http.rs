@@ -16,11 +16,7 @@
 //! [`ReadySource`] for why that cannot simply be another reader on the first path, and
 //! [`ReadyReply`] for what it answers when the bytes are not there.
 
-use std::{
-    io::SeekFrom,
-    net::{Ipv4Addr, SocketAddr},
-    sync::Arc,
-};
+use std::{io::SeekFrom, sync::Arc};
 
 use tokio::{
     io::{
@@ -304,7 +300,9 @@ pub struct StreamServer {
     url: String,
     /// The thumbnail path's URL, when the server carries one.
     thumbnail_url: Option<String>,
-    handle: tokio::task::JoinHandle<()>,
+    /// The listener and its accept loop, which a phone's app binds again on the same port when
+    /// it comes back from the background: see `anistream_net::loopback`.
+    listener: Arc<anistream_net::loopback::Loopback>,
     /// Held, never sent on. Every connection task waits for this to close, so dropping the
     /// server *is* the cancellation — there is no signal to remember to send.
     cancel: tokio::sync::watch::Sender<()>,
@@ -336,7 +334,7 @@ impl StreamServer {
     /// a client that has gone away is never noticed and the task, its socket and its torrent
     /// stream stay for the life of the process.
     fn stop(&self) {
-        self.handle.abort();
+        self.listener.stop();
         self.cancel.send_replace(());
     }
 }
@@ -345,7 +343,7 @@ impl Drop for StreamServer {
     fn drop(&mut self) {
         // The accept loop stops here; the connections stop because `cancel` is dropped with
         // the struct a moment later, which closes the channel they are waiting on.
-        self.handle.abort();
+        self.listener.stop();
     }
 }
 
@@ -403,19 +401,38 @@ async fn listen<S: StreamSource>(
     token: &str,
     thumbnails: Option<(Box<dyn ReadySource>, &str)>,
 ) -> std::io::Result<StreamServer> {
-    // Loopback only. Never bind a torrent stream to a routable interface.
-    let listener = TcpListener::bind(SocketAddr::from((Ipv4Addr::LOCALHOST, 0))).await?;
-    let port = listener.local_addr()?.port();
     let path = format!("/s/{token}");
-    let url = format!("http://127.0.0.1:{port}{path}");
     let thumbnails = thumbnails.map(|(ready, token)| (ready, format!("/t/{token}")));
-    let thumbnail_url =
-        thumbnails.as_ref().map(|(_, path)| format!("http://127.0.0.1:{port}{path}"));
+    let thumbnail_path = thumbnails.as_ref().map(|(_, path)| path.clone());
 
-    let routes = Arc::new(Routes { stream: source, stream_path: path, thumbnails });
+    let routes = Arc::new(Routes { stream: source, stream_path: path.clone(), thumbnails });
     let (cancel, cancel_rx) = tokio::sync::watch::channel(());
 
-    let handle = tokio::spawn(async move {
+    // Loopback only. Never bind a torrent stream to a routable interface.
+    let listener = anistream_net::loopback::Loopback::bind(move |listener| {
+        accept(listener, Arc::clone(&routes), cancel_rx.clone())
+    })
+    .await?;
+    let port = listener.port();
+    let url = format!("http://127.0.0.1:{port}{path}");
+    let thumbnail_url = thumbnail_path.map(|path| format!("http://127.0.0.1:{port}{path}"));
+
+    tracing::info!(
+        %url,
+        thumbnails = thumbnail_url.is_some(),
+        "torrent stream server listening on loopback"
+    );
+    Ok(StreamServer { url, thumbnail_url, listener, cancel })
+}
+
+/// The accept loop of one server, on `listener`: each connection served by `routes` until
+/// `cancelled` says the server has gone.
+fn accept<S: StreamSource>(
+    listener: TcpListener,
+    routes: Arc<Routes<S>>,
+    cancel_rx: tokio::sync::watch::Receiver<()>,
+) -> tokio::task::JoinHandle<()> {
+    tokio::spawn(async move {
         // Accept errors are not all fatal. `EMFILE` in particular is transient and is exactly
         // what a long binge produces — and breaking here retired the listener for good, so the
         // URL kept resolving to a port that refused every connection, with mpv failing on its
@@ -464,14 +481,7 @@ async fn listen<S: StreamSource>(
                 }
             });
         }
-    });
-
-    tracing::info!(
-        %url,
-        thumbnails = thumbnail_url.is_some(),
-        "torrent stream server listening on loopback"
-    );
-    Ok(StreamServer { url, thumbnail_url, handle, cancel })
+    })
 }
 
 async fn handle_connection<S: StreamSource>(
@@ -1393,6 +1403,12 @@ mod tests {
             .await;
         match encoded {
             Err(_) => {
+                // CI's mpv job installs mpv and sets this, so a missing mpv fails there
+                // instead of passing as a skip.
+                assert!(
+                    std::env::var("ANISTREAM_REQUIRE_MPV").as_deref() != Ok("1"),
+                    "ANISTREAM_REQUIRE_MPV is set but mpv is not on PATH"
+                );
                 eprintln!("skipping: mpv is not on PATH");
                 return;
             }
@@ -1432,6 +1448,10 @@ mod tests {
             .spawn()
             .unwrap();
         let mut ipc = Ipc::connect(&ipc_path).await;
+        // As thumbfast's child does once it is up: mpv before 0.40 applies its encoding profile
+        // after the command line, which turns keep-open off, and the first seek to meet an end
+        // of file then ended the file and left the child idle.
+        ipc.command(serde_json::json!(["set_property", "keep-open", "always"])).await;
         assert!(
             drawn_within(&thumb, frame, std::time::Duration::from_secs(5)).await,
             "no first thumbnail"

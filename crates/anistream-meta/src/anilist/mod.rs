@@ -17,11 +17,14 @@ use anistream_core::ids::AnilistId;
 use anistream_net::{HttpClient, RateLimiter, ratelimit::parse_rate_headers};
 use serde::de::DeserializeOwned;
 
-pub use model::{ExternalLink, LastAired, Media, Relation, StreamingEpisode, Title};
+pub use model::{
+    Broadcast, ExternalLink, FuzzyDate, LastAired, Media, Ranking, Relation, SourceMaterial,
+    StreamingEpisode, Tag, Title, TitleLanguage, Viewer,
+};
 
 const ENDPOINT: &str = "https://graphql.anilist.co";
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum AniListError {
     #[error("network: {0}")]
     Network(String),
@@ -43,8 +46,9 @@ pub enum AniListError {
 
 pub type Result<T> = std::result::Result<T, AniListError>;
 
-/// Which season a browse query is for.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Which season a browse query is for, and the one a title premiered in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
 pub enum Season {
     Winter,
     Spring,
@@ -166,6 +170,8 @@ pub struct AniList {
     /// end with "restart to start syncing": the token reached the keychain and nothing that could
     /// use it ever saw it. A shared cell is the whole difference.
     token: Arc<std::sync::RwLock<Option<String>>>,
+    /// Where GraphQL requests go: [`ENDPOINT`], unless a test pointed it elsewhere.
+    endpoint: Arc<str>,
 }
 
 impl AniList {
@@ -174,7 +180,22 @@ impl AniList {
             http,
             limiter: Arc::new(RateLimiter::per_minute(requests_per_minute)),
             token: Arc::new(std::sync::RwLock::new(None)),
+            endpoint: Arc::from(ENDPOINT),
         }
+    }
+
+    /// Send every request to `endpoint` instead of AniList: a stand-in server on loopback.
+    ///
+    /// For tests and probes only, which is why it is hidden from the docs and has no config
+    /// key. A configurable endpoint would be one more way for a user's metadata to come from
+    /// somewhere that is not AniList, and nothing but a test has a reason to want that. The
+    /// request is otherwise unchanged, so it is the production path that gets exercised: the
+    /// same rate limiter, and the same plain client, which speaks `http://` as readily as
+    /// `https://`.
+    #[doc(hidden)]
+    pub fn with_endpoint(mut self, endpoint: impl Into<String>) -> Self {
+        self.endpoint = Arc::from(endpoint.into());
+        self
     }
 
     /// Attach an OAuth token for library and mutation access.
@@ -221,7 +242,7 @@ impl AniList {
         let mut request = self
             .http
             .plain()
-            .post(ENDPOINT)
+            .post(&*self.endpoint)
             .header("content-type", "application/json")
             .header("accept", "application/json");
         if let Some(token) = &self.token() {
@@ -369,8 +390,7 @@ impl AniList {
     pub async fn media(&self, id: AnilistId) -> Result<Media> {
         let data: serde_json::Value =
             self.execute(&query::by_id(), serde_json::json!({ "id": id.get() })).await?;
-        let node = data.get("Media").filter(|m| !m.is_null()).ok_or(AniListError::NotFound)?;
-        serde_json::from_value(node.clone()).map_err(|e| AniListError::Decode(e.to_string()))
+        decode_detail(&data)
     }
 
     /// Seasonal browse with server-side filters.
@@ -586,16 +606,49 @@ impl AniList {
 
     /// The authenticated user's id, for library queries.
     pub async fn viewer_id(&self) -> Result<u32> {
+        self.viewer().await.map(|viewer| viewer.id)
+    }
+
+    /// The authenticated user: their id, name and the title language they read AniList in.
+    pub async fn viewer(&self) -> Result<Viewer> {
         if self.token().is_none() {
             return Err(AniListError::Unauthenticated);
         }
         let data: serde_json::Value =
             self.execute(query::VIEWER, serde_json::json!({})).await?;
-        data["Viewer"]["id"]
-            .as_u64()
-            .map(|v| v as u32)
-            .ok_or_else(|| AniListError::Decode("viewer response had no id".into()))
+        decode_viewer(&data["Viewer"])
     }
+}
+
+/// The single-title answer: the title, with the broadcasts already out that were asked for
+/// beside it put on it. Those are best-effort, so a shape this build does not expect leaves the
+/// title without them rather than failing it.
+fn decode_detail(data: &serde_json::Value) -> Result<Media> {
+    let node = data.get("Media").filter(|m| !m.is_null()).ok_or(AniListError::NotFound)?;
+    let mut media: Media = serde_json::from_value(node.clone())
+        .map_err(|e| AniListError::Decode(e.to_string()))?;
+    media.aired = data["aired"]["airingSchedules"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|row| serde_json::from_value(row.clone()).ok())
+        .collect();
+    Ok(media)
+}
+
+/// The `Viewer` node: an id it cannot do without, a name and a language it can.
+fn decode_viewer(node: &serde_json::Value) -> Result<Viewer> {
+    let id = node["id"]
+        .as_u64()
+        .map(|v| v as u32)
+        .ok_or_else(|| AniListError::Decode("viewer response had no id".into()))?;
+    Ok(Viewer {
+        id,
+        name: node["name"].as_str().map(str::to_owned),
+        title_language: node["options"]["titleLanguage"]
+            .as_str()
+            .and_then(TitleLanguage::from_wire),
+    })
 }
 
 /// Decode one `MediaList` row.
@@ -674,7 +727,7 @@ mod tests {
     fn a_media_page_decodes_and_reports_pagination() {
         let payload = serde_json::json!({
             "pageInfo": {"hasNextPage": true},
-            "media": [{"id": 154587, "title": {"romaji": "Sousou no Frieren"}}]
+            "media": [{"id": 154587, "title": {"romaji": "Hoshikuzu no Tabibito"}}]
         });
         let page = decode_media_page(&payload).unwrap();
         assert_eq!(page.items.len(), 1);
@@ -711,6 +764,45 @@ mod tests {
     }
 
     #[test]
+    fn the_broadcasts_asked_for_beside_a_title_are_put_on_it() {
+        let data = serde_json::json!({
+            "Media": {"id": 1, "title": {"romaji": "One"}},
+            "aired": {"airingSchedules": [
+                {"episode": 9, "airingAt": 900},
+                {"episode": "not a number"},
+                {"episode": 8, "airingAt": 800}
+            ]}
+        });
+        let media = decode_detail(&data).unwrap();
+        let aired: Vec<_> = media.aired.iter().map(|b| (b.episode, b.airing_at)).collect();
+        assert_eq!(aired, [(9, 900), (8, 800)], "a malformed row is passed over");
+
+        // A title answered without them is a title all the same.
+        let bare = decode_detail(&serde_json::json!({"Media": {"id": 1}})).unwrap();
+        assert!(bare.aired.is_empty());
+        assert!(matches!(
+            decode_detail(&serde_json::json!({"Media": null})),
+            Err(AniListError::NotFound)
+        ));
+    }
+
+    #[test]
+    fn the_viewer_carries_the_title_language_they_read_in() {
+        let viewer = decode_viewer(&serde_json::json!({
+            "id": 5150, "name": "fixture-viewer", "options": {"titleLanguage": "NATIVE_STYLISED"}
+        }))
+        .unwrap();
+        assert_eq!(viewer.id, 5150);
+        assert_eq!(viewer.name.as_deref(), Some("fixture-viewer"));
+        assert_eq!(viewer.title_language, Some(TitleLanguage::Native));
+
+        // Options AniList left out, or a language this build does not know, are no language.
+        let bare = decode_viewer(&serde_json::json!({"id": 1})).unwrap();
+        assert_eq!(bare.title_language, None);
+        assert!(decode_viewer(&serde_json::json!({"name": "no id"})).is_err());
+    }
+
+    #[test]
     fn an_unauthenticated_client_refuses_viewer_queries_without_a_round_trip() {
         // Spending one of only 30 requests per minute to be told we are not logged in
         // would be a waste; we already know.
@@ -721,6 +813,15 @@ mod tests {
         assert!(!client.is_authenticated());
         let err = futures_lite_block(client.viewer_id());
         assert!(matches!(err, Err(AniListError::Unauthenticated)));
+    }
+
+    #[test]
+    fn requests_go_to_anilist_unless_a_test_says_otherwise() {
+        let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
+        let client = AniList::new(http, 30);
+        assert_eq!(&*client.endpoint, ENDPOINT);
+        let pointed = client.with_endpoint("http://127.0.0.1:9/graphql");
+        assert_eq!(&*pointed.endpoint, "http://127.0.0.1:9/graphql");
     }
 
     /// Minimal blocking executor so this test needs no async runtime feature.

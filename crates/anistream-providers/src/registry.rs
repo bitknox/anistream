@@ -32,6 +32,13 @@ pub struct ProviderRegistry {
     /// join the chain when they are ready.
     providers: Arc<std::sync::RwLock<Vec<Arc<dyn Provider>>>>,
     health: HealthTracker,
+    /// The sources switched off by name, `providers.disabled`. Kept in the chain, so each keeps
+    /// its row, its place and its compiled plugin, and turning one back on is instant; never
+    /// tried, listed from or probed while off.
+    disabled: Arc<std::sync::RwLock<std::collections::BTreeSet<String>>>,
+    /// Whether sources are still on their way into the chain: plugins compiling at launch.
+    /// See [`Self::expect_arrivals`].
+    arriving: Arc<tokio::sync::watch::Sender<bool>>,
 }
 
 impl std::fmt::Debug for ProviderRegistry {
@@ -113,7 +120,50 @@ fn described(error: &ProviderError) -> &'static str {
 impl ProviderRegistry {
     pub fn new(providers: Vec<Arc<dyn Provider>>) -> Self {
         let health = HealthTracker::new(providers.iter().map(|p| p.manifest().id.clone()));
-        Self { providers: Arc::new(std::sync::RwLock::new(providers)), health }
+        Self {
+            providers: Arc::new(std::sync::RwLock::new(providers)),
+            health,
+            disabled: Arc::default(),
+            arriving: Arc::new(tokio::sync::watch::Sender::new(false)),
+        }
+    }
+
+    /// Switch off the sources `ids` names, and every other back on: `providers.disabled`, as
+    /// the config in effect has it.
+    pub fn set_disabled(&self, ids: impl IntoIterator<Item = String>) {
+        *self.disabled.write().unwrap_or_else(|e| e.into_inner()) = ids.into_iter().collect();
+    }
+
+    /// Whether the source `id` is switched off by name.
+    pub fn is_disabled(&self, id: &str) -> bool {
+        self.disabled.read().unwrap_or_else(|e| e.into_inner()).contains(id)
+    }
+
+    /// Say that sources are on their way into the chain, until [`Self::arrivals_done`].
+    ///
+    /// The chain as it stands meanwhile is only part of it: an episode looked up against it
+    /// would miss a source that is a moment from joining, or fail for having none at all.
+    /// What would rather wait for the rest says so with [`Self::arrivals`].
+    pub fn expect_arrivals(&self) {
+        self.arriving.send_replace(true);
+    }
+
+    /// Say that the sources on their way have joined the chain, or will not.
+    pub fn arrivals_done(&self) {
+        self.arriving.send_replace(false);
+    }
+
+    /// Whether sources are on their way into the chain.
+    pub fn is_arriving(&self) -> bool {
+        *self.arriving.borrow()
+    }
+
+    /// Wait for the sources on their way to join the chain, for at most `within`. Returns
+    /// whether none are still on their way.
+    pub async fn arrivals(&self, within: std::time::Duration) -> bool {
+        let mut arriving = self.arriving.subscribe();
+        let done = tokio::time::timeout(within, arriving.wait_for(|arriving| !arriving));
+        matches!(done.await, Ok(Ok(_)))
     }
 
     /// Add sources discovered after startup, keeping config order.
@@ -245,11 +295,18 @@ impl ProviderRegistry {
     /// compiling yet. Callers are expected to read that as "fall back to the normal chain" rather
     /// than as an error: refusing to play because a remembered preference is momentarily
     /// unresolvable would be a worse answer than playing from the default source.
+    ///
+    /// A source switched off is `None` too, so a title pinned to it plays from the chain.
     pub fn pinned(&self, provider_id: &str) -> Option<Self> {
+        if self.is_disabled(provider_id) {
+            return None;
+        }
         let provider = self.get(provider_id)?;
         Some(Self {
             providers: Arc::new(std::sync::RwLock::new(vec![provider])),
             health: self.health.clone(),
+            disabled: self.disabled.clone(),
+            arriving: Arc::clone(&self.arriving),
         })
     }
 
@@ -258,10 +315,15 @@ impl ProviderRegistry {
         self.candidates().iter().map(|p| p.manifest().id.clone()).collect()
     }
 
-    /// Providers that are worth trying right now, in preference order.
+    /// Providers that are worth trying right now, in preference order: none switched off.
     fn candidates(&self) -> Vec<Arc<dyn Provider>> {
         let usable = self.health.usable(&self.ids());
-        self.snapshot().into_iter().filter(|p| usable.contains(&p.manifest().id)).collect()
+        self.snapshot()
+            .into_iter()
+            .filter(|p| {
+                usable.contains(&p.manifest().id) && !self.is_disabled(&p.manifest().id)
+            })
+            .collect()
     }
 
     /// Walk the chain until one provider produces a result.
@@ -437,7 +499,8 @@ impl ProviderRegistry {
     /// Concurrently: each provider is its own host, so the screen waits for the slowest probe
     /// rather than the sum of them. Each latency is still timed from its own start.
     pub async fn check_all(&self, now: i64) {
-        let probes = self.snapshot().into_iter().map(|provider| async move {
+        let on = self.snapshot().into_iter().filter(|p| !self.is_disabled(&p.manifest().id));
+        let probes = on.map(|provider| async move {
             let id = provider.manifest().id.clone();
             if let Err(reason) = provider.is_available() {
                 self.health.record_failure(&id, &reason, now);
@@ -459,6 +522,30 @@ mod tests {
 
     use super::*;
     use crate::mock::MockProvider;
+
+    #[tokio::test(start_paused = true)]
+    async fn sources_on_their_way_are_waited_for_as_long_as_asked() {
+        let registry = ProviderRegistry::new(Vec::new());
+        assert!(registry.arrivals(Duration::from_secs(1)).await, "nothing on its way");
+
+        registry.expect_arrivals();
+        assert!(registry.is_arriving());
+        let started = tokio::time::Instant::now();
+        assert!(!registry.arrivals(Duration::from_secs(30)).await, "still on its way");
+        assert_eq!(started.elapsed(), Duration::from_secs(30), "waited as long as asked");
+
+        // Joined partway through a wait: the wait ends then, with them in the chain.
+        let waiting = tokio::spawn({
+            let registry = registry.clone();
+            async move { registry.arrivals(Duration::from_secs(30)).await }
+        });
+        tokio::time::sleep(Duration::from_secs(2)).await;
+        registry.extend(vec![MockProvider::new("late").arc()]);
+        registry.arrivals_done();
+        assert!(waiting.await.unwrap());
+        assert_eq!(registry.ids(), ["late"]);
+        assert!(!registry.is_arriving());
+    }
 
     #[tokio::test(start_paused = true)]
     async fn every_provider_is_probed_at_once() {
@@ -502,6 +589,36 @@ mod tests {
 
     fn registry(providers: Vec<Arc<dyn Provider>>) -> ProviderRegistry {
         ProviderRegistry::new(providers)
+    }
+
+    #[tokio::test]
+    async fn a_source_switched_off_keeps_its_place_and_is_never_asked() {
+        let off = MockProvider::new("off").with_streams(vec![stream("off's")]);
+        let asked = off.call_count();
+        let r = registry(vec![
+            off.arc(),
+            MockProvider::new("on").with_streams(vec![stream("on's")]).arc(),
+        ]);
+        r.set_disabled(["off".to_owned()]);
+
+        assert_eq!(r.ids(), ["off", "on"], "kept in the chain, where it was");
+        assert_eq!(r.usable_ids(), ["on"]);
+        assert!(r.is_disabled("off") && !r.is_disabled("on"));
+        let attempt = r.resolve(&ProviderKey::new("k"), "1", Translation::Sub, 0).await;
+        assert_eq!(attempt.provider.as_deref(), Some("on"));
+        r.check_all(0).await;
+        assert_eq!(
+            asked.load(std::sync::atomic::Ordering::SeqCst),
+            0,
+            "never asked, nor probed"
+        );
+        assert!(r.pinned("off").is_none(), "a title pinned to it plays from the chain");
+
+        // Back on, at once: nothing to load again.
+        r.set_disabled(Vec::new());
+        assert_eq!(r.usable_ids(), ["off", "on"]);
+        let attempt = r.resolve(&ProviderKey::new("k"), "1", Translation::Sub, 0).await;
+        assert_eq!(attempt.provider.as_deref(), Some("off"));
     }
 
     #[test]
@@ -808,12 +925,12 @@ mod tests {
         let r = registry(vec![
             MockProvider::new("a").failing(ProviderError::Blocked("x".into())).arc(),
             MockProvider::new("b")
-                .with_hits(vec![SearchHit::new(ProviderKey::new("k"), "Frieren")])
+                .with_hits(vec![SearchHit::new(ProviderKey::new("k"), "Hoshikuzu")])
                 .with_episodes(vec![Episode::new(1u32)])
                 .arc(),
         ]);
         assert_eq!(
-            r.search("frieren", Translation::Sub, 0).await.provider.as_deref(),
+            r.search("hoshikuzu", Translation::Sub, 0).await.provider.as_deref(),
             Some("b")
         );
         assert_eq!(

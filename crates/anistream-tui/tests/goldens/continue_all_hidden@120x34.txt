@@ -1,0 +1,156 @@
+anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▌ ▸  CONTINUE               │         ▀▀▄
+  ▤  CALENDAR               │       ▄▄▀▀▄▄
+  ▦  SEASONAL               │     ▄▀▀▀▀▀▀▀▀▄
+  /  SEARCH                 │    ▄▀▀▀▀▀▀▀▀▀▀▀
+  ▥  LIBRARY                │    ▀▀▀▀▀▀▀▀▀▀▀▀
+  ↓  DOWNLOADS              │  ▄▄▀▀▀▀▀▀▀▀▀▀▀
+  ◇  PROVIDERS              │  ▀▀▀▀▀▀▀▀▀▀▀▀▄▄▄
+  ◎  ACCOUNTS               │   ▀ ▀▀▀▀▀    ▀▀▀▀
+  ⚙  SETTINGS               │
+                            │  NOTHING TO CONTINUE
+                            │
+                            │  titles you hid come back when you watch them · press 3 for this season, or / to search
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+                            │
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                                                       ↵ open   e episodes   ? keys
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=text mod=BOLD
+r00 c84-94 fg=text-dim
+r00 c95-103 fg=state
+r00 c104-105 fg=text-dim
+r00 c106-106 fg=rule
+r00 c107-108 fg=text-dim
+r00 c109-119 fg=state
+r01 c00-119 fg=rule
+r02 c00-00 fg=text-dim
+r02 c02-02 fg=text
+r02 c05-12 fg=text mod=BOLD
+r02 c28-28 fg=rule
+r02 c38-38 fg=#c6bea9
+r02 c39-39 fg=#e8e2d4 bg=#e8e2d4
+r02 c40-40 fg=#c6bea9
+r03 c02-02 fg=text-dim
+r03 c05-12 fg=text-dim
+r03 c28-28 fg=rule
+r03 c36-36 fg=#c6bea9
+r03 c37-37 fg=#e8e2d4
+r03 c38-38 fg=#c6bea9 bg=#e8e2d4
+r03 c39-39 fg=#e8e2d4 bg=#e8e2d4
+r03 c40-40 fg=#e8e2d4
+r03 c41-41 fg=#c6bea9
+r04 c02-02 fg=text-dim
+r04 c05-12 fg=text-dim
+r04 c28-28 fg=rule
+r04 c34-34 fg=#c6bea9
+r04 c35-35 fg=#c6bea9 bg=#e8e2d4
+r04 c36-41 fg=#e8e2d4 bg=#e8e2d4
+r04 c42-42 fg=#c6bea9 bg=#e8e2d4
+r04 c43-43 fg=#c6bea9
+r05 c02-02 fg=text-dim
+r05 c05-10 fg=text-dim
+r05 c28-28 fg=rule
+r05 c33-33 fg=#c6bea9
+r05 c34-34 fg=#e8e2d4 bg=#e8e2d4
+r05 c35-38 fg=#e8e2d4 bg=#efcfac
+r05 c39-39 fg=#e8e2d4 bg=#c6bea9
+r05 c40-43 fg=#e8e2d4 bg=#e8e2d4
+r05 c44-44 fg=#c6bea9 bg=#c6bea9
+r06 c02-02 fg=text-dim
+r06 c05-11 fg=text-dim
+r06 c28-28 fg=rule
+r06 c33-33 fg=#e8e2d4 bg=#e8e2d4
+r06 c34-34 fg=#efcfac bg=#efcfac
+r06 c35-35 fg=#efcfac bg=#232842
+r06 c36-39 fg=#efcfac bg=#efcfac
+r06 c40-40 fg=#c6bea9 bg=#c6bea9
+r06 c41-43 fg=#e8e2d4 bg=#e8e2d4
+r06 c44-44 fg=#c6bea9 bg=#c6bea9
+r07 c02-02 fg=text-dim
+r07 c05-13 fg=text-dim
+r07 c28-28 fg=rule
+r07 c31-32 fg=#dff5fb
+r07 c33-33 fg=#c6bea9
+r07 c34-34 fg=#efcfac bg=#d0a883
+r07 c35-37 fg=#efcfac bg=#efcfac
+r07 c38-38 fg=#efcfac bg=#d0a883
+r07 c39-39 fg=#d0a883 bg=#c6bea9
+r07 c40-40 fg=#c6bea9 bg=#e8e2d4
+r07 c41-41 fg=#e8e2d4 bg=#e8e2d4
+r07 c42-42 fg=#e8e2d4 bg=#c6bea9
+r07 c43-43 fg=#c6bea9
+r08 c02-02 fg=text-dim
+r08 c05-13 fg=text-dim
+r08 c28-28 fg=rule
+r08 c31-31 fg=#dff5fb bg=#dff5fb
+r08 c32-32 fg=state bg=state
+r08 c33-33 fg=state bg=#c57c2c
+r08 c34-39 fg=obi bg=obi
+r08 c40-40 fg=#e8e2d4 bg=#c57c2c
+r08 c41-41 fg=#e8e2d4
+r08 c42-42 fg=#c6bea9
+r08 c43-43 fg=#c57c2c
+r08 c44-45 fg=obi
+r09 c02-02 fg=text-dim
+r09 c05-12 fg=text-dim
+r09 c28-28 fg=rule
+r09 c32-32 fg=#dff5fb
+r09 c34-34 fg=#c57c2c
+r09 c35-37 fg=obi
+r09 c38-38 fg=#c57c2c
+r09 c43-43 fg=#c57c2c
+r09 c44-45 fg=obi
+r09 c46-46 fg=#c57c2c
+r10 c02-02 fg=text-dim
+r10 c05-12 fg=text-dim
+r10 c28-28 fg=rule
+r11 c28-28 fg=rule
+r11 c31-49 fg=text-dim
+r12 c28-28 fg=rule
+r13 c28-28 fg=rule
+r13 c31-116 fg=text-dim
+r14 c28-28 fg=rule
+r15 c28-28 fg=rule
+r16 c28-28 fg=rule
+r17 c28-28 fg=rule
+r18 c28-28 fg=rule
+r19 c28-28 fg=rule
+r20 c28-28 fg=rule
+r21 c28-28 fg=rule
+r22 c28-28 fg=rule
+r23 c28-28 fg=rule
+r24 c28-28 fg=rule
+r25 c28-28 fg=rule
+r26 c28-28 fg=rule
+r27 c28-28 fg=rule
+r28 c28-28 fg=rule
+r29 c28-28 fg=rule
+r30 c28-28 fg=rule
+r31 c28-28 fg=rule
+r32 c00-119 fg=rule
+r33 c00-20 fg=text-dim
+r33 c92-92 fg=text
+r33 c93-100 fg=text-dim
+r33 c101-101 fg=text
+r33 c102-113 fg=text-dim
+r33 c114-114 fg=text
+r33 c115-119 fg=text-dim

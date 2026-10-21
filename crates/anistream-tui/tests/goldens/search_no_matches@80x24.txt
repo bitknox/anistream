@@ -1,0 +1,128 @@
+anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────
+  ▸│  FIND hoshikuzu▏
+  ▤│
+  ▦│         ▀▀▄
+▌ /│       ▄▄▀▀▄▄
+  ▥│     ▄▀▀▀▀▀▀▀▀▄
+  ↓│    ▄▀▀▀▀▀▀▀▀▀▀▀
+  ◇│    ▀▀▀▀▀▀▀▀▀▀▀▀
+  ◎│  ▄▄▀▀▀▀▀▀▀▀▀▀▀
+  ⚙│  ▀▀▀▀▀▀▀▀▀▀▀▀▄▄▄
+   │   ▀ ▀▀▀▀▀    ▀▀▀▀
+   │
+   │  NO MATCHES
+   │
+   │  try a shorter query, or the romaji title
+   │
+   │
+   │
+   │
+   │
+   │
+────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                       ↵ search   ctrl+f filters   esc back
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=text mod=BOLD
+r00 c44-54 fg=text-dim
+r00 c55-63 fg=state
+r00 c64-65 fg=text-dim
+r00 c66-66 fg=rule
+r00 c67-68 fg=text-dim
+r00 c69-79 fg=state
+r01 c00-79 fg=rule
+r02 c02-02 fg=text-dim
+r02 c03-03 fg=rule
+r02 c06-20 fg=text
+r03 c02-02 fg=text-dim
+r03 c03-03 fg=rule
+r04 c02-02 fg=text-dim
+r04 c03-03 fg=rule
+r04 c13-13 fg=#c6bea9
+r04 c14-14 fg=#e8e2d4 bg=#e8e2d4
+r04 c15-15 fg=#c6bea9
+r05 c00-00 fg=text-dim
+r05 c02-02 fg=text
+r05 c03-03 fg=rule
+r05 c11-11 fg=#c6bea9
+r05 c12-12 fg=#e8e2d4
+r05 c13-13 fg=#c6bea9 bg=#e8e2d4
+r05 c14-14 fg=#e8e2d4 bg=#e8e2d4
+r05 c15-15 fg=#e8e2d4
+r05 c16-16 fg=#c6bea9
+r06 c02-02 fg=text-dim
+r06 c03-03 fg=rule
+r06 c09-09 fg=#c6bea9
+r06 c10-10 fg=#c6bea9 bg=#e8e2d4
+r06 c11-16 fg=#e8e2d4 bg=#e8e2d4
+r06 c17-17 fg=#c6bea9 bg=#e8e2d4
+r06 c18-18 fg=#c6bea9
+r07 c02-02 fg=text-dim
+r07 c03-03 fg=rule
+r07 c08-08 fg=#c6bea9
+r07 c09-09 fg=#e8e2d4 bg=#e8e2d4
+r07 c10-13 fg=#e8e2d4 bg=#efcfac
+r07 c14-14 fg=#e8e2d4 bg=#c6bea9
+r07 c15-18 fg=#e8e2d4 bg=#e8e2d4
+r07 c19-19 fg=#c6bea9 bg=#c6bea9
+r08 c02-02 fg=text-dim
+r08 c03-03 fg=rule
+r08 c08-08 fg=#e8e2d4 bg=#e8e2d4
+r08 c09-09 fg=#efcfac bg=#efcfac
+r08 c10-10 fg=#efcfac bg=#232842
+r08 c11-14 fg=#efcfac bg=#efcfac
+r08 c15-15 fg=#c6bea9 bg=#c6bea9
+r08 c16-18 fg=#e8e2d4 bg=#e8e2d4
+r08 c19-19 fg=#c6bea9 bg=#c6bea9
+r09 c02-02 fg=text-dim
+r09 c03-03 fg=rule
+r09 c06-07 fg=#dff5fb
+r09 c08-08 fg=#c6bea9
+r09 c09-09 fg=#efcfac bg=#d0a883
+r09 c10-12 fg=#efcfac bg=#efcfac
+r09 c13-13 fg=#efcfac bg=#d0a883
+r09 c14-14 fg=#d0a883 bg=#c6bea9
+r09 c15-15 fg=#c6bea9 bg=#e8e2d4
+r09 c16-16 fg=#e8e2d4 bg=#e8e2d4
+r09 c17-17 fg=#e8e2d4 bg=#c6bea9
+r09 c18-18 fg=#c6bea9
+r10 c02-02 fg=text-dim
+r10 c03-03 fg=rule
+r10 c06-06 fg=#dff5fb bg=#dff5fb
+r10 c07-07 fg=state bg=state
+r10 c08-08 fg=state bg=#c57c2c
+r10 c09-14 fg=obi bg=obi
+r10 c15-15 fg=#e8e2d4 bg=#c57c2c
+r10 c16-16 fg=#e8e2d4
+r10 c17-17 fg=#c6bea9
+r10 c18-18 fg=#c57c2c
+r10 c19-20 fg=obi
+r11 c03-03 fg=rule
+r11 c07-07 fg=#dff5fb
+r11 c09-09 fg=#c57c2c
+r11 c10-12 fg=obi
+r11 c13-13 fg=#c57c2c
+r11 c18-18 fg=#c57c2c
+r11 c19-20 fg=obi
+r11 c21-21 fg=#c57c2c
+r12 c03-03 fg=rule
+r13 c03-03 fg=rule
+r13 c06-15 fg=text-dim
+r14 c03-03 fg=rule
+r15 c03-03 fg=rule
+r15 c06-45 fg=text-dim
+r16 c03-03 fg=rule
+r17 c03-03 fg=rule
+r18 c03-03 fg=rule
+r19 c03-03 fg=rule
+r20 c03-03 fg=rule
+r21 c03-03 fg=rule
+r22 c00-79 fg=rule
+r23 c00-20 fg=text-dim
+r23 c44-44 fg=text
+r23 c45-54 fg=text-dim
+r23 c55-60 fg=text
+r23 c61-71 fg=text-dim
+r23 c72-74 fg=text
+r23 c75-79 fg=text-dim

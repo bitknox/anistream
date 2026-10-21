@@ -35,10 +35,10 @@ const skel = [
 const home = [
 	HEADER,
 	RULE,
-	'{a|▌} ▸  CONTINUE   {a|4} │  {a|▌} Frieren: Beyond Journey’s End',
-	'  ▤  CALENDAR     │    {d|Sousou no Frieren}',
+	'{a|▌} ▸  CONTINUE   {a|4} │  {a|▌} Stardust Wayfarer',
+	'  ▤  CALENDAR     │    {d|Hoshikuzu no Tabibito}',
 	'  ▦  SEASONAL     │',
-	'  /  SEARCH       │    {d|TV · 28 EP · 2023 · 91 · MADHOUSE}',
+	'  /  SEARCH       │    {d|TV · 28 EP · 2023 · 91 · KUMORIYA}',
 	'  ▥  LIBRARY      │    {d|ADVENTURE · DRAMA · FANTASY}',
 	'  ↓  DOWNLOADS  {a|2} │',
 	'  ◇  PROVIDERS    │    {d|EP 12 out 2d ago · EP 13 in 4d 6h}',
@@ -56,9 +56,9 @@ const home = [
 // Search: the query is typed live into [data-type]; result rows fade in staggered.
 const searchTop = [HEADER, RULE].map(mk).join('\n');
 const searchRows = [
-	'{a|▌} Frieren: Beyond Journey’s End           {d|TV · 28 EP · 2023 · 91}',
-	'  Frieren: Beyond Journey’s End Mini      {d|ONA · 24 EP · 2023 · 74}',
-	'  Yuusha                                  {d|MUSIC · 1 EP · 2023 · 78}',
+	'{a|▌} Stardust Wayfarer                       {d|TV · 28 EP · 2023 · 91}',
+	'  Stardust Wayfarer Shorts                {d|ONA · 24 EP · 2023 · 74}',
+	'  Tomoshibi                               {d|MUSIC · 1 EP · 2023 · 78}',
 ].map(mk);
 const searchBottom = [RULE, '{a|↵} open   {a|e} episodes   {a|esc} back'].map(mk).join('\n');
 
@@ -66,13 +66,13 @@ const searchBottom = [RULE, '{a|↵} open   {a|e} episodes   {a|esc} back'].map(
 const epsRow = (ep: string, title: string, tail: string) =>
 	`<span class="row"><span class="oc">▌</span>${mk(`  EP ${ep}  ${title}${tail}`)}</span>`;
 const eps = [
-	mk('anistream                                          {d|Frieren: Beyond Journey’s End}'),
+	mk('anistream                                                      {d|Stardust Wayfarer}'),
 	mk(RULE),
-	epsRow('10', 'The Mage Killer', '                        {d|24m}   {d|● watched}'),
-	epsRow('11', 'Winter in the Northern Lands', '           {d|24m}   {d|● watched}'),
-	epsRow('12', 'A Real Hero', '                            {d|24m}   {w|▲ 61%}'),
-	epsRow('13', 'Aversion to One’s Own Kind', '             {d|24m}'),
-	epsRow('14', 'Privilege of the Young', '                 {d|24m}'),
+	epsRow('10', 'The Lamplighter’s Oath', '                 {d|24m}   {d|● watched}'),
+	epsRow('11', 'Snow on the Beacon Road', '                {d|24m}   {d|● watched}'),
+	epsRow('12', 'A Town That Forgot Her', '                 {d|24m}   {w|▲ 61%}'),
+	epsRow('13', 'What the Lanterns Keep', '                 {d|24m}'),
+	epsRow('14', 'The Ferry Across the Dark', '              {d|24m}'),
 	'',
 	mk(RULE),
 	mk('{d|sub · 1080p}                                    {a|↵} play   {a|s} sources   {a|f} filler'),
@@ -82,8 +82,8 @@ const playTop = [
 	HEADER,
 	RULE,
 	'',
-	'    {a|▶}  Frieren: Beyond Journey’s End — EP 13',
-	'       {d|Aversion to One’s Own Kind}',
+	'    {a|▶}  Stardust Wayfarer — EP 13',
+	'       {d|What the Lanterns Keep}',
 	'',
 ].map(mk).join('\n');
 const playBottom = [
@@ -104,7 +104,7 @@ const playBottom = [
 		<pre class="screen" data-screen="skel" set:html={skel} />
 		<pre class="screen" data-screen="home" set:html={home} />
 		<pre class="screen" data-screen="search"><Fragment set:html={searchTop} />
-{'  '}/  <span data-type="frieren"></span><span class="cursor c-a">▊</span>
+{'  '}/  <span data-type="stardust"></span><span class="cursor c-a">▊</span>
 <Fragment set:html={mk(RULE)} />
 <span class="row sr">{''}<Fragment set:html={searchRows[0]} /></span>
 <span class="row sr"><Fragment set:html={searchRows[1]} /></span>

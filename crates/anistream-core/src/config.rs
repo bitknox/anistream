@@ -55,7 +55,8 @@ impl Paths {
 }
 
 /// Root configuration.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+// Comparable, so a front end holding a copy can tell when its copy has moved and pass it on.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
     pub theme: ThemeConfig,
@@ -166,7 +167,7 @@ impl Config {
 }
 
 /// Offline downloads.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct DownloadsConfig {
     /// Where finished files go. `None` leaves them where the torrent session wrote them,
@@ -200,6 +201,40 @@ pub struct DownloadsConfig {
     /// (each live swarm holds dozens of sockets, and file descriptors are finite). This key
     /// only decides whether a *finished download* keeps seeding.
     pub keep_seeding: bool,
+    /// Which version of an episode a download takes: the one playback would stream, or the
+    /// best a source offers. Read by the native apps' Downloads settings and by every download
+    /// queued, the terminal's included.
+    pub quality: DownloadQuality,
+    /// How many of a show's next episodes a download keeps on the device, `0` for none. A
+    /// native app's setting: the terminal reads and keeps it, and acts on nothing it says.
+    pub keep_next: u32,
+    /// Whether downloads run over a cellular connection. Off by default, so a phone does not
+    /// spend a data plan on its own. Only the native apps know which network they are on; the
+    /// terminal keeps it as it is.
+    pub on_cellular: bool,
+}
+
+/// Which version of an episode a download takes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DownloadQuality {
+    /// The quality playback asks for, `playback.quality`: what the episode would stream at.
+    #[default]
+    Standard,
+    /// The best version a source offers, and more space.
+    Higher,
+}
+
+impl DownloadQuality {
+    /// The vertical resolution a download ranks its streams toward, with `playback` being
+    /// what playback asks for: [`crate::stream::Stream::quality_rank`] puts the highest first
+    /// when nothing is too high.
+    pub const fn resolution(self, playback: u32) -> u32 {
+        match self {
+            Self::Standard => playback,
+            Self::Higher => u32::MAX,
+        }
+    }
 }
 
 /// The Discord application a presence appears under when none is configured.
@@ -218,7 +253,7 @@ pub struct DownloadsConfig {
 pub const DEFAULT_PRESENCE_CLIENT_ID: &str = "1531267760959783025";
 
 /// Discord rich presence.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct PresenceConfig {
     /// Off by default, and that is the only defensible default: this is the one feature that
@@ -262,7 +297,15 @@ impl Default for PresenceConfig {
 
 impl Default for DownloadsConfig {
     fn default() -> Self {
-        Self { directory: None, merge_subtitles: true, keep_seeding: false, on_complete: None }
+        Self {
+            directory: None,
+            merge_subtitles: true,
+            keep_seeding: false,
+            on_complete: None,
+            quality: DownloadQuality::Standard,
+            keep_next: 0,
+            on_cellular: false,
+        }
     }
 }
 
@@ -314,7 +357,7 @@ pub enum PlayerUi {
 /// A handoff, not a session: Syncplay owns the player it launches, so progress is not
 /// recorded while a party is on — a shared watch is not private history. Turn it on for
 /// the evening, off after. Syncplay's own config decides which player it drives.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct SyncplayConfig {
     /// Hand playback to Syncplay instead of a private mpv session.
@@ -347,7 +390,7 @@ impl Default for SyncplayConfig {
 ///
 /// A digest, never a stream of pings — one line on launch, and only when there is
 /// something to say. The tool must not get in the way of the person using it.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct NotificationsConfig {
     /// Say on launch how many new episodes aired for shows you watch.
@@ -363,23 +406,54 @@ impl Default for NotificationsConfig {
     }
 }
 
-/// The metadata failover.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// The metadata failover, and how its titles are shown.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct MetaConfig {
     /// Fall back to Tenrai — MyAnimeList's mirror — when AniList cannot answer, before
     /// resorting to cached data. Fresh first, always; the ladder only descends on failure.
     pub fallback: bool,
+    /// Which form of each title is shown: AniList's own choice for the signed-in account, or
+    /// English or romaji whoever is signed in. Every front end shows what this says.
+    pub title_language: TitleChoice,
 }
 
 impl Default for MetaConfig {
     fn default() -> Self {
-        Self { fallback: true }
+        Self { fallback: true, title_language: TitleChoice::default() }
+    }
+}
+
+/// Which form of a title to show, as `[meta] title_language` says.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TitleChoice {
+    /// As the signed-in AniList account reads AniList: romaji, English or native. English
+    /// first when nobody is signed in, which is how titles were always shown.
+    #[default]
+    Anilist,
+    English,
+    Romaji,
+}
+
+impl TitleChoice {
+    /// As the file writes it.
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Anilist => "anilist",
+            Self::English => "english",
+            Self::Romaji => "romaji",
+        }
+    }
+
+    /// Read back what [`Self::name`] wrote.
+    pub fn from_name(name: &str) -> Option<Self> {
+        [Self::Anilist, Self::English, Self::Romaji].into_iter().find(|c| c.name() == name)
     }
 }
 
 /// The update check.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct UpdatesConfig {
     /// Ask GitHub for the newest release once a day and say so when one exists.
@@ -396,7 +470,7 @@ impl Default for UpdatesConfig {
 }
 
 /// Visual configuration. See the "Obi & Silk" direction in the plan.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct ThemeConfig {
     pub mode: ThemeMode,
@@ -416,6 +490,7 @@ impl Default for ThemeConfig {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
 #[serde(rename_all = "lowercase")]
 pub enum ThemeMode {
     /// Inherit the terminal's background and set foreground colours only, so anistream
@@ -427,7 +502,7 @@ pub enum ThemeMode {
     Immersive,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct PlaybackConfig {
     pub translation: Translation,
@@ -454,6 +529,14 @@ pub struct PlaybackConfig {
     pub persisted_volume: Option<f64>,
     pub skip_opening: bool,
     pub skip_filler: bool,
+    /// How many seconds Up Next counts down before the next episode plays, `0` for no
+    /// countdown: the card waits for Play now. The native apps' player reads it; the terminal's
+    /// companion keeps its own ten seconds.
+    pub up_next_countdown: u32,
+    /// Blur the stills of unwatched episodes after the next one; titles and synopses stay. On by
+    /// default, and a show can say otherwise. The native apps draw it; the terminal shows no
+    /// stills.
+    pub spoiler_protection: bool,
     /// Put the opening and ending on the seek bar as chapter markers, where the stream carries
     /// no chapters of its own.
     ///
@@ -518,6 +601,8 @@ impl Default for PlaybackConfig {
             skip_opening: true,
             mark_chapters: true,
             skip_filler: false,
+            up_next_countdown: 10,
+            spoiler_protection: true,
             fullscreen: false,
             players: vec!["mpv".into(), "external".into()],
             mpv_binary: "mpv".into(),
@@ -526,7 +611,7 @@ impl Default for PlaybackConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct ProvidersConfig {
     /// Resolution order. Earlier entries are tried first; failover walks the list.
@@ -559,7 +644,7 @@ impl Default for ProvidersConfig {
 /// Exposed because a plugin doing something unusual — decrypting a large payload, say — might
 /// legitimately need more room, and the alternative would be recompiling. They are ceilings, not
 /// grants: raising them cannot give a plugin a capability, only more of one it already has.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct PluginsConfig {
     /// Linear-memory ceiling per plugin, in mebibytes.
@@ -589,7 +674,7 @@ impl Default for PluginsConfig {
 ///
 /// Disabled by default. Torrent traffic exposes your IP to every peer in the swarm, so
 /// this stays off until a VPN mode has been chosen deliberately.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct TorrentConfig {
     pub enabled: bool,
@@ -620,6 +705,9 @@ pub struct TorrentConfig {
     /// goes oldest first, at launch and while the app runs. Downloads count toward it but are
     /// never removed by it. `0` keeps nothing that is not in use.
     pub cache_limit_gb: u32,
+    /// Whether torrents run over a cellular connection. Off by default. Only the native apps
+    /// know which network they are on; the terminal keeps it as it is.
+    pub on_cellular: bool,
 }
 
 impl Default for TorrentConfig {
@@ -635,6 +723,7 @@ impl Default for TorrentConfig {
             // Room for a dozen episodes at 1080p: enough that resuming or rewatching last
             // night's episodes is instant, small enough that nobody's disk fills over a season.
             cache_limit_gb: 20,
+            on_cellular: false,
         }
     }
 }
@@ -691,6 +780,18 @@ impl TorrentConfig {
 
 impl TorrentConfig {
     fn validate(&self) -> Result<(), crate::Error> {
+        // An indexer set is held to being one whether or not torrents are on: the native apps'
+        // torrent index is filled in before the source is turned on, and a typo kept until then
+        // would be refused only by the switch, which says nothing of the address.
+        let indexer = self.rss_url.as_deref().map(str::trim).filter(|url| !url.is_empty());
+        if let Some(url) = indexer
+            && !url.starts_with("http://")
+            && !url.starts_with("https://")
+        {
+            return Err(crate::Error::Config(
+                "providers.torrent.rss_url must be an http or https URL".into(),
+            ));
+        }
         if !self.enabled {
             return Ok(());
         }
@@ -698,18 +799,10 @@ impl TorrentConfig {
         // silently inert. Say so instead — in words, and short: it is what the Settings toggle
         // answers with in one toast line, which cut the dotted keys it used to quote before the
         // part that said what to do.
-        match self.rss_url.as_deref().map(str::trim) {
-            None | Some("") => {
-                return Err(crate::Error::Config(
-                    "torrents need an indexer; set rss_url under [providers.torrent]".into(),
-                ));
-            }
-            Some(url) if !url.starts_with("http://") && !url.starts_with("https://") => {
-                return Err(crate::Error::Config(
-                    "providers.torrent.rss_url must be an http or https URL".into(),
-                ));
-            }
-            Some(_) => {}
+        if indexer.is_none() {
+            return Err(crate::Error::Config(
+                "torrents need an indexer; set rss_url under [providers.torrent]".into(),
+            ));
         }
         match self.vpn.mode {
             VpnMode::Socks5 => {
@@ -731,6 +824,16 @@ impl TorrentConfig {
                 }
             }
         }
+        if self.vpn.on_leak == LeakAction::Warn
+            && !self.vpn.i_understand_a_failed_check_keeps_torrents_running
+        {
+            return Err(crate::Error::Config(
+                "providers.torrent.vpn.on_leak is \"warn\": set \
+                 i_understand_a_failed_check_keeps_torrents_running = true to confirm, or \
+                 choose pause or stop"
+                    .into(),
+            ));
+        }
         Ok(())
     }
 }
@@ -740,7 +843,7 @@ impl TorrentConfig {
 /// librqbit offers a SOCKS5 proxy but **no** bind-to-interface option, so real interface
 /// binding has to happen outside the process. This config covers what we can enforce and
 /// the docs are explicit about the rest, rather than implying a guarantee we cannot make.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct VpnConfig {
     pub mode: VpnMode,
@@ -764,6 +867,9 @@ pub struct VpnConfig {
     pub on_leak: LeakAction,
     /// Required when `mode = "none"`. Named to be impossible to set by accident.
     pub i_understand_my_ip_is_exposed: bool,
+    /// Required when `on_leak = "warn"`, for the same reason: a failed check then leaves
+    /// torrents running on a connection that may be your own.
+    pub i_understand_a_failed_check_keeps_torrents_running: bool,
 }
 
 impl Default for VpnConfig {
@@ -776,6 +882,7 @@ impl Default for VpnConfig {
             verify_interval_secs: 60,
             on_leak: LeakAction::Pause,
             i_understand_my_ip_is_exposed: false,
+            i_understand_a_failed_check_keeps_torrents_running: false,
         }
     }
 }
@@ -813,9 +920,13 @@ pub enum LeakAction {
     Pause,
     /// Tear the session down entirely.
     Stop,
+    /// Keep torrents running and say the check failed. Requires
+    /// `i_understand_a_failed_check_keeps_torrents_running`, as `mode = "none"` requires its
+    /// own acknowledgement.
+    Warn,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct TrackersConfig {
     /// Tracker ids to sync with, e.g. `["anilist"]`.
@@ -868,7 +979,7 @@ impl Default for TrackersConfig {
 /// <https://anilist.co/settings/developer>; the secret is theirs, in their own config, on their
 /// own machine. anistream never embeds one, because a secret inside an open-source binary is
 /// not a secret.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct AniListAuthConfig {
     pub client_id: Option<String>,
@@ -883,7 +994,9 @@ pub struct AniListAuthConfig {
     /// port is part of what the user registers and cannot be chosen at runtime.
     pub redirect_port: u16,
     /// `"loopback"` catches the token automatically; `"paste"` sends you to AniList's PIN page
-    /// to copy it by hand, which needs no port and works over SSH.
+    /// to copy it by hand, which needs no port and works over SSH. `"implicit"` is the native
+    /// apps': their own client through the system's sign-in sheet, with no secret, which the
+    /// terminal cannot catch on a loopback port.
     pub flow: String,
 }
 
@@ -904,7 +1017,7 @@ impl Default for AniListAuthConfig {
 /// accepts a request carrying just `client_id` and `code_verifier`, so an app registered as type
 /// `other` is a public client and PKCE stands in for the secret. AniList refuses the same shape —
 /// see [`AniListAuthConfig`] — which is why the two trackers have different config.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct MalAuthConfig {
     pub client_id: Option<String>,
@@ -918,7 +1031,7 @@ pub struct MalAuthConfig {
 /// One shape for Simkl and Trakt because there is genuinely nothing to differentiate: no redirect
 /// URI to register, no port to match. Just the application's id, and a secret where the service
 /// insists on one.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct DeviceAuthConfig {
     pub client_id: Option<String>,
@@ -966,14 +1079,16 @@ impl TrackersConfig {
     fn validate_anilist(&self) -> Result<(), crate::Error> {
         // Enabling a tracker you cannot possibly authenticate against would show up much later
         // as a mysteriously stuck outbox, so it is rejected at load.
-        if self.enabled.iter().any(|t| t == "anilist") {
+        // The implicit grant is a native app's, with the app's own client and no secret: none
+        // is asked of the file, whose client the terminal's code grant would need.
+        if self.enabled.iter().any(|t| t == "anilist") && self.anilist.flow != "implicit" {
             let blank =
                 |field: &Option<String>| field.as_deref().unwrap_or("").trim().is_empty();
             if blank(&self.anilist.client_id) || blank(&self.anilist.client_secret) {
                 return Err(crate::Error::Config(
                     "trackers.anilist needs both client_id and client_secret when \"anilist\" \
-                     is enabled — AniList supports only the authorization code grant, so the \
-                     secret is required. Register a client at \
+                     is enabled — the terminal signs in with the authorization code grant, which \
+                     needs the secret. Register a client at \
                      https://anilist.co/settings/developer"
                         .into(),
                 ));
@@ -985,9 +1100,9 @@ impl TrackersConfig {
                 self.token_storage
             )));
         }
-        if !matches!(self.anilist.flow.as_str(), "loopback" | "paste") {
+        if !matches!(self.anilist.flow.as_str(), "loopback" | "paste" | "implicit") {
             return Err(crate::Error::Config(format!(
-                "trackers.anilist.flow must be \"loopback\" or \"paste\", got {:?}",
+                "trackers.anilist.flow must be \"loopback\", \"paste\" or \"implicit\", got {:?}",
                 self.anilist.flow
             )));
         }
@@ -1000,7 +1115,7 @@ impl TrackersConfig {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct NetworkConfig {
     /// Browser fingerprint to emulate for Cloudflare-fronted providers. Exposed as
@@ -1044,6 +1159,38 @@ mod tests {
         );
         assert_eq!(cfg.theme.mode, ThemeMode::Adaptive);
         assert!(!cfg.theme.nerd_font);
+    }
+
+    #[test]
+    fn the_native_apps_settings_default_to_what_their_boards_show() {
+        let cfg = Config::default();
+        assert_eq!(cfg.playback.up_next_countdown, 10, "Up Next counts down from ten");
+        assert!(cfg.playback.spoiler_protection, "on by default");
+        assert_eq!(cfg.downloads.quality, DownloadQuality::Standard);
+        assert_eq!(cfg.downloads.keep_next, 0, "nothing kept unasked");
+        assert!(!cfg.downloads.on_cellular && !cfg.providers.torrent.on_cellular);
+        assert_eq!(cfg.providers.torrent.vpn.on_leak, LeakAction::Pause);
+        assert_eq!(DownloadQuality::Standard.resolution(720), 720);
+        assert_eq!(DownloadQuality::Higher.resolution(720), u32::MAX);
+    }
+
+    #[test]
+    fn warning_on_a_failed_check_needs_its_own_acknowledgement() {
+        // As `mode = "none"` does: a failed check then leaves torrents running.
+        let on = r#"
+            [providers.torrent]
+            enabled = true
+            rss_url = "https://indexer.example/rss?q={query}"
+            [providers.torrent.vpn]
+            mode = "external"
+            on_leak = "warn"
+        "#;
+        let err = Config::from_toml(on).unwrap_err().to_string();
+        assert!(err.contains("i_understand_a_failed_check_keeps_torrents_running"), "{err}");
+        let acknowledged =
+            format!("{on}i_understand_a_failed_check_keeps_torrents_running = true\n");
+        let cfg = Config::from_toml(&acknowledged).unwrap();
+        assert_eq!(cfg.providers.torrent.vpn.on_leak, LeakAction::Warn);
     }
 
     #[test]
@@ -1157,6 +1304,25 @@ mod tests {
     }
 
     #[test]
+    fn the_implicit_flow_asks_the_file_for_no_secret() {
+        // A native app's: its own client, through the system's sign-in sheet.
+        let cfg = Config::from_toml(
+            r#"
+            [trackers]
+            enabled = ["anilist"]
+            [trackers.anilist]
+            flow = "implicit"
+            "#,
+        )
+        .expect("no secret needed");
+        assert_eq!(cfg.trackers.anilist.flow, "implicit");
+        // The code grant still needs both halves.
+        let loopback =
+            "[trackers]\nenabled = [\"anilist\"]\n[trackers.anilist]\nclient_id = \"1\"\n";
+        assert!(Config::from_toml(loopback).unwrap_err().to_string().contains("client_secret"));
+    }
+
+    #[test]
     fn a_client_id_without_enabling_the_tracker_is_fine() {
         // Configuring credentials ahead of turning sync on is a reasonable order to do things.
         Config::from_toml(
@@ -1203,6 +1369,22 @@ mod tests {
         )
         .expect_err("only http(s) is transport");
         assert!(err.to_string().contains("http"), "got: {err}");
+    }
+
+    #[test]
+    fn an_indexer_set_is_checked_with_torrents_off_and_none_is_no_indexer() {
+        // Filled in on the native apps' torrent sheet before the source is turned on.
+        let off =
+            |url: &str| Config::from_toml(&format!("[providers.torrent]\nrss_url = {url:?}\n"));
+        let err = off("indexer.example/rss").expect_err("not an address").to_string();
+        assert!(err.contains("http or https"), "got: {err}");
+        assert!(off("https://indexer.example/rss?q={query}").is_ok());
+        // Blank is unset, with torrents off as with them on.
+        assert!(off("  ").is_ok());
+        let on = "[providers.torrent]\nenabled = true\nrss_url = \" \"\n\
+                  [providers.torrent.vpn]\nmode = \"external\"\n";
+        let err = Config::from_toml(on).expect_err("no indexer").to_string();
+        assert!(err.contains("torrents need an indexer"), "got: {err}");
     }
 
     #[test]

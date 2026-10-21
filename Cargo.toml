@@ -18,7 +18,12 @@ repository = "https://github.com/bitknox/anistream"
 anistream-core = { path = "crates/anistream-core" }
 anistream-net = { path = "crates/anistream-net" }
 anistream-meta = { path = "crates/anistream-meta" }
+anistream-model = { path = "crates/anistream-model" }
+# Without its defaults, so each crate says whether it wants the desktop's parts: the binary
+# does, and a phone's build of the FFI does not. See the engine's `desktop` feature.
+anistream-engine = { path = "crates/anistream-engine", default-features = false }
 anistream-player = { path = "crates/anistream-player" }
+anistream-playback = { path = "crates/anistream-playback" }
 anistream-plugin = { path = "crates/anistream-plugin", default-features = false }
 anistream-plugin-store = { path = "crates/anistream-plugin-store" }
 anistream-store-core = { path = "crates/anistream-store-core" }
@@ -26,8 +31,12 @@ anistream-store-server = { path = "crates/anistream-store-server" }
 anistream-store-wasm = { path = "crates/anistream-store-wasm" }
 anistream-providers = { path = "crates/anistream-providers" }
 anistream-store = { path = "crates/anistream-store" }
-anistream-track = { path = "crates/anistream-track" }
-anistream-ui = { path = "crates/anistream-ui" }
+# Without its defaults, so each crate says whether it wants the keyring crate: the binary and
+# the engine's `desktop` feature do, and a native app's build, which reaches the keychain
+# through its host, does not. See the crate's `keychain` feature.
+anistream-track = { path = "crates/anistream-track", default-features = false }
+anistream-testkit = { path = "crates/anistream-testkit" }
+anistream-tui = { path = "crates/anistream-tui" }
 
 # --- async ---
 tokio = { version = "1.53", features = ["rt-multi-thread", "macros", "sync", "time", "fs", "process", "net", "io-util", "signal"] }
@@ -76,6 +85,13 @@ terminal-colorsaurus = "1.0"
 
 # --- matching / parsing ---
 nucleo = "0.5"
+
+# --- foreign function interface ---
+# The bindings native front ends are generated with. Pinned exactly: the bindings and the library's
+# scaffolding have to come from the same release, and the generated Swift and Kotlin check the
+# library's contract version and checksums when they load it. Without its defaults, which only
+# the bindings generator needs.
+uniffi = { version = "=0.32.2", default-features = false }
 
 # --- platform ---
 directories = "6"

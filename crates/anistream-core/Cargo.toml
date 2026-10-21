@@ -20,6 +20,13 @@ thiserror.workspace = true
 toml.workspace = true
 toml_edit.workspace = true
 tracing.workspace = true
+uniffi = { workspace = true, optional = true }
+
+[features]
+# The ids, enums and records of the core's that the model's commands and events carry, as UniFFI
+# custom types, enums and records, for a native front end's bindings. Turned on by the model's
+# own `ffi` feature: nothing else here crosses, and nothing here needs it.
+ffi = ["dep:uniffi"]
 
 [lints]
 workspace = true

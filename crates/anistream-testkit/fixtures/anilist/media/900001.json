@@ -1,0 +1,393 @@
+{
+  "id": 900001,
+  "idMal": 800001,
+  "title": {
+    "romaji": "Hoshikuzu no Tabibito",
+    "english": "Stardust Wayfarer",
+    "native": "星屑の旅人"
+  },
+  "format": "TV",
+  "status": "FINISHED",
+  "description": "A lamplighter with no memory of her home walks the old star roads, relighting the beacons that guide travellers between the towns.<br><br>Each town she saves remembers a little of her, and she, a little less of herself.",
+  "episodes": 12,
+  "duration": 24,
+  "seasonYear": 2024,
+  "season": "SPRING",
+  "startDate": {
+    "year": 2024,
+    "month": 4,
+    "day": 6
+  },
+  "endDate": {
+    "year": 2024,
+    "month": 6,
+    "day": 22
+  },
+  "source": "MANGA",
+  "isAdult": false,
+  "averageScore": 82,
+  "genres": [
+    "Adventure",
+    "Drama",
+    "Fantasy"
+  ],
+  "synonyms": [
+    "Hoshitabi"
+  ],
+  "coverImage": {
+    "extraLarge": "https://img.example/cover/900001-xl.jpg",
+    "large": "https://img.example/cover/900001.jpg",
+    "color": "#e4a15d"
+  },
+  "bannerImage": "https://img.example/banner/900001.jpg",
+  "nextAiringEpisode": null,
+  "studios": {
+    "nodes": [
+      {
+        "name": "Kujaku Animation Works"
+      }
+    ]
+  },
+  "externalLinks": [
+    {
+      "site": "Lantern Stream",
+      "url": "https://stream.example/series/hoshikuzu",
+      "type": "STREAMING",
+      "language": "Japanese"
+    },
+    {
+      "site": "Official Site",
+      "url": "https://hoshikuzu.example",
+      "type": "INFO",
+      "language": "Japanese"
+    }
+  ],
+  "streamingEpisodes": [
+    {
+      "title": "Episode 1 - The Lantern Road",
+      "url": "https://stream.example/watch/hoshikuzu-1",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/1.jpg"
+    },
+    {
+      "title": "Episode 2 - A Town Without Night",
+      "url": "https://stream.example/watch/hoshikuzu-2",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/2.jpg"
+    },
+    {
+      "title": "Episode 3 - The Ferryman's Ledger",
+      "url": "https://stream.example/watch/hoshikuzu-3",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/3.jpg"
+    },
+    {
+      "title": "Episode 4 - Embers in the Snow",
+      "url": "https://stream.example/watch/hoshikuzu-4",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/4.jpg"
+    },
+    {
+      "title": "Episode 5 - What the Beacons Remember",
+      "url": "https://stream.example/watch/hoshikuzu-5",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/5.jpg"
+    },
+    {
+      "title": "Episode 6 - The Cartographer's Daughter",
+      "url": "https://stream.example/watch/hoshikuzu-6",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/6.jpg"
+    },
+    {
+      "title": "Episode 7 - Rain over Kiriya Pass",
+      "url": "https://stream.example/watch/hoshikuzu-7",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/7.jpg"
+    },
+    {
+      "title": "Episode 8 - A Letter Never Sent",
+      "url": "https://stream.example/watch/hoshikuzu-8",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/8.jpg"
+    },
+    {
+      "title": "Episode 9 - The Last Lamplighter",
+      "url": "https://stream.example/watch/hoshikuzu-9",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/9.jpg"
+    },
+    {
+      "title": "Episode 10 - Where the Roads Cross",
+      "url": "https://stream.example/watch/hoshikuzu-10",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/10.jpg"
+    },
+    {
+      "title": "Episode 11 - The Sky Archive",
+      "url": "https://stream.example/watch/hoshikuzu-11",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/11.jpg"
+    },
+    {
+      "title": "Episode 12 - Home, by Starlight",
+      "url": "https://stream.example/watch/hoshikuzu-12",
+      "site": "Lantern Stream",
+      "thumbnail": "https://img.example/ep/900001/12.jpg"
+    }
+  ],
+  "trailer": null,
+  "relations": {
+    "edges": [
+      {
+        "relationType": "SEQUEL",
+        "node": {
+          "id": 900004,
+          "title": {
+            "romaji": "Hoshikuzu no Tabibito 2nd Season",
+            "english": "Stardust Wayfarer Season 2",
+            "native": "星屑の旅人 第2期"
+          },
+          "format": "TV",
+          "coverImage": {
+            "large": "https://img.example/cover/900004.jpg"
+          },
+          "season": "WINTER",
+          "seasonYear": 2025
+        }
+      }
+    ]
+  },
+  "recommendations": {
+    "nodes": [
+      {
+        "mediaRecommendation": {
+          "id": 900005,
+          "title": {
+            "romaji": "Hagane no Niwashi",
+            "english": "The Steel Gardener",
+            "native": "鋼の庭師"
+          },
+          "format": "ONA",
+          "coverImage": {
+            "large": "https://img.example/cover/900005.jpg"
+          },
+          "season": "SUMMER",
+          "seasonYear": 2023
+        }
+      },
+      {
+        "mediaRecommendation": {
+          "id": 900003,
+          "title": {
+            "romaji": "Tsukiakari no Teishajo",
+            "english": "Moonlit Platform",
+            "native": "月明かりの停車場"
+          },
+          "format": "MOVIE",
+          "coverImage": {
+            "large": "https://img.example/cover/900003.jpg"
+          },
+          "season": "SUMMER",
+          "seasonYear": 2025
+        }
+      }
+    ]
+  },
+  "tags": [
+    {
+      "name": "Travel",
+      "rank": 94,
+      "isMediaSpoiler": false,
+      "isGeneralSpoiler": false,
+      "category": "Theme-Other"
+    },
+    {
+      "name": "Found Family",
+      "rank": 81,
+      "isMediaSpoiler": false,
+      "isGeneralSpoiler": false,
+      "category": "Theme-Drama"
+    },
+    {
+      "name": "Lamplighters",
+      "rank": 72,
+      "isMediaSpoiler": false,
+      "isGeneralSpoiler": false,
+      "category": "Setting-Universe"
+    },
+    {
+      "name": "The Last Lantern",
+      "rank": 58,
+      "isMediaSpoiler": true,
+      "isGeneralSpoiler": false,
+      "category": "Theme-Drama"
+    }
+  ],
+  "upcoming": {
+    "nodes": []
+  },
+  "aired": [
+    {
+      "episode": 12,
+      "airingAt": 1719068400
+    },
+    {
+      "episode": 11,
+      "airingAt": 1718463600
+    },
+    {
+      "episode": 10,
+      "airingAt": 1717858800
+    },
+    {
+      "episode": 9,
+      "airingAt": 1717254000
+    },
+    {
+      "episode": 8,
+      "airingAt": 1716649200
+    },
+    {
+      "episode": 7,
+      "airingAt": 1716044400
+    },
+    {
+      "episode": 6,
+      "airingAt": 1715439600
+    },
+    {
+      "episode": 5,
+      "airingAt": 1714834800
+    },
+    {
+      "episode": 4,
+      "airingAt": 1714230000
+    },
+    {
+      "episode": 3,
+      "airingAt": 1713625200
+    },
+    {
+      "episode": 2,
+      "airingAt": 1713020400
+    },
+    {
+      "episode": 1,
+      "airingAt": 1712415600
+    }
+  ],
+  "rankings": [
+    {
+      "rank": 4,
+      "type": "RATED",
+      "context": "highest rated",
+      "allTime": false,
+      "season": "SPRING",
+      "year": 2024
+    },
+    {
+      "rank": 31,
+      "type": "POPULAR",
+      "context": "most popular all time",
+      "allTime": true,
+      "season": null,
+      "year": null
+    }
+  ],
+  "characters": {
+    "edges": [
+      {
+        "role": "MAIN",
+        "node": {
+          "name": {
+            "full": "Ren Amagiri"
+          },
+          "image": {
+            "medium": "https://img.example/people/ren-amagiri.jpg"
+          }
+        },
+        "voiceActors": [
+          {
+            "name": {
+              "full": "Ren's voice"
+            },
+            "image": {
+              "medium": "https://img.example/people/voice-ren.jpg"
+            }
+          }
+        ]
+      },
+      {
+        "role": "MAIN",
+        "node": {
+          "name": {
+            "full": "Ito Hoshimura"
+          },
+          "image": {
+            "medium": "https://img.example/people/ito-hoshimura.jpg"
+          }
+        },
+        "voiceActors": [
+          {
+            "name": {
+              "full": "Ito's voice"
+            },
+            "image": {
+              "medium": "https://img.example/people/voice-ito.jpg"
+            }
+          }
+        ]
+      },
+      {
+        "role": "SUPPORTING",
+        "node": {
+          "name": {
+            "full": "The Ferryman"
+          },
+          "image": {
+            "medium": "https://img.example/people/the-ferryman.jpg"
+          }
+        },
+        "voiceActors": [
+          {
+            "name": {
+              "full": "The Ferryman's voice"
+            },
+            "image": {
+              "medium": "https://img.example/people/voice-ferryman.jpg"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "staff": {
+    "edges": [
+      {
+        "role": "Director",
+        "node": {
+          "name": {
+            "full": "Director of Stardust Wayfarer"
+          }
+        }
+      },
+      {
+        "role": "Original Creator",
+        "node": {
+          "name": {
+            "full": "Author of Stardust Wayfarer"
+          }
+        }
+      },
+      {
+        "role": "Music",
+        "node": {
+          "name": {
+            "full": "Composer of Stardust Wayfarer"
+          }
+        }
+      }
+    ]
+  }
+}

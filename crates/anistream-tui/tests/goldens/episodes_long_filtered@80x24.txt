@@ -1,0 +1,167 @@
+anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────
+▌▸ │  ←  Tanuki Densha Monogatari
+ ▤ │
+ ▦ │    #     TITLE                                   RUN     WATCHED
+ / │  ────────────────────────────────────────────────────────────────────────
+ ▥ │    017   Station No. 17                          23:55   ░░░░░░░░░░  canon
+ ↓ │    018   Station No. 18                          23:55   ░░░░░░░░░░  canon
+ ◇ │    019   Station No. 19                          23:55   ░░░░░░░░░░  canon
+ ◎ │    025   Station No. 25                          23:55   ░░░░░░░░░░  mixed
+ ⚙ │    026   Station No. 26                          23:55   ░░░░░░░░░░  canon
+   │    027   Station No. 27                          23:55   ░░░░░░░░░░  canon
+   │    028   Station No. 28                          23:55   ░░░░░░░░░░  canon
+   │    029   Station No. 29                          23:55   ░░░░░░░░░░  canon
+   │    030   Station No. 30                          23:55   ░░░░░░░░░░  canon
+   │    031   Station No. 31                          23:55   ░░░░░░░░░░  canon
+   │    032   Station No. 32                          23:55   ░░░░░░░░░░  canon
+   │    033   Station No. 33                          23:55   ░░░░░░░░░░  canon
+   │    034   Station No. 34                          23:55   ░░░░░░░░░░  canon
+   │    035   Station No. 35                          23:55   ░░░░░░░░░░  canon
+   │    036   Station No. 36                          23:55   ░░░░░░░░░░  canon
+   │  ▌ 037   Station No. 37                          23:55   ░░░░░░░░░░  canon
+────────────────────────────────────────────────────── ▌ showing no filler  +1 ─
+plugins · sub · 1080p                       ↵ play   u watched   q back   ? keys
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=text mod=BOLD
+r00 c44-54 fg=text-dim
+r00 c55-63 fg=state
+r00 c64-65 fg=text-dim
+r00 c66-66 fg=rule
+r00 c67-68 fg=text-dim
+r00 c69-79 fg=state
+r01 c00-79 fg=rule
+r02 c00-00 fg=text-dim
+r02 c01-01 fg=text mod=BOLD
+r02 c03-03 fg=rule
+r02 c06-32 fg=text mod=BOLD
+r03 c01-01 fg=text-dim
+r03 c03-03 fg=rule
+r04 c01-01 fg=text-dim
+r04 c03-03 fg=rule
+r04 c08-08 fg=text-dim
+r04 c14-18 fg=text-dim
+r04 c54-56 fg=text-dim
+r04 c62-68 fg=text-dim
+r05 c01-01 fg=text-dim
+r05 c03-03 fg=rule
+r05 c06-77 fg=rule
+r06 c01-01 fg=text-dim
+r06 c03-03 fg=rule
+r06 c08-10 fg=text-dim
+r06 c14-27 fg=text-dim
+r06 c54-58 fg=text-dim
+r06 c62-71 fg=rule
+r06 c74-78 fg=text-dim
+r07 c01-01 fg=text-dim
+r07 c03-03 fg=rule
+r07 c08-10 fg=text-dim
+r07 c14-27 fg=text-dim
+r07 c54-58 fg=text-dim
+r07 c62-71 fg=rule
+r07 c74-78 fg=text-dim
+r08 c01-01 fg=text-dim
+r08 c03-03 fg=rule
+r08 c08-10 fg=text-dim
+r08 c14-27 fg=text-dim
+r08 c54-58 fg=text-dim
+r08 c62-71 fg=rule
+r08 c74-78 fg=text-dim
+r09 c01-01 fg=text-dim
+r09 c03-03 fg=rule
+r09 c08-10 fg=text-dim
+r09 c14-27 fg=text-dim
+r09 c54-58 fg=text-dim
+r09 c62-71 fg=rule
+r09 c74-78 fg=text-dim
+r10 c01-01 fg=text-dim
+r10 c03-03 fg=rule
+r10 c08-10 fg=text-dim
+r10 c14-27 fg=text-dim
+r10 c54-58 fg=text-dim
+r10 c62-71 fg=rule
+r10 c74-78 fg=text-dim
+r11 c03-03 fg=rule
+r11 c08-10 fg=text-dim
+r11 c14-27 fg=text-dim
+r11 c54-58 fg=text-dim
+r11 c62-71 fg=rule
+r11 c74-78 fg=text-dim
+r12 c03-03 fg=rule
+r12 c08-10 fg=text-dim
+r12 c14-27 fg=text-dim
+r12 c54-58 fg=text-dim
+r12 c62-71 fg=rule
+r12 c74-78 fg=text-dim
+r13 c03-03 fg=rule
+r13 c08-10 fg=text-dim
+r13 c14-27 fg=text-dim
+r13 c54-58 fg=text-dim
+r13 c62-71 fg=rule
+r13 c74-78 fg=text-dim
+r14 c03-03 fg=rule
+r14 c08-10 fg=text-dim
+r14 c14-27 fg=text-dim
+r14 c54-58 fg=text-dim
+r14 c62-71 fg=rule
+r14 c74-78 fg=text-dim
+r15 c03-03 fg=rule
+r15 c08-10 fg=text-dim
+r15 c14-27 fg=text-dim
+r15 c54-58 fg=text-dim
+r15 c62-71 fg=rule
+r15 c74-78 fg=text-dim
+r16 c03-03 fg=rule
+r16 c08-10 fg=text-dim
+r16 c14-27 fg=text-dim
+r16 c54-58 fg=text-dim
+r16 c62-71 fg=rule
+r16 c74-78 fg=text-dim
+r17 c03-03 fg=rule
+r17 c08-10 fg=text-dim
+r17 c14-27 fg=text-dim
+r17 c54-58 fg=text-dim
+r17 c62-71 fg=rule
+r17 c74-78 fg=text-dim
+r18 c03-03 fg=rule
+r18 c08-10 fg=text-dim
+r18 c14-27 fg=text-dim
+r18 c54-58 fg=text-dim
+r18 c62-71 fg=rule
+r18 c74-78 fg=text-dim
+r19 c03-03 fg=rule
+r19 c08-10 fg=text-dim
+r19 c14-27 fg=text-dim
+r19 c54-58 fg=text-dim
+r19 c62-71 fg=rule
+r19 c74-78 fg=text-dim
+r20 c03-03 fg=rule
+r20 c08-10 fg=text-dim
+r20 c14-27 fg=text-dim
+r20 c54-58 fg=text-dim
+r20 c62-71 fg=rule
+r20 c74-78 fg=text-dim
+r21 c03-03 fg=rule
+r21 c06-06 fg=obi
+r21 c08-10 fg=text mod=BOLD
+r21 c14-27 fg=text mod=BOLD
+r21 c54-58 fg=text-dim
+r21 c62-71 fg=rule
+r21 c74-78 fg=text-dim
+r22 c00-53 fg=rule
+r22 c54-54 fg=text
+r22 c55-55 fg=state
+r22 c56-73 fg=text
+r22 c74-77 fg=text-dim
+r22 c78-78 fg=text
+r22 c79-79 fg=rule
+r23 c00-20 fg=text-dim
+r23 c44-44 fg=text
+r23 c45-52 fg=text-dim
+r23 c53-53 fg=text
+r23 c54-64 fg=text-dim
+r23 c65-65 fg=text
+r23 c66-73 fg=text-dim
+r23 c74-74 fg=text
+r23 c75-79 fg=text-dim

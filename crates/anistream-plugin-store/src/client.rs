@@ -71,9 +71,19 @@ impl StoreClient {
         let http = reqwest::Client::builder()
             .timeout(timeout)
             .redirect(reqwest::redirect::Policy::none())
-            .user_agent(concat!("anistream/", env!("CARGO_PKG_VERSION")))
-            .build()
-            .map_err(|e| ClientError::Network(e.to_string()))?;
+            .user_agent(concat!("anistream/", env!("CARGO_PKG_VERSION")));
+        // On Android the Mozilla roots built in, rather than the platform's verifier, which
+        // fails every request until the app hands it the JVM. A CA the user installed on the
+        // device is not trusted there. As `anistream_net::trusted_roots` decides for the app's
+        // other plain clients; this crate stands apart from the network layer, so it says so
+        // itself.
+        #[cfg(target_os = "android")]
+        let http = http.tls_certs_only(
+            webpki_root_certs::TLS_SERVER_ROOT_CERTS
+                .iter()
+                .filter_map(|der| reqwest::Certificate::from_der(der).ok()),
+        );
+        let http = http.build().map_err(|e| ClientError::Network(e.to_string()))?;
         Ok(Self { http })
     }
 

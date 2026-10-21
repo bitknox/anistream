@@ -5,11 +5,205 @@
 //! the surface small and makes a breaking upstream change show up as one failed field
 //! rather than a wall of them.
 
+use std::collections::BTreeMap;
+
 use anistream_core::{
     ids::AnilistId,
     media::{MediaFormat, MediaStatus},
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de::DeserializeOwned};
+
+use super::Season;
+
+/// A field AniList may one day give a value this build does not know, read so that value is no
+/// value rather than a failed title: one season too many must not blank the Title screen.
+fn lenient<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: DeserializeOwned,
+{
+    let value = Option::<serde_json::Value>::deserialize(deserializer)?;
+    Ok(value.and_then(|value| serde_json::from_value(value).ok()))
+}
+
+/// A date AniList may know only part of: often a year alone, or a year and a month, for a title
+/// announced but not yet scheduled.
+#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct FuzzyDate {
+    #[serde(default)]
+    pub year: Option<u16>,
+    #[serde(default)]
+    pub month: Option<u8>,
+    #[serde(default)]
+    pub day: Option<u8>,
+}
+
+/// What a title was adapted from, as AniList's `source(version: 3)` says.
+///
+/// Version 3, because the default version folds the newer kinds — a web novel, a live-action
+/// film — into `OTHER`. A kind newer still reads as [`Self::Other`] rather than failing.
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum SourceMaterial {
+    Original,
+    Manga,
+    LightNovel,
+    VisualNovel,
+    VideoGame,
+    Novel,
+    Doujinshi,
+    Anime,
+    WebNovel,
+    LiveAction,
+    Game,
+    Comic,
+    MultimediaProject,
+    PictureBook,
+    #[serde(other)]
+    Other,
+}
+
+/// One of AniList's tags on a title: what it is about, by votes.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct Tag {
+    #[serde(default)]
+    pub name: String,
+    /// How relevant the tag is to the title, out of 100.
+    #[serde(default)]
+    pub rank: Option<u32>,
+    /// The tag gives away something of this title's story.
+    #[serde(default)]
+    pub is_media_spoiler: bool,
+    /// The tag is a spoiler in general, whatever title it is on.
+    #[serde(default)]
+    pub is_general_spoiler: bool,
+    #[serde(default)]
+    pub category: Option<String>,
+}
+
+/// One episode's broadcast.
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct Broadcast {
+    pub episode: u32,
+    /// Unix seconds.
+    pub airing_at: i64,
+}
+
+/// The wire shape of `airingSchedule { nodes { … } }`.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct BroadcastConnection {
+    #[serde(default)]
+    pub nodes: Vec<Broadcast>,
+}
+
+/// Where a title ranks: `#3 highest rated 2026`, `#12 most popular all time`.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct Ranking {
+    #[serde(default)]
+    pub rank: Option<u32>,
+    /// `RATED` or `POPULAR`.
+    #[serde(default, rename = "type")]
+    pub kind: Option<String>,
+    /// AniList's own words for the list: `highest rated all time`.
+    #[serde(default)]
+    pub context: Option<String>,
+    #[serde(default)]
+    pub all_time: bool,
+    #[serde(default, deserialize_with = "lenient")]
+    pub season: Option<Season>,
+    #[serde(default)]
+    pub year: Option<u16>,
+}
+
+/// A person as a title's cast and crew name them.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct Person {
+    #[serde(default)]
+    pub name: PersonName,
+    #[serde(default)]
+    pub image: Option<PersonImage>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct PersonName {
+    #[serde(default)]
+    pub full: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct PersonImage {
+    #[serde(default)]
+    pub medium: Option<String>,
+}
+
+/// The wire shape of `characters { edges { … } }`, main characters first.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct CharacterConnection {
+    #[serde(default)]
+    pub edges: Vec<CharacterEdge>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct CharacterEdge {
+    /// `MAIN`, `SUPPORTING` or `BACKGROUND`.
+    #[serde(default)]
+    pub role: Option<String>,
+    #[serde(default)]
+    pub node: Option<Person>,
+    /// The character's Japanese voice actors, usually one.
+    #[serde(default)]
+    pub voice_actors: Vec<Person>,
+}
+
+/// The wire shape of `staff { edges { … } }`.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct StaffConnection {
+    #[serde(default)]
+    pub edges: Vec<StaffEdge>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct StaffEdge {
+    /// What they did, in AniList's words: `Director`, `Original Creator`.
+    #[serde(default)]
+    pub role: Option<String>,
+    #[serde(default)]
+    pub node: Option<Person>,
+}
+
+/// The title language a signed-in user reads AniList in. The stylised forms are AniList's own
+/// capitalisation of the same title, and read here as the form they style.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TitleLanguage {
+    Romaji,
+    English,
+    Native,
+}
+
+impl TitleLanguage {
+    /// AniList's `UserTitleLanguage`, or `None` for one this build does not know.
+    pub fn from_wire(value: &str) -> Option<Self> {
+        Some(match value {
+            "ROMAJI" | "ROMAJI_STYLISED" => Self::Romaji,
+            "ENGLISH" | "ENGLISH_STYLISED" => Self::English,
+            "NATIVE" | "NATIVE_STYLISED" => Self::Native,
+            _ => return None,
+        })
+    }
+}
+
+/// The signed-in user, as [`super::query::VIEWER`] asks for them.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Viewer {
+    pub id: u32,
+    pub name: Option<String>,
+    /// `None` when AniList did not say, or said something this build does not know.
+    pub title_language: Option<TitleLanguage>,
+}
 
 /// A title in the three forms AniList publishes.
 ///
@@ -25,21 +219,40 @@ pub struct Title {
 }
 
 impl Title {
-    /// The form to show in the UI: English if there is one, else romaji.
+    /// The form to show in the UI: English if there is one, else romaji. What [`Self::shown`]
+    /// gives for English.
     pub fn display(&self) -> &str {
-        self.english
-            .as_deref()
-            .or(self.romaji.as_deref())
-            .or(self.native.as_deref())
-            .unwrap_or("Untitled")
+        self.shown(TitleLanguage::English)
     }
 
     /// The form to show as a subheading, when it differs from [`Self::display`].
     pub fn secondary(&self) -> Option<&str> {
-        match (&self.english, &self.romaji) {
-            (Some(en), Some(ro)) if en != ro => Some(ro),
-            _ => None,
-        }
+        self.beside(TitleLanguage::English)
+    }
+
+    /// The form to show when `language` is the one asked for: that form, else English, else
+    /// romaji, else native. An empty form is no form.
+    pub fn shown(&self, language: TitleLanguage) -> &str {
+        let chosen = match language {
+            TitleLanguage::Romaji => &self.romaji,
+            TitleLanguage::English => &self.english,
+            TitleLanguage::Native => &self.native,
+        };
+        [chosen, &self.english, &self.romaji, &self.native]
+            .into_iter()
+            .filter_map(|form| form.as_deref())
+            .find(|form| !form.is_empty())
+            .unwrap_or("Untitled")
+    }
+
+    /// The form to show beside [`Self::shown`] as a subheading: romaji under English or native,
+    /// English under romaji. `None` when it would only repeat the title.
+    pub fn beside(&self, language: TitleLanguage) -> Option<&str> {
+        let shown = self.shown(language);
+        [&self.romaji, &self.english]
+            .into_iter()
+            .filter_map(|form| form.as_deref())
+            .find(|form| !form.is_empty() && *form != shown)
     }
 
     /// Every distinct title, in the order provider search should try them.
@@ -179,12 +392,20 @@ pub struct RelationEdge {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct RelationNode {
     pub id: AnilistId,
     #[serde(default)]
     pub title: Title,
     #[serde(default)]
     pub format: Option<MediaFormat>,
+    /// The cover a card shows. Only `large` is asked for.
+    #[serde(default)]
+    pub cover_image: CoverImage,
+    #[serde(default, deserialize_with = "lenient")]
+    pub season: Option<Season>,
+    #[serde(default)]
+    pub season_year: Option<u16>,
 }
 
 /// A title, as much of it as anistream renders.
@@ -208,6 +429,17 @@ pub struct Media {
     pub duration: Option<u32>,
     #[serde(default)]
     pub season_year: Option<u16>,
+    /// The season it premiered in.
+    #[serde(default, deserialize_with = "lenient")]
+    pub season: Option<Season>,
+    #[serde(default)]
+    pub start_date: Option<FuzzyDate>,
+    #[serde(default)]
+    pub end_date: Option<FuzzyDate>,
+    #[serde(default)]
+    pub source: Option<SourceMaterial>,
+    #[serde(default)]
+    pub is_adult: Option<bool>,
     #[serde(default)]
     pub average_score: Option<u32>,
     #[serde(default)]
@@ -236,6 +468,26 @@ pub struct Media {
     /// The promotional video, when AniList has one. Rides the detail fetch.
     #[serde(default)]
     pub trailer: Option<Trailer>,
+    /// What the title is about, by votes. Rides the detail fetch.
+    #[serde(default)]
+    pub tags: Vec<Tag>,
+    /// Every broadcast still to come, in episode order. Rides the detail fetch.
+    #[serde(default)]
+    pub upcoming: BroadcastConnection,
+    /// The broadcasts already out, newest first, fifty at most. Not a field of AniList's
+    /// `Media`: the detail fetch asks for it beside the title and puts it here, so the cache
+    /// keeps it with the rest.
+    #[serde(default)]
+    pub aired: Vec<Broadcast>,
+    /// Where the title ranks. Rides the detail fetch.
+    #[serde(default)]
+    pub rankings: Vec<Ranking>,
+    /// The main and supporting cast, with their Japanese voices. Rides the detail fetch.
+    #[serde(default)]
+    pub characters: CharacterConnection,
+    /// The people who made it, most relevant first. Rides the detail fetch.
+    #[serde(default)]
+    pub staff: StaffConnection,
 }
 
 /// A trailer reference: a video id on a host, not a playable URL.
@@ -402,16 +654,16 @@ impl Media {
 
     /// How far the streaming listings are numbered ahead of *this* entry's episode one.
     ///
-    /// Services number a sequel season continuously across the franchise — Dandadan's second
-    /// season is listed as episodes 25–48 — while a release, and therefore a provider, calls
-    /// its first episode one. Left uncorrected the two never line up and a sequel gets no
+    /// Services number a sequel season continuously across the franchise — a second season of
+    /// twenty-four is listed as episodes 25–48 — while a release, and therefore a provider,
+    /// calls its first episode one. Left uncorrected the two never line up and a sequel gets no
     /// titles at all, which is exactly how this was found.
     ///
     /// Applied only when the evidence is unambiguous: the entry knows how many episodes it
     /// has, the listings form a contiguous run of exactly that many, and that run starts past
-    /// episode one. A long-running series numbered absolutely — One Piece, whose listings are
-    /// a moving window and whose length AniList leaves unknown — matches none of that, so its
-    /// already-correct numbers are left alone.
+    /// episode one. A long-running series numbered absolutely — one past its thousandth
+    /// episode, whose listings are a moving window and whose length AniList leaves unknown —
+    /// matches none of that, so its already-correct numbers are left alone.
     fn listing_offset(&self) -> u32 {
         let mut numbers: Vec<u32> = self
             .streaming_episodes
@@ -482,6 +734,22 @@ impl Media {
         self.streaming_episodes.iter().find(|e| e.episode_number() == Some(episode))
     }
 
+    /// When each episode airs or aired, by number, from every broadcast the title carries: the
+    /// ones already out, the ones to come, and the next one, which a list fetch has too.
+    ///
+    /// A long runner's oldest broadcasts are not here — only its newest fifty — so a missing
+    /// episode means not known, never not aired.
+    pub fn air_times(&self) -> BTreeMap<u32, i64> {
+        let mut times = BTreeMap::new();
+        let next = self
+            .next_airing_episode
+            .map(|n| Broadcast { episode: n.episode, airing_at: n.airing_at });
+        for broadcast in self.aired.iter().chain(&self.upcoming.nodes).chain(next.as_ref()) {
+            times.insert(broadcast.episode, broadcast.airing_at);
+        }
+        times
+    }
+
     /// Build the matching target used by the resolution ladder.
     pub fn match_target(&self) -> crate::title::MatchTarget {
         crate::title::MatchTarget {
@@ -504,7 +772,10 @@ mod title_tests {
     #[test]
     fn the_numbering_prefix_is_stripped_from_an_episode_title() {
         // The shapes actually seen in the listings.
-        assert_eq!(listing("Episode 12 - A Real Hero").episode_title(), Some("A Real Hero"));
+        assert_eq!(
+            listing("Episode 12 - The Sky Archive").episode_title(),
+            Some("The Sky Archive")
+        );
         assert_eq!(listing("Episode 1 – Pilot").episode_title(), Some("Pilot"));
         assert_eq!(listing("Episode 7: The Village").episode_title(), Some("The Village"));
     }
@@ -537,7 +808,7 @@ mod title_tests {
 
     #[test]
     fn a_sequel_numbered_across_the_franchise_is_realigned_to_its_own_episode_one() {
-        // Dandadan's second season is listed as 25–48; a release calls its first episode one.
+        // A second season of 24 is listed as 25–48; a release calls its first episode one.
         // Uncorrected the two never meet and the season gets no titles at all.
         let media = media_with(Some(24), &(25..=48).collect::<Vec<_>>());
         let titles = media.episode_titles();
@@ -556,7 +827,7 @@ mod title_tests {
 
     #[test]
     fn an_absolutely_numbered_long_runner_keeps_its_numbers() {
-        // One Piece: the listings are a moving window into a series whose length AniList
+        // A long runner: the listings are a moving window into a series whose length AniList
         // leaves unknown. Shifting those to start at one would corrupt correct data.
         let media = media_with(None, &(62..=130).collect::<Vec<_>>());
         assert_eq!(media.episode_titles().keys().next(), Some(&62));
@@ -575,7 +846,10 @@ mod title_tests {
 
     #[test]
     fn a_title_with_no_numbering_at_all_is_left_alone() {
-        assert_eq!(listing("Frieren the Slayer").episode_title(), Some("Frieren the Slayer"));
+        assert_eq!(
+            listing("Where the Roads Cross").episode_title(),
+            Some("Where the Roads Cross")
+        );
     }
 }
 
@@ -583,24 +857,24 @@ mod title_tests {
 mod tests {
     use super::*;
 
-    fn frieren() -> Media {
+    fn hoshikuzu() -> Media {
         // Shaped from a real graphql.anilist.co response captured during planning.
         serde_json::from_value(serde_json::json!({
             "id": 154587,
             "idMal": 52991,
             "title": {
-                "romaji": "Sousou no Frieren",
-                "english": "Frieren: Beyond Journey's End",
-                "native": "葬送のフリーレン"
+                "romaji": "Hoshikuzu no Tabibito",
+                "english": "Stardust Wayfarer",
+                "native": "星屑の旅人"
             },
             "format": "TV",
             "status": "FINISHED",
-            "description": "<p>The mage Frieren...</p><br><i>(Source: Crunchyroll)</i>",
+            "description": "<p>The lamplighter walks on...</p><br><i>(Source: Hikari Stream)</i>",
             "episodes": 28,
             "seasonYear": 2023,
             "averageScore": 91,
             "genres": ["Adventure", "Drama", "Fantasy"],
-            "synonyms": ["Frieren at the Funeral"],
+            "synonyms": ["Hoshitabi"],
             "coverImage": {
                 "extraLarge": "https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/bx154587.jpg",
                 "large": "https://s4.anilist.co/small.jpg"
@@ -608,13 +882,13 @@ mod tests {
             "bannerImage": "https://s4.anilist.co/banner/154587.jpg",
             "nextAiringEpisode": null,
             "externalLinks": [
-                {"site": "Crunchyroll", "url": "https://www.crunchyroll.com/series/GG5H5XQX4", "type": "STREAMING"},
-                {"site": "Netflix", "url": "https://www.netflix.com/title/81726714", "type": "STREAMING"},
-                {"site": "Official Site", "url": "https://frieren-anime.jp/", "type": "INFO"}
+                {"site": "Hikari Stream", "url": "https://hikari.example/series/GG5H5XQX4", "type": "STREAMING"},
+                {"site": "Lantern Stream", "url": "https://stream.example/title/81726714", "type": "STREAMING"},
+                {"site": "Official Site", "url": "https://hoshikuzu.example/", "type": "INFO"}
             ],
             "streamingEpisodes": [
-                {"title": "Episode 1 - The Journey's End", "url": "https://www.crunchyroll.com/watch/G2XU04E88", "site": "Crunchyroll"},
-                {"title": "Episode 2 - It Didn't Have to Be Magic", "url": "https://www.crunchyroll.com/watch/G8WUNGZ48", "site": "Crunchyroll"}
+                {"title": "Episode 1 - The Lantern Road", "url": "https://hikari.example/watch/G2XU04E88", "site": "Hikari Stream"},
+                {"title": "Episode 2 - A Town Without Night", "url": "https://hikari.example/watch/G8WUNGZ48", "site": "Hikari Stream"}
             ]
         }))
         .unwrap()
@@ -622,7 +896,7 @@ mod tests {
 
     #[test]
     fn a_real_anilist_payload_deserialises() {
-        let m = frieren();
+        let m = hoshikuzu();
         assert_eq!(m.id, AnilistId::new(154_587));
         assert_eq!(m.id_mal, Some(52_991));
         assert_eq!(m.episodes, Some(28));
@@ -693,11 +967,122 @@ mod tests {
         assert_eq!(with(serde_json::Value::Null).trailer_url(), None);
     }
 
+    /// A title page's answer with every field the richer detail asks for, and the broadcasts
+    /// already out as the client puts them on the title.
+    fn detailed() -> Media {
+        serde_json::from_value(serde_json::json!({
+            "id": 900001,
+            "title": {"romaji": "Hoshikuzu no Tabibito", "english": "Stardust Wayfarer"},
+            "season": "SPRING",
+            "startDate": {"year": 2024, "month": 4, "day": 6},
+            "endDate": {"year": null, "month": null, "day": null},
+            "source": "MANGA",
+            "isAdult": false,
+            "nextAiringEpisode": {"episode": 4, "airingAt": 3_000, "timeUntilAiring": 10},
+            "tags": [
+                {"name": "Travel", "rank": 94, "isMediaSpoiler": false,
+                 "isGeneralSpoiler": false, "category": "Theme-Other"},
+                {"name": "The Last Lantern", "rank": 58, "isMediaSpoiler": true,
+                 "isGeneralSpoiler": false, "category": "Theme-Drama"}
+            ],
+            "upcoming": {"nodes": [{"episode": 4, "airingAt": 3_000}, {"episode": 5, "airingAt": 4_000}]},
+            "aired": [{"episode": 3, "airingAt": 2_000}, {"episode": 2, "airingAt": 1_000}],
+            "rankings": [{"rank": 4, "type": "RATED", "context": "highest rated",
+                          "allTime": false, "season": "SPRING", "year": 2024}],
+            "characters": {"edges": [{
+                "role": "MAIN",
+                "node": {"name": {"full": "Ren Amagiri"}, "image": {"medium": "https://img.example/people/ren.jpg"}},
+                "voiceActors": [{"name": {"full": "Ren's voice"}, "image": null}]
+            }]},
+            "staff": {"edges": [{"role": "Director", "node": {"name": {"full": "Director of Stardust Wayfarer"}}}]},
+            "relations": {"edges": [{"relationType": "SEQUEL", "node": {
+                "id": 900004, "title": {"romaji": "Hoshikuzu no Tabibito 2nd Season"}, "format": "TV",
+                "coverImage": {"large": "https://img.example/cover/900004.jpg"},
+                "season": "WINTER", "seasonYear": 2025
+            }}]}
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn the_title_pages_richer_fields_deserialise() {
+        let m = detailed();
+        assert_eq!(m.season, Some(Season::Spring));
+        assert_eq!(
+            m.start_date,
+            Some(FuzzyDate { year: Some(2024), month: Some(4), day: Some(6) })
+        );
+        assert_eq!(m.end_date, Some(FuzzyDate::default()), "an unknown end is all nulls");
+        assert_eq!(m.source, Some(SourceMaterial::Manga));
+        assert_eq!(m.is_adult, Some(false));
+        assert_eq!(m.tags.len(), 2);
+        assert!(m.tags[1].is_media_spoiler);
+        assert_eq!(m.rankings[0].kind.as_deref(), Some("RATED"));
+        assert_eq!(m.rankings[0].season, Some(Season::Spring));
+        let cast = &m.characters.edges[0];
+        assert_eq!(cast.role.as_deref(), Some("MAIN"));
+        assert_eq!(cast.voice_actors[0].name.full.as_deref(), Some("Ren's voice"));
+        assert_eq!(m.staff.edges[0].role.as_deref(), Some("Director"));
+        let sequel = &m.relations.edges[0].node;
+        assert_eq!(sequel.cover_image.best(), Some("https://img.example/cover/900004.jpg"));
+        assert_eq!((sequel.season, sequel.season_year), (Some(Season::Winter), Some(2025)));
+    }
+
+    #[test]
+    fn a_kind_or_season_anilist_adds_later_does_not_break_the_title() {
+        // A season this build has never heard of reads as none; a source kind as other. Either
+        // failing would blank the Title screen over one field.
+        let m: Media = serde_json::from_value(serde_json::json!({
+            "id": 1,
+            "season": "MONSOON",
+            "source": "SOMETHING_NEW",
+            "rankings": [{"rank": 1, "type": "TRENDING", "season": "MONSOON"}]
+        }))
+        .unwrap();
+        assert_eq!(m.season, None);
+        assert_eq!(m.source, Some(SourceMaterial::Other));
+        assert_eq!(m.rankings[0].season, None);
+    }
+
+    #[test]
+    fn air_times_gather_every_broadcast_by_episode() {
+        // What is out, what is to come, and the next one, which a list fetch carries alone.
+        let times = detailed().air_times();
+        assert_eq!(
+            times.into_iter().collect::<Vec<_>>(),
+            [(2, 1_000), (3, 2_000), (4, 3_000), (5, 4_000)]
+        );
+
+        let listed: Media = serde_json::from_value(serde_json::json!({
+            "id": 1,
+            "nextAiringEpisode": {"episode": 7, "airingAt": 9_000, "timeUntilAiring": 5}
+        }))
+        .unwrap();
+        assert_eq!(listed.air_times().into_iter().collect::<Vec<_>>(), [(7, 9_000)]);
+    }
+
+    #[test]
+    fn the_richer_fields_survive_the_cache_round_trip() {
+        // What the cache recalls during an outage is what the Title screen showed.
+        let m = detailed();
+        let back: Media = serde_json::from_str(&serde_json::to_string(&m).unwrap()).unwrap();
+        assert_eq!(back, m);
+        assert_eq!(back.aired.len(), 2, "the broadcasts put on the title are kept with it");
+    }
+
+    #[test]
+    fn a_stylised_title_language_reads_as_the_form_it_styles() {
+        assert_eq!(TitleLanguage::from_wire("ROMAJI"), Some(TitleLanguage::Romaji));
+        assert_eq!(TitleLanguage::from_wire("ENGLISH_STYLISED"), Some(TitleLanguage::English));
+        assert_eq!(TitleLanguage::from_wire("NATIVE_STYLISED"), Some(TitleLanguage::Native));
+        assert_eq!(TitleLanguage::from_wire("SOMETHING_NEW"), None);
+    }
+
     #[test]
     fn a_media_survives_the_cache_round_trip() {
         // The media cache stores serialized Media; a lossy round trip would mean the
         // fallback path silently shows different data than the fresh one did.
-        let m = frieren();
+        let m = hoshikuzu();
         let json = serde_json::to_string(&m).expect("serialize");
         let back: Media = serde_json::from_str(&json).expect("deserialize");
         assert_eq!(back, m);
@@ -717,11 +1102,11 @@ mod tests {
     #[test]
     fn html_is_stripped_from_descriptions() {
         // Left in, this renders as literal tag soup in the synopsis panel.
-        let text = frieren().plain_description();
+        let text = hoshikuzu().plain_description();
         assert!(!text.contains('<'), "got: {text}");
         assert!(!text.contains("&amp;"));
-        assert!(text.starts_with("The mage Frieren"));
-        assert!(text.contains("(Source: Crunchyroll)"));
+        assert!(text.starts_with("The lamplighter"));
+        assert!(text.contains("(Source: Hikari Stream)"));
     }
 
     #[test]
@@ -736,37 +1121,37 @@ mod tests {
 
     #[test]
     fn display_title_prefers_english_with_romaji_as_subheading() {
-        let m = frieren();
-        assert_eq!(m.title.display(), "Frieren: Beyond Journey's End");
-        assert_eq!(m.title.secondary(), Some("Sousou no Frieren"));
+        let m = hoshikuzu();
+        assert_eq!(m.title.display(), "Stardust Wayfarer");
+        assert_eq!(m.title.secondary(), Some("Hoshikuzu no Tabibito"));
     }
 
     #[test]
     fn search_titles_include_romaji_english_native_and_synonyms() {
         // Feeding all of them to a provider is what bridges an english query to a
         // romaji-only catalogue.
-        let titles = frieren().search_titles();
-        assert!(titles.contains(&"Sousou no Frieren".to_string()));
-        assert!(titles.contains(&"Frieren: Beyond Journey's End".to_string()));
-        assert!(titles.contains(&"Frieren at the Funeral".to_string()));
-        assert_eq!(titles[0], "Sousou no Frieren", "romaji first — release groups use it");
+        let titles = hoshikuzu().search_titles();
+        assert!(titles.contains(&"Hoshikuzu no Tabibito".to_string()));
+        assert!(titles.contains(&"Stardust Wayfarer".to_string()));
+        assert!(titles.contains(&"Hoshitabi".to_string()));
+        assert_eq!(titles[0], "Hoshikuzu no Tabibito", "romaji first — release groups use it");
     }
 
     #[test]
     fn duplicate_titles_are_not_repeated() {
         let m: Media = serde_json::from_value(serde_json::json!({
             "id": 1,
-            "title": {"romaji": "Bocchi", "english": "Bocchi"},
-            "synonyms": ["Bocchi"]
+            "title": {"romaji": "Tomoshibi", "english": "Tomoshibi"},
+            "synonyms": ["Tomoshibi"]
         }))
         .unwrap();
-        assert_eq!(m.search_titles(), vec!["Bocchi"]);
+        assert_eq!(m.search_titles(), vec!["Tomoshibi"]);
         assert_eq!(m.title.secondary(), None, "no subheading when both forms match");
     }
 
     #[test]
     fn streaming_links_are_separated_from_informational_ones() {
-        let media = frieren();
+        let media = hoshikuzu();
         let services = media.streaming_services();
         assert_eq!(services.len(), 2);
         assert!(services.iter().all(|s| s.site != "Official Site"));
@@ -775,18 +1160,18 @@ mod tests {
     #[test]
     fn per_episode_deep_links_resolve_by_number() {
         // This is the licensed path: no auth, straight from AniList.
-        let m = frieren();
+        let m = hoshikuzu();
         assert_eq!(
             m.episode_link(1).and_then(|e| e.url.as_deref()),
-            Some("https://www.crunchyroll.com/watch/G2XU04E88")
+            Some("https://hikari.example/watch/G2XU04E88")
         );
-        assert_eq!(m.episode_link(2).unwrap().site.as_deref(), Some("Crunchyroll"));
+        assert_eq!(m.episode_link(2).unwrap().site.as_deref(), Some("Hikari Stream"));
         assert!(m.episode_link(99).is_none());
     }
 
     #[test]
     fn match_target_carries_the_gates_the_ladder_needs() {
-        let t = frieren().match_target();
+        let t = hoshikuzu().match_target();
         assert_eq!(t.episode_count, Some(28));
         assert_eq!(t.year, Some(2023));
         assert_eq!(t.format, Some(MediaFormat::Tv));
@@ -795,7 +1180,7 @@ mod tests {
 
     #[test]
     fn cover_image_prefers_the_largest_available() {
-        let m = frieren();
+        let m = hoshikuzu();
         assert!(m.cover_image.best().unwrap().contains("bx154587"));
         let small = CoverImage { extra_large: None, large: Some("l.jpg".into()), color: None };
         assert_eq!(small.best(), Some("l.jpg"));

@@ -1,0 +1,109 @@
+anistream                                   torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────
+  ▸│  APPEARANCE  ───────────────────────────────────────────────────────────
+  ▤│    THEME                       adaptive
+  ▦│    MOTION                      on
+  /│    TITLES                      AniList's choice
+  ▥│
+  ↓│  PLAYBACK  ─────────────────────────────────────────────────────────────
+  ◇│    TRANSLATION                 sub · dub this session
+  ◎│    QUALITY                     1080p
+▌ ⚙│    SUBTITLES                   eng
+   │    COUNTS AS WATCHED AT        85%
+   │    AUTO-PLAY NEXT              on
+   │    SKIP OPENING AUTOMATICALLY  on
+   │    SKIP FILLER AUTOMATICALLY   off
+   │    MARK OPENING AND ENDING     on
+   │    START FULLSCREEN            off
+   │  ▌ UPSCALING                   natural · ArtCNN
+   │    PLAYER INTERFACE            anistream
+   │    NIGHT MODE                  off
+   │  ────────────────────────────────────────────────────────────────────────
+   │    adapts to the source and your GPU · from the next episode
+───────────────────────────────────────────── ▌ now using dub for this session ─
+config.toml line 12: unknown field `playbak` — using the defaults until…  ? keys
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=text mod=BOLD
+r00 c44-54 fg=text-dim
+r00 c55-63 fg=state
+r00 c64-65 fg=text-dim
+r00 c66-66 fg=rule
+r00 c67-68 fg=text-dim
+r00 c69-79 fg=state
+r01 c00-79 fg=rule
+r02 c02-02 fg=text-dim
+r02 c03-03 fg=rule
+r02 c06-15 fg=text
+r02 c18-76 fg=rule
+r03 c02-02 fg=text-dim
+r03 c03-03 fg=rule
+r03 c08-12 fg=text-dim
+r03 c36-43 fg=text
+r04 c02-02 fg=text-dim
+r04 c03-03 fg=rule
+r04 c08-13 fg=text-dim
+r04 c36-37 fg=text
+r05 c02-02 fg=text-dim
+r05 c03-03 fg=rule
+r05 c08-13 fg=text-dim
+r05 c36-51 fg=text
+r06 c02-02 fg=text-dim
+r06 c03-03 fg=rule
+r07 c02-02 fg=text-dim
+r07 c03-03 fg=rule
+r07 c06-13 fg=text
+r07 c16-76 fg=rule
+r08 c02-02 fg=text-dim
+r08 c03-03 fg=rule
+r08 c08-18 fg=text-dim
+r08 c36-57 fg=text
+r09 c02-02 fg=text-dim
+r09 c03-03 fg=rule
+r09 c08-14 fg=text-dim
+r09 c36-40 fg=text
+r10 c00-00 fg=text-dim
+r10 c02-02 fg=text
+r10 c03-03 fg=rule
+r10 c08-16 fg=text-dim
+r10 c36-38 fg=text
+r11 c03-03 fg=rule
+r11 c08-27 fg=text-dim
+r11 c36-38 fg=text
+r12 c03-03 fg=rule
+r12 c08-21 fg=text-dim
+r12 c36-37 fg=text
+r13 c03-03 fg=rule
+r13 c08-33 fg=text-dim
+r13 c36-37 fg=text
+r14 c03-03 fg=rule
+r14 c08-32 fg=text-dim
+r14 c36-38 fg=text
+r15 c03-03 fg=rule
+r15 c08-30 fg=text-dim
+r15 c36-37 fg=text
+r16 c03-03 fg=rule
+r16 c08-23 fg=text-dim
+r16 c36-38 fg=text
+r17 c03-03 fg=rule
+r17 c06-06 fg=obi
+r17 c08-16 fg=text
+r17 c36-51 fg=text mod=BOLD
+r18 c03-03 fg=rule
+r18 c08-23 fg=text-dim
+r18 c36-44 fg=text
+r19 c03-03 fg=rule
+r19 c08-17 fg=text-dim
+r19 c36-38 fg=text
+r20 c03-03 fg=rule
+r20 c06-77 fg=rule
+r21 c03-03 fg=rule
+r21 c08-64 fg=text-dim
+r22 c00-44 fg=rule
+r22 c45-45 fg=text
+r22 c46-46 fg=state
+r22 c47-78 fg=text
+r22 c79-79 fg=rule
+r23 c00-71 fg=alert
+r23 c74-74 fg=text
+r23 c75-79 fg=text-dim

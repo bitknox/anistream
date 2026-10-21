@@ -9,7 +9,28 @@ use anistream_core::{
     ids::AnilistId,
     traits::{TrackOp, TrackedEntry, Tracker, WatchStatus},
 };
-use anistream_meta::anilist::{AniList, AniListError, LibraryEntry};
+use std::{
+    sync::atomic::{AtomicU64, Ordering},
+    time::{Duration, Instant},
+};
+
+use anistream_meta::anilist::{AniList, AniListError, LibraryEntry, TitleLanguage, Viewer};
+
+/// How long one library answer serves every ask for the library.
+///
+/// The Library screen asks for its five segments at once, and every one of them is cut from
+/// the same list: five requests for one answer, the first time it opened. Short, because the
+/// list is the remote one and this screen is how its changes are seen.
+pub const LIBRARY_REUSE: Duration = Duration::from_secs(30);
+
+/// The library as last asked for, and for whom.
+struct LastLibrary {
+    /// [`AniListTracker::changes`] when it was asked for: a sign-in, a sign-out or a change
+    /// written to the list since means a different answer.
+    changes: u64,
+    at: Instant,
+    answer: Result<Vec<LibraryEntry>, AniListError>,
+}
 
 /// AniList's `MediaListStatus` enum, as strings.
 ///
@@ -46,8 +67,9 @@ pub fn status_from_anilist(status: &str) -> WatchStatus {
 pub struct AniListTracker {
     client: AniList,
     /// Resolved on first use and cached — the library query needs a user id, and asking for it
-    /// on every pull would waste one of thirty requests a minute.
-    viewer: tokio::sync::Mutex<Option<u32>>,
+    /// on every pull would waste one of thirty requests a minute. The same answer carries the
+    /// title language the viewer reads in, so asking for that costs nothing more.
+    viewer: tokio::sync::Mutex<Option<Viewer>>,
     /// Set when the user signs out.
     ///
     /// The client holds its token from construction, and clearing the *stored* token does not
@@ -55,6 +77,12 @@ pub struct AniListTracker {
     /// keep pushing with a credential the user had just withdrawn. Signing out has to mean
     /// something immediately, not at the next restart.
     signed_out: std::sync::atomic::AtomicBool,
+    /// The last library answer. Held across the request, so asks made while one is out wait
+    /// for it and take its answer: see [`LIBRARY_REUSE`].
+    library: tokio::sync::Mutex<Option<LastLibrary>>,
+    /// Counted up on every sign-in, sign-out and change written to the list, each of which
+    /// makes the last library answer someone else's or out of date.
+    changes: AtomicU64,
 }
 
 impl AniListTracker {
@@ -64,6 +92,8 @@ impl AniListTracker {
             client,
             viewer: tokio::sync::Mutex::new(None),
             signed_out: std::sync::atomic::AtomicBool::new(false),
+            library: tokio::sync::Mutex::new(None),
+            changes: AtomicU64::new(0),
         }
     }
 
@@ -71,9 +101,30 @@ impl AniListTracker {
     ///
     /// [`Tracker::pull_library`] returns only the syncable projection; this returns everything
     /// AniList sent, so the screen does not need a second pass of lookups.
+    ///
+    /// One request answers every ask for [`LIBRARY_REUSE`], and every ask made while it was
+    /// out, a failure included: an ask that waited for one is not made again.
     pub async fn library(&self) -> Result<Vec<LibraryEntry>, anistream_core::Error> {
-        let viewer = self.viewer_id().await?;
-        self.client.library(viewer).await.map_err(to_core)
+        let asked = Instant::now();
+        let mut last = self.library.lock().await;
+        let changes = self.changes.load(Ordering::SeqCst);
+        if let Some(last) = last.as_ref()
+            && last.changes == changes
+            && (last.at >= asked || (last.answer.is_ok() && last.at.elapsed() < LIBRARY_REUSE))
+        {
+            return last.answer.clone().map_err(to_core);
+        }
+        let answer = match self.viewer().await {
+            Ok(viewer) => self.client.library(viewer.id).await,
+            Err(e) => Err(e),
+        };
+        *last = Some(LastLibrary { changes, at: Instant::now(), answer: answer.clone() });
+        answer.map_err(to_core)
+    }
+
+    /// The last library answer is someone else's now, or out of date.
+    fn changed(&self) {
+        self.changes.fetch_add(1, Ordering::SeqCst);
     }
 
     /// Remove an entry from the user's list.
@@ -83,17 +134,25 @@ impl AniListTracker {
     /// only ever moves progress forward — so it stays off the interface every tracker must
     /// implement.
     pub async fn delete(&self, entry_id: u32) -> Result<bool, anistream_core::Error> {
-        self.client.delete_entry(entry_id).await.map_err(to_core)
+        let deleted = self.client.delete_entry(entry_id).await.map_err(to_core);
+        self.changed();
+        deleted
     }
 
-    async fn viewer_id(&self) -> Result<u32, anistream_core::Error> {
+    /// The title language the signed-in viewer reads AniList in: romaji, English or native.
+    /// `None` when AniList did not say.
+    pub async fn title_language(&self) -> Result<Option<TitleLanguage>, anistream_core::Error> {
+        Ok(self.viewer().await.map_err(to_core)?.title_language)
+    }
+
+    async fn viewer(&self) -> Result<Viewer, AniListError> {
         let mut cached = self.viewer.lock().await;
-        if let Some(id) = *cached {
-            return Ok(id);
+        if let Some(viewer) = cached.as_ref() {
+            return Ok(viewer.clone());
         }
-        let id = self.client.viewer_id().await.map_err(to_core)?;
-        *cached = Some(id);
-        Ok(id)
+        let viewer = self.client.viewer().await?;
+        *cached = Some(viewer.clone());
+        Ok(viewer)
     }
 }
 
@@ -117,8 +176,9 @@ impl Tracker for AniListTracker {
         self.client.set_token(Some(access.to_owned()));
         self.signed_out.store(false, std::sync::atomic::Ordering::Relaxed);
         // The cached viewer id belonged to whoever was signed in before, and a library pull keyed on
-        // it would fetch the wrong account's list.
+        // it would fetch the wrong account's list. So did the last library answer.
         *self.viewer.lock().await = None;
+        self.changed();
     }
 
     async fn forget_credentials(&self) {
@@ -126,6 +186,7 @@ impl Tracker for AniListTracker {
         // Drop the cached viewer id too, so signing into a *different* account cannot inherit the
         // previous one's list.
         *self.viewer.lock().await = None;
+        self.changed();
     }
 
     async fn pull_library(&self) -> Result<Vec<TrackedEntry>, anistream_core::Error> {
@@ -148,13 +209,22 @@ impl Tracker for AniListTracker {
         if !self.is_authenticated() {
             return Err(anistream_core::Error::Auth("signed out".into()));
         }
-        for entry in coalesce(ops) {
-            self.client
-                .save_entry(entry.anilist_id, entry.progress, entry.status, entry.score)
-                .await
-                .map_err(to_core)?;
+        // The list as last fetched is out of date once one of these may have reached it, so
+        // the next ask is a new one even if a save fails partway.
+        let pushed = async {
+            for entry in coalesce(ops) {
+                self.client
+                    .save_entry(entry.anilist_id, entry.progress, entry.status, entry.score)
+                    .await
+                    .map_err(to_core)?;
+            }
+            Ok(())
         }
-        Ok(())
+        .await;
+        if !ops.is_empty() {
+            self.changed();
+        }
+        pushed
     }
 }
 
@@ -223,7 +293,7 @@ fn to_core(error: AniListError) -> anistream_core::Error {
 mod tests {
     use super::*;
 
-    const FRIEREN: AnilistId = AnilistId::new(154_587);
+    const HOSHIKUZU: AnilistId = AnilistId::new(154_587);
 
     #[test]
     fn every_status_survives_a_round_trip() {
@@ -269,21 +339,21 @@ mod tests {
         // Thirty requests a minute is the whole budget, so a per-op mutation would make a
         // resync of twenty titles take a minute.
         let ops = [
-            TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 },
-            TrackOp::SetStatus { anilist_id: FRIEREN, status: WatchStatus::Completed, at: 1 },
-            TrackOp::SetScore { anilist_id: FRIEREN, score: 9.0, at: 1 },
+            TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 },
+            TrackOp::SetStatus { anilist_id: HOSHIKUZU, status: WatchStatus::Completed, at: 1 },
+            TrackOp::SetScore { anilist_id: HOSHIKUZU, score: 9.0, at: 1 },
         ];
         let batched = coalesce(&ops);
         assert_eq!(batched.len(), 1);
-        assert_eq!(batched[0], mutation(FRIEREN, Some(12), Some("COMPLETED"), Some(9.0)));
+        assert_eq!(batched[0], mutation(HOSHIKUZU, Some(12), Some("COMPLETED"), Some(9.0)));
     }
 
     #[test]
     fn batching_keeps_the_highest_progress() {
         // Two progress ops in one batch must not let the later, lower one win.
         let ops = [
-            TrackOp::SetProgress { anilist_id: FRIEREN, episode: 12 },
-            TrackOp::SetProgress { anilist_id: FRIEREN, episode: 4 },
+            TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 12 },
+            TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 4 },
         ];
         assert_eq!(
             coalesce(&ops)[0].progress,
@@ -296,12 +366,12 @@ mod tests {
     fn different_titles_stay_separate() {
         let other = AnilistId::new(1);
         let ops = [
-            TrackOp::SetProgress { anilist_id: FRIEREN, episode: 3 },
+            TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 3 },
             TrackOp::SetProgress { anilist_id: other, episode: 7 },
         ];
         let batched = coalesce(&ops);
         assert_eq!(batched.len(), 2);
-        assert_eq!(batched[0], mutation(FRIEREN, Some(3), None, None));
+        assert_eq!(batched[0], mutation(HOSHIKUZU, Some(3), None, None));
         assert_eq!(batched[1], mutation(other, Some(7), None, None));
     }
 
@@ -309,8 +379,8 @@ mod tests {
     fn a_progress_only_push_leaves_status_and_score_untouched() {
         // The reason unset fields are omitted rather than nulled: AniList treats null as
         // "clear this", so a progress push would wipe the user's score.
-        let ops = [TrackOp::SetProgress { anilist_id: FRIEREN, episode: 5 }];
-        assert_eq!(coalesce(&ops)[0], mutation(FRIEREN, Some(5), None, None));
+        let ops = [TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 5 }];
+        assert_eq!(coalesce(&ops)[0], mutation(HOSHIKUZU, Some(5), None, None));
     }
 
     #[test]

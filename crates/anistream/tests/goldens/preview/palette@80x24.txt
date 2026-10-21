@@ -1,0 +1,24 @@
+anistream                                       torrent ○  plugins ·  ·  kitsu ○
+────────────────────────────────────────────────────────────────────────────────
+▌ ▸│  ▌ Stardust Wayfarer                                          ep 4 · 21%
+────────────────────────────────────────────────────────────────────────────────
+▌ RUN   ep▏
+────────────────────────────────────────────────────────────────────────────────
+▌ Episodes                                                                 e
+  Download a range of episodes                                             D
+  Next episode                                                             n
+  Previous episode                                                         N
+  Expand synopsis                                                          i
+  Show keys                                                                ?
+  Move up                                                                  k
+  Page up                                                             ctrl+u
+  Volume up                                                                0
+  Leave player running                                                     q
+  Faster                                                                   ]
+  Clear finished downloads                                                 c
+
+   │
+   │
+   │
+────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                ↑↓ move   ↵ run   esc close

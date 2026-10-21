@@ -224,14 +224,14 @@ impl Store {
 mod tests {
     use super::*;
 
-    const FRIEREN: AnilistId = AnilistId::new(154_587);
+    const HOSHIKUZU: AnilistId = AnilistId::new(154_587);
 
     #[test]
     fn overrides_shadow_cached_resolutions() {
         let store = Store::open_in_memory().unwrap();
         store
             .cache_resolution(
-                FRIEREN,
+                HOSHIKUZU,
                 "webprov",
                 &ProviderKey::new("wrong-match"),
                 0.62,
@@ -239,9 +239,9 @@ mod tests {
                 1_000,
             )
             .unwrap();
-        store.set_override(FRIEREN, "webprov", &ProviderKey::new("correct"), 2_000).unwrap();
+        store.set_override(HOSHIKUZU, "webprov", &ProviderKey::new("correct"), 2_000).unwrap();
 
-        let got = store.lookup_mapping(FRIEREN, "webprov").unwrap().unwrap();
+        let got = store.lookup_mapping(HOSHIKUZU, "webprov").unwrap().unwrap();
         assert_eq!(got.provider_key.as_str(), "correct");
         assert_eq!(got.rung, ResolutionRung::Override);
         assert_eq!(got.confidence, 1.0);
@@ -252,10 +252,10 @@ mod tests {
         // The property that makes fixing a bad match worth doing: it has to stick through
         // the next daily dataset update.
         let store = Store::open_in_memory().unwrap();
-        store.set_override(FRIEREN, "webprov", &ProviderKey::new("correct"), 1_000).unwrap();
+        store.set_override(HOSHIKUZU, "webprov", &ProviderKey::new("correct"), 1_000).unwrap();
         store
             .cache_resolution(
-                FRIEREN,
+                HOSHIKUZU,
                 "torrent",
                 &ProviderKey::new("guessed"),
                 0.7,
@@ -268,10 +268,10 @@ mod tests {
         assert_eq!(cleared, 1, "only the automatic resolution should go");
 
         assert_eq!(
-            store.lookup_mapping(FRIEREN, "webprov").unwrap().unwrap().provider_key.as_str(),
+            store.lookup_mapping(HOSHIKUZU, "webprov").unwrap().unwrap().provider_key.as_str(),
             "correct"
         );
-        assert!(store.lookup_mapping(FRIEREN, "torrent").unwrap().is_none());
+        assert!(store.lookup_mapping(HOSHIKUZU, "torrent").unwrap().is_none());
     }
 
     #[test]
@@ -279,17 +279,17 @@ mod tests {
         // Different providers key titles completely differently, so a
         // correction for one says nothing about the other.
         let store = Store::open_in_memory().unwrap();
-        store.set_override(FRIEREN, "webprov", &ProviderKey::new("aa-key"), 0).unwrap();
-        assert!(store.lookup_mapping(FRIEREN, "torrent").unwrap().is_none());
+        store.set_override(HOSHIKUZU, "webprov", &ProviderKey::new("aa-key"), 0).unwrap();
+        assert!(store.lookup_mapping(HOSHIKUZU, "torrent").unwrap().is_none());
     }
 
     #[test]
     fn setting_an_override_twice_updates_rather_than_duplicating() {
         let store = Store::open_in_memory().unwrap();
-        store.set_override(FRIEREN, "webprov", &ProviderKey::new("first"), 0).unwrap();
-        store.set_override(FRIEREN, "webprov", &ProviderKey::new("second"), 1).unwrap();
+        store.set_override(HOSHIKUZU, "webprov", &ProviderKey::new("first"), 0).unwrap();
+        store.set_override(HOSHIKUZU, "webprov", &ProviderKey::new("second"), 1).unwrap();
         assert_eq!(
-            store.lookup_mapping(FRIEREN, "webprov").unwrap().unwrap().provider_key.as_str(),
+            store.lookup_mapping(HOSHIKUZU, "webprov").unwrap().unwrap().provider_key.as_str(),
             "second"
         );
     }
@@ -299,7 +299,7 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         store
             .cache_resolution(
-                FRIEREN,
+                HOSHIKUZU,
                 "webprov",
                 &ProviderKey::new("auto"),
                 0.9,
@@ -307,10 +307,10 @@ mod tests {
                 0,
             )
             .unwrap();
-        store.set_override(FRIEREN, "webprov", &ProviderKey::new("manual"), 1).unwrap();
-        store.clear_override(FRIEREN, "webprov").unwrap();
+        store.set_override(HOSHIKUZU, "webprov", &ProviderKey::new("manual"), 1).unwrap();
+        store.clear_override(HOSHIKUZU, "webprov").unwrap();
 
-        let got = store.lookup_mapping(FRIEREN, "webprov").unwrap().unwrap();
+        let got = store.lookup_mapping(HOSHIKUZU, "webprov").unwrap().unwrap();
         assert_eq!(got.provider_key.as_str(), "auto");
         assert_eq!(got.rung, ResolutionRung::DatasetId);
     }
@@ -336,8 +336,10 @@ mod tests {
             ResolutionRung::Disambiguated,
             ResolutionRung::ManualQuery,
         ] {
-            store.cache_resolution(FRIEREN, "p", &ProviderKey::new("k"), 0.5, rung, 0).unwrap();
-            assert_eq!(store.lookup_mapping(FRIEREN, "p").unwrap().unwrap().rung, rung);
+            store
+                .cache_resolution(HOSHIKUZU, "p", &ProviderKey::new("k"), 0.5, rung, 0)
+                .unwrap();
+            assert_eq!(store.lookup_mapping(HOSHIKUZU, "p").unwrap().unwrap().rung, rung);
         }
     }
 
@@ -346,7 +348,7 @@ mod tests {
         let store = Store::open_in_memory().unwrap();
         store
             .cache_resolution(
-                FRIEREN,
+                HOSHIKUZU,
                 "a",
                 &ProviderKey::new("k"),
                 0.55,
@@ -356,7 +358,7 @@ mod tests {
             .unwrap();
         store
             .cache_resolution(
-                FRIEREN,
+                HOSHIKUZU,
                 "b",
                 &ProviderKey::new("k"),
                 0.95,

@@ -1,0 +1,24 @@
+anistream                                       torrent ○  plugins ·  ·  kitsu ○
+────────────────────────────────────────────────────────────────────────────────
+▌▸ │  ←  Stardust Wayfarer
+ ▤ │
+ ▦ │    #     TITLE                                   RUN     WATCHED
+ / │  ────────────────────────────────────────────────────────────────────────
+ ▥ │    001   The Lantern Road                        24:00   ██████████  done
+ ↓ │    002   A Town Without Night                    24:00   ██████████  done
+ ◇ │    003   The Ferryman's Ledger                   24:00   ██████████  done
+ ◎ │  ▌ 004   Embers in the Snow                      24:00   ██▏░░░░░░░
+ ⚙ │    005   What the Beacons Remember               24:00   ░░░░░░░░░░
+   │    006   The Cartographer's Daughter             24:00   ░░░░░░░░░░
+   │    007   Rain over Kiriya Pass                   24:00   ░░░░░░░░░░
+   │    008   A Letter Never Sent                     24:00   ░░░░░░░░░░
+   │    009   The Last Lamplighter                    24:00   ░░░░░░░░░░
+   │    010   Where the Roads Cross                   24:00   ░░░░░░░░░░
+   │    011   The Sky Archive                         24:00   ░░░░░░░░░░
+   │    012   Home, by Starlight                      24:00   ░░░░░░░░░░
+   │
+   │
+   │
+   │
+────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                       ↵ play   u watched   q back   ? keys

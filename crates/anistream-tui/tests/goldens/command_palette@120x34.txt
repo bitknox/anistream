@@ -1,0 +1,126 @@
+anistream                                                                           torrent ○  plugins ●  ·  anilist ⇅ 2
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▌ ▸  CONTINUE               │  ▌ Hoshikuzu no Tabibito   ep 4 · 57%   ░░░░░░░░░░░░░░░░░
+  ▤  CALENDAR               │    Kaze no Tegami            ep 9 out   ░░░░░░░░░░░░░░░░░
+  ▦  SEASONAL               │    Yoru no Toshokan    ep 6 in 2h 41m   ░░░░░░░░░░░░░░░░░
+  /  SEARCH                 │    Tsuki to Kujira no Uta      7 / 12   ░░░░░░░░░░░░░░░░░
+  ▥  LIBRARY                │                                         ░░░░░░░░░░░░░░░░░
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+▌ RUN   go to▏
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Go to Continue                                                                                                   1
+  Go to Calendar                                                                                                   2
+▌ Go to Seasonal                                                                                                   3
+  Go to Search                                                                                                     4
+  Go to Library                                                                                                    5
+  Go to Downloads                                                                                                  6
+  Go to Providers                                                                                                  7
+  Go to Accounts                                                                                                   8
+  Go to Settings                                                                                                   9
+
+                            │                                         Adventure  ·  Fantasy  ·  Slice of Life
+                            │
+                            │                                         ▏ resume ep 4 at 13:32 (57%)
+                            │                                         █████████████▋░░░░░░░░░░
+                            │
+                            │                                         ep 4 out 2d 3h ago  ·  ep 5 in 4d 20h
+                            │
+                            │                                         A lamplighter on a dying comet rides the last
+                            │                                         mail coach between the stars, delivering
+                            │                                         letters to towns that may no longer exist.…
+                            │
+                            │                                         █████░░░░░░░░░░░░░░░  3 / 12
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+plugins · sub · 1080p                                                                        ↑↓ move   ↵ run   esc close
+=== styles ===
+colours text=#e4e0d6 text-dim=#a8aec9 rule=#46464d obi=#f2a64b state=#7fc7d9 alert=#f59b85 ground=#1a1b26
+r00 c00-08 fg=rule mod=BOLD
+r00 c09-119 fg=rule
+r01 c00-119 fg=rule
+r02 c00-04 fg=rule
+r02 c05-12 fg=rule mod=BOLD
+r02 c13-32 fg=rule
+r02 c33-53 fg=rule mod=BOLD
+r02 c54-119 fg=rule
+r03 c00-119 fg=rule
+r04 c00-119 fg=rule
+r05 c00-119 fg=rule
+r06 c00-119 fg=rule
+r07 c00-119 fg=rule bg=ground
+r08 c00-00 fg=obi bg=ground
+r08 c01-01 fg=rule bg=ground
+r08 c02-13 fg=text bg=ground mod=BOLD
+r08 c14-119 fg=rule bg=ground
+r09 c00-119 fg=rule bg=ground
+r10 c00-01 fg=rule bg=ground
+r10 c02-15 fg=text-dim bg=ground
+r10 c16-114 fg=rule bg=ground
+r10 c115-115 fg=text bg=ground
+r10 c116-119 fg=rule bg=ground
+r11 c00-01 fg=rule bg=ground
+r11 c02-15 fg=text-dim bg=ground
+r11 c16-114 fg=rule bg=ground
+r11 c115-115 fg=text bg=ground
+r11 c116-119 fg=rule bg=ground
+r12 c00-00 fg=obi bg=ground
+r12 c01-01 fg=rule bg=ground
+r12 c02-15 fg=text bg=ground mod=BOLD
+r12 c16-114 fg=rule bg=ground
+r12 c115-115 fg=text bg=ground
+r12 c116-119 fg=rule bg=ground
+r13 c00-01 fg=rule bg=ground
+r13 c02-13 fg=text-dim bg=ground
+r13 c14-114 fg=rule bg=ground
+r13 c115-115 fg=text bg=ground
+r13 c116-119 fg=rule bg=ground
+r14 c00-01 fg=rule bg=ground
+r14 c02-14 fg=text-dim bg=ground
+r14 c15-114 fg=rule bg=ground
+r14 c115-115 fg=text bg=ground
+r14 c116-119 fg=rule bg=ground
+r15 c00-01 fg=rule bg=ground
+r15 c02-16 fg=text-dim bg=ground
+r15 c17-114 fg=rule bg=ground
+r15 c115-115 fg=text bg=ground
+r15 c116-119 fg=rule bg=ground
+r16 c00-01 fg=rule bg=ground
+r16 c02-16 fg=text-dim bg=ground
+r16 c17-69 fg=rule bg=ground
+r16 c70-90 fg=rule bg=ground mod=BOLD
+r16 c91-114 fg=rule bg=ground
+r16 c115-115 fg=text bg=ground
+r16 c116-119 fg=rule bg=ground
+r17 c00-01 fg=rule bg=ground
+r17 c02-15 fg=text-dim bg=ground
+r17 c16-114 fg=rule bg=ground
+r17 c115-115 fg=text bg=ground
+r17 c116-119 fg=rule bg=ground
+r18 c00-01 fg=rule bg=ground
+r18 c02-15 fg=text-dim bg=ground
+r18 c16-114 fg=rule bg=ground
+r18 c115-115 fg=text bg=ground
+r18 c116-119 fg=rule bg=ground
+r19 c00-119 fg=rule bg=ground
+r20 c00-119 fg=rule
+r21 c00-119 fg=rule
+r22 c00-69 fg=rule
+r22 c70-97 fg=rule mod=BOLD
+r22 c98-119 fg=rule
+r23 c00-119 fg=rule
+r24 c00-119 fg=rule
+r25 c00-119 fg=rule
+r26 c00-119 fg=rule
+r27 c00-119 fg=rule
+r28 c00-119 fg=rule
+r29 c00-119 fg=rule
+r30 c00-119 fg=rule
+r31 c00-119 fg=rule
+r32 c00-119 fg=rule
+r33 c00-20 fg=text-dim
+r33 c21-92 fg=rule
+r33 c93-94 fg=text
+r33 c95-102 fg=text-dim
+r33 c103-103 fg=text
+r33 c104-110 fg=text-dim
+r33 c111-113 fg=text
+r33 c114-119 fg=text-dim

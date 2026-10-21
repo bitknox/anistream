@@ -20,7 +20,7 @@ use std::{
     time::Duration,
 };
 
-use anistream_player::{Mpv, ipc};
+use anistream_player::{Mpv, ipc, protocol::MpvVersion};
 use serde_json::{Value, json};
 use tokio::{
     io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader},
@@ -43,6 +43,11 @@ fn clip(seconds: u32) -> String {
 
 async fn mpv_available() -> bool {
     Mpv::new(std::env::temp_dir()).is_available().await
+}
+
+/// The version of the mpv on PATH, for a test of something only newer players have.
+async fn mpv_version() -> MpvVersion {
+    Mpv::new(std::env::temp_dir()).mpv_version().await.expect("mpv reports its version")
 }
 
 /// A scratch directory per player, removed when the player is dropped.
@@ -331,6 +336,12 @@ fn payload(event: &Value) -> Value {
 macro_rules! require_mpv {
     () => {
         if !mpv_available().await {
+            // CI's mpv job installs mpv and sets this, so a missing mpv fails there
+            // instead of passing as a skip.
+            assert!(
+                std::env::var("ANISTREAM_REQUIRE_MPV").as_deref() != Ok("1"),
+                "ANISTREAM_REQUIRE_MPV is set but mpv is not on PATH"
+            );
             eprintln!("skipping: mpv is not on PATH");
             return;
         }
@@ -456,13 +467,13 @@ async fn play_now_is_enter_on_the_up_next_card() {
     player.finish().await;
 }
 
-#[tokio::test]
-async fn the_up_next_still_is_shown_and_given_back() {
-    require_mpv!();
-    let mut player = Player::start(Some(&clip(30)), &["--pause"]).await;
-    // A 32x18 BGRA still, as the host writes it.
+/// Up Next's still, from the host writing it to the card giving it back on Cancel.
+async fn the_still_comes_and_goes(extra: &[&str], (width, height): (usize, usize)) {
+    let args: Vec<&str> = ["--pause"].into_iter().chain(extra.iter().copied()).collect();
+    let mut player = Player::start(Some(&clip(30)), &args).await;
+    // A BGRA still, as the host writes it.
     let still = player.path("still.bgra");
-    std::fs::write(&still, vec![0x80; 32 * 18 * 4]).unwrap();
+    std::fs::write(&still, vec![0x80; width * height * 4]).unwrap();
     player.state("next", json!({"label": "Episode 2", "at": 0.0, "auto": true})).await;
     player.wait_ui("Up Next", |ui| ui["up_next"]["visible"] == true).await;
     assert_eq!(player.ui().await["up_next"]["still"], false);
@@ -472,15 +483,33 @@ async fn the_up_next_still_is_shown_and_given_back() {
         .state(
             "next",
             json!({"label": "Episode 2", "title": "A Title", "at": 0.0, "auto": true,
-                   "thumbnail": {"path": still.to_string_lossy(), "width": 32, "height": 18}}),
+                   "thumbnail": {"path": still.to_string_lossy(), "width": width, "height": height}}),
         )
         .await;
     player.wait_ui("the still", |ui| ui["up_next"]["still"] == true).await;
+    // A copy resampled for an mpv that cannot scale is only on disk for the call that adds it.
+    assert!(!player.path("still.bgra.scaled").exists(), "the resampled copy was left behind");
 
     player.key("ESC").await;
     player.event("cancel-next").await;
     player.wait_ui("the still to go", |ui| ui["up_next"]["still"] == false).await;
     player.finish().await;
+}
+
+#[tokio::test]
+async fn the_up_next_still_is_shown_and_given_back() {
+    require_mpv!();
+    the_still_comes_and_goes(&[], (32, 18)).await;
+}
+
+/// Before mpv 0.38 overlay-add cannot scale a bitmap, so the script resamples the still to its
+/// slot itself. The test above takes that path on such a player; this one takes it on any, with
+/// a still the size the host writes.
+#[tokio::test]
+async fn where_mpv_cannot_scale_the_still_the_script_resamples_it() {
+    require_mpv!();
+    the_still_comes_and_goes(&["--script-opts-append=anistream-scaled_still=no"], (640, 360))
+        .await;
 }
 
 #[tokio::test]
@@ -723,12 +752,11 @@ async fn escape_cancels_a_sync_without_touching_the_timing() {
     let _ = std::fs::remove_dir_all(dir);
 }
 
-/// Tracks that carry only a language code are named in the menu. `lang.lua` is pure, so it is
-/// checked on its own, inside mpv's Lua, by a script that quits with 1 on a wrong name.
-#[tokio::test]
-async fn a_language_code_becomes_its_name() {
-    require_mpv!();
-    let test = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/lua/lang_test.lua");
+/// Run `tests/lua/<name>.lua` inside mpv, which is where the companion's Lua runs. Each loads a
+/// pure module from the script directory and quits with 1 on a wrong answer; returns whether it
+/// passed, and what it said.
+async fn lua_check(name: &str) -> (bool, String) {
+    let test = Path::new(env!("CARGO_MANIFEST_DIR")).join(format!("tests/lua/{name}.lua"));
     let output = Command::new("mpv")
         .arg("--no-config")
         .arg("--load-scripts=no")
@@ -736,12 +764,29 @@ async fn a_language_code_becomes_its_name() {
         .arg("--vo=null")
         .arg("--ao=null")
         .arg(format!("--script={}", test.display()))
-        .arg(format!("--script-opts=lang_test-dir={}", script_dir().display()))
+        .arg(format!("--script-opts={name}-dir={}", script_dir().display()))
         .output()
         .await
         .expect("run mpv");
-    let said = String::from_utf8_lossy(&output.stderr);
-    assert!(output.status.success(), "lang.lua named something wrongly:\n{said}");
+    (output.status.success(), String::from_utf8_lossy(&output.stderr).into_owned())
+}
+
+/// Tracks that carry only a language code are named in the menu. `lang.lua` is pure, so it is
+/// checked on its own.
+#[tokio::test]
+async fn a_language_code_becomes_its_name() {
+    require_mpv!();
+    let (passed, said) = lua_check("lang_test").await;
+    assert!(passed, "lang.lua named something wrongly:\n{said}");
+}
+
+/// The resampling behind the still on an mpv that cannot scale it, checked pixel by pixel,
+/// which the companion tests above never look at.
+#[tokio::test]
+async fn a_resampled_bitmap_is_the_mean_of_what_each_pixel_covers() {
+    require_mpv!();
+    let (passed, said) = lua_check("bgra_test").await;
+    assert!(passed, "bgra.lua resampled something wrongly:\n{said}");
 }
 
 fn sample_menus() -> Value {
@@ -761,6 +806,16 @@ fn sample_menus() -> Value {
     })
 }
 
+/// The drawn menu's cursor, as the script publishes it: the open list, and the row's title.
+fn menu_at(ui: &Value, menu: &str, focus: &str) -> bool {
+    ui["menu"] == menu && ui["menu_focus"] == focus
+}
+
+/// Whether the open list shows a row with this title.
+fn menu_lists(ui: &Value, title: &str) -> bool {
+    ui["menu_items"].as_array().is_some_and(|rows| rows.iter().any(|row| row == title))
+}
+
 #[tokio::test]
 async fn a_pick_in_the_drawn_menu_is_reported_as_choose() {
     require_mpv!();
@@ -768,12 +823,25 @@ async fn a_pick_in_the_drawn_menu_is_reported_as_choose() {
     let mut player = Player::start(None, &["--script-opts-append=anistream-uosc=yes"]).await;
     player.state("menus", sample_menus()).await;
     player.binding("menu").await;
-    player.wait_ui("the menu", |ui| ui["menu"] == "root").await;
-    // Episodes, then Sources; into it, past the current source, and pick.
+    // The menus reach the script as a property change, which mpv delivers only after events
+    // already queued, the binding among them. So the root can open without the host's lists
+    // (Subtitles, Audio, …) and gain them a moment later, the cursor staying on its row. Wait
+    // for the lists, then put the cursor on the first row rather than assume it is there.
+    player
+        .wait_ui("the root with the host's lists", |ui| {
+            ui["menu"] == "root" && menu_lists(ui, "Sources")
+        })
+        .await;
+    player.key("HOME").await;
+    player.wait_ui("the cursor on Episodes", |ui| menu_at(ui, "root", "Episodes")).await;
+    // Each key moves the cursor once; wait for it there before the next.
     player.key("DOWN").await;
+    player.wait_ui("the cursor on Sources", |ui| menu_at(ui, "root", "Sources")).await;
     player.key("ENTER").await;
-    player.wait_ui("the source list", |ui| ui["menu"] == "sources").await;
+    // Into the list, on the current source; past it to the other, and pick.
+    player.wait_ui("the source list", |ui| menu_at(ui, "sources", "Source A")).await;
     player.key("DOWN").await;
+    player.wait_ui("the cursor on Source B", |ui| menu_at(ui, "sources", "Source B")).await;
     player.key("ENTER").await;
     assert_eq!(player.event("choose").await, json!({"menu": "source", "value": "b"}));
     player.wait_ui("the menu to close", |ui| ui["menu"].is_null()).await;
@@ -788,11 +856,58 @@ async fn a_pick_in_the_drawn_menu_is_reported_as_choose() {
     player.finish().await;
 }
 
+/// The host rewrites the menus while one is open (here the episode list arrives, a row above
+/// the cursor): the cursor stays on the row it was on, not on whatever moved into its place.
+#[tokio::test]
+async fn a_rewritten_menu_keeps_the_cursor_on_its_row() {
+    require_mpv!();
+    let mut player = Player::start(None, &["--script-opts-append=anistream-uosc=yes"]).await;
+    let mut without_episodes = sample_menus();
+    without_episodes["episodes"] = json!([]);
+    player.state("menus", without_episodes).await;
+    player.binding("menu").await;
+    player
+        .wait_ui("the root with the host's lists", |ui| {
+            ui["menu"] == "root" && menu_lists(ui, "Sources")
+        })
+        .await;
+    // Sources first, then Sub / Dub.
+    player.key("HOME").await;
+    player.wait_ui("the cursor on Sources", |ui| menu_at(ui, "root", "Sources")).await;
+    player.key("DOWN").await;
+    player.wait_ui("the cursor on Sub / Dub", |ui| menu_at(ui, "root", "Sub / Dub")).await;
+    // Episodes now come first, a row above.
+    player.state("menus", sample_menus()).await;
+    let ui =
+        player.wait_ui("the episode list in the root", |ui| menu_lists(ui, "Episodes")).await;
+    assert_eq!(ui["menu_focus"], "Sub / Dub", "the cursor moved off its row: {ui}");
+    player.key("ENTER").await;
+    player.wait_ui("the translation list", |ui| ui["menu"] == "translation").await;
+    player.finish().await;
+}
+
 #[tokio::test]
 async fn the_context_menu_gains_an_entry_without_losing_the_users() {
     require_mpv!();
+    let version = mpv_version().await;
     let mut player = Player::start(None, &[]).await;
     player.state("menus", sample_menus()).await;
+    // mpv's own context menu, and the `menu-data` property it is built from, came in 0.40.
+    // Before that the script has nothing to join, and must leave it there without a word.
+    if version < (MpvVersion { major: 0, minor: 40 }) {
+        // Two answers later the script has seen the menus, and with them tried menu-data.
+        player.message("hello", json!({})).await;
+        player.event("ready").await;
+        player.message("hello", json!({})).await;
+        player.event("ready").await;
+        assert!(player.get("menu-data").await.is_null(), "mpv {version} has a menu-data");
+        let log = Arc::clone(&player.stderr);
+        player.finish().await;
+        let log = log.lock().unwrap().clone();
+        assert!(!log.contains("menu-data"), "the script complained on mpv {version}:\n{log}");
+        eprintln!("skipping the context menu: mpv {version} has none (0.40 added it)");
+        return;
+    }
     let titles = |v: &Value| -> Vec<String> {
         v.as_array()
             .into_iter()
@@ -818,6 +933,46 @@ async fn the_context_menu_gains_an_entry_without_losing_the_users() {
         .command(json!(["script-message-to", "anistream", "pick", "night_mode", "true"]))
         .await;
     assert_eq!(player.event("choose").await, json!({"menu": "night_mode", "value": true}));
+    player.finish().await;
+}
+
+#[tokio::test]
+async fn a_server_that_has_been_failing_says_so_in_the_sources_menu() {
+    require_mpv!();
+    // Read where every rendering's rows can be read, mpv's own context menu, which came in 0.40.
+    let version = mpv_version().await;
+    if version < (MpvVersion { major: 0, minor: 40 }) {
+        eprintln!(
+            "skipping the sources note: mpv {version} has no context menu (0.40 added it)"
+        );
+        return;
+    }
+    let mut player = Player::start(None, &[]).await;
+    let mut menus = sample_menus();
+    menus["sources"][1]["health"] = json!("failed the last 2 times · 12 min ago");
+    player.state("menus", menus).await;
+
+    // The Sources rows, as the context menu lists them under the script's entry.
+    let rows = |v: &Value| -> Vec<String> {
+        let ours = v.as_array().into_iter().flatten().find(|i| i["title"] == "anistream");
+        let sources = ours
+            .and_then(|i| i["submenu"].as_array())
+            .into_iter()
+            .flatten()
+            .find(|i| i["title"] == "Sources");
+        sources
+            .and_then(|i| i["submenu"].as_array())
+            .into_iter()
+            .flatten()
+            .filter_map(|i| i["title"].as_str().map(str::to_owned))
+            .collect()
+    };
+    let menu = player.wait_property("menu-data", |v| !rows(v).is_empty()).await;
+    assert_eq!(
+        rows(&menu),
+        ["Source A  ·  1080p", "Source B  ·  720p · failed the last 2 times · 12 min ago"],
+        "a source with nothing against it reads as it always has"
+    );
     player.finish().await;
 }
 

@@ -1,14 +1,16 @@
 //! Filler and recap episodes, from AnimeFillerList.
 //!
 //! Only worth having for long-running shows, which is exactly where it earns its place: nobody
-//! needs this for a twelve-episode season, and everybody wants it for One Piece.
+//! needs this for a twelve-episode season, and everybody wants it for a show past its thousandth
+//! episode.
 //!
 //! Two things make this a [`crate::dataset::DatasetSpec`]-shaped problem rather than a live call:
 //!
 //! - **It is parsed from HTML**, so it is volatile the way any parsed page is. Fetching it per episode
 //!   would put the app's behaviour at the mercy of someone else's markup on the hot path.
-//! - **It has its own slugs.** `naruto` and `bleach` resolve; `frieren` 404s, because it has no
-//!   filler. There is no id mapping — the slug is derived from the title and confirmed by fetching.
+//! - **It has its own slugs.** A long runner's slug resolves; a twelve-episode season's 404s,
+//!   because it has no filler. There is no id mapping — the slug is derived from the title and
+//!   confirmed by fetching.
 //!
 //! The markup is kinder than expected. Rather than a table of one row per episode, the page
 //! carries a summary block per category with compact ranges:
@@ -130,7 +132,7 @@ pub fn show_url(slug: &str) -> String {
 pub struct IndexEntry {
     pub slug: String,
     /// Titles to match against, normalised. The index writes alternates in parentheses —
-    /// `My Hero Academia (Boku no Hero Academia)` — which is what makes matching an AniList
+    /// `The Steel Gardener (Hagane no Niwashi)` — which is what makes matching an AniList
     /// *romaji* title possible at all.
     pub titles: Vec<String>,
 }
@@ -139,9 +141,8 @@ pub struct IndexEntry {
 ///
 /// This exists because deriving a slug from a title does not work, and the reason is structural
 /// rather than a matter of tidying up the derivation: **AnimeFillerList indexes by English title
-/// while AniList's primary title is romaji.** `Sousou no Frieren` would never derive
-/// `frieren-beyond-journeys-end`, and `Boku no Hero Academia` would never derive
-/// `my-hero-academia`.
+/// while AniList's primary title is romaji.** `Hoshikuzu no Tabibito` would never derive
+/// `stardust-wayfarer`, and `Hagane no Niwashi` would never derive `steel-gardener`.
 ///
 /// So this is the same shape as the provider resolution ladder — a real match against a real
 /// corpus, with the search fallback being the main road rather than an error path. The index's
@@ -185,7 +186,7 @@ pub fn parse_index(html: &str) -> Vec<IndexEntry> {
     entries
 }
 
-/// Split `"My Hero Academia (Boku no Hero Academia)"` into both titles, normalised.
+/// Split `"The Steel Gardener (Hagane no Niwashi)"` into both titles, normalised.
 fn split_titles(text: &str) -> Vec<String> {
     let decoded = decode_entities(text);
     let mut titles = Vec::new();
@@ -225,8 +226,8 @@ pub fn match_index<'a>(
     index: &'a [IndexEntry],
 ) -> Option<&'a IndexEntry> {
     // Exact normalised equality only. A fuzzy match is tempting — the index is small and the titles
-    // are close — but the failure it invites is asymmetric: `Fate/Zero` scoring against
-    // `Fate/Apocrypha` would silently classify the wrong show's episodes.
+    // are close — but the failure it invites is asymmetric: `Kagerou/Dawn` scoring against
+    // `Kagerou/Dusk` would silently classify the wrong show's episodes.
     for candidate in candidates {
         let want = crate::title::normalise(candidate);
         if want.is_empty() {
@@ -234,10 +235,11 @@ pub fn match_index<'a>(
         }
 
         // A **primary** title match beats an alternate, and that ordering is load-bearing. The
-        // index contains `One Pace (One Piece)` — a fan re-edit — alongside `One Piece` itself.
-        // Treating both titles as equal made "One Piece" resolve to `one-pace`, whose episode
-        // numbering is entirely different: 138 episodes classified instead of 1168, and the wrong
-        // ones marked filler. Found by running the probe against the live index.
+        // index contains `Tidewater Recut (Tidewater Market)` — a fan re-edit — alongside
+        // `Tidewater Market` itself. Treating both titles as equal made "Tidewater Market" resolve
+        // to `tidewater-recut`, whose episode numbering is entirely different: 138 episodes
+        // classified instead of 1168, and the wrong ones marked filler. Found by running the probe
+        // against the live index.
         if let Some(exact) = index.iter().find(|e| e.titles.first() == Some(&want)) {
             return Some(exact);
         }
@@ -250,8 +252,8 @@ pub fn match_index<'a>(
 
 /// Derive a slug from a title, as a last resort.
 ///
-/// Kept because it costs nothing and occasionally saves a fetch of the index — `"One Piece"` really
-/// is `"one-piece"`. But it is *not* the primary path: see [`parse_index`] for why.
+/// Kept because it costs nothing and occasionally saves a fetch of the index — `"Tidewater Market"`
+/// really is `"tidewater-market"`. But it is *not* the primary path: see [`parse_index`] for why.
 pub fn slug_for(title: &str) -> String {
     let mut slug = String::with_capacity(title.len());
     let mut last_was_dash = true; // leading dashes suppressed
@@ -377,7 +379,7 @@ fn expand_ranges(text: &str) -> BTreeSet<u32> {
 mod tests {
     use super::*;
 
-    /// Real markup, reduced to the shape that matters. Taken from the One Piece page.
+    /// Real markup, reduced to the shape that matters. Taken from a long runner's page.
     const REAL: &str = r#"
         <div class="manga_canon"><span class="Type">Manga Canon</span>
           <span class="Episodes"><a href="javascript://" onclick="jumpToNum(1);">1-3</a>,
@@ -462,41 +464,45 @@ mod tests {
 
     /// Real index markup, reduced. Note the parenthetical romaji — that is the whole point.
     const INDEX: &str = r#"
-        <a href="/shows/86-eighty-six">86 EIGHTY-SIX</a>
-        <a href="/shows/my-hero-academia">My Hero Academia (Boku no Hero Academia)</a>
-        <a href="/shows/demon-slayer-kimetsu-no-yaiba">Demon Slayer: Kimetsu no Yaiba</a>
-        <a href="/shows/one-piece">One Piece</a>
-        <a href="/shows/rising-shield-hero">The Rising of the Shield Hero (Tate no Yuusha no Nariagari)</a>
-        <a href="/shows/certain-magical-index">A Certain Magical Index (Toaru Majutsu No Index)</a>
+        <a href="/shows/73-seventy-three">73 SEVENTY-THREE</a>
+        <a href="/shows/steel-gardener">The Steel Gardener (Hagane no Niwashi)</a>
+        <a href="/shows/ember-warden-hinoban-no-uta">Ember Warden: Hinoban no Uta</a>
+        <a href="/shows/tidewater-market">Tidewater Market</a>
+        <a href="/shows/ascent-paper-knight">The Ascent of the Paper Knight (Kami no Kishi no Nariagari)</a>
+        <a href="/shows/quiet-celestial-atlas">A Quiet Celestial Atlas (Shizuka na Tenkyuu No Atlas)</a>
     "#;
 
     #[test]
     fn the_index_parses_slugs_and_both_titles() {
         let index = parse_index(INDEX);
         assert_eq!(index.len(), 6);
-        let hero = index.iter().find(|e| e.slug == "my-hero-academia").unwrap();
-        assert_eq!(hero.titles.len(), 2, "the parenthetical alternate was dropped: {hero:?}");
+        let gardener = index.iter().find(|e| e.slug == "steel-gardener").unwrap();
+        assert_eq!(
+            gardener.titles.len(),
+            2,
+            "the parenthetical alternate was dropped: {gardener:?}"
+        );
     }
 
     #[test]
     fn a_romaji_title_matches_an_english_indexed_show() {
         // The reason the index exists rather than a derived slug. AniList's primary title for this
-        // show is `Boku no Hero Academia`, which would never derive `my-hero-academia`.
+        // show is `Hagane no Niwashi`, which would never derive `steel-gardener`.
         let index = parse_index(INDEX);
-        let matched = match_index(&["Boku no Hero Academia".to_string()], &index);
-        assert_eq!(matched.map(|e| e.slug.as_str()), Some("my-hero-academia"));
+        let matched = match_index(&["Hagane no Niwashi".to_string()], &index);
+        assert_eq!(matched.map(|e| e.slug.as_str()), Some("steel-gardener"));
 
-        let matched = match_index(&["Tate no Yuusha no Nariagari".to_string()], &index);
-        assert_eq!(matched.map(|e| e.slug.as_str()), Some("rising-shield-hero"));
+        let matched = match_index(&["Kami no Kishi no Nariagari".to_string()], &index);
+        assert_eq!(matched.map(|e| e.slug.as_str()), Some("ascent-paper-knight"));
     }
 
     #[test]
     fn an_english_title_matches_too() {
         let index = parse_index(INDEX);
         for (title, slug) in [
-            ("One Piece", "one-piece"),
-            ("My Hero Academia", "my-hero-academia"),
-            ("Demon Slayer: Kimetsu no Yaiba", "demon-slayer-kimetsu-no-yaiba"),
+            ("Tidewater Market", "tidewater-market"),
+            ("The Steel Gardener", "steel-gardener"),
+            ("Ember Warden: Hinoban no Uta", "ember-warden-hinoban-no-uta"),
         ] {
             assert_eq!(
                 match_index(&[title.to_string()], &index).map(|e| e.slug.as_str()),
@@ -512,43 +518,43 @@ mod tests {
         // from the index should still resolve via a later candidate.
         let index = parse_index(INDEX);
         let candidates =
-            vec!["Something Not In The Index".to_string(), "Boku no Hero Academia".to_string()];
+            vec!["Something Not In The Index".to_string(), "Hagane no Niwashi".to_string()];
         assert_eq!(
             match_index(&candidates, &index).map(|e| e.slug.as_str()),
-            Some("my-hero-academia")
+            Some("steel-gardener")
         );
     }
 
     #[test]
     fn a_primary_title_beats_another_shows_alternate() {
-        // The live index contains `One Pace (One Piece)` — a fan re-edit — alongside `One Piece`.
-        // Treating both titles as equal made "One Piece" resolve to `one-pace`, whose numbering is
-        // completely different: 138 episodes classified instead of 1168, with the wrong ones marked
-        // filler. Found by running the probe against the real index.
+        // The live index contains `Tidewater Recut (Tidewater Market)` — a fan re-edit — alongside
+        // `Tidewater Market`. Treating both titles as equal made "Tidewater Market" resolve to
+        // `tidewater-recut`, whose numbering is completely different: 138 episodes classified
+        // instead of 1168, with the wrong ones marked filler. Found by running the probe against
+        // the real index.
         let index = parse_index(
-            r#"<a href="/shows/one-pace">One Pace (One Piece)</a>
-               <a href="/shows/one-piece">One Piece</a>"#,
+            r#"<a href="/shows/tidewater-recut">Tidewater Recut (Tidewater Market)</a>
+               <a href="/shows/tidewater-market">Tidewater Market</a>"#,
         );
         assert_eq!(
-            match_index(&["One Piece".to_string()], &index).map(|e| e.slug.as_str()),
-            Some("one-piece"),
+            match_index(&["Tidewater Market".to_string()], &index).map(|e| e.slug.as_str()),
+            Some("tidewater-market"),
             "an alternate title outranked the real show"
         );
         // And the re-edit is still reachable by its own name.
         assert_eq!(
-            match_index(&["One Pace".to_string()], &index).map(|e| e.slug.as_str()),
-            Some("one-pace")
+            match_index(&["Tidewater Recut".to_string()], &index).map(|e| e.slug.as_str()),
+            Some("tidewater-recut")
         );
     }
 
     #[test]
     fn an_alternate_still_matches_when_no_primary_does() {
-        // The romaji case depends on this: no show's *primary* title is `Boku no Hero Academia`.
+        // The romaji case depends on this: no show's *primary* title is `Hagane no Niwashi`.
         let index = parse_index(INDEX);
         assert_eq!(
-            match_index(&["Boku no Hero Academia".to_string()], &index)
-                .map(|e| e.slug.as_str()),
-            Some("my-hero-academia")
+            match_index(&["Hagane no Niwashi".to_string()], &index).map(|e| e.slug.as_str()),
+            Some("steel-gardener")
         );
     }
 
@@ -571,11 +577,11 @@ mod tests {
     #[test]
     fn an_unlisted_show_matches_nothing_rather_than_the_closest_thing() {
         // A wrong match would mark canon episodes as filler and offer to skip story — far worse
-        // than offering nothing. Frieren genuinely is not in the index, having no filler.
+        // than offering nothing. A twelve-episode season is not in the index, having no filler.
         let index = parse_index(INDEX);
-        assert!(match_index(&["Sousou no Frieren".to_string()], &index).is_none());
+        assert!(match_index(&["Hoshikuzu no Tabibito".to_string()], &index).is_none());
         assert!(
-            match_index(&["Hero".to_string()], &index).is_none(),
+            match_index(&["Gardener".to_string()], &index).is_none(),
             "a substring is not a match"
         );
         assert!(match_index(&[], &index).is_none());
@@ -583,8 +589,7 @@ mod tests {
 
     #[test]
     fn entities_in_index_titles_are_decoded() {
-        let index =
-            parse_index(r#"<a href="/shows/x">Fruits Basket &#039;s Tale &amp; More</a>"#);
+        let index = parse_index(r#"<a href="/shows/x">Paper Kite &#039;s Tale &amp; More</a>"#);
         assert_eq!(index.len(), 1);
         // Normalisation strips punctuation, so the check is that the entity did not survive
         // literally as `039`.
@@ -595,24 +600,21 @@ mod tests {
     fn index_parsing_ignores_non_show_links() {
         let html = r#"
             <a href="/shows">All shows</a>
-            <a href="/shows/one-piece#top">One Piece anchor</a>
-            <a href="/shows/one-piece">One Piece</a>
-            <a href="/shows/one-piece">One Piece again</a>
+            <a href="/shows/tidewater-market#top">Tidewater Market anchor</a>
+            <a href="/shows/tidewater-market">Tidewater Market</a>
+            <a href="/shows/tidewater-market">Tidewater Market again</a>
         "#;
         let index = parse_index(html);
         assert_eq!(index.len(), 1, "got {index:?}");
-        assert_eq!(index[0].slug, "one-piece");
+        assert_eq!(index[0].slug, "tidewater-market");
     }
 
     #[test]
     fn slugs_match_the_shape_animefillerlist_uses() {
-        assert_eq!(slug_for("One Piece"), "one-piece");
-        assert_eq!(slug_for("Naruto: Shippuden"), "naruto-shippuden");
-        assert_eq!(slug_for("Bleach"), "bleach");
-        assert_eq!(
-            slug_for("Fullmetal Alchemist: Brotherhood"),
-            "fullmetal-alchemist-brotherhood"
-        );
+        assert_eq!(slug_for("Tidewater Market"), "tidewater-market");
+        assert_eq!(slug_for("Natsukaze Relay: Anchor Leg"), "natsukaze-relay-anchor-leg");
+        assert_eq!(slug_for("Hotaruka"), "hotaruka");
+        assert_eq!(slug_for("Steel Gardener: Second Bloom"), "steel-gardener-second-bloom");
         // No leading, trailing or doubled separators.
         assert_eq!(slug_for("  ...Hello   World!!  "), "hello-world");
         assert_eq!(slug_for("!!!"), "");
@@ -620,8 +622,11 @@ mod tests {
 
     #[test]
     fn the_url_tolerates_a_slug_with_stray_slashes() {
-        assert_eq!(show_url("one-piece"), "https://www.animefillerlist.com/shows/one-piece");
-        assert_eq!(show_url(" /naruto/ "), "https://www.animefillerlist.com/shows/naruto");
+        assert_eq!(
+            show_url("tidewater-market"),
+            "https://www.animefillerlist.com/shows/tidewater-market"
+        );
+        assert_eq!(show_url(" /hotaruka/ "), "https://www.animefillerlist.com/shows/hotaruka");
     }
 
     #[test]

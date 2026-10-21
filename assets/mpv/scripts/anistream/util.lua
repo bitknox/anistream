@@ -24,6 +24,18 @@ function M.format_json(value)
     return (utils.format_json(value))
 end
 
+-- Whether this mpv is at least `major.minor`, read from `mpv-version`: "mpv 0.37.0" from
+-- distribution builds, "mpv v0.41.0-112-gdeadbeef" from git ones. One it cannot read counts as
+-- current, since a feature check that fails shut would hold back every build it misreads.
+function M.mpv_at_least(major, minor)
+    local a, b = (mp.get_property("mpv-version") or ""):match("(%d+)%.(%d+)")
+    if not a then
+        return true
+    end
+    a, b = tonumber(a), tonumber(b)
+    return a > major or (a == major and b >= minor)
+end
+
 -- Fields from the host are read through these: a number may arrive as a string ("5") or a
 -- string as a number (5), and either may be null.
 function M.str(value)

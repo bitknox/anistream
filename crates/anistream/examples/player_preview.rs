@@ -14,19 +14,18 @@
 
 use std::time::Duration;
 
-use anistream::{
-    playback::{self, NextEpisode, PlaySettings, PlaybackContext},
-    slot::PlayerSlot,
-};
 use anistream_core::{
     config::{Config, Paths},
     ids::AnilistId,
     media::Translation,
     stream::{Stream, StreamKind},
 };
+use anistream_engine::playback::{
+    self, NextEpisode, PlaySettings, PlaybackContext, slot::PlayerSlot,
+};
+use anistream_model::event::Event;
 use anistream_net::HttpClient;
 use anistream_store::Store;
-use anistream_ui::app::Update;
 use tokio::sync::mpsc;
 
 #[tokio::main]
@@ -48,7 +47,11 @@ async fn main() -> anyhow::Result<()> {
     let scratch = tempfile::tempdir()?;
     let paths = Paths { cache_dir: scratch.path().to_path_buf(), ..Paths::resolve()? };
     let config = Config::load(&paths)?;
-    let mpv = anistream::player::player(&config, &paths);
+    let mpv = anistream_engine::playback::player::player(
+        &config,
+        &paths,
+        &anistream_tui::theme::player_theme(),
+    );
     println!("player scratch dir: {}", mpv.scratch_dir().display());
 
     let store = Store::open_in_memory()?;
@@ -81,6 +84,8 @@ async fn main() -> anyhow::Result<()> {
             volume: None,
             next,
             episodes: Vec::new(),
+            cover_url: None,
+            banner_url: None,
         };
         let settings = PlaySettings {
             threshold: config.playback.commit_threshold,
@@ -92,12 +97,13 @@ async fn main() -> anyhow::Result<()> {
             night_mode: config.playback.night_mode,
             remember_tracks: false,
             look: config.playback.upscaling.into(),
-            shader_dir: anistream::player::shader_dir(&config, &paths),
+            shader_dir: anistream_engine::playback::player::shader_dir(&config, &paths),
             tone_mapping: config.playback.tone_mapping.clone(),
             tracker_ids: Vec::new(),
             presence: Default::default(),
             syncplay: Default::default(),
             party: false,
+            up_next_countdown: 10,
         };
         let stream = Stream {
             provider_id: "preview".into(),
@@ -108,9 +114,9 @@ async fn main() -> anyhow::Result<()> {
         let printer = tokio::spawn(async move {
             while let Some(update) = rx.recv().await {
                 match update {
-                    Update::Status(s) if !s.is_empty() => println!("  status: {s}"),
-                    Update::Toast(t) => println!("  toast: {}", t.text),
-                    Update::PlaybackEnded { watched, ending } => {
+                    Event::Status(s) if !s.is_empty() => println!("  status: {s}"),
+                    Event::Toast(t) => println!("  toast: {}", t.text),
+                    Event::PlaybackEnded { watched, ending, .. } => {
                         println!("  ended (watched: {watched}, {ending:?})")
                     }
                     _ => {}
@@ -122,10 +128,13 @@ async fn main() -> anyhow::Result<()> {
             context,
             store.clone(),
             http.clone(),
-            mpv.clone(),
+            playback::Machine::desktop(
+                mpv.clone(),
+                slot.clone(),
+                std::sync::Arc::new(anistream_engine::host::DesktopHost::new(&config, &paths)),
+            ),
             settings,
-            slot.clone(),
-            tx,
+            tx.into(),
             commands,
         );
         tokio::time::timeout(Duration::from_secs(600), play).await?;

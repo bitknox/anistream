@@ -285,7 +285,7 @@ mod tests {
     const FEED: &str = r#"<?xml version="1.0" encoding="utf-8"?>
 <rss xmlns:idx="https://indexer.example/xmlns" version="2.0"><channel>
 <item>
-  <title>[SubGroup] Sousou no Frieren - 12 (1080p) [A1B2C3D4].mkv</title>
+  <title>[SubGroup] Hoshikuzu no Tabibito - 12 (1080p) [A1B2C3D4].mkv</title>
   <link>https://indexer.example/download/1234567.torrent</link>
   <guid isPermaLink="true">https://indexer.example/view/1234567</guid>
   <idx:seeders>142</idx:seeders>
@@ -294,7 +294,7 @@ mod tests {
   <idx:infoHash>0123456789abcdef0123456789abcdef01234567</idx:infoHash>
 </item>
 <item>
-  <title><![CDATA[[BatchGroup] Sousou no Frieren (01-28) (BD 1080p) [Dual-Audio]]]></title>
+  <title><![CDATA[[BatchGroup] Hoshikuzu no Tabibito (01-28) (BD 1080p) [Dual-Audio]]]></title>
   <link>https://indexer.example/download/7654321.torrent</link>
   <guid isPermaLink="true">https://indexer.example/view/7654321</guid>
   <idx:seeders>99</idx:seeders>
@@ -412,8 +412,8 @@ mod tests {
     #[test]
     fn the_search_template_is_rendered_with_encoded_terms() {
         let template = "https://indexer.example/?page=rss&q={query}&s=seeders";
-        let url = search_url(template, "Sousou no Frieren", Some(1080));
-        assert!(url.contains("q=Sousou+no+Frieren+1080p"));
+        let url = search_url(template, "Hoshikuzu no Tabibito", Some(1080));
+        assert!(url.contains("q=Hoshikuzu+no+Tabibito+1080p"));
         assert!(url.contains("s=seeders"), "the rest of the template survives");
         assert!(!url.contains("{query}"), "placeholder must be consumed");
 

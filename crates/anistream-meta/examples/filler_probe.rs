@@ -1,21 +1,30 @@
 //! Does the filler parser survive the real page?
 //!
 //! ```text
-//! cargo run -p anistream-meta --example filler_probe
+//! cargo run -p anistream-meta --example filler_probe -- "<title>" "<title>" …
 //! ```
 //!
 //! AnimeFillerList is parsed HTML with its own slugs, so this checks two things a unit test on
 //! recorded markup cannot: that the slug guess resolves for real shows, and that the live markup
 //! still has the shape the parser expects. A silent shape change would show up here as a show with
 //! zero classified episodes rather than as an error.
+//!
+//! The titles come from the command line, so the probe itself names no real show. Pass a few
+//! long-runners where filler actually matters, some in romaji as AniList hands them over, plus a
+//! control that should have none.
 
 use anistream_meta::filler;
 
-/// Long-runners where filler actually matters, plus a control that should have none.
-const SHOWS: &[&str] = &["One Piece", "Naruto: Shippuden", "Bleach", "Sousou no Frieren"];
-
 #[tokio::main]
 async fn main() {
+    let titles: Vec<String> = std::env::args().skip(1).collect();
+    if titles.is_empty() {
+        eprintln!(
+            "usage: filler_probe <title>…  (long-runners, some in romaji, and a control)"
+        );
+        std::process::exit(2);
+    }
+
     let client = reqwest::Client::builder()
         // The site serves a different page to something that looks like a bot.
         .user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0 Safari/537.36")
@@ -43,23 +52,17 @@ async fn main() {
     };
     println!("index: {} shows from {}", index.len(), filler::INDEX_URL);
 
-    // Romaji titles, exactly as AniList would hand them over. A derived slug gets all of these
-    // wrong; the index gets them right.
+    // A romaji title, exactly as AniList would hand it over, is where a derived slug goes wrong
+    // and the index gets it right.
     println!();
-    println!("── romaji → slug, via the index ───────────────────────");
-    for romaji in [
-        "Boku no Hero Academia",
-        "Tate no Yuusha no Nariagari",
-        "Toaru Majutsu no Index",
-        "One Piece",
-        "Sousou no Frieren",
-    ] {
-        let matched = filler::match_index(&[romaji.to_string()], &index);
-        let derived = filler::slug_for(romaji);
+    println!("── title → slug, via the index ────────────────────────");
+    for title in &titles {
+        let matched = filler::match_index(std::slice::from_ref(title), &index);
+        let derived = filler::slug_for(title);
         let via_index = matched.map_or("—", |e| e.slug.as_str());
         let agree = via_index == derived;
         println!(
-            "  {romaji:<30} index={via_index:<34} derived={derived:<30} {}",
+            "  {title:<30} index={via_index:<34} derived={derived:<30} {}",
             if matched.is_none() {
                 "not covered"
             } else if agree {
@@ -72,9 +75,9 @@ async fn main() {
 
     println!();
     println!("── episode classification ─────────────────────────────");
-    for title in SHOWS {
+    for title in &titles {
         // Index match first, slug derivation only as the fallback.
-        let slug = filler::match_index(&[(*title).to_string()], &index)
+        let slug = filler::match_index(std::slice::from_ref(title), &index)
             .map(|e| e.slug.clone())
             .unwrap_or_else(|| filler::slug_for(title));
         let url = filler::show_url(&slug);
