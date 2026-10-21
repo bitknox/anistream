@@ -31,6 +31,9 @@ class MainActivity : ComponentActivity() {
         app.notifier.asked()
     }
 
+    /** AniList's and MyAnimeList's sign-in in a Custom Tab, and the redirect that ends it. */
+    private val signIn by lazy { BrowserSignIn(this, app.store) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         // Light icons on the dark ground, over bars the app draws itself.
         enableEdgeToEdge(
@@ -64,6 +67,13 @@ class MainActivity : ComponentActivity() {
         }
         if (Flavour.FIXTURES || debuggable) announceReady()
         askForNotificationsWhenNeeded()
+        signIn.start()
+        signIn.handle(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        signIn.resumed()
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
@@ -114,6 +124,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        // The redirect a sign-in comes back with is the engine's, and is not kept as the
+        // activity's intent.
+        if (signIn.handle(intent)) return
         setIntent(intent)
     }
 

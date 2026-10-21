@@ -31,4 +31,5 @@ dependencies {
     implementation(libs.activity.compose)
     implementation(libs.core.ktx)
     implementation(libs.lifecycle.process)
+    implementation(libs.browser)
 }

@@ -3,7 +3,7 @@ package tv.anistream.ui
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
-import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.core.graphics.Insets
@@ -30,6 +30,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import tv.anistream.design.AnistreamTheme
+import tv.anistream.engine.model.DeviceCodePrompt
 import tv.anistream.engine.model.Event
 import tv.anistream.store.AppClock
 import tv.anistream.store.AppStore
@@ -95,14 +96,38 @@ class SettingsShots {
     @Config(qualifiers = TABLET)
     fun tablet_settings_titles() = shoot("tablet-settings-titles", settingsRoute(SettingsPane.Playback), tap = "Title language", dismiss = true)
 
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_accounts_signed_out() = shoot("phone-accounts-signed-out", settingsRoute(SettingsPane.Accounts), scene = "fresh")
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_kitsu_sheet() = shoot("phone-kitsu-sheet", settingsRoute(SettingsPane.Accounts), scene = "fresh", tap = "Sign in", tapIndex = 2)
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_device_code() = shoot("phone-device-code", settingsRoute(SettingsPane.Accounts), scene = "fresh", screen = true) { store ->
+        store.apply(listOf(Event.DeviceCode(DeviceCodePrompt(tracker = "trakt", code = "4F2K9QX1", url = "https://trakt.example/activate"))))
+    }
+
     /**
-     * The watching scene replayed into a store, the app drawn with [page] open over Continue, and
-     * captured once the art has landed. [tap] taps the node with that text first, and the whole
-     * screen is captured, so a menu's window shows; [dismiss] closes the menu again, for the
-     * tablet's column, which follows the row tapped.
+     * [scene] replayed into a store, the app drawn with [page] open over Continue, and captured
+     * once the art has landed. [tap] taps the node with that text first ([tapIndex] of them), and
+     * the whole screen is captured, so a menu's or a sheet's window shows; [dismiss] closes the
+     * menu again, for the tablet's column, which follows the row tapped. [then] feeds the store
+     * more once the page is up.
      */
-    private fun shoot(name: String, page: String, tap: String? = null, dismiss: Boolean = false) {
-        val recorded = Scene.named("watching")
+    private fun shoot(
+        name: String,
+        page: String,
+        tap: String? = null,
+        dismiss: Boolean = false,
+        scene: String = "watching",
+        tapIndex: Int = 0,
+        screen: Boolean = false,
+        then: (AppStore) -> Unit = {},
+    ) {
+        val recorded = Scene.named(scene)
         AppClock.clock = Clock.fixed(recorded.recordedAt, ZONE)
         val store = AppStore(scope, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
         val events = recorded.events.filter(::replayed)
@@ -119,11 +144,14 @@ class SettingsShots {
         compose.mainClock.advanceTimeBy(3_000)
         compose.waitForIdle()
         val file = "${roborazziSystemPropertyOutputDirectory()}/$name.png"
+        compose.runOnUiThread { then(store) }
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.waitForIdle()
         if (tap == null) {
-            compose.onRoot().captureRoboImage(file)
+            if (screen) captureScreenRoboImage(file) else compose.onRoot().captureRoboImage(file)
             return
         }
-        compose.onNodeWithText(tap).performClick()
+        compose.onAllNodesWithText(tap)[tapIndex].performClick()
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
         if (dismiss) {

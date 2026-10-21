@@ -12,10 +12,14 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -432,27 +436,46 @@ internal fun guardWords(check: ProvidersModel.Check?, now: Long = System.current
 @Composable
 internal fun AccountsPane(actions: AppActions) {
     val store = LocalAppStore.current
+    val sheets = LocalAppSheets.current
     val trackers by store.accounts.trackers.collectAsStateWithLifecycle()
     val syncedAt by store.accounts.syncedAt.collectAsStateWithLifecycle()
     val working by store.accounts.working.collectAsStateWithLifecycle()
+    val conflicts by store.accounts.conflicts.collectAsStateWithLifecycle()
+    var reviewing by remember { mutableStateOf(false) }
     val anilist = trackers["anilist"]
     val storage = trackers.values.firstNotNullOfOrNull { it.storage }
+    /** The tracker's own sign-in: Kitsu's sheet, the browser or a code for the rest. */
+    val signIn = { tracker: String -> if (tracker == "kitsu") sheets.kitsu = true else store.connect(tracker) }
     Pane {
         SettingsGroup(
             title = "AniList",
             footer = "Progress and list changes sync to AniList. Library shows your AniList lists.",
             rows = if (anilist?.connected == true) {
                 val status = AccountWords.status(anilist, syncedAt, working)
-                listOf(
+                listOfNotNull(
                     @Composable { place: Place ->
-                        InfoRow(place, anilist.user ?: "Signed in", status.text, leading = { Avatar(anilist.user, 40) })
+                        InfoRow(
+                            place,
+                            anilist.user ?: "Signed in",
+                            status.text,
+                            leading = { Avatar(anilist.user, 40) },
+                            trailing = if (anilist.needsReauth) ({ SignInButton("Sign in again", busy = store.accounts.isWorking(working, "anilist")) { signIn("anilist") } }) else null,
+                        )
                     },
-                    { place -> ActionRow(place, "Sync now", enabled = "sync" !in working.values, onClick = store::syncNow) },
-                    { place -> ActionRow(place, "Sign out") { store.disconnect("anilist") } },
+                    @Composable { place: Place -> ActionRow(place, "Sync now", enabled = "sync" !in working.values, onClick = store::syncNow) },
+                    if (conflicts.isNotEmpty()) @Composable { place: Place ->
+                        ActionRow(place, "Review ${Wording.plural(conflicts.size, "difference")}") { reviewing = true }
+                    } else null,
+                    @Composable { place: Place -> ActionRow(place, "Sign out") { store.disconnect("anilist") } },
                 )
             } else {
-                listOf({ place ->
-                    InfoRow(place, "AniList", "Brings in your lists and fills Continue with what you are watching.")
+                listOf(@Composable { place: Place ->
+                    InfoRow(
+                        place,
+                        "AniList",
+                        "Brings in your lists and fills Continue with what you are watching.",
+                        trailing = { SignInButton("Sign in", busy = store.accounts.isWorking(working, "anilist")) { signIn("anilist") } },
+                    )
                 })
             },
         )
@@ -464,17 +487,29 @@ internal fun AccountsPane(actions: AppActions) {
                 @Composable { place: Place ->
                     val state = trackers[tracker]
                     val connected = state?.connected == true
-                    val signOut: @Composable () -> Unit = { TextButton(onClick = { store.disconnect(tracker) }) { Text("Sign out") } }
+                    val busy = store.accounts.isWorking(working, tracker)
+                    val button: @Composable () -> Unit = when {
+                        connected && state?.needsReauth == true -> ({ SignInButton("Sign in again", busy) { signIn(tracker) } })
+                        connected -> ({ TextButton(onClick = { store.disconnect(tracker) }) { Text("Sign out", color = MaterialTheme.colorScheme.onSurface) } })
+                        else -> ({ SignInButton("Sign in", busy) { signIn(tracker) } })
+                    }
                     InfoRow(
                         place,
                         AccountsModel.name(tracker),
                         if (connected) AccountWords.status(state, syncedAt, working).text else "Not signed in",
-                        trailing = signOut.takeIf { connected },
+                        trailing = button,
                     )
                 }
             },
         )
     }
+    if (reviewing) ConflictsSheet { reviewing = false }
+}
+
+/** Sign in, tonal: a row's own action, with the screen's one amber action kept for elsewhere. */
+@Composable
+private fun SignInButton(label: String, busy: Boolean, onClick: () -> Unit) {
+    FilledTonalButton(onClick = onClick, enabled = !busy) { Text(if (busy) "Signing in" else label) }
 }
 
 /** A row that is one action in silk, such as Sync now or Sign out. */
