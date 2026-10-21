@@ -190,15 +190,20 @@ engine in temporary directories, and keep secrets in memory.
   down `PlayerTiming.upNextCountdown` seconds of playback from `endingAt` and sends `PlayNext` at
   zero; three episodes rolled on in a row with nobody there pause behind "Still watching?". Audio
   and subtitle picks go to mpv, and the engine reads them back from `aid` and `sid`.
-  `MacPlayerView` is the Mac's player window (MacPlayer, M4, M5): pointer, scroll wheel and the
-  companion's keys. `PhonePlayerView` is the iPhone's and iPad's full-screen cover (PhonePlayer,
+  `MacPlayerView` is the Mac's player (MacPlayer, M4, M5), in the main window: it takes the
+  window's content while it plays, growing out of the banner the play started from, with the
+  browsing kept beneath it, the toolbar given way and the window's own buttons over the video.
+  Back in its top bar, Esc or ⌘[ returns to the title page and stops the playback. Pointer,
+  scroll wheel and the companion's keys. `PhonePlayerView` is the iPhone's and iPad's full-screen cover (PhonePlayer,
   T2 to T5): tap, double tap, long press for 2×, pinch, swipe down to close, landscape on iPhone,
   the audio on in the background with `vid=no`. While the controls are up the subtitles rise
   above them (`sub-pos`, which libass applies to ASS dialogue and not to placed signs).
   Scrubbing shows the frame under the finger from a second, hidden mpv (`SeekPreview`, off in
   Low Power Mode) with the time and the chapter, slows to half and quarter speed as the finger
-  lifts (⌥ on the Mac), and ticks across opening and ending marks. The Mac's mini player (⌥⌘M)
-  floats a quarter of the screen wide in the corner and goes back to the exact frame. Both set
+  lifts (⌥ on the Mac), and ticks across opening and ending marks; on the Mac hovering the seek
+  line shows it too. The Mac's mini player (⌥⌘M) moves the video into a floating panel a
+  quarter of the screen wide in the bottom right corner while the window goes back to browsing;
+  Expand brings it back. One mpv throughout: its layer moves between them. Both set
   Now Playing and the remote commands and
   keep the display awake while playing. `View.hostsPlayer(_:)` opens either with the model. Its
   tests run the model on a scripted mpv, and one plays the Fixtures app's episode end to end on
@@ -298,7 +303,8 @@ download queue, the VPN guard's verdict).
 
 The player's states are `player-starting`, `player-playing`, `player-skip`, `player-up-next`,
 `player-still-watching`, `player-stall`, `player-scrubbing` and `player-mini-player`: the Playing scene's episode played to that state
-(`PlayerShot`), the player window shot on the Mac and the screen in the Simulator.
+(`PlayerShot`), the main window shot on the Mac (with the mini player's panel where it is on
+screen, for `player-mini-player`) and the screen in the Simulator.
 
 They go to `apple/.shots/`, which git ignores. Mac shots come from the dev harness. iPhone and iPad
 shots build Anistream Fixtures, run it on a Simulator device of its own (made on first use), with
