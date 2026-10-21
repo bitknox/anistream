@@ -449,10 +449,11 @@ pub enum Command {
     /// The record the home-screen widgets show: answered with one
     /// [`Event::WidgetSnapshot`](crate::event::Event::WidgetSnapshot), never with a job.
     ///
-    /// Continue's first four titles, from local history, with their titles and covers from the
-    /// metadata cache, asking AniList only for one the cache does not have; and today's
-    /// broadcasts in the device's time zone, one request, answered again for five minutes.
-    /// What could not be fetched is left out rather than failing the rest.
+    /// Continue's first five titles, from local history, with their titles and art from the
+    /// metadata cache, asking AniList only for one the cache does not have; and the broadcasts
+    /// from the start of today in the device's time zone to a week on, a request for each page
+    /// of fifty, used again for five minutes. What could not be fetched is left out rather than
+    /// failing the rest.
     ///
     /// Ask after anything that changes Continue, such as an episode ending, as the app goes to
     /// the background, and from the background task after [`Command::CheckNewEpisodes`].
