@@ -7,7 +7,7 @@
 //!     generate --library <target>/debug/libanistream_ffi.dylib --language swift --out-dir <dir>
 //! ```
 //!
-//! `apple/build.sh` runs it for the Swift package.
+//! `apple/scripts/engine.sh` runs it for the Apple app.
 
 fn main() {
     uniffi::uniffi_bindgen_main();
