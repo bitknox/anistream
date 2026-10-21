@@ -20,12 +20,36 @@ use anistream_track::{TokenPair, auth, mal};
 use super::{Sync, activate};
 use crate::{options::AppClients, outbox::Outbox};
 
-/// The URL scheme the app's redirects come back on.
+/// The URL scheme the app's redirects come back on, unless its client registered another.
 pub const CALLBACK_SCHEME: &str = "anistream";
 
-/// Where `tracker`'s sign-in redirects to, on the app's own scheme: what its client registers.
+/// Where `tracker`'s sign-in redirects to, on the app's own scheme: what its client registers
+/// unless the app says otherwise ([`AppClients::anilist_redirect`]).
 pub fn redirect_uri(tracker: &str) -> String {
     format!("{CALLBACK_SCHEME}://auth/{tracker}")
+}
+
+impl AppClients {
+    /// Where `tracker`'s sign-in redirects to: the one the app's client registered, or the app's
+    /// own scheme.
+    pub fn redirect(&self, tracker: &str) -> String {
+        let registered = match tracker {
+            "anilist" => self.anilist_redirect.as_deref(),
+            "mal" => self.mal_redirect.as_deref(),
+            _ => None,
+        };
+        registered
+            .map(str::trim)
+            .filter(|uri| !uri.is_empty())
+            .map_or_else(|| redirect_uri(tracker), str::to_owned)
+    }
+
+    /// The scheme `tracker`'s redirect comes back on, for the sheet to watch for: `https` for an
+    /// App Link, the app's own otherwise.
+    pub fn callback_scheme(&self, tracker: &str) -> String {
+        let redirect = self.redirect(tracker);
+        redirect.split_once("://").map_or(CALLBACK_SCHEME, |(scheme, _)| scheme).to_owned()
+    }
 }
 
 /// The sign-ins under way, by tracker: what each asked with, for checking what comes back.
@@ -53,21 +77,40 @@ impl PendingSignIns {
     }
 }
 
-/// `config`, as the trackers are built from it for an app: AniList and MyAnimeList turned on
-/// where the app ships a client for them, MyAnimeList's client among its settings, which its
-/// tracker renews tokens with. The file is never given any of it.
+/// `config`, as the trackers are built from it for an app: each tracker turned on where the app
+/// ships a client for it, and MyAnimeList's, Simkl's and Trakt's clients among its settings, which
+/// their trackers sign in, call and renew tokens with, where the file names none of its own. The
+/// file is never given any of it.
 pub fn with_app_clients(config: &Config, clients: &AppClients) -> Config {
     let mut config = config.clone();
     let trackers = &mut config.trackers;
-    for (id, client) in [("anilist", &clients.anilist), ("mal", &clients.mal)] {
+    for (id, client) in [
+        ("anilist", &clients.anilist),
+        ("mal", &clients.mal),
+        ("simkl", &clients.simkl),
+        ("trakt", &clients.trakt),
+    ] {
         if client.is_some() && !trackers.is_enabled(id) {
             trackers.enabled.push(id.to_owned());
         }
     }
+    let unset = |id: &Option<String>| id.as_deref().is_none_or(|id| id.trim().is_empty());
     if let Some(client) = &clients.mal
-        && trackers.mal.client_id.as_deref().is_none_or(|id| id.trim().is_empty())
+        && unset(&trackers.mal.client_id)
     {
         trackers.mal.client_id = Some(client.clone());
+    }
+    if let Some(client) = &clients.simkl
+        && unset(&trackers.simkl.client_id)
+    {
+        trackers.simkl.client_id = Some(client.clone());
+    }
+    // The secret goes with the app's own client and no other: a file's client keeps its own.
+    if let Some(client) = &clients.trakt
+        && unset(&trackers.trakt.client_id)
+    {
+        trackers.trakt.client_id = Some(client.clone());
+        trackers.trakt.client_secret.clone_from(&clients.trakt_secret);
     }
     config
 }
@@ -87,7 +130,7 @@ pub fn begin(sync: &Sync, clients: &AppClients, tracker: &str, tx: &Outbox) -> b
         ("mal", _, Some(client)) => {
             let pkce = mal::Pkce::generate();
             let url =
-                mal::authorize_url_with_state(client, &pkce, &redirect_uri("mal"), &state);
+                mal::authorize_url_with_state(client, &pkce, &clients.redirect("mal"), &state);
             (url, Some(pkce.verifier))
         }
         _ => return false,
@@ -96,7 +139,7 @@ pub fn begin(sync: &Sync, clients: &AppClients, tracker: &str, tx: &Outbox) -> b
     let _ = tx.send(Event::Authorize {
         tracker: tracker.to_owned(),
         url,
-        callback_scheme: CALLBACK_SCHEME.into(),
+        callback_scheme: clients.callback_scheme(tracker),
     });
     true
 }
@@ -155,7 +198,7 @@ pub async fn finish(
                 client,
                 code,
                 verifier,
-                &redirect_uri("mal"),
+                &clients.redirect("mal"),
                 anistream_store::now(),
             )
             .await;
@@ -200,13 +243,60 @@ mod tests {
     #[test]
     fn an_apps_clients_turn_their_trackers_on_for_the_trackers_alone() {
         let config = Config::default();
-        let clients =
-            AppClients { anilist: Some("4242".into()), mal: Some("a-mal-client".into()) };
+        let clients = AppClients {
+            anilist: Some("4242".into()),
+            mal: Some("a-mal-client".into()),
+            ..AppClients::default()
+        };
         let built = with_app_clients(&config, &clients);
         assert!(built.trackers.is_enabled("anilist") && built.trackers.is_enabled("mal"));
         assert_eq!(built.trackers.mal.client_id.as_deref(), Some("a-mal-client"));
         assert_eq!(built.trackers.anilist.client_id, None, "AniList's is never put in");
+        assert!(!built.trackers.is_enabled("simkl") && !built.trackers.is_enabled("trakt"));
         assert_eq!(with_app_clients(&config, &AppClients::default()), config);
         assert_eq!(redirect_uri("mal"), "anistream://auth/mal");
+    }
+
+    #[test]
+    fn an_apps_simkl_and_trakt_clients_turn_them_on_and_a_files_own_client_stands() {
+        let clients = AppClients {
+            simkl: Some("a-simkl-client".into()),
+            trakt: Some("a-trakt-client".into()),
+            ..AppClients::default()
+        };
+        let built = with_app_clients(&Config::default(), &clients);
+        assert!(built.trackers.is_enabled("simkl") && built.trackers.is_enabled("trakt"));
+        assert_eq!(built.trackers.simkl.client_id.as_deref(), Some("a-simkl-client"));
+        assert_eq!(built.trackers.trakt.client_id.as_deref(), Some("a-trakt-client"));
+        assert_eq!(built.trackers.trakt.client_secret, None, "Trakt's new client has none");
+
+        let with_secret =
+            AppClients { trakt_secret: Some("a-secret".into()), ..clients.clone() };
+        let built = with_app_clients(&Config::default(), &with_secret);
+        assert_eq!(built.trackers.trakt.client_secret.as_deref(), Some("a-secret"));
+
+        let mut own = Config::default();
+        own.trackers.trakt.client_id = Some("mine".into());
+        own.trackers.trakt.client_secret = Some("my-secret".into());
+        let built = with_app_clients(&own, &with_secret);
+        assert_eq!(built.trackers.trakt.client_id.as_deref(), Some("mine"));
+        assert_eq!(built.trackers.trakt.client_secret.as_deref(), Some("my-secret"));
+    }
+
+    #[test]
+    fn a_registered_redirect_replaces_the_scheme_and_says_its_own() {
+        let scheme = AppClients::default();
+        assert_eq!(scheme.redirect("anilist"), "anistream://auth/anilist");
+        assert_eq!(scheme.callback_scheme("anilist"), "anistream");
+        let linked = AppClients {
+            anilist_redirect: Some("https://anistream.tv/auth/anilist".into()),
+            mal_redirect: Some("  ".into()),
+            ..AppClients::default()
+        };
+        assert_eq!(linked.redirect("anilist"), "https://anistream.tv/auth/anilist");
+        assert_eq!(linked.callback_scheme("anilist"), "https");
+        // A blank one is none: MyAnimeList keeps the app's scheme.
+        assert_eq!(linked.redirect("mal"), "anistream://auth/mal");
+        assert_eq!(linked.callback_scheme("mal"), "anistream");
     }
 }

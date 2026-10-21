@@ -1086,8 +1086,10 @@ mod tests {
         use anistream_model::{notice::NoticeKind, stores::Secret};
         let dir = tempfile::tempdir().unwrap();
         let kept = Arc::new(Kept::default());
-        let clients =
-            crate::options::AppClients { anilist: None, mal: Some("a-mal-client".into()) };
+        let clients = crate::options::AppClients {
+            mal: Some("a-mal-client".into()),
+            ..crate::options::AppClients::default()
+        };
         let host = Arc::new(Keeping(kept.clone()));
         let (engine, mut events) =
             engine_with(dir.path(), host, |options| options.app_clients = clients).await;
@@ -1130,6 +1132,29 @@ mod tests {
         assert_eq!(failed.kind, NoticeKind::Alert);
         assert!(failed.text.starts_with("token exchange failed"), "{}", failed.text);
         assert_eq!(kept.get("mal").unwrap(), None);
+    }
+
+    #[tokio::test]
+    async fn an_anilist_client_registered_on_an_app_link_asks_the_sheet_to_watch_for_https() {
+        let dir = tempfile::tempdir().unwrap();
+        let clients = crate::options::AppClients {
+            anilist: Some("4242".into()),
+            anilist_redirect: Some("https://anistream.tv/auth/anilist".into()),
+            ..crate::options::AppClients::default()
+        };
+        let host = Arc::new(Keeping(Arc::new(Kept::default())));
+        let (engine, mut events) =
+            engine_with(dir.path(), host, |options| options.app_clients = clients).await;
+        launch_states(&mut events).await;
+        engine.send(Command::Connect { tracker: "anilist".into() });
+        let seen = until(&mut events, |e| matches!(e, Event::JobDone(_))).await;
+        let Some(Event::Authorize { tracker, url, callback_scheme }) =
+            seen.iter().find(|e| matches!(e, Event::Authorize { .. }))
+        else {
+            panic!("the sign-in sheet: {seen:?}")
+        };
+        assert_eq!((tracker.as_str(), callback_scheme.as_str()), ("anilist", "https"));
+        assert!(url.contains("client_id=4242&response_type=token"), "{url}");
     }
 
     #[tokio::test]
