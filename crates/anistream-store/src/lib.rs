@@ -19,6 +19,7 @@ pub mod mapping;
 pub mod outbox;
 pub mod preference;
 pub mod schema;
+pub mod server_health;
 pub mod show_setting;
 pub mod state;
 pub mod stats;
@@ -36,6 +37,7 @@ pub use download::{Download, DownloadState};
 pub use history::{MIN_RESUME_SECS, Progress, RESUME_CEILING, WatchEvent, is_complete};
 pub use mapping::{ResolutionRung, ResolvedMapping};
 pub use outbox::OutboxEntry;
+pub use server_health::{ServerFailure, ServerHealth, ServerKey};
 
 #[derive(Debug, thiserror::Error)]
 pub enum StoreError {

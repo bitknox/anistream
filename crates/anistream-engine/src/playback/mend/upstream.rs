@@ -177,9 +177,11 @@ fn parse_retry_after(value: &str) -> Option<Duration> {
     value.trim().parse::<u64>().ok().map(|secs| Duration::from_secs(secs.clamp(1, 30)))
 }
 
-/// Fetch one upstream URL with the stream's headers.
+/// Fetch one upstream URL with the stream's headers, for playback.
 async fn fetch(upstream: &Upstream, url: &str) -> Result<Fetched, String> {
-    read_body(send(upstream, url, None).await?).await
+    let response = send(upstream, url, None).await?;
+    upstream.answered(response.status().as_u16());
+    read_body(response).await
 }
 
 /// Fetch one upstream URL for the thumbnailer: a single request, never held. A `429` starts
