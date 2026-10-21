@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # The apps' third-party notices, as a release carries them, and its notes for the apps:
 #
-#   packaging/apps/third-party.sh <version> <ref> <android record> <apple record> <out>
+#   packaging/apps/third-party.sh <version> <ref> <android record> <apple record> <rust> <out>
 #
 #   <version>         as packaging/apps/version.sh says it, which names the files
 #   <ref>             the tag, or the commit a dry run built, which the notices link to
 #   <android record>  what the Android build kept of android/.mpv/current: stamp, features,
 #                     contents and licenses/, with the fonts' licences in fonts/
 #   <apple record>    what the Apple build kept of apple/.mpv/current: stamp and contents
+#   <rust>            the engine's Rust crates and their licences, from
+#                     packaging/rust-licences/generate.sh apps
 #
 # It writes, into <out>:
 #
@@ -22,12 +24,12 @@
 # Run from the repository's root, which the scripts, patches and notices are copied from.
 set -euo pipefail
 
-[[ $# -eq 5 ]] || {
-  echo "usage: packaging/apps/third-party.sh <version> <ref> <android record> <apple record> <out>" >&2
+[[ $# -eq 6 ]] || {
+  echo "usage: packaging/apps/third-party.sh <version> <ref> <android record> <apple record> <rust> <out>" >&2
   exit 2
 }
-version="$1" ref="$2" android="$3" apple="$4" out="$5"
-for file in "$android/stamp" "$android/features" "$android/licenses" "$android/fonts" "$apple/stamp"; do
+version="$1" ref="$2" android="$3" apple="$4" rust="$5" out="$6"
+for file in "$android/stamp" "$android/features" "$android/licenses" "$android/fonts" "$apple/stamp" "$rust"; do
   [[ -e "$file" ]] || { echo "third-party.sh: no $file" >&2; exit 1; }
 done
 
@@ -73,7 +75,9 @@ cp "$apple/stamp" "$stage/apple/build/"
 cp apple/scripts/mpv.sh "$stage/apple/build/"
 cp -R apple/patches "$stage/apple/build/patches"
 
-# The engine carries the upscaling shaders in every app, as the terminal binary does.
+# The engine in every app: its Rust crates, and the upscaling shaders it carries, as the terminal
+# binary does.
+cp "$rust" "$stage/engine/THIRD-PARTY-rust.txt"
 cp assets/shaders/THIRD-PARTY.md assets/shaders/LICENSE-* "$stage/engine/"
 
 title="Third-party software in the anistream apps, version $version"
@@ -88,6 +92,8 @@ dynamic libraries of their own, which can be replaced with ones built from modif
 The build scripts, and anistream's changes to the sources, are in build/ beside each platform's
 notices, and in anistream's repository at this release:
 $repo
+The source those libraries were built from, every archive by its SHA-256, is in
+anistream-$version-apps-sources.tar, beside this zip in the release.
 
 android/   anistream-$version-android-arm64.apk
 
@@ -111,6 +117,9 @@ apple/     anistream-$version-macos.dmg, anistream-$version-ios-unsigned.ipa
   font the iPhone and iPad app carries (SIL OFL 1.1).
 
 engine/    every app
+
+  THIRD-PARTY-rust.txt: every Rust crate compiled into the engine, under the licence it is used
+  under, with each licence's text as the crates ship it.
 
   The upscaling shaders the engine carries, with where each came from and its licence. They are
   MIT and LGPL-3.0, except the AniSD model, which is CC BY-NC 4.0: non-commercial use only.
@@ -150,9 +159,10 @@ parts, and ships as dynamic libraries of their own:
   anistream's patches, over MPVKit $mpvkit's LGPL builds of FFmpeg $apple_ffmpeg and the
   libraries beneath it.
 
-\`$zip\` has every licence and notice, and exactly what went in: each source's tag or commit and
-SHA-256, and anistream's patches to them. The engine's upscaling shaders are in it too; one of
-them, the AniSD model, is CC BY-NC 4.0, for non-commercial use only.
+\`anistream-$version-apps-sources.tar\` is the source they were built from, every archive by its
+SHA-256, with the scripts that built them and anistream's patches. \`$zip\` has every licence
+and notice: the libraries', the engine's Rust crates', and the engine's upscaling shaders', one of
+which, the AniSD model, is CC BY-NC 4.0, for non-commercial use only.
 EOF
 } >"$out/apps-release-notes.md"
 

@@ -4,7 +4,7 @@
 #   packaging/apps/publish.sh <tag> <dir>
 #
 # <dir> holds what .github/workflows/apps-release.yml built: the APK, the .dmg, the .ipa, the
-# notices' zip, a .sha256 for each, and apps-release-notes.md. Each file is uploaded, replacing
+# notices' zip, the libraries' sources, a .sha256 for each, and apps-release-notes.md. Each file is uploaded, replacing
 # one of the same name from an earlier run, and the notes go into the release's own between two
 # markers, replacing what an earlier run put there, and before GitHub's generated "What's
 # Changed", so every install section comes first.
@@ -21,7 +21,7 @@ tag="$1" dir="$2"
 
 shopt -s nullglob
 files=()
-for pattern in '*.apk' '*.dmg' '*.ipa' '*-third-party.zip'; do
+for pattern in '*.apk' '*.dmg' '*.ipa' '*-third-party.zip' '*-sources.tar'; do
   # shellcheck disable=SC2206
   found=("$dir"/$pattern)
   (( ${#found[@]} )) || { echo "publish.sh: no $pattern in $dir" >&2; exit 1; }

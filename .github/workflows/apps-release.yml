@@ -2,7 +2,7 @@ name: Apps release
 
 # The apps a release ships beside the terminal binaries: the Android APK, the Mac app in a .dmg
 # and the iPhone and iPad app as an unsigned .ipa, with the notices for the LGPL libmpv and FFmpeg
-# inside them. release.yml calls this on a tag and, once the terminal builds have made the draft
+# inside them and for the engine's Rust crates, and the source those libraries were built from. release.yml calls this on a tag and, once the terminal builds have made the draft
 # release, adds what it built to it. This workflow never publishes anything itself.
 #
 # Its own runs are dry runs, which build everything a release would and keep the files on the run
@@ -484,11 +484,49 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
+  # Beside the builds, since it needs none of them: the source of every library in the apps'
+  # player, as the release attaches it for the LGPL (packaging/apps/sources.sh), and the licences
+  # of the Rust crates in the engine (packaging/rust-licences), for the notices.
+  sources:
+    name: Sources and the Rust crates' licences
+    runs-on: ubuntu-latest
+    steps:
+      - name: Only a dry run
+        if: toJSON(inputs.dry_run) == 'false'
+        run: |
+          echo "::error::This workflow builds without publishing. To publish, push the tag, or dispatch release.yml with it."
+          exit 1
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag }}
+      - name: The version
+        run: packaging/apps/version.sh "$TAG" >> "$GITHUB_ENV"
+      - name: The libraries' sources
+        run: packaging/apps/sources.sh "$VERSION" dist
+      - run: rustup toolchain install
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about@0.9.2
+      - name: The engine's Rust crates
+        run: packaging/rust-licences/generate.sh apps record/rust/THIRD-PARTY-rust.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: apps-sources
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v7
+        with:
+          name: record-rust
+          path: record/
+          if-no-files-found: error
+          retention-days: 7
+
   # The notices for both, as one zip, and the release's notes for the apps, which the run's
   # summary shows, so a dry run's can be read before a tag publishes them.
   notices:
     name: Notices and release notes
-    needs: [android, apple]
+    needs: [android, apple, sources]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -504,7 +542,7 @@ jobs:
       - name: The notices and notes
         run: |
           packaging/apps/third-party.sh "$VERSION" "${TAG:-$GITHUB_SHA}" \
-            record/android record/apple dist
+            record/android record/apple record/rust/THIRD-PARTY-rust.txt dist
           cat dist/apps-release-notes.md >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         with:
