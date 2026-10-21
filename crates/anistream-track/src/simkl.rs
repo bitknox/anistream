@@ -140,12 +140,7 @@ impl Tracker for SimklTracker {
                 message: e.to_string(),
             })?;
 
-        if response.status().as_u16() == 401 {
-            return Err(anistream_core::Error::Auth("simkl rejected the token".into()));
-        }
-        let body: serde_json::Value = response.json().await.map_err(|e| {
-            anistream_core::Error::Tracker { tracker: "simkl".into(), message: e.to_string() }
-        })?;
+        let body = crate::page_json(response, "simkl", "simkl").await?;
 
         let mut entries = Vec::new();
         for item in body["anime"].as_array().into_iter().flatten() {
