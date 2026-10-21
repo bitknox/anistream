@@ -167,10 +167,10 @@ targetTemplates:
       - path: ThirdParty/NOTICES-fonts.txt
         buildPhase: resources
         destinationFilters: [iOS]
-      # libmpv's notices, which the iPhone's About › Acknowledgements shows.
+      # libmpv's notices, which every copy of the app carries, as the LGPL asks of a build that
+      # bundles libmpv and FFmpeg, and which the iPhone's About › Acknowledgements shows.
       - path: ThirdParty/NOTICES-libmpv.txt
         buildPhase: resources
-        destinationFilters: [iOS]
     preBuildScripts:
       - name: Check the subtitle font
         script: |
