@@ -175,10 +175,11 @@ private fun Hero(item: ContinueItem, actions: AppActions) {
     val navigator = LocalNavigator.current
     LaunchedEffect(item.id) { store.loadEpisodes(item.id) }
     Column(Modifier.padding(horizontal = 16.dp)) {
+        // Not clipped to the banner's corners: those are the art's, and would cut into the
+        // episode line's first letter at the foot of the block.
         Column(
             Modifier
                 .shared(Shared.Page, item.id, "hero")
-                .clip(ArtShape.banner)
                 .clickable { navigator.openTitle(item.id, "hero") },
         ) {
         BannerArt(item.entry, Modifier.fillMaxWidth().aspectRatio(16f / 9f).shared(Shared.Art, item.id, "hero").clip(ArtShape.banner))
