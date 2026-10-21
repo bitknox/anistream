@@ -52,6 +52,10 @@ anistream-net.workspace = true
 anistream-store.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
+# The app's log, written as the terminal writes its own.
+tracing.workspace = true
+tracing-appender.workspace = true
+tracing-subscriber.workspace = true
 uniffi.workspace = true
 # What `start_testing` builds the engine's parts from.
 anistream-meta = { workspace = true, optional = true }
