@@ -156,7 +156,10 @@ whole-number scale with its pixels repeated. The script writes a PNG for every s
   (grey tones and a one-cell outline on black, which the system tints and makes Clear from);
 - the Mac's 16 to 1024 at 1x and 2x. The catalogue takes no Dark or Tinted for the Mac: actool
   drops them without a word, so the Mac gets the system's own;
-- the terminal's `assets/icon`, which the release workflow packages.
+- the terminal's `assets/icon`, which the release workflow packages;
+- the iPhone and iPad launch screen's `LaunchNagare`, the whole sprite at 4 pt a cell (8 and 12 px
+  at @2x and @3x), and `LaunchGround`, which `UILaunchScreen` in both apps' Info.plist names. No
+  storyboard, no text, nothing animated; the Mac has no launch screen.
 
 Not Icon Composer, which scales one drawing to every size and puts the pixels on fractions.
 
