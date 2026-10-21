@@ -548,9 +548,10 @@ empty=
         }
 
         // 2. The URL changes mid-file: the running child is retired, and the next thumbnail
-        // request starts one on the new URL.
+        // request starts one on the new URL. Straight after the change: mpv runs one client's
+        // commands in order, so the request finds the new URL set, though the script's
+        // observer of it may not have run yet.
         send(serde_json::json!(["set_property", key, url_2]));
-        std::thread::sleep(Duration::from_millis(300));
         send(serde_json::json!(["script-message-to", "thumbfast", "thumb", "5", "", ""]));
         let second = wait_for(2).remove(1);
         assert_eq!(second.last().map(String::as_str), Some(url_2));
