@@ -3,7 +3,7 @@
 //! to the end of the file.
 
 use anistream_net::HttpClient;
-use anistream_player::{SkipInterval, SkipKind, skip};
+use anistream_playback::{SkipInterval, SkipKind, skip};
 
 /// Fetch skip intervals for an episode.
 ///

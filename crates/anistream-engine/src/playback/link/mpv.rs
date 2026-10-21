@@ -1,14 +1,29 @@
 //! mpv's child process as a playback's player: each call the command it has always been, over
 //! the socket, and the overlay told to the companion script.
 
-use anistream_player::{MpvSession, PlayerError, companion, protocol::Command};
+use std::path::Path;
+
+use anistream_core::traits::PlaybackRequest;
+use anistream_player::{Mpv, MpvSession, PlayerError, companion, protocol::Command};
 use async_trait::async_trait;
 
-use super::{LinkError, Overlay, PlayerLink};
+use super::{LinkError, Opened, Overlay, PlayerLink, PlayerOpener};
 
 impl From<PlayerError> for LinkError {
     fn from(error: PlayerError) -> Self {
         Self(error.to_string())
+    }
+}
+
+#[async_trait]
+impl PlayerOpener for Mpv {
+    async fn open(&self, request: &PlaybackRequest) -> Result<Opened, LinkError> {
+        let (session, events) = self.spawn(request).await?;
+        Ok((Box::new(session), events))
+    }
+
+    fn scratch_dir(&self) -> &Path {
+        Mpv::scratch_dir(self)
     }
 }
 

@@ -10,7 +10,6 @@ use anistream_model::{command::Command, event::Event, notice::Notice};
 use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 
-#[cfg(feature = "desktop")]
 use crate::playback::start::{control_player, play, play_local, play_party, play_source};
 use crate::{
     artwork,
@@ -147,33 +146,22 @@ pub(crate) fn dispatch(
 
         // Playback.
         Command::Prefetch { id, episode } => prefetch(id, episode, engine, services),
-        #[cfg(feature = "desktop")]
+        // Each refused where this build has no player to play in: see `playback::refuse`.
         Command::Play { id, episode } => play(id, episode, job, engine, services, tx),
-        #[cfg(feature = "desktop")]
         Command::PlaySource { id, episode, provider_id, source_id } => {
             play_source(id, episode, provider_id, source_id, job, engine, services, tx)
         }
-        #[cfg(feature = "desktop")]
         Command::PlayParty { id, episode } => {
             play_party(id, episode, job, engine, services, tx)
         }
-        #[cfg(feature = "desktop")]
         Command::PlayLocal { id, episode, title, path } => {
             play_local(id, episode, title, path, job, engine, services, tx)
         }
-        // Without the desktop's player there is nothing to play in, and nothing to steer.
-        #[cfg(not(feature = "desktop"))]
-        Command::Play { .. }
-        | Command::PlaySource { .. }
-        | Command::PlayParty { .. }
-        | Command::PlayLocal { .. } => crate::playback::refuse(job, tx),
         Command::LoadSources { id, episode } => {
             load_sources(id, episode, job, engine, services, tx)
         }
-        #[cfg(feature = "desktop")]
+        // Nothing to steer where nothing plays: no playback has left its controls.
         Command::Player(command) => control_player(command, engine),
-        #[cfg(not(feature = "desktop"))]
-        Command::Player(_) => {}
 
         // The sources.
         Command::CheckProviders => spawn(job, services, tx, check_providers),

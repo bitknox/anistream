@@ -10,7 +10,11 @@ use anistream_providers::ProviderRegistry;
 use anistream_store::Store;
 use anistream_track::TokenStore;
 
-use crate::{host::Host, playback::prefetch::Prefetch, plugin_stores, tracking};
+use crate::{
+    host::Host,
+    playback::{power::PowerSource, prefetch::Prefetch},
+    plugin_stores, tracking,
+};
 
 /// The handles every effect shares, which the command line uses too.
 ///
@@ -40,8 +44,10 @@ pub struct Services {
     /// The plugin stores joined.
     pub stores: plugin_stores::Stores,
     /// The player window kept between episodes, claimed by whichever playback comes next.
-    #[cfg(feature = "desktop")]
     pub slot: crate::playback::slot::PlayerSlot,
+    /// Whether the machine is on battery, which the upscaling chain goes by: the system's word
+    /// on the desktop, and what the front end reports elsewhere.
+    pub power: Arc<dyn PowerSource>,
     /// The next episode's streams, found while the current one's ending plays.
     pub prefetch: Prefetch,
     /// How the player's own interface is dressed: the front end's choice, made once from its
@@ -86,13 +92,26 @@ impl Services {
             registry,
             sync,
             stores,
-            #[cfg(feature = "desktop")]
             slot: Default::default(),
+            power: system_power(),
             prefetch: Prefetch::default(),
             player_theme,
             host,
         })
     }
+}
+
+/// Where a playback learns whether the machine is on battery: the system, on the desktop.
+#[cfg(feature = "desktop")]
+pub(crate) fn system_power() -> Arc<dyn PowerSource> {
+    Arc::new(crate::playback::power::SystemPower)
+}
+
+/// Where a playback learns whether the machine is on battery: what the front end reports,
+/// unknown until it does, without the desktop feature.
+#[cfg(not(feature = "desktop"))]
+pub(crate) fn system_power() -> Arc<dyn PowerSource> {
+    Arc::new(crate::playback::power::ReportedPower::default())
 }
 
 /// The metadata source: AniList first, Tenrai when it fails, the cache when both do.

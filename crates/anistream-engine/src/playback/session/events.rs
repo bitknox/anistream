@@ -25,7 +25,6 @@ use super::{
 };
 use crate::playback::{
     link::{LinkError, Overlay, PlayerLink},
-    power,
     shaders::{self, Look},
     slot::Player,
 };
@@ -157,7 +156,8 @@ impl Run<'_> {
                     // Battery about once a minute: cheap, but a subprocess on macOS.
                     if picture.battery_checked.is_none_or(|t| t.elapsed() >= BATTERY_POLL) {
                         picture.battery_checked = Some(tokio::time::Instant::now());
-                        let on = tokio::task::spawn_blocking(power::on_battery)
+                        let power = std::sync::Arc::clone(&self.power);
+                        let on = tokio::task::spawn_blocking(move || power.on_battery())
                             .await
                             .ok()
                             .flatten()
@@ -239,7 +239,7 @@ impl Run<'_> {
             // Tracks first, and for every event: the policy reads the clock off each one.
             let track_input = match &event {
                 PlaybackEvent::TrackList(list) => Some(TrackInput::TrackList(
-                    anistream_player::tracks::parse_track_list(list),
+                    anistream_playback::tracks::parse_track_list(list),
                 )),
                 PlaybackEvent::Aid(id) => Some(TrackInput::Aid(*id)),
                 PlaybackEvent::Sid(id) => Some(TrackInput::Sid(*id)),

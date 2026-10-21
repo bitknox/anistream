@@ -10,12 +10,23 @@
 //! The overlay is the player's own interface: the loading card, the Up Next card, the skip
 //! button, the menus. mpv's is the companion script, told through `user-data` and script
 //! messages; a native app draws its own from the same [`Overlay`] calls.
+//!
+//! A [`PlayerOpener`] opens the window a link talks to, and [`opener`] is the one a build has:
+//! mpv's process with the `desktop` feature, and none yet without it, where a play is refused.
 
+use std::{path::Path, sync::Arc};
+
+use anistream_core::{
+    config::{Config, Paths},
+    traits::PlaybackRequest,
+};
+use anistream_model::playback::PlayerTheme;
 use anistream_playback::{
     SkipKind,
     companion::{EpisodeInfo, Level, Media, Menus, NextUp, Status},
 };
 use async_trait::async_trait;
+use tokio::sync::mpsc::UnboundedReceiver;
 
 #[cfg(feature = "desktop")]
 mod mpv;
@@ -99,6 +110,43 @@ pub trait PlayerLink: Send + Sync {
 
     /// Close the player and wait for it, insisting if it does not go.
     async fn shutdown(self: Box<Self>);
+}
+
+/// A player window just opened: what it is told through, and what it reports on.
+pub type Opened = (Box<dyn PlayerLink>, UnboundedReceiver<PlaybackEvent>);
+
+/// What opens a player window for a playback, with nothing in it yet: files are loaded into it
+/// through its link, which is what lets one window carry a whole binge.
+#[async_trait]
+pub trait PlayerOpener: Send + Sync {
+    /// Open a window for `request`, which says how it starts: fullscreen, at what speed and
+    /// volume. What fails to open says why, in words for the viewer.
+    async fn open(&self, request: &PlaybackRequest) -> Result<Opened, LinkError>;
+
+    /// Where a playback keeps its scratch files beside the player: the subtitles fetched ahead
+    /// of it, and the next episode's still.
+    fn scratch_dir(&self) -> &Path;
+}
+
+/// What a play opens its player with, from the config as it stands now; `None` where this build
+/// has nothing to play in, and the play is refused.
+///
+/// With the `desktop` feature that is mpv's child process, built per play: see
+/// [`player`](crate::playback::player::player). Without it there is none yet: a front end's own
+/// player is to be offered here.
+#[cfg(feature = "desktop")]
+pub fn opener(
+    config: &Config,
+    paths: &Paths,
+    theme: &PlayerTheme,
+) -> Option<Arc<dyn PlayerOpener>> {
+    Some(Arc::new(crate::playback::player::player(config, paths, theme)))
+}
+
+/// What a play opens its player with: nothing, in a build without the `desktop` feature.
+#[cfg(not(feature = "desktop"))]
+pub fn opener(_: &Config, _: &Paths, _: &PlayerTheme) -> Option<Arc<dyn PlayerOpener>> {
+    None
 }
 
 /// What the player's own interface is told: a state it shows until told otherwise, or a moment

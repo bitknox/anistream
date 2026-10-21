@@ -154,6 +154,11 @@ async fn main() {
 
     // No window: this runs headless, and a video window would need a display.
     let mpv = mpv.with_extra_args(vec!["--vo=null".into(), "--ao=null".into()]);
+    let machine = anistream_engine::playback::Machine::desktop(
+        mpv,
+        anistream_engine::playback::slot::PlayerSlot::default(),
+        std::sync::Arc::new(anistream_engine::host::DesktopHost::new(&config, &paths)),
+    );
 
     let store_for_play = store.clone();
     let playing = tokio::spawn(async move {
@@ -186,9 +191,8 @@ async fn main() {
             context,
             store_for_play,
             http,
-            mpv,
+            machine,
             settings,
-            anistream_engine::playback::slot::PlayerSlot::default(),
             tx.into(),
             command_rx,
         )

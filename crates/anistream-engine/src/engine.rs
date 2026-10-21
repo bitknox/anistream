@@ -35,10 +35,10 @@ use tokio::{
 };
 
 #[cfg(feature = "desktop")]
+use crate::playback::player::{launch_notice, player};
 use crate::playback::{
     autonext::Follow,
-    player::{launch_notice, player},
-    start::play_following,
+    start::{opener_for, play_following},
 };
 use crate::{
     background::{datasets::keep_datasets_current, digest, prune},
@@ -198,8 +198,8 @@ impl Engine {
                 registry,
                 sync: parts.sync,
                 stores: parts.stores,
-                #[cfg(feature = "desktop")]
                 slot: Default::default(),
+                power: crate::services::system_power(),
                 prefetch: Default::default(),
                 player_theme,
                 host,
@@ -317,7 +317,6 @@ impl Engine {
             commands,
             arrivals,
             out,
-            #[cfg(feature = "desktop")]
             jobs: jobs.clone(),
             #[cfg(feature = "testing")]
             routed: 0,
@@ -617,9 +616,8 @@ struct Actor {
     commands: mpsc::UnboundedReceiver<Message>,
     arrivals: mpsc::UnboundedReceiver<(u64, Result<TorrentUp, String>)>,
     out: mpsc::UnboundedSender<Out>,
-    /// The count the jobs it starts on its own are numbered by: see [`Jobs`]. Only the
-    /// desktop's player leads it to start any.
-    #[cfg(feature = "desktop")]
+    /// The count the jobs it starts on its own are numbered by: see [`Jobs`]. Only an ending
+    /// that rolls on leads it to start any.
     jobs: Jobs,
     /// Commands routed so far.
     #[cfg(feature = "testing")]
@@ -783,8 +781,11 @@ impl Actor {
 
     /// Play what `event` led to, as `follow` says, and return what it was staged as. An ending
     /// that rolls on is said to.
-    #[cfg(feature = "desktop")]
+    ///
+    /// Where this build has no player to open, nothing rolls on: what the rules would follow
+    /// with is let go, and nothing is said of it.
     fn roll_on(&mut self, follow: Follow, event: &mut Event) -> Option<Event> {
+        let opener = opener_for(&self.state, &self.services)?;
         if let Event::PlaybackEnded { rolling_on, .. } = event {
             *rolling_on = true;
         }
@@ -792,14 +793,7 @@ impl Actor {
         let play = Command::Play { id: follow.id, episode: follow.episode.clone() };
         let job =
             play.activity().map(|activity| JobGuard::announce(self.jobs.next(), activity, &tx));
-        Some(play_following(follow, job, &mut self.state, &self.services, &tx))
-    }
-
-    /// Without the desktop's player nothing plays, so nothing ends to roll on from: what the
-    /// rules would follow with is let go, and nothing is said of it.
-    #[cfg(not(feature = "desktop"))]
-    fn roll_on(&mut self, _: autonext::Follow, _: &mut Event) -> Option<Event> {
-        None
+        Some(play_following(follow, opener, job, &mut self.state, &self.services, &tx))
     }
 
     /// Whether a playback is under way: the one Now Playing shows has started playing, and
@@ -1233,6 +1227,32 @@ mod tests {
             matches!(&seen[..], [Event::Toast(n)] if n.text == crate::playback::NO_PLAYER),
             "{seen:?}"
         );
+
+        // A release picked by hand, and a watch party, the same: refused before anything is
+        // staged.
+        let episode = || "1".to_owned();
+        for play in [
+            Command::PlaySource {
+                id,
+                episode: episode(),
+                provider_id: "yamabiko".into(),
+                source_id: "a".into(),
+            },
+            Command::PlayParty { id, episode: episode() },
+        ] {
+            engine.send(play);
+            let seen = until(&mut events, |e| matches!(e, Event::JobDone(_))).await;
+            assert!(
+                seen.iter().any(
+                    |e| matches!(e, Event::Toast(n) if n.text == crate::playback::NO_PLAYER)
+                ),
+                "{seen:?}"
+            );
+            assert!(
+                !seen.iter().any(|e| matches!(e, Event::PlaybackStaged { .. })),
+                "{seen:?}"
+            );
+        }
     }
 
     #[tokio::test]

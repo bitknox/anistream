@@ -1,6 +1,8 @@
 //! Starting a playback: the plays a front end asks for, each with a fresh control channel and the
 //! window handed over, the stream found behind the eyecatch, and the settings it runs under.
 
+use std::sync::Arc;
+
 use anistream_core::{config::Config, ids::AnilistId};
 use anistream_model::{
     command::PlayerCommand, episodes::EpisodeRow, event::Event, notice::Notice,
@@ -15,8 +17,9 @@ use crate::{
         self,
         autonext::{Follow, Staged},
         handoff::{Handoff, successor, take_controls},
-        player::{player, shader_dir},
+        link::{PlayerOpener, opener},
         resolve::{Resolved, resolve_for_playback},
+        shaders::shader_dir,
     },
     services::Services,
     state::EngineState,
@@ -44,12 +47,21 @@ fn hints_for(
     hints
 }
 
-/// Play an episode from whichever source the resolution ladder chooses, staged for Now Playing
-/// as the engine's record of the titles names it, which the front end is told.
+/// What this play opens its player with, from the config in effect: see [`opener`].
 ///
 /// No player handle is kept across the session: every play builds its own from the config in
 /// effect, which is the live one the Settings screen edits, as the front end last said. A
 /// handle held across the session is exactly how a turned-off upscaler kept running.
+pub(crate) fn opener_for(
+    engine: &EngineState,
+    services: &Services,
+) -> Option<Arc<dyn PlayerOpener>> {
+    opener(engine.config.effective(), &services.paths, &services.player_theme)
+}
+
+/// Play an episode from whichever source the resolution ladder chooses, staged for Now Playing
+/// as the engine's record of the titles names it, which the front end is told. Refused, with
+/// nothing staged, where this build has no player to open.
 pub fn play(
     id: AnilistId,
     episode: String,
@@ -58,8 +70,11 @@ pub fn play(
     services: &Services,
     tx: &Outbox,
 ) {
+    let Some(opener) = opener_for(engine, services) else {
+        return playback::refuse(job, tx);
+    };
     let billing = named(id, &episode, engine);
-    let staged = play_staged(id, episode, None, billing, job, engine, services, tx);
+    let staged = play_staged(id, episode, None, billing, opener, job, engine, services, tx);
     let _ = tx.send(staged);
 }
 
@@ -75,17 +90,21 @@ pub fn play_source(
     services: &Services,
     tx: &Outbox,
 ) {
+    let Some(opener) = opener_for(engine, services) else {
+        return playback::refuse(job, tx);
+    };
     let billing = named(id, &episode, engine);
     let pick = Some((provider_id, source_id));
-    let staged = play_staged(id, episode, pick, billing, job, engine, services, tx);
+    let staged = play_staged(id, episode, pick, billing, opener, job, engine, services, tx);
     let _ = tx.send(staged);
 }
 
-/// Play what a playback led to, which the engine starts on its own: staged as `follow` says,
-/// under the name the playback before it went by. Returns what it was staged as, for the
-/// engine to say right after the event that led to it.
+/// Play what a playback led to, which the engine starts on its own, in `opener`'s player: staged
+/// as `follow` says, under the name the playback before it went by. Returns what it was staged
+/// as, for the engine to say right after the event that led to it.
 pub(crate) fn play_following(
     follow: Follow,
+    opener: Arc<dyn PlayerOpener>,
     job: Option<JobGuard>,
     engine: &mut EngineState,
     services: &Services,
@@ -93,7 +112,7 @@ pub(crate) fn play_following(
 ) -> Event {
     let Follow { id, episode, title, episode_title } = follow;
     let billing = (title, episode_title);
-    play_staged(id, episode, None, billing, job, engine, services, tx)
+    play_staged(id, episode, None, billing, opener, job, engine, services, tx)
 }
 
 /// What a play the front end asked for is staged as: the name the engine's record of the titles
@@ -139,12 +158,13 @@ fn play_staged(
     // `(provider_id, source_id)` when the user picked an exact release in the Sources overlay.
     pick: Option<(String, String)>,
     (title, episode_title): (String, Option<String>),
+    opener: Arc<dyn PlayerOpener>,
     job: Option<JobGuard>,
     engine: &mut EngineState,
     services: &Services,
     tx: &Outbox,
 ) -> Event {
-    let Services { paths, sync, prefetch, player_theme, .. } = services;
+    let Services { paths, sync, prefetch, .. } = services;
     let played = engine.next_playback(id, &episode);
     let staged = stage(&played, title, episode_title, engine);
     let PlayHints { title, next, episodes } = hints_for(id, &episode, PlayKind::Staged, engine);
@@ -175,7 +195,7 @@ fn play_staged(
         handoff,
         config,
         services,
-        &player(config, paths, player_theme),
+        opener,
         tracker_ids,
         extras,
         shader_dir(config, paths),
@@ -195,7 +215,10 @@ pub fn play_party(
     services: &Services,
     tx: &Outbox,
 ) {
-    let Services { paths, sync, player_theme, .. } = services;
+    let Some(opener) = opener_for(engine, services) else {
+        return playback::refuse(job, tx);
+    };
+    let Services { paths, sync, .. } = services;
     let played = engine.next_playback(id, &episode);
     let PlayHints { title, next, episodes } = hints_for(id, &episode, PlayKind::Party, engine);
     let EngineState { config, player_tx, .. } = engine;
@@ -214,7 +237,7 @@ pub fn play_party(
         handoff,
         config,
         services,
-        &player(config, paths, player_theme),
+        opener,
         tracker_ids,
         extras,
         shader_dir(config, paths),
@@ -236,7 +259,10 @@ pub fn play_local(
     services: &Services,
     tx: &Outbox,
 ) {
-    let Services { paths, http, store, sync, slot, player_theme, .. } = services;
+    let Some(opener) = opener_for(engine, services) else {
+        return playback::refuse(job, tx);
+    };
+    let Services { paths, http, store, sync, .. } = services;
     let played = engine.next_playback(id, &episode);
     let skip_filler = engine.config.effective().playback.skip_filler;
     let PlayHints { next, episodes, .. } =
@@ -260,13 +286,12 @@ pub fn play_local(
         fill_episodes(id, &episode, services, player_tx);
     }
     let shaders = shader_dir(config, paths);
-    let (config, store, http, mpv, tx, slot) = (
+    let (config, store, http, machine, tx) = (
         config.clone(),
         store.clone(),
         http.clone(),
-        player(config, paths, player_theme),
+        machine(opener, services),
         tx.for_playback(played),
-        slot.clone(),
     );
     tokio::spawn(async move {
         let _job = job;
@@ -298,8 +323,18 @@ pub fn play_local(
             shader_dir: shaders,
             ..play_settings(&config, tracker_ids, config.syncplay.enabled)
         };
-        playback::play(vec![stream], context, store, http, mpv, settings, slot, tx, prx).await;
+        playback::play(vec![stream], context, store, http, machine, settings, tx, prx).await;
     });
+}
+
+/// What a playback runs on: `opener`'s player, and the engine's slot, host and power source.
+fn machine(opener: Arc<dyn PlayerOpener>, services: &Services) -> playback::Machine {
+    playback::Machine {
+        opener,
+        slot: services.slot.clone(),
+        host: services.host.clone(),
+        power: services.power.clone(),
+    }
 }
 
 /// Steer whatever is playing, through the controls of the playback started last.
@@ -327,7 +362,7 @@ fn spawn_playback(
     handoff: Handoff,
     config: &Config,
     services: &Services,
-    mpv: &anistream_player::Mpv,
+    opener: Arc<dyn PlayerOpener>,
     tracker_ids: Vec<String>,
     // What the player's Up Next card and Episodes menu show, from the engine's record of the
     // titles.
@@ -338,13 +373,13 @@ fn spawn_playback(
     job: Option<JobGuard>,
     tx: &Outbox,
 ) {
-    let (config, meta, store, registry, http, mpv, slot, tx) = (
+    let (config, meta, store, registry, http, machine, slot, tx) = (
         config.clone(),
         services.meta.clone(),
         services.store.clone(),
         services.registry.clone(),
         services.http.clone(),
-        mpv.clone(),
+        machine(opener, services),
         services.slot.clone(),
         tx.clone(),
     );
@@ -411,7 +446,7 @@ fn spawn_playback(
         let settings =
             playback::PlaySettings { shader_dir, ..play_settings(&config, tracker_ids, party) };
         handoff.complete().await;
-        playback::play(streams, context, store, http, mpv, settings, slot, tx, commands).await;
+        playback::play(streams, context, store, http, machine, settings, tx, commands).await;
     });
 }
 

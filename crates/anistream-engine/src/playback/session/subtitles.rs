@@ -4,7 +4,6 @@
 
 use anistream_core::stream::Stream;
 use anistream_net::HttpClient;
-use anistream_player::Mpv;
 use futures::StreamExt;
 
 /// Download a stream's external subtitles and point it at the local copies.
@@ -22,13 +21,17 @@ use futures::StreamExt;
 /// Fetching first turns that into a track that is simply absent.
 ///
 /// Files land beside the IPC socket, in a directory the player already owns.
-pub(super) async fn localise_subtitles(http: &HttpClient, mpv: &Mpv, stream: &mut Stream) {
+pub(super) async fn localise_subtitles(
+    http: &HttpClient,
+    scratch: &std::path::Path,
+    stream: &mut Stream,
+) {
     let soft = stream.subtitles.iter().filter(|s| !s.hard).count();
     if soft == 0 {
         return;
     }
 
-    let dir = mpv.scratch_dir().join("subs");
+    let dir = scratch.join("subs");
     if tokio::fs::create_dir_all(&dir).await.is_err() {
         return;
     }
@@ -288,11 +291,10 @@ mod tests {
             thumbnail_url: None,
         };
         let scratch = tempfile::tempdir().unwrap();
-        let mpv = Mpv::new(scratch.path());
         let http = HttpClient::new(&anistream_core::config::NetworkConfig::default()).unwrap();
 
         let started = std::time::Instant::now();
-        localise_subtitles(&http, &mpv, &mut stream).await;
+        localise_subtitles(&http, scratch.path(), &mut stream).await;
         let took = started.elapsed();
 
         let languages: Vec<_> = stream.subtitles.iter().map(|s| s.language.as_str()).collect();

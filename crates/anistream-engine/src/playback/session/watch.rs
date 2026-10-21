@@ -152,7 +152,7 @@ pub(super) fn remember_tracks(
     store: &Store,
     enabled: bool,
     (id, translation): (AnilistId, Translation),
-    memory: anistream_player::tracks::TrackMemory,
+    memory: anistream_playback::tracks::TrackMemory,
 ) {
     if !enabled {
         return;

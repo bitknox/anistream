@@ -19,6 +19,7 @@
 
 use std::{
     path::{Path, PathBuf},
+    sync::Arc,
     time::Duration,
 };
 
@@ -27,8 +28,12 @@ use anistream_core::{
     media::Translation,
     stream::{Stream, StreamKind, Subtitle},
 };
-use anistream_engine::playback::{
-    self, EpisodeEntry, NextEpisode, PlaySettings, PlaybackContext, slot::PlayerSlot,
+use anistream_engine::{
+    host::Host,
+    playback::{
+        self, EpisodeEntry, Machine, NextEpisode, PlaySettings, PlaybackContext,
+        slot::PlayerSlot,
+    },
 };
 use anistream_model::{
     command::PlayerCommand, episodes::EpisodeRow, event::Event, playback::Ending,
@@ -63,6 +68,23 @@ done
 echo $$ > "$socket.pid"
 exec sleep 300
 "#;
+
+/// The host a test plays under: it opens nothing and shows nothing. No playback here hands a
+/// stream to the browser.
+struct NoLinks;
+
+impl Host for NoLinks {
+    fn open_url(&self, _: &str) -> Result<(), String> {
+        Err("a test opens nothing".into())
+    }
+
+    fn notify(&self, _: &str, _: &str) {}
+}
+
+/// mpv's process, on the desktop as it is, with `slot` for its window.
+fn machine(mpv: &Mpv, slot: &PlayerSlot) -> Machine {
+    Machine::desktop(mpv.clone(), slot.clone(), Arc::new(NoLinks))
+}
 
 /// How long each file runs, in seconds. The playhead is reported once a second.
 const RUNTIME: f64 = 120.0;
@@ -348,9 +370,8 @@ impl Stage {
             context(episode, next),
             self.store.clone(),
             http,
-            self.mpv.clone(),
+            machine(&self.mpv, &self.slot),
             settings(),
-            self.slot.clone(),
             tx.into(),
             commands,
         );
@@ -534,9 +555,8 @@ async fn the_viewers_controls_tell_the_player_what_the_golden_says() {
                 context,
                 store,
                 http,
-                mpv,
+                machine(&mpv, &slot),
                 settings,
-                slot,
                 tx.into(),
                 commands,
             );
