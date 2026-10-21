@@ -27,13 +27,13 @@ pub struct EngineOptions {
     pub store: Store,
     /// How the player's own interface is dressed: the front end's choice, from its palette.
     pub player_theme: PlayerTheme,
-    /// The sign-in clients a native app ships with, none for the terminal app, whose user
-    /// registers their own in the config.
-    pub app_clients: AppClients,
     /// Whether a play opens the player the front end hosts, driven through `Event::PlayerOps`,
     /// rather than mpv's process: always so without the desktop feature, where there is no other
     /// player, and on the desktop only when the front end asks.
     pub hosted_player: bool,
+    /// The sign-in clients a native app ships with, none for the terminal app, whose user
+    /// registers their own in the config.
+    pub app_clients: AppClients,
     /// The source chain, whole, for an engine that is not to build its own: a still frame
     /// waits for every source before it starts, and a test brings sources of its own.
     ///
@@ -68,8 +68,8 @@ impl EngineOptions {
             http,
             store,
             player_theme,
-            app_clients: AppClients::default(),
             hosted_player: !cfg!(feature = "desktop"),
+            app_clients: AppClients::default(),
             sources: None,
             background: Background::default(),
             #[cfg(feature = "testing")]

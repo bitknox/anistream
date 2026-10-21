@@ -1,9 +1,9 @@
 //! Playing an episode, from the command to the window: the plays a front end asks for, the
-//! streams found for them, behind the eyecatch or ahead of time, and the window handed from one
-//! playback to the next; the session that runs an episode in mpv and records what was watched;
-//! and the player, the window kept between episodes, the picture and how hard it is pushed, the
-//! loopback proxy that mends what some hosts serve, and the subtitles muxed into a finished
-//! download.
+//! streams found for them, behind the eyecatch or ahead of time, the servers among them tried in
+//! the order their [`health`] says, and the window handed from one playback to the next; the
+//! session that runs an episode in mpv and records what was watched; and the player, the window
+//! kept between episodes, the picture and how hard it is pushed, the loopback proxy that mends
+//! what some hosts serve, and the subtitles muxed into a finished download.
 //!
 //! What front ends, the command line and the probes call to play is named from here.
 //!
@@ -19,6 +19,7 @@ mod session;
 
 pub mod autonext;
 pub mod handoff;
+pub mod health;
 pub mod link;
 pub mod mend;
 pub mod picture;
@@ -36,7 +37,10 @@ pub mod start;
 // of a play, so they are the model's, and named from here for whatever plays.
 pub use anistream_model::playback::{EpisodeEntry, NextEpisode};
 pub use context::PlaybackContext;
-pub use session::{Machine, NO_PARTY, PictureState, PlaySettings, fetch_skips, offered, play};
+pub use session::{
+    Machine, NO_PARTY, PictureState, PlaySettings, STILL_WATCHING_AFTER, UP_NEXT_COUNTDOWN,
+    fetch_skips, offered, play,
+};
 
 /// What a play is answered with where there is no player to play it in, said of each play.
 pub const NO_PLAYER: &str = "playback isn't built into this front end";

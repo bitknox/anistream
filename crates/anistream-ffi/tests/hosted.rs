@@ -17,13 +17,17 @@ use std::{
 
 use anistream_core::{
     ids::AnilistId,
+    media::Translation,
     stream::{Stream, StreamKind, Subtitle},
 };
 use anistream_ffi::{FfiDirs, FfiEngine, FfiHost};
 use anistream_model::{
     command::{Command, PlayerCommand},
     event::Event,
-    hosted::{MpvOption, MpvValue, PlayerEnd, PlayerOp, PlayerReport, PlayerUi},
+    hosted::{
+        MpvOption, MpvValue, PlayerChoice, PlayerEnd, PlayerOp, PlayerReport, PlayerUi,
+        TrackKind,
+    },
     playback::{Ending, PlaybackId, SkipKind},
 };
 use anistream_providers::ProviderRegistry;
@@ -175,6 +179,11 @@ impl App {
         self.engine.send(Command::Player(command));
     }
 
+    /// A command aimed at `playback`, as a hosted player sends what its interface shows.
+    fn aim(&self, playback: PlaybackId, command: PlayerCommand) {
+        self.engine.send(Command::Control { playback, command });
+    }
+
     fn report(&self, playback: PlaybackId, report: PlayerReport) {
         assert_eq!(self.engine.send(Command::PlayerReport { playback, report }), None);
     }
@@ -272,12 +281,16 @@ fn the_player_is_told_what_to_play_and_reports_the_episode_to_its_end() {
     assert_eq!(open, PlayerOp::Open { fullscreen: false, speed: None, volume: None });
     let (_, starting) =
         app.ui("the starting screen", |ui| matches!(ui, PlayerUi::Starting { .. }));
+    // The title and its art, as its lookup found them, so the screen needs nothing more.
     assert_eq!(
         starting,
         PlayerUi::Starting {
+            id: FINISHED,
             title: "Stardust Wayfarer".into(),
             episode: "12".into(),
             episode_title: None,
+            cover_url: Some("https://img.example/cover/900001-xl.jpg".into()),
+            banner_url: Some("https://img.example/banner/900001.jpg".into()),
         }
     );
     let load = app.load();
@@ -377,8 +390,13 @@ fn up_next(app: &mut App) -> PlaybackId {
     // Once both the list and the file's own ending are known, whichever came first.
     let (_, card) =
         app.ui("Up Next", |ui| matches!(ui, PlayerUi::UpNext { ending_at: Some(_), .. }));
-    let PlayerUi::UpNext { next, auto, ending_at } = card else { unreachable!() };
+    let PlayerUi::UpNext { next, auto, ending_at, countdown, still_watching_after } = card
+    else {
+        unreachable!()
+    };
     assert_eq!((next.number.as_str(), auto, ending_at), ("2", true, Some(100.0)));
+    // The app's countdown and when it asks whether anyone is still watching, both the engine's.
+    assert_eq!((countdown, still_watching_after), (10, 3));
     assert_eq!(next.title.as_deref(), Some("A Town Without Night"));
     assert_eq!(next.thumbnail.as_deref(), Some("https://img.example/ep/900001/2.jpg"));
     playback
@@ -396,7 +414,9 @@ fn play_next_hands_the_player_to_the_next_episode() {
         "the next episode starting",
         |ui| matches!(ui, PlayerUi::Starting { episode, .. } if episode == "2"),
     );
-    assert!(matches!(starting, PlayerUi::Starting { .. }));
+    let PlayerUi::Starting { id, banner_url, .. } = starting else { unreachable!() };
+    assert_eq!(id, FINISHED);
+    assert_eq!(banner_url.as_deref(), Some("https://img.example/banner/900001.jpg"));
     app.op("the episode silenced", |op| *op == PlayerOp::Stop);
     let next = app.load();
     assert_ne!(next.playback, first, "the next episode is a playback of its own");
@@ -405,6 +425,122 @@ fn play_next_hands_the_player_to_the_next_episode() {
     assert_eq!(opened, 1, "the same player");
     app.opened(next.playback, &[]);
     app.tick(next.playback, 0, 2);
+    app.stop();
+    app.shutdown();
+}
+
+#[test]
+fn a_late_command_for_the_episode_before_is_let_go() {
+    let mut app = App::fixtures("");
+    let first = up_next(&mut app);
+    app.tick(first, 31, 40);
+    app.aim(first, PlayerCommand::PlayNext);
+    let next = app.load();
+    assert_ne!(next.playback, first);
+    app.opened(next.playback, &[]);
+    app.tick(next.playback, 0, 2);
+
+    // A second Play Now from the card the first episode showed, crossing the roll-on: it was
+    // for the first episode, and the second plays on.
+    app.aim(first, PlayerCommand::PlayNext);
+    app.aim(first, PlayerCommand::TogglePause);
+    // Aimed at the episode playing, it lands.
+    app.aim(next.playback, PlayerCommand::TogglePause);
+    let (playback, _) = app.op("the pause", |op| matches!(op, PlayerOp::Cycle { .. }));
+    assert_eq!(playback, next.playback);
+    let pauses = app.ops.iter().filter(|(_, op)| matches!(op, PlayerOp::Cycle { .. })).count();
+    assert_eq!(pauses, 1, "only the aimed one: {:?}", app.ops);
+    assert!(!app.ops.iter().any(|(p, op)| *p == next.playback && *op == PlayerOp::Stop));
+    app.stop();
+    app.shutdown();
+}
+
+#[test]
+fn a_viewer_closing_the_player_ends_the_playback_as_closed() {
+    // The first of the two ways a hosted player closes: nobody told it to.
+    let mut app = App::fixtures("[playback]\nauto_next = false\n");
+    app.play(FINISHED, "12");
+    let playback = app.load().playback;
+    app.opened(playback, &[]);
+    app.tick(playback, 0, 5);
+    app.report(playback, PlayerReport::Ended { reason: PlayerEnd::Quit });
+    app.report(playback, PlayerReport::Closed);
+    assert_eq!(app.ended(), Ending::Closed);
+    assert!(!app.told(&PlayerOp::Quit), "nothing told it to quit: {:?}", app.ops);
+    app.shutdown();
+}
+
+#[test]
+fn the_engine_stopping_the_player_ends_the_playback_as_stopped() {
+    // The second: the front end asked, the player was told to quit, and said so.
+    let mut app = App::fixtures("[playback]\nauto_next = false\n");
+    app.play(FINISHED, "12");
+    let playback = app.load().playback;
+    app.opened(playback, &[]);
+    app.tick(playback, 0, 5);
+    app.stop();
+    assert!(app.told(&PlayerOp::Quit));
+    app.shutdown();
+}
+
+#[test]
+fn a_track_picked_in_the_player_is_selected_and_kept_for_the_series() {
+    let mut app = App::fixtures("[playback]\nauto_next = false\n");
+    app.play(FINISHED, "12");
+    let playback = app.load().playback;
+    app.opened(playback, &[]);
+    app.op(
+        "the audio corrected",
+        |op| matches!(op, PlayerOp::Set { property, .. } if property == "aid"),
+    );
+    app.tick(playback, 0, 1);
+
+    let pick = PlayerCommand::ChooseTrack { kind: TrackKind::Subtitle, id: None };
+    app.aim(playback, pick);
+    let off = PlayerOp::Set { property: "sid".into(), value: MpvValue::String("no".into()) };
+    app.op("the subtitles off", |op| *op == off);
+    app.aim(playback, PlayerCommand::SubtitleDelay { seconds: 0.5 });
+    let (_, delay) = app.op(
+        "the delay",
+        |op| matches!(op, PlayerOp::Set { property, .. } if property == "sub-delay"),
+    );
+    assert_eq!(
+        delay,
+        PlayerOp::Set { property: "sub-delay".into(), value: MpvValue::Double(0.5) }
+    );
+    app.stop();
+
+    // Kept for the series: the subtitles off at once, without the player having said a word
+    // of it, and the delay once the episode left it where it was.
+    let store =
+        anistream_store::Store::open(app.root.path().join("data/anistream.db")).unwrap();
+    let deadline = Instant::now() + PATIENCE;
+    let memory = loop {
+        let memory = store.track_memory(FINISHED, Translation::Sub).unwrap();
+        if memory.as_ref().is_some_and(|m| m.sub_delay.is_some()) || Instant::now() > deadline {
+            break memory.expect("kept for the series");
+        }
+        thread::sleep(Duration::from_millis(20));
+    };
+    let subtitles = memory.subtitles.expect("a subtitle choice");
+    assert_eq!(subtitles.choice, anistream_core::track_memory::SubtitleChoice::Off);
+    assert_eq!(memory.sub_delay, Some(0.5));
+    app.shutdown();
+}
+
+#[test]
+fn full_screen_is_the_hosts_window_and_never_an_mpv_property() {
+    let mut app = App::fixtures("[playback]\nauto_next = false\n");
+    app.play(FINISHED, "12");
+    let playback = app.load().playback;
+    app.opened(playback, &[]);
+    app.aim(playback, PlayerCommand::Fullscreen);
+    app.op("full screen", |op| *op == PlayerOp::ToggleFullscreen);
+    assert!(
+        !app.ops.iter().any(|(_, op)| matches!(op, PlayerOp::Cycle { property } | PlayerOp::Set { property, .. } if property == "fullscreen")),
+        "{:?}",
+        app.ops
+    );
     app.stop();
     app.shutdown();
 }
@@ -510,6 +646,139 @@ fn a_stream_that_shows_nothing_falls_over_to_the_next_in_the_same_player() {
     app.shutdown();
 }
 
+/// A stream that does not load at all, as libmpv says when the first request fails: its file
+/// ends in an error before it has loaded. The next stream is loaded at once, with no wait.
+fn a_stream_that_fails_to_load_falls_over_at_once(kind: StreamKind, upstream: &str) {
+    let first = format!("{upstream}/stardust-wayfarer/12/first");
+    let second = format!("{upstream}/stardust-wayfarer/12/second");
+    let mut app =
+        App::start(with_streams(vec![stream(&first, kind), stream(&second, kind)]), "");
+    app.play(FINISHED, "12");
+    let failed = app.load();
+    // Never loaded: no FileLoaded, only the end, as libmpv says "loading failed".
+    let ended = Instant::now();
+    app.report(failed.playback, PlayerReport::Ended { reason: PlayerEnd::Error });
+    let next = app.load();
+    let waited = ended.elapsed();
+    assert!(waited < Duration::from_secs(1), "the next stream waited {waited:?}");
+    assert_ne!(next.url, failed.url, "the next stream, not the same one again");
+    let opened = app.ops.iter().filter(|(_, op)| matches!(op, PlayerOp::Open { .. })).count();
+    assert_eq!(opened, 1, "the same player");
+    app.opened(next.playback, &[]);
+    app.tick(next.playback, 0, 2);
+    app.stop();
+    app.shutdown();
+}
+
+/// An upstream on loopback that answers every request `502 Bad Gateway`, as a dead CDN does.
+fn bad_gateway() -> String {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    thread::spawn(move || {
+        for mut connection in listener.incoming().flatten() {
+            let mut request = [0_u8; 4096];
+            let _ = connection.read(&mut request);
+            let _ = connection.write_all(
+                b"HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+            );
+        }
+    });
+    format!("http://{address}")
+}
+
+/// A subtitle host on loopback that takes every connection and answers after `delay`, or
+/// never when there is none.
+fn subtitle_host(delay: Option<Duration>) -> String {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    thread::spawn(move || {
+        for mut connection in listener.incoming().flatten() {
+            thread::spawn(move || {
+                let mut request = [0_u8; 4096];
+                let _ = connection.read(&mut request);
+                let Some(delay) = delay else {
+                    // Held open and never answered, until the test is over.
+                    thread::sleep(Duration::from_secs(600));
+                    return;
+                };
+                thread::sleep(delay);
+                let body = "WEBVTT\n\n00:01.000 --> 00:02.000\nLate.\n";
+                let _ = write!(
+                    connection,
+                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+            });
+        }
+    });
+    format!("http://{address}")
+}
+
+/// A stream at `url` listing a dozen subtitle languages, all at `host`.
+fn with_subtitles(url: &str, host: &str) -> Stream {
+    let subtitles = (0..12)
+        .map(|n| Subtitle {
+            language: format!("l{n}"),
+            url: format!("{host}/sub-{n}.vtt"),
+            hard: false,
+            format: Some("vtt".into()),
+        })
+        .collect();
+    Stream { subtitles, ..stream(url, StreamKind::Mp4) }
+}
+
+#[test]
+fn the_next_stream_opens_without_waiting_out_a_subtitle_host_that_never_answers() {
+    // What a minute between streams was: every round of a dozen subtitle fetches timing out
+    // before the next stream's file was opened.
+    let host = subtitle_host(None);
+    let first = "https://cdn.example/stardust-wayfarer/12/first.mp4";
+    let second = "https://cdn.example/stardust-wayfarer/12/second.mp4";
+    let mut app = App::start(
+        with_streams(vec![stream(first, StreamKind::Mp4), with_subtitles(second, &host)]),
+        "",
+    );
+    app.play(FINISHED, "12");
+    let failed = app.load();
+    let ended = Instant::now();
+    app.report(failed.playback, PlayerReport::Ended { reason: PlayerEnd::Error });
+    let next = app.load();
+    let waited = ended.elapsed();
+    assert_eq!(next.url, second);
+    assert!(waited < Duration::from_secs(3), "the next stream waited {waited:?}");
+    app.opened(next.playback, &[]);
+    app.tick(next.playback, 0, 2);
+    app.stop();
+    app.shutdown();
+}
+
+#[test]
+fn a_subtitle_that_arrives_after_the_file_opened_is_added_to_it() {
+    let host = subtitle_host(Some(Duration::from_secs(3)));
+    let url = "https://cdn.example/stardust-wayfarer/12/a.mp4";
+    let mut app = App::start(with_streams(vec![with_subtitles(url, &host)]), "");
+    app.play(FINISHED, "12");
+    let started = Instant::now();
+    let load = app.load();
+    assert!(started.elapsed() < Duration::from_secs(3), "the file did not wait for them");
+    app.opened(load.playback, &[]);
+    let (_, added) = app.op("a late subtitle", |op| matches!(op, PlayerOp::AddSubtitle { .. }));
+    let PlayerOp::AddSubtitle { url, .. } = added else { unreachable!() };
+    assert!(!url.starts_with("http"), "its local copy: {url}");
+    app.stop();
+    app.shutdown();
+}
+
+#[test]
+fn a_mended_stream_whose_upstream_answers_502_falls_over_at_once() {
+    a_stream_that_fails_to_load_falls_over_at_once(StreamKind::Hls, &bad_gateway());
+}
+
+#[test]
+fn a_file_that_will_not_load_falls_over_at_once() {
+    a_stream_that_fails_to_load_falls_over_at_once(StreamKind::Mp4, "https://cdn.example");
+}
+
 /// Serve one WebVTT track on loopback, for as long as the test runs, and say where.
 fn subtitle_server() -> String {
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
@@ -566,6 +835,89 @@ fn a_web_stream_comes_mended_and_its_subtitles_fetched_ahead() {
     assert!(std::path::Path::new(&url).is_file(), "written out: {url}");
     assert!(std::fs::read_to_string(&url).unwrap().contains("The star road"));
     app.tick(load.playback, 0, 2);
+    app.stop();
+    app.shutdown();
+}
+
+/// A stream of episode 12 from a server that keeps failing, and one from a server that plays.
+const FAILING: &str = "https://cdn-a.example/stardust-wayfarer/12.mp4";
+const HEALTHY: &str = "https://cdn-b.example/stardust-wayfarer/12.mp4";
+
+/// The two, as the source lists them: the failing one first.
+fn two_servers() -> Vec<Stream> {
+    vec![stream(FAILING, StreamKind::Mp4), stream(HEALTHY, StreamKind::Mp4)]
+}
+
+/// Play episode 12 with its first stream failing before a frame and the next one playing.
+fn fails_then_plays(app: &mut App) {
+    app.play(FINISHED, "12");
+    let first = app.load();
+    assert_eq!(first.url, FAILING);
+    app.report(first.playback, PlayerReport::FileLoaded);
+    app.report(first.playback, PlayerReport::Ended { reason: PlayerEnd::Error });
+    let next = app.load();
+    assert_eq!(next.url, HEALTHY);
+    app.opened(next.playback, &[]);
+    app.tick(next.playback, 0, 2);
+    app.stop();
+}
+
+#[test]
+fn a_server_that_keeps_failing_is_tried_after_the_one_that_plays() {
+    let mut app = App::start(with_streams(two_servers()), "");
+    fails_then_plays(&mut app);
+    fails_then_plays(&mut app);
+
+    // Failed twice running: the third play tries the server that has been playing first, and
+    // the Sources menu says why the other is second.
+    app.play(FINISHED, "12");
+    let (_, menus) = app.ui("the menus", |ui| matches!(ui, PlayerUi::Menus { .. }));
+    let PlayerUi::Menus { sources, .. } = menus else { unreachable!() };
+    let rows: Vec<(Option<&str>, Option<&str>)> =
+        sources.iter().map(|s| (s.detail.as_deref(), s.health.as_deref())).collect();
+    assert_eq!(
+        rows,
+        [
+            (Some("direct · cdn-b"), None),
+            (Some("direct · cdn-a"), Some("failed the last 2 times · just now")),
+        ]
+    );
+    let first = app.load();
+    assert_eq!(first.url, HEALTHY);
+    app.opened(first.playback, &[]);
+    app.tick(first.playback, 0, 2);
+
+    // Picked from the menu, the failing server plays all the same, and playing gives it its
+    // place back.
+    app.control(PlayerCommand::Choose(PlayerChoice::Source("1".into())));
+    let picked = app.load();
+    assert_eq!(picked.url, FAILING);
+    app.opened(picked.playback, &[]);
+    app.tick(picked.playback, 2, 4);
+    app.stop();
+
+    app.play(FINISHED, "12");
+    assert_eq!(app.load().url, FAILING, "one success restores it");
+    app.stop();
+    app.shutdown();
+}
+
+#[test]
+fn a_release_picked_by_hand_plays_its_servers_as_it_lists_them() {
+    let provider = sources::provider()
+        .with_streams_for(sources::key(FINISHED), two_servers())
+        .with_source_streams("release", two_servers());
+    let mut app = App::start(ProviderRegistry::new(vec![provider.arc()]), "");
+    fails_then_plays(&mut app);
+    fails_then_plays(&mut app);
+
+    app.engine.send(Command::PlaySource {
+        id: FINISHED,
+        episode: "12".into(),
+        provider_id: sources::PROVIDER_ID.into(),
+        source_id: "release".into(),
+    });
+    assert_eq!(app.load().url, FAILING, "never reordered, however its servers have done");
     app.stop();
     app.shutdown();
 }

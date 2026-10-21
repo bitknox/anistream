@@ -50,6 +50,7 @@ mod tests {
     use std::time::Duration;
 
     use anistream_core::{
+        config::Config,
         ids::{AnilistId, ProviderKey},
         media::Translation,
         settings::SettingValue,
@@ -64,7 +65,7 @@ mod tests {
         event::Event,
         hosted::{
             MenuChoice, MenuChoices, MpvOption, MpvValue, PlayerChoice, PlayerEnd, PlayerOp,
-            PlayerReport, PlayerUi,
+            PlayerReport, PlayerUi, TrackKind,
         },
         jobs::JobId,
         notice::NoticeKind,
@@ -149,6 +150,100 @@ mod tests {
     }
 
     #[test]
+    fn a_provider_row_crosses_with_where_it_came_from_and_its_update() {
+        use anistream_model::sources::{ProviderOrigin, ProviderRow, ProviderUpdate};
+        let command = Command::DisablePlugin { id: "mukashi".into(), disabled: true };
+        assert_eq!(crossed(command.clone()), command);
+        let rows = vec![
+            ProviderRow {
+                id: "mukashi".into(),
+                kind: "plugin".into(),
+                state: "ready".into(),
+                latency_ms: Some(320),
+                usable: true,
+                name: "Mukashi Archive".into(),
+                version: Some("1.4.0".into()),
+                hosts: vec!["mukashi-archive.example".into()],
+                origin: ProviderOrigin::Store {
+                    id: "9f3c1a2b".into(),
+                    name: Some("Hotaru Plugins".into()),
+                },
+                update: Some(ProviderUpdate {
+                    version: "1.5.0".into(),
+                    new_hosts: vec!["media2.mukashi-archive.example".into()],
+                }),
+                ..ProviderRow::default()
+            },
+            ProviderRow {
+                id: "machi".into(),
+                origin: ProviderOrigin::ByHand,
+                disabled: true,
+                ..ProviderRow::default()
+            },
+        ];
+        crosses_intact(Event::Providers(rows));
+    }
+
+    #[test]
+    fn the_native_apps_settings_cross_intact() {
+        use anistream_model::{
+            protection::{FailedCheck, TorrentProtection, TorrentProxy},
+            settings::SettingsView,
+            show::{RememberedSubtitles, RememberedTrack, RememberedTracks, ShowSettingKey},
+        };
+        let id = AnilistId::new(900_001);
+        let commands = [
+            Command::SetTorrentProtection {
+                mode: TorrentProtection::Proxy,
+                proxy: Some(TorrentProxy {
+                    host: "10.64.0.1".into(),
+                    port: 1080,
+                    user: Some("nagare".into()),
+                    password: Some(Secret("lantern".into())),
+                }),
+                on_failure: FailedCheck::Warn,
+                acknowledged: true,
+            },
+            Command::LoadShowSettings { id },
+            Command::SetShowSetting {
+                id,
+                key: ShowSettingKey::SpoilerProtection,
+                value: Some(SettingValue::Bool(false)),
+            },
+            Command::SetShowSetting { id, key: ShowSettingKey::Quality, value: None },
+            Command::ResetShowSettings { id },
+            Command::SetSetting {
+                key: SettingKey::UpNextCountdown,
+                value: SettingValue::Int(5),
+            },
+        ];
+        for command in commands {
+            assert_eq!(crossed(command.clone()), command);
+        }
+
+        let config = Config::default();
+        let remembered = vec![RememberedTracks {
+            translation: Translation::Sub,
+            audio: None,
+            subtitles: Some(RememberedSubtitles::Track {
+                track: RememberedTrack {
+                    language: Some("eng".into()),
+                    title: "signs".into(),
+                    forced: true,
+                    hearing_impaired: false,
+                },
+            }),
+            sub_delay: Some(0.4),
+        }];
+        let own = [(ShowSettingKey::SkipFiller, SettingValue::Bool(true))];
+        let sheet = anistream_model::show::view(id, &config, &own, remembered, None);
+        assert_eq!(crossed(sheet.clone()), sheet);
+        crosses_intact(Event::ShowSettings(sheet));
+        let view = SettingsView::default();
+        assert_eq!(crossed(view.clone()), view);
+    }
+
+    #[test]
     fn a_secret_crosses_as_itself_and_still_prints_as_a_placeholder() {
         let command = Command::ConnectKitsu {
             username: "nagare".into(),
@@ -200,8 +295,27 @@ mod tests {
                 },
                 auto: true,
                 ending_at: Some(1_310.0),
+                countdown: 10,
+                still_watching_after: 3,
             },
         });
+        crosses_intact(Event::PlayerUi {
+            playback,
+            ui: PlayerUi::Starting {
+                id: AnilistId::new(900_001),
+                title: "Stardust Wayfarer".into(),
+                episode: "2".into(),
+                episode_title: None,
+                cover_url: Some("https://img.example/cover/900001.jpg".into()),
+                banner_url: None,
+            },
+        });
+        let pick = PlayerCommand::ChooseTrack { kind: TrackKind::Subtitle, id: None };
+        let aimed = Command::Control { playback, command: pick };
+        assert_eq!(crossed(aimed.clone()), aimed);
+        let delay = Command::Player(PlayerCommand::SubtitleDelay { seconds: -0.4 });
+        assert_eq!(crossed(delay.clone()), delay);
+        crosses_intact(Event::PlayerOps { playback, ops: vec![PlayerOp::ToggleFullscreen] });
         crosses_intact(Event::PlayerUi {
             playback,
             ui: PlayerUi::Menus {
@@ -326,6 +440,7 @@ mod tests {
             link: Secret("https://plugins.example/join/abc#key".into()),
             name: "Our plugins".into(),
             url: "https://plugins.example".into(),
+            host: "plugins.example".into(),
             fingerprint: "ab12 cd34".into(),
             already_joined: false,
         })));

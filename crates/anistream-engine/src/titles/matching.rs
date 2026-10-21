@@ -106,6 +106,7 @@ pub fn manual_search(
 pub fn set_provider_preference(
     id: AnilistId,
     provider: Option<String>,
+    engine: &mut crate::state::EngineState,
     services: &Services,
     tx: &Outbox,
 ) {
@@ -124,5 +125,8 @@ pub fn set_provider_preference(
         // out loud or the UI would be showing a choice that was never saved.
         (Err(e), _) => Notice::alert(format!("could not save that choice: {e}")),
     };
+    // The settings first, with the shows that keep a source counted again: Settings says how
+    // many keep one of their own under the source order.
+    crate::show_settings::recount(engine, services, tx);
     let _ = tx.send(Event::Toast(toast));
 }

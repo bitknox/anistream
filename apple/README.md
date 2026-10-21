@@ -387,7 +387,9 @@ The engine object is `FfiEngine`:
 The app hands the engine an `FfiHost`, which opens links, posts notifications and keeps the
 trackers' and plugin stores' tokens for it, in the keychain: `secretGet`, `secretSet` and
 `secretDelete`, by id. The engine calls it on its own threads. With `.followConfig` and
-`token_storage = "file"` the host is never asked.
+`token_storage = "keychain"`, the items to keep them as are the terminal's: generic passwords
+under service `anistream`, with the id as the account, in the login keychain, where the
+`keyring` crate keeps them on macOS. With `"file"` the host is never asked.
 
 The app hosts the player, libmpv embedded, and the engine drives it as it drives the terminal's
 mpv, in mpv's own vocabulary:

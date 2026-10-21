@@ -8,7 +8,9 @@ import Testing
 
 func provider(_ id: String, _ kind: String = "plugin", state: String = "ready", usable: Bool = true,
               heldBack: Bool = false) -> ProviderRow {
-    ProviderRow(id: id, kind: kind, state: state, latencyMs: 320, lastError: nil, usable: usable, heldBack: heldBack)
+    ProviderRow(id: id, kind: kind, state: state, latencyMs: 320, lastError: nil, usable: usable, heldBack: heldBack,
+                name: id, version: nil, hosts: [], origin: kind == "plugin" ? .byHand : .builtIn, disabled: false,
+                update: nil)
 }
 
 func plugin(_ id: String, _ status: StorePluginStatus, hosts: [String] = ["films.example"]) -> StorePluginRow {
@@ -16,8 +18,9 @@ func plugin(_ id: String, _ status: StorePluginStatus, hosts: [String] = ["films
 }
 
 func storeRow(_ id: String, _ plugins: [StorePluginRow], state: StoreState = .ready) -> StoreRow {
-    StoreRow(id: id, name: id.capitalized, url: "https://\(id).example", fingerprint: "9f3c 1a2b 77de 0c41",
-             member: "Mika", owner: false, state: state, plugins: plugins)
+    StoreRow(id: id, name: id.capitalized, url: "https://\(id).example", host: "\(id).example",
+             fingerprint: "9f3c 1a2b 77de 0c41", member: "Mika", owner: false, state: state, checkedAt: nil,
+             plugins: plugins)
 }
 
 func download(_ id: Int64, title: AnilistId, episode: String, _ state: DownloadState, done: UInt64,
@@ -30,8 +33,9 @@ func download(_ id: Int64, title: AnilistId, episode: String, _ state: DownloadS
 func settingsView(order: [String], rows: [SettingRow] = []) -> SettingsView {
     SettingsView(
         rows: rows, refused: nil, translation: .sub, quality: 1080, theme: .adaptive,
-        sources: ConfiguredSources(order: order, disabled: [], torrent: true, remote: false),
-        speed: nil, presenceClient: false
+        sources: ConfiguredSources(order: order, disabled: [], torrent: true, remote: false, index: nil),
+        speed: nil, presenceClient: false, nativeRows: [], overridden: [],
+        torrent: ProtectionView(protection: .none, proxy: nil, onFailure: .pause)
     )
 }
 
@@ -90,7 +94,8 @@ struct StoresTests {
         store.previewStore("  https://plugins.example/join/abc#key \n")
         #expect(store.stores.preview == .checking(link: "https://plugins.example/join/abc#key"))
         let invited = InvitedStore(link: "https://plugins.example/join/abc#key", name: "Hotaru Plugins",
-                                   url: "https://plugins.example", fingerprint: "9f3c 1a2b", alreadyJoined: false)
+                                   url: "https://plugins.example", host: "plugins.example", fingerprint: "9f3c 1a2b",
+                                   alreadyJoined: false)
         store.apply(.storePreview(.store(invited)))
         #expect(store.stores.preview == .store(invited))
         store.apply(.storePreview(.failed(reason: "the invite code in that link is damaged")))

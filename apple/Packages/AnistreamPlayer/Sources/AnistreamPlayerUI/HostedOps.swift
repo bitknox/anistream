@@ -48,7 +48,7 @@ public enum HostedStep: Sendable, Equatable {
             self = .fullScreen(on)
         case .set(let property, let value):
             self = .call(.set(property: property, value: AnistreamPlayer.MpvValue(engine: value)))
-        case .cycle("fullscreen"):
+        case .cycle("fullscreen"), .toggleFullscreen:
             self = .fullScreen(nil)
         case .cycle(let property):
             self = .call(.command(["cycle", property]))

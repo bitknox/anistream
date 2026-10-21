@@ -81,6 +81,11 @@ pub struct SourceItem {
     pub label: String,
     pub detail: Option<String>,
     pub current: bool,
+    /// How the stream's server has fared lately, when it has been failing: `failed the last 3
+    /// times · 12 min ago`. Left out of what the companion is sent when there is none, which is
+    /// what it has always been sent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub health: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

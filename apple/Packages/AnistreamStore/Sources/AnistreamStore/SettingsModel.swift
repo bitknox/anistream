@@ -36,7 +36,7 @@ public final class SettingsModel {
 
     /// The sources the config sets up.
     public var sources: ConfiguredSources {
-        view?.sources ?? ConfiguredSources(order: [], disabled: [], torrent: false, remote: false)
+        view?.sources ?? ConfiguredSources(order: [], disabled: [], torrent: false, remote: false, index: nil)
     }
 }
 

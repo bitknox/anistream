@@ -208,7 +208,7 @@ struct ClosingTests {
 @MainActor
 struct CardTests {
     func upNext(_ rig: Rig, auto: Bool = true, endingAt: Double? = 42) {
-        rig.ui(1, .upNext(next: NextEpisode(number: "8", title: "A Town Without Night", thumbnail: nil), auto: auto, endingAt: endingAt))
+        rig.ui(1, .upNext(next: NextEpisode(number: "8", title: "A Town Without Night", thumbnail: nil), auto: auto, endingAt: endingAt, countdown: 10, stillWatchingAfter: 3))
     }
 
     @Test func upNextCountsDownFromTheEndingAndPlaysNextAtZero() async throws {
@@ -313,7 +313,7 @@ struct CardTests {
         try await rig.opened()
         rig.ui(1, .skip(kind: .opening, to: 20))
         rig.ui(1, .resumed(position: 600))
-        rig.ui(2, .starting(title: "Stardust Wayfarer", episode: "8", episodeTitle: nil))
+        rig.ui(2, .starting(id: 900_001, title: "Stardust Wayfarer", episode: "8", episodeTitle: nil, coverUrl: nil, bannerUrl: nil))
         #expect(rig.model.skip == nil)
         #expect(rig.model.resume == nil)
         #expect(rig.model.startingLine == "Starting episode 8")
@@ -324,7 +324,7 @@ struct CardTests {
         try await rig.opened(1)
         rig.mpv.emit(.playbackRestart)
         try await until("the picture") { rig.model.hasPicture }
-        rig.ui(2, .starting(title: "Stardust Wayfarer", episode: "8", episodeTitle: nil))
+        rig.ui(2, .starting(id: 900_001, title: "Stardust Wayfarer", episode: "8", episodeTitle: nil, coverUrl: nil, bannerUrl: nil))
         // The old file's frames do not lift it.
         rig.mpv.emit(.playbackRestart)
         rig.ops(1, [.stop])
@@ -341,7 +341,7 @@ struct CardTests {
         try await rig.opened(1)
         rig.mpv.emit(.playbackRestart)
         for playback: PlaybackId in 2...4 {
-            rig.ui(playback - 1, .upNext(next: NextEpisode(number: "\(playback + 6)", title: nil, thumbnail: nil), auto: true, endingAt: 42))
+            rig.ui(playback - 1, .upNext(next: NextEpisode(number: "\(playback + 6)", title: nil, thumbnail: nil), auto: true, endingAt: 42, countdown: 10, stillWatchingAfter: 3))
             try await rig.playhead(52)
             rig.ops(playback - 1, [.stop])
             rig.ops(playback, [.load(url: "/media/\(playback).mkv", options: [])])
@@ -363,7 +363,7 @@ struct CardTests {
         let rig = Rig()
         try await rig.opened(1)
         for playback: PlaybackId in 2...4 {
-            rig.ui(playback - 1, .upNext(next: NextEpisode(number: "\(playback + 6)", title: nil, thumbnail: nil), auto: true, endingAt: 42))
+            rig.ui(playback - 1, .upNext(next: NextEpisode(number: "\(playback + 6)", title: nil, thumbnail: nil), auto: true, endingAt: 42, countdown: 10, stillWatchingAfter: 3))
             try await rig.playhead(52)
             if playback == 3 { rig.model.seek(by: 10) }
             rig.ops(playback, [.load(url: "/media/\(playback).mkv", options: [])])

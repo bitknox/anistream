@@ -58,13 +58,20 @@ impl Run<'_> {
                 format!("Opening {}", context.episode_label()),
                 None,
             ),
+            id: context.anilist_id,
             title: context.title.clone(),
             episode: context.episode.clone(),
             episode_title: episode.title.clone(),
+            cover_url: context.cover_url.clone(),
+            banner_url: context.banner_url.clone(),
         };
         let overlays = [
             Overlay::Episode(episode),
-            Overlay::Next { card: self.next_up(), still: self.next_still() },
+            Overlay::Next {
+                card: self.next_up(),
+                still: self.next_still(),
+                countdown: self.settings.up_next_countdown,
+            },
             Overlay::Menus(self.menus(streams, current)),
             Overlay::Media(companion::Media::default()),
             starting,
@@ -136,7 +143,11 @@ impl Run<'_> {
     /// follows.
     pub(super) fn up_next(&self) -> Option<Overlay> {
         let card = self.next_up()?;
-        Some(Overlay::Next { card: Some(card), still: self.next_still() })
+        Some(Overlay::Next {
+            card: Some(card),
+            still: self.next_still(),
+            countdown: self.settings.up_next_countdown,
+        })
     }
 
     /// The next episode's still, by URL, for a player that fetches its own.
@@ -181,6 +192,7 @@ impl Run<'_> {
                     label: s.provider_id.clone(),
                     detail: Some(detail),
                     current: i == current,
+                    health: self.servers.note(s),
                 })
                 .collect(),
             translation: companion::TranslationMenu {

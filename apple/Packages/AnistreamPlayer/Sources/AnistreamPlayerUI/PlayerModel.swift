@@ -264,7 +264,7 @@ public final class PlayerModel {
         enter(playback)
         let now = ContinuousClock.now
         switch ui {
-        case .starting(let title, let episode, let episodeTitle):
+        case .starting(_, let title, let episode, let episodeTitle, _, _):
             if since == nil || self.playback.map({ playback > $0 }) == true { since = now }
             Self.note(.info, "#\(playback) starting episode \(episode)\(elapsed)")
             starting = StartingScreen(
@@ -284,7 +284,7 @@ public final class PlayerModel {
             skip = nil
         case .autoSkipped(let kind, let undoTo):
             undo = UndoOffer(kind: kind, undoTo: undoTo, from: nil, since: now)
-        case .upNext(let next, let auto, let endingAt):
+        case .upNext(let next, let auto, let endingAt, _, _):
             Self.note(.info, "#\(playback) up next: episode \(next.number), auto \(auto), from \(endingAt.map { "\(Int($0)) s" } ?? "near the end")")
             var card = UpNextCard(next: next, auto: auto, endingAt: endingAt)
             if let before = upNext, before.next.number == next.number {
@@ -768,6 +768,7 @@ public final class PlayerModel {
         case .addSubtitle(_, _, let language): "add a subtitle track (\(language ?? "no language"))"
         case .set(let property, _): "set \(property)"
         case .cycle(let property): "cycle \(property)"
+        case .toggleFullscreen: "toggle full screen"
         case .add(let property, let delta): "add \(delta) to \(property)"
         case .seek(let seconds, let absolute): absolute ? "seek to \(Int(seconds)) s" : "seek by \(Int(seconds)) s"
         case .shaders(let paths): paths.isEmpty ? "shaders off" : "shaders: \(paths.map { ($0 as NSString).lastPathComponent }.joined(separator: ", "))"

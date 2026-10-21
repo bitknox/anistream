@@ -101,7 +101,10 @@ pub fn build_registry_deferred(config: &Config, http: &HttpClient) -> ProviderRe
             other => tracing::debug!(provider = other, "order entry left for a plugin"),
         }
     }
-    ProviderRegistry::new(providers)
+    let registry = ProviderRegistry::new(providers);
+    // A plugin switched off by name joins the chain all the same, and is not tried.
+    registry.set_disabled(config.providers.disabled.iter().cloned());
+    registry
 }
 
 /// Whether the configuration asks for the torrent source at all.

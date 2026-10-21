@@ -470,6 +470,8 @@ mod tests {
             id: id.into(),
             name: format!("store {id}"),
             url: "https://plugins.example".into(),
+            host: "plugins.example".into(),
+            checked_at: None,
             fingerprint: "9f3c 1a2b 77de 0c41".into(),
             member: "Johan".into(),
             owner,
@@ -520,6 +522,7 @@ mod tests {
             link: Secret("https://plugins.example/join/abc#key".into()),
             name: "Our plugins".into(),
             url: "https://plugins.example".into(),
+            host: "plugins.example".into(),
             fingerprint: "9f3c".into(),
             already_joined: false,
         })));
@@ -938,6 +941,7 @@ mod tests {
             link: Secret("x".into()),
             name: "Other".into(),
             url: "https://other.example".into(),
+            host: "other.example".into(),
             fingerprint: "0000".into(),
             already_joined: false,
         })));

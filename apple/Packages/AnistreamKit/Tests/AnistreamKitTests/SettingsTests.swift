@@ -74,7 +74,9 @@ struct SettingsPortTests {
 
 struct SourceOrderTests {
     func row(_ id: String, _ kind: String) -> ProviderRow {
-        ProviderRow(id: id, kind: kind, state: "ready", latencyMs: nil, lastError: nil, usable: true, heldBack: false)
+        ProviderRow(id: id, kind: kind, state: "ready", latencyMs: nil, lastError: nil, usable: true, heldBack: false,
+                    name: id, version: nil, hosts: [], origin: kind == "plugin" ? .byHand : .builtIn, disabled: false,
+                    update: nil)
     }
 
     @Test func movingAPluginNamesThePluginsOnScreenAndKeepsPluginsAfterThem() {

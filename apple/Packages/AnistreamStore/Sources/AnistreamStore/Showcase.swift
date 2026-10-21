@@ -45,7 +45,8 @@ public enum Showcase: String, CaseIterable, Sendable {
             case .invite:
                 events.append(.storePreview(.store(InvitedStore(
                     link: "https://plugins.hotaru.example/join/fixture#key", name: "Hotaru Plugins",
-                    url: "https://plugins.hotaru.example", fingerprint: "9f3c 1a2b 77de 0c41", alreadyJoined: false
+                    url: "https://plugins.hotaru.example", host: "plugins.hotaru.example",
+                    fingerprint: "9f3c 1a2b 77de 0c41", alreadyJoined: false
                 ))))
                 held.insert("storePreview")
             case .all:
@@ -56,16 +57,27 @@ public enum Showcase: String, CaseIterable, Sendable {
     }
 
     static let providerRows: [ProviderRow] = [
-        ProviderRow(id: "hotaru-open-archive", kind: "plugin", state: "ready", latencyMs: 180, lastError: nil, usable: true, heldBack: false),
-        ProviderRow(id: "mukashi-archive", kind: "plugin", state: "ready", latencyMs: 320, lastError: nil, usable: true, heldBack: false),
+        ProviderRow(id: "hotaru-open-archive", kind: "plugin", state: "ready", latencyMs: 180, lastError: nil,
+                    usable: true, heldBack: false, name: "Hotaru Open Archive", version: "2.3.0",
+                    hosts: ["open-archive.hotaru.example", "media.open-archive.hotaru.example"],
+                    origin: .store(id: "hotaru", name: "Hotaru Plugins"), disabled: false, update: nil),
+        ProviderRow(id: "mukashi-archive", kind: "plugin", state: "ready", latencyMs: 320, lastError: nil,
+                    usable: true, heldBack: false, name: "Mukashi Archive", version: "1.4.0",
+                    hosts: ["mukashi-archive.example"], origin: .store(id: "hotaru", name: "Hotaru Plugins"),
+                    disabled: false,
+                    update: ProviderUpdate(version: "1.5.0", newHosts: ["media2.mukashi-archive.example"])),
         ProviderRow(id: "machi-library-films", kind: "plugin", state: "down", latencyMs: nil,
-                    lastError: "the site did not answer in 15 s.", usable: false, heldBack: false),
-        ProviderRow(id: "torrent", kind: "torrent", state: "ready", latencyMs: nil, lastError: nil, usable: true, heldBack: false),
+                    lastError: "the site did not answer in 15 s.", usable: false, heldBack: false,
+                    name: "Machi Library Films", version: "0.3.0", hosts: ["films.machi-library.example"],
+                    origin: .byHand, disabled: false, update: nil),
+        ProviderRow(id: "torrent", kind: "torrent", state: "ready", latencyMs: nil, lastError: nil, usable: true,
+                    heldBack: false, name: "Torrent source", version: nil, hosts: [], origin: .builtIn,
+                    disabled: false, update: nil),
     ]
 
     static let storeRows: [StoreRow] = [
-        StoreRow(id: "hotaru", name: "Hotaru Plugins", url: "https://plugins.hotaru.example",
-                 fingerprint: "9f3c 1a2b 77de 0c41", member: "Mika", owner: false, state: .ready, plugins: [
+        StoreRow(id: "hotaru", name: "Hotaru Plugins", url: "https://plugins.hotaru.example", host: "plugins.hotaru.example",
+                 fingerprint: "9f3c 1a2b 77de 0c41", member: "Mika", owner: false, state: .ready, checkedAt: nil, plugins: [
                     StorePluginRow(id: "hotaru-open-archive", name: "Hotaru Open Archive", version: "2.3.0",
                                    hosts: ["open-archive.hotaru.example", "media.open-archive.hotaru.example"], status: .installed),
                     StorePluginRow(id: "mukashi-archive", name: "Mukashi Archive", version: "1.5.0",
@@ -76,21 +88,21 @@ public enum Showcase: String, CaseIterable, Sendable {
                     StorePluginRow(id: "atelier-hotaru-shorts", name: "Atelier Hotaru Shorts", version: "1.0.2",
                                    hosts: ["shorts.atelier-hotaru.example"], status: .available),
                  ]),
-        StoreRow(id: "mika", name: "Mika's plugins", url: "https://plugins.mika.example",
-                 fingerprint: "2b7e 90c4 d1f3 5a68", member: "Mika", owner: true, state: .ready, plugins: [
+        StoreRow(id: "mika", name: "Mika's plugins", url: "https://plugins.mika.example", host: "plugins.mika.example",
+                 fingerprint: "2b7e 90c4 d1f3 5a68", member: "Mika", owner: true, state: .ready, checkedAt: nil, plugins: [
                     StorePluginRow(id: "machi-library-films", name: "Machi Library Films", version: "0.3.0",
                                    hosts: ["films.machi-library.example"], status: .addedByHand),
                     StorePluginRow(id: "kobunko-film-library", name: "Kōbunko Film Library", version: "0.9.1",
                                    hosts: ["films.kobunko.example"], status: .otherStore("Hotaru Plugins")),
                  ]),
-        StoreRow(id: "tsuki", name: "Tsuki Club", url: "https://tsuki-club.example",
+        StoreRow(id: "tsuki", name: "Tsuki Club", url: "https://tsuki-club.example", host: "tsuki-club.example",
                  fingerprint: "e815 3c6a 0b9d 42f7", member: "Mika", owner: false,
-                 state: .offline("the store did not answer"), plugins: [
+                 state: .offline("the store did not answer"), checkedAt: nil, plugins: [
                     StorePluginRow(id: "sora-festival", name: "Sora Animation Festival", version: "1.1.0",
                                    hosts: ["archive.sora-festival.example"], status: .available),
                  ]),
-        StoreRow(id: "ame", name: "Ame Plugins", url: "https://plugins.ame.example",
-                 fingerprint: "71aa c3e0 58b2 9d14", member: "Mika", owner: false, state: .revoked, plugins: [
+        StoreRow(id: "ame", name: "Ame Plugins", url: "https://plugins.ame.example", host: "plugins.ame.example",
+                 fingerprint: "71aa c3e0 58b2 9d14", member: "Mika", owner: false, state: .revoked, checkedAt: nil, plugins: [
                     StorePluginRow(id: "ame-shorts", name: "Ame Shorts", version: "0.2.0",
                                    hosts: ["shorts.ame.example"], status: .available),
                  ]),

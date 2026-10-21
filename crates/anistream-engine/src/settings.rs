@@ -48,6 +48,16 @@ pub fn set_setting(
     tx: &Outbox,
 ) {
     let Some((table, file_key)) = key.path() else { return };
+    // Warn only on a failed check: never as a setting, since nothing here carries the viewer's
+    // confirmation. Said, so the row that asked does not wait for an answer.
+    if settings::needs_acknowledgement(key, &value) {
+        let refused = Some(key);
+        let _ = tx
+            .send(Event::Settings(settings::SettingsView { refused, ..engine.config.view() }));
+        let reason = "not saved: warn only needs your confirmation first";
+        let _ = tx.send(Event::Toast(Notice::alert(reason)));
+        return;
+    }
     if !settings::put(engine.config.effective_mut(), key, &value) {
         tracing::debug!(?key, ?value, "not a value this setting takes; nothing written");
         return;
@@ -124,7 +134,8 @@ fn write_setting(
             // The Providers rows moved when the key was pressed and the chain did not,
             // so the chain's own rows put them back.
             if (table, key) == (&["providers"][..], "order") {
-                let _ = tx.send(Event::Providers(data::provider_rows(registry)));
+                let rows = data::provider_rows(registry, &services.stores);
+                let _ = tx.send(Event::Providers(rows));
             }
         }
     }
