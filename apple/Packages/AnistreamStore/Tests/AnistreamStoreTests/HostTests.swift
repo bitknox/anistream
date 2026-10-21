@@ -81,10 +81,25 @@ struct HomeTests {
         #expect(EngineHome.overrideRoot(environment: [:], arguments: [EngineHome.overrideArgument]) == nil)
     }
 
+    @Test func theStartRecordSaysWhatTheAppIs() {
+        var launch = EngineLaunch.app(
+            home: .override(root: URL(filePath: "/tmp/anistream-home", directoryHint: .isDirectory)),
+            platform: .macOs
+        )
+        launch.anilistClientID = "4242"
+        let record = launch.record
+        #expect(record.platform == .macOs)
+        #expect(record.secrets == .followConfig)
+        #expect(record.anilistClientId == "4242")
+        #expect(record.malClientId == nil)
+        #expect(record.theme?.ground == "#161A2E")
+        #expect(record.theme?.font == "Zen Kaku Gothic New")
+    }
+
     @Test func theMacAppFollowsTheConfigsTokenStorageAndIOSTheKeychain() {
         let root = URL(filePath: "/tmp/anistream-home", directoryHint: .isDirectory)
-        #expect(EngineLaunch.app(home: .override(root: root), platform: .mac).secrets == .followConfig)
-        #expect(EngineLaunch.app(home: .override(root: root), platform: .phone).secrets == .host)
+        #expect(EngineLaunch.app(home: .override(root: root), platform: .macOs).secrets == .followConfig)
+        #expect(EngineLaunch.app(home: .override(root: root), platform: .ios).secrets == .host)
     }
 }
 
@@ -96,12 +111,12 @@ struct FixturesLaunchTests {
     }
 
     @Test func aFixturesLaunchNeverStartsOnTheSharedDirectories() {
-        let (launch, temporary) = EngineLaunch.fixtures(platform: .mac, arguments: ["app"], environment: [:])
+        let (launch, temporary) = EngineLaunch.fixtures(platform: .macOs, arguments: ["app"], environment: [:])
         let root = try! #require(temporary)
         #expect(launch.home == .override(root: root))
         #expect(root.path.hasPrefix(FileManager.default.temporaryDirectory.path))
         let (overridden, none) = EngineLaunch.fixtures(
-            platform: .mac, arguments: ["app"], environment: [EngineHome.overrideVariable: "/tmp/shots"]
+            platform: .macOs, arguments: ["app"], environment: [EngineHome.overrideVariable: "/tmp/shots"]
         )
         #expect(none == nil)
         #expect(overridden.home.data.path == "/tmp/shots/data")

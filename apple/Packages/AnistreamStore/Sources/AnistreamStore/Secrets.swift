@@ -31,6 +31,8 @@ public struct KeychainSecrets: SecretBackend {
         self.service = service
     }
 
+    /// The item for `id`. Never with `kSecUseDataProtectionKeychain`: on macOS that is a
+    /// different keychain from the login keychain the terminal's items are in.
     private func query(_ id: String) -> [CFString: Any] {
         [
             kSecClass: kSecClassGenericPassword,

@@ -16,7 +16,7 @@ struct LaunchTests {
         let launch = EngineLaunch(
             engine: .fixtures(scene),
             home: .override(root: root),
-            platform: .mac,
+            platform: .macOs,
             secrets: .host
         )
         await store.start(launch, host: quietHost())
@@ -91,7 +91,7 @@ struct LaunchTests {
 
         let store = AppStore()
         await store.start(
-            EngineLaunch(engine: .fixtures(.fresh), home: .override(root: root), platform: .mac, secrets: .host),
+            EngineLaunch(engine: .fixtures(.fresh), home: .override(root: root), platform: .macOs, secrets: .host),
             host: quietHost()
         )
         guard case .failed(let reason) = store.phase else {
@@ -116,7 +116,7 @@ struct SettleTests {
         defer { try? FileManager.default.removeItem(at: root) }
         let store = AppStore()
         await store.start(
-            EngineLaunch(engine: .fixtures(.watching), home: .override(root: root), platform: .mac, secrets: .host),
+            EngineLaunch(engine: .fixtures(.watching), home: .override(root: root), platform: .macOs, secrets: .host),
             host: quietHost()
         )
         defer { store.shutdown() }
@@ -143,7 +143,7 @@ struct EarlyTests {
         store.loadContinue()
         #expect(store.continuing.list.state == .loading)
         await store.start(
-            EngineLaunch(engine: .fixtures(.watching), home: .override(root: root), platform: .mac, secrets: .host),
+            EngineLaunch(engine: .fixtures(.watching), home: .override(root: root), platform: .macOs, secrets: .host),
             host: quietHost()
         )
         defer { store.shutdown() }

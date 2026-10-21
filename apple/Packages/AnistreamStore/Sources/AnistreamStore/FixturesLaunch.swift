@@ -24,7 +24,7 @@ extension EngineLaunch {
     /// so every launch starts from an empty one, and never from the terminal's. `temporary` is
     /// that directory, for the caller to remove at quit.
     public static func fixtures(
-        platform: Platform,
+        platform: FfiPlatform,
         arguments: [String] = ProcessInfo.processInfo.arguments,
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> (launch: EngineLaunch, temporary: URL?) {

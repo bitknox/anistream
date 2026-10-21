@@ -3,9 +3,9 @@
 import AnistreamKit
 import Foundation
 
-/// Everything a start takes, gathered so that the engine's start record, `FfiStart` (the theme,
-/// the platform, the trackers' client ids and where secrets go), is filled from here and nowhere
-/// else: when it lands, `start(host:)` is the one call that changes.
+/// Everything a start takes, in one place: the directories, the background work, and what the
+/// engine's start record, `FfiStart`, says of the app (the player's theme, the platform, the
+/// sign-in clients and where tokens go).
 public struct EngineLaunch: Sendable {
     /// Which engine.
     public enum Engine: Sendable, Equatable {
@@ -18,25 +18,14 @@ public struct EngineLaunch: Sendable {
         #endif
     }
 
-    /// The device the engine runs on, which the engine's start record will say.
-    public enum Platform: Sendable, Equatable {
-        case mac, pad, phone
-    }
-
-    /// Where the engine keeps tokens, which the start record will say.
-    public enum Secrets: Sendable, Equatable {
-        /// Always the app's keychain, through its host.
-        case host
-        /// As the config's `trackers.token_storage` says, as the terminal app does: the
-        /// keychain (the same items, through the host) or `0600` files under the data directory.
-        case followConfig
-    }
-
     public var engine: Engine
     public var home: EngineHome
     public var background: FfiBackground
-    public var platform: Platform
-    public var secrets: Secrets
+    /// The device the engine runs on.
+    public var platform: FfiPlatform
+    /// Where tokens go: the host's keychain, or as the config's `trackers.token_storage` says,
+    /// as the terminal app keeps them (the keychain through the host, or `0600` files).
+    public var secrets: SecretsMode
     /// How mpv's interface is dressed once the player is the app's: the palette's hexes.
     public var theme: PlayerTheme
     /// The client ids that ship with the app, for the native sign-in. None are registered yet.
@@ -47,8 +36,8 @@ public struct EngineLaunch: Sendable {
         engine: Engine,
         home: EngineHome,
         background: FfiBackground = FfiBackground(),
-        platform: Platform,
-        secrets: Secrets,
+        platform: FfiPlatform,
+        secrets: SecretsMode,
         theme: PlayerTheme = EngineLaunch.theme,
         anilistClientID: String? = nil,
         malClientID: String? = nil
@@ -65,12 +54,12 @@ public struct EngineLaunch: Sendable {
 
     /// The app's launch on this device: the Mac shares the terminal's directories and follows
     /// its token storage; iOS keeps everything in its container and keychain.
-    public static func app(home: EngineHome = .resolve(), platform: Platform) -> EngineLaunch {
+    public static func app(home: EngineHome = .resolve(), platform: FfiPlatform) -> EngineLaunch {
         EngineLaunch(
             engine: .app,
             home: home,
             platform: platform,
-            secrets: platform == .mac ? .followConfig : .host
+            secrets: platform == .macOs ? .followConfig : .host
         )
     }
 
@@ -86,17 +75,27 @@ public struct EngineLaunch: Sendable {
         font: "Zen Kaku Gothic New"
     )
 
+    /// What the engine is told of the app.
+    public var record: FfiStart {
+        FfiStart(
+            theme: theme,
+            platform: platform,
+            anilistClientId: anilistClientID,
+            malClientId: malClientID,
+            secrets: secrets
+        )
+    }
+
     /// Stand the engine up. Blocks while it opens its files, so call it off the main thread.
     public func start(host: any FfiHost) throws -> FfiEngine {
         switch engine {
         case .app:
-            // Today's start takes the directories, the host and the background switches. The
-            // platform, the theme, the client ids and `secrets` go into `FfiStart` here once the
-            // engine takes it; until then the engine keeps every token in the host's keychain.
-            return try FfiEngine.start(dirs: home.dirs, host: host, background: background)
+            return try FfiEngine.start(dirs: home.dirs, host: host, background: background, start: record)
         #if FIXTURES
         case .fixtures(let scene):
-            return try FfiEngine.startScene(dirs: home.dirs, host: host, scene: scene)
+            // The testing engine keeps tokens in files under the data directory, whatever
+            // `secrets` says.
+            return try FfiEngine.startScene(dirs: home.dirs, host: host, scene: scene, start: record)
         #endif
         }
     }
