@@ -45,6 +45,7 @@ struct PlayerPicture: View {
         if let layer = model.layer {
             PlayerSurface(
                 layer: layer,
+                beneath: model.pictureInPictureLayer,
                 resized: { [weak model] in model?.surfaceResized() },
                 display: { [weak model] display in model?.surfaceDisplay(display) },
                 pointer: { [weak model] in model?.poke() })

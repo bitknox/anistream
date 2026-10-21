@@ -1,5 +1,5 @@
 // The iPhone's and iPad's player, full screen over the app (T2–T5): the PhonePlayer boards, the
-// gestures AVKit has taught, and the audio playing on in the background.
+// gestures AVKit has taught, and Picture in Picture.
 
 #if os(iOS)
 import AVKit
@@ -20,7 +20,6 @@ public struct PhonePlayerView: View {
     @State private var heldSpeed: Double?
     @State private var flash: SeekFlash?
     @State private var height: CGFloat = 0
-    @Environment(\.scenePhase) private var phase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let metrics = PlayerMetrics.phone
 
@@ -133,10 +132,6 @@ public struct PhonePlayerView: View {
             // The subtitles rise above the bar while the controls are up, as PhonePlayer has them.
             model.liftSubtitles(lift.visible ? metrics.subtitleLift / max(lift.height, 1) : 0, animated: !reduceMotion)
         }
-        .onChange(of: phase) { _, phase in
-            if phase == .background { model.backgrounded(true) }
-            if phase == .active { model.backgrounded(false) }
-        }
         .onAppear { PlayerOrientation.landscape(true) }
         .onDisappear { PlayerOrientation.landscape(false) }
         .preferredColorScheme(.dark)
@@ -178,6 +173,12 @@ public struct PhonePlayerView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 0) {
                 headerButton("captions.bubble", "Subtitles and audio") { sheet = .tracks }
+                if model.pictureInPictureToggle != nil {
+                    // The Mac's button, until the PhonePlayer board draws one.
+                    headerButton("pip.enter", "Picture in Picture") { model.togglePictureInPicture() }
+                        .disabled(!model.pictureInPictureAvailable)
+                        .opacity(model.pictureInPictureAvailable ? 1 : 0.4)
+                }
                 AirPlayButton()
                     .frame(width: 44, height: 44)
                     .accessibilityLabel("AirPlay")

@@ -60,6 +60,18 @@ final class AppDelegate: NSObject {
             print("ANISTREAM_READY")
             fflush(stdout)
         }
+        #if FIXTURES
+        // apple/scripts/pip-check.sh: back out of Picture in Picture once in it, however it got
+        // there (the shot's toggle, or going home while it plays).
+        let arguments = ProcessInfo.processInfo.arguments
+        if let index = arguments.firstIndex(of: "-AnistreamPictureInPictureReturn"),
+            arguments.indices.contains(index + 1), let seconds = Int(arguments[index + 1])
+        {
+            let returned = await player.returnFromPictureInPicture(within: seconds)
+            print("ANISTREAM_PIP_RETURNED \(returned)")
+            fflush(stdout)
+        }
+        #endif
         // A transition for the motion audit's recordings, two seconds after the screen is up.
         if let motion = MotionDemo.from() {
             try? await Task.sleep(for: .seconds(2))
