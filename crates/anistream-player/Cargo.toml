@@ -13,6 +13,8 @@ doctest = false
 [dependencies]
 anistream-core.workspace = true
 anistream-net.workspace = true
+# The pure half: the policy, the tracks, skips and the shapes, re-exported at the paths they had.
+anistream-playback.workspace = true
 async-trait.workspace = true
 open.workspace = true
 serde.workspace = true

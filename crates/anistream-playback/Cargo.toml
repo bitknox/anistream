@@ -1,0 +1,21 @@
+[package]
+name = "anistream-playback"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+description = "Playback's pure half: what to record, skip and pick for tracks, and the shapes a player reports and is shown"
+
+[lib]
+# No doc example is written as a test, and rustdoc spends seconds per crate finding none.
+doctest = false
+
+# Pure: no I/O, no process and no mpv, so a phone's build may link it, as the desktop's does
+# through anistream-player. tools/check-boundaries.sh holds it to that.
+[dependencies]
+anistream-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true
