@@ -9,7 +9,28 @@ use anistream_core::{
     ids::AnilistId,
     traits::{TrackOp, TrackedEntry, Tracker, WatchStatus},
 };
+use std::{
+    sync::atomic::{AtomicU64, Ordering},
+    time::{Duration, Instant},
+};
+
 use anistream_meta::anilist::{AniList, AniListError, LibraryEntry};
+
+/// How long one library answer serves every ask for the library.
+///
+/// The Library screen asks for its five segments at once, and every one of them is cut from
+/// the same list: five requests for one answer, the first time it opened. Short, because the
+/// list is the remote one and this screen is how its changes are seen.
+pub const LIBRARY_REUSE: Duration = Duration::from_secs(30);
+
+/// The library as last asked for, and for whom.
+struct LastLibrary {
+    /// [`AniListTracker::changes`] when it was asked for: a sign-in, a sign-out or a change
+    /// written to the list since means a different answer.
+    changes: u64,
+    at: Instant,
+    answer: Result<Vec<LibraryEntry>, AniListError>,
+}
 
 /// AniList's `MediaListStatus` enum, as strings.
 ///
@@ -55,6 +76,12 @@ pub struct AniListTracker {
     /// keep pushing with a credential the user had just withdrawn. Signing out has to mean
     /// something immediately, not at the next restart.
     signed_out: std::sync::atomic::AtomicBool,
+    /// The last library answer. Held across the request, so asks made while one is out wait
+    /// for it and take its answer: see [`LIBRARY_REUSE`].
+    library: tokio::sync::Mutex<Option<LastLibrary>>,
+    /// Counted up on every sign-in, sign-out and change written to the list, each of which
+    /// makes the last library answer someone else's or out of date.
+    changes: AtomicU64,
 }
 
 impl AniListTracker {
@@ -64,6 +91,8 @@ impl AniListTracker {
             client,
             viewer: tokio::sync::Mutex::new(None),
             signed_out: std::sync::atomic::AtomicBool::new(false),
+            library: tokio::sync::Mutex::new(None),
+            changes: AtomicU64::new(0),
         }
     }
 
@@ -71,9 +100,30 @@ impl AniListTracker {
     ///
     /// [`Tracker::pull_library`] returns only the syncable projection; this returns everything
     /// AniList sent, so the screen does not need a second pass of lookups.
+    ///
+    /// One request answers every ask for [`LIBRARY_REUSE`], and every ask made while it was
+    /// out, a failure included: an ask that waited for one is not made again.
     pub async fn library(&self) -> Result<Vec<LibraryEntry>, anistream_core::Error> {
-        let viewer = self.viewer_id().await?;
-        self.client.library(viewer).await.map_err(to_core)
+        let asked = Instant::now();
+        let mut last = self.library.lock().await;
+        let changes = self.changes.load(Ordering::SeqCst);
+        if let Some(last) = last.as_ref()
+            && last.changes == changes
+            && (last.at >= asked || (last.answer.is_ok() && last.at.elapsed() < LIBRARY_REUSE))
+        {
+            return last.answer.clone().map_err(to_core);
+        }
+        let answer = match self.viewer().await {
+            Ok(viewer) => self.client.library(viewer).await,
+            Err(e) => Err(e),
+        };
+        *last = Some(LastLibrary { changes, at: Instant::now(), answer: answer.clone() });
+        answer.map_err(to_core)
+    }
+
+    /// The last library answer is someone else's now, or out of date.
+    fn changed(&self) {
+        self.changes.fetch_add(1, Ordering::SeqCst);
     }
 
     /// Remove an entry from the user's list.
@@ -83,15 +133,17 @@ impl AniListTracker {
     /// only ever moves progress forward — so it stays off the interface every tracker must
     /// implement.
     pub async fn delete(&self, entry_id: u32) -> Result<bool, anistream_core::Error> {
-        self.client.delete_entry(entry_id).await.map_err(to_core)
+        let deleted = self.client.delete_entry(entry_id).await.map_err(to_core);
+        self.changed();
+        deleted
     }
 
-    async fn viewer_id(&self) -> Result<u32, anistream_core::Error> {
+    async fn viewer(&self) -> Result<u32, AniListError> {
         let mut cached = self.viewer.lock().await;
         if let Some(id) = *cached {
             return Ok(id);
         }
-        let id = self.client.viewer_id().await.map_err(to_core)?;
+        let id = self.client.viewer_id().await?;
         *cached = Some(id);
         Ok(id)
     }
@@ -117,8 +169,9 @@ impl Tracker for AniListTracker {
         self.client.set_token(Some(access.to_owned()));
         self.signed_out.store(false, std::sync::atomic::Ordering::Relaxed);
         // The cached viewer id belonged to whoever was signed in before, and a library pull keyed on
-        // it would fetch the wrong account's list.
+        // it would fetch the wrong account's list. So did the last library answer.
         *self.viewer.lock().await = None;
+        self.changed();
     }
 
     async fn forget_credentials(&self) {
@@ -126,6 +179,7 @@ impl Tracker for AniListTracker {
         // Drop the cached viewer id too, so signing into a *different* account cannot inherit the
         // previous one's list.
         *self.viewer.lock().await = None;
+        self.changed();
     }
 
     async fn pull_library(&self) -> Result<Vec<TrackedEntry>, anistream_core::Error> {
@@ -148,13 +202,22 @@ impl Tracker for AniListTracker {
         if !self.is_authenticated() {
             return Err(anistream_core::Error::Auth("signed out".into()));
         }
-        for entry in coalesce(ops) {
-            self.client
-                .save_entry(entry.anilist_id, entry.progress, entry.status, entry.score)
-                .await
-                .map_err(to_core)?;
+        // The list as last fetched is out of date once one of these may have reached it, so
+        // the next ask is a new one even if a save fails partway.
+        let pushed = async {
+            for entry in coalesce(ops) {
+                self.client
+                    .save_entry(entry.anilist_id, entry.progress, entry.status, entry.score)
+                    .await
+                    .map_err(to_core)?;
+            }
+            Ok(())
         }
-        Ok(())
+        .await;
+        if !ops.is_empty() {
+            self.changed();
+        }
+        pushed
     }
 }
 
