@@ -131,6 +131,15 @@ opt-level = 3
 [profile.dev.package.wasmtime-internal-cranelift]
 opt-level = 3
 
+# The engine as the Apple app links it while it is developed: apple/scripts/engine.sh builds every
+# slice with this. Full debug info for every dependency makes the static library large and slow for
+# Xcode to link; line tables keep a backtrace readable, and opt-level 1 keeps the engine quick
+# enough to drive a screen.
+[profile.app-dev]
+inherits = "dev"
+opt-level = 1
+debug = "line-tables-only"
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 
