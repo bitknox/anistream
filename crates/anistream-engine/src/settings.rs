@@ -63,6 +63,11 @@ pub fn set_setting(
         return;
     }
     write_setting(table, file_key, value, engine, services, tx);
+    // What the file now holds, put in effect: titles are named the new way from here.
+    if key == SettingKey::Titles {
+        let choice = engine.config.effective().meta.title_language;
+        crate::title_language::chosen(choice, services, tx);
+    }
 }
 
 /// Sub or dub for this session only: in effect at once, and the file left as it is, so the next

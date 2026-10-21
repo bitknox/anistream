@@ -968,7 +968,8 @@ fn settings(s: &mut Screen) {
     let mut session = Config::default();
     session.playback.translation = anistream_core::media::Translation::Dub;
     s.settings(&session, &Config::default());
-    s.press(&["j"; 11]);
+    // Down to upscaling, past the titles row too.
+    s.press(&["j"; 12]);
 }
 
 /// The immersive theme, switched on from Settings: the painted ground under everything.
@@ -1518,7 +1519,8 @@ fn download_range(s: &mut Screen) {
 /// A text setting's editor, its old value erased and a new one half typed.
 fn edit_setting(s: &mut Screen) {
     settled_on(s, 9);
-    s.press(&["j", "j", "j", "j", "enter"]);
+    // Down past theme, motion, titles, translation and quality to the subtitles.
+    s.press(&["j", "j", "j", "j", "j", "enter"]);
     s.press(&["backspace", "backspace", "backspace"]);
     s.type_text("spa,en");
 }

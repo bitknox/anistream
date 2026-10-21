@@ -20,7 +20,7 @@
 //! dependency tree.
 
 use std::{
-    collections::VecDeque,
+    collections::{HashMap, VecDeque},
     net::{Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex, MutexGuard},
 };
@@ -155,6 +155,10 @@ struct State {
     next: VecDeque<Failure>,
     always: Option<Failure>,
     now: i64,
+    /// Titles answered in other forms than the fixtures', by id: see [`FakeAniList::set_title`].
+    titles: HashMap<u64, Value>,
+    /// The viewer's own title language, in place of the fixture's.
+    viewer_language: Option<String>,
     /// Where image URLs point once the fake serves art: its own `/art/`.
     art: Option<String>,
 }
@@ -171,6 +175,8 @@ impl FakeAniList {
             next: VecDeque::new(),
             always: None,
             now: FIXTURE_NOW,
+            titles: HashMap::new(),
+            viewer_language: None,
             art: None,
         }));
         let accept = tokio::spawn({
@@ -273,6 +279,25 @@ impl FakeAniList {
     /// clock, which the calendar's window and the countdowns are taken from.
     pub fn set_now(&self, now: i64) {
         lock(&self.state).now = now;
+    }
+
+    /// Answer `id`'s title in these forms from now on, wherever the fake names it — a list, its
+    /// page, a relation's card — for a test of a title that is missing one.
+    pub fn set_title(
+        &self,
+        id: AnilistId,
+        romaji: Option<&str>,
+        english: Option<&str>,
+        native: Option<&str>,
+    ) {
+        let title = json!({ "romaji": romaji, "english": english, "native": native });
+        lock(&self.state).titles.insert(u64::from(id.get()), title);
+    }
+
+    /// The signed-in viewer reads AniList in `language` from now on: `ROMAJI`, `ENGLISH`,
+    /// `NATIVE` or a stylised form, as AniList names them.
+    pub fn set_viewer_title_language(&self, language: &str) {
+        lock(&self.state).viewer_language = Some(language.to_owned());
     }
 }
 
@@ -436,7 +461,7 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
         Operation::Unknown
     };
 
-    let (failure, now) = {
+    let (failure, now, titles, viewer_language) = {
         let mut state = lock(state);
         state.requests.push(Request {
             operation,
@@ -446,11 +471,43 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
             authorization: head.authorization.clone(),
         });
         let failure = state.next.pop_front().or_else(|| state.always.clone());
-        (failure, state.now)
+        (failure, state.now, state.titles.clone(), state.viewer_language.clone())
     };
     match failure {
         Some(failure) => fail(failure),
-        None => respond(operation, &variables, head.authorization.is_some(), now),
+        None => {
+            let mut reply = respond(operation, &variables, head.authorization.is_some(), now);
+            if let Reply::Answer { body, .. } = &mut reply {
+                retitle(body, &titles);
+                if let Some(language) = viewer_language
+                    && let Some(viewer) =
+                        body.pointer_mut("/data/Viewer").filter(|v| v.is_object())
+                {
+                    viewer["options"] = json!({ "titleLanguage": language });
+                }
+            }
+            reply
+        }
+    }
+}
+
+/// Give every title the test set another way its forms, wherever it is in `value`.
+fn retitle(value: &mut Value, titles: &HashMap<u64, Value>) {
+    if titles.is_empty() {
+        return;
+    }
+    match value {
+        Value::Object(fields) => {
+            let id = fields.get("id").and_then(Value::as_u64);
+            if let Some(title) = id.and_then(|id| titles.get(&id))
+                && fields.contains_key("title")
+            {
+                fields.insert("title".into(), title.clone());
+            }
+            fields.values_mut().for_each(|field| retitle(field, titles));
+        }
+        Value::Array(items) => items.iter_mut().for_each(|item| retitle(item, titles)),
+        _ => {}
     }
 }
 

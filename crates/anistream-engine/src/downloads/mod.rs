@@ -544,7 +544,7 @@ pub async fn enqueue(
     }
 
     let media = meta.media(anilist_id).await.map_err(|e| Refusal::Title(e.to_string()))?;
-    let title = media.title.display();
+    let title = meta.titles().pick(&media.title);
     let now = anistream_store::now();
     let answer = anistream_providers::first_answer(
         store,

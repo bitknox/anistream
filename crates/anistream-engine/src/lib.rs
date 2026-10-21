@@ -103,6 +103,7 @@ pub mod settings;
 pub mod show_settings;
 pub mod sources;
 pub(crate) mod state;
+pub mod title_language;
 pub mod titles;
 pub mod tracking;
 pub mod updates;

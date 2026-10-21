@@ -81,6 +81,11 @@ pub enum Event {
     /// [`Command::LoadTitleLanguage`](crate::command::Command::LoadTitleLanguage). `None` when
     /// nobody is signed in to AniList, or AniList did not say.
     ViewerTitleLanguage(Option<TitleLanguage>),
+    /// The form every title is named in changed, to this: the setting was changed, or the
+    /// signed-in AniList viewer it follows signed in or out. What a front end has on screen
+    /// names titles the old way, so it loads what it shows again; what arrives from now on is
+    /// named the new way.
+    TitlesChanged(TitleLanguage),
     Status(String),
     Toast(Notice),
     Providers(Vec<ProviderRow>),

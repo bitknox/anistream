@@ -22,6 +22,7 @@ mod progress;
 mod settings;
 mod stores;
 mod title;
+mod titles;
 mod watch;
 
 use anistream_core::ids::AnilistId;
