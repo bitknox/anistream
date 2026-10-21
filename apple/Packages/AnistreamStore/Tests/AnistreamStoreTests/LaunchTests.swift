@@ -107,3 +107,46 @@ struct LaunchTests {
 final class Recorder {
     var events: [Event] = []
 }
+
+@MainActor
+@Suite(.timeLimit(.minutes(1)))
+struct SettleTests {
+    @Test func aStoreSettlesOnceContinueHasLoadedAndTheArtHasBeenAnswered() async throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = AppStore()
+        await store.start(
+            EngineLaunch(engine: .fixtures(.watching), home: .override(root: root), platform: .mac, secrets: .host),
+            host: quietHost()
+        )
+        defer { store.shutdown() }
+        store.loadContinue()
+        #expect(!store.isSettled)
+        #expect(await store.settle(quiet: .milliseconds(300), timeout: .seconds(20)))
+        #expect(store.continuing.queue(store.titles).all.count == 4)
+        // The fixtures' art is on a host nothing resolves, so each cover is answered with a
+        // failure and its plate stays.
+        let cover = try #require(store.titles[900_001]?.coverUrl)
+        store.artwork.request(cover, maxPixelSize: 108)
+        #expect(await store.settle(quiet: .milliseconds(300), timeout: .seconds(20)))
+        #expect(store.artwork.image(cover) == nil)
+    }
+}
+
+@MainActor
+@Suite(.timeLimit(.minutes(1)))
+struct EarlyTests {
+    @Test func whatIsAskedForWhileTheEngineStartsIsSentOnceItHas() async throws {
+        let root = temporaryRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = AppStore()
+        store.loadContinue()
+        #expect(store.continuing.list.state == .loading)
+        await store.start(
+            EngineLaunch(engine: .fixtures(.watching), home: .override(root: root), platform: .mac, secrets: .host),
+            host: quietHost()
+        )
+        defer { store.shutdown() }
+        try await waitFor { store.continuing.list.state.ids.count == 4 }
+    }
+}

@@ -79,6 +79,11 @@ public final class ArtworkStore {
         inFlight.contains(url)
     }
 
+    /// Whether any art has been asked for and not answered.
+    public var hasPending: Bool {
+        !inFlight.isEmpty
+    }
+
     func ready(url: String, bytes: Data) {
         let size = sizes[url] ?? 1024
         Task.detached(priority: .utility) { [weak self] in

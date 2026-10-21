@@ -35,6 +35,10 @@ public final class AppStore {
     @ObservationIgnored public private(set) var artwork: ArtworkStore!
 
     @ObservationIgnored private var client: EngineClient?
+    /// When a batch was last applied.
+    @ObservationIgnored private var lastApplied = ContinuousClock.now
+    /// What the screens asked for before the engine was there, sent once it is.
+    @ObservationIgnored private var early: [Command] = []
     /// Called after each batch is applied: what a screenshot run waits on.
     @ObservationIgnored public var onApplied: (@MainActor ([Event]) -> Void)?
 
@@ -60,8 +64,10 @@ public final class AppStore {
             attach(engine)
         } catch let error as FfiError {
             phase = .failed(error.reason)
+            early = []
         } catch {
             phase = .failed(error.localizedDescription)
+            early = []
         }
     }
 
@@ -73,12 +79,21 @@ public final class AppStore {
             stopped: { [weak self] in self?.phase = .stopped }
         )
         phase = .running
+        for command in early {
+            client?.send(command)
+        }
+        early = []
     }
 
-    /// Hand the engine a command. `nil` for work nobody waits on, and when there is no engine.
+    /// Hand the engine a command. `nil` for work nobody waits on, and when there is no engine:
+    /// while it starts, the command waits and is sent once it has.
     @discardableResult
     public func send(_ command: Command) -> JobId? {
-        client?.send(command)
+        guard let client else {
+            if phase == .starting { early.append(command) }
+            return nil
+        }
+        return client.send(command)
     }
 
     /// Stop the engine, waiting while it winds down: at quit.
@@ -133,7 +148,35 @@ public final class AppStore {
         for event in events {
             apply(event)
         }
+        lastApplied = .now
         onApplied?(events)
+    }
+
+    // MARK: Settling
+
+    /// Whether the screens have what they asked for: the engine has started or failed, no list
+    /// is loading, no job is running, and no art is on its way.
+    public var isSettled: Bool {
+        let lists = [continuing.list, seasonal, calendar.list, search.list]
+            + LibraryModel.order.map(library.segment)
+        return phase != .starting
+            && !lists.contains { $0.state == .loading }
+            && jobs.running.isEmpty
+            && !artwork.hasPending
+    }
+
+    /// Wait until the store is settled and nothing has been applied for `quiet`: what a
+    /// screenshot waits on. False when `timeout` passed first.
+    public func settle(
+        quiet: Duration = .milliseconds(800),
+        timeout: Duration = .seconds(30)
+    ) async -> Bool {
+        let deadline = ContinuousClock.now + timeout
+        while ContinuousClock.now < deadline {
+            if isSettled, ContinuousClock.now - lastApplied >= quiet { return true }
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        return false
     }
 
     public func apply(_ event: Event) {

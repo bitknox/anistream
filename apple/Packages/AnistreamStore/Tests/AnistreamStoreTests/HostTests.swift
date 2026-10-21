@@ -87,3 +87,23 @@ struct HomeTests {
         #expect(EngineLaunch.app(home: .override(root: root), platform: .phone).secrets == .host)
     }
 }
+
+struct FixturesLaunchTests {
+    @Test func theSceneIsWatchingUnlessTheArgumentsSayOtherwise() {
+        #expect(EngineLaunch.scene(arguments: ["app"]) == .watching)
+        #expect(EngineLaunch.scene(arguments: ["app", "-AnistreamScene", "fresh"]) == .fresh)
+        #expect(EngineLaunch.scene(arguments: ["app", "-AnistreamScene", "elsewhere"]) == nil)
+    }
+
+    @Test func aFixturesLaunchNeverStartsOnTheSharedDirectories() {
+        let (launch, temporary) = EngineLaunch.fixtures(platform: .mac, arguments: ["app"], environment: [:])
+        let root = try! #require(temporary)
+        #expect(launch.home == .override(root: root))
+        #expect(root.path.hasPrefix(FileManager.default.temporaryDirectory.path))
+        let (overridden, none) = EngineLaunch.fixtures(
+            platform: .mac, arguments: ["app"], environment: [EngineHome.overrideVariable: "/tmp/shots"]
+        )
+        #expect(none == nil)
+        #expect(overridden.home.data.path == "/tmp/shots/data")
+    }
+}

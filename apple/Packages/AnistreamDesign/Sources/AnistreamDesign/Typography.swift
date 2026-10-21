@@ -50,7 +50,26 @@ extension Font {
     }
 }
 
+/// A fixed line height, as the boards give one, scaled with Dynamic Type as `style` is.
+struct FixedLineHeight: ViewModifier {
+    @ScaledMetric private var points: CGFloat
+
+    init(_ points: CGFloat, relativeTo style: Font.TextStyle) {
+        _points = ScaledMetric(wrappedValue: points, relativeTo: style)
+    }
+
+    func body(content: Content) -> some View {
+        content.lineHeight(.exact(points: points))
+    }
+}
+
 extension View {
+    /// Lines `points` apart, as the boards set them: 20 for a 15 pt show title in a Mac row, 38
+    /// for the 30 pt one above a preview.
+    public func fixedLineHeight(_ points: CGFloat, relativeTo style: Font.TextStyle = .body) -> some View {
+        modifier(FixedLineHeight(points, relativeTo: style))
+    }
+
     /// A group header: 11 pt medium capitals spaced 0.08 em, in haze, as the Mac and iPhone lists
     /// head their groups ("IN PROGRESS", "NEW THIS WEEK").
     public func groupHeaderStyle() -> some View {
