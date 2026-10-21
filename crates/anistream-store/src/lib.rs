@@ -19,6 +19,7 @@ pub mod mapping;
 pub mod outbox;
 pub mod preference;
 pub mod schema;
+pub mod show_setting;
 pub mod state;
 pub mod stats;
 pub mod track_memory;

@@ -19,6 +19,7 @@ use crate::{
         resolve::{Resolved, resolve_for_playback},
     },
     services::Services,
+    show_settings,
     state::EngineState,
     titles::episodes::{EpisodeLoad, load_episodes},
     tracking::commands::signed_in_tracker_ids,
@@ -34,9 +35,9 @@ fn hints_for(
     id: AnilistId,
     episode: &str,
     kind: PlayKind,
+    skip_filler: bool,
     engine: &mut EngineState,
 ) -> PlayHints {
-    let skip_filler = engine.config.effective().playback.skip_filler;
     let hints = engine.cache.hints(id, episode, skip_filler, kind);
     if kind == PlayKind::Staged {
         engine.cache.announce(id, hints.title.clone());
@@ -144,12 +145,17 @@ fn play_staged(
     services: &Services,
     tx: &Outbox,
 ) -> Event {
-    let Services { paths, sync, prefetch, player_theme, .. } = services;
+    let Services { paths, sync, prefetch, player_theme, store, .. } = services;
     let played = engine.next_playback(id, &episode);
     let staged = stage(&played, title, episode_title, engine);
-    let PlayHints { title, next, episodes } = hints_for(id, &episode, PlayKind::Staged, engine);
-    let EngineState { config, player_tx, .. } = engine;
-    let config = config.effective();
+    // What the show sets for itself, over the config in effect: sub or dub, quality, what is
+    // skipped.
+    let for_show = show_settings::for_show(engine.config.effective(), store, id);
+    let skip_filler = for_show.playback.skip_filler;
+    let PlayHints { title, next, episodes } =
+        hints_for(id, &episode, PlayKind::Staged, skip_filler, engine);
+    let EngineState { player_tx, .. } = engine;
+    let config = &for_show;
     // A fresh channel per playback. The one playing gives up its window only once
     // this one has something to play — see `Handoff`.
     let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
@@ -195,11 +201,14 @@ pub fn play_party(
     services: &Services,
     tx: &Outbox,
 ) {
-    let Services { paths, sync, player_theme, .. } = services;
+    let Services { paths, sync, player_theme, store, .. } = services;
     let played = engine.next_playback(id, &episode);
-    let PlayHints { title, next, episodes } = hints_for(id, &episode, PlayKind::Party, engine);
-    let EngineState { config, player_tx, .. } = engine;
-    let config = config.effective();
+    let for_show = show_settings::for_show(engine.config.effective(), store, id);
+    let skip_filler = for_show.playback.skip_filler;
+    let PlayHints { title, next, episodes } =
+        hints_for(id, &episode, PlayKind::Party, skip_filler, engine);
+    let EngineState { player_tx, .. } = engine;
+    let config = &for_show;
     // Same resolution as Play; the handoff at the end is the only difference.
     let (prx, handoff) = take_controls(player_tx, successor(id, &episode, title, config));
     let prefetched = None;
@@ -238,15 +247,16 @@ pub fn play_local(
 ) {
     let Services { paths, http, store, sync, slot, player_theme, .. } = services;
     let played = engine.next_playback(id, &episode);
-    let skip_filler = engine.config.effective().playback.skip_filler;
+    let for_show = show_settings::for_show(engine.config.effective(), store, id);
+    let skip_filler = for_show.playback.skip_filler;
     let PlayHints { next, episodes, .. } =
         engine.cache.hints(id, &episode, skip_filler, PlayKind::Staged);
     // Named by the download it plays: the Downloads screen says what its rows are called.
     let staged =
         stage(&played, title.clone(), engine.cache.episode_title(id, &episode), engine);
     let _ = tx.send(staged);
-    let EngineState { config, player_tx, .. } = engine;
-    let config = config.effective();
+    let EngineState { player_tx, .. } = engine;
+    let config = &for_show;
     // No provider walk and no torrent session — the file is on disk — but the full
     // playback session all the same: a downloaded episode records history, resumes,
     // and syncs exactly like a streamed one. It used to go straight to mpv with no

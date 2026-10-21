@@ -5,7 +5,7 @@ use anistream_core::{
     config::{Config, Paths},
     settings::SettingValue,
 };
-use anistream_model::settings::{self, SettingKey, SettingsView};
+use anistream_model::settings::{self, SettingKey, SettingOverride, SettingsView};
 
 /// The config: the file's, and the one in effect.
 ///
@@ -22,6 +22,10 @@ pub struct ConfigState {
     /// What is in effect, and what the work reads: the config the app was launched with, and
     /// every change made since put in it, saved or not.
     effective: Config,
+    /// How many shows set each setting for themselves, as the database last counted them:
+    /// what the Settings rows say beside the config. Kept here so every view of the settings
+    /// carries them, counted again whenever a show's settings change.
+    overridden: Vec<SettingOverride>,
 }
 
 impl ConfigState {
@@ -30,7 +34,7 @@ impl ConfigState {
     /// reads it, as the defaults.
     pub fn new(launched: Config, saved: Option<Config>, paths: &Paths) -> Self {
         let saved = saved.unwrap_or_else(|| Config::load(paths).unwrap_or_default());
-        Self { saved, effective: launched }
+        Self { saved, effective: launched, overridden: Vec::new() }
     }
 
     /// The config in effect.
@@ -49,9 +53,17 @@ impl ConfigState {
         &self.saved
     }
 
-    /// What a front end is told of it.
+    /// What a front end is told of it, with the counts of shows that set each setting.
     pub fn view(&self) -> SettingsView {
-        settings::view(&self.effective, &self.saved)
+        SettingsView {
+            overridden: self.overridden.clone(),
+            ..settings::view(&self.effective, &self.saved)
+        }
+    }
+
+    /// The counts of shows that set each setting for themselves, as the database has them now.
+    pub fn set_overridden(&mut self, overridden: Vec<SettingOverride>) {
+        self.overridden = overridden;
     }
 
     /// Write `value` at `table`.`key`, then read the file back, whatever the write did: what
@@ -76,6 +88,20 @@ impl ConfigState {
         {
             setting.copy(&self.saved, &mut self.effective);
         }
+        written
+    }
+
+    /// Write `edits` as one change, then read the file back, as [`Self::write`] does, and put
+    /// in effect what the file then holds of the VPN's table: the keys such a change writes,
+    /// the torrent source's protection, whether it was refused or not.
+    pub fn write_protection(
+        &mut self,
+        paths: &Paths,
+        edits: Vec<anistream_model::protection::Edit>,
+    ) -> Result<(), anistream_core::Error> {
+        let written = anistream_core::settings::write_keys(paths, edits);
+        self.saved = Config::load(paths).unwrap_or_default();
+        self.effective.providers.torrent.vpn.clone_from(&self.saved.providers.torrent.vpn);
         written
     }
 }
