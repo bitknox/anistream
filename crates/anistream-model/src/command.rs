@@ -30,7 +30,9 @@ impl Command {
             Self::CheckProviders => "checking providers".into(),
             Self::LoadLibrary(segment) => format!("loading your {} list", segment.label()),
             Self::SyncNow => "syncing".into(),
-            Self::Connect { tracker } => format!("signing in to {tracker}"),
+            Self::Connect { tracker } | Self::FinishSignIn { tracker, .. } => {
+                format!("signing in to {tracker}")
+            }
             Self::ConnectKitsu { .. } => "signing in to kitsu".into(),
             Self::Play { episode, .. } | Self::PlaySource { episode, .. } => {
                 format!("starting ep {episode}")
@@ -139,6 +141,17 @@ pub enum Command {
     },
     /// Run a tracker's sign-in flow.
     Connect {
+        tracker: String,
+    },
+    /// Finish signing in to `tracker` with the redirect the system's sign-in sheet came back
+    /// with, after [`Event::Authorize`](crate::event::Event::Authorize): the whole URL, its query
+    /// and its fragment. A secret, since it can carry the token itself.
+    FinishSignIn {
+        tracker: String,
+        callback: Secret,
+    },
+    /// The sign-in sheet for `tracker` was closed without signing in.
+    CancelSignIn {
         tracker: String,
     },
     /// Exchange Kitsu credentials for a token, from the in-app prompt.

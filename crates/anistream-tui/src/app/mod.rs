@@ -420,6 +420,8 @@ impl App {
             // The terminal shows titles English first and never asks for the viewer's language.
             Event::ViewerTitleLanguage(_) => {}
             Event::DeviceCode(prompt) => self.device_code = prompt,
+            // A native app's sign-in sheet: the terminal signs in on a loopback port.
+            Event::Authorize { .. } => {}
             Event::Seeding(rows) => self.seeding = rows,
             Event::Downloads(rows) => self.apply_downloads(rows),
             Event::LastAired(rows) => self.apply_last_aired(rows),
