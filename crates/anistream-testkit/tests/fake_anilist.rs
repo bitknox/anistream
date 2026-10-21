@@ -9,6 +9,8 @@ use anistream_testkit::{
     },
 };
 
+use std::time::Duration;
+
 const DAY: i64 = 86_400;
 
 fn ids(page: &[anistream_meta::Media]) -> Vec<u32> {
@@ -77,6 +79,56 @@ async fn a_detail_lookup_carries_the_detail_fields() {
 }
 
 #[tokio::test]
+async fn a_title_asked_for_again_within_minutes_is_not_asked_of_anilist_again() {
+    let kit = MetaKit::start().await;
+    let first = kit.meta.media(FINISHED).await.unwrap();
+    // Its episodes, and then the play, a moment after its page.
+    let again = kit.meta.media(FINISHED).await.unwrap();
+    assert_eq!(again, first);
+    assert_eq!(kit.server.requests_for(Operation::Detail).len(), 1);
+
+    // Another title is its own ask.
+    kit.meta.media(AIRING).await.unwrap();
+    assert_eq!(kit.server.requests_for(Operation::Detail).len(), 2);
+}
+
+#[tokio::test]
+async fn asks_for_one_title_made_together_are_asked_once() {
+    let kit = MetaKit::start().await;
+    // A title's page and its episode table, opened together.
+    let (page, table) = tokio::join!(kit.meta.media(FINISHED), kit.meta.media(FINISHED));
+    assert_eq!(page.unwrap(), table.unwrap());
+    assert_eq!(kit.server.requests_for(Operation::Detail).len(), 1);
+
+    // So is a failure: one walk down the ladder, which both are told of.
+    kit.server.fail_always(Failure::Status(503));
+    let (page, table) = tokio::join!(kit.meta.media(MOVIE), kit.meta.media(MOVIE));
+    assert!(page.is_err() && table.is_err(), "{page:?} {table:?}");
+    assert_eq!(kit.server.requests_for(Operation::Detail).len(), 2);
+}
+
+#[tokio::test]
+async fn a_failed_ask_is_asked_again() {
+    let kit = MetaKit::start().await;
+    kit.server.fail_next(Failure::Status(500));
+    assert!(kit.meta.media(FINISHED).await.is_err());
+    // Nothing was cached for it either, so the next ask is AniList's again.
+    assert_eq!(kit.meta.media(FINISHED).await.unwrap(), fixtures::media(FINISHED));
+    assert_eq!(kit.server.requests_for(Operation::Detail).len(), 2);
+}
+
+#[tokio::test]
+async fn a_title_from_a_list_is_still_asked_for_its_page() {
+    let kit = MetaKit::start().await;
+    // The Continue rail's batch has none of a title page's detail.
+    kit.meta.media_many(&[FINISHED, MOVIE]).await.unwrap();
+    let page = kit.meta.media(FINISHED).await.unwrap();
+    assert_eq!(page.streaming_episodes.len(), 12);
+    assert_eq!(page.recommended().len(), 2);
+    assert_eq!(kit.server.requests_for(Operation::Detail).len(), 1);
+}
+
+#[tokio::test]
 async fn an_unknown_title_is_refused_as_anilist_refuses_one() {
     let kit = MetaKit::start().await;
     let error = kit.meta.media(MISSING).await.unwrap_err();
@@ -86,14 +138,16 @@ async fn an_unknown_title_is_refused_as_anilist_refuses_one() {
 #[tokio::test]
 async fn countdowns_follow_the_fakes_clock() {
     let kit = MetaKit::start().await;
-    let next = kit.meta.media(AIRING).await.unwrap().next_airing_episode.unwrap();
+    // Asked of the fake every time, for what it answers.
+    let meta = kit.meta.clone().reusing_for(Duration::ZERO);
+    let next = meta.media(AIRING).await.unwrap().next_airing_episode.unwrap();
     assert_eq!((next.episode, next.time_until_airing), (6, 2 * DAY + 3 * 3_600 + 15 * 60));
     assert_eq!(next.airing_at, FIXTURE_NOW + next.time_until_airing);
 
     // Against another clock the schedule moves with it, the same distance away.
     let now = FIXTURE_NOW + 40 * DAY + 17;
     kit.server.set_now(now);
-    let moved = kit.meta.media(AIRING).await.unwrap().next_airing_episode.unwrap();
+    let moved = meta.media(AIRING).await.unwrap().next_airing_episode.unwrap();
     assert_eq!(moved.airing_at, now + next.time_until_airing);
     assert_eq!(moved.time_until_airing, next.time_until_airing);
 }
@@ -213,8 +267,10 @@ async fn an_outage_walks_the_ladder_down_to_the_cache() {
     kit.meta.media(FINISHED).await.unwrap();
 
     kit.server.fail_always(Failure::Status(503));
-    // Tenrai is empty: it finds no such title, so the cached copy answers.
-    let cached = kit.meta.media(FINISHED).await.unwrap();
+    // Tenrai is empty: it finds no such title, so the cached copy answers. Asked for again at
+    // once, AniList's answer of a moment ago would, so this asks as if minutes had gone by.
+    let later = kit.meta.clone().reusing_for(Duration::ZERO);
+    let cached = later.media(FINISHED).await.unwrap();
     assert_eq!(cached.title.display(), "Stardust Wayfarer");
     let notice = kit.meta.take_notice().unwrap_or_default();
     assert!(notice.contains("cached"), "{notice}");

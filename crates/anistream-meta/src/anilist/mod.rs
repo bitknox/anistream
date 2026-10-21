@@ -21,7 +21,7 @@ pub use model::{ExternalLink, LastAired, Media, Relation, StreamingEpisode, Titl
 
 const ENDPOINT: &str = "https://graphql.anilist.co";
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum AniListError {
     #[error("network: {0}")]
     Network(String),
