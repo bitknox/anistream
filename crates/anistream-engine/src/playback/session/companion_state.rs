@@ -2,11 +2,8 @@
 //! menus and night mode, the Up Next card with the next episode's still, and the next
 //! episode's streams asked for once this one's ending begins.
 
-use anistream_core::{
-    media::Translation,
-    stream::{Stream, StreamKind},
-};
-use anistream_model::event::Event;
+use anistream_core::{media::Translation, stream::Stream};
+use anistream_model::{event::Event, playback::stream_label};
 use anistream_net::HttpClient;
 use anistream_player::{MpvSession, SkipKind, companion};
 
@@ -246,7 +243,9 @@ pub(super) async fn fetch_still(
 /// is shared.
 fn source_details(streams: &[Stream]) -> Vec<String> {
     let detail = |i: usize, server: bool| {
-        let base = stream_detail(&streams[i]);
+        // A stream's second line before telling twins apart: the label a front end's own
+        // player is handed too.
+        let base = stream_label(&streams[i]);
         match server.then(|| server_name(&streams[i].url)).flatten() {
             Some(name) => format!("{base} · {name}"),
             None => base,
@@ -294,22 +293,10 @@ fn server_name(url: &str) -> Option<String> {
     Some(name.to_owned())
 }
 
-/// A stream's second line in the Sources menu, before telling twins apart.
-fn stream_detail(stream: &Stream) -> String {
-    let kind = match stream.kind {
-        StreamKind::Hls => "HLS",
-        StreamKind::TorrentHttp => "torrent",
-        StreamKind::ExternalDeepLink => "external",
-        _ => "direct",
-    };
-    match stream.quality {
-        Some(quality) => format!("{quality}p · {kind}"),
-        None => kind.to_owned(),
-    }
-}
-
 #[cfg(test)]
 mod tests {
+    use anistream_core::stream::StreamKind;
+
     use super::*;
 
     fn hls(provider: &str, url: &str) -> Stream {

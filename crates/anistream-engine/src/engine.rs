@@ -403,7 +403,11 @@ impl Engine {
         event: Event,
     ) {
         self.sent.fetch_add(1, Ordering::Relaxed);
-        let played = Played { serial: playback, id, episode: episode.to_owned() };
+        let played = Played {
+            serial: anistream_model::playback::PlaybackId::new(playback),
+            id,
+            episode: episode.to_owned(),
+        };
         let _ = self.commands.send(Message::InjectFrom(played, event));
     }
 
@@ -625,7 +629,7 @@ struct Actor {
     trace: bool,
     /// The playbacks a test has spoken for, by number: see [`Engine::inject_from`].
     #[cfg(feature = "testing")]
-    injected: std::collections::HashSet<u64>,
+    injected: std::collections::HashSet<anistream_model::playback::PlaybackId>,
 }
 
 impl Actor {

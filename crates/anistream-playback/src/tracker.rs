@@ -10,7 +10,7 @@
 //! thousands of rows per episode.
 
 use crate::{
-    mpv::PlaybackEvent,
+    event::PlaybackEvent,
     skip::{SkipInterval, SkipKind, active},
 };
 
