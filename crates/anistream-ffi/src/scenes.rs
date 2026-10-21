@@ -16,8 +16,8 @@ use anistream_testkit::{
 
 use crate::{
     engine::{FfiEngine, Opened, runtime},
-    host::FfiHost,
-    start::{FfiDirs, FfiError},
+    host::{Adapter, FfiHost},
+    start::{FfiDirs, FfiError, FfiStart, SecretsMode},
     testing,
 };
 
@@ -39,23 +39,26 @@ pub enum FfiScene {
 impl FfiEngine {
     /// [`FfiEngine::start_testing`] on `scene`, with the fake AniList answering at the time
     /// the engine starts rather than the fixtures' own, so that what aired and what airs next
-    /// is counted from now, as the engine counts it.
+    /// is counted from now, as the engine counts it. `start` is taken as `start_testing` takes
+    /// it: tokens are files under `dirs.data` whatever its `secrets` says.
     ///
     /// Only in a build with the `testing` feature, which an app never turns on.
-    #[uniffi::constructor]
+    #[uniffi::constructor(default(start))]
     pub fn start_scene(
         dirs: FfiDirs,
         host: Arc<dyn FfiHost>,
         scene: FfiScene,
+        start: FfiStart,
     ) -> Result<Arc<Self>, FfiError> {
         let opened = Opened::open(&dirs)?;
         let now = now();
         seed_scene(&opened.store, scene, now);
+        let host = Adapter::new(host, SecretsMode::Host, &opened.config, &opened.paths);
         let runtime = runtime()?;
         let started = runtime.block_on(async {
             let server = FakeAniList::start().await;
             server.set_now(now);
-            let options = testing::options(opened, &server)?;
+            let options = testing::options(opened, &server, &start)?;
             Ok::<_, FfiError>((Self::launch(options, host).await?, server))
         });
         match started {
