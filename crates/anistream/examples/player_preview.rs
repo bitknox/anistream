@@ -125,9 +125,12 @@ async fn main() -> anyhow::Result<()> {
             context,
             store.clone(),
             http.clone(),
-            mpv.clone(),
+            playback::Machine::desktop(
+                mpv.clone(),
+                slot.clone(),
+                std::sync::Arc::new(anistream_engine::host::DesktopHost::new(&config, &paths)),
+            ),
             settings,
-            slot.clone(),
             tx.into(),
             commands,
         );

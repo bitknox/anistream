@@ -92,6 +92,14 @@ impl Outbox {
         }
     }
 
+    /// The playback this outbox answers for, when it answers for one.
+    pub fn playback(&self) -> Option<PlaybackId> {
+        match &self.0 {
+            Route::Played(_, played) => Some(played.serial),
+            Route::Events(_) | Route::Inbox(_) => None,
+        }
+    }
+
     /// Say what happened. As `UnboundedSender::send`: the event comes back when nobody reads
     /// any more, which is how a task long outlived by its reader learns to stop.
     // The channel's own shape, large event and all, so no caller of the channel it stands in

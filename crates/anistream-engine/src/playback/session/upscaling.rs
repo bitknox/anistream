@@ -3,10 +3,11 @@
 //! kind as mpv reports them.
 
 use anistream_core::stream::Stream;
-use anistream_player::{MpvSession, companion};
+use anistream_playback::companion;
 
 use super::Run;
 use crate::playback::{
+    link::{Overlay, PlayerLink},
     picture::{self, Governor, HdrKind},
     shaders,
 };
@@ -19,7 +20,7 @@ impl Run<'_> {
     pub(super) async fn apply_picture(
         &self,
         picture: &mut PictureState,
-        session: &MpvSession,
+        link: &dyn PlayerLink,
         source: Option<&shaders::Source>,
         streams: &[Stream],
         index: usize,
@@ -30,19 +31,21 @@ impl Run<'_> {
             shaders::Budget { on_battery: picture.on_battery, eased: picture.governor.eased() };
         let chain = shaders::choose(self.look, source, picture.display, budget);
         let paths = shaders::paths(&chain, dir);
-        if paths != picture.applied && session.set_shaders(&paths).await.is_ok() {
+        if paths != picture.applied && link.shaders(&paths).await.is_ok() {
             tracing::info!(label = chain.label, ?budget, "upscaling chain");
             picture.applied = paths;
             if announce {
-                let _ = session.notify(format!("Upscaling eased · {}", chain.label)).await;
+                let text = format!("Upscaling eased · {}", chain.label);
+                let _ =
+                    link.overlay(Overlay::Toast { text, level: companion::Level::Info }).await;
             }
         }
         let media = companion::Media {
             hdr: source.hdr.map(HdrKind::badge),
             upscaler: chain.upscaler.map(str::to_owned),
         };
-        let _ = session.send(companion::state("media", &media)).await;
-        let _ = session.send(companion::state("menus", &self.menus(streams, index))).await;
+        let _ = link.overlay(Overlay::Media(media)).await;
+        let _ = link.overlay(Overlay::Menus(self.menus(streams, index))).await;
     }
 }
 

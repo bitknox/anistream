@@ -35,10 +35,11 @@ use tokio::{
 };
 
 #[cfg(feature = "desktop")]
+use crate::playback::player::{launch_notice, player};
 use crate::playback::{
     autonext::Follow,
-    player::{launch_notice, player},
-    start::play_following,
+    link::hosted::HostedPlayers,
+    start::{opener_for, play_following},
 };
 use crate::{
     background::{datasets::keep_datasets_current, digest, prune},
@@ -71,6 +72,10 @@ const TORRENT_CLOSE: Duration = Duration::from_secs(1);
 /// the runtime it runs on ends, as it always has when the app quits.
 pub struct Engine {
     commands: mpsc::UnboundedSender<Message>,
+    /// The players a front end hosts, which what they report goes straight to, as mpv's
+    /// reports are read off its socket: not behind the commands waiting, nor held up by an
+    /// engine winding down, which waits on the player for the episode's last position.
+    hosted: Arc<HostedPlayers>,
     /// Jobs numbered so far, here as well as in the actor so [`Self::send`] can say at once
     /// which number the actor will announce. The actor numbers the jobs it starts on its own
     /// from the same count: see [`Jobs`].
@@ -140,6 +145,7 @@ impl Engine {
             store,
             player_theme,
             app_clients,
+            hosted_player,
             sources: given,
             background,
             #[cfg(feature = "testing")]
@@ -191,21 +197,26 @@ impl Engine {
         let trace = parts.is_some();
         #[cfg(feature = "testing")]
         let services = match parts {
-            Some(parts) => Services {
-                paths,
-                http,
-                store,
-                meta: parts.meta,
-                registry,
-                sync: parts.sync,
-                stores: parts.stores,
-                #[cfg(feature = "desktop")]
-                slot: Default::default(),
-                prefetch: Default::default(),
-                player_theme,
-                app_clients: Default::default(),
-                host,
-            },
+            Some(parts) => {
+                let (power, hosted) = crate::services::players(&paths);
+                Services {
+                    power,
+                    hosted,
+                    hosted_player,
+                    paths,
+                    http,
+                    store,
+                    meta: parts.meta,
+                    registry,
+                    sync: parts.sync,
+                    stores: parts.stores,
+                    slot: Default::default(),
+                    prefetch: Default::default(),
+                    player_theme,
+                    app_clients: Default::default(),
+                    host,
+                }
+            }
             None => Services::build(&config, paths, http, store, registry, player_theme, host)
                 .map_err(|reason| EngineError::PluginStores { reason })?,
         };
@@ -213,8 +224,10 @@ impl Engine {
         let services =
             Services::build(&config, paths, http, store, registry, player_theme, host)
                 .map_err(|reason| EngineError::PluginStores { reason })?;
-        // The app's own sign-in clients, where signing in will read them (E6).
-        let services = Services { app_clients, ..services };
+        // The player a play opens: mpv's process, or the one the front end hosts; and the app's
+        // own sign-in clients, where signing in will read them (E6).
+        let services = Services { hosted_player, app_clients, ..services };
+        let hosted = Arc::clone(&services.hosted);
 
         // Where the torrent source reports in once it is up, tagged with the bring-up it answers.
         let (arrivals_tx, arrivals) = mpsc::unbounded_channel();
@@ -321,7 +334,6 @@ impl Engine {
             commands,
             arrivals,
             out,
-            #[cfg(feature = "desktop")]
             jobs: jobs.clone(),
             #[cfg(feature = "testing")]
             routed: 0,
@@ -335,6 +347,7 @@ impl Engine {
         let engine = Self {
             commands: commands_tx,
             jobs,
+            hosted,
             #[cfg(feature = "testing")]
             sent: AtomicU64::new(0),
         };
@@ -352,6 +365,10 @@ impl Engine {
     ///
     /// `None` too once the engine has stopped, when nothing would announce the job.
     pub fn send(&self, command: Command) -> Option<JobId> {
+        if let Command::PlayerReport { playback, report } = command {
+            self.hosted.report(playback, report);
+            return None;
+        }
         let job = command.activity().map(|activity| (self.jobs.next(), activity));
         let id = job.as_ref().map(|(id, _)| *id);
         #[cfg(feature = "testing")]
@@ -621,9 +638,8 @@ struct Actor {
     commands: mpsc::UnboundedReceiver<Message>,
     arrivals: mpsc::UnboundedReceiver<(u64, Result<TorrentUp, String>)>,
     out: mpsc::UnboundedSender<Out>,
-    /// The count the jobs it starts on its own are numbered by: see [`Jobs`]. Only the
-    /// desktop's player leads it to start any.
-    #[cfg(feature = "desktop")]
+    /// The count the jobs it starts on its own are numbered by: see [`Jobs`]. Only an ending
+    /// that rolls on leads it to start any.
     jobs: Jobs,
     /// Commands routed so far.
     #[cfg(feature = "testing")]
@@ -787,8 +803,11 @@ impl Actor {
 
     /// Play what `event` led to, as `follow` says, and return what it was staged as. An ending
     /// that rolls on is said to.
-    #[cfg(feature = "desktop")]
+    ///
+    /// Where this build has no player to open, nothing rolls on: what the rules would follow
+    /// with is let go, and nothing is said of it.
     fn roll_on(&mut self, follow: Follow, event: &mut Event) -> Option<Event> {
+        let opener = opener_for(&self.state, &self.services)?;
         if let Event::PlaybackEnded { rolling_on, .. } = event {
             *rolling_on = true;
         }
@@ -796,14 +815,7 @@ impl Actor {
         let play = Command::Play { id: follow.id, episode: follow.episode.clone() };
         let job =
             play.activity().map(|activity| JobGuard::announce(self.jobs.next(), activity, &tx));
-        Some(play_following(follow, job, &mut self.state, &self.services, &tx))
-    }
-
-    /// Without the desktop's player nothing plays, so nothing ends to roll on from: what the
-    /// rules would follow with is let go, and nothing is said of it.
-    #[cfg(not(feature = "desktop"))]
-    fn roll_on(&mut self, _: autonext::Follow, _: &mut Event) -> Option<Event> {
-        None
+        Some(play_following(follow, opener, job, &mut self.state, &self.services, &tx))
     }
 
     /// Whether a playback is under way: the one Now Playing shows has started playing, and
@@ -954,6 +966,15 @@ mod tests {
 
     /// [`quiet_engine`], on `host`.
     async fn engine_on(dir: &std::path::Path, host: Arc<dyn Host>) -> (Engine, EventStream) {
+        engine_with(dir, host, |_| {}).await
+    }
+
+    /// [`engine_on`], with its options changed as `change` says.
+    async fn engine_with(
+        dir: &std::path::Path,
+        host: Arc<dyn Host>,
+        change: impl FnOnce(&mut EngineOptions),
+    ) -> (Engine, EventStream) {
         let paths = Paths {
             config_file: dir.join("config.toml"),
             data_dir: dir.join("data"),
@@ -974,6 +995,7 @@ mod tests {
         let mut options = EngineOptions::new(paths, config, http, store, theme);
         options.sources = Some(ProviderRegistry::new(Vec::new()));
         options.background = crate::options::Background::none();
+        change(&mut options);
         Engine::start(options, host).await.unwrap()
     }
 
@@ -1208,7 +1230,10 @@ mod tests {
     async fn without_a_player_a_play_is_refused_in_words_and_nothing_is_staged() {
         use anistream_model::{command::PlayerCommand, notice::NoticeKind};
         let dir = tempfile::tempdir().unwrap();
-        let (engine, mut events) = quiet_engine(dir.path()).await;
+        // A front end that hosts no player, with no mpv to fall back on.
+        let host = Arc::new(QuietHost::in_dir(&dir.path().join("tokens")));
+        let (engine, mut events) =
+            engine_with(dir.path(), host, |options| options.hosted_player = false).await;
         events.launch().await;
         let id = anistream_core::ids::AnilistId::new(1);
 
@@ -1237,6 +1262,33 @@ mod tests {
             matches!(&seen[..], [Event::Toast(n)] if n.text == crate::playback::NO_PLAYER),
             "{seen:?}"
         );
+
+        // A release picked by hand the same, and a watch party for want of Syncplay: refused
+        // before anything is staged.
+        let episode = || "1".to_owned();
+        for (play, refusal) in [
+            (
+                Command::PlaySource {
+                    id,
+                    episode: episode(),
+                    provider_id: "yamabiko".into(),
+                    source_id: "a".into(),
+                },
+                crate::playback::NO_PLAYER,
+            ),
+            (Command::PlayParty { id, episode: episode() }, crate::playback::NO_PARTY),
+        ] {
+            engine.send(play);
+            let seen = until(&mut events, |e| matches!(e, Event::JobDone(_))).await;
+            assert!(
+                seen.iter().any(|e| matches!(e, Event::Toast(n) if n.text == refusal)),
+                "{seen:?}"
+            );
+            assert!(
+                !seen.iter().any(|e| matches!(e, Event::PlaybackStaged { .. })),
+                "{seen:?}"
+            );
+        }
     }
 
     #[tokio::test]

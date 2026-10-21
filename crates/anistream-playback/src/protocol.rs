@@ -12,6 +12,8 @@
 use anistream_core::stream::Subtitle;
 use serde::Deserialize;
 
+use crate::event::PlaybackEvent;
+
 /// Property observation ids. Fixed rather than allocated, so a reply can be attributed
 /// without keeping a registry.
 pub mod observed {
@@ -322,68 +324,134 @@ pub fn parse_line(line: &str) -> Option<Event> {
     }
 
     match raw.event.as_deref() {
-        Some("property-change") => {
-            let value = raw.data;
-            match raw.name.as_deref() {
-                // mpv sends null for time-pos before a file is loaded, and treating that as
-                // position zero would clobber a resume point.
-                Some("time-pos") => value.and_then(|v| v.as_f64()).map(Event::TimePos),
-                Some("duration") => value.and_then(|v| v.as_f64()).map(Event::Duration),
-                Some("pause") => value.and_then(|v| v.as_bool()).map(Event::Paused),
-                Some("speed") => value.and_then(|v| v.as_f64()).map(Event::Speed),
-                Some("volume") => value.and_then(|v| v.as_f64()).map(Event::Volume),
-                Some("chapter-list") => value.and_then(|v| v.as_array().cloned()).map(|list| {
-                    Event::Chapters(
-                        list.iter()
-                            .filter_map(|c| {
-                                let time = c.get("time")?.as_f64()?;
-                                let title = c
-                                    .get("title")
-                                    .and_then(|t| t.as_str())
-                                    .unwrap_or_default()
-                                    .to_owned();
-                                Some((title, time))
-                            })
-                            .collect(),
-                    )
-                }),
-                Some("eof-reached") => value.and_then(|v| v.as_bool()).map(|reached| {
-                    if reached { Event::EndFile(EndReason::Eof) } else { Event::Ignored }
-                }),
-                // Null before a file is open; passed through as-is so the readers decide.
-                Some("video-params") => value.filter(|v| v.is_object()).map(Event::VideoParams),
-                Some("current-tracks/video") => {
-                    value.filter(|v| v.is_object()).map(Event::VideoTrack)
-                }
-                Some("track-list") => value.filter(|v| v.is_array()).map(Event::TrackList),
-                Some("aid") => value.as_ref().and_then(track_id).map(Event::Aid),
-                Some("sid") => value.as_ref().and_then(track_id).map(Event::Sid),
-                Some("sub-delay") => value.and_then(|v| v.as_f64()).map(Event::SubDelay),
-                Some("paused-for-cache") => {
-                    value.and_then(|v| v.as_bool()).map(Event::Buffering)
-                }
-                Some("frame-drop-count") => {
-                    value.and_then(|v| v.as_u64()).map(Event::FrameDrops)
-                }
-                Some("seeking") => value.and_then(|v| v.as_bool()).map(Event::Seeking),
-                Some("display-width") => value
-                    .and_then(|v| v.as_u64())
-                    .and_then(|w| u32::try_from(w).ok())
-                    .map(Event::DisplayWidth),
-                Some("display-height") => value
-                    .and_then(|v| v.as_u64())
-                    .and_then(|h| u32::try_from(h).ok())
-                    .map(Event::DisplayHeight),
-                _ => Some(Event::Ignored),
-            }
-            .or(Some(Event::Ignored))
-        }
+        Some("property-change") => Some(property_change(raw.name.as_deref(), raw.data)),
         Some("file-loaded") => Some(Event::FileLoaded),
         Some("client-message") => Some(Event::ClientMessage(raw.args.unwrap_or_default())),
         Some("end-file") => Some(Event::EndFile(EndReason::parse(raw.reason.as_deref()))),
         Some("seek") | Some("playback-restart") => Some(Event::Seek),
         Some(_) => Some(Event::Ignored),
         None => Some(Event::Ignored),
+    }
+}
+
+/// What a `property-change` of `name` to `value` says: [`Event::Ignored`] for a property the
+/// session does not read, or a value that says nothing yet.
+///
+/// The same whichever player reports it: mpv over its socket, or a player a front end hosts,
+/// which reports each property by name with mpv's own value.
+pub fn property_change(name: Option<&str>, value: Option<serde_json::Value>) -> Event {
+    match name {
+        // mpv sends null for time-pos before a file is loaded, and treating that as
+        // position zero would clobber a resume point.
+        Some("time-pos") => value.and_then(|v| v.as_f64()).map(Event::TimePos),
+        Some("duration") => value.and_then(|v| v.as_f64()).map(Event::Duration),
+        Some("pause") => value.and_then(|v| v.as_bool()).map(Event::Paused),
+        Some("speed") => value.and_then(|v| v.as_f64()).map(Event::Speed),
+        Some("volume") => value.and_then(|v| v.as_f64()).map(Event::Volume),
+        Some("chapter-list") => value.and_then(|v| v.as_array().cloned()).map(|list| {
+            Event::Chapters(
+                list.iter()
+                    .filter_map(|c| {
+                        let time = c.get("time")?.as_f64()?;
+                        let title = c
+                            .get("title")
+                            .and_then(|t| t.as_str())
+                            .unwrap_or_default()
+                            .to_owned();
+                        Some((title, time))
+                    })
+                    .collect(),
+            )
+        }),
+        Some("eof-reached") => value.and_then(|v| v.as_bool()).map(|reached| {
+            if reached { Event::EndFile(EndReason::Eof) } else { Event::Ignored }
+        }),
+        // Null before a file is open; passed through as-is so the readers decide.
+        Some("video-params") => value.filter(|v| v.is_object()).map(Event::VideoParams),
+        Some("current-tracks/video") => value.filter(|v| v.is_object()).map(Event::VideoTrack),
+        Some("track-list") => value.filter(|v| v.is_array()).map(Event::TrackList),
+        Some("aid") => value.as_ref().and_then(track_id).map(Event::Aid),
+        Some("sid") => value.as_ref().and_then(track_id).map(Event::Sid),
+        Some("sub-delay") => value.and_then(|v| v.as_f64()).map(Event::SubDelay),
+        Some("paused-for-cache") => value.and_then(|v| v.as_bool()).map(Event::Buffering),
+        Some("frame-drop-count") => value.and_then(|v| v.as_u64()).map(Event::FrameDrops),
+        Some("seeking") => value.and_then(|v| v.as_bool()).map(Event::Seeking),
+        Some("display-width") => value
+            .and_then(|v| v.as_u64())
+            .and_then(|w| u32::try_from(w).ok())
+            .map(Event::DisplayWidth),
+        Some("display-height") => value
+            .and_then(|v| v.as_u64())
+            .and_then(|h| u32::try_from(h).ok())
+            .map(Event::DisplayHeight),
+        _ => Some(Event::Ignored),
+    }
+    .unwrap_or(Event::Ignored)
+}
+
+/// mpv's events as the session reads them: [`PlaybackEvent`]s, narrowed to what the session acts
+/// on, with the duration attached to each position and the display reported once both of its
+/// halves are known.
+///
+/// One per player, for as long as it lives: the duration belongs to the file playing, and the
+/// display to the window. What only one kind of player says is read by its owner first: mpv's
+/// companion speaking through `client-message`, which this reads as nothing.
+#[derive(Debug, Clone, Default)]
+pub struct Reader {
+    /// Duration arrives separately from position, so it is remembered and attached.
+    duration: Option<f64>,
+    /// Display size arrives as two properties; reported once both are known.
+    display: (Option<u32>, Option<u32>),
+}
+
+impl Reader {
+    /// What `event` says to the session, if anything.
+    pub fn read(&mut self, event: Event) -> Option<PlaybackEvent> {
+        match event {
+            Event::TimePos(position) => {
+                Some(PlaybackEvent::Progress { position, duration: self.duration })
+            }
+            Event::Duration(seconds) => {
+                self.duration = Some(seconds);
+                None
+            }
+            Event::Paused(paused) => Some(PlaybackEvent::Paused(paused)),
+            Event::Speed(speed) => Some(PlaybackEvent::Speed(speed)),
+            Event::Volume(volume) => Some(PlaybackEvent::Volume(volume)),
+            Event::Chapters(chapters) => Some(PlaybackEvent::Chapters(chapters)),
+            Event::EndFile(EndReason::Stop) => Some(PlaybackEvent::Replaced),
+            Event::EndFile(reason) => {
+                // The next file's duration is its own.
+                self.duration = None;
+                Some(PlaybackEvent::Ended { complete: reason.is_complete() })
+            }
+            Event::FileLoaded => Some(PlaybackEvent::Loaded),
+            Event::VideoParams(value) => Some(PlaybackEvent::VideoParams(value)),
+            Event::VideoTrack(value) => Some(PlaybackEvent::VideoTrack(value)),
+            Event::TrackList(value) => Some(PlaybackEvent::TrackList(value)),
+            Event::Aid(id) => Some(PlaybackEvent::Aid(id)),
+            Event::Sid(id) => Some(PlaybackEvent::Sid(id)),
+            Event::SubDelay(delay) => Some(PlaybackEvent::SubDelay(delay)),
+            Event::Buffering(held) => Some(PlaybackEvent::Buffering(held)),
+            Event::FrameDrops(count) => Some(PlaybackEvent::FrameDrops(count)),
+            Event::Seeking(seeking) => Some(PlaybackEvent::Seeking(seeking)),
+            Event::DisplayWidth(width) => {
+                self.display.0 = Some(width);
+                self.display_event()
+            }
+            Event::DisplayHeight(height) => {
+                self.display.1 = Some(height);
+                self.display_event()
+            }
+            Event::ClientMessage(_) | Event::Seek | Event::Reply { .. } | Event::Ignored => {
+                None
+            }
+        }
+    }
+
+    fn display_event(&self) -> Option<PlaybackEvent> {
+        let (width, height) = self.display;
+        Some(PlaybackEvent::Display { width: width?, height: height? })
     }
 }
 
@@ -501,6 +569,56 @@ mod tests {
         let line = command.to_line(id);
         assert!(line.ends_with('\n'), "mpv requires newline termination");
         serde_json::from_str(line.trim()).expect("commands must be valid JSON")
+    }
+
+    #[test]
+    fn a_position_carries_the_duration_said_before_it_and_an_ending_forgets_it() {
+        let mut reader = Reader::default();
+        assert_eq!(reader.read(Event::Duration(1_440.0)), None);
+        assert_eq!(
+            reader.read(Event::TimePos(12.0)),
+            Some(PlaybackEvent::Progress { position: 12.0, duration: Some(1_440.0) })
+        );
+        // Our own replacement is not the file ending: the duration stays with it.
+        assert_eq!(reader.read(Event::EndFile(EndReason::Stop)), Some(PlaybackEvent::Replaced));
+        assert_eq!(
+            reader.read(Event::EndFile(EndReason::Eof)),
+            Some(PlaybackEvent::Ended { complete: true })
+        );
+        assert_eq!(
+            reader.read(Event::TimePos(1.0)),
+            Some(PlaybackEvent::Progress { position: 1.0, duration: None })
+        );
+    }
+
+    #[test]
+    fn the_display_is_said_once_both_halves_are_known() {
+        let mut reader = Reader::default();
+        assert_eq!(reader.read(Event::DisplayWidth(3_024)), None);
+        assert_eq!(
+            reader.read(Event::DisplayHeight(1_964)),
+            Some(PlaybackEvent::Display { width: 3_024, height: 1_964 })
+        );
+        // The companion is its owner's to read.
+        assert_eq!(reader.read(Event::ClientMessage(vec!["anistream".into()])), None);
+    }
+
+    #[test]
+    fn a_property_reads_the_same_by_name_as_from_a_line() {
+        // What a player a front end hosts reports, by name and mpv's own value, reads as mpv's
+        // line would.
+        let line =
+            r#"{"event":"property-change","id":10,"name":"track-list","data":[{"id":1}]}"#;
+        assert_eq!(
+            parse_line(line),
+            Some(property_change(Some("track-list"), Some(serde_json::json!([{ "id": 1 }]))))
+        );
+        assert_eq!(property_change(Some("time-pos"), None), Event::Ignored);
+        assert_eq!(
+            property_change(Some("osd-width"), Some(serde_json::json!(800))),
+            Event::Ignored
+        );
+        assert_eq!(property_change(None, None), Event::Ignored);
     }
 
     #[test]

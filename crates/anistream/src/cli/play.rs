@@ -3,6 +3,7 @@
 
 use anistream_core::config::{Config, Paths};
 use anistream_engine::{
+    host::DesktopHost,
     now_epoch,
     playback::resolve::resolve_for_playback,
     playback::start::play_settings,
@@ -185,18 +186,10 @@ pub async fn play_cli(
     };
     // Headless plays one episode: nothing would ever claim a parked window.
     let settings = playback::PlaySettings { auto_next: false, ..settings };
-    playback::play(
-        streams,
-        context,
-        store.clone(),
-        http.clone(),
-        mpv,
-        settings,
-        PlayerSlot::default(),
-        tx,
-        prx,
-    )
-    .await;
+    let host = std::sync::Arc::new(DesktopHost::new(config, paths));
+    let machine = playback::Machine::desktop(mpv, PlayerSlot::default(), host);
+    playback::play(streams, context, store.clone(), http.clone(), machine, settings, tx, prx)
+        .await;
 
     let watched = printer.await.unwrap_or(false);
     if watched && tracker_ids.is_empty() {

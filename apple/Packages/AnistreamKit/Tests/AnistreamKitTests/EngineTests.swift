@@ -101,6 +101,57 @@ struct EngineTests {
         #expect(!entry.related.isEmpty, "the detail-only fields came with it")
     }
 
+    @Test func aFixturePlaysToItsEndInAHostedPlayer() async throws {
+        let (engine, root) = try startedEngine()
+        defer { try? FileManager.default.removeItem(at: root) }
+        defer { engine.shutdown() }
+
+        // The finale, so the playback ends with the episode rather than rolling on.
+        _ = engine.send(command: .play(id: 900_001, episode: "12"))
+        var opened = false
+        var loaded: PlaybackId? = nil
+        var ending: Ending? = nil
+        while ending == nil {
+            let batch = await engine.nextEvents()
+            try #require(!batch.isEmpty, "the engine stopped before the playback ended")
+            for event in batch {
+                switch event {
+                case .playerOps(let playback, let ops):
+                    for op in ops {
+                        switch op {
+                        case .open:
+                            opened = true
+                        case .load(let url, _) where loaded == nil:
+                            #expect(url.hasPrefix("av://lavfi:"))
+                            loaded = playback
+                            // As libmpv reports it: the file, its length, a playhead, the end.
+                            let report = { (report: PlayerReport) in
+                                _ = engine.send(
+                                    command: .playerReport(playback: playback, report: report)
+                                )
+                            }
+                            report(.fileLoaded)
+                            report(.property(name: "duration", json: "30"))
+                            for second in 0..<30 {
+                                report(.property(name: "time-pos", json: "\(second)"))
+                            }
+                            report(.ended(reason: .eof))
+                        default:
+                            break
+                        }
+                    }
+                case .playbackEnded(_, let ended, _):
+                    ending = ended
+                default:
+                    break
+                }
+            }
+        }
+        #expect(opened)
+        #expect(loaded != nil)
+        #expect(ending == .complete(next: nil))
+    }
+
     @Test func shutdownEndsTheStream() async throws {
         let (engine, root) = try startedEngine()
         defer { try? FileManager.default.removeItem(at: root) }

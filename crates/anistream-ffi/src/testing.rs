@@ -9,6 +9,7 @@ use anistream_engine::{
 };
 use anistream_meta::Meta;
 use anistream_net::HttpClient;
+use anistream_providers::ProviderRegistry;
 use anistream_testkit::FakeAniList;
 use anistream_track::{
     AniListTracker,
@@ -35,6 +36,8 @@ impl FfiEngine {
     /// - Tokens are files under `dirs.data`, never the keychain, whatever `start.secrets` says.
     /// - None of the engine's own work runs beside the commands: no update check, no sync loops,
     ///   no check of the player.
+    /// - A play opens the app's hosted player, in any build: its ops come as
+    ///   `Event::PlayerOps`, for the test to answer with `Command::PlayerReport`.
     ///
     /// The rest of `start` is taken as [`FfiEngine::start`] takes it, the player's theme and the
     /// sign-in clients. Only in a build with the `testing` feature, which an app never turns on.
@@ -44,6 +47,27 @@ impl FfiEngine {
         host: Arc<dyn FfiHost>,
         start: FfiStart,
     ) -> Result<Arc<Self>, FfiError> {
+        Self::start_testing_from(dirs, host, start, None)
+    }
+}
+
+impl FfiEngine {
+    /// [`FfiEngine::start_testing`] with `sources` in place of the fixture provider alone, for a
+    /// Rust test that scripts the streams an episode has. Not in the bindings.
+    pub fn start_testing_with(
+        dirs: FfiDirs,
+        host: Arc<dyn FfiHost>,
+        sources: ProviderRegistry,
+    ) -> Result<Arc<Self>, FfiError> {
+        Self::start_testing_from(dirs, host, FfiStart::default(), Some(sources))
+    }
+
+    fn start_testing_from(
+        dirs: FfiDirs,
+        host: Arc<dyn FfiHost>,
+        start: FfiStart,
+        sources: Option<ProviderRegistry>,
+    ) -> Result<Arc<Self>, FfiError> {
         let opened = Opened::open(&dirs)?;
         // The test's token files are the trackers' and the stores' own, so the host's keychain
         // is never asked.
@@ -52,7 +76,7 @@ impl FfiEngine {
         let started = runtime.block_on(async {
             // The fake answers on the engine's runtime, for as long as the engine holds it.
             let server = FakeAniList::start().await;
-            let options = options(opened, &server, &start)?;
+            let options = options(opened, &server, &start, sources)?;
             Ok::<_, FfiError>((Self::launch(options, host).await?, server))
         });
         match started {
@@ -64,10 +88,12 @@ impl FfiEngine {
 
 /// The options [`FfiEngine::start_testing`] starts from: the harness's in the binary, on the
 /// app's directories rather than a temporary one.
+/// `sources` stands in for the fixture provider, whose stills the fake serves, when given.
 pub(crate) fn options(
     opened: Opened,
     server: &FakeAniList,
     start: &FfiStart,
+    sources: Option<ProviderRegistry>,
 ) -> Result<EngineOptions, FfiError> {
     let Opened { paths, config, store } = opened;
     // The fixtures' covers, banners and stills, from the fake, for an app that shows them.
@@ -96,8 +122,11 @@ pub(crate) fn options(
         .map_err(|reason| FfiError::Engine { reason })?;
 
     let mut options = Opened { paths, config, store }.options(http, start);
-    options.sources = Some(anistream_testkit::sources::registry_with_art(&server.art_base()));
+    options.sources = Some(
+        sources.unwrap_or_else(|| anistream_testkit::sources::registry_with_art(&server.art_base())),
+    );
     options.background = Background::none();
+    options.hosted_player = true;
     options.parts = Some(Parts { meta, sync, stores });
     Ok(options)
 }
