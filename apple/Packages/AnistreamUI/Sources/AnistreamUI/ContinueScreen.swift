@@ -185,8 +185,8 @@ struct QueueRow: View {
                     .clipShape(.rect(cornerRadius: ArtShape.coverRadius(width: 36)))
                 VStack(alignment: .leading, spacing: 0) {
                     Text(item.entry.showTitle)
-                        .font(.showTitle(size: 15))
-                        .fixedLineHeight(20)
+                        .font(.macShowTitle(size: 15))
+                        .macLineHeight(20)
                         .foregroundStyle(selected ? .amber : .silk)
                         .lineLimit(1)
                     HStack(spacing: 6) {
@@ -196,8 +196,8 @@ struct QueueRow: View {
                         Text(item.action)
                             .monospacedDigit()
                     }
-                    .font(.system(size: 13))
-                    .fixedLineHeight(18)
+                    .font(.mac(13))
+                    .macLineHeight(18)
                     .foregroundStyle(.haze)
                     .lineLimit(1)
                     .padding(.top, 2)
@@ -260,8 +260,8 @@ struct PlaceholderRow: View {
         HStack(spacing: 12) {
             RoundedRectangle(cornerRadius: 6).fill(.raised).frame(width: 36, height: 54)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Hoshikuzu no Tabibito").font(.showTitle(size: 15))
-                Text("Resume E7 · 10:06").font(.system(size: 13))
+                Text("Hoshikuzu no Tabibito").font(.macShowTitle(size: 15))
+                Text("Resume E7 · 10:06").font(.mac(13))
             }
             .redacted(reason: .placeholder)
             .foregroundStyle(.haze)
@@ -317,7 +317,7 @@ struct ContinuePreview: View {
                             if let minutes { MinutesLeft(minutes: minutes) }
                         }
                     }
-                    .font(.system(size: 13))
+                    .font(.mac(13))
                     Held(value: item.fraction) { fraction in
                         if let fraction { Meter(fraction: fraction, height: 4) }
                     }
@@ -329,7 +329,7 @@ struct ContinuePreview: View {
                             store.send(.play(id: item.id, episode: String(item.episode)))
                         } label: {
                             HStack(spacing: 8) {
-                                Image(systemName: "play.fill").font(.system(size: 10))
+                                Image(systemName: "play.fill").font(.mac(10))
                                 Text(item.buttonTitle)
                             }
                         }
@@ -348,15 +348,15 @@ struct ContinuePreview: View {
 
                 if !entry.synopsis.isEmpty {
                     ClampedText(text: entry.synopsis)
-                        .font(.system(size: 13))
-                        .fixedLineHeight(20)
+                        .font(.mac(13))
+                        .macLineHeight(20)
                         .foregroundStyle(.haze)
                         .frame(maxWidth: 620, alignment: .leading)
                         .id(entry.id)
                 }
                 if let alsoOn = entry.alsoOn {
                     Text(alsoOn)
-                        .font(.system(size: 12))
+                        .font(.mac(12))
                         .foregroundStyle(.haze)
                 }
             }
@@ -371,13 +371,13 @@ struct ContinuePreview: View {
     private func titleBlock(_ entry: Entry) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(entry.showTitle)
-                .font(.showTitle(size: 30, relativeTo: .largeTitle))
-                .fixedLineHeight(38, relativeTo: .largeTitle)
+                .font(.macShowTitle(size: 30, relativeTo: .largeTitle))
+                .macLineHeight(38, relativeTo: .largeTitle)
                 .foregroundStyle(.silk)
                 .accessibilityAddTraits(.isHeader)
             if let alternate = entry.alternateTitle {
                 Text(alternate)
-                    .font(.system(size: 15))
+                    .font(.mac(15))
                     .foregroundStyle(.haze)
             }
             Text(entry.metadataLine)
@@ -394,10 +394,10 @@ struct NothingWatched: View {
             Nagare(cell: 5)
             VStack(spacing: 4) {
                 Text("Nothing watched yet")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.mac(15, weight: .semibold))
                     .foregroundStyle(.silk)
                 Text("What you start watching shows here.")
-                    .font(.system(size: 13))
+                    .font(.mac(13))
                     .foregroundStyle(.haze)
             }
         }
@@ -409,7 +409,7 @@ struct NothingWatched: View {
 struct NothingToContinue: View {
     var body: some View {
         Text("Nothing to continue")
-            .font(.system(size: 13))
+            .font(.mac(13))
             .foregroundStyle(.haze)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -423,7 +423,7 @@ struct ListFailed: View {
         HStack(spacing: 6) {
             Circle().fill(.vermilion).frame(width: 6, height: 6).accessibilityHidden(true)
             Text(reason)
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .foregroundStyle(.silk)
                 .textSelection(.enabled)
         }

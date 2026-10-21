@@ -17,12 +17,12 @@ struct TorrentSheet: View {
         let mode = store.settings.value(.vpnMode) ?? "socks5"
         VStack(alignment: .leading, spacing: 0) {
             Text("Turn on torrents")
-                .font(.system(size: 15, weight: .semibold))
-                .fixedLineHeight(20)
+                .font(.mac(15, weight: .semibold))
+                .macLineHeight(20)
                 .foregroundStyle(.silk)
             Text("Other people can see your IP address while you download and share a torrent. Choose what protects it before torrents start.")
-                .font(.system(size: 13))
-                .fixedLineHeight(18)
+                .font(.mac(13))
+                .macLineHeight(18)
                 .foregroundStyle(.silk)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 4)
@@ -78,13 +78,13 @@ struct TorrentSheet: View {
     }
 
     private func label(_ text: String) -> some View {
-        Text(text).font(.system(size: 12)).fixedLineHeight(16).foregroundStyle(.haze)
+        Text(text).font(.mac(12)).macLineHeight(16).foregroundStyle(.haze)
     }
 
     private func note(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 12))
-            .fixedLineHeight(17)
+            .font(.mac(12))
+            .macLineHeight(17)
             .foregroundStyle(.haze)
             .fixedSize(horizontal: false, vertical: true)
     }
@@ -92,7 +92,7 @@ struct TorrentSheet: View {
     private func field(prompt: String) -> some View {
         TextField("", text: .constant(""), prompt: Text(prompt))
             .textFieldStyle(.plain)
-            .font(.system(size: 13))
+            .font(.mac(13))
             .padding(.horizontal, 12)
             .frame(height: 30)
             .background(.ground, in: .rect(cornerRadius: 8))
@@ -117,10 +117,10 @@ struct TorrentSheet: View {
             .frame(width: 16, height: 16)
             .padding(.top, 1)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(size: 13)).foregroundStyle(.silk)
-                Text(detail).font(.system(size: 12)).foregroundStyle(.haze)
+                Text(title).font(.mac(13)).foregroundStyle(.silk)
+                Text(detail).font(.mac(12)).foregroundStyle(.haze)
             }
-            .fixedLineHeight(16)
+            .macLineHeight(16)
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(on ? .isSelected : [])

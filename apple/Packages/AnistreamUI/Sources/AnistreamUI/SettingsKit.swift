@@ -19,7 +19,7 @@ struct SettingsGroup<Content: View>: View {
             if let title {
                 Text(title)
                     .groupHeaderStyle()
-                    .fixedLineHeight(14)
+                    .macLineHeight(14)
                     .padding(.leading, 14)
                     .accessibilityAddTraits(.isHeader)
             }
@@ -56,8 +56,8 @@ struct SettingsFootnote: View {
 
     var body: some View {
         text
-            .font(.system(size: 12))
-            .fixedLineHeight(17)
+            .font(.mac(12))
+            .macLineHeight(17)
             .foregroundStyle(.haze)
             .padding(.horizontal, 14)
             .padding(.top, 4)
@@ -77,16 +77,16 @@ struct SettingsRow<Accessory: View>: View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 13, weight: selected ? .medium : .regular))
+                    .font(.mac(13, weight: selected ? .medium : .regular))
                     .foregroundStyle(selected ? .amber : .silk)
                 if let note {
                     Text(note)
-                        .font(.system(size: 12))
+                        .font(.mac(12))
                         .foregroundStyle(noteColor)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .fixedLineHeight(16)
+            .macLineHeight(16)
             Spacer(minLength: 0)
             accessory
         }
@@ -151,15 +151,15 @@ struct MenuCapsule: View {
     var body: some View {
         HStack(spacing: 8) {
             if let symbol {
-                Image(systemName: symbol).font(.system(size: 12))
+                Image(systemName: symbol).font(.mac(12))
             }
             Text(text)
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .monospacedDigit()
                 .lineLimit(1)
             if fill { Spacer(minLength: 0) }
             Image(systemName: "chevron.up.chevron.down")
-                .font(.system(size: 9, weight: .semibold))
+                .font(.mac(9, weight: .semibold))
         }
         .foregroundStyle(.silk)
         .padding(.leading, 12)

@@ -178,17 +178,17 @@ struct DayHeading: View {
         let today = Calendar.current.isDateInToday(day)
         VStack(alignment: .leading, spacing: 0) {
             Text(CalendarWords.weekday(day))
-                .font(.system(size: 13, weight: today ? .bold : .semibold))
+                .font(.mac(13, weight: today ? .bold : .semibold))
                 .foregroundStyle(.silk)
             // Today beside the date, or beneath it in a column too narrow for both.
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 8) { dayMonth; if today { todayMark } }
                 VStack(alignment: .leading, spacing: 0) { dayMonth; if today { todayMark } }
             }
-            .font(.system(size: 12))
+            .font(.mac(12))
             .lineLimit(1)
         }
-        .fixedLineHeight(16)
+        .macLineHeight(16)
         .padding(8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .bottom) { Rectangle().fill(.faintRule).frame(height: 1) }
@@ -226,7 +226,7 @@ struct DayBroadcasts: View {
         VStack(alignment: .leading, spacing: 4) {
             if broadcasts.isEmpty {
                 Text("Nothing airing")
-                    .font(.system(size: 12))
+                    .font(.mac(12))
                     .foregroundStyle(.haze)
                     .padding(4)
             }
@@ -257,18 +257,18 @@ struct BroadcastCell: View {
             if broadcast.watched {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(alignment: .firstTextBaseline) {
-                        Text(CalendarWords.time(broadcast.airs)).font(.system(size: 13)).monospacedDigit()
+                        Text(CalendarWords.time(broadcast.airs)).font(.mac(13)).monospacedDigit()
                         Spacer(minLength: 4)
                         HStack(spacing: 4) {
                             Text("Ep \(broadcast.episode)")
-                            Image(systemName: "checkmark").font(.system(size: 10, weight: .semibold))
+                            Image(systemName: "checkmark").font(.mac(10, weight: .semibold))
                         }
-                        .font(.system(size: 12))
+                        .font(.mac(12))
                     }
-                    .fixedLineHeight(16)
+                    .macLineHeight(16)
                     Text(broadcast.entry.showTitle)
-                        .font(.showTitle(size: 13))
-                        .fixedLineHeight(17)
+                        .font(.macShowTitle(size: 13))
+                        .macLineHeight(17)
                         .lineLimit(1)
                 }
                 .foregroundStyle(.haze)
@@ -281,13 +281,13 @@ struct BroadcastCell: View {
                         .clipShape(.rect(cornerRadius: 6))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(CalendarWords.time(broadcast.airs))
-                            .font(.system(size: 13))
+                            .font(.mac(13))
                             .monospacedDigit()
-                            .fixedLineHeight(16)
+                            .macLineHeight(16)
                             .foregroundStyle(.silk)
                         Text(broadcast.entry.showTitle)
-                            .font(.showTitle(size: 13))
-                            .fixedLineHeight(17)
+                            .font(.macShowTitle(size: 13))
+                            .macLineHeight(17)
                             .foregroundStyle(.silk)
                             .lineLimit(2)
                         HStack(spacing: 4) {
@@ -296,8 +296,8 @@ struct BroadcastCell: View {
                             }
                             Text(broadcast.line(now: now))
                         }
-                        .font(.system(size: 12))
-                        .fixedLineHeight(16)
+                        .font(.mac(12))
+                        .macLineHeight(16)
                         .foregroundStyle(.haze)
                         .lineLimit(1)
                     }
@@ -324,7 +324,7 @@ struct CalendarToolbar: View {
                 Button("Previous Week", systemImage: "chevron.left") { navigator.calendarWeek -= 1 }
                     .labelStyle(.iconOnly)
                 Text(weekName)
-                    .font(.system(size: 13))
+                    .font(.mac(13))
                     .frame(minWidth: 84)
                 Button("Next Week", systemImage: "chevron.right") { navigator.calendarWeek += 1 }
                     .labelStyle(.iconOnly)

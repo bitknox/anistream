@@ -60,7 +60,7 @@ struct DownloadsPane: View {
     }
 
     private func code(_ text: String) -> Text {
-        Text(text).font(.system(size: 11, design: .monospaced)).foregroundStyle(.silk)
+        Text(text).font(.mac(11, design: .monospaced)).foregroundStyle(.silk)
     }
 }
 
@@ -141,12 +141,12 @@ struct HookRow: View {
     var body: some View {
         HStack(spacing: 16) {
             Text("Command")
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .foregroundStyle(.silk)
                 .frame(width: 196, alignment: .leading)
             TextField("Command", text: $text, prompt: Text("None"))
                 .textFieldStyle(.plain)
-                .font(.system(size: 13, design: .monospaced))
+                .font(.mac(13, design: .monospaced))
                 .padding(.horizontal, 10)
                 .frame(height: 28)
                 .background(.ground, in: .rect(cornerRadius: 6))
@@ -206,7 +206,7 @@ struct StorageAside: View {
         let watched = WatchedDownloads(store).rows.reduce(UInt64(0)) { $0 + $1.bytesOnDisk }
         let total = store.downloads.bytesOnDisk
         let unwatched = total - min(watched, total)
-        Text("Storage").groupHeaderStyle().fixedLineHeight(14)
+        Text("Storage").groupHeaderStyle().macLineHeight(14)
             .accessibilityAddTraits(.isHeader)
         GeometryReader { proxy in
             HStack(spacing: 2) {
@@ -224,8 +224,8 @@ struct StorageAside: View {
         legend("Not watched yet", unwatched, .silk)
         legend("Watched", watched, .haze)
         Text(summary(total))
-            .font(.system(size: 13))
-            .fixedLineHeight(18)
+            .font(.mac(13))
+            .macLineHeight(18)
             .foregroundStyle(.silk)
     }
 
@@ -236,7 +236,7 @@ struct StorageAside: View {
             Spacer()
             Text(Wording.bytes(bytes)).foregroundStyle(.haze).monospacedDigit()
         }
-        .font(.system(size: 13))
+        .font(.mac(13))
     }
 
     private func summary(_ total: UInt64) -> String {
@@ -272,10 +272,10 @@ struct SourcesPane: View {
                 SettingsRow(title: SettingKey.sourceOrder.title) {
                     HStack(spacing: 8) {
                         Text(Wording.plural(store.providers.rows.count, "source"))
-                            .font(.system(size: 13))
+                            .font(.mac(13))
                             .foregroundStyle(.haze)
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(.mac(11, weight: .semibold))
                             .foregroundStyle(.haze)
                     }
                     .padding(.trailing, 6)
@@ -305,7 +305,7 @@ struct SourcesPane: View {
                 SettingsRow(title: "Torrent index", note: "The RSS search address anistream asks for torrents. anistream ships none.") {
                     TextField("Torrent index", text: .constant(""), prompt: Text("https://…/?q={query}"))
                         .textFieldStyle(.plain)
-                        .font(.system(size: 13, design: .monospaced))
+                        .font(.mac(13, design: .monospaced))
                         .padding(.horizontal, 10)
                         .frame(width: 280, height: 28)
                         .background(.ground, in: .rect(cornerRadius: 6))
@@ -358,7 +358,7 @@ struct GuardRow: View {
                 HStack(spacing: 12) {
                     HStack(spacing: 6) {
                         Circle().fill(color).frame(width: 6, height: 6)
-                        Text(status).font(.system(size: 13)).foregroundStyle(.silk)
+                        Text(status).font(.mac(13)).foregroundStyle(.silk)
                     }
                     // The guard re-checks on its own every minute; no command re-runs it now.
                     Button("Check Now") {}
@@ -462,16 +462,16 @@ struct AccountRow<Accessory: View>: View {
                 VStack(alignment: .leading, spacing: 2) {
                     // The account's own name, once the tracker says it.
                     Text(state.user ?? "Signed in")
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.mac(13, weight: .semibold))
                         .foregroundStyle(.silk)
                     HStack(spacing: 6) {
                         StateDot(state: AccountWords.dot(state, store.accounts))
                         Text(AccountWords.status(state, store.accounts, now: context.date))
-                            .font(.system(size: 12))
+                            .font(.mac(12))
                             .foregroundStyle(.haze)
                     }
                 }
-                .fixedLineHeight(16)
+                .macLineHeight(16)
                 Spacer(minLength: 0)
                 accessory
             }

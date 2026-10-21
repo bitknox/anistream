@@ -47,10 +47,10 @@ struct NoStores: View {
     var body: some View {
         VStack(spacing: 12) {
             Text("No plugin stores yet")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
             Text("Plugin stores are run by people you know. Join one with the invite link its owner sends you.")
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .foregroundStyle(.haze)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 360)
@@ -74,7 +74,7 @@ struct StoreList: View {
                 Text("Joined")
                     .groupHeaderStyle()
                     .accessibilityAddTraits(.isHeader)
-                    .fixedLineHeight(14)
+                    .macLineHeight(14)
                     .padding(EdgeInsets(top: 10, leading: 12, bottom: 8, trailing: 12))
                 ForEach(stores, id: \.id) { row in
                     let selected = row.id == current
@@ -83,7 +83,7 @@ struct StoreList: View {
                     } label: {
                         HStack(spacing: 12) {
                             Text(row.name)
-                                .font(.system(size: 13, weight: selected ? .medium : .regular))
+                                .font(.mac(13, weight: selected ? .medium : .regular))
                                 .foregroundStyle(selected ? .amber : .silk)
                                 .lineLimit(1)
                             Spacer(minLength: 0)
@@ -98,8 +98,8 @@ struct StoreList: View {
                     .accessibilityAddTraits(selected ? .isSelected : [])
                 }
                 Text("Plugin stores are run by people you know. Join one with the invite link its owner sends you.")
-                    .font(.system(size: 12))
-                    .fixedLineHeight(17)
+                    .font(.mac(12))
+                    .macLineHeight(17)
                     .foregroundStyle(.haze)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(EdgeInsets(top: 14, leading: 12, bottom: 0, trailing: 12))
@@ -136,7 +136,7 @@ struct StoreStanding: View {
             } else if let dot {
                 Circle().fill(dot).frame(width: 6, height: 6)
             }
-            Text(text).font(.system(size: size)).foregroundStyle(color)
+            Text(text).font(.mac(size)).foregroundStyle(color)
         }
     }
 }
@@ -156,13 +156,13 @@ struct StoreDetail: View {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(row.name)
-                            .font(.system(size: 22, weight: .bold))
-                            .fixedLineHeight(28)
+                            .font(.mac(22, weight: .bold))
+                            .macLineHeight(28)
                             .foregroundStyle(.silk)
                             .accessibilityAddTraits(.isHeader)
                         // "Run by" and when it was last checked wait on E9's fields on `StoreRow`.
                         Text(StoreWords.meta(row))
-                            .font(.system(size: 13))
+                            .font(.mac(13))
                             .foregroundStyle(.haze)
                     }
                     Spacer()
@@ -170,20 +170,20 @@ struct StoreDetail: View {
                 }
                 if case .offline(let reason) = row.state {
                     Text("Offline: \(reason). The plugins below are the last list that was checked.")
-                        .font(.system(size: 12))
+                        .font(.mac(12))
                         .foregroundStyle(.haze)
                         .padding(.top, 8)
                 }
                 if row.state == .revoked {
                     Text("This store no longer lets this \(Device.name) in. Its plugins stay installed until you remove them.")
-                        .font(.system(size: 12))
+                        .font(.mac(12))
                         .foregroundStyle(.vermilion)
                         .padding(.top, 8)
                 }
                 Text("Plugins")
                     .groupHeaderStyle()
                     .accessibilityAddTraits(.isHeader)
-                    .fixedLineHeight(14)
+                    .macLineHeight(14)
                     .padding(EdgeInsets(top: 28, leading: 18, bottom: 8, trailing: 0))
                 VStack(spacing: 0) {
                     Rectangle().fill(.faintRule).frame(height: 1)
@@ -196,8 +196,8 @@ struct StoreDetail: View {
                     Text("Each plugin can contact only the hosts listed with it and cannot read your files.")
                     Text("Store key \(row.fingerprint) · joined as \(row.member)")
                 }
-                .font(.system(size: 12))
-                .fixedLineHeight(17)
+                .font(.mac(12))
+                .macLineHeight(17)
                 .foregroundStyle(.haze)
                 .padding(EdgeInsets(top: 20, leading: 18, bottom: 0, trailing: 0))
             }
@@ -253,12 +253,12 @@ struct StorePluginLine: View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(plugin.name)
-                    .font(.system(size: 13, weight: .medium))
-                    .fixedLineHeight(17)
+                    .font(.mac(13, weight: .medium))
+                    .macLineHeight(17)
                     .foregroundStyle(.silk)
                 Text(line)
-                    .font(.system(size: 12))
-                    .fixedLineHeight(15)
+                    .font(.mac(12))
+                    .macLineHeight(15)
                     .foregroundStyle(.haze)
                     .lineLimit(1)
             }
@@ -285,8 +285,8 @@ struct StorePluginLine: View {
         switch plugin.status {
         case .installed:
             HStack(spacing: 6) {
-                Image(systemName: "checkmark").font(.system(size: 11, weight: .semibold)).foregroundStyle(.water)
-                Text("Installed").font(.system(size: 12)).foregroundStyle(.haze)
+                Image(systemName: "checkmark").font(.mac(11, weight: .semibold)).foregroundStyle(.water)
+                Text("Installed").font(.mac(12)).foregroundStyle(.haze)
             }
         case .update where live:
             Button("Update") { sheet = .update(plugin) }
@@ -299,14 +299,14 @@ struct StorePluginLine: View {
                 .disabled(working)
                 .accessibilityLabel("Install \(plugin.name)")
         case .available:
-            Text(live ? "Offline" : "Not available").font(.system(size: 12)).foregroundStyle(.haze)
+            Text(live ? "Offline" : "Not available").font(.mac(12)).foregroundStyle(.haze)
         case .addedByHand where live:
             Button("Replace") { sheet = .update(plugin) }
                 .buttonStyle(SecondaryCapsuleStyle())
                 .disabled(working)
                 .accessibilityLabel("Replace the copy of \(plugin.name) added by hand")
         case .otherStore(let other):
-            Text("From \(other)").font(.system(size: 12)).foregroundStyle(.haze)
+            Text("From \(other)").font(.mac(12)).foregroundStyle(.haze)
         default:
             EmptyView()
         }
@@ -336,7 +336,7 @@ struct StoreMenu: View {
             Button("Leave Store…") { leaving = true }
         } label: {
             Image(systemName: "ellipsis")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.mac(13, weight: .semibold))
                 .foregroundStyle(.silk)
                 .frame(width: 28, height: 28)
                 .background(.raised, in: .circle)
@@ -371,15 +371,15 @@ struct UpdatePluginSheet: View {
         let added: [String] = if case .update(_, let new) = plugin.status { new } else { [] }
         VStack(alignment: .leading, spacing: 0) {
             Text(title)
-                .font(.system(size: 15, weight: .semibold))
+                .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
             Text(subtitle)
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .foregroundStyle(.haze)
                 .padding(.top, 4)
             if !added.isEmpty {
                 (Text("This update also contacts ") + Text(added.joined(separator: ", ")).fontWeight(.semibold) + Text("."))
-                    .font(.system(size: 13))
+                    .font(.mac(13))
                     .foregroundStyle(.silk)
                     .padding(.top, 16)
             }
@@ -397,12 +397,12 @@ struct UpdatePluginSheet: View {
                     }
                 }
             }
-            .font(.system(size: 13))
+            .font(.mac(13))
             .padding(14)
             .background(.ground, in: .rect(cornerRadius: 10))
             .padding(.top, 14)
             Text("Plugins cannot read your files or contact a host that is not listed.")
-                .font(.system(size: 12))
+                .font(.mac(12))
                 .foregroundStyle(.haze)
                 .padding(.top, 14)
             HStack(spacing: 10) {
@@ -456,19 +456,19 @@ struct JoinStoreSheet: View {
         let working = store.stores.isWorking(.join)
         VStack(alignment: .leading, spacing: 0) {
             Text("Join a Plugin Store")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
             Text("Paste the invite link the store's owner sent you.")
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .foregroundStyle(.haze)
                 .padding(.top, 4)
             Text("Invite link")
-                .font(.system(size: 12))
+                .font(.mac(12))
                 .foregroundStyle(.haze)
                 .padding(.top, 18)
             TextField("Invite link", text: $link, prompt: Text("https://…/join/…"))
                 .textFieldStyle(.plain)
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .padding(.horizontal, 12)
                 .frame(height: 32)
                 .background(.ground, in: .rect(cornerRadius: 8))
@@ -477,8 +477,8 @@ struct JoinStoreSheet: View {
                 .padding(.top, 6)
             preview.padding(.top, 14)
             Text("Plugins come from the store's owner, not from anistream. You can leave a store at any time.")
-                .font(.system(size: 12))
-                .fixedLineHeight(17)
+                .font(.mac(12))
+                .macLineHeight(17)
                 .foregroundStyle(.haze)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 14)
@@ -524,31 +524,31 @@ struct JoinStoreSheet: View {
         case .checking?:
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text("Checking the link…").font(.system(size: 13)).foregroundStyle(.haze)
+                Text("Checking the link…").font(.mac(13)).foregroundStyle(.haze)
             }
         case .failed(let reason)?:
             Text(reason.firstCapitalized + ".")
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .foregroundStyle(.vermilion)
         case .store(let invited)?:
             VStack(alignment: .leading, spacing: 6) {
                 // The plugin count, who runs it and its plugins wait on E9's fields on `InvitedStore`.
                 Text(invited.name)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.mac(15, weight: .semibold))
                     .foregroundStyle(.silk)
                 Text(URL(string: invited.url)?.host ?? invited.url)
-                    .font(.system(size: 13))
+                    .font(.mac(13))
                     .foregroundStyle(.haze)
                 HStack(spacing: 6) {
-                    Image(systemName: "checkmark").font(.system(size: 11, weight: .semibold)).foregroundStyle(.water)
-                    (Text("Key ") + Text(invited.fingerprint).font(.system(size: 13, design: .monospaced)).foregroundStyle(.silk)
+                    Image(systemName: "checkmark").font(.mac(11, weight: .semibold)).foregroundStyle(.water)
+                    (Text("Key ") + Text(invited.fingerprint).font(.mac(13, design: .monospaced)).foregroundStyle(.silk)
                         + Text(" matches the invite"))
-                        .font(.system(size: 13))
+                        .font(.mac(13))
                         .foregroundStyle(.haze)
                 }
                 if invited.alreadyJoined {
                     Text("This \(Device.name) has joined this store already.")
-                        .font(.system(size: 12))
+                        .font(.mac(12))
                         .foregroundStyle(.haze)
                 }
             }
@@ -573,16 +573,16 @@ struct InviteSheet: View {
         let link = appStore.stores.invite.flatMap { $0.store == store.id ? $0 : nil }
         VStack(alignment: .leading, spacing: 14) {
             Text(device ? "Link another device" : "Invite someone to \(store.name)")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
             if let link {
                 Text(device
                      ? "Open this link on the other device. It works once, until \(Self.expiry(link.expiresAt))."
                      : "Send this link to \(link.forWhom ?? "them"). It works once, until \(Self.expiry(link.expiresAt)).")
-                    .font(.system(size: 13))
+                    .font(.mac(13))
                     .foregroundStyle(.haze)
                 Text(link.link)
-                    .font(.system(size: 12, design: .monospaced))
+                    .font(.mac(12, design: .monospaced))
                     .foregroundStyle(.silk)
                     .textSelection(.enabled)
                     .padding(12)
@@ -637,7 +637,7 @@ struct MembersSheet: View {
         let list = appStore.stores.members[store.id]
         VStack(alignment: .leading, spacing: 14) {
             Text("Members of \(store.name)")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
             if let list {
                 VStack(spacing: 0) {
@@ -647,7 +647,7 @@ struct MembersSheet: View {
                                 Text(member.name + (member.you ? " (you)" : "")).foregroundStyle(.silk)
                                 Text(member.owner ? "Owner · \(Wording.plural(Int(member.devices), "device"))"
                                                   : Wording.plural(Int(member.devices), "device"))
-                                    .font(.system(size: 12)).foregroundStyle(.haze)
+                                    .font(.mac(12)).foregroundStyle(.haze)
                             }
                             Spacer()
                             if !member.you {
@@ -655,7 +655,7 @@ struct MembersSheet: View {
                                     .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                             }
                         }
-                        .font(.system(size: 13))
+                        .font(.mac(13))
                         .padding(.vertical, 8)
                     }
                     ForEach(list.invites, id: \.id) { invite in
@@ -663,13 +663,13 @@ struct MembersSheet: View {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(invite.device ? "Another device" : invite.name).foregroundStyle(.silk)
                                 Text("Invited, until \(InviteSheet.expiry(invite.expiresAt))")
-                                    .font(.system(size: 12)).foregroundStyle(.haze)
+                                    .font(.mac(12)).foregroundStyle(.haze)
                             }
                             Spacer()
                             Button("Cancel Invite") { appStore.cancelInvite(invite.id, in: store.id) }
                                 .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                         }
-                        .font(.system(size: 13))
+                        .font(.mac(13))
                         .padding(.vertical, 8)
                     }
                 }
@@ -700,26 +700,26 @@ struct PublishSheet: View {
         let plugins = appStore.stores.localPlugins[store.id]
         VStack(alignment: .leading, spacing: 14) {
             Text("Publish a plugin to \(store.name)")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
             if let plugins {
                 if plugins.isEmpty {
                     Text("No plugins on this \(Device.name) to publish.")
-                        .font(.system(size: 13)).foregroundStyle(.haze)
+                        .font(.mac(13)).foregroundStyle(.haze)
                 }
                 ForEach(plugins, id: \.id) { plugin in
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("\(plugin.name) \(plugin.version)").foregroundStyle(.silk)
                             Text(plugin.published.map { "The store offers \($0)" } ?? "Not in the store yet")
-                                .font(.system(size: 12)).foregroundStyle(.haze)
+                                .font(.mac(12)).foregroundStyle(.haze)
                         }
                         Spacer()
                         Button("Publish") { appStore.publishPlugin(plugin.id, to: store.id) }
                             .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                             .disabled(plugin.published == plugin.version)
                     }
-                    .font(.system(size: 13))
+                    .font(.mac(13))
                 }
             } else {
                 ProgressView().controlSize(.small)

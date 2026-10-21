@@ -19,7 +19,7 @@ struct WatchedCheck: View {
 
     var body: some View {
         Image(systemName: "checkmark")
-            .font(.system(size: size, weight: .semibold))
+            .font(.mac(size, weight: .semibold))
             .foregroundStyle(.haze)
             .symbolEffect(.drawOn, isActive: !watched)
             .symbolEffectsRemoved(reduceMotion)
@@ -54,7 +54,7 @@ struct MinutesLeft: View {
 
     var body: some View {
         Text("\(minutes) min left")
-            .font(.system(size: size))
+            .font(.mac(size))
             .monospacedDigit()
             .foregroundStyle(.haze)
             .contentTransition(.numericText(value: Double(minutes)))

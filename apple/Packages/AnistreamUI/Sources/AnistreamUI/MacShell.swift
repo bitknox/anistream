@@ -229,7 +229,7 @@ struct Sidebar: View {
         VStack(alignment: .leading, spacing: 2) {
             ForEach(AppSection.browse) { row($0) }
             Text("Sources")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.mac(11, weight: .semibold))
                 .foregroundStyle(.haze)
                 .padding(EdgeInsets(top: 18, leading: 10, bottom: 6, trailing: 10))
                 .accessibilityAddTraits(.isHeader)
@@ -257,11 +257,11 @@ struct Sidebar: View {
         } label: {
             HStack(spacing: 10) {
                 Image(systemName: section.symbol)
-                    .font(.system(size: 14))
+                    .font(.mac(14))
                     .foregroundStyle(selected ? .amber : .haze)
                     .frame(width: 16)
                 Text(section.title)
-                    .font(.system(size: 13, weight: selected ? .medium : .regular))
+                    .font(.mac(13, weight: selected ? .medium : .regular))
                     .foregroundStyle(selected ? .amber : .silk)
                 Spacer(minLength: 0)
             }

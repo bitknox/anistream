@@ -16,10 +16,10 @@ struct DownloadsScreen: View {
             if store.downloads.loaded, groups.isEmpty, store.downloads.seeding.isEmpty {
                 VStack(spacing: 8) {
                     Text("Nothing downloaded")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.mac(15, weight: .semibold))
                         .foregroundStyle(.silk)
                     Text("Download an episode from its title page to watch it without a connection.")
-                        .font(.system(size: 13))
+                        .font(.mac(13))
                         .foregroundStyle(.haze)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -70,10 +70,10 @@ struct DownloadGroupView: View {
                     .clipShape(.rect(cornerRadius: ArtShape.coverRadius(width: 36)))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(entry?.showTitle ?? group.title)
-                        .font(.showTitle(size: 15))
+                        .font(.macShowTitle(size: 15))
                         .foregroundStyle(.silk)
                     Text(summary)
-                        .font(.system(size: 13))
+                        .font(.mac(13))
                         .monospacedDigit()
                         .foregroundStyle(.haze)
                 }
@@ -81,10 +81,10 @@ struct DownloadGroupView: View {
                 // E8: `KeepNextEpisodes` and `DownloadQuality` are not settings the engine has yet.
                 HStack(spacing: 10) {
                     DeferredSwitch(title: "Keep next", on: false, waitsOn: "E8")
-                    Text("Keep next").font(.system(size: 13)).foregroundStyle(.silk)
+                    Text("Keep next").font(.mac(13)).foregroundStyle(.silk)
                     DeferredMenu(text: "3", waitsOn: "E8")
-                    Text("episodes").font(.system(size: 13)).foregroundStyle(.silk)
-                    Text("Quality").font(.system(size: 13)).foregroundStyle(.haze).padding(.leading, 12)
+                    Text("episodes").font(.mac(13)).foregroundStyle(.silk)
+                    Text("Quality").font(.mac(13)).foregroundStyle(.haze).padding(.leading, 12)
                     DeferredMenu(text: "Standard", waitsOn: "E8")
                 }
                 .opacity(0.6)
@@ -115,14 +115,14 @@ struct DownloadLine: View {
     var body: some View {
         HStack(spacing: 16) {
             Text(name)
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .foregroundStyle(.silk)
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, alignment: .leading)
             standing
                 .frame(width: 320, alignment: .leading)
             Text(row.total > 0 ? Wording.bytes(row.total) : "")
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .monospacedDigit()
                 .foregroundStyle(.haze)
                 .frame(width: 80, alignment: .trailing)
@@ -150,21 +150,21 @@ struct DownloadLine: View {
         switch row.state {
         case .done:
             HStack(spacing: 6) {
-                Image(systemName: "checkmark").font(.system(size: 11, weight: .semibold)).foregroundStyle(.water)
+                Image(systemName: "checkmark").font(.mac(11, weight: .semibold)).foregroundStyle(.water)
                 Text("Downloaded").foregroundStyle(.haze)
             }
-            .font(.system(size: 13))
+            .font(.mac(13))
         case .active where row.total == 0:
-            Text("Waiting for metadata").font(.system(size: 13)).foregroundStyle(.haze)
+            Text("Waiting for metadata").font(.mac(13)).foregroundStyle(.haze)
         case .active:
             progress(activeLine, color: .water)
         case .paused:
             progress("Paused at \(Wording.bytes(row.downloaded)) of \(Wording.bytes(row.total))", color: .haze)
         case .queued:
-            Text("Queued · starts when a download slot is free").font(.system(size: 13)).foregroundStyle(.haze)
+            Text("Queued · starts when a download slot is free").font(.mac(13)).foregroundStyle(.haze)
         case .failed:
             Text("Failed: \(row.error ?? "the download stopped")")
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .foregroundStyle(.vermilion)
                 .lineLimit(2)
         }
@@ -184,7 +184,7 @@ struct DownloadLine: View {
     /// A line and a bar: the bar in water while it runs, haze while it waits.
     private func progress(_ line: String, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(line).font(.system(size: 13)).monospacedDigit().foregroundStyle(.haze)
+            Text(line).font(.mac(13)).monospacedDigit().foregroundStyle(.haze)
             Capsule()
                 .fill(.rule)
                 .overlay(alignment: .leading) {
@@ -240,7 +240,7 @@ struct DownloadLine: View {
                 icon("xmark", "Remove from queue") { store.cancelDownload(row.id) }
             }
         }
-        .font(.system(size: 13, weight: .medium))
+        .font(.mac(13, weight: .medium))
         .foregroundStyle(.silk)
     }
 
@@ -265,12 +265,12 @@ struct SeedingList: View {
             Text("Seeding after watching")
                 .groupHeaderStyle()
                 .accessibilityAddTraits(.isHeader)
-                .fixedLineHeight(14)
+                .macLineHeight(14)
                 .padding(EdgeInsets(top: 16, leading: 0, bottom: 8, trailing: 0))
             ForEach(Array(store.downloads.seeding.enumerated()), id: \.offset) { _, row in
                 HStack(spacing: 16) {
                     Text(row.name)
-                        .font(.system(size: 13))
+                        .font(.mac(13))
                         .foregroundStyle(.silk)
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -286,20 +286,20 @@ struct SeedingList: View {
                             .frame(width: 60, height: 3)
                         Text(String(format: "%.1f of %.1f", row.ratio, row.goal)
                              + " · \(Wording.countdown(Int64(row.leftSecs))) left · \(Wording.bytes(row.uploadedBytes)) up")
-                            .font(.system(size: 13))
+                            .font(.mac(13))
                             .monospacedDigit()
                             .foregroundStyle(.haze)
                             .lineLimit(1)
                     }
                     .frame(width: 320, alignment: .leading)
                     Text(row.size.map(Wording.bytes) ?? "")
-                        .font(.system(size: 13))
+                        .font(.mac(13))
                         .monospacedDigit()
                         .foregroundStyle(.haze)
                         .frame(width: 80, alignment: .trailing)
                     // Stopping one file's seeding early has no engine command yet.
                     Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.mac(13, weight: .medium))
                         .foregroundStyle(.haze)
                         .frame(width: 120, alignment: .trailing)
                         .opacity(0.45)

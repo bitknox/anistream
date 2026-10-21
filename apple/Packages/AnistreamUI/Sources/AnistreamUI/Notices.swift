@@ -29,7 +29,7 @@ struct NoticeCapsule: View {
                             Circle().fill(.vermilion).frame(width: 6, height: 6)
                         }
                         Text(item.notice.text.capitalizedSentence)
-                            .font(.system(size: 13))
+                            .font(.mac(13))
                             .foregroundStyle(.silk)
                             .lineLimit(2)
                     }
@@ -68,7 +68,7 @@ struct MessagesView: View {
             Group {
                 if store.notices.log.isEmpty {
                     Text("No messages yet")
-                        .font(.system(size: 13))
+                        .font(.mac(13))
                         .foregroundStyle(.haze)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
@@ -78,12 +78,12 @@ struct MessagesView: View {
                                 .fill(item.isAlert ? Palette.vermilion : .clear)
                                 .frame(width: 6, height: 6)
                             Text(item.notice.text.capitalizedSentence)
-                                .font(.system(size: 13))
+                                .font(.mac(13))
                                 .foregroundStyle(.silk)
                                 .textSelection(.enabled)
                             Spacer()
                             Text(item.at, style: .time)
-                                .font(.system(size: 12))
+                                .font(.mac(12))
                                 .foregroundStyle(.haze)
                         }
                         .listRowBackground(Color.clear)
@@ -113,7 +113,7 @@ struct ActivityIndicator: View {
             HStack(spacing: 6) {
                 ProgressView().controlSize(.mini)
                 Text(job.note ?? job.activity.capitalizedSentence)
-                    .font(.system(size: 12))
+                    .font(.mac(12))
                     .foregroundStyle(.haze)
                     .lineLimit(1)
             }

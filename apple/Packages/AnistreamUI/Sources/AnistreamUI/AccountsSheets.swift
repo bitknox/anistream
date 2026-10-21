@@ -20,10 +20,10 @@ struct KitsuSheet: View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Sign in to Kitsu")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.mac(15, weight: .semibold))
                     .foregroundStyle(.silk)
                 Text("Your password goes to Kitsu once, for a token kept on this \(Device.name).")
-                    .font(.system(size: 13))
+                    .font(.mac(13))
                     .foregroundStyle(.haze)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -78,14 +78,14 @@ struct DeviceCodeSheet: View {
         let name = AccountsModel.name(prompt.tracker)
         VStack(alignment: .leading, spacing: 16) {
             Text("Sign in to \(name)")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
             Text("Go to \(host) and enter this code. anistream signs in once you have.")
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .foregroundStyle(.haze)
                 .fixedSize(horizontal: false, vertical: true)
             Text(prompt.code)
-                .font(.system(size: 34, weight: .semibold, design: .monospaced))
+                .font(.mac(34, weight: .semibold, design: .monospaced))
                 .kerning(4)
                 .foregroundStyle(.silk)
                 .textSelection(.enabled)
@@ -96,7 +96,7 @@ struct DeviceCodeSheet: View {
             HStack(spacing: 10) {
                 ProgressView().controlSize(.small)
                 Text("Waiting for \(name)")
-                    .font(.system(size: 12))
+                    .font(.mac(12))
                     .foregroundStyle(.haze)
                 Spacer()
                 Button("Close") { dismiss() }
@@ -127,10 +127,10 @@ struct ConflictsSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Different on AniList")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
             Text("These changed on AniList and here since the last sync. Keep one side of each.")
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .foregroundStyle(.haze)
             ScrollView {
                 VStack(spacing: 0) {
@@ -138,9 +138,9 @@ struct ConflictsSheet: View {
                         if index > 0 { Rectangle().fill(.faintRule).frame(height: 1) }
                         HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(row.title).font(.system(size: 13, weight: .medium)).foregroundStyle(.silk)
+                                Text(row.title).font(.mac(13, weight: .medium)).foregroundStyle(.silk)
                                 Text("\(row.field.firstCapitalized): \(row.local) here, \(row.remote) on AniList")
-                                    .font(.system(size: 12))
+                                    .font(.mac(12))
                                     .foregroundStyle(.haze)
                             }
                             Spacer()
@@ -174,7 +174,7 @@ struct SheetFieldStyle: TextFieldStyle {
     func _body(configuration: TextField<Self._Label>) -> some View {
         configuration
             .textFieldStyle(.plain)
-            .font(.system(size: 13))
+            .font(.mac(13))
             .padding(.horizontal, 12)
             .frame(height: 32)
             .background(.ground, in: .rect(cornerRadius: 8))

@@ -85,7 +85,7 @@ struct PhoneHeading: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 20, weight: .semibold))
+            .font(.ui(20, weight: .semibold))
             .fixedLineHeight(24, relativeTo: .title3)
             .foregroundStyle(.silk)
             .accessibilityAddTraits(.isHeader)
@@ -97,6 +97,7 @@ struct PhoneHeading: View {
 struct PhoneHero: View {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
+    @Environment(\.dynamicTypeSize) private var typeSize
     let item: ContinueItem
 
     var body: some View {
@@ -123,7 +124,12 @@ struct PhoneHero: View {
                 titleBlock(entry)
                     .padding(.top, 8)
             }
-            HStack(spacing: 14) {
+            // At the accessibility sizes the action goes under the meter, the width of the screen.
+            let stacked = typeSize.isAccessibilitySize
+            let layout = stacked
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+                : AnyLayout(HStackLayout(spacing: 14))
+            layout {
                 VStack(alignment: .leading, spacing: 6) {
                     Held(value: item.fraction) { fraction in
                         if let fraction { Meter(fraction: fraction, height: 4) }
@@ -140,18 +146,18 @@ struct PhoneHero: View {
                         store.send(.play(id: item.id, episode: String(item.episode)))
                     } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: "play.fill").font(.system(size: 12))
+                            Image(systemName: "play.fill").font(.ui(12))
                             Text(item.action)
                         }
-                        .lineLimit(1)
-                        .fixedSize()
+                        .fixedSize(horizontal: !stacked, vertical: false)
+                        .frame(maxWidth: stacked ? .infinity : nil)
                     }
                     .buttonStyle(PrimaryCapsuleStyle(height: 44, fontSize: 17))
                     .layoutPriority(1)
                 } else {
                     // Caught up: when the next one airs, in the button's place.
-                    AirsStatus(text: item.buttonTitle, height: 44, fontSize: 17)
-                        .fixedSize()
+                    AirsStatus(text: item.buttonTitle, height: 44, fontSize: 17, fills: stacked)
+                        .fixedSize(horizontal: !stacked, vertical: false)
                         .layoutPriority(1)
                 }
             }
@@ -166,8 +172,10 @@ struct PhoneHero: View {
                 .font(.showTitle(size: 22, relativeTo: .title2))
                 .fixedLineHeight(28, relativeTo: .title2)
                 .foregroundStyle(.silk)
+                .lineLimit(4)
+                .dynamicTypeSize(...DynamicTypeSize.accessibility3)
             Text(item.episodeLine(store.titles))
-                .font(.system(size: 15))
+                .font(.ui(15))
                 .foregroundStyle(.haze)
         }
         .titleElement(entry, value: item.spokenProgress) { QueueMenu(item: item) }
@@ -220,10 +228,12 @@ struct PhoneCard: View {
                     if !item.playable { Circle().fill(.water).frame(width: 6, height: 6) }
                     Text(item.timeLeft.map { "E\(item.episode) · \($0)" } ?? item.action)
                 }
-                .font(.system(size: 15))
+                .font(.ui(15))
                 .foregroundStyle(.haze)
             }
             .frame(width: 208, alignment: .leading)
+            // A card's caption is no larger than a grid's.
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         }
         .buttonStyle(.plain)
         .titleElement(entry, value: item.spokenProgress) { QueueMenu(item: item) }
@@ -254,20 +264,20 @@ struct PhoneNewRow: View {
                     Text(item.entry.showTitle)
                         .font(.showTitle(size: 17, relativeTo: .body))
                         .foregroundStyle(.silk)
-                        .lineLimit(1)
+                        .rowTitle()
                     HStack(spacing: 6) {
                         Circle().fill(.water).frame(width: 6, height: 6)
                         Text(item.action)
                     }
-                    .font(.system(size: 15))
+                    .font(.ui(15))
                     .foregroundStyle(.haze)
                 }
                 Spacer(minLength: 0)
                 Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.ui(13, weight: .semibold))
                     .foregroundStyle(.haze)
             }
-            .frame(height: 64)
+            .frame(minHeight: 64)
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
@@ -299,6 +309,8 @@ struct PhoneCalendar: View {
                             .frame(maxWidth: .infinity)
                     }
                 }
+                // Seven to a row: no larger than `.xxxLarge`, as controls are.
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .padding(.vertical, 8)
                 ListStates(state: store.calendar.list.state, placeholder: AnyView(Color.clear.frame(height: 200))) { _ in
                     VStack(alignment: .leading, spacing: 20) {
@@ -309,7 +321,7 @@ struct PhoneCalendar: View {
                                     .accessibilityRotorEntry(id: day, in: rotor)
                                 if today.isEmpty {
                                     Text("Nothing airing")
-                                        .font(.system(size: 15))
+                                        .font(.ui(15))
                                         .foregroundStyle(.haze)
                                         .padding(.top, 4)
                                 }
@@ -359,15 +371,16 @@ struct PhoneCalendar: View {
         } label: {
             VStack(spacing: 4) {
                 Text(CalendarWords.shortWeekday(day))
-                    .font(.system(size: 11, weight: selected || today ? .semibold : .medium))
+                    .font(.ui(11, weight: selected || today ? .semibold : .medium))
                     .kerning(0.88)
                     .foregroundStyle(selected ? .amber : .haze)
                 Text(CalendarWords.dayNumber(day))
-                    .font(.system(size: 17, weight: selected ? .semibold : .regular))
+                    .font(.ui(17, weight: selected ? .semibold : .regular))
                     .foregroundStyle(selected ? .amber : .silk)
                 Circle().fill(fresh ? Palette.water : .clear).frame(width: 5, height: 5)
             }
-            .frame(width: 44, height: 64)
+            .frame(width: 44)
+            .frame(minHeight: 64)
             .background(selected ? Palette.selection : .clear, in: .capsule)
             .contentShape(.capsule)
         }
@@ -389,10 +402,13 @@ struct PhoneBroadcastRow: View {
         } label: {
             HStack(spacing: 14) {
                 Text(CalendarWords.time(broadcast.airs))
-                    .font(.system(size: 15))
+                    .font(.ui(15))
                     .monospacedDigit()
                     .foregroundStyle(.haze)
-                    .frame(width: 52, alignment: .leading)
+                    // One line, as wide as it needs: no larger than `.xxxLarge`.
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    .fixedSize()
+                    .frame(minWidth: 52, alignment: .leading)
                 ArtworkView(url: broadcast.entry.coverUrl, color: broadcast.entry.plateColor, maxPixelSize: 180)
                     .frame(width: 50, height: 75)
                     .clipShape(.rect(cornerRadius: 6))
@@ -402,7 +418,7 @@ struct PhoneBroadcastRow: View {
                     Text(broadcast.entry.showTitle)
                         .font(.showTitle(size: 17, relativeTo: .body))
                         .foregroundStyle(broadcast.watched ? .haze : .silk)
-                        .lineLimit(2)
+                        .rowTitle()
                     HStack(spacing: 6) {
                         if broadcast.isNew(now: now) {
                             Circle().fill(.water).frame(width: 6, height: 6)
@@ -410,13 +426,13 @@ struct PhoneBroadcastRow: View {
                         Text(broadcast.watched ? "Episode \(broadcast.episode)" : broadcast.line(now: now)
                             .replacingOccurrences(of: "Ep ", with: "Episode "))
                     }
-                    .font(.system(size: 15))
+                    .font(.ui(15))
                     .foregroundStyle(.haze)
                 }
                 Spacer(minLength: 0)
                 if broadcast.watched {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(.ui(15, weight: .semibold))
                         .foregroundStyle(.haze)
                         .accessibilityLabel("Watched")
                 }
@@ -466,7 +482,7 @@ struct PhoneLibrary: View {
                                             Text(segment.label.capitalizedSentence)
                                             Text("\(count)").foregroundStyle(selected ? .amber : .haze)
                                         }
-                                        .font(.system(size: 17))
+                                        .font(.ui(17))
                                         .foregroundStyle(selected ? .amber : .silk)
                                         .padding(.horizontal, 16)
                                         .frame(height: 40)
@@ -504,14 +520,14 @@ struct DownloadsRow: View {
             navigator.open(.downloads)
         } label: {
             HStack(spacing: 14) {
-                Image(systemName: "arrow.down.to.line").font(.system(size: 17))
-                Text("Downloads").font(.system(size: 17))
+                Image(systemName: "arrow.down.to.line").font(.ui(17))
+                Text("Downloads").font(.ui(17))
                 Spacer()
-                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(.haze)
+                Image(systemName: "chevron.right").font(.ui(13, weight: .semibold)).foregroundStyle(.haze)
             }
             .foregroundStyle(.silk)
             .padding(.horizontal, 18)
-            .frame(height: 56)
+            .frame(minHeight: 56)
             .background(.raised, in: .rect(cornerRadius: 16))
         }
         .buttonStyle(.plain)

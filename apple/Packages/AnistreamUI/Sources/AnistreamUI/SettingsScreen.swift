@@ -121,7 +121,7 @@ struct SettingsResults: View {
         let found = Self.index.filter { row in words.allSatisfy { row.title.lowercased().contains($0) } }
         if found.isEmpty {
             Text("No setting is called that.")
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .foregroundStyle(.haze)
                 .padding(.leading, 14)
         } else {
@@ -132,7 +132,7 @@ struct SettingsResults: View {
                         navigator.settingsQuery = ""
                     } label: {
                         SettingsRow(title: row.title) {
-                            Text(row.pane.title).font(.system(size: 13)).foregroundStyle(.haze).padding(.trailing, 6)
+                            Text(row.pane.title).font(.mac(13)).foregroundStyle(.haze).padding(.trailing, 6)
                         }
                     }
                     .buttonStyle(.plain)
@@ -154,7 +154,7 @@ struct SettingsTabs: View {
                     selection = pane
                 } label: {
                     Text(pane.title)
-                        .font(.system(size: 13, weight: selected ? .medium : .regular))
+                        .font(.mac(13, weight: selected ? .medium : .regular))
                         .foregroundStyle(selected ? .amber : .silk)
                         .padding(.horizontal, 12)
                         .frame(height: 28)
@@ -201,11 +201,11 @@ struct SettingsAside: View {
 
     @ViewBuilder
     private func aside(_ title: String, _ text: String) -> some View {
-        Text(title).groupHeaderStyle().fixedLineHeight(14)
+        Text(title).groupHeaderStyle().macLineHeight(14)
             .accessibilityAddTraits(.isHeader)
         Text(text)
-            .font(.system(size: 13))
-            .fixedLineHeight(18)
+            .font(.mac(13))
+            .macLineHeight(18)
             .foregroundStyle(.silk)
             .fixedSize(horizontal: false, vertical: true)
     }
@@ -309,7 +309,7 @@ struct UpscalingPreview: View {
 
     var body: some View {
         let mode = store.settings.row(.upscaling)?.option?.label ?? "natural · ArtCNN"
-        Text("Upscaling").groupHeaderStyle().fixedLineHeight(14)
+        Text("Upscaling").groupHeaderStyle().macLineHeight(14)
             .accessibilityAddTraits(.isHeader)
         GeometryReader { proxy in
             let half = proxy.size.width / 2
@@ -328,8 +328,8 @@ struct UpscalingPreview: View {
         .accessibilityElement()
         .accessibilityLabel("The 480p source beside \(SettingKey.upscaling.display(mode))")
         Text(note(mode))
-            .font(.system(size: 13))
-            .fixedLineHeight(18)
+            .font(.mac(13))
+            .macLineHeight(18)
             .foregroundStyle(.silk)
             .fixedSize(horizontal: false, vertical: true)
     }
@@ -350,7 +350,7 @@ struct UpscalingPreview: View {
 
     private func chip(_ text: String) -> some View {
         Text(text)
-            .font(.system(size: 11, weight: .medium))
+            .font(.mac(11, weight: .medium))
             .foregroundStyle(.silk)
             .padding(.horizontal, 8)
             .frame(height: 20)
@@ -374,7 +374,7 @@ struct UpscalingPreview: View {
 struct AdvancedPane: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("mpv options").groupHeaderStyle().fixedLineHeight(14).padding(.leading, 14)
+            Text("mpv options").groupHeaderStyle().macLineHeight(14).padding(.leading, 14)
                 .accessibilityAddTraits(.isHeader)
             VStack(spacing: 0) {
                 HStack(spacing: 0) {
@@ -382,7 +382,7 @@ struct AdvancedPane: View {
                     Text("Value")
                     Spacer()
                 }
-                .font(.system(size: 12))
+                .font(.mac(12))
                 .foregroundStyle(.haze)
                 .padding(.horizontal, 18)
                 .frame(height: 34)
@@ -394,7 +394,7 @@ struct AdvancedPane: View {
                     Button("Reset") {}
                         .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
                 }
-                .font(.system(size: 14))
+                .font(.mac(14))
                 .foregroundStyle(.silk)
                 .padding(.leading, 18)
                 .padding(.trailing, 6)

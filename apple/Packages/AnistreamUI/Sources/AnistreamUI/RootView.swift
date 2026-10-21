@@ -37,10 +37,10 @@ struct StartFailed: View {
     var body: some View {
         VStack(spacing: 8) {
             Text("anistream could not start")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.mac(15, weight: .semibold))
                 .foregroundStyle(.silk)
             Text(reason)
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .foregroundStyle(.haze)
                 .multilineTextAlignment(.center)
                 .textSelection(.enabled)

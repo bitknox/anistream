@@ -12,6 +12,7 @@ import SwiftUI
 /// and the episode lines and meters run level across a row.
 struct PosterCell: View {
     @Environment(Navigator.self) private var navigator
+    @Environment(\.posterAsRow) private var asRow
     let entry: Entry
     /// The line under the title: "Ep 7 of 24", a genre, a status.
     var detail: String?
@@ -25,45 +26,43 @@ struct PosterCell: View {
         Button {
             navigator.openTitle(entry.id)
         } label: {
-            VStack(alignment: .leading, spacing: 0) {
-                ArtworkView(url: entry.coverUrl, color: entry.plateColor, maxPixelSize: Int(width * 3))
-                    .aspectRatio(2 / 3, contentMode: .fit)
-                    .frame(maxWidth: .infinity)
-                    .clipShape(.rect(cornerRadius: ArtShape.coverRadius(width: width)))
-                    .matchedTransitionSourceIfAvailable(id: entry.id)
-                Text(entry.showTitle)
-                    .font(.showTitle(size: 14))
-                    .fixedLineHeight(18)
-                    .foregroundStyle(.silk)
-                    .lineLimit(2, reservesSpace: true)
-                    .padding(.top, 8)
-                if let detail {
-                    Text(detail)
-                        .font(.system(size: 12))
-                        .fixedLineHeight(16)
-                        .monospacedDigit()
-                        .foregroundStyle(.haze)
-                        .lineLimit(1)
-                        .padding(.top, 4)
-                }
-                if let fraction {
-                    Meter(fraction: fraction, height: 3)
-                        .padding(.top, 8)
-                }
-                if let fresh {
-                    HStack(spacing: 6) {
-                        Circle().fill(.water).frame(width: 6, height: 6)
-                        Text(fresh)
+            if asRow {
+                // Past `.xxxLarge` the grid is a list: a 60 pt cover beside the caption.
+                HStack(alignment: .top, spacing: 12) {
+                    ArtworkView(url: entry.coverUrl, color: entry.plateColor, maxPixelSize: 180)
+                        .frame(width: 60, height: 90)
+                        .clipShape(.rect(cornerRadius: ArtShape.coverRadius(width: 60)))
+                        .matchedTransitionSourceIfAvailable(id: entry.id)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(entry.showTitle)
+                            .font(.macShowTitle(size: 14))
+                            .foregroundStyle(.silk)
+                            .rowTitle()
+                        lines
                     }
-                    .font(.system(size: 12))
-                    .fixedLineHeight(16)
-                    .foregroundStyle(.haze)
-                    .lineLimit(1)
-                    .padding(.top, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .contentShape(.rect)
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    ArtworkView(url: entry.coverUrl, color: entry.plateColor, maxPixelSize: Int(width * 3))
+                        .aspectRatio(2 / 3, contentMode: .fit)
+                        .frame(maxWidth: .infinity)
+                        .clipShape(.rect(cornerRadius: ArtShape.coverRadius(width: width)))
+                        .matchedTransitionSourceIfAvailable(id: entry.id)
+                    Text(entry.showTitle)
+                        .font(.macShowTitle(size: 14))
+                        .macLineHeight(18)
+                        .foregroundStyle(.silk)
+                        .lineLimit(2, reservesSpace: true)
+                        .padding(.top, 8)
+                    lines
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(.rect)
+                // A grid's captions are no larger than `.xxxLarge`; past it the grid is a list.
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(.rect)
         }
         .buttonStyle(.plain)
         .titleElement(entry, value: [detail, fresh].compactMap { $0 }.joined(separator: ", ")) {
@@ -71,6 +70,40 @@ struct PosterCell: View {
         }
         .contextMenu { TitleMenu(entry: entry) }
     }
+
+    /// The lines under the title: the detail, the meter, a new episode.
+    @ViewBuilder
+    private var lines: some View {
+        if let detail {
+            Text(detail)
+                .font(.mac(12))
+                .macLineHeight(16)
+                .monospacedDigit()
+                .foregroundStyle(.haze)
+                .lineLimit(1)
+                .padding(.top, 4)
+        }
+        if let fraction {
+            Meter(fraction: fraction, height: 3)
+                .padding(.top, 8)
+        }
+        if let fresh {
+            HStack(spacing: 6) {
+                Circle().fill(.water).frame(width: 6, height: 6)
+                Text(fresh)
+            }
+            .font(.mac(12))
+            .macLineHeight(16)
+            .foregroundStyle(.haze)
+            .lineLimit(1)
+            .padding(.top, 8)
+        }
+    }
+}
+
+extension EnvironmentValues {
+    /// Whether a poster cell is a row of a list rather than a cell of a grid: past `.xxxLarge`.
+    @Entry var posterAsRow = false
 }
 
 /// A grid of covers, as many columns of at least `minimum` points as fit.
@@ -79,15 +112,25 @@ struct PosterGrid<Cell: View>: View {
     var minimum: CGFloat = 128
     var spacing: CGFloat = 20
     @ViewBuilder let cell: (Entry) -> Cell
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: minimum), spacing: spacing, alignment: .top)],
-            alignment: .leading,
-            spacing: 24
-        ) {
-            ForEach(entries, id: \.id) { entry in
-                cell(entry)
+        if typeSize > .xxxLarge {
+            // Past `.xxxLarge` the captions would outgrow their columns: one column of rows.
+            LazyVStack(alignment: .leading, spacing: 16) {
+                ForEach(entries, id: \.id) { entry in
+                    cell(entry).environment(\.posterAsRow, true)
+                }
+            }
+        } else {
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: minimum), spacing: spacing, alignment: .top)],
+                alignment: .leading,
+                spacing: 24
+            ) {
+                ForEach(entries, id: \.id) { entry in
+                    cell(entry)
+                }
             }
         }
     }
@@ -108,8 +151,8 @@ struct PosterGridPlaceholder: View {
             ForEach(0..<count, id: \.self) { _ in
                 VStack(alignment: .leading, spacing: 8) {
                     RoundedRectangle(cornerRadius: 8).fill(.raised).aspectRatio(2 / 3, contentMode: .fit)
-                    Text("Hoshikuzu no Tabibito").font(.showTitle(size: 14))
-                    Text("Ep 7 of 24").font(.system(size: 12))
+                    Text("Hoshikuzu no Tabibito").font(.macShowTitle(size: 14))
+                    Text("Ep 7 of 24").font(.mac(12))
                 }
                 .redacted(reason: .placeholder)
                 .foregroundStyle(.haze)

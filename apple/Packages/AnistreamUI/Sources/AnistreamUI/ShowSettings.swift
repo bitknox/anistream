@@ -62,8 +62,8 @@ struct ShowSettingsSheet: View {
             HStack(spacing: 14) {
                 CoverArt(entry: entry, width: 36)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(entry.showTitle).font(.system(size: 15, weight: .semibold)).foregroundStyle(.silk)
-                    Text("Settings for this show").font(.system(size: 13)).foregroundStyle(.haze)
+                    Text(entry.showTitle).font(.mac(15, weight: .semibold)).foregroundStyle(.silk)
+                    Text("Settings for this show").font(.mac(13)).foregroundStyle(.haze)
                 }
             }
             Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 12) {
@@ -121,7 +121,7 @@ struct ShowSettingsSheet: View {
     private func row(_ label: String, @ViewBuilder control: () -> some View) -> some View {
         GridRow {
             Text(label)
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .foregroundStyle(.silk)
                 .gridColumnAlignment(.trailing)
                 .frame(width: 130, alignment: .trailing)
@@ -132,7 +132,7 @@ struct ShowSettingsSheet: View {
     private func note(_ text: String) -> some View {
         GridRow {
             Color.clear.gridCellUnsizedAxes([.horizontal, .vertical])
-            Text(text).font(.system(size: 12)).foregroundStyle(.haze)
+            Text(text).font(.mac(12)).foregroundStyle(.haze)
         }
     }
 
@@ -183,7 +183,7 @@ struct PhoneShowSettingsSheet: View {
                 }
                 Section {
                     HStack {
-                        Text("Source").font(.system(size: 17)).foregroundStyle(.silk)
+                        Text("Source").font(.mac(17)).foregroundStyle(.silk)
                         Spacer()
                         Menu {
                             ShowSourcePicker(id: entry.id) { EmptyView() }.pickerStyle(.inline)
@@ -209,8 +209,8 @@ struct PhoneShowSettingsSheet: View {
                     HStack(spacing: 12) {
                         CoverArt(entry: entry, width: 36)
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(entry.showTitle).font(.showTitle(size: 17, relativeTo: .body)).foregroundStyle(.silk)
-                            Text("Settings for this show").font(.system(size: 15)).foregroundStyle(.haze)
+                            Text(entry.showTitle).font(.macShowTitle(size: 17, relativeTo: .body)).foregroundStyle(.silk)
+                            Text("Settings for this show").font(.mac(15)).foregroundStyle(.haze)
                         }
                         .fixedSize()
                     }

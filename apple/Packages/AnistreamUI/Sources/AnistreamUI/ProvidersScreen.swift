@@ -63,7 +63,7 @@ struct ProvidersScreen: View {
                     .id(row.id)
             } else if let note = store.providers.note {
                 Text(note)
-                    .font(.system(size: 13))
+                    .font(.mac(13))
                     .foregroundStyle(.haze)
                     .padding(24)
             }
@@ -91,11 +91,11 @@ struct SourceOrderList: View {
                 Text("Source order")
                     .groupHeaderStyle()
                     .accessibilityAddTraits(.isHeader)
-                    .fixedLineHeight(14)
+                    .macLineHeight(14)
                     .padding(EdgeInsets(top: 10, leading: 18, bottom: 8, trailing: 0))
                 if store.providers.rebuilding {
                     Text("Sources are being set up again…")
-                        .font(.system(size: 12))
+                        .font(.mac(12))
                         .foregroundStyle(.haze)
                         .padding(.horizontal, 18)
                         .padding(.bottom, 6)
@@ -117,8 +117,8 @@ struct SourceOrderList: View {
                     Text("Sources are tried top to bottom. Drag one to change the order.")
                     Text("anistream ships no sources of its own and hosts no content. Every source is external.")
                 }
-                .font(.system(size: 12))
-                .fixedLineHeight(17)
+                .font(.mac(12))
+                .macLineHeight(17)
                 .foregroundStyle(.haze)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(EdgeInsets(top: 14, leading: 18, bottom: 0, trailing: 12))
@@ -153,17 +153,17 @@ struct SourceLine: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "line.3.horizontal")
-                .font(.system(size: 11, weight: .semibold))
+                .font(.mac(11, weight: .semibold))
                 .foregroundStyle(.haze)
                 .frame(width: 12)
             VStack(alignment: .leading, spacing: 1) {
                 Text(info.name)
-                    .font(.system(size: 13, weight: .medium))
-                    .fixedLineHeight(17)
+                    .font(.mac(13, weight: .medium))
+                    .macLineHeight(17)
                     .foregroundStyle(selected ? .amber : .silk)
                 Text(info.origin)
-                    .font(.system(size: 12))
-                    .fixedLineHeight(15)
+                    .font(.mac(12))
+                    .macLineHeight(15)
                     .foregroundStyle(.haze)
             }
             Spacer(minLength: 0)
@@ -206,7 +206,7 @@ struct ProviderStandingLabel: View {
             } else if let dot {
                 Circle().fill(dot).frame(width: 6, height: 6)
             }
-            Text(text).font(.system(size: size)).foregroundStyle(color)
+            Text(text).font(.mac(size)).foregroundStyle(color)
         }
     }
 }
@@ -224,20 +224,20 @@ struct ProviderDetail: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 Text(info.name)
-                    .font(.system(size: 22, weight: .bold))
-                    .fixedLineHeight(28)
+                    .font(.mac(22, weight: .bold))
+                    .macLineHeight(28)
                     .foregroundStyle(.silk)
                     .accessibilityAddTraits(.isHeader)
                 Text(info.isPlugin && info.origin != "Added by hand" ? "From \(info.origin)" : info.origin)
-                    .font(.system(size: 13))
+                    .font(.mac(13))
                     .foregroundStyle(.haze)
                     .padding(.top, 2)
                 if let line = stateLine {
                     HStack(spacing: 8) {
                         Circle().fill(info.row.standing == .failing ? .vermilion : .haze).frame(width: 6, height: 6)
                         Text(line)
-                            .font(.system(size: 13))
-                            .fixedLineHeight(18)
+                            .font(.mac(13))
+                            .macLineHeight(18)
                             .foregroundStyle(info.row.standing == .failing ? .vermilion : .haze)
                     }
                     .padding(.top, 14)
@@ -279,8 +279,8 @@ struct ProviderDetail: View {
             }
             .buttonStyle(SecondaryCapsuleStyle())
             Text("Torrents are part of anistream, not a plugin. What protects their traffic, the connection check and seeding are set in Settings › Sources.")
-                .font(.system(size: 13))
-                .fixedLineHeight(18)
+                .font(.mac(13))
+                .macLineHeight(18)
                 .foregroundStyle(.haze)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -343,8 +343,8 @@ struct ProviderDetail: View {
             .padding(.horizontal, 14)
             .background(.raised, in: .rect(cornerRadius: 12))
             Text("\(info.name) can contact only these hosts and cannot read your files.")
-                .font(.system(size: 12))
-                .fixedLineHeight(17)
+                .font(.mac(12))
+                .macLineHeight(17)
                 .foregroundStyle(.haze)
                 .padding(EdgeInsets(top: 8, leading: 14, bottom: 0, trailing: 0))
         }
@@ -357,7 +357,7 @@ struct ProviderDetail: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) { value() }
             Spacer(minLength: 0)
         }
-        .font(.system(size: 13))
+        .font(.mac(13))
         .padding(.vertical, 12)
     }
 }

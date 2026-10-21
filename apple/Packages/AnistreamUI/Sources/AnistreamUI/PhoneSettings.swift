@@ -76,7 +76,7 @@ struct PhoneSectionHeader: View {
 
     var body: some View {
         Text(text.uppercased())
-            .font(.system(size: 13, weight: .medium))
+            .font(.ui(13, weight: .medium))
             .kerning(13 * 0.04)
             .foregroundStyle(.haze)
     }
@@ -89,9 +89,9 @@ struct PhoneRowTitle: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.system(size: 17)).foregroundStyle(.silk)
+            Text(title).font(.ui(17)).foregroundStyle(.silk)
             if let note {
-                Text(note).font(.system(size: 13)).foregroundStyle(.haze)
+                Text(note).font(.ui(13)).foregroundStyle(.haze)
             }
         }
     }
@@ -124,7 +124,7 @@ struct PhoneSettingPicker: View {
         let current = row?.option
         VStack(alignment: .leading, spacing: 2) {
             HStack {
-                Text(key.title).font(.system(size: 17)).foregroundStyle(.silk)
+                Text(key.title).font(.ui(17)).foregroundStyle(.silk)
                 Spacer()
                 Menu {
                     Picker(key.title, selection: Binding(
@@ -142,7 +142,7 @@ struct PhoneSettingPicker: View {
                 .disabled(row == nil)
             }
             if let note {
-                Text(note).font(.system(size: 13)).foregroundStyle(.haze)
+                Text(note).font(.ui(13)).foregroundStyle(.haze)
             }
         }
         .listRowBackground(Palette.raised)
@@ -157,9 +157,9 @@ struct PhoneMenuValue: View {
     var body: some View {
         HStack(spacing: 6) {
             Text(text)
-            Image(systemName: "chevron.up.chevron.down").font(.system(size: 11, weight: .semibold))
+            Image(systemName: "chevron.up.chevron.down").font(.ui(11, weight: .semibold))
         }
-        .font(.system(size: 17))
+        .font(.ui(17))
         .foregroundStyle(.haze)
     }
 }
@@ -177,9 +177,9 @@ struct PhoneDeferredRow: View {
             Spacer()
             HStack(spacing: 6) {
                 Text(value)
-                Image(systemName: "chevron.up.chevron.down").font(.system(size: 11, weight: .semibold))
+                Image(systemName: "chevron.up.chevron.down").font(.ui(11, weight: .semibold))
             }
-            .font(.system(size: 17))
+            .font(.ui(17))
             .foregroundStyle(.haze)
         }
         .opacity(0.5)
@@ -218,7 +218,7 @@ struct PhoneSettingsRoot: View {
                         Avatar(name: anilist?.user, size: 48)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(anilist?.connected == true ? (anilist?.user ?? "Signed in") : "Not signed in")
-                                .font(.system(size: 17, weight: .semibold))
+                                .font(.ui(17, weight: .semibold))
                                 .foregroundStyle(.silk)
                             HStack(spacing: 6) {
                                 if let anilist, anilist.connected {
@@ -228,7 +228,7 @@ struct PhoneSettingsRoot: View {
                                     Text("Library and sync need an AniList account")
                                 }
                             }
-                            .font(.system(size: 15))
+                            .font(.ui(15))
                             .foregroundStyle(.haze)
                         }
                     }
@@ -245,7 +245,7 @@ struct PhoneSettingsRoot: View {
             Section {
                 HStack {
                     Label("About", systemImage: "info.circle")
-                        .font(.system(size: 17))
+                        .font(.ui(17))
                         .foregroundStyle(.silk)
                     Spacer()
                     Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")
@@ -273,10 +273,10 @@ struct PhoneSettingsRoot: View {
         NavigationLink(value: page) {
             HStack {
                 Label(title, systemImage: symbol)
-                    .font(.system(size: 17))
+                    .font(.ui(17))
                     .foregroundStyle(.silk)
                 Spacer()
-                Text(value).font(.system(size: 17)).foregroundStyle(.haze)
+                Text(value).font(.ui(17)).foregroundStyle(.haze)
             }
         }
         .listRowBackground(Palette.raised)
@@ -360,7 +360,7 @@ struct PhoneSubtitlesPicker: View {
     var body: some View {
         let code = store.settings.row(.subtitles)?.typedText ?? ""
         HStack {
-            Text("Subtitles").font(.system(size: 17)).foregroundStyle(.silk)
+            Text("Subtitles").font(.ui(17)).foregroundStyle(.silk)
             Spacer()
             Menu {
                 Picker("Subtitles", selection: Binding(get: { code }, set: { store.setSetting(.subtitles, to: .str($0)) })) {
@@ -434,13 +434,13 @@ struct PhoneDownloadRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text("Episode \(row.episode)").font(.system(size: 17)).foregroundStyle(.silk)
+                Text("Episode \(row.episode)").font(.ui(17)).foregroundStyle(.silk)
                 Spacer()
                 if row.total > 0 {
-                    Text(Wording.bytes(row.total)).font(.system(size: 15)).foregroundStyle(.haze).monospacedDigit()
+                    Text(Wording.bytes(row.total)).font(.ui(15)).foregroundStyle(.haze).monospacedDigit()
                 }
             }
-            Text(status).font(.system(size: 13)).foregroundStyle(row.state == .failed ? .vermilion : .haze)
+            Text(status).font(.ui(13)).foregroundStyle(row.state == .failed ? .vermilion : .haze)
             if row.state == .active || row.state == .paused, row.total > 0 {
                 Capsule().fill(.rule)
                     .overlay(alignment: .leading) {
@@ -561,9 +561,9 @@ struct PhoneSourcesPage: View {
 
     private func valueRow(_ title: String, _ value: String) -> some View {
         HStack {
-            Text(title).font(.system(size: 17)).foregroundStyle(.silk)
+            Text(title).font(.ui(17)).foregroundStyle(.silk)
             Spacer()
-            Text(value).font(.system(size: 17)).foregroundStyle(.haze)
+            Text(value).font(.ui(17)).foregroundStyle(.haze)
         }
     }
 }
@@ -576,14 +576,14 @@ struct PhoneGuardRow: View {
         let (note, status, color) = GuardWords.words(store.providers.guardView, at: store.providers.guardAt)
         VStack(alignment: .leading, spacing: 2) {
             HStack {
-                Text("Last check").font(.system(size: 17)).foregroundStyle(.silk)
+                Text("Last check").font(.ui(17)).foregroundStyle(.silk)
                 Spacer()
                 HStack(spacing: 6) {
                     Circle().fill(color).frame(width: 8, height: 8)
-                    Text(status).font(.system(size: 17)).foregroundStyle(.haze)
+                    Text(status).font(.ui(17)).foregroundStyle(.haze)
                 }
             }
-            Text(note).font(.system(size: 13)).foregroundStyle(.haze)
+            Text(note).font(.ui(13)).foregroundStyle(.haze)
         }
         .listRowBackground(Palette.raised)
         .accessibilityElement(children: .combine)
@@ -606,12 +606,12 @@ struct PhoneAccountsPage: View {
                     HStack(spacing: 14) {
                         Avatar(name: anilist.user, size: 40)
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(anilist.user ?? "Signed in").font(.system(size: 17, weight: .semibold)).foregroundStyle(.silk)
+                            Text(anilist.user ?? "Signed in").font(.ui(17, weight: .semibold)).foregroundStyle(.silk)
                             HStack(spacing: 6) {
                                 StateDot(state: AccountWords.dot(anilist, store.accounts))
                                 Text(AccountWords.status(anilist, store.accounts))
                             }
-                            .font(.system(size: 15))
+                            .font(.ui(15))
                             .foregroundStyle(.haze)
                         }
                     }

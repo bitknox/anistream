@@ -98,10 +98,10 @@ struct PaletteOverlay: View {
                 .onTapGesture { close() }
             VStack(spacing: 0) {
                 HStack(spacing: 12) {
-                    Image(systemName: "magnifyingglass").font(.system(size: 17)).foregroundStyle(.haze)
+                    Image(systemName: "magnifyingglass").font(.mac(17)).foregroundStyle(.haze)
                     TextField("Titles and commands", text: $query)
                         .textFieldStyle(.plain)
-                        .font(.system(size: 20))
+                        .font(.mac(20))
                         .foregroundStyle(.silk)
                         .focused($focused)
                         .onSubmit { run(all, play: false) }
@@ -115,7 +115,7 @@ struct PaletteOverlay: View {
                     group("Recent", lists.recent, offset: lists.titles.count + lists.commands.count)
                     if all.isEmpty {
                         Text("Return searches for \u{201c}\(query)\u{201d}")
-                            .font(.system(size: 13))
+                            .font(.mac(13))
                             .foregroundStyle(.haze)
                             .padding(.horizontal, 28)
                             .frame(height: 40)
@@ -129,7 +129,7 @@ struct PaletteOverlay: View {
                     hint("⌘↩", "Play")
                     hint("esc", "Close")
                 }
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .padding(.horizontal, 20)
                 .frame(height: 44)
             }
@@ -222,32 +222,32 @@ struct PaletteRow: View {
                         .clipShape(.rect(cornerRadius: 4))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(entry.showTitle)
-                            .font(.showTitle(size: 15))
+                            .font(.macShowTitle(size: 15))
                             .foregroundStyle(selected ? .amber : .silk)
                         Text([entry.alternateTitle, entry.listStatus?.label.capitalizedSentence]
                             .compactMap { $0 }.joined(separator: " · "))
-                            .font(.system(size: 13))
+                            .font(.mac(13))
                             .foregroundStyle(.haze)
                     }
                     Spacer()
                     Text(paletteAction(entry))
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.mac(13, weight: .semibold))
                         .foregroundStyle(.silk)
                 case .command(let symbol, let detail, let shortcut, _, _):
                     Image(systemName: symbol)
-                        .font(.system(size: 15))
+                        .font(.mac(15))
                         .frame(width: 28)
                         .foregroundStyle(.haze)
-                    Text(item.name).font(.system(size: 15)).foregroundStyle(.silk)
-                    if let detail { Text(detail).font(.system(size: 13)).foregroundStyle(.haze) }
+                    Text(item.name).font(.mac(15)).foregroundStyle(.silk)
+                    if let detail { Text(detail).font(.mac(13)).foregroundStyle(.haze) }
                     Spacer()
-                    if let shortcut { Text(shortcut).font(.system(size: 13)).foregroundStyle(.haze) }
+                    if let shortcut { Text(shortcut).font(.mac(13)).foregroundStyle(.haze) }
                 case .recent(let query):
                     Image(systemName: "clock")
-                        .font(.system(size: 15))
+                        .font(.mac(15))
                         .frame(width: 28)
                         .foregroundStyle(.haze)
-                    Text(query).font(.system(size: 15)).foregroundStyle(.silk)
+                    Text(query).font(.mac(15)).foregroundStyle(.silk)
                     Spacer()
                 }
             }

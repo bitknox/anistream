@@ -169,21 +169,21 @@ struct TitleHero: View {
                 .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(Palette.glassEdge.opacity(1.25), lineWidth: 1))
             VStack(alignment: .leading, spacing: 0) {
                 Text(entry.showTitle)
-                    .font(.showTitle(size: 36, relativeTo: .largeTitle))
-                    .fixedLineHeight(44, relativeTo: .largeTitle)
+                    .font(.macShowTitle(size: 36, relativeTo: .largeTitle))
+                    .macLineHeight(44, relativeTo: .largeTitle)
                     .foregroundStyle(.silk)
                     .lineLimit(2)
                     .accessibilityAddTraits(.isHeader)
                 if let alternate = entry.alternateTitle {
                     Text(alternate)
-                        .font(.system(size: 15))
-                        .fixedLineHeight(20)
+                        .font(.mac(15))
+                        .macLineHeight(20)
                         .foregroundStyle(.haze)
                         .padding(.top, 6)
                 }
                 Text(entry.titleMetadata)
                     .groupHeaderStyle()
-                    .fixedLineHeight(14)
+                    .macLineHeight(14)
                     .padding(.top, 4)
                 HStack(spacing: 10) {
                     if action.playable {
@@ -191,7 +191,7 @@ struct TitleHero: View {
                             store.send(.play(id: entry.id, episode: String(action.episode)))
                         } label: {
                             HStack(spacing: 8) {
-                                Image(systemName: "play.fill").font(.system(size: 10))
+                                Image(systemName: "play.fill").font(.mac(10))
                                 Text(action.title)
                             }
                         }
@@ -312,13 +312,13 @@ struct TitleFamilyRow: View {
                     .clipShape(.rect(cornerRadius: 6))
                 VStack(alignment: .leading, spacing: 0) {
                     Text(name)
-                        .font(.system(size: 13, weight: .semibold))
-                        .fixedLineHeight(18)
+                        .font(.mac(13, weight: .semibold))
+                        .macLineHeight(18)
                         .foregroundStyle(selected ? .amber : .silk)
                         .lineLimit(1)
                     Text(detail)
-                        .font(.system(size: 12))
-                        .fixedLineHeight(16)
+                        .font(.mac(12))
+                        .macLineHeight(16)
                         .foregroundStyle(.haze)
                         .lineLimit(1)
                         // "6 / 12" to "7 / 12", the changed digit rolling (T9).
@@ -354,7 +354,7 @@ struct EpisodeList: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 12) {
                 Text("Episodes")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.mac(15, weight: .semibold))
                     .foregroundStyle(.silk)
                     .accessibilityAddTraits(.isHeader)
                 Spacer()
@@ -406,7 +406,7 @@ struct EpisodeRowView: View {
         } label: {
             HStack(spacing: 14) {
                 Text(row.number)
-                    .font(.system(size: 13, weight: current ? .semibold : .regular))
+                    .font(.mac(13, weight: current ? .semibold : .regular))
                     .monospacedDigit()
                     .foregroundStyle(current ? .amber : .haze)
                     .animation(.quick, value: current)
@@ -436,7 +436,7 @@ struct EpisodeRowView: View {
                 WatchedCheck(watched: row.completed, size: 11)
                     .frame(width: 14)
             }
-            .font(.system(size: 13))
+            .font(.mac(13))
             .padding(.horizontal, 8)
             .frame(height: 44)
             .background(current ? Palette.selection : .clear, in: .rect(cornerRadius: 8))
@@ -490,7 +490,7 @@ struct EpisodeStill: View {
                         .blur(radius: 4)
                         .scaleEffect(1.15)
                     Image(systemName: "eye.slash")
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.mac(12, weight: .medium))
                         .foregroundStyle(.silk)
                 }
                 .accessibilityLabel("Still hidden: spoiler protection")
@@ -513,7 +513,7 @@ struct EpisodePlaceholderRow: View {
             Spacer()
             Text("24 min")
         }
-        .font(.system(size: 13))
+        .font(.mac(13))
         .foregroundStyle(.haze)
         .redacted(reason: .placeholder)
         .padding(.horizontal, 8)
@@ -530,8 +530,8 @@ struct TitleDetails: View {
         VStack(alignment: .leading, spacing: 18) {
             if !entry.synopsis.isEmpty {
                 ClampedText(text: entry.synopsis, lines: 8)
-                    .font(.system(size: 13))
-                    .fixedLineHeight(20)
+                    .font(.mac(13))
+                    .macLineHeight(20)
                     .foregroundStyle(.haze)
                     .id(entry.id)
             }
@@ -541,7 +541,7 @@ struct TitleDetails: View {
                 fact("Next episode", nextAiring(entry))
                 fact("Also on", entry.availableOn.isEmpty ? nil : ListFormatter.localizedString(byJoining: entry.availableOn))
             }
-            .font(.system(size: 12))
+            .font(.mac(12))
         }
         .padding(.top, 4)
     }

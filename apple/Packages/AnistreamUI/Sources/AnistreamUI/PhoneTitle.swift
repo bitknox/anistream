@@ -44,9 +44,12 @@ struct PhoneTitle: View {
                             .font(.showTitle(size: 22, relativeTo: .title2))
                             .fixedLineHeight(28, relativeTo: .title2)
                             .foregroundStyle(.silk)
+                            // As large as `.accessibility3`, in four lines at most.
+                            .lineLimit(4)
+                            .dynamicTypeSize(...DynamicTypeSize.accessibility3)
                             .accessibilityAddTraits(.isHeader)
                         if let alternate = entry.alternateTitle {
-                            Text(alternate).font(.system(size: 15)).foregroundStyle(.haze)
+                            Text(alternate).font(.ui(15)).foregroundStyle(.haze)
                         }
                         Text(entry.phoneMetadata)
                             .groupHeaderStyle()
@@ -63,7 +66,7 @@ struct PhoneTitle: View {
                             store.send(.play(id: entry.id, episode: String(action.episode)))
                         } label: {
                             HStack(spacing: 8) {
-                                Image(systemName: "play.fill").font(.system(size: 13))
+                                Image(systemName: "play.fill").font(.ui(13))
                                 Text(action.sentence)
                             }
                             .frame(maxWidth: .infinity)
@@ -80,7 +83,7 @@ struct PhoneTitle: View {
                         } label: {
                             HStack(spacing: 6) {
                                 Text(entry.listStatus.map { $0.label.capitalizedSentence } ?? "Add to list")
-                                Image(systemName: "chevron.up.chevron.down").font(.system(size: 11, weight: .semibold))
+                                Image(systemName: "chevron.up.chevron.down").font(.ui(11, weight: .semibold))
                             }
                             .frame(maxWidth: .infinity)
                         }
@@ -97,7 +100,7 @@ struct PhoneTitle: View {
 
                     if !entry.synopsis.isEmpty {
                         ClampedText(text: entry.synopsis, lines: 2)
-                            .font(.system(size: 15))
+                            .font(.ui(15))
                             .fixedLineHeight(21)
                             .foregroundStyle(.haze)
                             .id(entry.id)
@@ -121,7 +124,7 @@ struct PhoneTitle: View {
                     }
                     if !family.related.isEmpty {
                         HStack(spacing: 8) {
-                            Text("Related").font(.system(size: 13)).foregroundStyle(.haze)
+                            Text("Related").font(.ui(13)).foregroundStyle(.haze)
                             ForEach(family.related, id: \.id) { related in
                                 Button {
                                     navigator.openTitle(related.id)
@@ -132,7 +135,7 @@ struct PhoneTitle: View {
                                             .foregroundStyle(.silk)
                                         Text(related.relation.capitalizedSentence).foregroundStyle(.haze)
                                     }
-                                    .font(.system(size: 15))
+                                    .font(.ui(15))
                                     .padding(.horizontal, 14)
                                     .frame(height: 32)
                                     .overlay(Capsule().strokeBorder(.faintRule))
@@ -184,7 +187,7 @@ struct PhoneTitle: View {
                         .animation(.standard, value: done)
                 }
             }
-            .font(.system(size: 15))
+            .font(.ui(15))
             .padding(.horizontal, 14)
             .frame(height: 32)
             .background(season.isThis ? Palette.selection : .clear, in: .capsule)
@@ -217,7 +220,7 @@ struct PhoneEpisodes: View {
                 } label: {
                     HStack(spacing: 12) {
                         Text(row.number)
-                            .font(.system(size: 15, weight: current ? .semibold : .regular))
+                            .font(.ui(15, weight: current ? .semibold : .regular))
                             .monospacedDigit()
                             .foregroundStyle(current ? .amber : .haze)
                             .animation(.quick, value: current)
@@ -228,9 +231,9 @@ struct PhoneEpisodes: View {
                         VStack(alignment: .leading, spacing: 4) {
                             HStack(alignment: .firstTextBaseline, spacing: 8) {
                                 Text(row.title ?? "Episode \(row.number)")
-                                    .font(.system(size: 17))
+                                    .font(.ui(17))
                                     .foregroundStyle(row.completed ? .haze : .silk)
-                                    .lineLimit(1)
+                                    .rowTitle()
                                     .animation(.quick, value: row.completed)
                                 if row.kind == .filler { Text("Filler").groupHeaderStyle() }
                             }
@@ -242,7 +245,7 @@ struct PhoneEpisodes: View {
                                 }
                             } else if let seconds = row.durationSecs {
                                 Text("\(max(1, Int((Double(seconds) / 60).rounded()))) min")
-                                    .font(.system(size: 15))
+                                    .font(.ui(15))
                                     .foregroundStyle(.haze)
                             }
                         }

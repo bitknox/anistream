@@ -101,7 +101,7 @@ struct ClampedText: View {
                     withAnimation(.standard) { expanded.toggle() }
                 }
                 .buttonStyle(.plain)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.mac(13, weight: .semibold))
                 .foregroundStyle(.silk)
             }
         }
@@ -138,12 +138,12 @@ struct PrimaryCapsuleStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: fontSize, weight: .semibold))
+            .font(.board(fontSize, weight: .semibold))
             .monospacedDigit()
             .foregroundStyle(.ground)
-            .lineLimit(1)
+            .modifier(CapsuleLines())
             .padding(.horizontal, height < 34 ? 14 : 18)
-            .frame(height: height)
+            .frame(minHeight: height)
             .background(.amber.opacity(configuration.isPressed ? 0.85 : 1), in: .capsule)
             .contentShape(.capsule)
             .modifier(DimmedWhenDisabled())
@@ -164,14 +164,26 @@ struct AirsStatus: View {
             Circle().fill(.water).frame(width: 6, height: 6)
             Text(text).foregroundStyle(.water)
         }
-        .font(.system(size: fontSize, weight: .medium))
+        .font(.board(fontSize, weight: .medium))
         .monospacedDigit()
         .lineLimit(1)
         .padding(.horizontal, height < 34 ? 14 : 18)
         .frame(maxWidth: fills ? .infinity : nil)
-        .frame(height: height)
+        .frame(minHeight: height)
         .overlay(Capsule().strokeBorder(Palette.faintRule))
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// A capsule's text: one line, and two at the accessibility sizes, where one would be cut off.
+struct CapsuleLines: ViewModifier {
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    func body(content: Content) -> some View {
+        content
+            .lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
+            .multilineTextAlignment(.center)
+            .padding(.vertical, typeSize.isAccessibilitySize ? 8 : 0)
     }
 }
 
@@ -194,11 +206,11 @@ struct SecondaryCapsuleStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: fontSize))
+            .font(.board(fontSize))
             .foregroundStyle(.silk)
-            .lineLimit(1)
+            .modifier(CapsuleLines())
             .padding(.horizontal, 14)
-            .frame(height: height)
+            .frame(minHeight: height)
             .background(background(pressed: configuration.isPressed), in: .capsule)
             .overlay(Capsule().strokeBorder(raisedSurface ? .clear : Palette.faintRule, lineWidth: 1))
             .contentShape(.capsule)
@@ -244,7 +256,7 @@ struct SyncCapsule: View {
             HStack(spacing: 6) {
                 StateDot(state: summary.state)
                 Text(summary.text)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.mac(12, weight: .medium))
                     .foregroundStyle(summary.state == .signedOut ? .haze : .silk)
             }
             .padding(.horizontal, 4)
@@ -267,7 +279,7 @@ struct NotBuiltYet: View {
 
     var body: some View {
         Text("\(section.title) comes in a later build.")
-            .font(.system(size: 13))
+            .font(.mac(13))
             .foregroundStyle(.haze)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

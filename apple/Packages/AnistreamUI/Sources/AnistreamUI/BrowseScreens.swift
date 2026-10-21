@@ -152,11 +152,11 @@ struct SignedOutLibrary: View {
             Spacer(minLength: 24)
             Nagare(cell: 6)
             Text("Your lists come from AniList")
-                .font(.system(size: 17, weight: .semibold))
+                .font(.mac(17, weight: .semibold))
                 .foregroundStyle(.silk)
                 .padding(.top, 24)
             Text("Connect AniList to see your Watching, Planning and Completed lists here.")
-                .font(.system(size: 15))
+                .font(.mac(15))
                 .foregroundStyle(.haze)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 320)
@@ -179,7 +179,7 @@ struct SignedOutLibrary: View {
 struct LegalLine: View {
     var body: some View {
         Text("anistream ships no sources of its own and hosts no content. Every source is external.")
-            .font(.system(size: 13))
+            .font(.mac(13))
             .foregroundStyle(.haze)
             .multilineTextAlignment(.center)
     }
@@ -195,7 +195,7 @@ struct QuietLine: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 13))
+            .font(.mac(13))
             .foregroundStyle(.haze)
             .frame(maxWidth: .infinity, minHeight: 120)
     }
@@ -227,7 +227,7 @@ struct SearchScreen: View {
                         SearchFilterBar(compact: compact)
                         if let caption = searchCaption {
                             Text(caption)
-                                .font(.system(size: 13))
+                                .font(.mac(13))
                                 .foregroundStyle(.haze)
                         }
                         ListStates(state: store.search.list.state,
@@ -309,9 +309,9 @@ struct SearchFilterBar: View {
         } label: {
             HStack(spacing: 6) {
                 Text(label)
-                Image(systemName: "chevron.down").font(.system(size: compact ? 11 : 9, weight: .semibold))
+                Image(systemName: "chevron.down").font(compact ? .ui(11, weight: .semibold) : .mac(9, weight: .semibold))
             }
-            .font(.system(size: compact ? 17 : 13))
+            .font(compact ? .ui(17) : .mac(13))
             .foregroundStyle(current == nil ? .silk : .amber)
             .padding(.horizontal, compact ? 16 : 12)
             .frame(height: compact ? 40 : 28)
@@ -347,7 +347,7 @@ struct SearchStart: View {
                         Spacer()
                         Button("Clear") { recents.clear() }
                             .buttonStyle(.plain)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.mac(13, weight: .semibold))
                             .foregroundStyle(.silk)
                     }
                     ForEach(recents.queries, id: \.self) { query in
@@ -356,7 +356,7 @@ struct SearchStart: View {
                                 navigator.search(query, in: store)
                             } label: {
                                 Label(query, systemImage: "clock")
-                                    .font(.system(size: 13))
+                                    .font(.mac(13))
                                     .foregroundStyle(.silk)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .contentShape(.rect)
@@ -378,7 +378,7 @@ struct SearchStart: View {
                         SectionHeading(compact ? "This season" : "This Season", compact: compact)
                         Spacer()
                         if let name = store.seasonName {
-                            Text(name).font(.system(size: compact ? 15 : 13)).foregroundStyle(.haze)
+                            Text(name).font(compact ? .ui(15) : .mac(13)).foregroundStyle(.haze)
                         }
                     }
                     if compact {
@@ -425,7 +425,7 @@ struct SectionHeading: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: compact ? 20 : 15, weight: .semibold))
+            .font(compact ? .ui(20, weight: .semibold) : .mac(15, weight: .semibold))
             .foregroundStyle(.silk)
             .accessibilityAddTraits(.isHeader)
     }
@@ -439,10 +439,10 @@ struct ChipStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: fontSize))
+            .font(.board(fontSize))
             .foregroundStyle(selected ? .amber : .silk)
             .frame(maxWidth: .infinity)
-            .frame(height: height)
+            .frame(minHeight: height)
             .background(
                 selected ? Palette.selection : configuration.isPressed ? Palette.raisedSelected : Palette.raised,
                 in: .capsule

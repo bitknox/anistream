@@ -50,8 +50,8 @@ struct SetupCard: View {
             Nagare(cell: 4)
             VStack(alignment: .leading, spacing: 0) {
                 Text("Set up anistream")
-                    .font(.system(size: 15, weight: .semibold))
-                    .fixedLineHeight(20)
+                    .font(.mac(15, weight: .semibold))
+                    .macLineHeight(20)
                     .foregroundStyle(.silk)
                     .accessibilityAddTraits(.isHeader)
                 Spacer(minLength: 8)
@@ -59,11 +59,11 @@ struct SetupCard: View {
                     HStack(spacing: 16) {
                         VStack(alignment: .leading, spacing: 2) {
                             HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                Text("AniList").font(.system(size: 13, weight: .semibold)).foregroundStyle(.silk)
-                                Text("Optional").font(.system(size: 12)).foregroundStyle(.haze)
+                                Text("AniList").font(.mac(13, weight: .semibold)).foregroundStyle(.silk)
+                                Text("Optional").font(.mac(12)).foregroundStyle(.haze)
                             }
                             Text("Brings in your lists and fills Continue with what you are watching.")
-                                .font(.system(size: 12))
+                                .font(.mac(12))
                                 .foregroundStyle(.haze)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -73,9 +73,9 @@ struct SetupCard: View {
                     .frame(maxWidth: .infinity)
                     HStack(spacing: 16) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Plugin store").font(.system(size: 13, weight: .semibold)).foregroundStyle(.silk)
+                            Text("Plugin store").font(.mac(13, weight: .semibold)).foregroundStyle(.silk)
                             Text("Episodes play from plugin stores. You join one with an invite link from its owner.")
-                                .font(.system(size: 12))
+                                .font(.mac(12))
                                 .foregroundStyle(.haze)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -84,17 +84,17 @@ struct SetupCard: View {
                     }
                     .frame(maxWidth: .infinity)
                 }
-                .fixedLineHeight(16)
+                .macLineHeight(16)
                 Spacer(minLength: 8)
                 HStack(spacing: 16) {
                     Text("anistream ships no sources of its own and hosts no content. Every source is external.")
-                        .font(.system(size: 11))
-                        .fixedLineHeight(14)
+                        .font(.mac(11))
+                        .macLineHeight(14)
                         .foregroundStyle(.haze)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Button("Hide", action: hide)
                         .buttonStyle(.plain)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(.mac(13, weight: .semibold))
                         .foregroundStyle(.silk)
                         .accessibilityLabel("Hide setup")
                 }
@@ -111,12 +111,12 @@ struct SetupCard: View {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Text("Set up anistream")
-                            .font(.system(size: 17, weight: .semibold))
+                            .font(.mac(17, weight: .semibold))
                             .foregroundStyle(.silk)
                         Spacer()
                         Button("Hide", action: hide)
                             .buttonStyle(.plain)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.mac(15, weight: .semibold))
                             .foregroundStyle(.silk)
                     }
                     setupRow("AniList", note: "Optional", detail: "Syncs your lists") {
@@ -131,7 +131,7 @@ struct SetupCard: View {
                 }
             }
             Text("anistream ships no sources of its own and hosts no content. Every source is external.")
-                .font(.system(size: 13))
+                .font(.mac(13))
                 .foregroundStyle(.haze)
         }
         .padding(18)
@@ -143,10 +143,10 @@ struct SetupCard: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(name).font(.system(size: 17)).foregroundStyle(.silk)
-                    if let note { Text(note).font(.system(size: 13)).foregroundStyle(.haze) }
+                    Text(name).font(.mac(17)).foregroundStyle(.silk)
+                    if let note { Text(note).font(.mac(13)).foregroundStyle(.haze) }
                 }
-                Text(detail).font(.system(size: 13)).foregroundStyle(.haze)
+                Text(detail).font(.mac(13)).foregroundStyle(.haze)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             action()
@@ -172,9 +172,9 @@ struct AiringToday: View {
                 } label: {
                     HStack(spacing: 8) {
                         Text(compact ? "Airing today" : "Airing Today")
-                            .font(.system(size: compact ? 20 : 15, weight: .semibold))
+                            .font(compact ? .ui(20, weight: .semibold) : .mac(15, weight: .semibold))
                             .foregroundStyle(.silk)
-                        Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(.haze)
+                        Image(systemName: "chevron.right").font(.mac(11, weight: .semibold)).foregroundStyle(.haze)
                     }
                     .frame(height: 28)
                 }
@@ -208,8 +208,8 @@ struct AiringToday: View {
                     .aspectRatio(16 / 9, contentMode: .fit)
                     .clipShape(.rect(cornerRadius: 8))
                 Text(broadcast.entry.showTitle)
-                    .font(.showTitle(size: 14))
-                    .fixedLineHeight(18)
+                    .font(.macShowTitle(size: 14))
+                    .macLineHeight(18)
                     .foregroundStyle(.silk)
                     .lineLimit(1)
                     .padding(.top, 8)
@@ -226,8 +226,8 @@ struct AiringToday: View {
                         Text("in \(Wording.countdown(seconds))").foregroundStyle(next ? .water : .haze)
                     }
                 }
-                .font(.system(size: 12))
-                .fixedLineHeight(16)
+                .font(.mac(12))
+                .macLineHeight(16)
                 .foregroundStyle(.haze)
                 .lineLimit(1)
                 .padding(.top, 4)
@@ -256,15 +256,15 @@ struct ThisSeason: View {
                     } label: {
                         HStack(spacing: 8) {
                             Text(compact ? "This season" : "This Season")
-                                .font(.system(size: compact ? 20 : 15, weight: .semibold))
+                                .font(compact ? .ui(20, weight: .semibold) : .mac(15, weight: .semibold))
                                 .foregroundStyle(.silk)
-                            Image(systemName: "chevron.right").font(.system(size: 11, weight: .semibold)).foregroundStyle(.haze)
+                            Image(systemName: "chevron.right").font(.mac(11, weight: .semibold)).foregroundStyle(.haze)
                         }
                         .frame(height: 28)
                     }
                     .buttonStyle(.plain)
                     if !compact, let name = store.seasonName {
-                        Text(name).font(.system(size: 12)).foregroundStyle(.haze)
+                        Text(name).font(.mac(12)).foregroundStyle(.haze)
                     }
                 }
                 if compact {

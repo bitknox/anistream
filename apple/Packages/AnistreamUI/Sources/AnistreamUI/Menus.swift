@@ -125,7 +125,7 @@ struct SegmentedCapsule<Value: Hashable>: View {
                     withAnimation(.quick) { selection = value }
                 }
                 .buttonStyle(.plain)
-                .font(.system(size: 12))
+                .font(.mac(12))
                 .foregroundStyle(selected ? .silk : .haze)
                 .padding(.horizontal, 12)
                 .frame(height: 24)

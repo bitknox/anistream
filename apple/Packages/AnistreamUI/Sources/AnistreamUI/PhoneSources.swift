@@ -78,12 +78,12 @@ struct PhoneProviderRow: View {
 
     private var label: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(info.name).font(.system(size: 17)).foregroundStyle(.silk)
+            Text(info.name).font(.ui(17)).foregroundStyle(.silk)
             HStack(spacing: 6) {
                 Text(info.origin).foregroundStyle(.haze)
                 ProviderStandingLabel(info: info, size: 15)
             }
-            .font(.system(size: 15))
+            .font(.ui(15))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -101,7 +101,7 @@ struct PhoneStoresPage: View {
                 ForEach(store.stores.stores, id: \.id) { row in
                     NavigationLink(value: PhoneSettingsPage.store(row.id)) {
                         HStack {
-                            Text(row.name).font(.system(size: 17)).foregroundStyle(.silk)
+                            Text(row.name).font(.ui(17)).foregroundStyle(.silk)
                             Spacer()
                             StoreStanding(row: row, size: 17)
                         }
@@ -137,8 +137,8 @@ struct PhoneStorePage: View {
                         NavigationLink(value: PhoneSettingsPage.plugin(plugin.id)) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(plugin.name).font(.system(size: 17)).foregroundStyle(.silk)
-                                    Text(plugin.contactsLine).font(.system(size: 15)).foregroundStyle(.haze)
+                                    Text(plugin.name).font(.ui(17)).foregroundStyle(.silk)
+                                    Text(plugin.contactsLine).font(.ui(15)).foregroundStyle(.haze)
                                 }
                                 Spacer()
                                 PhonePluginAction(store: row, plugin: plugin)
@@ -194,10 +194,10 @@ struct PhonePluginAction: View {
                 Image(systemName: "checkmark").foregroundStyle(.water)
                 Text("Installed").foregroundStyle(.haze)
             }
-            .font(.system(size: 15))
+            .font(.ui(15))
         case .update where store.state != .revoked:
             Text("Update")
-                .font(.system(size: 15, weight: .semibold))
+                .font(.ui(15, weight: .semibold))
                 .foregroundStyle(.ground)
                 .padding(.horizontal, 14)
                 .frame(height: 30)
@@ -208,7 +208,7 @@ struct PhonePluginAction: View {
                 .buttonStyle(SecondaryCapsuleStyle(height: 30, raisedSurface: true, fontSize: 15))
                 .disabled(working)
         case .otherStore(let other):
-            Text("From \(other)").font(.system(size: 15)).foregroundStyle(.haze)
+            Text("From \(other)").font(.ui(15)).foregroundStyle(.haze)
         default:
             EmptyView()
         }
@@ -231,9 +231,9 @@ struct PhonePluginPage: View {
                 if let listing {
                     NavigationLink(value: PhoneSettingsPage.store(listing.store.id)) {
                         HStack {
-                            Text("Store").font(.system(size: 17)).foregroundStyle(.silk)
+                            Text("Store").font(.ui(17)).foregroundStyle(.silk)
                             Spacer()
-                            Text(listing.store.name).font(.system(size: 17)).foregroundStyle(.haze)
+                            Text(listing.store.name).font(.ui(17)).foregroundStyle(.haze)
                         }
                     }
                     .listRowBackground(Palette.raised)
@@ -261,7 +261,7 @@ struct PhonePluginPage: View {
             }
             Section {
                 ForEach(listing?.row.hosts ?? [], id: \.self) { host in
-                    Text(host).font(.system(size: 17)).foregroundStyle(.silk).listRowBackground(Palette.raised)
+                    Text(host).font(.ui(17)).foregroundStyle(.silk).listRowBackground(Palette.raised)
                 }
             } header: {
                 PhoneSectionHeader("Contacts")
@@ -285,9 +285,9 @@ struct PhonePluginPage: View {
 
     private func value(_ title: String, _ value: String) -> some View {
         HStack {
-            Text(title).font(.system(size: 17)).foregroundStyle(.silk)
+            Text(title).font(.ui(17)).foregroundStyle(.silk)
             Spacer()
-            Text(value).font(.system(size: 17)).foregroundStyle(.haze)
+            Text(value).font(.ui(17)).foregroundStyle(.haze)
         }
         .listRowBackground(Palette.raised)
     }
@@ -371,15 +371,15 @@ struct PhoneJoinStoreSheet: View {
             Section {
                 VStack(alignment: .leading, spacing: 2) {
                     // The plugin count, who runs it and its plugins wait on E9's fields on `InvitedStore`.
-                    Text(invited.name).font(.system(size: 20, weight: .semibold)).foregroundStyle(.silk)
-                    Text(URL(string: invited.url)?.host ?? invited.url).font(.system(size: 15)).foregroundStyle(.haze)
+                    Text(invited.name).font(.ui(20, weight: .semibold)).foregroundStyle(.silk)
+                    Text(URL(string: invited.url)?.host ?? invited.url).font(.ui(15)).foregroundStyle(.haze)
                 }
                 .listRowBackground(Palette.raised)
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: "checkmark").foregroundStyle(.water)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Key matches the invite").font(.system(size: 17)).foregroundStyle(.silk)
-                        Text(invited.fingerprint).font(.system(size: 15, design: .monospaced)).foregroundStyle(.haze)
+                        Text("Key matches the invite").font(.ui(17)).foregroundStyle(.silk)
+                        Text(invited.fingerprint).font(.ui(15, design: .monospaced)).foregroundStyle(.haze)
                     }
                 }
                 .listRowBackground(Palette.raised)
@@ -405,7 +405,7 @@ struct PhoneTorrentSheet: View {
             PhoneList {
                 Section {
                     Text("Other people can see your IP address while you download and share a torrent.")
-                        .font(.system(size: 17))
+                        .font(.ui(17))
                         .foregroundStyle(.silk)
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 0, trailing: 4))
@@ -453,7 +453,7 @@ struct PhoneTorrentSheet: View {
 
     private func choice(_ title: String, on: Bool) -> some View {
         HStack {
-            Text(title).font(.system(size: 17)).foregroundStyle(.silk)
+            Text(title).font(.ui(17)).foregroundStyle(.silk)
             Spacer()
             if on { Image(systemName: "checkmark").foregroundStyle(.amber) }
         }
