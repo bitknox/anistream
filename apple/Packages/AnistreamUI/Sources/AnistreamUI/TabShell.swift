@@ -121,7 +121,7 @@ struct PhoneHero: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ArtworkView(url: item.entry.bannerUrl ?? item.entry.coverUrl, maxPixelSize: 1100)
+            BannerArt(entry: item.entry)
                 .aspectRatio(16 / 9, contentMode: .fit)
                 .clipShape(.rect(cornerRadius: ArtShape.bannerRadius))
             Text(item.entry.showTitle)
@@ -167,7 +167,7 @@ struct PhoneCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ArtworkView(url: item.entry.bannerUrl ?? item.entry.coverUrl, maxPixelSize: 640)
+            BannerArt(entry: item.entry)
                 .frame(width: 208, height: 117)
                 .clipShape(.rect(cornerRadius: ArtShape.bannerRadius))
             Group {
@@ -198,7 +198,7 @@ struct PhoneNewRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            ArtworkView(url: item.entry.coverUrl, maxPixelSize: 120)
+            ArtworkView(url: item.entry.coverUrl, color: item.entry.plateColor, maxPixelSize: 120)
                 .frame(width: 40, height: 60)
                 .clipShape(.rect(cornerRadius: ArtShape.coverRadius(width: 40)))
             VStack(alignment: .leading, spacing: 2) {

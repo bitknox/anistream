@@ -1,8 +1,9 @@
 // How a title's fields read on screen.
 
+import AnistreamDesign
 import AnistreamKit
 import AnistreamStore
-import Foundation
+import SwiftUI
 
 extension Entry {
     /// The title as the screens head it: the romaji when AniList has an English title beside it,
@@ -27,6 +28,11 @@ extension Entry {
         if let year { parts.append(String(year)) }
         if let studio { parts.append(studio) }
         return parts.joined(separator: " · ")
+    }
+
+    /// The cover's own colour, for its plate, when AniList gives one.
+    var plateColor: Color? {
+        coverColor.flatMap(Color.init(hex:))
     }
 
     /// "Also on Lantern Stream", when the title's page names where else it streams.

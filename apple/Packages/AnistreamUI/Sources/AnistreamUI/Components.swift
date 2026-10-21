@@ -36,6 +36,72 @@ struct ArtworkView: View {
     }
 }
 
+/// A title's wide art: its banner, filling the frame. A title with no banner shows its cover at the
+/// cover's own aspect, set against the leading edge of a plate in its own colour: a portrait
+/// cover stretched across a banner's frame is never the answer.
+struct BannerArt: View {
+    @Environment(\.displayScale) private var scale
+    let entry: Entry
+
+    var body: some View {
+        GeometryReader { proxy in
+            let size = proxy.size
+            if let banner = entry.bannerUrl {
+                ArtworkView(
+                    url: banner, color: entry.plateColor,
+                    maxPixelSize: Int(max(size.width, size.height) * scale)
+                )
+            } else {
+                let inset = (size.height * 0.06).rounded()
+                let height = max(size.height - inset * 2, 0)
+                let width = (height * 2 / 3).rounded()
+                ZStack(alignment: .leading) {
+                    CoverPlate(color: entry.plateColor)
+                    ArtworkView(
+                        url: entry.coverUrl, color: entry.plateColor,
+                        maxPixelSize: Int(height * scale)
+                    )
+                    .frame(width: width, height: height)
+                    .clipShape(.rect(cornerRadius: ArtShape.coverRadius(width: width)))
+                    .padding(.leading, inset)
+                }
+            }
+        }
+    }
+}
+
+/// Text cut to `lines`, with More to show the rest and Less to cut it again, only when there is
+/// more to show.
+struct ClampedText: View {
+    let text: String
+    var lines = 4
+    @State private var expanded = false
+    @State private var full: CGFloat = 0
+    @State private var shown: CGFloat = 0
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(text)
+                .lineLimit(expanded ? nil : lines)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { shown = $0 }
+                .background(alignment: .topLeading) {
+                    Text(text)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .hidden()
+                        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { full = $0 }
+                }
+            if expanded || full > shown + 1 {
+                Button(expanded ? "Less" : "More") {
+                    withAnimation(.standard) { expanded.toggle() }
+                }
+                .buttonStyle(.plain)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.silk)
+            }
+        }
+    }
+}
+
 /// A progress meter: amber over the rule colour, rounded.
 struct Meter: View {
     let fraction: Double

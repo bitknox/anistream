@@ -125,7 +125,7 @@ struct QueueRow: View {
             selection = item.id
         } label: {
             HStack(spacing: 12) {
-                ArtworkView(url: item.entry.coverUrl, maxPixelSize: 108)
+                ArtworkView(url: item.entry.coverUrl, color: item.entry.plateColor, maxPixelSize: 108)
                     .frame(width: 36, height: 54)
                     .clipShape(.rect(cornerRadius: ArtShape.coverRadius(width: 36)))
                 VStack(alignment: .leading, spacing: 0) {
@@ -222,7 +222,7 @@ struct ContinuePreview: View {
         let entry = store.titles[item.id] ?? item.entry
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                ArtworkView(url: entry.bannerUrl ?? entry.coverUrl, maxPixelSize: 1800)
+                BannerArt(entry: entry)
                     .frame(height: 290)
                     .clipShape(.rect(cornerRadius: ArtShape.bannerRadius))
 
@@ -273,12 +273,13 @@ struct ContinuePreview: View {
                 }
 
                 if !entry.synopsis.isEmpty {
-                    Text(entry.synopsis)
+                    ClampedText(text: entry.synopsis)
                         .font(.system(size: 13))
                         .fixedLineHeight(20)
                         .foregroundStyle(.haze)
                         .frame(maxWidth: 620, alignment: .leading)
                 }
+                        .id(entry.id)
                 if let alsoOn = entry.alsoOn {
                     Text(alsoOn)
                         .font(.system(size: 12))
