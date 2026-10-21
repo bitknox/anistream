@@ -10,6 +10,13 @@ description = "Tracker sync: the Tracker trait, AniList implementation, OAuth an
 # No doc example is written as a test, and rustdoc spends seconds per crate finding none.
 doctest = false
 
+[features]
+default = ["keychain"]
+# The OS credential store through `keyring`: the desktop's. Without it the keychain backend
+# keeps the 0600 file alone, as on a phone. A native app leaves it out, since it reaches its
+# keychain itself, through its host.
+keychain = ["dep:keyring"]
+
 [dependencies]
 anistream-core.workspace = true
 anistream-meta.workspace = true
@@ -32,9 +39,10 @@ tracing.workspace = true
 # Machines with no D-Bus session fall through to the 0600 file.
 #
 # Not on a phone. Its `v1` set does not build for iOS, and a phone's keychain is the app's to
-# reach: a front end there offers it through its host, as `secret::SecretStore`.
+# reach: a front end there offers it through its host, as `secret::SecretStore`. Nor without
+# the `keychain` feature, which a native app's build on macOS leaves off for the same reason.
 [target.'cfg(not(any(target_os = "ios", target_os = "android")))'.dependencies]
-keyring = "4.1"
+keyring = { version = "4.1", optional = true }
 
 [dev-dependencies]
 tempfile = "3"

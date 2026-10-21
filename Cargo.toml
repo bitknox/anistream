@@ -31,7 +31,10 @@ anistream-store-server = { path = "crates/anistream-store-server" }
 anistream-store-wasm = { path = "crates/anistream-store-wasm" }
 anistream-providers = { path = "crates/anistream-providers" }
 anistream-store = { path = "crates/anistream-store" }
-anistream-track = { path = "crates/anistream-track" }
+# Without its defaults, so each crate says whether it wants the keyring crate: the binary and
+# the engine's `desktop` feature do, and a native app's build, which reaches the keychain
+# through its host, does not. See the crate's `keychain` feature.
+anistream-track = { path = "crates/anistream-track", default-features = false }
 anistream-testkit = { path = "crates/anistream-testkit" }
 anistream-tui = { path = "crates/anistream-tui" }
 

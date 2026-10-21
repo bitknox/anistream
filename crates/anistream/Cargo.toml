@@ -21,7 +21,7 @@ anistream-plugin = { workspace = true, features = ["fetch"] }
 anistream-store-server.workspace = true
 anistream-providers.workspace = true
 anistream-store.workspace = true
-anistream-track.workspace = true
+anistream-track = { workspace = true, features = ["keychain"] }
 anistream-tui.workspace = true
 open.workspace = true
 anyhow.workspace = true
