@@ -65,7 +65,10 @@ built already takes the slice from there and runs no cargo for it, which is most
 it rarely changes `crates/`: the static library, and for `macos` the generated bindings, cloned on
 APFS so they cost little disk. An entry is written whole and renamed into place, so two builds at
 once never leave half of one, and entries unused for 14 days are removed. Each slice says
-`engine: reused <hash>` or `engine: built <hash>`.
+`engine: reused <hash>` or `engine: built <hash>`. A build run under a temporary `HOME`, as the
+tests and the agents' checks are, shares nothing unless `ANISTREAM_ENGINE_CACHE` names a lasting
+directory: `export ANISTREAM_ENGINE_CACHE=~/.cache/anistream-engine` beside `SCCACHE_DIR`, before
+`HOME` is moved.
 
 Cargo runs with a clean environment: only `PATH`, `HOME`, rustup's and cargo's own variables
 (`CARGO_BUILD_JOBS` among them), a compiler cache's (`RUSTC_WRAPPER` and sccache's `SCCACHE_*`)
