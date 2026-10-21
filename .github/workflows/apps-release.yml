@@ -157,16 +157,15 @@ jobs:
             echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$ndk"
           } >> "$GITHUB_ENV"
 
-      # libmpv and FFmpeg, about 15 minutes from source, kept by what mpv.sh's stamp is made from.
+      # libmpv and FFmpeg, six minutes from source, kept by what mpv.sh's stamp is made from: only
+      # the pin's build, which mpv.sh links as android/.mpv/current again when it finds it current.
+      - name: libmpv's pin
+        run: echo "MPV_PIN=$(sed -n 's/^pin=//p' android/scripts/mpv.sh)" >> "$GITHUB_ENV"
       - name: Restore libmpv
         id: mpv
         uses: actions/cache/restore@v6
         with:
-          path: |
-            android/.mpv
-            !android/.mpv/downloads
-            !android/.mpv/tools
-            !android/.mpv/work
+          path: android/.mpv/${{ env.MPV_PIN }}
           key: apps-android-mpv-ndk${{ env.NDK_VERSION }}-${{ hashFiles('android/scripts/mpv.sh', 'android/mpv/**') }}
       - name: libmpv
         run: android/scripts/mpv.sh
@@ -174,11 +173,7 @@ jobs:
         if: steps.mpv.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
         with:
-          path: |
-            android/.mpv
-            !android/.mpv/downloads
-            !android/.mpv/tools
-            !android/.mpv/work
+          path: android/.mpv/${{ env.MPV_PIN }}
           key: ${{ steps.mpv.outputs.cache-primary-key }}
 
       # engine.sh's cache, keyed by what its stamp is made from. Kept from dispatches only: a pull
@@ -353,16 +348,15 @@ jobs:
       - run: xcodebuild -version
       - run: brew install xcodegen
 
-      # Mpv.framework for the Mac and the iPhone, kept by what mpv.sh's stamp is made from.
+      # Mpv.framework for the Mac and the iPhone, kept by what mpv.sh's stamp is made from: only
+      # the pin's build, which mpv.sh links as apple/.mpv/current again when it finds it current.
+      - name: libmpv's pin
+        run: echo "MPV_PIN=$(sed -n 's/^mpvkit=//p' apple/scripts/mpv.sh)" >> "$GITHUB_ENV"
       - name: Restore libmpv
         id: mpv
         uses: actions/cache/restore@v6
         with:
-          path: |
-            apple/.mpv
-            !apple/.mpv/downloads
-            !apple/.mpv/tools
-            !apple/.mpv/work
+          path: apple/.mpv/${{ env.MPV_PIN }}
           key: apps-apple-mpv-xcode${{ env.XCODE }}-${{ hashFiles('apple/scripts/mpv.sh', 'apple/patches/**') }}
       - name: libmpv
         run: apple/scripts/mpv.sh macos ios
@@ -370,11 +364,7 @@ jobs:
         if: steps.mpv.outputs.cache-hit != 'true'
         uses: actions/cache/save@v6
         with:
-          path: |
-            apple/.mpv
-            !apple/.mpv/downloads
-            !apple/.mpv/tools
-            !apple/.mpv/work
+          path: apple/.mpv/${{ env.MPV_PIN }}
           key: ${{ steps.mpv.outputs.cache-primary-key }}
 
       # The release engine for both, as the Release configuration checks for it. The Mac's slice
@@ -402,6 +392,7 @@ jobs:
       # Built unsigned, then signed ad hoc from the inside out: each framework, then the app. No
       # Apple developer account signs it, so it is not notarized either.
       - name: The Mac app
+        id: mac
         run: |
           xcodebuild -quiet -project apple/Anistream.xcodeproj -scheme Anistream \
             -configuration Release -destination generic/platform=macOS \
@@ -416,8 +407,10 @@ jobs:
           echo "APP_MAC=$app" >> "$GITHUB_ENV"
 
       # For a generic iPhone and iPad with signing off. AltStore and SideStore sign it with the
-      # person's own Apple ID as they install it.
+      # person's own Apple ID as they install it. Built when the Mac's build failed too, so one
+      # run says what fails on each.
       - name: The iPhone and iPad app
+        if: success() || steps.mac.conclusion == 'failure'
         run: |
           xcodebuild -quiet -project apple/Anistream.xcodeproj -scheme Anistream \
             -configuration Release -destination generic/platform=iOS \
