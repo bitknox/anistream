@@ -731,6 +731,8 @@ pub fn name(update: &Event) -> &'static str {
         Event::PlaybackEnded { .. } => "PlaybackEnded",
         Event::PlaybackStaged { .. } => "PlaybackStaged",
         Event::Resumed { .. } => "Resumed",
+        Event::PlayerOps { .. } => "PlayerOps",
+        Event::PlayerUi { .. } => "PlayerUi",
         Event::Sync(_) => "Sync",
         Event::ProgressQueued => "ProgressQueued",
         Event::Conflicts(_) => "Conflicts",
@@ -843,6 +845,12 @@ fn copy(update: &Event) -> Event {
             }
         }
         Event::Resumed { position } => Event::Resumed { position: *position },
+        Event::PlayerOps { playback, ops } => {
+            Event::PlayerOps { playback: *playback, ops: ops.clone() }
+        }
+        Event::PlayerUi { playback, ui } => {
+            Event::PlayerUi { playback: *playback, ui: ui.clone() }
+        }
         Event::Sync(state) => Event::Sync(state.clone()),
         Event::ProgressQueued => Event::ProgressQueued,
         Event::Conflicts(rows) => Event::Conflicts(rows.clone()),

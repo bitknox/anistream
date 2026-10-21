@@ -22,26 +22,31 @@
 //! On by default, and what the terminal app is built with. It carries what has no story on a
 //! phone:
 //!
-//! - **the mpv child process** each playback runs in, with the window kept between episodes and
-//!   handed from one to the next, the upscaling shaders and the governor that picks them, and
-//!   the check of the player at launch: the playback session, `playback::start`,
-//!   `playback::player`, `playback::slot`, `playback::handoff`, `playback::picture` and
-//!   `playback::shaders`, and `anistream-player` beneath them;
+//! - **the mpv child process** each playback runs in, and the check of the player at launch:
+//!   `playback::player`, the opener `playback::link::opener` gives a play, and
+//!   `anistream-player` beneath them. The session itself, the window kept between episodes and
+//!   handed from one to the next, the upscaling shaders and the governor that picks them run
+//!   in any build, behind `playback::link::PlayerLink`;
 //! - **Syncplay**, which a play can be handed to as a watch party;
+//! - **Discord's presence**, said while an episode plays;
 //! - **the browser redirect** AniList and MyAnimeList sign in through: a listener on
 //!   `127.0.0.1` waiting for the code;
 //! - **`osascript` and `notify-send`**, and links opened by the system's own handler: the
 //!   `host::DesktopHost`, with `host::desktop_secrets`, the keychain or `0600` files the
 //!   desktop keeps tokens in;
-//! - **`pmset`**, read for whether a laptop is on battery: `playback::power`.
+//! - **`pmset`**, read for whether a laptop is on battery: `playback::power::SystemPower`.
 //!
 //! Built without it, the engine has none of these, nor `anistream-player` and `open`, and a
 //! front end gets instead:
 //!
-//! - every play, `Play`, `PlaySource`, `PlayParty` and `PlayLocal`, answered with an alert that
-//!   playback isn't built into this front end, and the player's controls ignored. Nothing is
-//!   staged, and nothing rolls on. That is for now: playing the stream in the platform's own
-//!   player, handed over by the engine, is a later step;
+//! - every play in the player the front end hosts, driven as mpv is through
+//!   `playback::link::hosted`: what it is to do comes as `Event::PlayerOps`, what its own
+//!   interface shows as `Event::PlayerUi`, and what it reports goes back as
+//!   `Command::PlayerReport`. A watch party is answered with an alert, Syncplay being a desktop
+//!   program; a front end that turns the hosted player off (`EngineOptions::hosted_player`) has
+//!   every play answered with an alert that playback isn't built into it;
+//! - the battery as the front end reports it, `playback::power::ReportedPower`, unknown until
+//!   it does;
 //! - a trailer opened wherever the host opens links, rather than in mpv;
 //! - sign-in through the device flow, Simkl's and Trakt's, and Kitsu's credentials, none of
 //!   which needs a redirect; AniList and MyAnimeList answered with an alert instead;

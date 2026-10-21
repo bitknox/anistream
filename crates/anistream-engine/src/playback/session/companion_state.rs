@@ -5,10 +5,14 @@
 use anistream_core::{media::Translation, stream::Stream};
 use anistream_model::{event::Event, playback::stream_label};
 use anistream_net::HttpClient;
-use anistream_player::{MpvSession, SkipKind, companion};
+use anistream_playback::{SkipKind, companion};
 
 use super::{EpisodeEntry, NextEpisode, Run};
-use crate::playback::{PlaybackContext, picture, shaders};
+use crate::playback::{
+    PlaybackContext,
+    link::{Overlay, PlayerLink},
+    picture, shaders,
+};
 
 /// What the player's companion is told of the episode: mpv's own business, beside what any
 /// player is told of a playback above.
@@ -43,32 +47,32 @@ impl Run<'_> {
     /// Tell the companion what it is showing: the episode, what follows, the menus.
     pub(super) async fn publish(
         &mut self,
-        session: &MpvSession,
+        link: &dyn PlayerLink,
         streams: &[Stream],
         current: usize,
     ) {
         let context = self.context;
-        let next = self.next_up();
-        let commands = [
-            companion::state("episode", &context.episode_info(&self.episodes)),
-            match &next {
-                Some(next) => companion::state("next", next),
-                None => companion::clear("next"),
-            },
-            companion::state("menus", &self.menus(streams, current)),
-            companion::state("media", &companion::Media::default()),
-            companion::state(
-                "status",
-                &companion::Status::loading(
-                    format!("Opening {}", context.episode_label()),
-                    None,
-                ),
+        let episode = context.episode_info(&self.episodes);
+        let starting = Overlay::Starting {
+            card: companion::Status::loading(
+                format!("Opening {}", context.episode_label()),
+                None,
             ),
+            title: context.title.clone(),
+            episode: context.episode.clone(),
+            episode_title: episode.title.clone(),
+        };
+        let overlays = [
+            Overlay::Episode(episode),
+            Overlay::Next { card: self.next_up(), still: self.next_still() },
+            Overlay::Menus(self.menus(streams, current)),
+            Overlay::Media(companion::Media::default()),
+            starting,
         ];
-        for command in commands {
-            let _ = session.send(command).await;
+        for overlay in overlays {
+            let _ = link.overlay(overlay).await;
         }
-        self.apply_night(session).await;
+        self.apply_night(link).await;
     }
 
     /// Ask for the next episode's streams once this one's ending begins.
@@ -128,6 +132,18 @@ impl Run<'_> {
         row.thumbnail
     }
 
+    /// The Up Next card as it stands now, with the next episode's still by URL, when an episode
+    /// follows.
+    pub(super) fn up_next(&self) -> Option<Overlay> {
+        let card = self.next_up()?;
+        Some(Overlay::Next { card: Some(card), still: self.next_still() })
+    }
+
+    /// The next episode's still, by URL, for a player that fetches its own.
+    fn next_still(&self) -> Option<String> {
+        self.next.as_ref().and_then(|next| next.thumbnail.clone())
+    }
+
     /// What the Up Next card shows, as it stands now.
     pub(super) fn next_up(&self) -> Option<companion::NextUp> {
         let ending = self.skips.iter().find(|s| s.kind == SkipKind::Ending).map(|s| s.start);
@@ -180,20 +196,12 @@ impl Run<'_> {
         }
     }
 
-    pub(super) async fn apply_night(&mut self, session: &MpvSession) {
+    pub(super) async fn apply_night(&mut self, link: &dyn PlayerLink) {
         if self.night == self.night_applied {
             return;
         }
-        let _ = session
-            .send(anistream_player::protocol::Command::AudioFilter {
-                add: self.night,
-                filter: if self.night {
-                    NIGHT_FILTER.to_owned()
-                } else {
-                    "@anistream-night".to_owned()
-                },
-            })
-            .await;
+        let filter = if self.night { NIGHT_FILTER } else { "@anistream-night" };
+        let _ = link.audio_filter(self.night, filter).await;
         self.night_applied = self.night;
     }
 }

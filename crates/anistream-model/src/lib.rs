@@ -32,6 +32,7 @@ pub mod command;
 pub mod downloads;
 pub mod episodes;
 pub mod event;
+pub mod hosted;
 pub mod jobs;
 pub mod notice;
 pub mod playback;

@@ -10,9 +10,8 @@ use anistream_model::{
     event::Event,
     notice::{Notice, NoticeHint},
 };
-use anistream_player::{
+use anistream_playback::{
     Action, Choice, PlaybackEvent, PlaybackTracker, ScriptEvent, SkipKind, TrackInput,
-    companion,
 };
 use tokio::sync::mpsc;
 
@@ -21,11 +20,11 @@ use super::{
     companion_state::fetch_still,
     controls::apply_command,
     presence::Rpc,
-    skips::{kind_id, offered, skip_target},
+    skips::{offered, skip_target},
     upscaling::read_source,
 };
 use crate::playback::{
-    power,
+    link::{LinkError, Overlay, PlayerLink},
     shaders::{self, Look},
     slot::Player,
 };
@@ -55,7 +54,7 @@ impl Run<'_> {
         let context = self.context;
         let settings = self.settings;
         let tx = self.tx;
-        let session = &player.session;
+        let link = player.link.as_ref();
 
         let mut tracker =
             PlaybackTracker::new(settings.threshold, self.skips.clone(), settings.auto_skip)
@@ -122,7 +121,7 @@ impl Run<'_> {
                         complete: false,
                         exited: true,
                         stopped,
-                        quit: session.has_quit(),
+                        quit: link.has_quit(),
                         no_frames: !ever_played,
                     },
                 },
@@ -146,8 +145,8 @@ impl Run<'_> {
                 {
                     still_fetch = None;
                     self.still = fetched.ok().flatten();
-                    if let Some(next) = self.next_up() {
-                        let _ = session.send(companion::state("next", &next)).await;
+                    if let Some(next) = self.up_next() {
+                        let _ = link.overlay(next).await;
                     }
                     continue;
                 }
@@ -157,7 +156,8 @@ impl Run<'_> {
                     // Battery about once a minute: cheap, but a subprocess on macOS.
                     if picture.battery_checked.is_none_or(|t| t.elapsed() >= BATTERY_POLL) {
                         picture.battery_checked = Some(tokio::time::Instant::now());
-                        let on = tokio::task::spawn_blocking(power::on_battery)
+                        let power = std::sync::Arc::clone(&self.power);
+                        let on = tokio::task::spawn_blocking(move || power.on_battery())
                             .await
                             .ok()
                             .flatten()
@@ -172,14 +172,14 @@ impl Run<'_> {
                         changed |= picture.governor.sample(time, drops, held).is_some();
                     }
                     if changed {
-                        self.apply_picture(&mut player.picture, session, source.as_ref(), streams, index, true).await;
+                        self.apply_picture(&mut player.picture, link, source.as_ref(), streams, index, true).await;
                     }
                     continue;
                 }
                 _ = stall_tick.tick(), if stalled_since.is_some() => {
                     let held = stalled_since.map(|t| t.elapsed()).unwrap_or_default();
                     if held >= STALL_PROMPT && !stall_dismissed {
-                        let _ = session.send(companion::stall(held.as_secs())).await;
+                        let _ = link.overlay(Overlay::Stall { seconds: held.as_secs() }).await;
                         stall_shown = true;
                     }
                     continue;
@@ -210,23 +210,28 @@ impl Run<'_> {
                                 )));
                             }
                             let info = context.episode_info(&self.episodes);
-                            let _ = session.send(companion::state("episode", &info)).await;
-                            if let Some(next) = self.next_up() {
-                                let _ = session.send(companion::state("next", &next)).await;
+                            let _ = link.overlay(Overlay::Episode(info)).await;
+                            if let Some(next) = self.up_next() {
+                                let _ = link.overlay(next).await;
                             }
                             let menus = self.menus(streams, index);
-                            let _ = session.send(companion::state("menus", &menus)).await;
+                            let _ = link.overlay(Overlay::Menus(menus)).await;
                             continue;
                         }
                         Some(PlayerCommand::Step(delta)) => {
-                            self.step(delta, session, true).await;
+                            self.step(delta, link, true).await;
                             continue;
                         }
-                        Some(command) => {
-                            stopped |= matches!(command, PlayerCommand::Stop);
-                            apply_command(session, command).await;
-                            continue;
-                        }
+                        // What the viewer did in a hosted player's own interface: read as the
+                        // companion's word for the same is.
+                        Some(command) => match from_the_player(command) {
+                            Ok(script) => PlaybackEvent::Script(script),
+                            Err(command) => {
+                                stopped |= matches!(command, PlayerCommand::Stop);
+                                apply_command(link, command).await;
+                                continue;
+                            }
+                        },
                         // The UI is going away. mpv keeps playing until it ends on its own.
                         None => {
                             self.controls_open = false;
@@ -239,7 +244,7 @@ impl Run<'_> {
             // Tracks first, and for every event: the policy reads the clock off each one.
             let track_input = match &event {
                 PlaybackEvent::TrackList(list) => Some(TrackInput::TrackList(
-                    anistream_player::tracks::parse_track_list(list),
+                    anistream_playback::tracks::parse_track_list(list),
                 )),
                 PlaybackEvent::Aid(id) => Some(TrackInput::Aid(*id)),
                 PlaybackEvent::Sid(id) => Some(TrackInput::Sid(*id)),
@@ -253,7 +258,7 @@ impl Run<'_> {
             };
             if let Some(input) = track_input {
                 for action in player.tracks.observe(&input, std::time::Instant::now()) {
-                    self.apply_track(action, session).await;
+                    self.apply_track(action, link).await;
                 }
             }
 
@@ -272,7 +277,7 @@ impl Run<'_> {
                         self.hdr = source.and_then(|s| s.hdr);
                         self.apply_picture(
                             &mut player.picture,
-                            session,
+                            link,
                             source.as_ref(),
                             streams,
                             index,
@@ -287,7 +292,7 @@ impl Run<'_> {
                         Some(shaders::Display { width: *width, height: *height });
                     self.apply_picture(
                         &mut player.picture,
-                        session,
+                        link,
                         source.as_ref(),
                         streams,
                         index,
@@ -311,7 +316,7 @@ impl Run<'_> {
                         player.picture.governor.reset();
                         self.apply_picture(
                             &mut player.picture,
-                            session,
+                            link,
                             source.as_ref(),
                             streams,
                             index,
@@ -323,22 +328,15 @@ impl Run<'_> {
                     continue;
                 }
                 PlaybackEvent::Script(ScriptEvent::Choose(Choice::ToneMapping(id))) => {
-                    let _ = session
-                        .send(anistream_player::protocol::Command::SetProperty(
-                            "tone-mapping",
-                            id.clone().into(),
-                        ))
-                        .await;
+                    let _ = link.set("tone-mapping", id.clone().into()).await;
                     self.tone_mapping = id.clone();
-                    let _ = session
-                        .send(companion::state("menus", &self.menus(streams, index)))
-                        .await;
+                    let _ = link.overlay(Overlay::Menus(self.menus(streams, index))).await;
                     let _ = tx.send(Event::PlayerToneMapping(id.clone()));
                     continue;
                 }
                 PlaybackEvent::Script(script) => {
                     if let Some(outcome) = self
-                        .answer(script, session, &mut tracker, &mut last_skip, streams, index)
+                        .answer(script, link, &mut tracker, &mut last_skip, streams, index)
                         .await
                     {
                         break outcome;
@@ -346,7 +344,7 @@ impl Run<'_> {
                     match script {
                         ScriptEvent::StallWait => {
                             stall_dismissed = true;
-                            let _ = session.send(companion::stall_clear()).await;
+                            let _ = link.overlay(Overlay::StallCleared).await;
                         }
                         ScriptEvent::StallSwitch if streams.len() > 1 => {
                             break FileOutcome::Switch {
@@ -359,9 +357,8 @@ impl Run<'_> {
                     continue;
                 }
                 PlaybackEvent::Loaded => {
-                    if let Err(e) = session
-                        .add_subtitles(stream, settings.subtitle_language.as_deref())
-                        .await
+                    if let Err(e) =
+                        add_subtitles(link, stream, settings.subtitle_language.as_deref()).await
                     {
                         tracing::debug!(error = %e, "could not attach external subtitles");
                     }
@@ -374,7 +371,7 @@ impl Run<'_> {
                         stalled_since = None;
                         stall_dismissed = false;
                         if std::mem::take(&mut stall_shown) {
-                            let _ = session.send(companion::stall_clear()).await;
+                            let _ = link.overlay(Overlay::StallCleared).await;
                         }
                     }
                 }
@@ -384,9 +381,7 @@ impl Run<'_> {
                     self.maybe_prefetch(*position, *duration);
                     if !ever_played {
                         ever_played = true;
-                        let _ = session
-                            .send(companion::state("status", &companion::Status::playing()))
-                            .await;
+                        let _ = link.overlay(Overlay::Playing).await;
                     }
                     // Mirror position to the UI so Now Playing can render without querying mpv —
                     // but only when the rendered value would actually change. mpv reports
@@ -416,21 +411,17 @@ impl Run<'_> {
                         let to = skip_target(to, tracker.duration());
                         if tracker.auto_skips() {
                             let from = tracker.position();
-                            let _ = session.seek_to(to).await;
-                            let _ = session
-                                .send(companion::skipped(kind_id(kind), kind.label(), from, to))
-                                .await;
+                            let _ = link.seek(to, true).await;
+                            let _ = link.overlay(Overlay::Skipped { kind, from, to }).await;
                             last_skip = Some(kind);
                         } else {
                             // On the video, not the terminal: the viewer is looking at it.
-                            let _ = session
-                                .send(companion::skip_offer(kind_id(kind), kind.label(), to))
-                                .await;
+                            let _ = link.overlay(Overlay::SkipOffer { kind, to }).await;
                         }
                         let _ = tx.send(Event::SkipAvailable { kind: offered(kind), to });
                     }
                     Action::ClearSkip => {
-                        let _ = session.send(companion::skip_clear()).await;
+                        let _ = link.overlay(Overlay::SkipCleared).await;
                         let _ = tx.send(Event::SkipCleared);
                     }
                     other => {
@@ -438,7 +429,7 @@ impl Run<'_> {
                         self.act(
                             other,
                             watched_secs,
-                            session,
+                            link,
                             stream,
                             &mut committed,
                             &mut ending,
@@ -453,8 +444,8 @@ impl Run<'_> {
             // starts, so they move with it.
             if tracker.skips() != self.skips.as_slice() {
                 self.skips = tracker.skips().to_vec();
-                if let Some(next) = self.next_up() {
-                    let _ = session.send(companion::state("next", &next)).await;
+                if let Some(next) = self.up_next() {
+                    let _ = link.overlay(next).await;
                 }
             }
 
@@ -466,9 +457,9 @@ impl Run<'_> {
                 break FileOutcome::Ended {
                     watched: ending,
                     complete,
-                    exited: !session.is_alive() || session.has_quit(),
+                    exited: !link.is_alive() || link.has_quit(),
                     stopped,
-                    quit: session.has_quit(),
+                    quit: link.has_quit(),
                     no_frames: !ever_played,
                 };
             }
@@ -478,7 +469,48 @@ impl Run<'_> {
         self.still_fetch = still_fetch;
         // Cleared before anything else, so quitting never leaves a stale "watching" up.
         rpc.finish().await;
-        let _ = session.send(companion::skip_clear()).await;
+        let _ = link.overlay(Overlay::SkipCleared).await;
         outcome
     }
+}
+
+/// What the viewer did in a player's own interface, when `command` says so, as mpv's companion
+/// would have said it; any other command back as it was.
+fn from_the_player(command: PlayerCommand) -> Result<ScriptEvent, PlayerCommand> {
+    use anistream_model::hosted::PlayerChoice;
+    Ok(match command {
+        PlayerCommand::TakeSkip => ScriptEvent::Skip,
+        PlayerCommand::UndoSkip { to } => ScriptEvent::UndoSkip { to },
+        PlayerCommand::PlayNext => ScriptEvent::PlayNext,
+        PlayerCommand::CancelNext => ScriptEvent::CancelNext,
+        PlayerCommand::StallSwitch => ScriptEvent::StallSwitch,
+        PlayerCommand::StallWait => ScriptEvent::StallWait,
+        PlayerCommand::NightMode(on) => ScriptEvent::Choose(Choice::NightMode(on)),
+        PlayerCommand::Upscaling(id) => ScriptEvent::Choose(Choice::Upscaling(id)),
+        PlayerCommand::Choose(choice) => ScriptEvent::Choose(match choice {
+            PlayerChoice::Episode(number) => Choice::Episode(number),
+            PlayerChoice::Source(id) => Choice::Source(id),
+            PlayerChoice::Translation(translation) => {
+                Choice::Translation(translation.as_str().to_owned())
+            }
+            PlayerChoice::ToneMapping(id) => Choice::ToneMapping(id),
+        }),
+        other => return Err(other),
+    })
+}
+
+/// Attach a stream's external subtitle tracks to the loaded file, the preferred language first:
+/// with nothing better to go on, a player selects the first track it is given.
+async fn add_subtitles(
+    link: &dyn PlayerLink,
+    stream: &Stream,
+    subtitle_language: Option<&str>,
+) -> Result<(), LinkError> {
+    for subtitle in
+        anistream_playback::protocol::subtitle_order(&stream.subtitles, subtitle_language)
+    {
+        let language = (!subtitle.language.is_empty()).then(|| subtitle.language.clone());
+        link.add_subtitle(&subtitle.url, language.clone(), language).await?;
+    }
+    Ok(())
 }

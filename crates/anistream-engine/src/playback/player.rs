@@ -65,13 +65,5 @@ pub fn old_mpv_note(version: MpvVersion) -> Option<String> {
     })
 }
 
-/// Where the upscaling shaders were written, or `None` when anistream should leave
-/// `glsl-shaders` alone: the cache could not be written, or the user passes their own chain
-/// in `playback.mpv_args`, which our runtime writes would otherwise replace.
-pub fn shader_dir(config: &Config, paths: &Paths) -> Option<std::path::PathBuf> {
-    let own_chain = config.playback.mpv_args.iter().any(|arg| arg.starts_with("--glsl-shader"));
-    if own_chain {
-        return None;
-    }
-    crate::playback::shaders::materialize(&paths.cache_dir)
-}
+// Where the shaders were written, named from here too, beside the player they dress.
+pub use super::shaders::shader_dir;
