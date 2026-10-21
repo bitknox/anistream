@@ -107,6 +107,10 @@ pub async fn list_episodes(lent: Lent, id: AnilistId) {
 /// Mark episodes watched, or forget that they were: in local history, and on the signed-in
 /// trackers when marking. Then the record of the titles is moved on by what the store now
 /// holds, and the title said whole, as the answer to the mark.
+///
+/// Said whether the record holds the title or not. A mark sent before any list or page showed
+/// it, as a native app can, was written and left unsaid, and the screen caught up only at the
+/// next load; such a title's standing is read from the store.
 pub fn set_watched(
     id: AnilistId,
     episodes: &[String],
@@ -148,7 +152,11 @@ pub fn set_watched(
     let held =
         |episode: &str| held.as_ref().map_or(watched, |held| held.iter().any(|e| e == episode));
     let marked = engine.cache.marked(id, episodes, watched, held);
-    if let Some(progress) = marked.and_then(|id| engine.cache.progress(id)) {
-        let _ = tx.send(progress);
-    }
+    let said = marked.and_then(|id| engine.cache.progress(id)).unwrap_or_else(|| {
+        // Without its episode count, which only its metadata has: Continue's episode is
+        // counted on from where history stands, as it is for a title of unknown length.
+        let (progress, resume) = data::standing(store, id, None);
+        engine.cache.standing(id, progress, resume)
+    });
+    let _ = tx.send(said);
 }

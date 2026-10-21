@@ -279,6 +279,17 @@ impl TitleCache {
     /// has nothing to say.
     pub fn progress(&self, id: AnilistId) -> Option<Event> {
         let title = self.titles.get(&id)?;
+        Some(self.standing(id, title.progress, title.resume))
+    }
+
+    /// Where a title stands, as `progress` and `resume` say from wherever they were read, with
+    /// its episodes' watched state when its table is the one loaded last.
+    pub fn standing(
+        &self,
+        id: AnilistId,
+        progress: Option<TitleProgress>,
+        resume: Option<ResumePoint>,
+    ) -> Event {
         let episodes = self
             .rows(id)
             .unwrap_or_default()
@@ -289,7 +300,7 @@ impl TitleCache {
                 completed: row.completed,
             })
             .collect();
-        Some(Event::Progress { id, progress: title.progress, resume: title.resume, episodes })
+        Event::Progress { id, progress, resume, episodes }
     }
 
     /// The table loaded last, and whose it is.
