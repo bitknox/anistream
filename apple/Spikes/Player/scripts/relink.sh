@@ -9,9 +9,15 @@
 # libcrypto symbols. Inside a dylib that exports only `_mpv_*`, OpenSSL's symbols are bound at
 # the dylib's own link and never seen by the app's.
 #
-# It needs `swift package resolve` to have run first (it reads .build/artifacts/mpvkit). macOS
-# needs only the Command Line Tools. The iOS slices need an iOS SDK, from Xcode: set
-# DEVELOPER_DIR to it if xcode-select points at the Command Line Tools.
+# On the way it swaps one object in libmpv: patches/context_moltenvk.m, MPVKit's
+# gpu-context=moltenvk with resizing added, compiled against mpv v0.41.0's headers. Without it
+# mpv never notices the layer changing size (mpvkit/MPVKit#3). MPVSPIKE_PATCH=0 keeps
+# MPVKit's object, to compare.
+#
+# It needs `swift package resolve` to have run first (it reads .build/artifacts/mpvkit), and
+# fetches the headers the patch compiles against into .mpv/src. macOS needs only the Command
+# Line Tools. The iOS slices need an iOS SDK, from Xcode: set DEVELOPER_DIR to it if
+# xcode-select points at the Command Line Tools.
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")/.." && pwd)"
@@ -48,6 +54,47 @@ archive() {
   fi
 }
 
+# The sources the patched context compiles against: mpv at MPVKit's tag, and the Vulkan and
+# MoltenVK headers at the versions MPVKit 1.1.0 runs (MoltenVK 1.4.2, Vulkan 1.4.357).
+mpv_tag=v0.41.0
+vulkan_tag=vulkan-sdk-1.4.357.0
+moltenvk_tag=v1.4.2
+fetch_sources() {
+  local src="$out/src"
+  mkdir -p "$src/inc/MoltenVK"
+  [[ -d "$src/mpv" ]] || git clone -q --depth 1 --branch "$mpv_tag" https://github.com/mpv-player/mpv.git "$src/mpv" 2>/dev/null
+  [[ -d "$src/Vulkan-Headers" ]] || git clone -q --depth 1 --branch "$vulkan_tag" \
+    https://github.com/KhronosGroup/Vulkan-Headers.git "$src/Vulkan-Headers" 2>/dev/null
+  [[ -f "$src/inc/MoltenVK/mvk_vulkan.h" ]] || curl -fsSL -o "$src/inc/MoltenVK/mvk_vulkan.h" \
+    "https://raw.githubusercontent.com/KhronosGroup/MoltenVK/$moltenvk_tag/MoltenVK/MoltenVK/API/mvk_vulkan.h"
+  # Only what the context's headers test; an undefined HAVE_ reads as 0.
+  printf '#define HAVE_VULKAN 1\n#define HAVE_MOLTENVK 1\n#define HAVE_COCOA 1\n' > "$src/inc/config.h"
+}
+
+# Compiles the patched context for one slice and swaps it into the thinned libmpv archive.
+# MPVKit builds the file without ARC (its __bridge cast from an integer needs that), so this
+# does too; the object comes out importing and exporting exactly the symbols MPVKit's does.
+patch_libmpv() {
+  local work="$1" id="$2" sdk="$3" target="$4" src="$out/src"
+  local inc="$work/inc"
+  mkdir -p "$inc"
+  local placebo avutil
+  placebo="$(find "$artifacts/Libplacebo" -maxdepth 2 -type d -name "$id")/Libplacebo.framework/Headers"
+  avutil="$(find "$artifacts/Libavutil" -maxdepth 2 -type d -name "$id")/Libavutil.framework/Headers"
+  ln -sfn "$placebo" "$inc/libplacebo"
+  ln -sfn "$avutil" "$inc/libavutil"
+  xcrun --sdk "$sdk" clang -c -fno-objc-arc -O2 -std=c11 -target "$target" -Wno-macro-redefined \
+    -isysroot "$(xcrun --sdk "$sdk" --show-sdk-path)" \
+    -I "$src/mpv/video/out/vulkan" -I "$src/mpv" -I "$inc" -I "$src/inc" -I "$src/Vulkan-Headers/include" \
+    -o "$work/context_moltenvk.o" "$here/patches/context_moltenvk.m"
+  local member=video_out_vulkan_context_moltenvk.m.o
+  ar t "$work/lib/Libmpv.a" | grep -qx "$member" || { echo "no $member in libmpv" >&2; exit 1; }
+  ar d "$work/lib/Libmpv.a" "$member"
+  ar r "$work/lib/Libmpv.a" "$work/context_moltenvk.o" 2>/dev/null
+  ranlib "$work/lib/Libmpv.a" 2>/dev/null
+  echo "patched gpu-context=moltenvk in libmpv"
+}
+
 build() {
   local platform="$1" id sdk target extra=() frameworks=("${common_frameworks[@]}")
   case "$platform" in
@@ -81,6 +128,11 @@ build() {
     fi
     archives+=("$work/lib/$lib.a")
   done
+
+  if [[ "${MPVSPIKE_PATCH:-1}" == 1 ]]; then
+    fetch_sources
+    patch_libmpv "$work" "$id" "$sdk" "$target"
+  fi
 
   printf '_mpv_*\n' > "$work/exports.txt"
 

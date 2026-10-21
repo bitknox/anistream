@@ -65,6 +65,10 @@ final class Spike: @unchecked Sendable {
             await probe()
         case "s2":
             guard await load(args.input) else { return finish() }
+            if args.paused {
+                mpv.set("pause", "yes")
+                try? await Task.sleep(for: .milliseconds(500))
+            }
             await s2()
         default:
             guard await load(args.input) else { return finish() }
@@ -260,6 +264,11 @@ final class Spike: @unchecked Sendable {
                 }
             }
             try? await Task.sleep(for: .seconds(1.5))
+            if let wake = args.wake, name != "initial" {
+                steps.append(["step": "\(name)-before-wake", "mpv_osd": osdSize()])
+                mpv.command(wake)
+                try? await Task.sleep(for: .milliseconds(500))
+            }
             steps.append(await snapshot(name: name, base: base))
             if args.resizeFix == "vo", name != "initial" {
                 mpv.set("vo", "gpu-next")
@@ -268,6 +277,11 @@ final class Spike: @unchecked Sendable {
             }
         }
         report["s2"] = steps
+    }
+
+    func osdSize() -> [String: Int64] {
+        let osd = mpv.get("osd-dimensions")
+        return ["w": osd["w"].int ?? 0, "h": osd["h"].int ?? 0]
     }
 
     func snapshot(name: String, base: String) async -> [String: Any] {

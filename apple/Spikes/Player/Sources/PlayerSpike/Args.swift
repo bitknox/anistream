@@ -16,6 +16,8 @@ import SpikePlayer
 ///   --no-hdr-hint                 target-colorspace-hint=no
 ///   --resize-fix none|vo          after a resize, nothing or re-create the VO (S2)
 ///   --start S                     start position
+///   --paused                      pause once the first frame is up (S2 while paused)
+///   --wake "CMD ARGS"             an mpv command sent after each S2 resize, to wake the VO
 ///
 /// Inputs may be the aliases testsrc (1080p24 and a tone), testsrc720, testsrc480 and
 /// testsrc4k, made by scripts/media.sh.
@@ -34,6 +36,8 @@ struct Args {
     var hdrHint = true
     var resizeFix = "none"
     var start: Double?
+    var paused = false
+    var wake: [String]?
 
     static func parse(_ argv: [String] = Array(CommandLine.arguments.dropFirst())) -> Args {
         var args = Args()
@@ -68,6 +72,8 @@ struct Args {
             case "--no-hdr-hint": args.hdrHint = false
             case "--resize-fix": args.resizeFix = value(arg)
             case "--start": args.start = Double(value(arg))
+            case "--paused": args.paused = true
+            case "--wake": args.wake = value(arg).split(separator: " ").map(String.init)
             case "-h", "--help":
                 print("swift run PlayerSpike <url-or-file> [--shaders off|natural|sharp] [--shot out.png] [--seconds N] …")
                 exit(0)
