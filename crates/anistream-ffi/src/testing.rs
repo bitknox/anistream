@@ -24,7 +24,8 @@ impl FfiEngine {
     /// with what it reaches beyond them stood in for.
     ///
     /// - Metadata comes from the test kit's fake AniList on loopback, with its fixture titles:
-    ///   a search for "hoshikuzu" finds two.
+    ///   a search for "hoshikuzu" finds two. It serves their art too, so covers, banners and
+    ///   stills arrive as real images.
     /// - The only source is the test kit's fixture provider.
     /// - Every request goes through a client that cannot resolve a host name, so one the test
     ///   did not think of fails at once instead of leaving the machine.
@@ -66,6 +67,8 @@ pub(crate) fn options(
     start: &FfiStart,
 ) -> Result<EngineOptions, FfiError> {
     let Opened { paths, config, store } = opened;
+    // The fixtures' covers, banners and stills, from the fake, for an app that shows them.
+    server.serve_art();
     let http =
         HttpClient::offline(&NetworkConfig { timeout_secs: 5, ..config.network.clone() })
             .map_err(|e| FfiError::Client { reason: e.to_string() })?;
@@ -80,7 +83,7 @@ pub(crate) fn options(
         .map_err(|reason| FfiError::Engine { reason })?;
 
     let mut options = Opened { paths, config, store }.options(http, start);
-    options.sources = Some(anistream_testkit::sources::registry());
+    options.sources = Some(anistream_testkit::sources::registry_with_art(&server.art_base()));
     options.background = Background::none();
     options.parts = Some(Parts { meta, sync, stores });
     Ok(options)

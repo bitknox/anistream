@@ -53,6 +53,10 @@ pub const ALL: [AnilistId; 6] = [FINISHED, AIRING, SEQUEL, MOVIE, ONA, AIRING_NO
 /// start failing when the calendar turns over.
 pub const SEASONAL: [AnilistId; 2] = [AIRING, AIRING_NO_MAL];
 
+/// Where every fixture image is: covers, banners and episode stills. Nothing resolves the host, so
+/// an image fails unless the fake is serving art; see [`crate::FakeAniList::serve_art`].
+pub const ART_HOST: &str = "https://img.example/";
+
 /// The signed-in user the fake's library belongs to.
 pub const VIEWER_ID: u32 = 5150;
 

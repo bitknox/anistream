@@ -191,3 +191,28 @@ fn shutdown_returns_and_ends_the_stream() {
     // A second shutdown has nothing left to stop.
     engine.shutdown();
 }
+
+#[test]
+fn a_fixture_cover_arrives_as_an_image() {
+    let (engine, _root) = started();
+    let search =
+        Command::Search { query: "hoshikuzu".into(), filter: SearchFilters::default() };
+    let job = engine.send(search).expect("a search is work someone waits on");
+    let read = read_until(&engine, ends(job));
+    let cover = search_titles(&read, "hoshikuzu").expect("the search's titles")[0]
+        .cover_url
+        .clone()
+        .expect("a fixture title has a cover");
+
+    // The fake serves the fixtures' art, on loopback, so the app shows real images.
+    assert!(cover.starts_with("http://127.0.0.1:"), "{cover}");
+    assert_eq!(engine.send(Command::FetchArtwork { url: cover.clone() }), None);
+    let read = read_until(&engine, |event| {
+        matches!(event, Event::ArtworkReady { .. } | Event::ImageFailed { .. })
+    });
+    let Some(Event::ArtworkReady { url, bytes }) = read.last() else {
+        panic!("the cover arrives: {read:?}");
+    };
+    assert_eq!(url, &cover);
+    assert!(bytes.starts_with(b"\x89PNG\r\n\x1a\n"), "a PNG");
+}
