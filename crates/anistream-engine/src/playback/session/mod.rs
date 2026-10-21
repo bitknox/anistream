@@ -67,7 +67,7 @@ pub use skips::{fetch_skips, offered};
 pub use upscaling::PictureState;
 
 use companion_state::fetch_still;
-use subtitles::{localise_subtitles, sanitise};
+use subtitles::{SUBTITLE_WAIT, localise_subtitles, sanitise};
 use watch::remember_tracks;
 
 /// An unguessable-enough path token for one playback attempt's mender.
@@ -306,9 +306,12 @@ pub async fn play(
         tried[index] = true;
         let last = tried.iter().all(|t| *t);
 
-        // Before mpv opens the file, so the tracks are on disk by the time it asks for them.
+        // Before mpv opens the file, so the tracks are on disk by the time it asks for them,
+        // but no longer than a moment: the tracks still on their way follow as they arrive.
+        let mut late = None;
         if !localised[index] {
-            localise_subtitles(&http, opener.scratch_dir(), &mut streams[index]).await;
+            let scratch = opener.scratch_dir();
+            late = localise_subtitles(&http, scratch, &mut streams[index], SUBTITLE_WAIT).await;
             localised[index] = true;
         }
         let mut stream = streams[index].clone();
@@ -403,7 +406,7 @@ pub async fn play(
             let _ = current.link.overlay(Overlay::Resumed { position }).await;
         }
 
-        let outcome = run.file(current, &stream, &streams, index, &mut commands).await;
+        let outcome = run.file(current, &stream, &streams, index, &mut commands, late).await;
 
         match outcome {
             FileOutcome::Switch { to, at } => {

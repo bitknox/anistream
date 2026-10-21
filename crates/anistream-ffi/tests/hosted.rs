@@ -643,6 +643,139 @@ fn a_stream_that_shows_nothing_falls_over_to_the_next_in_the_same_player() {
     app.shutdown();
 }
 
+/// A stream that does not load at all, as libmpv says when the first request fails: its file
+/// ends in an error before it has loaded. The next stream is loaded at once, with no wait.
+fn a_stream_that_fails_to_load_falls_over_at_once(kind: StreamKind, upstream: &str) {
+    let first = format!("{upstream}/stardust-wayfarer/12/first");
+    let second = format!("{upstream}/stardust-wayfarer/12/second");
+    let mut app =
+        App::start(with_streams(vec![stream(&first, kind), stream(&second, kind)]), "");
+    app.play(FINISHED, "12");
+    let failed = app.load();
+    // Never loaded: no FileLoaded, only the end, as libmpv says "loading failed".
+    let ended = Instant::now();
+    app.report(failed.playback, PlayerReport::Ended { reason: PlayerEnd::Error });
+    let next = app.load();
+    let waited = ended.elapsed();
+    assert!(waited < Duration::from_secs(1), "the next stream waited {waited:?}");
+    assert_ne!(next.url, failed.url, "the next stream, not the same one again");
+    let opened = app.ops.iter().filter(|(_, op)| matches!(op, PlayerOp::Open { .. })).count();
+    assert_eq!(opened, 1, "the same player");
+    app.opened(next.playback, &[]);
+    app.tick(next.playback, 0, 2);
+    app.stop();
+    app.shutdown();
+}
+
+/// An upstream on loopback that answers every request `502 Bad Gateway`, as a dead CDN does.
+fn bad_gateway() -> String {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    thread::spawn(move || {
+        for mut connection in listener.incoming().flatten() {
+            let mut request = [0_u8; 4096];
+            let _ = connection.read(&mut request);
+            let _ = connection.write_all(
+                b"HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+            );
+        }
+    });
+    format!("http://{address}")
+}
+
+/// A subtitle host on loopback that takes every connection and answers after `delay`, or
+/// never when there is none.
+fn subtitle_host(delay: Option<Duration>) -> String {
+    let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+    let address = listener.local_addr().unwrap();
+    thread::spawn(move || {
+        for mut connection in listener.incoming().flatten() {
+            thread::spawn(move || {
+                let mut request = [0_u8; 4096];
+                let _ = connection.read(&mut request);
+                let Some(delay) = delay else {
+                    // Held open and never answered, until the test is over.
+                    thread::sleep(Duration::from_secs(600));
+                    return;
+                };
+                thread::sleep(delay);
+                let body = "WEBVTT\n\n00:01.000 --> 00:02.000\nLate.\n";
+                let _ = write!(
+                    connection,
+                    "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+                    body.len()
+                );
+            });
+        }
+    });
+    format!("http://{address}")
+}
+
+/// A stream at `url` listing a dozen subtitle languages, all at `host`.
+fn with_subtitles(url: &str, host: &str) -> Stream {
+    let subtitles = (0..12)
+        .map(|n| Subtitle {
+            language: format!("l{n}"),
+            url: format!("{host}/sub-{n}.vtt"),
+            hard: false,
+            format: Some("vtt".into()),
+        })
+        .collect();
+    Stream { subtitles, ..stream(url, StreamKind::Mp4) }
+}
+
+#[test]
+fn the_next_stream_opens_without_waiting_out_a_subtitle_host_that_never_answers() {
+    // What a minute between streams was: every round of a dozen subtitle fetches timing out
+    // before the next stream's file was opened.
+    let host = subtitle_host(None);
+    let first = "https://cdn.example/stardust-wayfarer/12/first.mp4";
+    let second = "https://cdn.example/stardust-wayfarer/12/second.mp4";
+    let mut app = App::start(
+        with_streams(vec![stream(first, StreamKind::Mp4), with_subtitles(second, &host)]),
+        "",
+    );
+    app.play(FINISHED, "12");
+    let failed = app.load();
+    let ended = Instant::now();
+    app.report(failed.playback, PlayerReport::Ended { reason: PlayerEnd::Error });
+    let next = app.load();
+    let waited = ended.elapsed();
+    assert_eq!(next.url, second);
+    assert!(waited < Duration::from_secs(3), "the next stream waited {waited:?}");
+    app.opened(next.playback, &[]);
+    app.tick(next.playback, 0, 2);
+    app.stop();
+    app.shutdown();
+}
+
+#[test]
+fn a_subtitle_that_arrives_after_the_file_opened_is_added_to_it() {
+    let host = subtitle_host(Some(Duration::from_secs(3)));
+    let url = "https://cdn.example/stardust-wayfarer/12/a.mp4";
+    let mut app = App::start(with_streams(vec![with_subtitles(url, &host)]), "");
+    app.play(FINISHED, "12");
+    let started = Instant::now();
+    let load = app.load();
+    assert!(started.elapsed() < Duration::from_secs(3), "the file did not wait for them");
+    app.opened(load.playback, &[]);
+    let (_, added) = app.op("a late subtitle", |op| matches!(op, PlayerOp::AddSubtitle { .. }));
+    let PlayerOp::AddSubtitle { url, .. } = added else { unreachable!() };
+    assert!(!url.starts_with("http"), "its local copy: {url}");
+    app.stop();
+    app.shutdown();
+}
+
+#[test]
+fn a_mended_stream_whose_upstream_answers_502_falls_over_at_once() {
+    a_stream_that_fails_to_load_falls_over_at_once(StreamKind::Hls, &bad_gateway());
+}
+
+#[test]
+fn a_file_that_will_not_load_falls_over_at_once() {
+    a_stream_that_fails_to_load_falls_over_at_once(StreamKind::Mp4, "https://cdn.example");
+}
+
 /// Serve one WebVTT track on loopback, for as long as the test runs, and say where.
 fn subtitle_server() -> String {
     let listener = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
