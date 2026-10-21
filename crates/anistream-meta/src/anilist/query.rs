@@ -17,6 +17,11 @@ pub const MEDIA_FIELDS: &str = r"
     episodes
     duration
     seasonYear
+    season
+    startDate { year month day }
+    endDate { year month day }
+    source(version: 3)
+    isAdult
     averageScore
     genres
     synonyms
@@ -27,11 +32,32 @@ pub const MEDIA_FIELDS: &str = r"
 ";
 
 /// Extra fields only the Title screen needs. Excluded from list queries because
-/// `streamingEpisodes` alone can be hundreds of entries per title.
+/// `streamingEpisodes` alone can be hundreds of entries per title, and a popular title has
+/// seventy-odd tags.
+///
+/// `upcoming` is every broadcast still to come, in episode order. The ones already out are
+/// asked for beside the title, in [`by_id`]: this connection takes no sort, so its first page of
+/// aired episodes is a long runner's oldest fifty rather than its newest.
 pub const MEDIA_DETAIL_FIELDS: &str = r"
     externalLinks { site url type language }
     streamingEpisodes { title url site thumbnail }
     trailer { id site }
+    tags { name rank isMediaSpoiler isGeneralSpoiler category }
+    upcoming: airingSchedule(notYetAired: true, perPage: 50) { nodes { episode airingAt } }
+    rankings { rank type context allTime season year }
+    characters(sort: [ROLE, RELEVANCE], perPage: 12) {
+        edges {
+            role
+            node { name { full } image { medium } }
+            voiceActors(language: JAPANESE) { name { full } image { medium } }
+        }
+    }
+    staff(sort: RELEVANCE, perPage: 8) { edges { role node { name { full } } } }
+";
+
+/// What a related or recommended title is shown with: enough for a card, and no more.
+const LINKED_FIELDS: &str = r"
+    id title { romaji english native } format coverImage { large } season seasonYear
 ";
 
 pub fn search() -> String {
@@ -78,13 +104,27 @@ pub fn by_ids() -> String {
     )
 }
 
+/// One title, with everything its page shows.
+///
+/// The episodes already broadcast are a second root field, `aired`, newest first: the title's
+/// own `airingSchedule` cannot be sorted, and fifty of a long runner's oldest broadcasts say
+/// nothing about the ones on its episode table. One request all the same.
+///
+/// Measured against AniList's query complexity limit with every field here, on a popular
+/// airing title and on a long runner: answered in full, so no second detail query is needed.
 pub fn by_id() -> String {
     format!(
         r"query ($id: Int) {{
             Media(id: $id, type: ANIME) {{ {MEDIA_FIELDS} {MEDIA_DETAIL_FIELDS}
-                relations {{ edges {{ relationType node {{ id title {{ romaji english native }} format }} }} }}
+                relations {{ edges {{ relationType node {{ {LINKED_FIELDS} }} }} }}
                 recommendations(perPage: 8, sort: RATING_DESC) {{
-                    nodes {{ mediaRecommendation {{ id title {{ romaji english native }} format }} }}
+                    nodes {{ mediaRecommendation {{ {LINKED_FIELDS} }} }}
+                }}
+            }}
+            aired: Page(perPage: 50) {{
+                airingSchedules(mediaId: $id, notYetAired: false, sort: EPISODE_DESC) {{
+                    episode
+                    airingAt
                 }}
             }}
         }}"
@@ -177,7 +217,9 @@ pub fn user_library() -> String {
     )
 }
 
-pub const VIEWER: &str = r"query { Viewer { id name } }";
+/// The signed-in user: their id, for library queries, and the title language they read AniList
+/// in, so a front end can put romaji, English or native first as they do there.
+pub const VIEWER: &str = r"query { Viewer { id name options { titleLanguage } } }";
 
 /// Remove a title from the user's list entirely.
 ///
@@ -222,21 +264,78 @@ mod tests {
         depth == 0
     }
 
-    #[test]
-    fn every_document_has_balanced_braces() {
-        // Cheap guard against an interpolation mistake producing a document that only
-        // fails at runtime, against a rate-limited API.
-        for (name, doc) in [
+    /// Every document the client sends, by name.
+    fn documents() -> Vec<(&'static str, String)> {
+        vec![
             ("search", search()),
             ("search_filtered", search_filtered()),
+            ("by_ids", by_ids()),
             ("by_id", by_id()),
             ("seasonal", seasonal()),
             ("airing_schedule", airing_schedule()),
+            ("last_aired", LAST_AIRED.to_string()),
             ("user_library", user_library()),
             ("viewer", VIEWER.to_string()),
             ("save_progress", SAVE_PROGRESS.to_string()),
             ("delete_entry", DELETE_ENTRY.to_string()),
+        ]
+    }
+
+    #[test]
+    fn every_document_parses_as_graphql() {
+        // Braces can balance in a document that is still not GraphQL: an argument without its
+        // value, a stray comma, an alias with no field. AniList would refuse those at run time,
+        // against a rate-limited budget; a parser refuses them here.
+        for (name, doc) in documents() {
+            if let Err(e) = graphql_parser::parse_query::<String>(&doc) {
+                panic!("{name} does not parse: {e}\n{doc}");
+            }
+        }
+    }
+
+    #[test]
+    fn every_list_query_carries_the_season_dates_and_source() {
+        for doc in [
+            search(),
+            search_filtered(),
+            by_ids(),
+            by_id(),
+            seasonal(),
+            airing_schedule(),
+            user_library(),
         ] {
+            for field in ["season\n", "startDate", "endDate", "source(version: 3)", "isAdult"] {
+                assert!(doc.contains(field), "{field} missing from:\n{doc}");
+            }
+            assert!(doc.contains("native"), "the native title is asked for");
+        }
+    }
+
+    #[test]
+    fn heavy_fields_stay_on_the_title_page() {
+        // Seventy tags, a cast and fifty broadcasts per title would multiply every list
+        // response for fields only the title page shows.
+        let detail = by_id();
+        for field in ["tags {", "characters(", "staff(", "rankings {", "upcoming:", "aired:"] {
+            assert!(detail.contains(field), "{field} missing from the title page");
+            for (name, doc) in [
+                ("search", search()),
+                ("search_filtered", search_filtered()),
+                ("by_ids", by_ids()),
+                ("seasonal", seasonal()),
+                ("airing_schedule", airing_schedule()),
+                ("user_library", user_library()),
+            ] {
+                assert!(!doc.contains(field), "{field} leaked into {name}");
+            }
+        }
+    }
+
+    #[test]
+    fn every_document_has_balanced_braces() {
+        // Cheap guard against an interpolation mistake producing a document that only
+        // fails at runtime, against a rate-limited API.
+        for (name, doc) in documents() {
             assert!(balanced(&doc), "{name} has unbalanced braces:\n{doc}");
         }
     }

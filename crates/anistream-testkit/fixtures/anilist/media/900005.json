@@ -12,6 +12,19 @@
   "episodes": 10,
   "duration": 18,
   "seasonYear": 2023,
+  "season": "SUMMER",
+  "startDate": {
+    "year": 2023,
+    "month": 7,
+    "day": 1
+  },
+  "endDate": {
+    "year": 2023,
+    "month": 9,
+    "day": 2
+  },
+  "source": "WEB_NOVEL",
+  "isAdult": false,
   "averageScore": 71,
   "genres": [
     "Sci-Fi",
@@ -40,5 +53,34 @@
   },
   "recommendations": {
     "nodes": []
+  },
+  "tags": [
+    {
+      "name": "Gardening",
+      "rank": 85,
+      "isMediaSpoiler": false,
+      "isGeneralSpoiler": false,
+      "category": "Theme-Slice of Life"
+    }
+  ],
+  "upcoming": {
+    "nodes": []
+  },
+  "aired": [],
+  "rankings": [],
+  "characters": {
+    "edges": []
+  },
+  "staff": {
+    "edges": [
+      {
+        "role": "Director",
+        "node": {
+          "name": {
+            "full": "Director of The Steel Gardener"
+          }
+        }
+      }
+    ]
   }
 }
