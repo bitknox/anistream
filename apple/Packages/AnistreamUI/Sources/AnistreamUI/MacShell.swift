@@ -66,6 +66,7 @@ struct MacShell: View {
         .sheet(isPresented: $navigator.messagesShown) {
             MessagesView()
         }
+        .modifier(AppSheets())
     }
 
     /// What the toolbar says under the section's name.
@@ -78,6 +79,8 @@ struct MacShell: View {
             return CalendarWords.range(weekDays(offset: navigator.calendarWeek))
         case .seasonal:
             return store.seasonName ?? ""
+        case .downloads:
+            return downloadsSubtitle(store)
         default:
             return ""
         }
@@ -99,8 +102,61 @@ struct SectionToolbar: ToolbarContent {
                     LibraryMenus()
                 }
             }
+        case .providers:
+            ToolbarItem(placement: .primaryAction) { ProvidersToolbar() }
+        case .pluginStores:
+            ToolbarItem(placement: .primaryAction) { StoresToolbar() }
+        case .downloads:
+            ToolbarItem(placement: .primaryAction) { DownloadsToolbar() }
         default:
             ToolbarItem(placement: .primaryAction) { EmptyView() }
+        }
+    }
+}
+
+/// Providers' toolbar: check the stores for plugin updates.
+struct ProvidersToolbar: View {
+    @Environment(AppStore.self) private var store
+
+    var body: some View {
+        Button("Check for Updates") { store.loadStores() }
+    }
+}
+
+/// Plugin Stores' toolbar: join another.
+struct StoresToolbar: View {
+    @Environment(Navigator.self) private var navigator
+
+    var body: some View {
+        Button {
+            navigator.invite = ""
+        } label: {
+            Label("Join Store…", systemImage: "plus").labelStyle(.titleAndIcon)
+        }
+    }
+}
+
+/// Downloads' toolbar: pause or resume everything, and the folder.
+struct DownloadsToolbar: View {
+    @Environment(AppStore.self) private var store
+
+    var body: some View {
+        let running = store.downloads.rows.contains { $0.state == .active || $0.state == .queued }
+        let paused = store.downloads.rows.contains { $0.state == .paused }
+        HStack(spacing: 8) {
+            if running || !paused {
+                Button("Pause All") { store.pauseAllDownloads() }
+                    .disabled(!running)
+            } else {
+                Button("Resume All") { store.resumeAllDownloads() }
+            }
+            Button {
+                let path = store.settings.row(.downloadDir)?.typedText ?? ""
+                if !path.isEmpty { NSWorkspace.shared.open(URL(fileURLWithPath: path)) }
+            } label: {
+                Label("Show in Finder", systemImage: "folder").labelStyle(.titleAndIcon)
+            }
+            .disabled((store.settings.row(.downloadDir)?.typedText ?? "").isEmpty)
         }
     }
 }
@@ -233,7 +289,9 @@ struct SectionView: View {
         case .search: SearchScreen()
         case .library: LibraryScreen()
         case .settings: SettingsScreen()
-        default: NotBuiltYet(section: section)
+        case .downloads: DownloadsScreen()
+        case .providers: ProvidersScreen()
+        case .pluginStores: PluginStoresScreen()
         }
     }
 }
