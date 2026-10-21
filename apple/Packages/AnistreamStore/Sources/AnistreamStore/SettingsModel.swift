@@ -40,13 +40,30 @@ public final class SettingsModel {
     }
 }
 
-/// Each tracker's sync state, the conflicts a pull found, and a device code being waited on.
+/// A sign-in the engine asked the system's sheet for (`Event::Authorize`): open `url` in it, and
+/// hand back the redirect it ends on, the one to `callbackScheme`.
+public struct SignInRequest: Hashable, Sendable {
+    public let tracker: String
+    public let url: URL
+    public let callbackScheme: String
+
+    public init(tracker: String, url: URL, callbackScheme: String) {
+        self.tracker = tracker
+        self.url = url
+        self.callbackScheme = callbackScheme
+    }
+}
+
+/// Each tracker's sync state, the conflicts a pull found, and a device code or a sign-in sheet
+/// being waited on.
 @Observable @MainActor
 public final class AccountsModel {
     /// Each tracker's state, by its name ("anilist"), in the order the engine first said them.
     public private(set) var trackers: [SyncState] = []
     public private(set) var conflicts: [ConflictRow] = []
     public private(set) var deviceCode: DeviceCodePrompt?
+    /// The sign-in the system's sheet is open for, AniList's or MyAnimeList's.
+    public private(set) var signIn: SignInRequest?
     /// Progress queued for sync since the trackers last said their outboxes.
     public private(set) var queued = 0
     /// Whether AniList is out of reach, as the metadata ladder last said: the app is showing
@@ -103,6 +120,15 @@ public final class AccountsModel {
 
     func deviceCode(_ prompt: DeviceCodePrompt?) {
         deviceCode = prompt
+    }
+
+    func authorize(_ request: SignInRequest) {
+        signIn = request
+    }
+
+    /// The sheet for `request` came back, or was closed.
+    func signInEnded(_ request: SignInRequest) {
+        if signIn == request { signIn = nil }
     }
 
     func metaStatus(_ rows: [MetaSourceRow]) {

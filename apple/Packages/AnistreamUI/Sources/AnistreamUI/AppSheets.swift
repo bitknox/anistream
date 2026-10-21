@@ -1,5 +1,5 @@
-// The sheets that can come up over any screen: a sign-in code to type elsewhere, and joining a
-// plugin store from an invite link the app was opened with.
+// The sheets that can come up over any screen: the system's sign-in sheet, a sign-in code to
+// type elsewhere, and joining a plugin store from an invite link the app was opened with.
 
 import AnistreamDesign
 import AnistreamKit
@@ -9,6 +9,7 @@ import SwiftUI
 struct AppSheets: ViewModifier {
     @Environment(AppStore.self) private var store
     @Environment(Navigator.self) private var navigator
+    @Environment(\.webSignIn) private var webSignIn
     /// The code the viewer closed, so it does not come straight back.
     @State private var closedCode: String?
 
@@ -38,6 +39,17 @@ struct AppSheets: ViewModifier {
             }
             .onOpenURL { url in
                 if let link = InviteLinks.invite(in: url) { navigator.invite = link }
+            }
+            // AniList's and MyAnimeList's sign-in, when the engine asks for it: the sheet comes
+            // back with the redirect, which goes straight to the engine, or was closed.
+            .task(id: store.accounts.signIn) {
+                guard let request = store.accounts.signIn else { return }
+                do {
+                    let callback = try await webSignIn.signIn(url: request.url, callbackScheme: request.callbackScheme)
+                    store.finishSignIn(request, callback: callback)
+                } catch {
+                    store.cancelSignIn(request)
+                }
             }
     }
 }

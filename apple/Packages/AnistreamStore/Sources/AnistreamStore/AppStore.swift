@@ -342,6 +342,13 @@ public final class AppStore {
             accounts.conflicts(rows)
         case .deviceCode(let prompt):
             accounts.deviceCode(prompt)
+        case .authorize(let tracker, let url, let callbackScheme):
+            if let url = URL(string: url) {
+                accounts.authorize(SignInRequest(tracker: tracker, url: url, callbackScheme: callbackScheme))
+            } else {
+                // Nothing a sheet could open: the sign-in ends here.
+                send(.cancelSignIn(tracker: tracker))
+            }
         case .metaStatus(let rows):
             accounts.metaStatus(rows)
             providers.meta(rows)

@@ -30,9 +30,23 @@ extension AppStore {
         accounts.started("sync", job: send(.syncNow))
     }
 
-    /// Start a tracker's own sign-in: a device code for Simkl and Trakt.
+    /// Start a tracker's own sign-in: the system's sheet for AniList and MyAnimeList, a device
+    /// code for Simkl and Trakt.
     public func connect(_ tracker: String) {
         accounts.started(tracker, job: send(.connect(tracker: tracker)))
+    }
+
+    /// The system's sheet came back from `request` with `callback`, the redirect that carries
+    /// the code or the token, so the engine finishes signing in. Never logged.
+    public func finishSignIn(_ request: SignInRequest, callback: URL) {
+        accounts.signInEnded(request)
+        send(.finishSignIn(tracker: request.tracker, callback: callback.absoluteString))
+    }
+
+    /// The system's sheet for `request` was closed without signing in.
+    public func cancelSignIn(_ request: SignInRequest) {
+        accounts.signInEnded(request)
+        send(.cancelSignIn(tracker: request.tracker))
     }
 
     public func connectKitsu(username: String, password: String) {

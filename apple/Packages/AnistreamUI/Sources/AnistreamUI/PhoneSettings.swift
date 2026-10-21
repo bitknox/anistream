@@ -627,11 +627,12 @@ struct PhoneAccountsPage: View {
                         .foregroundStyle(.silk)
                         .listRowBackground(Palette.raised)
                 } else {
-                    // E6: AniList's sign-in in the app.
                     HStack {
-                        PhoneRowTitle(title: "AniList", note: "Signing in here comes in a later build.")
+                        PhoneRowTitle(title: "AniList", note: "Brings in your lists and fills Continue with what you are watching.")
                         Spacer()
-                        Button("Sign in") {}.buttonStyle(SecondaryCapsuleStyle(height: 30, raisedSurface: true, fontSize: 15)).disabled(true)
+                        Button("Sign in") { store.connect("anilist") }
+                            .buttonStyle(SecondaryCapsuleStyle(height: 30, raisedSurface: true, fontSize: 15))
+                            .disabled(store.accounts.isWorking("anilist"))
                     }
                     .listRowBackground(Palette.raised)
                 }
@@ -675,11 +676,10 @@ struct PhoneTrackerRow: View {
                 } else {
                     switch tracker {
                     case "kitsu": Button("Sign in") { kitsu = true }
-                    case "simkl", "trakt":
-                        Button("Sign in") { store.connect(tracker) }.disabled(store.accounts.isWorking(tracker))
                     default:
-                        // E6: MyAnimeList's browser sign-in.
-                        Button("Sign in") {}.disabled(true)
+                        // MyAnimeList through the system's sign-in sheet, Simkl and Trakt with a
+                        // code to type on another device.
+                        Button("Sign in") { store.connect(tracker) }.disabled(store.accounts.isWorking(tracker))
                     }
                 }
             }

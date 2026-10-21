@@ -1,6 +1,6 @@
 // Signing in to the trackers that do not go through the browser, the codes Simkl and Trakt ask
 // for, and settling what a library pull found different. Also the browser sign-in AniList and
-// MyAnimeList will use, behind a protocol until the engine asks for it (E6).
+// MyAnimeList use, behind a protocol, which the engine asks for with `Event::Authorize`.
 
 import AnistreamDesign
 import AnistreamKit
@@ -192,8 +192,8 @@ struct DeviceCodeItem: Identifiable {
 // MARK: - Browser sign-in
 
 /// A sign-in that goes through the browser and comes back to the app: AniList's implicit grant
-/// and MyAnimeList's PKCE, once the engine asks for them with `Event::Authorize` (E6) and takes
-/// the answer with `Command::FinishSignIn`. Until then no screen starts one.
+/// and MyAnimeList's PKCE. The engine asks for one with `Event::Authorize` and takes the answer
+/// with `Command::FinishSignIn`; `AppSheets` runs it.
 public protocol WebSignIn: Sendable {
     /// Open `url` and return the URL the provider sent back to `callbackScheme`.
     @MainActor

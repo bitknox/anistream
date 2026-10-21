@@ -426,11 +426,10 @@ struct AccountsPane: View {
                     }
                 }
             } else {
-                // E6: AniList's sign-in in the app comes with native sign-in.
-                SettingsRow(title: "AniList", note: "Signing in here comes in a later build.") {
-                    Button("Sign In…") {}
+                SettingsRow(title: "AniList", note: "Brings in your lists and fills Continue with what you are watching.") {
+                    Button("Sign In…") { store.connect("anilist") }
                         .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-                        .disabled(true)
+                        .disabled(store.accounts.isWorking("anilist"))
                 }
             }
         }
@@ -508,14 +507,11 @@ struct TrackerRow: View {
                     switch tracker {
                     case "kitsu":
                         Button("Sign In…") { sheet = .kitsu }
-                    case "simkl", "trakt":
+                    default:
+                        // MyAnimeList through the system's sign-in sheet, Simkl and Trakt with a
+                        // code to type on another device.
                         Button("Sign In…") { store.connect(tracker) }
                             .disabled(store.accounts.isWorking(tracker))
-                    default:
-                        // E6: MyAnimeList signs in through the browser, with native sign-in.
-                        Button("Sign In…") {}
-                            .disabled(true)
-                            .help("Comes with engine step E6")
                     }
                 }
             }

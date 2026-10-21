@@ -4,6 +4,7 @@
 
 @testable import AnistreamStore
 import AnistreamKit
+import Foundation
 import Testing
 
 @MainActor
@@ -47,5 +48,22 @@ struct AskingTests {
         store.loadEpisodes(900_005)
         #expect(!store.loadStills(900_005), "the episodes are on their way")
         #expect(store.sentLog == ["loadEpisodes"])
+    }
+
+    @Test func theSystemsSignInSheetOpensWhenTheEngineAsksAndItsAnswerGoesBack() throws {
+        let store = AppStore()
+        store.apply(.authorize(tracker: "anilist", url: "https://anilist.co/api/v2/oauth/authorize?client_id=1",
+                               callbackScheme: "anistream"))
+        let request = try #require(store.accounts.signIn)
+        #expect(request.tracker == "anilist" && request.callbackScheme == "anistream")
+        store.finishSignIn(request, callback: URL(string: "anistream://auth/anilist#access_token=x")!)
+        #expect(store.accounts.signIn == nil)
+        #expect(store.sentLog == ["finishSignIn"])
+
+        store.apply(.authorize(tracker: "mal", url: "https://myanimelist.net/v1/oauth2/authorize?code_challenge=c",
+                               callbackScheme: "anistream"))
+        store.cancelSignIn(try #require(store.accounts.signIn))
+        #expect(store.accounts.signIn == nil)
+        #expect(store.sentLog == ["finishSignIn", "cancelSignIn"])
     }
 }
