@@ -4,4 +4,4 @@
 /.media/
 /.cache/
 /iOS/*.xcodeproj/
-/iOS/build/
+/iOS/build*/

@@ -17,6 +17,11 @@ public enum Snapshot {
     /// Returns the picture's size in pixels.
     @discardableResult
     public static func save(_ mpv: MPVClient, to path: String, flags: String = "window") throws -> (Int, Int) {
+        #if targetEnvironment(simulator)
+        // libplacebo reads the frame back through a host-pointer buffer, and the Simulator's
+        // Metal (MTLSimDevice) traps on that: the app dies. Use `xcrun simctl io … screenshot`.
+        throw Failure(description: "mpv screenshots crash the iOS Simulator; use simctl io screenshot")
+        #endif
         let (status, raw) = mpv.commandResult(["screenshot-raw", flags, "rgba"])
         guard status >= 0 else { throw Failure(description: "screenshot-raw failed (\(status))") }
         guard let w = raw["w"].int, let h = raw["h"].int, let stride = raw["stride"].int,

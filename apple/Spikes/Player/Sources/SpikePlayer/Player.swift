@@ -77,8 +77,9 @@ public final class Player {
             try mpv.setOption("keep-open", "yes")
             try mpv.setOption("idle", "yes")
             try mpv.setOption("input-default-bindings", "no")
-            try mpv.setOption("ytdl", "no")
             try mpv.setOption("embeddedfonts", "yes")
+            // Only where mpv was built with Lua (MPVKit's macOS slice, not iOS).
+            try? mpv.setOption("ytdl", "no")
             if let dir = options.cacheDir {
                 try mpv.setOption("gpu-shader-cache-dir", dir)
                 try mpv.setOption("icc-cache-dir", dir)

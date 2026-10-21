@@ -98,6 +98,7 @@ public final class PlayerUIView: UIView {
     public override class var layerClass: AnyClass { MPVMetalLayer.self }
     public var metalLayer: MPVMetalLayer { layer as! MPVMetalLayer }
     public var onDrawableSize: ((CGSize) -> Void)?
+    public var onScreen: ((UIScreen?) -> Void)?
 
     public override init(frame: CGRect) {
         super.init(frame: frame)
@@ -107,9 +108,14 @@ public final class PlayerUIView: UIView {
 
     required init?(coder: NSCoder) { fatalError("not used") }
 
+    public override func didMoveToWindow() {
+        super.didMoveToWindow()
+        onScreen?(window?.windowScene?.screen)
+    }
+
     public override func layoutSubviews() {
         super.layoutSubviews()
-        let scale = window?.screen.nativeScale ?? traitCollection.displayScale
+        let scale = window?.windowScene?.screen.nativeScale ?? traitCollection.displayScale
         metalLayer.contentsScale = scale
         let size = CGSize(width: (bounds.width * scale).rounded(), height: (bounds.height * scale).rounded())
         metalLayer.drawableSize = size
@@ -126,6 +132,7 @@ public struct PlayerSurface: UIViewRepresentable {
     public func makeUIView(context: Context) -> PlayerUIView {
         let view = PlayerUIView(frame: .zero)
         view.onDrawableSize = { [player] size in player.drawableSizeChanged(size) }
+        view.onScreen = { [player] screen in player.screenChanged(screen) }
         player.attach(view.metalLayer)
         return view
     }
