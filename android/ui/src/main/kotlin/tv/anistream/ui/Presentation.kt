@@ -123,6 +123,26 @@ fun Entry.listedEpisodes(rows: List<EpisodeRow>, now: Long = AppClock.now().epoc
 }
 
 /**
+ * The watched episodes a title page folds away, so its list starts at the last one watched: the
+ * episodes before it, while every one of them is watched. In [columns] of two, an even number,
+ * so the last watched keeps its place in its pair. None when fewer than two would fold.
+ */
+fun Entry.foldedEpisodes(rows: List<EpisodeRow>, columns: Int = 1): List<EpisodeRow> {
+    val next = progress?.next ?: return emptyList()
+    if (next <= 1u) return emptyList()
+    val last = rows.indexOfFirst { it.number == (next - 1u).toString() }.takeIf { it >= 0 }
+        ?: rows.indexOfLast { it.completed }
+    if (last <= 0) return emptyList()
+    var folded = rows.take(last).takeWhile { it.completed }.size
+    if (columns == 2 && folded % 2 == 1) folded -= 1
+    return if (folded < 2) emptyList() else rows.take(folded)
+}
+
+/** The folded episodes' row: "Episodes 1–5 watched". */
+fun watchedRangeWords(folded: List<EpisodeRow>): String =
+    "Episodes ${folded.first().number}\u2013${folded.last().number} watched"
+
+/**
  * A title's seasons, from AniList's relations in watch order, and what else it has: films, OVAs
  * and specials.
  */
