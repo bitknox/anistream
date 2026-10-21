@@ -10,7 +10,10 @@ use anistream_engine::{
 use anistream_meta::Meta;
 use anistream_net::HttpClient;
 use anistream_testkit::FakeAniList;
-use anistream_track::secret::{Backend, TokenStore};
+use anistream_track::{
+    AniListTracker,
+    secret::{Backend, TokenStore},
+};
 
 use crate::{
     engine::{FfiEngine, Opened, runtime},
@@ -78,7 +81,17 @@ pub(crate) fn options(
         store.clone(),
     );
     let tokens = TokenStore::with_backend(paths.data_dir.join("tokens"), Backend::File);
-    let sync = tracking::Sync::with_tokens(&config, &store, &http, tokens.clone());
+    let mut sync = tracking::Sync::with_tokens(&config, &store, &http, tokens.clone());
+    // Signed in, as a scene can leave it: the tracker asks the fake rather than AniList itself,
+    // as the terminal's test harness builds it, so the Library is the fake's.
+    if let Ok(token) = tokens.get("anilist")
+        && let Some(at) = sync.trackers.iter().position(|t| t.id() == "anilist")
+    {
+        let tracker =
+            Arc::new(AniListTracker::new(server.anilist(&http).with_token(Some(token))));
+        sync.trackers[at] = tracker.clone();
+        sync.anilist = Some(tracker);
+    }
     let stores = plugin_stores::Stores::with_tokens(&config, &paths, tokens)
         .map_err(|reason| FfiError::Engine { reason })?;
 

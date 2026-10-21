@@ -216,3 +216,34 @@ fn a_fixture_cover_arrives_as_an_image() {
     assert_eq!(url, &cover);
     assert!(bytes.starts_with(b"\x89PNG\r\n\x1a\n"), "a PNG");
 }
+
+#[test]
+fn the_watching_scene_is_signed_in_and_its_library_is_the_fakes() {
+    let root = tempfile::tempdir().expect("a temporary directory");
+    let dir = |name: &str| root.path().join(name).display().to_string();
+    let dirs = FfiDirs { config: dir("config"), data: dir("data"), cache: dir("cache") };
+    let engine = FfiEngine::start_scene(
+        dirs,
+        Arc::new(Quiet),
+        anistream_ffi::FfiScene::Watching,
+        anistream_ffi::FfiStart::default(),
+    )
+    .expect("the engine starts");
+
+    let job = engine
+        .send(Command::LoadLibrary(anistream_model::catalog::LibrarySegment::Watching))
+        .expect("a library load is work someone waits on");
+    let read = read_until(&engine, ends(job));
+    let watching = read.iter().find_map(|event| match event {
+        Event::Content {
+            view: ContentFor::Library(_),
+            content: ContentList::Entries(rows),
+        } => Some(rows.iter().map(|row| row.id.get()).collect::<Vec<_>>()),
+        _ => None,
+    });
+    assert_eq!(watching, Some(vec![900_002]), "{read:?}");
+    let signed_in = read.iter().any(|event| {
+        matches!(event, Event::Sync(state) if state.tracker == "anilist" && state.connected)
+    });
+    assert!(signed_in, "AniList says it is signed in: {read:?}");
+}

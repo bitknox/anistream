@@ -13,6 +13,7 @@ use anistream_testkit::{
     fixtures::{AIRING, AIRING_NO_MAL, FINISHED, ONA},
     seed,
 };
+use anistream_track::secret::{Backend, TokenStore};
 
 use crate::{
     engine::{FfiEngine, Opened, runtime},
@@ -26,7 +27,8 @@ use crate::{
 pub enum FfiScene {
     /// Nothing: a first launch, as [`FfiEngine::start_testing`] starts.
     Fresh,
-    /// Four titles under way, newest first, as Continue shows them:
+    /// Signed in to the fake AniList, whose library then fills the Library, and four titles
+    /// under way, newest first, as Continue shows them:
     ///
     /// - Hoshikuzu no Tabibito, episodes 1 to 6 watched and episode 7 left at 10:06 of 24:00;
     /// - Hagane no Niwashi, episode 1 watched and episode 2 left at 13:30 of 18:00;
@@ -50,9 +52,18 @@ impl FfiEngine {
         scene: FfiScene,
         start: FfiStart,
     ) -> Result<Arc<Self>, FfiError> {
+        if scene == FfiScene::Watching {
+            sign_in_config(&dirs)?;
+        }
         let opened = Opened::open(&dirs)?;
         let now = now();
         seed_scene(&opened.store, scene, now);
+        if scene == FfiScene::Watching {
+            // Where the testing engine keeps tokens: files under the data directory.
+            TokenStore::with_backend(opened.paths.data_dir.join("tokens"), Backend::File)
+                .set("anilist", "fixture-anilist-token")
+                .map_err(|e| FfiError::Engine { reason: e.to_string() })?;
+        }
         let host = Adapter::new(host, SecretsMode::Host, &opened.config, &opened.paths);
         let runtime = runtime()?;
         let started = runtime.block_on(async {
@@ -66,6 +77,23 @@ impl FfiEngine {
             Err(e) => Self::hold(runtime, Err(e), None),
         }
     }
+}
+
+/// A config with AniList enabled, as a signed-in user's has it: the fixtures' client, and tokens
+/// in files. Left alone when there is a config already.
+fn sign_in_config(dirs: &FfiDirs) -> Result<(), FfiError> {
+    let file = std::path::Path::new(&dirs.config).join("config.toml");
+    if file.exists() {
+        return Ok(());
+    }
+    let written = std::fs::create_dir_all(&dirs.config).and_then(|()| {
+        std::fs::write(
+            &file,
+            "[trackers]\nenabled = [\"anilist\"]\ntoken_storage = \"file\"\n\n\
+             [trackers.anilist]\nclient_id = \"fixture\"\nclient_secret = \"fixture\"\n",
+        )
+    });
+    written.map_err(|e| FfiError::Config { reason: format!("{}: {e}", file.display()) })
 }
 
 /// Seconds since the epoch, now.
