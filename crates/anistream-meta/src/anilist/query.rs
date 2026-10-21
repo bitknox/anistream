@@ -57,7 +57,7 @@ pub const MEDIA_DETAIL_FIELDS: &str = r"
 
 /// What a related or recommended title is shown with: enough for a card, and no more.
 const LINKED_FIELDS: &str = r"
-    id title { romaji english native } format coverImage { large } season seasonYear
+    id title { romaji english native } format coverImage { large color } season seasonYear
 ";
 
 pub fn search() -> String {
