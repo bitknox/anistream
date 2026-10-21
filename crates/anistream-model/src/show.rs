@@ -26,9 +26,11 @@ pub enum ShowSettingKey {
     SkipOpening,
     SkipFiller,
     SpoilerProtection,
-    /// Whether the show's new episodes are notified of: on for every show while
-    /// [`SettingKey::EpisodeNotifications`] is on, and off for one that turns it off. A show
-    /// turning it on does not turn on the setting: with that off, nothing is notified of.
+    /// Whether the show's new episodes are notified of, while
+    /// [`SettingKey::EpisodeNotifications`] is on. Following Settings, a show is notified of when
+    /// it is being watched: on the list as watching or rewatching, or watched here lately. Turned
+    /// off, it is not; turned on, it is whatever the list says of it, a show only planned among
+    /// them. It does not turn on the setting: with that off, nothing is notified of.
     NotifyNewEpisodes,
 }
 

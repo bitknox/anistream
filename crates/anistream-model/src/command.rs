@@ -417,11 +417,12 @@ pub enum Command {
     /// answered with exactly one [`Event::NewEpisodes`], empty when there is nothing new, with
     /// notifications off, or when AniList could not be asked. Never with a job.
     ///
-    /// The shows followed are those on the signed-in tracker's list as watching, rewatching or
-    /// planning, as its last pull left the list here, and those watched here in the last 30
-    /// days, unless the list has them as dropped or paused. A show that turns
-    /// [`ShowSettingKey::NotifyNewEpisodes`] off is left out, and all of them are while
-    /// [`SettingKey::EpisodeNotifications`] is off.
+    /// The shows followed are those on the signed-in tracker's list as watching or rewatching,
+    /// as its last pull left the list here, and those watched here in the last 30 days, unless
+    /// the list has them as dropped or paused. A show planned is not, unless it turns
+    /// [`ShowSettingKey::NotifyNewEpisodes`] on for itself, which takes in any show; one that
+    /// turns it off is left out. All of them are while [`SettingKey::EpisodeNotifications`] is
+    /// off.
     ///
     /// Each episode is said once, and only one that aired after its show was first followed:
     /// the first check after notifications are turned on, or after a show is first followed,
