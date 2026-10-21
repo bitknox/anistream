@@ -102,12 +102,11 @@ private fun ShowSettingsContent(entry: Entry, view: ShowSettingsView?) {
             current = audio?.let { SettingValue.Str(if (translation == Translation.DUB) "dub" else "sub") },
             enabled = audio != null,
         ) { set(ShowSettingKey.TRANSLATION, it) }
-        // The player remembers these as they are chosen while watching; nothing here sets them.
-        val remembered = view?.remembered?.firstOrNull { it.translation == translation }
-        InfoRow("Subtitles", remembered?.subtitles?.let(::subtitleWords) ?: "Use default")
-        SheetNote("Remembered from your last episode.")
+        val remembered = view?.remembered?.firstOrNull { it.translation == translation }?.subtitles
+        SubtitlesRow(view, remembered)
+        SheetNote(if (remembered != null) "Remembered from your last episode." else "Following Settings › Playback.")
 
-        SheetDivider()
+        SheetHeading("Episodes")
         SwitchChoiceRow("Skip opening", row(ShowSettingKey.SKIP_OPENING), "On", "Off") { set(ShowSettingKey.SKIP_OPENING, it) }
         SwitchChoiceRow("Skip filler", row(ShowSettingKey.SKIP_FILLER), "On", "Off") { set(ShowSettingKey.SKIP_FILLER, it) }
         SwitchChoiceRow("Spoiler protection", row(ShowSettingKey.SPOILER_PROTECTION), "Always", "Never") {
@@ -130,6 +129,38 @@ private fun ShowSettingsContent(entry: Entry, view: ShowSettingsView?) {
         ) {
             Text("Reset to defaults", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold))
             Text("Also clears the remembered audio and subtitles.", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+        }
+    }
+}
+
+/**
+ * The show's subtitles: Settings' language, or what the player remembers for the show, one
+ * choice for each audio it was watched in, the one for the audio in effect checked.
+ */
+@Composable
+private fun SubtitlesRow(view: ShowSettingsView?, remembered: RememberedSubtitles?) {
+    val store = LocalAppStore.current
+    val snackbars = LocalSnackbars.current
+    val settings by store.settings.view.collectAsStateWithLifecycle()
+    val language = store.settings.row(tv.anistream.engine.model.SettingKey.SUBTITLES, settings)?.value
+        ?.let(::languageName)
+    val default = listOfNotNull("Use default", language).joinToString(" · ")
+    val choices = listOf(Choice(null, default)) +
+        view?.remembered.orEmpty().mapNotNull { it.subtitles }.distinct().map { Choice(SettingValue.Str(subtitleWords(it)), subtitleWords(it)) }
+    ChoiceRow(
+        title = "Subtitles",
+        value = remembered?.let(::subtitleWords) ?: default,
+        choices = choices,
+        current = remembered?.let { SettingValue.Str(subtitleWords(it)) },
+        enabled = view != null,
+        currentIsDefault = remembered == null,
+    ) { picked ->
+        val now = remembered?.let { SettingValue.Str(subtitleWords(it)) }
+        if (picked != now) {
+            // TODO(engine): no command sets or forgets a show's remembered subtitles outside the
+            // player (`ChooseTrack` while it plays, `ResetShowSettings` for everything). Until
+            // one does, a pick here says where the choice is made.
+            snackbars.show("Subtitles are chosen in the player, and the show remembers them.")
         }
     }
 }
@@ -239,18 +270,6 @@ private fun ChoiceRow(
                 )
             }
         }
-    }
-}
-
-/** A row that only says what is in effect. */
-@Composable
-private fun InfoRow(title: String, value: String) {
-    Column(
-        Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(horizontal = 16.dp, vertical = 12.dp).semantics(mergeDescendants = true) {},
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(title, style = MaterialTheme.typography.bodyLarge)
-        Text(value, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

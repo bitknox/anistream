@@ -175,6 +175,10 @@ internal fun DownloadsScreen() {
             groups.forEachIndexed { index, group ->
                 if (index > 0) item(key = "rule-${group.id}") { HorizontalDivider(Modifier.padding(vertical = 8.dp), color = colors.outlineVariant) }
                 item(key = "title-${group.id}") { GroupHeader(group, titles[group.id]) }
+                // TODO(engine): AndroidDownloads puts the show's own "Keep next 3 episodes ·
+                // Higher quality" row here, with a switch, under its title. Keep next and the
+                // download quality are Settings-wide; the row waits on per-show settings for both
+                // (`ShowSettingKey` has neither yet).
                 items(group.rows, key = { "row-${it.id}" }) { row ->
                     DownloadItem(row, episodes[row.anilistId]?.firstOrNull { it.number == row.episode })
                 }
@@ -182,7 +186,7 @@ internal fun DownloadsScreen() {
             if (seeding.isNotEmpty()) {
                 item(key = "seeding") {
                     if (groups.isNotEmpty()) HorizontalDivider(Modifier.padding(vertical = 8.dp), color = colors.outlineVariant)
-                    SettingsHeader("Seeding", Modifier.padding(start = 0.dp))
+                    SettingsHeader("Seeding after watching", Modifier.padding(start = 0.dp))
                 }
                 items(seeding, key = { "seed-${it.name}" }) { SeedItem(it) }
                 item(key = "seeding-note") { SettingsFootnote("Watched episodes seed while anistream is open, until the ratio or the time limit set in Sources.") }
