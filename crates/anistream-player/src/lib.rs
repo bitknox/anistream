@@ -8,6 +8,7 @@
 
 pub mod bundle;
 pub mod companion;
+mod event;
 pub mod external;
 pub mod ipc;
 pub mod mpv;
