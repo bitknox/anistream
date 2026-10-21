@@ -5,6 +5,8 @@
 import AnistreamKit
 import Foundation
 
+#if FIXTURES
+
 /// What a screenshot can ask the Fixtures app to show beside the testing engine's own data, with
 /// `-AnistreamShowcase <name>`: `sources`, `stores`, `downloads`, `invite`, or `all`.
 public enum Showcase: String, CaseIterable, Sendable {
@@ -132,6 +134,8 @@ public enum Showcase: String, CaseIterable, Sendable {
         return view
     }
 }
+
+#endif
 
 extension Event {
     /// The kind of event, as a showcase sets the engine's own aside by.

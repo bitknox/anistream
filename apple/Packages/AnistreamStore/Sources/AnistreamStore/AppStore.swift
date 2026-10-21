@@ -69,7 +69,9 @@ public final class AppStore {
     /// Start the engine `launch` describes with `host`, off the main thread, and read its events.
     public func start(_ launch: EngineLaunch, host: any FfiHost) async {
         phase = .starting
+        #if FIXTURES
         if case .fixtures = launch.engine { testing = true }
+        #endif
         do {
             let engine = try await Task.detached(priority: .userInitiated) {
                 try launch.start(host: host)
@@ -180,11 +182,13 @@ public final class AppStore {
     /// Show the invented rows the launch arguments ask for, on the testing engine only, and keep
     /// the engine's own of those kinds off screen from then on. For screenshots.
     public func applyShowcase(arguments: [String] = ProcessInfo.processInfo.arguments) {
+        #if FIXTURES
         guard testing, let showcase = Showcase.from(arguments: arguments) else { return }
         let (events, held) = showcase.events(settings: settings.view)
         self.held = []
         for event in events { apply(event) }
         self.held = held
+        #endif
     }
 
     // MARK: Settling
