@@ -36,18 +36,46 @@ pub fn load_title_language(services: &Services, tx: &Outbox) {
 
 /// Sign in to a tracker, off the UI thread: it opens a browser and waits.
 pub fn connect(tracker: String, job: Option<JobGuard>, services: &Services, tx: &Outbox) {
-    let Services { sync, host, meta, .. } = services;
-    let (sync, host, meta, tx) = (sync.clone(), host.clone(), meta.clone(), tx.clone());
+    let Services { sync, host, app_clients, meta, .. } = services;
+    let (sync, host, clients, meta, tx) =
+        (sync.clone(), host.clone(), app_clients.clone(), meta.clone(), tx.clone());
     tokio::spawn(async move {
         let _job = job;
         let anilist = tracker == "anilist";
-        tracking::connect(sync.clone(), host, tracker, tx.clone()).await;
+        tracking::connect(sync.clone(), host, clients, tracker, tx.clone()).await;
         // Signed in to AniList: titles are named as this account reads them, when the setting
         // follows AniList.
         if anilist {
             crate::title_language::follow(&meta, sync.anilist.as_deref(), &tx).await;
         }
     });
+}
+
+/// Finish a native app's sign-in with the redirect its sheet came back with.
+pub fn finish_sign_in(
+    tracker: String,
+    callback: Secret,
+    job: Option<JobGuard>,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { sync, app_clients, meta, .. } = services;
+    let (sync, clients, meta, tx) =
+        (sync.clone(), app_clients.clone(), meta.clone(), tx.clone());
+    tokio::spawn(async move {
+        let _job = job;
+        let anilist = tracker == "anilist";
+        tracking::native::finish(sync.clone(), clients, tracker, callback.0, tx.clone()).await;
+        // As for a sign-in the engine opened itself: titles follow the account now signed in.
+        if anilist {
+            crate::title_language::follow(&meta, sync.anilist.as_deref(), &tx).await;
+        }
+    });
+}
+
+/// A native app's sign-in sheet was closed without signing in.
+pub fn cancel_sign_in(tracker: String, services: &Services) {
+    tracking::native::cancel(&services.sync, &tracker);
 }
 
 /// Sign in to Kitsu with a username and password.
