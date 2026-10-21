@@ -22,6 +22,14 @@
 # build was made from. With --check, nothing is built at all: it says whether the build is current,
 # and fails when it is not, which is what Gradle's preBuild runs.
 #
+# Every build is kept in a cache every worktree shares, by what it was made from: the sources'
+# hash, the flavour, the profile, the ABI and this machine's OS and architecture, under
+# $ANISTREAM_ENGINE_CACHE, ~/.cache/anistream-engine unless it says otherwise. A worktree whose
+# sources some other worktree has built already copies that build in and runs no cargo at all,
+# which is most app work, since it rarely changes crates/. An entry is written whole and then
+# renamed into place, so two builds at once never leave half of one, and entries unused for 14
+# days are removed. It says "engine: reused <hash>" or "engine: built <hash>".
+#
 # The arm64 library needs the NDK (the newest under $ANDROID_HOME/ndk, or $ANDROID_NDK_HOME).
 # Without one the host library and the bindings are still built, so Gradle and the unit tests run,
 # and the APK has no engine in it; the stamp says so, and once an NDK is there the build is no
@@ -130,6 +138,31 @@ if (( check )); then
   exit 1
 fi
 
+# The shared cache's entry for these sources, and whether some worktree has built it already.
+cache="${ANISTREAM_ENGINE_CACHE:-$HOME/.cache/anistream-engine}/android"
+machine="$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)"
+entry="$cache/$flavour/$profile/$abis-$machine/$hash"
+
+# Entries, and the leftovers of a store that was cut off, unused for 14 days.
+prune_cache() {
+  [[ -d "$cache" ]] || return 0
+  find "$cache" -mindepth 4 -maxdepth 4 -mtime +14 -prune -exec rm -rf {} + 2>/dev/null || true
+}
+
+if [[ -f "$entry/stamp" && -d "$entry/kotlin" && -d "$entry/host" ]]; then
+  stage="$out.partial"
+  rm -rf "$stage"
+  cp -R "$entry" "$stage"
+  rm -rf "$out"
+  mv "$stage" "$out"
+  # Used now, so kept another 14 days.
+  touch "$entry"
+  prune_cache
+  echo "engine: reused $hash"
+  echo "engine.sh: wrote $out, from $entry"
+  exit 0
+fi
+
 # Cargo in a clean environment. Run from Gradle or Android Studio, the environment holds their
 # JAVA_HOME, their own variables and whatever the IDE was started with; the cc and cmake builds
 # beneath BoringSSL, SQLite and the rest read such things. So only PATH, HOME, rustup's and cargo's
@@ -218,4 +251,15 @@ fi
 
 rm -rf "$out"
 mv "$stage" "$out"
+
+# Kept for every worktree: written beside its place, then renamed into it, which a reader sees
+# whole or not at all. When another build stored the same sources first, the rename fails on its
+# entry and this copy goes.
+mkdir -p "$(dirname "$entry")"
+copy="$(mktemp -d "$(dirname "$entry")/.partial-$hash.XXXXXX")"
+chmod 755 "$copy"
+cp -R "$out/." "$copy/"
+perl -e 'rename($ARGV[0], $ARGV[1]) or exit 1' "$copy" "$entry" 2>/dev/null || rm -rf "$copy"
+prune_cache
+echo "engine: built $hash"
 echo "engine.sh: wrote $out"
