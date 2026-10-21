@@ -115,6 +115,14 @@ private fun ImmersiveSheet() {
 }
 
 private fun LazyListScope.tracks(model: PlayerModel) {
+    item(key = "title") {
+        Text(
+            "Subtitles, audio and picture",
+            style = MaterialTheme.typography.titleLarge,
+            color = ObiSilk.Silk,
+            modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 8.dp),
+        )
+    }
     heading("Subtitles")
     item(key = "sub-off") { Choice("Off", checked = model.subtitleTrack == null) { model.selectSubtitle(null) } }
     items(model.subtitleTracks, key = { "sub-${it.id}" }) { track ->

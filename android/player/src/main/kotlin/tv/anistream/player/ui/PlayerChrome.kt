@@ -130,7 +130,7 @@ private fun TopBar(model: PlayerModel, onClose: () -> Unit, onTracks: () -> Unit
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        ControlButton(PlayerIcons.Subtitles, "Subtitles and audio", onClick = onTracks)
+        ControlButton(PlayerIcons.Subtitles, "Subtitles, audio and picture", onClick = onTracks)
         ControlButton(PlayerIcons.Episodes, "Episodes", onClick = onEpisodes)
     }
 }

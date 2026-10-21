@@ -34,8 +34,8 @@ object PlayerTiming {
     /** The resume note stays for this many seconds of playback. */
     const val RESUME_PLAYBACK = 6.0
 
-    /** Buffering shows the spinner from here. */
-    const val SPINNER_AFTER = 1_000L
+    /** Waiting for data mid-episode shows the buffering line along the video's top edge from here. */
+    const val BUFFERING_AFTER = 1_000L
 
     /** The starting screen admits the wait from here. */
     const val STARTING_WAITS = 3_000L

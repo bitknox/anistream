@@ -553,6 +553,35 @@ class ViewerTest {
     }
 
     @Test
+    fun theBufferingLineShowsAfterASecondOfWaitingAndGoesWithIt() = runTest {
+        val rig = Rig(this)
+        rig.opened()
+        rig.emit(MpvEvent.of(MpvNative.Event.PLAYBACK_RESTART))
+        rig.emit(MpvEvent.property("paused-for-cache", MpvValue.Flag(true)))
+        advanceTimeBy(900)
+        assertFalse("not before a second", rig.model.showsBuffering)
+        advanceTimeBy(400)
+        assertTrue(rig.model.showsBuffering)
+        rig.emit(MpvEvent.property("paused-for-cache", MpvValue.Flag(false)))
+        assertFalse("gone the moment it plays on", rig.model.showsBuffering)
+        // The engine's stall says it too, whatever mpv's cache says now.
+        rig.ui(1u, PlayerUi.Stall(8u))
+        assertTrue(rig.model.showsBuffering)
+        rig.ui(1u, PlayerUi.StallCleared)
+        assertFalse(rig.model.showsBuffering)
+    }
+
+    @Test
+    fun theStartingScreenSaysItsOwnWait() = runTest {
+        val rig = Rig(this)
+        rig.ui(1u, PlayerUi.Starting(900_001u, "Stardust Wayfarer", "7", null, null, null))
+        rig.opened()
+        rig.emit(MpvEvent.property("paused-for-cache", MpvValue.Flag(true)))
+        advanceTimeBy(2_000)
+        assertFalse(rig.model.showsBuffering)
+    }
+
+    @Test
     fun theControlsHideAfterThreeSecondsUnlessHeld() = runTest {
         val rig = Rig(this)
         rig.opened()

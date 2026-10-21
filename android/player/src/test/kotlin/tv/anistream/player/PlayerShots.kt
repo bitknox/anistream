@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -49,6 +50,9 @@ class PlayerShots {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
+    /** The model's clock, held where a shot puts it. */
+    private var time = 0L
+
     @After
     fun tearDown() = scope.cancel()
 
@@ -72,6 +76,16 @@ class PlayerShots {
         model.hideControls()
     }
 
+    /** Waiting for data mid-episode, the controls hidden: the buffering line along the video's top edge. */
+    @Test
+    fun phone_player_buffering() = shoot("phone-player-buffering") { model, mpv ->
+        mpv.emit(MpvEvent.property("time-pos", MpvValue.Real(612.0)))
+        mpv.emit(MpvEvent.property("paused-for-cache", MpvValue.Flag(true)))
+        time = 1_500
+        model.hideControls()
+        check(model.showsBuffering) { "the shot is of a buffering player" }
+    }
+
     /** The starting screen (T2): the banner art under the dim, the indicator and its line, before the first frame. */
     @Test
     fun phone_player_starting() = shoot("phone-player-starting", picture = false) { model, _ ->
@@ -87,7 +101,7 @@ class PlayerShots {
         val store = AppStore(scope, clock = { 0L }, artworkWithoutEngine = FixtureArt::bytes)
         var mpv: ScriptedMpv? = null
         // The clock held, so the controls stay up for the shot as after a tap.
-        val model = PlayerModel(send = {}, backend = { ScriptedMpv().also { mpv = it } }, scope = scope, now = { 0L }, hwdec = "no")
+        val model = PlayerModel(send = {}, backend = { ScriptedMpv().also { mpv = it } }, scope = scope, now = { time }, hwdec = "no")
         compose.runOnUiThread {
             model.apply(Event.PlaybackStaged(900_001u, TITLE, "7", EPISODE, 1.0))
             model.apply(Event.PlayerOps(1u, listOf(PlayerOp.Open(true, null, null), PlayerOp.Load("/media/episode.mkv", emptyList()))))
@@ -98,7 +112,8 @@ class PlayerShots {
         val still = android.graphics.BitmapFactory.decodeByteArray(art, 0, art.size).asImageBitmap()
         compose.setContent {
             AnistreamTheme {
-                CompositionLocalProvider(LocalAppStore provides store) {
+                // As a preview draws it: what moves for ever, such as the buffering line, as a still.
+                CompositionLocalProvider(LocalAppStore provides store, LocalInspectionMode provides true) {
                     PlayerScreen(model, video = { _, modifier, _ ->
                         Image(still, contentDescription = null, contentScale = ContentScale.Crop, modifier = modifier)
                     })

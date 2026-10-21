@@ -35,12 +35,15 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,7 +73,10 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -211,6 +217,17 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
         // The ground the picture fades through between episodes.
         if (ground > 0f) Box(Modifier.fillMaxSize().graphicsLayer { alpha = ground }.background(ObiSilk.Ground))
 
+        // Waiting for data mid-episode: the thin amber line along the video's top edge, from 1 s
+        // in until playback goes on. The stall prompt comes at 8 s, as ever.
+        AnimatedVisibility(
+            model.showsBuffering && !pip,
+            enter = fadeIn(Motion.fadeIn()),
+            exit = fadeOut(Motion.fadeOut()),
+            modifier = Modifier.offset(rect.x, rect.y).width(rect.width),
+        ) {
+            BufferingLine(Modifier.fillMaxWidth().height(BUFFERING_LINE).semantics { contentDescription = "Buffering" })
+        }
+
         StartingLayer(model, rect, art = !through) { sheet = PlayerSheet.Sources.also { model.chooseSource() } }
 
         // Taps on the video: the middle third shows and hides the controls at once; the sides
@@ -323,6 +340,30 @@ private enum class Third { Start, Middle, End }
 /** The drag down that closes the player, and the fling that does, in dp and dp/s (T3). */
 private const val DISMISS_DP = 120f
 private const val FLING_DP = 800f
+
+/** The buffering line's weight. */
+private val BUFFERING_LINE = 2.dp
+
+/**
+ * The thin amber indeterminate line. In a preview or a screenshot, where infinite animations do not
+ * run, a still of it: one stretch of the line partway across.
+ */
+@Composable
+private fun BufferingLine(modifier: Modifier) {
+    if (LocalInspectionMode.current) {
+        Box(modifier) {
+            Box(
+                Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(0.62f)
+                    .padding(start = 120.dp)
+                    .background(ObiSilk.Amber, RoundedCornerShape(1.dp)),
+            )
+        }
+        return
+    }
+    LinearProgressIndicator(modifier = modifier, color = ObiSilk.Amber, trackColor = Color.Transparent, gapSize = 0.dp)
+}
 
 /** Where the subtitles stand above the bottom edge, in dp: with the controls hidden, and up (T4). */
 private const val SUBTITLES_DOWN = 32f

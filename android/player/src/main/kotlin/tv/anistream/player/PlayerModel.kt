@@ -876,11 +876,17 @@ class PlayerModel(
     /** The starting screen's line: "Starting episode 7", and after a while "Finding a source · 4 s". */
     fun startingLine(note: String? = null): String? = starting?.line(clock, note)
 
-    /** Buffering long enough to show the spinner. */
-    val showsSpinner: Boolean
+    /**
+     * The thin buffering line along the video's top edge: mid-episode, once mpv has waited for data
+     * [PlayerTiming.BUFFERING_AFTER], or while the engine says the stream has stalled. It goes the
+     * moment playback goes on; the starting screen says its own wait.
+     */
+    val showsBuffering: Boolean
         get() {
+            if (starting != null || !hasPicture) return false
+            if (stall != null) return true
             val since = bufferingSince ?: return false
-            return starting == null && clock - since >= PlayerTiming.SPINNER_AFTER
+            return clock - since >= PlayerTiming.BUFFERING_AFTER
         }
 
     /** The skip button has been up long enough to dim. */
