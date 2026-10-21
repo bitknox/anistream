@@ -236,6 +236,9 @@ jobs:
         run: |
           apple/scripts/engine.sh testing macos
           apple/scripts/engine.sh release macos ios-sim
+      # The CJK subtitle font the iOS app bundles, which its iOS builds check for.
+      - name: The subtitle font
+        run: apple/scripts/fonts.sh
       - name: The project
         run: cd apple && xcodegen generate
       - name: Test the Fixtures app on the Mac

@@ -28,6 +28,16 @@ enum Media {
         return url.appending(path: "assets/shaders", directoryHint: .isDirectory)
     }()
 
+    /// apple/.fonts/SubtitleFonts, which apple/scripts/fonts.sh fills.
+    static func fonts() throws -> URL {
+        let url = directory.deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: ".fonts/SubtitleFonts", directoryHint: .isDirectory)
+        try #require(
+            FileManager.default.fileExists(atPath: url.appending(path: "NotoSansCJKsc-Regular.otf").path),
+            "the subtitle font is missing: run apple/scripts/fonts.sh")
+        return url
+    }
+
     static func path(_ name: String) throws -> String {
         let url = directory.appending(path: name)
         try #require(

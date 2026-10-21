@@ -20,12 +20,16 @@ public struct MpvConfiguration: Sendable {
     /// to Hiragino Sans and Hiragino Sans GB instead, but iOS has no font with simplified-only
     /// characters (简) that FreeType opens. Naming one here (a static font: libass matches the
     /// legacy family name, which for a variable font is its default instance's) makes it the
-    /// first fallback, before Core Text's.
+    /// first fallback, before Core Text's. On iOS it is the font the app bundles, on the Mac none.
     public var subtitleFallback: SubtitleFont?
     /// Any other mpv options, set before start, after these.
     public var options: [String: String] = [:]
 
-    public init() {}
+    public init() {
+        #if os(iOS)
+        subtitleFallback = .bundled
+        #endif
+    }
 }
 
 public struct SubtitleFont: Sendable, Equatable {
@@ -37,6 +41,17 @@ public struct SubtitleFont: Sendable, Equatable {
     public init(directory: URL, family: String) {
         self.directory = directory
         self.family = family
+    }
+
+    /// The family of the font apple/scripts/fonts.sh fetches: Noto Sans CJK SC Regular.
+    public static let bundledFamily = "Noto Sans CJK SC"
+
+    /// The CJK font the iOS app bundles, in its SubtitleFonts folder (apple/scripts/fonts.sh and
+    /// project.yml), or nil where there is none, as in the Mac app.
+    public static var bundled: SubtitleFont? {
+        Bundle.main.url(forResource: "SubtitleFonts", withExtension: nil).map {
+            SubtitleFont(directory: $0, family: bundledFamily)
+        }
     }
 }
 

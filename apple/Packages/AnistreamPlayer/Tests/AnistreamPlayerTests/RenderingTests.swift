@@ -53,22 +53,36 @@ extension PlayerTests {
             })
         }
 
-        @Test func fallsBackToTheFontItIsGivenFirst() async throws {
-            // Dela Gothic One stands in for the CJK font the app would bundle for iOS.
+        @Test func drawsSimplifiedHanWithTheFontTheIOSAppBundles() async throws {
+            // iOS has no font FreeType opens with simplified-only characters (简): the app
+            // bundles Noto Sans CJK SC, which the Mac test names here as the iOS app would.
+            let fonts = try Media.fonts()
             let (client, _) = try await startedClient {
                 $0.logLevel = "v"
-                $0.subtitleFallback = SubtitleFont(directory: Media.directory, family: "Dela Gothic One")
+                $0.subtitleFallback = SubtitleFont(directory: fonts, family: SubtitleFont.bundledFamily)
             }
-            #expect(try await client.get("sub-font").string == "Dela Gothic One")
+            #expect(try await client.get("sub-font").string == "Noto Sans CJK SC")
             let recorder = LogRecorder(client)
             try await play(client, "subs.mkv")
             try await Task.sleep(for: .seconds(1))
             await client.shutdown()
             let lines = await recorder.lines()
+            // First in line now, before Core Text's cascade, for the style whose font is missing
+            // and for the Han that Helvetica Neue has not.
             #expect(lines.contains {
                 $0.text.contains("Using default font family: (No Such Font Anistream")
-                    && $0.text.contains("DelaGothicOne")
+                    && $0.text.contains("NotoSansCJKsc-Regular")
             })
+            #expect(lines.contains {
+                $0.text.contains("(Helvetica Neue, 400, 0)") && $0.text.contains("NotoSansCJKsc-Regular")
+            })
+            #expect(!lines.contains { $0.text.contains("failed to find any fallback") })
+        }
+
+        @Test func bundlesNoFallbackFontOnTheMac() {
+            #if os(macOS)
+            #expect(MpvConfiguration().subtitleFallback == nil)
+            #endif
         }
 
         @Test func exportsNothingButTheClientAPI() throws {

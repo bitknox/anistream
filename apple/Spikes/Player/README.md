@@ -231,10 +231,11 @@ next one from `CTFontCopyDefaultCascadeListForLanguages`. That is now
 
 - **On the Mac,** every Han line renders: Hiragino Sans for Han, and Hiragino Sans GB for
   simplified characters (`compare/s8-before-after.png`).
-- **On iOS 27,** the Helvetica Neue line now renders, but 简 is still a box
-  (`compare/s8-ios-before-after.png`). The only fonts iOS has with simplified-only characters are
-  PingFang's, so the app must bundle one (`MpvConfiguration.subtitleFallback`). Noto Sans SC
-  proved the route; a static Regular cut is about 16 MB.
+- **On iOS 27,** the patch alone makes the Helvetica Neue line render, but 简 stays a box: the
+  only fonts iOS has with simplified-only characters are PingFang's. So the iOS app bundles Noto
+  Sans CJK SC Regular (`apple/scripts/fonts.sh`, 16 MB) as libass's first fallback, and then
+  every line renders (`compare/s8-ios-before-after.png`: stock MPVKit, the patch, the patch
+  and the font).
 
 Screenshots: `apple/.shots/player/subs-ass-cjk.png`, and `ios/sim-subs-natural.png` with the
 controls.

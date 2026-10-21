@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# Writes apple/ThirdParty/NOTICES-libmpv.txt, the notices for everything inside Mpv.framework,
-# which the app bundles: each project at the version apple/scripts/mpv.sh pins, its own copyright
-# file where it has one, and each standard licence text once. Run it when mpv.sh's pins change;
-# the file is committed.
+# Writes the notices the app bundles, both committed; run it when a pin changes:
+#
+#   apple/ThirdParty/NOTICES-libmpv.txt   everything inside Mpv.framework: each project at the
+#                                         version apple/scripts/mpv.sh pins, its own copyright
+#                                         file where it has one, each standard licence once
+#   apple/ThirdParty/NOTICES-fonts.txt    the CJK subtitle font the iOS app bundles
+#                                         (apple/scripts/fonts.sh), under the SIL OFL
 #
 #   apple/scripts/notices.sh
 #
@@ -97,3 +100,24 @@ EOF
 } >"$out.partial"
 mv "$out.partial" "$out"
 echo "notices.sh: wrote $out ($(wc -l <"$out" | tr -d ' ') lines)"
+
+fonts="$root/apple/ThirdParty/NOTICES-fonts.txt"
+{
+  cat <<'EOF'
+Fonts the iOS app bundles
+=========================
+
+libass draws subtitles with FreeType, which cannot open PingFang, Apple's own font for Chinese,
+so the iOS app carries a font of its own for the characters no other font it can open has. It
+is unmodified, from the address below; apple/scripts/fonts.sh fetches it by version and SHA-256.
+
+--------------------------------------------------------------------------------
+Noto Sans CJK SC Regular 2.004 (NotoSansCJKsc-Regular.otf)
+https://github.com/notofonts/noto-cjk, release Sans2.004
+Licence: SIL Open Font License 1.1
+
+EOF
+  fetch "$gh/notofonts/noto-cjk/Sans2.004/LICENSE"
+} >"$fonts.partial"
+mv "$fonts.partial" "$fonts"
+echo "notices.sh: wrote $fonts ($(wc -l <"$fonts" | tr -d ' ') lines)"

@@ -10,7 +10,8 @@ generates for `crates/anistream-ffi`.
 | `scripts/mpv.sh` | Builds libmpv as Mpv.xcframework, from source with `patches/` |
 | `scripts/test.sh` | Runs every Swift package's tests with SwiftPM |
 | `scripts/player-media.sh` | Makes the player tests' synthetic media |
-| `scripts/notices.sh` | Writes `ThirdParty/NOTICES-libmpv.txt` |
+| `scripts/fonts.sh` | Fetches the CJK subtitle font the iOS app bundles |
+| `scripts/notices.sh` | Writes `ThirdParty/NOTICES-libmpv.txt` and `NOTICES-fonts.txt` |
 | `scripts/shots.sh` | Screenshots of the Fixtures app, on the Mac and in the Simulator |
 | `Packages/AnistreamKit` | The bindings over the engine's XCFramework, and ports of the model's helpers |
 | `Packages/AnistreamDesign` | The Obi & Silk tokens, motion, the show-title face, Nagare, the cover plate |
@@ -88,7 +89,7 @@ patches:
   Text's fallback for Han, in a format FreeType cannot open, so libass drew boxes. The patch
   skips fonts FreeType cannot open and falls back down Core Text's cascade instead: Hiragino Sans
   and, for simplified characters, Hiragino Sans GB on the Mac. iOS has no such font for
-  simplified-only characters (简), so there the app bundles one (`MpvConfiguration.subtitleFallback`).
+  simplified-only characters (简), so the iOS app bundles one, below.
 - **mpv 0.41.0** with `patches/mpv`: MPVKit's own three, which add the `moltenvk` context, and
   ours, which makes that context follow the layer's size. Without it mpv kept drawing at its first
   size after a resize, full screen or rotation.
@@ -107,6 +108,20 @@ deletes its intermediate trees when done; the XCFramework is about 86 MB (31 MB 
 for iOS and for the Simulator). Like engine.sh, it builds nothing when its stamp says the script,
 the patches and the slices asked for are what the last build was made from, and runs its tools in
 a clean environment, so it works from an Xcode build phase too. `mpv.sh --clean` drops the cache.
+
+### The iOS app's subtitle font
+
+```sh
+apple/scripts/fonts.sh            # fetch it unless it is there
+apple/scripts/fonts.sh --check    # what the apps' first build phase runs for iOS
+```
+
+fonts.sh fetches Noto Sans CJK SC Regular, the static OTF from noto-cjk's Sans 2.004 release, by
+version and SHA-256, into `apple/.fonts/SubtitleFonts` (gitignored; 16 MB). project.yml copies
+that folder and `ThirdParty/NOTICES-fonts.txt`, its SIL Open Font License, into both apps for iOS
+only, and their first build phase fails an iOS build without it. On iOS
+`MpvConfiguration.subtitleFallback` defaults to it (`SubtitleFont.bundled`), which makes it
+libass's first fallback, before Core Text's; the Mac app bundles nothing and gets none.
 
 ## The Swift packages
 

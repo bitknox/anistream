@@ -138,8 +138,26 @@ targetTemplates:
     sources:
       - path: App
         excludes: ["Info.plist"]
+      # iOS only: the CJK font libass falls back to for subtitles, since iOS has no font FreeType
+      # opens with simplified-only characters (scripts/fonts.sh, which the first build phase
+      # checks), and its licence. AnistreamPlayer finds the folder by name. The Mac gets neither.
+      - path: .fonts/SubtitleFonts
+        type: folder
+        buildPhase: resources
+        optional: true
+        destinationFilters: [iOS]
+      - path: ThirdParty/NOTICES-fonts.txt
+        buildPhase: resources
+        destinationFilters: [iOS]
+    preBuildScripts:
+      - name: Check the subtitle font
+        script: |
+          if [ "$ANISTREAM_SLICE" != macos ]; then "$PROJECT_DIR/scripts/fonts.sh" --check; fi
+        basedOnDependencyAnalysis: false
     settings:
       base:
+        # The font check reads apple/.fonts, which no input file list names.
+        ENABLE_USER_SCRIPT_SANDBOXING: false
         GENERATE_INFOPLIST_FILE: true
         INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.entertainment
         INFOPLIST_KEY_UILaunchScreen_Generation: true

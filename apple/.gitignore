@@ -18,3 +18,5 @@
 /.mpv/
 # Its link into the AnistreamPlayer package.
 /Packages/AnistreamPlayer/Mpv/
+# What apple/scripts/fonts.sh fetches: the CJK subtitle font the iOS app bundles.
+/.fonts/
