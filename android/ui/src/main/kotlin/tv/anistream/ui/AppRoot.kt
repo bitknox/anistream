@@ -88,7 +88,7 @@ enum class Destination(val route: String, val label: String, val icon: ImageVect
 
 /** What the screens' actions open, which later phases fill in. */
 data class AppActions(
-    /** Connect AniList: a Custom Tab through the engine's sign-in, from A2. */
+    /** Connect AniList: the engine's sign-in in a Custom Tab, which [AppRoot] starts itself. */
     val connectAniList: () -> Unit = {},
     /** Join a plugin store: the join sheet, from A2. */
     val addStore: () -> Unit = {},
@@ -96,7 +96,10 @@ data class AppActions(
     val openSettings: () -> Unit = {},
     /** Play an episode: the player, from A3. */
     val play: (id: AnilistId, episode: String) -> Unit = { _, _ -> },
-    /** What a notice's button asks for: the stores, the player, Kitsu's sign-in, from A2 and A3. */
+    /**
+     * What a notice's button asks for: the stores, the player. Kitsu's sign-in [AppRoot] opens
+     * itself.
+     */
     val hint: (NoticeHint) -> Unit = {},
 )
 
@@ -158,7 +161,19 @@ fun AppRoot(
 ) {
     val nav = rememberNavController()
     val navigator = remember(nav) { Navigator(nav, start) }
-    val routed = remember(actions, navigator) { actions.copy(openSettings = { navigator.openSettings() }) }
+    val sheets = remember { AppSheets() }
+    val routed = remember(actions, navigator, store) {
+        actions.copy(
+            openSettings = { navigator.openSettings() },
+            connectAniList = { store.connect("anilist") },
+            hint = { hint ->
+                when (hint) {
+                    NoticeHint.KITSU_CREDENTIALS -> sheets.kitsu = true
+                    else -> actions.hint(hint)
+                }
+            },
+        )
+    }
     val entry by nav.currentBackStackEntryAsState()
     val current = entry?.destinationOf()
     val onPage = entry?.isPage == true
@@ -172,8 +187,10 @@ fun AppRoot(
         LocalAppStore provides store,
         LocalNavigator provides navigator,
         LocalSnackbars provides snackbars,
+        LocalAppSheets provides sheets,
     ) {
         EngineNotices(onHint = routed.hint)
+        AccountSheets()
         androidx.compose.runtime.LaunchedEffect(startTitle) {
             startTitle?.let { navigator.openTitle(it, "launch") }
         }

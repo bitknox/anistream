@@ -6,13 +6,21 @@ package tv.anistream.store
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import tv.anistream.engine.model.ConflictRow
+import tv.anistream.engine.model.DeviceCodePrompt
 import tv.anistream.engine.model.DownloadRow
 import tv.anistream.engine.model.JobId
 import tv.anistream.engine.model.StoreRow
 import tv.anistream.engine.model.SyncState
 import tv.anistream.engine.model.TitleLanguage
 
-/** Each tracker's sync, as the engine last said it. */
+/**
+ * A sign-in the engine asked the browser for (`Event::Authorize`): open [url] in it, and hand
+ * back the redirect it ends on, the one to [callbackScheme].
+ */
+data class SignInRequest(val tracker: String, val url: String, val callbackScheme: String)
+
+/** Each tracker's sync, as the engine last said it, and the sign-ins and codes waited on. */
 class AccountsModel(private val clock: () -> Long = { System.currentTimeMillis() }) {
     private val _trackers = MutableStateFlow<Map<String, SyncState>>(emptyMap())
 
@@ -57,6 +65,38 @@ class AccountsModel(private val clock: () -> Long = { System.currentTimeMillis()
         } else if (state.last != null && state.outbox == 0u && state.pullError == null) {
             _syncedAt.value = _syncedAt.value + (state.tracker to clock())
         }
+    }
+
+    private val _signIn = MutableStateFlow<SignInRequest?>(null)
+
+    /** The sign-in the browser is open for, AniList's or MyAnimeList's, until it comes back. */
+    val signIn: StateFlow<SignInRequest?> = _signIn.asStateFlow()
+
+    private val _deviceCode = MutableStateFlow<DeviceCodePrompt?>(null)
+
+    /** The code Simkl or Trakt waits to be typed on another screen, until the sign-in ends. */
+    val deviceCode: StateFlow<DeviceCodePrompt?> = _deviceCode.asStateFlow()
+
+    private val _conflicts = MutableStateFlow<List<ConflictRow>>(emptyList())
+
+    /** What the last library pull found different here and on AniList. */
+    val conflicts: StateFlow<List<ConflictRow>> = _conflicts.asStateFlow()
+
+    internal fun authorize(request: SignInRequest) {
+        _signIn.value = request
+    }
+
+    /** The browser came back from [request], or was closed. */
+    internal fun signInEnded(request: SignInRequest) {
+        if (_signIn.value == request) _signIn.value = null
+    }
+
+    internal fun deviceCode(prompt: DeviceCodePrompt?) {
+        _deviceCode.value = prompt
+    }
+
+    internal fun conflicts(rows: List<ConflictRow>) {
+        _conflicts.value = rows
     }
 
     internal fun viewerTitleLanguage(language: TitleLanguage?) {

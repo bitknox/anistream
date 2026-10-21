@@ -299,6 +299,40 @@ class AppStore(
         accounts.started("sync", send(Command.SyncNow))
     }
 
+    /**
+     * Start [tracker]'s own sign-in: the browser for AniList and MyAnimeList, which the engine asks
+     * for with `Authorize`; a code to type elsewhere for Simkl and Trakt.
+     */
+    fun connect(tracker: String) {
+        accounts.started(tracker, send(Command.Connect(tracker)))
+    }
+
+    /**
+     * The browser came back from [request] with [callback], the redirect that carries the code or
+     * the token itself, so the engine finishes signing in. Handed over as it came, and kept
+     * nowhere else.
+     */
+    fun finishSignIn(request: SignInRequest, callback: String) {
+        accounts.signInEnded(request)
+        accounts.started(request.tracker, send(Command.FinishSignIn(request.tracker, callback)))
+    }
+
+    /** The browser for [request] was closed without signing in. */
+    fun cancelSignIn(request: SignInRequest) {
+        accounts.signInEnded(request)
+        send(Command.CancelSignIn(request.tracker))
+    }
+
+    /** Kitsu's sign-in: its email or user name and password, exchanged for a token by the engine. */
+    fun connectKitsu(username: String, password: String) {
+        accounts.started("kitsu", send(Command.ConnectKitsu(username, password)))
+    }
+
+    /** Settle what a pull found different on [id], keeping this device's side or AniList's. */
+    fun resolveConflict(id: AnilistId, keepLocal: Boolean) {
+        send(Command.ResolveConflict(id, keepLocal))
+    }
+
     /** Sign out of [tracker]: the engine forgets its token. */
     fun disconnect(tracker: String) {
         send(Command.Disconnect(tracker))
@@ -385,6 +419,9 @@ class AppStore(
 
             is Event.Sync -> accounts.apply(event.v1)
             is Event.ViewerTitleLanguage -> accounts.viewerTitleLanguage(event.v1)
+            is Event.Authorize -> accounts.authorize(SignInRequest(event.tracker, event.url, event.callbackScheme))
+            is Event.DeviceCode -> accounts.deviceCode(event.v1)
+            is Event.Conflicts -> accounts.conflicts(event.v1)
             is Event.Settings -> settings.apply(event.v1)
             is Event.Providers -> providers.apply(event.v1)
             is Event.ProviderNote -> providers.note(event.v1)
