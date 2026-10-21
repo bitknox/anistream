@@ -536,6 +536,24 @@ impl TokenStore {
         Ok(TokenPair::parse(&raw))
     }
 
+    /// The pair stored now, read past this process's cache: what another process signed in
+    /// through the same store (the app beside the terminal) renewed, or signed out of, since.
+    ///
+    /// A keychain read, which can prompt, so for a token about to be renewed or just rejected, not
+    /// for every request.
+    pub fn reread_pair(&self, tracker_id: &str) -> Result<TokenPair, SecretError> {
+        match self.secrets.get(tracker_id)? {
+            Some(raw) => {
+                self.remember(tracker_id, &raw);
+                Ok(TokenPair::parse(&raw))
+            }
+            None => {
+                self.forget(tracker_id);
+                Err(SecretError::Missing(tracker_id.to_owned()))
+            }
+        }
+    }
+
     /// Fetch a token, reading the keychain at most once per tracker per process.
     ///
     /// Returns the *access* token for a stored pair, so callers that only need to authorise a
