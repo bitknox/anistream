@@ -476,11 +476,18 @@ struct MoreAboutSheet: View {
                     .scrollIndicators(.never)
                     .padding(.horizontal, -16)
                     .contentMargins(.horizontal, 16, for: .scrollContent)
-                } else {
+                } else if onMac {
                     // One row of eight.
                     HStack(alignment: .top, spacing: 16) {
                         ForEach(shown, id: \.id) { recommendationCard($0, width: nil) }
                         ForEach(shown.count..<8, id: \.self) { _ in Color.clear.frame(maxWidth: .infinity) }
+                    }
+                } else {
+                    // The iPad's larger type needs wider cards: eight in a row where the sheet is
+                    // wide, a second row where a window is narrow.
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 104), spacing: 16, alignment: .top)],
+                              alignment: .leading, spacing: 16) {
+                        ForEach(shown, id: \.id) { recommendationCard($0, width: nil) }
                     }
                 }
             }

@@ -226,6 +226,8 @@ struct PhoneTitleLanguageRow: View {
                 .font(.ui(17))
                 .foregroundStyle(.haze)
             }
+            // A menu's label centres its lines; the row's title and note sit flush left.
+            .multilineTextAlignment(.leading)
         }
         .disabled(store.settings.row(.titles) == nil)
         .listRowBackground(Palette.raised)

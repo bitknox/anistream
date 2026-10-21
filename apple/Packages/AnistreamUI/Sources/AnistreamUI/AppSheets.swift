@@ -42,7 +42,6 @@ struct AppSheets: ViewModifier {
     }
 }
 
-/// A title as the per-show sheet's item.
 /// The title whose "More about this show" sheet is open, as a sheet's item.
 struct MoreAboutItem: Identifiable {
     let id: AnilistId
@@ -71,6 +70,7 @@ extension View {
     }
 }
 
+/// A title as the per-show sheet's item.
 struct ShowItem: Identifiable {
     let entry: Entry
     var id: AnilistId { entry.id }
