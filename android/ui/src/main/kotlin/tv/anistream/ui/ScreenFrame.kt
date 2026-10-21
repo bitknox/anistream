@@ -38,6 +38,7 @@ fun ScreenFrame(
     title: String,
     subtitle: String? = null,
     account: Account? = null,
+    actions: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
     val scroll = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -56,7 +57,10 @@ fun ScreenFrame(
                 subtitle = subtitle?.let {
                     { Text(it, style = expanded(type.bodyLarge), color = colors.onSurfaceVariant) }
                 },
-                actions = { if (account != null) AccountButton(account) },
+                actions = {
+                    actions()
+                    if (account != null) AccountButton(account)
+                },
                 expandedHeight = if (subtitle == null) 112.dp else 136.dp,
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = colors.surface,

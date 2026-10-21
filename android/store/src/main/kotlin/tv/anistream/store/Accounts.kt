@@ -1,11 +1,12 @@
-// Accounts and plugin stores, as far as the first screens need them: whether a tracker is
-// connected, and which stores are joined.
+// Accounts, plugin stores and downloads, as far as the browse screens need them: whether a
+// tracker is connected, which stores are joined, and what the downloads take.
 
 package tv.anistream.store
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import uniffi.anistream_model.DownloadRow
 import uniffi.anistream_model.StoreRow
 import uniffi.anistream_model.SyncState
 
@@ -18,6 +19,13 @@ class AccountsModel {
 
     /** The first connected tracker's user name, for the account button. */
     val signedIn: SyncState? get() = _trackers.value.values.firstOrNull { it.connected }
+
+    /**
+     * Whether no tracker is signed in, once the engine has said the trackers at all, which it
+     * does at launch: before that, `false`, so a screen does not flash its signed-out state.
+     */
+    fun signedOut(trackers: Map<String, SyncState>): Boolean =
+        trackers.isNotEmpty() && trackers.values.none { it.connected }
 
     internal fun apply(state: SyncState) {
         _trackers.value = _trackers.value + (state.tracker to state)
@@ -38,6 +46,23 @@ class StoresModel {
 
     internal fun apply(rows: List<StoreRow>) {
         _stores.value = rows
+        _loaded.value = true
+    }
+}
+
+/** The downloads, as the engine last said them: the Library's Downloads row reads their size. */
+class DownloadsModel {
+    private val _rows = MutableStateFlow<List<DownloadRow>>(emptyList())
+    val rows: StateFlow<List<DownloadRow>> = _rows.asStateFlow()
+
+    private val _loaded = MutableStateFlow(false)
+    val loaded: StateFlow<Boolean> = _loaded.asStateFlow()
+
+    /** The bytes the downloads take on this device. */
+    fun bytes(rows: List<DownloadRow>): Long = rows.sumOf { it.downloaded.toLong() }
+
+    internal fun apply(rows: List<DownloadRow>) {
+        _rows.value = rows
         _loaded.value = true
     }
 }

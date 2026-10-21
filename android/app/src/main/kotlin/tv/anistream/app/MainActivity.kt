@@ -44,12 +44,14 @@ class MainActivity : ComponentActivity() {
 
         app.start(Flavour.launch(this, intent))
         Flavour.started(app.store, intent)
-        val start = intent.getStringExtra(SECTION)?.takeIf { debuggable || Flavour.FIXTURES }
+        val steerable = debuggable || Flavour.FIXTURES
+        val start = intent.getStringExtra(SECTION)?.takeIf { steerable }
             ?.let(Destination::named) ?: Destination.Continue
+        val title = intent.getStringExtra(TITLE)?.takeIf { steerable }?.toUIntOrNull()
 
         setContent {
             AnistreamTheme {
-                AppRoot(app.store, start)
+                AppRoot(app.store, start, startTitle = title)
             }
         }
         if (Flavour.FIXTURES || debuggable) announceReady()
@@ -113,6 +115,9 @@ class MainActivity : ComponentActivity() {
 
         /** The destination to open on: `continue`, `calendar`, `seasonal`, `library` or `search`. */
         const val SECTION = "section"
+
+        /** A title page to open there, by its AniList id. */
+        const val TITLE = "title"
 
         private const val NOTIFICATIONS_ASKED = "notificationsAsked"
     }

@@ -172,8 +172,8 @@ for shot in "${shots[@]}"; do
     sleep 0.5
   done
   (( ready )) || echo "shots.sh: the app did not say it was ready; taking the shot anyway" >&2
-  # The art's fade-in.
-  sleep 0.5
+  # The content's crossfade and the art's fade-in, which a busy machine slows.
+  sleep 1.5
   file="$out/$device-$(name "$shot").png"
   "$adb" -s "$serial" exec-out screencap -p >"$file"
   echo "shots.sh: wrote $file"

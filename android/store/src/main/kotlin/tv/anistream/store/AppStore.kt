@@ -61,6 +61,7 @@ class AppStore(
     val library = LibraryModel()
     val accounts = AccountsModel()
     val stores = StoresModel()
+    val downloads = DownloadsModel()
     val artwork = ArtworkStore(scope, decoder) { url ->
         val client = client ?: return@ArtworkStore false
         client.send(Command.FetchArtwork(url))
@@ -176,6 +177,23 @@ class AppStore(
 
     private val episodesAsked = mutableSetOf<AnilistId>()
 
+    /** Put [id] on the tracker's [segment] list: shown at once, ahead of the tracker's word. */
+    fun setStatus(id: AnilistId, segment: LibrarySegment) {
+        titles.setStatus(id, segment)
+        send(Command.SetStatus(id, segment))
+    }
+
+    /** Open [url] in the browser, through the engine, which says so if it cannot. */
+    fun openExternal(url: String) {
+        send(Command.OpenExternal(url))
+    }
+
+    /** The downloads, once a session unless [force]. */
+    fun loadDownloads(force: Boolean = false) {
+        if (!force && downloads.loaded.value) return
+        send(Command.LoadDownloads)
+    }
+
     /** Take a title off Continue: the row goes at once, and the engine keeps it hidden. */
     fun hideFromContinue(id: AnilistId) {
         continuing.hide(id)
@@ -244,6 +262,7 @@ class AppStore(
 
             is Event.Sync -> accounts.apply(event.v1)
             is Event.Stores -> stores.apply(event.v1)
+            is Event.Downloads -> downloads.apply(event.v1)
 
             is Event.ArtworkReady -> artwork.ready(event.url, event.bytes)
             is Event.ImageFailed -> artwork.failed(event.url)

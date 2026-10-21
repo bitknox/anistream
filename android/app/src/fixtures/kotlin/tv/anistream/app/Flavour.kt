@@ -5,7 +5,7 @@
 //   section   the destination to open on: continue, calendar, seasonal, library or search
 //   watched   episodes to mark watched once the engine is up: 900006:8, or 900001:1,2,3, with more
 //             titles joined by / (900006:1,2/900002:1), oldest first
-//   title     a title page to open, by id (from A1)
+//   title     a title page to open, by id
 //   sheet     a sheet to open: torrent, join, kitsu, update or show (from A2)
 //   player    a player state to shoot (from A3)
 
@@ -51,7 +51,7 @@ internal object Flavour {
             store.loadContinue(force = true)
             for ((id, _) in marks) store.loadDetail(id)
         }
-        for (later in listOf("title", "sheet", "player")) {
+        for (later in listOf("sheet", "player")) {
             intent.getStringExtra(later)?.let { Log.w(AnistreamApp.TAG, "$later=$it is not in this build yet") }
         }
     }

@@ -5,6 +5,7 @@ package tv.anistream.ui
 
 import android.content.Context
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -91,7 +92,7 @@ fun ContinueScreen(actions: AppActions, openCalendar: () -> Unit, openSeasonal: 
             when (val list = state) {
                 ListState.Empty -> welcome(actions, openCalendar, openSeasonal)
                 is ListState.Failed -> item { Quiet(list.reason) }
-                is ListState.Loaded -> queue(store.continuing.queue(titles))
+                is ListState.Loaded -> queue(store.continuing.queue(titles), actions)
                 else -> {}
             }
         }
@@ -113,9 +114,9 @@ internal fun Quiet(text: String) {
  * The queue: the next episode as the hero, the rest under way as a rail of wide cards, then New
  * this week as rows.
  */
-private fun LazyListScope.queue(queue: ContinueQueue) {
+private fun LazyListScope.queue(queue: ContinueQueue, actions: AppActions) {
     val hero = queue.inProgress.firstOrNull() ?: queue.newThisWeek.firstOrNull() ?: return
-    item(key = "hero") { Hero(hero) }
+    item(key = "hero") { Hero(hero, actions) }
     val rail = queue.inProgress.drop(1)
     if (rail.isNotEmpty()) {
         item(key = "rail") {
@@ -158,14 +159,22 @@ private fun episodeLine(item: ContinueItem): String {
 
 /** The next episode: its wide art, the title, the episode, how far into it, and the one amber action. */
 @Composable
-private fun Hero(item: ContinueItem) {
+private fun Hero(item: ContinueItem, actions: AppActions) {
     val store = LocalAppStore.current
     val colors = MaterialTheme.colorScheme
+    val navigator = LocalNavigator.current
     LaunchedEffect(item.id) { store.loadEpisodes(item.id) }
     Column(Modifier.padding(horizontal = 16.dp)) {
-        BannerArt(item.entry, Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(ArtShape.banner))
+        Column(
+            Modifier
+                .shared(Shared.Page, item.id, "hero")
+                .clip(ArtShape.banner)
+                .clickable { navigator.openTitle(item.id, "hero") },
+        ) {
+        BannerArt(item.entry, Modifier.fillMaxWidth().aspectRatio(16f / 9f).shared(Shared.Art, item.id, "hero").clip(ArtShape.banner))
         Text(item.entry.showTitle, style = ShowTitle.page, modifier = Modifier.padding(top = 8.dp))
         Text(episodeLine(item), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+        }
         Row(
             Modifier.padding(top = 12.dp).fillMaxWidth().height(56.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -178,7 +187,7 @@ private fun Hero(item: ContinueItem) {
                 }
             }
             Button(
-                onClick = {},
+                onClick = { actions.play(item.id, item.episode.toString()) },
                 enabled = item.playable,
                 modifier = Modifier.height(56.dp),
                 contentPadding = PaddingValues(horizontal = 24.dp),
@@ -207,8 +216,14 @@ private fun Meter(fraction: Double, modifier: Modifier = Modifier) {
 /** A title under way: its banner, its meter, its name and what it plays. */
 @Composable
 private fun ProgressCard(item: ContinueItem) {
-    Column(Modifier.width(208.dp)) {
-        BannerArt(item.entry, Modifier.size(208.dp, 117.dp).clip(ArtShape.banner))
+    val navigator = LocalNavigator.current
+    Column(
+        Modifier
+            .width(208.dp)
+            .shared(Shared.Page, item.id, "rail")
+            .clickable { navigator.openTitle(item.id, "rail") },
+    ) {
+        BannerArt(item.entry, Modifier.size(208.dp, 117.dp).shared(Shared.Art, item.id, "rail").clip(ArtShape.banner))
         Box(Modifier.padding(top = 8.dp).height(4.dp)) { item.fraction?.let { Meter(it) } }
         Text(
             item.entry.showTitle,
@@ -230,12 +245,17 @@ private fun ProgressCard(item: ContinueItem) {
 @Composable
 private fun NewRow(item: ContinueItem) {
     val colors = MaterialTheme.colorScheme
+    val navigator = LocalNavigator.current
     Row(
-        Modifier.fillMaxWidth().height(72.dp).padding(start = 16.dp, end = 24.dp),
+        Modifier
+            .fillMaxWidth()
+            .height(72.dp)
+            .clickable { navigator.openTitle(item.id, "new") }
+            .padding(start = 16.dp, end = 24.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        CoverArt(item.entry, 40.dp, Modifier.size(40.dp, 60.dp))
+        CoverArt(item.entry, 40.dp, Modifier.size(40.dp, 60.dp).shared(Shared.Cover, item.id, "new"))
         Column(Modifier.weight(1f)) {
             Text(item.entry.showTitle, style = ShowTitle.row, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -382,8 +402,15 @@ private fun AiringCard(broadcast: Broadcast, now: Instant) {
     val time = clock.format(broadcast.airs.atZone(ZoneId.systemDefault()))
     val out = seconds <= 0
     val line = "E${broadcast.episode} · $time · " + if (out) "out ${Wording.ago(-seconds)}" else "in ${Wording.countdown(seconds)}"
-    Column(Modifier.width(208.dp)) {
-        BannerArt(broadcast.entry, Modifier.size(208.dp, 117.dp).clip(ArtShape.banner))
+    val navigator = LocalNavigator.current
+    val id = broadcast.entry.id
+    Column(
+        Modifier
+            .width(208.dp)
+            .shared(Shared.Page, id, "airing")
+            .clickable { navigator.openTitle(id, "airing") },
+    ) {
+        BannerArt(broadcast.entry, Modifier.size(208.dp, 117.dp).shared(Shared.Art, id, "airing").clip(ArtShape.banner))
         Text(
             broadcast.entry.showTitle,
             style = ShowTitle.row,
@@ -425,19 +452,33 @@ internal fun PosterRows(entries: List<Entry>, columns: Int, gap: Dp = 13.dp) {
     Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         for (row in entries.chunked(columns)) {
             Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
-                for (entry in row) PosterCell(entry, Modifier.weight(1f))
+                for (entry in row) PosterCell(entry, Modifier.weight(1f), from = "this-season")
                 repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     }
 }
 
-/** A poster with its title in two lines beneath, and the first genre. */
+/**
+ * A poster with its title in two lines beneath, and a detail line: the first genre unless [detail]
+ * says otherwise, with a water dot when [fresh]. Opens the title, flying from [from].
+ */
 @Composable
-internal fun PosterCell(entry: Entry, modifier: Modifier = Modifier) {
-    Column(modifier) {
+internal fun PosterCell(
+    entry: Entry,
+    modifier: Modifier = Modifier,
+    from: String = "poster",
+    detail: String? = entry.genreLine,
+    fresh: Boolean = false,
+) {
+    val navigator = LocalNavigator.current
+    Column(
+        modifier
+            .shared(Shared.Page, entry.id, from)
+            .clickable { navigator.openTitle(entry.id, from) },
+    ) {
         androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
-            CoverArt(entry, maxWidth, Modifier.size(maxWidth, maxWidth * 1.5f))
+            CoverArt(entry, maxWidth, Modifier.size(maxWidth, maxWidth * 1.5f).shared(Shared.Cover, entry.id, from))
         }
         Text(
             entry.showTitle,
@@ -446,15 +487,33 @@ internal fun PosterCell(entry: Entry, modifier: Modifier = Modifier) {
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = 8.dp),
         )
-        entry.genreLine?.let {
-            Text(
-                it,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 2.dp),
-            )
+        detail?.let {
+            Row(
+                Modifier.padding(top = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (fresh) Box(Modifier.size(6.dp).background(MaterialTheme.colorScheme.secondary, CircleShape))
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
+    }
+}
+
+/** A poster's place before its title arrives: the plate, and its caption's lines as bars. */
+@Composable
+internal fun PosterPlaceholder() {
+    Column {
+        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
+            tv.anistream.design.CoverPlate(null, Modifier.size(maxWidth, maxWidth * 1.5f).clip(ArtShape.cover(maxWidth)))
+        }
+        TextPlaceholder(0.8f, 20.dp, Modifier.padding(top = 8.dp))
+        TextPlaceholder(0.5f, 16.dp, Modifier.padding(top = 2.dp))
     }
 }
