@@ -150,11 +150,22 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
 
     Immersive()
     KeepAwake(playing = model.hasPicture && !model.paused)
-    // Landscape on a phone once the shared bounds have settled, so the turn never cuts into the grow.
+    // Landscape on a phone once the shared bounds have settled, so the turn never cuts into the grow,
+    // and portrait again whenever the player stops being up, however it went: the viewer's close,
+    // the end of the file, the notification's Stop, the engine stopping it, the app swiped away.
     val page = LocalPageAnimation.current
     val settled = page == null || !page.transition.isRunning
-    LaunchedEffect(settled, phone) {
-        if (settled && phone) activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+    val presented = model.isPresented
+    LaunchedEffect(settled, phone, presented) {
+        if (!phone) return@LaunchedEffect
+        if (!presented) {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        } else if (settled) {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        }
+    }
+    DisposableEffect(activity, phone) {
+        onDispose { if (phone) activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT }
     }
 
     // The still that moves while the player is dragged, or closes, in place of the SurfaceView (T3).
@@ -211,8 +222,6 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
         // The ground the picture fades through between episodes.
         if (ground > 0f) Box(Modifier.fillMaxSize().graphicsLayer { alpha = ground }.background(ObiSilk.Ground))
 
-        StartingLayer(model, rect, art = !through) { sheet = PlayerSheet.Sources.also { model.chooseSource() } }
-
         // Taps on the video: the middle third shows and hides the controls at once; the sides
         // wait for a second tap, which seeks 10 s.
         val dragState = rememberDraggableState { delta ->
@@ -258,6 +267,10 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
                 )
             }
         }
+
+        // Over the taps, so its own buttons take theirs: Choose source, and Close on a play that
+        // never played. Nothing else in it takes a touch, so a drag down still closes the player.
+        StartingLayer(model, rect, art = !through) { sheet = PlayerSheet.Sources.also { model.chooseSource() } }
 
         // The subtitles rise above the controls while they are up, and fall back with them (T4).
         val lift by animateFloatAsState(if (chromeVisible) SUBTITLES_UP else SUBTITLES_DOWN, if (pip) snap() else Motion.standard())
