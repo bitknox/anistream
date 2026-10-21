@@ -194,7 +194,8 @@ mod tests {
         let continuing = store.continue_list(15).expect("the rail");
         assert_eq!(continuing.iter().map(|p| p.anilist_id).collect::<Vec<_>>(), [FINISHED]);
         assert_eq!(store.resume_position(FINISHED, "7").expect("a read"), None);
-        let playing = scene_sources(&scene, "http://127.0.0.1:9/art/").expect("a scene that plays");
+        let playing =
+            scene_sources(&scene, "http://127.0.0.1:9/art/").expect("a scene that plays");
         assert_eq!(playing.ids(), [sources::PROVIDER_ID]);
         assert!(scene_sources(&FfiScene::Watching, "http://127.0.0.1:9/art/").is_none());
     }

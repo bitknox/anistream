@@ -171,6 +171,19 @@ fn a_title_comes_back_whole_with_the_source_pinned_for_it_ahead() {
 }
 
 #[test]
+fn the_fake_anilist_says_what_it_was_asked() {
+    let (engine, _root) = started();
+    let before = engine.testing_anilist_requests().len();
+    let job = engine
+        .send(Command::LoadDetail(AnilistId::new(900_001)))
+        .expect("loading a title is a job");
+    read_until(&engine, ends(job));
+    // One title is one request, by its operation's name.
+    assert_eq!(engine.testing_anilist_requests()[before..], ["Detail"]);
+    engine.shutdown();
+}
+
+#[test]
 fn shutdown_returns_and_ends_the_stream() {
     let (engine, _root) = started();
     let stopping = Arc::clone(&engine);

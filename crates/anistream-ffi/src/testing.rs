@@ -51,6 +51,21 @@ impl FfiEngine {
     }
 }
 
+#[uniffi::export]
+impl FfiEngine {
+    /// What the fake AniList has been asked so far, an operation's name a request ("Detail",
+    /// "Many", "LastAired", …) in arrival order, for counting what an action in the app costs
+    /// against AniList's rate limit. Empty on an engine that is not on the fake. Only in a build
+    /// with the `testing` feature.
+    pub fn testing_anilist_requests(&self) -> Vec<String> {
+        self.kept::<FakeAniList>()
+            .map(|server| {
+                server.requests().iter().map(|r| format!("{:?}", r.operation)).collect()
+            })
+            .unwrap_or_default()
+    }
+}
+
 impl FfiEngine {
     /// [`FfiEngine::start_testing`] with `sources` in place of the fixture provider alone, for a
     /// Rust test that scripts the streams an episode has. Not in the bindings.
@@ -122,9 +137,10 @@ pub(crate) fn options(
         .map_err(|reason| FfiError::Engine { reason })?;
 
     let mut options = Opened { paths, config, store }.options(http, start);
-    options.sources = Some(
-        sources.unwrap_or_else(|| anistream_testkit::sources::registry_with_art(&server.art_base())),
-    );
+    options.sources =
+        Some(sources.unwrap_or_else(|| {
+            anistream_testkit::sources::registry_with_art(&server.art_base())
+        }));
     options.background = Background::none();
     options.hosted_player = true;
     options.parts = Some(Parts { meta, sync, stores });
