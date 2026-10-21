@@ -55,6 +55,7 @@ public struct PhonePlayerView: View {
                         .opacity(curtain ? 1 : 0)
                         .animation(curtain ? .easeIn(duration: 0.25) : .fadeIn, value: curtain)
                         .allowsHitTesting(curtain)
+                    BufferingLine(model: model, reduceMotion: reduceMotion)
                 }
                 .scaleEffect(reduceMotion ? 1 : 1 - 0.1 * pull)
                 .clipShape(.rect(cornerRadius: reduceMotion ? 0 : 16 * pull))
@@ -62,9 +63,6 @@ public struct PhonePlayerView: View {
                 .offset(y: reduceMotion ? 0 : drag)
                 .animation(.standard, value: drag == 0)
 
-                if model.showsSpinner {
-                    ProgressView().controlSize(.large).tint(.silk).environment(\.colorScheme, .dark)
-                }
                 Group {
                     Palette.controlsDim.allowsHitTesting(false)
                     chrome

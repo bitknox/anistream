@@ -518,3 +518,31 @@ struct ViewerTests {
         #expect(PlayerClock.label(3729) == "1:02:09")
     }
 }
+
+/// Buffering mid-episode: the amber line along the picture's top, after a second.
+struct BufferingLineTests {
+    @Test func theLineShowsAfterASecondOfBufferingAndGoesWithIt() {
+        let since = ContinuousClock.now
+        #expect(!PlayerTiming.showsBufferingLine(since: nil, at: since + .seconds(5), starting: false),
+                "not buffering")
+        #expect(!PlayerTiming.showsBufferingLine(since: since, at: since + .milliseconds(900), starting: false),
+                "a moment's wait shows nothing")
+        #expect(PlayerTiming.showsBufferingLine(since: since, at: since + .seconds(1), starting: false))
+        #expect(PlayerTiming.showsBufferingLine(since: since, at: since + .seconds(9), starting: false),
+                "still there under the stall prompt")
+        #expect(!PlayerTiming.showsBufferingLine(since: since, at: since + .seconds(3), starting: true),
+                "the starting screen has its own")
+    }
+}
+
+extension BufferingLineTests {
+    @Test func theLineRunsAlongThePicturesTopNotTheLetterbox() {
+        // 16:9 in a 16:10 window: bars above and below.
+        let wide = BufferingLine.picture(in: CGSize(width: 1600, height: 1000), aspect: 16.0 / 9)
+        #expect(wide.minY == 50 && wide.width == 1600)
+        // 4:3 in the same window: bars at the sides, the line as wide as the picture.
+        let square = BufferingLine.picture(in: CGSize(width: 1600, height: 1000), aspect: 4.0 / 3)
+        #expect(square.minY == 0 && abs(square.width - 1333.33) < 0.01)
+        #expect(BufferingLine.picture(in: CGSize(width: 800, height: 600), aspect: nil) == CGRect(x: 0, y: 0, width: 800, height: 600))
+    }
+}

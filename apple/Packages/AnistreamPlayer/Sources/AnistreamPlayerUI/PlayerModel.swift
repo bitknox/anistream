@@ -152,6 +152,8 @@ public final class PlayerModel {
     public private(set) var subtitleTrack: Int64?
     /// mpv is waiting for data, since then.
     public private(set) var bufferingSince: ContinuousClock.Instant?
+    /// The picture's shape as it is shown, width over height, once mpv has said.
+    public private(set) var videoAspect: Double?
     /// The file playing has put a picture up.
     public private(set) var hasPicture = false
 
@@ -628,6 +630,11 @@ public final class PlayerModel {
             tracks = value.array.compactMap(Track.init(mpv:))
             Self.note(.debug, "tracks: \(audioTracks.count) audio, \(subtitleTracks.count) subtitles")
         case "video-params":
+            if let aspect = value["aspect"].double, aspect > 0 {
+                videoAspect = aspect
+            } else if let width = value["dw"].double, let height = value["dh"].double, height > 0 {
+                videoAspect = width / height
+            }
             if value["w"].int != nil {
                 Self.note(.info, "video \(value["w"].int ?? 0)×\(value["h"].int ?? 0) \(value["pixelformat"].string ?? "")")
             }
@@ -857,10 +864,16 @@ public final class PlayerModel {
         jobs.last { $0.activity == "starting ep \(episode)" }?.note
     }
 
-    /// Buffering long enough to show a spinner.
-    public var showsSpinner: Bool {
-        guard let bufferingSince, starting == nil else { return false }
-        return clock - bufferingSince >= PlayerTiming.spinnerAfter
+    #if FIXTURES
+    /// The shots' buffering: as though mpv had waited on its cache for two seconds.
+    func bufferForShot() {
+        bufferingSince = .now - .seconds(2)
+    }
+    #endif
+
+    /// Buffering mid-episode long enough to show the amber line along the picture's top.
+    public var showsBufferingLine: Bool {
+        PlayerTiming.showsBufferingLine(since: bufferingSince, at: clock, starting: starting != nil)
     }
 
     /// The skip button has been up long enough to dim.

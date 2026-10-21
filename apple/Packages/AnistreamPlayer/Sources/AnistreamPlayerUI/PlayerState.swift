@@ -19,8 +19,9 @@ public enum PlayerTiming {
     public static let undoPaused: Duration = .seconds(15)
     /// The resume note stays for this much playback.
     public static let resumePlayback: Double = 6
-    /// Buffering shows a spinner from here.
-    public static let spinnerAfter: Duration = .seconds(1)
+    /// Buffering mid-episode shows the starting screen's amber line along the picture's top edge
+    /// from here.
+    public static let bufferingLineAfter: Duration = .seconds(1)
     /// The starting screen admits the wait from here.
     public static let startingWaits: Duration = .seconds(3)
     /// Controls hide after this long without input: touch, and the Mac.
@@ -32,6 +33,16 @@ public enum PlayerTiming {
     public static let startingOffers: Duration = .seconds(20)
     /// How long a player closed before its first frame waits for the playback's verdict.
     public static let verdictWait: Duration = .seconds(3)
+
+    /// Whether the buffering line shows: mpv has waited on its cache since `since` for
+    /// `bufferingLineAfter` by `now`, and the starting screen, which has a line of its own, is
+    /// not up. It goes the moment mpv plays on.
+    public static func showsBufferingLine(
+        since: ContinuousClock.Instant?, at now: ContinuousClock.Instant, starting: Bool
+    ) -> Bool {
+        guard let since, !starting else { return false }
+        return now - since >= bufferingLineAfter
+    }
 }
 
 /// The playback Now Playing shows, as the engine staged it.

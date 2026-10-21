@@ -49,9 +49,7 @@ public struct MacPlayerView: View {
                 .opacity(curtain ? 1 : 0)
                 .animation(curtain ? .easeIn(duration: 0.25) : .fadeIn, value: curtain)
                 .allowsHitTesting(curtain)
-            if model.showsSpinner {
-                ProgressView().controlSize(.regular).tint(.silk).environment(\.colorScheme, .dark)
-            }
+            BufferingLine(model: model, reduceMotion: reduceMotion)
             chrome
                 .opacity(visible ? 1 : 0)
                 .animation(visible ? .fadeIn : .fadeOut, value: visible)
