@@ -78,5 +78,9 @@ required-features = ["desktop"]
 name = "binge"
 required-features = ["desktop"]
 
+[[test]]
+name = "link_golden"
+required-features = ["desktop"]
+
 [lints]
 workspace = true
