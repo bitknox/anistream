@@ -115,11 +115,48 @@ function M.view()
     return stack and stack[#stack].id or nil
 end
 
+-- What the open list shows, for the published state: its rows' titles, and the title of the
+-- row the cursor is on.
+function M.rows()
+    local view = current()
+    if not view then
+        return nil, nil
+    end
+    local titles = {}
+    for i, entry in ipairs(view.items) do
+        titles[i] = entry.title
+    end
+    local entry = view.items[view.focus]
+    return titles, entry and entry.title or nil
+end
+
+-- What makes a row the same row after the host rewrites the menu: the list it opens, the pick
+-- it makes, the action it runs, or, failing those, its title.
+local function identity(entry)
+    if entry.id then
+        return "id:" .. entry.id
+    end
+    if entry.choose then
+        return "choose:" .. tostring(entry.choose.menu) .. ":" .. tostring(entry.choose.value)
+    end
+    if entry.action then
+        return "action:" .. entry.action
+    end
+    return "title:" .. tostring(entry.title)
+end
+
 -- The host rewrote what the menu shows: rebuild each open level from the new description,
--- keeping where the viewer is.
+-- keeping where the viewer is. That is the row the cursor was on, not its position: rows the
+-- host adds above it (the episode list arriving, a source found) must not move the cursor onto
+-- another row, where the next Enter would pick something the viewer never pointed at.
 function M.refresh()
     if not stack then
         return
+    end
+    local focused = {}
+    for i, view in ipairs(stack) do
+        local entry = view.items[view.focus]
+        focused[i] = entry and identity(entry)
     end
     local items = M.entries()
     local root = stack[1]
@@ -134,8 +171,16 @@ function M.refresh()
         end
         stack[i].items = entry.items
     end
-    for _, view in ipairs(stack) do
-        view.focus = math.max(1, math.min(view.focus, #view.items))
+    for i, view in ipairs(stack) do
+        local found = nil
+        for j, entry in ipairs(view.items) do
+            if focused[i] and identity(entry) == focused[i] then
+                found = j
+                break
+            end
+        end
+        -- A row that is gone leaves the cursor where it was, as near as the list allows.
+        view.focus = found or math.max(1, math.min(view.focus, #view.items))
     end
     app.changed()
 end

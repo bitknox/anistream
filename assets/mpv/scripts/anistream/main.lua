@@ -103,6 +103,7 @@ local CORNER = { stall, skipped, up_next, skip }
 local last_ui = nil
 
 local function publish()
+    local menu_items, menu_focus = menu_view.rows()
     local ui = {
         skip = { visible = overlay.visible(skip), label = skip.label() },
         skipped = { visible = overlay.visible(skipped) },
@@ -120,6 +121,9 @@ local function publish()
         sync = subsync.step(),
         -- Also beyond the brief: our own menu and seek bar, in anistream mode.
         menu = menu_view.view(),
+        -- And what it lists, by title, with the row its cursor is on: what Enter would pick.
+        menu_items = menu_items,
+        menu_focus = menu_focus,
         -- And the keys overlay, with what it lists while open (`label -> keys`).
         keys = help.is_open(),
         keys_listed = help.is_open() and help.listed() or nil,
