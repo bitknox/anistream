@@ -72,7 +72,18 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="anistream" android:host="*" android:pathPrefix="/join/" />
             </intent-filter>
+            <!-- The launcher's shortcuts, Search and Downloads; Continue <title> is published as the
+                 queue changes. Each opens this activity on an anistream://open/… link, explicitly,
+                 so no filter here claims those links. -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
+        <!-- A new-episode notification's Mark watched, which only the app's own notifications
+             reach. -->
+        <receiver
+            android:name=".EpisodeActionReceiver"
+            android:exported="false" />
         <!-- The download job: it keeps the process going while episodes download, with the
              system's progress notification. -->
         <service

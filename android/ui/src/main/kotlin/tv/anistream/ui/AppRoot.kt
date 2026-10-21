@@ -45,6 +45,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -68,6 +71,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 import tv.anistream.design.Motion
 import tv.anistream.store.AppStore
@@ -104,6 +111,11 @@ data class AppActions(
      * itself.
      */
     val hint: (NoticeHint) -> Unit = {},
+    /**
+     * New-episode notifications, on or off: the app's, which asks for the permission to post as
+     * they are turned on. `null` leaves their row out, where the engine has no check for them.
+     */
+    val episodeNotifications: AppSwitch? = null,
 )
 
 /**
@@ -125,6 +137,9 @@ interface PlayerSlot {
 
 /** The player's route: outside the destinations' graphs, over whichever is on screen. */
 const val PLAYER_ROUTE = "player"
+
+/** A switch the app keeps, rather than the engine's settings: what it says, and turning it. */
+class AppSwitch(val on: StateFlow<Boolean>, val set: (Boolean) -> Unit)
 
 /** Whether the window is wide enough for the rail: 600 dp and up, a tablet or an unfolded foldable. */
 @Composable
@@ -161,10 +176,14 @@ fun AppRoot(
     startPage: String? = null,
     /** The player, which the frame shows over everything while it is up. */
     player: PlayerSlot? = null,
+    /** The links the system opens the app on, followed as they come: shortcuts, notifications. */
+    links: Flow<AppLink> = emptyFlow(),
 ) {
     val nav = rememberNavController()
     val navigator = remember(nav) { Navigator(nav, start) }
     val sheets = remember { AppSheets() }
+    // Whether Search is to open its field as it shows: a link to Search asked for it.
+    var searchOpening by remember { mutableStateOf(false) }
     val routed = remember(actions, navigator, store) {
         actions.copy(
             openSettings = { navigator.openSettings() },
@@ -211,6 +230,11 @@ fun AppRoot(
                 if (!player.presented && there) nav.popBackStack()
             }
         }
+        val following by rememberUpdatedState(routed)
+        androidx.compose.runtime.LaunchedEffect(links, navigator) {
+            // A new link takes over from one still waiting to play.
+            links.collectLatest { link -> navigator.follow(link, store, following) { searchOpening = true } }
+        }
         Scaffold(
             containerColor = MaterialTheme.colorScheme.surface,
             contentWindowInsets = WindowInsets(0),
@@ -244,7 +268,7 @@ fun AppRoot(
                                 navigation(route = graphRoute(destination), startDestination = destination.route) {
                                     composable(destination.route) {
                                         CompositionLocalProvider(LocalPageAnimation provides this) {
-                                            DestinationScreen(destination, routed, startQuery)
+                                            DestinationScreen(destination, routed, startQuery, searchOpening) { searchOpening = false }
                                         }
                                     }
                                     composable(
@@ -271,7 +295,13 @@ fun AppRoot(
 }
 
 @Composable
-private fun DestinationScreen(destination: Destination, actions: AppActions, startQuery: String?) {
+private fun DestinationScreen(
+    destination: Destination,
+    actions: AppActions,
+    startQuery: String?,
+    searchOpening: Boolean,
+    searchOpened: () -> Unit,
+) {
     val navigator = LocalNavigator.current
     when (destination) {
         Destination.Continue -> ContinueScreen(
@@ -282,7 +312,7 @@ private fun DestinationScreen(destination: Destination, actions: AppActions, sta
         Destination.Calendar -> CalendarScreen()
         Destination.Seasonal -> SeasonalScreen()
         Destination.Library -> LibraryScreen(actions)
-        Destination.Search -> SearchScreen(startQuery)
+        Destination.Search -> SearchScreen(startQuery, open = searchOpening, opened = searchOpened)
     }
 }
 

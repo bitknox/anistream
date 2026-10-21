@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The downloads shortcut's icon: the glyph in silk on the ground colour, as the launcher icon is. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ground" />
+    <foreground android:drawable="@drawable/shortcut_downloads_glyph" />
+    <monochrome android:drawable="@drawable/shortcut_downloads_glyph" />
+</adaptive-icon>

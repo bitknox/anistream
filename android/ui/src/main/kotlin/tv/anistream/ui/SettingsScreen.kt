@@ -352,7 +352,7 @@ private val SettingsPane.defaultFocus: String?
 @Composable
 internal fun PaneContent(pane: SettingsPane, actions: AppActions) {
     when (pane) {
-        SettingsPane.Playback -> PlaybackPane()
+        SettingsPane.Playback -> PlaybackPane(actions)
         SettingsPane.Downloads -> DownloadsPane(actions)
         SettingsPane.Sources -> SourcesPane(actions)
         SettingsPane.Accounts -> AccountsPane(actions)

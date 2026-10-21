@@ -130,7 +130,7 @@ internal fun Quiet(text: String) {
  * this week as rows.
  */
 private fun LazyListScope.queue(queue: ContinueQueue, actions: AppActions) {
-    val hero = queue.inProgress.firstOrNull() ?: queue.newThisWeek.firstOrNull() ?: return
+    val hero = queue.lead ?: return
     item(key = "hero") { Hero(hero, actions) }
     val rail = queue.inProgress.drop(1)
     if (rail.isNotEmpty()) {
