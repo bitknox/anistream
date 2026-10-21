@@ -22,6 +22,7 @@ use super::{
     controls::apply_command,
     presence::Rpc,
     skips::{offered, skip_target},
+    subtitles::LateSubtitles,
     upscaling::read_source,
 };
 use crate::playback::{
@@ -51,6 +52,8 @@ impl Run<'_> {
         streams: &[Stream],
         index: usize,
         commands: &mut mpsc::UnboundedReceiver<PlayerCommand>,
+        // Subtitle tracks still being fetched as the file opened, added as each arrives.
+        mut late: Option<LateSubtitles>,
     ) -> FileOutcome {
         let context = self.context;
         let settings = self.settings;
@@ -108,6 +111,10 @@ impl Run<'_> {
         // per file.
         player.picture.governor.new_file();
         self.hdr = None;
+
+        // Whether the file has loaded, which a track has to wait for before it can be added.
+        let mut loaded = false;
+        let mut waiting: Vec<anistream_core::stream::Subtitle> = Vec::new();
 
         let outcome = loop {
             // Controls and events are interleaved rather than polled in turn: a keystroke must
@@ -182,6 +189,21 @@ impl Run<'_> {
                     if held >= STALL_PROMPT && !stall_dismissed {
                         let _ = link.overlay(Overlay::Stall { seconds: held.as_secs() }).await;
                         stall_shown = true;
+                    }
+                    continue;
+                }
+                // A subtitle track that arrived after the file opened: given to the player now,
+                // or as the file loads, which it has to be loaded for.
+                subtitle = async {
+                    match late.as_mut() {
+                        Some(late) => late.next().await,
+                        None => None,
+                    }
+                }, if late.is_some() => {
+                    match subtitle {
+                        Some(subtitle) if loaded => add_subtitle(link, &subtitle).await,
+                        Some(subtitle) => waiting.push(subtitle),
+                        None => late = None,
                     }
                     continue;
                 }
@@ -382,6 +404,10 @@ impl Run<'_> {
                     {
                         tracing::debug!(error = %e, "could not attach external subtitles");
                     }
+                    loaded = true;
+                    for subtitle in waiting.drain(..) {
+                        add_subtitle(link, &subtitle).await;
+                    }
                 }
                 PlaybackEvent::Buffering(held) => {
                     buffering = *held;
@@ -517,6 +543,14 @@ fn from_the_player(command: PlayerCommand) -> Result<ScriptEvent, PlayerCommand>
         }),
         other => return Err(other),
     })
+}
+
+/// Attach one external subtitle track that arrived late to the loaded file.
+async fn add_subtitle(link: &dyn PlayerLink, subtitle: &anistream_core::stream::Subtitle) {
+    let language = (!subtitle.language.is_empty()).then(|| subtitle.language.clone());
+    if let Err(e) = link.add_subtitle(&subtitle.url, language.clone(), language).await {
+        tracing::debug!(error = %e, "could not attach a late subtitle");
+    }
 }
 
 /// Attach a stream's external subtitle tracks to the loaded file, the preferred language first:

@@ -7,12 +7,17 @@
 //! `SettingsSaved`, and by `SourcesReordered` or `SourcesChanged` when it touched the chain.
 
 use anistream_core::{
-    config::Config, ids::AnilistId, media::Translation, settings::SettingValue,
+    config::{Config, LeakAction},
+    ids::AnilistId,
+    media::Translation,
+    settings::SettingValue,
 };
 use anistream_model::{
     command::Command,
     event::Event,
-    settings::{SettingKey, SettingsView},
+    protection::{FailedCheck, TorrentProtection},
+    settings::{SettingKey, SettingOverride, SettingsView},
+    show::ShowSettingKey,
 };
 use anistream_providers::{MockProvider, ProviderRegistry};
 use anistream_testkit::sources;
@@ -280,6 +285,53 @@ async fn a_write_the_config_refuses_leaves_the_file_alone_and_alerts() {
     let said = toasts(&updates);
     assert!(said[0].starts_with("alert: not saved: torrents need"), "{said:?}");
     assert!(!h.paths().config_file.exists(), "nothing was written");
+}
+
+#[tokio::test]
+async fn a_protection_is_written_as_one_change_and_read_back_as_the_terminal_reads_it() {
+    let mut h = Harness::new().await;
+    h.send(Command::SetTorrentProtection {
+        mode: TorrentProtection::Device,
+        proxy: None,
+        on_failure: FailedCheck::Stop,
+        acknowledged: false,
+    });
+    let updates = h.settle().await;
+
+    // Torrents are off, so nothing is brought back up.
+    assert_eq!(h.trace(), ["Settings", "Toast", "SettingsSaved"]);
+    let view = settings(&updates[0]);
+    assert_eq!(
+        (view.torrent.protection, view.torrent.on_failure),
+        (TorrentProtection::Device, FailedCheck::Stop)
+    );
+    assert_eq!(shown(view, SettingKey::VpnMode), "external", "the terminal's row says it too");
+    assert_eq!(toasts(&updates), ["info: saved · torrent protection"]);
+    let file = std::fs::read_to_string(&h.paths().config_file).unwrap();
+    assert_eq!(
+        file,
+        "[providers.torrent.vpn]\nmode = \"external\"\ni_understand_my_ip_is_exposed = false\n\
+         on_leak = \"stop\"\ni_understand_a_failed_check_keeps_torrents_running = false\n"
+    );
+    assert_eq!(on_disk(&h).providers.torrent.vpn.on_leak, LeakAction::Stop);
+}
+
+#[tokio::test]
+async fn what_a_show_sets_for_itself_comes_with_its_sheet_and_is_counted_on_the_settings() {
+    let mut h = Harness::new().await;
+    let id = AnilistId::new(7);
+    let value = Some(SettingValue::Str("dub".into()));
+    h.send(Command::SetShowSetting { id, key: ShowSettingKey::Translation, value });
+    let updates = h.settle().await;
+
+    assert_eq!(h.trace(), ["ShowSettings", "Settings"]);
+    let Event::ShowSettings(sheet) = &updates[0] else { unreachable!() };
+    let row = sheet.rows.iter().find(|row| row.key == ShowSettingKey::Translation).unwrap();
+    assert_eq!((row.value.as_str(), row.default.as_str()), ("dub", "sub"));
+    let view = settings(&updates[1]);
+    assert_eq!(view.overridden, [SettingOverride { key: SettingKey::Translation, shows: 1 }]);
+    assert_eq!(shown(view, SettingKey::Translation), "sub", "Settings' own is as it was");
+    assert!(!h.paths().config_file.exists(), "the file is Settings', not the show's");
 }
 
 #[tokio::test]

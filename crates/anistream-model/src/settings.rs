@@ -13,8 +13,8 @@ use anistream_core::{
 use crate::sources::ConfiguredSources;
 
 /// Every setting a front end shows or changes, named for what it is rather than for where the
-/// file keeps it: the Settings screen's rows, in display order in [`Self::ROWS`], and the one
-/// with no row there, the source order.
+/// file keeps it: the Settings screen's rows, in display order in [`Self::ROWS`]; the native
+/// apps' own, in [`Self::NATIVE_ROWS`]; and the one with no row on either, the source order.
 ///
 /// An enum rather than positional indices: the cycling logic and the renderer both key off this,
 /// so inserting a row cannot make the screen edit the setting below the one it is showing. And
@@ -59,6 +59,24 @@ pub enum SettingKey {
     /// The order failover walks the sources in. No row on Settings: `K` and `J` on Providers
     /// move a source up and down it.
     SourceOrder,
+    /// How many seconds Up Next counts down before the next episode, `0` for none: a native
+    /// app's row, as are the rest below.
+    UpNextCountdown,
+    /// Blur the stills of unwatched episodes after the next one.
+    SpoilerProtection,
+    /// Which version of an episode a download takes: standard or higher.
+    DownloadQuality,
+    /// How many of a show's next episodes downloads keep, `0` for none.
+    KeepNextEpisodes,
+    /// Whether downloads run over a cellular connection.
+    DownloadsOnCellular,
+    /// Whether torrents run over a cellular connection.
+    TorrentsOnCellular,
+    /// What a failed connection check does to torrents: pause them, stop them, or only warn.
+    /// Warn needs an acknowledgement, which only [`Command::SetTorrentProtection`] carries.
+    ///
+    /// [`Command::SetTorrentProtection`]: crate::command::Command::SetTorrentProtection
+    VpnOnFailure,
 }
 
 impl SettingKey {
@@ -98,6 +116,19 @@ impl SettingKey {
         Self::UpdateCheck,
     ];
 
+    /// The native apps' own rows, which the terminal's Settings screen does not show: a front
+    /// end finds the rows both show among [`Self::ROWS`]. In no order of their own, since each
+    /// app lays them out on its own panes; grouped by [`Self::category`] all the same.
+    pub const NATIVE_ROWS: [Self; 7] = [
+        Self::UpNextCountdown,
+        Self::SpoilerProtection,
+        Self::DownloadQuality,
+        Self::KeepNextEpisodes,
+        Self::DownloadsOnCellular,
+        Self::TorrentsOnCellular,
+        Self::VpnOnFailure,
+    ];
+
     /// Where the file keeps it: the containing table, as the dotted path
     /// `anistream_core::settings::write_key` takes, and the key. `None` for the two shown and
     /// never written from here, the VPN mode and where tokens are kept: the file's to change.
@@ -133,6 +164,13 @@ impl SettingKey {
             Self::SyncplayRoom => (&["syncplay"], "room"),
             Self::UpdateCheck => (&["updates"], "check"),
             Self::SourceOrder => (&["providers"], "order"),
+            Self::UpNextCountdown => (&["playback"], "up_next_countdown"),
+            Self::SpoilerProtection => (&["playback"], "spoiler_protection"),
+            Self::DownloadQuality => (&["downloads"], "quality"),
+            Self::KeepNextEpisodes => (&["downloads"], "keep_next"),
+            Self::DownloadsOnCellular => (&["downloads"], "on_cellular"),
+            Self::TorrentsOnCellular => (&["providers", "torrent"], "on_cellular"),
+            Self::VpnOnFailure => (&["providers", "torrent", "vpn"], "on_leak"),
             Self::VpnMode | Self::TokenStorage => return None,
         })
     }
@@ -141,6 +179,7 @@ impl SettingKey {
     pub fn at(table: &[&str], key: &str) -> Option<Self> {
         Self::ROWS
             .into_iter()
+            .chain(Self::NATIVE_ROWS)
             .chain([Self::SourceOrder, Self::TorrentIndex])
             .find(|setting| setting.path().is_some_and(|(t, k)| t == table && k == key))
     }
@@ -210,6 +249,17 @@ impl SettingKey {
             Self::SyncplayRoom => to.syncplay.room.clone_from(&from.syncplay.room),
             Self::UpdateCheck => to.updates.check = from.updates.check,
             Self::SourceOrder => to.providers.order.clone_from(&from.providers.order),
+            Self::UpNextCountdown => dst.up_next_countdown = src.up_next_countdown,
+            Self::SpoilerProtection => dst.spoiler_protection = src.spoiler_protection,
+            Self::DownloadQuality => to.downloads.quality = from.downloads.quality,
+            Self::KeepNextEpisodes => to.downloads.keep_next = from.downloads.keep_next,
+            Self::DownloadsOnCellular => to.downloads.on_cellular = from.downloads.on_cellular,
+            Self::TorrentsOnCellular => {
+                to.providers.torrent.on_cellular = from.providers.torrent.on_cellular;
+            }
+            Self::VpnOnFailure => {
+                to.providers.torrent.vpn.on_leak = from.providers.torrent.vpn.on_leak;
+            }
             // Not editable here, so never written and never rolled back.
             Self::VpnMode | Self::TokenStorage => {}
         }
@@ -231,18 +281,25 @@ impl SettingKey {
             | Self::Fullscreen
             | Self::Upscaling
             | Self::PlayerUi
-            | Self::NightMode => "playback",
+            | Self::NightMode
+            | Self::UpNextCountdown
+            | Self::SpoilerProtection => "playback",
             Self::DownloadDir
             | Self::MergeSubtitles
             | Self::KeepSeeding
-            | Self::DownloadHook => "downloads",
+            | Self::DownloadHook
+            | Self::DownloadQuality
+            | Self::KeepNextEpisodes
+            | Self::DownloadsOnCellular => "downloads",
             Self::Torrents
             | Self::TorrentIndex
             | Self::VpnMode
             | Self::SeedRatio
             | Self::SeedHours
             | Self::UploadLimit
-            | Self::SourceOrder => "sources",
+            | Self::SourceOrder
+            | Self::TorrentsOnCellular
+            | Self::VpnOnFailure => "sources",
             Self::Presence
             | Self::PresenceTitle
             | Self::TokenStorage
@@ -289,6 +346,15 @@ impl SettingKey {
             Self::VpnMode => "vpn mode",
             Self::TokenStorage => "token storage",
             Self::SourceOrder => "source order",
+            Self::UpNextCountdown => "up next countdown",
+            Self::SpoilerProtection => "spoiler protection",
+            // Not "quality", which is playback's: the toast that says it was saved would not
+            // say which.
+            Self::DownloadQuality => "download quality",
+            Self::KeepNextEpisodes => "keep next episodes",
+            Self::DownloadsOnCellular => "downloads on cellular",
+            Self::TorrentsOnCellular => "torrents on cellular",
+            Self::VpnOnFailure => "if a check fails",
         }
     }
 }
@@ -298,7 +364,9 @@ impl SettingKey {
 /// Listed rather than inferred: a rebuild tears down a live torrent session, which is far
 /// too blunt to trigger on a guess about a setting. The VPN mode is listed though nothing here
 /// writes it, since it decides whether torrents run at all; the sources switched off by name
-/// and the remote's address, which the file alone sets, have no key to list.
+/// and the remote's address, which the file alone sets, have no key to list. What a failed
+/// check does is listed too: the guard reads it as the source comes up, and a choice to stop
+/// rather than pause that waited for the next launch would not be the one in force.
 pub fn redefines_sources(setting: SettingKey) -> bool {
     // The index too: the torrent source reads it as it comes up.
     matches!(
@@ -307,6 +375,7 @@ pub fn redefines_sources(setting: SettingKey) -> bool {
             | SettingKey::TorrentIndex
             | SettingKey::VpnMode
             | SettingKey::SourceOrder
+            | SettingKey::VpnOnFailure
     )
 }
 
@@ -344,6 +413,26 @@ pub struct SettingsView {
     pub speed: Option<f64>,
     /// Whether Discord presence has a client to publish under, which its row's note depends on.
     pub presence_client: bool,
+    /// The native apps' own rows, in [`SettingKey::NATIVE_ROWS`] order. The terminal draws
+    /// none of them.
+    pub native_rows: Vec<SettingRow>,
+    /// The settings some shows set for themselves, and for how many: what "Overridden for 3
+    /// shows" says under a row. Only those at least one show sets, each once.
+    pub overridden: Vec<SettingOverride>,
+    /// How torrent traffic is kept off the viewer's own address, as the torrent sheet and
+    /// Sources show it. Boxed, as the largest part of a view every settings event carries:
+    /// the bindings see the view itself.
+    pub torrent: Box<crate::protection::ProtectionView>,
+}
+
+/// How many shows set a setting for themselves.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct SettingOverride {
+    /// The setting: the Settings row the count goes under.
+    pub key: SettingKey,
+    /// How many shows set it, one or more.
+    pub shows: u32,
 }
 
 impl Default for SettingsView {
@@ -365,6 +454,10 @@ pub fn view(effective: &Config, saved: &Config) -> SettingsView {
         sources: ConfiguredSources::of(&effective.providers),
         speed: effective.playback.persisted_speed,
         presence_client: effective.presence.resolved_client_id().is_some(),
+        native_rows: native_rows(effective, saved),
+        // The shows' own are the database's, which the engine counts and puts in.
+        overridden: Vec::new(),
+        torrent: Box::new(crate::protection::view(&effective.providers.torrent.vpn)),
     }
 }
 
@@ -408,14 +501,21 @@ impl SettingChange {
 /// show what is saved and mark the session's value beside it: the file and the next launch
 /// go by the saved one.
 pub fn rows(effective: &Config, saved: &Config) -> Vec<SettingRow> {
-    SettingKey::ROWS
-        .into_iter()
-        .map(|key| SettingRow {
-            key,
-            value: value(effective, saved, key),
-            change: change(effective, saved, key),
-        })
-        .collect()
+    SettingKey::ROWS.into_iter().map(|key| row(effective, saved, key)).collect()
+}
+
+/// The native apps' own rows, in [`SettingKey::NATIVE_ROWS`] order, as [`rows`] makes the
+/// Settings screen's.
+pub fn native_rows(effective: &Config, saved: &Config) -> Vec<SettingRow> {
+    SettingKey::NATIVE_ROWS.into_iter().map(|key| row(effective, saved, key)).collect()
+}
+
+fn row(effective: &Config, saved: &Config, key: SettingKey) -> SettingRow {
+    SettingRow {
+        key,
+        value: value(effective, saved, key),
+        change: change(effective, saved, key),
+    }
 }
 
 /// The value a step of `delta` makes of `key`, as the file would be given it, or `None` for
@@ -432,7 +532,7 @@ pub fn step(
     delta: i64,
 ) -> Option<SettingValue> {
     use SettingValue as V;
-    use anistream_core::config::{PlayerUi, ThemeMode, Upscaling};
+    use anistream_core::config::{DownloadQuality, LeakAction, PlayerUi, ThemeMode, Upscaling};
     use anistream_core::media::Translation;
 
     let playback = &effective.playback;
@@ -502,6 +602,33 @@ pub fn step(
             const LADDER: [u32; 6] = [0, 256, 512, 1024, 2048, 5120];
             V::Int(i64::from(step_through(&LADDER, seeding.upload_limit_kib, delta)))
         }
+        SettingKey::UpNextCountdown => {
+            const LADDER: [u32; 6] = [0, 5, 10, 15, 20, 30];
+            V::Int(i64::from(step_through(&LADDER, playback.up_next_countdown, delta)))
+        }
+        SettingKey::SpoilerProtection => V::Bool(!playback.spoiler_protection),
+        SettingKey::DownloadQuality => V::Str(
+            match effective.downloads.quality {
+                DownloadQuality::Standard => "higher",
+                DownloadQuality::Higher => "standard",
+            }
+            .into(),
+        ),
+        SettingKey::KeepNextEpisodes => {
+            const LADDER: [u32; 6] = [0, 1, 2, 3, 5, 10];
+            V::Int(i64::from(step_through(&LADDER, effective.downloads.keep_next, delta)))
+        }
+        SettingKey::DownloadsOnCellular => V::Bool(!effective.downloads.on_cellular),
+        SettingKey::TorrentsOnCellular => V::Bool(!effective.providers.torrent.on_cellular),
+        // Between the two that need no confirming. Warn is never a step away: it is asked for
+        // with its acknowledgement, and a step from it goes back to the default.
+        SettingKey::VpnOnFailure => V::Str(
+            match effective.providers.torrent.vpn.on_leak {
+                LeakAction::Pause => "stop",
+                LeakAction::Stop | LeakAction::Warn => "pause",
+            }
+            .into(),
+        ),
         // Typed, read-only, or moved on Providers: nothing to step through.
         SettingKey::Subtitles
         | SettingKey::DownloadDir
@@ -521,7 +648,7 @@ pub fn step(
 /// name it does not know, or a setting that is not written from here.
 pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
     use SettingValue as V;
-    use anistream_core::config::{PlayerUi, ThemeMode, Upscaling};
+    use anistream_core::config::{DownloadQuality, LeakAction, PlayerUi, ThemeMode, Upscaling};
     use anistream_core::media::Translation;
 
     let playback = &mut config.playback;
@@ -603,14 +730,51 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
         (SettingKey::SourceOrder, V::Strings(order)) => {
             config.providers.order.clone_from(order);
         }
+        (SettingKey::UpNextCountdown, V::Int(seconds)) => {
+            let Ok(seconds) = u32::try_from(*seconds) else { return false };
+            playback.up_next_countdown = seconds;
+        }
+        (SettingKey::SpoilerProtection, V::Bool(on)) => playback.spoiler_protection = *on,
+        (SettingKey::DownloadQuality, V::Str(name)) => {
+            config.downloads.quality = match name.as_str() {
+                "standard" => DownloadQuality::Standard,
+                "higher" => DownloadQuality::Higher,
+                _ => return false,
+            };
+        }
+        (SettingKey::KeepNextEpisodes, V::Int(episodes)) => {
+            let Ok(episodes) = u32::try_from(*episodes) else { return false };
+            config.downloads.keep_next = episodes;
+        }
+        (SettingKey::DownloadsOnCellular, V::Bool(on)) => config.downloads.on_cellular = *on,
+        (SettingKey::TorrentsOnCellular, V::Bool(on)) => {
+            config.providers.torrent.on_cellular = *on;
+        }
+        (SettingKey::VpnOnFailure, V::Str(name)) => {
+            config.providers.torrent.vpn.on_leak = match name.as_str() {
+                "pause" => LeakAction::Pause,
+                "stop" => LeakAction::Stop,
+                "warn" => LeakAction::Warn,
+                _ => return false,
+            };
+        }
         _ => return false,
     }
     true
 }
 
+/// Whether `value` for `key` asks for something that needs confirming first, which a setting
+/// alone cannot carry: warn only, on a failed connection check, which leaves torrents running
+/// on what may be the viewer's own address. Asked for with
+/// [`Command::SetTorrentProtection`](crate::command::Command::SetTorrentProtection) instead,
+/// and refused as a setting.
+pub fn needs_acknowledgement(key: SettingKey, value: &SettingValue) -> bool {
+    matches!((key, value), (SettingKey::VpnOnFailure, SettingValue::Str(name)) if name == "warn")
+}
+
 /// A row's value, as it shows it.
-fn value(effective: &Config, saved: &Config, key: SettingKey) -> String {
-    use anistream_core::config::PlayerUi;
+pub(crate) fn value(effective: &Config, saved: &Config, key: SettingKey) -> String {
+    use anistream_core::config::{DownloadQuality, LeakAction, PlayerUi};
 
     let playback = &effective.playback;
     let torrent = &effective.providers.torrent;
@@ -679,6 +843,28 @@ fn value(effective: &Config, saved: &Config, key: SettingKey) -> String {
         SettingKey::TokenStorage => effective.trackers.token_storage.clone(),
         // Not among the rows: Providers shows the order, as its table.
         SettingKey::SourceOrder => String::new(),
+        SettingKey::UpNextCountdown => match playback.up_next_countdown {
+            0 => "off".into(),
+            seconds => format!("{seconds} s"),
+        },
+        SettingKey::SpoilerProtection => on_off(playback.spoiler_protection),
+        SettingKey::DownloadQuality => match effective.downloads.quality {
+            DownloadQuality::Standard => "standard",
+            DownloadQuality::Higher => "higher",
+        }
+        .into(),
+        SettingKey::KeepNextEpisodes => match effective.downloads.keep_next {
+            0 => "off".into(),
+            n => crate::wording::plural(n as usize, "episode"),
+        },
+        SettingKey::DownloadsOnCellular => on_off(effective.downloads.on_cellular),
+        SettingKey::TorrentsOnCellular => on_off(torrent.on_cellular),
+        SettingKey::VpnOnFailure => match torrent.vpn.on_leak {
+            LeakAction::Pause => "pause torrents",
+            LeakAction::Stop => "stop torrents",
+            LeakAction::Warn => "warn only",
+        }
+        .into(),
     }
 }
 
@@ -730,6 +916,16 @@ fn two_state(effective: &Config, saved: &Config, key: SettingKey) -> Option<bool
         S::Torrents => c.providers.torrent.enabled,
         S::Syncplay => c.syncplay.enabled,
         S::UpdateCheck => c.updates.check,
+        S::SpoilerProtection => c.playback.spoiler_protection,
+        S::DownloadQuality => {
+            c.downloads.quality == anistream_core::config::DownloadQuality::Higher
+        }
+        S::DownloadsOnCellular => c.downloads.on_cellular,
+        S::TorrentsOnCellular => c.providers.torrent.on_cellular,
+        // Pause, then stop; warn stands beside stop, a step back from the default.
+        S::VpnOnFailure => {
+            c.providers.torrent.vpn.on_leak != anistream_core::config::LeakAction::Pause
+        }
         _ => return None,
     })
 }
@@ -747,6 +943,8 @@ fn ladder_value(effective: &Config, key: SettingKey) -> Option<SettingValue> {
         S::SeedRatio => V::Float(seeding.ratio),
         S::SeedHours => V::Int(i64::from(seeding.hours)),
         S::UploadLimit => V::Int(i64::from(seeding.upload_limit_kib)),
+        S::UpNextCountdown => V::Int(i64::from(playback.up_next_countdown)),
+        S::KeepNextEpisodes => V::Int(i64::from(effective.downloads.keep_next)),
         _ => return None,
     })
 }
@@ -824,8 +1022,8 @@ mod tests {
     #[test]
     fn every_setting_written_is_found_again_where_the_file_keeps_it() {
         // So a write named by the file's table and key names one setting, and only one.
-        let unlisted = [SettingKey::SourceOrder, SettingKey::TorrentIndex];
-        for setting in SettingKey::ROWS.into_iter().chain(unlisted) {
+        let every = SettingKey::ROWS.into_iter().chain(SettingKey::NATIVE_ROWS);
+        for setting in every.chain([SettingKey::SourceOrder, SettingKey::TorrentIndex]) {
             if let Some((table, key)) = setting.path() {
                 assert_eq!(SettingKey::at(table, key), Some(setting), "{table:?}.{key}");
             }
@@ -841,6 +1039,94 @@ mod tests {
         let rows: std::collections::HashSet<_> = SettingKey::ROWS.into_iter().collect();
         assert_eq!(rows.len(), SettingKey::ROWS.len());
         assert!(!SettingKey::ROWS.contains(&SettingKey::SourceOrder));
+        // The native apps' rows: each once, and none the terminal draws.
+        let native: std::collections::HashSet<_> =
+            SettingKey::NATIVE_ROWS.into_iter().collect();
+        assert_eq!(native.len(), SettingKey::NATIVE_ROWS.len());
+        assert!(
+            native.iter().all(|key| !rows.contains(key) && *key != SettingKey::SourceOrder)
+        );
+    }
+
+    #[test]
+    fn the_native_rows_step_put_and_read_back_as_the_file_takes_them() {
+        use anistream_core::config::DownloadQuality;
+        let config = Config::default();
+        let view = view(&config, &config);
+        let shown: Vec<_> =
+            view.native_rows.iter().map(|row| (row.key, row.value.as_str())).collect();
+        assert_eq!(
+            shown,
+            [
+                (SettingKey::UpNextCountdown, "10 s"),
+                (SettingKey::SpoilerProtection, "on"),
+                (SettingKey::DownloadQuality, "standard"),
+                (SettingKey::KeepNextEpisodes, "off"),
+                (SettingKey::DownloadsOnCellular, "off"),
+                (SettingKey::TorrentsOnCellular, "off"),
+                (SettingKey::VpnOnFailure, "pause torrents"),
+            ]
+        );
+        assert!(view.rows.iter().all(|row| !SettingKey::NATIVE_ROWS.contains(&row.key)));
+
+        // Each one stepped is a value it takes, and changes it.
+        for key in SettingKey::NATIVE_ROWS {
+            let stepped = step(&config, &config, key, 1).expect("a step");
+            let mut changed = config.clone();
+            assert!(put(&mut changed, key, &stepped), "{key:?} takes {stepped:?}");
+            assert_ne!(changed, config, "{key:?} changed nothing");
+            let row = native_rows(&config, &config).into_iter().find(|r| r.key == key).unwrap();
+            let SettingChange::Steps { back, forward } = row.change else { panic!("{key:?}") };
+            assert!(back || forward, "{key:?} steps neither way");
+        }
+        assert_eq!(
+            step(&config, &config, SettingKey::KeepNextEpisodes, 1),
+            Some(SettingValue::Int(1))
+        );
+        assert_eq!(
+            step(&config, &config, SettingKey::UpNextCountdown, -1),
+            Some(SettingValue::Int(5))
+        );
+
+        let mut config = config;
+        assert!(put(
+            &mut config,
+            SettingKey::DownloadQuality,
+            &SettingValue::Str("higher".into())
+        ));
+        assert_eq!(config.downloads.quality, DownloadQuality::Higher);
+        assert!(!put(
+            &mut config,
+            SettingKey::DownloadQuality,
+            &SettingValue::Str("best".into())
+        ));
+        assert!(put(&mut config, SettingKey::UpNextCountdown, &SettingValue::Int(0)));
+        assert_eq!(value(&config, &config, SettingKey::UpNextCountdown), "off");
+        assert!(put(&mut config, SettingKey::KeepNextEpisodes, &SettingValue::Int(3)));
+        assert_eq!(value(&config, &config, SettingKey::KeepNextEpisodes), "3 episodes");
+    }
+
+    #[test]
+    fn warn_only_is_never_a_step_and_needs_confirming_as_a_setting() {
+        use anistream_core::config::LeakAction;
+        let mut config = Config::default();
+        let warn = SettingValue::Str("warn".into());
+        assert!(needs_acknowledgement(SettingKey::VpnOnFailure, &warn));
+        assert!(!needs_acknowledgement(
+            SettingKey::VpnOnFailure,
+            &SettingValue::Str("stop".into())
+        ));
+        // Pause and stop step between each other; from warn a step goes back to the default.
+        assert_eq!(
+            step(&config, &config, SettingKey::VpnOnFailure, 1),
+            Some(SettingValue::Str("stop".into()))
+        );
+        config.providers.torrent.vpn.on_leak = LeakAction::Warn;
+        assert_eq!(
+            step(&config, &config, SettingKey::VpnOnFailure, -1),
+            Some(SettingValue::Str("pause".into()))
+        );
+        assert_eq!(value(&config, &config, SettingKey::VpnOnFailure), "warn only");
     }
 
     #[test]
@@ -941,10 +1227,12 @@ mod tests {
         assert!(redefines_sources(SettingKey::Torrents));
         assert!(redefines_sources(SettingKey::VpnMode));
         assert!(redefines_sources(SettingKey::SourceOrder));
+        assert!(redefines_sources(SettingKey::VpnOnFailure));
 
         assert!(!redefines_sources(SettingKey::Upscaling));
         assert!(!redefines_sources(SettingKey::Quality));
         assert!(!redefines_sources(SettingKey::DownloadDir));
         assert!(!redefines_sources(SettingKey::Theme));
+        assert!(!redefines_sources(SettingKey::TorrentsOnCellular));
     }
 }

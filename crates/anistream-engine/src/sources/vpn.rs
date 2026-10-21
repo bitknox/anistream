@@ -41,13 +41,23 @@ pub async fn vpn_watch(
             GuardNote::Passed | GuardNote::Quiet => {}
         }
 
-        if leaking && !was_leaking {
+        // Warn only, which the config holds only with its acknowledgement: what runs keeps
+        // running, and the failed check is said rather than acted on. Nothing was paused, so
+        // nothing is resumed either, which would unpause a download paused by hand. A torrent
+        // asked for while the check fails still waits for it: the guard permits none.
+        let warn = guard.on_leak() == anistream_core::config::LeakAction::Warn;
+        if leaking && !was_leaking && warn {
+            let _ = tx.send(Event::Toast(anistream_model::notice::Notice::alert(
+                "the connection check failed · torrents keep running",
+            )));
+        } else if leaking && !was_leaking {
             // Marking the provider unavailable only stops *new* requests. Without this,
             // librqbit would carry on downloading and seeding the current episode over an
             // unprotected connection.
             session.halt().await;
         } else if !leaking
             && was_leaking
+            && !warn
             && let Err(e) = session.resume().await
         {
             tracing::warn!(error = %e, "could not resume after recovery");

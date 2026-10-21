@@ -33,8 +33,10 @@ use crate::{
     outbox::{Internal, Outbox},
     playback::{prefetch::prefetch, resolve::load_sources},
     plugin_stores::tasks::{StoreTaskContext, store_task},
+    protection::set_torrent_protection,
     services::Services,
     settings::{set_setting, set_translation, step_setting},
+    show_settings::{load_show_settings, reset_show_settings, set_show_setting},
     sources::{
         self,
         commands::{check_providers, disable_plugin},
@@ -150,7 +152,7 @@ pub(crate) fn dispatch(
             manual_search(id, query, job, engine, services, tx)
         }
         Command::SetProviderPreference { id, provider } => {
-            set_provider_preference(id, provider, services, tx)
+            set_provider_preference(id, provider, engine, services, tx)
         }
 
         // Playback.
@@ -210,6 +212,14 @@ pub(crate) fn dispatch(
         Command::StepSetting { key, delta } => step_setting(key, delta, engine, services, tx),
         Command::SetSetting { key, value } => set_setting(key, value, engine, services, tx),
         Command::SetTranslation { translation } => set_translation(translation, engine, tx),
+        Command::SetTorrentProtection { mode, proxy, on_failure, acknowledged } => {
+            set_torrent_protection(mode, proxy, on_failure, acknowledged, engine, services, tx)
+        }
+        Command::LoadShowSettings { id } => load_show_settings(id, engine, services, tx),
+        Command::SetShowSetting { id, key, value } => {
+            set_show_setting(id, key, value, engine, services, tx)
+        }
+        Command::ResetShowSettings { id } => reset_show_settings(id, engine, services, tx),
 
         // Off the loop, with no job: covers report back on their own.
         Command::FetchArtwork { url } => artwork::spawn_fetch(

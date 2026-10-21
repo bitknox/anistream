@@ -48,6 +48,16 @@ pub fn set_setting(
     tx: &Outbox,
 ) {
     let Some((table, file_key)) = key.path() else { return };
+    // Warn only on a failed check: never as a setting, since nothing here carries the viewer's
+    // confirmation. Said, so the row that asked does not wait for an answer.
+    if settings::needs_acknowledgement(key, &value) {
+        let refused = Some(key);
+        let _ = tx
+            .send(Event::Settings(settings::SettingsView { refused, ..engine.config.view() }));
+        let reason = "not saved: warn only needs your confirmation first";
+        let _ = tx.send(Event::Toast(Notice::alert(reason)));
+        return;
+    }
     if !settings::put(engine.config.effective_mut(), key, &value) {
         tracing::debug!(?key, ?value, "not a value this setting takes; nothing written");
         return;

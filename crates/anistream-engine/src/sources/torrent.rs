@@ -95,7 +95,8 @@ impl TorrentTasks {
         let _ = tx.send(Event::Vpn(Some(anistream_model::sources::GuardView::Checking)));
         let generation = self.generation;
         let (config, http, paths, store, tx, arrivals) = (
-            config.clone(),
+            // With the proxy's password, which only this copy holds.
+            crate::protection::with_proxy_password(config, services),
             services.http.clone(),
             services.paths.clone(),
             services.store.clone(),

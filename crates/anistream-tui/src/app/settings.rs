@@ -184,6 +184,14 @@ impl App {
             | S::SkipOpening
             | S::SkipFiller
             | S::SourceOrder => return None,
+            // The native apps' own rows, which this screen does not draw.
+            S::UpNextCountdown
+            | S::SpoilerProtection
+            | S::DownloadQuality
+            | S::KeepNextEpisodes
+            | S::DownloadsOnCellular
+            | S::TorrentsOnCellular
+            | S::VpnOnFailure => return None,
         })
     }
 

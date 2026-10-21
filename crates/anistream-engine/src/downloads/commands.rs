@@ -18,27 +18,26 @@ pub fn download_episode(
     tx: &Outbox,
 ) {
     let Services { meta, store, registry, .. } = services;
-    let config = engine.config.effective();
+    let config = &crate::show_settings::for_show(engine.config.effective(), store, id);
     let (store, registry, meta, tx) =
         (store.clone(), registry.clone(), meta.clone(), tx.clone());
-    let translation = config.playback.translation;
+    let wanted = downloads::Wanted::of(config);
     tokio::spawn(async move {
         let _job = job;
         // Resolving needs the provider chain, so this is a task rather than inline — the
         // same walk playback does, which is the point: a download is "play it, to disk".
-        let update =
-            match downloads::enqueue(&store, &registry, &meta, id, &episode, translation).await
-            {
-                Ok((row, downloads::Queued::New)) => Event::Toast(Notice::info(format!(
-                    "queued {} ep {}",
-                    row.title, row.episode
-                ))),
-                Ok((row, downloads::Queued::Existing)) => Event::Toast(Notice::info(format!(
-                    "{} ep {} is already in downloads",
-                    row.title, row.episode
-                ))),
-                Err(refusal) => Event::Toast(Notice::alert(refusal.to_string())),
-            };
+        let update = match downloads::enqueue(&store, &registry, &meta, id, &episode, wanted)
+            .await
+        {
+            Ok((row, downloads::Queued::New)) => {
+                Event::Toast(Notice::info(format!("queued {} ep {}", row.title, row.episode)))
+            }
+            Ok((row, downloads::Queued::Existing)) => Event::Toast(Notice::info(format!(
+                "{} ep {} is already in downloads",
+                row.title, row.episode
+            ))),
+            Err(refusal) => Event::Toast(Notice::alert(refusal.to_string())),
+        };
         let _ = tx.send(update);
         let _ = tx.send(Event::Status(String::new()));
         downloads::publish_now(&store, &tx);
@@ -55,10 +54,10 @@ pub fn download_many(
     tx: &Outbox,
 ) {
     let Services { meta, store, registry, .. } = services;
-    let config = engine.config.effective();
+    let config = &crate::show_settings::for_show(engine.config.effective(), store, id);
     let (store, registry, meta, tx) =
         (store.clone(), registry.clone(), meta.clone(), tx.clone());
-    let translation = config.playback.translation;
+    let wanted = downloads::Wanted::of(config);
     tokio::spawn(async move {
         let _job = job;
         // Sequential enqueues, not parallel: each one is only a resolve + a queue
@@ -67,8 +66,7 @@ pub fn download_many(
             let (store, registry, meta, tx) = (&store, &registry, &meta, &tx);
             async move {
                 let (_, queued) =
-                    downloads::enqueue(store, registry, meta, id, &episode, translation)
-                        .await?;
+                    downloads::enqueue(store, registry, meta, id, &episode, wanted).await?;
                 // Each row as it lands, so the Downloads screen fills while the rest
                 // resolve rather than saying nothing is queued until the end.
                 downloads::publish_now(store, tx);
