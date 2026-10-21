@@ -60,6 +60,12 @@ struct FixturesPlaybackTests {
         #expect(model.segments.map(\.kind) == [.plain, .opening, .plain, .ending, .plain])
         #expect(model.audioTracks.count == 2 && model.subtitleTracks.count == 2)
 
+        // Scrubbing: the hidden mpv opens the stream and shows the frame under the finger.
+        model.scrub(to: 9, pace: 0.5)
+        try await until("the preview's frame", timeout: .seconds(10)) { model.preview.ready }
+        #expect(model.chapter(at: 9) == "Opening")
+        model.endScrub()
+
         // The opening's skip, offered and not taken by itself: the scene offers skips.
         model.seek(to: 6)
         try await until("the skip offered", timeout: .seconds(10)) { model.skip?.kind == .opening }

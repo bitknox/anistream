@@ -185,7 +185,13 @@ engine in temporary directories, and keep secrets in memory.
   `MacPlayerView` is the Mac's player window (MacPlayer, M4, M5): pointer, scroll wheel and the
   companion's keys. `PhonePlayerView` is the iPhone's and iPad's full-screen cover (PhonePlayer,
   T2 to T5): tap, double tap, long press for 2×, pinch, swipe down to close, landscape on iPhone,
-  the audio on in the background with `vid=no`. Both set Now Playing and the remote commands and
+  the audio on in the background with `vid=no`. While the controls are up the subtitles rise
+  above them (`sub-pos`, which libass applies to ASS dialogue and not to placed signs).
+  Scrubbing shows the frame under the finger from a second, hidden mpv (`SeekPreview`, off in
+  Low Power Mode) with the time and the chapter, slows to half and quarter speed as the finger
+  lifts (⌥ on the Mac), and ticks across opening and ending marks. The Mac's mini player (⌥⌘M)
+  floats a quarter of the screen wide in the corner and goes back to the exact frame. Both set
+  Now Playing and the remote commands and
   keep the display awake while playing. `View.hostsPlayer(_:)` opens either with the model. Its
   tests run the model on a scripted mpv, and one plays the Fixtures app's episode end to end on
   the testing engine and a real mpv.
@@ -390,10 +396,10 @@ episode rolls on to the next. See `anistream_model::hosted` for the whole protoc
 
 ## Not yet
 
-- The player: Picture in Picture and the Mac's mini player, seek previews from a second mpv,
-  Sync subtitles, the Playback menu in the menu bar, and the scrubbing haptics and half-speed
-  scrubbing. The iPhone's merged Audio and subtitles sheet also holds Speed, Upscaling, Night
-  mode and Sources, for want of a More menu on its board. Background audio is in the app's
-  Info.plist only, not the Fixtures app's.
+- The player: Picture in Picture, Sync subtitles, and the Playback menu and Window › Mini Player
+  in the menu bar (the player's own context menu and ⌥⌘M have the mini player). The iPhone's
+  merged Audio and subtitles sheet also holds Speed, Upscaling, Night mode and Sources, for want
+  of a More menu on its board. Background audio is in the app's Info.plist only, not the
+  Fixtures app's.
 - Settings, Providers, Plugin Stores and Downloads: what the engine cannot set yet (E8's settings,
   E9's fields, `DisablePlugin`) is drawn as the boards have it and disabled.

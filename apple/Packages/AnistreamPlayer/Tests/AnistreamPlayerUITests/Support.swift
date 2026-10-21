@@ -78,6 +78,8 @@ final class ScriptedMpv: PlayerBackend {
 final class Rig {
     var sent: [Command] = []
     var made: [ScriptedMpv] = []
+    var previews: [ScriptedMpv] = []
+    var lowPower = false
     private(set) var model: PlayerModel!
 
     init() {
@@ -87,7 +89,13 @@ final class Rig {
                 let mpv = ScriptedMpv()
                 made.append(mpv)
                 return mpv
-            })
+            },
+            preview: { [unowned self] in
+                let mpv = ScriptedMpv()
+                previews.append(mpv)
+                return mpv
+            },
+            lowPower: { [unowned self] in lowPower })
     }
 
     var mpv: ScriptedMpv { made.last! }
@@ -113,8 +121,10 @@ final class Rig {
     }
 
     /// Open a player for `playback` and load a file into it, which mpv starts.
-    func opened(_ playback: PlaybackId = 1, url: String = "/media/episode.mkv") async throws {
-        ops(playback, [.open(fullscreen: false, speed: nil, volume: nil), .load(url: url, options: [])])
+    func opened(
+        _ playback: PlaybackId = 1, url: String = "/media/episode.mkv", options: [MpvOption] = []
+    ) async throws {
+        ops(playback, [.open(fullscreen: false, speed: nil, volume: nil), .load(url: url, options: options)])
         try await until("the file loaded") { self.mpv.calls.contains { if case .load = $0 { true } else { false } } }
         mpv.emit(.startFile)
         mpv.emit(.fileLoaded)
