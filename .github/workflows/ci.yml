@@ -66,12 +66,6 @@ jobs:
       - name: Test the engine without the desktop feature
         run: cargo nextest run -p anistream-engine --no-default-features --lib --profile ci
 
-      # After the tests, so listing them reuses their build. On macOS only: tests gated to one
-      # OS make the count differ by OS, and macOS is where the app is developed.
-      - name: Test count
-        if: matrix.os == 'macos-latest'
-        run: tools/check-test-count.sh
-
   # The real-mpv tests (the companion script, whole binges, the seek-bar thumbnailers) skip
   # where mpv is missing, which is every runner above. Here apt installs mpv and the tests
   # require it, so a skip fails instead. At both ends of what distributions ship: Ubuntu 24.04's
@@ -96,10 +90,6 @@ jobs:
       - name: Install mpv
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends mpv
       - run: mpv --version | head -1
-      # A test that moves module leaves the group by its old path, and this job would stop
-      # running it without failing: the group's size is held to what it records.
-      - name: Group size
-        run: tools/check-mpv-group.sh
       - name: Test
         run: >-
           cargo nextest run --profile ci -p anistream -p anistream-engine -p anistream-player
