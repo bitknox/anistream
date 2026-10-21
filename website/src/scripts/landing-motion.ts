@@ -49,9 +49,9 @@ function drawScene(): Scene | null {
 	let drawnFor = '';
 	const scene: Scene = { box, canvases, cell: 8, extra: 0 };
 	const draw = () => {
-		// One scene pixel is 8 CSS pixels on a wide screen and 6 on a phone, so the art is scaled
-		// by a whole number and stays crisp.
-		const cell = isPhone() ? 6 : 8;
+		// One scene pixel is a whole number of CSS pixels, so the art stays crisp: 6 on a phone, and
+		// on a wider screen as many as keep the scene to about half the window's height, from 6 to 8.
+		const cell = isPhone() ? 6 : Math.min(8, Math.max(6, Math.floor((window.innerHeight * 0.5) / 70)));
 		const width = box.clientWidth;
 		const W = Math.ceil(width / cell);
 		// The nav sits over the top of the scene, so the art starts below it.
@@ -71,6 +71,7 @@ function drawScene(): Scene | null {
 			// The sky extends above the frame by the rows it may sink, so no gap opens.
 			c.style.top = `${(p === 'sky' ? -cfg.extra * cell : 0) + lift}px`;
 		}
+		box.style.height = `${cfg.H * cell + lift}px`;
 		scene.cell = cell;
 		scene.extra = cfg.extra;
 		box.classList.add('is-drawn');
@@ -397,6 +398,31 @@ function navOverScene() {
 	watch();
 	// The nav is 56 px on a phone and 64 px wider, so the line it watches moves with it.
 	window.matchMedia('(max-width: 599px)').addEventListener('change', watch);
+
+	// Past the scene, the nav goes away while you scroll down and comes back as soon as you
+	// scroll up. Over the scene, or with focus inside it, it always shows.
+	let lastY = window.scrollY;
+	let queued = false;
+	const onScroll = () => {
+		queued = false;
+		const y = window.scrollY;
+		const dy = y - lastY;
+		if (Math.abs(dy) < 6) return;
+		lastY = y;
+		const past = scene.getBoundingClientRect().bottom <= nav.offsetHeight;
+		const hide = dy > 0 && past && !nav.matches(':focus-within');
+		nav.classList.toggle('is-hidden', hide);
+	};
+	window.addEventListener(
+		'scroll',
+		() => {
+			if (queued) return;
+			queued = true;
+			requestAnimationFrame(onScroll);
+		},
+		{ passive: true }
+	);
+	nav.addEventListener('focusin', () => nav.classList.remove('is-hidden'));
 }
 navOverScene();
 

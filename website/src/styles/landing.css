@@ -143,7 +143,12 @@ html.js .l-nav {
 	transition:
 		color var(--ani-standard) var(--ani-spring),
 		background-color var(--ani-standard) var(--ani-spring),
-		box-shadow var(--ani-standard) var(--ani-spring);
+		box-shadow var(--ani-standard) var(--ani-spring),
+		transform var(--ani-standard) var(--ani-spring);
+}
+
+html.js .l-nav.is-hidden {
+	transform: translateY(-100%);
 }
 
 /* Dims the stars behind the links, in the sky's own colour. */
@@ -236,8 +241,10 @@ html.js .l-nav.is-solid::before {
 /* ── Hero: the scene, full width, then the copy under it ────────────────── */
 .scene {
 	position: relative;
-	/* The nav sits over the top of the sky, so the scene is that much taller. */
+	/* 70 scene pixels of 6 to 8 CSS pixels each, as many as keep it near half the window's
+	   height (the script draws to the same size), plus the nav that sits over the sky. */
 	height: calc(560px + var(--nav-h));
+	height: calc(70 * clamp(6px, round(down, 50vh / 70, 1px), 8px) + var(--nav-h));
 	overflow: hidden;
 	/* The scene is a picture and keeps its dusk ground in either theme. */
 	background: #161a2e;
