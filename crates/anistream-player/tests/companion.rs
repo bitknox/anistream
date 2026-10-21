@@ -986,6 +986,10 @@ async fn controls_come_up_with_activity_and_leave_with_the_cursor() {
     .await;
     // At rest: nothing.
     assert_eq!(player.ui().await["timeline"], false);
+    // The bar needs the file's duration as well as the controls, and mpv can report a position
+    // before it has one. Known before the wake, it reaches the script within the controls'
+    // 300 ms, and the bar comes up with them.
+    player.wait_property("duration", |v| v.as_f64().is_some_and(|d| d > 0.0)).await;
     // A pause toggle brings the bar up; it leaves on its own, paused or not.
     player.set("pause", json!(false)).await;
     player.wait_ui("the bar", |ui| ui["timeline"] == true).await;
