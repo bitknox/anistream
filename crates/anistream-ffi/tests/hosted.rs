@@ -872,3 +872,24 @@ fn an_episode_yet_to_air_fails_at_once_without_asking_a_source() {
     assert!(!app.ops.iter().any(|(_, op)| matches!(op, PlayerOp::Load { .. })));
     app.shutdown();
 }
+
+#[test]
+fn a_play_while_sources_are_still_loading_waits_for_them() {
+    // Plugins compiling at launch: none of the chain is in it yet.
+    let chain = ProviderRegistry::new(Vec::new());
+    chain.expect_arrivals();
+    let mut app = App::start(chain.clone(), "");
+    app.play(FINISHED, "1");
+    app.until("the wait, said", |event| match event {
+        Event::JobNote { note, .. } if note == "loading sources" => Some(()),
+        _ => None,
+    });
+
+    // They join, and the play goes on with them rather than failing for want of a source.
+    chain.extend(vec![sources::provider().arc()]);
+    chain.arrivals_done();
+    let load = app.load();
+    app.report(load.playback, PlayerReport::FileLoaded);
+    app.stop();
+    app.shutdown();
+}

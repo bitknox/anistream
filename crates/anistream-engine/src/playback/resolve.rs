@@ -85,7 +85,7 @@ pub async fn resolve_for_playback(
             let _ = tx.send(Event::Status(text));
         }
     };
-    if registry.is_empty() {
+    if registry.is_empty() && !registry.is_arriving() {
         return Err(NO_SOURCES.into());
     }
     // Phase-labelled, because the wait between Enter and mpv is where every tool in
@@ -95,6 +95,12 @@ pub async fn resolve_for_playback(
     let media = meta.media(id).await.map_err(|e| e.to_string())?;
     if let Some(reason) = not_aired(&media, episode) {
         return Err(reason);
+    }
+    // Plugins still compiling are part of the chain a moment from now. Looked up without
+    // them, the episode would come from whichever source was ready first, or from none.
+    crate::sources::arrived(registry, || step("loading sources".into())).await;
+    if registry.is_empty() {
+        return Err(NO_SOURCES.into());
     }
     let now = now_epoch();
 
@@ -228,12 +234,16 @@ async fn source_slate(
     episode: &str,
     translation: anistream_core::media::Translation,
 ) -> std::result::Result<Vec<anistream_core::traits::SourceCandidate>, String> {
-    if registry.is_empty() {
+    if registry.is_empty() && !registry.is_arriving() {
         return Err(NO_SOURCES.into());
     }
     let media = meta.media(id).await.map_err(|e| e.to_string())?;
     if let Some(reason) = not_aired(&media, episode) {
         return Err(reason);
+    }
+    crate::sources::arrived(registry, || ()).await;
+    if registry.is_empty() {
+        return Err(NO_SOURCES.into());
     }
     let target = media.match_target();
     let now = now_epoch();
