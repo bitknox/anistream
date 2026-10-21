@@ -22,6 +22,7 @@ import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.JobId
 import tv.anistream.engine.model.LibrarySegment
 import tv.anistream.engine.model.SearchFilters
+import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.ShowSettingKey
 
 /**
@@ -68,7 +69,10 @@ class AppStore(
     val accounts = AccountsModel()
     val stores = StoresModel()
     val downloads = DownloadsModel()
+    val settings = SettingsModel()
+    val providers = ProvidersModel()
     val showSettings = ShowSettingsModel()
+    val episodeFolds = EpisodeFolds()
     val artwork = ArtworkStore(scope, decoder) { url ->
         val client = client
         val files = artworkWithoutEngine
@@ -265,6 +269,114 @@ class AppStore(
         send(Command.SetWatched(id, episodes, watched))
     }
 
+    // Settings
+
+    /** Step a setting one rung, or over to its other state. */
+    fun stepSetting(key: SettingKey, delta: Long) {
+        send(Command.StepSetting(key, delta))
+    }
+
+    /** Set a setting to [value]: a menu's choice, a typed value, the source order. */
+    fun setSetting(key: SettingKey, value: SettingValue) {
+        send(Command.SetSetting(key, value))
+    }
+
+    /** Turn a switch on or off, when it is not already. */
+    fun setSwitch(key: SettingKey, on: Boolean) {
+        if (settings.isOn(key) == on) return
+        setSetting(key, SettingValue.Bool(on))
+    }
+
+    /** The title language the signed-in AniList viewer reads in, for AniList's choice. */
+    fun loadTitleLanguage() {
+        send(Command.LoadTitleLanguage)
+    }
+
+    // Accounts
+
+    /** Send what waits and pull the library now, rather than at the next interval. */
+    fun syncNow() {
+        accounts.started("sync", send(Command.SyncNow))
+    }
+
+    /**
+     * Start [tracker]'s own sign-in: the browser for AniList and MyAnimeList, which the engine asks
+     * for with `Authorize`; a code to type elsewhere for Simkl and Trakt.
+     */
+    fun connect(tracker: String) {
+        accounts.started(tracker, send(Command.Connect(tracker)))
+    }
+
+    /**
+     * The browser came back from [request] with [callback], the redirect that carries the code or
+     * the token itself, so the engine finishes signing in. Handed over as it came, and kept
+     * nowhere else.
+     */
+    fun finishSignIn(request: SignInRequest, callback: String) {
+        accounts.signInEnded(request)
+        accounts.started(request.tracker, send(Command.FinishSignIn(request.tracker, callback)))
+    }
+
+    /** The browser for [request] was closed without signing in. */
+    fun cancelSignIn(request: SignInRequest) {
+        accounts.signInEnded(request)
+        send(Command.CancelSignIn(request.tracker))
+    }
+
+    /** Kitsu's sign-in: its email or user name and password, exchanged for a token by the engine. */
+    fun connectKitsu(username: String, password: String) {
+        accounts.started("kitsu", send(Command.ConnectKitsu(username, password)))
+    }
+
+    /** Settle what a pull found different on [id], keeping this device's side or AniList's. */
+    fun resolveConflict(id: AnilistId, keepLocal: Boolean) {
+        send(Command.ResolveConflict(id, keepLocal))
+    }
+
+    /** Sign out of [tracker]: the engine forgets its token. */
+    fun disconnect(tracker: String) {
+        send(Command.Disconnect(tracker))
+    }
+
+    // Sources
+
+    /** Check every provider again. */
+    fun checkProviders() {
+        send(Command.CheckProviders)
+    }
+
+    /**
+     * Switch the plugin [id] off, or back on, without removing it: it keeps its place and its row,
+     * and is not tried while off.
+     */
+    fun disablePlugin(id: String, disabled: Boolean) {
+        send(Command.DisablePlugin(id, disabled))
+    }
+
+    /** Read the joined stores, then refresh each one's plugin list. */
+    fun loadStores() {
+        send(Command.LoadStores)
+    }
+
+    /** Install [plugin] from [store], or update it. */
+    fun installPlugin(store: String, plugin: String) {
+        send(Command.InstallPlugin(store, plugin))
+    }
+
+    /** Delete an installed plugin from this device. */
+    fun removePlugin(plugin: String) {
+        send(Command.RemovePlugin(plugin))
+    }
+
+    /** Pin [provider] as the source for title [id], or give the title back to automatic with `null`. */
+    fun setProviderPreference(id: AnilistId, provider: String?) {
+        send(Command.SetProviderPreference(id, provider))
+    }
+
+    /** The providers in the order failover tries them, as the config now has it. */
+    fun orderedProviders(): List<tv.anistream.engine.model.ProviderRow> =
+        SourceOrder.sorted(providers.rows.value, settings.view.value?.sources?.order.orEmpty())
+
     // Settling
 
     /**
@@ -308,6 +420,7 @@ class AppStore(
             is Event.JobNote -> jobs.note(event.job, event.note, event.wait?.toMillis())
             is Event.JobDone -> {
                 jobs.done(event.v1)
+                accounts.done(event.v1)
                 detailDone(event.v1)
             }
 
@@ -328,6 +441,16 @@ class AppStore(
             is Event.Toast -> notices.post(event.v1)
 
             is Event.Sync -> accounts.apply(event.v1)
+            is Event.ViewerTitleLanguage -> accounts.viewerTitleLanguage(event.v1)
+            is Event.Authorize -> accounts.authorize(SignInRequest(event.tracker, event.url, event.callbackScheme))
+            is Event.DeviceCode -> accounts.deviceCode(event.v1)
+            is Event.Conflicts -> accounts.conflicts(event.v1)
+            is Event.Settings -> settings.apply(event.v1)
+            is Event.Providers -> providers.apply(event.v1)
+            is Event.ProviderNote -> providers.note(event.v1)
+            Event.SourcesChanged -> providers.sourcesChanged()
+            is Event.Vpn -> providers.guardSaid(event.v1)
+            is Event.ProviderPreference -> providers.preference(event.v1)
             is Event.Stores -> stores.apply(event.v1)
             is Event.Downloads -> downloads.apply(event.v1)
             is Event.ShowSettings -> showSettings.apply(event.v1)

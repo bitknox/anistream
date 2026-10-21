@@ -194,50 +194,68 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: cargo clippy -p anistream-model --features ffi --all-targets -- -D warnings
 
-  # Swift drives a real engine through the generated bindings: apple/build.sh builds the FFI
-  # library with the test kit in it, generates each crate's Swift bindings from the built library,
-  # and runs the Swift package's tests, which start the engine on a fake AniList and send it the
-  # model's own commands.
+  # Swift drives a real engine through the generated bindings. apple/scripts/test.sh builds the
+  # testing engine for macOS with apple/scripts/engine.sh (the static library as an XCFramework, and
+  # each crate's Swift bindings generated from it) and runs every Swift package's tests on it: the
+  # bindings, the design tokens, and the app's store over a real engine on the fake AniList.
   swift:
     needs: changes
     if: needs.changes.outputs.apple == 'true'
-    runs-on: macos-latest
+    # Xcode 27.1, the build the app is developed with, so CI compiles what a local build does.
+    runs-on: xcode-27
     env:
-      # The Swift package's minimum, as apple/build.sh sets it, so the Rust tests share its build.
-      MACOSX_DEPLOYMENT_TARGET: "14.0"
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+      # engine.sh builds with these; the Rust tests after the Swift ones share its build only
+      # with them too.
+      MACOSX_DEPLOYMENT_TARGET: "26.0"
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
     steps:
       - uses: actions/checkout@v5
       - run: rustup toolchain install
-      # Its own cache: this build has features and a deployment target no other job's has.
+      # Its own cache: this build has features, a profile and a deployment target no other job's
+      # has.
       - uses: Swatinem/rust-cache@v2
         with:
           key: swift
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: swift --version
+      # The player's tests play media apple/scripts/player-media.sh makes with ffmpeg.
+      - run: brew install ffmpeg
+      # First, so a Swift change that does not compile says so in minutes.
+      - name: Swift tests
+        run: apple/scripts/test.sh
+      # The FFI's own tests, only when the engine changed: a change to apple/ alone cannot move
+      # them.
       - name: Rust tests
+        if: needs.changes.outputs.rust == 'true'
         run: cargo test -p anistream-ffi --features testing,cli
       # The apps build the engine without the desktop feature, so its hosted player has to pass
-      # its contract in that build too.
+      # its contract in that build too, with the target and profile apple/scripts/engine.sh uses.
       - name: Rust tests, the apps' build
-        run: cargo test -p anistream-ffi --no-default-features --features testing
-      - name: Swift tests
-        run: apple/build.sh
+        if: needs.changes.outputs.rust == 'true'
+        run: >-
+          cargo test -p anistream-ffi --no-default-features --features testing
+          --target aarch64-apple-darwin --profile app-dev
 
-  # The engine and its FFI library as an iPhone builds them: without the desktop feature, so
-  # without mpv, Syncplay, the loopback sign-in and the keychain crate, and with plugins run by
-  # wasmtime's interpreter. Cross-compiled only, since nothing here runs iOS. The part that can
-  # break is the C beneath it, built with the runner's Xcode for the iOS SDK: BoringSSL (cmake
-  # and bindgen), aws-lc, SQLite, zstd and wasmtime's own helpers.
+  # The engine and its FFI library as an iPhone and the iOS Simulator build them: without the
+  # desktop feature, so without mpv, Syncplay, the loopback sign-in and the keychain crate, and with
+  # plugins run by wasmtime's interpreter. Cross-compiled only, since nothing here runs iOS. The
+  # part that can break is the C beneath it, built with the runner's Xcode for the iOS SDKs:
+  # BoringSSL (cmake and bindgen), aws-lc, SQLite, zstd and wasmtime's own helpers. The app's
+  # minimum, iOS 26, is the deployment target, as apple/scripts/engine.sh builds it.
   ios:
     needs: changes
     if: needs.changes.outputs.apple == 'true'
-    runs-on: macos-latest
+    # Xcode 27.1, the build the app is developed with, so CI compiles what a local build does.
+    runs-on: xcode-27
     env:
-      IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+      IPHONEOS_DEPLOYMENT_TARGET: "26.0"
     steps:
       - uses: actions/checkout@v5
-      - run: rustup toolchain install && rustup target add aarch64-apple-ios
-      # Its own cache: nothing else here builds for this target.
+      # rust-toolchain.toml lists both iOS targets.
+      - run: rustup toolchain install
+      # Its own cache: nothing else here builds for these targets.
       - uses: Swatinem/rust-cache@v2
         with:
           key: ios
@@ -247,6 +265,60 @@ jobs:
       # The static library an app links, and the dynamic one, both linked against the SDK.
       - name: The FFI library
         run: cargo build -p anistream-ffi --no-default-features --target aarch64-apple-ios
+      - name: The FFI library for the Simulator
+        run: cargo build -p anistream-ffi --no-default-features --target aarch64-apple-ios-sim
+
+  # The Apple app itself, from the XcodeGen project: the Fixtures app's tests run on the Mac
+  # (Swift Testing over the testing engine, signed to run locally), and the app is built for the
+  # iOS Simulator with signing off. The Xcode is named outright, since the runner's default
+  # moves.
+  apple:
+    needs: changes
+    if: needs.changes.outputs.apple == 'true'
+    # Xcode 27.1, the build the app is developed with, so CI compiles what a local build does.
+    runs-on: xcode-27
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: apple
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: xcodebuild -version
+      - run: brew install xcodegen
+      # The schemes' pre-actions build these too, but quietly, into a log; built here, a failure
+      # says why in the job.
+      - name: The engines
+        run: |
+          apple/scripts/engine.sh testing macos
+          apple/scripts/engine.sh release macos ios-sim
+      # libmpv, which both apps embed and their player frameworks check for.
+      - name: libmpv
+        run: apple/scripts/mpv.sh macos ios-sim
+      # The CJK subtitle font the iOS app bundles, which its iOS builds check for.
+      - name: The subtitle font
+        run: apple/scripts/fonts.sh
+      - name: The project
+        run: cd apple && xcodegen generate
+      - name: Test the Fixtures app on the Mac
+        run: >-
+          xcodebuild -project apple/Anistream.xcodeproj -scheme "Anistream Fixtures"
+          -destination platform=macOS test
+      - name: Build the app for the iOS Simulator
+        run: >-
+          xcodebuild -project apple/Anistream.xcodeproj -scheme Anistream
+          -destination "generic/platform=iOS Simulator" build CODE_SIGNING_ALLOWED=NO
+      # Once in Release, as the app is kept: the engine in cargo's release profile beneath it.
+      # Last, since that engine takes the place of the app-dev one the builds above link.
+      - name: The release engine
+        run: ANISTREAM_ENGINE_PROFILE=release apple/scripts/engine.sh release macos
+      - name: Build the app for the Mac in Release
+        run: >-
+          xcodebuild -project apple/Anistream.xcodeproj -scheme Anistream -configuration Release
+          -destination platform=macOS build CODE_SIGNING_ALLOWED=NO
 
   # The same for an Android phone, with the runner's newest NDK through cargo-ndk, which points
   # every C build at the NDK's clang for API level 35, the Android app's minimum. Cross-compiled
@@ -335,9 +407,13 @@ jobs:
         with:
           path: ~/.m2/repository/org/robolectric
           key: robolectric-${{ hashFiles('android/gradle/libs.versions.toml') }}
+      # libmpv is built by android/scripts/mpv.sh on a developer's Mac, not here: the player module
+      # builds without it and its JNI shim, so its Kotlin compiles and its unit tests run.
       - name: The fixtures APK and the unit tests
         working-directory: android
         run: ./gradlew --console=plain assembleFixturesDebug testFixturesDebugUnitTest -Proborazzi.test.record=true
+        env:
+          ANISTREAM_PLAYER_NATIVE: "off"
       # The screenshot tests' captures, each board's screen drawn from a recorded scene, to look
       # at beside the boards.
       - uses: actions/upload-artifact@v7

@@ -8,6 +8,7 @@
 //             titles joined by / (900006:1,2/900002:1), oldest first
 //   title     a title page to open, by id
 //   query     a search to run, on Search
+//   page      a page over the destination, by its route: settings, settings/playback
 //   sheet     a sheet to open: torrent, join, kitsu, update or show (from A2)
 //   player    a player state to shoot (from A3)
 

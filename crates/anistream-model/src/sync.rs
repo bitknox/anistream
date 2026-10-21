@@ -21,9 +21,12 @@ pub struct SyncState {
     pub tracker: String,
     pub connected: bool,
     /// Which account, once known.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub user: Option<String>,
     /// Where the token lives, and whether that is the degraded option.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub storage: Option<String>,
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub storage_degraded: bool,
     /// Queued operations waiting to go out.
     pub outbox: u32,
@@ -31,11 +34,14 @@ pub struct SyncState {
     /// until the mapping datasets name them.
     pub deferred: u32,
     /// The tracker rejected our credentials; nothing but re-authorising helps.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub needs_reauth: bool,
     /// Most recent sync outcome, in words.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub last: Option<String>,
     /// Why the last library pull failed, and when. Cleared by the next pull that succeeds, so a
     /// row never goes on saying "pulled" over an outage.
+    #[cfg_attr(feature = "ffi", uniffi(default))]
     pub pull_error: Option<PullError>,
 }
 

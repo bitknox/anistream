@@ -182,7 +182,14 @@ private fun Hero(item: ContinueItem, actions: AppActions) {
                 .shared(Shared.Page, item.id, "hero")
                 .clickable { navigator.openTitle(item.id, "hero") },
         ) {
-        BannerArt(item.entry, Modifier.fillMaxWidth().aspectRatio(16f / 9f).shared(Shared.Art, item.id, "hero").clip(ArtShape.banner))
+        BannerArt(
+            item.entry,
+            Modifier.fillMaxWidth().aspectRatio(16f / 9f)
+                // Resume plays from here: the player grows out of the hero's banner (T2).
+                .shared(Shared.Player, item.id)
+                .shared(Shared.Art, item.id, "hero")
+                .clip(ArtShape.banner),
+        )
         Text(item.entry.showTitle, style = ShowTitle.page, modifier = Modifier.padding(top = 8.dp))
         Text(episodeLine(item), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
         }
