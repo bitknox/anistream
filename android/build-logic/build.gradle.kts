@@ -8,4 +8,6 @@ dependencies {
     implementation(libs.android.gradle.plugin)
     implementation(libs.kotlin.gradle.plugin)
     implementation(libs.compose.gradle.plugin)
+    // The screens' screenshot tests.
+    implementation(libs.roborazzi.gradle.plugin)
 }

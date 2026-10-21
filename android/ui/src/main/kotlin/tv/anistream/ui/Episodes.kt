@@ -60,7 +60,6 @@ import kotlin.math.roundToInt
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import tv.anistream.design.ArtShape
-import tv.anistream.design.CoverPlate
 import tv.anistream.design.Motion
 import tv.anistream.design.tabular
 import tv.anistream.store.AirTime
@@ -131,11 +130,23 @@ internal fun EpisodeLine(
             fill.animateTo(fraction ?: 0f, Motion.standard())
         }
     }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val airs = row.airsAt?.takeIf { unaired }?.let { airsWords(context, java.time.Instant.ofEpochSecond(it)) }
     Row(
         Modifier
             .fillMaxWidth()
             .height(72.dp)
-            .combinedClickable(onClick = onPlay, onLongClick = onMenu)
+            // One still to air is no button: nothing plays from it.
+            .then(
+                if (unaired) {
+                    Modifier.semantics(mergeDescendants = true) {
+                        contentDescription = "Episode ${row.number}" + (row.title?.let { ", $it" } ?: "") +
+                            (airs?.let { ". Airs $it, not out yet" } ?: ". Not out yet")
+                    }
+                } else {
+                    Modifier.combinedClickable(onClick = onPlay, onLongClick = onMenu)
+                },
+            )
             .padding(start = 16.dp, end = 24.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -148,7 +159,7 @@ internal fun EpisodeLine(
                 Text(
                     row.title ?: "Episode ${row.number}",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = lerp(colors.onSurface, colors.onSurfaceVariant, dim.value),
+                    color = if (unaired) colors.onSurfaceVariant else lerp(colors.onSurface, colors.onSurfaceVariant, dim.value),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
@@ -174,8 +185,10 @@ internal fun EpisodeLine(
                         drawStopIndicator = {},
                     )
                 }
+                if (unaired) Box(Modifier.size(6.dp).background(colors.secondary, androidx.compose.foundation.shape.CircleShape))
                 Text(
-                    episodeDetail(row, resume = resume.takeIf { !row.completed }, unaired = unaired),
+                    if (unaired) "E${row.number} \u00b7 " + (airs?.let { "Airs $it" } ?: "Not out yet")
+                    else episodeDetail(row, resume = resume.takeIf { !row.completed }, unaired = false),
                     style = MaterialTheme.typography.bodyMedium.tabular(),
                     color = colors.onSurfaceVariant,
                     maxLines = 1,
@@ -230,7 +243,8 @@ internal fun EpisodeStill(entry: Entry, row: EpisodeRow, hidden: Boolean, unaire
     val url = row.thumbnail ?: entry.bannerUrl
     Box(Modifier.fillMaxSize().clip(ArtShape.cover(96.dp))) {
         if (unaired) {
-            CoverPlate(null, Modifier.fillMaxSize())
+            // A flat plate before it airs.
+            Box(Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color(0xFF1F2440)))
             return@Box
         }
         Crossfade(hidden, animationSpec = Motion.standard(), label = "still") { blurred ->

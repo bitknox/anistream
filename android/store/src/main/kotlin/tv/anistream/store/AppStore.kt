@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.ffi.FfiEngine
 import tv.anistream.engine.ffi.FfiException
 import tv.anistream.engine.ffi.FfiHost
@@ -21,6 +22,7 @@ import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.JobId
 import tv.anistream.engine.model.LibrarySegment
 import tv.anistream.engine.model.SearchFilters
+import tv.anistream.engine.model.ShowSettingKey
 
 /**
  * Where the app's state lives, on the main thread.
@@ -32,6 +34,9 @@ import tv.anistream.engine.model.SearchFilters
  *
  * @param scope where the engine starts and its events are read: the application's, for as long as
  *   the process.
+ * @param artworkWithoutEngine where art comes from when there is no engine behind the store, as
+ *   in the screenshot tests: a URL's bytes, answered as the engine would answer them, or `null`
+ *   for none. Unset, art waits for the engine.
  */
 class AppStore(
     private val scope: CoroutineScope,
@@ -39,6 +44,7 @@ class AppStore(
     val notices: NoticesModel = NoticesModel(),
     decoder: ArtworkDecoder = BitmapDecoder,
     private val clock: () -> Long = { System.nanoTime() / 1_000_000 },
+    private val artworkWithoutEngine: ((String) -> ByteArray?)? = null,
 ) {
     /** Where the engine stands. */
     sealed interface Phase {
@@ -62,10 +68,22 @@ class AppStore(
     val accounts = AccountsModel()
     val stores = StoresModel()
     val downloads = DownloadsModel()
+    val showSettings = ShowSettingsModel()
     val artwork = ArtworkStore(scope, decoder) { url ->
-        val client = client ?: return@ArtworkStore false
-        client.send(Command.FetchArtwork(url))
-        true
+        val client = client
+        val files = artworkWithoutEngine
+        when {
+            client != null -> {
+                client.send(Command.FetchArtwork(url))
+                true
+            }
+            files != null -> {
+                val bytes = files(url)
+                scope.launch { apply(listOf(if (bytes != null) Event.ArtworkReady(url, bytes) else Event.ImageFailed(url, offline = false))) }
+                true
+            }
+            else -> false
+        }
     }
 
     private var client: EngineClient? = null
@@ -165,7 +183,19 @@ class AppStore(
     }
 
     fun loadDetail(id: AnilistId) {
-        send(Command.LoadDetail(id))
+        titles.detailAsked(id)
+        detailPending += id
+        send(Command.LoadDetail(id))?.let { detailJobs[it] = id }
+    }
+
+    /** Each title page's fetch by the job that carries it, to tell an answer from none. */
+    private val detailJobs = mutableMapOf<JobId, AnilistId>()
+    private val detailPending = mutableSetOf<AnilistId>()
+
+    /** A page's fetch ended: without the title, AniList did not answer. */
+    private fun detailDone(job: JobId) {
+        val id = detailJobs.remove(job) ?: return
+        if (detailPending.remove(id)) titles.detailFailed(id)
     }
 
     /**
@@ -191,6 +221,21 @@ class AppStore(
     }
 
     private val episodesAsked = mutableSetOf<AnilistId>()
+
+    /** [id]'s own settings sheet, answered with `ShowSettings`. */
+    fun loadShowSettings(id: AnilistId) {
+        send(Command.LoadShowSettings(id))
+    }
+
+    /** Set [key] for [id] alone, or with `null` have it follow Settings again. */
+    fun setShowSetting(id: AnilistId, key: ShowSettingKey, value: SettingValue?) {
+        send(Command.SetShowSetting(id, key, value))
+    }
+
+    /** Put [id] back on Settings: its own settings, the source it keeps and the remembered tracks. */
+    fun resetShowSettings(id: AnilistId) {
+        send(Command.ResetShowSettings(id))
+    }
 
     /** Put [id] on the tracker's [segment] list: shown at once, ahead of the tracker's word. */
     fun setStatus(id: AnilistId, segment: LibrarySegment) {
@@ -261,13 +306,19 @@ class AppStore(
         when (event) {
             is Event.JobStarted -> jobs.started(event.job, event.activity)
             is Event.JobNote -> jobs.note(event.job, event.note, event.wait?.toMillis())
-            is Event.JobDone -> jobs.done(event.v1)
+            is Event.JobDone -> {
+                jobs.done(event.v1)
+                detailDone(event.v1)
+            }
 
             is Event.Content -> content(event.content, event.view)
             is Event.Caption -> caption(event.text, event.view)
             is Event.CalendarWindow -> calendar.window(event.anchor, event.pages, event.morePast)
             is Event.CalendarBackfill -> calendar.backfill(event.page, event.entries, event.morePast, titles)
-            is Event.Detail -> titles.merge(detail = event.v1)
+            is Event.Detail -> {
+                detailPending -= event.v1.id
+                titles.merge(detail = event.v1)
+            }
             is Event.TitlesChanged -> titlesChanged()
             is Event.Progress -> titles.progress(event.id, event.progress, event.resume, event.episodes)
             is Event.LastAired -> titles.lastAired(event.v1)
@@ -279,6 +330,7 @@ class AppStore(
             is Event.Sync -> accounts.apply(event.v1)
             is Event.Stores -> stores.apply(event.v1)
             is Event.Downloads -> downloads.apply(event.v1)
+            is Event.ShowSettings -> showSettings.apply(event.v1)
 
             is Event.ArtworkReady -> artwork.ready(event.url, event.bytes)
             is Event.ImageFailed -> artwork.failed(event.url)
