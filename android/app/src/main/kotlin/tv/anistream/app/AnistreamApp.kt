@@ -14,6 +14,7 @@ import tv.anistream.store.AppStore
 import tv.anistream.store.EngineLaunch
 import tv.anistream.store.KeystoreKey
 import tv.anistream.store.SealedFileSecrets
+import tv.anistream.store.traced
 
 class AnistreamApp : Application() {
     /** Where the store's work runs: the main thread, for as long as the process. */
@@ -29,10 +30,10 @@ class AnistreamApp : Application() {
     fun start(launch: EngineLaunch) {
         if (started) return
         started = true
-        // The engine's log, a file a day under the cache, which never holds a token.
-        startLog(launch.home.cache.path)
         Log.i(TAG, "starting the ${if (launch.engine == EngineLaunch.Engine.App) "app" else "testing"} engine")
-        store.start(launch, host())
+        // The engine's log first, a file a day under the cache, which never holds a token: the first
+        // call into the engine's library, which loads it and JNA, off the main thread with the start.
+        store.start(launch, host()) { traced("startLog") { startLog(launch.home.cache.path) } }
     }
 
     /** The engine's host: tokens sealed by the keystore in a private file, links, notifications. */

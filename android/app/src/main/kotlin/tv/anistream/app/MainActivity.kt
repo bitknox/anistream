@@ -21,6 +21,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
 import tv.anistream.design.AnistreamTheme
+import tv.anistream.store.traced
 import tv.anistream.ui.AppRoot
 import tv.anistream.ui.Destination
 
@@ -42,7 +43,7 @@ class MainActivity : ComponentActivity() {
         window.isNavigationBarContrastEnforced = false
         holdPortraitOnPhones(resources.configuration)
 
-        app.start(Flavour.launch(this, intent))
+        traced("launch") { app.start(Flavour.launch(this, intent)) }
         Flavour.started(app.store, intent)
         val steerable = debuggable || Flavour.FIXTURES
         val start = intent.getStringExtra(SECTION)?.takeIf { steerable }
@@ -50,11 +51,11 @@ class MainActivity : ComponentActivity() {
         val title = intent.getStringExtra(TITLE)?.takeIf { steerable }?.toUIntOrNull()
         val query = intent.getStringExtra(QUERY)?.takeIf { steerable }
 
-        setContent {
+        traced("setContent") { setContent {
             AnistreamTheme {
                 AppRoot(app.store, if (query != null) Destination.Search else start, startTitle = title, startQuery = query)
             }
-        }
+        } }
         if (Flavour.FIXTURES || debuggable) announceReady()
         askForNotificationsWhenNeeded()
     }
