@@ -884,6 +884,46 @@ async fn the_context_menu_gains_an_entry_without_losing_the_users() {
 }
 
 #[tokio::test]
+async fn a_server_that_has_been_failing_says_so_in_the_sources_menu() {
+    require_mpv!();
+    // Read where every rendering's rows can be read, mpv's own context menu, which came in 0.40.
+    let version = mpv_version().await;
+    if version < (MpvVersion { major: 0, minor: 40 }) {
+        eprintln!(
+            "skipping the sources note: mpv {version} has no context menu (0.40 added it)"
+        );
+        return;
+    }
+    let mut player = Player::start(None, &[]).await;
+    let mut menus = sample_menus();
+    menus["sources"][1]["health"] = json!("failed the last 2 times · 12 min ago");
+    player.state("menus", menus).await;
+
+    // The Sources rows, as the context menu lists them under the script's entry.
+    let rows = |v: &Value| -> Vec<String> {
+        let ours = v.as_array().into_iter().flatten().find(|i| i["title"] == "anistream");
+        let sources = ours
+            .and_then(|i| i["submenu"].as_array())
+            .into_iter()
+            .flatten()
+            .find(|i| i["title"] == "Sources");
+        sources
+            .and_then(|i| i["submenu"].as_array())
+            .into_iter()
+            .flatten()
+            .filter_map(|i| i["title"].as_str().map(str::to_owned))
+            .collect()
+    };
+    let menu = player.wait_property("menu-data", |v| !rows(v).is_empty()).await;
+    assert_eq!(
+        rows(&menu),
+        ["Source A  ·  1080p", "Source B  ·  720p · failed the last 2 times · 12 min ago"],
+        "a source with nothing against it reads as it always has"
+    );
+    player.finish().await;
+}
+
+#[tokio::test]
 async fn controls_come_up_with_activity_and_leave_with_the_cursor() {
     require_mpv!();
     let mut player = Player::start(

@@ -375,6 +375,7 @@ fn menus_ui(menus: Menus) -> PlayerUi {
                 label: s.label,
                 detail: s.detail,
                 current: s.current,
+                health: s.health,
             })
             .collect(),
         translation: translation(current.current),
