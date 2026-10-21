@@ -24,7 +24,7 @@ struct AnistreamApp: App {
         // The one window: browsing, and the player in its place while it plays (M4).
         Window("anistream", id: "main") {
             content
-                .focusedSceneValue(\.playerInFront, delegate.player.isPresented && !delegate.player.miniPlayer)
+                .focusedSceneValue(\.playerInFront, delegate.player.inMainWindow)
         }
         .defaultSize(width: 1280, height: 800)
         .windowResizability(.contentMinSize)
@@ -32,12 +32,12 @@ struct AnistreamApp: App {
             AnistreamCommands(
                 store: delegate.store, navigator: delegate.navigator,
                 playerBack: .init(
-                    isUp: { [player = delegate.player] in player.isPresented && !player.miniPlayer },
+                    isUp: { [player = delegate.player] in player.inMainWindow },
                     back: { [player = delegate.player] in player.requestBack() })
             ) {
                 PlaybackMenu(model: delegate.player)
             } playerWindowItems: {
-                MiniPlayerMenuItem(model: delegate.player)
+                PictureInPictureMenuItem(model: delegate.player)
             }
         }
         #else

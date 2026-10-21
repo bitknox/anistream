@@ -35,14 +35,5 @@ struct LayoutTests {
         let phone = CGSize(width: 874, height: 402)
         #expect(size(of: ZStack { Color.black; FilledArt(image: Self.banner) }, in: phone) == phone)
     }
-
-    @Test func theMiniPlayerIsAQuarterOfTheScreenWideInTheBottomRightCorner() {
-        // A MacBook's built-in display, 1512 × 982 pt, under its menu bar.
-        let visible = CGRect(x: 0, y: 0, width: 1512, height: 945)
-        let frame = MiniPlayerFrame.frame(in: visible)
-        #expect(frame == CGRect(x: 1118, y: 16, width: 378, height: 213))
-        #expect(abs(frame.width / frame.height - 16 / 9) < 0.01)
-        #expect(visible.contains(frame))
-    }
 }
 #endif

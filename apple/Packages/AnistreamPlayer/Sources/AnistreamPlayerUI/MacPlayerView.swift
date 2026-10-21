@@ -101,8 +101,7 @@ public struct MacPlayerView: View {
         }
         .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { height = $0 }
         .onChange(of: SubtitleLift(visible: visible, height: height), initial: true) { _, lift in
-            // The subtitles rise above the control row while it is up, as MacPlayer has them, and
-            // above the mini player's.
+            // The subtitles rise above the control row while it is up, as MacPlayer has them.
             model.liftSubtitles(lift.visible ? metrics.subtitleLift / max(lift.height, 1) : 0, animated: !reduceMotion)
         }
         .onAppear {
@@ -110,8 +109,8 @@ public struct MacPlayerView: View {
             withAnimation(.standard) { grown = true }
         }
         .onDisappear {
-            // Back to browsing: the player stopped, or moved into the mini player. The main window
-            // is given back as it was.
+            // Back to browsing: the player stopped, or moved into Picture in Picture. The main
+            // window is given back as it was.
             if let window { restore(window) }
         }
         .preferredColorScheme(.dark)
@@ -154,9 +153,8 @@ public struct MacPlayerView: View {
         Button("Audio…") { toggle(.tracks) }
         Button("Episodes…") { toggle(.episodes) }
         Divider()
-        Button(model.miniPlayer ? "Exit Mini Player" : "Mini Player") { model.miniPlayer.toggle() }
-        Button("Picture in Picture") {}
-            .disabled(true)
+        Button("Picture in Picture") { model.togglePictureInPicture() }
+            .disabled(!model.pictureInPictureAvailable)
     }
 
     // MARK: Chrome
@@ -251,11 +249,9 @@ public struct MacPlayerView: View {
             .buttonStyle(.plain)
             .padding(.leading, 8)
             .accessibilityLabel("Playback speed, \(speedLabel(model.speed))")
-            // Picture in Picture needs mpv's frames handed to an AVSampleBufferDisplayLayer,
-            // which the player does not do yet.
-            icon("pip.enter", "Picture in Picture") {}
-                .disabled(true)
-                .opacity(0.4)
+            icon("pip.enter", "Picture in Picture") { model.togglePictureInPicture() }
+                .disabled(!model.pictureInPictureAvailable)
+                .opacity(model.pictureInPictureAvailable ? 1 : 0.4)
             icon(
                 model.fullScreen ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right",
                 model.fullScreen ? "Exit Full Screen" : "Enter Full Screen"
@@ -381,7 +377,7 @@ public struct MacPlayerView: View {
                 return .handled
             case "z" where command, "u":
                 model.undoSkip()
-            case "m" where command && option: model.miniPlayer.toggle()
+            case "p" where command && option: model.togglePictureInPicture()
             case "m": model.toggleMute()
             case "n": model.step(shift ? -1 : 1)
             case "f" where !command: model.fullScreen.toggle()

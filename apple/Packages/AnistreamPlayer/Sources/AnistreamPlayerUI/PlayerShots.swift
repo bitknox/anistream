@@ -23,9 +23,9 @@ public enum PlayerShot: String, CaseIterable, Sendable {
     /// Scrubbing at half speed, with the frame there from the hidden mpv, the time and the
     /// chapter.
     case scrubbing
-    /// The Mac's mini player, in the corner of the screen over the main window, browsing. The
-    /// same as playing elsewhere.
-    case miniPlayer = "mini-player"
+    /// The Mac's Picture in Picture: the main window browsing, and the frame the system's
+    /// floating window shows, as the feed copied it.
+    case pictureInPicture = "picture-in-picture"
     /// "Couldn't play episode 7", with Choose source and Close.
     case couldntPlay = "couldnt-play"
 
@@ -94,16 +94,13 @@ extension PlayerModel {
             // The finger held over the line, slowed to half speed: never let go.
             scrub(to: 9, pace: 0.5)
             there = await waited(10) { self.preview.ready } && there
-        case .miniPlayer:
+        case .pictureInPicture:
             seek(to: 31)
             there = await waited(10) { self.position >= 31.5 }
-            #if os(macOS)
-            miniPlayer = true
-            pinnedControls = true
+            togglePictureInPicture()
+            there = await waited(10) { self.pictureInPicturePhase == .active } && there
+            // The floating window's first frames at its own size.
             try? await Task.sleep(for: .seconds(1.5))
-            #else
-            pinnedControls = true
-            #endif
         }
         // The fades.
         try? await Task.sleep(for: .milliseconds(700))

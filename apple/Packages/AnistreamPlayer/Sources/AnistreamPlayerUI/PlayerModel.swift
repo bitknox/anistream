@@ -4,6 +4,7 @@
 import AnistreamKit
 import AnistreamPlayer
 import AnistreamStore
+import CoreGraphics
 import Foundation
 import Observation
 import os
@@ -154,6 +155,8 @@ public final class PlayerModel {
     public private(set) var bufferingSince: ContinuousClock.Instant?
     /// The file playing has put a picture up.
     public private(set) var hasPicture = false
+    /// The picture's width over its height, as mpv displays it.
+    @ObservationIgnored public private(set) var videoAspect: Double = 16 / 9
 
     // MARK: The viewer
 
@@ -165,8 +168,27 @@ public final class PlayerModel {
     public private(set) var holds: Set<String> = []
     /// Up for a screenshot, whatever else says.
     public var pinnedControls = false
-    /// The Mac's mini player: the window small in a corner, floating, with the essentials.
-    public var miniPlayer = false
+    /// The Mac's Picture in Picture: the picture in the system's floating window while the main
+    /// window browses. Set by `PictureInPicture` as the picture leaves the window and returns.
+    public internal(set) var pictureInPicture = false
+    /// Where Picture in Picture is, for the button and the menu.
+    public internal(set) var pictureInPicturePhase: PictureInPicturePhase = .inline
+    /// What toggles Picture in Picture, where the player has it (the Mac).
+    @ObservationIgnored var pictureInPictureToggle: (@MainActor () -> Void)?
+    /// The last frame Picture in Picture's window was given, for a capture of it.
+    @ObservationIgnored public internal(set) var pictureInPictureFrame: (@MainActor () -> CGImage?)?
+
+    /// The player has the main window: up, and not in Picture in Picture.
+    public var inMainWindow: Bool { isPresented && !pictureInPicture }
+
+    /// Picture in Picture can be asked for: there is a picture to put in it.
+    public var pictureInPictureAvailable: Bool { pictureInPictureToggle != nil && isPresented && hasPicture }
+
+    /// Into the system's floating window, or back out of it: the button, ⌥⌘P and the menu.
+    public func togglePictureInPicture() {
+        guard pictureInPictureAvailable || pictureInPicturePhase != .inline else { return }
+        pictureInPictureToggle?()
+    }
     /// The pointer over the seek line on the Mac, at this time: the bubble shows there.
     public private(set) var hovering: Double?
     /// How fast scrubbing moves now: 1, ½ or ¼.
@@ -421,7 +443,7 @@ public final class PlayerModel {
     public private(set) var backRequests = 0
 
     public func requestBack() {
-        if miniPlayer || !isPresented {
+        if pictureInPicture || !isPresented {
             viewerClosed()
         } else {
             backRequests += 1
@@ -515,7 +537,7 @@ public final class PlayerModel {
         verdictPending = false
         layer = nil
         fullScreen = false
-        miniPlayer = false
+        pictureInPicture = false
         subtitleTween?.cancel()
         subtitlePosition = 100
         staged = nil
@@ -631,6 +653,9 @@ public final class PlayerModel {
             if value["w"].int != nil {
                 Self.note(.info, "video \(value["w"].int ?? 0)×\(value["h"].int ?? 0) \(value["pixelformat"].string ?? "")")
             }
+            if let w = value["dw"].int ?? value["w"].int, let h = value["dh"].int ?? value["h"].int, w > 0, h > 0 {
+                videoAspect = Double(w) / Double(h)
+            }
         case "aid":
             audioTrack = value.int
         case "sid":
@@ -724,6 +749,11 @@ public final class PlayerModel {
 
     public func surfaceResized() {
         enqueue(.resized)
+    }
+
+    /// What the window shows now, as mpv renders it, or nil without an mpv.
+    func snapshot() async -> CGImage? {
+        await backend?.snapshot()
     }
 
     private func enqueue(_ item: Work) {
