@@ -116,10 +116,11 @@ private fun Pane(content: @Composable () -> Unit) {
 // Playback
 
 @Composable
-internal fun PlaybackPane() {
+internal fun PlaybackPane(actions: AppActions = AppActions()) {
     val store = LocalAppStore.current
     val view by store.settings.view.collectAsStateWithLifecycle()
     val autoNext = store.settings.isOn(SettingKey.AUTO_NEXT, view)
+    val notifications = actions.episodeNotifications
     Pane {
         SettingsGroup(
             title = "Language",
@@ -133,14 +134,15 @@ internal fun PlaybackPane() {
         )
         SettingsGroup(
             title = "Episodes",
-            rows = listOf(
-                { place -> SettingSwitch(place, SettingKey.AUTO_NEXT, "Auto-play next") },
+            rows = listOfNotNull(
+                @Composable { place: Place -> SettingSwitch(place, SettingKey.AUTO_NEXT, "Auto-play next") },
                 { place -> SettingMenu(place, SettingKey.UP_NEXT_COUNTDOWN, "Up Next countdown", enabled = autoNext) },
                 { place -> SettingSwitch(place, SettingKey.SKIP_OPENING, "Skip opening automatically") },
                 { place -> SettingSwitch(place, SettingKey.SKIP_FILLER, "Skip filler automatically") },
                 { place -> SettingSwitch(place, SettingKey.MARK_CHAPTERS, "Mark opening and ending") },
                 { place -> SettingMenu(place, SettingKey.COMMIT_THRESHOLD, "Counts as watched at", note = "Or when the ending starts, if it is marked") },
                 { place -> SettingSwitch(place, SettingKey.SPOILER_PROTECTION, "Spoiler protection", note = "Blurs stills of unwatched episodes after the next one") },
+                if (notifications != null) @Composable { place: Place -> EpisodeNotificationsRow(place, notifications) } else null,
             ),
         )
         SettingsGroup(
@@ -151,6 +153,16 @@ internal fun PlaybackPane() {
             ),
         )
     }
+}
+
+/**
+ * New-episode notifications. Turning them on goes through the app, which asks for the permission
+ * to post them first, and only then.
+ */
+@Composable
+private fun EpisodeNotificationsRow(place: Place, switch: AppSwitch) {
+    val on by switch.on.collectAsStateWithLifecycle()
+    SwitchRow(place, "New episode notifications", checked = on, note = "When a show you follow has a new episode out") { switch.set(it) }
 }
 
 /** The three forms a title can be named in, as the settings file names them. */

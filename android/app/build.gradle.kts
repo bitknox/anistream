@@ -91,10 +91,12 @@ dependencies {
     implementation(libs.core.ktx)
     implementation(libs.lifecycle.process)
     implementation(libs.browser)
+    implementation(libs.work.runtime)
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(libs.coroutines.test)
+    testImplementation(libs.work.testing)
 }
 
 tasks.withType<Test>().configureEach {

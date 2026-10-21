@@ -67,6 +67,7 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
@@ -105,7 +106,15 @@ data class AppActions(
      * itself.
      */
     val hint: (NoticeHint) -> Unit = {},
+    /**
+     * New-episode notifications, on or off: the app's, which asks for the permission to post as
+     * they are turned on. `null` leaves their row out, where the engine has no check for them.
+     */
+    val episodeNotifications: AppSwitch? = null,
 )
+
+/** A switch the app keeps, rather than the engine's settings: what it says, and turning it. */
+class AppSwitch(val on: StateFlow<Boolean>, val set: (Boolean) -> Unit)
 
 /** Whether the window is wide enough for the rail: 600 dp and up, a tablet or an unfolded foldable. */
 @Composable

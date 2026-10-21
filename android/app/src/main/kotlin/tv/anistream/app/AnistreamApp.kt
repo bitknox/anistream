@@ -18,19 +18,46 @@ import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.store.SettingsCatalog
 import tv.anistream.engine.ffi.startLog
+import tv.anistream.engine.core.AnilistId
 import tv.anistream.store.AppHost
+import tv.anistream.store.BackgroundEngine
+import tv.anistream.store.EpisodeCheck
 import tv.anistream.store.AppStore
 import tv.anistream.store.EngineLaunch
 import tv.anistream.store.KeystoreKey
 import tv.anistream.store.SealedFileSecrets
 
-class AnistreamApp : Application() {
+class AnistreamApp : Application(), NewEpisodesHost {
     /** Where the store's work runs: the main thread, for as long as the process. */
     private val scope = MainScope()
 
     val store: AppStore by lazy { AppStore(scope) }
 
     val notifier: Notifier by lazy { Notifier(this) }
+
+    override val episodeNotifier: EpisodeNotifier by lazy { EpisodeNotifier(this) }
+
+    /** The check for new episodes: none until this build's engine has `CheckNewEpisodes`. */
+    override val episodeCheck: EpisodeCheck? = null
+
+    /** The new-episode notifications switch, and the schedule it keeps. */
+    val episodeAlerts: EpisodeAlerts by lazy { EpisodeAlerts(this, episodeNotifier, available = episodeCheck != null) }
+
+    /**
+     * The engine work in the background runs on: the app's own once it has started, or one of its
+     * own, quiet, while the app is not running.
+     */
+    private val background by lazy {
+        BackgroundEngine(
+            running = { store.takeIf { started && store.phase.value.let { it == AppStore.Phase.Starting || it == AppStore.Phase.Running } } },
+            launch = { Flavour.background(this) },
+            host = ::host,
+        )
+    }
+
+    override suspend fun markWatched(id: AnilistId, episode: UInt) {
+        background.use { it.setWatched(id, listOf(episode.toString())) }
+    }
 
     private var started = false
 
@@ -41,7 +68,16 @@ class AnistreamApp : Application() {
         // The engine's log, a file a day under the cache, which never holds a token.
         startLog(launch.home.cache.path)
         Log.i(TAG, "starting the ${if (launch.engine == EngineLaunch.Engine.App) "app" else "testing"} engine")
-        store.start(launch, host())
+        if (background.busy) {
+            // Background work has an engine of its own on the same files: it stops first.
+            scope.launch {
+                background.stop()
+                store.start(launch, host())
+            }
+        } else {
+            store.start(launch, host())
+        }
+        episodeAlerts.reconcile()
         ContinueShortcut(this).follow(store, scope)
         watchNetwork()
         // The fixtures' downloads are seeded where they are; only the app's are kept here.

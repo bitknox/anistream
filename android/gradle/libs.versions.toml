@@ -19,6 +19,8 @@ coroutines = "1.11.0"
 media3 = "1.11.1"
 # Custom Tabs, for AniList's and MyAnimeList's sign-in.
 browser = "1.10.0"
+# The periodic check for new episodes.
+work = "2.12.0"
 # 5.17 is the first with 16 KB aligned Android libraries.
 jna = "5.19.1"
 junit = "4.13.2"
@@ -54,6 +56,8 @@ coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", ve
 coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 browser = { module = "androidx.browser:browser", version.ref = "browser" }
+work-runtime = { module = "androidx.work:work-runtime", version.ref = "work" }
+work-testing = { module = "androidx.work:work-testing", version.ref = "work" }
 media3-session = { module = "androidx.media3:media3-session", version.ref = "media3" }
 media3-common = { module = "androidx.media3:media3-common", version.ref = "media3" }
 # The Android build, its native libraries for every ABI inside the AAR.

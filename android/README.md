@@ -81,7 +81,8 @@ arguments: `scene` (`watching`, `fresh` or `playing`), `media` (what the playing
 `section` (`continue`, `calendar`, `seasonal`, `library`, `search`), `title` (a title page to
 open, by id), `query` (a search to run), `page` (a page over the destination, by its route:
 `settings`, `settings/playback`, `settings/sources`, `downloads`), `watched` (`900006:8`, or
-several titles joined by `/`), `downloads` (any value: three downloads seeded, see below), and
+several titles joined by `/`), `downloads` (any value: three downloads seeded, see below), `notify`
+(any value: two new-episode notifications posted), and
 `sheet` and `player` for the screens that take them in later phases. A scene is the engine's
 own (`start_scene`): the fake AniList at the real time, with its art, and for `watching` and
 `playing` a history seeded first. Each launch starts the testing engine in a new directory of its
@@ -127,6 +128,20 @@ written into each variant's resources from `app/shortcuts.xml` with its package;
 
 ```sh
 adb shell am start -a android.intent.action.VIEW -d anistream://open/downloads -n tv.anistream.fixtures/tv.anistream.app.MainActivity
+```
+
+New-episode notifications come from a `WorkManager` job, `new-episodes`, about every six hours on
+a network with the battery not low, while Settings' "New episode notifications" is on; turning it
+on is the one time the app asks to post notifications. The job asks the engine for what aired
+(`CheckNewEpisodes`), on the app's engine when it runs and otherwise on one started for the job
+with every background switch off (`BackgroundEngine`), and posts one notification per episode on
+the "New episodes" channel, grouped under a summary when there are several, with Play (an app
+link) and Mark watched (the app's own receiver). Until the engine has the check, the row is left
+out and the job does nothing. The fixtures' `notify` extra posts two, for a look at the shade:
+
+```sh
+adb shell pm grant tv.anistream.fixtures android.permission.POST_NOTIFICATIONS
+adb shell am start -n tv.anistream.fixtures/tv.anistream.app.MainActivity --es notify 1
 ```
 
 ## Tests

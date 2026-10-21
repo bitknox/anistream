@@ -72,6 +72,11 @@
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
         </activity>
+        <!-- A new-episode notification's Mark watched, which only the app's own notifications
+             reach. -->
+        <receiver
+            android:name=".EpisodeActionReceiver"
+            android:exported="false" />
         <!-- The download job: it keeps the process going while episodes download, with the
              system's progress notification. -->
         <service

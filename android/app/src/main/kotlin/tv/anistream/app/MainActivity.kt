@@ -7,15 +7,18 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -27,8 +30,10 @@ import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.store.DownloadsModel
 import tv.anistream.store.InviteLinks
+import tv.anistream.ui.AppActions
 import tv.anistream.ui.AppLink
 import tv.anistream.ui.AppRoot
+import tv.anistream.ui.AppSwitch
 import tv.anistream.ui.Destination
 
 class MainActivity : ComponentActivity() {
@@ -36,6 +41,35 @@ class MainActivity : ComponentActivity() {
 
     private val askNotifications = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
         app.notifier.asked()
+    }
+
+    /**
+     * The permission asked for as new-episode notifications are turned on: they go on with it.
+     * Without it, where the system will not ask again, its notification settings for the app open.
+     */
+    private val askForEpisodes = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        app.notifier.asked()
+        if (granted) {
+            app.episodeAlerts.set(true)
+        } else if (!shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
+            openNotificationSettings()
+        }
+    }
+
+    /** New-episode notifications, on Settings' switch: on only once they can show. */
+    private fun setEpisodeNotifications(on: Boolean) {
+        val permitted = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        when (EpisodeAlerts.Turn.of(on, app.episodeNotifier.canPost, permitted)) {
+            EpisodeAlerts.Turn.Off -> app.episodeAlerts.set(false)
+            EpisodeAlerts.Turn.On -> app.episodeAlerts.set(true)
+            EpisodeAlerts.Turn.Ask -> askForEpisodes.launch(Manifest.permission.POST_NOTIFICATIONS)
+            EpisodeAlerts.Turn.SystemSettings -> openNotificationSettings()
+        }
+    }
+
+    /** The system's notification settings for the app. */
+    private fun openNotificationSettings() {
+        startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
     }
 
     /** AniList's and MyAnimeList's sign-in in a Custom Tab, and the redirect that ends it. */
@@ -60,7 +94,7 @@ class MainActivity : ComponentActivity() {
         holdPortraitOnPhones(resources.configuration)
 
         app.start(Flavour.launch(this, intent))
-        Flavour.started(app.store, intent)
+        Flavour.started(app.store, intent, app.episodeNotifier)
         val steerable = debuggable || Flavour.FIXTURES
         val start = intent.getStringExtra(SECTION)?.takeIf { steerable }
             ?.let(Destination::named) ?: Destination.Continue
@@ -68,11 +102,15 @@ class MainActivity : ComponentActivity() {
         val query = intent.getStringExtra(QUERY)?.takeIf { steerable }
         val page = intent.getStringExtra(PAGE)?.takeIf { steerable }
 
+        val actions = AppActions(
+            episodeNotifications = if (app.episodeCheck != null) AppSwitch(app.episodeAlerts.on, ::setEpisodeNotifications) else null,
+        )
         setContent {
             AnistreamTheme {
                 AppRoot(
                     app.store,
                     if (query != null) Destination.Search else start,
+                    actions = actions,
                     startTitle = title,
                     startQuery = query,
                     startPage = page,
@@ -114,6 +152,8 @@ class MainActivity : ComponentActivity() {
         // Taken off the intent, so a recreated activity does not follow it again.
         intent?.data = null
         links.trySend(link)
+        // A notification's action leaves its notification up; following it takes it away.
+        intent?.getStringExtra(EpisodeNotifier.EXTRA_NOTIFICATION)?.let(app.episodeNotifier::dismiss)
         ContinueShortcut.shortcutOf(link)?.let { ShortcutManagerCompat.reportShortcutUsed(this, it) }
         return true
     }

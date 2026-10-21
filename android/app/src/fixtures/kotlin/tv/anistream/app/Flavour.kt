@@ -11,6 +11,8 @@
 //   page      a page over the destination, by its route: settings, settings/playback
 //   downloads any value: three downloads seeded, one finished, whose file is the fixtures' clip
 //             in the app's download folder, one running and one waiting
+//   notify    any value: two new-episode notifications posted for fixture titles, grouped, as the
+//             periodic check posts them (the notification permission granted first)
 //   sheet     a sheet to open: torrent, join, kitsu, update or show (from A2)
 //   player    a player state to shoot (from A3)
 
@@ -20,7 +22,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Environment
 import android.util.Log
+import java.util.UUID
 import tv.anistream.store.AppStore
+import tv.anistream.store.EngineHome
+import tv.anistream.store.NewEpisode
 import tv.anistream.store.EngineLaunch
 import tv.anistream.store.FixtureScene
 import tv.anistream.store.fixtureDownloadClip
@@ -53,10 +58,32 @@ internal object Flavour {
         file.path
     }.onFailure { Log.w(AnistreamApp.TAG, "the fixture clip was not copied: ${it.message}") }.getOrNull()
 
+    /**
+     * The engine background work starts while the app is not running: the watching scene, in a
+     * directory of its own, never the one a launch is using.
+     */
+    fun background(context: Context): EngineLaunch {
+        val parent = context.cacheDir.resolve("fixtures-background")
+        parent.listFiles()?.forEach { it.deleteRecursively() }
+        return EngineLaunch(
+            engine = EngineLaunch.Engine.Fixtures(FixtureScene.WATCHING),
+            home = EngineHome.override(parent.resolve(UUID.randomUUID().toString())),
+        )
+    }
+
     /** What the extras ask of the engine once it is up, once per process. */
-    fun started(store: AppStore, intent: Intent) {
+    fun started(store: AppStore, intent: Intent, notifier: EpisodeNotifier) {
         if (marked) return
         marked = true
+        if (intent.getStringExtra("notify") != null) {
+            val now = System.currentTimeMillis() / 1000
+            notifier.post(
+                listOf(
+                    NewEpisode(900001u, "Stardust Wayfarer", 8u, now - 3_600),
+                    NewEpisode(900006u, "Summer Wind Relay", 3u, now - 600),
+                ),
+            )
+        }
         intent.getStringExtra("watched")?.let { watched ->
             val marks = watched.split('/').mapNotNull { mark ->
                 val parts = mark.split(':', limit = 2)
