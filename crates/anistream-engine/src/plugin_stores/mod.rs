@@ -14,9 +14,12 @@ use std::{
 };
 
 use anistream_core::config::{Config, Paths};
-use anistream_model::stores::{
-    InviteLinkView, InvitedStore, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow,
-    StorePluginRow, StorePluginStatus, StoreRow, StoreState,
+use anistream_model::{
+    sources::{ProviderOrigin, ProviderUpdate},
+    stores::{
+        InviteLinkView, InvitedStore, LocalPluginRow, Secret, StoreInviteRow, StoreMemberRow,
+        StorePluginRow, StorePluginStatus, StoreRow, StoreState,
+    },
 };
 use anistream_plugin_store::{
     ClientError, Inspector, Invite, Joined, LocalState, PluginInfo, PluginStatus, StoreClient,
@@ -133,6 +136,14 @@ impl Stores {
         Ok(rows(&state, &self.plugin_dir, &offline))
     }
 
+    /// Where each plugin a store installed came from, and the newer version that store offers
+    /// when it offers one, by plugin id: what the Providers rows say of a plugin. From what is
+    /// on disk, with no network; nothing when the state file cannot be read.
+    pub fn origins(&self) -> HashMap<String, (ProviderOrigin, Option<ProviderUpdate>)> {
+        let Ok(state) = self.load() else { return HashMap::new() };
+        origins(&state, &self.plugin_dir)
+    }
+
     /// Fetch every joined store's plugin list at once, then return the rows.
     ///
     /// A store that cannot be reached keeps the last list it sent and is marked offline; one that
@@ -246,6 +257,7 @@ impl Stores {
             link: Secret(invite.link()),
             name: info.name,
             url: invite.base.clone(),
+            host: anistream_model::stores::host(&invite.base),
             fingerprint: invite.key.fingerprint(),
             already_joined: already,
         })
@@ -638,6 +650,7 @@ pub fn rows(
             id: joined.id.clone(),
             name: joined.name.clone(),
             url: joined.base.clone(),
+            host: anistream_model::stores::host(&joined.base),
             fingerprint: PublicKey::parse(&joined.key)
                 .map(|k| k.fingerprint())
                 .unwrap_or_else(|_| "unknown".into()),
@@ -650,6 +663,7 @@ pub fn rows(
             } else {
                 StoreState::Ready
             },
+            checked_at: joined.checked_at,
             plugins: joined
                 .index
                 .iter()
@@ -672,6 +686,35 @@ pub fn rows(
                     },
                 })
                 .collect(),
+        })
+        .collect()
+}
+
+/// [`Stores::origins`], from the state file read.
+fn origins(
+    state: &LocalState,
+    plugin_dir: &Path,
+) -> HashMap<String, (ProviderOrigin, Option<ProviderUpdate>)> {
+    state
+        .installed
+        .iter()
+        .map(|(id, installed)| {
+            // A store left since keeps no name here; the plugin keeps working all the same.
+            let joined = state.store(&installed.store);
+            let origin = ProviderOrigin::Store {
+                id: installed.store.clone(),
+                name: joined.map(|store| store.name.clone()),
+            };
+            let entry = joined.and_then(|store| store.index.as_ref()?.plugin(id));
+            let update = entry.and_then(|entry| {
+                match state.status(&installed.store, entry, plugin_dir) {
+                    PluginStatus::Update { new_hosts, .. } => {
+                        Some(ProviderUpdate { version: entry.version.clone(), new_hosts })
+                    }
+                    _ => None,
+                }
+            });
+            (id.clone(), (origin, update))
         })
         .collect()
 }
@@ -738,7 +781,7 @@ mod tests {
                 issued_at: 0,
                 plugins: vec![entry("new", "1.0.0"), entry("old", "2.0.0")],
             }),
-            checked_at: None,
+            checked_at: Some(1_760_000_000),
             revoked: false,
         });
         state.installed.insert(
@@ -767,6 +810,20 @@ mod tests {
             }
         );
         assert_eq!(row.updates(), 1);
+        assert_eq!(row.host, "plugins.example");
+        assert_eq!(row.checked_at, Some(1_760_000_000));
+
+        // What the Providers rows say of the plugin installed from it, and of its update.
+        let store = ProviderOrigin::Store { id: "abc".into(), name: Some("Ours".into()) };
+        let update =
+            ProviderUpdate { version: "2.0.0".into(), new_hosts: vec!["api.example".into()] };
+        let found = origins(&state, dir.path());
+        assert_eq!(found.get("old"), Some(&(store, Some(update))));
+        assert!(!found.contains_key("new"), "offered, not installed");
+        // A store left: the plugin stays, nameless and with no update to offer.
+        state.remove_store("abc");
+        let left = ProviderOrigin::Store { id: "abc".into(), name: None };
+        assert_eq!(origins(&state, dir.path()).get("old"), Some(&(left, None)));
     }
 
     #[test]

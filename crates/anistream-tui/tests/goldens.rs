@@ -721,6 +721,7 @@ fn sources_ready() -> Event {
             last_error: None,
             usable: true,
             held_back: false,
+            ..Default::default()
         },
         ProviderRow {
             id: "tsubame".into(),
@@ -730,6 +731,7 @@ fn sources_ready() -> Event {
             last_error: None,
             usable: true,
             held_back: false,
+            ..Default::default()
         },
     ])
 }
@@ -893,6 +895,7 @@ fn providers(s: &mut Screen) {
         last_error: None,
         usable,
         held_back: false,
+        ..Default::default()
     };
     s.apply(Event::Providers(vec![
         plugin("yamabiko", "ready", Some(182), true),
@@ -995,6 +998,8 @@ fn two_stores() -> Vec<StoreRow> {
             id: "aaaa".into(),
             name: "Hearth plugins".into(),
             url: "https://plugins.example".into(),
+            host: "plugins.example".into(),
+            checked_at: None,
             fingerprint: "489f 49ea 0372 41ac".into(),
             member: "Mirei".into(),
             owner: true,
@@ -1030,6 +1035,8 @@ fn two_stores() -> Vec<StoreRow> {
             id: "bbbb".into(),
             name: "Rin's sources".into(),
             url: "https://rin.example".into(),
+            host: "rin.example".into(),
+            checked_at: None,
             fingerprint: "0c41 77de 1a2b 9f3c".into(),
             member: "Mirei".into(),
             owner: false,
@@ -1553,6 +1560,8 @@ fn four_stores() -> Vec<StoreRow> {
         id: "cccc".into(),
         name: "Kumo club".into(),
         url: "https://kumo.example".into(),
+        host: "kumo.example".into(),
+        checked_at: None,
         fingerprint: "77c2 0e19 b4d5 a610".into(),
         member: "Mirei".into(),
         owner: false,
@@ -1563,6 +1572,8 @@ fn four_stores() -> Vec<StoreRow> {
         id: "dddd".into(),
         name: "Old lab".into(),
         url: "https://lab.example".into(),
+        host: "lab.example".into(),
+        checked_at: None,
         fingerprint: "9a03 51fe 66b0 c2d4".into(),
         member: "Mirei".into(),
         owner: false,
@@ -1642,6 +1653,7 @@ fn store_confirm(s: &mut Screen) {
         link: Secret(INVITE.into()),
         name: "Rin's sources".into(),
         url: "https://rin.example".into(),
+        host: "rin.example".into(),
         fingerprint: "0c41 77de 1a2b 9f3c".into(),
         already_joined: true,
     })));

@@ -120,7 +120,7 @@ impl StoreTaskContext {
         match self.stores.remove(&plugin).await {
             Ok(()) => {
                 self.registry.remove(&plugin);
-                self.send(Event::Providers(data::provider_rows(&self.registry)));
+                self.send(Event::Providers(data::provider_rows(&self.registry, &self.stores)));
                 self.rows();
                 self.toast(Notice::info(format!("removed {plugin}")));
             }
@@ -229,7 +229,7 @@ impl StoreTaskContext {
                 // update was swapped in place and keeps it.
                 self.registry.put(provider);
                 sources::arrange(&self.registry, &self.config);
-                self.send(Event::Providers(data::provider_rows(&self.registry)));
+                self.send(Event::Providers(data::provider_rows(&self.registry, &self.stores)));
                 self.toast(Notice::info(format!("installed {name} {version}")));
             }
             Err(e) => self

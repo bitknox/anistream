@@ -174,6 +174,8 @@ impl App {
             S::UploadLimit => "caps all torrent upload, so seeding never slows playback",
             S::TokenStorage => "use --token-to-file to move an existing token",
             S::Theme
+            // A native app's torrent sheet types it; here it is the file's.
+            | S::TorrentIndex
             | S::Motion
             | S::Translation
             | S::Quality
