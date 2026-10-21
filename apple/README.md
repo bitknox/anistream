@@ -287,7 +287,7 @@ invented rows `Showcase` shows on the testing engine where it has none of its ow
 download queue, the VPN guard's verdict).
 
 The player's states are `player-starting`, `player-playing`, `player-skip`, `player-up-next`,
-`player-still-watching` and `player-stall`: the Playing scene's episode played to that state
+`player-still-watching`, `player-stall`, `player-scrubbing` and `player-mini-player`: the Playing scene's episode played to that state
 (`PlayerShot`), the player window shot on the Mac and the screen in the Simulator.
 
 They go to `apple/.shots/`, which git ignores. Mac shots come from the dev harness. iPhone and iPad
@@ -396,10 +396,7 @@ episode rolls on to the next. See `anistream_model::hosted` for the whole protoc
 
 ## Not yet
 
-- The player: Picture in Picture, Sync subtitles, and the Playback menu and Window › Mini Player
-  in the menu bar (the player's own context menu and ⌥⌘M have the mini player). The iPhone's
-  merged Audio and subtitles sheet also holds Speed, Upscaling, Night mode and Sources, for want
-  of a More menu on its board. Background audio is in the app's Info.plist only, not the
-  Fixtures app's.
+- The player: Picture in Picture and Sync subtitles. The iPhone's merged Audio and subtitles
+  sheet also holds Speed, Upscaling, Night mode and Sources, for want of a More menu on its board.
 - Settings, Providers, Plugin Stores and Downloads: what the engine cannot set yet (E8's settings,
   E9's fields, `DisablePlugin`) is drawn as the boards have it and disabled.

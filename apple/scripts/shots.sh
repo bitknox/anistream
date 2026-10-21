@@ -15,7 +15,8 @@
 # Each goes to apple/.shots/<device>-<shot>.png, ":" and "=" made "-", which git ignores.
 #
 # The player's states are shots too: player-starting, player-playing, player-skip, player-up-next,
-# player-still-watching and player-stall play the Playing scene's generated episode
+# player-still-watching, player-stall, player-scrubbing and player-mini-player play the Playing
+# scene's generated episode
 # (apple/scripts/player-media.sh) to that state and shoot the player; "player" is all of them.
 #
 # - mac: the dev harness (apple/Packages/AnistreamDev) renders its own window once the store has
@@ -29,7 +30,8 @@ set -euo pipefail
 # Bash 4.4 and newer only. macOS's own /bin/bash is 3.2.
 shopt -s inherit_errexit 2>/dev/null || true
 
-players=(player-starting player-playing player-skip player-up-next player-still-watching player-stall)
+players=(player-starting player-playing player-skip player-up-next player-still-watching player-stall
+  player-scrubbing player-mini-player)
 
 usage() {
   echo "usage: apple/scripts/shots.sh <mac|iphone|ipad> [<watching|fresh>[:<section|key=value>]|player|player-<state>]…" >&2

@@ -154,7 +154,7 @@ targetTemplates:
         codeSign: true
     sources:
       - path: App
-        excludes: ["Info.plist"]
+        excludes: ["Info.plist", "Fixtures-Info.plist"]
       # iOS only: the CJK font libass falls back to for subtitles, since iOS has no font FreeType
       # opens with simplified-only characters (scripts/fonts.sh, which the first build phase
       # checks), and its licence. AnistreamPlayer finds the folder by name. The Mac gets neither.
@@ -297,6 +297,8 @@ targets:
         PRODUCT_NAME: Anistream Fixtures
         PRODUCT_BUNDLE_IDENTIFIER: tv.anistream.fixtures
         INFOPLIST_KEY_CFBundleDisplayName: anistream fixtures
+        # Background audio, as the app has it.
+        INFOPLIST_FILE: App/Fixtures-Info.plist
     dependencies:
       - target: AnistreamKitFixtures
       - target: AnistreamDesignFixtures
