@@ -971,6 +971,7 @@ mod tests {
                 completed: false,
                 kind: None,
                 skippable: false,
+                airs_at: None,
                 thumbnail: None,
                 description: None,
             },
@@ -982,6 +983,7 @@ mod tests {
                 completed: false,
                 kind: None,
                 skippable: false,
+                airs_at: None,
                 thumbnail: None,
                 description: None,
             },
@@ -1037,6 +1039,7 @@ mod tests {
                         completed: false,
                         kind: None,
                         skippable: false,
+                        airs_at: None,
                         thumbnail: None,
                         description: None,
                     })
@@ -1117,6 +1120,7 @@ mod tests {
             completed: true,
             kind: None,
             skippable: false,
+            airs_at: None,
             thumbnail: None,
             description: None,
         }]));
@@ -1163,6 +1167,7 @@ mod tests {
             completed: false,
             kind: None,
             skippable: false,
+            airs_at: None,
             thumbnail: None,
             description: None,
         };
