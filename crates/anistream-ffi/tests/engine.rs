@@ -171,6 +171,19 @@ fn a_title_comes_back_whole_with_the_source_pinned_for_it_ahead() {
 }
 
 #[test]
+fn the_fake_anilist_says_what_it_was_asked() {
+    let (engine, _root) = started();
+    let before = engine.testing_anilist_requests().len();
+    let job = engine
+        .send(Command::LoadDetail(AnilistId::new(900_001)))
+        .expect("loading a title is a job");
+    read_until(&engine, ends(job));
+    // One title is one request, by its operation's name.
+    assert_eq!(engine.testing_anilist_requests()[before..], ["Detail"]);
+    engine.shutdown();
+}
+
+#[test]
 fn shutdown_returns_and_ends_the_stream() {
     let (engine, _root) = started();
     let stopping = Arc::clone(&engine);
@@ -190,4 +203,60 @@ fn shutdown_returns_and_ends_the_stream() {
     assert_eq!(engine.send(Command::LoadContinue), None);
     // A second shutdown has nothing left to stop.
     engine.shutdown();
+}
+
+#[test]
+fn a_fixture_cover_arrives_as_an_image() {
+    let (engine, _root) = started();
+    let search =
+        Command::Search { query: "hoshikuzu".into(), filter: SearchFilters::default() };
+    let job = engine.send(search).expect("a search is work someone waits on");
+    let read = read_until(&engine, ends(job));
+    let cover = search_titles(&read, "hoshikuzu").expect("the search's titles")[0]
+        .cover_url
+        .clone()
+        .expect("a fixture title has a cover");
+
+    // The fake serves the fixtures' art, on loopback, so the app shows real images.
+    assert!(cover.starts_with("http://127.0.0.1:"), "{cover}");
+    assert_eq!(engine.send(Command::FetchArtwork { url: cover.clone() }), None);
+    let read = read_until(&engine, |event| {
+        matches!(event, Event::ArtworkReady { .. } | Event::ImageFailed { .. })
+    });
+    let Some(Event::ArtworkReady { url, bytes }) = read.last() else {
+        panic!("the cover arrives: {read:?}");
+    };
+    assert_eq!(url, &cover);
+    assert!(bytes.starts_with(b"\x89PNG\r\n\x1a\n"), "a PNG");
+}
+
+#[test]
+fn the_watching_scene_is_signed_in_and_its_library_is_the_fakes() {
+    let root = tempfile::tempdir().expect("a temporary directory");
+    let dir = |name: &str| root.path().join(name).display().to_string();
+    let dirs = FfiDirs { config: dir("config"), data: dir("data"), cache: dir("cache") };
+    let engine = FfiEngine::start_scene(
+        dirs,
+        Arc::new(Quiet),
+        anistream_ffi::FfiScene::Watching,
+        anistream_ffi::FfiStart::default(),
+    )
+    .expect("the engine starts");
+
+    let job = engine
+        .send(Command::LoadLibrary(anistream_model::catalog::LibrarySegment::Watching))
+        .expect("a library load is work someone waits on");
+    let read = read_until(&engine, ends(job));
+    let watching = read.iter().find_map(|event| match event {
+        Event::Content {
+            view: ContentFor::Library(_),
+            content: ContentList::Entries(rows),
+        } => Some(rows.iter().map(|row| row.id.get()).collect::<Vec<_>>()),
+        _ => None,
+    });
+    assert_eq!(watching, Some(vec![900_002]), "{read:?}");
+    let signed_in = read.iter().any(|event| {
+        matches!(event, Event::Sync(state) if state.tracker == "anilist" && state.connected)
+    });
+    assert!(signed_in, "AniList says it is signed in: {read:?}");
 }

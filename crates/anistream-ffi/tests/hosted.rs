@@ -271,6 +271,14 @@ fn stream(url: &str, kind: StreamKind) -> Stream {
     Stream { provider_id: sources::PROVIDER_ID.into(), ..Stream::new(url, kind) }
 }
 
+/// Whether `url` is the fixture image at `path` as the testing engine's fake AniList serves it:
+/// on loopback, in place of the fixtures' own `img.example`, so an app shows real art.
+fn served(url: Option<&str>, path: &str) -> bool {
+    url.is_some_and(|url| {
+        url.starts_with("http://127.0.0.1:") && url.ends_with(&format!("/art/{path}"))
+    })
+}
+
 #[test]
 fn the_player_is_told_what_to_play_and_reports_the_episode_to_its_end() {
     let mut app = App::fixtures("[playback]\nskip_opening = false\n");
@@ -282,17 +290,17 @@ fn the_player_is_told_what_to_play_and_reports_the_episode_to_its_end() {
     let (_, starting) =
         app.ui("the starting screen", |ui| matches!(ui, PlayerUi::Starting { .. }));
     // The title and its art, as its lookup found them, so the screen needs nothing more.
+    let PlayerUi::Starting { id, title, episode, episode_title, cover_url, banner_url } =
+        starting
+    else {
+        unreachable!()
+    };
     assert_eq!(
-        starting,
-        PlayerUi::Starting {
-            id: FINISHED,
-            title: "Stardust Wayfarer".into(),
-            episode: "12".into(),
-            episode_title: None,
-            cover_url: Some("https://img.example/cover/900001-xl.jpg".into()),
-            banner_url: Some("https://img.example/banner/900001.jpg".into()),
-        }
+        (id, title.as_str(), episode.as_str(), episode_title),
+        (FINISHED, "Stardust Wayfarer", "12", None)
     );
+    assert!(served(cover_url.as_deref(), "cover/900001-xl.jpg"), "{cover_url:?}");
+    assert!(served(banner_url.as_deref(), "banner/900001.jpg"), "{banner_url:?}");
     let load = app.load();
     assert_eq!(load.url, sources::clip().url);
     assert_eq!(load.option("force-media-title"), Some("Stardust Wayfarer · Episode 12"));
@@ -416,7 +424,7 @@ fn play_next_hands_the_player_to_the_next_episode() {
     );
     let PlayerUi::Starting { id, banner_url, .. } = starting else { unreachable!() };
     assert_eq!(id, FINISHED);
-    assert_eq!(banner_url.as_deref(), Some("https://img.example/banner/900001.jpg"));
+    assert!(served(banner_url.as_deref(), "banner/900001.jpg"), "{banner_url:?}");
     app.op("the episode silenced", |op| *op == PlayerOp::Stop);
     let next = app.load();
     assert_ne!(next.playback, first, "the next episode is a playback of its own");
