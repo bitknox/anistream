@@ -1,0 +1,7 @@
+/.build/
+/.swiftpm/
+/.mpv/
+/.media/
+/.cache/
+/iOS/*.xcodeproj/
+/iOS/build/
