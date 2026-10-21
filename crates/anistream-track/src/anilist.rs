@@ -14,7 +14,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use anistream_meta::anilist::{AniList, AniListError, LibraryEntry};
+use anistream_meta::anilist::{AniList, AniListError, LibraryEntry, TitleLanguage, Viewer};
 
 /// How long one library answer serves every ask for the library.
 ///
@@ -67,8 +67,9 @@ pub fn status_from_anilist(status: &str) -> WatchStatus {
 pub struct AniListTracker {
     client: AniList,
     /// Resolved on first use and cached — the library query needs a user id, and asking for it
-    /// on every pull would waste one of thirty requests a minute.
-    viewer: tokio::sync::Mutex<Option<u32>>,
+    /// on every pull would waste one of thirty requests a minute. The same answer carries the
+    /// title language the viewer reads in, so asking for that costs nothing more.
+    viewer: tokio::sync::Mutex<Option<Viewer>>,
     /// Set when the user signs out.
     ///
     /// The client holds its token from construction, and clearing the *stored* token does not
@@ -114,7 +115,7 @@ impl AniListTracker {
             return last.answer.clone().map_err(to_core);
         }
         let answer = match self.viewer().await {
-            Ok(viewer) => self.client.library(viewer).await,
+            Ok(viewer) => self.client.library(viewer.id).await,
             Err(e) => Err(e),
         };
         *last = Some(LastLibrary { changes, at: Instant::now(), answer: answer.clone() });
@@ -138,14 +139,20 @@ impl AniListTracker {
         deleted
     }
 
-    async fn viewer(&self) -> Result<u32, AniListError> {
+    /// The title language the signed-in viewer reads AniList in: romaji, English or native.
+    /// `None` when AniList did not say.
+    pub async fn title_language(&self) -> Result<Option<TitleLanguage>, anistream_core::Error> {
+        Ok(self.viewer().await.map_err(to_core)?.title_language)
+    }
+
+    async fn viewer(&self) -> Result<Viewer, AniListError> {
         let mut cached = self.viewer.lock().await;
-        if let Some(id) = *cached {
-            return Ok(id);
+        if let Some(viewer) = cached.as_ref() {
+            return Ok(viewer.clone());
         }
-        let id = self.client.viewer_id().await?;
-        *cached = Some(id);
-        Ok(id)
+        let viewer = self.client.viewer().await?;
+        *cached = Some(viewer.clone());
+        Ok(viewer)
     }
 }
 

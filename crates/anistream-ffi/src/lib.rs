@@ -429,6 +429,85 @@ mod tests {
     }
 
     #[test]
+    fn a_titles_page_crosses_with_everything_only_it_fetches() {
+        use anistream_model::{
+            catalog::{
+                CastMember, CastRole, FuzzyDate, LinkedTitle, Person, Ranking, RankingKind,
+                RelationKind, Season, SourceMaterial, StaffCredit, TitleDetail, TitleLanguage,
+                TitleTag,
+            },
+            episodes::{EpisodeAiring, EpisodeRow},
+        };
+        let mut entry = Entry::new(AnilistId::new(900_001), "Stardust Wayfarer");
+        entry.title_romaji = Some("Hoshikuzu no Tabibito".into());
+        entry.title_native = Some("星屑の旅人".into());
+        entry.season = Some(Season::Spring);
+        entry.start_date = Some(FuzzyDate { year: 2024, month: Some(4), day: None });
+        entry.source = Some(SourceMaterial::WebNovel);
+        entry.adult = true;
+        entry.detail = Some(TitleDetail {
+            tags: vec![TitleTag {
+                name: "The Last Lantern".into(),
+                rank: Some(58),
+                media_spoiler: true,
+                general_spoiler: false,
+                category: Some("Theme-Drama".into()),
+            }],
+            schedule: vec![EpisodeAiring { episode: 12, airs_at: 1_718_982_000 }],
+            relations: vec![LinkedTitle {
+                id: AnilistId::new(900_004),
+                title: "Stardust Wayfarer Season 2".into(),
+                title_romaji: Some("Hoshikuzu no Tabibito 2nd Season".into()),
+                title_english: None,
+                title_native: None,
+                relation: Some(RelationKind::Sequel),
+                format: Some("TV".into()),
+                cover_url: Some("https://img.example/cover/900004.jpg".into()),
+                season: Some(Season::Winter),
+                year: Some(2025),
+            }],
+            recommendations: Vec::new(),
+            rankings: vec![Ranking {
+                rank: 4,
+                kind: RankingKind::Rated,
+                context: "highest rated".into(),
+                all_time: false,
+                season: Some(Season::Spring),
+                year: Some(2024),
+            }],
+            characters: vec![CastMember {
+                name: "Ren Amagiri".into(),
+                image_url: None,
+                role: CastRole::Main,
+                voice_actors: vec![Person { name: "Ren's voice".into(), image_url: None }],
+            }],
+            staff: vec![StaffCredit {
+                name: "Director of Stardust Wayfarer".into(),
+                role: "Director".into(),
+            }],
+        });
+        assert_eq!(crossed(entry.clone()), entry);
+        crosses_intact(Event::Detail(Box::new(entry)));
+        crosses_intact(Event::ViewerTitleLanguage(Some(TitleLanguage::Native)));
+        crosses_intact(Event::ViewerTitleLanguage(None));
+        assert_eq!(crossed(Command::LoadTitleLanguage), Command::LoadTitleLanguage);
+
+        let row = EpisodeRow {
+            number: "6".into(),
+            title: None,
+            thumbnail: None,
+            description: None,
+            duration_secs: Some(1_380),
+            watched: 0.0,
+            completed: false,
+            kind: None,
+            skippable: false,
+            airs_at: Some(1_792_163_730),
+        };
+        assert_eq!(crossed(row.clone()), row);
+    }
+
+    #[test]
     fn a_store_preview_crosses_either_way() {
         crosses_intact(Event::StorePreview(InvitePreview::Store(InvitedStore {
             link: Secret("https://plugins.example/join/abc#key".into()),

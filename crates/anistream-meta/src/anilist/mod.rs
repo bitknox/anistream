@@ -17,7 +17,10 @@ use anistream_core::ids::AnilistId;
 use anistream_net::{HttpClient, RateLimiter, ratelimit::parse_rate_headers};
 use serde::de::DeserializeOwned;
 
-pub use model::{ExternalLink, LastAired, Media, Relation, StreamingEpisode, Title};
+pub use model::{
+    Broadcast, ExternalLink, FuzzyDate, LastAired, Media, Ranking, Relation, SourceMaterial,
+    StreamingEpisode, Tag, Title, TitleLanguage, Viewer,
+};
 
 const ENDPOINT: &str = "https://graphql.anilist.co";
 
@@ -43,8 +46,9 @@ pub enum AniListError {
 
 pub type Result<T> = std::result::Result<T, AniListError>;
 
-/// Which season a browse query is for.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Which season a browse query is for, and the one a title premiered in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
 pub enum Season {
     Winter,
     Spring,
@@ -386,8 +390,7 @@ impl AniList {
     pub async fn media(&self, id: AnilistId) -> Result<Media> {
         let data: serde_json::Value =
             self.execute(&query::by_id(), serde_json::json!({ "id": id.get() })).await?;
-        let node = data.get("Media").filter(|m| !m.is_null()).ok_or(AniListError::NotFound)?;
-        serde_json::from_value(node.clone()).map_err(|e| AniListError::Decode(e.to_string()))
+        decode_detail(&data)
     }
 
     /// Seasonal browse with server-side filters.
@@ -603,16 +606,49 @@ impl AniList {
 
     /// The authenticated user's id, for library queries.
     pub async fn viewer_id(&self) -> Result<u32> {
+        self.viewer().await.map(|viewer| viewer.id)
+    }
+
+    /// The authenticated user: their id, name and the title language they read AniList in.
+    pub async fn viewer(&self) -> Result<Viewer> {
         if self.token().is_none() {
             return Err(AniListError::Unauthenticated);
         }
         let data: serde_json::Value =
             self.execute(query::VIEWER, serde_json::json!({})).await?;
-        data["Viewer"]["id"]
-            .as_u64()
-            .map(|v| v as u32)
-            .ok_or_else(|| AniListError::Decode("viewer response had no id".into()))
+        decode_viewer(&data["Viewer"])
     }
+}
+
+/// The single-title answer: the title, with the broadcasts already out that were asked for
+/// beside it put on it. Those are best-effort, so a shape this build does not expect leaves the
+/// title without them rather than failing it.
+fn decode_detail(data: &serde_json::Value) -> Result<Media> {
+    let node = data.get("Media").filter(|m| !m.is_null()).ok_or(AniListError::NotFound)?;
+    let mut media: Media = serde_json::from_value(node.clone())
+        .map_err(|e| AniListError::Decode(e.to_string()))?;
+    media.aired = data["aired"]["airingSchedules"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|row| serde_json::from_value(row.clone()).ok())
+        .collect();
+    Ok(media)
+}
+
+/// The `Viewer` node: an id it cannot do without, a name and a language it can.
+fn decode_viewer(node: &serde_json::Value) -> Result<Viewer> {
+    let id = node["id"]
+        .as_u64()
+        .map(|v| v as u32)
+        .ok_or_else(|| AniListError::Decode("viewer response had no id".into()))?;
+    Ok(Viewer {
+        id,
+        name: node["name"].as_str().map(str::to_owned),
+        title_language: node["options"]["titleLanguage"]
+            .as_str()
+            .and_then(TitleLanguage::from_wire),
+    })
 }
 
 /// Decode one `MediaList` row.
@@ -725,6 +761,45 @@ mod tests {
     #[test]
     fn missing_page_info_defaults_to_no_further_pages() {
         assert!(!has_next_page(&serde_json::json!({})));
+    }
+
+    #[test]
+    fn the_broadcasts_asked_for_beside_a_title_are_put_on_it() {
+        let data = serde_json::json!({
+            "Media": {"id": 1, "title": {"romaji": "One"}},
+            "aired": {"airingSchedules": [
+                {"episode": 9, "airingAt": 900},
+                {"episode": "not a number"},
+                {"episode": 8, "airingAt": 800}
+            ]}
+        });
+        let media = decode_detail(&data).unwrap();
+        let aired: Vec<_> = media.aired.iter().map(|b| (b.episode, b.airing_at)).collect();
+        assert_eq!(aired, [(9, 900), (8, 800)], "a malformed row is passed over");
+
+        // A title answered without them is a title all the same.
+        let bare = decode_detail(&serde_json::json!({"Media": {"id": 1}})).unwrap();
+        assert!(bare.aired.is_empty());
+        assert!(matches!(
+            decode_detail(&serde_json::json!({"Media": null})),
+            Err(AniListError::NotFound)
+        ));
+    }
+
+    #[test]
+    fn the_viewer_carries_the_title_language_they_read_in() {
+        let viewer = decode_viewer(&serde_json::json!({
+            "id": 5150, "name": "fixture-viewer", "options": {"titleLanguage": "NATIVE_STYLISED"}
+        }))
+        .unwrap();
+        assert_eq!(viewer.id, 5150);
+        assert_eq!(viewer.name.as_deref(), Some("fixture-viewer"));
+        assert_eq!(viewer.title_language, Some(TitleLanguage::Native));
+
+        // Options AniList left out, or a language this build does not know, are no language.
+        let bare = decode_viewer(&serde_json::json!({"id": 1})).unwrap();
+        assert_eq!(bare.title_language, None);
+        assert!(decode_viewer(&serde_json::json!({"name": "no id"})).is_err());
     }
 
     #[test]
