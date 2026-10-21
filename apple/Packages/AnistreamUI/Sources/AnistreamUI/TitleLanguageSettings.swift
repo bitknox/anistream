@@ -107,9 +107,9 @@ extension AppStore {
 
     /// Three titles to show the choice on: Continue's, else the Library's.
     var titleLanguageExamples: [Entry] {
-        let continuing = continuing.queue(titles).all.map(\.entry)
-        let library = LibraryModel.order.flatMap { library.segment($0).state.ids }.compactMap { titles[$0] }
-        return Array((continuing + library).filter { $0.coverUrl != nil }.reduce(into: [Entry]()) { kept, entry in
+        let watching = continuing.queue(titles).all.map(\.entry)
+        let listed = LibraryModel.order.flatMap { library.segment($0).state.ids }.compactMap { titles[$0] }
+        return Array((watching + listed).filter { $0.coverUrl != nil }.reduce(into: [Entry]()) { kept, entry in
             if !kept.contains(where: { $0.id == entry.id }) { kept.append(entry) }
         }.prefix(3))
     }
