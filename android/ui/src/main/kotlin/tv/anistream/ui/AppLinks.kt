@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withTimeoutOrNull
 import tv.anistream.engine.core.AnilistId
+import tv.anistream.engine.model.DownloadState
 import tv.anistream.store.AppStore
 import tv.anistream.store.ContinueItem
 
@@ -36,6 +37,9 @@ sealed interface AppLink {
     /** Play [episode] of a title, from its page in Continue's back stack. */
     data class Play(val id: AnilistId, val episode: String) : AppLink
 
+    /** Play a finished download from its file, over Downloads, by the download's id. */
+    data class Download(val id: Long) : AppLink
+
     /** The link as a URI, for an intent's data. Two links are one intent only when they are equal. */
     val uri: String
         get() = PREFIX + when (this) {
@@ -44,6 +48,7 @@ sealed interface AppLink {
             is Title -> "title/$id"
             is Continue -> "continue/$id"
             is Play -> "play/$id/${URLEncoder.encode(episode, Charsets.UTF_8)}"
+            is Download -> "download/$id"
         }
 
     companion object {
@@ -61,6 +66,7 @@ sealed interface AppLink {
                 "downloads" -> Downloads.takeIf { parts.size == 1 }
                 "title" -> id?.takeIf { parts.size == 2 }?.let(::Title)
                 "continue" -> id?.takeIf { parts.size == 2 }?.let(::Continue)
+                "download" -> parts.getOrNull(1)?.toLongOrNull()?.takeIf { parts.size == 2 }?.let(::Download)
                 "play" -> {
                     val episode = parts.getOrNull(2)?.let { URLDecoder.decode(it, Charsets.UTF_8) }
                     if (id != null && parts.size == 3 && !episode.isNullOrBlank()) Play(id, episode) else null
@@ -91,6 +97,15 @@ internal suspend fun Navigator.follow(link: AppLink, store: AppStore, actions: A
         is AppLink.Play -> {
             openTitleFromLink(link.id)
             actions.play(link.id, link.episode)
+        }
+        is AppLink.Download -> {
+            go(Destination.Library)
+            open(DOWNLOADS_ROUTE)
+            store.loadDownloads()
+            val row = withTimeoutOrNull(LINK_WAIT_MILLIS) {
+                store.downloads.rows.map { rows -> rows.firstOrNull { it.id == link.id } }.filterNotNull().first()
+            }
+            if (row?.state == DownloadState.DONE) store.playDownload(row)
         }
         is AppLink.Continue -> {
             openTitleFromLink(link.id)

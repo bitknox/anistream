@@ -16,6 +16,7 @@ class AppLinkTest {
             // An episode number that is not whole, and one with a character a path cannot hold.
             AppLink.Play(900003u, "12.5"),
             AppLink.Play(900003u, "SP 1/2"),
+            AppLink.Download(42),
         )
         for (link in links) assertEquals(link, AppLink.parse(link.uri))
     }
@@ -44,6 +45,8 @@ class AppLinkTest {
             "anistream://open/title/900001/extra",
             "anistream://open/play/900001",
             "anistream://open/search/more",
+            "anistream://open/download/",
+            "anistream://open/download/x",
         )
         for (uri in others) assertNull(uri, AppLink.parse(uri))
     }

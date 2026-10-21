@@ -5,6 +5,13 @@
     <string name="notices_channel_description">Copies of the app\'s notices, for when anistream is in the background.</string>
     <string name="downloads_channel">Downloads</string>
     <string name="downloads_channel_description">How far the episodes being downloaded are.</string>
+    <!-- The download notification's buttons. -->
+    <string name="downloads_pause">Pause</string>
+    <string name="downloads_pause_all">Pause all</string>
+    <string name="downloads_resume">Resume</string>
+    <string name="downloads_resume_all">Resume all</string>
+    <string name="downloads_cancel">Cancel</string>
+    <string name="download_play">Play</string>
     <!-- The launcher's shortcuts. -->
     <string name="shortcut_search">Search</string>
     <string name="shortcut_search_long">Search titles</string>
