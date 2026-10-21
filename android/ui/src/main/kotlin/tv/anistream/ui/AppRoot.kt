@@ -252,6 +252,7 @@ fun AppRoot(
                                 }
                             }
                             settingsPages(routed)
+                            providerPages(routed)
                         }
                     }
                 }
@@ -322,7 +323,7 @@ private fun PhoneBar(current: Destination, go: (Destination) -> Unit) {
  */
 internal enum class DrawerPage(val label: String, val icon: ImageVector, val route: String) {
     Downloads("Downloads", Icons.DownloadsPage, settingsRoute(SettingsPane.Downloads)),
-    Providers("Providers", Icons.Providers, settingsRoute(SettingsPane.Sources)),
+    Providers("Providers", Icons.Providers, PROVIDERS_ROUTE),
     Stores("Plugin stores", Icons.Stores, settingsRoute(SettingsPane.Sources)),
 }
 

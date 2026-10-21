@@ -130,6 +130,10 @@ internal object Icons {
     val Providers = stroked("Providers", "M8.5 3 V7 M15.5 3 V7 M6 7 H18 V11 C18 14.5 15.3 17 12 17 C8.7 17 6 14.5 6 11 Z M12 17 V21")
     val Stores = stroked("Stores", "M5 8 H19 L17.8 20 H6.2 Z M8.5 8 C8.5 3.5 15.5 3.5 15.5 8")
 
+    /** Providers' Reorder, and the handle a source is dragged by. */
+    val Reorder = stroked("Reorder", "M8 19 V5 M4 9 L8 5 L12 9 M16 5 V19 M12 15 L16 19 L20 15")
+    val DragHandle = stroked("DragHandle", "M5 9.5 H19 M5 14.5 H19")
+
     /** A menu row's indicator: the filled triangle of a dropdown. */
     val DropDown = ImageVector.Builder(
         name = "DropDown", defaultWidth = 24.dp, defaultHeight = 24.dp, viewportWidth = 24f, viewportHeight = 24f,

@@ -3,6 +3,7 @@ package tv.anistream.ui
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -32,6 +33,9 @@ import org.robolectric.annotation.GraphicsMode
 import tv.anistream.design.AnistreamTheme
 import tv.anistream.engine.model.DeviceCodePrompt
 import tv.anistream.engine.model.Event
+import tv.anistream.engine.model.ProviderOrigin
+import tv.anistream.engine.model.ProviderRow
+import tv.anistream.engine.model.ProviderUpdate
 import tv.anistream.store.AppClock
 import tv.anistream.store.AppStore
 import tv.anistream.store.HAS_TESTING_ENGINE
@@ -110,6 +114,20 @@ class SettingsShots {
         store.apply(listOf(Event.DeviceCode(DeviceCodePrompt(tracker = "trakt", code = "4F2K9QX1", url = "https://trakt.example/activate"))))
     }
 
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_providers() = shoot("phone-providers", PROVIDERS_ROUTE) { it.apply(listOf(Event.Providers(PROVIDERS))) }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_providers_reorder() = shoot("phone-providers-reorder", PROVIDERS_ROUTE, tap = "Reorder", byDescription = true, screen = true) {
+        it.apply(listOf(Event.Providers(PROVIDERS)))
+    }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_provider() = shoot("phone-provider", providerRoute("mukashi")) { it.apply(listOf(Event.Providers(PROVIDERS))) }
+
     /**
      * [scene] replayed into a store, the app drawn with [page] open over Continue, and captured
      * once the art has landed. [tap] taps the node with that text first ([tapIndex] of them), and
@@ -125,6 +143,7 @@ class SettingsShots {
         scene: String = "watching",
         tapIndex: Int = 0,
         screen: Boolean = false,
+        byDescription: Boolean = false,
         then: (AppStore) -> Unit = {},
     ) {
         val recorded = Scene.named(scene)
@@ -151,7 +170,8 @@ class SettingsShots {
             if (screen) captureScreenRoboImage(file) else compose.onRoot().captureRoboImage(file)
             return
         }
-        compose.onAllNodesWithText(tap)[tapIndex].performClick()
+        val nodes = if (byDescription) compose.onAllNodesWithContentDescription(tap) else compose.onAllNodesWithText(tap)
+        nodes[tapIndex].performClick()
         compose.mainClock.advanceTimeBy(1_000)
         compose.waitForIdle()
         if (dismiss) {
@@ -200,6 +220,30 @@ class SettingsShots {
         const val PHONE = "w412dp-h915dp-port-420dpi"
         const val TABLET = "w1280dp-h800dp-land-xhdpi"
         val ZONE: ZoneId = ZoneId.of("Europe/Copenhagen")
+
+        private fun provider(
+            id: String,
+            name: String,
+            kind: String = "plugin",
+            origin: ProviderOrigin = ProviderOrigin.Store("hotaru", "Hotaru Plugins"),
+            usable: Boolean = true,
+            disabled: Boolean = false,
+            update: ProviderUpdate? = null,
+            hosts: List<String> = emptyList(),
+        ) = ProviderRow(
+            id = id, kind = kind, state = if (usable) "ready" else "down", latencyMs = if (usable) 240uL else null,
+            lastError = if (usable) null else "timed out", usable = usable && !disabled, heldBack = false, name = name,
+            version = if (kind == "plugin") "1.4.0" else null, hosts = hosts, origin = origin, disabled = disabled, update = update,
+        )
+
+        /** The boards' sources: four plugins and the built-in torrent source, last. */
+        val PROVIDERS = listOf(
+            provider("archive", "Hotaru Open Archive", hosts = listOf("open-archive.hotaru.example", "media.open-archive.hotaru.example")),
+            provider("mukashi", "Mukashi Archive", hosts = listOf("mukashi-archive.example"), update = ProviderUpdate("1.5.0", listOf("media2.mukashi-archive.example"))),
+            provider("machi", "Machi Library Films", origin = ProviderOrigin.ByHand, usable = false, hosts = listOf("films.machi.example")),
+            provider("kobunko", "Kōbunko Film Library", disabled = true, hosts = listOf("films.kobunko.example")),
+            provider("torrent", "torrent", kind = "torrent", origin = ProviderOrigin.BuiltIn),
+        )
 
         fun replayed(event: Event): Boolean = when (event) {
             is Event.JobStarted, is Event.JobNote, is Event.JobDone, is Event.Toast -> false
