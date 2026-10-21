@@ -52,7 +52,7 @@ impl FfiEngine {
 
 /// The options [`FfiEngine::start_testing`] starts from: the harness's in the binary, on the
 /// app's directories rather than a temporary one.
-fn options(opened: Opened, server: &FakeAniList) -> Result<EngineOptions, FfiError> {
+pub(crate) fn options(opened: Opened, server: &FakeAniList) -> Result<EngineOptions, FfiError> {
     let Opened { paths, config, store } = opened;
     let http =
         HttpClient::offline(&NetworkConfig { timeout_secs: 5, ..config.network.clone() })

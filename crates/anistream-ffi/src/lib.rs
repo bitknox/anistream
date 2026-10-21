@@ -26,12 +26,16 @@ uniffi::setup_scaffolding!();
 
 mod engine;
 mod host;
+#[cfg(feature = "testing")]
+mod scenes;
 mod start;
 #[cfg(feature = "testing")]
 mod testing;
 
 pub use engine::FfiEngine;
 pub use host::FfiHost;
+#[cfg(feature = "testing")]
+pub use scenes::FfiScene;
 pub use start::{FfiBackground, FfiDirs, FfiError};
 
 /// Each command and event, written as the bindings write it and read back: what a front end sends
