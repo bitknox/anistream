@@ -10,3 +10,9 @@
 # The UniFFI bindings: JNA binds their native functions by the method names, and their callback
 # interfaces and structures are called and read from the engine's side.
 -keep class tv.anistream.engine.** { *; }
+
+# The player's mpv shim (player/src/main/cpp) finds MpvNative and its Listener by name as it
+# loads, binds MpvNative's natives by name, and calls Listener.onEvent from mpv's event thread:
+# nothing in Kotlin calls onEvent, so R8 would take it away and the shim would not load.
+-keep class tv.anistream.player.MpvNative { native <methods>; }
+-keep interface tv.anistream.player.MpvNative$Listener { *; }
