@@ -7,7 +7,10 @@
 #
 #   subs.mkv       1080p24 H.264, 30 s, with a styled ASS track (CJK lines in a style whose font
 #                  does not exist, for CoreText fallback, and in Dela Gothic One, which is
-#                  attached to the file and not installed, for embedded fonts) — S8
+#                  attached to the file and not installed, for embedded fonts; and Han-only lines, which
+#                  CoreText's fallback cannot serve) — S8. Muxed with
+#                  -max_interleave_delta 0: otherwise ffmpeg writes one of the five events that
+#                  start together 20 s into the file, and players show it 20 s late.
 #   hdr10-4k.mkv   3840×2160 HEVC Main10, PQ / BT.2020 with HDR10 mastering metadata, 10 s:
 #                  grey bands from 50 to 4000 nits, a 0–10000 nit ramp, and a moving test
 #                  pattern at about 203 nits — S4, S5
@@ -60,6 +63,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 Dialogue: 0,0:00:00.20,0:00:30.00,Sign,,0,0,0,,{\pos(960,150)\frz-4\fad(300,0)}A rotated sign, bold italic Georgia
 Dialogue: 0,0:00:00.20,0:00:30.00,Fallback,,0,0,0,,{\pos(960,380)}Fallback: 日本語の字幕・中文字幕・한국어 자막
 Dialogue: 0,0:00:00.20,0:00:30.00,Embedded,,0,0,0,,{\pos(960,520)}Embedded: 埋め込みフォント Dela Gothic
+Dialogue: 0,0:00:00.20,0:00:30.00,Fallback,,0,0,0,,{\pos(960,770)}Han only, missing font: 中文字幕 简体 繁體
+Dialogue: 0,0:00:00.20,0:00:30.00,Karaoke,,0,0,0,,{\pos(960,870)\b0}Han only, Helvetica Neue: 中文字幕 简体 繁體
 Dialogue: 0,0:00:00.20,0:00:30.00,Karaoke,,0,0,0,,{\pos(960,660)\k60}Ka{\k60}ra{\k60}o{\k60}ke {\k80}sweeps {\k80}across {\k120}here
 Dialogue: 0,0:00:00.20,0:00:30.00,Default,,0,0,0,,Styled ASS: {\b1}bold{\b0}, {\i1}italic{\i0}, {\c&H5AD7FF&}colour{\r}, outline and shadow
 EOF
@@ -67,8 +72,8 @@ EOF
     -f lavfi -i "sine=frequency=440:sample_rate=48000:duration=30" \
     -i "$work/subs.ass" \
     -map 0:v -map 1:a -map 2:s -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p \
-    -c:a aac -b:a 128k -c:s ass \
-    -metadata:s:s:0 language=eng -metadata:s:s:0 title="Styled (spike)" \
+    -c:a aac -b:a 128k -c:s ass -max_interleave_delta 0 \
+    -metadata:s:s:0 language=eng -metadata:s:s:0 title="Styled (spike)" -disposition:s:0 default \
     -attach "$font" -metadata:s:t:0 mimetype=font/ttf -metadata:s:t:0 filename=DelaGothicOne-Regular.ttf \
     "$media/subs.mkv"
   echo "made subs.mkv"

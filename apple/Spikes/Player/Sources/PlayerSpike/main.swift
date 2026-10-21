@@ -18,6 +18,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         options.hdrHint = args.hdrHint
         options.logLevel = args.log
         options.cacheDir = Spike.cacheDir
+        options.extra = args.options
         do { player = try Player(options: options) } catch { fail("\(error)") }
         spike = Spike(args: args, player: player)
         super.init()

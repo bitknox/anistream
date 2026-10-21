@@ -16,6 +16,8 @@ import SpikePlayer
 ///   --no-hdr-hint                 target-colorspace-hint=no
 ///   --resize-fix none|vo          after a resize, nothing or re-create the VO (S2)
 ///   --start S                     start position
+///   --opt name=value              any other mpv option, set before init
+///   --log-grep TEXT               keep log lines whose prefix or text contains TEXT in the report
 ///   --speed X                     play X times as fast (headroom: 2 is 48 fps of 24p)
 ///   --paused                      pause once the first frame is up (S2 while paused)
 ///   --probe-file A.glsl[,B.glsl]  probe only these (one process per file keeps GPU timers)
@@ -41,6 +43,8 @@ struct Args {
     var paused = false
     var probeFiles: [String]?
     var speed: Double?
+    var logGrep: String?
+    var options: [(String, String)] = []
     var wake: [String]?
 
     static func parse(_ argv: [String] = Array(CommandLine.arguments.dropFirst())) -> Args {
@@ -78,6 +82,11 @@ struct Args {
             case "--start": args.start = Double(value(arg))
             case "--paused": args.paused = true
             case "--speed": args.speed = Double(value(arg))
+            case "--log-grep": args.logGrep = value(arg)
+            case "--opt":
+                let pair = value(arg).split(separator: "=", maxSplits: 1).map(String.init)
+                guard pair.count == 2 else { fail("--opt name=value") }
+                args.options.append((pair[0], pair[1]))
             case "--probe-file": args.probeFiles = value(arg).split(separator: ",").map(String.init)
             case "--wake": args.wake = value(arg).split(separator: " ").map(String.init)
             case "-h", "--help":

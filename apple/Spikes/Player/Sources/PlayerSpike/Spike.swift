@@ -112,14 +112,37 @@ final class Spike: @unchecked Sendable {
 
     func measure(seconds: Double) async {
         let before = counters()
+        let cpu0 = Self.cpuSeconds()
         let t0 = Date()
-        try? await Task.sleep(for: .seconds(seconds))
+        try? await Task.sleep(for: .seconds(seconds / 2))
+        // Mid-run: what the layer and the screen are doing while the video plays (EDR).
+        let layerState = await MainActor.run { Unchecked<[String: Any]>(player.layer?.state ?? [:]) }
+        report["layer_while_playing"] = layerState.value
+        let edr: [Double] = await MainActor.run {
+            let screen = window.screen ?? NSScreen.main
+            return [
+                Double(screen?.maximumExtendedDynamicRangeColorComponentValue ?? 1),
+                Double(screen?.maximumPotentialExtendedDynamicRangeColorComponentValue ?? 1),
+            ]
+        }
+        report["edr_while_playing"] = ["current": edr[0], "potential": edr[1]]
+        try? await Task.sleep(for: .seconds(seconds / 2))
         let after = counters()
+        let elapsed = Date().timeIntervalSince(t0)
+        report["cpu_percent"] = round((Self.cpuSeconds() - cpu0) / elapsed * 1000) / 10
         var delta: [String: Int64] = [:]
         for (key, value) in after { delta[key] = value - (before[key] ?? 0) }
         report["measured_seconds"] = Date().timeIntervalSince(t0)
         report["counters"] = delta
         report["passes"] = passes()
+    }
+
+    /// This process's user and system CPU time so far.
+    static func cpuSeconds() -> Double {
+        var usage = rusage()
+        getrusage(RUSAGE_SELF, &usage)
+        func seconds(_ t: timeval) -> Double { Double(t.tv_sec) + Double(t.tv_usec) / 1e6 }
+        return seconds(usage.ru_utime) + seconds(usage.ru_stime)
     }
 
     func counters() -> [String: Int64] {
@@ -338,7 +361,7 @@ final class Spike: @unchecked Sendable {
         report["hwdec_requested"] = args.hwdec
         let props = [
             "mpv-version", "ffmpeg-version", "libass-version", "current-vo", "current-gpu-context", "hwdec-current",
-            "hwdec-interop", "video-codec", "video-params", "video-out-params", "video-target-params",
+            "hwdec-interop", "video-codec", "video-params", "video-dec-params", "video-out-params", "video-target-params",
             "osd-dimensions", "container-fps", "estimated-vf-fps", "display-fps", "display-width", "display-hidpi-scale",
             "glsl-shaders", "sub-font-provider", "track-list",
         ]
@@ -369,6 +392,11 @@ final class Spike: @unchecked Sendable {
         report["log_hdr"] = log.all()
             .filter { $0.text.localizedCaseInsensitiveContains("colorspace") || $0.text.contains("hdr") || $0.text.contains("swapchain") || $0.text.contains("Using hardware") || $0.text.contains("hwdec") }
             .prefix(40).map { "[\($0.prefix)] \($0.level): \($0.text)" }
+        if let grep = args.logGrep {
+            report["log_grep"] = log.all()
+                .filter { $0.prefix.localizedCaseInsensitiveContains(grep) || $0.text.localizedCaseInsensitiveContains(grep) }
+                .prefix(200).map { "[\($0.prefix)] \($0.level): \($0.text)" }
+        }
         if let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys]) {
             FileHandle.standardOutput.write(data)
             FileHandle.standardOutput.write(Data("\n".utf8))
