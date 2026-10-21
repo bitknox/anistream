@@ -36,7 +36,9 @@ use crate::{
     protection::set_torrent_protection,
     services::Services,
     settings::{set_setting, set_translation, step_setting},
-    show_settings::{load_show_settings, reset_show_settings, set_show_setting},
+    show_settings::{
+        load_show_settings, reset_show_settings, set_show_setting, set_show_subtitles,
+    },
     sources::{
         self,
         commands::{check_providers, disable_plugin},
@@ -238,6 +240,9 @@ pub(crate) fn dispatch(
             set_show_setting(id, key, value, engine, services, tx)
         }
         Command::ResetShowSettings { id } => reset_show_settings(id, engine, services, tx),
+        Command::SetShowSubtitles { id, translation, subtitles } => {
+            set_show_subtitles(id, translation, subtitles, engine, services, tx)
+        }
 
         // Off the loop, with no job: covers report back on their own.
         Command::FetchArtwork { url } => artwork::spawn_fetch(
