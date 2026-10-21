@@ -58,6 +58,7 @@ class ReducerTest {
         related = emptyList(), recommended = emptyList(), trailerUrl = null, listStatus = null,
         titleRomaji = title, titleEnglish = null, titleNative = null, season = null, startDate = null,
         endDate = null, source = null, adult = false, detail = null,
+        status = null, synopsisSpans = emptyList(),
     )
 
     @Test
