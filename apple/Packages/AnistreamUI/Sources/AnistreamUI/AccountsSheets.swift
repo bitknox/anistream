@@ -93,20 +93,21 @@ struct DeviceCodeSheet: View {
                 .padding(.vertical, 14)
                 .background(.ground, in: .rect(cornerRadius: 10))
                 .accessibilityLabel("Code \(prompt.code.map(String.init).joined(separator: " "))")
-            HStack(spacing: 10) {
-                ProgressView().controlSize(.small)
-                Text("Waiting for \(name)")
-                    .font(.mac(12))
-                    .foregroundStyle(.haze)
-                Spacer()
-                Button("Close") { dismiss() }
-                    .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
-                    .keyboardShortcut(.cancelAction)
-                Button("Open \(host)") {
-                    if let url = URL(string: prompt.url) { openURL(url) }
+            // In a row where it fits, as on the Mac; on an iPhone the buttons go under the wait,
+            // so "Open auth.trakt.tv" is never cut short.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) {
+                    waiting(name)
+                    Spacer()
+                    buttons
                 }
-                .buttonStyle(PrimaryCapsuleStyle(height: 28))
-                .keyboardShortcut(.defaultAction)
+                VStack(alignment: .leading, spacing: 12) {
+                    waiting(name)
+                    HStack(spacing: 10) {
+                        Spacer()
+                        buttons
+                    }
+                }
             }
         }
         .padding(24)
@@ -116,6 +117,27 @@ struct DeviceCodeSheet: View {
 
     private var host: String {
         URL(string: prompt.url)?.host ?? prompt.url
+    }
+
+    private func waiting(_ name: String) -> some View {
+        HStack(spacing: 10) {
+            ProgressView().controlSize(.small)
+            Text("Waiting for \(name)")
+                .font(.mac(12))
+                .foregroundStyle(.haze)
+        }
+    }
+
+    @ViewBuilder private var buttons: some View {
+        Button("Close") { dismiss() }
+            .buttonStyle(SecondaryCapsuleStyle(raisedSurface: true))
+            .keyboardShortcut(.cancelAction)
+        Button("Open \(host)") {
+            if let url = URL(string: prompt.url) { openURL(url) }
+        }
+        .buttonStyle(PrimaryCapsuleStyle(height: 28))
+        .keyboardShortcut(.defaultAction)
+        .fixedSize()
     }
 }
 
