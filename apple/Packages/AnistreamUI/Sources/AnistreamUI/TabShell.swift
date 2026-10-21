@@ -149,8 +149,11 @@ struct PhoneHero: View {
                         Image(systemName: "play.fill").font(.system(size: 12))
                         Text(item.action)
                     }
+                    .lineLimit(1)
+                    .fixedSize()
                 }
                 .buttonStyle(PrimaryCapsuleStyle(height: 44, fontSize: 17))
+                .layoutPriority(1)
             }
             .padding(.top, 8)
         }

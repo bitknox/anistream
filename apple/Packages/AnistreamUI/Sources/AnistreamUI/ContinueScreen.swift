@@ -34,6 +34,10 @@ struct ContinueScreen: View {
                                 .transition(.opacity.animation(.fadeIn))
                         }
                     }
+                    #if os(iOS)
+                    // On the Mac the sidebar sets the queue off the edge; an iPad has none.
+                    .padding(.leading, 12)
+                    #endif
                 }
             }
         }
