@@ -810,6 +810,24 @@ class WatchdogTest {
     }
 
     @Test
+    fun aSlowOpenIsNotAStalledDecoder() = runTest {
+        // A torrent finding its peers, or a slow network: the file takes longer than the watchdog
+        // to load, and the decoder is not to blame.
+        val rig = Rig(this, hwdec = "mediacodec")
+        rig.model.surfaceCreated(android.view.Surface(android.graphics.SurfaceTexture(0)))
+        rig.ops(1u, PlayerOp.Open(false, null, null), PlayerOp.Load("/media/episode.mkv", emptyList()))
+        rig.emit(MpvEvent.of(MpvNative.Event.START_FILE))
+        advanceTimeBy(PlayerTiming.FIRST_FRAME_WATCHDOG + 5_000)
+        assertFalse(rig.mpv.software)
+        // Loaded at last, it has the watchdog's time from there to show a picture.
+        rig.emit(MpvEvent.of(MpvNative.Event.FILE_LOADED))
+        advanceTimeBy(PlayerTiming.FIRST_FRAME_WATCHDOG - 1_000)
+        assertFalse(rig.mpv.software)
+        advanceTimeBy(2_000)
+        assertTrue(rig.mpv.software)
+    }
+
+    @Test
     fun waitingForDataIsNotAStalledDecoder() = runTest {
         val rig = Rig(this, hwdec = "mediacodec")
         rig.model.surfaceCreated(android.view.Surface(android.graphics.SurfaceTexture(0)))

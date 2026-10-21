@@ -522,7 +522,6 @@ class PlayerModel(
                     is Work.Call -> try {
                         val call = if (item.call is MpvCall.Load) ready(item.call) else item.call
                         mpv.perform(call)?.let(::report)
-                        if (call is MpvCall.Load) watch(mpv)
                     } catch (e: Exception) {
                         if (e is kotlinx.coroutines.CancellationException) throw e
                         Log.w(TAG, "mpv refused ${item.call::class.simpleName}: $e")
@@ -699,7 +698,12 @@ class PlayerModel(
             }
             // A frame of the file being replaced, while the next is loading, is not the next one's.
             MpvNative.Event.PLAYBACK_RESTART -> if (!hasPicture && loads.isEmpty()) firstFrame()
-            MpvNative.Event.FILE_LOADED -> note("#$current file loaded")
+            MpvNative.Event.FILE_LOADED -> {
+                note("#$current file loaded")
+                // From here, not from the Load: a slow network, or a torrent still finding its
+                // peers, is no stalled decoder.
+                if (!hasPicture) watch(from)
+            }
             MpvNative.Event.END_FILE -> note("#$current file ended: ${event.value["reason"].string}")
             MpvNative.Event.SHUTDOWN -> {
                 note("mpv went away by itself")
@@ -818,7 +822,7 @@ class PlayerModel(
     // The decoder watchdog
 
     /**
-     * After a Load, while mpv decodes in hardware: a file that has no picture for
+     * Once the file has loaded, while mpv decodes in hardware: a file that has no picture for
      * [PlayerTiming.FIRST_FRAME_WATCHDOG] while mpv is not waiting for data has a decoder that
      * stalled, which takes mpv's core with it (AS5). mpv is asked to decode in software; if it
      * cannot even answer that, a new mpv takes over, on a new surface, where the file was.
