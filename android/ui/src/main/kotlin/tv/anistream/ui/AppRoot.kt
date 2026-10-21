@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -42,6 +43,7 @@ import androidx.compose.material3.WideNavigationRailValue
 import androidx.compose.material3.rememberWideNavigationRailState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -98,16 +100,41 @@ data class AppActions(
     val hint: (NoticeHint) -> Unit = {},
 )
 
+/**
+ * The player the app hosts, as the frame shows it: a destination of its own over the navigation
+ * bar, grown from the banner it was opened from (T2) and closing back into it (T3).
+ */
+@Stable
+interface PlayerSlot {
+    /** Whether the player is up, which puts its destination on screen. */
+    val presented: Boolean
+
+    /** The title it plays: the banner it grows from and closes into. */
+    val title: AnilistId?
+
+    /** The player itself, filling the screen. */
+    @Composable
+    fun Content()
+}
+
+/** The player's route: outside the destinations' graphs, over whichever is on screen. */
+const val PLAYER_ROUTE = "player"
+
 /** Whether the window is wide enough for the rail: 600 dp and up, a tablet or an unfolded foldable. */
 @Composable
 fun wideWindow(): Boolean = LocalConfiguration.current.screenWidthDp >= 600
 
 /**
  * Whether a NavHost change switches destinations rather than pushing inside one. A page beyond
- * them, Settings and what it opens, fades through as a switch does, going and coming back.
+ * them, Settings and what it opens, fades through as a switch does, going and coming back. The
+ * player belongs to no destination: it is pushed over one, as a title page is.
  */
-private fun AnimatedContentTransitionScope<NavBackStackEntry>.switching(): Boolean =
-    initialState.destinationOf() != targetState.destinationOf() || initialState.isPage || targetState.isPage
+private fun AnimatedContentTransitionScope<NavBackStackEntry>.switching(): Boolean {
+    if (initialState.destination.route == PLAYER_ROUTE || targetState.destination.route == PLAYER_ROUTE) {
+        return false
+    }
+    return initialState.destinationOf() != targetState.destinationOf() || initialState.isPage || targetState.isPage
+}
 
 /**
  * The frame. A switch between destinations fades the page through on the quick spring (T6); a
@@ -126,6 +153,8 @@ fun AppRoot(
     startQuery: String? = null,
     /** A page to open over [start] as the app starts, by its route: the fixtures' `page` extra. */
     startPage: String? = null,
+    /** The player, which the frame shows over everything while it is up. */
+    player: PlayerSlot? = null,
 ) {
     val nav = rememberNavController()
     val navigator = remember(nav) { Navigator(nav, start) }
@@ -134,6 +163,7 @@ fun AppRoot(
     val current = entry?.destinationOf()
     val onPage = entry?.isPage == true
     val fullWindow = entry?.isFullWindow == true
+    val onPlayer = entry?.destination?.route == PLAYER_ROUTE
     val scope = rememberCoroutineScope()
     val snackbars = remember { Snackbars(SnackbarHostState(), scope) }
     val wide = wideWindow()
@@ -150,14 +180,22 @@ fun AppRoot(
         androidx.compose.runtime.LaunchedEffect(startPage) {
             startPage?.let(navigator::open)
         }
+        // The player comes up over whatever is on screen, and goes back to it as it closes.
+        if (player != null) {
+            androidx.compose.runtime.LaunchedEffect(player.presented) {
+                val there = nav.currentBackStackEntry?.destination?.route == PLAYER_ROUTE
+                if (player.presented && !there) nav.navigate(PLAYER_ROUTE) { launchSingleTop = true }
+                if (!player.presented && there) nav.popBackStack()
+            }
+        }
         Scaffold(
             containerColor = MaterialTheme.colorScheme.surface,
             contentWindowInsets = WindowInsets(0),
             snackbarHost = { SnackbarHost(snackbars.host) },
-            bottomBar = { if (!wide && !onPage) PhoneBar(current ?: start, navigator::go) },
+            bottomBar = { if (!wide && !onPage && !onPlayer) PhoneBar(current ?: start, navigator::go) },
         ) { padding ->
             Row(Modifier.padding(padding).consumeWindowInsets(padding)) {
-                if (wide && !fullWindow) Rail(current, entry?.destination?.route, navigator, routed)
+                if (wide && !fullWindow && !onPlayer) Rail(current, entry?.destination?.route, navigator, routed)
                 SharedTransitionLayout {
                     CompositionLocalProvider(LocalSharedTransitions provides this) {
                         NavHost(
@@ -168,6 +206,16 @@ fun AppRoot(
                             popEnterTransition = { if (switching()) fadeIn(Motion.quick()) else EnterTransition.None },
                             popExitTransition = { if (switching()) fadeOut(Motion.quick()) else ExitTransition.KeepUntilTransitionsFinished },
                         ) {
+                            if (player != null) {
+                                composable(PLAYER_ROUTE) {
+                                    CompositionLocalProvider(LocalPageAnimation provides this) {
+                                        val id = player.title
+                                        Box(Modifier.fillMaxSize().then(if (id != null) Modifier.shared(Shared.Player, id) else Modifier)) {
+                                            player.Content()
+                                        }
+                                    }
+                                }
+                            }
                             for (destination in Destination.entries) {
                                 navigation(route = graphRoute(destination), startDestination = destination.route) {
                                     composable(destination.route) {

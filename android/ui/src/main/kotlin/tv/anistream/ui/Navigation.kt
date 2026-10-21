@@ -122,6 +122,9 @@ enum class Shared(internal val prefix: String) {
 
     /** The poster, drawn above the flying art. */
     Cover("cover"),
+
+    /** The player's bounds, growing out of the banner it was opened from and closing into it (T2, T3). */
+    Player("player"),
 }
 
 /**
@@ -144,6 +147,13 @@ fun Modifier.shared(shared: Shared, id: AnilistId, from: String? = null): Modifi
                 enter = fadeIn(Motion.fadeIn()),
                 exit = fadeOut(Motion.fadeOut()),
                 resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(ContentScale.FillWidth, Alignment.TopCenter),
+            )
+            Shared.Player -> sharedBounds(
+                state,
+                page,
+                enter = fadeIn(Motion.fadeIn()),
+                exit = fadeOut(Motion.fadeOut()),
+                resizeMode = SharedTransitionScope.ResizeMode.scaleToBounds(ContentScale.FillWidth, Alignment.Center),
             )
             Shared.Art -> sharedElement(state, page)
             // The poster overlaps the banner, so it draws above the flying art.
