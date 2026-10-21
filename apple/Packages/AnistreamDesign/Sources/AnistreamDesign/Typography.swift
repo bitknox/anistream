@@ -38,10 +38,10 @@ public enum ShowTitleFace {
 /// Where the font is: SwiftPM's resource bundle for the package, and the framework itself when
 /// the Xcode project builds these sources as one.
 #if SWIFT_PACKAGE
-private let resources = Bundle.module
+let resources = Bundle.module
 #else
 private final class BundleToken {}
-private let resources = Bundle(for: BundleToken.self)
+let resources = Bundle(for: BundleToken.self)
 #endif
 
 private extension CTFont {

@@ -13,8 +13,9 @@ let package = Package(
     targets: [
         .target(
             name: "AnistreamDesign",
-            // Zen Kaku Gothic New Bold, under the SIL Open Font License beside it.
-            resources: [.copy("Fonts")]
+            // Zen Kaku Gothic New Bold, under the SIL Open Font License beside it, and the
+            // drawing Settings shows the upscaling modes on.
+            resources: [.copy("Fonts"), .copy("Art")]
         ),
         .testTarget(name: "AnistreamDesignTests", dependencies: ["AnistreamDesign"]),
     ]

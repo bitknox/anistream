@@ -104,8 +104,11 @@ targetTemplates:
     templates: [Framework]
     sources:
       - path: Packages/AnistreamDesign/Sources/AnistreamDesign
-        excludes: ["Fonts"]
+        excludes: ["Fonts", "Art"]
       - path: Packages/AnistreamDesign/Sources/AnistreamDesign/Fonts
+        type: folder
+        buildPhase: resources
+      - path: Packages/AnistreamDesign/Sources/AnistreamDesign/Art
         type: folder
         buildPhase: resources
 
