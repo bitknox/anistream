@@ -5,8 +5,19 @@ import AnistreamKit
 import Foundation
 
 extension EngineLaunch {
-    /// The launch argument that names the scene: `-AnistreamScene watching` or `fresh`.
+    /// The launch argument that names the scene: `-AnistreamScene watching`, `fresh` or
+    /// `playing`.
     public static let sceneArgument = "-AnistreamScene"
+
+    /// The launch argument that names what the Playing scene streams: `-AnistreamMedia <path>`.
+    public static let mediaArgument = "-AnistreamMedia"
+
+    /// What the Playing scene streams when the arguments name nothing: the episode
+    /// `apple/scripts/player-media.sh` makes in this checkout.
+    public static let fixtureEpisode = URL(filePath: #filePath)
+        .deletingLastPathComponent()
+        .appending(path: "../../../../.mpv/media/episode.mkv")
+        .standardizedFileURL
 
     /// The scene `arguments` name, Watching when they name none.
     public static func scene(arguments: [String]) -> FfiScene? {
@@ -15,8 +26,18 @@ extension EngineLaunch {
         switch arguments[index + 1].lowercased() {
         case "watching": return .watching
         case "fresh": return .fresh
+        case "playing": return .playing(media: media(arguments: arguments))
         default: return nil
         }
+    }
+
+    /// What the Playing scene streams: the file or URL `-AnistreamMedia` names, otherwise the
+    /// fixture episode.
+    static func media(arguments: [String]) -> String {
+        if let index = arguments.firstIndex(of: mediaArgument), arguments.indices.contains(index + 1) {
+            return arguments[index + 1]
+        }
+        return fixtureEpisode.path(percentEncoded: false)
     }
 
     /// The testing engine on the scene the arguments name, in the home override when there is
