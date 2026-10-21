@@ -123,6 +123,7 @@ public struct PhonePlayerView: View {
         .ignoresSafeArea()
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
+        .playerAccessibility(model)
         .sensoryFeedback(.impact(weight: .light), trigger: drag > 120) { _, crossed in crossed }
         .sheet(item: $sheet) { sheet in sheetContent(sheet) }
         .onChange(of: sheet) { _, open in model.hold("sheet", open != nil) }
@@ -158,7 +159,7 @@ public struct PhonePlayerView: View {
                 Image(systemName: "xmark")
                     .font(.system(size: 17, weight: .semibold))
                     .frame(width: 44, height: 44)
-                    .background(Palette.ground.opacity(0.62), in: .circle)
+                    .background(.overVideo(0.62), in: .circle)
                     .overlay(Circle().strokeBorder(Palette.glassOverArtEdge, lineWidth: 1))
                     .contentShape(.circle)
             }
@@ -182,7 +183,7 @@ public struct PhonePlayerView: View {
                     .accessibilityLabel("AirPlay")
                 headerButton("list.bullet", "Episodes") { sheet = .episodes }
             }
-            .background(Palette.ground.opacity(0.62), in: .capsule)
+            .background(.overVideo(0.62), in: .capsule)
             .overlay(Capsule().strokeBorder(Palette.glassOverArtEdge, lineWidth: 1))
         }
         .frame(height: 44)
@@ -219,6 +220,7 @@ public struct PhonePlayerView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+        .voiceControlLabels(label)
     }
 
     private func barButton(_ symbol: String, _ label: String, action: @escaping () -> Void) -> some View {
@@ -230,6 +232,7 @@ public struct PhonePlayerView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+        .voiceControlLabels(label)
     }
 
     @ViewBuilder

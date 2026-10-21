@@ -383,7 +383,7 @@ struct SeekLine: View {
         .accessibilityElement()
         .accessibilityLabel("Position")
         .accessibilityValue(
-            "\(PlayerClock.label(model.position)) of \(PlayerClock.label(model.duration ?? 0))")
+            "\(PlayerClock.spoken(model.position)) of \(PlayerClock.spoken(model.duration ?? 0))")
         .accessibilityAdjustableAction { direction in
             model.seek(by: direction == .increment ? 10 : -10)
         }
@@ -444,7 +444,7 @@ struct ScrubBubble: View {
                     .foregroundStyle(.silk)
                     .padding(.horizontal, 8)
                     .frame(height: 22)
-                    .background(Palette.ground.opacity(0.72), in: .capsule)
+                    .background(.overVideo(0.72), in: .capsule)
             }
             if model.previewsOn, let layer = model.preview.layer {
                 ZStack {
@@ -465,7 +465,7 @@ struct ScrubBubble: View {
                 .foregroundStyle(.silk)
                 .padding(.horizontal, 8)
                 .frame(height: 22)
-                .background(Palette.ground.opacity(0.72), in: .capsule)
+                .background(.overVideo(0.72), in: .capsule)
         }
     }
 }
@@ -492,7 +492,7 @@ struct OverVideo: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .background(Palette.ground.opacity(0.72), in: .rect(cornerRadius: radius))
+            .background(.overVideo(0.72), in: .rect(cornerRadius: radius))
             .overlay {
                 RoundedRectangle(cornerRadius: radius)
                     .strokeBorder(Palette.glassOverArtEdge, lineWidth: 1)
@@ -625,6 +625,13 @@ struct SkipButton: View {
     @State private var hovering = false
 
     var body: some View {
+        Group { button }
+            // T4: a light impact when the skip is taken, and not when the offer lapses.
+            .sensoryFeedback(.impact(weight: .light), trigger: model.skipsTaken)
+    }
+
+    @ViewBuilder
+    private var button: some View {
         if let skip = model.skip {
             Button {
                 model.takeSkip()
@@ -642,10 +649,10 @@ struct SkipButton: View {
                 .contentShape(.capsule)
             }
             .buttonStyle(.plain)
+            .accessibilityInputLabels([Text(skip.label), Text("Skip")])
             .opacity(model.skipDimmed && !hovering ? 0.55 : 1)
             .animation(.standard, value: model.skipDimmed)
             .onHover { hovering = $0 }
-            .sensoryFeedback(.impact(weight: .light), trigger: model.skip == nil) { _, gone in gone }
         }
     }
 }

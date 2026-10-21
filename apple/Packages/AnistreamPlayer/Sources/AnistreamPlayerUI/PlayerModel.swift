@@ -127,6 +127,8 @@ public final class PlayerModel {
     @ObservationIgnored private var verdictPending = false
     /// "Still watching?": the episodes rolled on in a row with nobody there, which pauses.
     public private(set) var stillWatching = false
+    /// Skips the viewer has taken, for the haptic that answers each (T4).
+    public private(set) var skipsTaken = 0
     /// After how many episodes in a row with nobody there it asks, as the engine last said: `0`
     /// is never.
     public private(set) var stillWatchingAfter = PlayerTiming.stillWatchingAfter
@@ -1057,6 +1059,7 @@ public final class PlayerModel {
 
     public func takeSkip() {
         input()
+        skipsTaken += 1
         skip = nil
         control(.takeSkip)
     }

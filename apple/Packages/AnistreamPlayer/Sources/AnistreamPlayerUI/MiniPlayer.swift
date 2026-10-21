@@ -112,13 +112,10 @@ struct MiniPlayerView: View {
 
     private var controls: some View {
         ZStack {
-            LinearGradient(
-                stops: [
-                    .init(color: Palette.ground.opacity(0), location: 0.35),
-                    .init(color: Palette.ground.opacity(0.72), location: 1),
-                ],
-                startPoint: .top, endPoint: .bottom
-            )
+            Scrim(stops: [
+                .init(color: Palette.ground.opacity(0), location: 0.35),
+                .init(color: Palette.ground.opacity(0.72), location: 1),
+            ])
             .allowsHitTesting(false)
             VStack(spacing: 0) {
                 HStack {

@@ -79,6 +79,7 @@ public struct MacPlayerView: View {
                 .exclusively(before: TapGesture().onEnded { model.togglePause() })
         )
         .contextMenu { contextMenu }
+        .playerAccessibility(model)
         .focusable()
         .focusEffectDisabled()
         .focused($focused)
@@ -136,6 +137,10 @@ public struct MacPlayerView: View {
         }
     }
 
+    private func scrim(stops: [Gradient.Stop]) -> some View {
+        Scrim(stops: stops)
+    }
+
     // MARK: The context menu
 
     @ViewBuilder
@@ -159,20 +164,17 @@ public struct MacPlayerView: View {
     private var chrome: some View {
         ZStack {
             VStack(spacing: 0) {
-                LinearGradient(
-                    colors: [Palette.ground.opacity(0.6), Palette.ground.opacity(0)],
-                    startPoint: .top, endPoint: .bottom
-                )
+                scrim(stops: [
+                    .init(color: Palette.ground.opacity(0.6), location: 0),
+                    .init(color: Palette.ground.opacity(0), location: 1),
+                ])
                 .frame(height: 112)
                 Spacer(minLength: 0)
-                LinearGradient(
-                    stops: [
-                        .init(color: Palette.ground.opacity(0), location: 0),
-                        .init(color: Palette.ground.opacity(0.35), location: 0.45),
-                        .init(color: Palette.ground.opacity(0.72), location: 1),
-                    ],
-                    startPoint: .top, endPoint: .bottom
-                )
+                scrim(stops: [
+                    .init(color: Palette.ground.opacity(0), location: 0),
+                    .init(color: Palette.ground.opacity(0.35), location: 0.45),
+                    .init(color: Palette.ground.opacity(0.72), location: 1),
+                ])
                 .frame(height: 240)
             }
             .allowsHitTesting(false)
@@ -205,7 +207,7 @@ public struct MacPlayerView: View {
                 capsuleButton("list.bullet", "Episodes", on: panel == .episodes) { toggle(.episodes) }
             }
             .padding(2)
-            .background(Palette.ground.opacity(0.62), in: .capsule)
+            .background(.overVideo(0.62), in: .capsule)
             .overlay(Capsule().strokeBorder(Palette.glassOverArtEdge, lineWidth: 1))
         }
         .padding(.leading, 20)
@@ -274,6 +276,7 @@ public struct MacPlayerView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+        .voiceControlLabels(label)
         .help(label)
     }
 
@@ -287,6 +290,7 @@ public struct MacPlayerView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+        .voiceControlLabels(label)
         .help(label)
     }
 
@@ -318,7 +322,7 @@ public struct MacPlayerView: View {
         .frame(width: 264)
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxHeight: 420)
-        .background(Palette.glass, in: .rect(cornerRadius: 12))
+        .background(.glassFill, in: .rect(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Palette.glassEdge, lineWidth: 1))
         .shadow(color: Color(rgb: 0x0A0C18, opacity: 0.4), radius: 12, y: 8)
         .padding(which == .more ? EdgeInsets(top: 0, leading: 0, bottom: 60, trailing: 84) : EdgeInsets(top: 50, leading: 0, bottom: 0, trailing: 16))
