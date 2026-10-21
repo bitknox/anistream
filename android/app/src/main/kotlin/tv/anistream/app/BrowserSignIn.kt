@@ -23,27 +23,25 @@ import tv.anistream.store.SignInRequest
 
 /**
  * The browser half of a sign-in, for one activity. The redirect carries the code or the token
- * itself, so it is handed to the engine and never logged, kept or shown.
+ * itself, so it is handed to the engine and never logged, kept or shown. The tab open, and whether
+ * the app left for it, are the store's ([tv.anistream.store.AccountsModel.tab]), so an activity
+ * made again while it is open carries on with it rather than opening another.
  */
 internal class BrowserSignIn(private val activity: ComponentActivity, private val store: AppStore) {
-    /** The sign-in a tab was opened for, until its redirect comes back or it is closed. */
-    private var open: SignInRequest? = null
-
-    /** Whether the activity left for the tab, so its coming back means the tab closed. */
-    private var away = false
+    private val accounts get() = store.accounts
 
     fun start() {
         activity.lifecycleScope.launch {
             activity.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                store.accounts.signIn.collect { request ->
-                    if (request != null && request != open) launch(request)
+                accounts.signIn.collect { request ->
+                    accounts.toOpen(request)?.let(::launch)
                 }
             }
         }
     }
 
     private fun launch(request: SignInRequest) {
-        open = request
+        accounts.tabOpened(request)
         val colors = CustomTabColorSchemeParams.Builder()
             .setToolbarColor(ObiSilk.Ground.toArgb())
             .setNavigationBarColor(ObiSilk.Ground.toArgb())
@@ -57,44 +55,36 @@ internal class BrowserSignIn(private val activity: ComponentActivity, private va
             .build()
         try {
             tab.launchUrl(activity, Uri.parse(request.url))
-            away = true
         } catch (_: ActivityNotFoundException) {
-            open = null
             store.cancelSignIn(request)
         }
     }
 
     /**
-     * An intent the activity was handed: when it is the redirect to anistream://auth/…, it ends
-     * the open sign-in. Says whether it was one.
+     * An intent the activity was handed: when it is a redirect to anistream://auth/…, it goes to
+     * the engine, and ends the open sign-in when it is that one's own. Says whether it was one.
      */
     fun handle(intent: Intent?): Boolean {
         val data = intent?.data ?: return false
         val tracker = trackerOf(data) ?: return false
-        val request = open?.takeIf { it.tracker == tracker } ?: store.accounts.signIn.value?.takeIf { it.tracker == tracker }
-        open = null
-        away = false
         // Taken off the intent, so a recreated activity cannot hand it over twice.
         intent.data = null
-        if (request != null) store.finishSignIn(request, data.toString())
+        store.redirected(tracker, data.toString())
         return true
     }
 
     /**
-     * The activity is in front again. Coming back from the tab without its redirect means the tab
+     * The activity is in front again. Coming back from the tab without a redirect means the tab
      * was closed: the redirect, when there is one, arrives first, as a new intent.
      */
     fun resumed() {
-        if (!away) return
-        away = false
-        val request = open ?: return
+        if (!accounts.leftForTab) return
+        accounts.leftForTab = false
+        val request = accounts.tab ?: return
         activity.lifecycleScope.launch {
             // A redirect that arrives with the resume is handled first.
             delay(CLOSE_GRACE_MILLIS)
-            if (open == request) {
-                open = null
-                store.cancelSignIn(request)
-            }
+            if (accounts.tab == request) store.cancelSignIn(request)
         }
     }
 
