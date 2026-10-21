@@ -111,6 +111,6 @@ tasks.configureEach {
         (name.startsWith("merge") || name.startsWith("package")) && name.endsWith("Assets") -> dependsOn(playerLicences)
         // Lint reads every asset directory too: its model of a variant, and a release build's
         // lint-vital, which Gradle fails for reading these without the tasks that write them.
-        name.contains("Lint") -> dependsOn(playerLicences, playerTestMedia)
+        name.contains("lint", ignoreCase = true) -> dependsOn(playerLicences, playerTestMedia)
     }
 }
