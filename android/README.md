@@ -53,6 +53,14 @@ among them), `RUSTC_WRAPPER` and sccache's `SCCACHE_*`, so a compiler cache work
 Without an NDK it still builds this Mac's library and the bindings, so Gradle and the unit tests
 run, and the APK has no engine in it.
 
+Each build is also kept in a cache every worktree shares, `~/.cache/anistream-engine/android/`
+(`ANISTREAM_ENGINE_CACHE` names another root), by the sources' hash, the flavour, the profile,
+the ABI and the machine. A new worktree on sources some worktree has built already copies that
+build in, in under a second and with no cargo, which is most app work: it rarely changes
+`crates/`. The script says `engine: reused <hash>` or `engine: built <hash>`. An entry is written
+beside its place and renamed into it, so two builds at once never leave half of one, and entries
+unused for 14 days are removed; each takes about 370 MB.
+
 Every Gradle build checks first that its flavour's engine is current and that the fonts are there
 (`engine.sh --check`, `fonts.sh --check`), and fails saying what to run when not. Rust changes
 need `engine.sh` again; Gradle never builds Rust itself.
