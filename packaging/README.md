@@ -62,6 +62,31 @@ follows it. To check a binary by hand:
 packaging/linux/glibc-floor.sh target/x86_64-unknown-linux-gnu/release/anistream 2.28
 ```
 
+## The apps
+
+A release carries the apps beside the terminal binaries: `anistream-<version>-android-arm64.apk`,
+`anistream-<version>-macos.dmg` and `anistream-<version>-ios-unsigned.ipa`, each with a `.sha256`,
+and `anistream-<version>-apps-third-party.zip`. `.github/workflows/apps-release.yml` builds them,
+and `release.yml` calls it on a tag and adds what it built to the draft release after the
+terminal builds. A pull request that changes how the apps are built, and a dispatch of
+apps-release.yml, build them all without publishing anything.
+
+- `apps/version.sh` — the version from the tag, with the build number Android and Apple need,
+  which grows with it (`v1.2.0` is 1020099, `v1.2.0-rc.2` 1020062). Gradle takes them as the
+  properties `ANISTREAM_VERSION_NAME` and `ANISTREAM_VERSION_CODE`, Xcode as `MARKETING_VERSION`
+  and `CURRENT_PROJECT_VERSION`; a local build keeps the ones in its project.
+- `apps/third-party.sh` — the notices' zip: every licence and notice for libmpv, FFmpeg and what
+  is inside them, the fonts and the shaders, with the scripts and patches each library was
+  built from and what each build recorded; and the release's notes for the apps.
+- `apps/release-notes.md` — those notes' install steps, for every version.
+- `apps/publish.sh` — adds the files and the notes to the draft, replacing what an earlier run
+  added.
+
+The APK is signed with the project's release key, from the repository's `ANDROID_RELEASE_*`
+secrets. The Mac app is signed ad hoc and not notarized, and the `.ipa` is unsigned, for
+AltStore or SideStore to sign with each person's own Apple ID: there is no paid Apple developer
+account behind either.
+
 ## Not signed
 
 Neither the `.pkg` nor the `setup.exe` is code-signed, so both warn on first run. Fixing that means
