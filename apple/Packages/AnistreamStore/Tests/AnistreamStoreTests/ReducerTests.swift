@@ -68,6 +68,18 @@ struct ReducerTests {
         #expect(queue.inProgress.last?.action == "Start E8")
     }
 
+    @Test func stillsAreAskedForOnceAndOnlyForATitleWithNoBanner() {
+        let store = AppStore()
+        store.apply(.detail(entry(900_005, "The Steel Gardener")))
+        store.apply(.detail(entry(900_001, "Stardust Wayfarer") { $0.bannerUrl = "banner/900001.jpg" }))
+        #expect(store.loadStills(900_005))
+        #expect(!store.loadStills(900_005), "once a session")
+        #expect(!store.loadStills(900_001), "a banner needs no stills")
+        store.apply(.detail(entry(900_006, "Summer Wind Relay")))
+        store.apply(.episodes(id: 900_006, rows: []))
+        #expect(!store.loadStills(900_006), "the episodes are here already")
+    }
+
     @Test func continueKeepsToFiveRows() {
         let store = AppStore()
         let many = (0..<8).map { n in

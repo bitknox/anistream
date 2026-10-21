@@ -39,6 +39,8 @@ public final class AppStore {
     @ObservationIgnored private var lastApplied = ContinuousClock.now
     /// What the screens asked for before the engine was there, sent once it is.
     @ObservationIgnored private var early: [Command] = []
+    /// The titles whose episodes were asked for their stills.
+    @ObservationIgnored private var stillsAsked: Set<AnilistId> = []
     /// Called after each batch is applied: what a screenshot run waits on.
     @ObservationIgnored public var onApplied: (@MainActor ([Event]) -> Void)?
 
@@ -134,6 +136,18 @@ public final class AppStore {
 
     public func loadEpisodes(_ id: AnilistId) {
         send(.loadEpisodes(id))
+    }
+
+    /// Ask for a title's episodes for the stills that stand in for a missing banner. Once a
+    /// session per title, and not when they are here already, so a selection moving back and
+    /// forth costs one request. Whether it asked.
+    @discardableResult
+    public func loadStills(_ id: AnilistId) -> Bool {
+        guard titles[id]?.bannerUrl == nil, titles.episodes[id] == nil,
+              stillsAsked.insert(id).inserted
+        else { return false }
+        send(.loadEpisodes(id))
+        return true
     }
 
     /// Take a title off Continue: the row goes at once, and the engine keeps it hidden.
