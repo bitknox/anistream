@@ -755,6 +755,11 @@ public final class PlayerModel {
         enqueue(.resized)
     }
 
+    /// What the window shows now, as mpv renders it, or nil without an mpv.
+    func snapshot() async -> CGImage? {
+        await backend?.snapshot()
+    }
+
     private func enqueue(_ item: Work) {
         work?.yield(item)
     }

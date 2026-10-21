@@ -2,6 +2,7 @@
 
 import AnistreamKit
 import AnistreamPlayer
+import CoreGraphics
 import Foundation
 import Synchronization
 import Testing
@@ -63,6 +64,16 @@ final class ScriptedMpv: PlayerBackend {
     }
 
     func resized() async {}
+
+    /// A 16 by 9 grey picture, as mpv's screenshot of the window would be.
+    func snapshot() async -> CGImage? {
+        let context = CGContext(
+            data: nil, width: 16, height: 9, bitsPerComponent: 8, bytesPerRow: 64,
+            space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+        context?.setFillColor(gray: 0.5, alpha: 1)
+        context?.fill(CGRect(x: 0, y: 0, width: 16, height: 9))
+        return context?.makeImage()
+    }
 
     func end() async {
         let continuation = state.withLock { state -> AsyncStream<MpvEvent>.Continuation? in

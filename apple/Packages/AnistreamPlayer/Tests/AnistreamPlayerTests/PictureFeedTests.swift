@@ -29,29 +29,45 @@ extension PlayerTests {
         }
 
         /// The feed shows what mpv drew: the frame after the shaders, with the subtitles in it, as
-        /// mpv's own screenshot of the window has it.
+        /// mpv's own screenshot of the window has it, and not the video alone. Playing, so the
+        /// frames differ by a few frames of motion either way; only the subtitles tell them apart.
         @Test func showsWhatMpvDrewWithSubtitlesAndShaders() async throws {
-            let (client, layer) = try await startedClient(width: 960, height: 540)
+            let (client, layer) = try await startedClient(width: 1280, height: 720)
             try await play(client, "subs.mkv")
             try await client.setShaders([Media.shaders.appending(path: "KrigBilateral.glsl").path])
-            try await Task.sleep(for: .seconds(1))
+            let feed = await PictureFeed()
+            feed.start(layer)
+            try await Task.sleep(for: .seconds(1.5))
+            let frame = try image(try #require(feed.latestFrame))
+            let window = try await client.screenshot(.window)
+            let video = try await client.screenshot(.video)
+            feed.stop()
+            await client.shutdown()
+            let toWindow = meanDifference(frame, window)
+            let toVideo = meanDifference(frame, video)
+            #expect(toWindow < toVideo, "the feed is \(toWindow) from the window and \(toVideo) from the video alone")
+            #expect(toWindow < 12, "the feed differs from mpv's screenshot by \(toWindow) levels")
+        }
+
+        /// Paused, mpv draws no frames for the feed to copy: its screenshot is shown instead.
+        @Test func showsAStillWhilePaused() async throws {
+            let (client, layer) = try await startedClient(width: 640, height: 360)
+            try await play(client, "testsrc.mkv")
             try await client.set("pause", .flag(true))
             let feed = await PictureFeed()
             feed.start(layer)
-            // A redraw of the paused frame, which the feed copies.
-            try await client.seek(0.5, mode: .absolute)
-            let copied = await eventually { feed.counts.copied > 0 ? true : nil }
-            #expect(copied == true)
+            // What was drawn before the pause comes through; then nothing more.
+            try await Task.sleep(for: .milliseconds(800))
+            let before = feed.counts.copied
             try await Task.sleep(for: .milliseconds(500))
+            #expect(feed.counts.copied == before)
+            feed.show(try await client.screenshot(.window))
             let frame = try #require(feed.latestFrame)
-            let screenshot = try await client.screenshot()
+            #expect(feed.counts.copied == before + 1)
+            #expect(CVPixelBufferGetWidth(frame) == 640 && CVPixelBufferGetHeight(frame) == 360)
+            #expect(variety(try image(frame)) > 0.01)
             feed.stop()
             await client.shutdown()
-            let difference = meanDifference(try image(frame), screenshot)
-            // The same picture: the only difference is the 10-bit drawable against the 8-bit
-            // screenshot, a level or two.
-            #expect(difference < 4, "the feed differs from mpv's screenshot by \(difference) levels")
-            #expect(variety(screenshot) > 0.01)
         }
 
         @Test func copiesNothingOnceStopped() async throws {

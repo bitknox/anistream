@@ -52,6 +52,7 @@ public final class PictureInPicture {
         model.pictureInPictureToggle = { [weak self] in self?.toggle() }
         model.pictureInPictureFrame = { [feed] in feed.latestFrame.flatMap(Self.image) }
         watchPlayback()
+        watchStill()
     }
 
     /// Picture in Picture for `model` on AVKit.
@@ -102,6 +103,8 @@ public final class PictureInPicture {
                 return
             }
             feed.start(layer)
+            // Paused, mpv draws nothing new for the feed to copy: its screenshot instead.
+            if model.paused { showStill() }
             system.start()
         case .stop, .dismiss:
             system.stop()
@@ -153,6 +156,42 @@ public final class PictureInPicture {
         model?.surfaceResized()
     }
 
+    /// What mpv shows while paused, as it changes: paused, the feed's own frames stop about three
+    /// short of it (see `PictureFeed`), and a skip in the floating window draws one frame and no
+    /// more.
+    private func watchStill() {
+        withObservationTracking {
+            _ = model?.paused
+            _ = model?.position
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                if self.model?.paused == true, self.machine.phase != .inline { self.showStill() }
+                self.watchStill()
+            }
+        }
+    }
+
+    private var stillTask: Task<Void, Never>?
+    private var stillAgain = false
+
+    /// mpv's screenshot of the window into the floating window, one at a time; a change while
+    /// one is being taken takes another after it.
+    private func showStill() {
+        guard stillTask == nil else {
+            stillAgain = true
+            return
+        }
+        stillTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            repeat {
+                self.stillAgain = false
+                if let image = await self.model?.snapshot(), self.feed.isRunning { self.feed.show(image) }
+            } while self.stillAgain
+            self.stillTask = nil
+        }
+    }
+
     /// The floating window's play and pause follow the player's.
     private func watchPlayback() {
         withObservationTracking {
@@ -194,11 +233,11 @@ final class SystemPictureInPicture: NSObject, PictureInPictureSystem {
             // AVKit sizes its window from the frames the display layer has shown, and with none
             // shown yet it computes a NaN frame, which AppKit traps on. So: frames first.
             let deadline = ContinuousClock.now + .seconds(3)
-            while let self, self.feed.counts.copied < 2, ContinuousClock.now < deadline {
+            while let self, self.feed.counts.copied < 1, ContinuousClock.now < deadline {
                 try? await Task.sleep(for: .milliseconds(20))
             }
             guard let self, !Task.isCancelled else { return }
-            guard self.feed.counts.copied >= 2, controller.isPictureInPicturePossible else {
+            guard self.feed.counts.copied >= 1, controller.isPictureInPicturePossible else {
                 PlayerModel.note(.error, "picture in picture: no frames, or not possible (\(controller.isPictureInPicturePossible))")
                 self.clearStage()
                 self.events?(.failedToStart)

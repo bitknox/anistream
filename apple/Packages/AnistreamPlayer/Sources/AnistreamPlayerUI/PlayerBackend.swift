@@ -2,6 +2,7 @@
 
 import AnistreamKit
 import AnistreamPlayer
+import CoreGraphics
 import Foundation
 
 /// One mpv for one player window. Every call is awaited off the main thread; the model never
@@ -18,6 +19,8 @@ public protocol PlayerBackend: AnyObject, Sendable {
     func display(_ display: DisplayInfo) async
     /// The surface changed size.
     func resized() async
+    /// What the window shows now, as mpv renders it: for Picture in Picture while paused.
+    func snapshot() async -> CGImage?
     /// Shut mpv down and end the events. Calls from here on throw.
     func end() async
 }
@@ -54,6 +57,10 @@ extension MpvClient: PlayerBackend {
 
     public func resized() {
         surfaceResized()
+    }
+
+    public func snapshot() -> CGImage? {
+        try? screenshot(.window)
     }
 
     public func end() {

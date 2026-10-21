@@ -194,19 +194,49 @@ final class Delegate: NSObject, NSApplicationDelegate {
         window.miniaturize(nil)
         _ = await waited("start as the window was minimised", { self.player.pictureInPicturePhase == .active })
         player.togglePictureInPicture()
-        _ = await waited("bring the window back from the Dock", { self.player.inMainWindow && !window.isMiniaturized })
-        // Only an app in the Dock can be hidden, so the snapshot's accessory app is one for this
-        // step: its icon shows a moment, and it takes no focus.
+        _ = await waited("bring the window back from the Dock", {
+            self.player.inMainWindow && !window.isMiniaturized && self.player.pictureInPicturePhase == .inline
+        })
+        // Only an active app in the Dock is hidden, so the snapshot's accessory app is one for
+        // this step: its icon shows, and it takes the focus a moment.
         let policy = NSApp.activationPolicy()
         NSApp.setActivationPolicy(.regular)
-        try? await Task.sleep(for: .milliseconds(500))
+        NSApp.activate()
+        _ = await waited("become active to be hidden", { NSApp.isActive })
         NSApp.hide(nil)
         if await waited("start as the app was hidden", { self.player.pictureInPicturePhase == .active }) {
             player.togglePictureInPicture()
-            _ = await waited("bring the app back from hiding", { self.player.inMainWindow && !NSApp.isHidden })
+            _ = await waited("bring the app back from hiding", {
+                self.player.inMainWindow && !NSApp.isHidden && self.player.pictureInPicturePhase == .inline
+            })
         }
         NSApp.setActivationPolicy(policy)
+        // Paused: in, then 10 s back as the floating window's button does it, each frame written.
+        if !player.paused { player.togglePause() }
+        if await waited("pause", { self.player.paused }) {
+            player.togglePictureInPicture()
+            if await waited("start while paused", { self.player.pictureInPicturePhase == .active }) {
+                try? await Task.sleep(for: .milliseconds(500))
+                writeFrame(url, "paused")
+                player.seek(by: -10)
+                try? await Task.sleep(for: .seconds(1.5))
+                writeFrame(url, "paused-skipped")
+                player.togglePictureInPicture()
+                _ = await waited("return to the window from paused", {
+                    self.player.inMainWindow && self.player.pictureInPicturePhase == .inline
+                })
+            }
+        }
         print("AnistreamDev: one playback throughout: \(player.isPresented), at \(Int(player.position)) s")
+    }
+
+    /// The frame the floating window was last given, beside the main window's shot.
+    private func writeFrame(_ url: URL, _ name: String) {
+        guard let frame = player.pictureInPictureFrame?() else { return }
+        let file = url.deletingPathExtension().appendingPathExtension("\(name).frame.png")
+        guard let png = NSBitmapImageRep(cgImage: frame).representation(using: .png, properties: [:]) else { return }
+        try? png.write(to: file)
+        print("AnistreamDev: wrote \(file.path) at \(Int(player.position)) s")
     }
 
     private func exitAfterSnapshot() {

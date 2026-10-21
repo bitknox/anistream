@@ -265,6 +265,11 @@ What AVKit needed: frames shown before `startPictureInPicture()` (with none, it 
 frame and AppKit traps), and the display layer in a plain window's view (AVKit adds a view beside
 it, at the window's root, which a SwiftUI hosting view does not take).
 
+With the layer in no window, a drawable is presented only once later frames push it out: about
+three frames behind while playing (about 125 ms at 24 fps), and never while paused, when mpv
+draws nothing new. So while paused the floating window gets mpv's own screenshot of the window,
+on pausing, on entering, and on every change of position (its ±10 s buttons).
+
 Shots and frame captures are in `apple/.shots/pip/`.
 
 ## Other findings

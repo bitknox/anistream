@@ -6,6 +6,7 @@ import AnistreamPlayer
 import Foundation
 import AVKit
 import CoreMedia
+import CoreVideo
 import QuartzCore
 import Testing
 
@@ -204,6 +205,18 @@ struct PictureInPictureTests {
         pip.leaving()
         #expect(system.starts == 1)
         #expect(pip.phase == .starting)
+    }
+
+    /// Paused, mpv draws nothing new: the floating window starts on mpv's screenshot.
+    @Test func startsWhilePausedOnAStill() async throws {
+        let (rig, pip, system) = try await playing()
+        rig.mpv.emit(.property(name: "pause", value: .flag(true)))
+        try await until("paused") { rig.model.paused }
+        rig.model.togglePictureInPicture()
+        try await until("a still shown") { pip.feed.counts.copied == 1 }
+        #expect(system.starts == 1)
+        let frame = try #require(pip.feed.latestFrame)
+        #expect(CVPixelBufferGetWidth(frame) == 16)
     }
 
     @Test func takesOverFromTheMiniPlayer() async throws {

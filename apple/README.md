@@ -182,7 +182,8 @@ engine in temporary directories, and keep secrets in memory.
   `PictureFeed` copies each frame mpv presents (after the shaders, with the subtitles) into an
   IOSurface-backed pixel buffer and enqueues it on an `AVSampleBufferDisplayLayer`, for Picture
   in Picture: the layer's `nextDrawable` is tapped while it runs, each copy is made once the
-  frame is presented, on the GPU, and nothing runs while it is off. Its tests render for
+  frame is presented, on the GPU, and nothing runs while it is off. Paused, when mpv draws no
+  frames to copy, it shows mpv's screenshot of the window instead. Its tests render for
   real into a layer in no window, on media `scripts/player-media.sh` makes, which `test.sh` runs.
 - **AnistreamPlayerUI**, in the same package: the player the app hosts for the engine, and its
   screens. `PlayerModel` carries out the engine's `PlayerOps` on an mpv, one op to one call, on a

@@ -26,6 +26,9 @@ import QuartzCore
 /// - The drawable is held until its copy is done, so the layer cannot hand its texture out again
 ///   meanwhile.
 /// - A frame is dropped rather than queued when the copies fall behind (`maximumPending`).
+/// - With the layer in no window, a drawable is presented only once later frames push it out,
+///   about three frames behind, and a paused mpv draws no later frames: what it shows while
+///   paused comes through `show(_:)`, from mpv's own screenshot of the window.
 public final class PictureFeed: @unchecked Sendable {
     /// What the Picture in Picture window shows.
     nonisolated(unsafe) public let displayLayer: AVSampleBufferDisplayLayer
@@ -169,10 +172,44 @@ public final class PictureFeed: @unchecked Sendable {
         buffer.commit()
     }
 
-    private func finished(_ pixels: CVPixelBuffer, gpuSeconds: Double, ok: Bool) {
+    /// Show `image` as the next frame: mpv's screenshot of the paused picture.
+    public func show(_ image: CGImage) {
+        let key = PoolKey(width: image.width, height: image.height, pixelFormat: kCVPixelFormatType_32BGRA)
+        let pool: CVPixelBufferPool? = lock.withLock {
+            guard layer != nil else { return nil }
+            if poolKey != key {
+                self.pool = Self.makePool(key)
+                poolKey = key
+                format = nil
+            }
+            pending += 1
+            return self.pool
+        }
+        guard let pool else { return }
+        var made: CVPixelBuffer?
+        CVPixelBufferPoolCreatePixelBuffer(nil, pool, &made)
+        guard let pixels = made else {
+            finished(nil, gpuSeconds: 0, ok: false)
+            return
+        }
+        CVPixelBufferLockBaseAddress(pixels, [])
+        let context = CGContext(
+            data: CVPixelBufferGetBaseAddress(pixels), width: key.width, height: key.height,
+            bitsPerComponent: 8, bytesPerRow: CVPixelBufferGetBytesPerRow(pixels),
+            space: image.colorSpace ?? CGColorSpace(name: CGColorSpace.sRGB)!,
+            bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
+        context?.draw(image, in: CGRect(x: 0, y: 0, width: key.width, height: key.height))
+        CVPixelBufferUnlockBaseAddress(pixels, [])
+        if let space = image.colorSpace {
+            CVBufferSetAttachment(pixels, kCVImageBufferCGColorSpaceKey, space, .shouldPropagate)
+        }
+        finished(context == nil ? nil : pixels, gpuSeconds: 0, ok: context != nil)
+    }
+
+    private func finished(_ pixels: CVPixelBuffer?, gpuSeconds: Double, ok: Bool) {
         let format = lock.withLock { () -> CMVideoFormatDescription? in
             pending -= 1
-            guard ok, layer != nil else {
+            guard ok, let pixels, layer != nil else {
                 tally.dropped += 1
                 return nil
             }
@@ -186,7 +223,7 @@ public final class PictureFeed: @unchecked Sendable {
             }
             return self.format
         }
-        guard let format else { return }
+        guard let format, let pixels else { return }
         // Shown as it arrives: the frames come at mpv's pace, already in time.
         var timing = CMSampleTimingInfo(
             duration: .invalid, presentationTimeStamp: CMClockGetTime(CMClockGetHostTimeClock()),
