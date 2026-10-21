@@ -8,3 +8,6 @@
 [toolchain]
 channel = "1.97.1"
 components = ["clippy", "rustfmt"]
+# The Apple app's engine slices beside the host: an iPhone and the iOS Simulator on Apple silicon.
+# apple/scripts/engine.sh builds them, and the ios CI job checks the iPhone one.
+targets = ["aarch64-apple-ios", "aarch64-apple-ios-sim"]

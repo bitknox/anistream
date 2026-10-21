@@ -92,6 +92,7 @@ pub mod engine;
 pub mod error;
 pub mod host;
 pub mod jobs;
+pub mod logged;
 pub mod options;
 pub mod outbox;
 pub mod phases;

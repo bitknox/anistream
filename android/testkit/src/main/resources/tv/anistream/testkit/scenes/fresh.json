@@ -1,6 +1,6 @@
 {
  "scene": "fresh",
- "recordedAt": 1792601762738,
+ "recordedAt": 1792604808691,
  "events": [
   {
    "@type": "Settings",
@@ -413,6 +413,16 @@
    "activity": "loading continue watching"
   },
   {
+   "@type": "JobStarted",
+   "job": "2",
+   "activity": "loading this season"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "3",
+   "activity": "loading the calendar"
+  },
+  {
    "@type": "Content",
    "view": {
     "@type": "Continue"
@@ -424,461 +434,6 @@
   {
    "@type": "JobDone",
    "v1": "1"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "2",
-   "activity": "loading this season"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "3",
-   "activity": "loading the calendar"
-  },
-  {
-   "@type": "CalendarWindow",
-   "anchor": "1792601765",
-   "pages": "1",
-   "morePast": false
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Calendar"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": [
-     {
-      "id": "900002",
-      "title": "The Library Above the Clouds",
-      "secondary": "Kumo no Ue no Toshokan",
-      "format": "TV",
-      "episodes": "24",
-      "year": "2026",
-      "score": "77",
-      "studio": "Hanabishi Pictures",
-      "synopsis": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
-      "coverUrl": "https://img.example/cover/900002-xl.jpg",
-      "bannerUrl": "https://img.example/banner/900002.jpg",
-      "genres": [
-       "Fantasy",
-       "Mystery",
-       "Slice of Life"
-      ],
-      "availableOn": [],
-      "progress": null,
-      "airingIn": "-1629900",
-      "airingEpisode": "3",
-      "nextEpisode": "6",
-      "nextAiringIn": "184500",
-      "lastAired": null,
-      "resume": null,
-      "related": [],
-      "recommended": [],
-      "trailerUrl": null,
-      "listStatus": null,
-      "titleRomaji": "Kumo no Ue no Toshokan",
-      "titleEnglish": "The Library Above the Clouds",
-      "titleNative": "雲の上の図書館",
-      "season": "FALL",
-      "startDate": {
-       "year": "2026",
-       "month": "9",
-       "day": "11"
-      },
-      "endDate": null,
-      "source": "LIGHT_NOVEL",
-      "adult": false,
-      "detail": null
-     },
-     {
-      "id": "900002",
-      "title": "The Library Above the Clouds",
-      "secondary": "Kumo no Ue no Toshokan",
-      "format": "TV",
-      "episodes": "24",
-      "year": "2026",
-      "score": "77",
-      "studio": "Hanabishi Pictures",
-      "synopsis": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
-      "coverUrl": "https://img.example/cover/900002-xl.jpg",
-      "bannerUrl": "https://img.example/banner/900002.jpg",
-      "genres": [
-       "Fantasy",
-       "Mystery",
-       "Slice of Life"
-      ],
-      "availableOn": [],
-      "progress": null,
-      "airingIn": "-1025100",
-      "airingEpisode": "4",
-      "nextEpisode": "6",
-      "nextAiringIn": "184500",
-      "lastAired": null,
-      "resume": null,
-      "related": [],
-      "recommended": [],
-      "trailerUrl": null,
-      "listStatus": null,
-      "titleRomaji": "Kumo no Ue no Toshokan",
-      "titleEnglish": "The Library Above the Clouds",
-      "titleNative": "雲の上の図書館",
-      "season": "FALL",
-      "startDate": {
-       "year": "2026",
-       "month": "9",
-       "day": "11"
-      },
-      "endDate": null,
-      "source": "LIGHT_NOVEL",
-      "adult": false,
-      "detail": null
-     },
-     {
-      "id": "900006",
-      "title": "Summer Wind Relay",
-      "secondary": "Natsukaze Relay",
-      "format": "TV",
-      "episodes": "12",
-      "year": "2026",
-      "score": null,
-      "studio": null,
-      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
-      "coverUrl": "https://img.example/cover/900006-xl.jpg",
-      "bannerUrl": null,
-      "genres": [
-       "Comedy",
-       "Sports"
-      ],
-      "availableOn": [],
-      "progress": null,
-      "airingIn": "-673200",
-      "airingEpisode": "7",
-      "nextEpisode": "9",
-      "nextAiringIn": "536400",
-      "lastAired": null,
-      "resume": null,
-      "related": [],
-      "recommended": [],
-      "trailerUrl": null,
-      "listStatus": null,
-      "titleRomaji": "Natsukaze Relay",
-      "titleEnglish": "Summer Wind Relay",
-      "titleNative": "夏風リレー",
-      "season": "FALL",
-      "startDate": {
-       "year": "2026",
-       "month": "8",
-       "day": null
-      },
-      "endDate": null,
-      "source": null,
-      "adult": false,
-      "detail": null
-     },
-     {
-      "id": "900002",
-      "title": "The Library Above the Clouds",
-      "secondary": "Kumo no Ue no Toshokan",
-      "format": "TV",
-      "episodes": "24",
-      "year": "2026",
-      "score": "77",
-      "studio": "Hanabishi Pictures",
-      "synopsis": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
-      "coverUrl": "https://img.example/cover/900002-xl.jpg",
-      "bannerUrl": "https://img.example/banner/900002.jpg",
-      "genres": [
-       "Fantasy",
-       "Mystery",
-       "Slice of Life"
-      ],
-      "availableOn": [],
-      "progress": null,
-      "airingIn": "-420300",
-      "airingEpisode": "5",
-      "nextEpisode": "6",
-      "nextAiringIn": "184500",
-      "lastAired": null,
-      "resume": null,
-      "related": [],
-      "recommended": [],
-      "trailerUrl": null,
-      "listStatus": null,
-      "titleRomaji": "Kumo no Ue no Toshokan",
-      "titleEnglish": "The Library Above the Clouds",
-      "titleNative": "雲の上の図書館",
-      "season": "FALL",
-      "startDate": {
-       "year": "2026",
-       "month": "9",
-       "day": "11"
-      },
-      "endDate": null,
-      "source": "LIGHT_NOVEL",
-      "adult": false,
-      "detail": null
-     },
-     {
-      "id": "900006",
-      "title": "Summer Wind Relay",
-      "secondary": "Natsukaze Relay",
-      "format": "TV",
-      "episodes": "12",
-      "year": "2026",
-      "score": null,
-      "studio": null,
-      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
-      "coverUrl": "https://img.example/cover/900006-xl.jpg",
-      "bannerUrl": null,
-      "genres": [
-       "Comedy",
-       "Sports"
-      ],
-      "availableOn": [],
-      "progress": null,
-      "airingIn": "-68400",
-      "airingEpisode": "8",
-      "nextEpisode": "9",
-      "nextAiringIn": "536400",
-      "lastAired": null,
-      "resume": null,
-      "related": [],
-      "recommended": [],
-      "trailerUrl": null,
-      "listStatus": null,
-      "titleRomaji": "Natsukaze Relay",
-      "titleEnglish": "Summer Wind Relay",
-      "titleNative": "夏風リレー",
-      "season": "FALL",
-      "startDate": {
-       "year": "2026",
-       "month": "8",
-       "day": null
-      },
-      "endDate": null,
-      "source": null,
-      "adult": false,
-      "detail": null
-     },
-     {
-      "id": "900002",
-      "title": "The Library Above the Clouds",
-      "secondary": "Kumo no Ue no Toshokan",
-      "format": "TV",
-      "episodes": "24",
-      "year": "2026",
-      "score": "77",
-      "studio": "Hanabishi Pictures",
-      "synopsis": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
-      "coverUrl": "https://img.example/cover/900002-xl.jpg",
-      "bannerUrl": "https://img.example/banner/900002.jpg",
-      "genres": [
-       "Fantasy",
-       "Mystery",
-       "Slice of Life"
-      ],
-      "availableOn": [],
-      "progress": null,
-      "airingIn": "184500",
-      "airingEpisode": "6",
-      "nextEpisode": "6",
-      "nextAiringIn": "184500",
-      "lastAired": null,
-      "resume": null,
-      "related": [],
-      "recommended": [],
-      "trailerUrl": null,
-      "listStatus": null,
-      "titleRomaji": "Kumo no Ue no Toshokan",
-      "titleEnglish": "The Library Above the Clouds",
-      "titleNative": "雲の上の図書館",
-      "season": "FALL",
-      "startDate": {
-       "year": "2026",
-       "month": "9",
-       "day": "11"
-      },
-      "endDate": null,
-      "source": "LIGHT_NOVEL",
-      "adult": false,
-      "detail": null
-     },
-     {
-      "id": "900006",
-      "title": "Summer Wind Relay",
-      "secondary": "Natsukaze Relay",
-      "format": "TV",
-      "episodes": "12",
-      "year": "2026",
-      "score": null,
-      "studio": null,
-      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
-      "coverUrl": "https://img.example/cover/900006-xl.jpg",
-      "bannerUrl": null,
-      "genres": [
-       "Comedy",
-       "Sports"
-      ],
-      "availableOn": [],
-      "progress": null,
-      "airingIn": "536400",
-      "airingEpisode": "9",
-      "nextEpisode": "9",
-      "nextAiringIn": "536400",
-      "lastAired": null,
-      "resume": null,
-      "related": [],
-      "recommended": [],
-      "trailerUrl": null,
-      "listStatus": null,
-      "titleRomaji": "Natsukaze Relay",
-      "titleEnglish": "Summer Wind Relay",
-      "titleNative": "夏風リレー",
-      "season": "FALL",
-      "startDate": {
-       "year": "2026",
-       "month": "8",
-       "day": null
-      },
-      "endDate": null,
-      "source": null,
-      "adult": false,
-      "detail": null
-     }
-    ]
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "3"
-  },
-  {
-   "@type": "Caption",
-   "view": {
-    "@type": "Seasonal"
-   },
-   "text": "fall 2026"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Seasonal"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": [
-     {
-      "id": "900002",
-      "title": "The Library Above the Clouds",
-      "secondary": "Kumo no Ue no Toshokan",
-      "format": "TV",
-      "episodes": "24",
-      "year": "2026",
-      "score": "77",
-      "studio": "Hanabishi Pictures",
-      "synopsis": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
-      "coverUrl": "https://img.example/cover/900002-xl.jpg",
-      "bannerUrl": "https://img.example/banner/900002.jpg",
-      "genres": [
-       "Fantasy",
-       "Mystery",
-       "Slice of Life"
-      ],
-      "availableOn": [],
-      "progress": null,
-      "airingIn": "184500",
-      "airingEpisode": null,
-      "nextEpisode": "6",
-      "nextAiringIn": "184500",
-      "lastAired": null,
-      "resume": null,
-      "related": [],
-      "recommended": [],
-      "trailerUrl": null,
-      "listStatus": null,
-      "titleRomaji": "Kumo no Ue no Toshokan",
-      "titleEnglish": "The Library Above the Clouds",
-      "titleNative": "雲の上の図書館",
-      "season": "FALL",
-      "startDate": {
-       "year": "2026",
-       "month": "9",
-       "day": "11"
-      },
-      "endDate": null,
-      "source": "LIGHT_NOVEL",
-      "adult": false,
-      "detail": null
-     },
-     {
-      "id": "900006",
-      "title": "Summer Wind Relay",
-      "secondary": "Natsukaze Relay",
-      "format": "TV",
-      "episodes": "12",
-      "year": "2026",
-      "score": null,
-      "studio": null,
-      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
-      "coverUrl": "https://img.example/cover/900006-xl.jpg",
-      "bannerUrl": null,
-      "genres": [
-       "Comedy",
-       "Sports"
-      ],
-      "availableOn": [],
-      "progress": null,
-      "airingIn": "536400",
-      "airingEpisode": null,
-      "nextEpisode": "9",
-      "nextAiringIn": "536400",
-      "lastAired": null,
-      "resume": null,
-      "related": [],
-      "recommended": [],
-      "trailerUrl": null,
-      "listStatus": null,
-      "titleRomaji": "Natsukaze Relay",
-      "titleEnglish": "Summer Wind Relay",
-      "titleNative": "夏風リレー",
-      "season": "FALL",
-      "startDate": {
-       "year": "2026",
-       "month": "8",
-       "day": null
-      },
-      "endDate": null,
-      "source": null,
-      "adult": false,
-      "detail": null
-     }
-    ]
-   }
-  },
-  {
-   "@type": "LastAired",
-   "v1": [
-    {
-     "id": "900002",
-     "aired": {
-      "episode": "5",
-      "ago": "420300"
-     }
-    },
-    {
-     "id": "900006",
-     "aired": {
-      "episode": "8",
-      "ago": "68400"
-     }
-    }
-   ]
-  },
-  {
-   "@type": "JobDone",
-   "v1": "2"
   },
   {
    "@type": "Downloads",
@@ -893,6 +448,66 @@
    "@type": "JobStarted",
    "job": "5",
    "activity": "loading your watching list"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "6",
+   "activity": "loading your planning list"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "7",
+   "activity": "loading your completed list"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "8",
+   "activity": "loading your paused list"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "COMPLETED"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "PAUSED"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "8"
+  },
+  {
+   "@type": "JobDone",
+   "v1": "7"
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Library",
+    "v1": "PLANNING"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": []
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "6"
   },
   {
    "@type": "Content",
@@ -911,14 +526,14 @@
   },
   {
    "@type": "JobStarted",
-   "job": "6",
-   "activity": "loading your planning list"
+   "job": "9",
+   "activity": "loading your dropped list"
   },
   {
    "@type": "Content",
    "view": {
     "@type": "Library",
-    "v1": "PLANNING"
+    "v1": "DROPPED"
    },
    "content": {
     "@type": "Entries",
@@ -927,7 +542,774 @@
   },
   {
    "@type": "JobDone",
-   "v1": "6"
+   "v1": "9"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "10",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "11",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900001",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "12",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "JobStarted",
+   "job": "13",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900002",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "14",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "JobStarted",
+   "job": "15",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900003",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "16",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "JobStarted",
+   "job": "17",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900004",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "18",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "19",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900005",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "JobStarted",
+   "job": "20",
+   "activity": "loading the title"
+  },
+  {
+   "@type": "JobStarted",
+   "job": "21",
+   "activity": "loading episodes"
+  },
+  {
+   "@type": "ShowSettings",
+   "v1": {
+    "id": "900006",
+    "rows": [
+     {
+      "key": "TRANSLATION",
+      "own": null,
+      "value": "sub",
+      "default": "sub"
+     },
+     {
+      "key": "QUALITY",
+      "own": null,
+      "value": "1080p",
+      "default": "1080p"
+     },
+     {
+      "key": "SKIP_OPENING",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     },
+     {
+      "key": "SKIP_FILLER",
+      "own": null,
+      "value": "off",
+      "default": "off"
+     },
+     {
+      "key": "SPOILER_PROTECTION",
+      "own": null,
+      "value": "on",
+      "default": "on"
+     }
+    ],
+    "remembered": [],
+    "source": null
+   }
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "ProviderPreference",
+   "v1": null
+  },
+  {
+   "@type": "Detail",
+   "v1": {
+    "id": "900002",
+    "title": "The Library Above the Clouds",
+    "secondary": "Kumo no Ue no Toshokan",
+    "format": "TV",
+    "episodes": "24",
+    "year": "2026",
+    "score": "77",
+    "studio": "Hanabishi Pictures",
+    "synopsis": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+    "coverUrl": "https://img.example/cover/900002-xl.jpg",
+    "coverColor": "#5d9be4",
+    "bannerUrl": "https://img.example/banner/900002.jpg",
+    "genres": [
+     "Fantasy",
+     "Mystery",
+     "Slice of Life"
+    ],
+    "availableOn": [
+     "Lantern Stream"
+    ],
+    "progress": null,
+    "airingIn": "184500",
+    "airingEpisode": null,
+    "nextEpisode": "6",
+    "nextAiringIn": "184500",
+    "lastAired": null,
+    "resume": null,
+    "related": [],
+    "recommended": [
+     {
+      "id": "900001",
+      "title": "Stardust Wayfarer",
+      "relation": "",
+      "format": "TV"
+     }
+    ],
+    "trailerUrl": null,
+    "listStatus": null,
+    "titleRomaji": "Kumo no Ue no Toshokan",
+    "titleEnglish": "The Library Above the Clouds",
+    "titleNative": "雲の上の図書館",
+    "season": "FALL",
+    "startDate": {
+     "year": "2026",
+     "month": "9",
+     "day": "11"
+    },
+    "endDate": null,
+    "source": "LIGHT_NOVEL",
+    "adult": false,
+    "detail": {
+     "tags": [
+      {
+       "name": "Libraries",
+       "rank": "90",
+       "mediaSpoiler": false,
+       "generalSpoiler": false,
+       "category": "Setting-Scene"
+      },
+      {
+       "name": "Weather Magic",
+       "rank": "76",
+       "mediaSpoiler": false,
+       "generalSpoiler": false,
+       "category": "Theme-Fantasy"
+      }
+     ],
+     "schedule": [
+      {
+       "episode": "1",
+       "airsAt": "1789765309"
+      },
+      {
+       "episode": "2",
+       "airsAt": "1790370109"
+      },
+      {
+       "episode": "3",
+       "airsAt": "1790974909"
+      },
+      {
+       "episode": "4",
+       "airsAt": "1791579709"
+      },
+      {
+       "episode": "5",
+       "airsAt": "1792184509"
+      },
+      {
+       "episode": "6",
+       "airsAt": "1792789309"
+      },
+      {
+       "episode": "7",
+       "airsAt": "1793394109"
+      },
+      {
+       "episode": "8",
+       "airsAt": "1793998909"
+      },
+      {
+       "episode": "9",
+       "airsAt": "1794603709"
+      },
+      {
+       "episode": "10",
+       "airsAt": "1795208509"
+      },
+      {
+       "episode": "11",
+       "airsAt": "1795813309"
+      },
+      {
+       "episode": "12",
+       "airsAt": "1796418109"
+      },
+      {
+       "episode": "13",
+       "airsAt": "1797022909"
+      },
+      {
+       "episode": "14",
+       "airsAt": "1797627709"
+      },
+      {
+       "episode": "15",
+       "airsAt": "1798232509"
+      },
+      {
+       "episode": "16",
+       "airsAt": "1798837309"
+      },
+      {
+       "episode": "17",
+       "airsAt": "1799442109"
+      },
+      {
+       "episode": "18",
+       "airsAt": "1800046909"
+      },
+      {
+       "episode": "19",
+       "airsAt": "1800651709"
+      },
+      {
+       "episode": "20",
+       "airsAt": "1801256509"
+      },
+      {
+       "episode": "21",
+       "airsAt": "1801861309"
+      },
+      {
+       "episode": "22",
+       "airsAt": "1802466109"
+      },
+      {
+       "episode": "23",
+       "airsAt": "1803070909"
+      },
+      {
+       "episode": "24",
+       "airsAt": "1803675709"
+      }
+     ],
+     "relations": [],
+     "recommendations": [
+      {
+       "id": "900001",
+       "title": "Stardust Wayfarer",
+       "titleRomaji": "Hoshikuzu no Tabibito",
+       "titleEnglish": "Stardust Wayfarer",
+       "titleNative": "星屑の旅人",
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/900001.jpg",
+       "coverColor": "#e4a15d",
+       "season": "SPRING",
+       "year": "2024",
+       "listStatus": null
+      }
+     ],
+     "rankings": [
+      {
+       "rank": "9",
+       "kind": "RATED",
+       "context": "highest rated",
+       "allTime": false,
+       "season": "FALL",
+       "year": "2026"
+      }
+     ],
+     "characters": [
+      {
+       "name": "Shiori Kumoi",
+       "imageUrl": "https://img.example/people/shiori-kumoi.jpg",
+       "role": "MAIN",
+       "voiceActors": [
+        {
+         "name": "Shiori's voice",
+         "imageUrl": "https://img.example/people/voice-shiori.jpg"
+        }
+       ]
+      },
+      {
+       "name": "The Night Librarian",
+       "imageUrl": "https://img.example/people/night-librarian.jpg",
+       "role": "SUPPORTING",
+       "voiceActors": []
+      }
+     ],
+     "staff": [
+      {
+       "name": "Director of The Library Above the Clouds",
+       "role": "Director"
+      },
+      {
+       "name": "Writer of The Library Above the Clouds",
+       "role": "Series Composition"
+      }
+     ]
+    },
+    "status": "RELEASING",
+    "synopsisSpans": [
+     {
+      "text": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+      "spoiler": false
+     }
+    ]
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "12"
+  },
+  {
+   "@type": "Detail",
+   "v1": {
+    "id": "900005",
+    "title": "The Steel Gardener",
+    "secondary": "Hagane no Niwashi",
+    "format": "ONA",
+    "episodes": "10",
+    "year": "2023",
+    "score": "71",
+    "studio": "Studio Mokusei",
+    "synopsis": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
+    "coverUrl": "https://img.example/cover/900005-xl.jpg",
+    "coverColor": "#7ac47f",
+    "bannerUrl": null,
+    "genres": [
+     "Sci-Fi",
+     "Slice of Life"
+    ],
+    "availableOn": [],
+    "progress": null,
+    "airingIn": null,
+    "airingEpisode": null,
+    "nextEpisode": null,
+    "nextAiringIn": null,
+    "lastAired": null,
+    "resume": null,
+    "related": [],
+    "recommended": [],
+    "trailerUrl": null,
+    "listStatus": null,
+    "titleRomaji": "Hagane no Niwashi",
+    "titleEnglish": "The Steel Gardener",
+    "titleNative": "鋼の庭師",
+    "season": "SUMMER",
+    "startDate": {
+     "year": "2023",
+     "month": "7",
+     "day": "1"
+    },
+    "endDate": {
+     "year": "2023",
+     "month": "9",
+     "day": "2"
+    },
+    "source": "WEB_NOVEL",
+    "adult": false,
+    "detail": {
+     "tags": [
+      {
+       "name": "Gardening",
+       "rank": "85",
+       "mediaSpoiler": false,
+       "generalSpoiler": false,
+       "category": "Theme-Slice of Life"
+      }
+     ],
+     "schedule": [],
+     "relations": [],
+     "recommendations": [],
+     "rankings": [],
+     "characters": [],
+     "staff": [
+      {
+       "name": "Director of The Steel Gardener",
+       "role": "Director"
+      }
+     ]
+    },
+    "status": "FINISHED",
+    "synopsisSpans": [
+     {
+      "text": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
+      "spoiler": false
+     }
+    ]
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "18"
+  },
+  {
+   "@type": "Caption",
+   "view": {
+    "@type": "Seasonal"
+   },
+   "text": "fall 2026"
+  },
+  {
+   "@type": "Detail",
+   "v1": {
+    "id": "900003",
+    "title": "Moonlit Platform",
+    "secondary": "Tsukiakari no Teishajo",
+    "format": "MOVIE",
+    "episodes": "1",
+    "year": "2025",
+    "score": "85",
+    "studio": "Kujaku Animation Works",
+    "synopsis": "On the last night a rural station is open, two strangers wait for a train that only runs under a full moon.",
+    "coverUrl": "https://img.example/cover/900003-xl.jpg",
+    "coverColor": "#f1d97a",
+    "bannerUrl": "https://img.example/banner/900003.jpg",
+    "genres": [
+     "Drama",
+     "Romance"
+    ],
+    "availableOn": [],
+    "progress": null,
+    "airingIn": null,
+    "airingEpisode": null,
+    "nextEpisode": null,
+    "nextAiringIn": null,
+    "lastAired": null,
+    "resume": null,
+    "related": [],
+    "recommended": [
+     {
+      "id": "900001",
+      "title": "Stardust Wayfarer",
+      "relation": "",
+      "format": "TV"
+     }
+    ],
+    "trailerUrl": null,
+    "listStatus": null,
+    "titleRomaji": "Tsukiakari no Teishajo",
+    "titleEnglish": "Moonlit Platform",
+    "titleNative": "月明かりの停車場",
+    "season": "SUMMER",
+    "startDate": {
+     "year": "2025",
+     "month": "8",
+     "day": "15"
+    },
+    "endDate": {
+     "year": "2025",
+     "month": "8",
+     "day": "15"
+    },
+    "source": "ORIGINAL",
+    "adult": false,
+    "detail": {
+     "tags": [
+      {
+       "name": "Trains",
+       "rank": "88",
+       "mediaSpoiler": false,
+       "generalSpoiler": false,
+       "category": "Setting-Scene"
+      }
+     ],
+     "schedule": [],
+     "relations": [],
+     "recommendations": [
+      {
+       "id": "900001",
+       "title": "Stardust Wayfarer",
+       "titleRomaji": "Hoshikuzu no Tabibito",
+       "titleEnglish": "Stardust Wayfarer",
+       "titleNative": "星屑の旅人",
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/900001.jpg",
+       "coverColor": "#e4a15d",
+       "season": "SPRING",
+       "year": "2024",
+       "listStatus": null
+      }
+     ],
+     "rankings": [],
+     "characters": [
+      {
+       "name": "Tsuki Hanamura",
+       "imageUrl": "https://img.example/people/tsuki-hanamura.jpg",
+       "role": "MAIN",
+       "voiceActors": [
+        {
+         "name": "Tsuki's voice",
+         "imageUrl": "https://img.example/people/voice-tsuki.jpg"
+        }
+       ]
+      }
+     ],
+     "staff": [
+      {
+       "name": "Director of Moonlit Platform",
+       "role": "Director"
+      }
+     ]
+    },
+    "status": "FINISHED",
+    "synopsisSpans": [
+     {
+      "text": "On the last night a rural station is open, two strangers wait for a train that only runs under a full moon.",
+      "spoiler": false
+     }
+    ]
+   }
+  },
+  {
+   "@type": "JobDone",
+   "v1": "14"
   },
   {
    "@type": "Caption",
@@ -944,6 +1326,118 @@
     }
    },
    "text": ""
+  },
+  {
+   "@type": "Content",
+   "view": {
+    "@type": "Seasonal"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": [
+     {
+      "id": "900002",
+      "title": "The Library Above the Clouds",
+      "secondary": "Kumo no Ue no Toshokan",
+      "format": "TV",
+      "episodes": "24",
+      "year": "2026",
+      "score": "77",
+      "studio": "Hanabishi Pictures",
+      "synopsis": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+      "coverUrl": "https://img.example/cover/900002-xl.jpg",
+      "coverColor": "#5d9be4",
+      "bannerUrl": "https://img.example/banner/900002.jpg",
+      "genres": [
+       "Fantasy",
+       "Mystery",
+       "Slice of Life"
+      ],
+      "availableOn": [],
+      "progress": null,
+      "airingIn": "184500",
+      "airingEpisode": null,
+      "nextEpisode": "6",
+      "nextAiringIn": "184500",
+      "lastAired": null,
+      "resume": null,
+      "related": [],
+      "recommended": [],
+      "trailerUrl": null,
+      "listStatus": null,
+      "titleRomaji": "Kumo no Ue no Toshokan",
+      "titleEnglish": "The Library Above the Clouds",
+      "titleNative": "雲の上の図書館",
+      "season": "FALL",
+      "startDate": {
+       "year": "2026",
+       "month": "9",
+       "day": "11"
+      },
+      "endDate": null,
+      "source": "LIGHT_NOVEL",
+      "adult": false,
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+        "spoiler": false
+       }
+      ]
+     },
+     {
+      "id": "900006",
+      "title": "Summer Wind Relay",
+      "secondary": "Natsukaze Relay",
+      "format": "TV",
+      "episodes": "12",
+      "year": "2026",
+      "score": null,
+      "studio": null,
+      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+      "coverUrl": "https://img.example/cover/900006-xl.jpg",
+      "coverColor": null,
+      "bannerUrl": null,
+      "genres": [
+       "Comedy",
+       "Sports"
+      ],
+      "availableOn": [],
+      "progress": null,
+      "airingIn": "536400",
+      "airingEpisode": null,
+      "nextEpisode": "9",
+      "nextAiringIn": "536400",
+      "lastAired": null,
+      "resume": null,
+      "related": [],
+      "recommended": [],
+      "trailerUrl": null,
+      "listStatus": null,
+      "titleRomaji": "Natsukaze Relay",
+      "titleEnglish": "Summer Wind Relay",
+      "titleNative": "夏風リレー",
+      "season": "FALL",
+      "startDate": {
+       "year": "2026",
+       "month": "8",
+       "day": null
+      },
+      "endDate": null,
+      "source": null,
+      "adult": false,
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+        "spoiler": false
+       }
+      ]
+     }
+    ]
+   }
   },
   {
    "@type": "Content",
@@ -973,6 +1467,7 @@
       "studio": "Kujaku Animation Works",
       "synopsis": "A lamplighter with no memory of her home walks the old star roads, relighting the beacons that guide travellers between the towns. Each town she saves remembers a little of her, and she, a little less of herself.",
       "coverUrl": "https://img.example/cover/900001-xl.jpg",
+      "coverColor": "#e4a15d",
       "bannerUrl": "https://img.example/banner/900001.jpg",
       "genres": [
        "Adventure",
@@ -1007,7 +1502,14 @@
       },
       "source": "MANGA",
       "adult": false,
-      "detail": null
+      "detail": null,
+      "status": "FINISHED",
+      "synopsisSpans": [
+       {
+        "text": "A lamplighter with no memory of her home walks the old star roads, relighting the beacons that guide travellers between the towns. Each town she saves remembers a little of her, and she, a little less of herself.",
+        "spoiler": false
+       }
+      ]
      },
      {
       "id": "900004",
@@ -1020,6 +1522,7 @@
       "studio": "Kujaku Animation Works",
       "synopsis": "The beacons are lit, and the roads lead somewhere new: to the city that sent the first lamplighters out.",
       "coverUrl": "https://img.example/cover/900004-xl.jpg",
+      "coverColor": "#d77f4a",
       "bannerUrl": "https://img.example/banner/900004.jpg",
       "genres": [
        "Adventure",
@@ -1054,7 +1557,14 @@
       },
       "source": "MANGA",
       "adult": false,
-      "detail": null
+      "detail": null,
+      "status": "FINISHED",
+      "synopsisSpans": [
+       {
+        "text": "The beacons are lit, and the roads lead somewhere new: to the city that sent the first lamplighters out.",
+        "spoiler": false
+       }
+      ]
      }
     ]
    }
@@ -1064,78 +1574,297 @@
    "v1": "4"
   },
   {
-   "@type": "JobStarted",
-   "job": "7",
-   "activity": "loading your completed list"
+   "@type": "LastAired",
+   "v1": [
+    {
+     "id": "900002",
+     "aired": {
+      "episode": "5",
+      "ago": "420300"
+     }
+    },
+    {
+     "id": "900006",
+     "aired": {
+      "episode": "8",
+      "ago": "68400"
+     }
+    }
+   ]
   },
   {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "COMPLETED"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
+   "@type": "JobDone",
+   "v1": "2"
+  },
+  {
+   "@type": "Detail",
+   "v1": {
+    "id": "900004",
+    "title": "Stardust Wayfarer Season 2",
+    "secondary": "Hoshikuzu no Tabibito 2nd Season",
+    "format": "TV",
+    "episodes": "12",
+    "year": "2025",
+    "score": "84",
+    "studio": "Kujaku Animation Works",
+    "synopsis": "The beacons are lit, and the roads lead somewhere new: to the city that sent the first lamplighters out.",
+    "coverUrl": "https://img.example/cover/900004-xl.jpg",
+    "coverColor": "#d77f4a",
+    "bannerUrl": "https://img.example/banner/900004.jpg",
+    "genres": [
+     "Adventure",
+     "Drama",
+     "Fantasy"
+    ],
+    "availableOn": [
+     "Lantern Stream"
+    ],
+    "progress": null,
+    "airingIn": null,
+    "airingEpisode": null,
+    "nextEpisode": null,
+    "nextAiringIn": null,
+    "lastAired": null,
+    "resume": null,
+    "related": [
+     {
+      "id": "900001",
+      "title": "Stardust Wayfarer",
+      "relation": "prequel",
+      "format": "TV"
+     }
+    ],
+    "recommended": [],
+    "trailerUrl": null,
+    "listStatus": null,
+    "titleRomaji": "Hoshikuzu no Tabibito 2nd Season",
+    "titleEnglish": "Stardust Wayfarer Season 2",
+    "titleNative": "星屑の旅人 第2期",
+    "season": "WINTER",
+    "startDate": {
+     "year": "2025",
+     "month": "1",
+     "day": "11"
+    },
+    "endDate": {
+     "year": "2025",
+     "month": "3",
+     "day": "29"
+    },
+    "source": "MANGA",
+    "adult": false,
+    "detail": {
+     "tags": [],
+     "schedule": [],
+     "relations": [
+      {
+       "id": "900001",
+       "title": "Stardust Wayfarer",
+       "titleRomaji": "Hoshikuzu no Tabibito",
+       "titleEnglish": "Stardust Wayfarer",
+       "titleNative": "星屑の旅人",
+       "relation": "PREQUEL",
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/900001.jpg",
+       "coverColor": "#e4a15d",
+       "season": "SPRING",
+       "year": "2024",
+       "listStatus": null
+      }
+     ],
+     "recommendations": [],
+     "rankings": [],
+     "characters": [],
+     "staff": []
+    },
+    "status": "FINISHED",
+    "synopsisSpans": [
+     {
+      "text": "The beacons are lit, and the roads lead somewhere new: to the city that sent the first lamplighters out.",
+      "spoiler": false
+     }
+    ]
    }
   },
   {
    "@type": "JobDone",
-   "v1": "7"
+   "v1": "16"
   },
   {
-   "@type": "JobStarted",
-   "job": "8",
-   "activity": "loading your paused list"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "PAUSED"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
+   "@type": "Episodes",
+   "id": "900001",
+   "rows": [
+    {
+     "number": "1",
+     "title": "The Lantern Road",
+     "thumbnail": "https://img.example/ep/900001/1.jpg",
+     "description": "A lamplighter wakes on the star road with a lantern and no name.",
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1713041179"
+    },
+    {
+     "number": "2",
+     "title": "A Town Without Night",
+     "thumbnail": "https://img.example/ep/900001/2.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1713645979"
+    },
+    {
+     "number": "3",
+     "title": "The Ferryman's Ledger",
+     "thumbnail": "https://img.example/ep/900001/3.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1714250779"
+    },
+    {
+     "number": "4",
+     "title": "Embers in the Snow",
+     "thumbnail": "https://img.example/ep/900001/4.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1714855579"
+    },
+    {
+     "number": "5",
+     "title": "What the Beacons Remember",
+     "thumbnail": "https://img.example/ep/900001/5.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1715460379"
+    },
+    {
+     "number": "6",
+     "title": "The Cartographer's Daughter",
+     "thumbnail": "https://img.example/ep/900001/6.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1716065179"
+    },
+    {
+     "number": "7",
+     "title": "Rain over Kiriya Pass",
+     "thumbnail": "https://img.example/ep/900001/7.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1716669979"
+    },
+    {
+     "number": "8",
+     "title": "A Letter Never Sent",
+     "thumbnail": "https://img.example/ep/900001/8.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1717274779"
+    },
+    {
+     "number": "9",
+     "title": "The Last Lamplighter",
+     "thumbnail": "https://img.example/ep/900001/9.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1717879579"
+    },
+    {
+     "number": "10",
+     "title": "Where the Roads Cross",
+     "thumbnail": "https://img.example/ep/900001/10.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1718484379"
+    },
+    {
+     "number": "11",
+     "title": "The Sky Archive",
+     "thumbnail": "https://img.example/ep/900001/11.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1719089179"
+    },
+    {
+     "number": "12",
+     "title": "Home, by Starlight",
+     "thumbnail": "https://img.example/ep/900001/12.jpg",
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1719693979"
+    }
+   ]
   },
   {
    "@type": "JobDone",
-   "v1": "8"
+   "v1": "11"
   },
   {
-   "@type": "JobStarted",
-   "job": "9",
-   "activity": "loading your dropped list"
-  },
-  {
-   "@type": "Content",
-   "view": {
-    "@type": "Library",
-    "v1": "DROPPED"
-   },
-   "content": {
-    "@type": "Entries",
-    "v1": []
-   }
+   "@type": "Episodes",
+   "id": "900003",
+   "rows": [
+    {
+     "number": "1",
+     "title": "Moonlit Platform",
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "6480",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": null
+    }
+   ]
   },
   {
    "@type": "JobDone",
-   "v1": "9"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "10",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "JobStarted",
-   "job": "11",
-   "activity": "loading episodes"
+   "v1": "15"
   },
   {
    "@type": "Detail",
@@ -1150,6 +1879,7 @@
     "studio": "Kujaku Animation Works",
     "synopsis": "A lamplighter with no memory of her home walks the old star roads, relighting the beacons that guide travellers between the towns. Each town she saves remembers a little of her, and she, a little less of herself.",
     "coverUrl": "https://img.example/cover/900001-xl.jpg",
+    "coverColor": "#e4a15d",
     "bannerUrl": "https://img.example/banner/900001.jpg",
     "genres": [
      "Adventure",
@@ -1240,51 +1970,51 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1713038135"
+       "airsAt": "1713041179"
       },
       {
        "episode": "2",
-       "airsAt": "1713642935"
+       "airsAt": "1713645979"
       },
       {
        "episode": "3",
-       "airsAt": "1714247735"
+       "airsAt": "1714250779"
       },
       {
        "episode": "4",
-       "airsAt": "1714852535"
+       "airsAt": "1714855579"
       },
       {
        "episode": "5",
-       "airsAt": "1715457335"
+       "airsAt": "1715460379"
       },
       {
        "episode": "6",
-       "airsAt": "1716062135"
+       "airsAt": "1716065179"
       },
       {
        "episode": "7",
-       "airsAt": "1716666935"
+       "airsAt": "1716669979"
       },
       {
        "episode": "8",
-       "airsAt": "1717271735"
+       "airsAt": "1717274779"
       },
       {
        "episode": "9",
-       "airsAt": "1717876535"
+       "airsAt": "1717879579"
       },
       {
        "episode": "10",
-       "airsAt": "1718481335"
+       "airsAt": "1718484379"
       },
       {
        "episode": "11",
-       "airsAt": "1719086135"
+       "airsAt": "1719089179"
       },
       {
        "episode": "12",
-       "airsAt": "1719690935"
+       "airsAt": "1719693979"
       }
      ],
      "relations": [
@@ -1297,8 +2027,10 @@
        "relation": "SEQUEL",
        "format": "TV",
        "coverUrl": "https://img.example/cover/900004.jpg",
+       "coverColor": "#d77f4a",
        "season": "WINTER",
-       "year": "2025"
+       "year": "2025",
+       "listStatus": null
       }
      ],
      "recommendations": [
@@ -1311,8 +2043,10 @@
        "relation": null,
        "format": "ONA",
        "coverUrl": "https://img.example/cover/900005.jpg",
+       "coverColor": "#7ac47f",
        "season": "SUMMER",
-       "year": "2023"
+       "year": "2023",
+       "listStatus": null
       },
       {
        "id": "900003",
@@ -1323,8 +2057,10 @@
        "relation": null,
        "format": "MOVIE",
        "coverUrl": "https://img.example/cover/900003.jpg",
+       "coverColor": "#f1d97a",
        "season": "SUMMER",
-       "year": "2025"
+       "year": "2025",
+       "listStatus": null
       }
      ],
      "rankings": [
@@ -1394,7 +2130,14 @@
        "role": "Music"
       }
      ]
-    }
+    },
+    "status": "FINISHED",
+    "synopsisSpans": [
+     {
+      "text": "A lamplighter with no memory of her home walks the old star roads, relighting the beacons that guide travellers between the towns. Each town she saves remembers a little of her, and she, a little less of herself.",
+      "spoiler": false
+     }
+    ]
    }
   },
   {
@@ -1402,735 +2145,123 @@
    "v1": "10"
   },
   {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900001",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
-  },
-  {
    "@type": "Episodes",
-   "id": "900001",
+   "id": "900005",
    "rows": [
     {
      "number": "1",
-     "title": "The Lantern Road",
-     "thumbnail": "https://img.example/ep/900001/1.jpg",
-     "description": "A lamplighter wakes on the star road with a lantern and no name.",
-     "durationSecs": "1440",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/1.jpg",
+     "description": null,
+     "durationSecs": "1080",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1713038135"
+     "airsAt": null
     },
     {
      "number": "2",
-     "title": "A Town Without Night",
-     "thumbnail": "https://img.example/ep/900001/2.jpg",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/2.jpg",
      "description": null,
-     "durationSecs": "1440",
+     "durationSecs": "1080",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1713642935"
+     "airsAt": null
     },
     {
      "number": "3",
-     "title": "The Ferryman's Ledger",
-     "thumbnail": "https://img.example/ep/900001/3.jpg",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/3.jpg",
      "description": null,
-     "durationSecs": "1440",
+     "durationSecs": "1080",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1714247735"
+     "airsAt": null
     },
     {
      "number": "4",
-     "title": "Embers in the Snow",
-     "thumbnail": "https://img.example/ep/900001/4.jpg",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/4.jpg",
      "description": null,
-     "durationSecs": "1440",
+     "durationSecs": "1080",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1714852535"
+     "airsAt": null
     },
     {
      "number": "5",
-     "title": "What the Beacons Remember",
-     "thumbnail": "https://img.example/ep/900001/5.jpg",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/5.jpg",
      "description": null,
-     "durationSecs": "1440",
+     "durationSecs": "1080",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1715457335"
+     "airsAt": null
     },
     {
      "number": "6",
-     "title": "The Cartographer's Daughter",
-     "thumbnail": "https://img.example/ep/900001/6.jpg",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/6.jpg",
      "description": null,
-     "durationSecs": "1440",
+     "durationSecs": "1080",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1716062135"
+     "airsAt": null
     },
     {
      "number": "7",
-     "title": "Rain over Kiriya Pass",
-     "thumbnail": "https://img.example/ep/900001/7.jpg",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/7.jpg",
      "description": null,
-     "durationSecs": "1440",
+     "durationSecs": "1080",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1716666935"
+     "airsAt": null
     },
     {
      "number": "8",
-     "title": "A Letter Never Sent",
-     "thumbnail": "https://img.example/ep/900001/8.jpg",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/8.jpg",
      "description": null,
-     "durationSecs": "1440",
+     "durationSecs": "1080",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1717271735"
+     "airsAt": null
     },
     {
      "number": "9",
-     "title": "The Last Lamplighter",
-     "thumbnail": "https://img.example/ep/900001/9.jpg",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/9.jpg",
      "description": null,
-     "durationSecs": "1440",
+     "durationSecs": "1080",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": "1717876535"
+     "airsAt": null
     },
     {
      "number": "10",
-     "title": "Where the Roads Cross",
-     "thumbnail": "https://img.example/ep/900001/10.jpg",
+     "title": null,
+     "thumbnail": "https://img.example/ep/900005/10.jpg",
      "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1718481335"
-    },
-    {
-     "number": "11",
-     "title": "The Sky Archive",
-     "thumbnail": "https://img.example/ep/900001/11.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1719086135"
-    },
-    {
-     "number": "12",
-     "title": "Home, by Starlight",
-     "thumbnail": "https://img.example/ep/900001/12.jpg",
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1719690935"
-    }
-   ]
-  },
-  {
-   "@type": "JobDone",
-   "v1": "11"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "12",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "JobStarted",
-   "job": "13",
-   "activity": "loading episodes"
-  },
-  {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900002",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
-  },
-  {
-   "@type": "JobStarted",
-   "job": "14",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "Detail",
-   "v1": {
-    "id": "900002",
-    "title": "The Library Above the Clouds",
-    "secondary": "Kumo no Ue no Toshokan",
-    "format": "TV",
-    "episodes": "24",
-    "year": "2026",
-    "score": "77",
-    "studio": "Hanabishi Pictures",
-    "synopsis": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
-    "coverUrl": "https://img.example/cover/900002-xl.jpg",
-    "bannerUrl": "https://img.example/banner/900002.jpg",
-    "genres": [
-     "Fantasy",
-     "Mystery",
-     "Slice of Life"
-    ],
-    "availableOn": [
-     "Lantern Stream"
-    ],
-    "progress": null,
-    "airingIn": "184500",
-    "airingEpisode": null,
-    "nextEpisode": "6",
-    "nextAiringIn": "184500",
-    "lastAired": null,
-    "resume": null,
-    "related": [],
-    "recommended": [
-     {
-      "id": "900001",
-      "title": "Stardust Wayfarer",
-      "relation": "",
-      "format": "TV"
-     }
-    ],
-    "trailerUrl": null,
-    "listStatus": null,
-    "titleRomaji": "Kumo no Ue no Toshokan",
-    "titleEnglish": "The Library Above the Clouds",
-    "titleNative": "雲の上の図書館",
-    "season": "FALL",
-    "startDate": {
-     "year": "2026",
-     "month": "9",
-     "day": "11"
-    },
-    "endDate": null,
-    "source": "LIGHT_NOVEL",
-    "adult": false,
-    "detail": {
-     "tags": [
-      {
-       "name": "Libraries",
-       "rank": "90",
-       "mediaSpoiler": false,
-       "generalSpoiler": false,
-       "category": "Setting-Scene"
-      },
-      {
-       "name": "Weather Magic",
-       "rank": "76",
-       "mediaSpoiler": false,
-       "generalSpoiler": false,
-       "category": "Theme-Fantasy"
-      }
-     ],
-     "schedule": [
-      {
-       "episode": "1",
-       "airsAt": "1789762265"
-      },
-      {
-       "episode": "2",
-       "airsAt": "1790367065"
-      },
-      {
-       "episode": "3",
-       "airsAt": "1790971865"
-      },
-      {
-       "episode": "4",
-       "airsAt": "1791576665"
-      },
-      {
-       "episode": "5",
-       "airsAt": "1792181465"
-      },
-      {
-       "episode": "6",
-       "airsAt": "1792786265"
-      },
-      {
-       "episode": "7",
-       "airsAt": "1793391065"
-      },
-      {
-       "episode": "8",
-       "airsAt": "1793995865"
-      },
-      {
-       "episode": "9",
-       "airsAt": "1794600665"
-      },
-      {
-       "episode": "10",
-       "airsAt": "1795205465"
-      },
-      {
-       "episode": "11",
-       "airsAt": "1795810265"
-      },
-      {
-       "episode": "12",
-       "airsAt": "1796415065"
-      },
-      {
-       "episode": "13",
-       "airsAt": "1797019865"
-      },
-      {
-       "episode": "14",
-       "airsAt": "1797624665"
-      },
-      {
-       "episode": "15",
-       "airsAt": "1798229465"
-      },
-      {
-       "episode": "16",
-       "airsAt": "1798834265"
-      },
-      {
-       "episode": "17",
-       "airsAt": "1799439065"
-      },
-      {
-       "episode": "18",
-       "airsAt": "1800043865"
-      },
-      {
-       "episode": "19",
-       "airsAt": "1800648665"
-      },
-      {
-       "episode": "20",
-       "airsAt": "1801253465"
-      },
-      {
-       "episode": "21",
-       "airsAt": "1801858265"
-      },
-      {
-       "episode": "22",
-       "airsAt": "1802463065"
-      },
-      {
-       "episode": "23",
-       "airsAt": "1803067865"
-      },
-      {
-       "episode": "24",
-       "airsAt": "1803672665"
-      }
-     ],
-     "relations": [],
-     "recommendations": [
-      {
-       "id": "900001",
-       "title": "Stardust Wayfarer",
-       "titleRomaji": "Hoshikuzu no Tabibito",
-       "titleEnglish": "Stardust Wayfarer",
-       "titleNative": "星屑の旅人",
-       "relation": null,
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/900001.jpg",
-       "season": "SPRING",
-       "year": "2024"
-      }
-     ],
-     "rankings": [
-      {
-       "rank": "9",
-       "kind": "RATED",
-       "context": "highest rated",
-       "allTime": false,
-       "season": "FALL",
-       "year": "2026"
-      }
-     ],
-     "characters": [
-      {
-       "name": "Shiori Kumoi",
-       "imageUrl": "https://img.example/people/shiori-kumoi.jpg",
-       "role": "MAIN",
-       "voiceActors": [
-        {
-         "name": "Shiori's voice",
-         "imageUrl": "https://img.example/people/voice-shiori.jpg"
-        }
-       ]
-      },
-      {
-       "name": "The Night Librarian",
-       "imageUrl": "https://img.example/people/night-librarian.jpg",
-       "role": "SUPPORTING",
-       "voiceActors": []
-      }
-     ],
-     "staff": [
-      {
-       "name": "Director of The Library Above the Clouds",
-       "role": "Director"
-      },
-      {
-       "name": "Writer of The Library Above the Clouds",
-       "role": "Series Composition"
-      }
-     ]
-    }
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "12"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "15",
-   "activity": "loading episodes"
-  },
-  {
-   "@type": "Episodes",
-   "id": "900002",
-   "rows": [
-    {
-     "number": "1",
-     "title": "The Borrowed Sky",
-     "thumbnail": "https://img.example/ep/900002/1.jpg",
-     "description": null,
-     "durationSecs": "1380",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1789762265"
-    },
-    {
-     "number": "2",
-     "title": "Overdue by a Century",
-     "thumbnail": "https://img.example/ep/900002/2.jpg",
-     "description": null,
-     "durationSecs": "1380",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1790367065"
-    },
-    {
-     "number": "3",
-     "title": "The Index of Winds",
-     "thumbnail": "https://img.example/ep/900002/3.jpg",
-     "description": null,
-     "durationSecs": "1380",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1790971865"
-    },
-    {
-     "number": "4",
-     "title": "A Reading Room for Storms",
-     "thumbnail": "https://img.example/ep/900002/4.jpg",
-     "description": null,
-     "durationSecs": "1380",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1791576665"
-    },
-    {
-     "number": "5",
-     "title": "The Librarian Who Never Sleeps",
-     "thumbnail": "https://img.example/ep/900002/5.jpg",
-     "description": null,
-     "durationSecs": "1380",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1792181465"
-    }
-   ]
-  },
-  {
-   "@type": "JobDone",
-   "v1": "13"
-  },
-  {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900003",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
-  },
-  {
-   "@type": "Detail",
-   "v1": {
-    "id": "900003",
-    "title": "Moonlit Platform",
-    "secondary": "Tsukiakari no Teishajo",
-    "format": "MOVIE",
-    "episodes": "1",
-    "year": "2025",
-    "score": "85",
-    "studio": "Kujaku Animation Works",
-    "synopsis": "On the last night a rural station is open, two strangers wait for a train that only runs under a full moon.",
-    "coverUrl": "https://img.example/cover/900003-xl.jpg",
-    "bannerUrl": "https://img.example/banner/900003.jpg",
-    "genres": [
-     "Drama",
-     "Romance"
-    ],
-    "availableOn": [],
-    "progress": null,
-    "airingIn": null,
-    "airingEpisode": null,
-    "nextEpisode": null,
-    "nextAiringIn": null,
-    "lastAired": null,
-    "resume": null,
-    "related": [],
-    "recommended": [
-     {
-      "id": "900001",
-      "title": "Stardust Wayfarer",
-      "relation": "",
-      "format": "TV"
-     }
-    ],
-    "trailerUrl": null,
-    "listStatus": null,
-    "titleRomaji": "Tsukiakari no Teishajo",
-    "titleEnglish": "Moonlit Platform",
-    "titleNative": "月明かりの停車場",
-    "season": "SUMMER",
-    "startDate": {
-     "year": "2025",
-     "month": "8",
-     "day": "15"
-    },
-    "endDate": {
-     "year": "2025",
-     "month": "8",
-     "day": "15"
-    },
-    "source": "ORIGINAL",
-    "adult": false,
-    "detail": {
-     "tags": [
-      {
-       "name": "Trains",
-       "rank": "88",
-       "mediaSpoiler": false,
-       "generalSpoiler": false,
-       "category": "Setting-Scene"
-      }
-     ],
-     "schedule": [],
-     "relations": [],
-     "recommendations": [
-      {
-       "id": "900001",
-       "title": "Stardust Wayfarer",
-       "titleRomaji": "Hoshikuzu no Tabibito",
-       "titleEnglish": "Stardust Wayfarer",
-       "titleNative": "星屑の旅人",
-       "relation": null,
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/900001.jpg",
-       "season": "SPRING",
-       "year": "2024"
-      }
-     ],
-     "rankings": [],
-     "characters": [
-      {
-       "name": "Tsuki Hanamura",
-       "imageUrl": "https://img.example/people/tsuki-hanamura.jpg",
-       "role": "MAIN",
-       "voiceActors": [
-        {
-         "name": "Tsuki's voice",
-         "imageUrl": "https://img.example/people/voice-tsuki.jpg"
-        }
-       ]
-      }
-     ],
-     "staff": [
-      {
-       "name": "Director of Moonlit Platform",
-       "role": "Director"
-      }
-     ]
-    }
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "14"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "16",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "JobStarted",
-   "job": "17",
-   "activity": "loading episodes"
-  },
-  {
-   "@type": "Episodes",
-   "id": "900003",
-   "rows": [
-    {
-     "number": "1",
-     "title": "Moonlit Platform",
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "6480",
+     "durationSecs": "1080",
      "watched": 0.0,
      "completed": false,
      "kind": null,
@@ -2141,141 +2272,7 @@
   },
   {
    "@type": "JobDone",
-   "v1": "15"
-  },
-  {
-   "@type": "Detail",
-   "v1": {
-    "id": "900004",
-    "title": "Stardust Wayfarer Season 2",
-    "secondary": "Hoshikuzu no Tabibito 2nd Season",
-    "format": "TV",
-    "episodes": "12",
-    "year": "2025",
-    "score": "84",
-    "studio": "Kujaku Animation Works",
-    "synopsis": "The beacons are lit, and the roads lead somewhere new: to the city that sent the first lamplighters out.",
-    "coverUrl": "https://img.example/cover/900004-xl.jpg",
-    "bannerUrl": "https://img.example/banner/900004.jpg",
-    "genres": [
-     "Adventure",
-     "Drama",
-     "Fantasy"
-    ],
-    "availableOn": [
-     "Lantern Stream"
-    ],
-    "progress": null,
-    "airingIn": null,
-    "airingEpisode": null,
-    "nextEpisode": null,
-    "nextAiringIn": null,
-    "lastAired": null,
-    "resume": null,
-    "related": [
-     {
-      "id": "900001",
-      "title": "Stardust Wayfarer",
-      "relation": "prequel",
-      "format": "TV"
-     }
-    ],
-    "recommended": [],
-    "trailerUrl": null,
-    "listStatus": null,
-    "titleRomaji": "Hoshikuzu no Tabibito 2nd Season",
-    "titleEnglish": "Stardust Wayfarer Season 2",
-    "titleNative": "星屑の旅人 第2期",
-    "season": "WINTER",
-    "startDate": {
-     "year": "2025",
-     "month": "1",
-     "day": "11"
-    },
-    "endDate": {
-     "year": "2025",
-     "month": "3",
-     "day": "29"
-    },
-    "source": "MANGA",
-    "adult": false,
-    "detail": {
-     "tags": [],
-     "schedule": [],
-     "relations": [
-      {
-       "id": "900001",
-       "title": "Stardust Wayfarer",
-       "titleRomaji": "Hoshikuzu no Tabibito",
-       "titleEnglish": "Stardust Wayfarer",
-       "titleNative": "星屑の旅人",
-       "relation": "PREQUEL",
-       "format": "TV",
-       "coverUrl": "https://img.example/cover/900001.jpg",
-       "season": "SPRING",
-       "year": "2024"
-      }
-     ],
-     "recommendations": [],
-     "rankings": [],
-     "characters": [],
-     "staff": []
-    }
-   }
-  },
-  {
-   "@type": "JobDone",
-   "v1": "16"
-  },
-  {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900004",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
-  },
-  {
-   "@type": "JobStarted",
-   "job": "18",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "JobStarted",
-   "job": "19",
-   "activity": "loading episodes"
+   "v1": "19"
   },
   {
    "@type": "Episodes",
@@ -2432,266 +2429,555 @@
    "v1": "17"
   },
   {
-   "@type": "ProviderPreference",
-   "v1": null
+   "@type": "CalendarWindow",
+   "anchor": "1792604809",
+   "pages": "1",
+   "morePast": false
   },
   {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900005",
-    "rows": [
+   "@type": "Content",
+   "view": {
+    "@type": "Calendar"
+   },
+   "content": {
+    "@type": "Entries",
+    "v1": [
      {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
+      "id": "900002",
+      "title": "The Library Above the Clouds",
+      "secondary": "Kumo no Ue no Toshokan",
+      "format": "TV",
+      "episodes": "24",
+      "year": "2026",
+      "score": "77",
+      "studio": "Hanabishi Pictures",
+      "synopsis": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+      "coverUrl": "https://img.example/cover/900002-xl.jpg",
+      "coverColor": "#5d9be4",
+      "bannerUrl": "https://img.example/banner/900002.jpg",
+      "genres": [
+       "Fantasy",
+       "Mystery",
+       "Slice of Life"
+      ],
+      "availableOn": [],
+      "progress": null,
+      "airingIn": "-1629900",
+      "airingEpisode": "3",
+      "nextEpisode": "6",
+      "nextAiringIn": "184500",
+      "lastAired": null,
+      "resume": null,
+      "related": [],
+      "recommended": [],
+      "trailerUrl": null,
+      "listStatus": null,
+      "titleRomaji": "Kumo no Ue no Toshokan",
+      "titleEnglish": "The Library Above the Clouds",
+      "titleNative": "雲の上の図書館",
+      "season": "FALL",
+      "startDate": {
+       "year": "2026",
+       "month": "9",
+       "day": "11"
+      },
+      "endDate": null,
+      "source": "LIGHT_NOVEL",
+      "adult": false,
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+        "spoiler": false
+       }
+      ]
      },
      {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
+      "id": "900002",
+      "title": "The Library Above the Clouds",
+      "secondary": "Kumo no Ue no Toshokan",
+      "format": "TV",
+      "episodes": "24",
+      "year": "2026",
+      "score": "77",
+      "studio": "Hanabishi Pictures",
+      "synopsis": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+      "coverUrl": "https://img.example/cover/900002-xl.jpg",
+      "coverColor": "#5d9be4",
+      "bannerUrl": "https://img.example/banner/900002.jpg",
+      "genres": [
+       "Fantasy",
+       "Mystery",
+       "Slice of Life"
+      ],
+      "availableOn": [],
+      "progress": null,
+      "airingIn": "-1025100",
+      "airingEpisode": "4",
+      "nextEpisode": "6",
+      "nextAiringIn": "184500",
+      "lastAired": null,
+      "resume": null,
+      "related": [],
+      "recommended": [],
+      "trailerUrl": null,
+      "listStatus": null,
+      "titleRomaji": "Kumo no Ue no Toshokan",
+      "titleEnglish": "The Library Above the Clouds",
+      "titleNative": "雲の上の図書館",
+      "season": "FALL",
+      "startDate": {
+       "year": "2026",
+       "month": "9",
+       "day": "11"
+      },
+      "endDate": null,
+      "source": "LIGHT_NOVEL",
+      "adult": false,
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+        "spoiler": false
+       }
+      ]
      },
      {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
+      "id": "900006",
+      "title": "Summer Wind Relay",
+      "secondary": "Natsukaze Relay",
+      "format": "TV",
+      "episodes": "12",
+      "year": "2026",
+      "score": null,
+      "studio": null,
+      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+      "coverUrl": "https://img.example/cover/900006-xl.jpg",
+      "coverColor": null,
+      "bannerUrl": null,
+      "genres": [
+       "Comedy",
+       "Sports"
+      ],
+      "availableOn": [],
+      "progress": null,
+      "airingIn": "-673200",
+      "airingEpisode": "7",
+      "nextEpisode": "9",
+      "nextAiringIn": "536400",
+      "lastAired": null,
+      "resume": null,
+      "related": [],
+      "recommended": [],
+      "trailerUrl": null,
+      "listStatus": null,
+      "titleRomaji": "Natsukaze Relay",
+      "titleEnglish": "Summer Wind Relay",
+      "titleNative": "夏風リレー",
+      "season": "FALL",
+      "startDate": {
+       "year": "2026",
+       "month": "8",
+       "day": null
+      },
+      "endDate": null,
+      "source": null,
+      "adult": false,
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+        "spoiler": false
+       }
+      ]
      },
      {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
+      "id": "900002",
+      "title": "The Library Above the Clouds",
+      "secondary": "Kumo no Ue no Toshokan",
+      "format": "TV",
+      "episodes": "24",
+      "year": "2026",
+      "score": "77",
+      "studio": "Hanabishi Pictures",
+      "synopsis": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+      "coverUrl": "https://img.example/cover/900002-xl.jpg",
+      "coverColor": "#5d9be4",
+      "bannerUrl": "https://img.example/banner/900002.jpg",
+      "genres": [
+       "Fantasy",
+       "Mystery",
+       "Slice of Life"
+      ],
+      "availableOn": [],
+      "progress": null,
+      "airingIn": "-420300",
+      "airingEpisode": "5",
+      "nextEpisode": "6",
+      "nextAiringIn": "184500",
+      "lastAired": null,
+      "resume": null,
+      "related": [],
+      "recommended": [],
+      "trailerUrl": null,
+      "listStatus": null,
+      "titleRomaji": "Kumo no Ue no Toshokan",
+      "titleEnglish": "The Library Above the Clouds",
+      "titleNative": "雲の上の図書館",
+      "season": "FALL",
+      "startDate": {
+       "year": "2026",
+       "month": "9",
+       "day": "11"
+      },
+      "endDate": null,
+      "source": "LIGHT_NOVEL",
+      "adult": false,
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+        "spoiler": false
+       }
+      ]
      },
      {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
+      "id": "900006",
+      "title": "Summer Wind Relay",
+      "secondary": "Natsukaze Relay",
+      "format": "TV",
+      "episodes": "12",
+      "year": "2026",
+      "score": null,
+      "studio": null,
+      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+      "coverUrl": "https://img.example/cover/900006-xl.jpg",
+      "coverColor": null,
+      "bannerUrl": null,
+      "genres": [
+       "Comedy",
+       "Sports"
+      ],
+      "availableOn": [],
+      "progress": null,
+      "airingIn": "-68400",
+      "airingEpisode": "8",
+      "nextEpisode": "9",
+      "nextAiringIn": "536400",
+      "lastAired": null,
+      "resume": null,
+      "related": [],
+      "recommended": [],
+      "trailerUrl": null,
+      "listStatus": null,
+      "titleRomaji": "Natsukaze Relay",
+      "titleEnglish": "Summer Wind Relay",
+      "titleNative": "夏風リレー",
+      "season": "FALL",
+      "startDate": {
+       "year": "2026",
+       "month": "8",
+       "day": null
+      },
+      "endDate": null,
+      "source": null,
+      "adult": false,
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+        "spoiler": false
+       }
+      ]
+     },
+     {
+      "id": "900002",
+      "title": "The Library Above the Clouds",
+      "secondary": "Kumo no Ue no Toshokan",
+      "format": "TV",
+      "episodes": "24",
+      "year": "2026",
+      "score": "77",
+      "studio": "Hanabishi Pictures",
+      "synopsis": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+      "coverUrl": "https://img.example/cover/900002-xl.jpg",
+      "coverColor": "#5d9be4",
+      "bannerUrl": "https://img.example/banner/900002.jpg",
+      "genres": [
+       "Fantasy",
+       "Mystery",
+       "Slice of Life"
+      ],
+      "availableOn": [],
+      "progress": null,
+      "airingIn": "184500",
+      "airingEpisode": "6",
+      "nextEpisode": "6",
+      "nextAiringIn": "184500",
+      "lastAired": null,
+      "resume": null,
+      "related": [],
+      "recommended": [],
+      "trailerUrl": null,
+      "listStatus": null,
+      "titleRomaji": "Kumo no Ue no Toshokan",
+      "titleEnglish": "The Library Above the Clouds",
+      "titleNative": "雲の上の図書館",
+      "season": "FALL",
+      "startDate": {
+       "year": "2026",
+       "month": "9",
+       "day": "11"
+      },
+      "endDate": null,
+      "source": "LIGHT_NOVEL",
+      "adult": false,
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "Above the cloud line floats a library that lends books to the weather. Its newest apprentice has a week to find a storm that was never returned.",
+        "spoiler": false
+       }
+      ]
+     },
+     {
+      "id": "900006",
+      "title": "Summer Wind Relay",
+      "secondary": "Natsukaze Relay",
+      "format": "TV",
+      "episodes": "12",
+      "year": "2026",
+      "score": null,
+      "studio": null,
+      "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+      "coverUrl": "https://img.example/cover/900006-xl.jpg",
+      "coverColor": null,
+      "bannerUrl": null,
+      "genres": [
+       "Comedy",
+       "Sports"
+      ],
+      "availableOn": [],
+      "progress": null,
+      "airingIn": "536400",
+      "airingEpisode": "9",
+      "nextEpisode": "9",
+      "nextAiringIn": "536400",
+      "lastAired": null,
+      "resume": null,
+      "related": [],
+      "recommended": [],
+      "trailerUrl": null,
+      "listStatus": null,
+      "titleRomaji": "Natsukaze Relay",
+      "titleEnglish": "Summer Wind Relay",
+      "titleNative": "夏風リレー",
+      "season": "FALL",
+      "startDate": {
+       "year": "2026",
+       "month": "8",
+       "day": null
+      },
+      "endDate": null,
+      "source": null,
+      "adult": false,
+      "detail": null,
+      "status": "RELEASING",
+      "synopsisSpans": [
+       {
+        "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+        "spoiler": false
+       }
+      ]
      }
-    ],
-    "remembered": [],
-    "source": null
+    ]
    }
   },
   {
-   "@type": "JobStarted",
-   "job": "20",
-   "activity": "loading the title"
-  },
-  {
-   "@type": "ProviderPreference",
-   "v1": null
-  },
-  {
-   "@type": "JobStarted",
-   "job": "21",
-   "activity": "loading episodes"
+   "@type": "JobDone",
+   "v1": "3"
   },
   {
    "@type": "Episodes",
-   "id": "900005",
+   "id": "900002",
    "rows": [
     {
      "number": "1",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/1.jpg",
+     "title": "The Borrowed Sky",
+     "thumbnail": "https://img.example/ep/900002/1.jpg",
      "description": null,
-     "durationSecs": "1080",
+     "durationSecs": "1380",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": null
+     "airsAt": "1789765309"
     },
     {
      "number": "2",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/2.jpg",
+     "title": "Overdue by a Century",
+     "thumbnail": "https://img.example/ep/900002/2.jpg",
      "description": null,
-     "durationSecs": "1080",
+     "durationSecs": "1380",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": null
+     "airsAt": "1790370109"
     },
     {
      "number": "3",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/3.jpg",
+     "title": "The Index of Winds",
+     "thumbnail": "https://img.example/ep/900002/3.jpg",
      "description": null,
-     "durationSecs": "1080",
+     "durationSecs": "1380",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": null
+     "airsAt": "1790974909"
     },
     {
      "number": "4",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/4.jpg",
+     "title": "A Reading Room for Storms",
+     "thumbnail": "https://img.example/ep/900002/4.jpg",
      "description": null,
-     "durationSecs": "1080",
+     "durationSecs": "1380",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": null
+     "airsAt": "1791579709"
     },
     {
      "number": "5",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/5.jpg",
+     "title": "The Librarian Who Never Sleeps",
+     "thumbnail": "https://img.example/ep/900002/5.jpg",
      "description": null,
-     "durationSecs": "1080",
+     "durationSecs": "1380",
      "watched": 0.0,
      "completed": false,
      "kind": null,
      "skippable": false,
-     "airsAt": null
-    },
-    {
-     "number": "6",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/6.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null
-    },
-    {
-     "number": "7",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/7.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null
-    },
-    {
-     "number": "8",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/8.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null
-    },
-    {
-     "number": "9",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/9.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null
-    },
-    {
-     "number": "10",
-     "title": null,
-     "thumbnail": "https://img.example/ep/900005/10.jpg",
-     "description": null,
-     "durationSecs": "1080",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": null
+     "airsAt": "1792184509"
     }
    ]
   },
   {
    "@type": "JobDone",
-   "v1": "19"
+   "v1": "13"
   },
   {
-   "@type": "Detail",
-   "v1": {
-    "id": "900005",
-    "title": "The Steel Gardener",
-    "secondary": "Hagane no Niwashi",
-    "format": "ONA",
-    "episodes": "10",
-    "year": "2023",
-    "score": "71",
-    "studio": "Studio Mokusei",
-    "synopsis": "A decommissioned construction robot tends a rooftop garden and, one season at a time, the neighbours who come to see it.",
-    "coverUrl": "https://img.example/cover/900005-xl.jpg",
-    "bannerUrl": null,
-    "genres": [
-     "Sci-Fi",
-     "Slice of Life"
-    ],
-    "availableOn": [],
-    "progress": null,
-    "airingIn": null,
-    "airingEpisode": null,
-    "nextEpisode": null,
-    "nextAiringIn": null,
-    "lastAired": null,
-    "resume": null,
-    "related": [],
-    "recommended": [],
-    "trailerUrl": null,
-    "listStatus": null,
-    "titleRomaji": "Hagane no Niwashi",
-    "titleEnglish": "The Steel Gardener",
-    "titleNative": "鋼の庭師",
-    "season": "SUMMER",
-    "startDate": {
-     "year": "2023",
-     "month": "7",
-     "day": "1"
+   "@type": "Episodes",
+   "id": "900006",
+   "rows": [
+    {
+     "number": "1",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1788302809"
     },
-    "endDate": {
-     "year": "2023",
-     "month": "9",
-     "day": "2"
+    {
+     "number": "2",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1788907609"
     },
-    "source": "WEB_NOVEL",
-    "adult": false,
-    "detail": {
-     "tags": [
-      {
-       "name": "Gardening",
-       "rank": "85",
-       "mediaSpoiler": false,
-       "generalSpoiler": false,
-       "category": "Theme-Slice of Life"
-      }
-     ],
-     "schedule": [],
-     "relations": [],
-     "recommendations": [],
-     "rankings": [],
-     "characters": [],
-     "staff": [
-      {
-       "name": "Director of The Steel Gardener",
-       "role": "Director"
-      }
-     ]
+    {
+     "number": "3",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1789512409"
+    },
+    {
+     "number": "4",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1790117209"
+    },
+    {
+     "number": "5",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1790722009"
+    },
+    {
+     "number": "6",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1791326809"
+    },
+    {
+     "number": "7",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1791931609"
+    },
+    {
+     "number": "8",
+     "title": null,
+     "thumbnail": null,
+     "description": null,
+     "durationSecs": "1440",
+     "watched": 0.0,
+     "completed": false,
+     "kind": null,
+     "skippable": false,
+     "airsAt": "1792536409"
     }
-   }
+   ]
   },
   {
    "@type": "JobDone",
-   "v1": "18"
+   "v1": "21"
   },
   {
    "@type": "Detail",
@@ -2706,6 +2992,7 @@
     "studio": null,
     "synopsis": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
     "coverUrl": "https://img.example/cover/900006-xl.jpg",
+    "coverColor": null,
     "bannerUrl": null,
     "genres": [
      "Comedy",
@@ -2740,51 +3027,51 @@
      "schedule": [
       {
        "episode": "1",
-       "airsAt": "1788299765"
+       "airsAt": "1788302809"
       },
       {
        "episode": "2",
-       "airsAt": "1788904565"
+       "airsAt": "1788907609"
       },
       {
        "episode": "3",
-       "airsAt": "1789509365"
+       "airsAt": "1789512409"
       },
       {
        "episode": "4",
-       "airsAt": "1790114165"
+       "airsAt": "1790117209"
       },
       {
        "episode": "5",
-       "airsAt": "1790718965"
+       "airsAt": "1790722009"
       },
       {
        "episode": "6",
-       "airsAt": "1791323765"
+       "airsAt": "1791326809"
       },
       {
        "episode": "7",
-       "airsAt": "1791928565"
+       "airsAt": "1791931609"
       },
       {
        "episode": "8",
-       "airsAt": "1792533365"
+       "airsAt": "1792536409"
       },
       {
        "episode": "9",
-       "airsAt": "1793138165"
+       "airsAt": "1793141209"
       },
       {
        "episode": "10",
-       "airsAt": "1793742965"
+       "airsAt": "1793746009"
       },
       {
        "episode": "11",
-       "airsAt": "1794347765"
+       "airsAt": "1794350809"
       },
       {
        "episode": "12",
-       "airsAt": "1794952565"
+       "airsAt": "1794955609"
       }
      ],
      "relations": [],
@@ -2792,158 +3079,19 @@
      "rankings": [],
      "characters": [],
      "staff": []
-    }
+    },
+    "status": "RELEASING",
+    "synopsisSpans": [
+     {
+      "text": "A coastal high school's relay team has four runners, three shoes and one summer to qualify.",
+      "spoiler": false
+     }
+    ]
    }
   },
   {
    "@type": "JobDone",
    "v1": "20"
-  },
-  {
-   "@type": "Episodes",
-   "id": "900006",
-   "rows": [
-    {
-     "number": "1",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1788299765"
-    },
-    {
-     "number": "2",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1788904565"
-    },
-    {
-     "number": "3",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1789509365"
-    },
-    {
-     "number": "4",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1790114165"
-    },
-    {
-     "number": "5",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1790718965"
-    },
-    {
-     "number": "6",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1791323765"
-    },
-    {
-     "number": "7",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1791928565"
-    },
-    {
-     "number": "8",
-     "title": null,
-     "thumbnail": null,
-     "description": null,
-     "durationSecs": "1440",
-     "watched": 0.0,
-     "completed": false,
-     "kind": null,
-     "skippable": false,
-     "airsAt": "1792533365"
-    }
-   ]
-  },
-  {
-   "@type": "JobDone",
-   "v1": "21"
-  },
-  {
-   "@type": "ShowSettings",
-   "v1": {
-    "id": "900006",
-    "rows": [
-     {
-      "key": "TRANSLATION",
-      "own": null,
-      "value": "sub",
-      "default": "sub"
-     },
-     {
-      "key": "QUALITY",
-      "own": null,
-      "value": "1080p",
-      "default": "1080p"
-     },
-     {
-      "key": "SKIP_OPENING",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     },
-     {
-      "key": "SKIP_FILLER",
-      "own": null,
-      "value": "off",
-      "default": "off"
-     },
-     {
-      "key": "SPOILER_PROTECTION",
-      "own": null,
-      "value": "on",
-      "default": "on"
-     }
-    ],
-    "remembered": [],
-    "source": null
-   }
   }
  ]
 }

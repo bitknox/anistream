@@ -335,6 +335,17 @@ pub async fn play(
             stream.thumbnail_url = menders.thumbnail_url(&original);
         }
         attempt += 1;
+        tracing::info!(
+            attempt,
+            of = total,
+            provider = %stream.provider_id,
+            kind = ?stream.kind,
+            quality = ?stream.quality,
+            from = %crate::logged::address(&streams[index].url),
+            mended = stream.kind == StreamKind::Hls,
+            headers = stream.headers.len(),
+            "trying a stream"
+        );
 
         let request = PlaybackRequest {
             title: context.window_title(),
@@ -468,7 +479,11 @@ pub async fn play(
                     // knowable only in front of a player, so a stream that never showed a frame
                     // fails over — in the same window — unless the viewer stopped it or closed
                     // the window themselves, which is an instruction, not a failure.
-                    tracing::warn!(url = %stream.url, ?reported, "no frames; trying the next stream");
+                    tracing::warn!(
+                        from = %crate::logged::address(&streams[index].url),
+                        ?reported,
+                        "no frames; trying the next stream"
+                    );
                     let _ = tx.send(Event::Toast(Notice::info(format!(
                         "no video from that stream — trying {} of {total}",
                         attempt + 1
@@ -519,7 +534,11 @@ pub async fn play(
                                 .into()
                         }
                     };
-                    tracing::warn!(%message, url = %stream.url, "playback produced no frames");
+                    tracing::warn!(
+                        %message,
+                        from = %crate::logged::address(&streams[index].url),
+                        "playback produced no frames"
+                    );
                     let _ = tx.send(Event::Toast(Notice::alert(message)));
                 }
 
