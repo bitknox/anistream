@@ -316,6 +316,19 @@ app's runs at that moment (AnistreamStore's `Notifications/`):
   Fixtures app use `QuietNoticeCentre`, which shows nothing and asks nothing; the Fixtures app
   reaches the system's only on iOS, and only when launched with `-AnistreamRealNotifications`.
 
+## Downloads after the app leaves (iPhone and iPad)
+
+iOS 26's continued-processing task keeps the app running for downloads the person started, with
+the system's own progress line (AnistreamStore's `ContinuedDownloads`, the app's
+`BackgroundDownloads`). A window is asked for when a download starts, or as the app leaves with
+some queued; each has an identifier of its own under `<bundle>.downloads.*`. While it is open the
+engine is told `AppPhase(BackgroundDownloads)`: the downloads and what plays go on, seeding waits,
+and the connection check runs as on screen. When nothing is left, when the window runs out or the
+person stops it, the engine is told `Background` and the torrents wait where they got to. The app
+also tells the engine `Foreground` and `Background` as it comes and goes. `ContinuedDownloads.isRunning`
+says whether the system's progress is showing, for the app's own Live Activity to stay out of its
+way. The Mac has no such window.
+
 ## The dev harness
 
 ```sh

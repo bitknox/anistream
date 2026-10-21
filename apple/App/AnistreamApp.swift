@@ -68,10 +68,23 @@ struct AnistreamApp: App {
             .frame(minWidth: 960, minHeight: 600)
             #endif
             .task { await delegate.start() }
-            .onChange(of: scenePhase) { _, phase in
+            .onChange(of: scenePhase) { old, phase in
                 switch phase {
-                case .active: delegate.notices.cameForward()
-                case .background: delegate.notices.wentAway()
+                case .active:
+                    delegate.notices.cameForward()
+                    #if os(iOS)
+                    delegate.store.continued.phase(foreground: true, rows: delegate.store.downloads.rows)
+                    #endif
+                case .inactive where old == .active:
+                    #if os(iOS)
+                    // Still in front: the last moment the system opens a downloads window.
+                    delegate.store.continued.leaving(rows: delegate.store.downloads.rows)
+                    #endif
+                case .background:
+                    delegate.notices.wentAway()
+                    #if os(iOS)
+                    delegate.store.continued.phase(foreground: false, rows: delegate.store.downloads.rows)
+                    #endif
                 default: break
                 }
             }
