@@ -24,6 +24,7 @@
 pub mod anilist;
 pub mod auth;
 pub mod device;
+mod held;
 pub mod kitsu;
 pub mod mal;
 pub mod merge;
@@ -42,6 +43,9 @@ pub use secret::{Storage, TokenPair, TokenStore};
 pub use simkl::SimklTracker;
 pub use sync::{DrainReport, PullReport, drain, pull, queue_progress};
 pub use trakt::{SeasonMapping, TraktTracker};
+
+/// What the project's requests call themselves, as `anistream-net`'s plain client does.
+pub(crate) const USER_AGENT: &str = concat!("anistream/", env!("CARGO_PKG_VERSION"));
 
 /// Seconds since the Unix epoch.
 ///

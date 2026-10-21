@@ -71,6 +71,8 @@ pub struct DeviceEndpoints {
     pub scope: Option<&'static str>,
     /// The flow tried in this one's place when the service says the app is not registered for it.
     pub fallback: Option<&'static DeviceEndpoints>,
+    /// What every request to the service carries in its URL: Simkl asks each to name the app.
+    pub query: &'static [(&'static str, &'static str)],
 }
 
 /// What the user has to be told to do.
@@ -131,6 +133,15 @@ fn is_not_registered_for(error: &DeviceError) -> bool {
     matches!(error, DeviceError::Refused { error: Some(code), .. } if code == "invalid_client")
 }
 
+/// `request` naming the app, as the service asks: its URL parameters, and the User-Agent.
+fn named(
+    request: reqwest::RequestBuilder,
+    endpoints: &DeviceEndpoints,
+) -> reqwest::RequestBuilder {
+    let request = request.header(reqwest::header::USER_AGENT, crate::USER_AGENT);
+    if endpoints.query.is_empty() { request } else { request.query(endpoints.query) }
+}
+
 /// The request for a device code.
 fn code_request(
     http: &reqwest::Client,
@@ -138,7 +149,7 @@ fn code_request(
     client_id: &str,
 ) -> reqwest::RequestBuilder {
     let client_id = client_id.trim();
-    match endpoints.flow {
+    let request = match endpoints.flow {
         DeviceFlow::OAuth2 => {
             let mut form = vec![("client_id", client_id)];
             if let Some(scope) = endpoints.scope {
@@ -150,7 +161,8 @@ fn code_request(
             http.post(endpoints.code_url).json(&serde_json::json!({ "client_id": client_id }))
         }
         DeviceFlow::SimklPin => http.get(endpoints.code_url).query(&[("client_id", client_id)]),
-    }
+    };
+    named(request, endpoints)
 }
 
 /// A device code from the service's answer.
@@ -246,7 +258,7 @@ fn poll_request(
     code: &DeviceCode,
 ) -> reqwest::RequestBuilder {
     let client_id = client_id.trim();
-    match endpoints.flow {
+    let request = match endpoints.flow {
         DeviceFlow::OAuth2 => {
             let mut form = vec![
                 ("grant_type", DEVICE_GRANT),
@@ -271,7 +283,8 @@ fn poll_request(
         DeviceFlow::SimklPin => http
             .get(endpoints.token_url.replace("{code}", &code.user_code))
             .query(&[("client_id", client_id)]),
-    }
+    };
+    named(request, endpoints)
 }
 
 /// One poll's answer, read as the flow has it.
@@ -377,7 +390,7 @@ fn refresh_request(
     if let Some(secret) = client_secret.filter(|s| !s.trim().is_empty()) {
         form.push(("client_secret", secret.trim()));
     }
-    http.post(endpoints.token_url).form(&form)
+    named(http.post(endpoints.token_url).form(&form), endpoints)
 }
 
 /// The service's refusal in its own words: `error_description`, or `message`, or the error's code,
@@ -426,6 +439,7 @@ pub const TRAKT: DeviceEndpoints = DeviceEndpoints {
     token_url: "https://api.trakt.tv/oauth/device/token",
     scope: None,
     fallback: None,
+    query: &[],
 };
 
 /// Simkl's OAuth 2.0 device flow (AUTH V2), reading and writing the library, with its PIN flow
@@ -437,6 +451,7 @@ pub const SIMKL: DeviceEndpoints = DeviceEndpoints {
     token_url: "https://api.simkl.com/oauth2/token",
     scope: Some("media:read media:write"),
     fallback: Some(&SIMKL_PIN),
+    query: crate::simkl::APP_PARAMS,
 };
 
 /// Simkl's PIN flow (AUTH V1). Its poll is a `GET` with the code in the path, which is why the URL
@@ -448,11 +463,15 @@ pub const SIMKL_PIN: DeviceEndpoints = DeviceEndpoints {
     token_url: "https://api.simkl.com/oauth/pin/{code}",
     scope: None,
     fallback: None,
+    query: crate::simkl::APP_PARAMS,
 };
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// What every request to Simkl carries in its URL.
+    const NAMED: &str = concat!("app-name=anistream&app-version=", env!("CARGO_PKG_VERSION"));
 
     fn answer(status: u16, body: &'static str) -> reqwest::Response {
         http::Response::builder().status(status).body(body).unwrap().into()
@@ -482,7 +501,11 @@ mod tests {
         let http = reqwest::Client::new();
         let request = code_request(&http, &SIMKL, " client-id ").build().unwrap();
         assert_eq!(request.method(), reqwest::Method::POST);
-        assert_eq!(request.url().as_str(), "https://api.simkl.com/oauth2/device");
+        assert_eq!(
+            request.url().as_str(),
+            format!("https://api.simkl.com/oauth2/device?{NAMED}")
+        );
+        assert_eq!(request.headers()["user-agent"], crate::USER_AGENT);
         assert_eq!(request.headers()["content-type"], "application/x-www-form-urlencoded");
         assert_eq!(body(&request), "client_id=client-id&scope=media%3Aread+media%3Awrite");
     }
@@ -493,7 +516,11 @@ mod tests {
         let request =
             poll_request(&http, &SIMKL, "client-id", None, &code(SIMKL)).build().unwrap();
         assert_eq!(request.method(), reqwest::Method::POST);
-        assert_eq!(request.url().as_str(), "https://api.simkl.com/oauth2/token");
+        assert_eq!(
+            request.url().as_str(),
+            format!("https://api.simkl.com/oauth2/token?{NAMED}")
+        );
+        assert_eq!(request.headers()["user-agent"], crate::USER_AGENT);
         assert_eq!(
             body(&request),
             "grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Adevice_code\
@@ -595,14 +622,14 @@ mod tests {
         assert_eq!(request.method(), reqwest::Method::GET);
         assert_eq!(
             request.url().as_str(),
-            "https://api.simkl.com/oauth/pin?client_id=client-id"
+            format!("https://api.simkl.com/oauth/pin?client_id=client-id&{NAMED}")
         );
         let poll = poll_request(&http, &SIMKL_PIN, "client-id", None, &code(SIMKL_PIN))
             .build()
             .unwrap();
         assert_eq!(
             poll.url().as_str(),
-            "https://api.simkl.com/oauth/pin/BDWP-HQPK?client_id=client-id"
+            format!("https://api.simkl.com/oauth/pin/BDWP-HQPK?client_id=client-id&{NAMED}")
         );
 
         // It polls with the user code, and its "device code" is a placeholder.
@@ -627,6 +654,8 @@ mod tests {
         let http = reqwest::Client::new();
         let poll =
             poll_request(&http, &TRAKT, "id", Some("secret"), &code(TRAKT)).build().unwrap();
+        // Trakt asks for no parameters of its own: its URL stays as it was.
+        assert_eq!(poll.url().as_str(), "https://api.trakt.tv/oauth/device/token");
         let sent: serde_json::Value = serde_json::from_str(&body(&poll)).unwrap();
         assert_eq!(
             sent,
@@ -651,7 +680,11 @@ mod tests {
         let http = reqwest::Client::new();
         let request =
             refresh_request(&http, &SIMKL, "client-id", None, "simkl_rt_R").build().unwrap();
-        assert_eq!(request.url().as_str(), "https://api.simkl.com/oauth2/token");
+        assert_eq!(
+            request.url().as_str(),
+            format!("https://api.simkl.com/oauth2/token?{NAMED}")
+        );
+        assert_eq!(request.headers()["user-agent"], crate::USER_AGENT);
         assert_eq!(
             body(&request),
             "grant_type=refresh_token&client_id=client-id&refresh_token=simkl_rt_R"

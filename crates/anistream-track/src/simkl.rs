@@ -18,6 +18,9 @@
 //! A sign-in through Simkl's OAuth 2.0 lasts a week, and is renewed here with its refresh token a
 //! day before it runs out, as MyAnimeList's is. One from its older PIN flow never runs out, and
 //! comes with nothing to renew it with.
+//!
+//! Every request names the app, as Simkl asks: `app-name` and `app-version` in its URL, and the
+//! project's User-Agent.
 
 use std::sync::Arc;
 
@@ -28,14 +31,16 @@ use anistream_core::{
 
 use crate::{
     device::{self, DeviceEndpoints},
+    held::{Held, Renews},
     mal::IdMapping,
-    secret::TokenPair,
+    secret::{TokenPair, TokenStore},
 };
 
 const API: &str = "https://api.simkl.com";
 
-/// How early a token is renewed: a day, of the week one lasts.
-const REFRESH_MARGIN_SECS: i64 = 24 * 3_600;
+/// What every request to Simkl carries in its URL, naming the app, as its docs ask.
+pub(crate) const APP_PARAMS: &[(&str, &str)] =
+    &[("app-name", "anistream"), ("app-version", env!("CARGO_PKG_VERSION"))];
 
 /// Simkl's tracker.
 pub struct SimklTracker {
@@ -44,9 +49,9 @@ pub struct SimklTracker {
     client_secret: Option<String>,
     http: reqwest::Client,
     mapping: Arc<dyn IdMapping>,
-    token: tokio::sync::RwLock<Option<TokenPair>>,
-    /// A pair renewed since it was last taken, for the caller to store.
-    pending_save: tokio::sync::RwLock<Option<TokenPair>>,
+    /// The pair, renewed before it runs out and kept in step with other processes: see
+    /// [`crate::held`].
+    held: Held,
     /// Where a token is renewed: [`device::SIMKL`], except in tests.
     endpoints: DeviceEndpoints,
     /// [`API`], except in tests, which point it at a local server.
@@ -65,8 +70,7 @@ impl SimklTracker {
             client_secret: None,
             http,
             mapping,
-            token: tokio::sync::RwLock::new(token),
-            pending_save: tokio::sync::RwLock::new(None),
+            held: Held::new("simkl", "simkl", token),
             endpoints: device::SIMKL,
             api: API.to_owned(),
         }
@@ -79,68 +83,60 @@ impl SimklTracker {
         self
     }
 
-    /// A renewed token pair the caller should write back, if a refresh happened — returned
-    /// rather than stored here for the reason [`crate::MalTracker::take_renewed`] gives.
-    pub async fn take_renewed(&self) -> Option<TokenPair> {
-        self.pending_save.write().await.take()
+    /// Kept in step with the other processes signed in through `store`. Simkl keeps one live
+    /// access token per sign-in, so without this the terminal and the app would end each
+    /// other's every week.
+    #[must_use]
+    pub fn with_token_store(mut self, store: TokenStore) -> Self {
+        self.held.share(store);
+        self
     }
 
-    /// A usable access token, renewed first when it is close to running out.
-    async fn access_token(&self, now: i64) -> Result<String, anistream_core::Error> {
-        let not_signed_in = || anistream_core::Error::Auth("simkl: not signed in".into());
-        let ran_out =
-            || anistream_core::Error::Auth("the Simkl sign-in ran out; sign in again".into());
-        {
-            let held = self.token.read().await;
-            let pair = held.as_ref().ok_or_else(not_signed_in)?;
-            if pair.refresh.is_none() && pair.is_expired(now) {
-                return Err(ran_out());
-            }
-            if !pair.needs_refresh(now, REFRESH_MARGIN_SECS) {
-                return Ok(pair.access.clone());
-            }
-        }
+    /// A renewed token pair the caller should write back, if a refresh happened and no store
+    /// was given, or the store did not take it.
+    pub async fn take_renewed(&self) -> Option<TokenPair> {
+        self.held.take_renewed().await
+    }
 
-        // Renewed under the write lock, re-checked: two calls at once make one refresh, and each
-        // refresh ends the access token before it.
-        let mut held = self.token.write().await;
-        let pair = held.as_ref().ok_or_else(not_signed_in)?;
-        if !pair.needs_refresh(now, REFRESH_MARGIN_SECS) {
-            return Ok(pair.access.clone());
-        }
-        let refresh = pair.refresh.clone().ok_or_else(ran_out)?;
+    /// A request to Simkl. Each needs the key *and* the bearer token (the key alone gives 412),
+    /// and names the app.
+    fn request(
+        &self,
+        method: reqwest::Method,
+        path: &str,
+        token: &str,
+    ) -> reqwest::RequestBuilder {
+        self.http
+            .request(method, format!("{}{path}", self.api))
+            .query(APP_PARAMS)
+            .header("user-agent", crate::USER_AGENT)
+            .header("simkl-api-key", &self.client_id)
+            .header("authorization", format!("Bearer {token}"))
+            .header("content-type", "application/json")
+    }
 
-        tracing::info!("refreshing the simkl token");
-        let renewed = device::refresh_token(
+    /// Send a request with a usable token, again once with a renewed one if Simkl rejects it.
+    async fn send(
+        &self,
+        token: &mut String,
+        build: impl Fn(&str) -> reqwest::RequestBuilder,
+    ) -> Result<reqwest::Response, anistream_core::Error> {
+        self.held.send(self, token, build).await
+    }
+}
+
+impl Renews for SimklTracker {
+    async fn renew(&self, refresh: &str, now: i64) -> Result<TokenPair, String> {
+        device::refresh_token(
             &self.http,
             &self.endpoints,
             &self.client_id,
             self.client_secret.as_deref(),
-            &refresh,
+            refresh,
             now,
         )
         .await
-        .map_err(|e| anistream_core::Error::Auth(e.to_string()))?;
-
-        let access = renewed.access.clone();
-        *self.pending_save.write().await = Some(renewed.clone());
-        *held = Some(renewed);
-        Ok(access)
-    }
-
-    /// Every Simkl request needs the key *and* the bearer token; the key alone gives 412.
-    async fn request(
-        &self,
-        method: reqwest::Method,
-        path: &str,
-    ) -> Result<reqwest::RequestBuilder, anistream_core::Error> {
-        let token = self.access_token(crate::now_epoch()).await?;
-        Ok(self
-            .http
-            .request(method, format!("{}{path}", self.api))
-            .header("simkl-api-key", &self.client_id)
-            .header("authorization", format!("Bearer {token}"))
-            .header("content-type", "application/json"))
+        .map_err(|e| e.to_string())
     }
 }
 
@@ -172,7 +168,7 @@ impl Tracker for SimklTracker {
     }
 
     fn is_authenticated(&self) -> bool {
-        self.token.try_read().map_or(true, |held| held.is_some())
+        self.held.is_held()
     }
 
     fn can_address(&self, op: &TrackOp) -> bool {
@@ -185,28 +181,26 @@ impl Tracker for SimklTracker {
         refresh: Option<&str>,
         expires_at: Option<i64>,
     ) {
-        *self.token.write().await = Some(TokenPair {
-            access: access.to_owned(),
-            refresh: refresh.map(str::to_owned),
-            expires_at,
-        });
+        self.held
+            .accept(TokenPair {
+                access: access.to_owned(),
+                refresh: refresh.map(str::to_owned),
+                expires_at,
+            })
+            .await;
     }
 
     async fn forget_credentials(&self) {
-        *self.token.write().await = None;
-        *self.pending_save.write().await = None;
+        self.held.forget().await;
     }
 
     async fn pull_library(&self) -> Result<Vec<TrackedEntry>, anistream_core::Error> {
+        let mut token = self.held.access(self, crate::now_epoch()).await?;
         let response = self
-            .request(reqwest::Method::GET, "/sync/all-items/anime?extended=full")
-            .await?
-            .send()
-            .await
-            .map_err(|e| anistream_core::Error::Tracker {
-                tracker: "simkl".into(),
-                message: e.to_string(),
-            })?;
+            .send(&mut token, |t| {
+                self.request(reqwest::Method::GET, "/sync/all-items/anime?extended=full", t)
+            })
+            .await?;
 
         let body = crate::page_json(response, "simkl", "simkl").await?;
 
@@ -306,20 +300,15 @@ impl Tracker for SimklTracker {
         }
 
         let mut ignored: Vec<AnilistId> = Vec::new();
+        let mut token = self.held.access(self, crate::now_epoch()).await?;
         for (path, items) in [("/sync/history", watched), ("/sync/add-to-list", listed)] {
             if items.is_empty() {
                 continue;
             }
+            let body = serde_json::json!({ "shows": items });
             let response = self
-                .request(reqwest::Method::POST, path)
-                .await?
-                .json(&serde_json::json!({ "shows": items }))
-                .send()
-                .await
-                .map_err(|e| anistream_core::Error::Tracker {
-                    tracker: "simkl".into(),
-                    message: e.to_string(),
-                })?;
+                .send(&mut token, |t| self.request(reqwest::Method::POST, path, t).json(&body))
+                .await?;
 
             let status = response.status();
             if status.as_u16() == 401 {
@@ -395,12 +384,19 @@ mod tests {
     async fn serve(
         answers: Vec<&'static str>,
     ) -> (String, tokio::task::JoinHandle<Vec<String>>) {
+        serve_with(answers.into_iter().map(|answer| (200, answer)).collect()).await
+    }
+
+    /// [`serve`], each answer with its own status.
+    async fn serve_with(
+        answers: Vec<(u16, &'static str)>,
+    ) -> (String, tokio::task::JoinHandle<Vec<String>>) {
         use tokio::io::{AsyncReadExt, AsyncWriteExt};
         let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
         let base = format!("http://{}", listener.local_addr().unwrap());
         let handle = tokio::spawn(async move {
             let mut seen = Vec::new();
-            for answer in answers {
+            for (status, answer) in answers {
                 let (mut socket, _) = listener.accept().await.unwrap();
                 let mut request = Vec::new();
                 let mut chunk = [0_u8; 4096];
@@ -427,8 +423,10 @@ mod tests {
                     }
                 }
                 seen.push(String::from_utf8_lossy(&request).to_string());
+                let reason =
+                    http::StatusCode::from_u16(status).unwrap().canonical_reason().unwrap();
                 let reply = format!(
-                    "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{answer}",
+                    "HTTP/1.1 {status} {reason}\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{answer}",
                     answer.len()
                 );
                 socket.write_all(reply.as_bytes()).await.unwrap();
@@ -487,16 +485,141 @@ mod tests {
         assert!(tracker.take_renewed().await.is_none(), "handed back once");
     }
 
+    /// What every request to Simkl carries in its URL.
+    const NAMED: &str = concat!("app-name=anistream&app-version=", env!("CARGO_PKG_VERSION"));
+
+    /// A tracker at `base` signed in through the store in `dir`, as one process would be, with
+    /// its own store and so its own cache.
+    fn process_at(base: &str, dir: &std::path::Path, pair: TokenPair) -> SimklTracker {
+        let token_url: &'static str =
+            Box::leak(format!("{base}/oauth2/token").into_boxed_str());
+        let store = TokenStore::with_backend(dir, crate::secret::Backend::File);
+        SimklTracker {
+            endpoints: DeviceEndpoints { token_url, ..device::SIMKL },
+            api: base.to_owned(),
+            ..SimklTracker::new(
+                "key",
+                reqwest::Client::new(),
+                Arc::new(FixedMapping),
+                Some(pair),
+            )
+            .with_token_store(store)
+        }
+    }
+
+    fn store_pair(dir: &std::path::Path, pair: &TokenPair) {
+        TokenStore::with_backend(dir, crate::secret::Backend::File)
+            .set_pair("simkl", &pair.access, pair.refresh.as_deref(), pair.expires_at)
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn two_processes_on_one_store_renew_once_and_both_keep_working() {
+        // The Mac app and the terminal, signed in once. Simkl keeps one live access token per
+        // sign-in, so a second renewal would end the first one's.
+        let (base, server) = serve(vec![
+            r#"{"access_token":"second","expires_in":604800,"refresh_token":"kept"}"#,
+            r#"{"anime":[]}"#,
+            r#"{"anime":[]}"#,
+        ])
+        .await;
+        let dir = tempfile::tempdir().unwrap();
+        let now = crate::now_epoch();
+        let first = TokenPair {
+            access: "first".into(),
+            refresh: Some("kept".into()),
+            expires_at: Some(now + 3_600),
+        };
+        store_pair(dir.path(), &first);
+        let app = process_at(&base, dir.path(), first.clone());
+        let terminal = process_at(&base, dir.path(), first);
+
+        app.pull_library().await.unwrap();
+        terminal.pull_library().await.unwrap();
+
+        let requests = server.await.unwrap();
+        assert!(requests[0].starts_with("POST /oauth2/token"), "{}", requests[0]);
+        assert!(requests[1].contains("authorization: Bearer second"), "{}", requests[1]);
+        assert!(
+            requests[2].contains("authorization: Bearer second"),
+            "the terminal took the app's"
+        );
+        assert_eq!(requests.iter().filter(|r| r.contains("/oauth2/token")).count(), 1);
+        assert!(app.take_renewed().await.is_none(), "stored when it was renewed");
+    }
+
+    #[tokio::test]
+    async fn a_rejected_token_is_sent_again_with_the_pair_another_process_stored() {
+        let (base, server) =
+            serve_with(vec![(401, r#"{"error":"invalid_token"}"#), (200, r#"{"anime":[]}"#)])
+                .await;
+        let dir = tempfile::tempdir().unwrap();
+        let week = crate::now_epoch() + 7 * 24 * 3_600;
+        let held = TokenPair {
+            access: "first".into(),
+            refresh: Some("kept".into()),
+            expires_at: Some(week),
+        };
+        let terminal = process_at(&base, dir.path(), held);
+        // The app renewed since the terminal read the store.
+        store_pair(
+            dir.path(),
+            &TokenPair {
+                access: "second".into(),
+                refresh: Some("kept".into()),
+                expires_at: Some(week),
+            },
+        );
+
+        terminal.pull_library().await.unwrap();
+
+        let requests = server.await.unwrap();
+        assert!(requests[0].contains("authorization: Bearer first"), "{}", requests[0]);
+        assert!(requests[1].contains("authorization: Bearer second"), "{}", requests[1]);
+        assert_eq!(requests.len(), 2, "taken from the store, not renewed");
+    }
+
+    #[tokio::test]
+    async fn every_request_names_the_app() {
+        let (base, server) =
+            serve(vec![r#"{"anime":[]}"#, r#"{"added":{"shows":1},"not_found":{"shows":[]}}"#])
+                .await;
+        let tracker = tracker_at(base);
+        tracker.pull_library().await.unwrap();
+        tracker
+            .push_checked(&[TrackOp::SetProgress { anilist_id: HOSHIKUZU, episode: 1 }])
+            .await
+            .unwrap();
+        let requests = server.await.unwrap();
+        assert!(
+            requests[0]
+                .starts_with(&format!("GET /sync/all-items/anime?extended=full&{NAMED} ")),
+            "{}",
+            requests[0]
+        );
+        assert!(
+            requests[1].starts_with(&format!("POST /sync/history?{NAMED} ")),
+            "{}",
+            requests[1]
+        );
+        for request in &requests {
+            assert!(
+                request.contains(&format!("user-agent: {}", crate::USER_AGENT)),
+                "{request}"
+            );
+        }
+    }
+
     #[tokio::test]
     async fn a_token_that_ran_out_with_nothing_to_renew_it_asks_for_a_new_sign_in() {
         // Nothing listens there: a refresh tried would fail differently.
         let tracker = tracker_at("http://127.0.0.1:9".into());
         tracker.accept_credentials("old", None, Some(1_000)).await;
-        let e = tracker.access_token(2_000).await.unwrap_err();
-        assert!(e.to_string().contains("sign in again"), "{e}");
+        let e = tracker.held.access(&tracker, 2_000).await.unwrap_err();
+        assert!(e.to_string().contains("no refresh token"), "{e}");
         // A PIN-flow token never runs out.
         tracker.accept_credentials("pin", None, None).await;
-        assert_eq!(tracker.access_token(2_000).await.unwrap(), "pin");
+        assert_eq!(tracker.held.access(&tracker, 2_000).await.unwrap(), "pin");
     }
 
     #[tokio::test]

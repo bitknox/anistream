@@ -131,12 +131,17 @@ impl Sync {
             if tokens_for_mal.is_none() {
                 tracing::info!("mal enabled but not signed in; queueing locally");
             }
-            let tracker = Arc::new(anistream_track::MalTracker::new(
-                client_id,
-                http.plain().clone(),
-                Arc::new(StoreMapping { store: store.clone() }),
-                tokens_for_mal,
-            ));
+            // Given the store so it stays in step with another process signed in through it,
+            // the app beside the terminal: see `anistream_track`'s `held` module.
+            let tracker = Arc::new(
+                anistream_track::MalTracker::new(
+                    client_id,
+                    http.plain().clone(),
+                    Arc::new(StoreMapping { store: store.clone() }),
+                    tokens_for_mal,
+                )
+                .with_token_store(tokens.clone()),
+            );
             trackers.push(tracker.clone());
             mal = Some(tracker);
         }
@@ -148,11 +153,14 @@ impl Sync {
             if tokens_for_kitsu.is_none() {
                 tracing::info!("kitsu enabled but not signed in; queueing locally");
             }
-            let tracker = Arc::new(anistream_track::KitsuTracker::new(
-                http.plain().clone(),
-                Arc::new(StoreMapping { store: store.clone() }),
-                tokens_for_kitsu,
-            ));
+            let tracker = Arc::new(
+                anistream_track::KitsuTracker::new(
+                    http.plain().clone(),
+                    Arc::new(StoreMapping { store: store.clone() }),
+                    tokens_for_kitsu,
+                )
+                .with_token_store(tokens.clone()),
+            );
             trackers.push(tracker.clone());
             kitsu = Some(tracker);
         }
@@ -170,7 +178,8 @@ impl Sync {
                     Arc::new(StoreMapping { store: store.clone() }),
                     tokens.get_pair("simkl").ok(),
                 )
-                .with_client_secret(config.trackers.simkl.client_secret.clone()),
+                .with_client_secret(config.trackers.simkl.client_secret.clone())
+                .with_token_store(tokens.clone()),
             );
             trackers.push(tracker.clone());
             simkl = Some(tracker);
@@ -500,11 +509,12 @@ pub fn spawn_loops(sync: Sync, tx: Outbox) {
     });
 }
 
-/// Write back any token a tracker renewed during a call.
+/// Write back any token a tracker renewed during a call and could not store itself.
 ///
 /// MAL's tokens last about a month and refresh silently mid-call; without this the renewed pair
 /// would live only in memory, and the next process would present the expired one — refreshing on
-/// every single run until the *refresh* token itself expired.
+/// every single run until the *refresh* token itself expired. A tracker given the store writes
+/// its renewed pair at once, so what reaches here is a write that failed then, tried again.
 async fn persist_renewed_tokens(sync: &Sync) {
     // Taken rather than peeked, so a write failure does not silently discard it: the tracker keeps
     // the in-memory copy and offers it again on the next pass.
