@@ -121,12 +121,26 @@ done
 
 shell() { "$adb" -s "$serial" shell "$@"; }
 demo() { shell am broadcast -a com.android.systemui.demo -e command "$@" >/dev/null; }
+# A setting written while the system is still coming up after the boot can be lost: written
+# until it reads back.
+setting() {
+  local namespace="$1" key="$2" value="$3"
+  for _ in $(seq 1 30); do
+    shell settings put "$namespace" "$key" "$value"
+    [[ "$(shell settings get "$namespace" "$key" | tr -d '\r')" == "$value" ]] && return 0
+    sleep 1
+  done
+  echo "shots.sh: $namespace $key did not take $value" >&2
+}
+shell input keyevent KEYCODE_WAKEUP
+shell wm dismiss-keyguard
+shell svc power stayon true
 shell cmd uimode night yes >/dev/null
 # The boards' clock reads 19:30, on a 24-hour clock.
-shell settings put system time_12_24 24
+setting system time_12_24 24
 # Said again before every shot: a system still starting up after the boot drops the first.
 demo_mode() {
-  shell settings put global sysui_demo_allowed 1
+  setting global sysui_demo_allowed 1
   demo enter
   demo clock -e hhmm 1930
   demo battery -e level 100 -e plugged false
