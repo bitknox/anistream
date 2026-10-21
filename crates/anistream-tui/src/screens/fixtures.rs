@@ -62,6 +62,7 @@ pub(super) fn episode(
         completed,
         kind: None,
         skippable: false,
+        airs_at: None,
         thumbnail: None,
         description: None,
     }

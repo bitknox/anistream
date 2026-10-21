@@ -50,8 +50,8 @@ use crate::{
     tracking::{
         self,
         commands::{
-            cancel_sign_in, connect, connect_kitsu, finish_sign_in, load_library, set_score,
-            set_status, sync_now,
+            cancel_sign_in, connect, connect_kitsu, finish_sign_in, load_library,
+            load_title_language, set_score, set_status, sync_now,
         },
     },
 };
@@ -133,6 +133,7 @@ pub(crate) fn dispatch(
             spawn(job, services, tx, move |lent| search(lent, query, filter))
         }
         Command::LoadDetail(id) => spawn(job, services, tx, move |lent| load_detail(lent, id)),
+        Command::LoadTitleLanguage => load_title_language(services, tx),
         Command::PlayTrailer { url, title } => {
             play_trailer(url, title, job, engine, services, tx)
         }

@@ -15,7 +15,7 @@ pub async fn load_detail(lent: Lent, id: AnilistId) {
     // moment the title is on screen rather than only after it is opened once.
     let _ = tx.send(Event::ProviderPreference(store.provider_preference(id).ok().flatten()));
     let update = match meta.media(id).await {
-        Ok(media) => Event::Detail(Box::new(data::entry_from(&media, Some(&store)))),
+        Ok(media) => Event::Detail(Box::new(data::entry_with_detail(&media, Some(&store)))),
         Err(e) => Event::Toast(Notice::alert(format!("could not load title: {e}"))),
     };
     let _ = tx.send(update);

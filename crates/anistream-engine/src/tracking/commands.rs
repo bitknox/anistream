@@ -21,6 +21,29 @@ pub fn sync_now(job: Option<JobGuard>, services: &Services, tx: &Outbox) {
     });
 }
 
+/// The title language the signed-in AniList viewer reads in, for a front end that puts that
+/// form of each title first. `None` when nobody is signed in to AniList, or AniList could not
+/// be asked. The viewer is looked up once per sign-in and kept, so this usually costs nothing.
+pub fn load_title_language(services: &Services, tx: &Outbox) {
+    use anistream_core::traits::Tracker;
+    let Services { sync, .. } = services;
+    let (anilist, tx) = (sync.anilist.clone(), tx.clone());
+    tokio::spawn(async move {
+        let language = match anilist.filter(|tracker| tracker.is_authenticated()) {
+            Some(tracker) => tracker
+                .title_language()
+                .await
+                .inspect_err(
+                    |e| tracing::debug!(error = %e, "could not ask the title language"),
+                )
+                .ok()
+                .flatten(),
+            None => None,
+        };
+        let _ = tx.send(Event::ViewerTitleLanguage(language.map(crate::data::title_language)));
+    });
+}
+
 /// Sign in to a tracker, off the UI thread: it opens a browser and waits.
 pub fn connect(tracker: String, job: Option<JobGuard>, services: &Services, tx: &Outbox) {
     let Services { sync, host, app_clients, .. } = services;

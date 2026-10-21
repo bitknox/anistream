@@ -104,6 +104,10 @@ pub enum Command {
         filter: SearchFilters,
     },
     LoadDetail(AnilistId),
+    /// Ask the signed-in AniList viewer's title language, answered by
+    /// [`Event::ViewerTitleLanguage`](crate::event::Event::ViewerTitleLanguage). Costs no request
+    /// when the viewer was already looked up for their library.
+    LoadTitleLanguage,
     LoadEpisodes(AnilistId),
     CheckProviders,
     /// Fetch one segment of the tracker's list.

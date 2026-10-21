@@ -5,11 +5,205 @@
 //! the surface small and makes a breaking upstream change show up as one failed field
 //! rather than a wall of them.
 
+use std::collections::BTreeMap;
+
 use anistream_core::{
     ids::AnilistId,
     media::{MediaFormat, MediaStatus},
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de::DeserializeOwned};
+
+use super::Season;
+
+/// A field AniList may one day give a value this build does not know, read so that value is no
+/// value rather than a failed title: one season too many must not blank the Title screen.
+fn lenient<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    D: Deserializer<'de>,
+    T: DeserializeOwned,
+{
+    let value = Option::<serde_json::Value>::deserialize(deserializer)?;
+    Ok(value.and_then(|value| serde_json::from_value(value).ok()))
+}
+
+/// A date AniList may know only part of: often a year alone, or a year and a month, for a title
+/// announced but not yet scheduled.
+#[derive(Debug, Clone, Copy, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct FuzzyDate {
+    #[serde(default)]
+    pub year: Option<u16>,
+    #[serde(default)]
+    pub month: Option<u8>,
+    #[serde(default)]
+    pub day: Option<u8>,
+}
+
+/// What a title was adapted from, as AniList's `source(version: 3)` says.
+///
+/// Version 3, because the default version folds the newer kinds — a web novel, a live-action
+/// film — into `OTHER`. A kind newer still reads as [`Self::Other`] rather than failing.
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum SourceMaterial {
+    Original,
+    Manga,
+    LightNovel,
+    VisualNovel,
+    VideoGame,
+    Novel,
+    Doujinshi,
+    Anime,
+    WebNovel,
+    LiveAction,
+    Game,
+    Comic,
+    MultimediaProject,
+    PictureBook,
+    #[serde(other)]
+    Other,
+}
+
+/// One of AniList's tags on a title: what it is about, by votes.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct Tag {
+    #[serde(default)]
+    pub name: String,
+    /// How relevant the tag is to the title, out of 100.
+    #[serde(default)]
+    pub rank: Option<u32>,
+    /// The tag gives away something of this title's story.
+    #[serde(default)]
+    pub is_media_spoiler: bool,
+    /// The tag is a spoiler in general, whatever title it is on.
+    #[serde(default)]
+    pub is_general_spoiler: bool,
+    #[serde(default)]
+    pub category: Option<String>,
+}
+
+/// One episode's broadcast.
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct Broadcast {
+    pub episode: u32,
+    /// Unix seconds.
+    pub airing_at: i64,
+}
+
+/// The wire shape of `airingSchedule { nodes { … } }`.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct BroadcastConnection {
+    #[serde(default)]
+    pub nodes: Vec<Broadcast>,
+}
+
+/// Where a title ranks: `#3 highest rated 2026`, `#12 most popular all time`.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct Ranking {
+    #[serde(default)]
+    pub rank: Option<u32>,
+    /// `RATED` or `POPULAR`.
+    #[serde(default, rename = "type")]
+    pub kind: Option<String>,
+    /// AniList's own words for the list: `highest rated all time`.
+    #[serde(default)]
+    pub context: Option<String>,
+    #[serde(default)]
+    pub all_time: bool,
+    #[serde(default, deserialize_with = "lenient")]
+    pub season: Option<Season>,
+    #[serde(default)]
+    pub year: Option<u16>,
+}
+
+/// A person as a title's cast and crew name them.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct Person {
+    #[serde(default)]
+    pub name: PersonName,
+    #[serde(default)]
+    pub image: Option<PersonImage>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct PersonName {
+    #[serde(default)]
+    pub full: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct PersonImage {
+    #[serde(default)]
+    pub medium: Option<String>,
+}
+
+/// The wire shape of `characters { edges { … } }`, main characters first.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct CharacterConnection {
+    #[serde(default)]
+    pub edges: Vec<CharacterEdge>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct CharacterEdge {
+    /// `MAIN`, `SUPPORTING` or `BACKGROUND`.
+    #[serde(default)]
+    pub role: Option<String>,
+    #[serde(default)]
+    pub node: Option<Person>,
+    /// The character's Japanese voice actors, usually one.
+    #[serde(default)]
+    pub voice_actors: Vec<Person>,
+}
+
+/// The wire shape of `staff { edges { … } }`.
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct StaffConnection {
+    #[serde(default)]
+    pub edges: Vec<StaffEdge>,
+}
+
+#[derive(Debug, Clone, Default, Deserialize, Serialize, PartialEq, Eq)]
+pub struct StaffEdge {
+    /// What they did, in AniList's words: `Director`, `Original Creator`.
+    #[serde(default)]
+    pub role: Option<String>,
+    #[serde(default)]
+    pub node: Option<Person>,
+}
+
+/// The title language a signed-in user reads AniList in. The stylised forms are AniList's own
+/// capitalisation of the same title, and read here as the form they style.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TitleLanguage {
+    Romaji,
+    English,
+    Native,
+}
+
+impl TitleLanguage {
+    /// AniList's `UserTitleLanguage`, or `None` for one this build does not know.
+    pub fn from_wire(value: &str) -> Option<Self> {
+        Some(match value {
+            "ROMAJI" | "ROMAJI_STYLISED" => Self::Romaji,
+            "ENGLISH" | "ENGLISH_STYLISED" => Self::English,
+            "NATIVE" | "NATIVE_STYLISED" => Self::Native,
+            _ => return None,
+        })
+    }
+}
+
+/// The signed-in user, as [`super::query::VIEWER`] asks for them.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Viewer {
+    pub id: u32,
+    pub name: Option<String>,
+    /// `None` when AniList did not say, or said something this build does not know.
+    pub title_language: Option<TitleLanguage>,
+}
 
 /// A title in the three forms AniList publishes.
 ///
@@ -179,12 +373,20 @@ pub struct RelationEdge {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct RelationNode {
     pub id: AnilistId,
     #[serde(default)]
     pub title: Title,
     #[serde(default)]
     pub format: Option<MediaFormat>,
+    /// The cover a card shows. Only `large` is asked for.
+    #[serde(default)]
+    pub cover_image: CoverImage,
+    #[serde(default, deserialize_with = "lenient")]
+    pub season: Option<Season>,
+    #[serde(default)]
+    pub season_year: Option<u16>,
 }
 
 /// A title, as much of it as anistream renders.
@@ -208,6 +410,17 @@ pub struct Media {
     pub duration: Option<u32>,
     #[serde(default)]
     pub season_year: Option<u16>,
+    /// The season it premiered in.
+    #[serde(default, deserialize_with = "lenient")]
+    pub season: Option<Season>,
+    #[serde(default)]
+    pub start_date: Option<FuzzyDate>,
+    #[serde(default)]
+    pub end_date: Option<FuzzyDate>,
+    #[serde(default)]
+    pub source: Option<SourceMaterial>,
+    #[serde(default)]
+    pub is_adult: Option<bool>,
     #[serde(default)]
     pub average_score: Option<u32>,
     #[serde(default)]
@@ -236,6 +449,26 @@ pub struct Media {
     /// The promotional video, when AniList has one. Rides the detail fetch.
     #[serde(default)]
     pub trailer: Option<Trailer>,
+    /// What the title is about, by votes. Rides the detail fetch.
+    #[serde(default)]
+    pub tags: Vec<Tag>,
+    /// Every broadcast still to come, in episode order. Rides the detail fetch.
+    #[serde(default)]
+    pub upcoming: BroadcastConnection,
+    /// The broadcasts already out, newest first, fifty at most. Not a field of AniList's
+    /// `Media`: the detail fetch asks for it beside the title and puts it here, so the cache
+    /// keeps it with the rest.
+    #[serde(default)]
+    pub aired: Vec<Broadcast>,
+    /// Where the title ranks. Rides the detail fetch.
+    #[serde(default)]
+    pub rankings: Vec<Ranking>,
+    /// The main and supporting cast, with their Japanese voices. Rides the detail fetch.
+    #[serde(default)]
+    pub characters: CharacterConnection,
+    /// The people who made it, most relevant first. Rides the detail fetch.
+    #[serde(default)]
+    pub staff: StaffConnection,
 }
 
 /// A trailer reference: a video id on a host, not a playable URL.
@@ -482,6 +715,22 @@ impl Media {
         self.streaming_episodes.iter().find(|e| e.episode_number() == Some(episode))
     }
 
+    /// When each episode airs or aired, by number, from every broadcast the title carries: the
+    /// ones already out, the ones to come, and the next one, which a list fetch has too.
+    ///
+    /// A long runner's oldest broadcasts are not here — only its newest fifty — so a missing
+    /// episode means not known, never not aired.
+    pub fn air_times(&self) -> BTreeMap<u32, i64> {
+        let mut times = BTreeMap::new();
+        let next = self
+            .next_airing_episode
+            .map(|n| Broadcast { episode: n.episode, airing_at: n.airing_at });
+        for broadcast in self.aired.iter().chain(&self.upcoming.nodes).chain(next.as_ref()) {
+            times.insert(broadcast.episode, broadcast.airing_at);
+        }
+        times
+    }
+
     /// Build the matching target used by the resolution ladder.
     pub fn match_target(&self) -> crate::title::MatchTarget {
         crate::title::MatchTarget {
@@ -697,6 +946,117 @@ mod tests {
         // An unknown host must not become a guessed URL that opens a 404.
         assert_eq!(with("bilibili".into()).trailer_url(), None);
         assert_eq!(with(serde_json::Value::Null).trailer_url(), None);
+    }
+
+    /// A title page's answer with every field the richer detail asks for, and the broadcasts
+    /// already out as the client puts them on the title.
+    fn detailed() -> Media {
+        serde_json::from_value(serde_json::json!({
+            "id": 900001,
+            "title": {"romaji": "Hoshikuzu no Tabibito", "english": "Stardust Wayfarer"},
+            "season": "SPRING",
+            "startDate": {"year": 2024, "month": 4, "day": 6},
+            "endDate": {"year": null, "month": null, "day": null},
+            "source": "MANGA",
+            "isAdult": false,
+            "nextAiringEpisode": {"episode": 4, "airingAt": 3_000, "timeUntilAiring": 10},
+            "tags": [
+                {"name": "Travel", "rank": 94, "isMediaSpoiler": false,
+                 "isGeneralSpoiler": false, "category": "Theme-Other"},
+                {"name": "The Last Lantern", "rank": 58, "isMediaSpoiler": true,
+                 "isGeneralSpoiler": false, "category": "Theme-Drama"}
+            ],
+            "upcoming": {"nodes": [{"episode": 4, "airingAt": 3_000}, {"episode": 5, "airingAt": 4_000}]},
+            "aired": [{"episode": 3, "airingAt": 2_000}, {"episode": 2, "airingAt": 1_000}],
+            "rankings": [{"rank": 4, "type": "RATED", "context": "highest rated",
+                          "allTime": false, "season": "SPRING", "year": 2024}],
+            "characters": {"edges": [{
+                "role": "MAIN",
+                "node": {"name": {"full": "Ren Amagiri"}, "image": {"medium": "https://img.example/people/ren.jpg"}},
+                "voiceActors": [{"name": {"full": "Ren's voice"}, "image": null}]
+            }]},
+            "staff": {"edges": [{"role": "Director", "node": {"name": {"full": "Director of Stardust Wayfarer"}}}]},
+            "relations": {"edges": [{"relationType": "SEQUEL", "node": {
+                "id": 900004, "title": {"romaji": "Hoshikuzu no Tabibito 2nd Season"}, "format": "TV",
+                "coverImage": {"large": "https://img.example/cover/900004.jpg"},
+                "season": "WINTER", "seasonYear": 2025
+            }}]}
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn the_title_pages_richer_fields_deserialise() {
+        let m = detailed();
+        assert_eq!(m.season, Some(Season::Spring));
+        assert_eq!(
+            m.start_date,
+            Some(FuzzyDate { year: Some(2024), month: Some(4), day: Some(6) })
+        );
+        assert_eq!(m.end_date, Some(FuzzyDate::default()), "an unknown end is all nulls");
+        assert_eq!(m.source, Some(SourceMaterial::Manga));
+        assert_eq!(m.is_adult, Some(false));
+        assert_eq!(m.tags.len(), 2);
+        assert!(m.tags[1].is_media_spoiler);
+        assert_eq!(m.rankings[0].kind.as_deref(), Some("RATED"));
+        assert_eq!(m.rankings[0].season, Some(Season::Spring));
+        let cast = &m.characters.edges[0];
+        assert_eq!(cast.role.as_deref(), Some("MAIN"));
+        assert_eq!(cast.voice_actors[0].name.full.as_deref(), Some("Ren's voice"));
+        assert_eq!(m.staff.edges[0].role.as_deref(), Some("Director"));
+        let sequel = &m.relations.edges[0].node;
+        assert_eq!(sequel.cover_image.best(), Some("https://img.example/cover/900004.jpg"));
+        assert_eq!((sequel.season, sequel.season_year), (Some(Season::Winter), Some(2025)));
+    }
+
+    #[test]
+    fn a_kind_or_season_anilist_adds_later_does_not_break_the_title() {
+        // A season this build has never heard of reads as none; a source kind as other. Either
+        // failing would blank the Title screen over one field.
+        let m: Media = serde_json::from_value(serde_json::json!({
+            "id": 1,
+            "season": "MONSOON",
+            "source": "SOMETHING_NEW",
+            "rankings": [{"rank": 1, "type": "TRENDING", "season": "MONSOON"}]
+        }))
+        .unwrap();
+        assert_eq!(m.season, None);
+        assert_eq!(m.source, Some(SourceMaterial::Other));
+        assert_eq!(m.rankings[0].season, None);
+    }
+
+    #[test]
+    fn air_times_gather_every_broadcast_by_episode() {
+        // What is out, what is to come, and the next one, which a list fetch carries alone.
+        let times = detailed().air_times();
+        assert_eq!(
+            times.into_iter().collect::<Vec<_>>(),
+            [(2, 1_000), (3, 2_000), (4, 3_000), (5, 4_000)]
+        );
+
+        let listed: Media = serde_json::from_value(serde_json::json!({
+            "id": 1,
+            "nextAiringEpisode": {"episode": 7, "airingAt": 9_000, "timeUntilAiring": 5}
+        }))
+        .unwrap();
+        assert_eq!(listed.air_times().into_iter().collect::<Vec<_>>(), [(7, 9_000)]);
+    }
+
+    #[test]
+    fn the_richer_fields_survive_the_cache_round_trip() {
+        // What the cache recalls during an outage is what the Title screen showed.
+        let m = detailed();
+        let back: Media = serde_json::from_str(&serde_json::to_string(&m).unwrap()).unwrap();
+        assert_eq!(back, m);
+        assert_eq!(back.aired.len(), 2, "the broadcasts put on the title are kept with it");
+    }
+
+    #[test]
+    fn a_stylised_title_language_reads_as_the_form_it_styles() {
+        assert_eq!(TitleLanguage::from_wire("ROMAJI"), Some(TitleLanguage::Romaji));
+        assert_eq!(TitleLanguage::from_wire("ENGLISH_STYLISED"), Some(TitleLanguage::English));
+        assert_eq!(TitleLanguage::from_wire("NATIVE_STYLISED"), Some(TitleLanguage::Native));
+        assert_eq!(TitleLanguage::from_wire("SOMETHING_NEW"), None);
     }
 
     #[test]
