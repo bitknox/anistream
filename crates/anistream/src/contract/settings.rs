@@ -184,6 +184,39 @@ async fn writes_in_a_row_land_in_order_and_each_sees_the_last() {
 }
 
 #[tokio::test]
+async fn a_plugin_switched_off_keeps_its_row_and_is_not_tried() {
+    use anistream_core::traits::ProviderKind;
+    let archive =
+        MockProvider::new("archive").with_hits(sources::hits()).kind(ProviderKind::Plugin);
+    let registry = ProviderRegistry::new(vec![archive.arc(), sources::provider().arc()]);
+    let mut h = Harness::with(Options { registry: Some(registry), ..Options::default() }).await;
+    h.send(Command::DisablePlugin { id: "archive".into(), disabled: true });
+    let updates = h.settle().await;
+
+    assert_eq!(h.trace(), ["Settings", "Providers", "Toast", "SettingsSaved"]);
+    assert_eq!(settings(&updates[0]).sources.disabled, ["archive"]);
+    let Event::Providers(rows) = &updates[1] else { unreachable!() };
+    let row = rows.iter().find(|row| row.id == "archive").expect("its row stays");
+    assert!(row.disabled && !row.usable);
+    assert_eq!(toasts(&updates), ["info: archive is off · skipped when looking for episodes"]);
+    assert_eq!(on_disk(&h).providers.disabled, ["archive"]);
+    assert_eq!(h.registry().ids(), ["archive", "fixture"], "in its place");
+    assert_eq!(h.registry().usable_ids(), ["fixture"]);
+
+    h.send(Command::DisablePlugin { id: "archive".into(), disabled: false });
+    let updates = h.settle().await;
+    assert_eq!(toasts(&updates), ["info: archive is on"]);
+    assert!(on_disk(&h).providers.disabled.is_empty());
+    assert_eq!(h.registry().usable_ids(), ["archive", "fixture"]);
+
+    // The fixture source is no plugin: refused, and nothing written.
+    h.send(Command::DisablePlugin { id: "fixture".into(), disabled: true });
+    let updates = h.settle().await;
+    assert_eq!(h.trace(), ["Toast"]);
+    assert_eq!(toasts(&updates), ["alert: fixture is not a plugin that is loaded"]);
+}
+
+#[tokio::test]
 async fn an_order_that_only_moves_sources_reorders_the_chain_in_place() {
     let alt = MockProvider::new("alt").with_hits(sources::hits());
     let registry = ProviderRegistry::new(vec![sources::provider().arc(), alt.arc()]);

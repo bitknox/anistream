@@ -124,7 +124,8 @@ fn write_setting(
             // The Providers rows moved when the key was pressed and the chain did not,
             // so the chain's own rows put them back.
             if (table, key) == (&["providers"][..], "order") {
-                let _ = tx.send(Event::Providers(data::provider_rows(registry)));
+                let rows = data::provider_rows(registry, &services.stores);
+                let _ = tx.send(Event::Providers(rows));
             }
         }
     }

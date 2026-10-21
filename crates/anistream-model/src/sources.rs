@@ -5,7 +5,7 @@
 ///
 /// A flattened snapshot rather than the live tracker, so the UI crate stays independent of
 /// the provider implementations.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 #[cfg_attr(feature = "ffi", derive(uniffi::Record))]
 pub struct ProviderRow {
     pub id: String,
@@ -13,10 +13,47 @@ pub struct ProviderRow {
     pub state: String,
     pub latency_ms: Option<u64>,
     pub last_error: Option<String>,
-    /// Whether resolution will actually try this source.
+    /// Whether resolution will actually try this source: not while it is switched off.
     pub usable: bool,
     /// Withheld by local policy rather than broken — a failing VPN guard, say.
     pub held_back: bool,
+    /// The name it goes by: the plugin's own, or the built-in source's.
+    pub name: String,
+    /// A plugin's version. `None` for a source built into anistream.
+    pub version: Option<String>,
+    /// The hosts it may contact, and no others: a plugin's allowlist, which the host enforces
+    /// on every request it makes.
+    pub hosts: Vec<String>,
+    /// Where it came from.
+    pub origin: ProviderOrigin,
+    /// Switched off by name, `providers.disabled`: kept, and not tried until it is on again.
+    pub disabled: bool,
+    /// A newer version the store it came from offers, when there is one.
+    pub update: Option<ProviderUpdate>,
+}
+
+/// Where a provider came from: the provider page's "From Hotaru Plugins".
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum ProviderOrigin {
+    /// Part of anistream: the torrent source, or a remote API you run.
+    #[default]
+    BuiltIn,
+    /// Installed from a plugin store, which keeps it updated. `name` is the store's, or `None`
+    /// once that store is no longer joined: the plugin keeps working and stops updating.
+    Store { id: String, name: Option<String> },
+    /// A plugin file put in the plugin directory by hand.
+    ByHand,
+}
+
+/// A newer version of a plugin, offered by the store it came from.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct ProviderUpdate {
+    pub version: String,
+    /// The hosts the newer version may contact that this one may not: "This update also
+    /// contacts …".
+    pub new_hosts: Vec<String>,
 }
 
 /// `order` with the source `id` moved one place up the chain (`step` below zero) or down it, or
@@ -130,8 +167,12 @@ pub fn source_states(
     explained: bool,
 ) -> Vec<SourceChip> {
     let of_kind = |kind: &str| -> SourceState {
-        let rows: Vec<&ProviderRow> = rows.iter().filter(|p| p.kind == kind).collect();
-        if rows.iter().any(|p| p.usable) {
+        let of_kind: Vec<&ProviderRow> = rows.iter().filter(|p| p.kind == kind).collect();
+        // Each switched off by name is off, not failing: a choice, not a fault.
+        let rows: Vec<&ProviderRow> = of_kind.iter().copied().filter(|p| !p.disabled).collect();
+        if rows.is_empty() && !of_kind.is_empty() {
+            SourceState::Off
+        } else if rows.iter().any(|p| p.usable) {
             SourceState::Ready
         } else if rows.iter().any(|p| p.held_back) {
             SourceState::HeldBack
@@ -247,11 +288,25 @@ mod tests {
             last_error: None,
             usable: true,
             held_back: false,
+            ..ProviderRow::default()
         }
     }
 
     fn strings(entries: &[&str]) -> Vec<String> {
         entries.iter().map(|e| (*e).to_owned()).collect()
+    }
+
+    #[test]
+    fn plugins_all_switched_off_are_off_and_not_failing() {
+        let configured =
+            ConfiguredSources { order: strings(&["plugins"]), ..ConfiguredSources::default() };
+        let off =
+            |id| ProviderRow { disabled: true, usable: false, ..source_row(id, "plugin") };
+        let state = |rows: &[ProviderRow]| source_states(&configured, rows, false)[0].state;
+        assert_eq!(state(&[off("a"), off("b")]), SourceState::Off);
+        assert_eq!(state(&[off("a"), source_row("b", "plugin")]), SourceState::Ready);
+        let failing = ProviderRow { usable: false, ..source_row("b", "plugin") };
+        assert_eq!(state(&[off("a"), failing]), SourceState::Failing, "the one on is failing");
     }
 
     #[test]

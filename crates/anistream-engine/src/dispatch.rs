@@ -34,7 +34,11 @@ use crate::{
     plugin_stores::tasks::{StoreTaskContext, store_task},
     services::Services,
     settings::{set_setting, set_translation, step_setting},
-    sources::{self, commands::check_providers, torrent::reload_sources},
+    sources::{
+        self,
+        commands::{check_providers, disable_plugin},
+        torrent::reload_sources,
+    },
     state::EngineState,
     titles::{
         episodes::{list_episodes, set_watched},
@@ -52,6 +56,8 @@ pub struct Lent {
     pub meta: Meta,
     pub store: Store,
     pub registry: ProviderRegistry,
+    /// The plugin stores joined, which say where each plugin came from.
+    pub stores: crate::plugin_stores::Stores,
     pub tx: Outbox,
 }
 
@@ -65,6 +71,7 @@ where
     let meta = services.meta.clone();
     let store = services.store.clone();
     let registry = services.registry.clone();
+    let stores = services.stores.clone();
     let tx = tx.clone();
 
     tokio::spawn(async move {
@@ -87,7 +94,7 @@ where
                 }
             }
         }
-        work(Lent { meta, store, registry, tx }).await;
+        work(Lent { meta, store, registry, stores, tx }).await;
     });
 }
 
@@ -239,6 +246,9 @@ pub(crate) fn dispatch(
         Command::RemovePlugin { plugin } => {
             store_task(job, engine, services, tx, move |context| context.remove_plugin(plugin))
         }
+        Command::DisablePlugin { id, disabled } => {
+            disable_plugin(id, disabled, engine, services, tx)
+        }
         Command::CreateInvite { store, name } => {
             store_task(job, engine, services, tx, move |context| {
                 context.create_invite(store, name)
@@ -331,7 +341,10 @@ pub(crate) async fn handle_internal(
         // Only the order changed: the chain as it stands is put in it, with no rebuild.
         Internal::SourcesReordered => {
             sources::arrange(&services.registry, engine.config.effective());
-            said.push(Event::Providers(data::provider_rows(&services.registry)));
+            said.push(Event::Providers(data::provider_rows(
+                &services.registry,
+                &services.stores,
+            )));
         }
         // Awaited rather than spawned: this owns the session and the guard, and two
         // rebuilds racing would leave one of their sessions running with nothing holding

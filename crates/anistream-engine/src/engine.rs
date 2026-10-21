@@ -184,6 +184,8 @@ impl Engine {
                 (registry, Some(loading))
             }
         };
+        // A chain given whole too: a plugin switched off by name is in it, and not tried.
+        registry.set_disabled(config.providers.disabled.iter().cloned());
 
         // What every task is lent, built around that chain, or from a test's parts.
         #[cfg(feature = "testing")]
@@ -234,7 +236,8 @@ impl Engine {
         };
         // A chain given whole is final, so its rows are what launch says of it.
         if !own_chain {
-            launch.push_back(Event::Providers(data::provider_rows(&services.registry)));
+            let rows = data::provider_rows(&services.registry, &services.stores);
+            launch.push_back(Event::Providers(rows));
         }
 
         // Background work reports through this, each piece holding its own sender, and the

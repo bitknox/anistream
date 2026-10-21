@@ -137,6 +137,7 @@ mod tests {
             last_error: None,
             usable: true,
             held_back: false,
+            ..Default::default()
         }]));
         assert_eq!(a.source_states()[1], chips(&[("plugins", SourceState::Ready)])[0]);
         // What actually served wins once something has played.
@@ -160,6 +161,7 @@ mod tests {
             last_error: None,
             usable: true,
             held_back: false,
+            ..Default::default()
         }
     }
 

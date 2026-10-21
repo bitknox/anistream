@@ -181,35 +181,51 @@ pub fn meta_rows(meta: &anistream_meta::Meta) -> Vec<anistream_model::sources::M
 }
 
 /// Flatten provider health for the Providers screen.
-pub fn provider_rows(registry: &anistream_providers::ProviderRegistry) -> Vec<ProviderRow> {
+pub fn provider_rows(
+    registry: &anistream_providers::ProviderRegistry,
+    stores: &crate::plugin_stores::Stores,
+) -> Vec<ProviderRow> {
+    use anistream_core::traits::ProviderKind;
+    use anistream_model::sources::ProviderOrigin;
+
     let health = registry.health();
+    let mut origins = stores.origins();
     registry
         .ids()
         .iter()
         .map(|id| {
-            let kind = registry
-                .get(id)
-                .map(|p| p.manifest().kind.as_str().to_owned())
-                .unwrap_or_default();
+            let manifest = registry.get(id).map(|p| p.manifest().clone());
+            let plugin = manifest.as_ref().is_some_and(|m| m.kind == ProviderKind::Plugin);
+            // A plugin no store installed was put in the plugin directory by hand.
+            let (origin, update) = match origins.remove(id) {
+                Some(found) if plugin => found,
+                _ if plugin => (ProviderOrigin::ByHand, None),
+                _ => (ProviderOrigin::BuiltIn, None),
+            };
+            let disabled = registry.is_disabled(id);
+            let described = ProviderRow {
+                id: id.clone(),
+                kind: manifest.as_ref().map(|m| m.kind.as_str().to_owned()).unwrap_or_default(),
+                name: manifest.as_ref().map_or_else(|| id.clone(), |m| m.display_name.clone()),
+                version: manifest.as_ref().filter(|_| plugin).map(|m| m.version.clone()),
+                hosts: manifest.map(|m| m.allowed_hosts).unwrap_or_default(),
+                origin,
+                disabled,
+                update,
+                ..ProviderRow::default()
+            };
             match health.get(id) {
                 Some(h) => ProviderRow {
-                    id: h.id.clone(),
-                    kind,
                     state: h.state_label(),
                     latency_ms: h.last_latency.map(|d| d.as_millis() as u64),
                     last_error: h.last_error.clone(),
-                    usable: h.is_usable(),
+                    usable: h.is_usable() && !disabled,
                     held_back: h.held_back.is_some(),
+                    ..described
                 },
-                None => ProviderRow {
-                    id: id.clone(),
-                    kind,
-                    state: "unchecked".into(),
-                    latency_ms: None,
-                    last_error: None,
-                    usable: true,
-                    held_back: false,
-                },
+                None => {
+                    ProviderRow { state: "unchecked".into(), usable: !disabled, ..described }
+                }
             }
         })
         .collect()
@@ -667,5 +683,48 @@ mod tests {
         assert_eq!(e.airing_in, Some(-3_600), "the row's own slot, already past");
         assert_eq!(e.next_episode, Some(6), "the schedule survives the row");
         assert_eq!(e.next_airing_in, Some(600_000), "so the next episode can still be dated");
+    }
+}
+
+#[cfg(test)]
+mod provider_row_tests {
+    use anistream_core::{
+        config::{Config, Paths},
+        traits::ProviderKind,
+    };
+    use anistream_model::sources::ProviderOrigin;
+    use anistream_providers::{MockProvider, ProviderRegistry};
+    use anistream_track::secret::{Backend, TokenStore};
+
+    use super::*;
+
+    #[test]
+    fn a_row_says_what_a_source_is_where_it_came_from_and_whether_it_is_off() {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = Paths {
+            config_file: dir.path().join("config.toml"),
+            data_dir: dir.path().join("data"),
+            cache_dir: dir.path().join("cache"),
+        };
+        let tokens = TokenStore::with_backend(dir.path().join("tokens"), Backend::File);
+        let stores =
+            crate::plugin_stores::Stores::with_tokens(&Config::default(), &paths, tokens)
+                .unwrap();
+        let registry = ProviderRegistry::new(vec![
+            MockProvider::new("archive").kind(ProviderKind::Plugin).arc(),
+            MockProvider::new("fixture").arc(),
+        ]);
+        registry.set_disabled(["archive".to_owned()]);
+
+        let rows = provider_rows(&registry, &stores);
+        let [archive, fixture] = &rows[..] else { panic!("{rows:?}") };
+        // No store installed it, so it was added by hand.
+        assert_eq!(archive.origin, ProviderOrigin::ByHand);
+        assert_eq!((archive.name.as_str(), archive.version.as_deref()), ("archive", Some("0")));
+        assert!(archive.disabled && !archive.usable, "off, and so not tried");
+        assert_eq!(archive.update, None);
+        assert_eq!(fixture.origin, ProviderOrigin::BuiltIn);
+        assert_eq!(fixture.version, None, "a built-in source has no version of its own");
+        assert!(!fixture.disabled && fixture.usable);
     }
 }
