@@ -59,6 +59,7 @@ final class Spike: @unchecked Sendable {
             player.setLook(args.look)
         }
         if let start = args.start { mpv.set("start", String(start)) }
+        if let speed = args.speed { mpv.set("speed", String(speed)) }
 
         switch args.mode {
         case "probe":
@@ -92,9 +93,11 @@ final class Spike: @unchecked Sendable {
     func load(_ url: String) async -> Bool {
         let t0 = Date()
         let mpv = self.mpv
+        // Replacing a file ends the old one first (reason stop); only an error ends this load.
         async let restart = mpv.next(timeout: .seconds(30)) { event in
             switch event {
-            case .playbackRestart, .endFile: true
+            case .playbackRestart: true
+            case .endFile(let reason, _): reason == 4  // MPV_END_FILE_REASON_ERROR
             default: false
             }
         }
@@ -184,7 +187,7 @@ final class Spike: @unchecked Sendable {
     func probe() async {
         var results: [[String: Any]] = []
         var current = ""
-        for file in Shaders.all {
+        for file in args.probeFiles ?? Shaders.all {
             let source =
                 switch file {
                 case "Anime4K_AutoDownscalePre_x4.glsl": "testsrc480"
@@ -203,25 +206,46 @@ final class Spike: @unchecked Sendable {
             let path = Shaders.directory.appending(path: file).path
             let descs = Self.descs(path)
             let mark = log.count
+            let before = counters()
             let t0 = Date()
             let status = mpv.set("glsl-shaders", strings: [path])
-            try? await Task.sleep(for: .seconds(3))
-            let fresh = mpv.get("vo-passes")["fresh"].array
-            let mine = fresh.filter { pass in
+            // Ready once this file's passes show up in vo-passes: the hooks compiled (GLSL to
+            // SPIR-V to MSL) and drew a frame. Compiling runs on the VO thread, so the picture
+            // stalls for that long when a chain changes.
+            var readyMs: Int?
+            var mine: [MPVValue] = []
+            while Date().timeIntervalSince(t0) < 30 {
+                try? await Task.sleep(for: .milliseconds(100))
+                mine = mpv.get("vo-passes")["fresh"].array.filter { pass in
+                    let desc = pass["desc"].string ?? ""
+                    return descs.contains { desc.contains($0) }
+                }
+                if !mine.isEmpty {
+                    readyMs = Int(Date().timeIntervalSince(t0) * 1000)
+                    break
+                }
+            }
+            try? await Task.sleep(for: .seconds(3))  // timings settle
+            mine = mpv.get("vo-passes")["fresh"].array.filter { pass in
                 let desc = pass["desc"].string ?? ""
                 return descs.contains { desc.contains($0) }
             }
+            let after = counters()
             let problems = log.since(mark).filter { ["fatal", "error", "warn"].contains($0.level) }
             let ms = mine.reduce(0.0) { $0 + ($1["avg"].double ?? 0) } / 1e6
+            let peak = mine.reduce(0.0) { $0 + ($1["peak"].double ?? 0) } / 1e6
+            let drops = (after["frame-drop-count"] ?? 0) - (before["frame-drop-count"] ?? 0)
             results.append([
                 "file": file, "source": source, "set_status": status,
                 "hooks_in_file": descs.count, "passes_run": mine.count,
-                "gpu_ms": round(ms * 100) / 100,
-                "elapsed_ms": Int(Date().timeIntervalSince(t0) * 1000),
+                "ready_ms": readyMs ?? -1,
+                "gpu_avg_ms": round(ms * 100) / 100, "gpu_peak_ms": round(peak * 100) / 100,
+                "frames": (after["estimated-frame-number"] ?? 0) - (before["estimated-frame-number"] ?? 0),
+                "drops": drops,
                 "problems": problems.map { "[\($0.prefix)] \($0.level): \($0.text)" },
             ])
             FileHandle.standardError.write(
-                Data("probe \(file): \(mine.count) passes, \(String(format: "%.2f", ms)) ms, \(problems.count) problems\n".utf8))
+                Data("probe \(file): \(mine.count) passes, ready \(readyMs ?? -1) ms, \(String(format: "%.2f", ms)) ms/frame, \(drops) drops, \(problems.count) problems\n".utf8))
         }
         report["probe"] = results
     }

@@ -16,7 +16,9 @@ import SpikePlayer
 ///   --no-hdr-hint                 target-colorspace-hint=no
 ///   --resize-fix none|vo          after a resize, nothing or re-create the VO (S2)
 ///   --start S                     start position
+///   --speed X                     play X times as fast (headroom: 2 is 48 fps of 24p)
 ///   --paused                      pause once the first frame is up (S2 while paused)
+///   --probe-file A.glsl[,B.glsl]  probe only these (one process per file keeps GPU timers)
 ///   --wake "CMD ARGS"             an mpv command sent after each S2 resize, to wake the VO
 ///
 /// Inputs may be the aliases testsrc (1080p24 and a tone), testsrc720, testsrc480 and
@@ -37,6 +39,8 @@ struct Args {
     var resizeFix = "none"
     var start: Double?
     var paused = false
+    var probeFiles: [String]?
+    var speed: Double?
     var wake: [String]?
 
     static func parse(_ argv: [String] = Array(CommandLine.arguments.dropFirst())) -> Args {
@@ -73,6 +77,8 @@ struct Args {
             case "--resize-fix": args.resizeFix = value(arg)
             case "--start": args.start = Double(value(arg))
             case "--paused": args.paused = true
+            case "--speed": args.speed = Double(value(arg))
+            case "--probe-file": args.probeFiles = value(arg).split(separator: ",").map(String.init)
             case "--wake": args.wake = value(arg).split(separator: " ").map(String.init)
             case "-h", "--help":
                 print("swift run PlayerSpike <url-or-file> [--shaders off|natural|sharp] [--shot out.png] [--seconds N] …")
