@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -30,11 +31,13 @@ import tv.anistream.design.Nagare
 import tv.anistream.design.tabular
 import tv.anistream.engine.core.SettingValue
 import tv.anistream.engine.model.Entry
+import tv.anistream.engine.model.FailedCheck
 import tv.anistream.engine.model.GuardView
 import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.StorePluginStatus
 import tv.anistream.engine.model.TitleLanguage
 import tv.anistream.engine.model.TorrentProtection
+import tv.anistream.engine.model.TorrentProxy
 import tv.anistream.store.AccountsModel
 import tv.anistream.store.LibraryModel
 import tv.anistream.store.ProvidersModel
@@ -331,6 +334,7 @@ internal fun SourcesPane(actions: AppActions) {
     }
     val torrents = store.settings.isOn(SettingKey.TORRENTS, view)
     val updates = stores.sumOf { it.updates }
+    var sheet by rememberSaveable { mutableStateOf<TorrentSheetMode?>(null) }
     Pane {
         SettingsGroup(
             rows = listOf(
@@ -357,11 +361,21 @@ internal fun SourcesPane(actions: AppActions) {
             title = "Torrents",
             footer = if (torrents) CHECK_NOTE else "Off by default. Turning this on asks how to protect your connection first.",
             rows = listOfNotNull(
-                @Composable { place: Place -> TorrentSourceRow(place, torrents) },
-                if (torrents) @Composable { place: Place -> InfoRow(place, "Torrent index", view?.sources?.index ?: "None set") } else null,
-                if (torrents) @Composable { place: Place -> InfoRow(place, "Protect with", protectionWords(view?.torrent?.protection)) } else null,
+                @Composable { place: Place -> TorrentSourceRow(place, torrents) { sheet = TorrentSheetMode.TurnOn } },
+                if (torrents) @Composable { place: Place ->
+                    InfoRow(place, "Torrent index", view?.sources?.index ?: "None set", onClick = { sheet = TorrentSheetMode.Change })
+                } else null,
+                if (torrents) @Composable { place: Place ->
+                    MenuRow(
+                        place,
+                        "Protect with",
+                        protectionWords(view?.torrent?.protection),
+                        listOf(TorrentProtection.PROXY, TorrentProtection.DEVICE, TorrentProtection.NONE).map { MenuChoice(it, protectionWords(it)) },
+                        view?.torrent?.protection,
+                    ) { picked -> if (picked != view?.torrent?.protection) sheet = TorrentSheetMode.Change }
+                } else null,
                 if (torrents) @Composable { place: Place -> LastCheckRow(place) } else null,
-                if (torrents) @Composable { place: Place -> SettingMenu(place, SettingKey.VPN_ON_FAILURE, "If a check fails") } else null,
+                if (torrents) @Composable { place: Place -> FailedCheckRow(place) } else null,
                 if (torrents) @Composable { place: Place -> SettingSwitch(place, SettingKey.TORRENTS_ON_CELLULAR, "Torrents on cellular") } else null,
             ),
         )
@@ -377,6 +391,7 @@ internal fun SourcesPane(actions: AppActions) {
             )
         }
     }
+    sheet?.let { mode -> TorrentSheet(mode) { sheet = null } }
 }
 
 /** What the connection check does, said wherever torrents are on. */
@@ -386,12 +401,55 @@ internal const val CHECK_NOTE =
 
 /** The torrent source's switch. Turning it off is a switch; turning it on asks for protection first. */
 @Composable
-private fun TorrentSourceRow(place: Place, on: Boolean) {
+private fun TorrentSourceRow(place: Place, on: Boolean, turnOn: () -> Unit) {
     val store = LocalAppStore.current
-    // Turning torrents on goes through the sheet that asks how to protect the connection, which
-    // is not in this build yet: until then only turning them off is offered here.
-    SwitchRow(place, "Torrent source", checked = on, enabled = on) { wanted ->
-        if (!wanted) store.setSwitch(SettingKey.TORRENTS, false)
+    SwitchRow(place, "Torrent source", checked = on) { wanted ->
+        if (wanted) turnOn() else store.setSwitch(SettingKey.TORRENTS, false)
+    }
+}
+
+/**
+ * If a check fails: pause or stop torrents as a setting, or warn only, which keeps them running
+ * on what may be the viewer's own address and so is confirmed first and asked for with the
+ * protection it goes with.
+ */
+@Composable
+private fun FailedCheckRow(place: Place) {
+    val store = LocalAppStore.current
+    val view by store.settings.view.collectAsStateWithLifecycle()
+    val torrent = view?.torrent
+    var warning by remember { mutableStateOf(false) }
+    val choices = listOf(
+        MenuChoice(FailedCheck.PAUSE, "Pause torrents"),
+        MenuChoice(FailedCheck.STOP, "Stop torrents"),
+        MenuChoice(FailedCheck.WARN, "Warn only"),
+    )
+    val current = torrent?.onFailure ?: FailedCheck.PAUSE
+    MenuRow(
+        place,
+        "If a check fails",
+        choices.firstOrNull { it.value == current }?.label,
+        choices,
+        current,
+        enabled = torrent != null,
+    ) { picked ->
+        when (picked) {
+            current -> {}
+            FailedCheck.WARN -> warning = true
+            FailedCheck.PAUSE -> store.setSetting(SettingKey.VPN_ON_FAILURE, SettingValue.Str("pause"))
+            FailedCheck.STOP -> store.setSetting(SettingKey.VPN_ON_FAILURE, SettingValue.Str("stop"))
+        }
+    }
+    if (warning && torrent != null) {
+        WarnOnlyDialog(onDismiss = { warning = false }) {
+            warning = false
+            store.setTorrentProtection(
+                torrent.protection,
+                proxy = torrent.proxy?.let { TorrentProxy(host = it.host, port = it.port, user = it.user, password = null) },
+                onFailure = FailedCheck.WARN,
+                acknowledged = true,
+            )
+        }
     }
 }
 

@@ -339,6 +339,21 @@ class AppStore(
 
     // Sources
 
+    /**
+     * Protect torrent traffic with [mode], through [proxy] when it is one, and have a failed
+     * connection check do [onFailure]: written as one change, the proxy's password to the
+     * keystore-sealed secrets and never to the file. No protection and warn only need
+     * [acknowledged], the viewer having confirmed it.
+     */
+    fun setTorrentProtection(
+        mode: tv.anistream.engine.model.TorrentProtection,
+        proxy: tv.anistream.engine.model.TorrentProxy?,
+        onFailure: tv.anistream.engine.model.FailedCheck,
+        acknowledged: Boolean,
+    ) {
+        send(Command.SetTorrentProtection(mode, proxy, onFailure, acknowledged))
+    }
+
     /** Check every provider again. */
     fun checkProviders() {
         send(Command.CheckProviders)
