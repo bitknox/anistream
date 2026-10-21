@@ -79,7 +79,10 @@ pub async fn load_episodes(
     // already fetched above does, so name them before they reach the table.
     data::name_episodes(&mut episodes, &media.episode_titles(), &media.episode_thumbnails());
 
-    Ok(EpisodeLoad::Rows(data::episode_rows(&episodes, store, id)))
+    // And when each aired or airs, so an episode not out yet can be told from one that is.
+    let mut rows = data::episode_rows(&episodes, store, id);
+    data::date_episodes(&mut rows, &media.air_times());
+    Ok(EpisodeLoad::Rows(rows))
 }
 
 /// A title's episodes, from the source playback would use, or the candidates to choose

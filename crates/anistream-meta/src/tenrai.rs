@@ -326,6 +326,19 @@ impl Tenrai {
             trailer: datum["trailer"]["youtube_id"]
                 .as_str()
                 .map(|id| Trailer { id: Some(id.to_owned()), site: Some("youtube".into()) }),
+            // AniList's alone. MAL's season and dates come in another shape, and the fallback
+            // is for when AniList is down, not a second source of detail.
+            season: None,
+            start_date: None,
+            end_date: None,
+            source: None,
+            is_adult: None,
+            tags: Vec::new(),
+            upcoming: Default::default(),
+            aired: Vec::new(),
+            rankings: Vec::new(),
+            characters: Default::default(),
+            staff: Default::default(),
         })
     }
 
@@ -365,6 +378,9 @@ impl Tenrai {
                                     native: None,
                                 },
                                 format: None,
+                                cover_image: Default::default(),
+                                season: None,
+                                season_year: None,
                             },
                         })
                     })

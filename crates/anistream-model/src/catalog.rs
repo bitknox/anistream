@@ -3,7 +3,7 @@
 
 use anistream_core::ids::AnilistId;
 
-use crate::progress::TitleProgress;
+use crate::{episodes::EpisodeAiring, progress::TitleProgress};
 
 /// A title as the list views need it.
 ///
@@ -72,6 +72,211 @@ pub struct Entry {
     /// segment, and a status set in this session is remembered on the entry. `None` means not
     /// known, not "on no list" — nothing outside the Library carries the tracker's answer.
     pub list_status: Option<LibrarySegment>,
+    /// The title in each form AniList publishes, for a front end that puts the viewer's own
+    /// [`TitleLanguage`] first. [`Self::title`] is the English-first form the terminal shows.
+    pub title_romaji: Option<String>,
+    pub title_english: Option<String>,
+    pub title_native: Option<String>,
+    /// The season it premiered in.
+    pub season: Option<Season>,
+    /// When it began and finished airing, as far as AniList knows. `None` until AniList knows
+    /// at least the year.
+    pub start_date: Option<FuzzyDate>,
+    pub end_date: Option<FuzzyDate>,
+    /// What it was adapted from.
+    pub source: Option<SourceMaterial>,
+    /// AniList marks it adult. `false` when AniList did not say.
+    pub adult: bool,
+    /// What only the title page fetches: tags, the schedule, every relation, the cast and crew.
+    /// `None` on every list fetch.
+    pub detail: Option<TitleDetail>,
+}
+
+/// The season a title premiered in.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum Season {
+    Winter,
+    Spring,
+    Summer,
+    Fall,
+}
+
+/// A date AniList may know only part of: always the year, the month and day when known. A
+/// title announced for a year has no month yet.
+///
+/// Not `Date`, which would shadow the platform's own date type in the Swift bindings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct FuzzyDate {
+    pub year: u16,
+    pub month: Option<u8>,
+    pub day: Option<u8>,
+}
+
+/// What a title was adapted from. A kind AniList adds later reads as [`Self::Other`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum SourceMaterial {
+    Original,
+    Manga,
+    LightNovel,
+    VisualNovel,
+    VideoGame,
+    Novel,
+    Doujinshi,
+    Anime,
+    WebNovel,
+    LiveAction,
+    Game,
+    Comic,
+    MultimediaProject,
+    PictureBook,
+    Other,
+}
+
+/// Which form of a title to put first, as the signed-in viewer reads AniList: see
+/// [`crate::command::Command::LoadTitleLanguage`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum TitleLanguage {
+    Romaji,
+    English,
+    Native,
+}
+
+/// What only a title's page carries, beside the [`Entry`] every list shows.
+#[derive(Debug, Clone, Default, PartialEq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct TitleDetail {
+    /// What the title is about, most relevant first.
+    pub tags: Vec<TitleTag>,
+    /// When each episode aired or airs, in episode order: those already out (a long runner's
+    /// newest fifty) and every one still to come. An episode missing here is not known, which
+    /// does not mean it has not aired.
+    pub schedule: Vec<EpisodeAiring>,
+    /// Every related anime, whatever the relation. [`Entry::related`] is the watch order alone,
+    /// which is what the terminal lists.
+    pub relations: Vec<LinkedTitle>,
+    /// What people who liked this rated highest, with their covers. The same titles as
+    /// [`Entry::recommended`], AniList's first eight.
+    pub recommendations: Vec<LinkedTitle>,
+    pub rankings: Vec<Ranking>,
+    /// The main and supporting cast, main first, with their Japanese voices.
+    pub characters: Vec<CastMember>,
+    /// The people who made it, most relevant first.
+    pub staff: Vec<StaffCredit>,
+}
+
+/// One of a title's tags.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct TitleTag {
+    pub name: String,
+    /// How relevant it is to the title, out of 100.
+    pub rank: Option<u32>,
+    /// It gives away something of this title's story.
+    pub media_spoiler: bool,
+    /// It is a spoiler on any title.
+    pub general_spoiler: bool,
+    pub category: Option<String>,
+}
+
+/// Another title, as a related or recommended card shows it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct LinkedTitle {
+    pub id: AnilistId,
+    /// The English-first form, as [`Entry::title`].
+    pub title: String,
+    pub title_romaji: Option<String>,
+    pub title_english: Option<String>,
+    pub title_native: Option<String>,
+    /// How it relates to the title. `None` on a recommendation.
+    pub relation: Option<RelationKind>,
+    /// `TV`, `MOVIE`, as [`Entry::format`].
+    pub format: Option<String>,
+    pub cover_url: Option<String>,
+    pub season: Option<Season>,
+    pub year: Option<u16>,
+}
+
+/// How one title relates to another, as AniList names it. A relation AniList adds later reads
+/// as [`Self::Other`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum RelationKind {
+    Prequel,
+    Sequel,
+    Parent,
+    SideStory,
+    SpinOff,
+    Alternative,
+    Summary,
+    Compilation,
+    Contains,
+    SameUniverse,
+    Character,
+    Adaptation,
+    Source,
+    Other,
+}
+
+/// Where a title ranks: `#4 highest rated`, in a season and year or of all time.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct Ranking {
+    pub rank: u32,
+    pub kind: RankingKind,
+    /// AniList's own words for the list: `highest rated all time`.
+    pub context: String,
+    pub all_time: bool,
+    pub season: Option<Season>,
+    pub year: Option<u16>,
+}
+
+/// Which list a [`Ranking`] is on.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum RankingKind {
+    Rated,
+    Popular,
+}
+
+/// A character in a title's cast.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct CastMember {
+    pub name: String,
+    pub image_url: Option<String>,
+    pub role: CastRole,
+    /// The character's Japanese voices, usually one.
+    pub voice_actors: Vec<Person>,
+}
+
+/// How big a part a character has.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Enum))]
+pub enum CastRole {
+    Main,
+    Supporting,
+    Background,
+}
+
+/// Someone who worked on a title, with their picture when AniList has one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct Person {
+    pub name: String,
+    pub image_url: Option<String>,
+}
+
+/// One credit on a title: who, and what they did, in AniList's words (`Director`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "ffi", derive(uniffi::Record))]
+pub struct StaffCredit {
+    pub name: String,
+    pub role: String,
 }
 
 /// A title's most recent broadcast: which episode, and how long ago it aired.
@@ -153,6 +358,15 @@ impl Entry {
             recommended: Vec::new(),
             trailer_url: None,
             list_status: None,
+            title_romaji: None,
+            title_english: None,
+            title_native: None,
+            season: None,
+            start_date: None,
+            end_date: None,
+            source: None,
+            adult: false,
+            detail: None,
         }
     }
 
