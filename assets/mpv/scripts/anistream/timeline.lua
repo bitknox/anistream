@@ -49,8 +49,8 @@ local function enabled()
 end
 
 -- How long the bar stays after the last activity: mpv's own cursor-hide delay, so the cursor,
--- uosc's controls and this all leave together.
-local function hide_delay()
+-- uosc's controls and this all leave together. main.lua gives uosc the same delay.
+function M.hide_delay()
     local value = mp.get_property_native("cursor-autohide")
     if type(value) == "number" and value > 0 then
         return value / 1000
@@ -63,12 +63,22 @@ function M.poke()
     if not enabled() then
         return
     end
-    local delay = hide_delay()
+    local delay = M.hide_delay()
     shown_until = mp.get_time() + delay
     if hide_timer then
         hide_timer:kill()
     end
     hide_timer = mp.add_timeout(delay + 0.01, app.changed)
+    app.changed()
+end
+
+-- The pointer has left the window: the bar goes now, as uosc's row does, unless it is held.
+function M.rest()
+    if hide_timer then
+        hide_timer:kill()
+        hide_timer = nil
+    end
+    shown_until = 0
     app.changed()
 end
 
@@ -249,6 +259,8 @@ end
 ---------------------------------------------------------------------------------------------
 
 function M.draw(ctx, _, _, w, h)
+    -- The bar is part of the control row, so it draws at uosc's scale (screen.lua).
+    ctx = ctx:at_scale(screen.row_scale())
     local s = ctx.s
     local g = screen.timeline_geometry(s, w, h)
     geometry = g

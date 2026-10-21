@@ -997,6 +997,32 @@ async fn controls_come_up_with_activity_and_leave_with_the_cursor() {
 }
 
 #[tokio::test]
+async fn the_bar_leaves_with_the_pointer_as_uoscs_row_does() {
+    // uosc fades its row as soon as the pointer leaves the window. The bar used to wait out
+    // the idle time instead, so the buttons went and the bar stayed.
+    require_mpv!();
+    // An idle time far longer than the wait: only the pointer leaving can take the bar down.
+    let mut player = Player::start(
+        Some(&clip(30)),
+        &["--pause", "--cursor-autohide=30000", "--script-opts-append=anistream-uosc=yes"],
+    )
+    .await;
+    // With no window, mpv counts the pointer as over it only after an enter, which a real
+    // window sends by itself.
+    player.key("MOUSE_ENTER").await;
+    player.command(json!(["mouse", 100, 100])).await;
+    player.command(json!(["mouse", 140, 120])).await;
+    player.wait_ui("the bar", |ui| ui["timeline"] == true).await;
+    player.key("MOUSE_LEAVE").await;
+    player.wait_ui("the bar to leave with the pointer", |ui| ui["timeline"] == false).await;
+    // Back in, it comes up again.
+    player.key("MOUSE_ENTER").await;
+    player.command(json!(["mouse", 160, 140])).await;
+    player.wait_ui("the bar again", |ui| ui["timeline"] == true).await;
+    player.finish().await;
+}
+
+#[tokio::test]
 async fn the_volume_pill_does_not_flash_as_the_controls_leave() {
     // The volume control is drawn in the row while the controls are up and as a floating pill
     // after a change while they are down. The form used to be decided per frame, so the row's
