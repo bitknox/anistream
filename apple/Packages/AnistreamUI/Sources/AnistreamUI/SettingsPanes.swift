@@ -32,10 +32,11 @@ struct DownloadsPane: View {
             HookRow()
         }
         SettingsFootnote(
-            Text("Runs once a download is moved and its subtitles merged, with ")
-                + code("ANISTREAM_PATH") + Text(", ") + code("ANISTREAM_TITLE") + Text(" and ")
-                + code("ANISTREAM_EPISODE")
-                + Text(" set. A command that fails never affects the download.")
+            Text("""
+                Runs once a download is moved and its subtitles merged, with \(code("ANISTREAM_PATH")), \
+                \(code("ANISTREAM_TITLE")) and \(code("ANISTREAM_EPISODE")) set. A command that fails never \
+                affects the download.
+                """)
         )
         .padding(.top, -14)
         #endif

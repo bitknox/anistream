@@ -13,9 +13,10 @@ extension Entry {
     /// The romaji is read in Japanese.
     var spokenTitle: Text {
         guard let english = alternateTitle else { return Text(showTitle) }
-        var romaji = AttributedString(showTitle)
-        romaji.languageIdentifier = "ja"
-        return Text(romaji) + Text(", " + english)
+        var spoken = AttributedString(showTitle)
+        spoken.languageIdentifier = "ja"
+        spoken.append(AttributedString(", " + english))
+        return Text(spoken)
     }
 }
 

@@ -255,7 +255,7 @@ struct PhonePluginPage: View {
                     .listRowInsets(EdgeInsets())
                 } footer: {
                     if !added.isEmpty {
-                        Text("This update also contacts ") + Text(added.joined(separator: ", ")).foregroundStyle(.silk) + Text(".")
+                        Text("This update also contacts \(Text(added.joined(separator: ", ")).foregroundStyle(.silk)).")
                     }
                 }
             }

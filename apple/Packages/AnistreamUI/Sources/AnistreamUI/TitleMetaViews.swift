@@ -368,8 +368,8 @@ struct MoreAboutSheet: View {
                 heading("Rankings")
                 FlowLayout(spacing: 36, lineSpacing: 6) {
                     ForEach(Array(rankings.enumerated()), id: \.offset) { _, ranking in
-                        (Text("#\(ranking.rank)").fontWeight(.semibold).foregroundStyle(.silk)
-                            + Text(" \(ranking.words)").foregroundStyle(.haze))
+                        Text("\(Text("#\(ranking.rank)").fontWeight(.semibold).foregroundStyle(.silk)) \(ranking.words)")
+                            .foregroundStyle(.haze)
                             .font(phone ? .ui(17) : .mac(13))
                     }
                 }
@@ -534,7 +534,8 @@ struct MoreAboutSheet: View {
                 if spoilersShown {
                     FlowLayout(spacing: 14, lineSpacing: 6) {
                         ForEach(spoilers, id: \.self) { name in
-                            (Text(name).foregroundStyle(.silk) + Text(" Spoiler").foregroundStyle(.haze))
+                            Text("\(Text(name).foregroundStyle(.silk)) Spoiler")
+                                .foregroundStyle(.haze)
                                 .font(phone ? .ui(17) : .mac(13))
                         }
                     }

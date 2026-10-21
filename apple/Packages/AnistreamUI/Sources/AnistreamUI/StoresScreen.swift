@@ -378,7 +378,7 @@ struct UpdatePluginSheet: View {
                 .foregroundStyle(.haze)
                 .padding(.top, 4)
             if !added.isEmpty {
-                (Text("This update also contacts ") + Text(added.joined(separator: ", ")).fontWeight(.semibold) + Text("."))
+                Text("This update also contacts \(Text(added.joined(separator: ", ")).fontWeight(.semibold)).")
                     .font(.mac(13))
                     .foregroundStyle(.silk)
                     .padding(.top, 16)
@@ -541,8 +541,7 @@ struct JoinStoreSheet: View {
                     .foregroundStyle(.haze)
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark").font(.mac(11, weight: .semibold)).foregroundStyle(.water)
-                    (Text("Key ") + Text(invited.fingerprint).font(.mac(13, design: .monospaced)).foregroundStyle(.silk)
-                        + Text(" matches the invite"))
+                    Text("Key \(Text(invited.fingerprint).font(.mac(13, design: .monospaced)).foregroundStyle(.silk)) matches the invite")
                         .font(.mac(13))
                         .foregroundStyle(.haze)
                 }
