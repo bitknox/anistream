@@ -153,12 +153,11 @@ public final class PlayerModel {
     public private(set) var subtitleTrack: Int64?
     /// mpv is waiting for data, since then.
     public private(set) var bufferingSince: ContinuousClock.Instant?
-    /// The picture's shape as it is shown, width over height, once mpv has said.
+    /// The picture's shape as mpv displays it, width over height, once mpv has said: where the
+    /// buffering line sits, and the floating window's shape in Picture in Picture.
     public private(set) var videoAspect: Double?
     /// The file playing has put a picture up.
     public private(set) var hasPicture = false
-    /// The picture's width over its height, as mpv displays it.
-    @ObservationIgnored public private(set) var videoAspect: Double = 16 / 9
 
     // MARK: The viewer
 
@@ -655,14 +654,11 @@ public final class PlayerModel {
         case "video-params":
             if let aspect = value["aspect"].double, aspect > 0 {
                 videoAspect = aspect
-            } else if let width = value["dw"].double, let height = value["dh"].double, height > 0 {
-                videoAspect = width / height
+            } else if let w = value["dw"].int ?? value["w"].int, let h = value["dh"].int ?? value["h"].int, w > 0, h > 0 {
+                videoAspect = Double(w) / Double(h)
             }
             if value["w"].int != nil {
                 Self.note(.info, "video \(value["w"].int ?? 0)×\(value["h"].int ?? 0) \(value["pixelformat"].string ?? "")")
-            }
-            if let w = value["dw"].int ?? value["w"].int, let h = value["dh"].int ?? value["h"].int, w > 0, h > 0 {
-                videoAspect = Double(w) / Double(h)
             }
         case "aid":
             audioTrack = value.int
