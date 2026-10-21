@@ -1,0 +1,15 @@
+--- a/src/arm/cpu.c
++++ b/src/arm/cpu.c
+@@ -50,7 +50,11 @@
+     flags |= (hw_cap & HWCAP_AARCH64_ASIMDDP) ? DAV1D_ARM_CPU_FLAG_DOTPROD : 0;
+     flags |= (hw_cap2 & HWCAP2_AARCH64_I8MM) ? DAV1D_ARM_CPU_FLAG_I8MM : 0;
+     flags |= (hw_cap & HWCAP_AARCH64_SVE) ? DAV1D_ARM_CPU_FLAG_SVE : 0;
+-    flags |= (hw_cap2 & HWCAP2_AARCH64_SVE2) ? DAV1D_ARM_CPU_FLAG_SVE2 : 0;
++    /* SVE2 outside streaming mode needs SVE too. A CPU with SME but no SVE, such as an Apple
++     * M4 under a hypervisor, can report SVE2 for streaming mode only, and SVE2 code then
++     * faults with SIGILL. */
++    flags |= (hw_cap & HWCAP_AARCH64_SVE) && (hw_cap2 & HWCAP2_AARCH64_SVE2) ?
++             DAV1D_ARM_CPU_FLAG_SVE2 : 0;
+     return flags;
+ }
+ #else  /* !ARCH_AARCH64 */

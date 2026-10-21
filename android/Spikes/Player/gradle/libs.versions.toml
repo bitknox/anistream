@@ -1,0 +1,16 @@
+# The player spike's own versions: the newest stable releases on 2026-10-21.
+[versions]
+agp = "9.4.1"
+kotlin = "2.4.21"
+media3 = "1.11.1"
+ndk = "30.0.16248370"
+cmake = "4.1.2"
+buildTools = "36.0.0"
+
+[libraries]
+media3-session = { module = "androidx.media3:media3-session", version.ref = "media3" }
+media3-common = { module = "androidx.media3:media3-common", version.ref = "media3" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
