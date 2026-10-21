@@ -203,7 +203,8 @@ jobs:
     if: needs.changes.outputs.apple == 'true'
     runs-on: macos-26
     env:
-      # engine.sh builds with these; the Rust tests below share its build only with them too.
+      # engine.sh builds with these; the Rust tests after the Swift ones share its build only
+      # with them too.
       MACOSX_DEPLOYMENT_TARGET: "26.0"
       CARGO_TARGET_DIR: ${{ github.workspace }}/target
     steps:
@@ -218,16 +219,21 @@ jobs:
       - run: swift --version
       # The player's tests play media apple/scripts/player-media.sh makes with ffmpeg.
       - run: brew install ffmpeg
+      # First, so a Swift change that does not compile says so in minutes.
+      - name: Swift tests
+        run: apple/scripts/test.sh
+      # The FFI's own tests, only when the engine changed: a change to apple/ alone cannot move
+      # them.
       - name: Rust tests
+        if: needs.changes.outputs.rust == 'true'
         run: cargo test -p anistream-ffi --features testing,cli
       # The apps build the engine without the desktop feature, so its hosted player has to pass
       # its contract in that build too, with the target and profile apple/scripts/engine.sh uses.
       - name: Rust tests, the apps' build
+        if: needs.changes.outputs.rust == 'true'
         run: >-
           cargo test -p anistream-ffi --no-default-features --features testing
           --target aarch64-apple-darwin --profile app-dev
-      - name: Swift tests
-        run: apple/scripts/test.sh
 
   # The engine and its FFI library as an iPhone and the iOS Simulator build them: without the
   # desktop feature, so without mpv, Syncplay, the loopback sign-in and the keychain crate, and with
