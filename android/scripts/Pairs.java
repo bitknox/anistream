@@ -30,6 +30,11 @@ public class Pairs {
         new Pair("phone-library", "AndroidLibrary", "Watching scene, signed in to the fake AniList", 1500),
         new Pair("tablet-home", "AndroidTabletHome", "Watching scene", 800),
         new Pair("tablet-title", "AndroidTabletTitle", "Watching scene, title 900001", 800),
+        new Pair("phone-settings", "AndroidSettings", "Watching scene, Settings", 1500),
+        new Pair("phone-settings-playback", "AndroidSettingsPlayback", "Watching scene, Settings, Playback", 1500),
+        new Pair("phone-settings-titles", "AndroidSettingsTitles", "Watching scene, Playback, title language menu", 1500),
+        new Pair("phone-settings-sources", "AndroidSettingsSources", "Watching scene, Settings, Sources", 1500),
+        new Pair("tablet-settings", "AndroidTabletSettings", "Watching scene, Settings, Playback", 800),
     };
 
     static final Color GROUND = new Color(0x0d0f1b);

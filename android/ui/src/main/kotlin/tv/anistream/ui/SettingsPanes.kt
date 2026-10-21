@@ -157,7 +157,11 @@ internal enum class TitleChoice(val value: String, val label: String) {
 internal object TitleLanguageWords {
     /** The line under the label: what the choice does now. */
     fun line(choice: TitleChoice, signedIn: Boolean, viewer: TitleLanguage?): String = when (choice) {
-        TitleChoice.AniList -> if (signedIn && viewer != null) "${name(viewer)}, from your AniList account" else "English while signed out of AniList"
+        TitleChoice.AniList -> when {
+            !signedIn -> "English while signed out of AniList"
+            viewer != null -> "${name(viewer)}, from your AniList account"
+            else -> "Follows your AniList account"
+        }
         TitleChoice.English -> "Romaji where there is no English title"
         TitleChoice.Romaji -> "Japanese titles in Latin letters"
     }
