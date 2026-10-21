@@ -1,0 +1,155 @@
+// Pieces every screen uses: art over its plate, the meter, the buttons and the sync capsule.
+
+import AnistreamDesign
+import AnistreamKit
+import AnistreamStore
+import SwiftUI
+
+/// A cover or banner: the plate first, and the art fading in over it once it arrives.
+struct ArtworkView: View {
+    @Environment(AppStore.self) private var store
+    let url: String?
+    /// The cover's own colour, for the plate.
+    var color: Color? = nil
+    /// The most pixels the art needs on its long side.
+    let maxPixelSize: Int
+
+    var body: some View {
+        let image = url.flatMap { store.artwork.image($0) }
+        Color.clear
+            .overlay {
+                ZStack {
+                    CoverPlate(color: color)
+                    if let image {
+                        Image(decorative: image, scale: 1)
+                            .resizable()
+                            .scaledToFill()
+                            .transition(.opacity)
+                    }
+                }
+                .animation(.fadeIn, value: image != nil)
+            }
+            .clipped()
+            .task(id: url) {
+                if let url { store.artwork.request(url, maxPixelSize: maxPixelSize) }
+            }
+    }
+}
+
+/// A progress meter: amber over the rule colour, rounded.
+struct Meter: View {
+    let fraction: Double
+    var height: CGFloat = 3
+
+    var body: some View {
+        Capsule()
+            .fill(.rule)
+            .overlay(alignment: .leading) {
+                GeometryReader { proxy in
+                    Capsule()
+                        .fill(.amber)
+                        .frame(width: proxy.size.width * min(max(fraction, 0), 1))
+                }
+            }
+            .frame(height: height)
+            .animation(.standard, value: fraction)
+            .accessibilityElement()
+            .accessibilityLabel("Progress")
+            .accessibilityValue(Text(fraction, format: .percent.precision(.fractionLength(0))))
+    }
+}
+
+/// The one amber action on a screen: a capsule with ground-coloured text.
+struct PrimaryCapsuleStyle: ButtonStyle {
+    var height: CGFloat = 34
+    var fontSize: CGFloat = 13
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: fontSize, weight: .semibold))
+            .monospacedDigit()
+            .foregroundStyle(.ground)
+            .padding(.horizontal, 18)
+            .frame(height: height)
+            .background(.amber.opacity(configuration.isPressed ? 0.85 : 1), in: .capsule)
+            .contentShape(.capsule)
+    }
+}
+
+/// A secondary action: a raised capsule with a hairline edge.
+struct SecondaryCapsuleStyle: ButtonStyle {
+    var height: CGFloat = 28
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 13))
+            .foregroundStyle(.silk)
+            .padding(.horizontal, 14)
+            .frame(height: height)
+            .background(configuration.isPressed ? Palette.raisedSelected : Palette.raised, in: .capsule)
+            .overlay(Capsule().strokeBorder(.faintRule, lineWidth: 1))
+            .contentShape(.capsule)
+    }
+}
+
+/// The dot a state is shown with.
+struct StateDot: View {
+    let state: SyncSummary.State
+
+    var body: some View {
+        Group {
+            switch state {
+            case .signedOut:
+                Circle().strokeBorder(.haze, lineWidth: 1.5)
+            case .synced:
+                Circle().fill(.water)
+            case .waiting:
+                Circle().fill(.haze)
+            case .problem:
+                Circle().fill(.vermilion)
+            }
+        }
+        .frame(width: 6, height: 6)
+        .accessibilityHidden(true)
+    }
+}
+
+/// The toolbar's sync capsule: where sync stands, as a button that opens Settings, Accounts.
+struct SyncCapsule: View {
+    @Environment(AppStore.self) private var store
+    let open: () -> Void
+
+    var body: some View {
+        let summary = store.accounts.summary
+        Button(action: open) {
+            HStack(spacing: 6) {
+                StateDot(state: summary.state)
+                Text(summary.text)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(summary.state == .signedOut ? .haze : .silk)
+            }
+            .padding(.horizontal, 4)
+        }
+        .accessibilityLabel(accessibilityLabel(summary))
+        .help("Opens Accounts in Settings")
+    }
+
+    private func accessibilityLabel(_ summary: SyncSummary) -> String {
+        let text = summary.state == .signedOut
+            ? "\(AccountsModel.name(summary.tracker ?? "anilist")) not connected"
+            : summary.text
+        return "\(text). Opens Settings, Accounts"
+    }
+}
+
+/// A section that has no screen yet.
+struct NotBuiltYet: View {
+    let section: AppSection
+
+    var body: some View {
+        Text("\(section.title) comes in a later build.")
+            .font(.system(size: 13))
+            .foregroundStyle(.haze)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
