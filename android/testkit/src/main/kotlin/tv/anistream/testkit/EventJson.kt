@@ -28,6 +28,9 @@ import kotlinx.serialization.json.jsonPrimitive
  * - Enums are their names, and unsigned numbers and ULongs decimal, as are Longs past 2^53.
  * - Lists are arrays, maps arrays of `[key, value]` pairs, byte arrays base64.
  * - Durations and instants are their ISO-8601 forms.
+ *
+ * A field a scene was recorded without, which the engine has added since, reads as its default:
+ * null, empty, false or zero. Only a missing record, enum or sealed value needs a new recording.
  */
 object EventJson {
     private const val TYPE = "@type"
@@ -130,16 +133,44 @@ object EventJson {
     private fun construct(klass: KClass<*>, json: JsonObject): Any {
         klass.objectInstance?.let { return it }
         val constructor = klass.primaryConstructor ?: error("${klass.qualifiedName} has no primary constructor")
-        // A field the scene was recorded without, from a newer engine, is null when it can be.
+        // A field the scene was recorded without, which a newer engine added, takes its default.
         val arguments = constructor.parameters.mapNotNull { parameter ->
             val value = json[parameter.name]
             when {
                 value != null -> parameter to decode(value, parameter.type)
                 parameter.isOptional -> null
-                parameter.type.isMarkedNullable -> parameter to null
-                else -> error("${klass.qualifiedName}.${parameter.name} is missing: record the scenes again")
+                else -> parameter to missing(parameter.type, "${klass.qualifiedName}.${parameter.name}")
             }
         }.toMap()
         return constructor.callBy(arguments)
+    }
+
+    /**
+     * What a field missing from a recording reads as: null where it can be, an empty list, map or
+     * string, false, or zero. A record, an enum or a sealed type has no such value, so a scene
+     * missing one has to be recorded again (android/scripts/scenes.sh).
+     */
+    private fun missing(type: KType, field: String): Any? {
+        if (type.isMarkedNullable) return null
+        return when (type.classifier) {
+            List::class -> emptyList<Any?>()
+            Set::class -> emptySet<Any?>()
+            Map::class -> emptyMap<Any?, Any?>()
+            String::class -> ""
+            Boolean::class -> false
+            Int::class -> 0
+            Long::class -> 0L
+            Short::class -> 0.toShort()
+            Byte::class -> 0.toByte()
+            Double::class -> 0.0
+            Float::class -> 0f
+            UInt::class -> 0u
+            ULong::class -> 0uL
+            UShort::class -> 0.toUShort()
+            UByte::class -> 0.toUByte()
+            ByteArray::class -> ByteArray(0)
+            Duration::class -> Duration.ZERO
+            else -> error("$field is missing from the scene and has no default: record the scenes again")
+        }
     }
 }

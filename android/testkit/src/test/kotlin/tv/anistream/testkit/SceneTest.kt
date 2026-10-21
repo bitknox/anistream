@@ -1,5 +1,9 @@
 package tv.anistream.testkit
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -16,6 +20,30 @@ class SceneTest {
             val scene = Scene.named(name)
             assertTrue("$name has events", scene.events.isNotEmpty())
             assertEquals(scene.toJson(), Scene.parse(scene.toJson()).toJson())
+        }
+    }
+
+    @Test
+    fun a_field_the_recording_lacks_reads_as_its_default() {
+        // The watching scene as an older engine would have written it: without each entry's
+        // genres (a list), synopsis (a string), score (nullable) and adult (a flag).
+        val lacking = setOf("genres", "synopsis", "score", "adult")
+        fun strip(element: JsonElement): JsonElement = when (element) {
+            is JsonObject -> JsonObject(
+                element.filterKeys { key -> !(key in lacking && "titleRomaji" in element) }.mapValues { strip(it.value) },
+            )
+            is JsonArray -> JsonArray(element.map(::strip))
+            else -> element
+        }
+        val older = strip(Json.parseToJsonElement(Scene.named("watching").toJson())).toString()
+        val entries = Scene.parse(older).events.filterIsInstance<Event.Content>()
+            .flatMap { (it.content as? ContentList.Entries)?.v1.orEmpty() }
+        assertTrue(entries.isNotEmpty())
+        for (entry in entries) {
+            assertEquals(emptyList<String>(), entry.genres)
+            assertEquals("", entry.synopsis)
+            assertNull(entry.score)
+            assertEquals(false, entry.adult)
         }
     }
 
