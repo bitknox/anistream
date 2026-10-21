@@ -80,6 +80,10 @@ pub enum SettingKey {
     ///
     /// [`Command::SetTorrentProtection`]: crate::command::Command::SetTorrentProtection
     VpnOnFailure,
+    /// The viewer's own mpv options, `playback.mpv_args`, each as mpv's command line takes it
+    /// (`--sub-font-size=40`): passed after anistream's own, so one here wins over its flags.
+    /// The Mac's Advanced table.
+    MpvOptions,
 }
 
 impl SettingKey {
@@ -123,7 +127,7 @@ impl SettingKey {
     /// The native apps' own rows, which the terminal's Settings screen does not show: a front
     /// end finds the rows both show among [`Self::ROWS`]. In no order of their own, since each
     /// app lays them out on its own panes; grouped by [`Self::category`] all the same.
-    pub const NATIVE_ROWS: [Self; 7] = [
+    pub const NATIVE_ROWS: [Self; 8] = [
         Self::UpNextCountdown,
         Self::SpoilerProtection,
         Self::DownloadQuality,
@@ -131,6 +135,7 @@ impl SettingKey {
         Self::DownloadsOnCellular,
         Self::TorrentsOnCellular,
         Self::VpnOnFailure,
+        Self::MpvOptions,
     ];
 
     /// Where the file keeps it: the containing table, as the dotted path
@@ -176,6 +181,7 @@ impl SettingKey {
             Self::DownloadsOnCellular => (&["downloads"], "on_cellular"),
             Self::TorrentsOnCellular => (&["providers", "torrent"], "on_cellular"),
             Self::VpnOnFailure => (&["providers", "torrent", "vpn"], "on_leak"),
+            Self::MpvOptions => (&["playback"], "mpv_args"),
             Self::VpnMode | Self::TokenStorage => return None,
         })
     }
@@ -200,6 +206,7 @@ impl SettingKey {
                 | Self::DownloadHook
                 | Self::SyncplayServer
                 | Self::SyncplayRoom
+                | Self::MpvOptions
         )
     }
 
@@ -254,6 +261,7 @@ impl SettingKey {
             Self::SyncplayServer => to.syncplay.server.clone_from(&from.syncplay.server),
             Self::SyncplayRoom => to.syncplay.room.clone_from(&from.syncplay.room),
             Self::UpdateCheck => to.updates.check = from.updates.check,
+            Self::MpvOptions => dst.mpv_args.clone_from(&src.mpv_args),
             Self::SourceOrder => to.providers.order.clone_from(&from.providers.order),
             Self::UpNextCountdown => dst.up_next_countdown = src.up_next_countdown,
             Self::SpoilerProtection => dst.spoiler_protection = src.spoiler_protection,
@@ -313,6 +321,7 @@ impl SettingKey {
             | Self::SyncplayServer
             | Self::SyncplayRoom
             | Self::UpdateCheck => "integrations",
+            Self::MpvOptions => "advanced",
         }
     }
 
@@ -362,6 +371,7 @@ impl SettingKey {
             Self::DownloadsOnCellular => "downloads on cellular",
             Self::TorrentsOnCellular => "torrents on cellular",
             Self::VpnOnFailure => "if a check fails",
+            Self::MpvOptions => "mpv options",
         }
     }
 }
@@ -657,7 +667,8 @@ pub fn step(
         | SettingKey::SyncplayRoom
         | SettingKey::VpnMode
         | SettingKey::TokenStorage
-        | SettingKey::SourceOrder => return None,
+        | SettingKey::SourceOrder
+        | SettingKey::MpvOptions => return None,
     })
 }
 
@@ -752,6 +763,17 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
         (SettingKey::UpdateCheck, V::Bool(on)) => config.updates.check = *on,
         (SettingKey::SourceOrder, V::Strings(order)) => {
             config.providers.order.clone_from(order);
+        }
+        (SettingKey::MpvOptions, V::Strings(options)) => {
+            let Some(options) = mpv_options(options.iter().map(String::as_str)) else {
+                return false;
+            };
+            playback.mpv_args = options;
+        }
+        // Typed, one to a line, as the row's text gives them.
+        (SettingKey::MpvOptions, V::Str(lines)) => {
+            let Some(options) = mpv_options(lines.lines()) else { return false };
+            playback.mpv_args = options;
         }
         (SettingKey::UpNextCountdown, V::Int(seconds)) => {
             let Ok(seconds) = u32::try_from(*seconds) else { return false };
@@ -872,6 +894,10 @@ pub(crate) fn value(effective: &Config, saved: &Config, key: SettingKey) -> Stri
         SettingKey::TokenStorage => effective.trackers.token_storage.clone(),
         // Not among the rows: Providers shows the order, as its table.
         SettingKey::SourceOrder => String::new(),
+        SettingKey::MpvOptions => match effective.playback.mpv_args.len() {
+            0 => "none".into(),
+            n => crate::wording::plural(n, "option"),
+        },
         SettingKey::UpNextCountdown => match playback.up_next_countdown {
             0 => "off".into(),
             seconds => format!("{seconds} s"),
@@ -990,8 +1016,24 @@ fn text(effective: &Config, key: SettingKey) -> String {
         SettingKey::TorrentIndex => {
             effective.providers.torrent.rss_url.clone().unwrap_or_default()
         }
+        SettingKey::MpvOptions => effective.playback.mpv_args.join("\n"),
         _ => String::new(),
     }
+}
+
+/// The options a viewer wrote, each as mpv's command line takes one, or `None` when one is not
+/// an option: `--name` or `--name=value`, the name without spaces. Blank lines are passed over
+/// and the rest kept as written, since mpv is the judge of what its options mean.
+fn mpv_options<'a>(written: impl Iterator<Item = &'a str>) -> Option<Vec<String>> {
+    written
+        .map(str::trim)
+        .filter(|option| !option.is_empty())
+        .map(|option| {
+            let name = option.strip_prefix("--")?.split('=').next()?;
+            let named = !name.is_empty() && !name.contains(char::is_whitespace);
+            named.then(|| option.to_owned())
+        })
+        .collect()
 }
 
 fn upscaling_label(mode: anistream_core::config::Upscaling) -> &'static str {
@@ -1132,12 +1174,13 @@ mod tests {
                 (SettingKey::DownloadsOnCellular, "off"),
                 (SettingKey::TorrentsOnCellular, "off"),
                 (SettingKey::VpnOnFailure, "pause torrents"),
+                (SettingKey::MpvOptions, "none"),
             ]
         );
         assert!(view.rows.iter().all(|row| !SettingKey::NATIVE_ROWS.contains(&row.key)));
 
-        // Each one stepped is a value it takes, and changes it.
-        for key in SettingKey::NATIVE_ROWS {
+        // Each one stepped is a value it takes, and changes it. The typed ones are typed.
+        for key in SettingKey::NATIVE_ROWS.into_iter().filter(|key| !key.typed()) {
             let stepped = step(&config, &config, key, 1).expect("a step");
             let mut changed = config.clone();
             assert!(put(&mut changed, key, &stepped), "{key:?} takes {stepped:?}");
@@ -1301,5 +1344,36 @@ mod tests {
         assert!(!redefines_sources(SettingKey::DownloadDir));
         assert!(!redefines_sources(SettingKey::Theme));
         assert!(!redefines_sources(SettingKey::TorrentsOnCellular));
+    }
+
+    #[test]
+    fn the_viewer_s_own_mpv_options_are_kept_as_written_and_shown_as_a_count() {
+        let mut config = Config::default();
+        assert_eq!(value(&config, &config, SettingKey::MpvOptions), "none");
+        let options = SettingValue::Strings(vec![
+            "--sub-font-size=40".into(),
+            " --no-audio-display ".into(),
+            String::new(),
+        ]);
+        assert!(put(&mut config, SettingKey::MpvOptions, &options));
+        assert_eq!(config.playback.mpv_args, ["--sub-font-size=40", "--no-audio-display"]);
+        assert_eq!(value(&config, &config, SettingKey::MpvOptions), "2 options");
+        assert_eq!(
+            change(&config, &config, SettingKey::MpvOptions),
+            SettingChange::Typed { text: "--sub-font-size=40\n--no-audio-display".into() },
+            "typed, one to a line"
+        );
+        // As typed: one to a line.
+        let typed = SettingValue::Str("--hwdec=no\n\n--sub-scale=1.2".into());
+        assert!(put(&mut config, SettingKey::MpvOptions, &typed));
+        assert_eq!(config.playback.mpv_args, ["--hwdec=no", "--sub-scale=1.2"]);
+        // Not options, so nothing changes.
+        for wrong in ["sub-font-size=40", "--", "--=1", "--sub font=1"] {
+            let refused = SettingValue::Strings(vec![wrong.into()]);
+            assert!(!put(&mut config, SettingKey::MpvOptions, &refused), "{wrong}");
+        }
+        assert_eq!(config.playback.mpv_args, ["--hwdec=no", "--sub-scale=1.2"]);
+        assert_eq!(SettingKey::at(&["playback"], "mpv_args"), Some(SettingKey::MpvOptions));
+        assert_eq!(SettingKey::MpvOptions.category(), "advanced");
     }
 }

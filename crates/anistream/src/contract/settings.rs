@@ -335,6 +335,16 @@ async fn what_a_show_sets_for_itself_comes_with_its_sheet_and_is_counted_on_the_
 }
 
 #[tokio::test]
+async fn check_now_with_torrents_off_says_there_is_no_guard() {
+    // The rest is the torrent tasks', which the harness has none of: see `sources::torrent`.
+    let mut h = Harness::new().await;
+    h.send(Command::CheckConnection);
+    let updates = h.settle().await;
+    assert_eq!(h.trace(), ["Vpn"]);
+    assert!(matches!(&updates[0], Event::Vpn(None)), "{updates:?}");
+}
+
+#[tokio::test]
 async fn a_file_that_does_not_load_is_not_written_over() {
     let mut h =
         Harness::with(Options { config: Some(BROKEN.into()), ..Options::default() }).await;

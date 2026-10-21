@@ -160,6 +160,7 @@ async fn main() -> anyhow::Result<()> {
         syncplay: Default::default(),
         party: false,
         up_next_countdown: 10,
+        mpv_options: Vec::new(),
     };
     // Three ways to the same file, as a library server, a folder and a plugin would offer it.
     let streams = [("jellyfin", 1080), ("local files", 1080), ("example-rust", 720)]

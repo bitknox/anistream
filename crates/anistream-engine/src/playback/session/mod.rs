@@ -126,6 +126,9 @@ pub struct PlaySettings {
     /// episode, `0` for none: [`UP_NEXT_COUNTDOWN`] until the config keeps one. The terminal's
     /// companion keeps its own ten.
     pub up_next_countdown: u32,
+    /// The viewer's own mpv options, as property and value, for a hosted player to set as it
+    /// opens: `playback.mpv_args`, which mpv's own process takes on its command line.
+    pub mpv_options: Vec<(String, String)>,
 }
 
 /// How many seconds Up Next counts down, the design's ten: what every playback says until the
@@ -344,6 +347,7 @@ pub async fn play(
             volume: context.volume,
             dub: context.translation == Translation::Dub,
             fullscreen: settings.fullscreen,
+            mpv_options: settings.mpv_options.clone(),
         };
 
         // Named per attempt — during failover the header would otherwise credit the stream
