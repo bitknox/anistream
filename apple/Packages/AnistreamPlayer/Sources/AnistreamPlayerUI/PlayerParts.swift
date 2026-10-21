@@ -66,9 +66,7 @@ struct StartingCurtain: View {
         ZStack {
             Palette.ground
             if let image {
-                Image(decorative: image, scale: 1)
-                    .resizable()
-                    .scaledToFill()
+                FilledArt(image: image)
                     .transition(.opacity)
                 Palette.controlsDim
             }
@@ -91,6 +89,23 @@ struct StartingCurtain: View {
             if let url { store.artwork.request(url, maxPixelSize: 1800) }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// Art filling the space it is given, cropped to it, and never asking for more: a banner is
+/// often 4.75:1, and filled into a 16:9 player as a plain `scaledToFill()` it would have made
+/// the player 4.75 times its height wide, with the picture and the controls laid out across it.
+struct FilledArt: View {
+    let image: CGImage
+
+    var body: some View {
+        Color.clear
+            .overlay {
+                Image(decorative: image, scale: 1)
+                    .resizable()
+                    .scaledToFill()
+            }
+            .clipped()
     }
 }
 
@@ -405,7 +420,7 @@ struct UpNextCardView: View {
         ZStack {
             CoverPlate(color: nil)
             if let image {
-                Image(decorative: image, scale: 1).resizable().scaledToFill().transition(.opacity)
+                FilledArt(image: image).transition(.opacity)
             }
         }
         .animation(.fadeIn, value: image != nil)
