@@ -14,6 +14,7 @@
 pub mod cache;
 pub mod dataset;
 pub mod download;
+pub mod episode_notice;
 pub mod history;
 pub mod library_status;
 pub mod mapping;
@@ -35,6 +36,7 @@ use rusqlite::Connection;
 
 pub use dataset::{DatasetState, Mapping, MappingInput};
 pub use download::{Download, DownloadState};
+pub use episode_notice::EpisodeNotice;
 pub use history::{MIN_RESUME_SECS, Progress, RESUME_CEILING, WatchEvent, is_complete};
 pub use mapping::{ResolutionRung, ResolvedMapping};
 pub use outbox::OutboxEntry;

@@ -760,6 +760,18 @@ impl Meta {
         self.weathered(self.anilist.last_aired(ids)).await
     }
 
+    /// What aired for the titles followed, after `from` and before `to`: the new-episode check.
+    /// AniList only, as the calendar is: a notification for an episode that has not aired is
+    /// worse than one a check later.
+    pub async fn aired_since(
+        &self,
+        ids: &[AnilistId],
+        from: i64,
+        to: i64,
+    ) -> Result<Page<AiringEntry>> {
+        self.weathered(self.anilist.aired_since(ids, from, to)).await
+    }
+
     /// A passthrough still reports the weather — a calendar failure is the same outage the
     /// Providers screen should be able to explain — and still skips a source that is
     /// resting, so the calendar and the broadcast lines fail at once rather than after a

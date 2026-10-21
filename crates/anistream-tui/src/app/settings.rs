@@ -193,7 +193,8 @@ impl App {
             | S::KeepNextEpisodes
             | S::DownloadsOnCellular
             | S::TorrentsOnCellular
-            | S::VpnOnFailure => return None,
+            | S::VpnOnFailure
+            | S::EpisodeNotifications => return None,
         })
     }
 
