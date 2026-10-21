@@ -6,6 +6,10 @@
 # The scenes are the testing engine's: watching (Continue filled; the default) and fresh (a first
 # launch). Each shot goes to apple/.shots/<device>-<scene>.png, which git ignores.
 #
+# The player's states are scenes too: player-starting, player-playing, player-skip, player-up-next,
+# player-still-watching and player-stall play the Playing scene's generated episode
+# (apple/scripts/player-media.sh) to that state and shoot the player.
+#
 # - mac: the dev harness (apple/Packages/AnistreamDev) renders its own window once the store has
 #   settled. It needs no Screen Recording permission.
 # - iphone, ipad: the Anistream Fixtures app, built for the Simulator and run on a device of its own
@@ -17,8 +21,10 @@ set -euo pipefail
 # Bash 4.4 and newer only. macOS's own /bin/bash is 3.2.
 shopt -s inherit_errexit 2>/dev/null || true
 
+players=(player-starting player-playing player-skip player-up-next player-still-watching player-stall)
+
 usage() {
-  echo "usage: apple/scripts/shots.sh <mac|iphone|ipad> [watching|fresh]…" >&2
+  echo "usage: apple/scripts/shots.sh <mac|iphone|ipad> [watching|fresh|player|${players[*]// /|}]…" >&2
   exit 2
 }
 
@@ -27,19 +33,34 @@ case "$device" in mac | iphone | ipad) ;; *) usage ;; esac
 shift
 scenes=("$@")
 (( ${#scenes[@]} )) || scenes=(watching)
+# "player" is every player state.
+expanded=()
 for scene in "${scenes[@]}"; do
-  case "$scene" in watching | fresh) ;; *) usage ;; esac
+  if [[ "$scene" == player ]]; then expanded+=("${players[@]}"); else expanded+=("$scene"); fi
+done
+scenes=("${expanded[@]}")
+for scene in "${scenes[@]}"; do
+  case "$scene" in watching | fresh | player-*) ;; *) usage ;; esac
+  if [[ "$scene" == player-* && ! " ${players[*]} " == *" $scene "* ]]; then usage; fi
 done
 
 apple="$(cd "$(dirname "$0")/.." && pwd)"
 shots="$apple/.shots"
 mkdir -p "$shots"
+for scene in "${scenes[@]}"; do
+  if [[ "$scene" == player-* ]]; then "$apple/scripts/player-media.sh" >/dev/null; break; fi
+done
 
 if [[ "$device" == mac ]]; then
   "$apple/scripts/engine.sh" testing macos
   for scene in "${scenes[@]}"; do
-    (cd "$apple/Packages/AnistreamDev" &&
-      swift run AnistreamDev --scene "$scene" --snapshot "$shots/mac-$scene.png")
+    if [[ "$scene" == player-* ]]; then
+      (cd "$apple/Packages/AnistreamDev" &&
+        swift run AnistreamDev --scene playing --player-shot "${scene#player-}" --snapshot "$shots/mac-$scene.png")
+    else
+      (cd "$apple/Packages/AnistreamDev" &&
+        swift run AnistreamDev --scene "$scene" --snapshot "$shots/mac-$scene.png")
+    fi
   done
   exit 0
 fi
@@ -94,8 +115,12 @@ for scene in "${scenes[@]}"; do
   xcrun simctl terminate "$udid" tv.anistream.fixtures 2>/dev/null || true
   # Attached to the app's console, which ends when the app is terminated: the app's output
   # reaches a file this way, where --stdout leaves it empty.
-  xcrun simctl launch --console-pty "$udid" tv.anistream.fixtures -AnistreamScene "$scene" \
-    >"$log" 2>&1 &
+  if [[ "$scene" == player-* ]]; then
+    arguments=(-AnistreamScene playing -AnistreamPlayerShot "${scene#player-}")
+  else
+    arguments=(-AnistreamScene "$scene")
+  fi
+  xcrun simctl launch --console-pty "$udid" tv.anistream.fixtures "${arguments[@]}" >"$log" 2>&1 &
   ready=0
   for _ in $(seq 1 120); do
     if grep -q ANISTREAM_READY "$log"; then ready=1; break; fi

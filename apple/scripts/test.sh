@@ -21,9 +21,9 @@ fi
 
 "$root/apple/scripts/engine.sh" testing macos
 # AnistreamPlayer's tests play real files through libmpv: its framework, their media, and the
-# CJK font the iOS app bundles.
+# CJK font the iOS app bundles. The dev harness links the player too.
 case " ${packages[*]} " in
-  *" AnistreamPlayer "*)
+  *" AnistreamPlayer "* | *" AnistreamDev "*)
     "$root/apple/scripts/mpv.sh" macos
     "$root/apple/scripts/player-media.sh"
     "$root/apple/scripts/fonts.sh"

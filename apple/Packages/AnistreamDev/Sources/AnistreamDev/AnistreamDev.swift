@@ -1,6 +1,7 @@
 // The Mac dev harness: the app's own window, on the testing engine, from `swift run`.
 
 import AnistreamDesign
+import AnistreamPlayerUI
 import AnistreamStore
 import AnistreamUI
 import AppKit
@@ -24,18 +25,34 @@ struct AnistreamDev: App {
     var body: some Scene {
         Window("anistream", id: "main") {
             RootView()
+                .hostsPlayer(delegate.player)
                 .environment(delegate.store)
                 .frame(minWidth: 960, minHeight: 600)
                 .task { await delegate.run() }
         }
         .defaultSize(width: options.width, height: options.height)
         .windowResizability(.contentMinSize)
+
+        Window("Player", id: PlayerWindow.id) {
+            PlayerWindow(model: delegate.player)
+                .environment(delegate.store)
+        }
+        .windowStyle(.hiddenTitleBar)
+        .defaultSize(width: 1280, height: 720)
+        .windowResizability(.contentMinSize)
+        .restorationBehavior(.disabled)
+        .defaultLaunchBehavior(.suppressed)
     }
 }
 
 @MainActor
 final class Delegate: NSObject, NSApplicationDelegate {
     let store = AppStore()
+    lazy var player: PlayerModel = {
+        let player = PlayerModel(send: { [weak store] command in store?.send(command) })
+        store.onPlayback = { [weak player] event in player?.apply(event) }
+        return player
+    }()
     private var temporary: URL?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -68,17 +85,27 @@ final class Delegate: NSObject, NSApplicationDelegate {
         )
         await store.start(launch, host: host)
 
+        _ = player
         let settled = await store.settle()
         print(settled ? "ANISTREAM_READY" : "AnistreamDev: did not settle; going on")
+        if let shot = options.playerShot {
+            let there = await player.stage(shot, store: store)
+            print(there ? "AnistreamDev: the player is at \(shot.rawValue)" : "AnistreamDev: the player did not reach \(shot.rawValue)")
+        }
         guard let url = options.snapshot else { return }
         // The art's and the preview's fade-ins.
         try? await Task.sleep(for: .milliseconds(400))
         do {
-            guard let window = Snapshot.window else { throw Snapshot.Problem.noWindow }
+            let window = options.playerShot == nil ? Snapshot.window : Snapshot.playerWindow
+            guard let window else { throw Snapshot.Problem.noWindow }
             try Snapshot.write(window, to: url)
             print("AnistreamDev: wrote \(url.path)")
         } catch {
             FileHandle.standardError.write(Data("AnistreamDev: \(error)\n".utf8))
+        }
+        if options.playerShot != nil {
+            player.viewerClosed()
+            try? await Task.sleep(for: .milliseconds(300))
         }
         NSApp.terminate(nil)
     }

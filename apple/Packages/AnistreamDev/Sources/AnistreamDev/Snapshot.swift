@@ -25,6 +25,12 @@ enum Snapshot {
         NSApp.windows.first { $0.isVisible && !($0 is NSPanel) }
     }
 
+    /// The player's window, by its scene's id.
+    @MainActor
+    static var playerWindow: NSWindow? {
+        NSApp.windows.first { $0.isVisible && $0.identifier?.rawValue.hasPrefix("player") == true }
+    }
+
     /// `CGWindowListCreateImage`, which the SDK marks unavailable in favour of ScreenCaptureKit
     /// but which still renders a process's own window, glass included, without asking for Screen
     /// Recording, which ScreenCaptureKit does. Looked up at run time; `nil` where it is gone.
