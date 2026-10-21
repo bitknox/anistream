@@ -28,7 +28,10 @@ use anistream_model::{
     playback::{Ending, PlaybackId, SkipKind},
 };
 use anistream_providers::ProviderRegistry;
-use anistream_testkit::{fixtures::FINISHED, sources};
+use anistream_testkit::{
+    fixtures::{AIRING, FINISHED},
+    sources,
+};
 use serde_json::json;
 
 /// How long a test waits for what it is waiting on. Everything is on loopback, so only the
@@ -833,5 +836,39 @@ fn a_web_stream_comes_mended_and_its_subtitles_fetched_ahead() {
     assert!(std::fs::read_to_string(&url).unwrap().contains("The star road"));
     app.tick(load.playback, 0, 2);
     app.stop();
+    app.shutdown();
+}
+
+#[test]
+fn an_episode_yet_to_air_fails_at_once_without_asking_a_source() {
+    let provider = sources::provider();
+    let asked = provider.call_count();
+    let mut app = App::start(ProviderRegistry::new(vec![provider.arc()]), "");
+    // Its table open, as a play is asked for from: what aired, which the player's menu shows.
+    app.engine.send(Command::LoadEpisodes(AIRING));
+    app.until("the table", |event| matches!(event, Event::Episodes { .. }).then_some(()));
+    let listed = asked.load(std::sync::atomic::Ordering::SeqCst);
+    // The airing fixture's next episode is 6, two days out; 7 comes after it.
+    let picked = Command::PlaySource {
+        id: AIRING,
+        episode: "7".into(),
+        provider_id: sources::PROVIDER_ID.into(),
+        source_id: "a".into(),
+    };
+    for (play, said) in [
+        (Command::Play { id: AIRING, episode: "6".into() }, "episode 6 airs "),
+        (picked, "episode 7 hasn't aired yet; episode 6 airs "),
+    ] {
+        app.engine.send(play);
+        let refusal = app.until("the refusal", |event| match event {
+            Event::Toast(notice) if notice.text.contains("airs") => Some(notice.text.clone()),
+            _ => None,
+        });
+        assert!(refusal.starts_with(said), "{refusal}");
+        assert_eq!(app.ended(), Ending::Failed);
+    }
+    let looked_up = asked.load(std::sync::atomic::Ordering::SeqCst) - listed;
+    assert_eq!(looked_up, 0, "no source was asked for either");
+    assert!(!app.ops.iter().any(|(_, op)| matches!(op, PlayerOp::Load { .. })));
     app.shutdown();
 }

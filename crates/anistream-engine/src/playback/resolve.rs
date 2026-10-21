@@ -11,6 +11,55 @@ use crate::{
     jobs::JobGuard, now_epoch, outbox::Outbox, playback, services::Services, state::EngineState,
 };
 
+/// What a lookup says when there is no source to ask.
+const NO_SOURCES: &str = "no sources configured — see the Providers screen";
+
+/// Why `episode` of `media` cannot be played yet, when its schedule says it has not aired.
+///
+/// Asked for, every source would be tried in turn for an episode none of them can have, and
+/// the play would fail in the end as a missing one. Only an episode the schedule rules out:
+/// the next to air while its time is still ahead, and any after it. A label that is not a
+/// number, or a title with no schedule, is looked up as ever.
+pub(crate) fn not_aired(media: &anistream_meta::Media, episode: &str) -> Option<String> {
+    not_aired_in(media, episode, &jiff::tz::TimeZone::system())
+}
+
+/// [`not_aired`], saying the time in `zone`.
+fn not_aired_in(
+    media: &anistream_meta::Media,
+    episode: &str,
+    zone: &jiff::tz::TimeZone,
+) -> Option<String> {
+    let number: u32 = episode.trim().parse().ok()?;
+    let next = media.next_airing_episode.as_ref()?;
+    if next.time_until_airing <= 0 || number < next.episode {
+        return None;
+    }
+    // Now as the answer had it, so the day is counted by the clock the countdown was.
+    let now = next.airing_at - next.time_until_airing;
+    let when = airs_when(next.airing_at, now, zone)?;
+    Some(if number == next.episode {
+        format!("episode {number} airs {when}")
+    } else {
+        format!("episode {number} hasn't aired yet; episode {} airs {when}", next.episode)
+    })
+}
+
+/// When a broadcast at `at` is, as someone in `zone` says it at `now`: "today 18:30",
+/// "tomorrow 18:30", "Saturday 18:30" within the week and "Saturday 2 November 18:30" after.
+fn airs_when(at: i64, now: i64, zone: &jiff::tz::TimeZone) -> Option<String> {
+    let at = jiff::Timestamp::from_second(at).ok()?.to_zoned(zone.clone());
+    let today = jiff::Timestamp::from_second(now).ok()?.to_zoned(zone.clone()).date();
+    let days = today.until(at.date()).ok()?.get_days();
+    let time = at.strftime("%H:%M");
+    Some(match days {
+        ..=0 => format!("today {time}"),
+        1 => format!("tomorrow {time}"),
+        2..=6 => format!("{} {time}", at.strftime("%A")),
+        _ => format!("{} {time}", at.strftime("%A %-d %B")),
+    })
+}
+
 /// An episode's streams and playback context, as resolution produces them.
 pub type Resolved = (Vec<anistream_core::stream::Stream>, playback::PlaybackContext);
 
@@ -37,13 +86,16 @@ pub async fn resolve_for_playback(
         }
     };
     if registry.is_empty() {
-        return Err("no sources configured — see the Providers screen".into());
+        return Err(NO_SOURCES.into());
     }
     // Phase-labelled, because the wait between Enter and mpv is where every tool in
     // this category earns its "is it frozen?" issues. The status line names the rung
     // being climbed; the eyecatch's own timer says how long it has taken.
     step("looking up the title".into());
     let media = meta.media(id).await.map_err(|e| e.to_string())?;
+    if let Some(reason) = not_aired(&media, episode) {
+        return Err(reason);
+    }
     let now = now_epoch();
 
     // "Use this source for this series", applied *before* the title is matched.
@@ -177,9 +229,12 @@ async fn source_slate(
     translation: anistream_core::media::Translation,
 ) -> std::result::Result<Vec<anistream_core::traits::SourceCandidate>, String> {
     if registry.is_empty() {
-        return Err("no sources configured — see the Providers screen".into());
+        return Err(NO_SOURCES.into());
     }
     let media = meta.media(id).await.map_err(|e| e.to_string())?;
+    if let Some(reason) = not_aired(&media, episode) {
+        return Err(reason);
+    }
     let target = media.match_target();
     let now = now_epoch();
     // Each provider's releases under its own key: one provider's key means nothing to another.
@@ -224,4 +279,80 @@ pub fn load_sources(
             };
         let _ = tx.send(update);
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const HOUR: i64 = 3_600;
+
+    /// A title whose episode `next` airs `in_secs` after the moment `now` it was asked for.
+    fn airing(next: u32, now: i64, in_secs: i64) -> anistream_meta::Media {
+        serde_json::from_value(serde_json::json!({
+            "id": 154_587,
+            "nextAiringEpisode": {
+                "episode": next,
+                "airingAt": now + in_secs,
+                "timeUntilAiring": in_secs,
+            },
+        }))
+        .unwrap()
+    }
+
+    /// Two hours east, as the reader is.
+    fn zone() -> jiff::tz::TimeZone {
+        jiff::tz::TimeZone::fixed(jiff::tz::offset(2))
+    }
+
+    /// Unix seconds for a local time in [`zone`].
+    fn local(at: &str) -> i64 {
+        let civil: jiff::civil::DateTime = at.parse().unwrap();
+        civil.to_zoned(zone()).unwrap().timestamp().as_second()
+    }
+
+    #[test]
+    fn an_episode_yet_to_air_is_said_by_when_it_airs_where_the_reader_is() {
+        // Wednesday 21 October 2026, ten in the morning.
+        let now = local("2026-10-21T10:00");
+        let said = |next, in_secs, episode| {
+            not_aired_in(&airing(next, now, in_secs), episode, &zone())
+        };
+        assert_eq!(
+            said(4, 8 * HOUR + 1_800, "4").as_deref(),
+            Some("episode 4 airs today 18:30")
+        );
+        assert_eq!(said(4, 15 * HOUR, "4").as_deref(), Some("episode 4 airs tomorrow 01:00"));
+        let saturday = local("2026-10-24T18:30") - now;
+        assert_eq!(said(4, saturday, "4").as_deref(), Some("episode 4 airs Saturday 18:30"));
+        let fortnight = local("2026-11-02T18:30") - now;
+        assert_eq!(
+            said(4, fortnight, "4").as_deref(),
+            Some("episode 4 airs Monday 2 November 18:30")
+        );
+        // One after it has not aired either, and is told when the next one is.
+        assert_eq!(
+            said(4, saturday, " 6").as_deref(),
+            Some("episode 6 hasn't aired yet; episode 4 airs Saturday 18:30")
+        );
+    }
+
+    #[test]
+    fn an_episode_the_schedule_does_not_rule_out_is_looked_up() {
+        let now = local("2026-10-21T10:00");
+        let said = |next, in_secs, episode| {
+            not_aired_in(&airing(next, now, in_secs), episode, &zone())
+        };
+        // Aired already, or due by now with the schedule not yet moved on.
+        assert_eq!(said(4, HOUR, "3"), None);
+        assert_eq!(said(4, 0, "4"), None);
+        assert_eq!(said(4, -HOUR, "5"), None);
+        // Not a number the schedule counts.
+        assert_eq!(said(4, HOUR, "4.5"), None);
+        assert_eq!(said(4, HOUR, "OVA"), None);
+        // No schedule at all: finished, or not announced.
+        let finished: anistream_meta::Media =
+            serde_json::from_value(serde_json::json!({ "id": 1 })).unwrap();
+        assert_eq!(not_aired_in(&finished, "13", &zone()), None);
+    }
 }
