@@ -141,7 +141,7 @@ private fun LazyListScope.queue(queue: ContinueQueue, actions: AppActions) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(top = 8.dp),
                 ) {
-                    items(rail, key = { it.id.toLong() }) { ProgressCard(it) }
+                    items(rail, key = { it.id.toLong() }) { Box(itemMotion()) { ProgressCard(it) } }
                 }
             }
         }
@@ -149,7 +149,7 @@ private fun LazyListScope.queue(queue: ContinueQueue, actions: AppActions) {
     val fresh = if (queue.inProgress.isEmpty()) queue.newThisWeek.drop(1) else queue.newThisWeek
     if (fresh.isNotEmpty()) {
         item(key = "new") { Heading("New this week", Modifier.padding(top = 16.dp)) }
-        items(fresh, key = { "new-${it.id}" }) { NewRow(it) }
+        items(fresh, key = { "new-${it.id}" }) { Box(itemMotion()) { NewRow(it) } }
     }
 }
 
@@ -421,7 +421,7 @@ private fun AiringToday(openCalendar: () -> Unit) {
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(today, key = { "${it.entry.id}-${it.episode}" }) { broadcast -> AiringCard(broadcast, now) }
+            items(today, key = { "${it.entry.id}-${it.episode}" }) { broadcast -> Box(itemMotion()) { AiringCard(broadcast, now) } }
         }
     }
 }

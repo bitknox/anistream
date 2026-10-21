@@ -37,7 +37,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
@@ -195,11 +194,11 @@ private fun QueueList(
         }
         if (queue.inProgress.isNotEmpty()) {
             item(key = "progress") { ListHeading("In progress") }
-            items(queue.inProgress, key = { "p-${it.id}" }) { QueueRow(it, it.id == current.id, onSelect, actions) }
+            items(queue.inProgress, key = { "p-${it.id}" }) { Box(itemMotion()) { QueueRow(it, it.id == current.id, onSelect, actions) } }
         }
         if (queue.newThisWeek.isNotEmpty()) {
             item(key = "new") { ListHeading("New this week", Modifier.padding(top = 16.dp)) }
-            items(queue.newThisWeek, key = { "n-${it.id}" }) { QueueRow(it, it.id == current.id, onSelect, actions) }
+            items(queue.newThisWeek, key = { "n-${it.id}" }) { Box(itemMotion()) { QueueRow(it, it.id == current.id, onSelect, actions) } }
         }
     }
 }
@@ -272,7 +271,7 @@ private fun QueueRow(item: ContinueItem, selected: Boolean, onSelect: (ContinueI
                     Icon(Icons.More, contentDescription = null)
                 }
             }
-            DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            Menu(expanded = menu, onDismissRequest = { menu = false }) {
                 DropdownMenuItem(
                     text = { Text(item.action) },
                     leadingIcon = { Icon(Icons.Play, contentDescription = null) },

@@ -3,13 +3,18 @@ package tv.anistream.ui
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasScrollToKeyAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToKey
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
@@ -25,6 +30,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.Rule
@@ -141,6 +147,46 @@ class BoardShots {
     @Test
     @Config(qualifiers = TABLET)
     fun tablet_title() = shoot("tablet-title", WATCHING, title = 900001u)
+
+    // The episodes from the last one watched, the watched ones before it folded, and unfolded.
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_title_episodes() = shoot("phone-title-episodes", WATCHING, title = 900001u) { toEpisodes() }
+
+    @Test
+    @Config(qualifiers = PHONE)
+    fun phone_title_episodes_unfolded() = shoot("phone-title-episodes-unfolded", WATCHING, title = 900001u) { unfoldInPlace() }
+
+    @Test
+    @Config(qualifiers = TABLET)
+    fun tablet_title_episodes() = shoot("tablet-title-episodes", WATCHING, title = 900001u) { toEpisodes() }
+
+    @Test
+    @Config(qualifiers = TABLET)
+    fun tablet_title_episodes_unfolded() = shoot("tablet-title-episodes-unfolded", WATCHING, title = 900001u) { unfoldInPlace() }
+
+    /** The title page scrolled to the row its watched episodes fold under. */
+    private fun toEpisodes() {
+        compose.onNode(hasScrollToKeyAction() and hasAnyDescendant(hasText("More about this show")))
+            .performScrollToKey(WATCHED_FOLD)
+        compose.waitForIdle()
+    }
+
+    /**
+     * Unfold the watched episodes, checking that the last one watched stays where it was on screen
+     * while they open above it, then scroll to the row that folds them again.
+     */
+    private fun unfoldInPlace() {
+        toEpisodes()
+        val lastWatched = compose.onNodeWithText("E6 \u00b7", substring = true)
+        val before = lastWatched.getUnclippedBoundsInRoot().top
+        compose.onNodeWithText("watched", substring = true).performClick()
+        compose.waitForIdle()
+        assertEquals("the last episode watched stays put", before, lastWatched.getUnclippedBoundsInRoot().top)
+        compose.onNodeWithText("Hide watched episodes").assertExists()
+        toEpisodes()
+    }
 
     /**
      * [scene] replayed into a store, the app drawn on it from [start], and captured once the art

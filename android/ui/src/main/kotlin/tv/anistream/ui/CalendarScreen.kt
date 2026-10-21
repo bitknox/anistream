@@ -181,7 +181,7 @@ fun CalendarScreen() {
                         }
                     } else {
                         items(rows, key = { "row-${it.entry.id}-${it.episode}-${it.airs.epochSecond}" }) { broadcast ->
-                            BroadcastRow(broadcast, now) { navigator.openTitle(broadcast.entry.id, "calendar") }
+                            Box(itemMotion()) { BroadcastRow(broadcast, now) { navigator.openTitle(broadcast.entry.id, "calendar") } }
                         }
                     }
                 }

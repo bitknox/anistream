@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -63,6 +62,9 @@ fun ShowSettingsSheet(entry: Entry, onDismiss: () -> Unit) {
         onDismissRequest = onDismiss,
         sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
         containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        // T7: the scrim black at 32 %, the handle haze at 40 %.
+        scrimColor = androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.32f),
+        dragHandle = { androidx.compose.material3.BottomSheetDefaults.DragHandle(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)) },
         modifier = Modifier.padding(top = 77.dp - 24.dp),
     ) {
         ShowSettingsContent(entry, sheets[entry.id])
@@ -189,7 +191,7 @@ private fun ChoiceRow(
             }
             Icon(Icons.MenuArrow, contentDescription = null, tint = colors.onSurfaceVariant)
         }
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+        Menu(expanded = open, onDismissRequest = { open = false }) {
             for (choice in choices) {
                 val checked = if (choice.value == null) currentIsDefault else !currentIsDefault && choice.value == current
                 DropdownMenuItem(
