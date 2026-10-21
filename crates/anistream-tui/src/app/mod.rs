@@ -417,9 +417,12 @@ impl App {
             // Every way into a title sets a stand-in `detail` for it before the fetch goes out, so
             // a full record for any other id answers a title the user has already left.
             Event::Detail(entry) => self.apply_detail(entry),
-            // The terminal shows titles English first and never asks for the viewer's language.
+            // The engine names every title as the setting says; nothing here asks the viewer's.
             Event::ViewerTitleLanguage(_) => {}
+            Event::TitlesChanged(_) => self.titles_changed(),
             Event::DeviceCode(prompt) => self.device_code = prompt,
+            // A native app's sign-in sheet: the terminal signs in on a loopback port.
+            Event::Authorize { .. } => {}
             Event::Seeding(rows) => self.seeding = rows,
             Event::Downloads(rows) => self.apply_downloads(rows),
             Event::LastAired(rows) => self.apply_last_aired(rows),

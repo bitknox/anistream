@@ -10,6 +10,7 @@
 //!   thread like everything else.
 
 pub mod commands;
+pub mod native;
 
 use std::sync::Arc;
 
@@ -63,6 +64,8 @@ pub struct Sync {
     /// the previous one whole: the next drain tick would otherwise wipe the error off the
     /// Accounts screen a minute after it appeared.
     pub pull_errors: Arc<std::sync::Mutex<std::collections::HashMap<String, PullError>>>,
+    /// The sign-ins a native app's sheet is showing, each waiting for its redirect.
+    pub pending: native::PendingSignIns,
 }
 
 impl Sync {
@@ -186,6 +189,7 @@ impl Sync {
             config: config.clone(),
             http: http.clone(),
             pull_errors: Arc::default(),
+            pending: native::PendingSignIns::default(),
         }
     }
 
@@ -358,7 +362,12 @@ impl anistream_track::kitsu::IdMapping for StoreMapping {
 ///
 /// Titles are remembered as they pass through, which is what later lets a sync conflict name the
 /// show instead of printing a bare id.
-pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -> Event {
+pub async fn load_library(
+    sync: &Sync,
+    store: &Store,
+    titles: &anistream_meta::titles::Titles,
+    segment: LibrarySegment,
+) -> Event {
     use anistream_model::catalog::ContentList;
 
     // Tagged with its segment: switching tabs while a pull is in flight must not show this one
@@ -386,7 +395,7 @@ pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -
             let wanted = segment.wire();
             let mut rows = Vec::new();
             for entry in entries.iter().filter(|e| e.status == wanted) {
-                let _ = store.remember_title(entry.media.id, entry.media.title.display());
+                let _ = store.remember_title(entry.media.id, titles.pick(&entry.media.title));
                 let mut row = crate::data::entry_from(&entry.media, Some(store));
                 // The tracker's progress, not the local projection: this screen is a view of
                 // the remote list, and showing local numbers here would hide a divergence
@@ -600,7 +609,17 @@ pub async fn pull_once(sync: &Sync, tx: &Outbox) {
 /// Opens a browser and waits. Everything here is best-effort and every failure is reported as a
 /// toast rather than propagated — a failed sign-in must leave the app exactly as usable as it
 /// was, because local history never needed an account.
-pub async fn connect(sync: Sync, host: Arc<dyn Host>, tracker_id: String, tx: Outbox) {
+pub async fn connect(
+    sync: Sync,
+    host: Arc<dyn Host>,
+    clients: crate::options::AppClients,
+    tracker_id: String,
+    tx: Outbox,
+) {
+    // An app's own client signs in through the system's sheet, on the app's own scheme.
+    if native::begin(&sync, &clients, &tracker_id, &tx) {
+        return;
+    }
     // Simkl and Trakt use the device flow: no redirect URI to register, and it works over SSH.
     if let Some(endpoints) = device_endpoints(&tracker_id) {
         connect_device(sync, host, tracker_id, endpoints, tx).await;
@@ -654,9 +673,16 @@ fn refuse_redirect(tracker_id: &str, tx: &Outbox) {
 async fn connect_anilist(sync: Sync, host: Arc<dyn Host>, tx: Outbox) {
     let tracker_id = "anilist";
     let auth_config = &sync.config.trackers.anilist;
+    // A token arriving in a fragment never reaches a loopback port.
+    if auth_config.flow == "implicit" {
+        let _ = tx.send(Event::Toast(Notice::alert(
+            "the implicit flow signs in from the anistream app — set trackers.anilist.flow = \"loopback\" here",
+        )));
+        return;
+    }
     let blank = |field: &Option<String>| field.as_deref().unwrap_or("").trim().is_empty();
     if blank(&auth_config.client_id) || blank(&auth_config.client_secret) {
-        // AniList supports only the authorization code grant, so both halves are required.
+        // The terminal's grant is the authorization code, which needs both halves.
         let _ = tx.send(Event::Toast(Notice::alert(
             "set trackers.anilist.client_id and client_secret — run: anistream --login-url",
         )));
@@ -1299,7 +1325,8 @@ mod tests {
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
         let host = Arc::new(crate::host::QuietHost::in_dir(dir.path()));
-        connect(sync, host, "kitsu".into(), Outbox::from(tx)).await;
+        let clients = crate::options::AppClients::default();
+        connect(sync, host, clients, "kitsu".into(), Outbox::from(tx)).await;
         let Ok(Event::Toast(notice)) = rx.try_recv() else { panic!("no notice") };
         assert_eq!(notice.text, "kitsu signs in from the Accounts screen");
         assert_eq!(notice.hint, Some(NoticeHint::KitsuCredentials));
@@ -1323,7 +1350,9 @@ mod tests {
             let sync = Sync::with_tokens(&config, &store, &http, files_in(dir.path()));
             let host = Arc::new(crate::host::QuietHost::in_dir(dir.path()));
             let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-            connect(sync, host, tracker.into(), Outbox::from(tx)).await;
+            // No client of the app's own, so no sheet to sign in through either.
+            let clients = crate::options::AppClients::default();
+            connect(sync, host, clients, tracker.into(), Outbox::from(tx)).await;
             let Ok(Event::Toast(notice)) = rx.try_recv() else { panic!("no notice") };
             assert_eq!(
                 notice.text,

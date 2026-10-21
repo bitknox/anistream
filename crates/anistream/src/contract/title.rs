@@ -371,7 +371,7 @@ async fn the_signed_in_viewers_title_language_is_said_when_asked() {
     for _ in 0..2 {
         h.send(Command::LoadTitleLanguage);
         let updates = h.settle().await;
-        assert_eq!(said(&updates), Some(Some(TitleLanguage::Romaji)), "{updates:?}");
+        assert_eq!(said(&updates), Some(Some(TitleLanguage::English)), "{updates:?}");
     }
     let asked = h.server().requests_for(anistream_testkit::Operation::Viewer);
     assert_eq!(asked.len(), 1, "the viewer is looked up once and kept");

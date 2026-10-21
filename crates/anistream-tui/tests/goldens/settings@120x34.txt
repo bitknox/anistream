@@ -3,12 +3,13 @@ anistream                                                                       
   ▸  CONTINUE               │  APPEARANCE  ──────────────────────────────────────────────────────────────────────────
   ▤  CALENDAR               │    THEME                       adaptive
   ▦  SEASONAL               │    MOTION                      on
-  /  SEARCH                 │
-  ▥  LIBRARY                │  PLAYBACK  ────────────────────────────────────────────────────────────────────────────
-  ↓  DOWNLOADS              │    TRANSLATION                 sub · dub this session
-  ◇  PROVIDERS              │    QUALITY                     1080p
-  ◎  ACCOUNTS               │    SUBTITLES                   eng
-▌ ⚙  SETTINGS               │    COUNTS AS WATCHED AT        85%
+  /  SEARCH                 │    TITLES                      AniList's choice
+  ▥  LIBRARY                │
+  ↓  DOWNLOADS              │  PLAYBACK  ────────────────────────────────────────────────────────────────────────────
+  ◇  PROVIDERS              │    TRANSLATION                 sub · dub this session
+  ◎  ACCOUNTS               │    QUALITY                     1080p
+▌ ⚙  SETTINGS               │    SUBTITLES                   eng
+                            │    COUNTS AS WATCHED AT        85%
                             │    AUTO-PLAY NEXT              on
                             │    SKIP OPENING AUTOMATICALLY  on
                             │    SKIP FILLER AUTOMATICALLY   off
@@ -27,7 +28,6 @@ anistream                                                                       
                             │  SOURCES  ─────────────────────────────────────────────────────────────────────────────
                             │    TORRENT SOURCE              off
                             │    VPN MODE                    socks5
-                            │    SEED AFTER WATCHING         off
                             │  ───────────────────────────────────────────────────────────────────────────────────────
                             │    adapts to the source and your GPU · from the next episode
 ───────────────────────────────────────────────────────────────────────────────────── ▌ now using dub for this session ─
@@ -60,86 +60,86 @@ r04 c61-62 fg=text
 r05 c02-02 fg=text-dim
 r05 c05-10 fg=text-dim
 r05 c28-28 fg=rule
+r05 c33-38 fg=text-dim
+r05 c61-76 fg=text
 r06 c02-02 fg=text-dim
 r06 c05-11 fg=text-dim
 r06 c28-28 fg=rule
-r06 c31-38 fg=text
-r06 c41-116 fg=rule
 r07 c02-02 fg=text-dim
 r07 c05-13 fg=text-dim
 r07 c28-28 fg=rule
-r07 c33-43 fg=text-dim
-r07 c61-82 fg=text
+r07 c31-38 fg=text
+r07 c41-116 fg=rule
 r08 c02-02 fg=text-dim
 r08 c05-13 fg=text-dim
 r08 c28-28 fg=rule
-r08 c33-39 fg=text-dim
-r08 c61-65 fg=text
+r08 c33-43 fg=text-dim
+r08 c61-82 fg=text
 r09 c02-02 fg=text-dim
 r09 c05-12 fg=text-dim
 r09 c28-28 fg=rule
-r09 c33-41 fg=text-dim
-r09 c61-63 fg=text
+r09 c33-39 fg=text-dim
+r09 c61-65 fg=text
 r10 c00-00 fg=text-dim
 r10 c02-02 fg=text
 r10 c05-12 fg=text mod=BOLD
 r10 c28-28 fg=rule
-r10 c33-52 fg=text-dim
+r10 c33-41 fg=text-dim
 r10 c61-63 fg=text
 r11 c28-28 fg=rule
-r11 c33-46 fg=text-dim
-r11 c61-62 fg=text
+r11 c33-52 fg=text-dim
+r11 c61-63 fg=text
 r12 c28-28 fg=rule
-r12 c33-58 fg=text-dim
+r12 c33-46 fg=text-dim
 r12 c61-62 fg=text
 r13 c28-28 fg=rule
-r13 c33-57 fg=text-dim
-r13 c61-63 fg=text
+r13 c33-58 fg=text-dim
+r13 c61-62 fg=text
 r14 c28-28 fg=rule
-r14 c33-55 fg=text-dim
-r14 c61-62 fg=text
+r14 c33-57 fg=text-dim
+r14 c61-63 fg=text
 r15 c28-28 fg=rule
-r15 c33-48 fg=text-dim
-r15 c61-63 fg=text
+r15 c33-55 fg=text-dim
+r15 c61-62 fg=text
 r16 c28-28 fg=rule
-r16 c31-31 fg=obi
-r16 c33-41 fg=text
-r16 c61-76 fg=text mod=BOLD
+r16 c33-48 fg=text-dim
+r16 c61-63 fg=text
 r17 c28-28 fg=rule
-r17 c33-48 fg=text-dim
-r17 c61-69 fg=text
+r17 c31-31 fg=obi
+r17 c33-41 fg=text
+r17 c61-76 fg=text mod=BOLD
 r18 c28-28 fg=rule
-r18 c33-42 fg=text-dim
-r18 c61-63 fg=text
+r18 c33-48 fg=text-dim
+r18 c61-69 fg=text
 r19 c28-28 fg=rule
+r19 c33-42 fg=text-dim
+r19 c61-63 fg=text
 r20 c28-28 fg=rule
-r20 c31-39 fg=text
-r20 c42-116 fg=rule
 r21 c28-28 fg=rule
-r21 c33-47 fg=text-dim
-r21 c61-87 fg=text
+r21 c31-39 fg=text
+r21 c42-116 fg=rule
 r22 c28-28 fg=rule
-r22 c33-50 fg=text-dim
-r22 c61-62 fg=text
+r22 c33-47 fg=text-dim
+r22 c61-87 fg=text
 r23 c28-28 fg=rule
-r23 c33-44 fg=text-dim
-r23 c61-63 fg=text
+r23 c33-50 fg=text-dim
+r23 c61-62 fg=text
 r24 c28-28 fg=rule
-r24 c33-51 fg=text-dim
-r24 c61-64 fg=text
+r24 c33-44 fg=text-dim
+r24 c61-63 fg=text
 r25 c28-28 fg=rule
+r25 c33-51 fg=text-dim
+r25 c61-64 fg=text
 r26 c28-28 fg=rule
-r26 c31-37 fg=text
-r26 c40-116 fg=rule
 r27 c28-28 fg=rule
-r27 c33-46 fg=text-dim
-r27 c61-63 fg=text
+r27 c31-37 fg=text
+r27 c40-116 fg=rule
 r28 c28-28 fg=rule
-r28 c33-40 fg=text-dim
-r28 c61-66 fg=rule
+r28 c33-46 fg=text-dim
+r28 c61-63 fg=text
 r29 c28-28 fg=rule
-r29 c33-51 fg=text-dim
-r29 c61-63 fg=text
+r29 c33-40 fg=text-dim
+r29 c61-66 fg=rule
 r30 c28-28 fg=rule
 r30 c31-117 fg=rule
 r31 c28-28 fg=rule

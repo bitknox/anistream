@@ -312,6 +312,65 @@ async fn the_library_signed_in_lists_each_segment_from_the_tracker() {
 }
 
 #[tokio::test]
+async fn the_library_opened_asks_for_the_list_once_for_all_its_segments() {
+    let mut h = Harness::with(Options {
+        config: Some(WITH_ANILIST.into()),
+        signed_in: vec!["anilist"],
+        ..Options::default()
+    })
+    .await;
+    // As the app opens the screen: every segment at once.
+    for segment in LibrarySegment::ALL {
+        h.send(Command::LoadLibrary(segment));
+    }
+    let updates = h.settle().await;
+    let mut shown: Vec<_> = updates
+        .iter()
+        .filter_map(|update| match update {
+            Event::Content { view: ContentFor::Library(segment), .. } => Some(*segment),
+            _ => None,
+        })
+        .collect();
+    shown.sort_by_key(|segment| LibrarySegment::ALL.iter().position(|s| s == segment));
+    assert_eq!(shown, LibrarySegment::ALL);
+    assert_eq!(h.server().requests_for(Operation::Library).len(), 1);
+
+    // And again a moment later, for a tab looked at twice: the same answer.
+    let job = h.send(Command::LoadLibrary(LibrarySegment::Planning));
+    let updates = h.settle().await;
+    assert_eq!(ids(content(&updates)), vec![MOVIE]);
+    ends(&updates, job);
+    assert_eq!(h.server().requests_for(Operation::Library).len(), 1);
+}
+
+#[tokio::test]
+async fn a_change_written_to_the_list_has_the_library_asked_for_again() {
+    let mut h = Harness::with(Options {
+        config: Some(WITH_ANILIST.into()),
+        signed_in: vec!["anilist"],
+        ..Options::default()
+    })
+    .await;
+    h.send(Command::LoadLibrary(LibrarySegment::Watching));
+    h.settle().await;
+    let library = |h: &Harness| h.server().requests_for(Operation::Library).len();
+    assert_eq!(library(&h), 1);
+
+    // A status set and sent: the list as fetched a moment ago is out of date, so the pull
+    // after the send asks for it again.
+    h.send(Command::SetStatus { id: MOVIE, status: LibrarySegment::Completed });
+    h.settle().await;
+    h.send(Command::SyncNow);
+    h.settle().await;
+    assert_eq!(h.server().requests_for(Operation::SaveEntry).len(), 1, "the change was sent");
+    assert_eq!(library(&h), 2);
+    // Which answers the screen after it.
+    h.send(Command::LoadLibrary(LibrarySegment::Completed));
+    h.settle().await;
+    assert_eq!(library(&h), 2);
+}
+
+#[tokio::test]
 async fn a_library_that_cannot_be_fetched_fails_in_place() {
     let mut h = Harness::with(Options {
         config: Some(WITH_ANILIST.into()),

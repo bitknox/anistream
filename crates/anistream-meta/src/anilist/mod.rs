@@ -24,7 +24,7 @@ pub use model::{
 
 const ENDPOINT: &str = "https://graphql.anilist.co";
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum AniListError {
     #[error("network: {0}")]
     Network(String),

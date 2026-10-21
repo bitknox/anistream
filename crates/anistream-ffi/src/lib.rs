@@ -27,12 +27,18 @@ uniffi::setup_scaffolding!();
 
 mod engine;
 mod host;
+mod log;
+#[cfg(feature = "testing")]
+mod scenes;
 mod start;
 #[cfg(feature = "testing")]
 mod testing;
 
 pub use engine::FfiEngine;
 pub use host::FfiHost;
+pub use log::{FfiLogLevel, log_line, start_log};
+#[cfg(feature = "testing")]
+pub use scenes::FfiScene;
 pub use start::{FfiBackground, FfiDirs, FfiError, FfiPlatform, FfiStart, SecretsMode};
 
 /// Each command and event, written as the bindings write it and read back: what a front end sends
@@ -143,6 +149,24 @@ mod tests {
         for mode in [SecretsMode::Host, SecretsMode::FollowConfig] {
             assert_eq!(crossed(mode), mode);
         }
+    }
+
+    #[test]
+    fn a_native_sign_in_crosses_with_its_redirect_kept_out_of_the_log() {
+        crosses_intact(Event::Authorize {
+            tracker: "anilist".into(),
+            url: "https://anilist.co/api/v2/oauth/authorize?client_id=4242&response_type=token"
+                .into(),
+            callback_scheme: "anistream".into(),
+        });
+        let finish = Command::FinishSignIn {
+            tracker: "anilist".into(),
+            callback: Secret("anistream://auth/anilist#access_token=a.b.c&state=s".into()),
+        };
+        assert!(!format!("{finish:?}").contains("a.b.c"), "the token stays out of the log");
+        assert_eq!(crossed(finish.clone()), finish);
+        let cancel = Command::CancelSignIn { tracker: "mal".into() };
+        assert_eq!(crossed(cancel.clone()), cancel);
     }
 
     #[test]

@@ -146,6 +146,7 @@ dependencies = [
  "async-trait",
  "futures",
  "image",
+ "jiff",
  "open",
  "rand 0.10.2",
  "serde_json",
@@ -175,6 +176,9 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.19",
  "tokio",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber",
  "uniffi",
 ]
 

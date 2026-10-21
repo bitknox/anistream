@@ -14,6 +14,7 @@ pub mod filler;
 pub mod source;
 pub mod tenrai;
 pub mod title;
+pub mod titles;
 
 pub use anilist::{AniList, AniListError, BrowseFilter, Media, Season};
 pub use dataset::{MAPPING_DATASETS, RefreshOutcome, refresh_all};

@@ -21,9 +21,14 @@
 //! a timeout on AniList and another on Tenrai before reaching the cache — forty seconds a
 //! view. After a few failures in a row a [`Breaker`] skips the source for a cooldown, then
 //! lets one request through to see whether it is back.
+//!
+//! One title asked for again within minutes is not asked of AniList again. Opening a title
+//! asks for it three times over — its page, its episodes, then the play — and each was a
+//! request against thirty a minute for an answer a moment old. See [`Recent`].
 
-use std::sync::Mutex;
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant, SystemTime};
 
 use anistream_core::ids::AnilistId;
@@ -36,7 +41,7 @@ use crate::{
     tenrai::{Tenrai, TenraiError},
 };
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, thiserror::Error)]
 pub enum MetaError {
     #[error("{0}")]
     Anilist(#[from] AniListError),
@@ -87,6 +92,69 @@ const BREAKER_COOLDOWN: Duration = Duration::from_secs(30);
 /// The longest a source is left alone between probes. Short enough that a recovered
 /// AniList is back on the ground floor within minutes without anyone pressing a key.
 const BREAKER_MAX: Duration = Duration::from_secs(300);
+
+/// How long AniList's answer for one title answers every ask for it again.
+///
+/// Long enough to cover a title being opened, its episodes listed and an episode played,
+/// short enough that what a title page shows is never older than a few minutes. An episode
+/// airing in the meantime ends it early: see [`Answered::serves`].
+pub const REUSE_FOR: Duration = Duration::from_secs(5 * 60);
+
+/// One ask for a title: under way, or answered.
+///
+/// Shared by everyone who asks for the title while it is under way, so a page and its
+/// episode table opened together cost one request, and an outage one walk down the ladder
+/// rather than one each.
+type Flight = Arc<tokio::sync::OnceCell<Answered>>;
+
+/// What an ask for a title came back with.
+#[derive(Debug, Clone)]
+struct Answered {
+    at: Instant,
+    outcome: Result<Media>,
+    /// Whether AniList itself answered. Only its answers are asked for again from here: an
+    /// answer from the fallback or the cache is for an outage, and the next ask should find
+    /// out whether it is over.
+    fresh: bool,
+}
+
+impl Answered {
+    /// Whether this answer still answers an ask made `now`.
+    ///
+    /// Not once an episode has aired since: the next one and its countdown have moved, and
+    /// the episode count with them.
+    fn serves(&self, now: Instant, reuse_for: Duration) -> bool {
+        let age = now.saturating_duration_since(self.at);
+        let Ok(media) = &self.outcome else { return false };
+        let aired = media.next_airing_episode.as_ref().is_some_and(|next| {
+            next.time_until_airing <= i64::try_from(age.as_secs()).unwrap_or(i64::MAX)
+        });
+        self.fresh && age < reuse_for && !aired
+    }
+
+    /// The answer as of `now`, its countdown run on by the time since.
+    fn as_of(&self, now: Instant) -> Result<Media> {
+        let age =
+            i64::try_from(now.saturating_duration_since(self.at).as_secs()).unwrap_or(i64::MAX);
+        self.outcome.clone().map(|mut media| {
+            if let Some(next) = &mut media.next_airing_episode {
+                next.time_until_airing = next.time_until_airing.saturating_sub(age);
+            }
+            media
+        })
+    }
+}
+
+/// The asks for single titles under way, and AniList's answers from the last
+/// [`REUSE_FOR`].
+///
+/// Kept beside the cache, not read from it: the cache holds whichever fetch touched a title
+/// last, and a list fetch writes a title without its relations, recommendations, trailer or
+/// episode names. A title page drawn from that row would be missing half of itself.
+#[derive(Default)]
+struct Recent {
+    titles: HashMap<AnilistId, Flight>,
+}
 
 /// A circuit breaker for one fresh source.
 ///
@@ -156,6 +224,8 @@ fn skipped(source: &str, wait: Duration) -> String {
 /// The metadata source the application talks to, in place of any one service.
 #[derive(Clone)]
 pub struct Meta {
+    /// Which form of each title is shown, shared with every clone.
+    titles: crate::titles::Titles,
     anilist: AniList,
     tenrai: Option<std::sync::Arc<Tenrai>>,
     store: Store,
@@ -163,11 +233,15 @@ pub struct Meta {
     notice: std::sync::Arc<Mutex<Option<String>>>,
     weather: std::sync::Arc<Mutex<Weather>>,
     breakers: std::sync::Arc<Mutex<Breakers>>,
+    recent: Arc<Mutex<Recent>>,
+    /// How long one of AniList's answers for a title is used again: [`REUSE_FOR`].
+    reuse_for: Duration,
 }
 
 impl Meta {
     pub fn new(anilist: AniList, tenrai: Option<Tenrai>, store: Store) -> Self {
         Self {
+            titles: crate::titles::Titles::default(),
             anilist,
             tenrai: tenrai.map(std::sync::Arc::new),
             store,
@@ -175,7 +249,23 @@ impl Meta {
             notice: std::sync::Arc::new(Mutex::new(None)),
             weather: std::sync::Arc::new(Mutex::new(Weather::default())),
             breakers: std::sync::Arc::new(Mutex::new(Breakers::default())),
+            recent: Arc::default(),
+            reuse_for: REUSE_FOR,
         }
+    }
+
+    /// Which form of each title is shown: the setting, and the signed-in viewer's own choice
+    /// when the setting follows AniList.
+    pub fn titles(&self) -> &crate::titles::Titles {
+        &self.titles
+    }
+
+    /// This source, using AniList's answer for a title again for `reuse_for` rather than
+    /// [`REUSE_FOR`]. Zero asks every time, for a test of the ladder beneath; asks made
+    /// together are still asked once.
+    #[must_use]
+    pub fn reusing_for(self, reuse_for: Duration) -> Self {
+        Self { reuse_for, ..self }
     }
 
     /// Every rung's condition, for the Providers screen: is the ladder standing on the
@@ -436,14 +526,40 @@ impl Meta {
     }
 
     /// One title, with the full detail-screen surface.
+    ///
+    /// From AniList's answer of the last few minutes when there is one, and otherwise asked,
+    /// once for everyone asking at the same time: see [`Recent`].
     pub async fn media(&self, id: AnilistId) -> Result<Media> {
+        let flight = self.flight(id);
+        let answered = flight
+            .get_or_init(|| async {
+                let (outcome, fresh) = self.ask_media(id).await;
+                Answered { at: Instant::now(), outcome, fresh }
+            })
+            .await;
+        answered.as_of(Instant::now())
+    }
+
+    /// The ask for `id` to join: one under way, or an answer that still serves, or else a
+    /// new one. Answers that serve no longer are let go on the way.
+    fn flight(&self, id: AnilistId) -> Flight {
+        let now = Instant::now();
+        let Ok(mut recent) = self.recent.lock() else { return Flight::default() };
+        recent.titles.retain(|_, flight| {
+            flight.get().is_none_or(|answered| answered.serves(now, self.reuse_for))
+        });
+        Arc::clone(recent.titles.entry(id).or_default())
+    }
+
+    /// The ladder, for one title. Returns whether AniList itself answered.
+    async fn ask_media(&self, id: AnilistId) -> (Result<Media>, bool) {
         let primary = match self.ask_anilist(self.anilist.media(id)).await {
             Ok(media) => {
                 self.went(FRESH);
                 self.remember(&media);
-                return Ok(media);
+                return (Ok(media), true);
             }
-            Err(e) if !Self::descends(&e) => return Err(e.into()),
+            Err(e) if !Self::descends(&e) => return (Err(e.into()), false),
             Err(e) => e,
         };
 
@@ -454,7 +570,7 @@ impl Meta {
                     self.note_tenrai(None);
                     self.went(TENRAI);
                     self.remember(&media);
-                    return Ok(media);
+                    return (Ok(media), false);
                 }
                 Err(e) => {
                     tracing::warn!(error = %e, "tenrai could not answer either");
@@ -465,9 +581,9 @@ impl Meta {
         }
         if let Some(media) = self.recall(id) {
             self.went(CACHE);
-            return Ok(media);
+            return (Ok(media), false);
         }
-        Err(self.exhausted(primary, tenrai_error))
+        (Err(self.exhausted(primary, tenrai_error)), false)
     }
 
     /// Several titles, in the order asked. Fallback assembles per title — the cache
@@ -762,6 +878,44 @@ mod tests {
         breaker.answered();
         assert!(breaker.allows(later));
         assert_eq!(breaker.resting_for(later), None);
+    }
+
+    /// A title whose next episode airs `in_secs` from when it was asked for.
+    fn airing(in_secs: i64) -> Media {
+        serde_json::from_value(serde_json::json!({
+            "id": 154_587,
+            "nextAiringEpisode": { "episode": 6, "airingAt": 1_000 + in_secs, "timeUntilAiring": in_secs },
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn an_answer_serves_for_its_minutes_and_not_past_a_broadcast() {
+        let at = Instant::now();
+        let answered = |media: Media, fresh| Answered { at, outcome: Ok(media), fresh };
+        let minute = Duration::from_secs(60);
+
+        let hour_away = answered(airing(3_600), true);
+        assert!(hour_away.serves(at + minute, REUSE_FOR));
+        assert!(!hour_away.serves(at + REUSE_FOR, REUSE_FOR), "only for so long");
+        assert!(!hour_away.serves(at, Duration::ZERO), "and not at all with no time to serve");
+        // The countdown runs on from the answer.
+        let later = hour_away.as_of(at + minute).unwrap();
+        assert_eq!(later.next_airing_episode.unwrap().time_until_airing, 3_540);
+
+        // An episode that airs in the meantime ends it: the next one is another answer.
+        let soon = answered(airing(90), true);
+        assert!(soon.serves(at + minute, REUSE_FOR));
+        assert!(!soon.serves(at + Duration::from_secs(90), REUSE_FOR));
+
+        // The fallback's answers, and failures, are asked again.
+        assert!(!answered(airing(3_600), false).serves(at, REUSE_FOR));
+        let failed = Answered {
+            at,
+            outcome: Err(MetaError::Anilist(AniListError::NotFound)),
+            fresh: true,
+        };
+        assert!(!failed.serves(at, REUSE_FOR));
     }
 
     #[test]

@@ -37,7 +37,6 @@
 
 use std::{
     collections::HashMap,
-    net::{Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex, atomic::AtomicU64},
     time::Instant,
 };
@@ -45,7 +44,7 @@ use std::{
 use anistream_net::HttpClient;
 use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWriteExt, BufReader},
-    net::{TcpListener, TcpStream},
+    net::TcpStream,
 };
 
 mod playlist;
@@ -77,7 +76,9 @@ pub struct MendServer {
     url: String,
     thumbnail_url: String,
     upstream: Arc<Upstream>,
-    handle: tokio::task::JoinHandle<()>,
+    /// The listener and its accept loop, which a phone's app binds again on the same port when
+    /// it comes back from the background: see `anistream_net::loopback`.
+    _listener: Arc<anistream_net::loopback::Loopback>,
 }
 
 impl MendServer {
@@ -134,12 +135,6 @@ struct Fetched {
 
 /// One fetch, awaited by every request that wants the same resource while it runs.
 type InFlight = Arc<tokio::sync::OnceCell<Result<Arc<Fetched>, String>>>;
-
-impl Drop for MendServer {
-    fn drop(&mut self) {
-        self.handle.abort();
-    }
-}
 
 /// Everything one proxied stream needs: the client to fetch with, and the headers to fetch with.
 struct Upstream {
@@ -265,35 +260,43 @@ pub async fn serve(
     headers: Vec<(String, String)>,
     token: &str,
 ) -> std::io::Result<MendServer> {
-    // Loopback only, like every other server this app runs.
-    let listener = TcpListener::bind(SocketAddr::from((Ipv4Addr::LOCALHOST, 0))).await?;
-    let port = listener.local_addr()?.port();
-
-    let upstream = Arc::new(Upstream::new(http, headers, token, port));
-    let entry = upstream.proxied(url, Class::Playback);
-    let thumbnail_entry = upstream.proxied(url, Class::Thumbnail);
-
-    let handle = {
+    // Loopback only, like every other server this app runs. The proxy is told its port once it
+    // has one, for the URLs it rewrites a playlist with.
+    let upstream: Arc<std::sync::OnceLock<Arc<Upstream>>> = Arc::default();
+    let listener = {
         let upstream = Arc::clone(&upstream);
-        tokio::spawn(async move {
-            loop {
-                let Ok((socket, _)) = listener.accept().await else {
-                    break;
-                };
-                let upstream = Arc::clone(&upstream);
-                // One task per connection: mpv opens several at once for a playlist and its
-                // segments, and a slow segment must not block the rest.
-                tokio::spawn(async move {
-                    if let Err(e) = handle_connection(socket, upstream).await {
-                        tracing::debug!(error = %e, "mender connection ended");
-                    }
-                });
-            }
+        anistream_net::loopback::Loopback::bind(move |listener| {
+            let upstream = Arc::clone(&upstream);
+            tokio::spawn(async move {
+                loop {
+                    let Ok((socket, _)) = listener.accept().await else {
+                        break;
+                    };
+                    let Some(upstream) = upstream.get().cloned() else { continue };
+                    // One task per connection: mpv opens several at once for a playlist and
+                    // its segments, and a slow segment must not block the rest.
+                    tokio::spawn(async move {
+                        if let Err(e) = handle_connection(socket, upstream).await {
+                            tracing::debug!(error = %e, "mender connection ended");
+                        }
+                    });
+                }
+            })
         })
+        .await?
     };
+    let proxy = Arc::new(Upstream::new(http, headers, token, listener.port()));
+    let entry = proxy.proxied(url, Class::Playback);
+    let thumbnail_entry = proxy.proxied(url, Class::Thumbnail);
+    let _ = upstream.set(Arc::clone(&proxy));
 
     tracing::info!(%entry, "mending proxy listening on loopback");
-    Ok(MendServer { url: entry, thumbnail_url: thumbnail_entry, upstream, handle })
+    Ok(MendServer {
+        url: entry,
+        thumbnail_url: thumbnail_entry,
+        upstream: proxy,
+        _listener: listener,
+    })
 }
 
 async fn handle_connection(socket: TcpStream, upstream: Arc<Upstream>) -> std::io::Result<()> {
@@ -567,6 +570,10 @@ impl Menders {
 
 #[cfg(test)]
 mod tests {
+    use std::net::Ipv4Addr;
+
+    use tokio::net::TcpListener;
+
     use super::*;
     use crate::playback::mend::segment::TS_PACKET;
 

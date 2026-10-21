@@ -268,6 +268,11 @@ impl Run<'_> {
                             }
                             continue;
                         }
+                        // The server this is read from was bound again: the same stream, opened
+                        // again where it plays, as a switch in place would.
+                        Some(PlayerCommand::Reload) => {
+                            break FileOutcome::Switch { to: index, at: tracker.position() };
+                        }
                         // What the viewer did in a hosted player's own interface: read as the
                         // companion's word for the same is.
                         Some(command) => match from_the_player(command) {

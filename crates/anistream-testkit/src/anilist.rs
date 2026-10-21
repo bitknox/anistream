@@ -11,13 +11,16 @@
 //! asked for is empty and every title is not found. It is there so the fallback can be switched
 //! on, as the default config has it, without any request leaving the machine.
 //!
+//! Asked to, it also serves the fixture titles' art ([`FakeAniList::serve_art`]), and points
+//! every image URL it answers with at itself.
+//!
 //! HTTP is spoken by hand, as the loopback servers in the app's own tests do: one request per
 //! connection, answered with `connection: close` so the client never reuses a socket this side
 //! has finished with. That is all reqwest needs, and it keeps a server framework out of the
 //! dependency tree.
 
 use std::{
-    collections::VecDeque,
+    collections::{HashMap, VecDeque},
     net::{Ipv4Addr, SocketAddr},
     sync::{Arc, Mutex, MutexGuard},
 };
@@ -152,6 +155,12 @@ struct State {
     next: VecDeque<Failure>,
     always: Option<Failure>,
     now: i64,
+    /// Titles answered in other forms than the fixtures', by id: see [`FakeAniList::set_title`].
+    titles: HashMap<u64, Value>,
+    /// The viewer's own title language, in place of the fixture's.
+    viewer_language: Option<String>,
+    /// Where image URLs point once the fake serves art: its own `/art/`.
+    art: Option<String>,
 }
 
 impl FakeAniList {
@@ -166,6 +175,9 @@ impl FakeAniList {
             next: VecDeque::new(),
             always: None,
             now: FIXTURE_NOW,
+            titles: HashMap::new(),
+            viewer_language: None,
+            art: None,
         }));
         let accept = tokio::spawn({
             let state = Arc::clone(&state);
@@ -246,6 +258,20 @@ impl FakeAniList {
         state.always = None;
     }
 
+    /// Serve the fixture titles' art ([`crate::art`]) under `/art/`, and point every image URL
+    /// in an answer there instead of at [`crate::fixtures::ART_HOST`], which nothing resolves:
+    /// for a front end that shows covers, banners and stills. Off until asked, so the image
+    /// URLs a test sees are the fixtures' own.
+    pub fn serve_art(&self) {
+        lock(&self.state).art = Some(self.art_base());
+    }
+
+    /// Where [`Self::serve_art`] serves the art from, standing in for
+    /// [`crate::fixtures::ART_HOST`]: for a source's episode stills to point at too.
+    pub fn art_base(&self) -> String {
+        format!("http://{}/art/", self.addr)
+    }
+
     /// Answer as if it were `now`, rather than [`FIXTURE_NOW`].
     ///
     /// Every broadcast moves by the same amount, so the schedule keeps its shape around the new
@@ -253,6 +279,25 @@ impl FakeAniList {
     /// clock, which the calendar's window and the countdowns are taken from.
     pub fn set_now(&self, now: i64) {
         lock(&self.state).now = now;
+    }
+
+    /// Answer `id`'s title in these forms from now on, wherever the fake names it — a list, its
+    /// page, a relation's card — for a test of a title that is missing one.
+    pub fn set_title(
+        &self,
+        id: AnilistId,
+        romaji: Option<&str>,
+        english: Option<&str>,
+        native: Option<&str>,
+    ) {
+        let title = json!({ "romaji": romaji, "english": english, "native": native });
+        lock(&self.state).titles.insert(u64::from(id.get()), title);
+    }
+
+    /// The signed-in viewer reads AniList in `language` from now on: `ROMAJI`, `ENGLISH`,
+    /// `NATIVE` or a stylised form, as AniList names them.
+    pub fn set_viewer_title_language(&self, language: &str) {
+        lock(&self.state).viewer_language = Some(language.to_owned());
     }
 }
 
@@ -276,7 +321,13 @@ struct Head {
 }
 
 enum Reply {
-    Answer { status: u16, headers: Vec<(&'static str, String)>, body: Value },
+    Answer {
+        status: u16,
+        headers: Vec<(&'static str, String)>,
+        body: Value,
+    },
+    /// An image, when the fake serves art.
+    Image(&'static [u8]),
     HangUp,
 }
 
@@ -306,12 +357,22 @@ async fn serve(socket: TcpStream, state: Arc<Mutex<State>>) {
     if reader.read_exact(&mut body).await.is_err() {
         return;
     }
-    // A hang-up is the socket dropped here, unanswered.
-    let Reply::Answer { status, headers, body } = answer(&state, &head, &body) else { return };
+    let (status, headers, content_type, body) = match answer(&state, &head, &body) {
+        Reply::Answer { status, headers, body } => {
+            let mut body = body.to_string();
+            let art = lock(&state).art.clone();
+            if let Some(art) = art {
+                body = body.replace(crate::fixtures::ART_HOST, &art);
+            }
+            (status, headers, "application/json", body.into_bytes())
+        }
+        Reply::Image(bytes) => (200, Vec::new(), "image/png", bytes.to_vec()),
+        // A hang-up is the socket dropped here, unanswered.
+        Reply::HangUp => return,
+    };
 
-    let body = body.to_string();
     let mut out = format!(
-        "HTTP/1.1 {status} {}\r\ncontent-type: application/json\r\ncontent-length: {}\r\n\
+        "HTTP/1.1 {status} {}\r\ncontent-type: {content_type}\r\ncontent-length: {}\r\n\
          connection: close\r\n",
         reason(status),
         body.len()
@@ -320,8 +381,9 @@ async fn serve(socket: TcpStream, state: Arc<Mutex<State>>) {
         out.push_str(&format!("{name}: {value}\r\n"));
     }
     out.push_str("\r\n");
-    out.push_str(&body);
-    let _ = write.write_all(out.as_bytes()).await;
+    let mut out = out.into_bytes();
+    out.extend_from_slice(&body);
+    let _ = write.write_all(&out).await;
     let _ = write.shutdown().await;
 }
 
@@ -369,7 +431,16 @@ fn reason(status: u16) -> &'static str {
 }
 
 /// Record the request, then answer it: with a failure if one is due, else from the fixtures.
+/// Art, when the fake serves it, is answered without being recorded or failed: it is not
+/// AniList's.
 fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
+    if let Some(path) = head.path.strip_prefix("/art/") {
+        let serving = lock(state).art.is_some();
+        return match crate::art::png(path).filter(|_| serving && head.method == "GET") {
+            Some(bytes) => Reply::Image(bytes),
+            None => Reply::status(404, json!({ "message": "no such image" })),
+        };
+    }
     if let Some(rest) = head.path.strip_prefix("/tenrai/v1") {
         lock(state).requests.push(Request {
             operation: Operation::Tenrai,
@@ -390,7 +461,7 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
         Operation::Unknown
     };
 
-    let (failure, now) = {
+    let (failure, now, titles, viewer_language) = {
         let mut state = lock(state);
         state.requests.push(Request {
             operation,
@@ -400,11 +471,43 @@ fn answer(state: &Mutex<State>, head: &Head, body: &[u8]) -> Reply {
             authorization: head.authorization.clone(),
         });
         let failure = state.next.pop_front().or_else(|| state.always.clone());
-        (failure, state.now)
+        (failure, state.now, state.titles.clone(), state.viewer_language.clone())
     };
     match failure {
         Some(failure) => fail(failure),
-        None => respond(operation, &variables, head.authorization.is_some(), now),
+        None => {
+            let mut reply = respond(operation, &variables, head.authorization.is_some(), now);
+            if let Reply::Answer { body, .. } = &mut reply {
+                retitle(body, &titles);
+                if let Some(language) = viewer_language
+                    && let Some(viewer) =
+                        body.pointer_mut("/data/Viewer").filter(|v| v.is_object())
+                {
+                    viewer["options"] = json!({ "titleLanguage": language });
+                }
+            }
+            reply
+        }
+    }
+}
+
+/// Give every title the test set another way its forms, wherever it is in `value`.
+fn retitle(value: &mut Value, titles: &HashMap<u64, Value>) {
+    if titles.is_empty() {
+        return;
+    }
+    match value {
+        Value::Object(fields) => {
+            let id = fields.get("id").and_then(Value::as_u64);
+            if let Some(title) = id.and_then(|id| titles.get(&id))
+                && fields.contains_key("title")
+            {
+                fields.insert("title".into(), title.clone());
+            }
+            fields.values_mut().for_each(|field| retitle(field, titles));
+        }
+        Value::Array(items) => items.iter_mut().for_each(|item| retitle(item, titles)),
+        _ => {}
     }
 }
 

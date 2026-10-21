@@ -81,6 +81,11 @@ pub enum Event {
     /// [`Command::LoadTitleLanguage`](crate::command::Command::LoadTitleLanguage). `None` when
     /// nobody is signed in to AniList, or AniList did not say.
     ViewerTitleLanguage(Option<TitleLanguage>),
+    /// The form every title is named in changed, to this: the setting was changed, or the
+    /// signed-in AniList viewer it follows signed in or out. What a front end has on screen
+    /// names titles the old way, so it loads what it shows again; what arrives from now on is
+    /// named the new way.
+    TitlesChanged(TitleLanguage),
     Status(String),
     Toast(Notice),
     Providers(Vec<ProviderRow>),
@@ -269,6 +274,19 @@ pub enum Event {
     /// task sending a status — a rate-limit notice, a finished download — would wipe it. `None`
     /// clears it when the flow ends.
     DeviceCode(Option<DeviceCodePrompt>),
+    /// Sign in to `tracker` through the system's sign-in sheet: open `url` in it, and hand back
+    /// the redirect it ends on, one with `callback_scheme` for its scheme, with
+    /// [`Command::FinishSignIn`], or say it was closed with [`Command::CancelSignIn`]. What a
+    /// native app's own sign-in clients start; the terminal's sign-in catches its redirect on
+    /// a loopback port instead.
+    ///
+    /// [`Command::FinishSignIn`]: crate::command::Command::FinishSignIn
+    /// [`Command::CancelSignIn`]: crate::command::Command::CancelSignIn
+    Authorize {
+        tracker: String,
+        url: String,
+        callback_scheme: String,
+    },
     /// Latest broadcast per title, merged into whatever is on screen.
     ///
     /// Arrives *after* the list it annotates, because it takes a second request that depends on

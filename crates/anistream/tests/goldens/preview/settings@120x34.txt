@@ -3,12 +3,13 @@ anistream                                                                       
   ▸  CONTINUE               │  APPEARANCE  ──────────────────────────────────────────────────────────────────────────
   ▤  CALENDAR               │  ▌ THEME                       adaptive
   ▦  SEASONAL               │    MOTION                      on
-  /  SEARCH                 │
-  ▥  LIBRARY                │  PLAYBACK  ────────────────────────────────────────────────────────────────────────────
-  ↓  DOWNLOADS              │    TRANSLATION                 sub
-  ◇  PROVIDERS              │    QUALITY                     1080p
-  ◎  ACCOUNTS               │    SUBTITLES                   eng
-▌ ⚙  SETTINGS               │    COUNTS AS WATCHED AT        85%
+  /  SEARCH                 │    TITLES                      AniList's choice
+  ▥  LIBRARY                │
+  ↓  DOWNLOADS              │  PLAYBACK  ────────────────────────────────────────────────────────────────────────────
+  ◇  PROVIDERS              │    TRANSLATION                 sub
+  ◎  ACCOUNTS               │    QUALITY                     1080p
+▌ ⚙  SETTINGS               │    SUBTITLES                   eng
+                            │    COUNTS AS WATCHED AT        85%
                             │    AUTO-PLAY NEXT              on
                             │    SKIP OPENING AUTOMATICALLY  on
                             │    SKIP FILLER AUTOMATICALLY   off
@@ -27,7 +28,6 @@ anistream                                                                       
                             │  SOURCES  ─────────────────────────────────────────────────────────────────────────────
                             │    TORRENT SOURCE              off
                             │    VPN MODE                    socks5
-                            │    SEED AFTER WATCHING         off
                             │
                             │
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
