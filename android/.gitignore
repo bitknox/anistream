@@ -1,0 +1,14 @@
+# What android/scripts/engine.sh builds: the engine's libraries and Kotlin bindings per flavour.
+/.engine/
+# What android/scripts/fonts.sh fetches: the two typefaces and their licences.
+/.fonts/
+# What android/scripts/shots.sh takes.
+/.shots/
+# Gradle's and the IDE's own.
+.gradle/
+.kotlin/
+build/
+/local.properties
+/.idea/
+*.iml
+/captures/
