@@ -95,9 +95,10 @@ public final class SeekPreview {
             }
         }
         busy = true
+        let handed = HandedLayer(layer: layer)
         Task { @MainActor [weak self] in
             do {
-                try await backend.begin(on: layer)
+                try await backend.begin(on: handed.layer)
                 var options = source.options
                 options["start"] = String(seconds)
                 _ = try await backend.perform(.load(url: source.url, options: options))
