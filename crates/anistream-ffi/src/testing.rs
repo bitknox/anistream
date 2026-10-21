@@ -15,8 +15,8 @@ use anistream_track::secret::{Backend, TokenStore};
 
 use crate::{
     engine::{FfiEngine, Opened, runtime},
-    host::FfiHost,
-    start::{FfiDirs, FfiError},
+    host::{Adapter, FfiHost},
+    start::{FfiDirs, FfiError, FfiStart, SecretsMode},
 };
 
 #[uniffi::export]
@@ -29,16 +29,21 @@ impl FfiEngine {
     /// - The only source is the test kit's fixture provider.
     /// - Every request goes through a client that cannot resolve a host name, so one the test
     ///   did not think of fails at once instead of leaving the machine.
-    /// - Tokens are files under `dirs.data`, never the keychain.
+    /// - Tokens are files under `dirs.data`, never the keychain, whatever `start.secrets` says.
     /// - None of the engine's own work runs beside the commands: no update check, no sync loops,
     ///   no check of the player.
     /// - A play opens the app's hosted player, in any build: its ops come as
     ///   `Event::PlayerOps`, for the test to answer with `Command::PlayerReport`.
     ///
-    /// Only in a build with the `testing` feature, which an app never turns on.
-    #[uniffi::constructor]
-    pub fn start_testing(dirs: FfiDirs, host: Arc<dyn FfiHost>) -> Result<Arc<Self>, FfiError> {
-        Self::start_testing_with(dirs, host, anistream_testkit::sources::registry())
+    /// The rest of `start` is taken as [`FfiEngine::start`] takes it, the player's theme and the
+    /// sign-in clients. Only in a build with the `testing` feature, which an app never turns on.
+    #[uniffi::constructor(default(start))]
+    pub fn start_testing(
+        dirs: FfiDirs,
+        host: Arc<dyn FfiHost>,
+        start: FfiStart,
+    ) -> Result<Arc<Self>, FfiError> {
+        Self::start_testing_from(dirs, host, start, anistream_testkit::sources::registry())
     }
 }
 
@@ -50,12 +55,24 @@ impl FfiEngine {
         host: Arc<dyn FfiHost>,
         sources: ProviderRegistry,
     ) -> Result<Arc<Self>, FfiError> {
+        Self::start_testing_from(dirs, host, FfiStart::default(), sources)
+    }
+
+    fn start_testing_from(
+        dirs: FfiDirs,
+        host: Arc<dyn FfiHost>,
+        start: FfiStart,
+        sources: ProviderRegistry,
+    ) -> Result<Arc<Self>, FfiError> {
         let opened = Opened::open(&dirs)?;
+        // The test's token files are the trackers' and the stores' own, so the host's keychain
+        // is never asked.
+        let host = Adapter::new(host, SecretsMode::Host, &opened.config, &opened.paths);
         let runtime = runtime()?;
         let started = runtime.block_on(async {
             // The fake answers on the engine's runtime, for as long as the engine holds it.
             let server = FakeAniList::start().await;
-            let options = options(opened, &server, sources)?;
+            let options = options(opened, &server, &start, sources)?;
             Ok::<_, FfiError>((Self::launch(options, host).await?, server))
         });
         match started {
@@ -70,6 +87,7 @@ impl FfiEngine {
 fn options(
     opened: Opened,
     server: &FakeAniList,
+    start: &FfiStart,
     sources: ProviderRegistry,
 ) -> Result<EngineOptions, FfiError> {
     let Opened { paths, config, store } = opened;
@@ -86,7 +104,7 @@ fn options(
     let stores = plugin_stores::Stores::with_tokens(&config, &paths, tokens)
         .map_err(|reason| FfiError::Engine { reason })?;
 
-    let mut options = Opened { paths, config, store }.options(http);
+    let mut options = Opened { paths, config, store }.options(http, start);
     options.sources = Some(sources);
     options.background = Background::none();
     options.hosted_player = true;
