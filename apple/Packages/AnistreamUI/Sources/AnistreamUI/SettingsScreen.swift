@@ -28,6 +28,22 @@ public enum PhoneSettingsPage: Hashable, Sendable {
     case root, playback, downloads, sources, accounts, providers, stores
     case store(String)
     case plugin(String)
+
+    /// The page a launch argument names: a Settings pane's name, or providers or stores.
+    static func named(_ name: String) -> PhoneSettingsPage? {
+        switch name {
+        case "playback": .playback
+        case "downloads": .downloads
+        case "sources": .sources
+        case "accounts": .accounts
+        case "providers": .providers
+        case "stores", "pluginStores": .stores
+        // The showcase's own, for screenshots.
+        case "store": .store("hotaru")
+        case "plugin": .plugin("mukashi-archive")
+        default: nil
+        }
+    }
 }
 
 struct SettingsScreen: View {

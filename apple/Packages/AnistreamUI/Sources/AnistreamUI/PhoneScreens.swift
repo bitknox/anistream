@@ -59,7 +59,7 @@ struct PhoneContinue: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Accounts and settings", systemImage: "person.crop.circle") {
-                    navigator.open(.settings)
+                    navigator.phoneSettings = .root
                 }
             }
         }

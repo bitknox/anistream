@@ -30,12 +30,22 @@ struct AppSheets: ViewModifier {
                 get: { navigator.invite.map(InviteItem.init) },
                 set: { (item: InviteItem?) in navigator.invite = item?.link }
             )) { item in
+                #if os(iOS)
+                PhoneJoinStoreSheet(link: item.link)
+                #else
                 JoinStoreSheet(link: item.link)
+                #endif
             }
             .onOpenURL { url in
                 if let link = InviteLinks.invite(in: url) { navigator.invite = link }
             }
     }
+}
+
+/// A title as the per-show sheet's item.
+struct ShowItem: Identifiable {
+    let entry: Entry
+    var id: AnilistId { entry.id }
 }
 
 /// An invite link as a sheet's item.

@@ -46,6 +46,8 @@ public final class Navigator {
     public var invite: String?
     /// The sheet the launch arguments ask for, for a screenshot, until a screen shows it.
     public var launchSheet: String?
+    /// The title whose own settings are up in a sheet.
+    public var showSettings: AnilistId?
 
     public init(route: LaunchRoute = .current) {
         section = route.section
@@ -57,6 +59,12 @@ public final class Navigator {
         settingsPane = route.pane.flatMap(SettingsPane.init(rawValue:)) ?? .playback
         launchSheet = route.sheet
         if route.sheet == "join" { invite = "https://plugins.hotaru.example/join/fixture#key" }
+        if route.sheet == "show" { showSettings = route.title }
+        #if os(iOS)
+        if UIDevice.current.userInterfaceIdiom == .phone, route.section == .settings {
+            phoneSettings = route.pane.flatMap(PhoneSettingsPage.named) ?? .root
+        }
+        #endif
         if let title = route.title {
             paths[route.section] = [title]
         }

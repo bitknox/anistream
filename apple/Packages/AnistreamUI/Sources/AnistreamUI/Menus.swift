@@ -43,6 +43,7 @@ struct StatusItems: View {
 /// The title page's More menu.
 struct TitleMoreItems: View {
     @Environment(AppStore.self) private var store
+    @Environment(Navigator.self) private var navigator
     let entry: Entry
 
     var body: some View {
@@ -60,9 +61,7 @@ struct TitleMoreItems: View {
         .disabled(entry.trailerUrl == nil)
         Button("Open on AniList") { store.openOnAniList(entry.id) }
         Divider()
-        // The per-show sheet comes with Settings.
-        Button("Show Settings for This Show…") {}
-            .disabled(true)
+        Button("Settings for This Show…") { navigator.showSettings = entry.id }
     }
 }
 

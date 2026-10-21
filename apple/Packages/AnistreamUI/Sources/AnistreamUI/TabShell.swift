@@ -33,13 +33,13 @@ struct TabShell: View {
                 TabSection("Sources") {
                     ForEach([AppSection.downloads, .providers, .pluginStores]) { section in
                         Tab(section.title.capitalizedSentence, systemImage: section.symbol, value: section) {
-                            TabStack(section: section) { NotBuiltYet(section: section) }
+                            TabStack(section: section) { screen(section) }
                         }
                         .defaultVisibility(.hidden, for: .tabBar)
                     }
                 }
                 Tab(AppSection.settings.title, systemImage: AppSection.settings.symbol, value: AppSection.settings) {
-                    TabStack(section: .settings) { NotBuiltYet(section: .settings) }
+                    TabStack(section: .settings) { SettingsScreen() }
                 }
                 .defaultVisibility(.hidden, for: .tabBar)
             }
@@ -56,6 +56,16 @@ struct TabShell: View {
         .sheet(isPresented: $navigator.messagesShown) {
             MessagesView()
         }
+        .sheet(item: $navigator.phoneSettings) { page in
+            PhoneSettingsSheet(start: page)
+        }
+        .sheet(item: Binding<ShowItem?>(
+            get: { navigator.showSettings.flatMap { store.titles[$0] }.map(ShowItem.init) },
+            set: { (item: ShowItem?) in navigator.showSettings = item?.entry.id }
+        )) { item in
+            PhoneShowSettingsSheet(entry: item.entry)
+        }
+        .modifier(AppSheets())
     }
 
     @ViewBuilder
@@ -66,7 +76,50 @@ struct TabShell: View {
         case .calendar: if wide { CalendarScreen() } else { PhoneCalendar() }
         case .seasonal: SeasonalScreen(minimum: wide ? 128 : 100)
         case .library: PhoneLibrary()
+        case .downloads: DownloadsScreen().toolbar { IPadDownloadsToolbar() }
+        case .providers: ProvidersScreen().toolbar { IPadProvidersToolbar() }
+        case .pluginStores: PluginStoresScreen().toolbar { IPadStoresToolbar() }
+        case .settings: SettingsScreen()
         default: NotBuiltYet(section: section)
+        }
+    }
+}
+
+/// Providers' toolbar on iPad: check the stores for plugin updates.
+struct IPadProvidersToolbar: ToolbarContent {
+    @Environment(AppStore.self) private var store
+
+    var body: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button("Check for Updates") { store.loadStores() }
+        }
+    }
+}
+
+/// Plugin Stores' toolbar on iPad: join another.
+struct IPadStoresToolbar: ToolbarContent {
+    @Environment(Navigator.self) private var navigator
+
+    var body: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button("Join Store", systemImage: "plus") { navigator.invite = "" }
+        }
+    }
+}
+
+/// Downloads' toolbar on iPad: pause or resume everything.
+struct IPadDownloadsToolbar: ToolbarContent {
+    @Environment(AppStore.self) private var store
+
+    var body: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            let paused = store.downloads.rows.contains { $0.state == .paused }
+            let running = store.downloads.rows.contains { $0.state == .active || $0.state == .queued }
+            if running || !paused {
+                Button("Pause All") { store.pauseAllDownloads() }.disabled(!running)
+            } else {
+                Button("Resume All") { store.resumeAllDownloads() }
+            }
         }
     }
 }

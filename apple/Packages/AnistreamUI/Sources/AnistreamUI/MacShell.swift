@@ -67,6 +67,12 @@ struct MacShell: View {
             MessagesView()
         }
         .modifier(AppSheets())
+        .sheet(item: Binding<ShowItem?>(
+            get: { navigator.showSettings.flatMap { store.titles[$0] }.map(ShowItem.init) },
+            set: { (item: ShowItem?) in navigator.showSettings = item?.entry.id }
+        )) { item in
+            ShowSettingsSheet(entry: item.entry)
+        }
     }
 
     /// What the toolbar says under the section's name.
