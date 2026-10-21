@@ -167,6 +167,8 @@ struct StartingCurtain: View {
 /// back and forth, calm. Still, with Reduce Motion.
 struct LoaderLine: View {
     let reduceMotion: Bool
+    /// What VoiceOver says it is.
+    var label = "Starting"
     @State private var across = false
 
     var body: some View {
@@ -190,8 +192,40 @@ struct LoaderLine: View {
             withAnimation(.spring(duration: 1.4, bounce: 0).repeatForever(autoreverses: true)) { across = true }
         }
         .accessibilityElement()
-        .accessibilityLabel("Starting")
+        .accessibilityLabel(label)
         .accessibilityAddTraits(.updatesFrequently)
+    }
+}
+
+/// Buffering mid-episode: the starting screen's line, along the picture's top edge, from about a
+/// second of waiting until mpv plays on. The stall prompt comes after, as before.
+struct BufferingLine: View {
+    let model: PlayerModel
+    let reduceMotion: Bool
+
+    var body: some View {
+        let shown = model.showsBufferingLine
+        GeometryReader { proxy in
+            let picture = Self.picture(in: proxy.size, aspect: model.videoAspect)
+            if shown {
+                LoaderLine(reduceMotion: reduceMotion, label: "Buffering")
+                    .frame(width: picture.width, height: 2)
+                    .position(x: picture.midX, y: picture.minY + 1)
+                    .transition(.opacity)
+            }
+        }
+        .allowsHitTesting(false)
+        // In softly; gone at once when the picture moves again.
+        .animation(shown ? .fadeIn : nil, value: shown)
+    }
+
+    /// Where the picture is in a view of `size`: fitted whole and centred, as mpv letterboxes it,
+    /// or the whole view before mpv has said its shape.
+    static func picture(in size: CGSize, aspect: Double?) -> CGRect {
+        guard let aspect, aspect > 0, size.width > 0, size.height > 0 else { return CGRect(origin: .zero, size: size) }
+        let width = min(size.width, size.height * aspect)
+        let height = min(size.height, size.width / aspect)
+        return CGRect(x: (size.width - width) / 2, y: (size.height - height) / 2, width: width, height: height)
     }
 }
 

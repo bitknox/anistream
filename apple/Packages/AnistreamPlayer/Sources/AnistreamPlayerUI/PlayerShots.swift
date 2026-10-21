@@ -20,6 +20,8 @@ public enum PlayerShot: String, CaseIterable, Sendable {
     case stillWatching = "still-watching"
     /// The stall prompt, counting up.
     case stall
+    /// Buffering mid-episode: the amber line along the picture's top, the controls hidden.
+    case buffering
     /// Scrubbing at half speed, with the frame there from the hidden mpv, the time and the
     /// chapter.
     case scrubbing
@@ -87,6 +89,11 @@ extension PlayerModel {
             seek(to: 33)
             there = await waited(10) { self.position >= 33.5 }
             if let playback { apply(.playerUi(playback: playback, ui: .stall(seconds: 9))) }
+            hideControls()
+        case .buffering:
+            seek(to: 33)
+            there = await waited(10) { self.position >= 33.5 }
+            bufferForShot()
             hideControls()
         case .scrubbing:
             seek(to: 24)
