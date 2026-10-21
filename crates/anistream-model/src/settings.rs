@@ -80,6 +80,14 @@ pub enum SettingKey {
     ///
     /// [`Command::SetTorrentProtection`]: crate::command::Command::SetTorrentProtection
     VpnOnFailure,
+    /// Whether the app notifies of new episodes of the shows being watched, from
+    /// [`Command::CheckNewEpisodes`]. Off by default. A show can turn it off for itself, or on
+    /// when it is only planned, with [`ShowSettingKey::NotifyNewEpisodes`]; with this off, no
+    /// show is notified of.
+    ///
+    /// [`Command::CheckNewEpisodes`]: crate::command::Command::CheckNewEpisodes
+    /// [`ShowSettingKey::NotifyNewEpisodes`]: crate::show::ShowSettingKey::NotifyNewEpisodes
+    EpisodeNotifications,
 }
 
 impl SettingKey {
@@ -123,7 +131,7 @@ impl SettingKey {
     /// The native apps' own rows, which the terminal's Settings screen does not show: a front
     /// end finds the rows both show among [`Self::ROWS`]. In no order of their own, since each
     /// app lays them out on its own panes; grouped by [`Self::category`] all the same.
-    pub const NATIVE_ROWS: [Self; 7] = [
+    pub const NATIVE_ROWS: [Self; 8] = [
         Self::UpNextCountdown,
         Self::SpoilerProtection,
         Self::DownloadQuality,
@@ -131,6 +139,7 @@ impl SettingKey {
         Self::DownloadsOnCellular,
         Self::TorrentsOnCellular,
         Self::VpnOnFailure,
+        Self::EpisodeNotifications,
     ];
 
     /// Where the file keeps it: the containing table, as the dotted path
@@ -176,6 +185,7 @@ impl SettingKey {
             Self::DownloadsOnCellular => (&["downloads"], "on_cellular"),
             Self::TorrentsOnCellular => (&["providers", "torrent"], "on_cellular"),
             Self::VpnOnFailure => (&["providers", "torrent", "vpn"], "on_leak"),
+            Self::EpisodeNotifications => (&["notifications"], "episodes"),
             Self::VpnMode | Self::TokenStorage => return None,
         })
     }
@@ -266,6 +276,9 @@ impl SettingKey {
             Self::VpnOnFailure => {
                 to.providers.torrent.vpn.on_leak = from.providers.torrent.vpn.on_leak;
             }
+            Self::EpisodeNotifications => {
+                to.notifications.episodes = from.notifications.episodes;
+            }
             // Not editable here, so never written and never rolled back.
             Self::VpnMode | Self::TokenStorage => {}
         }
@@ -313,6 +326,7 @@ impl SettingKey {
             | Self::SyncplayServer
             | Self::SyncplayRoom
             | Self::UpdateCheck => "integrations",
+            Self::EpisodeNotifications => "notifications",
         }
     }
 
@@ -362,6 +376,7 @@ impl SettingKey {
             Self::DownloadsOnCellular => "downloads on cellular",
             Self::TorrentsOnCellular => "torrents on cellular",
             Self::VpnOnFailure => "if a check fails",
+            Self::EpisodeNotifications => "new episode notifications",
         }
     }
 }
@@ -634,6 +649,7 @@ pub fn step(
         }
         SettingKey::DownloadsOnCellular => V::Bool(!effective.downloads.on_cellular),
         SettingKey::TorrentsOnCellular => V::Bool(!effective.providers.torrent.on_cellular),
+        SettingKey::EpisodeNotifications => V::Bool(!effective.notifications.episodes),
         // Between the two that need no confirming. Warn is never a step away: it is asked for
         // with its acknowledgement, and a step from it goes back to the default.
         SettingKey::VpnOnFailure => V::Str(
@@ -765,6 +781,7 @@ pub fn put(config: &mut Config, key: SettingKey, value: &SettingValue) -> bool {
             config.downloads.keep_next = episodes;
         }
         (SettingKey::DownloadsOnCellular, V::Bool(on)) => config.downloads.on_cellular = *on,
+        (SettingKey::EpisodeNotifications, V::Bool(on)) => config.notifications.episodes = *on,
         (SettingKey::TorrentsOnCellular, V::Bool(on)) => {
             config.providers.torrent.on_cellular = *on;
         }
@@ -883,6 +900,7 @@ pub(crate) fn value(effective: &Config, saved: &Config, key: SettingKey) -> Stri
         },
         SettingKey::DownloadsOnCellular => on_off(effective.downloads.on_cellular),
         SettingKey::TorrentsOnCellular => on_off(torrent.on_cellular),
+        SettingKey::EpisodeNotifications => on_off(effective.notifications.episodes),
         SettingKey::VpnOnFailure => match torrent.vpn.on_leak {
             LeakAction::Pause => "pause torrents",
             LeakAction::Stop => "stop torrents",
@@ -946,6 +964,7 @@ fn two_state(effective: &Config, saved: &Config, key: SettingKey) -> Option<bool
         }
         S::DownloadsOnCellular => c.downloads.on_cellular,
         S::TorrentsOnCellular => c.providers.torrent.on_cellular,
+        S::EpisodeNotifications => c.notifications.episodes,
         // Pause, then stop; warn stands beside stop, a step back from the default.
         S::VpnOnFailure => {
             c.providers.torrent.vpn.on_leak != anistream_core::config::LeakAction::Pause
@@ -1127,6 +1146,7 @@ mod tests {
                 (SettingKey::DownloadsOnCellular, "off"),
                 (SettingKey::TorrentsOnCellular, "off"),
                 (SettingKey::VpnOnFailure, "pause torrents"),
+                (SettingKey::EpisodeNotifications, "off"),
             ]
         );
         assert!(view.rows.iter().all(|row| !SettingKey::NATIVE_ROWS.contains(&row.key)));

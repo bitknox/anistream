@@ -26,6 +26,7 @@ use crate::{
     outbox::Played,
     playback::autonext::Staging,
     sources::{TorrentUp, torrent::TorrentTasks},
+    widgets::Today,
 };
 
 /// Where a bring-up of the torrent source reports in, tagged with the bring-up it answers.
@@ -65,6 +66,11 @@ pub struct EngineState {
     /// Whether the network is metered, cellular or Low Data Mode, as the front end last said:
     /// downloads and seeding wait on one.
     pub metered: bool,
+    /// Held by each new-episode check while it runs, so two asked for together take turns
+    /// rather than both saying the same episode.
+    pub episode_check: Arc<tokio::sync::Mutex<()>>,
+    /// Today's broadcasts as the widgets' record last fetched them: see [`Today`].
+    pub airing_today: Today,
 }
 
 impl EngineState {
@@ -89,6 +95,8 @@ impl EngineState {
             staging: Staging::default(),
             phase: Default::default(),
             metered: false,
+            episode_check: Arc::default(),
+            airing_today: Today::default(),
         }
     }
 
