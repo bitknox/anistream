@@ -18,8 +18,13 @@
 #
 # Nothing is built when the stamp says the sources, Cargo.lock and the slices asked for are what
 # the last build was made from. With --check, nothing is built at all: it says whether the build
-# is current, and fails when it is not, which is what the Xcode project's frameworks check. ANISTREAM_ENGINE_PROFILE picks the cargo profile, app-dev unless
-# it says otherwise (`release` for a build to keep).
+# is current, and fails when it is not, which is what the Xcode project's frameworks check.
+#
+# ANISTREAM_ENGINE_PROFILE picks the cargo profile: app-dev unless it says otherwise, and release
+# for a build to keep. The Xcode project sets it per configuration, app-dev for Debug and release
+# for Release. The stamp records it, so a build in one profile is never current for the other:
+# switching between them rebuilds the engine, from cargo's own build of that profile when it has
+# one.
 set -euo pipefail
 # Bash 4.4 and newer only. macOS's own /bin/bash is 3.2, which CI's macOS runner finds first.
 shopt -s inherit_errexit 2>/dev/null || true
@@ -120,13 +125,18 @@ if [[ -f "$out/stamp" && -d "$out/AnistreamEngine.xcframework" && -d "$out/Swift
   done
   if (( fresh )); then
     (( check )) || link_package
-    echo "engine.sh: the $flavour engine is up to date in $out"
+    echo "engine.sh: the $flavour engine ($profile profile) is up to date in $out"
     exit 0
   fi
 fi
 if (( check )); then
-  echo "error: the $flavour engine for ${slices[*]} is missing or older than the Rust sources." >&2
-  echo "error: run apple/scripts/engine.sh $flavour ${slices[*]}" >&2
+  built="$(sed -n 's/^profile //p' "$out/stamp" 2>/dev/null || true)"
+  if [[ -n "$built" && "$built" != "$profile" ]]; then
+    echo "error: the $flavour engine was built in the $built profile, and this build needs $profile." >&2
+  else
+    echo "error: the $flavour engine for ${slices[*]} is missing or older than the Rust sources." >&2
+  fi
+  echo "error: run ANISTREAM_ENGINE_PROFILE=$profile apple/scripts/engine.sh $flavour ${slices[*]}" >&2
   exit 1
 fi
 
@@ -146,11 +156,19 @@ done
 # builds beneath BoringSSL, SQLite and the rest pick up and then build for the wrong platform.
 # So only PATH, HOME, rustup's and cargo's own variables and the deployment targets go through,
 # and an iOS slice also gets the Xcode its SDK is in.
+#
+# Build scripts and proc macros are not stripped. In a profile without debug info, release among
+# them, cargo strips them by default, and a proc macro built for a deployment target of macOS 12 or
+# later and then stripped is one rustc cannot load: every crate that uses it fails with "can't find
+# crate for `thiserror_impl`" (E0463). Nothing built for the host ships, so they lose nothing.
 cargo_clean() {
   local developer="$1"
   shift
+  local override
+  override="CARGO_PROFILE_$(tr '[:lower:]-' '[:upper:]_' <<<"$profile")_BUILD_OVERRIDE_STRIP"
   local pass=(PATH="$PATH" HOME="$HOME"
-    MACOSX_DEPLOYMENT_TARGET="$deployment" IPHONEOS_DEPLOYMENT_TARGET="$deployment")
+    MACOSX_DEPLOYMENT_TARGET="$deployment" IPHONEOS_DEPLOYMENT_TARGET="$deployment"
+    "$override=false")
   local name
   while IFS= read -r name; do
     pass+=("$name=${!name}")
