@@ -33,10 +33,16 @@ struct HostsPlayer: ViewModifier {
                     dismissWindow(id: PlayerWindow.id)
                 }
             }
+            .onChange(of: store.home?.cache, initial: true) { _, cache in
+                model.shaderCache = cache?.appending(path: "mpv-shaders", directoryHint: .isDirectory)
+            }
             .onReceive(powerChanges) { _ in model.powerChanged() }
         #else
         content
             .environment(\.playerZoom, zoom)
+            .onChange(of: store.home?.cache, initial: true) { _, cache in
+                model.shaderCache = cache?.appending(path: "mpv-shaders", directoryHint: .isDirectory)
+            }
             .fullScreenCover(
                 isPresented: Binding(
                     get: { model.isPresented },

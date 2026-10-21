@@ -79,9 +79,18 @@ public struct MacPlayerView: View {
         .onChange(of: model.fullScreen) { _, on in fullScreen(on) }
         .onChange(of: visible) { _, on in titleBar(on) }
         .onChange(of: model.miniPlayer) { _, on in mini(on) }
+        .onChange(of: window) { _, window in if let window { opened(window) } }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { note in
+            guard let window, (note.object as? NSWindow) === window else { return }
+            PlayerModel.note(.info, "player window full screen, \(Self.describe(window))")
+            if !model.fullScreen { model.fullScreen = true }
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { note in
+            guard let window, (note.object as? NSWindow) === window else { return }
+            PlayerModel.note(.info, "player window out of full screen, \(Self.describe(window))")
+            if model.fullScreen && !model.miniPlayer { model.fullScreen = false }
             // Asked for the mini player in full screen: it follows once full screen has ended.
-            if model.miniPlayer, fullFrame == nil, (note.object as? NSWindow) === window { mini(true) }
+            if model.miniPlayer, fullFrame == nil { mini(true) }
         }
         .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { height = $0 }
         .onChange(of: SubtitleLift(visible: visible, height: height), initial: true) { _, lift in
@@ -97,6 +106,7 @@ public struct MacPlayerView: View {
                 window.setFrame(fullFrame, display: false)
                 self.fullFrame = nil
             }
+            if let window, !window.styleMask.contains(.fullScreen) { model.windowFrame = window.frame }
             model.viewerClosed()
         }
         .preferredColorScheme(.dark)
@@ -454,6 +464,34 @@ public struct MacPlayerView: View {
 
     // MARK: The window
 
+    /// The window is there: where it was last time or a 16:9 one within the screen, and full
+    /// screen when the player was asked to open that way before the window existed.
+    private func opened(_ window: NSWindow) {
+        if !window.styleMask.contains(.fullScreen), let screen = window.screen ?? NSScreen.main {
+            let frame = model.windowFrame.flatMap { PlayerWindowFrame.restored($0, on: screen.visibleFrame) }
+                ?? PlayerWindowFrame.initial(in: screen.visibleFrame)
+            window.setFrame(frame, display: true)
+        }
+        PlayerModel.note(.info, "player window open, \(Self.describe(window)), asked for full screen \(model.fullScreen)")
+        if model.fullScreen, !window.styleMask.contains(.fullScreen) {
+            // Once the window is on screen: a window still ordering in will not go full screen.
+            DispatchQueue.main.async { [weak window] in
+                guard let window, model.fullScreen, !window.styleMask.contains(.fullScreen) else { return }
+                window.toggleFullScreen(nil)
+            }
+        }
+    }
+
+    /// "1058×595 pt at (227, 175), screen 1512×945 pt at 2.0×, full screen no", for the log.
+    static func describe(_ window: NSWindow) -> String {
+        let frame = window.frame
+        let screen = window.screen.map {
+            "screen \(Int($0.visibleFrame.width))×\(Int($0.visibleFrame.height)) pt at \($0.backingScaleFactor)×"
+        } ?? "no screen"
+        let content = window.contentView.map { "content \(Int($0.bounds.width))×\(Int($0.bounds.height))" } ?? "no content"
+        return "\(Int(frame.width))×\(Int(frame.height)) pt at (\(Int(frame.minX)), \(Int(frame.minY))), \(content), \(screen), full screen \(window.styleMask.contains(.fullScreen) ? "yes" : "no")"
+    }
+
     private func fullScreen(_ on: Bool) {
         guard let window, window.styleMask.contains(.fullScreen) != on else { return }
         window.toggleFullScreen(nil)
@@ -468,6 +506,25 @@ public struct MacPlayerView: View {
                 window.standardWindowButton(kind)?.animator().alphaValue = visible ? 1 : 0
             }
         }
+    }
+}
+
+/// Where the player window opens on a screen's visible frame.
+enum PlayerWindowFrame {
+    /// The first time: 16:9 at the video's usual size, 1280 × 720, at most 70% of the screen
+    /// either way, in the middle of it.
+    static func initial(in visible: CGRect) -> CGRect {
+        let width = min(1280, visible.width * 0.7, visible.height * 0.7 * 16 / 9).rounded()
+        let size = CGSize(width: width, height: (width * 9 / 16).rounded())
+        return CGRect(
+            x: (visible.midX - size.width / 2).rounded(), y: (visible.midY - size.height / 2).rounded(),
+            width: size.width, height: size.height)
+    }
+
+    /// Where it was last, when that is still on this screen and fits it.
+    static func restored(_ frame: CGRect, on visible: CGRect) -> CGRect? {
+        guard frame.width <= visible.width, frame.height <= visible.height, visible.contains(frame) else { return nil }
+        return frame
     }
 }
 

@@ -27,7 +27,7 @@ public final class PlayerModel {
     // MARK: Wiring
 
     @ObservationIgnored private let send: Send
-    @ObservationIgnored private let makeBackend: @MainActor () -> any PlayerBackend
+    @ObservationIgnored private let makeBackend: (@MainActor () -> any PlayerBackend)?
     @ObservationIgnored private var backend: (any PlayerBackend)?
     @ObservationIgnored private var work: AsyncStream<Work>.Continuation?
     @ObservationIgnored private var worker: Task<Void, Never>?
@@ -55,7 +55,7 @@ public final class PlayerModel {
     /// `preview` the hidden one for seek previews, which are off while `lowPower` says so.
     public init(
         send: @escaping Send,
-        backend: @escaping @MainActor () -> any PlayerBackend = { PlayerModel.mpv() },
+        backend: (@MainActor () -> any PlayerBackend)? = nil,
         preview: @escaping @MainActor () -> any PlayerBackend = { SeekPreview.mpv() },
         lowPower: @escaping @MainActor () -> Bool = { ProcessInfo.processInfo.isLowPowerModeEnabled }
     ) {
@@ -66,10 +66,21 @@ public final class PlayerModel {
         nowPlaying.model = self
     }
 
-    /// The app's mpv: audio and video as the platform plays them.
-    public static func mpv() -> MpvClient {
-        MpvClient(configuration: MpvConfiguration())
+    /// The app's mpv: audio and video as the platform plays them, keeping the shaders libplacebo
+    /// compiles in `shaderCache`, so upscaling does not compile its chain again on every start.
+    public static func mpv(shaderCache: URL? = nil) -> MpvClient {
+        var configuration = MpvConfiguration()
+        if let shaderCache, (try? FileManager.default.createDirectory(at: shaderCache, withIntermediateDirectories: true)) != nil {
+            configuration.shaderCache = shaderCache
+        }
+        return MpvClient(configuration: configuration)
     }
+
+    /// Where mpv keeps its compiled shaders: `<cache>/mpv-shaders`, once the app's cache is known.
+    @ObservationIgnored public var shaderCache: URL?
+
+    /// The Mac player window's frame when it last closed, to open it there again.
+    @ObservationIgnored public var windowFrame: CGRect?
 
     // MARK: The player
 
@@ -314,7 +325,10 @@ public final class PlayerModel {
 
     private func open(for playback: PlaybackId, fullScreen: Bool, speed: Double?, volume: Double?) {
         if backend == nil {
-            let backend = makeBackend()
+            let backend = makeBackend?() ?? Self.mpv(shaderCache: shaderCache)
+            if makeBackend == nil {
+                Self.note(.info, "mpv shader cache \(shaderCache.map { $0.path(percentEncoded: false) } ?? "none")")
+            }
             let layer = MpvLayer()
             // Until the view lays it out: mpv's first swapchain needs a size.
             layer.resize(to: CGSize(width: 640, height: 360), scale: 2)

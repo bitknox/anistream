@@ -50,6 +50,8 @@ public final class AppStore {
     @ObservationIgnored private var testing = false
     /// Called after each batch is applied: what a screenshot run waits on.
     @ObservationIgnored public var onApplied: (@MainActor ([Event]) -> Void)?
+    /// Where the engine started keeps its files: the cache is where the player keeps mpv's.
+    public private(set) var home: EngineHome?
     /// When the last play was sent, for the log's timings.
     @ObservationIgnored private var playSent: ContinuousClock.Instant?
     /// The playback's events, for the player the app hosts: its ops and interface, and the
@@ -74,6 +76,7 @@ public final class AppStore {
         #if FIXTURES
         if case .fixtures = launch.engine { testing = true }
         #endif
+        home = launch.home
         AppLog.start(cache: launch.home.cache)
         #if os(macOS)
         AppLog.info("store", "helper tools are looked for on \(HelperPath.extend())")
