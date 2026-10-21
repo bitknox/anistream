@@ -162,6 +162,8 @@ pub(crate) fn dispatch(
         }
         // Nothing to steer where nothing plays: no playback has left its controls.
         Command::Player(command) => control_player(command, engine),
+        // Taken in as it is sent by `Engine::send`; one routed here all the same lands.
+        Command::PlayerReport { playback, report } => services.hosted.report(playback, report),
 
         // The sources.
         Command::CheckProviders => spawn(job, services, tx, check_providers),

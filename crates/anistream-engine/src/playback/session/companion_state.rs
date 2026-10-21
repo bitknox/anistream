@@ -52,15 +52,22 @@ impl Run<'_> {
         current: usize,
     ) {
         let context = self.context;
-        let overlays = [
-            Overlay::Episode(context.episode_info(&self.episodes)),
-            Overlay::Next(self.next_up()),
-            Overlay::Menus(self.menus(streams, current)),
-            Overlay::Media(companion::Media::default()),
-            Overlay::Status(companion::Status::loading(
+        let episode = context.episode_info(&self.episodes);
+        let starting = Overlay::Starting {
+            card: companion::Status::loading(
                 format!("Opening {}", context.episode_label()),
                 None,
-            )),
+            ),
+            title: context.title.clone(),
+            episode: context.episode.clone(),
+            episode_title: episode.title.clone(),
+        };
+        let overlays = [
+            Overlay::Episode(episode),
+            Overlay::Next { card: self.next_up(), still: self.next_still() },
+            Overlay::Menus(self.menus(streams, current)),
+            Overlay::Media(companion::Media::default()),
+            starting,
         ];
         for overlay in overlays {
             let _ = link.overlay(overlay).await;
@@ -123,6 +130,18 @@ impl Run<'_> {
             thumbnail: row.thumbnail.clone(),
         });
         row.thumbnail
+    }
+
+    /// The Up Next card as it stands now, with the next episode's still by URL, when an episode
+    /// follows.
+    pub(super) fn up_next(&self) -> Option<Overlay> {
+        let card = self.next_up()?;
+        Some(Overlay::Next { card: Some(card), still: self.next_still() })
+    }
+
+    /// The next episode's still, by URL, for a player that fetches its own.
+    fn next_still(&self) -> Option<String> {
+        self.next.as_ref().and_then(|next| next.thumbnail.clone())
     }
 
     /// What the Up Next card shows, as it stands now.

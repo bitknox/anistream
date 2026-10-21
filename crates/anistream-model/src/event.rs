@@ -8,9 +8,10 @@ use crate::{
     catalog::{ContentFor, ContentList, Entry, ResumePoint, TitleAired},
     downloads::{DownloadRow, SeedRow},
     episodes::EpisodeRow,
+    hosted::{PlayerOp, PlayerUi},
     jobs::JobId,
     notice::Notice,
-    playback::{Ending, SkipKind},
+    playback::{Ending, PlaybackId, SkipKind},
     progress::{EpisodeProgress, TitleProgress},
     settings::SettingsView,
     sources::{GuardView, MatchCandidate, MetaSourceRow, ProviderRow},
@@ -192,6 +193,17 @@ pub enum Event {
     /// Playback started from a stored position rather than the beginning.
     Resumed {
         position: f64,
+    },
+    /// What the player a front end hosts is to do for `playback`, in order: see
+    /// [`crate::hosted`]. Only for a front end that hosts the player.
+    PlayerOps {
+        playback: PlaybackId,
+        ops: Vec<PlayerOp>,
+    },
+    /// What a hosted player's own interface is to show for `playback`: see [`crate::hosted`].
+    PlayerUi {
+        playback: PlaybackId,
+        ui: PlayerUi,
     },
     /// A tracker's sync state changed.
     Sync(Box<SyncState>),

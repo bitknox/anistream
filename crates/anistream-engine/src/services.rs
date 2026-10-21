@@ -12,7 +12,11 @@ use anistream_track::TokenStore;
 
 use crate::{
     host::Host,
-    playback::{power::PowerSource, prefetch::Prefetch},
+    playback::{
+        link::hosted::HostedPlayers,
+        power::{PowerSource, ReportedPower},
+        prefetch::Prefetch,
+    },
     plugin_stores, tracking,
 };
 
@@ -48,6 +52,11 @@ pub struct Services {
     /// Whether the machine is on battery, which the upscaling chain goes by: the system's word
     /// on the desktop, and what the front end reports elsewhere.
     pub power: Arc<dyn PowerSource>,
+    /// The players a front end hosts, and where what they report is taken in.
+    pub hosted: Arc<HostedPlayers>,
+    /// Whether a play opens the front end's hosted player rather than mpv's process: always
+    /// without the desktop feature, and on the desktop when the front end asks for it.
+    pub hosted_player: bool,
     /// The next episode's streams, found while the current one's ending plays.
     pub prefetch: Prefetch,
     /// How the player's own interface is dressed: the front end's choice, made once from its
@@ -84,6 +93,7 @@ impl Services {
         // Trackers are built whether or not they hold a token: the Accounts overlay needs
         // something to offer a sign-in for, and the outbox accumulates against the id meanwhile.
         let sync = tracking::Sync::with_tokens(config, &store, &http, tokens);
+        let (power, hosted) = players(&paths);
         Ok(Self {
             paths,
             http,
@@ -93,7 +103,9 @@ impl Services {
             sync,
             stores,
             slot: Default::default(),
-            power: system_power(),
+            power,
+            hosted,
+            hosted_player: !cfg!(feature = "desktop"),
             prefetch: Prefetch::default(),
             player_theme,
             host,
@@ -101,17 +113,16 @@ impl Services {
     }
 }
 
-/// Where a playback learns whether the machine is on battery: the system, on the desktop.
-#[cfg(feature = "desktop")]
-pub(crate) fn system_power() -> Arc<dyn PowerSource> {
-    Arc::new(crate::playback::power::SystemPower)
-}
-
-/// Where a playback learns whether the machine is on battery: what the front end reports,
-/// unknown until it does, without the desktop feature.
-#[cfg(not(feature = "desktop"))]
-pub(crate) fn system_power() -> Arc<dyn PowerSource> {
-    Arc::new(crate::playback::power::ReportedPower::default())
+/// What a playback learns of the battery from, and the players a front end hosts, which take
+/// in what the device reports of its power: the system's word on the desktop, and the device's
+/// as its player reports it without the desktop feature, unknown until it does.
+pub(crate) fn players(paths: &Paths) -> (Arc<dyn PowerSource>, Arc<HostedPlayers>) {
+    let reported = Arc::new(ReportedPower::default());
+    #[cfg(feature = "desktop")]
+    let power: Arc<dyn PowerSource> = Arc::new(crate::playback::power::SystemPower);
+    #[cfg(not(feature = "desktop"))]
+    let power: Arc<dyn PowerSource> = reported.clone();
+    (power, Arc::new(HostedPlayers::new(paths.runtime_dir(), reported)))
 }
 
 /// The metadata source: AniList first, Tenrai when it fails, the cache when both do.

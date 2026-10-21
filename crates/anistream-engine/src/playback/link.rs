@@ -11,8 +11,9 @@
 //! button, the menus. mpv's is the companion script, told through `user-data` and script
 //! messages; a native app draws its own from the same [`Overlay`] calls.
 //!
-//! A [`PlayerOpener`] opens the window a link talks to, and [`opener`] is the one a build has:
-//! mpv's process with the `desktop` feature, and none yet without it, where a play is refused.
+//! A [`PlayerOpener`] opens the window a link talks to, and [`opener`] is the one a play uses:
+//! mpv's process with the `desktop` feature, and the player a front end hosts, [`hosted`],
+//! without it, or on the desktop when the front end asks for it.
 
 use std::{path::Path, sync::Arc};
 
@@ -28,8 +29,11 @@ use anistream_playback::{
 use async_trait::async_trait;
 use tokio::sync::mpsc::UnboundedReceiver;
 
+use crate::outbox::Outbox;
+
 #[cfg(test)]
 pub(crate) mod fake;
+pub mod hosted;
 #[cfg(feature = "desktop")]
 mod mpv;
 
@@ -50,6 +54,11 @@ pub struct LinkError(pub String);
 /// episodes, so it is `Send + Sync`.
 #[async_trait]
 pub trait PlayerLink: Send + Sync {
+    /// The playback driving this window from now: the one that opened it, or the next, which
+    /// took it from the one before. What the link says, it says for that playback, through `tx`.
+    /// Nothing for mpv, which hears only the session.
+    fn attach(&self, _tx: &Outbox) {}
+
     /// Open `url` in place of whatever is playing, with `options` that belong to that file
     /// alone, as mpv's per-file options: the headers, the resume point, the title and the
     /// track languages.
@@ -133,21 +142,22 @@ pub trait PlayerOpener: Send + Sync {
 /// What a play opens its player with, from the config as it stands now; `None` where this build
 /// has nothing to play in, and the play is refused.
 ///
-/// With the `desktop` feature that is mpv's child process, built per play: see
-/// [`player`](crate::playback::player::player). Without it there is none yet: a front end's own
-/// player is to be offered here.
-#[cfg(feature = "desktop")]
+/// The front end's `hosted` player when it hosts one: always without the `desktop` feature, and
+/// on the desktop when it asks. Otherwise, with the `desktop` feature, mpv's child process,
+/// built per play: see [`player`](crate::playback::player::player).
+#[cfg_attr(not(feature = "desktop"), allow(unused_variables))]
 pub fn opener(
     config: &Config,
     paths: &Paths,
     theme: &PlayerTheme,
+    hosted: Option<Arc<dyn PlayerOpener>>,
 ) -> Option<Arc<dyn PlayerOpener>> {
-    Some(Arc::new(crate::playback::player::player(config, paths, theme)))
-}
-
-/// What a play opens its player with: nothing, in a build without the `desktop` feature.
-#[cfg(not(feature = "desktop"))]
-pub fn opener(_: &Config, _: &Paths, _: &PlayerTheme) -> Option<Arc<dyn PlayerOpener>> {
+    if hosted.is_some() {
+        return hosted;
+    }
+    #[cfg(feature = "desktop")]
+    return Some(Arc::new(crate::playback::player::player(config, paths, theme)));
+    #[cfg(not(feature = "desktop"))]
     None
 }
 
@@ -155,12 +165,17 @@ pub fn opener(_: &Config, _: &Paths, _: &PlayerTheme) -> Option<Arc<dyn PlayerOp
 /// to show.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Overlay {
-    /// The loading card, or playing.
-    Status(Status),
+    /// The loading card, for an episode being found or opened: `episode` of `title`, with the
+    /// card's own words in `card`.
+    Starting { card: Status, title: String, episode: String, episode_title: Option<String> },
+    /// The file is playing: the loading card comes down.
+    Playing,
     /// The episode on screen.
     Episode(EpisodeInfo),
-    /// What plays next, for the Up Next card; `None` when nothing does.
-    Next(Option<NextUp>),
+    /// What plays next, for the Up Next card, with its still by URL; `None` when nothing does.
+    Next { card: Option<NextUp>, still: Option<String> },
+    /// The file opened at `position`, where the viewer left it.
+    Resumed { position: f64 },
     /// What the player's menus list.
     Menus(Menus),
     /// The badges for what the picture is and what is done to it.

@@ -56,7 +56,16 @@ pub(crate) fn opener_for(
     engine: &EngineState,
     services: &Services,
 ) -> Option<Arc<dyn PlayerOpener>> {
-    opener(engine.config.effective(), &services.paths, &services.player_theme)
+    let hosted = services.hosted_player.then(|| -> Arc<dyn PlayerOpener> {
+        Arc::clone(&services.hosted) as Arc<dyn PlayerOpener>
+    });
+    opener(engine.config.effective(), &services.paths, &services.player_theme, hosted)
+}
+
+/// Whether a play goes to a Syncplay party when nobody asked for one: when the config sends
+/// every play there, on the desktop, which is where Syncplay runs.
+fn party_by_default(config: &Config) -> bool {
+    cfg!(feature = "desktop") && config.syncplay.enabled
 }
 
 /// Play an episode from whichever source the resolution ladder chooses, staged for Now Playing
@@ -190,7 +199,7 @@ fn play_staged(
         id,
         episode,
         pick,
-        config.syncplay.enabled,
+        party_by_default(config),
         prx,
         handoff,
         config,
@@ -215,6 +224,12 @@ pub fn play_party(
     services: &Services,
     tx: &Outbox,
 ) {
+    // Syncplay is a desktop program: without it there is nothing to hand a party to.
+    if !cfg!(feature = "desktop") {
+        let _ = tx.send(Event::Toast(Notice::alert(playback::NO_PARTY)));
+        drop(job);
+        return;
+    }
     let Some(opener) = opener_for(engine, services) else {
         return playback::refuse(job, tx);
     };
@@ -321,7 +336,7 @@ pub fn play_local(
         };
         let settings = playback::PlaySettings {
             shader_dir: shaders,
-            ..play_settings(&config, tracker_ids, config.syncplay.enabled)
+            ..play_settings(&config, tracker_ids, party_by_default(&config))
         };
         playback::play(vec![stream], context, store, http, machine, settings, tx, prx).await;
     });

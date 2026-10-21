@@ -145,8 +145,8 @@ impl Run<'_> {
                 {
                     still_fetch = None;
                     self.still = fetched.ok().flatten();
-                    if let Some(next) = self.next_up() {
-                        let _ = link.overlay(Overlay::Next(Some(next))).await;
+                    if let Some(next) = self.up_next() {
+                        let _ = link.overlay(next).await;
                     }
                     continue;
                 }
@@ -211,8 +211,8 @@ impl Run<'_> {
                             }
                             let info = context.episode_info(&self.episodes);
                             let _ = link.overlay(Overlay::Episode(info)).await;
-                            if let Some(next) = self.next_up() {
-                                let _ = link.overlay(Overlay::Next(Some(next))).await;
+                            if let Some(next) = self.up_next() {
+                                let _ = link.overlay(next).await;
                             }
                             let menus = self.menus(streams, index);
                             let _ = link.overlay(Overlay::Menus(menus)).await;
@@ -222,11 +222,16 @@ impl Run<'_> {
                             self.step(delta, link, true).await;
                             continue;
                         }
-                        Some(command) => {
-                            stopped |= matches!(command, PlayerCommand::Stop);
-                            apply_command(link, command).await;
-                            continue;
-                        }
+                        // What the viewer did in a hosted player's own interface: read as the
+                        // companion's word for the same is.
+                        Some(command) => match from_the_player(command) {
+                            Ok(script) => PlaybackEvent::Script(script),
+                            Err(command) => {
+                                stopped |= matches!(command, PlayerCommand::Stop);
+                                apply_command(link, command).await;
+                                continue;
+                            }
+                        },
                         // The UI is going away. mpv keeps playing until it ends on its own.
                         None => {
                             self.controls_open = false;
@@ -376,8 +381,7 @@ impl Run<'_> {
                     self.maybe_prefetch(*position, *duration);
                     if !ever_played {
                         ever_played = true;
-                        let status = anistream_playback::companion::Status::playing();
-                        let _ = link.overlay(Overlay::Status(status)).await;
+                        let _ = link.overlay(Overlay::Playing).await;
                     }
                     // Mirror position to the UI so Now Playing can render without querying mpv —
                     // but only when the rendered value would actually change. mpv reports
@@ -440,8 +444,8 @@ impl Run<'_> {
             // starts, so they move with it.
             if tracker.skips() != self.skips.as_slice() {
                 self.skips = tracker.skips().to_vec();
-                if let Some(next) = self.next_up() {
-                    let _ = link.overlay(Overlay::Next(Some(next))).await;
+                if let Some(next) = self.up_next() {
+                    let _ = link.overlay(next).await;
                 }
             }
 
@@ -468,6 +472,31 @@ impl Run<'_> {
         let _ = link.overlay(Overlay::SkipCleared).await;
         outcome
     }
+}
+
+/// What the viewer did in a player's own interface, when `command` says so, as mpv's companion
+/// would have said it; any other command back as it was.
+fn from_the_player(command: PlayerCommand) -> Result<ScriptEvent, PlayerCommand> {
+    use anistream_model::hosted::PlayerChoice;
+    Ok(match command {
+        PlayerCommand::TakeSkip => ScriptEvent::Skip,
+        PlayerCommand::UndoSkip { to } => ScriptEvent::UndoSkip { to },
+        PlayerCommand::PlayNext => ScriptEvent::PlayNext,
+        PlayerCommand::CancelNext => ScriptEvent::CancelNext,
+        PlayerCommand::StallSwitch => ScriptEvent::StallSwitch,
+        PlayerCommand::StallWait => ScriptEvent::StallWait,
+        PlayerCommand::NightMode(on) => ScriptEvent::Choose(Choice::NightMode(on)),
+        PlayerCommand::Upscaling(id) => ScriptEvent::Choose(Choice::Upscaling(id)),
+        PlayerCommand::Choose(choice) => ScriptEvent::Choose(match choice {
+            PlayerChoice::Episode(number) => Choice::Episode(number),
+            PlayerChoice::Source(id) => Choice::Source(id),
+            PlayerChoice::Translation(translation) => {
+                Choice::Translation(translation.as_str().to_owned())
+            }
+            PlayerChoice::ToneMapping(id) => Choice::ToneMapping(id),
+        }),
+        other => return Err(other),
+    })
 }
 
 /// Attach a stream's external subtitle tracks to the loaded file, the preferred language first:

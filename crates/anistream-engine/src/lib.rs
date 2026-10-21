@@ -39,10 +39,12 @@
 //! Built without it, the engine has none of these, nor `anistream-player` and `open`, and a
 //! front end gets instead:
 //!
-//! - every play, `Play`, `PlaySource`, `PlayParty` and `PlayLocal`, answered with an alert that
-//!   playback isn't built into this front end, and the player's controls ignored. Nothing is
-//!   staged, and nothing rolls on, since there is no player to open. That is for now: a player
-//!   the front end hosts, driven through a `PlayerLink` as mpv is, is a later step;
+//! - every play in the player the front end hosts, driven as mpv is through
+//!   `playback::link::hosted`: what it is to do comes as `Event::PlayerOps`, what its own
+//!   interface shows as `Event::PlayerUi`, and what it reports goes back as
+//!   `Command::PlayerReport`. A watch party is answered with an alert, Syncplay being a desktop
+//!   program; a front end that turns the hosted player off (`EngineOptions::hosted_player`) has
+//!   every play answered with an alert that playback isn't built into it;
 //! - the battery as the front end reports it, `playback::power::ReportedPower`, unknown until
 //!   it does;
 //! - a trailer opened wherever the host opens links, rather than in mpv;

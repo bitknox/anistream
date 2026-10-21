@@ -359,6 +359,8 @@ pub async fn play(
             }
         }
         let Some(current) = player.as_mut() else { continue };
+        // This playback drives the window from here, the one it opened or the one it took.
+        current.link.attach(&tx);
 
         // The track policy belongs to the process; point it at this series before the file
         // loads, and settle what it still owed the previous one.
@@ -386,6 +388,7 @@ pub async fn play(
         // keeps it from looking like the episode began in the wrong place.
         if let Some(position) = resume_at {
             let _ = tx.send(Event::Resumed { position });
+            let _ = current.link.overlay(Overlay::Resumed { position }).await;
         }
 
         let outcome = run.file(current, &stream, &streams, index, &mut commands).await;
@@ -401,13 +404,14 @@ pub async fn play(
             }
             FileOutcome::Handover(successor) => {
                 if let Some(player) = player.take() {
-                    let _ = player
-                        .link
-                        .overlay(Overlay::Status(companion::Status::loading(
-                            context.handing_to(&successor),
-                            None,
-                        )))
-                        .await;
+                    let card = companion::Status::loading(context.handing_to(&successor), None);
+                    let starting = Overlay::Starting {
+                        card,
+                        title: successor.title.clone(),
+                        episode: successor.episode.clone(),
+                        episode_title: None,
+                    };
+                    let _ = player.link.overlay(starting).await;
                     // Silence what was playing while the next stream is found.
                     let _ = player.link.stop().await;
                     slot.park(player);
@@ -444,13 +448,17 @@ pub async fn play(
                 let next = run.next.as_ref().filter(|_| rolls_on);
                 if let Some(player) = player.take() {
                     if let Some(next) = next {
-                        let _ = player
-                            .link
-                            .overlay(Overlay::Status(companion::Status::loading(
-                                format!("Up next · {}", next.label()),
-                                Some("Finding sources…".into()),
-                            )))
-                            .await;
+                        let card = companion::Status::loading(
+                            format!("Up next · {}", next.label()),
+                            Some("Finding sources…".into()),
+                        );
+                        let starting = Overlay::Starting {
+                            card,
+                            title: context.title.clone(),
+                            episode: next.number.clone(),
+                            episode_title: next.title.clone(),
+                        };
+                        let _ = player.link.overlay(starting).await;
                         slot.park(player);
                     } else {
                         player.link.shutdown().await;
@@ -527,7 +535,6 @@ fn next_untried(tried: &[bool], current: usize) -> usize {
 }
 
 /// What a party is answered with where there is no Syncplay to hand it to.
-#[cfg(not(feature = "desktop"))]
 pub const NO_PARTY: &str = "watch parties aren't built into this front end";
 
 /// Start a Syncplay party on a stream.

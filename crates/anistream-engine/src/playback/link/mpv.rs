@@ -78,10 +78,13 @@ impl PlayerLink for MpvSession {
 
     async fn overlay(&self, overlay: Overlay) -> Result<(), LinkError> {
         let command = match overlay {
-            Overlay::Status(status) => companion::state("status", &status),
+            Overlay::Starting { card, .. } => companion::state("status", &card),
+            Overlay::Playing => companion::state("status", &companion::Status::playing()),
             Overlay::Episode(episode) => companion::state("episode", &episode),
-            Overlay::Next(Some(next)) => companion::state("next", &next),
-            Overlay::Next(None) => companion::clear("next"),
+            Overlay::Next { card: Some(next), .. } => companion::state("next", &next),
+            Overlay::Next { card: None, .. } => companion::clear("next"),
+            // The companion says nothing of a resume point: the terminal does.
+            Overlay::Resumed { .. } => return Ok(()),
             Overlay::Menus(menus) => companion::state("menus", &menus),
             Overlay::Media(media) => companion::state("media", &media),
             Overlay::ThumbnailUrl(Some(url)) => companion::state("thumbnail-url", &url),

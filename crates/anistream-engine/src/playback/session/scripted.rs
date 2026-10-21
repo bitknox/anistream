@@ -237,7 +237,7 @@ async fn a_playback_opens_a_window_loads_the_file_and_plays_it_to_its_end() {
     // stream's headers, its title, and the sub watcher's languages.
     let opening = position(
         &calls,
-        |c| matches!(c, Call::Overlay(Overlay::Status(s)) if s.phase == companion::Phase::Loading),
+        |c| matches!(c, Call::Overlay(Overlay::Starting { card, .. }) if card.phase == companion::Phase::Loading),
     );
     let load = position(&calls, |c| matches!(c, Call::Load { .. })).expect("the file loads");
     assert!(opening.is_some_and(|opening| opening < load), "{calls:#?}");
@@ -278,7 +278,8 @@ async fn the_next_episode_plays_in_the_window_the_last_one_left() {
     assert!(!parked.contains(&Call::Shutdown), "the window waits for the next episode");
     assert!(matches!(
         parked.last(),
-        Some(Call::Overlay(Overlay::Status(status))) if status.text == "Up next · Episode 2"
+        Some(Call::Overlay(Overlay::Starting { card, episode, .. }))
+            if card.text == "Up next · Episode 2" && episode == "2"
     ));
 
     let second = rig.play(stream(StreamKind::Mp4), context("2", None), settings()).await;

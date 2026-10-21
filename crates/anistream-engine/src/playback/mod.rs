@@ -36,7 +36,7 @@ pub mod start;
 // of a play, so they are the model's, and named from here for whatever plays.
 pub use anistream_model::playback::{EpisodeEntry, NextEpisode};
 pub use context::PlaybackContext;
-pub use session::{Machine, PictureState, PlaySettings, fetch_skips, offered, play};
+pub use session::{Machine, NO_PARTY, PictureState, PlaySettings, fetch_skips, offered, play};
 
 /// What a play is answered with where there is no player to play it in, said of each play.
 pub const NO_PLAYER: &str = "playback isn't built into this front end";
