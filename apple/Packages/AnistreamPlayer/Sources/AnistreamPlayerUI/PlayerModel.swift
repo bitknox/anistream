@@ -589,7 +589,9 @@ public final class PlayerModel {
 
     /// The starting screen's line: "Starting episode 7", and after a while "Finding a source · 4 s".
     public var startingLine: String? {
-        guard let starting else { return nil }
+        guard let starting else {
+            return holdsCurtain ? staged.map { "Starting episode \($0.episode)" } : nil
+        }
         let waited = clock - starting.since
         guard waited >= PlayerTiming.startingWaits else { return "Starting episode \(starting.episode)" }
         return "Finding a source · \(waited.components.seconds) s"

@@ -124,6 +124,7 @@ struct PhoneHero: View {
             ArtworkView(url: item.entry.bannerUrl ?? item.entry.coverUrl, maxPixelSize: 1100)
                 .aspectRatio(16 / 9, contentMode: .fit)
                 .clipShape(.rect(cornerRadius: ArtShape.bannerRadius))
+                .playerZoomSource(item.id)
             Text(item.entry.showTitle)
                 .font(.showTitle(size: 22, relativeTo: .title2))
                 .foregroundStyle(.silk)
@@ -170,6 +171,7 @@ struct PhoneCard: View {
             ArtworkView(url: item.entry.bannerUrl ?? item.entry.coverUrl, maxPixelSize: 640)
                 .frame(width: 208, height: 117)
                 .clipShape(.rect(cornerRadius: ArtShape.bannerRadius))
+                .playerZoomSource(item.id)
             Group {
                 if let fraction = item.fraction {
                     Meter(fraction: fraction, height: 3)
