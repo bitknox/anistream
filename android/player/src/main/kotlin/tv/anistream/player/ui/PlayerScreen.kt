@@ -19,6 +19,7 @@ import androidx.activity.BackEventCompat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
@@ -63,6 +64,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -188,10 +191,20 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
     BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black)) {
         val rect = videoRect(maxWidth, maxHeight, model.aspect ?: (16.0 / 9.0))
         val density = LocalDensity.current
-        val chromeVisible = model.controlsVisible && model.hasPicture && !closing && still.frame == null
+        val pip = model.inPip
+        val chromeVisible = model.controlsVisible && model.hasPicture && !closing && still.frame == null && !pip
+        var videoBounds by remember { mutableStateOf<android.graphics.Rect?>(null) }
+        PictureInPicture(model, videoBounds)
+        // In the window the video shows alone: what was open closes, at once.
+        LaunchedEffect(pip) { if (pip) sheet = null }
 
         // The picture, where mpv draws it.
-        Box(Modifier.offset(rect.x, rect.y).size(rect.width, rect.height)) {
+        Box(
+            Modifier.offset(rect.x, rect.y).size(rect.width, rect.height).onGloballyPositioned { coordinates ->
+                val bounds = coordinates.boundsInWindow()
+                videoBounds = android.graphics.Rect(bounds.left.toInt(), bounds.top.toInt(), bounds.right.toInt(), bounds.bottom.toInt())
+            },
+        ) {
             video(model, Modifier.fillMaxSize()) { surfaceView = it }
         }
 
@@ -208,7 +221,7 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
             scope.launch { drag.snapTo(after) }
             if (before < DISMISS_DP && after >= DISMISS_DP) haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
         }
-        Row(
+        if (!pip) Row(
             Modifier
                 .fillMaxSize()
                 .draggable(
@@ -247,7 +260,7 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
         }
 
         // The subtitles rise above the controls while they are up, and fall back with them (T4).
-        val lift by animateFloatAsState(if (chromeVisible) SUBTITLES_UP else SUBTITLES_DOWN, Motion.standard())
+        val lift by animateFloatAsState(if (chromeVisible) SUBTITLES_UP else SUBTITLES_DOWN, if (pip) snap() else Motion.standard())
         LaunchedEffect(rect.height) {
             snapshotFlow { lift }.collectLatest { above ->
                 val percent = 100.0 - (above - SUBTITLES_DOWN) / rect.height.value * 100.0
@@ -266,7 +279,7 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
             )
         }
 
-        if (still.frame == null) {
+        if (still.frame == null && !pip) {
             CornerCard(model, chromeVisible, ground, Modifier.align(Alignment.BottomEnd).padding(end = 48.dp, bottom = 88.dp))
             ResumeNote(model, Modifier.align(Alignment.BottomStart).padding(start = 48.dp, bottom = 88.dp))
             AlertNote(model, Modifier.align(Alignment.TopCenter).padding(top = 80.dp))

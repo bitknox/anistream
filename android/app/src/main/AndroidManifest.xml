@@ -19,9 +19,12 @@
         android:theme="@style/Theme.Anistream">
 
         <!-- A turn or a fold changes the configuration without recreating the activity, so the
-             player, its surface and the shared state stay where they are. -->
+             player, its surface and the shared state stay where they are. Going home while a video
+             plays takes the activity into Picture in Picture, the same SurfaceView playing on. -->
         <activity
             android:name=".MainActivity"
+            android:supportsPictureInPicture="true"
+            android:resizeableActivity="true"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density|keyboardHidden|uiMode"
             android:exported="true"
             android:launchMode="singleTask"

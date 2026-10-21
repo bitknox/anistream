@@ -572,6 +572,26 @@ class ViewerTest {
     }
 
     @Test
+    fun aPlayerOpenedInTheBackgroundPlaysTheAudioAlone() = runTest {
+        val rig = Rig(this)
+        rig.model.backgrounded(true)
+        rig.opened()
+        assertTrue(MpvCall.Set("vid", MpvValue.Text("no")) in rig.mpv.calls)
+    }
+
+    @Test
+    fun theTitlesArtStaysForTheSessionAfterTheStart() = runTest {
+        val rig = Rig(this)
+        rig.ui(1u, PlayerUi.Starting(900_001u, "Stardust Wayfarer", "7", null, "http://art.example/c.png", "http://art.example/b.png"))
+        rig.opened()
+        rig.emit(MpvEvent.of(MpvNative.Event.PLAYBACK_RESTART))
+        assertNull(rig.model.starting)
+        assertEquals("http://art.example/c.png", rig.model.coverUrl)
+        rig.model.viewerClosed()
+        assertNull(rig.model.coverUrl)
+    }
+
+    @Test
     fun theSurfaceGoesToMpvWhenEitherComesFirst() = runTest {
         val rig = Rig(this)
         rig.model.surfaceChanged(2400, 1080)
