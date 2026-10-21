@@ -997,6 +997,32 @@ async fn controls_come_up_with_activity_and_leave_with_the_cursor() {
 }
 
 #[tokio::test]
+async fn the_bar_leaves_with_the_pointer_as_uoscs_row_does() {
+    // uosc fades its row as soon as the pointer leaves the window. The bar used to wait out
+    // the idle time instead, so the buttons went and the bar stayed.
+    require_mpv!();
+    // An idle time far longer than the wait: only the pointer leaving can take the bar down.
+    let mut player = Player::start(
+        Some(&clip(30)),
+        &["--pause", "--cursor-autohide=30000", "--script-opts-append=anistream-uosc=yes"],
+    )
+    .await;
+    // With no window, mpv counts the pointer as over it only after an enter, which a real
+    // window sends by itself.
+    player.key("MOUSE_ENTER").await;
+    player.command(json!(["mouse", 100, 100])).await;
+    player.command(json!(["mouse", 140, 120])).await;
+    player.wait_ui("the bar", |ui| ui["timeline"] == true).await;
+    player.key("MOUSE_LEAVE").await;
+    player.wait_ui("the bar to leave with the pointer", |ui| ui["timeline"] == false).await;
+    // Back in, it comes up again.
+    player.key("MOUSE_ENTER").await;
+    player.command(json!(["mouse", 160, 140])).await;
+    player.wait_ui("the bar again", |ui| ui["timeline"] == true).await;
+    player.finish().await;
+}
+
+#[tokio::test]
 async fn the_volume_pill_does_not_flash_as_the_controls_leave() {
     // The volume control is drawn in the row while the controls are up and as a floating pill
     // after a change while they are down. The form used to be decided per frame, so the row's
@@ -1013,12 +1039,16 @@ async fn the_volume_pill_does_not_flash_as_the_controls_leave() {
     )
     .await;
     player.set("pause", json!(false)).await;
-    player.wait_ui("the bar", |ui| ui["timeline"] == true).await;
-    player.wait_ui("the bar to leave", |ui| ui["timeline"] == false).await;
-    // Past the fade, then any change republishes what the last frame drew.
-    tokio::time::sleep(Duration::from_millis(400)).await;
-    player.message("toast", json!({"text": "ping", "level": "info", "duration": 1})).await;
-    let ui = player.wait_ui("a republish", |ui| ui["toast"] == "ping").await;
+    // The controls were drawn: the form is kept once drawn. Not the bar, which needs the
+    // duration besides and may never come up in the controls' few hundred milliseconds.
+    player.wait_ui("the row", |ui| ui["volume"] == "row").await;
+    // The screen at rest with the controls gone is published as the last fade lands, so its
+    // `volume` is the fade-out's last frame.
+    let ui = player
+        .wait_ui("the controls to leave and the screen to settle", |ui| {
+            ui["controls"] == false && ui["fading"] == false
+        })
+        .await;
     assert_eq!(ui["volume"], "row", "the fade-out drew the pill: {ui}");
 
     // A change while the controls are down is what the pill is for.

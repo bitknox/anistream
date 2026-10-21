@@ -326,6 +326,24 @@ const MIGRATIONS: &[(&str, &str)] = &[
     CREATE INDEX idx_server_health_seen ON server_health(seen_at);
     "#,
     ),
+    (
+        "0008_library_status",
+        r#"
+    -- Where each title is on the signed-in tracker's list, as its last library pull or Library
+    -- load found it: what a related title's card says ("Watched", "Planning") without asking the
+    -- tracker again. A copy of the tracker's answer, replaced whole by each new one, and only
+    -- ever the list the Library screen shows.
+    --
+    -- The status is the tracker's word for the list: CURRENT, PLANNING, COMPLETED, PAUSED or
+    -- DROPPED.
+    CREATE TABLE library_status (
+        anilist_id INTEGER PRIMARY KEY,
+        status     TEXT    NOT NULL,
+        tracker_id TEXT    NOT NULL,
+        updated_at INTEGER NOT NULL
+    );
+    "#,
+    ),
 ];
 
 /// Apply any migrations the database has not yet seen.
@@ -441,6 +459,7 @@ mod tests {
             "track_memory",
             "show_setting",
             "server_health",
+            "library_status",
         ] {
             let found: bool = conn
                 .query_row(

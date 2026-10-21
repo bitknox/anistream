@@ -20,6 +20,11 @@ media3 = "1.11.1"
 # 5.17 is the first with 16 KB aligned Android libraries.
 jna = "5.19.1"
 junit = "4.13.2"
+# The screens' JVM screenshot tests: Robolectric's native graphics, and Roborazzi to capture them.
+robolectric = "4.17"
+roborazzi = "1.76.0"
+# The scenes the screenshot tests replay, recorded from the engine as JSON.
+kotlinx-serialization = "1.12.0"
 # The NDK the APK's native libraries are stripped with: the one android/scripts/engine.sh builds with.
 ndk = "30.0.16248370"
 # What builds the player's JNI shim.
@@ -59,3 +64,11 @@ jna-jvm = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 junit = { module = "junit:junit", version.ref = "junit" }
 androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidx-test-runner" }
 androidx-test-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-test-junit" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+roborazzi = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = "roborazzi" }
+roborazzi-compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose", version.ref = "roborazzi" }
+roborazzi-gradle-plugin = { module = "io.github.takahirom.roborazzi:roborazzi-gradle-plugin", version.ref = "roborazzi" }
+compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
+kotlin-reflect = { module = "org.jetbrains.kotlin:kotlin-reflect", version.ref = "kotlin" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }

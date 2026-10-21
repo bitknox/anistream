@@ -49,7 +49,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
@@ -58,6 +57,7 @@ import kotlinx.coroutines.launch
 import tv.anistream.design.ShowTitle
 import tv.anistream.design.tabular
 import tv.anistream.store.AirTime
+import tv.anistream.store.AppClock
 import tv.anistream.store.ListState
 import tv.anistream.store.Wording
 import tv.anistream.engine.model.Command
@@ -88,8 +88,8 @@ fun CalendarScreen() {
     val titles by store.titles.entries.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { store.loadCalendar() }
 
-    val zone = ZoneId.systemDefault()
-    val now = Instant.now()
+    val zone = AppClock.zone
+    val now = AppClock.now()
     val today = LocalDate.ofInstant(now, zone)
     // The titles as they now stand: progress may have moved since the calendar came.
     val broadcasts = window.broadcasts(now).map { b ->
@@ -299,7 +299,7 @@ private fun BroadcastRow(broadcast: Broadcast, now: Instant, onOpen: () -> Unit)
             }
         }
         Text(
-            clock.format(broadcast.airs.atZone(ZoneId.systemDefault())),
+            clock.format(broadcast.airs.atZone(AppClock.zone)),
             style = MaterialTheme.typography.bodyMedium.tabular(),
             color = colors.onSurfaceVariant,
         )

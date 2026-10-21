@@ -54,20 +54,29 @@ mp.observe_property("osc", "bool", function(_, value)
     app.changed()
 end)
 
--- The UI scale, matched to uosc's own rule so our buttons and its bar are the same size:
--- HiDPI factor times its `scale`, or `scale_fullscreen` when the window fills the screen.
-function M.scale()
+-- uosc's own scale: HiDPI factor times its `scale`, or `scale_fullscreen` when the window fills
+-- the screen. Whatever lines up with its control row (the seek bar, the volume, the time, and
+-- what sits clear of them) is sized by this, at every window size.
+local function uosc_factor()
     local p = app.player
     local fullish = p.fullscreen or p.maximized
-    local factor
     if M.uosc() then
-        factor = fullish and config.script_opt("uosc", "scale_fullscreen", 1.3)
+        return fullish and config.script_opt("uosc", "scale_fullscreen", 1.3)
             or config.script_opt("uosc", "scale", 1)
-    else
-        factor = fullish and 1.3 or 1
     end
-    -- A small window (the mini player, a tiled corner) gets smaller elements, down to 60%:
-    -- full-size cards would cover a third of a 400-point-tall picture.
+    return fullish and 1.3 or 1
+end
+
+function M.row_scale()
+    return math.max(0.5, (app.player.hidpi or 1) * uosc_factor())
+end
+
+-- The scale for everything else: uosc's, except that a small window (the mini player, a tiled
+-- corner) gets smaller cards, down to 60%: full-size ones would cover a third of a
+-- 400-point-tall picture. uosc does not shrink its buttons, so the row keeps `row_scale`.
+function M.scale()
+    local p = app.player
+    local factor = uosc_factor()
     local logical_h = (p.osd_h or 0) / (p.hidpi or 1)
     if logical_h > 0 and logical_h < 450 then
         factor = factor * math.max(0.6, logical_h / 450)
@@ -122,17 +131,17 @@ function M.timeline_geometry(s, w, h)
 end
 
 -- Pixels at the window's edges that a player bar may cover, whether or not it is showing.
-function M.insets(scale)
+function M.insets()
     local h = app.player.osd_h
     local bottom, top, right = 0, 0, 0
 
     if config.opts.uosc then
         -- Our mode: uosc's control row and our seek bar above it, top bar off. The corner's
         -- right edge lines up exactly with the seek bar's end and the last icon.
-        local g = M.timeline_geometry(scale, app.player.osd_w, h)
+        local g = M.timeline_geometry(M.row_scale(), app.player.osd_w, h)
         return { bottom = h - g.band_top, top = 0, right = g.x0, align_right = g.x0 }
     elseif M.uosc() then
-        local s = scale
+        local s = M.row_scale()
         local disabled = "," .. tostring(config.script_opt("uosc", "disable_elements", "")) .. ","
         if not disabled:find(",timeline,", 1, true) then
             bottom = bottom

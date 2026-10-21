@@ -16,6 +16,7 @@ class HeroArtTest {
         resume = null, related = emptyList(), recommended = emptyList(), trailerUrl = null, listStatus = null,
         titleRomaji = null, titleEnglish = null, titleNative = null, season = null, startDate = null,
         endDate = null, source = null, adult = false, detail = null,
+        status = null, synopsisSpans = emptyList(),
     )
 
     private fun row(number: Int, still: String?, completed: Boolean = false) = EpisodeRow(
