@@ -11,6 +11,8 @@ import android.os.Looper
 import android.view.PixelCopy
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import android.view.accessibility.AccessibilityManager
+import android.accessibilityservice.AccessibilityServiceInfo
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.BackEventCompat
@@ -34,6 +36,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -61,6 +64,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
@@ -80,6 +84,7 @@ import tv.anistream.design.Motion
 import tv.anistream.design.ObiSilk
 import tv.anistream.player.Device
 import tv.anistream.player.PlayerModel
+import tv.anistream.player.SeekPreview
 import tv.anistream.store.HeroArt
 import tv.anistream.ui.ArtworkImage
 import tv.anistream.ui.LocalAppStore
@@ -110,7 +115,35 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
     val phone = LocalConfiguration.current.smallestScreenWidthDp < 600
     val haptics = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var surfaceView by remember { mutableStateOf<SurfaceView?>(null) }
+    var sheet by remember { mutableStateOf<PlayerSheet?>(null) }
+
+    // TalkBack and Switch Access keep the controls up, and Up Next waits for them (T4, T5).
+    val accessibility = remember { context.getSystemService(AccessibilityManager::class.java) }
+    DisposableEffect(accessibility) {
+        fun assisted() {
+            model.assisted = accessibility?.isTouchExplorationEnabled == true ||
+                accessibility?.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)
+                    ?.any { it.id.contains("switchaccess", ignoreCase = true) } == true
+        }
+        assisted()
+        val listener = AccessibilityManager.TouchExplorationStateChangeListener { assisted() }
+        accessibility?.addTouchExplorationStateChangeListener(listener)
+        onDispose { accessibility?.removeTouchExplorationStateChangeListener(listener) }
+    }
+
+    // The frame under the scrubbing finger, from a second mpv, closed with the file.
+    val preview = remember { SeekPreview(context, scope) }
+    val previewSource = model.previewSource
+    DisposableEffect(previewSource) { onDispose { preview.close() } }
+
+    // At Up Next's zero the picture fades into the ground, and out of it on the next first frame,
+    // never through black (T5).
+    var through by remember { mutableStateOf(false) }
+    LaunchedEffect(model.upNext?.played) { if (model.upNext?.played == true) through = true }
+    LaunchedEffect(model.hasPicture, model.playback) { if (model.hasPicture) through = false }
+    val ground by animateFloatAsState(if (through) 1f else 0f, if (through) ThroughGround else Motion.fadeIn(), label = "ground")
 
     Immersive()
     KeepAwake(playing = model.hasPicture && !model.paused)
@@ -162,7 +195,10 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
             video(model, Modifier.fillMaxSize()) { surfaceView = it }
         }
 
-        StartingLayer(model, rect)
+        // The ground the picture fades through between episodes.
+        if (ground > 0f) Box(Modifier.fillMaxSize().graphicsLayer { alpha = ground }.background(ObiSilk.Ground))
+
+        StartingLayer(model, rect, art = !through) { sheet = PlayerSheet.Sources.also { model.chooseSource() } }
 
         // Taps on the video: the middle third shows and hides the controls at once; the sides
         // wait for a second tap, which seeks 10 s.
@@ -221,8 +257,22 @@ fun PlayerScreen(model: PlayerModel, video: VideoContent = { m, modifier, view -
         }
 
         AnimatedVisibility(chromeVisible, enter = fadeIn(Motion.fadeIn()), exit = fadeOut(Motion.fadeOut())) {
-            PlayerChrome(model, onClose = { still.freeze(surfaceView) { close() } })
+            PlayerChrome(
+                model,
+                onClose = { still.freeze(surfaceView) { close() } },
+                onTracks = { sheet = PlayerSheet.Tracks },
+                onEpisodes = { sheet = PlayerSheet.Episodes },
+                preview = preview.takeIf { previewSource != null && !Device.power(context).lowPower },
+            )
         }
+
+        if (still.frame == null) {
+            CornerCard(model, chromeVisible, ground, Modifier.align(Alignment.BottomEnd).padding(end = 48.dp, bottom = 88.dp))
+            ResumeNote(model, Modifier.align(Alignment.BottomStart).padding(start = 48.dp, bottom = 88.dp))
+            AlertNote(model, Modifier.align(Alignment.TopCenter).padding(top = 80.dp))
+            StillWatching(model)
+        }
+        PlayerSheets(model, sheet) { sheet = null }
 
         // A drag or a back gesture moves a still of the frame over the ground, the bars with it.
         still.frame?.let { frame ->
@@ -298,8 +348,8 @@ fun VideoSurface(model: PlayerModel, modifier: Modifier, view: (SurfaceView?) ->
  * it, until the first frame lifts it on the fade-in curve (T2).
  */
 @Composable
-private fun StartingLayer(model: PlayerModel, rect: VideoRect) {
-    val up = model.isPresented && (model.starting != null || !model.hasPicture)
+private fun StartingLayer(model: PlayerModel, rect: VideoRect, art: Boolean, onChooseSource: () -> Unit) {
+    val up = model.isPresented && (model.starting != null || !model.hasPicture || model.failure != null)
     val shown by animateFloatAsState(if (up) 1f else 0f, Motion.fadeIn(), label = "starting")
     if (shown == 0f) return
     val store = LocalAppStore.current
@@ -307,29 +357,39 @@ private fun StartingLayer(model: PlayerModel, rect: VideoRect) {
     val tables by store.titles.episodes.collectAsStateWithLifecycle()
     val id = model.titleId
     // The hero-art rule, as the title page has it: the banner, else a still already seen.
-    val art = id?.let { entries[it] }?.let { HeroArt.of(it, tables[id]).url } ?: model.starting?.bannerUrl
+    val wide = if (!art) null else id?.let { entries[it] }?.let { HeroArt.of(it, tables[id]).url } ?: model.starting?.bannerUrl
     Box(Modifier.fillMaxSize().graphicsLayer { alpha = shown }.background(ObiSilk.Ground)) {
         Box(Modifier.offset(rect.x, rect.y).size(rect.width, rect.height)) {
-            if (art != null) ArtworkImage(art, plate = null, maxPixelSize = pixels(rect.width), modifier = Modifier.fillMaxSize())
+            if (wide != null) ArtworkImage(wide, plate = null, maxPixelSize = pixels(rect.width), modifier = Modifier.fillMaxSize())
             Box(Modifier.fillMaxSize().background(ObiSilk.Ground.copy(alpha = 0.35f)))
+            val line = MaterialTheme.typography.titleMedium.copy(
+                fontSize = 16.sp,
+                lineHeight = 24.sp,
+                fontWeight = FontWeight.Medium,
+                shadow = Shadow(Color.Black.copy(alpha = 0.7f), Offset(0f, 1f), 1f),
+            )
             Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(32.dp),
-                    color = ObiSilk.Silk,
-                    strokeWidth = 3.dp,
-                    trackColor = Color.Transparent,
-                )
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    model.startingLine() ?: model.startingEpisode?.let { "Starting episode $it" }.orEmpty(),
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = 16.sp,
-                        lineHeight = 24.sp,
-                        fontWeight = FontWeight.Medium,
-                        shadow = Shadow(Color.Black.copy(alpha = 0.7f), Offset(0f, 1f), 1f),
-                    ),
-                    color = ObiSilk.Silk,
-                )
+                val failure = model.failure
+                if (failure != null) {
+                    // It never played: said where the viewer is looking, with another source to choose.
+                    Text("Couldn't play episode ${failure.episode}", style = line, color = ObiSilk.Silk)
+                    Text(
+                        "No source had a stream that played. Another may.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = ObiSilk.Haze,
+                        modifier = Modifier.padding(top = 4.dp),
+                    )
+                } else {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(32.dp),
+                        color = ObiSilk.Silk,
+                        strokeWidth = 3.dp,
+                        trackColor = Color.Transparent,
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text(model.startingLine() ?: model.startingEpisode?.let { "Starting episode $it" }.orEmpty(), style = line, color = ObiSilk.Silk)
+                }
+                StartingChoices(model, onChooseSource)
             }
         }
     }

@@ -294,6 +294,20 @@ class CardTest {
     }
 
     @Test
+    fun withTalkBackUpNextWaitsAndTheControlsStay() = runTest {
+        val rig = Rig(this)
+        rig.opened()
+        rig.model.assisted = true
+        upNext(rig)
+        rig.playhead(60.0)
+        assertTrue(rig.model.upNextShown)
+        assertNull(rig.model.countdown)
+        assertFalse(PlayerCommand.PlayNext in rig.controls)
+        advanceTimeBy(10_000)
+        assertTrue(rig.model.controlsVisible)
+    }
+
+    @Test
     fun withoutEndingDataUpNextShowsNearTheEnd() = runTest {
         val rig = Rig(this)
         rig.opened()
