@@ -11,6 +11,7 @@ generates for `crates/anistream-ffi`.
 | `scripts/test.sh` | Runs every Swift package's tests with SwiftPM |
 | `scripts/player-media.sh` | Makes the player's synthetic media: the tests', and the Fixtures app's episode |
 | `scripts/fonts.sh` | Fetches the CJK subtitle font the iOS app bundles |
+| `scripts/icon.sh` | Draws the app icon and the terminal's icon from Nagare's masters |
 | `scripts/notices.sh` | Writes `ThirdParty/NOTICES-libmpv.txt` and `NOTICES-fonts.txt` |
 | `scripts/shots.sh` | Screenshots of the Fixtures app, on the Mac and in the Simulator |
 | `Packages/AnistreamKit` | The bindings over the engine's XCFramework, and ports of the model's helpers |
@@ -139,6 +140,33 @@ that folder and `ThirdParty/NOTICES-fonts.txt`, its SIL Open Font License, into 
 only, and their first build phase fails an iOS build without it. On iOS
 `MpvConfiguration.subtitleFallback` defaults to it (`SubtitleFont.bundled`), which makes it
 libass's first fallback, before Core Text's; the Mac app bundles nothing and gets none.
+
+## The icon
+
+```sh
+apple/scripts/icon.sh            # redraw App/Assets.xcassets/AppIcon.appiconset and assets/icon
+apple/scripts/icon.sh --check    # fail when a committed image is not what the masters draw
+```
+
+The icon is Nagare on whole pixels: three masters, at 16, 32 and 64 px, in
+`tools/icons/nagare_icon.py` (the grids the design boards draw), and every size is one of them at a
+whole-number scale with its pixels repeated. The script writes a PNG for every slot, committed:
+
+- iPhone and iPad, each slot with Any, Dark (the same art: the ground is already dark) and Tinted
+  (grey tones and a one-cell outline on black, which the system tints and makes Clear from);
+- the Mac's 16 to 1024 at 1x and 2x. The catalogue takes no Dark or Tinted for the Mac: actool
+  drops them without a word, so the Mac gets the system's own;
+- the terminal's `assets/icon`, which the release workflow packages.
+
+Not Icon Composer, which scales one drawing to every size and puts the pixels on fractions.
+
+What the systems do with it (checked 2026-10-21, Xcode 27.1):
+
+- **iOS 27.0 Simulator:** the per-size images are used. The iPhone 17's Home Screen draws the
+  64 pt @3x slot, 192 px, pixel for pixel, in light and dark.
+- **macOS 27:** the per-size images are used, a master to each size, but every Mac icon is drawn
+  inside the system's rounded square at 824/1024 of the tile, so each is resampled to 80% and
+  is soft.
 
 ## The Swift packages
 

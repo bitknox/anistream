@@ -30,8 +30,9 @@ release workflow like the `.deb`.
 - `linux/glibc-floor.sh` — fails the release when the Linux binary needs a newer glibc than it
   promises, and names the symbols that need it
 
-Icons come from `assets/icon/`, generated from the mascot by `tools/icons/generate.ts`. Regenerate
-with `bun tools/icons/generate.ts`, then `iconutil -c icns assets/icon/anistream.iconset` on macOS.
+Icons come from `assets/icon/`, drawn from Nagare's three icon masters (`tools/icons/nagare_icon.py`)
+on whole pixels, the same drawing as the apps' icon. Regenerate with `apple/scripts/icon.sh`, then
+`iconutil -c icns assets/icon/anistream.iconset` on macOS.
 
 ## Building one by hand
 
