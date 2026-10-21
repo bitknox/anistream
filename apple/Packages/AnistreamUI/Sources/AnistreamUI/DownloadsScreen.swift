@@ -133,7 +133,11 @@ struct DownloadGroupView: View {
             }
         }
         .padding(.bottom, 8)
-        .task(id: group.id) { if store.titles[group.id] == nil { store.loadDetail(group.id) } }
+        .task(id: group.id) {
+            if store.titles[group.id] == nil { store.loadDetail(group.id) }
+            // The episodes' own titles, for "Episode 8 · A Town Without Night".
+            if store.titles.episodes[group.id] == nil { store.loadEpisodes(group.id) }
+        }
     }
 
     private var summary: String {
