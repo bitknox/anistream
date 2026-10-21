@@ -40,13 +40,19 @@ struct MacShell: View {
                     ToolbarItem(placement: .primaryAction) { ActivityIndicator() }
                     SectionToolbar(section: navigator.section)
                     ToolbarItem(placement: .primaryAction) {
-                        SyncCapsule { navigator.open(.settings) }
+                        SyncCapsule { navigator.openSettings(.accounts) }
                     }
                 }
             }
             .toolbarBackgroundVisibility(navigator.titleOnMac == nil ? .automatic : .hidden, for: .windowToolbar)
-            .searchable(text: $navigator.query, placement: .toolbar, prompt: "Search titles")
-            .onSubmit(of: .search) { navigator.search(navigator.query, in: store) }
+            .searchable(
+                text: navigator.section == .settings ? $navigator.settingsQuery : $navigator.query,
+                placement: .toolbar,
+                prompt: navigator.section == .settings ? "Search Settings" : "Search titles"
+            )
+            .onSubmit(of: .search) {
+                if navigator.section != .settings { navigator.search(navigator.query, in: store) }
+            }
         }
         .containerBackground(Palette.ground, for: .window)
         .overlay {
@@ -226,6 +232,7 @@ struct SectionView: View {
         case .seasonal: SeasonalScreen()
         case .search: SearchScreen()
         case .library: LibraryScreen()
+        case .settings: SettingsScreen()
         default: NotBuiltYet(section: section)
         }
     }

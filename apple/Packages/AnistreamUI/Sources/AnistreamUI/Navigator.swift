@@ -36,6 +36,16 @@ public final class Navigator {
     public var calendarWeek = 0
     /// Whether the calendar shows only the titles on your lists.
     public var calendarMine = true
+    /// The Settings pane on screen, on the Mac and iPad.
+    public var settingsPane: SettingsPane = .playback
+    /// What Settings' own search field holds.
+    public var settingsQuery = ""
+    /// The iPhone's Settings sheet, open at a page when it is up.
+    public var phoneSettings: PhoneSettingsPage?
+    /// An invite link the app was opened with, for the join sheet.
+    public var invite: String?
+    /// The sheet the launch arguments ask for, for a screenshot, until a screen shows it.
+    public var launchSheet: String?
 
     public init(route: LaunchRoute = .current) {
         section = route.section
@@ -44,6 +54,9 @@ public final class Navigator {
         query = route.query ?? ""
         librarySegment = route.library ?? .watching
         paletteShown = route.palette != nil
+        settingsPane = route.pane.flatMap(SettingsPane.init(rawValue:)) ?? .playback
+        launchSheet = route.sheet
+        if route.sheet == "join" { invite = "https://plugins.hotaru.example/join/fixture#key" }
         if let title = route.title {
             paths[route.section] = [title]
         }
@@ -52,6 +65,12 @@ public final class Navigator {
     /// Open a section, as the sidebar, a tab or ⌘1 to ⌘7 does.
     public func open(_ section: AppSection) {
         self.section = section
+    }
+
+    /// Open Settings at `pane`: the section on the Mac and iPad.
+    public func openSettings(_ pane: SettingsPane) {
+        settingsPane = pane
+        section = .settings
     }
 
     /// Open a title's page over the section on screen.

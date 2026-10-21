@@ -146,6 +146,16 @@ struct PrimaryCapsuleStyle: ButtonStyle {
             .frame(height: height)
             .background(.amber.opacity(configuration.isPressed ? 0.85 : 1), in: .capsule)
             .contentShape(.capsule)
+            .modifier(DimmedWhenDisabled())
+    }
+}
+
+/// A custom button's look when it cannot be pressed: faded, as the system fades its own.
+struct DimmedWhenDisabled: ViewModifier {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func body(content: Content) -> some View {
+        content.opacity(isEnabled ? 1 : 0.45)
     }
 }
 
@@ -167,6 +177,7 @@ struct SecondaryCapsuleStyle: ButtonStyle {
             .background(background(pressed: configuration.isPressed), in: .capsule)
             .overlay(Capsule().strokeBorder(raisedSurface ? .clear : Palette.faintRule, lineWidth: 1))
             .contentShape(.capsule)
+            .modifier(DimmedWhenDisabled())
     }
 
     private func background(pressed: Bool) -> Color {
