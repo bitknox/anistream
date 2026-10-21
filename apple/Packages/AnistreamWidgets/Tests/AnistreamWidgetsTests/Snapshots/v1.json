@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "generated_at": 1792516200,
+  "continue_watching": [
+    {"id": 900001, "title": "Hoshikuzu no Tabibito", "episode": 7, "watched": 6, "episodes": 12, "fraction": 0.42,
+     "art": {"poster": "poster-1.jpg"}},
+    {"id": 900002, "title": "Kumo no Ue no Toshokan", "episode": 4, "watched": 3}
+  ],
+  "airing_today": [
+    {"id": 900006, "title": "Natsukaze Relay", "episode": 9, "airs_at": 1792522800, "on_list": true}
+  ]
+}

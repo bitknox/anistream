@@ -1,0 +1,10 @@
+{"data": {"Page": {"pageInfo": {"hasNextPage": true}, "airingSchedules": [
+  {"airingAt": 1792522800, "episode": 9, "media": {"id": 900006, "isAdult": false,
+    "title": {"romaji": "Natsukaze Relay", "english": "Summer Wind Relay"}, "coverImage": {"color": null}}},
+  {"airingAt": 1792526400, "episode": 6, "media": {"id": 900002, "isAdult": false,
+    "title": {"romaji": "Kumo no Ue no Toshokan", "english": null}, "coverImage": {"color": "#5d9be4"}}},
+  {"airingAt": 1792527000, "episode": 1, "media": {"id": 900099, "isAdult": true,
+    "title": {"romaji": "Left Out", "english": null}}},
+  {"airingAt": 1792528200, "episode": 2, "media": {"id": 900003, "isAdult": false,
+    "title": {"romaji": "Tsukiakari no Teishajo", "english": " "}}}
+]}}}
