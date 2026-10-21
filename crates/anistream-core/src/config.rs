@@ -406,18 +406,49 @@ impl Default for NotificationsConfig {
     }
 }
 
-/// The metadata failover.
+/// The metadata failover, and how its titles are shown.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 pub struct MetaConfig {
     /// Fall back to Tenrai — MyAnimeList's mirror — when AniList cannot answer, before
     /// resorting to cached data. Fresh first, always; the ladder only descends on failure.
     pub fallback: bool,
+    /// Which form of each title is shown: AniList's own choice for the signed-in account, or
+    /// English or romaji whoever is signed in. Every front end shows what this says.
+    pub title_language: TitleChoice,
 }
 
 impl Default for MetaConfig {
     fn default() -> Self {
-        Self { fallback: true }
+        Self { fallback: true, title_language: TitleChoice::default() }
+    }
+}
+
+/// Which form of a title to show, as `[meta] title_language` says.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TitleChoice {
+    /// As the signed-in AniList account reads AniList: romaji, English or native. English
+    /// first when nobody is signed in, which is how titles were always shown.
+    #[default]
+    Anilist,
+    English,
+    Romaji,
+}
+
+impl TitleChoice {
+    /// As the file writes it.
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Anilist => "anilist",
+            Self::English => "english",
+            Self::Romaji => "romaji",
+        }
+    }
+
+    /// Read back what [`Self::name`] wrote.
+    pub fn from_name(name: &str) -> Option<Self> {
+        [Self::Anilist, Self::English, Self::Romaji].into_iter().find(|c| c.name() == name)
     }
 }
 

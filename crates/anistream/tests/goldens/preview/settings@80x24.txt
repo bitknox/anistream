@@ -3,12 +3,13 @@ anistream                                       torrent ○  plugins ·  ·  kit
   ▸│  APPEARANCE  ───────────────────────────────────────────────────────────
   ▤│  ▌ THEME                       adaptive
   ▦│    MOTION                      on
-  /│
-  ▥│  PLAYBACK  ─────────────────────────────────────────────────────────────
-  ↓│    TRANSLATION                 sub
-  ◇│    QUALITY                     1080p
-  ◎│    SUBTITLES                   eng
-▌ ⚙│    COUNTS AS WATCHED AT        85%
+  /│    TITLES                      AniList's choice
+  ▥│
+  ↓│  PLAYBACK  ─────────────────────────────────────────────────────────────
+  ◇│    TRANSLATION                 sub
+  ◎│    QUALITY                     1080p
+▌ ⚙│    SUBTITLES                   eng
+   │    COUNTS AS WATCHED AT        85%
    │    AUTO-PLAY NEXT              on
    │    SKIP OPENING AUTOMATICALLY  on
    │    SKIP FILLER AUTOMATICALLY   off
@@ -17,7 +18,6 @@ anistream                                       torrent ○  plugins ·  ·  kit
    │    UPSCALING                   natural · ArtCNN
    │    PLAYER INTERFACE            anistream
    │    NIGHT MODE                  off
-   │
    │
    │
 ────────────────────────────────────────────────────────────────────────────────

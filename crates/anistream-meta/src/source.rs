@@ -156,6 +156,8 @@ fn skipped(source: &str, wait: Duration) -> String {
 /// The metadata source the application talks to, in place of any one service.
 #[derive(Clone)]
 pub struct Meta {
+    /// Which form of each title is shown, shared with every clone.
+    titles: crate::titles::Titles,
     anilist: AniList,
     tenrai: Option<std::sync::Arc<Tenrai>>,
     store: Store,
@@ -168,6 +170,7 @@ pub struct Meta {
 impl Meta {
     pub fn new(anilist: AniList, tenrai: Option<Tenrai>, store: Store) -> Self {
         Self {
+            titles: crate::titles::Titles::default(),
             anilist,
             tenrai: tenrai.map(std::sync::Arc::new),
             store,
@@ -176,6 +179,12 @@ impl Meta {
             weather: std::sync::Arc::new(Mutex::new(Weather::default())),
             breakers: std::sync::Arc::new(Mutex::new(Breakers::default())),
         }
+    }
+
+    /// Which form of each title is shown: the setting, and the signed-in viewer's own choice
+    /// when the setting follows AniList.
+    pub fn titles(&self) -> &crate::titles::Titles {
+        &self.titles
     }
 
     /// Every rung's condition, for the Providers screen: is the ladder standing on the

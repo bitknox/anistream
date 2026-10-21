@@ -156,7 +156,15 @@ async fn signed_in_calls_send_the_token_and_read_the_library() {
     let anilist = server.anilist(&anistream_testkit::http()).with_token(Some("tok".into()));
     assert_eq!(anilist.viewer_id().await.unwrap(), fixtures::VIEWER_ID);
     let viewer = anilist.viewer().await.unwrap();
-    assert_eq!(viewer.title_language, Some(anistream_meta::anilist::TitleLanguage::Romaji));
+    // AniList's stylised English, read as English.
+    assert_eq!(viewer.title_language, Some(anistream_meta::anilist::TitleLanguage::English));
+    server.set_viewer_title_language("NATIVE");
+    let reading = anilist.viewer().await.unwrap().title_language;
+    assert_eq!(
+        reading,
+        Some(anistream_meta::anilist::TitleLanguage::Native),
+        "as the test sets it"
+    );
 
     let library = anilist.library(fixtures::VIEWER_ID).await.unwrap();
     let rows: Vec<_> =

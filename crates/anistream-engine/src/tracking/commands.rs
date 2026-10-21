@@ -25,32 +25,28 @@ pub fn sync_now(job: Option<JobGuard>, services: &Services, tx: &Outbox) {
 /// form of each title first. `None` when nobody is signed in to AniList, or AniList could not
 /// be asked. The viewer is looked up once per sign-in and kept, so this usually costs nothing.
 pub fn load_title_language(services: &Services, tx: &Outbox) {
-    use anistream_core::traits::Tracker;
-    let Services { sync, .. } = services;
-    let (anilist, tx) = (sync.anilist.clone(), tx.clone());
+    let Services { meta, sync, .. } = services;
+    let (meta, anilist, tx) = (meta.clone(), sync.anilist.clone(), tx.clone());
     tokio::spawn(async move {
-        let language = match anilist.filter(|tracker| tracker.is_authenticated()) {
-            Some(tracker) => tracker
-                .title_language()
-                .await
-                .inspect_err(
-                    |e| tracing::debug!(error = %e, "could not ask the title language"),
-                )
-                .ok()
-                .flatten(),
-            None => None,
-        };
+        // Put in effect too, as any answer of the viewer's is.
+        let language = crate::title_language::follow(&meta, anilist.as_deref(), &tx).await;
         let _ = tx.send(Event::ViewerTitleLanguage(language.map(crate::data::title_language)));
     });
 }
 
 /// Sign in to a tracker, off the UI thread: it opens a browser and waits.
 pub fn connect(tracker: String, job: Option<JobGuard>, services: &Services, tx: &Outbox) {
-    let Services { sync, host, .. } = services;
-    let (sync, host, tx) = (sync.clone(), host.clone(), tx.clone());
+    let Services { sync, host, meta, .. } = services;
+    let (sync, host, meta, tx) = (sync.clone(), host.clone(), meta.clone(), tx.clone());
     tokio::spawn(async move {
         let _job = job;
-        tracking::connect(sync, host, tracker, tx).await;
+        let anilist = tracker == "anilist";
+        tracking::connect(sync.clone(), host, tracker, tx.clone()).await;
+        // Signed in to AniList: titles are named as this account reads them, when the setting
+        // follows AniList.
+        if anilist {
+            crate::title_language::follow(&meta, sync.anilist.as_deref(), &tx).await;
+        }
     });
 }
 
@@ -97,11 +93,12 @@ pub fn load_library(
     services: &Services,
     tx: &Outbox,
 ) {
-    let Services { store, sync, .. } = services;
-    let (sync, tx, store) = (sync.clone(), tx.clone(), store.clone());
+    let Services { store, sync, meta, .. } = services;
+    let (sync, tx, store, titles) =
+        (sync.clone(), tx.clone(), store.clone(), meta.titles().clone());
     tokio::spawn(async move {
         let _job = job;
-        let update = tracking::load_library(&sync, &store, segment).await;
+        let update = tracking::load_library(&sync, &store, &titles, segment).await;
         let _ = tx.send(update);
     });
 }

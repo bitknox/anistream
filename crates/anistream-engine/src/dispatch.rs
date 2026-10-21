@@ -191,7 +191,12 @@ pub(crate) fn dispatch(
         Command::ConnectKitsu { username, password } => {
             connect_kitsu(username, password, job, services, tx)
         }
-        Command::Disconnect { tracker } => tracking::disconnect(&services.sync, &tracker, tx),
+        Command::Disconnect { tracker } => {
+            tracking::disconnect(&services.sync, &tracker, tx);
+            if tracker == "anilist" {
+                crate::title_language::signed_out(services, tx);
+            }
+        }
         Command::SetStatus { id, status } => set_status(id, status, services, tx),
         Command::SetScore { id, score } => set_score(id, score, services, tx),
         Command::ResolveConflict { id, keep_local } => {

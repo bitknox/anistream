@@ -294,6 +294,12 @@ impl Engine {
         for tracker in services.sync.initial_states() {
             launch.push_back(Event::Sync(Box::new(tracker)));
         }
+        // How titles are named: the setting, and under `anilist` the signed-in viewer's own
+        // choice, which comes with the viewer lookup the library pull makes anyway.
+        services.meta.titles().choose(state.config.effective().meta.title_language);
+        if services.meta.titles().choice() == anistream_core::config::TitleChoice::Anilist {
+            crate::title_language::follow_viewer(&services, &inbox.sender());
+        }
         if background.sync_loops {
             tracking::spawn_loops(services.sync.clone(), inbox.sender());
         }
@@ -761,6 +767,8 @@ impl Actor {
     /// is said whole just before it, so that whatever the event brings up, the screen a
     /// finished episode drops back to among them, shows the title as it now stands.
     fn forward(&mut self, mut event: Event, played: Option<Played>) {
+        // Named as the titles are shown now, before the record takes the names in.
+        crate::title_language::retitle(&mut event, self.services.meta.titles().language());
         let Self { services, inbox, .. } = self;
         let said = receive(&event, services, || inbox.sender());
         said.into_iter().for_each(|said| self.pass_on(said));
@@ -870,7 +878,8 @@ impl Actor {
         );
     }
 
-    fn pass_on(&self, event: Event) {
+    fn pass_on(&self, mut event: Event) {
+        crate::title_language::retitle(&mut event, self.services.meta.titles().language());
         let _ = self.out.send(Out::Event(event));
     }
 

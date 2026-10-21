@@ -358,7 +358,12 @@ impl anistream_track::kitsu::IdMapping for StoreMapping {
 ///
 /// Titles are remembered as they pass through, which is what later lets a sync conflict name the
 /// show instead of printing a bare id.
-pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -> Event {
+pub async fn load_library(
+    sync: &Sync,
+    store: &Store,
+    titles: &anistream_meta::titles::Titles,
+    segment: LibrarySegment,
+) -> Event {
     use anistream_model::catalog::ContentList;
 
     // Tagged with its segment: switching tabs while a pull is in flight must not show this one
@@ -386,7 +391,7 @@ pub async fn load_library(sync: &Sync, store: &Store, segment: LibrarySegment) -
             let wanted = segment.wire();
             let mut rows = Vec::new();
             for entry in entries.iter().filter(|e| e.status == wanted) {
-                let _ = store.remember_title(entry.media.id, entry.media.title.display());
+                let _ = store.remember_title(entry.media.id, titles.pick(&entry.media.title));
                 let mut row = crate::data::entry_from(&entry.media, Some(store));
                 // The tracker's progress, not the local projection: this screen is a view of
                 // the remote list, and showing local numbers here would hide a divergence
