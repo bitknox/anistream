@@ -11,7 +11,10 @@ use anistream_meta::Meta;
 use anistream_net::HttpClient;
 use anistream_providers::ProviderRegistry;
 use anistream_testkit::FakeAniList;
-use anistream_track::secret::{Backend, TokenStore};
+use anistream_track::{
+    AniListTracker,
+    secret::{Backend, TokenStore},
+};
 
 use crate::{
     engine::{FfiEngine, Opened, runtime},
@@ -100,7 +103,16 @@ fn options(
         store.clone(),
     );
     let tokens = TokenStore::with_backend(paths.data_dir.join("tokens"), Backend::File);
-    let sync = tracking::Sync::with_tokens(&config, &store, &http, tokens.clone());
+    // The trackers as the app's own sign-in clients turn them on, as the engine builds them.
+    let tracked = tracking::native::with_app_clients(&config, &start.app_clients());
+    let mut sync = tracking::Sync::with_tokens(&tracked, &store, &http, tokens.clone());
+    // AniList's on the fake rather than AniList itself, so a sign-in reaches it.
+    if let Some(at) = sync.trackers.iter().position(|t| t.id() == "anilist") {
+        let client = server.anilist(&http).with_token(tokens.get("anilist").ok());
+        let tracker = Arc::new(AniListTracker::new(client));
+        sync.trackers[at] = tracker.clone();
+        sync.anilist = Some(tracker);
+    }
     let stores = plugin_stores::Stores::with_tokens(&config, &paths, tokens)
         .map_err(|reason| FfiError::Engine { reason })?;
 

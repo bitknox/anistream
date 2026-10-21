@@ -418,6 +418,8 @@ impl App {
             // a full record for any other id answers a title the user has already left.
             Event::Detail(entry) => self.apply_detail(entry),
             Event::DeviceCode(prompt) => self.device_code = prompt,
+            // A native app's sign-in sheet: the terminal signs in on a loopback port.
+            Event::Authorize { .. } => {}
             Event::Seeding(rows) => self.seeding = rows,
             Event::Downloads(rows) => self.apply_downloads(rows),
             Event::LastAired(rows) => self.apply_last_aired(rows),

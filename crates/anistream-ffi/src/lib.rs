@@ -143,6 +143,24 @@ mod tests {
     }
 
     #[test]
+    fn a_native_sign_in_crosses_with_its_redirect_kept_out_of_the_log() {
+        crosses_intact(Event::Authorize {
+            tracker: "anilist".into(),
+            url: "https://anilist.co/api/v2/oauth/authorize?client_id=4242&response_type=token"
+                .into(),
+            callback_scheme: "anistream".into(),
+        });
+        let finish = Command::FinishSignIn {
+            tracker: "anilist".into(),
+            callback: Secret("anistream://auth/anilist#access_token=a.b.c&state=s".into()),
+        };
+        assert!(!format!("{finish:?}").contains("a.b.c"), "the token stays out of the log");
+        assert_eq!(crossed(finish.clone()), finish);
+        let cancel = Command::CancelSignIn { tracker: "mal".into() };
+        assert_eq!(crossed(cancel.clone()), cancel);
+    }
+
+    #[test]
     fn a_secret_crosses_as_itself_and_still_prints_as_a_placeholder() {
         let command = Command::ConnectKitsu {
             username: "nagare".into(),

@@ -101,6 +101,17 @@ pub fn authorize_url(client_id: &str, pkce: &Pkce, redirect_uri: &str) -> String
     )
 }
 
+/// [`authorize_url`], with a `state` to come back with the code: what a native app's sign-in
+/// sheet opens, its redirect being the app's own URL scheme.
+pub fn authorize_url_with_state(
+    client_id: &str,
+    pkce: &Pkce,
+    redirect_uri: &str,
+    state: &str,
+) -> String {
+    format!("{}&state={}", authorize_url(client_id, pkce, redirect_uri), urlencode(state))
+}
+
 /// Exchange an authorization code for a token pair.
 pub async fn exchange_code(
     http: &reqwest::Client,

@@ -23,12 +23,34 @@ pub fn sync_now(job: Option<JobGuard>, services: &Services, tx: &Outbox) {
 
 /// Sign in to a tracker, off the UI thread: it opens a browser and waits.
 pub fn connect(tracker: String, job: Option<JobGuard>, services: &Services, tx: &Outbox) {
-    let Services { sync, host, .. } = services;
-    let (sync, host, tx) = (sync.clone(), host.clone(), tx.clone());
+    let Services { sync, host, app_clients, .. } = services;
+    let (sync, host, clients, tx) =
+        (sync.clone(), host.clone(), app_clients.clone(), tx.clone());
     tokio::spawn(async move {
         let _job = job;
-        tracking::connect(sync, host, tracker, tx).await;
+        tracking::connect(sync, host, clients, tracker, tx).await;
     });
+}
+
+/// Finish a native app's sign-in with the redirect its sheet came back with.
+pub fn finish_sign_in(
+    tracker: String,
+    callback: Secret,
+    job: Option<JobGuard>,
+    services: &Services,
+    tx: &Outbox,
+) {
+    let Services { sync, app_clients, .. } = services;
+    let (sync, clients, tx) = (sync.clone(), app_clients.clone(), tx.clone());
+    tokio::spawn(async move {
+        let _job = job;
+        tracking::native::finish(sync, clients, tracker, callback.0, tx).await;
+    });
+}
+
+/// A native app's sign-in sheet was closed without signing in.
+pub fn cancel_sign_in(tracker: String, services: &Services) {
+    tracking::native::cancel(&services.sync, &tracker);
 }
 
 /// Sign in to Kitsu with a username and password.

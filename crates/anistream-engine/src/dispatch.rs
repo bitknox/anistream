@@ -41,7 +41,10 @@ use crate::{
     },
     tracking::{
         self,
-        commands::{connect, connect_kitsu, load_library, set_score, set_status, sync_now},
+        commands::{
+            cancel_sign_in, connect, connect_kitsu, finish_sign_in, load_library, set_score,
+            set_status, sync_now,
+        },
     },
 };
 
@@ -171,6 +174,10 @@ pub(crate) fn dispatch(
         // The trackers.
         Command::SyncNow => sync_now(job, services, tx),
         Command::Connect { tracker } => connect(tracker, job, services, tx),
+        Command::FinishSignIn { tracker, callback } => {
+            finish_sign_in(tracker, callback, job, services, tx)
+        }
+        Command::CancelSignIn { tracker } => cancel_sign_in(tracker, services),
         Command::ConnectKitsu { username, password } => {
             connect_kitsu(username, password, job, services, tx)
         }

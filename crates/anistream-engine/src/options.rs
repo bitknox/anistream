@@ -83,8 +83,8 @@ impl EngineOptions {
 /// PKCE. Unlike `trackers.*.client_id`, which a user registers for the loopback sign-in, these
 /// are the app's, so they are never written to the config.
 ///
-/// TODO(E6): nothing reads these yet. Native sign-in will: AniList's `flow = "implicit"` with
-/// [`Self::anilist`], and MAL's PKCE with [`Self::mal`] through the app's custom scheme.
+/// A tracker with a client here is turned on for the trackers alone, and signs in through
+/// `Event::Authorize` and the app's sheet: see [`crate::tracking::native`].
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct AppClients {
     /// The app's AniList client id.
