@@ -161,7 +161,9 @@ async fn a_missing_form_falls_back_to_english_then_romaji_then_native() {
     let mut h = choosing("romaji").await;
     h.server().set_title(FINISHED, None, Some("Stardust Wayfarer"), Some("星屑の旅人"));
     assert_eq!(page(&mut h).await.title, "Stardust Wayfarer");
-    // Neither romaji nor English: native.
+    // Neither romaji nor English: native. A fresh engine, since the first keeps AniList's answer
+    // for the page for five minutes and would show the title it already has.
+    let mut h = choosing("romaji").await;
     h.server().set_title(FINISHED, None, None, Some("星屑の旅人"));
     assert_eq!(page(&mut h).await.title, "星屑の旅人");
 

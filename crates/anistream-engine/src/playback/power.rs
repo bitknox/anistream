@@ -285,7 +285,9 @@ mod tests {
         let verdict = on_battery();
         let took = started.elapsed();
         eprintln!("on_battery() = {verdict:?} in {took:?}");
-        // Generous for a loaded CI box; the point is "not a PowerShell launch".
-        assert!(took < std::time::Duration::from_millis(500), "took {took:?}");
+        // The point is "not a PowerShell launch", which takes seconds. On macOS this spawns
+        // pmset, and a spawn on a machine running the whole suite at once has taken over half a
+        // second: two leave room for that and still tell a quick probe from a slow one.
+        assert!(took < std::time::Duration::from_secs(2), "took {took:?}");
     }
 }

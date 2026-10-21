@@ -57,7 +57,7 @@ fn opening(chapters: &[(&str, f64)]) -> Vec<PlaybackEvent> {
             { "type": "sub", "id": 1, "lang": "eng", "title": "Full" },
         ])),
         PlaybackEvent::Chapters(chapters.iter().map(|(t, s)| ((*t).to_owned(), *s)).collect()),
-        PlaybackEvent::Display { width: 1920, height: 1080 },
+        PlaybackEvent::Display { width: 1920, height: 1080, compute: true },
     ]
 }
 
@@ -330,8 +330,8 @@ async fn a_player_that_will_not_open_fails_the_playback_in_words() {
 
 /// The chain the session should settle on for a 720p source on a 1080p display.
 fn chain_for(on_battery: bool, dir: &std::path::Path) -> Vec<String> {
-    let source = Source { width: 1280, height: 720, hdr: None };
-    let display = Display { width: 1920, height: 1080 };
+    let source = Source { width: 1280, height: 720, hdr: None, planar: true };
+    let display = Display { width: 1920, height: 1080, compute: true };
     let chain =
         shaders::choose(Look::Natural, &source, Some(display), Budget { on_battery, eased: 0 });
     shaders::paths(&chain, dir)
@@ -389,6 +389,91 @@ async fn the_chain_goes_by_what_the_power_source_says() {
         chain_for(false, dir.path()),
         "the battery lightens it"
     );
+}
+
+/// The last chain a window settles on for a file whose picture reports `events` once it has
+/// opened on `display`.
+async fn chain_after(
+    display: PlaybackEvent,
+    events: Vec<PlaybackEvent>,
+    dir: &std::path::Path,
+) -> Option<Vec<String>> {
+    let mut file = opening(&[]);
+    *file.last_mut().expect("the opening ends on the display") = display;
+    file.extend(events);
+    file.push(PlaybackEvent::Ended { complete: true });
+    let rig = Rig::new(vec![file]);
+    let settings = PlaySettings { shader_dir: Some(dir.to_owned()), ..settings() };
+    rig.play(stream(StreamKind::Mp4), context("1", None), settings).await;
+    last_shaders(&rig.opener.calls())
+}
+
+/// `video-params` for a picture `size` wide and high, in `pixelformat`.
+fn params(size: (u32, u32), pixelformat: &str) -> PlaybackEvent {
+    PlaybackEvent::VideoParams(json!({
+        "w": size.0, "h": size.1, "dw": size.0, "dh": size.1, "pixelformat": pixelformat,
+        "primaries": "bt.709", "gamma": "bt.1886",
+    }))
+}
+
+const P720: (u32, u32) = (1280, 720);
+const P480: (u32, u32) = (854, 480);
+
+/// The chain for a source `size` wide and high on a 1080p display, as `choose` gives it.
+fn chosen(
+    size: (u32, u32),
+    planar: bool,
+    compute: bool,
+    eased: u8,
+    dir: &std::path::Path,
+) -> Vec<String> {
+    let source = Source { width: size.0, height: size.1, hdr: None, planar };
+    let display = Display { width: 1920, height: 1080, compute };
+    let budget = Budget { on_battery: false, eased };
+    shaders::paths(&shaders::choose(Look::Natural, &source, Some(display), budget), dir)
+}
+
+/// A 1080p display, its renderer with compute shaders or without.
+fn display(compute: bool) -> PlaybackEvent {
+    PlaybackEvent::Display { width: 1920, height: 1080, compute }
+}
+
+#[tokio::test]
+async fn a_renderer_without_compute_gets_no_artcnn() {
+    let dir = tempfile::tempdir().unwrap();
+    let settled = chain_after(display(false), vec![params(P720, "yuv420p")], dir.path()).await;
+    assert_eq!(settled, Some(chosen(P720, true, false, 0, dir.path())));
+    assert_ne!(settled, Some(chosen(P720, true, true, 0, dir.path())), "ArtCNN is left out");
+}
+
+#[tokio::test]
+async fn a_picture_that_turns_zero_copy_drops_the_hooks_that_read_planes() {
+    let dir = tempfile::tempdir().unwrap();
+    // Software frames first, as a first-frame fallback gives, then the decoder's own.
+    let events = vec![params(P720, "yuv420p"), params(P720, "mediacodec")];
+    let settled = chain_after(display(true), events, dir.path()).await;
+    assert_eq!(settled, Some(chosen(P720, false, true, 0, dir.path())));
+    assert_eq!(settled, Some(Vec::new()), "nothing for a 720p picture on a 1080p display");
+}
+
+#[tokio::test]
+async fn a_hook_the_renderer_disabled_steps_the_chain_down_once() {
+    let dir = tempfile::tempdir().unwrap();
+    // AniSD, as the emulator's GLES fails it: two of its hooks, the second said after the
+    // chain had already stepped down to ArtCNN C4F16 for the first.
+    let anisd =
+        |pass: u8| PlaybackEvent::HookDisabled(format!("ArtCNN C4F32 (Conv2D-{pass}-ReLU)"));
+    let events = vec![params(P480, "yuv420p"), anisd(1), anisd(2)];
+    let settled = chain_after(display(true), events, dir.path()).await;
+    assert_eq!(settled, Some(chosen(P480, true, true, 1, dir.path())));
+    assert_ne!(settled, Some(chosen(P480, true, true, 0, dir.path())));
+    assert_ne!(settled, Some(chosen(P480, true, true, 2, dir.path())), "stepped once");
+
+    // A hook nothing here describes cannot be placed in a chain: it eases once, and no more.
+    let unknown = || PlaybackEvent::HookDisabled("user shader".into());
+    let events = vec![params(P480, "yuv420p"), unknown(), unknown()];
+    let settled = chain_after(display(true), events, dir.path()).await;
+    assert_eq!(settled, Some(chosen(P480, true, true, 1, dir.path())));
 }
 
 /// The fixture's stream, served from `host`.
