@@ -36,7 +36,7 @@ struct NoticeCapsule: View {
                     .frame(minHeight: 36)
                 }
                 .buttonStyle(.plain)
-                .glassEffect(.regular.tint(Palette.glass), in: .capsule)
+                .chromeGlass(in: .capsule)
                 .frame(maxWidth: 520)
                 .transition(.opacity)
                 .accessibilityLabel(item.notice.text)

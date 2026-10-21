@@ -2,6 +2,25 @@
 // ground colour, and the app shows itself in the dark appearance.
 
 import SwiftUI
+#if os(macOS)
+import AppKit
+
+private extension NSColor {
+    convenience init(rgb: UInt32) {
+        self.init(srgbRed: CGFloat((rgb >> 16) & 0xFF) / 255, green: CGFloat((rgb >> 8) & 0xFF) / 255,
+                  blue: CGFloat(rgb & 0xFF) / 255, alpha: 1)
+    }
+}
+#else
+import UIKit
+
+private extension UIColor {
+    convenience init(rgb: UInt32) {
+        self.init(red: CGFloat((rgb >> 16) & 0xFF) / 255, green: CGFloat((rgb >> 8) & 0xFF) / 255,
+                  blue: CGFloat(rgb & 0xFF) / 255, alpha: 1)
+    }
+}
+#endif
 
 extension Color {
     /// A colour from `0xRRGGBB`, in sRGB.
@@ -13,6 +32,22 @@ extension Color {
             blue: Double(rgb & 0xFF) / 255,
             opacity: opacity
         )
+    }
+
+    /// A colour that is `rgb`, and `increased` when the viewer has asked for more contrast
+    /// (Increase Contrast): the system says which as it draws, so it changes in place.
+    public init(rgb: UInt32, increased: UInt32) {
+        #if os(macOS)
+        self.init(nsColor: NSColor(name: nil) { appearance in
+            let high: [NSAppearance.Name] = [.accessibilityHighContrastDarkAqua, .accessibilityHighContrastAqua]
+            let matched = appearance.bestMatch(from: [.darkAqua, .aqua] + high)
+            return NSColor(rgb: matched.map(high.contains) == true ? increased : rgb)
+        })
+        #else
+        self.init(uiColor: UIColor { traits in
+            UIColor(rgb: traits.accessibilityContrast == .high ? increased : rgb)
+        })
+        #endif
     }
 
     /// A colour from `#rrggbb`, as AniList writes a cover's colour, or `nil` for anything else.
@@ -34,14 +69,15 @@ public enum Palette {
     public static let raised = Color(rgb: 0x222638)
     /// The segmented control's selection, and a secondary button on a raised surface.
     public static let raisedSelected = Color(rgb: 0x343A57)
-    /// A progress track.
-    public static let rule = Color(rgb: 0x434653)
-    /// Hairlines between rows, and a secondary button's edge on the ground.
-    public static let faintRule = Color(rgb: 0x2F3242)
+    /// A progress track. Lifted to #5C6073 under Increase Contrast.
+    public static let rule = Color(rgb: 0x434653, increased: 0x5C6073)
+    /// Hairlines between rows, and a secondary button's edge on the ground. Lifted to the rule's
+    /// own colour under Increase Contrast.
+    public static let faintRule = Color(rgb: 0x2F3242, increased: 0x434653)
     /// 絹. Primary text and icons.
     public static let silk = Color(rgb: 0xE4E0D6)
-    /// 霞. Secondary text.
-    public static let haze = Color(rgb: 0x9298B5)
+    /// 霞. Secondary text. Lifted to #B8BDD6 under Increase Contrast.
+    public static let haze = Color(rgb: 0x9298B5, increased: 0xB8BDD6)
     /// 琥珀. The accent.
     public static let amber = Color(rgb: 0xF2A64B)
     /// 水. States: a new episode, airing, synced, downloading.
@@ -76,4 +112,52 @@ extension ShapeStyle where Self == Color {
     public static var amber: Color { Palette.amber }
     public static var water: Color { Palette.water }
     public static var vermilion: Color { Palette.vermilion }
+}
+
+/// What sits over video or art: the ground at `opacity`, or solid Raised when the viewer has asked
+/// for less transparency (Reduce Transparency), read where it is drawn.
+public struct OverVideoFill: ShapeStyle {
+    let opacity: Double
+
+    public func resolve(in environment: EnvironmentValues) -> Color {
+        environment.accessibilityReduceTransparency ? Palette.raised : Palette.ground.opacity(opacity)
+    }
+}
+
+/// Glass chrome's tint, or solid Raised under Reduce Transparency.
+public struct GlassFill: ShapeStyle {
+    public func resolve(in environment: EnvironmentValues) -> Color {
+        environment.accessibilityReduceTransparency ? Palette.raised : Palette.glass
+    }
+}
+
+extension ShapeStyle where Self == OverVideoFill {
+    /// The ground at `opacity` over video, solid Raised under Reduce Transparency.
+    public static func overVideo(_ opacity: Double) -> OverVideoFill { OverVideoFill(opacity: opacity) }
+}
+
+extension ShapeStyle where Self == GlassFill {
+    /// Glass chrome's fill, solid Raised under Reduce Transparency.
+    public static var glassFill: GlassFill { GlassFill() }
+}
+
+extension View {
+    /// Glass chrome in `shape`: the system's glass tinted the brief's colour, or solid Raised
+    /// under Reduce Transparency, where the notice capsule and the palette turn opaque.
+    public func chromeGlass(in shape: some Shape) -> some View {
+        modifier(ChromeGlass(shape: AnyShape(shape)))
+    }
+}
+
+struct ChromeGlass: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    let shape: AnyShape
+
+    func body(content: Content) -> some View {
+        if reduceTransparency {
+            content.background(Palette.raised, in: shape)
+        } else {
+            content.glassEffect(.regular.tint(Palette.glass), in: shape)
+        }
+    }
 }

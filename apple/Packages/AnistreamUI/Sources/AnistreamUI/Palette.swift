@@ -134,7 +134,7 @@ struct PaletteOverlay: View {
                 .frame(height: 44)
             }
             .frame(width: 640)
-            .glassEffect(.regular.tint(Palette.glass), in: .rect(cornerRadius: 16))
+            .chromeGlass(in: .rect(cornerRadius: 16))
             .padding(.top, 112)
         }
         .ignoresSafeArea()
