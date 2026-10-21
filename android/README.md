@@ -47,9 +47,11 @@ cd android && ./gradlew assembleFixturesDebug assembleAppDebug
 APK's `jniLibs`, and for this Mac, for the unit tests and for the `uniffi-bindgen` that writes the
 Kotlin bindings from the arm64 library. Everything goes to `android/.engine/<release|testing>/`,
 which git ignores, with a stamp of the Rust sources it was built from. Cargo builds in
-`~/anistream-target-android`, shared by every worktree that builds the app; delete it when idle,
-since it takes about 9 GB. Without an NDK it still builds this Mac's library and the bindings, so
-Gradle and the unit tests run, and the APK has no engine in it.
+`~/anistream-target-android` unless `CARGO_TARGET_DIR` says otherwise; it takes about 9 GB.
+Cargo runs in a clean environment, which keeps cargo's and rustup's variables (`CARGO_BUILD_JOBS`
+among them), `RUSTC_WRAPPER` and sccache's `SCCACHE_*`, so a compiler cache works through it.
+Without an NDK it still builds this Mac's library and the bindings, so Gradle and the unit tests
+run, and the APK has no engine in it.
 
 Every Gradle build checks first that its flavour's engine is current and that the fonts are there
 (`engine.sh --check`, `fonts.sh --check`), and fails saying what to run when not. Rust changes
@@ -66,12 +68,13 @@ adb shell am start -n tv.anistream.fixtures/tv.anistream.app.MainActivity --es s
 ```
 
 The fixtures flavour takes intent extras under the names of the Apple app's `-Anistream*`
-arguments: `scene` (`watching`, `fresh` or `playing`), `section` (`continue`, `calendar`,
-`seasonal`, `library`, `search`), `title` (a title page to open, by id), `query` (a search to
-run), `watched` (`900006:8`, or several titles joined by `/`), and `sheet` and `player` for the
-screens that take them in later phases. Until the engine's
-scenes reach main, every scene starts as `fresh`. Each launch starts the testing engine in a new
-directory of its own. A debug build of either flavour says `ANISTREAM_READY` in the log, tag
+arguments: `scene` (`watching`, `fresh` or `playing`), `media` (what the playing scene streams),
+`section` (`continue`, `calendar`, `seasonal`, `library`, `search`), `title` (a title page to
+open, by id), `query` (a search to run), `watched` (`900006:8`, or several titles joined by `/`),
+and `sheet` and `player` for the screens that take them in later phases. A scene is the engine's
+own (`start_scene`): the fake AniList at the real time, with its art, and for `watching` and
+`playing` a history seeded first. Each launch starts the testing engine in a new directory of its
+own. A debug build of either flavour says `ANISTREAM_READY` in the log, tag
 `anistream`, once its screens have what they asked for.
 
 ## Tests

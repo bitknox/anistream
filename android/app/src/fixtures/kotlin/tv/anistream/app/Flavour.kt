@@ -2,6 +2,7 @@
 // own, steered by intent extras under the names of the Apple app's -Anistream* arguments:
 //
 //   scene     watching (the default), fresh or playing
+//   media     what the playing scene streams: a path or URL on the device
 //   section   the destination to open on: continue, calendar, seasonal, library or search
 //   watched   episodes to mark watched once the engine is up: 900006:8, or 900001:1,2,3, with more
 //             titles joined by / (900006:1,2/900002:1), oldest first
@@ -18,6 +19,7 @@ import android.util.Log
 import tv.anistream.store.AppStore
 import tv.anistream.store.EngineLaunch
 import tv.anistream.store.FixtureScene
+import tv.anistream.store.fixtureMedia
 import tv.anistream.store.fixtures
 
 internal object Flavour {
@@ -29,6 +31,7 @@ internal object Flavour {
         val named = intent.getStringExtra("scene")
         val scene = named?.let(FixtureScene::named) ?: FixtureScene.WATCHING
         if (named != null && FixtureScene.named(named) == null) Log.w(AnistreamApp.TAG, "no scene named $named")
+        intent.getStringExtra("media")?.let { fixtureMedia = it }
         return EngineLaunch.fixtures(scene, context.cacheDir)
     }
 

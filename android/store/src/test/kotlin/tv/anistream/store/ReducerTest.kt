@@ -25,6 +25,7 @@ import tv.anistream.engine.model.NoticeKind
 import tv.anistream.engine.model.ResumePoint
 import tv.anistream.engine.model.SearchFilters
 import tv.anistream.engine.model.TitleAired
+import tv.anistream.engine.model.TitleLanguage
 import tv.anistream.engine.model.TitleProgress
 
 /** The store fed scripted event lists, as the engine sends them: no engine, no native code. */
@@ -136,6 +137,20 @@ class ReducerTest {
         assertEquals(ListState.Loading, store.search.list.state.value)
         store.apply(Event.Content(ContentFor.Search("kumo", SearchFilters()), ContentList.Empty))
         assertEquals(ListState.Empty, store.search.list.state.value)
+    }
+
+    @Test
+    fun a_new_title_language_asks_again_for_what_is_on_screen() {
+        store.apply(Event.Content(ContentFor.Continue, ContentList.Empty))
+        store.apply(Event.Content(ContentFor.Seasonal, ContentList.Entries(listOf(entry(900002u, "Kumo")))))
+        store.search("kumo")
+        assertEquals(listOf(Command.Search("kumo", SearchFilters())), store.waiting)
+        store.apply(Event.TitlesChanged(TitleLanguage.ENGLISH))
+        // What was answered is asked for again; the calendar and the library never were.
+        assertEquals(
+            listOf(Command.Search("kumo", SearchFilters()), Command.LoadContinue, Command.LoadSeasonal, Command.Search("kumo", SearchFilters())),
+            store.waiting,
+        )
     }
 
     @Test

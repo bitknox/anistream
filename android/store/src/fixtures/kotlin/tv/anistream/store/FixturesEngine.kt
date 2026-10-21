@@ -7,6 +7,7 @@ import java.util.UUID
 import tv.anistream.engine.ffi.FfiDirs
 import tv.anistream.engine.ffi.FfiEngine
 import tv.anistream.engine.ffi.FfiHost
+import tv.anistream.engine.ffi.FfiScene
 import tv.anistream.engine.ffi.FfiStart
 
 /** The testing engine on [scene]. */
@@ -14,18 +15,23 @@ internal fun startFixtures(scene: FixtureScene, dirs: FfiDirs, host: FfiHost, st
     startScene(scene, dirs, host, start)
 
 /**
- * The one place a scene picks how the testing engine starts.
- *
- * The engine's scenes (`start_scene`, which seeds the database for Watching and Playing) are not on
- * main yet, so for now every scene starts as `start_testing` does: a first launch, the Fresh scene.
- * Once they are, this becomes `FfiEngine.startScene(dirs, host, scene.ffi, start)`.
+ * The testing engine on [scene], through the engine's scenes: the fake AniList answering at the
+ * real time, with its art, and the scene's history seeded in the database first.
  */
-internal fun startScene(scene: FixtureScene, dirs: FfiDirs, host: FfiHost, start: FfiStart): FfiEngine {
-    if (scene != FixtureScene.FRESH) {
-        System.err.println("anistream: the ${scene.name.lowercase()} scene starts as fresh until the engine has scenes")
-    }
-    return FfiEngine.startTesting(dirs, host, start)
+internal fun startScene(scene: FixtureScene, dirs: FfiDirs, host: FfiHost, start: FfiStart): FfiEngine =
+    FfiEngine.startScene(dirs, host, scene.ffi(), start)
+
+/** The engine's own scene for [this]. */
+private fun FixtureScene.ffi(): FfiScene = when (this) {
+    FixtureScene.FRESH -> FfiScene.Fresh
+    FixtureScene.WATCHING -> FfiScene.Watching
+    // What it streams is the player's business, which comes with A3: a path or URL on the device.
+    FixtureScene.PLAYING -> FfiScene.Playing(media = fixtureMedia)
 }
+
+/** What the Playing scene streams: the fixtures' `media` extra, set at launch. */
+@Volatile
+var fixtureMedia: String = ""
 
 /** Whether this build has the testing engine in it. */
 const val HAS_TESTING_ENGINE = true

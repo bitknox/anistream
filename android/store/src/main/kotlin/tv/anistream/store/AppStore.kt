@@ -168,6 +168,21 @@ class AppStore(
         send(Command.LoadDetail(id))
     }
 
+    /**
+     * The form titles are named in changed: what is on screen names them the old way, so every
+     * list answered, the search and the pages last opened are asked for again.
+     */
+    private fun titlesChanged() {
+        if (continuing.list.answeredAt != null) loadContinue(force = true)
+        if (seasonal.answeredAt != null) loadSeasonal(force = true)
+        if (calendar.list.answeredAt != null) loadCalendar(force = true)
+        for (segment in LibraryModel.order) {
+            if (library.segment(segment).answeredAt != null) loadLibrary(segment)
+        }
+        search.submitted?.let { (query, filter) -> search(query, filter) }
+        for (id in titles.detailed.toList().takeLast(5)) loadDetail(id)
+    }
+
     /** A title's episodes, once a session per title unless [force]: for the names of what plays. */
     fun loadEpisodes(id: AnilistId, force: Boolean = false) {
         if (!force && (id in episodesAsked || titles.episodes.value[id] != null)) return
@@ -253,6 +268,7 @@ class AppStore(
             is Event.CalendarWindow -> calendar.window(event.anchor, event.pages, event.morePast)
             is Event.CalendarBackfill -> calendar.backfill(event.page, event.entries, event.morePast, titles)
             is Event.Detail -> titles.merge(detail = event.v1)
+            is Event.TitlesChanged -> titlesChanged()
             is Event.Progress -> titles.progress(event.id, event.progress, event.resume, event.episodes)
             is Event.LastAired -> titles.lastAired(event.v1)
             is Event.Episodes -> titles.episodes(event.id, event.rows)

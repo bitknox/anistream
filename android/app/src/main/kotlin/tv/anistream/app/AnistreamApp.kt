@@ -8,6 +8,7 @@ import android.content.Intent
 import android.net.Uri
 import android.util.Log
 import kotlinx.coroutines.MainScope
+import tv.anistream.engine.ffi.startLog
 import tv.anistream.store.AppHost
 import tv.anistream.store.AppStore
 import tv.anistream.store.EngineLaunch
@@ -28,6 +29,8 @@ class AnistreamApp : Application() {
     fun start(launch: EngineLaunch) {
         if (started) return
         started = true
+        // The engine's log, a file a day under the cache, which never holds a token.
+        startLog(launch.home.cache.path)
         Log.i(TAG, "starting the ${if (launch.engine == EngineLaunch.Engine.App) "app" else "testing"} engine")
         store.start(launch, host())
     }
