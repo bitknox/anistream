@@ -275,6 +275,8 @@ fn context(episode: &str, next: Option<&str>) -> PlaybackContext {
                 filler: false,
             })
             .collect(),
+        cover_url: None,
+        banner_url: None,
     }
 }
 
@@ -316,6 +318,7 @@ fn settings() -> PlaySettings {
         presence: Default::default(),
         syncplay: Default::default(),
         party: false,
+        up_next_countdown: 10,
     }
 }
 

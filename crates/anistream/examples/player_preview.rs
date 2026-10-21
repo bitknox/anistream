@@ -84,6 +84,8 @@ async fn main() -> anyhow::Result<()> {
             volume: None,
             next,
             episodes: Vec::new(),
+            cover_url: None,
+            banner_url: None,
         };
         let settings = PlaySettings {
             threshold: config.playback.commit_threshold,
@@ -101,6 +103,7 @@ async fn main() -> anyhow::Result<()> {
             presence: Default::default(),
             syncplay: Default::default(),
             party: false,
+            up_next_countdown: 10,
         };
         let stream = Stream {
             provider_id: "preview".into(),

@@ -119,6 +119,8 @@ async fn main() {
         volume: None,
         next: None,
         episodes: Vec::new(),
+        cover_url: None,
+        banner_url: None,
     };
 
     let (tx, mut rx) = mpsc::unbounded_channel::<Event>();
@@ -185,6 +187,7 @@ async fn main() {
             // Syncplay off, same reasoning.
             syncplay: Default::default(),
             party: false,
+            up_next_countdown: 10,
         };
         anistream_engine::playback::play(
             vec![stream],
