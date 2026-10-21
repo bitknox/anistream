@@ -102,6 +102,17 @@ flavour show AniList's real catalogue, so they stay there and are never committe
 The phone is `anistream-phone-35-16k`, Android 15 with 16 KB pages; `ANISTREAM_KEEP_EMULATOR=1`
 leaves an emulator the script started running for the next run.
 
+## Versions
+
+Every version is pinned in `gradle/libs.versions.toml`. Material3 is 1.5.0-beta01 rather than the
+stable 1.4.0 the Compose BOM picks, because 1.4.0 keeps the Expressive APIs the design is built on
+(`MaterialExpressiveTheme`, `MotionScheme`, the short navigation bar, the flexible top app bar,
+connected button groups) internal. Move to 1.5.0 once it is stable.
+
+The app is dark only, on the fixed Obi & Silk scheme; light follows the system once a light
+palette is drawn. It has no backup (`allowBackup="false"`): the tokens are sealed with a key that
+never leaves the device's keystore, so a restored copy could not open them.
+
 ## Third-party
 
 Roboto Flex and Zen Kaku Gothic New are under the SIL Open Font License 1.1; `fonts.sh` fetches

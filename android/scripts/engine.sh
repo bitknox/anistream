@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Builds the engine for the Android app: anistream-ffi as a shared library for arm64 phones, with
-# the Kotlin bindings generated from it, and the same library built for this Mac, which the JVM
-# unit tests load through JNA.
+# the Kotlin bindings generated from it, and the same library built for this machine (a Mac, or
+# CI's Linux), which the JVM unit tests load through JNA.
 #
 #   android/scripts/engine.sh [--check] <release|testing>
 #
@@ -14,7 +14,8 @@
 #
 #   android/.engine/<flavour>/jniLibs/arm64-v8a/libanistream_ffi.so   what the APK carries
 #   android/.engine/<flavour>/kotlin/                                  the bindings, a package per crate
-#   android/.engine/<flavour>/host/libanistream_ffi.dylib              this Mac's build, for the unit tests
+#   android/.engine/<flavour>/host/libanistream_ffi.dylib              this machine's build, for the unit
+#                                                                      tests (.so on Linux, as in CI)
 #   android/.engine/<flavour>/stamp                                    what the build was made from
 #
 # Nothing is built when the stamp says the sources, Cargo.lock and the profile are what the last
@@ -151,7 +152,7 @@ cargo_clean() {
     # named, without an API level, and the NDK's headers refuse an unversioned one. cargo-ndk 4
     # sets the underscored variable to its sysroot arguments, over whatever it held, so the API
     # level goes in the hyphenated one, which bindgen reads first, with cargo-ndk's own beside it.
-    local sysroot="$ndk/toolchains/llvm/prebuilt/darwin-x86_64/sysroot"
+    local sysroot="$ndk/toolchains/llvm/prebuilt/$(uname -s | tr '[:upper:]' '[:lower:]')-x86_64/sysroot"
     pass+=(ANDROID_NDK_HOME="$ndk"
       BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android="--target=$target$api"
       "BINDGEN_EXTRA_CLANG_ARGS_$target=--target=$target$api --sysroot=$sysroot -I$sysroot/usr/include/$target")
@@ -165,6 +166,12 @@ profile_dir() {
     *) echo "$profile" ;;
   esac
 }
+
+# This machine's library, as the JVM tests load it: a .dylib on macOS, a .so on Linux, as in CI.
+case "$(uname -s)" in
+  Darwin) host_library=libanistream_ffi.dylib ;;
+  *) host_library=libanistream_ffi.so ;;
+esac
 
 host_feature_list() {
   echo "${features:+$features,}cli"
@@ -181,9 +188,9 @@ android_built="$CARGO_TARGET_DIR/$target/$(profile_dir)"
 echo "engine.sh: building the $flavour engine for this Mac ($profile)"
 cargo_clean cargo build -p anistream-ffi --no-default-features --features "$(host_feature_list)" \
   --lib --bin uniffi-bindgen --profile "$profile"
-cp "$host_built/libanistream_ffi.dylib" "$stage/host/"
+cp "$host_built/$host_library" "$stage/host/"
 
-library="$host_built/libanistream_ffi.dylib"
+library="$host_built/$host_library"
 if [[ -n "$ndk" ]]; then
   echo "engine.sh: building the $flavour engine for $abi (Android $api, NDK $(basename "$ndk"), $profile)"
   cargo_clean cargo ndk -t "$abi" --platform "$api" build -p anistream-ffi --no-default-features \
