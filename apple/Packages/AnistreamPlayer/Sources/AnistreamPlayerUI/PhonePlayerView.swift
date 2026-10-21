@@ -40,7 +40,7 @@ public struct PhonePlayerView: View {
         self.model = model
     }
 
-    private var visible: Bool { (model.controlsVisible || sheet != nil) && !model.stillWatching }
+    private var visible: Bool { (model.controlsVisible || sheet != nil) && !model.stillWatching && model.failure == nil && !curtain }
     private var curtain: Bool { model.starting != nil || !model.hasPicture || model.holdsCurtain }
     /// How far the swipe down has gone toward closing, 0 to 1.
     private var pull: CGFloat { min(drag / 120, 1) }
@@ -54,7 +54,7 @@ public struct PhonePlayerView: View {
                     StartingCurtain(model: model, metrics: metrics)
                         .opacity(curtain ? 1 : 0)
                         .animation(curtain ? .easeIn(duration: 0.25) : .fadeIn, value: curtain)
-                        .allowsHitTesting(false)
+                        .allowsHitTesting(curtain)
                 }
                 .scaleEffect(reduceMotion ? 1 : 1 - 0.1 * pull)
                 .clipShape(.rect(cornerRadius: reduceMotion ? 0 : 16 * pull))

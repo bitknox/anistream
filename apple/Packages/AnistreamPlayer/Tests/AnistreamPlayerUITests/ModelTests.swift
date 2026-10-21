@@ -153,6 +153,7 @@ struct ClosingTests {
     @Test func theEnginesCloseSaysNothingMore() async throws {
         let rig = Rig()
         try await rig.opened()
+        rig.mpv.emit(.playbackRestart)
         rig.mpv.emit(.endFile(MpvEnd(reason: "eof", error: nil)))
         try await until("the end reported") { rig.reports.last?.1 == .ended(reason: .eof) }
         let sent = rig.sent.count
@@ -180,11 +181,11 @@ struct ClosingTests {
         #expect(rig.reports.last?.1 == .closed)
     }
 
-    @Test func aPlaybackThatNeverOpenedComesDownWhenItEnds() {
+    @Test func aPlaybackThatNeverOpenedComesDownWhenItPlaysElsewhere() {
         let rig = Rig()
         rig.model.apply(.playbackStaged(id: 900_001, title: "Stardust Wayfarer", episode: "7", episodeTitle: nil, speed: 1))
         #expect(rig.model.isPresented)
-        rig.model.apply(.playbackEnded(watched: false, ending: .failed, rollingOn: false))
+        rig.model.apply(.playbackEnded(watched: false, ending: .elsewhere, rollingOn: false))
         #expect(!rig.model.isPresented)
         #expect(rig.made.isEmpty)
     }

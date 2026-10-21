@@ -331,7 +331,7 @@ public final class AppStore {
         case .playbackEnded(let watched, let ending, let rollingOn):
             AppLog.info("store", "playback ended: \(ending), watched \(watched), rolling on \(rollingOn)")
             onPlayback?(event)
-        case .playerOps, .playerUi, .playbackKept:
+        case .playerOps, .playerUi, .playbackKept, .sources:
             onPlayback?(event)
 
         default:

@@ -28,7 +28,7 @@ public struct MacPlayerView: View {
         self.model = model
     }
 
-    private var visible: Bool { (model.controlsVisible || panel != nil || overBar) && !model.stillWatching }
+    private var visible: Bool { (model.controlsVisible || panel != nil || overBar) && !model.stillWatching && model.failure == nil && !curtain }
 
     /// The banner holds until the first frame, and comes back between episodes.
     private var curtain: Bool { model.starting != nil || !model.hasPicture || model.holdsCurtain }
@@ -40,7 +40,7 @@ public struct MacPlayerView: View {
             StartingCurtain(model: model, metrics: metrics)
                 .opacity(curtain ? 1 : 0)
                 .animation(curtain ? .easeIn(duration: 0.25) : .fadeIn, value: curtain)
-                .allowsHitTesting(false)
+                .allowsHitTesting(curtain)
             if model.showsSpinner {
                 ProgressView().controlSize(.regular).tint(.silk).environment(\.colorScheme, .dark)
             }
@@ -77,7 +77,7 @@ public struct MacPlayerView: View {
         .onKeyPress(phases: [.down, .repeat]) { press in key(press) }
         .onAppear { focused = true }
         .onChange(of: model.fullScreen) { _, on in fullScreen(on) }
-        .onChange(of: visible) { _, on in titleBar(on) }
+        .onChange(of: visible, initial: true) { _, on in titleBar(on) }
         .onChange(of: model.miniPlayer) { _, on in mini(on) }
         .onChange(of: window) { _, window in if let window { opened(window) } }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { note in

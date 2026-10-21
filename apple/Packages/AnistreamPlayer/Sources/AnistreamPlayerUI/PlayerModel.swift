@@ -120,6 +120,13 @@ public final class PlayerModel {
     public private(set) var alert: PlayerAlert?
     public private(set) var upscaler: String?
     public private(set) var hdr: String?
+    /// The playback never played: "Couldn't play episode 7", with Choose source and Close.
+    public private(set) var failure: PlaybackFailure?
+    /// The viewer asked for the episode's releases; `sourceChoices` is nil until they come.
+    public private(set) var choosingSource = false
+    public private(set) var sourceChoices: [SourceCandidate]?
+    /// The player closed before a frame: waiting for the engine to say whether it failed.
+    @ObservationIgnored private var verdictPending = false
     /// "Still watching?": the episodes rolled on in a row with nobody there, which pauses.
     public private(set) var stillWatching = false
     /// Keep waiting was answered: no stall card until this stall ends.
@@ -190,15 +197,30 @@ public final class PlayerModel {
             apply(ui, for: playback)
         case .playbackStaged(let id, let title, let episode, let episodeTitle, _):
             since = .now
+            failure = nil
+            choosingSource = false
+            sourceChoices = nil
+            verdictPending = false
             staged = StagedPlayback(id: id, title: title, episode: episode, episodeTitle: episodeTitle)
             present()
-        case .playbackEnded(_, _, let rollingOn):
+        case .playbackEnded(_, let ending, let rollingOn):
             if rollingOn {
                 rollPending = true
+            } else if backend == nil, ending == .failed, isPresented, let episode = startingEpisode {
+                // It never played: no stream was found, or none showed a frame. Say so where the
+                // viewer is looking, with another source to choose, rather than vanish.
+                verdictPending = false
+                failure = PlaybackFailure(id: staged?.id, episode: episode)
+                Self.note(.warn, "couldn't play episode \(episode)")
             } else if backend == nil {
-                // Nothing was opened for it: no stream found, or it played elsewhere.
+                // Nothing was opened for it, or it played elsewhere, or it is simply over.
+                verdictPending = false
                 dismiss()
             }
+        case .sources(let id, let episode, let candidates):
+            guard choosingSource else { return }
+            Self.note(.info, "\(candidates.count) sources for \(id) episode \(episode)")
+            sourceChoices = candidates
         case .playbackKept:
             // The playback staged found nothing; the one before plays on.
             starting = nil
@@ -233,7 +255,9 @@ public final class PlayerModel {
         case .quit:
             quit()
         case .close:
-            close(reporting: false)
+            // A file that never showed a frame may be a playback that failed: the starting screen
+            // stays up for the engine's verdict, which follows the close.
+            close(reporting: false, awaitingVerdict: !hasPicture)
         }
     }
 
@@ -388,6 +412,11 @@ public final class PlayerModel {
     /// The viewer closed the player: its close button, the swipe down, the window's close.
     public func viewerClosed() {
         input()
+        if failure != nil {
+            // Nothing is playing: the screen only said so.
+            dismiss()
+            return
+        }
         guard backend != nil else {
             if isPresented {
                 // Nothing opened yet: stop what is being found.
@@ -401,13 +430,13 @@ public final class PlayerModel {
 
     /// Close mpv and the player. `reporting`: say the file ended by quitting, and that the
     /// player closed, first.
-    private func close(reporting: Bool) {
+    private func close(reporting: Bool, awaitingVerdict: Bool = false) {
         Self.note(.info, reporting ? "closing: the file ended by quitting" : "closing: the playback is over")
         if reporting {
             report(.ended(reason: .quit))
             report(.closed)
         }
-        teardown()
+        teardown(awaitingVerdict: awaitingVerdict)
     }
 
     /// mpv went away by itself.
@@ -425,7 +454,7 @@ public final class PlayerModel {
         teardown()
     }
 
-    private func teardown() {
+    private func teardown(awaitingVerdict: Bool = false) {
         listener?.cancel()
         worker?.cancel()
         work?.finish()
@@ -443,12 +472,28 @@ public final class PlayerModel {
         loads = []
         sources = [:]
         thumbnails = nil
-        dismiss()
+        guard awaitingVerdict, isPresented else {
+            dismiss()
+            return
+        }
+        // mpv is gone; the screen waits a moment for how the playback ended.
+        layer = nil
+        verdictPending = true
+        Task { @MainActor [weak self] in
+            try? await Task.sleep(for: PlayerTiming.verdictWait)
+            guard let self, self.verdictPending else { return }
+            self.verdictPending = false
+            self.dismiss()
+        }
     }
 
     /// The player comes down, with everything it showed.
     private func dismiss() {
         isPresented = false
+        failure = nil
+        choosingSource = false
+        sourceChoices = nil
+        verdictPending = false
         layer = nil
         fullScreen = false
         miniPlayer = false
@@ -842,6 +887,38 @@ public final class PlayerModel {
         let number = staged?.episode ?? starting?.episode ?? ""
         let title = staged?.episodeTitle ?? starting?.episodeTitle
         return title.map { "Episode \(number) · \($0)" } ?? "Episode \(number)"
+    }
+
+    // MARK: When it could not play
+
+    /// The episode starting, as the starting screen names it.
+    public var startingEpisode: String? { starting?.episode ?? staged?.episode ?? failure?.episode }
+
+    /// Ask the engine for the episode's releases, to pick one: from "Couldn't play episode 7",
+    /// or from a start that has shown nothing for 20 s.
+    public func chooseSource() {
+        input()
+        guard let id = staged?.id ?? failure?.id, let episode = startingEpisode else { return }
+        choosingSource = true
+        sourceChoices = nil
+        send(.loadSources(id: id, episode: episode))
+    }
+
+    /// Play `candidate` instead: the engine stages it as a playback of its own.
+    public func play(_ candidate: SourceCandidate) {
+        input()
+        guard let id = staged?.id ?? failure?.id, let episode = startingEpisode else { return }
+        Self.note(.info, "playing episode \(episode) from the source picked, \(candidate.providerId)")
+        choosingSource = false
+        sourceChoices = nil
+        failure = nil
+        send(.playSource(id: id, episode: episode, providerId: candidate.providerId, sourceId: candidate.id))
+    }
+
+    /// Done with the sources: back to what the screen showed.
+    public func cancelChoosingSource() {
+        choosingSource = false
+        sourceChoices = nil
     }
 
     // MARK: The viewer's actions
