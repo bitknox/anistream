@@ -49,10 +49,17 @@ class MainActivity : ComponentActivity() {
             ?.let(Destination::named) ?: Destination.Continue
         val title = intent.getStringExtra(TITLE)?.takeIf { steerable }?.toUIntOrNull()
         val query = intent.getStringExtra(QUERY)?.takeIf { steerable }
+        val page = intent.getStringExtra(PAGE)?.takeIf { steerable }
 
         setContent {
             AnistreamTheme {
-                AppRoot(app.store, if (query != null) Destination.Search else start, startTitle = title, startQuery = query)
+                AppRoot(
+                    app.store,
+                    if (query != null) Destination.Search else start,
+                    startTitle = title,
+                    startQuery = query,
+                    startPage = page,
+                )
             }
         }
         if (Flavour.FIXTURES || debuggable) announceReady()
@@ -122,6 +129,9 @@ class MainActivity : ComponentActivity() {
 
         /** A search to run, on Search. */
         const val QUERY = "query"
+
+        /** A page to open over the destination, by its route: `settings`, `settings/playback`. */
+        const val PAGE = "page"
 
         private const val NOTIFICATIONS_ASKED = "notificationsAsked"
     }

@@ -17,7 +17,8 @@
 # ignores; the phase is ANISTREAM_SHOTS_PHASE, a0 unless it says otherwise.
 #
 # The devices are AVDs run headless, each on a port of its own, and killed afterwards unless
-# ANISTREAM_KEEP_EMULATOR=1 (an emulator already running on its port is used and left running):
+# ANISTREAM_KEEP_EMULATOR=1 (an emulator already running on its port is used and left running).
+# ANISTREAM_EMULATOR_PORT names another port, for a second worktree's emulator beside the first:
 #
 #   phone      anistream-phone-35-16k   the app's minimum, Android 15, with 16 KB pages   port 5560
 #   phone-37   Medium_Phone_API_37.0    the newest, Android 17                              port 5566
@@ -42,6 +43,7 @@ case "$device" in
   fold) avd=anistream-fold port=5564 ;;
   *) usage ;;
 esac
+port="${ANISTREAM_EMULATOR_PORT:-$port}"
 shift
 shots=("$@")
 (( ${#shots[@]} )) || shots=(watching)

@@ -79,7 +79,8 @@ adb shell am start -n tv.anistream.fixtures/tv.anistream.app.MainActivity --es s
 The fixtures flavour takes intent extras under the names of the Apple app's `-Anistream*`
 arguments: `scene` (`watching`, `fresh` or `playing`), `media` (what the playing scene streams),
 `section` (`continue`, `calendar`, `seasonal`, `library`, `search`), `title` (a title page to
-open, by id), `query` (a search to run), `watched` (`900006:8`, or several titles joined by `/`),
+open, by id), `query` (a search to run), `page` (a page over the destination, by its route:
+`settings`, `settings/playback`, `settings/sources`), `watched` (`900006:8`, or several titles joined by `/`),
 and `sheet` and `player` for the screens that take them in later phases. A scene is the engine's
 own (`start_scene`): the fake AniList at the real time, with its art, and for `watching` and
 `playing` a history seeded first. Each launch starts the testing engine in a new directory of its
@@ -143,7 +144,8 @@ android/scripts/shots.sh tablet fresh
 `shots.sh <phone|phone-37|tablet|fold> [shot…]` builds the APKs, starts the device's AVD headless
 on a port of its own (5560 to 5566) unless it is running, installs, and for each shot clears the
 app, starts it with the shot's extras, waits for `ANISTREAM_READY` and takes a screencap, with the
-status bar in demo mode at 19:30. A shot is `watching`, `fresh` or `app` (the app flavour on the
+status bar in demo mode at 19:30. `ANISTREAM_EMULATOR_PORT` puts the emulator on another port, for a
+second worktree's beside the first. A shot is `watching`, `fresh` or `app` (the app flavour on the
 real AniList), then optionally `:` and a section or `key=value`s joined by `+`
 (`fresh:title=900001`, `fresh:query=hoshi`, `fresh:watched=900001:1,2,3`). Shots go to
 `android/.shots/a0/` (`ANISTREAM_SHOTS_PHASE` names another), which git ignores. Shots of the app

@@ -22,6 +22,7 @@ import tv.anistream.engine.model.Event
 import tv.anistream.engine.model.JobId
 import tv.anistream.engine.model.LibrarySegment
 import tv.anistream.engine.model.SearchFilters
+import tv.anistream.engine.model.SettingKey
 import tv.anistream.engine.model.ShowSettingKey
 
 /**
@@ -68,6 +69,8 @@ class AppStore(
     val accounts = AccountsModel()
     val stores = StoresModel()
     val downloads = DownloadsModel()
+    val settings = SettingsModel()
+    val providers = ProvidersModel()
     val showSettings = ShowSettingsModel()
     val artwork = ArtworkStore(scope, decoder) { url ->
         val client = client
@@ -265,6 +268,57 @@ class AppStore(
         send(Command.SetWatched(id, episodes, watched))
     }
 
+    // Settings
+
+    /** Step a setting one rung, or over to its other state. */
+    fun stepSetting(key: SettingKey, delta: Long) {
+        send(Command.StepSetting(key, delta))
+    }
+
+    /** Set a setting to [value]: a menu's choice, a typed value, the source order. */
+    fun setSetting(key: SettingKey, value: SettingValue) {
+        send(Command.SetSetting(key, value))
+    }
+
+    /** Turn a switch on or off, when it is not already. */
+    fun setSwitch(key: SettingKey, on: Boolean) {
+        if (settings.isOn(key) == on) return
+        setSetting(key, SettingValue.Bool(on))
+    }
+
+    /** The title language the signed-in AniList viewer reads in, for AniList's choice. */
+    fun loadTitleLanguage() {
+        send(Command.LoadTitleLanguage)
+    }
+
+    // Accounts
+
+    /** Send what waits and pull the library now, rather than at the next interval. */
+    fun syncNow() {
+        accounts.started("sync", send(Command.SyncNow))
+    }
+
+    /** Sign out of [tracker]: the engine forgets its token. */
+    fun disconnect(tracker: String) {
+        send(Command.Disconnect(tracker))
+    }
+
+    // Sources
+
+    /** Check every provider again. */
+    fun checkProviders() {
+        send(Command.CheckProviders)
+    }
+
+    /** Pin [provider] as the source for title [id], or give the title back to automatic with `null`. */
+    fun setProviderPreference(id: AnilistId, provider: String?) {
+        send(Command.SetProviderPreference(id, provider))
+    }
+
+    /** The providers in the order failover tries them, as the config now has it. */
+    fun orderedProviders(): List<tv.anistream.engine.model.ProviderRow> =
+        SourceOrder.sorted(providers.rows.value, settings.view.value?.sources?.order.orEmpty())
+
     // Settling
 
     /**
@@ -308,6 +362,7 @@ class AppStore(
             is Event.JobNote -> jobs.note(event.job, event.note, event.wait?.toMillis())
             is Event.JobDone -> {
                 jobs.done(event.v1)
+                accounts.done(event.v1)
                 detailDone(event.v1)
             }
 
@@ -328,6 +383,13 @@ class AppStore(
             is Event.Toast -> notices.post(event.v1)
 
             is Event.Sync -> accounts.apply(event.v1)
+            is Event.ViewerTitleLanguage -> accounts.viewerTitleLanguage(event.v1)
+            is Event.Settings -> settings.apply(event.v1)
+            is Event.Providers -> providers.apply(event.v1)
+            is Event.ProviderNote -> providers.note(event.v1)
+            Event.SourcesChanged -> providers.sourcesChanged()
+            is Event.Vpn -> providers.guardSaid(event.v1)
+            is Event.ProviderPreference -> providers.preference(event.v1)
             is Event.Stores -> stores.apply(event.v1)
             is Event.Downloads -> downloads.apply(event.v1)
             is Event.ShowSettings -> showSettings.apply(event.v1)

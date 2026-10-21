@@ -38,6 +38,19 @@ internal fun NavBackStackEntry.destinationOf(): Destination? =
     destination.parent?.route?.removeSuffix("-tab")?.let(Destination::named)
 
 /**
+ * Whether the entry is a page beyond the five destinations, Settings and what it opens, which
+ * sits outside every destination's graph.
+ */
+internal val NavBackStackEntry.isPage: Boolean get() = destinationOf() == null
+
+/**
+ * Whether the entry takes the whole window, with no navigation bar or rail: Settings, as
+ * AndroidSettings and AndroidTabletSettings draw it.
+ */
+internal val NavBackStackEntry.isFullWindow: Boolean
+    get() = isPage && destination.route?.startsWith(SETTINGS_ROUTE) == true
+
+/**
  * What the screens navigate with: the destinations, title pages, and which element a title page
  * was opened from, so that only that element flies into the page and back.
  */
@@ -77,6 +90,16 @@ class Navigator(private val nav: NavHostController, private val start: Destinati
 
     fun back() {
         nav.popBackStack()
+    }
+
+    /** Open Settings at [pane], or at its list. */
+    fun openSettings(pane: SettingsPane? = null) {
+        nav.navigate(settingsRoute(pane)) { launchSingleTop = true }
+    }
+
+    /** Push the page at [route] over whatever is on screen. */
+    fun open(route: String) {
+        nav.navigate(route) { launchSingleTop = true }
     }
 }
 
