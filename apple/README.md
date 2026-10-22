@@ -375,9 +375,12 @@ With no snapshot, Airing today asks AniList's public schedule itself, at most ev
 
 The App Group is one setting, `ANISTREAM_APP_GROUP` in `Config/Base.xcconfig`: `group.tv.anistream`
 on iPhone and iPad, and `<team>.tv.anistream` on the Mac, which signs with no provisioning profile.
-Without a team the Mac's has no group, and nothing is written. The Fixtures app names no group, so
-it never writes over the app's. Taps open `anistream://title/<id>`, `anistream://play/<id>/<episode>`,
-`anistream://calendar` and `anistream://settings/accounts`, which `opensWidgetLinks()` routes.
+Without a team the Mac's has no group, and nothing is written. Sideloaded with AltStore or
+SideStore, the release's .ipa is signed into `group.tv.anistream.<their team>` instead, which the
+app and the widgets find in the profile each is signed with (`WidgetFiles.shared`). The Fixtures
+app names no group, so it never writes over the app's. Taps open `anistream://title/<id>`,
+`anistream://play/<id>/<episode>`, `anistream://calendar` and `anistream://settings/accounts`,
+which `opensWidgetLinks()` routes.
 
 On iPhone the extension also draws the downloads' Live Activity: one activity for the whole queue,
 on the Lock Screen and in the Dynamic Island. `DownloadsActivityFeed` starts it when a download

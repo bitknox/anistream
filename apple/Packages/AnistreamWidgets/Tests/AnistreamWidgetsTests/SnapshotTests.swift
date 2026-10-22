@@ -132,6 +132,39 @@ struct WidgetFilesTests {
         #expect(WidgetFiles.shared() == nil)
     }
 
+    @Test("Sideloaded, the group is the one the store registered under its team")
+    func sideloadedGroup() {
+        let group = "group.tv.anistream"
+        #expect(WidgetFiles.sideloadedGroup(for: group, among: ["group.tv.anistream.ABCDE12345"])
+            == "group.tv.anistream.ABCDE12345")
+        #expect(WidgetFiles.sideloadedGroup(
+            for: group, among: ["group.com.rileytestut.AltStore.ABCDE12345", "group.tv.anistream.ABCDE12345"])
+            == "group.tv.anistream.ABCDE12345")
+        // The group itself, another app's, and one only beginning like it are none.
+        #expect(WidgetFiles.sideloadedGroup(for: group, among: ["group.tv.anistream"]) == nil)
+        #expect(WidgetFiles.sideloadedGroup(for: group, among: ["group.tv.anistreamer.ABCDE12345"]) == nil)
+        #expect(WidgetFiles.sideloadedGroup(for: group, among: ["group.tv.anistream.app.ABCDE12345"]) == nil)
+        #expect(WidgetFiles.sideloadedGroup(for: group, among: []) == nil)
+    }
+
+    @Test("A provisioning profile's App Groups are read from the plist inside its signature")
+    func provisionedGroups() throws {
+        let plist = try PropertyListSerialization.data(
+            fromPropertyList: [
+                "Name": "AltStore tv.anistream.app.ABCDE12345",
+                "Entitlements": [
+                    "application-identifier": "ABCDE12345.tv.anistream.app.ABCDE12345",
+                    "com.apple.security.application-groups": ["group.tv.anistream.ABCDE12345"],
+                ],
+            ],
+            format: .xml, options: 0)
+        // The CMS signature's bytes around it, as a profile has them.
+        let profile = Data([0x30, 0x82, 0x3c, 0x00, 0x06, 0x09]) + plist + Data([0xa0, 0x82, 0x0b, 0x00])
+        #expect(WidgetFiles.provisionedGroups(profile) == ["group.tv.anistream.ABCDE12345"])
+        #expect(WidgetFiles.provisionedGroups(Data()) == [])
+        #expect(WidgetFiles.provisionedGroups(Data("<?xml no plist".utf8)) == [])
+    }
+
     @Test("Art is named by its address, so the same address is the same file")
     func artNames() {
         let one = WidgetFiles.artName(for: "https://img.example/banner/900001.jpg", kind: .wide)
