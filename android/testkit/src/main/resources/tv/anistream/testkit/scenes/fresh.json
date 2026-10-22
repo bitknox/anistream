@@ -1421,6 +1421,36 @@
        "listStatus": null
       }
      ],
+     "seasons": [
+      {
+       "id": "900001",
+       "title": "Stardust Wayfarer",
+       "titleRomaji": "Hoshikuzu no Tabibito",
+       "titleEnglish": "Stardust Wayfarer",
+       "titleNative": "星屑の旅人",
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/900001.jpg",
+       "coverColor": "#e4a15d",
+       "season": "SPRING",
+       "year": "2024",
+       "listStatus": null
+      },
+      {
+       "id": "900004",
+       "title": "Stardust Wayfarer Season 2",
+       "titleRomaji": "Hoshikuzu no Tabibito 2nd Season",
+       "titleEnglish": "Stardust Wayfarer Season 2",
+       "titleNative": "星屑の旅人 第2期",
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/900004.jpg",
+       "coverColor": "#d77f4a",
+       "season": "WINTER",
+       "year": "2025",
+       "listStatus": null
+      }
+     ],
      "recommendations": [
       {
        "id": "900005",
@@ -1998,6 +2028,7 @@
       }
      ],
      "relations": [],
+     "seasons": [],
      "recommendations": [
       {
        "id": "900001",
@@ -2218,6 +2249,7 @@
      ],
      "schedule": [],
      "relations": [],
+     "seasons": [],
      "recommendations": [
       {
        "id": "900001",
@@ -2503,6 +2535,36 @@
        "listStatus": null
       }
      ],
+     "seasons": [
+      {
+       "id": "900001",
+       "title": "Stardust Wayfarer",
+       "titleRomaji": "Hoshikuzu no Tabibito",
+       "titleEnglish": "Stardust Wayfarer",
+       "titleNative": "星屑の旅人",
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/900001.jpg",
+       "coverColor": "#e4a15d",
+       "season": "SPRING",
+       "year": "2024",
+       "listStatus": null
+      },
+      {
+       "id": "900004",
+       "title": "Stardust Wayfarer Season 2",
+       "titleRomaji": "Hoshikuzu no Tabibito 2nd Season",
+       "titleEnglish": "Stardust Wayfarer Season 2",
+       "titleNative": "星屑の旅人 第2期",
+       "relation": null,
+       "format": "TV",
+       "coverUrl": "https://img.example/cover/900004.jpg",
+       "coverColor": "#d77f4a",
+       "season": "WINTER",
+       "year": "2025",
+       "listStatus": null
+      }
+     ],
      "recommendations": [],
      "rankings": [],
      "characters": [],
@@ -2761,6 +2823,7 @@
      ],
      "schedule": [],
      "relations": [],
+     "seasons": [],
      "recommendations": [],
      "rankings": [],
      "characters": [],
@@ -3093,6 +3156,7 @@
       }
      ],
      "relations": [],
+     "seasons": [],
      "recommendations": [],
      "rankings": [],
      "characters": [],
